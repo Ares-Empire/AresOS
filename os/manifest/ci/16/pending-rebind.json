@@ -23,7 +23,7 @@
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "448d12f8558ffa8c22a7c74f69f47e8b6cc577593433e1ec7eb909b0fd789cc2",
+      "sha256": "6c5c93bf0c9bd6518cc9454155fc570e84912f9dd96a3a989308fcbe3c5d5b24",
       "path": "docs/INSTALL.md"
     },
     {
@@ -47,7 +47,7 @@
       "path": "os/ci/owner_hidden.py"
     },
     {
-      "sha256": "33e1f9103167e8705e85d0555303aad16e14fa33012c78afe344b5686feeaaf1",
+      "sha256": "7e9fff163cd33ca65676aa6791828b23302c45ef1599bb1fcf52277d219ba3ca",
       "path": "os/ci/owner_login.py"
     },
     {
@@ -87,7 +87,7 @@
       "path": "os/owner-tools/bundle.py"
     },
     {
-      "sha256": "f3cd749581a4f6866ae2bf0ee5c3b083191cd8e42002350f8448748ed5a41475",
+      "sha256": "709cc7c699a8a7d2767c7c268c74d0dd380dcfb041f31fb958c7bd73d2426755",
       "path": "os/owner-tools/commands.json"
     },
     {
@@ -95,15 +95,15 @@
       "path": "os/owner-tools/media.py"
     },
     {
-      "sha256": "69fb89796447350f7f2146ea105d8aa0f6ca1ba7fc983920e701e3a6401e1956",
+      "sha256": "d4a8c9f1a6d1236783cc119f0ee1a9f9639bcba24ca0c39af79df4136dbd7cd5",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "a9c9286344a12ae3ef05846104ffe8914f2d08072cc300e3d83d31d55ef4b79c",
+      "sha256": "77cf509e01a6382a455ae4e5900c0215a2de179389bdc66b6e065c2dc02eb1cd",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "daa31228a011fb059643d2884199ba95b7dd8a0b9002429f64641e7e89036da5",
+      "sha256": "e4dedbb63ed49313bd9625b92c02418002a5b3daf83b4e8039c4a2a9080da7f6",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -111,7 +111,7 @@
       "path": "os/owner-tools/payload/media.py"
     },
     {
-      "sha256": "69fb89796447350f7f2146ea105d8aa0f6ca1ba7fc983920e701e3a6401e1956",
+      "sha256": "d4a8c9f1a6d1236783cc119f0ee1a9f9639bcba24ca0c39af79df4136dbd7cd5",
       "path": "os/owner-tools/payload/owner.py"
     },
     {
@@ -163,7 +163,7 @@
       "path": "os/tests/test_owner_guard.py"
     },
     {
-      "sha256": "e2a439f5cc82e2f7676573cf28e58c511e368a48cc0e2390d947af6429aa589f",
+      "sha256": "f88864b0c59a2a8aac384705ce5ab4ad323dd8037e34163628f087bd06c6dd9e",
       "path": "os/tests/test_owner_login.py"
     },
     {
