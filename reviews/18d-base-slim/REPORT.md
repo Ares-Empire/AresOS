@@ -620,3 +620,231 @@ the three automatic PR runs and one `gh run rerun <id>` of each same run. Actual
 IDs, attempts, results and execution count are recorded in PR #25 after the
 push. Local verification logs and scripts are under
 `.work/18d-main-merge-fixes/`.
+
+## Main merge fixes, round 2
+
+**Done:** followed `briefs/18d-main-merge-fixes-2.md` from local `59def857`.
+No production code changed. `control/mail_tests/sweep_scripts.py` contains the
+independent ambient-source guard and six fixture scripts;
+`control/mail_tests/test_review23_sweep.py` installs them for every direct
+`Scenario`, including discovery, all fault modes, recovery and cleanup. The
+owner-oracle subclass retains its independent scripts. Constructor failures
+restore patches and registered fixture cleanups too.
+
+**Sources found (production paths relative to `control/aresos_control/`):**
+
+| Source | File and line; use in the inherited flows |
+| --- | --- |
+| Float wall clock | `storage.py:207,246,248,591,645`; retained dates, journal events and restart dates. `engine.py:157,172,176,219,242,346,392,424`; expiry and quiet periods. `mail/adapter.py:520,967,972,985`; compositions and APPEND dates. `retention.py:74`, `archive.py:16`; retention/cutoff. Fixture reads: `control/mail_tests/test_review23_sweep.py:149,168` (archive cutoff, maintenance advance); its `:164` expiry patch uses the fixed approval deadline. |
+| Nanosecond clock | `warnings.py:36`, `mail/filing.py:413`, `engine.py:138`; notice occurrences, filing warnings and fault-only background-maintenance warnings. |
+| Calendar conversion | `engine.py:289` uses **explicit** `gmtime(retry)` and `strftime(..., tuple)`. `engine.py:455,461` has implicit `localtime()` in the history route, which no inherited flow calls. No inherited clean/fault replay reads implicit `localtime`, `gmtime` or `strftime`; these now stay forbidden, with no replacement script. |
+| Implicit email date | `mail/adapter.py:529` calls its imported `formatdate(localtime=False)` alias. Python 3.14 `email/utils.py:239` otherwise supplies the current clock. Both the module function and the imported alias are guarded/scripted. |
+| UUIDs | `storage.py:240,546,761`, `engine.py:175,387`, `warnings.py:34`, `mail/adapter.py:520,1351`, `mail/filing.py:72,338`, `mail/onboarding.py:90,99`, `testapp.py:71`, `results.py:129`, `exports.py:14`, `archive.py:86`; generation, operation, occurrence, composition, intent, filing, observation, export and archive identities. UUID4 is read; UUID1 is not. |
+| MIME randomness | `control/mail_tests/test_review23_sweep.py:252` serializes the attachment fixture; Python 3.14 `email/generator.py:384` calls `random.randrange` for its boundary. All three export fixtures read this source, including testapp export's shared setup. |
+| Temporary names | `control/mail_tests/test_review_fixes_12.py:23` and `control/mail_tests/test_review23_sweep.py:255` construct `TemporaryDirectory`; Python 3.14 `tempfile.py:154` consumes an ambient private Random instance. All flows read temporary names. |
+| Other candidate sources | `mail/dkim.py:80` uses `secrets.randbelow`, but the inherited HTTPS fixture stubs DKIM verification (`test_review23_sweep.py:390`). `files.py:120` converts explicit filesystem metadata, but these flows export rather than import files. `mail/adapter.py:227` converts an explicit message date. No flow reads `datetime.now/utcnow/today`, `date.today`, UUID1, `secrets`, `os.urandom` directly, or `email.utils.make_msgid`; no scripts are needed for them. `MemoryIMAP` uses a literal Message-ID (`test_review_fixes_11.py:22`, `test_review_fixes_12.py:29`); outgoing Message-IDs derive from the scripted operation ID (`mail/adapter.py:581`). |
+
+The fixture alias chain is `Results23` → `Duplicates22` → `LateDuplicates21`
+→ `Recovery19` → `Recovery18` → `Recovery17` → `PlainQuestions12`. Its setup,
+compose, approval and restart methods were read, as were the service clock,
+calendar, random, SQL and email call sites. No SQL ambient clock/random
+expression was found. The old fixture calendar reads are `control/owner_state_oracle/clock.py:27,29`;
+its seeded UUID generator is `control/owner_state_oracle/identity.py:13,14`.
+The new fixture scripts use only explicit seeds and the effective scripted clock
+(`sweep_scripts.py:102,108,126,133,141`). Monotonic timing in the sweep
+(`test_review23_sweep.py:816,820,858,865`) measures elapsed duration;
+it does not feed stored values, ordering or fault positions.
+
+**Guard and scripts:** ambient `time.time/time_ns`, implicit/None calendar
+arguments, `datetime.now/utcnow/today`, `date.today`, UUID1/4 (also 6/7/8 where
+available), random-module APIs, unseeded `Random`, `SystemRandom`, secrets APIs,
+`os.urandom`, tempfile candidate names, `make_msgid` and implicit `formatdate`
+raise `AmbientRead`. It derives from `BaseException` so production's normal
+exception-to-response/recovery handlers cannot swallow a fixture leak. Explicit
+calendar inputs and seeded private generators remain valid; 27 direct negative
+probes and positive explicit-input controls exercise the guard, including
+production's cached datetime/date/email aliases.
+
+The original full-precision float clock and `inherited-<flow>` UUID seed remain.
+Implicit email dates now pass that clock explicitly. MIME boundaries use a
+private seeded generator and keep the library's padded boundary width. Temporary
+names keep eight characters and replay the same sequence within a worker; a PID
+salt isolates concurrent workers sharing local directories. These two formerly
+ambient random sources are now scripted even though their widths were fixed.
+The former `scripted_calendar()` nanosecond behavior is a separate script;
+unused implicit local-calendar reads are blocked instead of supplied.
+
+**Mutation checks:** the required inherited module discovers actual script
+consumers through setup/call/recovery, then disables each component alone and
+requires the exact corresponding `AmbientRead` source. For nanoseconds not used
+in a clean replay, it searches actual single-fault points (journal writes first,
+then every other primary point) before concluding that a flow does not read it.
+This also finds the background warning at fault point 1 in expiry/maintenance.
+All **91 missing-component checks pass**:
+
+- Float clock, UUIDs, temporary names: **23 flows each**.
+- Calendar/email dates: **11** — send, repair, unsubscribe_mailto, status,
+  settlement, cancel, restore, expiry, maintenance, archive, send_duplicate.
+- Nanoseconds: **8** — status, settlement, filing_move, filing_copy,
+  filing_rename, send_duplicate, plus expiry and maintenance under fault.
+- MIME boundary: **3** — attachment_export, testapp_export, export_rollback.
+
+All 23 flows also replay cleanly three times with exact write-trace equality.
+An AST comparison prints `Sweep invariant OK: same 23 flows, fault/recovery
+methods, modes, cleanup pairs and assertions unchanged`: the complete sweep,
+`fault`, `assert_result`, recovery, completion and duplicate-warning methods
+are unchanged. No test selection or workflow changed. Required sweep jobs now
+run **10 tests** (the previous seven plus three new guard/order tests).
+
+**Lifecycle regression:** the retained uncommitted change correctly identified
+tied notice timestamps. Round 1's calendar derived nanoseconds from an unchanging
+float clock, letting UUID tie order place the generic interrupted-change warning
+before the later Trash occurrence. The new nanosecond component retains and
+extends the proposed fix to **every** flow, including archive: each read is at
+least the previous value plus one and follows any forward effective-clock jump.
+A nested 90,000-second expiry clock followed by restoration still leaves the
+next notice strictly newer. The fixed float clock, explicit expiry/maintenance
+advances and archive's two-second step are unchanged. No assertion was weakened.
+
+Searched every test module for `Scenario`, `test_review23_sweep` and the shared
+scripts. Checked all direct users and the subclass/indirect users:
+
+- `test_review23_sweep`: ordering/recovery, duplicate evidence, explicit expiry,
+  maintenance retention and archive cutoff; full fault sweep and regressions run.
+- `test_review26_sweep`: live admission recovery and archive/expiry, plus completion
+  and cleanup precedence; all three tests run twice.
+- `test_review27_checks`: notice selection, failed filing result/restart and
+  warning identity; all tests run twice.
+- `test_review28_filing`: unresolved-role/location checks and acknowledgement;
+  all four tests run twice.
+- `test_review29_lifecycle`: newest-occurrence order, identity, acknowledgement,
+  expiry/retention and archive behavior; all tests run twice, including the
+  originally failing method.
+- `test_owner_state_regressions`: the three required aliases run twice, including
+  `test_review21_acknowledged_rename_expiry`; all six named tests also pass in
+  a separate complete module run.
+- `test_owner_state_sweep`: reviewed the independent advancing-clock subclass;
+  its five required fixture/isolation tests run twice. Its optional exhaustive
+  strict-pin sweep is unchanged and was not run.
+- `test_owner_state_perturb`: reviewed its constructor wrapper and replay of the
+  same named regressions; the local alteration module result is recorded below.
+  No optional oracle workflow is requested or dispatched.
+
+**Linux before/after counts:** downloaded the Linux job logs, rather than
+substituting Mac diagnostics. Before is Mail **43153748879, attempt 2**, source
+`9bcacd84`; round 1 is **43162099390, attempt 1**, source `8bfe75ec`. All four
+round-1 sweep jobs pass; the two container failures are the same lifecycle
+method and its inherited regression alias. The following per-flow values are
+identical in both Linux runs. `S`, `P`, `C` mean single, persistent and cleanup-pair
+cases. Final-head values and their comparison against every row are recorded
+in [PR #25's final validation](https://github.com/Ares-Empire/AresOS/pull/25)
+after the one final push, alongside both attempts and the exact tested SHA;
+this avoids a report commit/push invalidating that tested head.
+
+| Flow | Before points | Round-1 points | Before S / P / C | Round-1 S / P / C |
+| --- | ---: | ---: | --- | --- |
+| send | 830 | 830 | 797 / 797 / 1567 | 797 / 797 / 1567 |
+| repair | 345 | 345 | 334 / 334 / 632 | 334 / 334 / 632 |
+| delete_trash | 265 | 265 | 253 / 253 / 475 | 253 / 253 / 475 |
+| delete_permanent | 395 | 395 | 379 / 379 / 711 | 379 / 379 / 711 |
+| unsubscribe_mailto | 832 | 832 | 799 / 799 / 1573 | 799 / 799 / 1573 |
+| unsubscribe_https | 329 | 329 | 315 / 315 / 590 | 315 / 315 / 590 |
+| status | 147 | 147 | 143 / 143 / 272 | 143 / 143 / 272 |
+| settlement | 148 | 148 | 144 / 144 / 275 | 144 / 144 / 275 |
+| cancel | 65 | 65 | 63 / 63 / 118 | 63 / 63 / 118 |
+| restore | 68 | 68 | 66 / 66 / 122 | 66 / 66 / 122 |
+| attachment_export | 277 | 277 | 242 / 242 / 1593 | 242 / 242 / 1593 |
+| testapp_export | 144 | 144 | 117 / 117 / 534 | 117 / 117 / 534 |
+| password | 129 | 129 | 119 / 119 / 226 | 119 / 119 / 226 |
+| filing_move | 350 | 350 | 338 / 338 / 650 | 338 / 338 / 650 |
+| filing_copy | 351 | 351 | 339 / 339 / 654 | 339 / 339 / 654 |
+| filing_rename | 227 | 227 | 219 / 219 / 419 | 219 / 219 / 419 |
+| expiry | 65 | 65 | 63 / 63 / 111 | 63 / 63 / 111 |
+| maintenance | 62 | 62 | 60 / 60 / 108 | 60 / 60 / 108 |
+| restart_index | 31 | 31 | 20 / 20 / 62 | 20 / 20 / 62 |
+| restart_tail | 33 | 33 | 22 / 22 / 68 | 22 / 22 / 68 |
+| export_rollback | 277 | 277 | 246 / 246 / 1765 | 246 / 246 / 1765 |
+| archive | 360 | 360 | 347 / 347 / 1670 | 347 / 347 / 1670 |
+| send_duplicate | 912 | 912 | 877 / 877 / 1720 | 877 / 877 / 1720 |
+| **Total** | **6,642** | **6,642** | **6,302 / 6,302 / 15,915** | **6,302 / 6,302 / 15,915** |
+
+Both runs execute **28,519 fault cases**. No per-flow point or single,
+persistent or pair count drops. Their mechanism summary totals **6,640** rather
+than the per-flow sum **6,642**: the summary copies the counter before recovery,
+whereas each restart flow's retained trace gains one delayed `journal.close`
+when recovery closes a Raw handle created in the discovery scope
+(`storage_faults.py:164`). The two extra close events are skipped as primary
+faults by the unchanged sweep. This explains the totals without hiding any
+case or changing instrumentation.
+
+**Verified / local:** commands used Python 3.14.6 from the existing
+`.work/18d-review/venv/bin/python`, with `-B` and
+`PYTHONPATH=control:control/mail_tests`, unless stated otherwise. Reproduction
+wrappers and exact logs are in `.work/18d-main-merge-fixes-2/`:
+
+- `python3 control/generate.py --check`: `Generated artifacts match definitions`.
+- Native `python -B -m unittest -v
+  test_review23_sweep.FaultSweep23.test_inherited_replays_have_identical_write_traces`:
+  `Ran 1 test` / `FAILED (failures=14)`, each stopped at
+  `boundary_not_installed` because macOS `/etc` is a symlink. No protected host
+  path or setting was changed. The following local storage diagnostics replace
+  only `Boundary.read` with generated `managed_settings()`; CI remains the
+  evidence for the real installed-policy path.
+- `local_tests.py` with the three new tests, three-replay comparison, two-clock
+  mechanism regression, archive regression, recovery/completion counterexamples
+  and `test_review24_io`: **9 tests / OK** (`239.572s`), log
+  `local-guard-final.txt`. Mutation output lists all 91 omissions and actual
+  consuming flows; the two background-maintenance messages are intentional
+  fault witnesses. The precision probe still prints index **300**,
+  `sqlite.main.fsync vs sqlite.main.write; points=[788, 788]`.
+- `MAIL_SWEEP_SHARDS=4 MAIL_SWEEP_SHARD=N ... local_tests.py
+  test_review23_sweep.FaultSweep23.test_review23_enospc_at_every_discovered_durable_write`
+  for N=0–3: **all four pass**, `Ran 1 test` / `OK`, in
+  **515.112 / 386.419 / 475.521 / 266.087s**. Logs:
+  `local-sweep-{0,1,2,3}.txt`. Totals are **23 flows, 6,518 per-flow points,
+  6,259 single + 6,259 persistent + 15,979 pairs = 28,497 fault cases**.
+  The pre-recovery mechanism summary is 6,516 (the same two delayed closes).
+  These match round 1's Mac coverage; they are not compared numerically to Linux
+  because the policy stub, Linux publication primitives and SQLite/VACUUM differ.
+- `local_consumers.py`: the six consumer modules' required cases, using the
+  repository's `select_cases(..., 'suite')`, pass **twice**, **41 tests / OK**
+  in **3.930 / 6.829s**. Exact test names/results are in
+  `local-consumers-{1,2}.txt`. No optional exhaustive owner sweep was selected.
+- `local_tests.py test_owner_state_regressions`: the complete module,
+  **6 tests / OK**, `0.871s`, including all three additional named regressions.
+- `PYTHONPATH=control:control/tests python -B -m unittest -v
+  test_mail_ci_selection`: **6 tests / OK**, `0.097s`.
+- Control Python sources AST-parse (`Python syntax OK`); the sweep invariant
+  comparison above passes; `git diff --check` exits 0 without output.
+- `OWNER_PERTURB_SHARDS=4 OWNER_PERTURB_SHARD=N ... local_tests.py
+  test_owner_state_perturb` for N=0–3: **all four pass**, one test each,
+  **1326.895 / 1112.669 / 1246.068 / 1132.209s**. The union covers **98 recorded cases / 110
+  partitions / 2,081,423 alterations**; all parts are present and all report
+  `slipped=0`. One regression label represents two separate Driver recordings.
+  Logs: `local-perturb-{0,1,2,3}.txt`. The first local attempt stopped at
+  `ModuleNotFoundError: No module named 'cryptography'`; installed only the
+  repository-pinned `cryptography==50.0.2`, `cffi==2.1.1`, `pycparser==3.12`
+  into the existing worktree virtualenv with `--no-cache-dir` and binary wheels.
+  An unsharded restart was intentionally interrupted (exit 130) before running
+  the complete existing four-shard partition; it is not counted as a passing
+  test. No test/partition/assertion was edited or excluded.
+
+**Final-head CI / execution accounting:** after this report commit, push the
+branch once, including the local brief/reviews commit and the fixture fix.
+Require Control base, Control Mail (all eight jobs) and Control boundary to
+pass, then `gh run rerun <id>` of each same run once. The actual final SHA,
+three run IDs, both attempts, exact outputs and final per-flow Linux count
+comparison live in [PR #25](https://github.com/Ares-Empire/AresOS/pull/25),
+with local manifests/logs under `.work/18d-main-merge-fixes-2/`. Six final-head
+executions; no optional owner-oracle workflow. No post-CI source/report push
+is planned, so acceptance covers the exact reported head.
+
+**Not verified / PLAN-GAP / JUDGMENT-CALL / open questions:** no new production
+behavior, owner decision or blocking question. Local policy-read substitution
+is diagnostic evidence; real installed-policy acceptance comes from Linux CI.
+Real accounts, interactive owner use and laptop installation remain outside
+this run. The existing optional-oracle strict-pin migration limit remains;
+no oracle pin, design/plan, README/STATE/HANDOFF, OS/mod/install, or reviewer-
+authored file was edited. No merge, force-push, hook bypass, system installation,
+host setting or disk change. No Gradle ran. Storage audit before the report:
+`Remaining .work files over 500 MB: []`.
