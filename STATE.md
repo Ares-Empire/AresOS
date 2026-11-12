@@ -202,7 +202,9 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
      draft 25, `0ae9f903`). On 2026-11-11: the owner's safety bar for the tools (safe like a normal MCP or CLI) and
      his re-scope answers (PRs #38, #39). **On 2026-11-12: Mail** (brief 19 with 19b, PR #9, `25528195`): read,
      search, sort and send; every send, delete and unsubscribe asks. CI tests it against test mail servers; not yet
-     tried with a real account.
+     tried with a real account. **The slim base** (brief 18d, PR #25, `9b27a2fe`): the managed settings hold only
+     the generated ask rules and two hooks, our servers install at his user scope, and Mail's descriptions shrank
+     from 86,557 to 21,055 characters.
    - **Decided:** the approval surface (decision 21, after six phone tests): Claude Code's own prompt, at the laptop
      and through Remote Control on his phone, with every asking input starting with the tool service's `question`
      sentence. On 2026-11-08 (decision 24, replacing the containment parts of decisions 22 and 23): AresOS runs
@@ -213,9 +215,9 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
      his account installs software normally. Chrome (decision 25, "B is good"): a light tool of our own in his normal
      Chrome, with no proxy and no certificate; it asks before anything that clearly sends, and a page that sends on
      its own after an ordinary click isn't held, as with Claude in Chrome.
-   - **In progress:** the slim base (brief 18d, PR #25: reviews SAFE; now merging main in, with the combined head
-     re-reviewed); the Chrome tool (brief 20, PR #27: a fix round for four findings of its re-check, then a scoped
-     re-check; it merges after 18d, its test group 12 in 18d's harness). `laptop-aresos` owns `os/` and the accounts;
+   - **In progress:** the Chrome tool (brief 20, PR #27): a fix round for four findings of its re-check, then main
+     merged in, Chrome moved onto the slim generator, test group 12 in 18d's harness, and reviews of the combined
+     head. `laptop-aresos` owns `os/` and the accounts;
      for Chrome the image needs the extension policy, the native host's manifest and `gh` 2.102 or newer.
    - **Next:** after Mail, 18d and Chrome merge, an AresOS-side session takes over (`docs/control/TOOLS-HANDOFF.md`):
      the Chrome decisions and known limits into CONTROL.md section 6, the Chrome capability brief, brief 18c, and
