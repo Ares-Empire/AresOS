@@ -16,6 +16,7 @@ import pathlib
 import re
 import shlex
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -49,6 +50,12 @@ LOGIN_REFUSAL = ('Registry login missing, expired or unreachable: run sudo /var/
 OUTCOME = 'outcome-pending'
 # One owner command at a time, bootstrap install included; /run is root-only.
 LOCK = pathlib.Path('/run/ares-owner.lock')
+# A release step's own time limit, and how long its process group gets after TERM, then after KILL.
+SCRIPT_TIMEOUT = 1800
+STOP_GRACE = 15
+# update.sh unmasks exactly these two (package 27, JUDGMENT-CALL 11); a stopped update masks them again.
+UNITS = pathlib.Path('/etc/systemd/system')
+FINALIZERS = ('ostree-finalize-staged.service', 'bootc-finalize-staged.service')
 
 
 def boot_id():
@@ -248,12 +255,86 @@ class Host:
         require(result.returncode == 0, 'Operation failed: ' + command[0] + '; do not reboot')
 
     def script(self, text, name, mutation=True):
-        result = subprocess.run(['/usr/bin/bash', '-seu'], input=text, text=True, capture_output=True, timeout=1800,
-            env=dict(os.environ, PATH='/usr/sbin:/usr/bin:/sbin:/bin'))
-        self.trace.append(dict(script=name, returncode=result.returncode, stdout=result.stdout,
-                               stderr=result.stderr, mutation=mutation))
-        require(result.returncode == 0, 'Shared step failed: ' + name + '; preserve diagnostics and do not reboot')
-        return result.stdout
+        # Its own process group: on a timeout or Ctrl+C the tool stops the whole step,
+        # bash and bootc alike, so no transaction outlives it (package 27, review 1).
+        # subprocess.run would SIGKILL only the shell, skipping its EXIT trap.
+        process = subprocess.Popen(['/usr/bin/bash', '-seu'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, text=True, env=dict(os.environ, PATH='/usr/sbin:/usr/bin:/sbin:/bin'),
+            start_new_session=True)
+        try:
+            stdout, stderr = process.communicate(text, timeout=SCRIPT_TIMEOUT)
+        except (Exception, KeyboardInterrupt) as error:
+            gone = stop_group(process)
+            try:
+                stdout, stderr = process.communicate(timeout=5)
+            except (subprocess.SubprocessError, OSError, ValueError):
+                stdout = stderr = None
+            self.trace.append(dict(script=name, returncode=process.returncode, stdout=stdout, stderr=stderr,
+                                   mutation=mutation, stopped=type(error).__name__, group_gone=gone))
+            if not gone:
+                raise Unstoppable('Shared step ' + name + ' could not be stopped; do not reboot; get help') from None
+            if isinstance(error, subprocess.TimeoutExpired):
+                raise Stop('Shared step timed out: ' + name + ' (stopped after ' + str(SCRIPT_TIMEOUT // 60)
+                           + ' minutes); preserve diagnostics and do not reboot') from None
+            raise
+        self.trace.append(dict(script=name, returncode=process.returncode, stdout=stdout,
+                               stderr=stderr, mutation=mutation))
+        require(process.returncode == 0, 'Shared step failed: ' + name + '; preserve diagnostics and do not reboot')
+        return stdout
+
+
+def stop_group(process):
+    """TERM, then KILL, a step's whole process group and reap its leader; True once none of it is left."""
+    for signum in (signal.SIGTERM, signal.SIGKILL):
+        try:
+            os.killpg(process.pid, signum)
+        except ProcessLookupError:
+            break
+        deadline = time.monotonic() + STOP_GRACE
+        while time.monotonic() < deadline:
+            process.poll()
+            try:
+                os.killpg(process.pid, 0)
+            except ProcessLookupError:
+                return True
+            time.sleep(0.05)
+    process.poll()
+    try:
+        os.killpg(process.pid, 0)
+    except ProcessLookupError:
+        return True
+    return False
+
+
+class Unstoppable(Stop):
+    """A step whose process group survived TERM and KILL: nothing may be cleaned up behind it."""
+
+
+def staged(state):
+    return bool(state['bootc']['status'].get('staged')) or any(d.get('staged') for d in state['rpm']['deployments'])
+
+
+def finalizer_masks():
+    """The staging finalizers still masked by the image's /dev/null link; update.sh removes exactly these."""
+    return [unit for unit in FINALIZERS if (UNITS / unit).is_symlink() and os.readlink(UNITS / unit) == '/dev/null']
+
+
+def restore_masks(host, removed):
+    """Mask again the finalizers this update removed, and prove systemd sees them masked. Idempotent."""
+    restored = []
+    for unit in removed:
+        path = UNITS / unit
+        if not path.is_symlink():
+            require(not path.exists(), 'Unexpected file in place of the ' + unit + ' mask; do not reboot; get help')
+            os.symlink('/dev/null', path)
+            restored.append(unit)
+        require(os.readlink(path) == '/dev/null', 'The ' + unit + ' mask was changed; do not reboot; get help')
+    if restored:
+        host.mutate('systemctl', 'daemon-reload', timeout=120)
+    for unit in removed:
+        require(host.read('systemctl', 'is-enabled', unit, allowed=(0, 1)).strip() == 'masked',
+                'The mask of ' + unit + ' could not be restored; do not reboot; get help')
+    return restored
 
 
 def observations(host):
@@ -1265,9 +1346,13 @@ class Tools:
         again, _, _ = self.before_update()
         require(again['rpm']['deployments'] == before['rpm']['deployments'],
             'Deployments changed during verification; nothing was staged; get help')
+        removed = finalizer_masks()
         self.intend('update', before, target, None, settled)
-        self.script('update', {'REFERENCE': target, 'CURRENT': image_reference(booted),
-                               'CURRENT_DIGEST': booted['container-image-reference-digest']})
+        try:
+            self.script('update', {'REFERENCE': target, 'CURRENT': image_reference(booted),
+                                   'CURRENT_DIGEST': booted['container-image-reference-digest']})
+        except (Exception, KeyboardInterrupt) as error:
+            raise Stop(self.abandon_update(before, booted, removed, error)) from None
         after = observations(self.host)
         qualified_state(after, self.load('prepared'), target, self.known())
         status = after['bootc']['status']
@@ -1281,6 +1366,45 @@ class Tools:
         if len(retained) == 3:
             lines.append('Older AresOS ' + image_reference(retained[1]) + ' is removed when the update finishes at shutdown')
         return [*lines, *self.title(), 'Reboot only after saving this refreshed title; F12 then Linux']
+
+    def abandon_update(self, before, booted, removed, error):
+        """The backstop after the update step stopped: a failure, a timeout or Ctrl+C.
+
+        The tool stops, so no staged deployment may remain, even one that finished
+        just as the step was stopped, and the finalizer masks this run removed come
+        back. Nothing then changes at the next start. update.sh's EXIT trap covers
+        its ordinary failures; this reads the real state afterwards and is
+        idempotent. The running release, its rollback and the pinned stock stay
+        exactly as before, as the success path requires.
+        """
+        if isinstance(error, Unstoppable):
+            raise error
+        reason = ('was interrupted' if isinstance(error, KeyboardInterrupt)
+                  else 'timed out' if 'timed out' in str(error) else 'failed')
+        try:
+            # A second Ctrl+C must not cut the cleanup short.
+            previous_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
+        except ValueError:
+            previous_handler = None
+        try:
+            state = observations(self.host)
+            idle(state, self.processes())
+            removed_staging = staged(state)
+            if removed_staging:
+                self.host.mutate('rpm-ostree', 'cleanup', '--pending', timeout=600)
+                state = observations(self.host)
+                require(not staged(state), 'The staged update could not be removed; do not reboot; get help')
+            require(state['rpm']['deployments'] == before['rpm']['deployments'] and key(agree(state)) == key(booted),
+                    'The deployments differ from before the update; do not reboot; get help')
+            restore_masks(self.host, removed)
+        finally:
+            if previous_handler is not None:
+                signal.signal(signal.SIGINT, previous_handler)
+        return ('The update ' + reason + ' and was stopped: '
+                + ('its staged release was removed, ' if removed_staging else 'nothing was staged, ')
+                + ('the staging finalizers are masked again, ' if removed else '')
+                + 'and the running release, its rollback and the pinned stock are unchanged. '
+                + 'Nothing changes at the next start; run update again later, or get help')
 
     def previous(self):
         """Queue the previous AresOS release after an update; the stock pin stays."""

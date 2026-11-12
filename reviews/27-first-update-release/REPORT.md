@@ -2,4 +2,4 @@
 
 Built by a Claude agent (Opus 5.5). Brief: `briefs/27-first-update-release.md` (empire brief 266). In progress; the full report follows the rehearsal.
 
-Current tools manifest fingerprint: `daa31228a011fb059643d2884199ba95b7dd8a0b9002429f64641e7e89036da5`.
+Current tools manifest fingerprint: `e4dedbb63ed49313bd9625b92c02418002a5b3daf83b4e8039c4a2a9080da7f6`.

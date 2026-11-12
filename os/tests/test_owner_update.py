@@ -14,6 +14,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -203,6 +204,9 @@ class Machine(owner.Host):
     def mutate(self, *command, **unused):
         self.trace.append(dict(command=list(command), mutation=True))
         self.changes.append(command)
+        if command == ('rpm-ostree', 'cleanup', '--pending'):
+            # As rpm-ostree does: the staged deployment goes, everything else stays.
+            self.state = machine([r for r in self.state['rpm']['deployments'] if not r.get('staged')])
 
     def script(self, text, name, mutation=True):
         syntax(name, text)
@@ -251,7 +255,7 @@ class Machine(owner.Host):
 
 
 @contextlib.contextmanager
-def route(state, bundle_history=H21, target=None, wheel=False, signed=None, login=True):
+def route(state, bundle_history=H21, target=None, wheel=False, signed=None, login=True, host_class=None):
     """Tools over a synthetic target bundle and a modelled running machine."""
     target = target or bundle_history[-1]
     with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
@@ -260,7 +264,7 @@ def route(state, bundle_history=H21, target=None, wheel=False, signed=None, logi
         write_bundle(payload, history(bundle_history), target)
         store = root / 'home/records'
         store.mkdir()
-        host = Machine(state, wheel, {R21: IDENTITY, R30: IDENTITY} if signed is None else signed)
+        host = (host_class or Machine)(state, wheel, {R21: IDENTITY, R30: IDENTITY} if signed is None else signed)
         tools = owner.Tools(payload, host, store)
         tools.processes = lambda: []
         tools.keyboard = lambda: dict(DE)
@@ -703,12 +707,17 @@ class IntentTest(unittest.TestCase):
                 with self.subTest(kind=kind, point=point), self.interrupted(kind, point) as (tools, host, store, command, start):
                     made = bool(host.changes)
                     self.assertEqual(made, point != 'before')
+                    # A failed update step is undone before the STOP (review 1): its staging is removed.
+                    undone = kind == 'update' and point == 'after'
+                    if undone:
+                        self.assertEqual(host.changes[-1], ('rpm-ostree', 'cleanup', '--pending'))
+                        self.assertEqual(host.state, start)
                     lines = command()
-                    if made:
+                    if made and not undone:
                         self.assertEqual(len(host.changes), 1)
                         self.assertTrue(lines[0].startswith('Interrupted '))
                     else:
-                        self.assertEqual(len(host.changes), 1)
+                        self.assertEqual(len(host.changes), 3 if undone else 1)
                         self.assertEqual(len(list(store.glob('*-outcome-retried.json'))), 1)
                     self.assertEqual(tools.load(owner.OUTCOME)['status'], 'recorded')
                     self.assertTrue(any('not finished until the restart' in line for line in tools.check()))
@@ -718,7 +727,9 @@ class IntentTest(unittest.TestCase):
 
     def test_after_a_restart_the_same_command_records_a_finished_change_or_redoes_a_lost_one(self):
         for kind in ('update', 'previous'):
-            with self.subTest(kind=kind, restart='finished'), self.interrupted(kind, 'after') as (tools, host, store, command, start):
+            # A failed update step is undone at once (review 1); a lost read after it leaves the staging.
+            point = 'observe' if kind == 'update' else 'after'
+            with self.subTest(kind=kind, restart='finished'), self.interrupted(kind, point) as (tools, host, store, command, start):
                 host.state = updated() if kind == 'update' else returned()
                 host.wheel, tools.boot[0] = kind == 'update', 'boot-2'
                 UpdateCommandTest.unchanged(self, tools, host, store, tools.check, 'interrupted before its result was recorded')
@@ -726,7 +737,7 @@ class IntentTest(unittest.TestCase):
                 self.assertTrue(lines[0].startswith('Interrupted '))
                 self.assertTrue(any(line.endswith('confirmed after the restart') for line in lines))
                 self.assertEqual(len(host.changes), 1)
-            with self.subTest(kind=kind, restart='lost'), self.interrupted(kind, 'after') as (tools, host, store, command, start):
+            with self.subTest(kind=kind, restart='lost'), self.interrupted(kind, point) as (tools, host, store, command, start):
                 host.state, tools.boot[0] = copy.deepcopy(start), 'boot-2'
                 command()
                 self.assertEqual(len(host.changes), 2)
@@ -1773,6 +1784,185 @@ class ToolsUpdateTest(unittest.TestCase):
                     self.assertRaisesRegex(owner.Stop, 'Unexpected installation files'):
                 run()
             self.assertEqual(before, self.snapshot(home))
+
+
+# The fake bootc's staging, by mode: hang ignoring TERM (only KILL ends it), or write the
+# staged deployment shortly before the step's time limit and keep running.
+STOP_BOOTC = r'''#!/bin/bash
+printf 'bootc %s\n' "$*" >> "$FIXTURE_CALLS"
+case "$*" in
+    'status --json') cat "$FIXTURE_ROOT/state.json" ;;
+    'switch --retain '*)
+        echo $$ > "$FIXTURE_ROOT/bootc.pid"
+        case $(cat "$FIXTURE_ROOT/mode") in
+            hang) trap '' TERM; while :; do sleep 0.1; done ;;
+            stage-at-timeout) sleep "$(cat "$FIXTURE_ROOT/stage-after")"; echo "${*: -1}" > "$FIXTURE_ROOT/staged"; sleep 3600 ;;
+        esac ;;
+    *) echo UNEXPECTED_BOOTC_COMMAND >&2; exit 97 ;;
+esac
+'''
+
+
+class StopRunner(Machine):
+    """The update step through the real owner.Host.script: real bash, the real update.sh
+    (fixture paths), a fake bootc and systemctl over a fixture /etc/systemd/system.
+    Status reads, cleanup and the backstop's systemctl calls go to the same model."""
+    root = None
+
+    def script(self, text, name, mutation=True):
+        if name != 'update':
+            return super().script(text, name, mutation)
+        for old, new in (('test -r /etc/ostree/auth.json', 'test -r "$FIXTURE_ROOT/auth.json"'),
+                         ('policy=/usr/share/aresos/policy\n', 'policy="$FIXTURE_ROOT/policy"\n'),
+                         ('units=/etc/systemd/system\n', 'units="$FIXTURE_ROOT/units"\n')):
+            assert text.count(old) == 1, old
+            text = text.replace(old, new)
+        (self.root / 'state.json').write_text(json.dumps(self.state['bootc']))
+        prefix = ('export FIXTURE_ROOT=' + shlex.quote(str(self.root)) + ' FIXTURE_CALLS='
+                  + shlex.quote(str(self.root / 'calls')) + '\nPATH="$FIXTURE_ROOT/bin:$PATH"\n')
+        return owner.Host.script(self, prefix + text, name, mutation)
+
+    def sync(self):
+        marker = self.root / 'staged'
+        rows = self.state['rpm']['deployments']
+        if marker.exists() and not any(r.get('staged') for r in rows):
+            self.state = machine([release_row(marker.read_text().strip(), staged=True), *rows])
+
+    def json(self, *command):
+        self.sync()
+        return super().json(*command)
+
+    def mutate(self, *command, **unused):
+        super().mutate(*command)
+        if command == ('rpm-ostree', 'cleanup', '--pending'):
+            (self.root / 'staged').unlink(missing_ok=True)
+
+    def read(self, *command, **unused):
+        if command[:2] == ('systemctl', 'is-enabled'):
+            self.trace.append(dict(command=list(command), mutation=False))
+            masked = os.path.islink(self.root / 'units' / command[2]) and os.readlink(self.root / 'units' / command[2]) == '/dev/null'
+            return 'masked\n' if masked else 'static\n'
+        return super().read(*command)
+
+
+@unittest.skipIf(os.name == 'nt', 'needs a Linux bash and process groups')
+class UpdateStopTest(unittest.TestCase):
+    """Review 1: a timeout or Ctrl+C must not skip the mask restore or leave staging behind.
+
+    Before the fix, Host.script ran update.sh with subprocess.run(timeout=1800): a timeout
+    SIGKILLed only bash, so its EXIT trap never ran and bootc kept going. Now the step has
+    its own process group, which the tool stops (TERM, then KILL) and reaps, and
+    Tools.update reconciles from the real state before it STOPs.
+    """
+
+    def run_stopped(self, mode, timeout=2, stage_after=None, interrupt_after=None):
+        import test_release27 as r27
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as directory, \
+                route(pair(), host_class=StopRunner) as (tools, host, store):
+            root = pathlib.Path(directory)
+            for name in ('units', 'policy', 'bin'):
+                (root / name).mkdir()
+            for name in ('masked-system-units.txt', 'masked-user-units.txt'):
+                shutil.copyfile(ROOT / 'os/policy' / name, root / 'policy' / name)
+            for name in ('auth.json', 'calls', 'system-unmasked', 'user-unmasked'):
+                (root / name).write_text('{}\n' if name == 'auth.json' else '')
+            (root / 'mode').write_text(mode)
+            (root / 'stage-after').write_text(str(stage_after or 0))
+            for unit in owner.FINALIZERS:
+                os.symlink('/dev/null', root / 'units' / unit)
+            stubs = dict(systemctl=r27.UPDATE_STUBS['systemctl'], bootc=STOP_BOOTC,
+                         python3='#!/bin/bash\nexec ' + shlex.quote(sys.executable) + ' "$@"\n')
+            for name, source in stubs.items():
+                (root / 'bin' / name).write_text(source)
+                (root / 'bin' / name).chmod(0o755)
+            host.root = root
+            self.addCleanup(self.kill_leftover, root / 'bootc.pid')
+            timer = None
+            if interrupt_after:
+                import signal, threading
+                # As at a terminal: a background test runner starts with SIGINT ignored.
+                self.addCleanup(signal.signal, signal.SIGINT, signal.signal(signal.SIGINT, signal.default_int_handler))
+                timer = threading.Timer(interrupt_after, os.kill, (os.getpid(), signal.SIGINT))
+            with patch.object(owner, 'SCRIPT_TIMEOUT', timeout), patch.object(owner, 'STOP_GRACE', 3), \
+                    patch.object(owner, 'UNITS', root / 'units'):
+                start = time.monotonic()
+                if timer:
+                    timer.start()
+                try:
+                    tools.update()
+                    outcome = None
+                except BaseException as error:
+                    outcome = error
+                finally:
+                    if timer:
+                        timer.cancel()
+                elapsed = time.monotonic() - start
+            # What the fake bootc really left, whether or not the tool looked again.
+            host.sync()
+            links = {path.name: os.readlink(path) if path.is_symlink() else None for path in (root / 'units').iterdir()}
+            pid = int((root / 'bootc.pid').read_text()) if (root / 'bootc.pid').exists() else None
+            calls = (root / 'calls').read_text().splitlines()
+            # The journal and what the next `at update` would do, read while the record store exists.
+            intent = tools.load(owner.OUTCOME)
+            settled = tools.qualified(host.state, tools.load('prepared'), retry='update')
+            return outcome, links, pid, calls, host, (intent, settled), elapsed
+
+    @staticmethod
+    def kill_leftover(path):
+        # Only a reverted fix leaves the fake bootc running; never leave it behind.
+        import signal
+        if path.exists():
+            try:
+                os.kill(int(path.read_text()), signal.SIGKILL)
+            except (ProcessLookupError, ValueError):
+                pass
+
+    def stopped_cleanly(self, outcome, links, pid, host, journal, words):
+        # The named assertions (revert proof): no staged deployment, the masks back, no stray process, a STOP.
+        self.assertEqual(host.state, pair(), 'a staged deployment remained after the stop')
+        self.assertEqual(links, dict.fromkeys(owner.FINALIZERS, '/dev/null'), 'the masks this run removed are not back')
+        self.assertIsNotNone(pid, 'the fake bootc never started staging')
+        self.assertFalse(pathlib.Path('/proc', str(pid)).exists(), 'a bootc process outlived the tool')
+        self.assertIsInstance(outcome, owner.Stop)
+        self.assertIn(words, str(outcome))
+        self.assertIn('Nothing changes at the next start', str(outcome))
+        # The running release, its rollback and the pinned stock are as before, and only update may retry.
+        intent, settled = journal
+        self.assertEqual((intent['status'], intent['before']), ('intent', [list(owner.key(d)) for d in pair()['rpm']['deployments']]))
+        self.assertEqual(settled, 'retry')
+
+    def test_a_hung_staging_is_stopped_at_the_time_limit_and_undone(self):
+        outcome, links, pid, calls, host, journal, elapsed = self.run_stopped('hang')
+        self.stopped_cleanly(outcome, links, pid, host, journal, 'The update timed out and was stopped')
+        self.assertIn('bootc switch --retain ' + R21, calls)
+        self.assertLess(elapsed, 30)
+        step, = [row for row in host.trace if row.get('script') == 'update']
+        self.assertEqual((step['stopped'], step['group_gone']), ('TimeoutExpired', True))
+        self.assertIn('the staging finalizers are masked again', str(outcome))
+
+    def test_staging_that_finishes_as_the_time_limit_hits_is_removed(self):
+        outcome, links, pid, calls, host, journal, elapsed = self.run_stopped('stage-at-timeout', timeout=3, stage_after=2.5)
+        self.stopped_cleanly(outcome, links, pid, host, journal, 'The update timed out and was stopped')
+        self.assertIn(('rpm-ostree', 'cleanup', '--pending'), host.changes)
+        self.assertIn('its staged release was removed', str(outcome))
+
+    def test_ctrl_c_stops_the_step_and_undoes_it(self):
+        outcome, links, pid, calls, host, journal, elapsed = self.run_stopped('hang', timeout=60, interrupt_after=3)
+        self.stopped_cleanly(outcome, links, pid, host, journal, 'The update was interrupted and was stopped')
+        self.assertLess(elapsed, 30)
+        step, = [row for row in host.trace if row.get('script') == 'update']
+        self.assertEqual(step['stopped'], 'KeyboardInterrupt')
+
+    def test_a_group_that_survives_kill_is_never_cleaned_up_behind(self):
+        with route(pair()) as (tools, host, store):
+            def unstoppable(text, name, mutation=True):
+                if name == 'update':
+                    raise owner.Unstoppable('Shared step update could not be stopped; do not reboot; get help')
+                return Machine.script(host, text, name, mutation)
+            host.script = unstoppable
+            with self.assertRaisesRegex(owner.Stop, 'could not be stopped'):
+                tools.update()
+            self.assertEqual(host.changes, [])
 
 
 if __name__ == '__main__':
