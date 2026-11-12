@@ -17,6 +17,7 @@ function fixture(fields,{subtle=true,NativeBlob=Blob}={}) {
     getRootNode(){return document;}
     getBoundingClientRect(){return {x:1,y:1,width:10,height:10,bottom:11,right:11};}
     closest(selector){return selector==='dialog,[role=dialog],[role=alertdialog]' ? this.dialog || null : this;}
+    contains(node){for(let ancestor=node;ancestor;ancestor=ancestor.parentElement)if(ancestor===this)return true;return false;}
     dispatchEvent(){}
   }
   class HTMLInputElement extends Element{}
@@ -229,4 +230,20 @@ test('recheck slotted affected items include native rows hidden by closed-slot a
     f.read();const before=f.command({command:'facts',element:'e1'}).data.item;assert.match(before,/Invoice A/);
     label.textContent='Invoice B';assert.match(f.command({command:'facts',element:'e1'}).data.item,/Invoice B/);
   }
+});
+test('recheck editable asking controls retain control semantics while message fields stay editable',()=>{
+  for(const config of [{tagName:'BUTTON',type:'button',isContentEditable:true},{tagName:'DIV',isContentEditable:true,attrs:{role:'button'}},{tagName:'INPUT',type:'button',isContentEditable:true,attrs:{role:'textbox'}}]){
+    const f=fixture([config]);if(config.tagName!=='INPUT')f.generic(f.nodes[0]);f.read();
+    assert.equal(f.command({command:'facts',element:'e1'}).data.target.editable,false);
+  }
+  const f=fixture([{tagName:'TEXTAREA',isContentEditable:true,attrs:{role:'textbox'}}]);f.generic(f.nodes[0]);f.read();assert.equal(f.command({command:'facts',element:'e1'}).data.target.editable,true);
+});
+test('recheck item quantities are bound as fields and protected item fields never read values',()=>{
+  const f=fixture([{type:'number',attrs:{'aria-label':'Quantity'}},{type:'password',forbidden:true},{tagName:'BUTTON',type:'button',childNodes:[{nodeType:3,textContent:'Pay'}]}]);
+  const [quantity,password,button]=f.nodes;f.generic(button);let value='1';Object.defineProperty(quantity,'value',{get(){return value;}});
+  const article=new f.Element({tagName:'ARTICLE',childNodes:[quantity,password,button]});article.matches=selector=>selector.split(',').includes('article');for(const node of f.nodes){node.parentElement=article;node.matches=()=>false;}
+  f.read();const key=f.read().data.rows.find(row=>row.name==='Pay').element;
+  const before=f.command({command:'facts',element:key}).data.item_fields;
+  assert.equal(before?.find(field=>field.label==='Quantity')?.value,'1');assert.equal(before?.find(field=>field.password)?.value,undefined);
+  value='2';assert.equal(f.command({command:'facts',element:key}).data.item_fields?.find(field=>field.label==='Quantity')?.value,'2');
 });

@@ -29,7 +29,8 @@ export function reviewPage(url){
     script=`document.querySelector('button').onclick=()=>window.open('/?case=review-page&mode=script-post&id='+${JSON.stringify(id)},'_blank','popup,width=620,height=480');`;
   }else if(mode==='search-label'){
     const label=variant==='delete'?'Delete':'Pay';
-    body='<button type="button" id="continue">Continue</button><form role="search" method="get" action="/query" target="sink"><input type="search" name="q"><button type="submit" id="asking">'+label+'</button></form>'+sink;
+    const asking=variant==='editable-aria'?'<div role="button" contenteditable="true" id="asking">Pay</div>':'<button type="submit"'+(variant==='editable-native'?' contenteditable="true"':'')+' id="asking">'+label+'</button>';
+    body='<button type="button" id="continue">Continue</button><form role="search" method="get" action="/query" target="sink"><input type="search" name="q">'+asking+'</form>'+sink;
     script=`document.querySelector('#asking').onclick=event=>{event.preventDefault();${send};};document.querySelector('#continue').onclick=()=>document.querySelector('#asking').click();`;
   }else if(mode==='ordinary-search'){
     body='<form role="search" method="get" action="/receive" target="sink"><input type="hidden" name="case" value="'+id+'"><input type="search" aria-label="Query" name="q" value="'+url.searchParams.get('query')+'"><button>Search</button></form>'+sink;
@@ -70,6 +71,9 @@ export function reviewPage(url){
     body=slotted?'<div id="host"><button type="button" slot="action">Delete</button></div>':'<'+tag+'><span id="item-label">Invoice A</span><div id="host"></div></'+tag.split(' ')[0]+'>';
     const content=slotted?'<'+tag+'><span id="item-label">Invoice A</span><slot name="action"></slot></'+tag.split(' ')[0]+'>':'<button type="button">Delete</button>';
     script=`const root=document.querySelector('#host').attachShadow({mode:${JSON.stringify(closed?'closed':'open')}});root.innerHTML=${JSON.stringify(content)};const button=${slotted?"document.querySelector('button')":"root.querySelector('button')"},label=()=>${slotted?"root.querySelector('#item-label')":"document.querySelector('#item-label')"};button.onclick=()=>fetch(${JSON.stringify(receive)},{method:'POST',body:label().textContent});globalThis.reviewChange=()=>label().textContent='Invoice B';${slotted?`fetch('/receive?case=slot-probe-'+${JSON.stringify(id)},{method:'POST',body:JSON.stringify({closed:${closed},public_slot:button.assignedSlot!==null})});`:''}`;
+  }else if(mode==='quantity'){
+    body='<article>Unit price 25 <input type="number" aria-label="Quantity" value="1"><button type="button">Pay</button></article>';
+    script=`document.querySelector('button').onclick=()=>fetch(${JSON.stringify(receive)},{method:'POST',body:document.querySelector('input').value});globalThis.reviewChange=()=>document.querySelector('input').value='2';`;
   }else if(mode==='confirmation'){
     const submit=variant==='submit'||variant==='submit-send',label=variant==='submit-send'?'Send':'OK';
     body='<textarea aria-label="Draft">Approved draft</textarea>'+(variant?'<dialog open><form method="dialog">':'<div role="dialog" aria-modal="true">')+'<p>Send this message?</p><button type="'+(submit?'submit':'button')+'">'+label+'</button>'+(variant?'</form></dialog>':'</div>');

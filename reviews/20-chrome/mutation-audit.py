@@ -164,6 +164,10 @@ case('recheck-owner-pass-token',O,"row.token===pass.token&&row.input===pass.inpu
 case('recheck-search-query-content',P,"if k != 'value' or not target.get('editable')",'', 'test_policy.RecheckSearch.test_explicit_search_submitters_ask_and_ordinary_search_stays_free',True)
 case('recheck-compose-draft-content',P,"if k != 'value' or not target.get('editable')",'', 'test_questions.Questions.test_recheck_editable_payment_words_keep_the_complete_send_draft_binding',True)
 case('recheck-item-closed-slots',R,'const assignedRoot=shadow(element.parentElement);','const assignedRoot=null;',node('reader','recheck slotted affected items'))
+case('recheck-editable-controls',R,'editable: !clickControl && (','editable: (',node('reader','recheck editable asking controls'))
+case('recheck-item-fields-reader',R,'item_fields:element?itemFields(element,nodes):[]','item_fields:[]',node('reader','recheck item quantities'))
+case('recheck-item-fields-extension',B,"item_fields:['delete','pay','item','activation','confirmation'].includes(kind) ? frame.item_fields||[] : null,",'',node('background','recheck payment dispatch'))
+case('recheck-item-fields-service',A,"'item_fields':frame.get('item_fields',[]) if kind in {'delete','pay','item','activation','confirmation'} else None,",'','test_questions.Questions.test_recheck_payment_quantity_is_shown_and_bound',True)
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

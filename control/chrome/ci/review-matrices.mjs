@@ -20,11 +20,11 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     await approval(result,id);assert.equal(receiverEvidence('owner-'+id,'owner Enter remains once').count,1);
   });
   await check('GROUP 2 RECHECK explicit payment and delete labels override GET search',async()=>{
-    for(const variant of ['pay','delete']){
+    for(const variant of ['pay','delete','editable-native','editable-aria']){
       const id='recheck-search-'+variant;await nav('review-page&mode=search-label&variant='+variant+'&id='+id);
       const result=await call('click',await target('Continue'));
       assert.equal(receiverEvidence(id,'script handler stopped').count,0);assert.ok(result.followups?.some(row=>row.stopped));
-      await approval(await call('click',await target(variant==='pay'?'Pay':'Delete')),id);
+      await approval(await call('click',await target(variant==='delete'?'Delete':'Pay')),id);
     }
     for(const [index,query] of ['Pay for lunch','Delete old notes','Send a letter'].entries()){
       const id='recheck-query-'+index;await nav('review-page&mode=ordinary-search&id='+id+'&query='+encodeURIComponent(query));
@@ -175,19 +175,22 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     }
   });
   await check('GROUP 3 REVIEW item confirmation file rich text and title mutations refuse',async()=>{
-    for(const [mode,variant,label]of [['binding','listitem','Delete'],['binding','row','Delete'],['binding','article','Delete'],['binding','region','Delete'],['binding','section','Delete'],['binding','unsubscribe','Unsubscribe'],['binding','abbestellen','Abbestellen'],['confirmation','','OK'],['confirmation','form','OK'],['confirmation','submit','OK'],['confirmation','submit-send','Send'],['compose-key','','Message'],...['li-open','li-closed','row-open','row-closed','slot-li-open','slot-li-closed','slot-row-open','slot-row-closed'].map(variant=>['shadow-binding',variant,'Delete']),['file','','Submit'],['rich','','Send'],['title','','Send']]){
+    for(const [mode,variant,label]of [['binding','listitem','Delete'],['binding','row','Delete'],['binding','article','Delete'],['binding','region','Delete'],['binding','section','Delete'],['binding','unsubscribe','Unsubscribe'],['binding','abbestellen','Abbestellen'],['confirmation','','OK'],['confirmation','form','OK'],['confirmation','submit','OK'],['confirmation','submit-send','Send'],['quantity','','Pay'],['compose-key','','Message'],...['li-open','li-closed','row-open','row-closed','slot-li-open','slot-li-closed','slot-row-open','slot-row-closed'].map(variant=>['shadow-binding',variant,'Delete']),['file','','Submit'],['rich','','Send'],['title','','Send']]){
       const id='review-bind-'+mode+'-'+variant;await nav('review-page&mode='+mode+'&variant='+variant+'&id='+id);
       const prepare=async()=>mode==='compose-key'?call('press',{...await target(label),key:'Enter'}):call('click',await target(label));
       const prepared=await prepare();assert.ok(prepared.approval,JSON.stringify(prepared));
       if(mode==='shadow-binding'){assert.match(JSON.stringify(prepared.approval),/Invoice A/);if(variant.startsWith('slot-')){await eventually(()=>counts('slot-probe-'+id)===1,'native slot visibility probe');const probe=JSON.parse(receiverEvidence('slot-probe-'+id,'native closed-slot visibility').arrivals[0].body);assert.deepEqual(probe,{closed:variant.endsWith('closed'),public_slot:!variant.endsWith('closed')});}}
       if(['confirmation','compose-key'].includes(mode))assert.match(JSON.stringify(prepared.approval),/Approved draft/);
+      if(mode==='quantity')assert.equal(prepared.approval.description.untrusted_content.page_state.item_fields.find(field=>field.label==='Quantity').value,'1');
       await fixture.mutate(id,'review-change');const result=await rpc('submit',prepared.approval);
       assert.ok(!result.ok||result.data.operation.state==='failed',JSON.stringify(result));assert.equal(receiverEvidence(id,'changed approval refused').count,0);
       const fresh=await prepare();
       if(mode==='shadow-binding')assert.match(JSON.stringify(fresh.approval),/Invoice B/);
       if(['confirmation','compose-key'].includes(mode))assert.match(JSON.stringify(fresh.approval),/Different draft/);
+      if(mode==='quantity')assert.equal(fresh.approval.description.untrusted_content.page_state.item_fields.find(field=>field.label==='Quantity').value,'2');
       await approval(fresh,id);
       if(['shadow-binding','confirmation','compose-key'].includes(mode))assert.equal(fixture.arrivals.find(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id).body,mode==='shadow-binding'?'Invoice B':'Different draft');
+      if(mode==='quantity')assert.equal(receiverEvidence(id,'approved quantity').arrivals[0].body,'2');
       console.log('REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1',id);
     }
   });

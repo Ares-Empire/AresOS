@@ -1023,3 +1023,10 @@ test('recheck confirmation form binds outside drafts at final dispatch and requi
   await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'confirmation',binding:approved})"),/page changed/);assert.equal(f.run('effects.length'),0);
   f.run('snapshot.uncovered=[{eligible:true}]');assert.throws(()=>f.run("binding(snapshot,{frame:0},'confirmation',false)"),/complete draft/);
 });
+
+test('recheck payment dispatch refuses a changed item quantity',async()=>{
+  const f=fixture();
+  f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.effects=[];globalThis.snapshot={tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:'Pay'},item:'Unit price 25 Pay',item_fields:[{element:'quantity',label:'Quantity',value:'1'}]}]};facts=async()=>snapshot;content=async()=>({});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async()=>effects.push('input')};globalThis.approved=JSON.parse(JSON.stringify(binding(snapshot,{frame:0},'pay',false)));snapshot.frames[0].item_fields[0].value='2';");
+  assert.equal(f.run('approved.item_fields[0].value'),'1');
+  await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'pay',binding:approved})"),/page changed/);assert.equal(f.run('effects.length'),0);
+});

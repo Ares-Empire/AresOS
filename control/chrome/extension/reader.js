@@ -212,24 +212,42 @@
   }
   function targetFacts(element) {
     const box = element.getBoundingClientRect(), value = safeValue(element);
+    const clickControl=['BUTTON','A','SUMMARY'].includes(element.tagName) ||
+      element instanceof HTMLInputElement && ['button','submit','image','checkbox','radio','range','color','file','reset'].includes(element.type) ||
+      (element.getAttribute('role')||'').toLowerCase().split(/\s+/).some(role=>['button','link','menuitem','menuitemcheckbox','menuitemradio','checkbox','radio','switch','option','tab','treeitem'].includes(role));
     const dialog=element.closest('dialog,[role=dialog],[role=alertdialog]');
     const page_dialog=dialog ? {element:id(dialog),kind:role(dialog),text:text(dialog).replace(/\s+/g,' ').trim(),button:name(element),fields:[...dialog.querySelectorAll('input,textarea,select,[contenteditable]')].map(field)} : null;
     return {element: id(element), role: role(element), page_dialog, name: name(element), label:element.labels?.length?[...element.labels].map(node=>text(node,true)).join(' ').replace(/\s+/g,' ').trim():name(element), title: element.getAttribute('title') || '', ...value,
       ...(element instanceof HTMLSelectElement && !value.password ? {options:field(element).options}:{}),
       ...(implicitSubmitter(element) ? {implicit_submitter:id(implicitSubmitter(element))}:{}),
       href: element.tagName === 'A' ? element.href : null,
-      editable: element instanceof HTMLInputElement && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || element instanceof HTMLTextAreaElement || element.isContentEditable,
+      editable: !clickControl && (element instanceof HTMLInputElement && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || element instanceof HTMLTextAreaElement || element.isContentEditable),
       search: element.type === 'search' || element.getAttribute('role') === 'searchbox', submit: !!element.form && (element.type === 'submit' || element.type === 'image'),
       states: {checked: !!element.checked, selected: !!element.selected, disabled: !!element.disabled, required: !!element.required, invalid: element.getAttribute('aria-invalid') === 'true', expanded: element.getAttribute('aria-expanded')},
       box: {x:box.x,y:box.y,width:box.width,height:box.height}, onscreen: box.bottom > 0 && box.right > 0 && box.top < innerHeight && box.left < innerWidth && box.width > 0 && box.height > 0};
   }
-  function itemText(element) {
+  function affectedItem(element) {
     const selector='li,tr,article,[role=listitem],[role=row],[role=article],section[aria-label],section[aria-labelledby],form,dialog,[role=dialog],[role=alertdialog],[role=region]';
     // closest() stops at a shadow root; a component can act on its outer row.
     for(let node=element;node;node=composedParent(node)){
-      if(node.matches(selector))return text(node,false,true).replace(/\s+/g, ' ').trim();
+      if(node.matches(selector))return node;
     }
-    return text(element).replace(/\s+/g, ' ').trim();
+    return element;
+  }
+  function itemText(element) {
+    return text(affectedItem(element),false,true).replace(/\s+/g, ' ').trim();
+  }
+  function itemFields(element,nodes) {
+    const item=affectedItem(element);
+    return nodes.filter(node=>{
+      if(!(node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement || node instanceof HTMLSelectElement || node.isContentEditable) || ['hidden','button','submit','reset','image'].includes(node.type))return false;
+      for(let ancestor=node;ancestor;ancestor=composedParent(ancestor)){
+        const style=getComputedStyle(ancestor);
+        if(ancestor.hidden || style.display==='none' || style.visibility==='hidden')return false;
+        if(ancestor===item)return true;
+      }
+      return false;
+    }).map(field);
   }
   function embedding(element) {
     const box=element.getBoundingClientRect();let aligned=true;
@@ -267,7 +285,7 @@
     const editable = nodes.filter(node => node.matches('input,textarea,select,[contenteditable]') && !['hidden','button','submit','reset','image','file'].includes(node.type)).map(field);
     return {document: documentId, revision, url: location.href, origin:globalThis.origin, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
       target: element ? targetFacts(element) : null, form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), implicitSubmitter(element) || element) : null,
-      editable, selected_files:nodes.filter(node=>node instanceof HTMLInputElement&&node.type==='file').map(field), embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', adapter: adapterRead(nodes, element), trace: traces.splice(0)};
+      editable, selected_files:nodes.filter(node=>node instanceof HTMLInputElement&&node.type==='file').map(field), embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', item_fields:element?itemFields(element,nodes):[], adapter: adapterRead(nodes, element), trace: traces.splice(0)};
   }
   function adapterRead(nodes, target) {
     const scope=target?.closest('form,[role=dialog],[role=region][aria-label],main,[role=main]');

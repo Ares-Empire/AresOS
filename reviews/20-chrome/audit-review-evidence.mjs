@@ -20,8 +20,9 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
     assert.equal(matches.length,1,row.name);
     return {name:row.name,line:matches[0]};
   });
-  const rawIdentities=new Set(),counts=new Map(),ownerRows=[],ownerTraces=[],queryRows=[];
-  for await(const row of jsonLines(path.join(folder,'receiver.jsonl'))){rawIdentities.add(JSON.stringify(row));const id=caseId(row);if(/^recheck-query-[0-2]$/.test(id))queryRows.push(row);counts.set(id,(counts.get(id)||0)+1);if(['owner-recheck-owner-overlap','trace-recheck-owner-overlap'].includes(id))ownerRows.push(row);}
+  const rawIdentities=new Set(),counts=new Map(),ownerRows=[],ownerTraces=[],queryRows=[],bindingRows=[];
+  for await(const row of jsonLines(path.join(folder,'receiver.jsonl'))){rawIdentities.add(JSON.stringify(row));const id=caseId(row);if(/^recheck-query-[0-2]$/.test(id))queryRows.push(row);if(/^review-bind-(quantity|confirmation|shadow-binding|compose-key)-/.test(id))bindingRows.push(row);counts.set(id,(counts.get(id)||0)+1);if(['owner-recheck-owner-overlap','trace-recheck-owner-overlap'].includes(id))ownerRows.push(row);}
+  for(const row of bindingRows)assert.equal(row.body,caseId(row).startsWith('review-bind-quantity-')?'2':caseId(row).startsWith('review-bind-shadow-binding-')?'Invoice B':'Different draft');
   assert.equal(queryRows.length,3,'all ordinary GET query regressions must arrive once');
   for(const [index,query]of ['Pay for lunch','Delete old notes','Send a letter'].entries()){const rows=queryRows.filter(row=>caseId(row)==='recheck-query-'+index);assert.equal(rows.length,1);assert.equal(rows[0].method,'GET');assert.equal(new URL(rows[0].url,'http://fixture.test').searchParams.get('q'),query);}
   const receiverAudits=[];
@@ -44,6 +45,7 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
       assert.equal(counts.get(id),1,`${id}: independent final receiver count`);
     }
     assert(sequences.size>0,`${name}: missing approval evidence`);
+    if(name==='page-receiver.jsonl')for(const id of ['recheck-search-pay','recheck-search-delete','recheck-search-editable-native','recheck-search-editable-aria','review-bind-quantity-','review-bind-confirmation-form','review-bind-confirmation-submit','review-bind-confirmation-submit-send',...['li-open','li-closed','row-open','row-closed','slot-li-open','slot-li-closed','slot-row-open','slot-row-closed'].map(variant=>'review-bind-shadow-binding-'+variant)])assert(sequences.has(id),id+': required regression evidence absent');
     receiverAudits.push({file:name,snapshots,complete_0_1_1_sequences:sequences.size,independent_arrivals_match:true});
   }
   let ingress=0,nullRows=0,events=0,getters=0;const getterKinds=new Map();
@@ -59,9 +61,9 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
   for(const name of ['tool.jsonl','service.txt'])assert(!await containsText(path.join(folder,name),'SENTINEL_PRIVATE_PASSWORD_20'),`Password sentinel reached ${name}`);
   const python=read(path.join(folder,'python.txt')),py=/^Ran (\d+) tests in ([0-9.]+)s$/m.exec(python);
   assert(py&&/^OK$/m.test(python),'Full Python suite missing or failed');
-  assert.equal(Number(py[1]),223);
+  assert.equal(Number(py[1]),224);
   const node=Object.fromEntries([...read(path.join(folder,'node.txt')).matchAll(/^(?:# |ℹ )?(tests|pass|fail|cancelled|skipped)\s+(\d+)/gm)].map(match=>[match[1],Number(match[2])]));
-  assert.deepEqual(node,{tests:252,pass:252,fail:0,cancelled:0,skipped:0});
+  assert.deepEqual(node,{tests:255,pass:255,fail:0,cancelled:0,skipped:0});
   const hashes={};for(const name of ['browser.txt','matrices.json','receiver.jsonl','page-receiver.jsonl','adapters-receiver.jsonl','browser-boundary.jsonl','tool.jsonl','service.txt','python.txt','node.txt','owner-overlap.json'])hashes[name]=await digestFile(path.join(folder,name));
   results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,ordinary_get_queries:queryRows,owner_overlap:ownerOverlap,password_audit:{rows:ingress,null_rows:nullRows,protocol_events:events,forbidden_runtime_value_events:0,sensitive_getters:getters,getter_kinds:Object.fromEntries(getterKinds),password_sentinel_absent:true},python:{tests:Number(py[1]),seconds:Number(py[2])},node,sha256:hashes});
 }

@@ -113,6 +113,19 @@ class Questions(unittest.TestCase):
         frame['editable'][1]['value']='Different draft'
         self.assertNotEqual(before,binding(self.browser.facts,{'frame':0},'send',None))
 
+    def test_recheck_payment_quantity_is_shown_and_bound(self):
+        from aresos_control.chrome.adapter import binding
+        frame=self.browser.facts['frames'][0]
+        frame['target'].update(name='Pay',label='Pay',editable=False)
+        frame['item']='Unit price 25 Pay'
+        frame['item_fields']=[{'element':'quantity','label':'Quantity','type':'number','value':'1'}]
+        approval=self.prepare()
+        state=approval['description']['untrusted_content']['page_state']
+        self.assertEqual(state['item_fields'][0]['value'],'1')
+        before=copy.deepcopy(binding(self.browser.facts,{'frame':0},'pay',None))
+        frame['item_fields'][0]['value']='2'
+        self.assertNotEqual(before,binding(self.browser.facts,{'frame':0},'pay',None))
+
     def test_p11_confirmation_without_a_draft_keeps_the_feature_and_binds_absence(self):
         frame=self.browser.facts['frames'][0]
         frame['target'].update(name='OK',page_dialog={'kind':'dialog','text':'Send this message?'})

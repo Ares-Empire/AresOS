@@ -653,6 +653,7 @@ function binding(facts, reference, kind, adapter) {
     selected_files:facts.frames.map(frame=>({frame:frame.frame,document:frame.document,fields:frame.selected_files||[]})),
     editable:genericDraft ? facts.frames.map(frame=>({frame:frame.frame,document:frame.document,url:frame.url,fields:frame.editable})) : null,
     item:['delete','pay','item','activation','confirmation'].includes(kind) ? frame.item : null,
+    item_fields:['delete','pay','item','activation','confirmation'].includes(kind) ? frame.item_fields||[] : null,
     adapter:adapter ? frame.adapter:null,dialog:facts.dialog};
 }
 const stable = value => JSON.stringify(value, function(key,value) { return value && !Array.isArray(value) && typeof value === 'object' ? Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b))) : value; });

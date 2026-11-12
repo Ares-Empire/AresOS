@@ -41,6 +41,7 @@ def binding(facts, reference, kind, adapter):
             'editable':[{'frame':item['frame'],'document':item['document'],'url':item['url'],'fields':item['editable']} for item in facts['frames']]
                 if generic_draft else None,
             'item':frame['item'] if kind in {'delete','pay','item','activation','confirmation'} else None,
+            'item_fields':frame.get('item_fields',[]) if kind in {'delete','pay','item','activation','confirmation'} else None,
             'adapter':frame['adapter'] if adapter else None,'dialog':facts.get('dialog')}
 
 
