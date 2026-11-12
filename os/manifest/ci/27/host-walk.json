@@ -146,7 +146,7 @@
       "path": "os/ci/owner_read_diagnostics.py"
     },
     {
-      "sha256": "e3e7016ec8ee8a1051f5379466a67e1f8c030e000c041e152950f7f8fc7fa715",
+      "sha256": "143316a579587725f4829e3e38a86a9f376e5b1041143da7e6c74e987ca6413d",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -1006,7 +1006,7 @@
       "path": "os/tests/test_owner_transport.py"
     },
     {
-      "sha256": "00a6392cdadb16f836f57af811c5d16a99785c702fec7c811b274d6cd27b0942",
+      "sha256": "97484e6f2228f6995c9a38933726504f8d05b923eae1faef20e832e4b5abe549",
       "path": "os/tests/test_owner_walk.py"
     },
     {
