@@ -199,7 +199,10 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
      `6b2667f`) and the Chrome checks 17 to 17e (PRs #3, #4, #7, #8, #10). Check 17e showed that a local checkpoint
      outside Chrome holds every tested send; the owner chose it then (decisions 6 to 13) and replaced it on
      2026-11-08 with the light tool (decision 25). On 2026-11-08: the design for decisions 22 to 24 (PR #16, design
-     draft 25, `0ae9f903`).
+     draft 25, `0ae9f903`). On 2026-11-11: the owner's safety bar for the tools (safe like a normal MCP or CLI) and
+     his re-scope answers (PRs #38, #39). **On 2026-11-12: Mail** (brief 19 with 19b, PR #9, `25528195`): read,
+     search, sort and send; every send, delete and unsubscribe asks. CI tests it against test mail servers; not yet
+     tried with a real account.
    - **Decided:** the approval surface (decision 21, after six phone tests): Claude Code's own prompt, at the laptop
      and through Remote Control on his phone, with every asking input starting with the tool service's `question`
      sentence. On 2026-11-08 (decision 24, replacing the containment parts of decisions 22 and 23): AresOS runs
@@ -210,13 +213,12 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
      his account installs software normally. Chrome (decision 25, "B is good"): a light tool of our own in his normal
      Chrome, with no proxy and no certificate; it asks before anything that clearly sends, and a page that sends on
      its own after an ordinary click isn't held, as with Claude in Chrome.
-   - **In progress:** Mail (brief 19, PR #9: package review SAFE, frontier security review in its third round);
-     design draft 31 for decision 25, Chrome as the light tool (branch `control/chrome-light`; re-check 34 next;
-     no owner choices open). `laptop-aresos` owns `os/` and the accounts (board #102 and #103); for Chrome the image
-     needs only the extension policy and the native host's manifest.
-   - **Next:** brief 18c (first end-to-end test on a throwaway CI image; no owner OK needed under the 2026-11-07
-     rule) and the base brief that reduces the managed settings to the ask rules, as changed by decision 24
-     (`PLAN.md`, "Order of work"); Mail's boundary check becomes a follow-up after Mail merges; brief 20 builds the
-     light Chrome tool once the design is ready. The add-tool brief is dropped.
+   - **In progress:** the slim base (brief 18d, PR #25: reviews SAFE; now merging main in, with the combined head
+     re-reviewed); the Chrome tool (brief 20, PR #27: a fix round for four findings of its re-check, then a scoped
+     re-check; it merges after 18d, its test group 12 in 18d's harness). `laptop-aresos` owns `os/` and the accounts;
+     for Chrome the image needs the extension policy, the native host's manifest and `gh` 2.102 or newer.
+   - **Next:** after Mail, 18d and Chrome merge, an AresOS-side session takes over (`docs/control/TOOLS-HANDOFF.md`):
+     the Chrome decisions and known limits into CONTROL.md section 6, the Chrome capability brief, brief 18c, and
+     live tests with the owner (Mail onboarding first).
 
 Codex Pro runs until 2026-11-21.
