@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "id": "browser",
+  "name": "Chrome",
+  "argv": ["/usr/bin/google-chrome"],
+  "working_directory": "~",
+  "window": {"app_ids": ["google-chrome", "Google-chrome"], "instance": "single"}
+}

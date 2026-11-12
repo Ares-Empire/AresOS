@@ -8,6 +8,7 @@ import dev.aresos.mode.LiveMode;
 import dev.aresos.mode.ToggleModePayload;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.world.NetherHome;
+import net.fabricmc.api.EnvType;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -22,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.nio.file.Path;
 import java.util.Locale;
@@ -31,6 +33,7 @@ import dev.aresos.catalogue.LinuxAppCatalogue;
 import dev.aresos.icon.IconPack;
 import dev.aresos.icon.PixelIconConverter;
 import dev.aresos.item.AppInventory;
+import dev.aresos.shell.ShellClient;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
@@ -41,6 +44,8 @@ public final class AresOs implements ModInitializer {
     private static String configError;
     private static String discoveryError;
     public static Set<String> generatedIcons = Set.of();
+    private static final Duration HELPER_WAIT = Duration.ofSeconds(5);
+    private static ShellClient shell;
 
     public static Path configPath() {
         return Path.of(System.getProperty("aresos.appsConfig", FabricLoader.getInstance().getConfigDir().resolve("aresos/apps.json").toString()));
@@ -50,8 +55,20 @@ public final class AresOs implements ModInitializer {
         return FabricLoader.getInstance().getGameDir().resolve("aresos-runtime/app-icons");
     }
 
-    public static void savePins(java.util.Map<String, Boolean> changes) throws IOException {
+    public static synchronized void savePins(java.util.Map<String, Boolean> changes) throws IOException {
         apps = AppsConfig.pins(configPath(), changes);
+    }
+
+    /** The AresOS app helper connection; null on Windows and on dedicated servers. */
+    public static ShellClient shell() {
+        return shell;
+    }
+
+    private static synchronized void mergeHelperApps(List<ShellClient.App> listed) {
+        try { apps = AppsConfig.merge(configPath(), LinuxAppCatalogue.definitions(listed)); }
+        catch (IOException | RuntimeException error) {
+            LOGGER.error("Could not merge apps from the AresOS app helper; existing catalogue kept", error);
+        }
     }
 
     public static Identifier id(String path) {
@@ -75,15 +92,27 @@ public final class AresOs implements ModInitializer {
             if (loaded.migrationBackup() != null) {
                 LOGGER.info("Migrated apps.json to schema 2; original saved at {}", loaded.migrationBackup());
             }
-            if (!Boolean.getBoolean("aresos.disableDiscovery")) {
+            boolean discovery = !Boolean.getBoolean("aresos.disableDiscovery");
+            if (!windows && FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
+                // On AresOS only the OS app helper opens apps; the session supervisor provides its socket and nonce.
+                shell = ShellClient.fromEnvironment(System.getenv(), ShellClient.Settings.DEFAULT);
+                shell.start();
+            }
+            if (discovery && (windows || shell != null)) {
                 try {
                     var catalogue = windows ? new WindowsAppCatalogue(FabricLoader.getInstance().getGameDir().resolve("aresos-runtime/discovery"), apps)
-                            : new LinuxAppCatalogue();
+                            : new LinuxAppCatalogue(shell, HELPER_WAIT);
                     apps = AppsConfig.merge(configPath(), catalogue.listApps());
+                } catch (ShellClient.ShellException helper) {
+                    // Reported in game from the connection status; apps stay as configured until the helper answers.
+                    LOGGER.warn("AresOS app helper not available at startup: {}", helper.getMessage());
                 } catch (IOException | RuntimeException error) {
                     discoveryError = error.getMessage();
                     LOGGER.error("App discovery failed; existing catalogue kept intact", error);
                 }
+                if (shell != null) shell.addListener(new ShellClient.Listener() {
+                    @Override public void apps(List<ShellClient.App> listed) { mergeHelperApps(listed); }
+                });
             }
             try { generatedIcons = IconPack.generate(iconPackPath(), apps, new PixelIconConverter()); }
             catch (IOException error) { LOGGER.error("Cannot write icon cache; using configured vanilla looks", error); }
@@ -111,6 +140,11 @@ public final class AresOs implements ModInitializer {
             if (!dev.aresos.mode.ModeInventories.of(handler.player).restoredForLogin()) AppInventory.populate(handler.player);
             if (configError != null) handler.player.sendSystemMessage(Component.literal("AresOS apps disabled: " + configError));
             if (discoveryError != null) handler.player.sendSystemMessage(Component.literal("App discovery failed; existing apps kept. " + discoveryError));
+            var helper = shell == null ? null : shell.status();
+            if (helper != null && helper.state() != ShellClient.State.CONNECTED && DesktopWorld.isEnabled(server))
+                handler.player.sendSystemMessage(Component.literal(helper.state() == ShellClient.State.INCOMPATIBLE
+                        ? "AresOS apps can't open: the app helper is incompatible (" + helper.detail() + ")"
+                        : "AresOS apps can't open right now: the app helper is unavailable (" + helper.detail() + ")"));
         });
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             if (!environment.includeIntegrated) return;

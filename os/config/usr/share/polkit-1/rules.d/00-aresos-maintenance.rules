@@ -1,10 +1,88 @@
+// Everyday account like Windows (owner, 2026-11-09): `ares` is in wheel and
+// confirms admin actions with its own password. This file sorts first, so its
+// answers for `ares` win over every later rule. CI evaluates the built image's
+// real rules against os/ci/polkit-review.json (os/ci/polkit-check.js).
+//
+// 1. Denied to `ares` even with the password: the OS image, firmware and next
+//    boot change only through the signed release route or an explicit sudo.
+//    That covers rpm-ostree, systemd-sysupdate, fwupd, Bazzite's own actions,
+//    modem firmware, logind's next-boot and firmware-setup choices, and every
+//    TuneD action except read-only queries (a TuneD profile can change kernel
+//    arguments through its bootloader plugin).
+// 2. Never cached: build.sh rewrites every installed polkit default from
+//    auth_*_keep to auth_*, so an authorization is never reused, not even by
+//    the same process (review 2 of package 21).
+// 3. Upstream rules let any wheel member do some actions without a password.
+//    For `ares` those get the action's own (uncached) default instead, per
+//    session kind: [remote, local inactive, local active].
+var aresosDeniedActions = [
+    "org.freedesktop.ModemManager1.Firmware",
+    "org.freedesktop.login1.set-reboot-parameter",
+    "org.freedesktop.login1.set-reboot-to-boot-loader-entry",
+    "org.freedesktop.login1.set-reboot-to-boot-loader-menu",
+    "org.freedesktop.login1.set-reboot-to-firmware-setup"
+];
+
+var aresosTunedReadOnly = [
+    "com.redhat.tuned.active_profile",
+    "com.redhat.tuned.get_all_plugins",
+    "com.redhat.tuned.get_instances",
+    "com.redhat.tuned.get_plugin_documentation",
+    "com.redhat.tuned.get_plugin_hints",
+    "com.redhat.tuned.instance_get_devices",
+    "com.redhat.tuned.is_running",
+    "com.redhat.tuned.post_loaded_profile",
+    "com.redhat.tuned.profile_info",
+    "com.redhat.tuned.profile_mode",
+    "com.redhat.tuned.profiles",
+    "com.redhat.tuned.profiles2",
+    "com.redhat.tuned.recommend_profile",
+    "com.redhat.tuned.verify_profile",
+    "com.redhat.tuned.verify_profile_ignore_missing"
+];
+
+var aresosWheelGrantDefaults = {
+    "org.corectrl.helper.init": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.corectrl.helperkiller.init": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.fedoraproject.FirewallD1.config": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.fedoraproject.FirewallD1.direct": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.fedoraproject.FirewallD1.ipset": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.fedoraproject.FirewallD1.policy": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.fedoraproject.FirewallD1.zone": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.Flatpak.app-install": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.Flatpak.app-uninstall": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.Flatpak.runtime-install": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.Flatpak.runtime-uninstall": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.NetworkManager.settings.modify.system": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.bolt.authorize": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.bolt.enroll": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.freedesktop.bolt.manage": ["auth_admin", "auth_admin", "auth_admin"],
+    "org.gtk.vfs.file-operations-helper": ["no", "no", "auth_admin"],
+    "org.kde.kcontrol.kcmclock.save": ["auth_admin", "auth_admin", "auth_admin"]
+};
+
 polkit.addRule(function(action, subject) {
-    if (subject.user == "ares" &&
-        (action.id.indexOf("org.projectatomic.rpmostree1.") == 0 ||
-         action.id.indexOf("org.freedesktop.Flatpak.") == 0 ||
-         action.id.indexOf("org.freedesktop.fwupd.") == 0 ||
-         action.id.indexOf("org.bazzite.") == 0 ||
-         action.id == "org.freedesktop.systemd1.manage-unit-files")) {
+    if (subject.user != "ares") {
+        return polkit.Result.NOT_HANDLED;
+    }
+    if (action.id.indexOf("org.projectatomic.rpmostree1.") == 0 ||
+        action.id.indexOf("org.freedesktop.sysupdate1.") == 0 ||
+        action.id.indexOf("org.freedesktop.fwupd.") == 0 ||
+        action.id.indexOf("org.bazzite.") == 0 ||
+        aresosDeniedActions.indexOf(action.id) >= 0 ||
+        (action.id.indexOf("com.redhat.tuned.") == 0 && aresosTunedReadOnly.indexOf(action.id) < 0)) {
         return polkit.Result.NO;
     }
+    // uupd.rules lets anyone start the (masked) updater units.
+    if (action.id == "org.freedesktop.systemd1.manage-units") {
+        var unit = action.lookup("unit");
+        if (unit == "uupd.service" || unit == "uupd-manual.service") {
+            return polkit.Result.NO;
+        }
+    }
+    var defaults = aresosWheelGrantDefaults[action.id];
+    if (defaults) {
+        return !subject.local ? defaults[0] : (subject.active ? defaults[2] : defaults[1]);
+    }
+    return polkit.Result.NOT_HANDLED;
 });

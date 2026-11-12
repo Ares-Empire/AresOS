@@ -1,0 +1,216 @@
+QMP ACPI button -> poweroff.target -> guest SHUTDOWN -> QEMU exit 0
+Offline logind path: passed
+[   72.039326] bazzite aresos-ci[2893]: [0;1;39m[0;1;31m[0;1;39mARESOS_POWER_KEY_ARMED[0m
+[   72.048193] bazzite systemd-journald[651]: Received client request to sync journal (with offlining).
+[   72.088202] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mNotify message sent to '/run/systemd/notify': "FDSTOREREMOVE=1\nFDNAME=session-1-device-13-69"[0m
+[   72.088233] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mNotify message sent to '/run/systemd/notify': "FDSTORE=1\nFDNAME=session-1-device-13-69"[0m
+[   72.088270] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=method_return sender=n/a destination=:1.40 path=n/a interface=n/a member=n/a cookie=132 reply_cookie=46 signature=hb error-name=n/a error-message=n/a[0m
+[   72.088597] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=signal sender=:1.2 destination=n/a path=/org/freedesktop/systemd1/unit/aresos_2dci_2djournal_2eservice interface=org.freedesktop.DBus.Properties member=PropertiesChanged  cookie=5011 reply_cookie=0 signature=sa{sv}as error-name=n/a error-message=n/a[0m
+[   72.088642] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=signal sender=:1.2 destination=n/a path=/org/freedesktop/systemd1/unit/aresos_2dci_2djournal_2eservice interface=org.freedesktop.DBus.Properties member=PropertiesChanged  cookie=5012 reply_cookie=0 signature=sa{sv}as error-name=n/a error-message=n/a[0m
+[   72.088671] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=signal sender=:1.2 destination=n/a path=/org/freedesktop/systemd1/unit/aresos_2dci_2djournal_2eservice interface=org.freedesktop.DBus.Properties member=PropertiesChanged  cookie=5013 reply_cookie=0 signature=sa{sv}as error-name=n/a error-message=n/a[0m
+[   72.088697] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=signal sender=:1.2 destination=n/a path=/org/freedesktop/systemd1/unit/aresos_2dci_2djournal_2eservice interface=org.freedesktop.DBus.Properties member=PropertiesChanged  cookie=5014 reply_cookie=0 signature=sa{sv}as error-name=n/a error-message=n/a[0m
+[   72.088718] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=signal sender=:1.2 destination=n/a path=/org/freedesktop/systemd1 interface=org.freedesktop.systemd1.Manager member=JobRemoved  cookie=5015 reply_cookie=0 signature=uoss error-name=n/a error-message=n/a[0m
+[   72.088738] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=signal sender=:1.2 destination=n/a path=/org/freedesktop/systemd1/unit/aresos_2dci_2djournal_2eservice interface=org.freedesktop.DBus.Properties member=PropertiesChanged  cookie=5016 reply_cookie=0 signature=sa{sv}as error-name=n/a error-message=n/a[0m
+[   72.088754] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=signal sender=:1.2 destination=n/a path=/org/freedesktop/systemd1/unit/aresos_2dci_2djournal_2eservice interface=org.freedesktop.DBus.Properties member=PropertiesChanged  cookie=5017 reply_cookie=0 signature=sa{sv}as error-name=n/a error-message=n/a[0m
+[   72.088771] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=method_call sender=:1.40 destination=org.freedesktop.login1 path=/org/freedesktop/login1 interface=org.freedesktop.DBus.Peer member=Ping  cookie=47 reply_cookie=0 signature=n/a error-name=n/a error-message=n/a[0m
+[   72.088780] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=method_return sender=n/a destination=:1.40 path=n/a interface=n/a member=n/a cookie=133 reply_cookie=47 signature=n/a error-name=n/a error-message=n/a[0m
+[   72.092589] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=method_call sender=:1.40 destination=org.freedesktop.login1 path=/org/freedesktop/login1/session/_31 interface=org.freedesktop.login1.Session member=TakeDevice  cookie=48 reply_cookie=0 signature=uu error-name=n/a error-message=n/a[0m
+[   72.093149] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mNotify message sent to '/run/systemd/notify': "FDSTOREREMOVE=1\nFDNAME=session-1-device-13-64"[0m
+[   72.093184] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mNotify message sent to '/run/systemd/notify': "FDSTORE=1\nFDNAME=session-1-device-13-64"[0m
+[   72.093219] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=method_return sender=n/a destination=:1.40 path=n/a interface=n/a member=n/a cookie=134 reply_cookie=48 signature=hb error-name=n/a error-message=n/a[0m
+[   72.094087] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=method_call sender=:1.40 destination=org.freedesktop.login1 path=/org/freedesktop/login1 interface=org.freedesktop.DBus.Peer member=Ping  cookie=49 reply_cookie=0 signature=n/a error-name=n/a error-message=n/a[0m
+[   72.094099] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=method_return sender=n/a destination=:1.40 path=n/a interface=n/a member=n/a cookie=135 reply_cookie=49 signature=n/a error-name=n/a error-message=n/a[0m
+[   72.096076] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=method_call sender=:1.40 destination=org.freedesktop.login1 path=/org/freedesktop/login1/session/_31 interface=org.freedesktop.login1.Session member=TakeDevice  cookie=50 reply_cookie=0 signature=uu error-name=n/a error-message=n/a[0m
+[   72.096613] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mNotify message sent to '/run/systemd/notify': "FDSTOREREMOVE=1\nFDNAME=session-1-device-13-65"[0m
+[   72.096650] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mNotify message sent to '/run/systemd/notify': "FDSTORE=1\nFDNAME=session-1-device-13-65"[0m
+[   72.096679] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=method_return sender=n/a destination=:1.40 path=n/a interface=n/a member=n/a cookie=136 reply_cookie=50 signature=hb error-name=n/a error-message=n/a[0m
+[   72.097098] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=method_call sender=:1.40 destination=org.freedesktop.login1 path=/org/freedesktop/login1 interface=org.freedesktop.DBus.Peer member=Ping  cookie=51 reply_cookie=0 signature=n/a error-name=n/a error-message=n/a[0m
+[   72.097110] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=method_return sender=n/a destination=:1.40 path=n/a interface=n/a member=n/a cookie=137 reply_cookie=51 signature=n/a error-name=n/a error-message=n/a[0m
+[   72.099511] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=method_call sender=:1.40 destination=org.freedesktop.login1 path=/org/freedesktop/login1/session/_31 interface=org.freedesktop.login1.Session member=TakeDevice  cookie=52 reply_cookie=0 signature=uu error-name=n/a error-message=n/a[0m
+[   72.100033] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mNotify message sent to '/run/systemd/notify': "FDSTOREREMOVE=1\nFDNAME=session-1-device-13-67"[0m
+[   72.100077] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mNotify message sent to '/run/systemd/notify': "FDSTORE=1\nFDNAME=session-1-device-13-67"[0m
+[   72.100100] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=method_return sender=n/a destination=:1.40 path=n/a interface=n/a member=n/a cookie=138 reply_cookie=52 signature=hb error-name=n/a error-message=n/a[0m
+[   72.100384] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=method_call sender=:1.40 destination=org.freedesktop.login1 path=/org/freedesktop/login1 interface=org.freedesktop.DBus.Peer member=Ping  cookie=53 reply_cookie=0 signature=n/a error-name=n/a error-message=n/a[0m
+[   72.100406] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=method_return sender=n/a destination=:1.40 path=n/a interface=n/a member=n/a cookie=139 reply_cookie=53 signature=n/a error-name=n/a error-message=n/a[0m
+[   72.102590] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=method_call sender=:1.40 destination=org.freedesktop.login1 path=/org/freedesktop/login1/session/_31 interface=org.freedesktop.login1.Session member=TakeDevice  cookie=54 reply_cookie=0 signature=uu error-name=n/a error-message=n/a[0m
+[   72.103116] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mNotify message sent to '/run/systemd/notify': "FDSTOREREMOVE=1\nFDNAME=session-1-device-13-66"[0m
+[   72.103164] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mNotify message sent to '/run/systemd/notify': "FDSTORE=1\nFDNAME=session-1-device-13-66"[0m
+[   72.103194] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=method_return sender=n/a destination=:1.40 path=n/a interface=n/a member=n/a cookie=140 reply_cookie=54 signature=hb error-name=n/a error-message=n/a[0m
+[   72.103642] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=method_call sender=:1.40 destination=org.freedesktop.login1 path=/org/freedesktop/login1 interface=org.freedesktop.DBus.Peer member=Ping  cookie=55 reply_cookie=0 signature=n/a error-name=n/a error-message=n/a[0m
+[   72.103659] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=method_return sender=n/a destination=:1.40 path=n/a interface=n/a member=n/a cookie=141 reply_cookie=55 signature=n/a error-name=n/a error-message=n/a[0m
+[   72.106296] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=method_call sender=:1.40 destination=org.freedesktop.login1 path=/org/freedesktop/login1/session/_31 interface=org.freedesktop.login1.Session member=TakeDevice  cookie=56 reply_cookie=0 signature=uu error-name=n/a error-message=n/a[0m
+[   72.106661] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mNotify message sent to '/run/systemd/notify': "FDSTOREREMOVE=1\nFDNAME=session-1-device-13-70"[0m
+[   72.106703] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mNotify message sent to '/run/systemd/notify': "FDSTORE=1\nFDNAME=session-1-device-13-70"[0m
+[   72.106736] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=method_return sender=n/a destination=:1.40 path=n/a interface=n/a member=n/a cookie=142 reply_cookie=56 signature=hb error-name=n/a error-message=n/a[0m
+[   72.107161] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=method_call sender=:1.40 destination=org.freedesktop.login1 path=/org/freedesktop/login1 interface=org.freedesktop.DBus.Peer member=Ping  cookie=57 reply_cookie=0 signature=n/a error-name=n/a error-message=n/a[0m
+[   72.107175] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=method_return sender=n/a destination=:1.40 path=n/a interface=n/a member=n/a cookie=143 reply_cookie=57 signature=n/a error-name=n/a error-message=n/a[0m
+[   72.108429] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mGot message type=method_call sender=:1.40 destination=org.freedesktop.login1 path=/org/freedesktop/login1/session/_31 interface=org.freedesktop.login1.Session member=ReleaseDevice  cookie=58 reply_cookie=0 signature=uu error-name=n/a error-message=n/a[0m
+[   72.108488] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mNotify message sent to '/run/systemd/notify': "FDSTOREREMOVE=1\nFDNAME=session-1-device-13-70"[0m
+[   72.108526] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=signal sender=n/a destination=:1.40 path=/org/freedesktop/login1/session/_31 interface=org.freedesktop.login1.Session member=PauseDevice cookie=144 reply_cookie=0 signature=uus error-name=n/a error-message=n/a[0m
+[   72.108709] bazzite systemd-logind[1052]: [0;38:5:245m[0;1;31m[0;38:5:245mSent message type=method_return sender=n/a destination=:1.40 path=n/a interface=n/a member=n/a cookie=145 reply_cookie=58 signature=n/a error-name=n/a error-message=n/a[0m
+[!p]104\[0m[?7h[1G[0J[6n[32766;32766H[6n]3008;end=bdb26f5a1fc046648c5ce[[0;32m  OK  [0m] Started [0;1;39mplymouth-poweroff.service[0m - Show Plymouth Power Off Screen.
+[[0;32m  OK  [0m] Stopped [0;1;39mtuned.service[0m - Dynamic System Tuning Daemon.
+         Stopping [0;1;39mpolkit.service[0m - Authorization Manager...
+[[0;32m  OK  [0m] Stopped [0;1;39mpolkit.service[0m - Authorization Manager.
+[[0;32m  OK  [0m] Stopped [0;1;39msession-1.scope[0m - Session 1 of User ares.
+         Stopping [0;1;39muser@1001.service[0m - User Manager for UID 1001...
+[[0;32m  OK  [0m] Stopped [0;1;39muser@1001.service[0m - User Manager for UID 1001.
+         Stopping [0;1;39msystemd-oomd.service[0m - Us…space Out-Of-Memory (OOM) Killer...
+         Stopping [0;1;39msystemd-user-sessions.service[0m - Permit User Sessions...
+         Stopping [0;1;39muresourced.service[0m - User resource assignment daemon...
+         Stopping [0;1;39muser-runtime-dir@1001.ser…[0mRuntime Directory /run/user/1001...
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-oomd.service[0m - Userspace Out-Of-Memory (OOM) Killer.
+[[0;32m  OK  [0m] Unmounted [0;1;39mrun-user-1001.mount[0m - /run/user/1001.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-user-sessions.service[0m - Permit User Sessions.
+[[0;32m  OK  [0m] Stopped [0;1;39muser-runtime-dir@1001.serv…[0mr Runtime Directory /run/user/1001.
+[[0;32m  OK  [0m] Removed slice [0;1;39muser-1001.slice[0m - User Slice of UID 1001.
+[[0;32m  OK  [0m] Stopped target [0;1;39mremote-fs.target[0m - Remote File Systems.
+[[0;32m  OK  [0m] Stopped target [0;1;39mremote-fs-pre.targe…[0mreparation for Remote File Systems.
+[[0;32m  OK  [0m] Stopped target [0;1;39mnfs-client.target[0m - NFS client services.
+         Stopping [0;1;39mgssproxy.service[0m - GSSAPI Proxy Daemon...
+[[0;32m  OK  [0m] Stopped [0;1;39mrpm-ostree-fix-shadow-mode…[0mUpdate permissions for /etc/shadow.
+         Stopping [0;1;39msystemd-homed-activate.service[0m - Home Area Activation...
+         Stopping [0;1;39msystemd-logind.service[0m - User Login Management...
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-logind.service[0m - User Login Management.
+[[0;32m  OK  [0m] Stopped [0;1;39mgssproxy.service[0m - GSSAPI Proxy Daemon.
+[[0;32m  OK  [0m] Stopped [0;1;39muresourced.service[0m - User resource assignment daemon.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-homed-activate.service[0m - Home Area Activation.
+[[0;32m  OK  [0m] Stopped target [0;1;39mnetwork.target[0m - Network.
+[[0;32m  OK  [0m] Stopped target [0;1;39mnss-user-lookup.target[0m - User and Group Name Lookups.
+         Stopping [0;1;39mNetworkManager.service[0m - Network Manager...
+[[0;32m  OK  [0m] Stopped [0;1;39mauthselect-apply-changes.service[0m - Apply authselect changes.
+         Stopping [0;1;39msystemd-homed.service[0m - Home Area Manager...
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-userdb-load-creden…[0mser/group Records from Credentials.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-homed.service[0m - Home Area Manager.
+[[0;32m  OK  [0m] Stopped [0;1;39mNetworkManager.service[0m - Network Manager.
+[[0;32m  OK  [0m] Stopped target [0;1;39mnetwork-pre.target[0m - Preparation for Network.
+[[0;32m  OK  [0m] Stopped [0;1;39mbazzite-iwd-migration.service[0m - Handle IWD migration.
+         Stopping [0;1;39mfirewalld.service[0m - firewalld - dynamic firewall daemon...
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-network-generator.…[0mork Units from Kernel Command Line.
+[[0;32m  OK  [0m] Stopped [0;1;39mfirewalld.service[0m - firewalld - dynamic firewall daemon.
+[[0;32m  OK  [0m] Stopped target [0;1;39mbasic.target[0m - Basic System.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-ask-password-plymo…[0mquests to Plymouth Directory Watch.
+[[0;32m  OK  [0m] Stopped target [0;1;39mpaths.target[0m - Path Units.
+[[0;32m  OK  [0m] Stopped [0;1;39mbootc-status-updated.path[0m - Monitor bootc for status changes.
+[[0;32m  OK  [0m] Stopped [0;1;39mcups.path[0m - CUPS Scheduler.
+[[0;32m  OK  [0m] Stopped [0;1;39mlvm-devices-import.path[0m - …es-import to create system.devices.
+[[0;32m  OK  [0m] Stopped target [0;1;39mslices.target[0m - Slice Units.
+[[0;32m  OK  [0m] Removed slice [0;1;39muser.slice[0m - User and Session Slice.
+[[0;32m  OK  [0m] Stopped target [0;1;39msockets.target[0m - Socket Units.
+[[0;32m  OK  [0m] Closed [0;1;39mavahi-daemon.socket[0m - Avahi…DNS/DNS-SD Stack Activation Socket.
+[[0;32m  OK  [0m] Closed [0;1;39mcups.socket[0m - CUPS Scheduler.
+[[0;32m  OK  [0m] Closed [0;1;39mpcscd.socket[0m - PC/SC Smart Card Daemon Activation Socket.
+[[0;32m  OK  [0m] Closed [0;1;39msshd-unix-local.socket[0m - Op…temd-ssh-generator, AF_UNIX Local).
+         Stopping [0;1;39msshd-vsock.socket[0m - OpenS…systemd-ssh-generator, AF_VSOCK)...
+[[0;32m  OK  [0m] Closed [0;1;39msssd-kcm.socket[0m - SSSD Kerberos Cache Manager responder socket.
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-hostnamed.socket[0m - Hostname Service Socket.
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-importd.socket[0m - Disk Image Download Service Socket.
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-logind-varlink.sock…[0mer Login Management Varlink Socket.
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-machined.socket[0m - V…tainer Registration Service Socket.
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-mountfsd.socket[0m - DDI File System Mounter Socket.
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-mute-console.socket[0m…nsole Output Muting Service Socket.
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-oomd.socket[0m - Users… Out-Of-Memory (OOM) Killer Socket.
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-repart.socket[0m - Disk Repartitioning Service Socket.
+         Stopping [0;1;39mdbus-broker.service[0m - D-Bus System Message Bus...
+[[0;32m  OK  [0m] Stopped [0;1;39mdbus-broker.service[0m - D-Bus System Message Bus.
+[[0;32m  OK  [0m] Closed [0;1;39mdbus.socket[0m - D-Bus System Message Bus Socket.
+[[0;32m  OK  [0m] Closed [0;1;39msshd-vsock.socket[0m - OpenSSH… (systemd-ssh-generator, AF_VSOCK).
+[[0;32m  OK  [0m] Stopped target [0;1;39msysinit.target[0m - System Initialization.
+[[0;32m  OK  [0m] Stopped target [0;1;39mcryptsetup.target[0m - Local Encrypted Volumes.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-ask-password-wall.…[0md Requests to Wall Directory Watch.
+[[0;32m  OK  [0m] Stopped target [0;1;39mimports.target[0m - Image Downloads.
+[[0;32m  OK  [0m] Stopped target [0;1;39mintegritysetup.targ…[0m Local Integrity Protected Volumes.
+[[0;32m  OK  [0m] Stopped target [0;1;39mveritysetup.target[0m - Local Verity Protected Volumes.
+         Stopping [0;1;39msystemd-binfmt.service[0m - Set Up Additional Binary Formats...
+         Stopping [0;1;39msystemd-nsresourced.service[0m - Namespace Resource Manager...
+         Stopping [0;1;39msystemd-resolved.service[0m - Network Name Resolution...
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-update-done.service[0m - Update is Completed.
+[[0;32m  OK  [0m] Stopped [0;1;39mldconfig.service[0m - Rebuild Dynamic Linker Cache.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-hwdb-update.service[0m - Rebuild Hardware Database.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-journal-catalog-up….service[0m - Rebuild Journal Catalog.
+         Stopping [0;1;39msystemd-update-utmp.servi…[0mord System Boot/Shutdown in UTMP...
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-nsresourced.service[0m - Namespace Resource Manager.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-resolved.service[0m - Network Name Resolution.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-binfmt.service[0m - Set Up Additional Binary Formats.
+[[0;32m  OK  [0m] Unset automount [0;1;39mproc-sys-fs-binfmt…[0mormats File System Automount Point.
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-nsresourced.socket[0m - Namespace Resource Manager Socket.
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-resolved-monitor.so…t[0m - Resolve Monitor Varlink Socket.
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-resolved-varlink.so…t[0m - Resolve Service Varlink Socket.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-sysctl.service[0m - Apply Kernel Variables.
+[[0;32m  OK  [0m] Closed [0;1;39msystemd-coredump.socket[0m - Process Core Dump Socket.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-modules-load.service[0m - Load Kernel Modules.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-update-utmp.servic…[0mecord System Boot/Shutdown in UTMP.
+         Stopping [0;1;39mauditd.service[0m - Security Audit Logging Service...
+[0;21;33mkauditd_printk_skb: 71 callbacks suppressed[0m
+[0;21;32maudit: type=1305 audit(1794305875.766:462): op=set audit_pid=0 old=808 auid=4294967295 ses=4294967295 subj=system_u:system_r:auditd_t:s0 res=1[0m
+[[0;32m  OK  [0m] Stopped [0;1;39mauditd.service[0m - Security Audit Logging Service.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-tmpfiles-setup.ser…[0mreate System Files and Directories.
+[[0;32m  OK  [0m] Stopped target [0;1;39mlocal-fs.target[0m - Local File Systems.
+         Unmounting [0;1;39mboot-efi.mount[0m - /boot/efi...
+         Unmounting [0;1;39msysroot-ostree-deploy-d…[0mysroot/ostree/deploy/default/var...
+[0;21;32maudit: type=1131 audit(1794305875.768:463): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=auditd comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'[0m
+[0;21;32maudit: type=1131 audit(1794305875.770:464): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=systemd-tmpfiles-setup comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'[0m
+[0;21;32maudit: type=1131 audit(1794305875.791:465): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=ostree-remount comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'[0m
+         Unmounting [0;1;39mtmp.mount[0m - Temporary Directory /tmp...
+[[0;32m  OK  [0m] Stopped [0;1;39mostree-remount.service[0m - OSTree Remount OS/ Bind Mounts.
+[[0;32m  OK  [0m] Unmounted [0;1;39mboot-efi.mount[0m - /boot/efi.
+[[0;32m  OK  [0m] Unmounted [0;1;39msysroot-ostree-deploy-de…[0m/sysroot/ostree/deploy/default/var.
+[[0;32m  OK  [0m] Unmounted [0;1;39mtmp.mount[0m - Temporary Directory /tmp.
+[[0;32m  OK  [0m] Stopped target [0;1;39mswap.target[0m - Swaps.
+         Deactivating swap [0;1;39mdev-disk-by\x2dd…-4.swap[0m - /dev/disk/by-diskseq/4...
+         Unmounting [0;1;39mboot.mount[0m - /boot...
+[0;21;39mEXT4-fs (vda3): unmounting filesystem 2df6385a-2502-472e-96bd-f89e67ce4824.[0m
+[[0;32m  OK  [0m] Deactivated swap [0;1;39mdev-disk-by\x2ddi…eq-4.swap[0m - /dev/disk/by-diskseq/4.
+[[0;32m  OK  [0m] Deactivated swap [0;1;39mdev-disk-by\x2dla…m0.swap[0m - /dev/disk/by-label/zram0.
+[[0;32m  OK  [0m] Deactivated swap [0;1;39mdev-disk-by\x2duu…[0m0c252e-32a2-45b0-a6ce-5943cb177564.
+[[0;32m  OK  [0m] Deactivated swap [0;1;39mdev-zram0.swap[0m - Compressed Swap on /dev/zram0.
+[[0;32m  OK  [0m] Unmounted [0;1;39mboot.mount[0m - /boot.
+[[0;32m  OK  [0m] Stopped target [0;1;39mlocal-fs-pre.target[0m…Preparation for Local File Systems.
+[[0;32m  OK  [0m] Reached target [0;1;39mumount.target[0m - Unmount All Filesystems.
+         Stopping [0;1;39mlvm2-monitor.service[0m - Mo…ing dmeventd or progress polling...
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-tmpfiles-setup-dev…[0mCreate Static Device Nodes in /dev.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-sysusers.service[0m - Create System Users.
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-tmpfiles-setup-dev…[0mic Device Nodes in /dev gracefully.
+         Stopping [0;1;39msystemd-zram-setup@zram0.…vice[0m - Create swap on /dev/zram0...
+[0;21;32maudit: type=1131 audit(1794305875.832:466): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=systemd-tmpfiles-setup-dev comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'[0m
+[0;21;32maudit: type=1131 audit(1794305875.833:467): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=systemd-sysusers comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'[0m
+[0;21;32maudit: type=1131 audit(1794305875.833:468): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=systemd-tmpfiles-setup-dev-early comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'[0m
+[0;21;39mzram0: detected capacity change from 6043648 to 0[0m
+[[0;32m  OK  [0m] Stopped [0;1;39msystemd-zram-setup@zram0.service[0m - Create swap on /dev/zram0.
+[[0;32m  OK  [0m] Removed slice [0;1;39msystem-systemd\x2dzr…[0m- Slice /system/systemd-zram-setup.
+[0;21;32maudit: type=1131 audit(1794305875.848:469): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=systemd-zram-setup@zram0 comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'[0m
+[[0;32m  OK  [0m] Stopped [0;1;39mlvm2-monitor.service[0m - Mon…using dmeventd or progress polling.
+[[0;32m  OK  [0m] Reached target [0;1;39mshutdown.target[0m - System Shutdown.
+[[0;32m  OK  [0m] Reached target [0;1;39mfinal.target[0m - Late Shutdown Services.
+[[0;32m  OK  [0m] Finished [0;1;39msystemd-poweroff.service[0m - System Power Off.
+[[0;32m  OK  [0m] Reached target [0;1;39mpoweroff.target[0m - System Power Off.
+[0;21;32maudit: type=1131 audit(1794305875.886:470): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=lvm2-monitor comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'[0m
+[0;21;32maudit: type=1130 audit(1794305875.888:471): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=system_u:system_r:init_t:s0 msg='unit=systemd-poweroff comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'[0m
+]3008;end=7664655fdf4145768d6254847068fdc7\[0;21;39msystemd-shutdown[1]: Syncing filesystems and block devices.[0m
+[0;21;39msystemd-shutdown[1]: Sending SIGTERM to remaining processes...[0m
+[0;21;39msystemd-journald[651]: Received SIGTERM from PID 1 (systemd-shutdow).[0m
+[   74.086803] systemd-shutdown[1]: Sending SIGKILL to remaining processes...
+[   74.092470] systemd-shutdown[1]: Unmounting file systems.
+[   74.095224] (sd-remount)[3051]: Remounting '/var' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[   74.110013] (sd-umount)[3052]: Unmounting '/var'.
+[   74.111893] (sd-umount)[3053]: Unmounting '/run/credentials/systemd-journald.service'.
+[   74.114648] (sd-remount)[3054]: Remounting '/sysroot' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[   74.118140] (sd-umount)[3056]: Unmounting '/sysroot'.
+[   74.120076] (sd-remount)[3057]: Remounting '/etc' read-only with options 'seclabel,discard=async,space_cache=v2,subvolid=256,subvol=/root'.
+[   74.123009] (sd-umount)[3058]: Unmounting '/etc'.
+[   74.124667] systemd-shutdown[1]: All filesystems unmounted.
+[   74.126244] systemd-shutdown[1]: Deactivating swaps.
+[   74.127648] systemd-shutdown[1]: All swaps deactivated.
+[   74.129110] systemd-shutdown[1]: Detaching loop devices.
+[   74.130820] systemd-shutdown[1]: All loop devices detached.
+[   74.132394] systemd-shutdown[1]: Stopping MD devices.
+[   74.133919] systemd-shutdown[1]: All MD devices stopped.
+[   74.135418] systemd-shutdown[1]: Detaching DM devices.
+[   74.137037] systemd-shutdown[1]: All DM devices detached.
+[   74.138575] systemd-shutdown[1]: All filesystems, swaps, loop devices, MD devices and DM devices detached.
+[   74.153010] systemd-shutdown[1]: Syncing filesystems and block devices.
+[   74.154828] systemd-shutdown[1]: Powering off.
+[   74.179090] Console: switching to colour dummy device 80x25
+[   74.213211] ACPI: PM: Preparing to enter system sleep state S5
+[   74.214340] kvm: exiting hardware virtualization
+[   74.215271] reboot: Power down

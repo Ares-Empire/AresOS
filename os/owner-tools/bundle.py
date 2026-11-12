@@ -9,9 +9,10 @@ import shutil
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 PAYLOAD = {'at': 'os/owner-tools/at', 'owner.py': 'os/owner-tools/owner.py',
-           'media.py': 'os/owner-tools/media.py', 'release.json': 'os/manifest/release.json'}
+           'media.py': 'os/owner-tools/media.py', 'release.json': 'os/manifest/release.json',
+           'history.json': 'os/owner-tools/history.json'}
 for name in ('pause-stock-updates', 'pin-stock', 'system-keyboard', 'stock-session',
-             'switch', 'verify', 'rollback', 'default-stock'):
+             'switch', 'verify', 'rollback', 'default-stock', 'update', 'previous'):
     PAYLOAD['release/' + name + '.sh'] = 'os/release/' + name + '.sh'
 
 

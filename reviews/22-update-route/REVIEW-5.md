@@ -1,0 +1,7 @@
+- **High — [owner.py:1678](/C:/Users/pab/AresOS-22-update-route/os/owner-tools/owner.py:1678): resumed refusals can still leave no working tools.** Cut power after `tools → .tools-held`, then rerun the same bootstrap with a persistent `disk_record()` failure. It refuses before reaching `guarded()`, leaving `/var/lib/ares/at` dangling on every retry. Resume identity checks and staged-bundle validation also sit outside restoration protection. **Fix:** establish trusted journal recovery before fallible preflights and restore the verified held copy on every pre-publication refusal. Extend interruption tests beyond layout/transaction failures.
+
+- **Medium — [owner.py:1631](/C:/Users/pab/AresOS-22-update-route/os/owner-tools/owner.py:1631): descriptor inspection fails open.** Every `readlink()` error—including permission or I/O errors—is treated as a closed descriptor. A live process whose only tools reference is that descriptor can therefore escape detection, violating “when in doubt, refuse.” **Fix:** distinguish confirmed disappearance from unreadability; count uncertain processes and test descriptor-read failures.
+
+Payload hashes, fingerprint pins, both bootstrap blocks and the exact 17-file pending-rebind set match. No additional whole-PR recovery blocker found. Linux tests unavailable: Python absent; WSL access denied. No files edited.
+
+CHANGES-NEEDED

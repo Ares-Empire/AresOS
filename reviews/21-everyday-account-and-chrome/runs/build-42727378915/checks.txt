@@ -1,0 +1,1314 @@
++ systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos.conf
++ test -d /var/home/ares
++ getent group wheel
+wheel:x:10:ares
++ id -nG ares
++ grep -qw wheel
++ pass 'ares is in wheel'
++ set +x
+PASS ares is in wheel
+++ getent shadow ares
+++ cut -d: -f2
++ password='!*'
+PASS the image sets no password for ares (locked)
++ case $password in
++ pass 'the image sets no password for ares (locked)'
++ set +x
+++ LC_ALL=C
+++ sudo -l -U ares
++ policy=$'Matching Defaults entries for ares on f1f8d973f3eb:\n    !visiblepw, always_set_home, match_group_by_gid, always_query_group_plugin, env_reset, env_keep="COLORS DISPLAY HOSTNAME HISTSIZE KDEDIR LS_COLORS", env_keep+="MAIL QTDIR USERNAME LANG LC_ADDRESS LC_CTYPE", env_keep+="LC_COLLATE LC_IDENTIFICATION LC_MEASUREMENT LC_MESSAGES", env_keep+="LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE", env_keep+="LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET XAUTHORITY", secure_path=/usr/local/sbin\\:/usr/local/bin\\:/usr/sbin\\:/usr/bin\\:/sbin\\:/bin\\:/var/lib/snapd/snap/bin\\:/home/linuxbrew/.linuxbrew/bin, timestamp_timeout=0\n\nUser ares may run the following commands on f1f8d973f3eb:\n    (ALL) ALL'
+Matching Defaults entries for ares on f1f8d973f3eb:
+    !visiblepw, always_set_home, match_group_by_gid, always_query_group_plugin, env_reset, env_keep="COLORS DISPLAY HOSTNAME HISTSIZE KDEDIR LS_COLORS", env_keep+="MAIL QTDIR USERNAME LANG LC_ADDRESS LC_CTYPE", env_keep+="LC_COLLATE LC_IDENTIFICATION LC_MEASUREMENT LC_MESSAGES", env_keep+="LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE", env_keep+="LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET XAUTHORITY", secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin\:/var/lib/snapd/snap/bin\:/home/linuxbrew/.linuxbrew/bin, timestamp_timeout=0
+
+User ares may run the following commands on f1f8d973f3eb:
+    (ALL) ALL
++ printf '%s\n' $'Matching Defaults entries for ares on f1f8d973f3eb:\n    !visiblepw, always_set_home, match_group_by_gid, always_query_group_plugin, env_reset, env_keep="COLORS DISPLAY HOSTNAME HISTSIZE KDEDIR LS_COLORS", env_keep+="MAIL QTDIR USERNAME LANG LC_ADDRESS LC_CTYPE", env_keep+="LC_COLLATE LC_IDENTIFICATION LC_MEASUREMENT LC_MESSAGES", env_keep+="LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE", env_keep+="LC_TIME LC_ALL LANGUAGE LINGUAS _XKB_CHARSET XAUTHORITY", secure_path=/usr/local/sbin\\:/usr/local/bin\\:/usr/sbin\\:/usr/bin\\:/sbin\\:/bin\\:/var/lib/snapd/snap/bin\\:/home/linuxbrew/.linuxbrew/bin, timestamp_timeout=0\n\nUser ares may run the following commands on f1f8d973f3eb:\n    (ALL) ALL'
++ grep -Eq '^[[:space:]]+\(ALL\) ALL$'
++ grep -q timestamp_timeout=0
++ grep -Eq 'NOPASSWD|!authenticate'
++ grep -rhEv '^[[:space:]]*(#|$)' /etc/sudoers /etc/sudoers.d
++ grep -E 'NOPASSWD|!authenticate'
++ visudo --check
+/etc/sudoers: parsed OK
+/etc/sudoers.d/aresos-everyday: parsed OK
+++ stat -c '%a %u %g' /etc/sudoers.d/aresos-everyday
++ test '440 0 0' = '440 0 0'
+PASS sudo for ares: (ALL) ALL with a password, no remembered ticket, no passwordless rule
++ pass 'sudo for ares: (ALL) ALL with a password, no remembered ticket, no passwordless rule'
++ set +x
++ expect_failure runuser -u ares -- sudo -n true
++ local output status=0
+++ runuser -u ares -- sudo -n true
++ output='sudo: a password is required'
++ status=1
++ printf '%s\n' 'sudo: a password is required'
+sudo: a password is required
++ [[ 1 == 0 ]]
++ LAST_FAILURE='sudo: a password is required'
++ LAST_STATUS=1
++ grep -q 'password is required'
++ pass 'sudo as ares fails without a password'
++ set +x
+PASS sudo as ares fails without a password
++ set +x
++ chown ares:ares /run/reuse-password
++ printf 'Defaults:ares timestamp_timeout=5, timestamp_type=ppid\n'
++ chmod 0440 /etc/sudoers.d/zz-reuse-control
++ visudo --check
+/etc/sudoers: parsed OK
+/etc/sudoers.d/aresos-everyday: parsed OK
+/etc/sudoers.d/zz-reuse-control: parsed OK
++ reuse_probe
++ runuser -u ares -- /usr/bin/bash -c $'\n        sudo -S -p "" true < /run/reuse-password || exit 90\n        /usr/bin/bash -c "exec sudo -n true"\n        status=$?\n        exit "$status"\n    '
+
+We trust you have received the usual lecture from the local System
+Administrator. It usually boils down to these three things:
+
+    #1) Respect the privacy of others.
+    #2) Think before you type.
+    #3) With great power comes great responsibility.
+
+For security reasons, the password you type will not be visible.
+
++ rm /etc/sudoers.d/zz-reuse-control
++ rm -rf /run/sudo/ts /var/run/sudo/ts
++ expect_failure reuse_probe
++ local output status=0
+++ reuse_probe
++ output=$'++ runuser -u ares -- /usr/bin/bash -c $\'\\n        sudo -S -p "" true < /run/reuse-password || exit 90\\n        /usr/bin/bash -c "exec sudo -n true"\\n        status=$?\\n        exit "$status"\\n    \'\nsudo: a password is required'
++ status=1
++ printf '%s\n' $'++ runuser -u ares -- /usr/bin/bash -c $\'\\n        sudo -S -p "" true < /run/reuse-password || exit 90\\n        /usr/bin/bash -c "exec sudo -n true"\\n        status=$?\\n        exit "$status"\\n    \'\nsudo: a password is required'
+++ runuser -u ares -- /usr/bin/bash -c $'\n        sudo -S -p "" true < /run/reuse-password || exit 90\n        /usr/bin/bash -c "exec sudo -n true"\n        status=$?\n        exit "$status"\n    '
+sudo: a password is required
++ [[ 1 == 0 ]]
++ LAST_FAILURE=$'++ runuser -u ares -- /usr/bin/bash -c $\'\\n        sudo -S -p "" true < /run/reuse-password || exit 90\\n        /usr/bin/bash -c "exec sudo -n true"\\n        status=$?\\n        exit "$status"\\n    \'\nsudo: a password is required'
++ LAST_STATUS=1
++ test 1 = 1
++ grep -q 'a password is required'
++ pass 'after a successful sudo, a child exec of sudo -n is refused (the old ppid ticket allowed it)'
++ set +x
+PASS after a successful sudo, a child exec of sudo -n is refused (the old ppid ticket allowed it)
++ grep -l '_keep[[:space:]]*</allow_' /usr/share/polkit-1/actions/com.redhat.tuned.policy /usr/share/polkit-1/actions/id.waydro.Container.policy /usr/share/polkit-1/actions/input-remapper.policy /usr/share/polkit-1/actions/io.systemd.ask-password.policy /usr/share/polkit-1/actions/io.systemd.credentials.policy /usr/share/polkit-1/actions/io.systemd.mount-file-system.policy /usr/share/polkit-1/actions/io.systemd.namespace-resource.policy /usr/share/polkit-1/actions/net.hadess.PowerProfiles.policy /usr/share/polkit-1/actions/net.hadess.SensorProxy.policy /usr/share/polkit-1/actions/net.reactivated.fprint.device.policy /usr/share/polkit-1/actions/org.a11y.brlapi.policy /usr/share/polkit-1/actions/org.bazzite.privileged.user.setup.policy /usr/share/polkit-1/actions/org.bazzite.waydroid.policy /usr/share/polkit-1/actions/org.btrfs-assistant.pkexec.policy /usr/share/polkit-1/actions/org.cockpit-project.cockpit-bridge.policy /usr/share/polkit-1/actions/org.debian.pcsc-lite.policy /usr/share/polkit-1/actions/org.fedoraproject.FirewallD1.policy /usr/share/polkit-1/actions/org.fedoraproject.setroubleshootfixit.policy /usr/share/polkit-1/actions/org.freedesktop.Flatpak.policy /usr/share/polkit-1/actions/org.freedesktop.ModemManager1.policy /usr/share/polkit-1/actions/org.freedesktop.NetworkManager.policy /usr/share/polkit-1/actions/org.freedesktop.RealtimeKit1.policy /usr/share/polkit-1/actions/org.freedesktop.UDisks2.policy /usr/share/polkit-1/actions/org.freedesktop.UPower.PowerProfiles.policy /usr/share/polkit-1/actions/org.freedesktop.accounts.policy /usr/share/polkit-1/actions/org.freedesktop.bolt.policy /usr/share/polkit-1/actions/org.freedesktop.color.policy /usr/share/polkit-1/actions/org.freedesktop.fwupd.policy /usr/share/polkit-1/actions/org.freedesktop.home1.policy /usr/share/polkit-1/actions/org.freedesktop.hostname1.policy /usr/share/polkit-1/actions/org.freedesktop.import1.policy /usr/share/polkit-1/actions/org.freedesktop.locale1.policy /usr/share/polkit-1/actions/org.freedesktop.login1.policy /usr/share/polkit-1/actions/org.freedesktop.machine1.policy /usr/share/polkit-1/actions/org.freedesktop.network1.policy /usr/share/polkit-1/actions/org.freedesktop.policykit.policy /usr/share/polkit-1/actions/org.freedesktop.portable1.policy /usr/share/polkit-1/actions/org.freedesktop.realmd.policy /usr/share/polkit-1/actions/org.freedesktop.resolve1.policy /usr/share/polkit-1/actions/org.freedesktop.systemd1.policy /usr/share/polkit-1/actions/org.freedesktop.sysupdate1.policy /usr/share/polkit-1/actions/org.freedesktop.timedate1.policy /usr/share/polkit-1/actions/org.freedesktop.timesync1.policy /usr/share/polkit-1/actions/org.freedesktop.upower.policy /usr/share/polkit-1/actions/org.gtk.vfs.file-operations.policy /usr/share/polkit-1/actions/org.kde.filesharing.samba.policy /usr/share/polkit-1/actions/org.kde.fontinst.policy /usr/share/polkit-1/actions/org.kde.kameleon.qmk.helper.policy /usr/share/polkit-1/actions/org.kde.kameleonhelper.policy /usr/share/polkit-1/actions/org.kde.kcontrol.kcmkwallet5.policy /usr/share/polkit-1/actions/org.kde.kcontrol.kcmplasmalogin.policy /usr/share/polkit-1/actions/org.kde.kded.inotify.policy /usr/share/polkit-1/actions/org.kde.kded.smart.policy /usr/share/polkit-1/actions/org.kde.kinfocenter.dmidecode.policy /usr/share/polkit-1/actions/org.kde.kio.admin.policy /usr/share/polkit-1/actions/org.kde.kpmcore.externalcommand.policy /usr/share/polkit-1/actions/org.kde.ksysguard.processlisthelper.policy /usr/share/polkit-1/actions/org.kde.ktexteditor6.katetextbuffer.policy /usr/share/polkit-1/actions/org.kde.powerdevil.backlighthelper.policy /usr/share/polkit-1/actions/org.kde.powerdevil.chargethresholdhelper.policy /usr/share/polkit-1/actions/org.kde.powerdevil.discretegpuhelper.policy /usr/share/polkit-1/actions/org.kde.powerdevil.wakeupsourcehelper.policy /usr/share/polkit-1/actions/org.projectatomic.rpmostree1.policy /usr/share/polkit-1/actions/org.scx.Loader.policy
++ cat
++ systemd-sysusers
+/usr/lib/sysusers.d/plugdev.conf:1: Conflict with earlier configuration for group 'plugdev' in /usr/lib/sysusers.d/openrazer.conf:3, ignoring line.
++ mkdir -p /run/dbus
++ dbus-daemon --system --fork --nopidfile
++ helper=/usr/lib/polkit-1/polkit-agent-helper-1
++ stat -c '%a %U %n' /usr/lib/polkit-1/polkit-agent-helper-1
+4755 root /usr/lib/polkit-1/polkit-agent-helper-1
++ [[ ! -u /usr/lib/polkit-1/polkit-agent-helper-1 ]]
++ runuser -u polkitd -- /usr/lib/polkit-1/polkitd --no-debug
+++ seq 100
++ for _ in $(seq 100)
++ busctl --system status org.freedesktop.PolicyKit1
++ sleep 0.2
++ for _ in $(seq 100)
++ busctl --system status org.freedesktop.PolicyKit1
++ break
++ busctl --system status org.freedesktop.PolicyKit1
++ runuser -u ares -- python3 - org.aresos.ci.cached org.freedesktop.NetworkManager.settings.modify.system org.fedoraproject.FirewallD1.config
++ cat /tmp/polkit-reuse.json
+[
+ {
+  "action": "org.aresos.ci.cached",
+  "first": 0,
+  "password_asked": true,
+  "first_stderr": "",
+  "second": 0,
+  "second_stderr": "",
+  "agent": "\u001b[1;31m==== AUTHENTICATING FOR org.aresos.ci.cached ====\r\n\u001b[0mCheck-only control\r\nAuthenticating as: AresOS daily session (ares)\r\nPassword: \r\n\u001b[1;31m==== AUTHENTICATION COMPLETE ====\r\n\u001b[0m"
+ },
+ {
+  "action": "org.freedesktop.NetworkManager.settings.modify.system",
+  "first": 0,
+  "password_asked": true,
+  "first_stderr": "",
+  "second": 2,
+  "second_stderr": "Authorization requires authentication and -u wasn't passed.",
+  "agent": "\u001b[1;31m==== AUTHENTICATING FOR org.freedesktop.NetworkManager.settings.modify.system ====\r\n\u001b[0mSystem policy prevents modification of network settings for all users\r\nAuthenticating as: AresOS daily session (ares)\r\nPassword: \r\n\u001b[1;31m==== AUTHENTICATION COMPLETE ====\r\n\u001b[0m"
+ },
+ {
+  "action": "org.fedoraproject.FirewallD1.config",
+  "first": 0,
+  "password_asked": true,
+  "first_stderr": "",
+  "second": 2,
+  "second_stderr": "Authorization requires authentication and -u wasn't passed.",
+  "agent": "\u001b[1;31m==== AUTHENTICATING FOR org.fedoraproject.FirewallD1.config ====\r\n\u001b[0mSystem policy prevents changing the firewall configuration\r\nAuthenticating as: AresOS daily session (ares)\r\nPassword: \r\n\u001b[1;31m==== AUTHENTICATION COMPLETE ====\r\n\u001b[0m"
+ }
+]
++ python3 - /tmp/polkit-reuse.json
+polkit asked again for org.freedesktop.NetworkManager.settings.modify.system, org.fedoraproject.FirewallD1.config
++ pkill -x polkitd
++ pkill -x dbus-daemon
++ pkill -f systemd-socket-activate
++ true
++ rm /usr/share/polkit-1/actions/org.aresos.ci.cached.policy
++ pass 'polkit: after ares authorizes once, the same process is asked again (a cached control action is reused)'
++ set +x
+PASS polkit: after ares authorizes once, the same process is asked again (a cached control action is reused)
++ usermod -p '!*' ares
++ rm /run/reuse-password
+++ getent shadow ares
+++ cut -d: -f2
++ test '!*' = '!*'
++ for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software
+++ command -v uupd
++ path=/usr/sbin/uupd
++ [[ -n /usr/sbin/uupd ]]
++ runuser -u ares -- test '!' -x /usr/sbin/uupd
++ for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software
+++ command -v ujust
++ path=/usr/sbin/ujust
++ [[ -n /usr/sbin/ujust ]]
++ runuser -u ares -- test '!' -x /usr/sbin/ujust
++ for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software
+++ command -v topgrade
+++ true
++ path=
++ [[ -n '' ]]
++ for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software
+++ command -v bazzite-updater
++ path=/usr/sbin/bazzite-updater
++ [[ -n /usr/sbin/bazzite-updater ]]
++ runuser -u ares -- test '!' -x /usr/sbin/bazzite-updater
++ for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software
+++ command -v bazzite-portal
+++ true
++ path=
++ [[ -n '' ]]
++ for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software
+++ command -v bazaar
++ path=/usr/sbin/bazaar
++ [[ -n /usr/sbin/bazaar ]]
++ runuser -u ares -- test '!' -x /usr/sbin/bazaar
++ for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software
+++ command -v plasma-discover
+++ true
++ path=
++ [[ -n '' ]]
++ for command in uupd ujust topgrade bazzite-updater bazzite-portal bazaar plasma-discover gnome-software
+++ command -v gnome-software
+++ true
++ path=
++ [[ -n '' ]]
++ pass 'uupd, ujust, topgrade, the Bazzite updater/portal and the stores are not executable by ares'
+PASS uupd, ujust, topgrade, the Bazzite updater/portal and the stores are not executable by ares
++ set +x
++ runuser -u ares -- test -x /usr/bin/flatpak
++ runuser -u ares -- flatpak --version
+Flatpak 1.18.4
++ runuser -u ares -- test -x /usr/bin/brew
++ pass 'flatpak and brew are executable by ares'
+PASS flatpak and brew are executable by ares
++ set +x
++ read -r unit
+++ systemctl --root=/ is-enabled uupd.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled uupd.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled uupd-manual.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled rpm-ostreed-automatic.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled rpm-ostreed-automatic.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled bootc-fetch-apply-updates.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled bootc-fetch-apply-updates.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled bootc-update.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled bootc-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled dnf-automatic.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled dnf-automatic.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled dnf5-automatic.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled dnf5-automatic.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled packagekit.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled packagekit-offline-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled fwupd-refresh.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled fwupd-refresh.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled flatpak-system-update.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled flatpak-system-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled bazzite-flatpak-manager.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled ublue-nvidia-flatpak-runtime-sync.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled ublue-nvidia-flatpak-runtime-verify.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled flatpak-add-fedora-repos.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled brew-setup.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled bazzite-hardware-setup.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled bootloader-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled systemd-sysupdate.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled systemd-sysupdate.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled systemd-sysupdate-reboot.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled systemd-sysupdate-reboot.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled systemd-sysupdated.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled dbus-org.freedesktop.sysupdate1.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled podman-auto-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled podman-auto-update.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled qemu-guest-agent.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled acpid.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled sddm.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled gdm.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled lightdm.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled bazzite-autologin.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled sleep.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled suspend.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled hibernate.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled hybrid-sleep.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled suspend-then-hibernate.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled systemd-suspend.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled systemd-hibernate.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled systemd-hybrid-sleep.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled systemd-suspend-then-hibernate.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled bootc-finalize-staged.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled ostree-finalize-staged.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled brew-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled brew-update.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled brew-upgrade.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled brew-upgrade.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled dnf-makecache.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled dnf5-offline-transaction.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled dnf5-offline-transaction-cleanup.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled fwupd.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled foomaticrip-upgrade.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled mariadb.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled mariadb@.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled system-update.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled system-update-pre.target
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled system-update-cleanup.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled systemd-boot-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ is-enabled cockpit-container.service
+++ true
++ test masked = masked
++ read -r unit
++ read -r unit
+++ systemctl --root=/ --global is-enabled bazzite-user-setup.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled bazzite-dynamic-fixes.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled flatpak-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled flatpak-update.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled brew-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled brew-update.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled uupd.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled uupd.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled plasma-powerdevil.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled org.gnome.SettingsDaemon.Power.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled brew-upgrade.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled brew-upgrade.timer
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled flatpak-oci-authenticator.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled podman-auto-update.service
+++ true
++ test masked = masked
++ read -r unit
+++ systemctl --root=/ --global is-enabled podman-auto-update.timer
+++ true
++ test masked = masked
++ read -r unit
++ for unit in flatpak-system-update.timer flatpak-system-update.service bootc-fetch-apply-updates.timer rpm-ostreed-automatic.timer uupd.timer fwupd-refresh.timer brew-update.timer brew-upgrade.timer
++ grep -qx flatpak-system-update.timer /usr/share/aresos/policy/masked-system-units.txt
++ for unit in flatpak-system-update.timer flatpak-system-update.service bootc-fetch-apply-updates.timer rpm-ostreed-automatic.timer uupd.timer fwupd-refresh.timer brew-update.timer brew-upgrade.timer
++ grep -qx flatpak-system-update.service /usr/share/aresos/policy/masked-system-units.txt
++ for unit in flatpak-system-update.timer flatpak-system-update.service bootc-fetch-apply-updates.timer rpm-ostreed-automatic.timer uupd.timer fwupd-refresh.timer brew-update.timer brew-upgrade.timer
++ grep -qx bootc-fetch-apply-updates.timer /usr/share/aresos/policy/masked-system-units.txt
++ for unit in flatpak-system-update.timer flatpak-system-update.service bootc-fetch-apply-updates.timer rpm-ostreed-automatic.timer uupd.timer fwupd-refresh.timer brew-update.timer brew-upgrade.timer
++ grep -qx rpm-ostreed-automatic.timer /usr/share/aresos/policy/masked-system-units.txt
++ for unit in flatpak-system-update.timer flatpak-system-update.service bootc-fetch-apply-updates.timer rpm-ostreed-automatic.timer uupd.timer fwupd-refresh.timer brew-update.timer brew-upgrade.timer
++ grep -qx uupd.timer /usr/share/aresos/policy/masked-system-units.txt
++ for unit in flatpak-system-update.timer flatpak-system-update.service bootc-fetch-apply-updates.timer rpm-ostreed-automatic.timer uupd.timer fwupd-refresh.timer brew-update.timer brew-upgrade.timer
++ grep -qx fwupd-refresh.timer /usr/share/aresos/policy/masked-system-units.txt
++ for unit in flatpak-system-update.timer flatpak-system-update.service bootc-fetch-apply-updates.timer rpm-ostreed-automatic.timer uupd.timer fwupd-refresh.timer brew-update.timer brew-upgrade.timer
++ grep -qx brew-update.timer /usr/share/aresos/policy/masked-system-units.txt
++ for unit in flatpak-system-update.timer flatpak-system-update.service bootc-fetch-apply-updates.timer rpm-ostreed-automatic.timer uupd.timer fwupd-refresh.timer brew-update.timer brew-upgrade.timer
++ grep -qx brew-upgrade.timer /usr/share/aresos/policy/masked-system-units.txt
++ for unit in flatpak-system-helper.service
+++ systemctl --root=/ is-enabled flatpak-system-helper.service
++ test static '!=' masked
++ for unit in flatpak-portal.service flatpak-session-helper.service
+++ systemctl --root=/ --global is-enabled flatpak-portal.service
++ test static '!=' masked
++ for unit in flatpak-portal.service flatpak-session-helper.service
+++ systemctl --root=/ --global is-enabled flatpak-session-helper.service
++ test static '!=' masked
++ python3 /usr/libexec/aresos-audit --output /tmp/updaters.json
+Updater audit passed: 815 system/user units inspected
++ pass 'automatic updaters masked; Flatpak helpers available; static updater audit passes'
+PASS automatic updaters masked; Flatpak helpers available; static updater audit passes
++ set +x
++ lock=/usr/share/aresos/manifest/google-chrome.lock.json
+++ rpm -q --qf '%{NEVRA}' google-chrome-stable
+++ python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["nevra"])' /usr/share/aresos/manifest/google-chrome.lock.json
++ test google-chrome-stable-157.0.8103.50-1.x86_64 = google-chrome-stable-157.0.8103.50-1.x86_64
++ for command in google-chrome google-chrome-stable
+++ readlink -f /usr/bin/google-chrome
++ test /usr/lib/opt/google/chrome/google-chrome = /usr/lib/opt/google/chrome/google-chrome
++ for command in google-chrome google-chrome-stable
+++ readlink -f /usr/bin/google-chrome-stable
++ test /usr/lib/opt/google/chrome/google-chrome = /usr/lib/opt/google/chrome/google-chrome
++ test -x /usr/lib/opt/google/chrome/chrome
++ stat -c '%a %U %n' /usr/lib/opt/google/chrome/chrome-sandbox
+4755 root /usr/lib/opt/google/chrome/chrome-sandbox
+++ stat -c '%a %u' /usr/lib/opt/google/chrome/chrome-sandbox
++ test '4755 0' = '4755 0'
++ test '!' -e /var/opt/google
++ test '!' -e /var/opt
++ rpm -ql google-chrome-stable
++ grep '^/opt/google/'
++ sed 's|^/opt/|/usr/lib/opt/|'
++ read -r file
++ test -e /usr/lib/opt/google/chrome
++ read -r file
++ test -e /usr/lib/opt/google/chrome/CHROME_VERSION_EXTRA
++ read -r file
++ test -e /usr/lib/opt/google/chrome/MEIPreload
++ read -r file
++ test -e /usr/lib/opt/google/chrome/MEIPreload/manifest.json
++ read -r file
++ test -e /usr/lib/opt/google/chrome/MEIPreload/preloaded_data.pb
++ read -r file
++ test -e /usr/lib/opt/google/chrome/WidevineCdm
++ read -r file
++ test -e /usr/lib/opt/google/chrome/WidevineCdm/LICENSE
++ read -r file
++ test -e /usr/lib/opt/google/chrome/WidevineCdm/_platform_specific
++ read -r file
++ test -e /usr/lib/opt/google/chrome/WidevineCdm/_platform_specific/linux_x64
++ read -r file
++ test -e /usr/lib/opt/google/chrome/WidevineCdm/_platform_specific/linux_x64/libwidevinecdm.so
++ read -r file
++ test -e /usr/lib/opt/google/chrome/WidevineCdm/manifest.json
++ read -r file
++ test -e /usr/lib/opt/google/chrome/apparmor.d
++ read -r file
++ test -e /usr/lib/opt/google/chrome/apparmor.d/google-chrome-stable
++ read -r file
++ test -e /usr/lib/opt/google/chrome/chrome
++ read -r file
++ test -e /usr/lib/opt/google/chrome/chrome-management-service
++ read -r file
++ test -e /usr/lib/opt/google/chrome/chrome-sandbox
++ read -r file
++ test -e /usr/lib/opt/google/chrome/chrome_100_percent.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/chrome_200_percent.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/chrome_crashpad_handler
++ read -r file
++ test -e /usr/lib/opt/google/chrome/default-app-block
++ read -r file
++ test -e /usr/lib/opt/google/chrome/google-chrome
++ read -r file
++ test -e /usr/lib/opt/google/chrome/icudtl.dat
++ read -r file
++ test -e /usr/lib/opt/google/chrome/libLiteRtWebGpuAccelerator.so
++ read -r file
++ test -e /usr/lib/opt/google/chrome/liboptimization_guide_internal.so
++ read -r file
++ test -e /usr/lib/opt/google/chrome/libqt5_shim.so
++ read -r file
++ test -e /usr/lib/opt/google/chrome/libqt6_shim.so
++ read -r file
++ test -e /usr/lib/opt/google/chrome/libvk_swiftshader.so
++ read -r file
++ test -e /usr/lib/opt/google/chrome/libvulkan.so.1
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/af.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/af_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/af_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/af_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/am.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/am_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/am_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/am_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ar.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ar_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ar_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ar_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/bg.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/bg_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/bg_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/bg_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/bn.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/bn_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/bn_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/bn_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ca.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ca_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ca_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ca_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/cs.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/cs_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/cs_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/cs_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/da.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/da_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/da_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/da_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/de.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/de_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/de_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/de_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/el.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/el_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/el_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/el_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/en-GB.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/en-GB_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/en-GB_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/en-GB_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/en-US.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/en-US_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/en-US_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/en-US_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/es-419.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/es-419_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/es-419_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/es-419_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/es.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/es_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/es_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/es_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/et.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/et_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/et_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/et_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fa.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fa_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fa_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fa_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fi.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fi_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fi_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fi_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fil.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fil_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fil_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fil_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fr.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fr_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fr_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/fr_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/gu.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/gu_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/gu_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/gu_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/he.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/he_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/he_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/he_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/hi.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/hi_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/hi_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/hi_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/hr.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/hr_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/hr_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/hr_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/hu.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/hu_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/hu_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/hu_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/id.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/id_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/id_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/id_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/it.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/it_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/it_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/it_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ja.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ja_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ja_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ja_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/kn.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/kn_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/kn_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/kn_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ko.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ko_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ko_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ko_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/lt.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/lt_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/lt_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/lt_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/lv.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/lv_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/lv_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/lv_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ml.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ml_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ml_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ml_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/mr.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/mr_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/mr_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/mr_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ms.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ms_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ms_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ms_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/nb.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/nb_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/nb_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/nb_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/nl.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/nl_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/nl_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/nl_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/pl.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/pl_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/pl_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/pl_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/pt-BR.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/pt-BR_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/pt-BR_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/pt-BR_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/pt-PT.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/pt-PT_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/pt-PT_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/pt-PT_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ro.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ro_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ro_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ro_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ru.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ru_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ru_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ru_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sk.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sk_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sk_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sk_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sl.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sl_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sl_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sl_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sr.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sr_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sr_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sr_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sv.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sv_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sv_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sv_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sw.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sw_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sw_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/sw_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ta.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ta_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ta_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ta_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/te.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/te_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/te_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/te_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/th.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/th_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/th_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/th_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/tr.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/tr_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/tr_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/tr_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/uk.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/uk_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/uk_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/uk_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ur.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ur_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ur_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/ur_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/vi.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/vi_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/vi_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/vi_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/zh-CN.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/zh-CN_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/zh-CN_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/zh-CN_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/zh-TW.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/zh-TW_FEMININE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/zh-TW_MASCULINE.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/locales/zh-TW_NEUTER.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/product_logo_128.png
++ read -r file
++ test -e /usr/lib/opt/google/chrome/product_logo_16.png
++ read -r file
++ test -e /usr/lib/opt/google/chrome/product_logo_24.png
++ read -r file
++ test -e /usr/lib/opt/google/chrome/product_logo_256.png
++ read -r file
++ test -e /usr/lib/opt/google/chrome/product_logo_32.png
++ read -r file
++ test -e /usr/lib/opt/google/chrome/product_logo_48.png
++ read -r file
++ test -e /usr/lib/opt/google/chrome/product_logo_64.png
++ read -r file
++ test -e /usr/lib/opt/google/chrome/resources.pak
++ read -r file
++ test -e /usr/lib/opt/google/chrome/v8_context_snapshot.bin
++ read -r file
++ test -e /usr/lib/opt/google/chrome/vk_swiftshader_icd.json
++ read -r file
++ pass 'Chrome NEVRA matches its pin; every packaged /opt file lives under /usr/lib/opt; commands point there'
++ set +x
+PASS Chrome NEVRA matches its pin; every packaged /opt file lives under /usr/lib/opt; commands point there
+++ runuser -u ares -- env HOME=/tmp google-chrome --version
++ version='Google Chrome 157.0.8103.50 '
+Google Chrome 157.0.8103.50 
++ printf '%s\n' 'Google Chrome 157.0.8103.50 '
++ grep -Eq '^Google Chrome [0-9.]+'
++ pass 'ares can run google-chrome: Google Chrome 157.0.8103.50 '
+PASS ares can run google-chrome: Google Chrome 157.0.8103.50 
++ set +x
++ systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos-google-chrome.conf
+++ readlink /var/opt/google
++ test /usr/lib/opt/google = /usr/lib/opt/google
+++ readlink -f /opt/google/chrome/google-chrome
++ test /usr/lib/opt/google/chrome/google-chrome = /usr/lib/opt/google/chrome/google-chrome
++ runuser -u ares -- env HOME=/tmp /opt/google/chrome/google-chrome --version
+Google Chrome 157.0.8103.50 
+PASS tmpfiles links /opt/google to the image copy
++ pass 'tmpfiles links /opt/google to the image copy'
++ set +x
++ grep -rlis 'dl.google.com\|google-chrome' /etc/yum.repos.d /etc/dnf /etc/zypp
++ grep .
++ find '/etc/cron.*' /etc/crontab /etc/anacrontab /var/spool/cron -iname '*google*'
++ test '!' -e /etc/cron.daily/google-chrome
++ rpm -q gpg-pubkey --qf '%{NAME}-%{VERSION}\n'
++ grep -i eb4c1bfd4f042f6dddccec917721f63bd38b4796
++ grep -qx 'repo_add_once="false"' /etc/default/google-chrome
++ pass 'no Google repository, cron job or trusted key in the image'
++ set +x
+PASS no Google repository, cron job or trusted key in the image
++ test -f /usr/share/applications/google-chrome.desktop
++ grep -q '^Exec=/usr/bin/google-chrome-stable' /usr/share/applications/google-chrome.desktop
+++ runuser -u ares -- env HOME=/var/home/ares XDG_CURRENT_DESKTOP=AresOS xdg-mime query default x-scheme-handler/https
++ handler=google-chrome.desktop
++ test google-chrome.desktop = google-chrome.desktop
+++ runuser -u ares -- env HOME=/var/home/ares XDG_CURRENT_DESKTOP=AresOS xdg-mime query default x-scheme-handler/http
++ handler=google-chrome.desktop
++ test google-chrome.desktop = google-chrome.desktop
++ pass 'xdg-open sends http and https links to Chrome in the AresOS session'
++ set +x
+PASS xdg-open sends http and https links to Chrome in the AresOS session
++ test '!' -e /etc/opt/chrome
++ test -d /etc/opt/chrome
++ mkdir -p /etc/opt/chrome/policies/managed
++ rmdir /etc/opt/chrome/policies/managed /etc/opt/chrome/policies
++ pass '/etc/opt/chrome/policies can be created for the control layer'
++ set +x
+PASS /etc/opt/chrome/policies can be created for the control layer
++ useradd --uid 1000 --no-create-home --shell /sbin/nologin aresos-fixture-owner
+Creating mailbox file: No such file or directory
++ for stage in absent present
++ [[ absent == present ]]
++ runuser -l ares -c 'printf "%s\n" "$PATH"'
++ cat /tmp/login-path /tmp/login-errors
+/var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin
++ test '!' -s /tmp/login-errors
+++ cat /tmp/login-path
++ login_path=/var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin
++ case $login_path in
++ [[ absent == present ]]
++ case :$login_path: in
++ pass 'daily login PATH with Homebrew absent: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin (no errors printed)'
++ set +x
+PASS daily login PATH with Homebrew absent: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin (no errors printed)
++ for stage in absent present
++ [[ present == present ]]
++ mkdir -p /var/home/linuxbrew/.linuxbrew/bin
++ printf '#!/bin/sh\nprintf "%%s\\n" "$*" >> /tmp/brew-calls\necho FIXTURE_BREW\n'
++ chmod 0755 /var/home/linuxbrew/.linuxbrew/bin/brew
++ touch /tmp/brew-calls
++ chmod 0666 /tmp/brew-calls
++ chown -R 1000:1000 /var/home/linuxbrew
++ setfacl -m u:1001:--- /var/home/linuxbrew
++ systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos-inherited-homebrew.conf
++ getfacl -n /var/home/linuxbrew
++ grep -qx user:1001:r-x
+getfacl: Removing leading '/' from absolute path names
++ runuser -u ares -- mkdir -p /var/home/ares/.local/share/flatpak/exports/bin
++ runuser -l ares -c 'printf "%s\n" "$PATH"'
++ cat /tmp/login-path /tmp/login-errors
+/var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:/var/home/ares/.local/share/flatpak/exports/bin
++ test '!' -s /tmp/login-errors
+++ cat /tmp/login-path
++ login_path=/var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:/var/home/ares/.local/share/flatpak/exports/bin
++ case $login_path in
++ [[ present == present ]]
++ case :$login_path: in
++ case :$login_path: in
+PASS daily login PATH with Homebrew present: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:/var/home/ares/.local/share/flatpak/exports/bin (no errors printed)
++ pass 'daily login PATH with Homebrew present: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:/var/home/ares/.local/share/flatpak/exports/bin (no errors printed)'
++ set +x
++ runuser -u ares -- env HOME=/var/home/ares /usr/lib/systemd/user-environment-generators/60-flatpak
++ test '!' -s /tmp/generator-errors
++ pass 'the 60-flatpak user environment generator runs for ares without errors'
++ set +x
+PASS the 60-flatpak user environment generator runs for ares without errors
+++ runuser -l ares -c 'command -v brew'
++ test /usr/bin/brew = /usr/bin/brew
+++ runuser -l ares -c 'brew --version'
++ test FIXTURE_BREW = FIXTURE_BREW
++ grep -qx -- --version /tmp/brew-calls
++ expect_failure runuser -l ares -c 'brew install aresos-never-installed < /dev/null'
++ local output status=0
+++ runuser -l ares -c 'brew install aresos-never-installed < /dev/null'
++ output=$'brew: Homebrew belongs to aresos-fixture-owner; sudo asks for your own password.\nsudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper\nsudo: a password is required'
++ status=1
++ printf '%s\n' $'brew: Homebrew belongs to aresos-fixture-owner; sudo asks for your own password.\nsudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper\nsudo: a password is required'
+brew: Homebrew belongs to aresos-fixture-owner; sudo asks for your own password.
+sudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper
+sudo: a password is required
++ [[ 1 == 0 ]]
++ LAST_FAILURE=$'brew: Homebrew belongs to aresos-fixture-owner; sudo asks for your own password.\nsudo: a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper\nsudo: a password is required'
++ LAST_STATUS=1
++ grep -q 'Homebrew belongs to aresos-fixture-owner; sudo asks for your own password'
++ grep -Eq 'sudo: (a terminal is required|a password is required)'
++ grep -q install /tmp/brew-calls
+++ stat -c %u /var/home/linuxbrew/.linuxbrew
++ test 1000 = 1000
++ pass 'ares runs read-only brew directly; installs go through sudo as the prefix owner and fail without a password'
+PASS ares runs read-only brew directly; installs go through sudo as the prefix owner and fail without a password
++ set +x
++ mv /usr/bin/foot /usr/bin/foot.real
++ printf '#!/bin/sh\nprintf "%%s|%%s\\n" "$ARESOS_TERMINAL" "$*" >> /tmp/foot-calls\n'
++ chmod 0755 /usr/bin/foot
++ runuser -u ares -- mkdir -p /var/home/ares/.local/bin
++ printf '#!/bin/sh\ntouch /tmp/broken-foot-ran\nexit 3\n'
++ chmod 0755 /var/home/ares/.local/bin/foot
++ chown ares:ares /var/home/ares/.local/bin/foot
++ touch /tmp/foot-calls
++ chmod 0666 /tmp/foot-calls
++ runuser -l ares -c 'test "$(command -v foot)" = /var/home/ares/.local/bin/foot && /usr/bin/aresos-terminal --recovery && /usr/bin/aresos-terminal'
++ test '!' -e /tmp/broken-foot-ran
++ cat /tmp/foot-calls
+recovery|--title=AresOS /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i
+normal|--title=AresOS /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i
+++ cat /tmp/foot-calls
++ test $'recovery|--title=AresOS /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i\nnormal|--title=AresOS /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i' = $'recovery|--title=AresOS /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i\nnormal|--title=AresOS /usr/bin/bash --rcfile /usr/share/aresos/bashrc -i'
++ mv /usr/bin/foot.real /usr/bin/foot
++ rm /var/home/ares/.local/bin/foot
++ pass 'both terminals run /usr/bin/foot even with a broken foot first on PATH'
+PASS both terminals run /usr/bin/foot even with a broken foot first on PATH
++ set +x
++ python3 -
+tuned-ppd profiles and their includes, none with a bootloader section: balanced, balanced-battery-bazzite, balanced-bazzite, powersave, powersave-battery-bazzite, powersave-bazzite, throughput-performance, throughput-performance-bazzite
++ pass 'every power profile ares can switch to leaves the bootloader and kernel arguments alone'
++ set +x
+PASS every power profile ares can switch to leaves the bootloader and kernel arguments alone
++ grep -qx font=monospace:size=16 /etc/xdg/foot/foot.ini
++ pass 'foot default font size 16 (a user foot.ini replaces this file)'
++ set +x
+PASS foot default font size 16 (a user foot.ini replaces this file)
++ grep -qx '/usr/libexec/kf6/polkit-kde-authentication-agent-1 &' /usr/share/aresos/labwc/autostart
++ test -x /usr/libexec/kf6/polkit-kde-authentication-agent-1
++ rpm -qf /usr/libexec/kf6/polkit-kde-authentication-agent-1
+polkit-kde-6.7.5-1.fc44.x86_64
++ pass 'the labwc session starts the base image polkit agent'
+PASS the labwc session starts the base image polkit agent
++ set +x
++ python3 -
+XF86MonBrightnessUp -> /usr/bin/brightnessctl --quiet set 5%+
+XF86MonBrightnessDown -> /usr/bin/brightnessctl --quiet --min-value=1 set 5%-
+XF86AudioRaiseVolume -> /usr/bin/wpctl set-volume --limit 1.0 @DEFAULT_AUDIO_SINK@ 5%+
+XF86AudioLowerVolume -> /usr/bin/wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-
+XF86AudioMute -> /usr/bin/wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle
+XF86AudioMicMute -> /usr/bin/wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle
++ pass 'brightness, volume, mute and mic-mute keys are bound to brightnessctl and wpctl; recovery terminal kept'
++ set +x
+PASS brightness, volume, mute and mic-mute keys are bound to brightnessctl and wpctl; recovery terminal kept
++ for command in script qrencode brightnessctl wpctl
++ command -v script
+/usr/sbin/script
++ for command in script qrencode brightnessctl wpctl
++ command -v qrencode
+/usr/sbin/qrencode
++ for command in script qrencode brightnessctl wpctl
++ command -v brightnessctl
+/usr/sbin/brightnessctl
++ for command in script qrencode brightnessctl wpctl
++ command -v wpctl
+/usr/sbin/wpctl
++ script --version
+script from util-linux 2.41.6
++ qrencode -t UTF8 AresOS
++ brightnessctl --version
+0.5
++ rpm -q util-linux-script qrencode brightnessctl
+util-linux-script-2.41.6-1.fc44.x86_64
+qrencode-4.1.1-12.fc44.x86_64
+brightnessctl-0.5.1-16.fc44.x86_64
++ pass 'script, qrencode and brightnessctl are installed'
+PASS script, qrencode and brightnessctl are installed
++ set +x
++ grep -x ares:524288:65536 /etc/subuid
+ares:524288:65536
++ grep -x ares:524288:65536 /etc/subgid
+ares:524288:65536
+++ sha256sum /etc/subuid /etc/subgid
++ before=$'eb0933c2ba314fac2d26a2d0c3ebb0c60ceeec6d7bb8adb71def14878c39db96  /etc/subuid\neb0933c2ba314fac2d26a2d0c3ebb0c60ceeec6d7bb8adb71def14878c39db96  /etc/subgid'
++ /usr/libexec/aresos-subids
+ares already has subordinate ID ranges
+++ sha256sum /etc/subuid /etc/subgid
++ test $'eb0933c2ba314fac2d26a2d0c3ebb0c60ceeec6d7bb8adb71def14878c39db96  /etc/subuid\neb0933c2ba314fac2d26a2d0c3ebb0c60ceeec6d7bb8adb71def14878c39db96  /etc/subgid' = $'eb0933c2ba314fac2d26a2d0c3ebb0c60ceeec6d7bb8adb71def14878c39db96  /etc/subuid\neb0933c2ba314fac2d26a2d0c3ebb0c60ceeec6d7bb8adb71def14878c39db96  /etc/subgid'
+++ systemctl --root=/ is-enabled aresos-subids.service
++ test enabled = enabled
++ pass 'ares has subordinate ID ranges; the boot service is enabled and idempotent'
++ set +x
+PASS ares has subordinate ID ranges; the boot service is enabled and idempotent
+IMAGE_CHECKS_PASSED
++ set +x

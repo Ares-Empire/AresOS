@@ -10,6 +10,18 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'os/ci'))
 import checkout_sources as checkout
 
+PENDING = ROOT / 'os/manifest/ci/16/pending-rebind.json'
+
+
+def pending_rebind():
+    """Files changed after the package 16 walk, waiting for the next VM rehearsal.
+
+    Each row records the checkout bytes accepted when the file was set aside,
+    so any further change to a waiting file still fails until it is recorded.
+    """
+    record = json.loads(PENDING.read_text())
+    return [dict(sha256=row['sha256'], path=row['path']) for row in record['files']]
+
 
 class CheckoutSourcesTest(unittest.TestCase):
     def test_package16_receipts_agree_and_package14_stays_historical(self):
@@ -29,7 +41,19 @@ class CheckoutSourcesTest(unittest.TestCase):
         tables = checkout.active_tables(ROOT)
         self.assertGreaterEqual(len(tables), 4)
         union = checkout.merge(tables)
-        self.assertEqual(checkout.verify(ROOT, union), len(union))
+        # Every bound file replays its walk bytes, except files set aside until
+        # the next VM rehearsal rebinds them (owner, 2026-11-08). Those must
+        # differ from the walk and match the bytes recorded when set aside.
+        pending = pending_rebind()
+        waiting = {row['path'] for row in pending}
+        self.assertTrue(waiting and waiting <= {row['path'] for row in union})
+        kept = [row for row in union if row['path'] not in waiting]
+        self.assertEqual(checkout.verify(ROOT, kept), len(kept))
+        self.assertEqual(checkout.verify(ROOT, pending), len(pending))
+        for row in union:
+            if row['path'] in waiting:
+                with self.subTest(path=row['path']), self.assertRaisesRegex(AssertionError, 'binding mismatch'):
+                    checkout.verify(ROOT, [row])
         rows = tables[0][1]
         powershell = next(row for row in rows if row['path'] == 'os/tests/owner-tools.Tests.ps1')
         raw = (ROOT / powershell['path']).read_bytes().replace(b'\r\n', b'\n')

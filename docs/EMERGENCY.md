@@ -5,14 +5,32 @@ Keep this on your phone. Pick the symptom below. **Ctrl = Strg**; Super = Window
 ## Frozen laptop
 
 **Action:** try **Super+Ctrl+Esc (Ctrl = Strg)** for a normal-user terminal.
-If nothing responds, briefly press power and wait one minute. Still on? Hold power until off (unsaved work can be lost), then repeatedly tap **F12** (or **Fn+F12**) → **Windows Boot Manager**. Never force off during a firmware/BIOS update; get help instead.
+For a black screen just after a console switch, wait **one minute**, do not reboot; [console fallback](INSTALL-REFERENCE.md#console). If otherwise frozen, request normal shutdown with a brief power press only when no command/write or layout trial is running. Wait **at least 10 minutes** without progress; force off only under the [hung-shutdown conditions](INSTALL-REFERENCE.md#hung-shutdown-or-restart), then **F12** (or **Fn+F12**) → **Windows Boot Manager** → Help. Never force off during a firmware/BIOS update; unknown command completion also needs Help.
 **STOP → go to [Help](INSTALL-REFERENCE.md#help)** if Windows is missing or will not start. Return to [step 7](INSTALL.md#7-check-the-first-aresos-session) only after help clears the failure.
 
 ## Failed first switch boot
 
-**Action:** restart → **F12** (or **Fn+F12**) → **Windows Boot Manager** → get help.
+**Action:** use normal restart → **F12** (or **Fn+F12**) → **Windows Boot Manager** → get help. A hung restart uses the [10-minute wait and force-off conditions](INSTALL-REFERENCE.md#hung-shutdown-or-restart); never immediately hold power after switching.
 The staged stock title is provisional. Do not try a GRUB row, repeat the switch or repair boot files.
+Stock KDE returning instead of AresOS also fails: `PASS check` can describe valid stock and does not prove the switch finished.
 **STOP → go to [Help](INSTALL-REFERENCE.md#help)**; return to [step 6](INSTALL.md#6-switch-to-aresos) only after help and the step 5 proof are complete.
+
+## Failed or bad update
+
+**Action:** new AresOS does not start, or the old one or stock appears instead: normal restart → **F12** (or **Fn+F12**) → **Windows Boot Manager** → get help. A hung restart uses the [10-minute wait](INSTALL-REFERENCE.md#hung-shutdown-or-restart).
+It starts but misbehaves: tty3 `ares-recovery` → `sudo -i` → `sudo /var/lib/ares/at previous`, require `PASS previous`, save the refreshed title, then `sudo /var/lib/ares/at reboot` (`PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`) → **F12** → **Bazzite** → [check](INSTALL.md#update-aresos-to-a-new-release).
+A check that STOPs with **did not finish at the restart** or **interrupted before its result was recorded** means the change is not confirmed; the tools refuse to confirm it, and Help decides each repeat. Never choose a guessed GRUB title, repeat the update without Help, or use the stock rollback or keep-stock after an update; they refuse with three deployments.
+**STOP → go to [Help](INSTALL-REFERENCE.md#help)**; return to [step 8](INSTALL.md#8-everyday-boot-and-recovery) only after help or a passing check of the previous release.
+
+## Blue MOK menu on first stock boot
+
+**Action:** only on **Perform MOK management**, select **Continue boot**, Enter. Never enroll or change keys. [Expected screen](INSTALL-REFERENCE.md#mok-screen).
+Normal stock boot continues → Return to [step 4](INSTALL.md#4-install-and-prepare-corrected-stock). Any other signature/enrollment/error screen, password request or repeated menu → **STOP → go to [Help](INSTALL-REFERENCE.md#help)**.
+
+## Shutdown or restart hangs
+
+**Action:** keep AC/lid open; wait **at least 10 minutes** with no progress, including after a switch. Keep waiting if progress changes. Force off only after a successful completed install/tool command and normal shutdown request. **Idle-live-session exception:** no successful install/tool command is required for an idle live session after requesting desktop shutdown. In either case, no firmware/BIOS update, media write/export or layout trial may be in progress. Unknown completion or an error → Help; do not force off. After a switch, require the recorded switch/title PASS and the checked reboot request first; after an update, the recorded update/title PASS. [Full conditions and interrupted-switch outcome](INSTALL-REFERENCE.md#hung-shutdown-or-restart).
+If those conditions permit a power hold, do it once until off → **F12 → Windows Boot Manager**. **STOP → go to [Help](INSTALL-REFERENCE.md#help)** before resuming; no switch retry or provisional GRUB title. Return to [step 4](INSTALL.md#4-install-and-prepare-corrected-stock) or the recorded calling step only after resolution; after a switch, Return to [step 6](INSTALL.md#6-switch-to-aresos) with step 5 proof rechecked. After an update, return to the [update route](INSTALL.md#update-aresos-to-a-new-release).
 
 ## Stale or missing stock title
 
@@ -23,6 +41,7 @@ Every deployment reorder invalidates old titles, even before reboot. Both entrie
 ## Password not accepted
 
 **Action:** during a layout trial, return to the original open tty3 administrator session with **Ctrl+Alt+F3 (Ctrl = Strg)** or **Ctrl+Alt+Fn+F3 (Ctrl = Strg)** and [revert the trial](INSTALL-PROCEDURES.md#layout-revert).
+For the **failed first install before tools installation**, resolve layout with the guiding session; if choosing reinstall, [Return to step 4, box 1](INSTALL.md#4-install-and-prepare-corrected-stock). Crucial must hold only that failed install's EFI, boot and system partitions, nothing else, with its saved plan/records; Micron must be unchanged/unmounted. Anything else or uncertain → **STOP → go to [Help](INSTALL-REFERENCE.md#help)**. Reinstall with **Use entire disk** on **Crucial only**, using the Create Account passphrase rule.
 Otherwise use **F12** (or **Fn+F12**) → Windows → help. AresOS uses its current layout; backup stock always uses the installer’s German layout. Do not change the password to guess your way through.
 **After `PASS layout revert` on AresOS:** [complete fresh-login proof and finish](INSTALL-PROCEDURES.md#layout-recovery-proof), then [layout completion](INSTALL-PROCEDURES.md#layout-completion) and Return to [step 8](INSTALL.md#8-everyday-boot-and-recovery). If the original session was lost, use [abandoned-trial recovery](INSTALL-PROCEDURES.md#abandoned-layout-trial). **STOP → go to [Help](INSTALL-REFERENCE.md#help)** if login/proof fails; no forced restart or password change. Do not resume the initial stock checks for this layout recovery.
 

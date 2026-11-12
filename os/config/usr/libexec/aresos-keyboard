@@ -29,11 +29,13 @@ def environment(reply, inherited):
 
 def main():
     assert len(sys.argv) > 1, 'A compositor command is required'
+    # Absolute paths only: session start must not depend on PATH (package 21).
+    assert sys.argv[1].startswith('/'), 'The compositor command must be an absolute path'
     raw = subprocess.check_output([
-        'busctl', '--system', '--json=short', 'call', 'org.freedesktop.locale1',
+        '/usr/bin/busctl', '--system', '--json=short', 'call', 'org.freedesktop.locale1',
         '/org/freedesktop/locale1', 'org.freedesktop.DBus.Properties',
         'GetAll', 's', 'org.freedesktop.locale1'], timeout=15)
-    os.execvpe(sys.argv[1], sys.argv[1:], environment(json.loads(raw), os.environ))
+    os.execve(sys.argv[1], sys.argv[1:], environment(json.loads(raw), os.environ))
 
 
 if __name__ == '__main__':
