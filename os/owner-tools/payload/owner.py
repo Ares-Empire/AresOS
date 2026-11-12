@@ -53,6 +53,10 @@ LOCK = pathlib.Path('/run/ares-owner.lock')
 # A release step's own time limit, and how long its process group gets after TERM, then after KILL.
 SCRIPT_TIMEOUT = 1800
 STOP_GRACE = 15
+# The stop routine's other bounds: each status read, the pending cleanup and systemd's reload.
+READ_TIMEOUT = 30
+CLEANUP_TIMEOUT = 300
+RELOAD_TIMEOUT = 120
 # update.sh unmasks exactly these two (package 27, JUDGMENT-CALL 11); a stopped update masks them again.
 UNITS = pathlib.Path('/etc/systemd/system')
 FINALIZERS = ('ostree-finalize-staged.service', 'bootc-finalize-staged.service')
@@ -232,7 +236,7 @@ class Host:
     def __init__(self):
         self.trace = []
 
-    def read(self, *command, allowed=(0,), timeout=30):
+    def read(self, *command, allowed=(0,), timeout=READ_TIMEOUT):
         path = shutil.which(command[0], path='/usr/sbin:/usr/bin:/sbin:/bin')
         require(path and pathlib.Path(path).is_absolute(), 'Required tool missing: ' + command[0])
         result = subprocess.run([path, *command[1:]], text=True, capture_output=True, timeout=timeout)
@@ -254,60 +258,165 @@ class Host:
                                stdout=result.stdout, stderr=result.stderr, mutation=True))
         require(result.returncode == 0, 'Operation failed: ' + command[0] + '; do not reboot')
 
+    def start(self, text, name):
+        return Step(text, name)
+
     def script(self, text, name, mutation=True):
-        # Its own process group: on a timeout or Ctrl+C the tool stops the whole step,
-        # bash and bootc alike, so no transaction outlives it (package 27, review 1).
-        # subprocess.run would SIGKILL only the shell, skipping its EXIT trap.
-        process = subprocess.Popen(['/usr/bin/bash', '-seu'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        """Run a release step; any unsuccessful end stops its whole session first (package 27, review 1)."""
+        step = self.start(text, name)
+        try:
+            reason = step.wait(SCRIPT_TIMEOUT)
+        except KeyboardInterrupt:
+            with Deferred():
+                gone = step.stop()
+            self.trace.append(step.record(mutation, 'interrupted', gone))
+            raise
+        if reason == 'done':
+            self.trace.append(step.record(mutation))
+            return step.stdout
+        with Deferred():
+            gone = step.stop()
+        self.trace.append(step.record(mutation, reason, gone))
+        if not gone:
+            raise Unstoppable('Shared step ' + name + ' could not be stopped; do not reboot; get help')
+        if reason == 'timed out':
+            raise Stop('Shared step timed out: ' + name + ' (stopped after ' + str(SCRIPT_TIMEOUT // 60)
+                       + ' minutes); preserve diagnostics and do not reboot')
+        raise Stop('Shared step failed: ' + name + '; preserve diagnostics and do not reboot')
+
+
+class Step:
+    """A release step (bash -seu) in its own session, so the tool can stop all of it.
+
+    subprocess.run's timeout SIGKILLs only the shell: its EXIT trap never runs and
+    bootc goes on (package 27, review 1). Here the tool waits in short slices, so a
+    deferred signal is noticed, and stop() ends every process of the session.
+    """
+
+    def __init__(self, text, name):
+        self.name, self.stdout, self.stderr = name, '', ''
+        self.process = subprocess.Popen(['/usr/bin/bash', '-seu'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=subprocess.PIPE, text=True, env=dict(os.environ, PATH='/usr/sbin:/usr/bin:/sbin:/bin'),
             start_new_session=True)
-        try:
-            stdout, stderr = process.communicate(text, timeout=SCRIPT_TIMEOUT)
-        except (Exception, KeyboardInterrupt) as error:
-            gone = stop_group(process)
+        self.session = self.process.pid
+        self.text = text
+
+    def wait(self, timeout, signals=None):
+        """'done' (exit 0 and nothing of the step left), 'failed', 'timed out' or 'interrupted'."""
+        deadline = time.monotonic() + timeout
+        while True:
             try:
-                stdout, stderr = process.communicate(timeout=5)
+                out, err = self.process.communicate(self.text, timeout=0.2)
+                self.text = None
+                self.stdout, self.stderr = out or '', err or ''
+                break
+            except subprocess.TimeoutExpired:
+                self.text = None  # communicate() keeps the output; stop() collects it
+            if signals is not None and signals.received:
+                return 'interrupted'
+            if self.process.poll() is not None:
+                break  # the shell ended; a survivor may still hold its pipes
+            if time.monotonic() >= deadline:
+                return 'timed out'
+        if self.process.returncode != 0 or self.members():
+            return 'failed'
+        return 'done'
+
+    def members(self):
+        """Live processes of the step's session or process group (zombies cannot act)."""
+        alive = []
+        for entry in pathlib.Path('/proc').iterdir():
+            if not entry.name.isdigit():
+                continue
+            try:
+                fields = (entry / 'stat').read_text().rsplit(')', 1)[1].split()
+            except (OSError, IndexError):
+                continue
+            if fields[0] != 'Z' and self.session in (int(fields[2]), int(fields[3])):
+                alive.append(int(entry.name))
+        return alive
+
+    def stop(self):
+        """TERM, then KILL, every live process of the step; True once a /proc scan finds none."""
+        for signum in (signal.SIGTERM, signal.SIGKILL):
+            for target in (lambda: os.killpg(self.session, signum),
+                           *[(lambda pid=pid: os.kill(pid, signum)) for pid in self.members()]):
+                try:
+                    target()
+                except (ProcessLookupError, PermissionError):
+                    pass
+            deadline = time.monotonic() + STOP_GRACE
+            while True:
+                self.process.poll()
+                if not self.members():
+                    break
+                if time.monotonic() >= deadline:
+                    break
+                time.sleep(0.05)
+            if not self.members():
+                break
+        gone = not self.members()
+        if gone:
+            try:
+                out, err = self.process.communicate(timeout=2)
+                self.stdout, self.stderr = self.stdout + (out or ''), self.stderr + (err or '')
             except (subprocess.SubprocessError, OSError, ValueError):
-                stdout = stderr = None
-            self.trace.append(dict(script=name, returncode=process.returncode, stdout=stdout, stderr=stderr,
-                                   mutation=mutation, stopped=type(error).__name__, group_gone=gone))
-            if not gone:
-                raise Unstoppable('Shared step ' + name + ' could not be stopped; do not reboot; get help') from None
-            if isinstance(error, subprocess.TimeoutExpired):
-                raise Stop('Shared step timed out: ' + name + ' (stopped after ' + str(SCRIPT_TIMEOUT // 60)
-                           + ' minutes); preserve diagnostics and do not reboot') from None
-            raise
-        self.trace.append(dict(script=name, returncode=process.returncode, stdout=stdout,
-                               stderr=stderr, mutation=mutation))
-        require(process.returncode == 0, 'Shared step failed: ' + name + '; preserve diagnostics and do not reboot')
-        return stdout
+                pass
+        else:
+            for stream in (self.process.stdin, self.process.stdout, self.process.stderr):
+                try:
+                    stream.close()  # the survivor keeps its own ends
+                except (OSError, ValueError, AttributeError):
+                    pass
+        return gone
+
+    def record(self, mutation, stopped=None, gone=None):
+        row = dict(script=self.name, returncode=self.process.returncode, stdout=self.stdout,
+                   stderr=self.stderr, mutation=mutation)
+        if stopped:
+            row.update(stopped=stopped, group_gone=gone)
+        return row
 
 
-def stop_group(process):
-    """TERM, then KILL, a step's whole process group and reap its leader; True once none of it is left."""
-    for signum in (signal.SIGTERM, signal.SIGKILL):
-        try:
-            os.killpg(process.pid, signum)
-        except ProcessLookupError:
-            break
-        deadline = time.monotonic() + STOP_GRACE
-        while time.monotonic() < deadline:
-            process.poll()
+class Deferred:
+    """While an update step or its stop routine runs, SIGINT, SIGTERM and SIGHUP only note
+    themselves: Ctrl+C, a closed window or a kill starts the stop routine, never cuts it short."""
+
+    SIGNALS = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
+
+    def __enter__(self):
+        self.received, self.previous = [], {}
+        for signum in self.SIGNALS:
             try:
-                os.killpg(process.pid, 0)
-            except ProcessLookupError:
-                return True
-            time.sleep(0.05)
-    process.poll()
+                self.previous[signum] = signal.signal(signum, self.note)
+            except ValueError:
+                pass  # only the main thread may set handlers; a test thread runs without them
+        return self
+
+    def note(self, signum, frame):
+        self.received.append(signum)
+
+    def __exit__(self, *unused):
+        for signum, handler in self.previous.items():
+            signal.signal(signum, handler)
+        return False
+
+
+def say(line):
+    """Print without failing: after a closed window, stdout answers EPIPE or EIO."""
     try:
-        os.killpg(process.pid, 0)
-    except ProcessLookupError:
-        return True
-    return False
+        print(line, flush=True)
+    except (OSError, ValueError):
+        pass
 
 
 class Unstoppable(Stop):
-    """A step whose process group survived TERM and KILL: nothing may be cleaned up behind it."""
+    """A step whose process survived TERM and KILL: nothing may be cleaned up behind it."""
+
+def stop_bound():
+    """The stop routine's worst case in seconds: TERM and KILL graces, collecting the output,
+    four status reads, the pending cleanup, systemd's reload and two mask checks."""
+    return 2 * STOP_GRACE + 2 + 4 * READ_TIMEOUT + CLEANUP_TIMEOUT + RELOAD_TIMEOUT + len(FINALIZERS) * READ_TIMEOUT
 
 
 def staged(state):
@@ -330,7 +439,7 @@ def restore_masks(host, removed):
             restored.append(unit)
         require(os.readlink(path) == '/dev/null', 'The ' + unit + ' mask was changed; do not reboot; get help')
     if restored:
-        host.mutate('systemctl', 'daemon-reload', timeout=120)
+        host.mutate('systemctl', 'daemon-reload', timeout=RELOAD_TIMEOUT)
     for unit in removed:
         require(host.read('systemctl', 'is-enabled', unit, allowed=(0, 1)).strip() == 'masked',
                 'The mask of ' + unit + ' could not be restored; do not reboot; get help')
@@ -1098,12 +1207,15 @@ class Tools:
         finally:
             temporary.unlink(missing_ok=True)
 
-    def script(self, name, replacements=None):
+    def render(self, name, replacements=None):
         text = (self.payload / 'release' / (name + '.sh')).read_text()
         for parameter, value in (replacements or {}).items():
             text = text.replace('@' + parameter + '@', value)
         require(not re.search('@[A-Z_]+@', text), 'Unresolved release script parameter')
-        return self.host.script(text, name)
+        return text
+
+    def script(self, name, replacements=None):
+        return self.host.script(self.render(name, replacements), name)
 
     def pin_step(self, cleanup_only):
         body = (self.payload / 'release/pin-stock.sh').read_text().split("<<'PIN_STOCK'\n", 1)[1].split('\nPIN_STOCK', 1)[0]
@@ -1348,11 +1460,20 @@ class Tools:
             'Deployments changed during verification; nothing was staged; get help')
         removed = finalizer_masks()
         self.intend('update', before, target, None, settled)
-        try:
-            self.script('update', {'REFERENCE': target, 'CURRENT': image_reference(booted),
-                                   'CURRENT_DIGEST': booted['container-image-reference-digest']})
-        except (Exception, KeyboardInterrupt) as error:
-            raise Stop(self.abandon_update(before, booted, removed, error)) from None
+        text = self.render('update', {'REFERENCE': target, 'CURRENT': image_reference(booted),
+                                      'CURRENT_DIGEST': booted['container-image-reference-digest']})
+        # From the start of the step to the end of its stop routine, Ctrl+C, a closed
+        # window or a kill only notes itself (package 27, reviews 1 and 2).
+        with Deferred() as signals:
+            step, reason = None, 'failed'
+            try:
+                step = self.host.start(text, 'update')
+                reason = step.wait(SCRIPT_TIMEOUT, signals)
+            except (Exception, KeyboardInterrupt) as error:
+                reason = 'failed (' + type(error).__name__ + ')'
+            if reason != 'done':
+                raise Stop(self.stop_update(step, reason, signals, before, booted, removed, target))
+            self.host.trace.append(step.record(True))
         after = observations(self.host)
         qualified_state(after, self.load('prepared'), target, self.known())
         status = after['bootc']['status']
@@ -1367,44 +1488,75 @@ class Tools:
             lines.append('Older AresOS ' + image_reference(retained[1]) + ' is removed when the update finishes at shutdown')
         return [*lines, *self.title(), 'Reboot only after saving this refreshed title; F12 then Linux']
 
-    def abandon_update(self, before, booted, removed, error):
-        """The backstop after the update step stopped: a failure, a timeout or Ctrl+C.
+    def stop_update(self, step, reason, signals, before, booted, removed, target):
+        """The one stop routine for every unsuccessful end of the update step: a failed
+        shell, the time limit, Ctrl+C, a closed window or a kill (signals stay deferred).
 
-        The tool stops, so no staged deployment may remain, even one that finished
-        just as the step was stopped, and the finalizer masks this run removed come
-        back. Nothing then changes at the next start. update.sh's EXIT trap covers
-        its ordinary failures; this reads the real state afterwards and is
-        idempotent. The running release, its rollback and the pinned stock stay
-        exactly as before, as the success path requires.
+        It ends every process of the step and proves none is left; removes a staged
+        deployment only when it is exactly this update's (reconcile_update); masks
+        again the finalizers this run removed in any case, as the last line of defence;
+        and claims a clean stop only when every one of those checks passed. update.sh's
+        EXIT trap covers its ordinary failures; this runs after it and is idempotent.
+        Every wait has a bound, so the printed limit holds.
         """
-        if isinstance(error, Unstoppable):
-            raise error
-        reason = ('was interrupted' if isinstance(error, KeyboardInterrupt)
-                  else 'timed out' if 'timed out' in str(error) else 'failed')
+        if reason == 'interrupted':
+            cause = {signal.SIGINT: 'Ctrl+C', signal.SIGTERM: 'a termination request',
+                     signal.SIGHUP: 'the window closing'}.get(signals.received[0], 'a signal')
+            reason = 'was interrupted (' + cause + ')'
+        say('Stopping the update safely; this takes up to ' + str(-(-stop_bound() // 60))
+            + ' minutes. Do not close this window or restart.')
+        errors, removed_staging = [], False
+        gone = step.stop() if step is not None else True
+        if step is not None:
+            self.host.trace.append(step.record(True, reason, gone))
         try:
-            # A second Ctrl+C must not cut the cleanup short.
-            previous_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
-        except ValueError:
-            previous_handler = None
+            require(gone, 'a process of the update step survived TERM and KILL, so nothing was deleted')
+            removed_staging = self.reconcile_update(before, booted, target)
+        except (Stop, OSError, ValueError, KeyError, TypeError, IndexError, subprocess.SubprocessError) as error:
+            errors.append('deployments: ' + str(error))
         try:
-            state = observations(self.host)
-            idle(state, self.processes())
-            removed_staging = staged(state)
-            if removed_staging:
-                self.host.mutate('rpm-ostree', 'cleanup', '--pending', timeout=600)
-                state = observations(self.host)
-                require(not staged(state), 'The staged update could not be removed; do not reboot; get help')
-            require(state['rpm']['deployments'] == before['rpm']['deployments'] and key(agree(state)) == key(booted),
-                    'The deployments differ from before the update; do not reboot; get help')
             restore_masks(self.host, removed)
-        finally:
-            if previous_handler is not None:
-                signal.signal(signal.SIGINT, previous_handler)
-        return ('The update ' + reason + ' and was stopped: '
+        except (Stop, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as error:
+            errors.append('finalizer masks: ' + str(error))
+        if errors:
+            return ('The update ' + reason + ', and stopping it did not finish: ' + ' | '.join(errors)
+                    + '. Do not reboot; export records and get help')
+        return ('The update ' + reason + ' and was stopped safely: '
                 + ('its staged release was removed, ' if removed_staging else 'nothing was staged, ')
                 + ('the staging finalizers are masked again, ' if removed else '')
                 + 'and the running release, its rollback and the pinned stock are unchanged. '
                 + 'Nothing changes at the next start; run update again later, or get help')
+
+    def reconcile_update(self, before, booted, target):
+        """True if this update's staged release was found and removed; STOP on anything else.
+
+        Nothing is deleted unless both status views agree, no deployment client or
+        transaction remains, the running, kept and pinned deployments are exactly as
+        before, and the only staged deployment is new, unpinned and this update's target.
+        """
+        state = observations(self.host)
+        running = agree(state)
+        idle(state, self.processes())
+        require(key(running) == key(booted), 'the running release changed; nothing was deleted')
+        rows, status = state['rpm']['deployments'], state['bootc']['status']
+        require(not status.get('rollbackQueued'), 'a rollback is queued; nothing was deleted')
+        kept = [d for d in rows if not d.get('staged')]
+        mine = [d for d in rows if d.get('staged')]
+        require(kept == before['rpm']['deployments'], 'the kept deployments changed; nothing was deleted')
+        if not mine and not status.get('staged'):
+            return False
+        digest = target.split('@')[1]
+        known = [list(key(d)) for d in before['rpm']['deployments']]
+        require(len(mine) == 1 and status.get('staged') is not None and not mine[0]['pinned']
+                and mine[0]['container-image-reference-digest'] == digest
+                and status['staged']['image']['imageDigest'] == digest and list(key(mine[0])) not in known,
+                'a staged deployment this update did not make is present; nothing was deleted')
+        self.host.mutate('rpm-ostree', 'cleanup', '--pending', timeout=CLEANUP_TIMEOUT)
+        after = observations(self.host)
+        agree(after)
+        require(not staged(after) and after['rpm']['deployments'] == before['rpm']['deployments'],
+                'the staged update could not be removed')
+        return True
 
     def previous(self):
         """Queue the previous AresOS release after an update; the stock pin stays."""
@@ -2288,6 +2440,6 @@ if __name__ == '__main__':
     try:
         main()
     except (Stop, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError, AssertionError, EOFError, KeyboardInterrupt) as error:
-        print('STOP: ' + str(error))
-        print('Keep the current administrator session open. Preserve diagnostics; do not reboot or retry a different target. See EMERGENCY / get help.')
+        say('STOP: ' + str(error))
+        say('Keep the current administrator session open. Preserve diagnostics; do not reboot or retry a different target. See EMERGENCY / get help.')
         sys.exit(1)
