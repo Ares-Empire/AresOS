@@ -1,5 +1,6 @@
 """Package14: the owner route, physical commands, unchanged disk/firmware audits."""
 import base64
+import glob
 import hashlib
 import inspect
 import itertools
@@ -14,6 +15,7 @@ import socket
 import string
 import subprocess
 import sys
+import tempfile
 import time
 
 import two_disk_vm as td
@@ -1032,10 +1034,83 @@ def common_boot(guest, stage, profile, password, stock, release, ares=False):
     return console, hashes[0]
 
 
+# The VM's console is serial (console=ttyS0, carried over by the installer), so systemd 259 probes
+# it for its terminfo name and size. Runs 6 and 12 hung in that size probe at an installed boot.
+# These kernel args give systemd the answer the probe yields today, so it never probes: PID 1
+# reads systemd.tty.*.console for /dev/console, services read systemd.tty.*.ttyS0 (systemd v259:
+# core/main.c fixup_environment, terminal-util.c reset_dev_console_fd, core/exec-invoke.c).
+# VM only: the laptop has no serial console.
+TTY_ARGS = ('systemd.tty.term.console=vt220', 'systemd.tty.rows.console=24', 'systemd.tty.columns.console=80',
+            'systemd.tty.term.ttyS0=vt220', 'systemd.tty.rows.ttyS0=24', 'systemd.tty.columns.ttyS0=80')
+
+
+def with_tty_args(entry):
+    """The BLS entry with TTY_ARGS appended once to its only `options` line; nothing else changes."""
+    lines = entry.split('\n')
+    found = [index for index, line in enumerate(lines) if line.split(None, 1)[:1] == ['options']]
+    assert len(found) == 1, 'STOP: the installed boot entry has ' + str(len(found)) + ' options lines'
+    present = lines[found[0]].split()[1:]
+    missing = [arg for arg in TTY_ARGS if arg not in present]
+    if missing:
+        lines[found[0]] = lines[found[0]].rstrip() + ' ' + ' '.join(missing)
+    return '\n'.join(lines)
+
+
+def edit_boot_entries(boot):
+    """Pin the serial console in the only boot entry under a mounted /boot, and read it back."""
+    entries = sorted(pathlib.Path(boot).glob('loader/entries/*.conf'))
+    assert len(entries) == 1, 'STOP: expected exactly one installed boot entry, found ' + str(len(entries))
+    entry = entries[0]
+    before = entry.read_text()
+    after = with_tty_args(before)
+    if after != before:
+        with open(entry, 'w') as stream:
+            stream.write(after)
+            stream.flush()
+            os.fsync(stream.fileno())
+    read = entry.read_text()
+    assert read == after and with_tty_args(read) == read, 'STOP: the boot entry did not read back with the console args'
+    option = lambda text: next(line for line in text.split('\n') if line.split(None, 1)[:1] == ['options'])
+    return dict(entry=entry.name, before=option(before), after=option(read),
+                added=[arg for arg in TTY_ARGS if arg not in option(before).split()])
+
+
+def pin_serial_console(stage='stock-serial-console'):
+    """Before stock's first boot, from the host: TTY_ARGS on the installed boot entry of the target only.
+
+    The target is the harness's own target image (WORK/target.raw, which QEMU serves with the
+    CRUCIAL-TARGET serial); the protected disk is never attached. ostree keeps the args for every
+    later deployment (release 13 and release 27).
+    """
+    image = td.WORK / 'target.raw'
+    assert image.is_file() and image.resolve().is_relative_to(td.WORK.resolve()), 'STOP: no target image'
+    loop = subprocess.check_output(['losetup', '--find', '--show', '--partscan', str(image)], text=True, timeout=30).strip()
+    mount = None
+    try:
+        subprocess.run(['udevadm', 'settle'], timeout=60, check=False)
+        parts = sorted(glob.glob(loop + 'p[0-9]*'))
+        types = {part: subprocess.run(['blkid', '-o', 'value', '-s', 'TYPE', part], capture_output=True,
+                                      text=True, timeout=30).stdout.strip() for part in parts}
+        boot = [part for part, kind in types.items() if kind == 'ext4']
+        assert len(boot) == 1, 'STOP: expected exactly one ext4 /boot on the target, found ' + repr(types)
+        mount = tempfile.mkdtemp(prefix='aresos-target-boot-')
+        subprocess.run(['mount', '-t', 'ext4', '-o', 'nosuid,nodev,noexec', boot[0], mount], check=True, timeout=60)
+        result = edit_boot_entries(mount)
+        result.update(partition=boot[0].removeprefix(loop), partitions=types)
+    finally:
+        if mount:
+            subprocess.run(['umount', mount], check=True, timeout=60)
+            os.rmdir(mount)
+        subprocess.run(['losetup', '--detach', loop], check=True, timeout=30)
+    td.save(stage, dict(status='passed', image='target.raw', **result))
+    return result
+
+
 def prepare_and_switch(audit, media, password, hashed, release, commands=None):
     """Steps 4 to 6: offline stock, tools and prepare, then login, verify and switch."""
     Guest.network_up = False
     td.install(audit, password, hashed)
+    pin_serial_console()
     guest = td.start_installed(password, hashed, 'stock', firmware_default=True)
     try:
         raw = kb.deployment_snapshot(guest, 'offline-first-stock')

@@ -390,6 +390,8 @@ def walk(ps2=False, route='qualification'):
             stack.enter_context(patch.object(module, 'EVIDENCE', pathlib.Path(temporary)))
         for name in ('install', 'restore_windows_order'):
             stack.enter_context(patch.object(vm.td, name))
+        # The host-side boot entry edit after the install (SerialConsolePinTest covers it).
+        stack.enter_context(patch.object(vm, 'pin_serial_console', side_effect=lambda: checks.append('stock-serial-console')))
         stack.enter_context(patch.object(vm.td, 'marker', side_effect=lambda audit,name,**kw: markers.append(name)))
         stack.enter_context(patch.object(vm.td, 'start_installed', side_effect=lambda p,h,s,**kw: Guest(s)))
         stack.enter_context(patch.object(vm.kb, 'deployment_snapshot', side_effect=snapshot))
@@ -623,6 +625,116 @@ class OwnerWalkTest(unittest.TestCase):
         old=next(e for e in bls if e['identity']!=prepared['stock_identity'])
         old['content']+='\noptions evil=changed\n'
         with self.assertRaises(common.owner.Stop):common.owner.keyboard_entries(prepared['state'],prepared,bls)
+
+
+class SerialConsolePinTest(unittest.TestCase):
+    """Runs 6 and 12 hung in systemd's size probe of the VM's serial console; these args skip the probes."""
+    ENTRY = ('title Fedora Linux 44.20261012.1 (Bazzite) (ostree:0)\nversion 1\n'
+             'linux /ostree/default-a2/vmlinuz-7.2.9\ninitrd /ostree/default-a2/initramfs-7.2.9.img\n'
+             'options console=tty0 console=ttyS0,115200n8 root=UUID=fixture vconsole.keymap=de rootflags=subvol=root rw '
+             'ostree=/ostree/boot.0/default/a2/0\n')
+
+    def test_the_six_args_are_the_ones_systemd_reads_for_the_console_and_ttys0(self):
+        self.assertEqual(vm.TTY_ARGS, ('systemd.tty.term.console=vt220', 'systemd.tty.rows.console=24',
+                                       'systemd.tty.columns.console=80', 'systemd.tty.term.ttyS0=vt220',
+                                       'systemd.tty.rows.ttyS0=24', 'systemd.tty.columns.ttyS0=80'))
+
+    def test_appended_once_to_the_options_line_and_nothing_else_changes(self):
+        after = vm.with_tty_args(self.ENTRY)
+        before_lines, after_lines = self.ENTRY.split('\n'), after.split('\n')
+        self.assertEqual(len(before_lines), len(after_lines))
+        for old, new in zip(before_lines, after_lines):
+            if old.startswith('options '):
+                self.assertEqual(new, old + ' ' + ' '.join(vm.TTY_ARGS))
+            else:
+                self.assertEqual(new, old)
+        self.assertEqual(vm.with_tty_args(after), after)  # idempotent
+        partial = self.ENTRY.replace(' rw ', ' rw systemd.tty.rows.console=24 ')
+        options = next(l for l in vm.with_tty_args(partial).split('\n') if l.startswith('options '))
+        self.assertEqual(options.split().count('systemd.tty.rows.console=24'), 1)
+        self.assertTrue(all(options.split().count(arg) == 1 for arg in vm.TTY_ARGS))
+
+    def test_an_entry_without_exactly_one_options_line_stops(self):
+        for entry in (self.ENTRY.replace('options ', 'optionsx '), self.ENTRY + 'options quiet\n'):
+            with self.subTest(entry=entry[-30:]), self.assertRaisesRegex(AssertionError, 'STOP: the installed boot entry has'):
+                vm.with_tty_args(entry)
+
+    def boot(self, root, names):
+        (root / 'loader/entries').mkdir(parents=True)
+        for name in names:
+            (root / 'loader/entries' / name).write_text(self.ENTRY)
+
+    def test_the_only_entry_is_edited_and_read_back_and_a_second_pass_changes_nothing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            self.boot(root, ['ostree-1.conf'])
+            first = vm.edit_boot_entries(root)
+            self.assertEqual((first['entry'], first['added']), ('ostree-1.conf', list(vm.TTY_ARGS)))
+            self.assertEqual((root / 'loader/entries/ostree-1.conf').read_text(), vm.with_tty_args(self.ENTRY))
+            second = vm.edit_boot_entries(root)
+            self.assertEqual(second['added'], [])
+            self.assertEqual(second['before'], second['after'])
+        for names in ([], ['ostree-1.conf', 'ostree-2.conf']):
+            with self.subTest(entries=names), tempfile.TemporaryDirectory() as folder:
+                self.boot(pathlib.Path(folder), names)
+                with self.assertRaisesRegex(AssertionError, 'STOP: expected exactly one installed boot entry'):
+                    vm.edit_boot_entries(folder)
+
+    def run_pin(self, types, entries=('ostree-1.conf',)):
+        calls, saved = [], {}
+        with tempfile.TemporaryDirectory() as folder:
+            work = pathlib.Path(folder)
+            (work / 'target.raw').write_bytes(b'')
+            (work / 'protected.raw').write_bytes(b'')
+
+            def check_output(argv, **kw):
+                calls.append(list(argv))
+                return '/dev/loop7\n'
+
+            def run(argv, **kw):
+                calls.append(list(argv))
+                if argv[0] == 'blkid':
+                    return SimpleNamespace(stdout=types[argv[-1]] + '\n', returncode=0)
+                if argv[0] == 'mount':
+                    self.boot(pathlib.Path(argv[-1]), entries)
+                if argv[0] == 'umount':
+                    shutil.rmtree(pathlib.Path(argv[-1]) / 'loader')  # an unmounted mount point is empty again
+                return SimpleNamespace(stdout='', returncode=0)
+            with patch.object(vm.td, 'WORK', work), patch.object(vm.subprocess, 'check_output', side_effect=check_output), \
+                    patch.object(vm.subprocess, 'run', side_effect=run), patch.object(vm.glob, 'glob', return_value=sorted(types)), \
+                    patch.object(vm.td, 'save', side_effect=lambda name, value: saved.__setitem__(name, value)):
+                try:
+                    result = vm.pin_serial_console()
+                except AssertionError as error:
+                    result = error
+            return result, calls, saved, work
+
+    def test_the_host_attaches_only_the_target_edits_its_ext4_boot_and_cleans_up(self):
+        types = {'/dev/loop7p1': 'vfat', '/dev/loop7p2': 'ext4', '/dev/loop7p3': 'btrfs'}
+        result, calls, saved, work = self.run_pin(types)
+        self.assertNotIsInstance(result, AssertionError)
+        self.assertEqual(calls[0], ['losetup', '--find', '--show', '--partscan', str(work / 'target.raw')])
+        self.assertFalse(any('protected.raw' in ' '.join(call) for call in calls))
+        mount, = [call for call in calls if call[0] == 'mount']
+        self.assertEqual(mount[:5], ['mount', '-t', 'ext4', '-o', 'nosuid,nodev,noexec'])
+        self.assertEqual(mount[5], '/dev/loop7p2')
+        self.assertEqual([call[0] for call in calls[-2:]], ['umount', 'losetup'])
+        self.assertEqual(calls[-1], ['losetup', '--detach', '/dev/loop7'])
+        self.assertEqual(saved['stock-serial-console']['added'], list(vm.TTY_ARGS))
+        self.assertEqual(saved['stock-serial-console']['partition'], 'p2')
+
+    def test_an_unexpected_target_layout_stops_and_still_detaches(self):
+        for name, types, entries in (
+                ('two ext4', {'/dev/loop7p1': 'ext4', '/dev/loop7p2': 'ext4'}, ('ostree-1.conf',)),
+                ('no ext4', {'/dev/loop7p1': 'vfat', '/dev/loop7p2': 'btrfs'}, ('ostree-1.conf',)),
+                ('two entries', {'/dev/loop7p1': 'vfat', '/dev/loop7p2': 'ext4'}, ('ostree-1.conf', 'ostree-2.conf'))):
+            with self.subTest(name):
+                result, calls, saved, work = self.run_pin(types, entries)
+                self.assertIsInstance(result, AssertionError)
+                self.assertIn('STOP:', str(result))
+                self.assertEqual(calls[-1], ['losetup', '--detach', '/dev/loop7'])
+                self.assertEqual('umount' in [call[0] for call in calls], 'mount' in [call[0] for call in calls])
+                self.assertNotIn('stock-serial-console', saved)
 
 
 class ReleaseRulesTest(unittest.TestCase):
