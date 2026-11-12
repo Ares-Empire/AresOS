@@ -348,3 +348,155 @@ hooks demonstrably approve them; no guarantee against that is claimed.
 are only CI logs/artifacts; no image/ISO or extracted system layer was downloaded.
 All pushes used normal verification, never --no-verify or force-push. No design,
 plan, OS, Minecraft, install, owner-state or handoff file was edited.
+
+## Main merge and 19b integration
+
+**read — scope and history (2026-11-12):** followed `briefs/18d-main-merge.md`
+on `pkg/18d-base-slim`, starting at its local commit `b828f4e3`. The lead's
+`44ee2a84` / `1ec69134` merges were already present and were not redone or
+rewritten. Read the three preceding 18d briefs, this report, the 19b report's
+opening/Done, Re-scope and Final fix round sections, `DESIGN.md`, CONTROL
+section 7 and PLAN's 2026-11-11 08:10 normal-MCP bar. Historical containment and
+stage-3 report claims do not override the current slim/stage-2 implementation.
+
+**read — item 1, removed dependencies:** recursively searched the owner oracle,
+all base/Mail tests, `control/ci/` and Control workflows for the removed policy
+functions/files, exact-policy report, drop-in walk, managed keys, launcher and
+coding-user components. No active 19b caller, import, install or assertion
+requires them. Oracle `differences` functions are independent command/context
+comparisons (`owner_state_oracle/context.py:230`, `driver.py:439`), not the
+removed boundary equality report. Remaining drop-in/old-key references test
+that additional sources are accepted (`tests/test_policy_sources.py:10`,
+`test_boundary_exact.py:29`); attempted client path overrides remain negative
+tests (`test_boundary_exact.py:67`). The retained test filename
+`test_boundary_exact.py` now tests subset admission, not exact policy equality.
+
+**read — item 1, CI and selection:** `ci/setup.sh:11` installs only the slim
+managed settings and CLAUDE.md, with the protected proxy launcher retained at
+`control/launch.py`; `ci/test.sh:6` calls the current base selector.
+`ci/base.py:7` selects the two optional installed-channel/ledger cases separately.
+`ci/mail/run.sh:21` uses this same setup/base suite before disconnecting egress,
+then runs `ci/mail/tests.py:57`'s disjoint required/optional selections. The
+optional workflow (`.github/workflows/control-owner-oracle.yml:19`, `:38`,
+`:66`, `:96`) uses those same scripts for its ledger, alterations and full
+fault sweeps. No removed MCP file or coding step is installed. Selection tests
+remain intact; the new admission module is discovered by required base CI.
+No CI selection or existing asking assertion was weakened.
+
+**read/run — item 2, every asking action:** these are the complete public,
+nontrusted send/delete set on the combined head; each appears in both generated
+policy files (`settings/managed-settings.draft.json:4`, `settings/ask-rules.json:4`):
+
+| Action | Effect | Required managed ask |
+| --- | --- | --- |
+| testapp_send | send | mcp__testapp__send |
+| testapp_delete | delete | mcp__testapp__delete |
+| mail_send | send | mcp__mail__send |
+| mail_delete | delete | mcp__mail__delete |
+| mail_folder_delete | delete | mcp__mail__folder_delete |
+| mail_unsubscribe | send | mcp__mail__unsubscribe |
+
+`boundary_policy.py:20` defaults to all served apps, including testapp;
+`boundary.py:54` requires every rule on each reserve/submit. No Mail action is
+marked trusted. The generator previously checked only that rules named exposed
+tools, so removing one (or replacing send with another valid exposed verb)
+could escape its own validation. Fixed `control/generate.py:46` to compare
+**both** policy artifacts independently against the asking actions. New tests
+at `tests/test_slim_policy.py:61` remove each of six rules from either artifact;
+`:71` renames send to an exposed read tool. Existing misnamed/unexposed-rule
+and missing-server tests remain. This validates generated artifacts; installed
+settings still permit additional keys/rules/hooks as decision 24 requires.
+
+**read/run — item 3, admission before R2:** `engine.py:163` checks the boundary
+before preparation or reservation writes. `engine.py:209` checks it before
+loading/submitting the operation; its trusted guard at `:225` precedes
+revalidation, submission-context creation and the submitting write (`:250`).
+`action_context.py:32` still commits/rechecks the current context before its
+mutation yield (`:56`). No engine change was needed. Added
+`tests/test_admission_context.py:40`: each missing/misnamed ask rejects both
+send/delete preparations and submissions, with no adapter preparation,
+revalidation, context creation, execution or Store.write. Full rows/audit,
+exact reserved approvals, empty stages and independent receiver evidence stay
+unchanged. `:73` repeats these checks for a missing trusted-entry checker and
+a revoked owner-only entry. Both tests restart the actual Store/Engine,
+confirm unchanged records, no context/submission claim and no unfinished
+recovery candidate (`recovery.py:14`). Only Boundary.read is replaced in these
+portable tests; the real root-owned/nonsymlink path checks remain in Linux CI.
+Existing trusted-entry success/mismatch/revocation tests remain unchanged.
+
+**read/run — item 4, shared instructions:** `definitions.py:52`'s common
+error/recovery guidance does not contradict the cursor helper's changed-token
+restart (`paging.py:21`) or invalid-cursor `stale_reference` refusal. Mail's
+SPECIAL-USE/untrusted-data block (`mail/definitions.py:61`) is unchanged.
+`mail_filing_notices` retains its changed-catalogue first-page restart and
+invalid-cursor rules in its description (`mail/definitions.py:112`), and
+approval/question-copy text remains on each asking/preparation action.
+The restore-limit sentence stays on restore_confirm (`definitions.py:100`).
+Extended `test_slim_policy.py:78` to pin those 19b descriptions as well as the
+existing checks for exactly one instructions block and none repeated in any
+description. No instruction or description needed editing. Existing native
+request capture continues to require complete instructions/descriptions/schemas.
+
+**run — item 5, regeneration and exact character totals:** ran
+`python3 control/generate.py` (`Generated tools, help, reference and ask rules`),
+then `python3 control/generate.py --check` (`Generated artifacts match definitions`).
+Every generated file is unchanged: the merges had regenerated them correctly.
+Measured `len(action.description)` / `len(tool['description'])` directly from
+`18168c6c` extracted with `git archive` inside this worktree and from the
+combined definitions, in separate Python processes. Counts exclude file-ending
+newlines and include the instructions string once, as passed at initialization.
+
+| App (exposed tools) | Main descriptions | Combined descriptions | Instructions once | Combined total | All action descriptions, main → combined |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| control (3) | 6,366 | 1,407 | 1,652 | 3,059 | 10,473 → 2,208 |
+| mail (28) | 86,557 | 18,629 | 2,426 | 21,055 | 97,781 → 20,149 |
+| testapp (13) | 24,700 | 3,211 | 1,652 | 4,863 | 26,485 → 3,343 |
+
+19b's notice description adds 78 characters to both Mail columns relative to
+the pre-merge measurements above; it was preserved. Measurement output is in
+`.work/18d-main-merge/descriptions.json`. The first measurement invocation
+completed both measurements but omitted PYTHONPATH for its final action-list
+print; reran with `PYTHONPATH=control`, successfully printing all six actions.
+
+**run — local verification:** used the existing worktree-only virtualenv,
+Python 3.14.6, with `PYTHONDONTWRITEBYTECODE=1` / `-B`:
+
+- `PYTHONPATH=control:control/tests .work/18d-review/venv/bin/python -B -m unittest -v`
+  with `test_admission_context`, all SlimPolicy methods except the existing
+  installed-settings trusted-send test, and
+  `test_operations.Generated.test_artifact_drift_effects_ask_rules_and_owner_only_absent`:
+  **11 tests / OK** (`local-policy.txt`; the initial four-test probe also passed).
+- Loaded `test_owner_state_oracle`, `test_owner_state_fixes_s2` and
+  `test_mail_ci_selection` with unittest and applied `ci.base.select`'s required
+  selection: **150 tests / OK** (`local-owner.txt`). The optional installed-channel
+  cases were not claimed as local evidence.
+- `PYTHONPATH=control .work/18d-review/venv/bin/python -B -m unittest discover -s control/boundary -p test_native.py -v`:
+  **11 tests / OK** (`local-native.txt`), testing the evidence validator, not
+  executing native Claude on macOS.
+- AST-parsed every Control Python source: `Python syntax OK`.
+  `bash -n control/ci/test.sh control/ci/setup.sh control/ci/mail/run.sh` and
+  `git diff --check` both exited 0 with no output.
+- Storage audit: `Remaining .work files over 500 MB: []`. No system software,
+  host settings, real account, model, Minecraft or Gradle was used.
+
+**run/read — CI accounting and owner-oracle result location:** the merge-only
+head `1ec69134` already had PR runs: base **43152902136** and boundary
+**43152902221** passed; Mail **43152902120** was still running at report time.
+These are early signals, not final-head acceptance. After committing this
+report, push the branch **once**, including `b828f4e3`. Use the resulting PR
+base/Mail/boundary runs, await each, then rerun each same ID once; dispatch
+`control-owner-oracle.yml --ref pkg/18d-base-slim` once and await all 61 jobs.
+The **actual owner-oracle result**, final SHA, run IDs/attempts, exact outputs
+and execution count are recorded after the push in [PR #25's final integration
+validation](https://github.com/Ares-Empire/AresOS/pull/25), as the brief requires
+to avoid a report/head loop. This report makes no claim for an unrun oracle.
+Planned accounting is seven final-head executions (three PR attempts, their
+three reruns, one manual oracle), plus the three inherited merge-only runs.
+
+**Not verified / PLAN-GAP / JUDGMENT-CALL:** no new design change or owner
+decision. The accepted stage-2 disclosure/storage limits in 19b's Re-scope
+remain; optional pinned gaps are not a zero-gap guarantee. Real-account,
+laptop installation and interactive terminal/phone checks remain outside this
+synthetic integration run. No reviewer-written file, design/plan, OS, mod,
+install, README, STATE or HANDOFF was edited. No merge, force-push or hook
+bypass is authorized. No open question blocks this integration check.
