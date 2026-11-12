@@ -22,7 +22,7 @@ export function assertNativeLimit(rows,arrivals){
     assert.equal(row.added_transient_activation,extra,'do not label new activation as harmless');if(extra)added.push(id);
     assert.equal(row.result.untrusted_content.dispatched,true);assert.deepEqual(row.result.untrusted_content.steps,[]);assert.deepEqual(row.result.followups,[]);
     assert(row.result.untrusted_content.page.notices.includes('Hostile native Delete handler ran'));
-    assert.match(row.status.operation.stages.dispatched,/delivery not proven/);
+    assert.match(row.status.operation.stages.dispatched.untrusted_content,/delivery not proven/);
     assert.match(row.status.operation.reason,/Free input dispatched once/);
     assert.doesNotMatch(row.status.operation.reason,/nothing|stopped|no input/i);
   }

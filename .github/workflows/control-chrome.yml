@@ -17,7 +17,8 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: control-chrome-${{ github.ref }}${{ inputs.injection_probe && '-probe' || '' }}
+  # Runs own separate Linux containers and run-ID artifacts; repeats share no state.
+  group: control-chrome-${{ github.ref }}-${{ github.run_id }}
   cancel-in-progress: false
 jobs:
   fixtures:

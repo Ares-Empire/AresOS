@@ -4,8 +4,8 @@
     {
       "command": "node --test control/chrome_tests/*.test.mjs",
       "exit_code": 0,
-      "sha256": "4f1adccaf3468e7cb41611fa45cd759c971e39056664bc412c41b4e741034151",
-      "output_tail": "\u2139 tests 275\n\u2139 suites 0\n\u2139 pass 275\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7253.203709"
+      "sha256": "c428483016beeaafb7838de0dfc85ba0f63bcce8737e6e379596b5cc0607623c",
+      "output_tail": "\u2139 tests 275\n\u2139 suites 0\n\u2139 pass 275\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7230.209084"
     },
     {
       "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2b/mutations.json",
@@ -16,8 +16,23 @@
   ],
   "python": "Full browser-free suite is still running; no result claimed yet.",
   "notes": [
-    "Initial baseline-assert removal survived because a mismatched synthetic receipt masked the intended assertion. The negative test now keeps the receipt consistent; all 172 removals are rejected."
+    "Initial baseline-assert removal survived because a mismatched synthetic receipt masked the intended assertion. The negative test now keeps the receipt consistent; all 172 removals are rejected.",
+    "The new browser probe originally expected a plain dispatched stage. It now reads the actual public-operation untrusted_content wrapper; the negative fixtures preserve that API shape. No behavior/assertion was relaxed."
   ],
   "generated": "Generated artifacts match definitions",
-  "diff_check": "passed"
+  "diff_check": "passed",
+  "superseded_checks": [
+    {
+      "command": "node --test control/chrome_tests/*.test.mjs",
+      "exit_code": 0,
+      "sha256": "4f1adccaf3468e7cb41611fa45cd759c971e39056664bc412c41b4e741034151",
+      "output_tail": "\u2139 tests 275\n\u2139 suites 0\n\u2139 pass 275\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7253.203709"
+    },
+    {
+      "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2b/mutations.json",
+      "exit_code": 0,
+      "sha256": "9eb6061289f623f1ec289f2ad1864ba20df537faa0adbcff259b57d840480f6c",
+      "output_tail": "recheck2-engine-boundary-reask MUTATION REJECTED\nrecheck2-event-reuse MUTATION REJECTED\nrecheck2-slot-dedup-scope MUTATION REJECTED\nrecheck2-clone-native-kinds MUTATION REJECTED\nrecheck2-cached-factory MUTATION REJECTED\nrecheck2b-activation-baseline MUTATION REJECTED\nrecheck2b-activation-receipt MUTATION REJECTED\n172 mutations rejected; every baseline passed"
+    }
+  ]
 }

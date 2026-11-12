@@ -42,7 +42,10 @@ that rather than inferring safety from a callable `fetch`. Any additional capabi
 required by 2b. No feature-removing refusal or broader ordinary-tab attachment was added.
 
 Opening Chrome ledger: **195 IDs / 196 executions**. Budget is now about **235**, with a mandatory report before
-passing **245**. One code push is planned; report-only pushes use `[skip ci]`. One blocking watcher waits on each
+passing **245**. The implementation/test batch was pushed once. A second push corrects the new measurement harness
+to read the service’s existing `stages.dispatched.untrusted_content` envelope; its checks remain strict. The workflow
+now isolates concurrency by run ID so the two independent, read-only container runs can proceed together; artifacts
+already include their run ID and no publishing or runtime state is shared. Report-only pushes use `[skip ci]`. One blocking watcher waits on each
 CI run. Owner live-site behavior and whole-body compose frequency remain for the owner's later tests.
 
 ---

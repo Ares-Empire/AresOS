@@ -87,7 +87,7 @@ export async function recheck2Matrices({check,nav,call,target,approval,receiverE
       assert.equal(result.followups.length,0);assert.equal(result.untrusted_content.dispatched,true);assert.equal(result.untrusted_content.steps.length,0);
       assert.ok(result.untrusted_content.page.notices.includes('Hostile native Delete handler ran'));
       const status=await call('operation_status',{operation_id:result.operation_id});
-      assert.match(status.operation.stages.dispatched,/delivery not proven/);assert.match(status.operation.reason,/Free input dispatched once/);
+      assert.match(status.operation.stages.dispatched.untrusted_content,/delivery not proven/);assert.match(status.operation.reason,/Free input dispatched once/);
       assert.doesNotMatch(status.operation.reason,/nothing|stopped|no input/i);
       const row={id,mode,capability,alone,clicked,added_transient_activation:!alone.atHandler.active&&clicked.atHandler.active,result,status};observations.push(row);
       console.log('RECHECK2B LIMIT',JSON.stringify({id,added_transient_activation:row.added_transient_activation,alone:alone.outcome,clicked:clicked.outcome}));

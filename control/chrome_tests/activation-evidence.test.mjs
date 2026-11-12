@@ -12,7 +12,7 @@ function evidence(active=true){
     }
     rows.push({id,mode,capability,alone:observations.alone,clicked:observations.claude,added_transient_activation:active,
       result:{untrusted_content:{dispatched:true,steps:[],page:{notices:['Hostile native Delete handler ran']}},followups:[]},
-      status:{operation:{stages:{dispatched:'Input dispatched once; delivery not proven.'},reason:'Free input dispatched once, as the page shows it.'}}});
+      status:{operation:{stages:{dispatched:{untrusted_content:'Input dispatched once; delivery not proven.'}},reason:'Free input dispatched once, as the page shows it.'}}});
   }
   return {rows,arrivals};
 }
@@ -26,5 +26,5 @@ test('native limit audit never accepts an activated baseline or a concealed acti
   for(const change of [e=>{e.rows[0].alone.before.active=true;const observation=e.rows[0].alone;e.arrivals[0].body=JSON.stringify({cause:'alone',before:observation.before,atHandler:observation.atHandler,trusted:false});},e=>{e.rows[0].added_transient_activation=false;}]){const e=evidence();change(e);assert.throws(()=>assertNativeLimit(e.rows,e.arrivals));}
 });
 test('native limit audit refuses a false stopped or no-effect description',()=>{
-  for(const change of [e=>{e.rows[0].result.followups=[{stopped:true}];},e=>{e.rows[0].status.operation.reason='Nothing happened';},e=>{e.rows[0].status.operation.stages.dispatched='No delivery claim';}]){const e=evidence();change(e);assert.throws(()=>assertNativeLimit(e.rows,e.arrivals));}
+  for(const change of [e=>{e.rows[0].result.followups=[{stopped:true}];},e=>{e.rows[0].status.operation.reason='Nothing happened';},e=>{e.rows[0].status.operation.stages.dispatched.untrusted_content='No delivery claim';}]){const e=evidence();change(e);assert.throws(()=>assertNativeLimit(e.rows,e.arrivals));}
 });
