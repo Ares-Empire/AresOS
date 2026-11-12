@@ -1049,9 +1049,11 @@ test('recheck2 startup reconciles a surviving session block before the native ha
   assert.ok(connect.indexOf('await rules()')<connect.indexOf('chrome.runtime.connectNative'));
 });
 test('recheck2 release removes a live default block before blocked wrapper cleanup',async()=>{
-  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'epoch'});preloadTargets.set('[7,null]',{tab:7,source:{tabId:7},contexts:new Map(),documents:new Map([['main',{cleanup:'handle'}]]),installing:new Set()});chrome.debugger.sendCommand=()=>new Promise(()=>{});");
+  const f=lifecycleFixture();f.run("controlled.set(7,{epoch:'epoch'});preloadTargets.set('[7,null]',{tab:7,source:{tabId:7},contexts:new Map(),documents:new Map([['main',{cleanup:'handle'}]]),installing:new Set()});chrome.debugger.sendCommand=()=>new Promise(()=>{});globalThis.timerCallbacks=[];setTimeout=(callback,delay)=>{timerCallbacks.push({callback,delay})};");
   await f.run("holdDefaults(7,'nonce')");assert.ok(f.rules.at(-1).addRules.some(rule=>rule.id===2));
-  await f.run('release(7)');assert.equal(f.rules.at(-1).addRules.some(rule=>rule.id===2),false);
+  const pending=f.run('release(7)');await f.run('ruleUpdates');await spin(f,"timerCallbacks.some(timer=>timer.delay===1000)");
+  assert.equal(f.rules.at(-1).addRules.some(rule=>rule.id===2),false);
+  f.run('timerCallbacks.find(timer=>timer.delay===1000).callback()');assert.equal((await pending).cleanup_pending,true);
 });
 
 test('recheck2 final extension binding refuses a changed compose preview before native input',async()=>{

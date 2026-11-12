@@ -27,5 +27,22 @@
     }
   ],
   "generated": "Generated artifacts match definitions",
-  "diff_check": "passed"
+  "diff_check": "passed",
+  "test_clock_correction": {
+    "runtime_build_unchanged": true,
+    "checks": [
+      {
+        "command": "node --test control/chrome_tests/*.test.mjs",
+        "exit_code": 0,
+        "sha256": "ec31ee97de69676a486847db3247cba89bd77fb8afabb6729cd4937e49c51853",
+        "output_tail": "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.654375ms)\n\u2139 tests 267\n\u2139 suites 0\n\u2139 pass 267\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7318.325292"
+      },
+      {
+        "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2/mutations.json",
+        "exit_code": 0,
+        "sha256": "3c5d74db0b27cecd574103448d7f6e452aea96ab443de5a2cb054f56d4970f98",
+        "output_tail": "recheck2-compose-bounded MUTATION REJECTED\nrecheck2-compose-change-shown MUTATION REJECTED\nrecheck2-markup-handler MUTATION REJECTED\nrecheck2-single-capture MUTATION REJECTED\nrecheck2-compose-extension MUTATION REJECTED\nrecheck2-compose-final-boundary MUTATION REJECTED\nrecheck2-engine-reask MUTATION REJECTED\nrecheck2-engine-boundary-reask MUTATION REJECTED\n166 mutations rejected; every baseline passed"
+      }
+    ]
+  }
 }

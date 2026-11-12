@@ -56,8 +56,7 @@ live body text it encloses and can reach the bounded owner-send fallback.
 
 The branch remains separate from main, as instructed. Restart evidence deliberately strands a session rule after
 cleaning the old MAIN wrappers, then reloads the extension; it tests startup reconciliation without presenting an
-extension reload as proof that arbitrary old wrapper closures can be recovered. The final run links and inventory
-will be appended below before completion.
+extension reload as proof that arbitrary old wrapper closures can be recovered. Push run [43233245069](https://github.com/Ares-Empire/AresOS/actions/runs/43233245069) on `375a12fd` stopped before browser execution: the new release test awaited an unreferenced fixture timer, so Linux Node cancelled that and the following test. It now advances the explicit fixture clock and retains every rule-removal/cleanup assertion. No runtime behavior or assertion was weakened. That run is excluded from acceptance. The final run links and inventory will be appended below before completion.
 
 ---
 

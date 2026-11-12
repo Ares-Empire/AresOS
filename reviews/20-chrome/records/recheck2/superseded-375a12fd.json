@@ -1,0 +1,49 @@
+{
+  "head": "375a12fd496546824c33eb764877f6fd19d69f66",
+  "run": 43233245069,
+  "conclusion": "failure",
+  "browser_started": false,
+  "log_sha256": "9903abe5d9c9f8379d9088577b954af38db5fa79997531b993891fd2c1bf2150",
+  "lines": [
+    {
+      "line": 756,
+      "text": "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:04:46.6183726Z not ok 114 - recheck2 release removes a live default block before blocked wrapper cleanup"
+    },
+    {
+      "line": 762,
+      "text": "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:04:46.6186485Z   error: 'Promise resolution is still pending but the event loop has already resolved'"
+    },
+    {
+      "line": 768,
+      "text": "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:04:46.6189094Z not ok 115 - recheck2 final extension binding refuses a changed compose preview before native input"
+    },
+    {
+      "line": 774,
+      "text": "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:04:46.6191503Z   error: 'Promise resolution is still pending but the event loop has already resolved'"
+    },
+    {
+      "line": 1696,
+      "text": "fixtures (external)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:04:46.6732108Z # cancelled 2"
+    },
+    {
+      "line": 2456,
+      "text": "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:04:34.3181550Z not ok 114 - recheck2 release removes a live default block before blocked wrapper cleanup"
+    },
+    {
+      "line": 2462,
+      "text": "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:04:34.3183580Z   error: 'Promise resolution is still pending but the event loop has already resolved'"
+    },
+    {
+      "line": 2468,
+      "text": "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:04:34.3185706Z not ok 115 - recheck2 final extension binding refuses a changed compose preview before native input"
+    },
+    {
+      "line": 2474,
+      "text": "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:04:34.3187598Z   error: 'Promise resolution is still pending but the event loop has already resolved'"
+    },
+    {
+      "line": 3396,
+      "text": "fixtures (policy)\tBrowser fixtures only inside Linux container, sandbox on\t2026-11-12T14:04:34.3882713Z # cancelled 2"
+    }
+  ]
+}
