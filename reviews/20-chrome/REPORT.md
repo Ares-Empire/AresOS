@@ -63,8 +63,10 @@ sentinel or forbidden Runtime value events. The navigation variant reports its c
 Push `43270186321`'s external job completed all 89 browser cases, then hit the **240-minute container limit** during
 `test_chrome_storage_single_persistent_cleanup_pairs_crash_restart_space_restored`. It is **not a green run**.
 Repeat `43270268166` completed both modes; its external job took **3h56m3s**. The container limit is now 300 minutes
-and the job limit 310, allowing the unchanged mandatory Python sweep to finish on slower runners. All shipped
-runtime and test/assertion bytes are unchanged. Full verification will repeat on this workflow-only correction.
+and the job limit 310 in both the normal Chrome workflow and the qualification-pair workflow, allowing the
+unchanged mandatory Python sweep to finish on slower runners. All shipped
+runtime and test/assertion bytes are unchanged. The first budget correction missed the qualification copy; the superseded runs started by this agent were
+cancelled and full verification restarts with both budgets aligned. No owner or other-package run is cancelled.
 [Timeout metadata, output tail and hashes](records/recheck2c/timeout-43270186321.json).
 
 | Workflow on implementation source | Runs | Result |
