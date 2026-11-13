@@ -544,10 +544,12 @@ the front when he should look at it or sign in there.
   - Nothing he does in a tab that isn't Claude's or taken is held or checked, also right after Claude looked at it.
 - **The page Claude chose is the page it gets.** Between the list and Claude's next call he may have gone
   somewhere else in that tab. So the list carries a short token (`seen`), and every call that names one of his
-  tabs passes it: a read, a take, a close, and opening the tab's address in a Claude tab. The tool compares, right
-  before it reads or changes anything, the page the tab shows with the page the list showed (the document and the
-  full address). If they differ, it refuses and Claude lists the tabs again. If they don't, nothing extra happens
-  and he is asked nothing. A new connection to Chrome drops every list.
+  tabs passes it: a read, a take, a close, and opening the tab's address in a Claude tab. Before the tool reads
+  or changes anything in his tab, it compares the page the tab shows with the page the list showed (the document
+  and the full address). If they differ, it refuses and Claude lists the tabs again. If they don't, nothing extra
+  happens and he is asked nothing. Opening the tab's address in a Claude tab is the one call that doesn't look at
+  his tab: it opens the address the list showed, wherever the tab has gone since, so Claude gets the page it
+  chose and his tab isn't touched. A new connection to Chrome drops every list.
 - **Which tab: the one his request clearly needs.** The tool can't know what he asked. Three things carry the rule:
   - *The instructions tell Claude* (the Chrome server's MCP instructions, generated from the definitions): read or
     take one of his tabs only when his current request names it or can't be done without it. Choose by site, not by
@@ -1576,9 +1578,10 @@ the first input (brief 28b).
       or his never-list is refused; an asleep tab is loaded and the result says so; a tab with an open dialog
       answers `owner_dialog` within the bound;
     - the page Claude chose: a read, a take, a close and opening a tab's address are refused without the list's
-      token; after he navigates the listed tab (a new document, or a new address in the same document) each is
-      refused before anything is read or changed, and nothing of the new page is in a result; unchanged, each
-      works with no further step;
+      token; after he navigates the listed tab (a new document, or a new address in the same document) a read, a
+      take and a close are refused before anything is read or changed, and nothing of the new page is in a
+      result, while opening the tab's address still opens the one the list showed; unchanged, each works with
+      no further step;
     - one profile: a second profile's extension is refused, also after the first one disconnects, until the owner
       command names it; then every token and reference from before is refused;
     - the reason: a read, a take or a close of one of his tabs without `request` is refused; with it, the popup and

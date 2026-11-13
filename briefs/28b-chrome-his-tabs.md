@@ -121,13 +121,21 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
 
 - **The page Claude chose is the page it gets.** Every call that names one of his tabs passes the `seen` of the list
   Claude chose it from (brief 28, item 6): `chrome_read` here, and `chrome_take`, `chrome_close`, `chrome_open` with
-  `tab` and `chrome_read_typed_fields`. With `tabs`, one `seen` covers the call. The extension checks first, in the same
-  command, that the tab still shows that document at that address. Its messages to the page are addressed to that
-  document, so a page he navigated to in the meantime can never answer. If the tab moved on: `stale_reference`, "this
-  tab shows another page than the list did; list the tabs again", **before anything is read**. If nothing changed, there
-  is no extra step and no extra question. A page that changes what it shows without changing its document or its address
-  (a chat that switches conversations) can't be told apart this way; the result names the page's title and address as
-  they are, and section 6 lists the limit.
+  `tab` and `chrome_read_typed_fields`. With `tabs`, one `seen` covers the call.
+  - **A call that reads or changes his tab** (`chrome_read`, `chrome_take`, `chrome_close`,
+    `chrome_read_typed_fields`): the extension checks first, in the same command, that the tab still shows that
+    document at that address. Its messages to the page are addressed to that document, so a page he navigated to in
+    the meantime can never answer. If the tab moved on: `stale_reference`, "this tab shows another page than the
+    list did; list the tabs again", **before anything is read**. If nothing changed, there is no extra step and no
+    extra question.
+  - **`chrome_open` with `tab` opens the address the list showed, wherever his tab has gone since.** It is the one
+    rule for this call in both briefs and in section 6 (package re-check 2, N4; brief 28, item 6). The address
+    comes from the service's record of that list. His tab is not read, touched or asked, so there is nothing to
+    compare it with, and Claude gets the page it chose from the list. It still needs `seen`, and a `seen` the
+    service no longer knows is refused.
+  - A page that changes what it shows without changing its document or its address (a chat that switches
+    conversations) can't be told apart this way; the result names the page's title and address as they are, and
+    section 6 lists the limit.
 - **In one of his tabs it reads in place.** No debugger attach, no move, no reload. Nothing is injected into the
   page's own (main) world. Nothing of ours in that tab can cancel, hold or change an event. The tab isn't selected
   or focused, and its scroll position isn't touched. After the read, only the reader's idle content script remains
@@ -460,10 +468,13 @@ password cases under `password_exclusion`):
   natively (the receiver has it, with no question), and the comparison with an untouched Chrome still passes.
 - **The page Claude chose:** a read, a take, a close and a `chrome_open` with `tab` are refused without `seen`.
   Between the list and the call the owner navigates the listed tab to a private fixture page, once as a new
-  document and once as a new address inside the same document: each call is refused with `stale_reference`; the
-  private page's marker text is in no result and its fixture records no message from the reader; the tab isn't
-  attached, moved, reloaded or closed. With the tab unchanged every call works with no further step. For a tab
-  asleep the address binds: he wakes it and navigates it, and the read is refused.
+  document and once as a new address inside the same document: a read, a take and a close are each refused with
+  `stale_reference`; the private page's marker text is in no result and its fixture records no message from the
+  reader; the tab isn't attached, moved, reloaded or closed. `chrome_open` with `tab` still opens the address
+  the list showed, in a Claude tab (group 15's assertion, unchanged): the fixture receiver logs that address,
+  the private page's marker is in no result, and his tab records nothing. With the tab unchanged every call works
+  with no further step. For a tab asleep the address binds: he wakes it and navigates it, and the read is
+  refused.
 - **One profile:** two profiles run with the extension. The first to connect is pinned; the second is refused,
   also after the first one's windows close; none of its tabs is ever listed. After the owner command names the
   second profile it connects, and every `seen` and reference from before is refused. If two profiles can't run in
