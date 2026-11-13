@@ -1,9 +1,12 @@
 package dev.aresos.test;
 
+import com.mojang.authlib.GameProfile;
+import dev.aresos.AresOs;
 import dev.aresos.hub.FlatHub;
 import dev.aresos.hub.HubData;
 import dev.aresos.hub.HubLayout;
 import dev.aresos.hub.HubLayout.Group;
+import dev.aresos.mode.LiveMode;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.world.FlatHome;
 import dev.aresos.world.NetherHome;
@@ -12,16 +15,21 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.ServerExplosion;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Block;
@@ -46,11 +54,14 @@ import java.util.UUID;
 
 /**
  * Package 32. The hub tests build far from the test plots: a hub is 49 x 49 blocks and would cover other tests.
+ * "Far" is measured from the test's own plot, which the test server puts at new random coordinates in every run:
+ * the test world can be kept between runs, so no fixed place is known to be untouched ground.
  * Coordinates are written out as docs/design/HUB.md 3.2 states them, relative to the home block.
  */
 public final class FlatHomeGameTests {
     private static final int TEN_MINUTES = 12000;
-    private static final int SETTLE = 100;
+    /** The control of the no-mob test must see a mob within this many ticks: six of the game's 400-tick animal rounds. */
+    private static final int CONTROL_LIMIT = 2400;
     private static final List<GameRule<Boolean>> SWITCHES = List.of(GameRules.SPAWN_MOBS, GameRules.MOB_GRIEFING, GameRules.KEEP_INVENTORY,
             GameRules.SPAWN_PHANTOMS, GameRules.SPAWN_PATROLS, GameRules.SPAWN_WANDERING_TRADERS, GameRules.ADVANCE_TIME, GameRules.ADVANCE_WEATHER);
 
@@ -95,7 +106,7 @@ public final class FlatHomeGameTests {
     @GameTest(environment = "aresos-test:home")
     public void fixedThingsStandWhereTheDesignPutsThem(GameTestHelper helper) {
         var level = helper.getLevel();
-        BlockPos home = homeAt(level, 30000, 30000);
+        BlockPos home = homeAt(level, far(helper, 3000, 0));
         var fixed = build(level, home);
         var expected = new HashMap<BlockPos, Block>();
         for (int x = -2; x <= 2; x++) for (int z = -2; z <= 2; z++) expected.put(home.offset(x, -1, z), Blocks.POLISHED_BLACKSTONE_BRICKS);
@@ -148,7 +159,7 @@ public final class FlatHomeGameTests {
     @GameTest(environment = "aresos-test:home")
     public void hubIsNotBuiltWhereSomethingStands(GameTestHelper helper) {
         var level = helper.getLevel();
-        BlockPos home = homeAt(level, 31000, 30000);
+        BlockPos home = homeAt(level, far(helper, 6000, 0));
         BlockPos hisFloor = home.offset(1, -1, 0);
         BlockPos underHisBuild = home.offset(0, -1, -10);
         level.setBlockAndUpdate(hisFloor, Blocks.DIAMOND_BLOCK.defaultBlockState());
@@ -164,22 +175,27 @@ public final class FlatHomeGameTests {
         helper.succeed();
     }
 
-    @GameTest(environment = "aresos-test:desktop")
+    /**
+     * Alone in its test environment: explosions spare the hub unless somebody is in Build mode, and the other
+     * desktop tests have creative players of their own in the world.
+     */
+    @GameTest(environment = "aresos-test:flat_hub")
     public void liveModeProtectsHubBlocksAndBuildModeDoesNot(GameTestHelper helper) {
         var level = helper.getLevel();
         var server = level.getServer();
-        DesktopWorld.setEnabled(server, true);
-        BlockPos home = homeAt(level, 32000, 30000);
-        var fixed = build(level, home);
-        HubData.store(server, new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), fixed));
-        ServerPlayer player = helper.makeMockServerPlayerInLevel();
+        boolean marked = DesktopWorld.isEnabled(server);
+        ServerPlayer player = join(level, "FlatHubTest");
         try {
+            DesktopWorld.setEnabled(server, true);
+            BlockPos home = homeAt(level, far(helper, 9000, 0));
+            var fixed = build(level, home);
+            HubData.store(server, new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), fixed));
             player.snapTo(home.getX() + 0.5, home.getY(), home.getZ() + 0.5, 180, 0);
             BlockPos gold = home.below();
             BlockPos road = Group.N.block(home, 10, 0, -1);
             BlockPos grass = home.offset(3, -1, 3);
 
-            mode(player, GameType.SURVIVAL);
+            check(LiveMode.isLive(player), "Fixture: the player is not in Live mode");
             check(!player.gameMode.destroyBlock(gold) && level.getBlockState(gold).is(Blocks.GOLD_BLOCK), "Live mode broke the gold block");
             check(!player.gameMode.destroyBlock(road) && level.getBlockState(road).is(Blocks.CONCRETE.lightBlue()), "Live mode broke the road");
             check(player.gameMode.destroyBlock(grass) && level.getBlockState(grass).isAir(), "Live mode could not break plain ground");
@@ -219,10 +235,10 @@ public final class FlatHomeGameTests {
 
             DesktopWorld.setEnabled(server, false);
             check(!HubData.protectsFrom(player, gold), "Protection outlives the desktop marker");
-            DesktopWorld.setEnabled(server, true);
             helper.succeed();
         } finally {
             server.getPlayerList().remove(player);
+            DesktopWorld.setEnabled(server, marked);
         }
     }
 
@@ -291,13 +307,13 @@ public final class FlatHomeGameTests {
     }
 
     /**
-     * Ten minutes of game time with a player in the world and the flat home's rules: no mob may appear. The test
-     * world is vanilla's default flat world (plains), whose surface lies below y 40, where slimes spawn in any light.
-     * Then the control: with mob spawning switched on in the same place, a mob does appear, so the empty ten
-     * minutes were the rules' doing. Alone in its test environment, because it changes the server's rules, and far
-     * from the test plots, where earlier tests' players may have left mobs behind.
+     * Ten minutes of game time with the owner standing at home in Live mode under the flat home's rules: no mob may
+     * appear. The control runs first, in the same place with the same player: with mob spawning on, a mob appears
+     * (the test world is vanilla's default flat world, plains in daylight, where animals spawn on the grass and
+     * slimes in any light). So the empty ten minutes are the rules' doing and not a world that could never spawn
+     * anything. Alone in its test environment, because it changes the server's rules, and far from the test plots.
      */
-    @GameTest(environment = "aresos-test:flat_home", maxTicks = SETTLE + TEN_MINUTES + 2400)
+    @GameTest(environment = "aresos-test:flat_home", maxTicks = CONTROL_LIMIT + TEN_MINUTES + 40)
     public void noMobAppearsInTenMinutes(GameTestHelper helper) {
         var level = helper.getLevel();
         var server = level.getServer();
@@ -305,50 +321,93 @@ public final class FlatHomeGameTests {
         Map<GameRule<Boolean>, Boolean> before = new HashMap<>();
         for (var rule : SWITCHES) before.put(rule, rules.get(rule));
         int fire = rules.get(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER);
-        BlockPos home = homeAt(level, 40000, 40000);
+        boolean marked = DesktopWorld.isEnabled(server);
+        ServerPlayer player = join(level, "FlatHomeMobs");
         // Mobs spawn within 128 blocks of a player; anything in this box is this test's.
-        AABB area = new AABB(home).inflate(200, 400, 200);
-        // Whatever the test server starts with, begin from a world that spawns mobs.
-        rules.set(GameRules.SPAWN_MOBS, true, server);
-        FlatHome.applyRules(rules, server);
-        ServerPlayer player = helper.makeMockServerPlayerInLevel();
-        player.teleportTo(level, home.getX() + 0.5, home.getY(), home.getZ() + 0.5, Set.of(), 180, 0, false);
-        // Nothing ticks a mock player, so the chunk map would go on loading the place where he joined.
-        level.getChunkSource().move(player);
+        AABB[] area = {null};
+        // Runs on every way out, pass or fail: the test world, its rules included, can be kept for the next run.
         Runnable restore = () -> {
             for (var rule : SWITCHES) rules.set(rule, before.get(rule), server);
             rules.set(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, fire, server);
-            mobs(level, area).forEach(Entity::discard);
+            if (area[0] != null) mobs(level, area[0]).forEach(Entity::discard);
             server.getPlayerList().remove(player);
+            DesktopWorld.setEnabled(server, marked);
         };
-        // Once the chunks around him have loaded, start from an empty area: a world kept from an earlier run may hold mobs.
-        helper.runAtTickTime(SETTLE, () -> mobs(level, area).forEach(Entity::discard));
-        helper.runAtTickTime(SETTLE + TEN_MINUTES, () -> {
+        BlockPos home;
+        try {
+            DesktopWorld.setEnabled(server, true);
+            home = homeAt(level, far(helper, 0, 8000));
+            area[0] = new AABB(home).inflate(200, 400, 200);
+            player.teleportTo(level, home.getX() + 0.5, home.getY(), home.getZ() + 0.5, Set.of(), 180, 0, false);
+            // Nothing ticks a test player's connection, so the chunk map would go on loading the place where he joined.
+            level.getChunkSource().move(player);
+            check(LiveMode.isLive(player), "Fixture: the player is not in Live mode");
+            check(mobs(level, area[0]).isEmpty(), "Fixture: mobs already live around the new home");
+            // The control: a world that spawns mobs. The monsters rule is set last, because only it refreshes the
+            // level's cached "monsters may spawn" flag, which also depends on the mobs rule.
+            rules.set(GameRules.SPAWN_MOBS, true, server);
+            rules.set(GameRules.SPAWN_MONSTERS, true, server);
+        } catch (RuntimeException | Error error) {
+            restore.run();
+            throw error;
+        }
+        long[] quietSince = {-1};
+        helper.onEachTick(() -> {
             try {
-                check(!player.isSpectator() && !player.isRemoved() && player.level() == level
-                        && player.blockPosition().closerThan(home, 2), "Fixture: the player is not at home: " + player.position());
-                var spawning = level.getChunkSource().getLastSpawnState();
-                check(spawning != null && spawning.getSpawnableChunkCount() > 0, "Fixture: no chunk near the player counts for spawning");
-                check(server.getWorldData().getDifficulty() != net.minecraft.world.Difficulty.PEACEFUL, "Fixture: the world is peaceful");
-                var appeared = mobs(level, area);
-                check(appeared.isEmpty(), appeared.size() + " mob(s) appeared within ten minutes under the flat home's rules: " + describe(appeared));
+                long tick = helper.getTick();
+                if (quietSince[0] < 0) {
+                    var appeared = mobs(level, area[0]);
+                    if (appeared.isEmpty()) {
+                        if (tick >= CONTROL_LIMIT) throw new AssertionError("Control: no mob appears here even with mob spawning on, so"
+                                + " ten quiet minutes would prove nothing. " + spawningState(level, home, player));
+                        return;
+                    }
+                    AresOs.LOGGER.info("32 no-mob control: with mob spawning on, {} appeared within {} ticks", describe(appeared), tick);
+                    FlatHome.applyRules(rules, server);
+                    appeared.forEach(Entity::discard);
+                    quietSince[0] = tick;
+                } else if (tick >= quietSince[0] + TEN_MINUTES) {
+                    check(!player.isRemoved() && player.level() == level && player.blockPosition().closerThan(home, 2),
+                            "Fixture: the player is not at home: " + player.position());
+                    check(LiveMode.isLive(player), "Fixture: the player left Live mode");
+                    var spawning = level.getChunkSource().getLastSpawnState();
+                    check(spawning != null && spawning.getSpawnableChunkCount() > 0, "Fixture: no chunk near the player counts for spawning");
+                    check(server.getWorldData().getDifficulty() != net.minecraft.world.Difficulty.PEACEFUL, "Fixture: the world is peaceful");
+                    NetherHomeGameTests.assertRules(rules);
+                    var appeared = mobs(level, area[0]);
+                    check(appeared.isEmpty(), appeared.size() + " mob(s) appeared within ten minutes under the flat home's rules: " + describe(appeared));
+                    restore.run();
+                    helper.succeed();
+                }
             } catch (AssertionError error) {
                 restore.run();
-                throw error;
+                // The test runner reports its own exception type from a tick callback, and no Error.
+                helper.fail(error.getMessage());
             }
-            rules.set(GameRules.SPAWN_MOBS, true, server);
-            helper.succeedWhen(() -> {
-                var appeared = mobs(level, area);
-                int elsewhere = 0;
-                for (Entity entity : level.getAllEntities()) if (entity instanceof Mob) elsewhere++;
-                check(!appeared.isEmpty(), "Control: no mob appears here even with mob spawning on, so the ten minutes prove nothing"
-                        + " (home ticks entities: " + level.isPositionEntityTicking(home) + ", chunks counted for spawning: "
-                        + level.getChunkSource().getLastSpawnState().getSpawnableChunkCount() + ", mobs in the whole world: " + elsewhere
-                        + ", player section: " + player.getLastSectionPos() + " at " + player.blockPosition().toShortString() + ")");
-                dev.aresos.AresOs.LOGGER.info("32 no-mob control: with mob spawning on, {} appeared", describe(appeared));
-                restore.run();
-            });
         });
+    }
+
+    /** Why the control saw nothing: what the game's spawner looks at, and whether it can place an animal here at all. */
+    private static String spawningState(ServerLevel level, BlockPos home, ServerPlayer player) {
+        var rules = level.getGameRules();
+        var state = level.getChunkSource().getLastSpawnState();
+        BlockPos spot = home.offset(40, 0, 0);
+        int all = 0;
+        for (Entity entity : level.getAllEntities()) if (entity instanceof Mob) all++;
+        int probes = 0;
+        for (int i = 0; i < 20 && probes == 0; i++) {
+            NaturalSpawner.spawnCategoryForPosition(MobCategory.CREATURE, level, spot);
+            probes = level.getEntitiesOfClass(Mob.class, new AABB(spot).inflate(40, 4, 40)).size();
+        }
+        return "game time " + level.getGameTime() + ", spawn_mobs " + rules.get(GameRules.SPAWN_MOBS) + ", spawn_monsters "
+                + rules.get(GameRules.SPAWN_MONSTERS) + ", difficulty " + level.getDifficulty() + ", players in the level " + level.players().size()
+                + ", player at " + player.blockPosition().toShortString() + " in " + player.gameMode.getGameModeForPlayer()
+                + ", nearest player to the spot " + (level.getNearestPlayer(spot.getX(), spot.getY(), spot.getZ(), -1, false) != null)
+                + ", chunks counted for spawning " + (state == null ? "none" : state.getSpawnableChunkCount() + " with " + state.getMobCategoryCounts())
+                + ", spot ticks entities " + level.isPositionEntityTicking(spot) + ", may spawn in its chunk "
+                + level.canSpawnEntitiesInChunk(net.minecraft.world.level.ChunkPos.containing(spot)) + ", light " + level.getRawBrightness(spot, 0)
+                + ", ground " + level.getBlockState(spot.below()) + ", biome " + level.getBiome(spot).getRegisteredName()
+                + ", mobs in the whole world " + all + ", animals a direct spawn call placed " + probes;
     }
 
     private static List<Mob> mobs(ServerLevel level, AABB area) {
@@ -364,18 +423,42 @@ public final class FlatHomeGameTests {
         catch (IOException error) { throw new AssertionError(error); }
     }
 
-    /** A home block on the test world's own grass, far from every test plot. */
-    private static BlockPos homeAt(ServerLevel level, int x, int z) {
-        level.getChunkAt(new BlockPos(x, 0, z));
-        BlockPos home = new BlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z);
+    /** A column this far from the test's own plot: new ground in every run, out of reach of the plots and of each other. */
+    private static BlockPos far(GameTestHelper helper, int x, int z) {
+        return helper.absolutePos(BlockPos.ZERO).offset(x, 0, z);
+    }
+
+    /** A home block on the test world's own untouched grass in that column. */
+    private static BlockPos homeAt(ServerLevel level, BlockPos column) {
+        level.getChunkAt(column);
+        BlockPos home = new BlockPos(column.getX(), level.getHeight(Heightmap.Types.WORLD_SURFACE, column.getX(), column.getZ()), column.getZ());
         check(level.getBlockState(home.below()).is(Blocks.GRASS_BLOCK) && level.getBlockState(home).isAir(), "Fixture: no grass surface at " + home
                 + ": " + level.getBlockState(home.below()) + " under " + level.getBlockState(home));
         return home;
     }
 
+    /**
+     * A real player in survival whose connection answers mode switches, joined while the world is unmarked, as the
+     * mode tests join theirs. The game's mock player reports creative whatever it is set to, and a marked world
+     * refuses a switch that the client cannot acknowledge.
+     */
+    private static ServerPlayer join(ServerLevel level, String name) {
+        var server = level.getServer();
+        DesktopWorld.setEnabled(server, false);
+        var cookie = CommonListenerCookie.createInitial(new GameProfile(UUID.randomUUID(), name), false);
+        var player = new ServerPlayer(server, level, cookie.gameProfile(), cookie.clientInformation());
+        var connection = new Connection(PacketFlow.SERVERBOUND);
+        new io.netty.channel.embedded.EmbeddedChannel(connection);
+        server.getPlayerList().placeNewPlayer(connection, player, cookie);
+        ModeInventoryFixtures.registerStateReceiver(player);
+        player.setGameMode(GameType.SURVIVAL);
+        check(player.gameMode.getGameModeForPlayer() == GameType.SURVIVAL, "Fixture: the player did not join in survival");
+        return player;
+    }
+
     private static void mode(ServerPlayer player, GameType mode) {
-        player.setGameMode(mode);
-        check(player.gameMode.getGameModeForPlayer() == mode, "Fixture: the player did not switch to " + mode);
+        check(ModeInventoryFixtures.switchAndAcknowledge(player, mode) && player.gameMode.getGameModeForPlayer() == mode,
+                "Fixture: the player did not switch to " + mode);
     }
 
     private static void explode(ServerLevel level, ServerPlayer player, Vec3 centre) {
