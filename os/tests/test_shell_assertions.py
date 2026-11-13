@@ -177,14 +177,21 @@ bootc() { echo TRANSACTION_MUST_NOT_RUN; }
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('Stock deployment unexpectedly contains', result.stdout)
 
-    def test_daily_policy_rejects_wheel_each_manager_and_each_competing_process(self):
+    def test_daily_policy_requires_password_admin_and_rejects_each_manager_and_competing_process(self):
         # Run the real account/desktop portion, before image-specific policy files.
+        # Owner, 2026-11-09: the daily account is in wheel behind its own password.
         source = (ROOT / 'tests/guest.sh').read_text().split('while read -r unit;')[0]
         prelude = '''test() { if [[ $* == '-d /sys/firmware/efi' ]]; then return 0; fi; builtin test "$@"; }
-id() { if [[ $1 == -nG ]]; then echo "ares ${WHEEL:-}"; else echo 1001; fi; }
+id() { if [[ $1 == -nG ]]; then echo "ares ${WHEEL-wheel}"; else echo 1001; fi; }
 python3() { cat >/dev/null; }
-sudo() { echo 'User ares is not allowed to run sudo on fixture.'; }
-runuser() { return 0; }
+sudo() {
+    printf 'Matching Defaults entries for ares on fixture:\\n    !visiblepw, %s\\n\\n' "${DEFAULTS-timestamp_timeout=0}"
+    printf 'User ares may run the following commands on fixture:\\n    %s\\n' "${RULE-(ALL) ALL}"
+}
+runuser() {
+    if [[ $* == *'sudo -n'* ]]; then return "${PASSWORDLESS_EXIT:-1}"; fi
+    return 0
+}
 systemctl() {
     if [[ $1 == get-default ]]; then echo graphical.target; return; fi
     [[ $* == *greetd.service* || $* == *"${MANAGER:-never-match}"* ]]
@@ -198,7 +205,13 @@ pgrep() {
         baseline = self.bash(prelude + source + '\necho POLICY_PREFIX_PASSED\n')
         self.assertEqual(baseline.returncode, 0, baseline.stdout + baseline.stderr)
         self.assertIn('POLICY_PREFIX_PASSED', baseline.stdout)
-        cases = [({'WHEEL': 'wheel'}, 'Daily account belongs to wheel')]
+        self.assertIn('Daily account is in wheel', baseline.stdout)
+        cases = [({'WHEEL': ''}, 'Daily account is not in wheel'),
+                 ({'RULE': '(ALL) NOPASSWD: ALL'}, 'Daily account has a passwordless sudo rule'),
+                 ({'DEFAULTS': '!authenticate, timestamp_timeout=0'}, 'Daily account has a passwordless sudo rule'),
+                 ({'PASSWORDLESS_EXIT': '0'}, 'Daily account ran sudo without a password')]
+        # A missing grant or a reusable password cache fails without a message.
+        cases += [({'RULE': '(root) /usr/bin/true'}, ''), ({'DEFAULTS': 'env_reset'}, '')]
         cases += [({'MANAGER': manager + '.service'}, 'Competing display manager')
                   for manager in ('sddm', 'gdm', 'lightdm')]
         cases += [({'PROCESS': name}, 'Competing desktop or power process')
@@ -210,13 +223,15 @@ pgrep() {
                 self.assertIn(message, result.stdout)
                 self.assertNotIn('POLICY_PREFIX_PASSED', result.stdout)
 
-    def test_daily_login_rejects_brew_even_outside_linuxbrew_path(self):
+    def test_daily_login_requires_the_image_brew_command(self):
+        # Owner, 2026-11-09: the daily login uses Homebrew through /usr/bin/brew,
+        # which keeps the stock owner as Homebrew's only writer.
         source = (ROOT / 'tests/inherited-homebrew.sh').read_text()
         line = next(line for line in source.splitlines() if 'runuser -l ares -c' in line)
         snippet = shlex.split(line)[-1]
         result = self.bash('brew() { :; }\n' + snippet)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('Homebrew is on the daily login PATH', result.stdout)
+        self.assertIn('Daily login does not use the image brew command', result.stdout)
 
 
 if __name__ == '__main__':

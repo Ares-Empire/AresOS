@@ -1,0 +1,47 @@
+{
+  "chrome": {
+    "type": "stdio",
+    "command": "/usr/bin/env",
+    "args": [
+      "-i",
+      "PATH=/usr/bin:/bin",
+      "LANG=C.UTF-8",
+      "/usr/bin/python3",
+      "-I",
+      "-S",
+      "/usr/libexec/aresos-control/launch.py",
+      "proxy",
+      "chrome"
+    ]
+  },
+  "control": {
+    "type": "stdio",
+    "command": "/usr/bin/env",
+    "args": [
+      "-i",
+      "PATH=/usr/bin:/bin",
+      "LANG=C.UTF-8",
+      "/usr/bin/python3",
+      "-I",
+      "-S",
+      "/usr/libexec/aresos-control/launch.py",
+      "proxy",
+      "control"
+    ]
+  },
+  "mail": {
+    "type": "stdio",
+    "command": "/usr/bin/env",
+    "args": [
+      "-i",
+      "PATH=/usr/bin:/bin",
+      "LANG=C.UTF-8",
+      "/usr/bin/python3",
+      "-I",
+      "-S",
+      "/usr/libexec/aresos-control/launch.py",
+      "proxy",
+      "mail"
+    ]
+  }
+}

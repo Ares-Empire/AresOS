@@ -4,12 +4,17 @@ umask 077
 
 test "$GITHUB_EVENT_NAME" = workflow_dispatch
 test "$GITHUB_REPOSITORY" = Ares-Empire/AresOS
-test "$GITHUB_REF_NAME" = pkg/13-keyboard-layout
+# Each release has its own reviewed branch; no other branch may publish.
+case "$GITHUB_REF_NAME" in
+    pkg/13-keyboard-layout) release=13 ;;
+    pkg/27-first-update-release) release=27 ;;
+    *) echo "Refusing to publish from $GITHUB_REF_NAME" >&2; exit 1 ;;
+esac
 python3 os/ci/rehearsal_guard.py publish-ci 0
 test "$(jq -r .status evidence/image-diff/result.json)" = passed
 image=ghcr.io/ares-empire/aresos
-tag="13-$GITHUB_SHA"
-export DOCKER_CONFIG="$RUNNER_TEMP/aresos-13-publish"
+tag="$release-$GITHUB_SHA"
+export DOCKER_CONFIG="$RUNNER_TEMP/aresos-$release-publish"
 mkdir -m 0700 "$DOCKER_CONFIG"
 trap 'rm -f "$DOCKER_CONFIG/config.json"; rmdir "$DOCKER_CONFIG"' EXIT
 printf '%s' "$GH_TOKEN" | sudo podman login --authfile "$DOCKER_CONFIG/config.json" --username "$GITHUB_ACTOR" --password-stdin ghcr.io

@@ -1,0 +1,230 @@
+{
+  "artifacts": [
+    {
+      "assertions": 176566,
+      "bytes": 779029,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-sweep-0-0.json.gz",
+      "sha256": "7d6c42fee546e731cd3526d478d9d037ec2268a78e6899d6fada4f7a4740e3b4"
+    },
+    {
+      "assertions": 177284,
+      "bytes": 774991,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-sweep-1-0.json.gz",
+      "sha256": "2c85718f45d349f6f8a7bbb0921343b6ecee37fca1b5a3e881518a81e2dd4411"
+    },
+    {
+      "assertions": 194387,
+      "bytes": 838924,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-sweep-2-0.json.gz",
+      "sha256": "19450d75eb48c4ae8ffb78874a5cbae28c97298fe6510b1b9631684707640c9a"
+    },
+    {
+      "assertions": 181913,
+      "bytes": 787405,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-sweep-3-0.json.gz",
+      "sha256": "1a5623d8a53d9fc52d393e933fd3763577517cb5dc3bd5c0d1ce7fb2be58bf59"
+    },
+    {
+      "assertions": 183677,
+      "bytes": 792167,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-sweep-4-0.json.gz",
+      "sha256": "254924891c3501eb8d771cae68469db2b9774c79d182f53a88fd49c63b751653"
+    },
+    {
+      "assertions": 178978,
+      "bytes": 774722,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-sweep-5-0.json.gz",
+      "sha256": "f6aa43edfb2f6de3c0e32e4f378d4bd270f597447ce93070c1c792681a909ed9"
+    },
+    {
+      "assertions": 186707,
+      "bytes": 810126,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-sweep-6-0.json.gz",
+      "sha256": "9fb6086c07ee07b496e93fda7f1988bd370262e581c79ce071a2fcb02cd7f595"
+    },
+    {
+      "assertions": 193386,
+      "bytes": 833603,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-sweep-7-0.json.gz",
+      "sha256": "d14adc583f2f3bc0dc5c51d8f8d568f0eab561f02d1b337bdd9755e619116fa4"
+    },
+    {
+      "assertions": 187108,
+      "bytes": 811844,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-sweep-8-0.json.gz",
+      "sha256": "4afb5c861d631395fbb28e7224b2e4b8c597c80fab8a0cf255c28a5a8dd6141f"
+    },
+    {
+      "assertions": 175631,
+      "bytes": 767889,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-sweep-9-0.json.gz",
+      "sha256": "fb463d000de8414ab69ff7ec874d2daf4d48497138b6e7a089cc5d3348511544"
+    },
+    {
+      "assertions": 182408,
+      "bytes": 790618,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-sweep-10-0.json.gz",
+      "sha256": "ef310fd32b446a9062bfb656015df85ded0867458c4d15d3b4859e982a49e115"
+    },
+    {
+      "assertions": 182848,
+      "bytes": 792026,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-sweep-11-0.json.gz",
+      "sha256": "8d7409e139afad93bf89f84b7054cc55332f490bcb4d56746c064700bdda2314"
+    },
+    {
+      "assertions": 486,
+      "bytes": 8517,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-contract-0-0.json.gz",
+      "sha256": "6e94ab404869a3cb98180ce7fd81c3621799cbee967a4b27b63bdcf9633bc534"
+    },
+    {
+      "assertions": 1,
+      "bytes": 212,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-G22-rename-0-0.json.gz",
+      "sha256": "b64bb1abb18bef0a1a01a7b0efb6e488c2e29e78efb3e18eec6d1e8ccf2c0c9c"
+    },
+    {
+      "assertions": 1,
+      "bytes": 218,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-G22-evidence-0-0.json.gz",
+      "sha256": "b3dbc520640963db43c9bbdcdf418d01d0d7443e5bced217e4eb35b078656cba"
+    },
+    {
+      "assertions": 1,
+      "bytes": 216,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-G22-latch-0-0.json.gz",
+      "sha256": "5b97dd80b3b6ea3d64ede7b8f4331843aaa1cab1077421b74462d33d0a79f9ef"
+    },
+    {
+      "assertions": 2,
+      "bytes": 346,
+      "file": ".work/19b-s2/capture-b/lists/owner-gaps-channel-0-0.json.gz",
+      "sha256": "6b7f96009cb1dd78fce8ddacabdb7480a3514a411f2831a671a007c94d5cdcb1"
+    }
+  ],
+  "assertions": 2200009,
+  "buckets": 12,
+  "bytes": 898329,
+  "groups": 1952,
+  "per_suite": {
+    "G22-evidence": {
+      "3": 1
+    },
+    "G22-latch": {
+      "3": 1
+    },
+    "G22-rename": {
+      "3": 1
+    },
+    "archive": {
+      "3": 56847
+    },
+    "attachment_export": {
+      "3": 69567
+    },
+    "cancel": {
+      "3": 9909
+    },
+    "channel": {
+      "3": 2
+    },
+    "contract": {
+      "3": 486
+    },
+    "delete_permanent": {
+      "3": 128445
+    },
+    "delete_trash": {
+      "3": 77323
+    },
+    "draft_append": {
+      "3": 13928
+    },
+    "expiry": {
+      "3": 11998
+    },
+    "export_rollback": {
+      "3": 77411
+    },
+    "filing_copy": {
+      "3": 81598
+    },
+    "filing_move": {
+      "3": 81598
+    },
+    "filing_rename": {
+      "3": 38845
+    },
+    "flag": {
+      "3": 14281
+    },
+    "folder_create": {
+      "3": 14281
+    },
+    "folder_delete": {
+      "3": 51818
+    },
+    "folder_review": {
+      "3": 34653
+    },
+    "maintenance": {
+      "3": 6303
+    },
+    "onboarding": {
+      "3": 518601
+    },
+    "password": {
+      "3": 3556
+    },
+    "repair": {
+      "3": 121633
+    },
+    "restore": {
+      "3": 18684
+    },
+    "send": {
+      "3": 214542
+    },
+    "settings": {
+      "3": 14281
+    },
+    "settlement": {
+      "3": 36294
+    },
+    "status": {
+      "3": 23612
+    },
+    "testapp_config": {
+      "3": 7844
+    },
+    "testapp_delete": {
+      "3": 60041
+    },
+    "testapp_export": {
+      "3": 22563
+    },
+    "testapp_send": {
+      "3": 102129
+    },
+    "unsubscribe_https": {
+      "3": 77155
+    },
+    "unsubscribe_mailto": {
+      "3": 209778
+    }
+  },
+  "scope": "All 32 flows in every mode/site/pair/crash/restart, all 12 local workers; named/focused fresh. Channel retains strict round-3 Linux evidence until final CI.",
+  "sha256": "36335d9f705794079937fdac48633273c3f4f986d7ee5ea45ad8726b32107055",
+  "sources": {
+    "capture": "Stage-2 working tree before commit 2eb79db6; final guard and optional-role fixes add no writes or encoding changes in these ordinary-role flows. Final-source strict Linux verification follows.",
+    "ci_final": "82902fd8",
+    "production_final": "9662bf7a"
+  },
+  "stages": {
+    "3": 2200009
+  },
+  "suite_buckets": {
+    "onboarding": 24
+  }
+}

@@ -1,19 +1,6 @@
 name: Control Chrome check
+# The check branches 17 to 17e are merged. A new Chrome check or brief adds its own branch here.
 on:
-  push:
-    branches: [pkg/17-chrome-check, pkg/17b-chrome-holds, pkg/17c-chrome-pages, pkg/17d-chrome-floor, pkg/17e-chrome-checkpoint]
-    paths:
-      - control/checks/17-chrome/**
-      - control/checks/17b-chrome/**
-      - control/checks/17e-chrome/**
-      - reviews/17e-chrome-checkpoint/**
-      - control/checks/17d-chrome/**
-      - reviews/17d-chrome-floor/**
-      - control/checks/17c-chrome/**
-      - reviews/17c-chrome-pages/**
-      - reviews/17b-chrome-holds/**
-      - .github/workflows/control-chrome-check.yml
-      - reviews/17-chrome-check/**
   workflow_dispatch:
     inputs:
       long_hold:
@@ -24,7 +11,7 @@ permissions:
   contents: read
 concurrency:
   group: chrome-check-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   chrome:
     runs-on: ${{ github.ref_name == 'pkg/17e-chrome-checkpoint' && 'ubuntu-24.04' || 'ubuntu-latest' }}

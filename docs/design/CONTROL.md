@@ -1,7 +1,47 @@
 # The control layer: design
 
-**Status:** draft 9, 2026-11-07. Covers the shared base, Mail and Chrome. The frontier review
-([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
+**Status:** draft 31, 2026-11-08. Draft 16 with the owner's answers of 2026-11-07 built in (`PLAN.md` decisions 14 to
+19 and 21), and two decisions of 2026-11-08: the central session can gain tools, the ones that run outside its sandbox
+only through the tool layer, asking (decision 22); and one session does coding, commands, mail, Chrome and later apps,
+possibly in skip-permissions mode, replacing decision 8's split (decision 23). Draft 18 answers the eighteenth
+re-check ([18](../../reviews/control-design/2026-11-08-RECHECK-18.md)): project deletions kept recoverable by
+snapshots (the owner's choice is open), planted repository settings contained, branch deletion and history rewrites
+recoverable, add-tool preparation fetching only from listed registries, and added tools free only on reviewed
+evidence. Draft 19 answers the nineteenth re-check ([19](../../reviews/control-design/2026-11-08-RECHECK-19.md)) by
+containing whole classes (one traced set of programs outside the sandbox, git itself sandboxed for the session's user,
+the tools reachable only from the registered `aresos-mcp`, GitHub refusing every deletion and rewrite by the session)
+and by stating exact bounds as owner choices in section 10. Draft 20 (re-check
+[20](../../reviews/control-design/2026-11-08-RECHECK-20.md)) makes Claude Code and the relay non-dumpable, identifies
+the relay by its group, and adds a fifth owner choice for unreviewed servers that hold his account access. Draft 21
+(re-check [21](../../reviews/control-design/2026-11-08-RECHECK-21.md)) accepts one relay per app per session and
+checks who holds its pipes. Draft 22 (re-check [22](../../reviews/control-design/2026-11-08-RECHECK-22.md)) changes
+the structure: an SELinux domain for the session refuses every program outside the allowed set when it starts, the
+relay checks become hardening bound to the trusted start, and the asking tools stay off until qualification shows
+nothing Claude can steer reaches Claude Code's sign-in. Draft 23 (re-check
+[23](../../reviews/control-design/2026-11-08-RECHECK-23.md)) adds the precision: Claude Code's process as trusted code
+into which nothing Claude wrote is loaded, the sandbox transition contract, both gates as hard switches, an
+acknowledged registration barrier, and `rg` through a fixed wrapper. Draft 24 follows the owner's decision 24, which
+replaces that containment: AresOS runs normal Claude Code, as on any OS, plus the tools, which must be safe in
+themselves and not make things worse than normal Claude Code; sections 1, 2, 4.4 and 7 are rewritten to that bar, and
+section 6 was left for re-examination against it. Draft 25 (re-check
+[25](../../reviews/control-design/2026-11-08-RECHECK-25.md)) says precisely what is still unknown about
+`PermissionRequest` hooks and under which settings the optional sandbox keeps terminal commands away from the tool
+service. Draft 26 follows the owner's decision 25: section 6 is rewritten for the light Chrome tool (no checkpoint,
+Chrome completely normal, asking before anything that clearly sends), and the checkpoint's parts elsewhere are
+struck. Draft 27 (re-check [29](../../reviews/control-design/2026-11-08-RECHECK-29.md)) classifies every
+activation path, resumes a stopped submission without replaying Claude's input, binds the approval to everything the
+question names, limits navigation to web addresses, keeps the approval and settings pages out by every route, and
+reads pages without ever collecting a password value. Draft 28 (re-check
+[30](../../reviews/control-design/2026-11-08-RECHECK-30.md)) resumes a stopped submission with the same kind it was
+stopped as, binds what a send outside a form carries whatever was approved before, and excludes password fields before
+anything is read. Draft 29 (re-check [31](../../reviews/control-design/2026-11-08-RECHECK-31.md)) binds the whole
+compose item or refuses, and stops a script's activation before it is delivered, reporting what it couldn't stop as
+`unknown`. Draft 30 (re-check [32](../../reviews/control-design/2026-11-08-RECHECK-32.md)) binds every editable field
+the tool can read for a send outside a form without an adapter, states read-only text as residual, and refuses to
+resume an event object that changed. Draft 31 (re-check [33](../../reviews/control-design/2026-11-08-RECHECK-33.md))
+stops a page's own activation of an asking control for good instead: Claude acts on the control itself if the action
+is wanted. Covers the shared base, Mail and Chrome. The frontier
+review ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
 [3](../../reviews/control-design/2026-11-07-RECHECK-3.md), [4](../../reviews/control-design/2026-11-07-RECHECK-4.md),
 [5](../../reviews/control-design/2026-11-07-RECHECK-5.md)) ended at "ready for brief 18" on draft 6. Draft 7 adds
@@ -9,10 +49,31 @@ brief 17b's Chrome results (section 6: fail, then repeat; the policy install; th
 workers). Draft 8 adds brief 17c's (section 6: holding inside the page as the normal path, what the hold protects
 against and what it doesn't, workers, live messages, the restart, the owner's own sends, the site guard settled); the
 reviewer's sixth re-check ([6](../../reviews/control-design/2026-11-07-RECHECK-6.md)) found four blocking points
-there, and draft 9 answers them: Chrome's own blocking rules as a floor under every hold, a site guard that ends by
-itself only on evidence, workers covered by that floor whoever starts them, and no repeat without the complete bytes.
-Points marked *17d* are checked by brief 17d before the Chrome build; points marked *brief 20* must be shown by the
-Chrome build's own tests before anything relies on them.
+there, and draft 9 answered them with Chrome's own blocking rules as a floor under every hold. Brief 17d showed that
+floor doesn't hold (worker WebSockets pass it; an allowance lets a different send out when control ends), and the
+seventh re-check ([7](../../reviews/control-design/2026-11-07-RECHECK-7.md)) recommended a checkpoint outside Chrome,
+which brief 17e showed holds. Draft 10 rebuilds section 6 on that checkpoint (with the owner's hard requirements for
+it, decision 6), makes the site guard strict (decision 12), adds "don't ask again" (decision 7) and his usual sites
+(decision 9), and adds to section 7 the assistant apart from coding sessions (decision 8) and the approval surface
+after the phone tests (open: the owner decides). The eighth re-check
+([8](../../reviews/control-design/2026-11-07-RECHECK-8.md)) found six blocking points in draft 10, and draft 11
+answers them: uncertain reading held until the checkpoint is ready, clicks that may delete local data ask first, what
+a recognised action is, three separate users with no shared files, every place the root is installed, and the exact
+upstream TLS checks with what is lost. The ninth re-check ([9](../../reviews/control-design/2026-11-07-RECHECK-9.md))
+closed three of them and found one new point; draft 12 records every input before it reaches Chrome, makes unlabelled
+local-only deletion an owner question, checks upstream certificates with Chrome's own current data, and bounds a
+destructive action approved in advance. The tenth re-check
+([10](../../reviews/control-design/2026-11-07-RECHECK-10.md)) closed the input barrier and the advance approval; draft
+13 states both options for unlabelled local-only deletion truthfully and makes Chrome's own security data a precise
+contract (paths, what the trust rests on, a version gate, freshness from the data's own fields, recovery when it is
+out of date). After the eleventh re-check ([11](../../reviews/control-design/2026-11-07-RECHECK-11.md)), draft 14
+discloses option (b)'s exceptions, counts only evidence as freshness, ties recovery to verified tag coverage, and
+turns three points settled more narrowly than the owner asked into owner questions (his folders, the scope of "don't
+ask again", WhatsApp Web). After the twelfth re-check ([12](../../reviews/control-design/2026-11-07-RECHECK-12.md)),
+draft 15 defines WhatsApp Web's approval as one page-trusting approval of a bounded set of encrypted captures and
+removes "don't ask again" there; draft 16 (re-check [13](../../reviews/control-design/2026-11-07-RECHECK-13.md)) adds
+a short collection phase after Send and separate sets for late frames. Points marked *checked* name the check that
+showed them; points marked *brief 20* must be shown by the Chrome build's own tests before anything relies on them.
 
 The plan, the owner's decisions and who does what: [`docs/control/PLAN.md`](../control/PLAN.md). The owner's
 picture: [`OWNER-SCOPE.md`](../../reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md). The council's 13 gaps
@@ -21,50 +82,41 @@ one to where it is handled.
 
 ## 1. In one paragraph
 
-A tool service runs under its own system user, holds the passwords, and does the work for every app. Each action is
-defined once, with what it does to the world (its *effect*), and from that one definition come the MCP tools Claude
+A tool service runs under its own system user, holds the app passwords, and does the work for every app. Each action
+is defined once, with what it does to the world (its *effect*), and from that one definition come the MCP tools Claude
 calls, the `aresos` terminal command, and the list of actions that must ask the owner. Claude Code asks the owner
-before any action whose effect is sending or deleting; Claude's own terminal commands run in Claude Code's sandbox and
-can't reach the service at all, so Claude acts on apps only through the MCP tools. Every send and delete is recorded
-as an operation before it acts, and every result says exactly what it refers to and what really happened.
+before any action whose effect is sending or deleting, through managed ask rules. Every send and delete is recorded as
+an operation before it acts, and every result says exactly what it refers to and what really happened. Around that,
+AresOS runs normal Claude Code, as on any OS (decision 24): one session for coding, commands, mail, Chrome and later
+apps (decision 23), as his own user, with his own `gh` login and the MCP servers, skills and plugins he adds.
 
 ## 2. The pieces
 
 | Piece | What it is | Runs as |
 |---|---|---|
 | `aresos-toold` | The tool service: app adapters (Mail, Chrome, later more), passwords, the operation log. Listens on three Unix sockets and nothing else (no TCP). | system user `aresos-tools` |
-| `act.sock` | `/run/aresos-tools/act.sock`: every action that may be offered to Claude. Open to the owner's user. | |
-| `admin.sock` | owner-only actions (accounts, passwords, the site lists). Open only to root; the owner reaches it with `sudo aresos admin …` and his own password, which Claude can't give. | |
-| `chrome.sock` | for Chrome's native messaging host only (section 6). | |
-| `aresos` | The terminal command: `aresos mail search --from … --json`, generated from the definitions, over `act.sock`. For the owner and his scripts. | the caller |
-| `aresos-mcp <app>` | One MCP server per app (`aresos-mcp mail`, `aresos-mcp chrome`), a thin generic proxy: it fetches its app's tool list from the service, forwards calls over `act.sock`, and does the caller's side of file transfers (rule 4.4). Root-owned under `/usr` (read-only in the image), started from `managed-mcp.json` with a fixed interpreter in isolated mode (`python3 -I`) and a fixed environment, so nothing in a writable folder is loaded into it. | the owner's user, started by Claude Code |
-| Chrome bridge | Our own extension and native messaging host (section 6). | |
-| Claude Code settings | `/etc/claude-code/managed-settings.json` and `managed-mcp.json`, owned by root (section 7). Exact values come once the tools exist (owner decision 3). | |
+| `act.sock` | `/run/aresos-tools/act.sock`: every action that may be offered to Claude. Open to his user: the service checks the caller's user on every connection (briefs 18, 18b). | |
+| `admin.sock` | owner-only actions (accounts, passwords, the read-only sites, "don't ask again" entries). Open only to root; the owner reaches it with `sudo aresos admin …` and his own password. | |
+| `chrome.sock` | for our Chrome extension's native messaging host only (section 6), open only to his user, as whom Chrome runs; one host per running Chrome. | |
+| `aresos` | The terminal command: `aresos mail search --from … --json`, generated from the definitions, over `act.sock`. For the owner and his scripts, and for owner-only actions with `sudo aresos admin`. | the caller |
+| `aresos-mcp <app>` | One MCP server per app (`aresos-mcp mail`, `aresos-mcp chrome`), a thin generic proxy: it fetches its app's tool list from the service, forwards calls over `act.sock`, and does the caller's side of file transfers (rule 4.4). Root-owned under `/usr` (read-only in the image), run with a fixed interpreter in isolated mode (`python3 -I`) and a fixed environment. Installed for his Claude Code like any MCP server (section 7). | his user, started by Claude Code |
+| Chrome bridge | Our own extension and native messaging host (section 6). | his user, started by Chrome |
+| Chrome | The owner's normal browser, with his profile and sign-ins, started the usual way; no proxy and no certificate of ours (decision 25, section 6). | his user |
+| Claude Code | Normal Claude Code, one session for everything (decisions 23 and 24), with or without skip-permissions; his own MCP servers, skills and plugins. | his user |
+| Claude Code settings | `/etc/claude-code/managed-settings.json` with the ask rules for every asking tool, and the managed `CLAUDE.md` (section 7), owned by root and generated from the definitions. His own settings work as in normal Claude Code. | |
 
 **Who can reach what:**
 
-| From | `act.sock` | `admin.sock` | Passwords and sign-in data | Chrome's control channel |
+| From | `act.sock` | `admin.sock` | The app passwords and sign-in data AresOS holds | Chrome's control channel |
 |---|---|---|---|---|
-| The owner's own terminal | yes | with `sudo` | no | only through the tools |
-| Claude through its MCP tools (local MCP servers run outside the sandbox) | yes; send and delete ask first | no | no | only through the tools |
-| Claude's terminal commands (sandboxed) | no | no | no | no |
-| Claude's file tools (Read, Edit, Write; outside the sandbox) | no (they don't open sockets) | no | no: another user's files, plus deny rules | no |
+| The owner's own terminal | yes | with `sudo` | no | through the tools; like any program of his, it could also imitate or disturb the host (section 6) |
+| Claude through its MCP tools | yes; send and delete ask first | no | no | only through the tools |
+| Claude's terminal and file tools | yes, like any program of his (the residual in section 7); Claude Code's optional sandbox keeps terminal commands away only in the strict setup of section 7, and even then best-effort | no | no: another user's files | like any program of his, they could imitate or disturb the host (section 6), the accepted level of section 7 |
 | `aresos-toold` | | | yes | yes |
 
-**Why Claude's terminal reaches no socket.** On Linux, Claude Code's sandbox can't let one Unix socket through and
-block another: `allowUnixSockets` is ignored there, and the only switch, `allowAllUnixSockets`, opens every socket
-(Anthropic's settings reference, read 2026-11-07). So the sandbox allows none, and Claude reads apps through the MCP
-tools too. Two layers keep it so: the seccomp filter that blocks Unix sockets (`allowAllUnixSockets: false`), and
-`/run/aresos-tools` hidden from the sandbox's file view. The docs call the seccomp filter optional; native Claude
-Code 2.1.319 has it built in (sockets refused even without the separate helper: brief 18b, *checked*). The launcher
-still refuses to start Claude Code when the separate helper is missing, so a later version that drops the built-in
-filter fails closed, and the hostile tests run with and without it. Before each start it also checks the native
-program against a hash pinned at build time and runs a canary (a test socket the built-in filter must refuse), so
-the protection doesn't depend on the separate helper alone (brief 18b, *checked*).
-
-A program that runs as the owner outside the sandbox can use `act.sock` without asking. That is the normal desktop
-trust model (such a program could also type into Chrome); the line this design draws is around Claude, and section 7
-lists every way Claude could start such a program and how each is closed.
+**The users.** The owner's own user runs Claude Code and everything it starts, as on any OS, and his normal Chrome
+(decision 25). The tool service has a system user of its own. There is no separate assistant user and no coding user
+any more (decisions 23 and 24): they served only the containment that decision 24 replaced.
 
 ## 3. One definition per action
 
@@ -96,8 +148,26 @@ two actions.
 
 1. **The asking input tells the whole truth.** A send or delete action carries in its own input what the owner
    needs to decide, because the prompt shows exactly that input (checked in the terminal:
-   [`2026-11-07-permission-prompt.md`](../../reviews/control-checks/2026-11-07-permission-prompt.md); the phone
-   through Remote Control is checked with the owner on the fake app in brief 18). In detail:
+   [`2026-11-07-permission-prompt.md`](../../reviews/control-checks/2026-11-07-permission-prompt.md); on the phone,
+   through Remote Control, as fields and values: section 7, decision 21). In detail:
+   - **It starts with a `question` field:** one plain sentence the tool service writes, which Claude passes through
+     unchanged. For a mail: the account, every recipient with the hidden Bcc named as such, the subject, the length
+     and the attachments ("Send a mail from me to Anna and Ben, hidden copy to Carl, subject 'Offer', 25 lines, one
+     attachment: offer.pdf, 120 KB?"). For a deletion: which messages or files. For Chrome: the site, the action and
+     what is sent. The service writes the sentence when it prepares the operation (for example in `mail_compose`'s
+     result), and when the action runs it writes it again from the operation and refuses the call unless `question`
+     is the first field and matches exactly. The full content fields follow it.
+   - **Checked on the original arguments.** The MCP proxy forwards the arguments as it received them from Claude
+     Code, in their original order and bytes; the service checks the first field and the sentence on that original
+     text, before any parsing or normalising that could hide a reordering.
+   - **The sentence has a bound, and nothing is hidden by it.** The rules below (escaping, whole-input refusal) cover
+     `question` too. Control and direction-changing characters are escaped first, and the sentence's length is
+     measured after escaping. Recipients beyond what fits are counted exactly ("and 7 more", never "and others"), a
+     file name too long for the sentence is named by its place and length ("attachment 2, a 240-character name"), and
+     the full lists and names stay in the fields below.
+   - *Tests:* in the terminal and on the phone (Remote Control), `question` shows first and an unchanged call
+     succeeds; an altered or reordered `question` is refused; many recipients and many Bcc, long file names, quotes,
+     backslashes, control and direction-changing characters in names and subjects, each at the bound.
    - **The operation, as the service describes it**, not as Claude does: the action, the account, every recipient or
      target, and what is affected (for a deletion each item's sender, subject and date; for a site the page's own
      title, signed-in name and the item's label as the page shows them, marked as such).
@@ -105,7 +175,7 @@ two actions.
      forwarded attachment) appear by reference with their size and hash; Claude can't change them.
    - The service **binds the approval to the state it describes** and refuses when anything differs at run time: an
      attachment whose bytes changed, a message whose sender, subject or date don't match, a folder whose contents
-     changed, a held request whose bytes differ, a page whose address, title or conversation changed.
+     changed, a page whose address, element or form values changed (section 6).
    - Control and direction-changing characters are shown escaped, and an input too large to be shown whole in the
      prompt is refused, never cut.
 2. **Exact references.** Every result names what it refers to, and later actions use those references. A mail
@@ -116,14 +186,21 @@ two actions.
    - It is **reserved** with its id and the hash of its exact input before any irreversible step. The same id again
      returns the existing operation and its status; it never runs twice, also after a restart.
    - **Each stage is recorded** as it happens: for a mail, the submission per recipient, the Sent copy, the answered
-     flag; for a site, release, the site's answer.
+     flag; for Chrome, the page-state check, the input dispatched once, and what the page showed afterwards
+     (section 6: the tool sees the input and the page, not the network).
    - **Outcomes:** `done`; `partial` (with what happened per stage and recipient); `refused` (with the reason);
      `failed` (nothing left the machine); `unknown` (it may have happened: a lost server answer, a crash after the
      submission). Nothing is ever retried by itself. `<app>_operation_status` shows an operation; repairs (save the
      missing Sent copy, set the missing flag) are their own actions and never submit again.
    - **States and cancelling:** `reserved` → `submitting` → `done`, `partial`, `failed` or `unknown`. An operation
      can be cancelled or expire only while `reserved` (then it is `failed`: nothing left); once `submitting` has been
-     recorded it runs to an outcome. An approval waiting longer than its limit expires.
+     recorded it runs to an outcome.
+   - **The approval deadline: 15 minutes.** It starts when the service reserves the operation at prepare time, before
+     Claude asks (for a mail when `mail_compose` prepares it, for Chrome when an asking action is prepared, for a
+     deletion when its items are listed). The service records the deadline with the reservation and rejects any call
+     that arrives after it, approved or not, so an old approval can't run late; the operation becomes `failed` and
+     nothing leaves. *Tests:* a call just before the deadline runs once; one just after it is refused with nothing
+     sent.
    - **Restarts and restores:** nothing resumes by itself after a restart; an operation found `submitting` becomes
      `unknown`. Operation ids are issued by the service and carry the log's generation. Beside the log, outside the
      files a backup copies, the service keeps a small append-only record of every operation id with its description
@@ -133,31 +210,33 @@ two actions.
      log doesn't is listed as `unknown` with its description, for the owner to check. Repairs that never submit
      again (a missing Sent copy) run as new operations that point to the old one. Mail adds evidence on the server: the Message-ID is derived from the operation id, and before
      submitting, the service refuses if that Message-ID is already in Sent. Not finding it there proves nothing.
-4. **Files cross between users only on the caller's side, and only from and to allowed folders.** The service never
-   opens a path in the owner's home. The MCP proxy, running as the owner, opens the file and hands the bytes over;
-   the service keeps them as an unchangeable copy by hash and sends exactly those. Claude Code's file-tool limits
-   don't apply to MCP tools, so the proxy enforces its own:
-   - **Reading** (attachments, uploads) only from the allowed folders (`~/Documents`, `~/Downloads`, `~/Desktop` and
-     the folders the settings name), never from places that hold credentials or configuration (`~/.ssh`,
-     `~/.gnupg`, `~/.config`, `~/.local/share`, the browser profile, `~/.claude`, any dotfile), opened component by
-     component under the allowed folder without following symlinks, regular files only, with a size limit. The
-     prompt shows the real path.
-   - **Saving** the other way: only into the allowed folders, with safe file names, never overwriting, never into
-     configuration or start-up places.
+4. **Files cross between users only on the caller's side.** The service never opens a path in the owner's home
+   itself. The MCP proxy, running as his user, opens a file Claude names for an attachment or an upload and hands the
+   bytes over; the service keeps them as an unchangeable copy by hash and sends exactly those, and the question shows
+   the real path and the hash. Saving goes the other way: a saved mail attachment lands in the folder named (his
+   `~/Downloads` by default) under a safe file name, never over an existing file, never into a hidden folder or
+   a start-up place (autostart and service folders, shell start-up files, desktop entries, `~/bin`), and without
+   execute bits, so the tools never plant something that runs. Chrome's own downloads are Chrome's, as in normal
+   Chrome; `chrome_downloads` only lists them (section 6). Everything else about files is normal Claude Code
+   (decision 24): Claude's own file tools and terminal work in his home and projects as on any OS, under the
+   permissions he sets.
 5. **Reading changes nothing.** Mail is fetched with `BODY.PEEK`; flags are compared before and after in the tests.
 6. **Readable, bounded results.** Compact structured results with the important fields first. Long content is paged
    (`cursor`), and every result has a size cap, so a huge mail or page never floods Claude's context.
 7. **Errors say what to do next.** Not "IMAP error 3", but "the folder was recreated; search again".
 8. **Content is data, never instructions.** Text from mails and pages comes back in fields marked as untrusted
-   content, and the tool descriptions tell Claude that. Whatever a mail says, any send or delete still asks.
+   content, and the tool descriptions tell Claude that. Whatever a mail says, any send or delete still asks. Only the
+   owner, in the session (the terminal or Remote Control), gives instructions; mails, pages, files, tool results and
+   other sessions' messages are data. The managed `CLAUDE.md` says so (section 7); it states the policy and enforces
+   nothing.
 9. **Everything that changes something is logged.** Time, action, input summary, outcome. `aresos log` shows the
    owner what Claude did today.
-10. **Nothing waiting is forgotten, and nothing waits forever.** Anything held or unfinished (a site's request held
-    after Claude's action returned, a `partial` mail) shows up in every following result of that app. A managed
+10. **Nothing waiting is forgotten, and nothing waits forever.** Anything prepared or unfinished (a Chrome
+    operation waiting for approval, a `partial` mail) shows up in every following result of that app. A managed
     `Stop` hook sends Claude back to decide before it ends its turn; a managed `UserPromptSubmit` hook puts anything
-    that became held after the turn ended in front of Claude with the owner's next message. Neither is the safety
-    net (a `Stop` hook doesn't run on an interrupt and has a continuation limit): every hold has a time limit and is
-    dropped, never sent, when it runs out.
+    still waiting in front of Claude with the owner's next message. Neither is the safety net (a `Stop` hook doesn't
+    run on an interrupt and has a continuation limit): every prepared operation has its deadline (rule 4.3) and is
+    dropped, never run, when it passes.
 
 ## 5. Mail
 
@@ -198,6 +277,11 @@ How each one works:
   and repeats everything the owner must see, with Claude's own text in full. The service sends exactly the stored
   composition and refuses if the input doesn't match it. A long quoted thread therefore never has to pass through
   Claude, and still can't be altered.
+- **"Don't ask again" for mail (decision 15).** An entry names the account and an exact set of recipients (To, Cc and
+  Bcc together, for example only himself), set and revoked only through his own channels (section 6); a free send
+  action then sends without asking only a composition whose recipients are exactly that set, compared with the
+  recipients of the actual submission (in Gmail, with the recipients the compose shows at the moment of sending), and
+  every other mail asks. The entry covers any future mail to exactly those addresses, not only repeats of one mail.
 - **Replies** use Reply-To where set, never address the owner's own addresses (reply-all removes them), and build
   In-Reply-To and References from the original. A reply to the owner's own sent mail goes to that mail's original
   To and Cc, as Apple Mail does. Bcc recipients never appear in the headers that others receive.
@@ -239,512 +323,648 @@ composition is refused; moving to Trash through `mail_move` is refused; deleting
 during approval is refused; messages already marked deleted survive; a certificate mismatch fails before the
 password is sent.
 
-## 6. Chrome
+## 6. Chrome (decision 25: the light tool)
 
-Built on briefs 17, 17b and 17c: branded Chrome stable 157 on GitHub's Linux machines, synthetic profiles and fixture
-sites, ten public sites visited without signing in and with every send blocked
-([17 report](../../reviews/17-chrome-check/REPORT.md), PR #3; [17b report](../../reviews/17b-chrome-holds/REPORT.md),
-PR #4; [17c report](../../reviews/17c-chrome-pages/REPORT.md), PR #7). What the checks showed is marked *checked*; what
-brief 17d checks before the build is marked *17d*; what the Chrome build still has to show is marked *brief 20*.
+The owner chose the light tool (decision 25, board #107, his words: "B is good"). Claude works in his own, normal
+Chrome through a small tool of our own: it reads pages as text and clicks, types and scrolls in his tabs, and it asks
+before anything that clearly sends. Chrome stays completely normal, with no proxy and no certificate. The bar is
+decision 24's: the tool is safe in itself and no worse than normal Claude Code with Claude in Chrome. A page that
+sends something on its own after an ordinary click isn't held; that is stated plainly under "What remains".
+
+**History.** Briefs 17b to 17e and design drafts 9 to 25 built and checked a checkpoint outside Chrome that held
+every send from a guarded site (an intercepting proxy, the site guard, attribution of each request, certificate
+checks, the conditions under PLAN S2e). Decision 25 replaced all of it. Those reports stay as history
+([17b](../../reviews/17b-chrome-holds/REPORT.md), PR #4; [17c](../../reviews/17c-chrome-pages/REPORT.md), PR #7;
+[17d](../../reviews/17d-chrome-floor/REPORT.md), PR #8; [17e](../../reviews/17e-chrome-checkpoint/REPORT.md),
+PR #10). What this section still uses from briefs 17 to 17c is marked *checked*, with the brief
+([17](../../reviews/17-chrome-check/REPORT.md), PR #3: branded Chrome stable 157 on GitHub's Linux machines, fixture
+sites and synthetic profiles). What the Chrome build still has to show is marked *brief 20*.
 
 ### How the tool reaches Chrome
 
-- **Our own small extension** (Manifest V3, using `chrome.debugger`), installed and updated by the image through
-  Chrome's `ExtensionInstallForcelist` policy with a local update manifest: the owner can't disable or remove it, and
-  a new version arrives through the manifest (*checked*). It has no `management` permission (with it, an extension
-  can disable itself, which released a held request: *checked*), and developer mode is off by policy so nobody
-  reloads it by hand. Chrome starts its **native messaging host**, registered system-wide under
-  `/etc/opt/chrome/native-messaging-hosts/`, with the `NativeMessagingUserLevelHosts` policy off: otherwise a
-  user-level registration of the same name wins (*checked*). The system manifest and the host program are root-owned
-  in the image. The host only relays between the extension and the service's `chrome.sock`. *Checked:* attaches to
-  a tab that was opened and signed in before the tool started, with no debugging port and Chrome's sandbox on.
-  Claude in Chrome's extension (`fcoeoabgfenejglbffodgkkbkcdhcgfn`) is blocked by `ExtensionInstallBlocklist`
-  (*checked*).
-- **Rejected:** Chrome's own consent attach (`chrome://inspect`) opens a debugging listener on port 9222 that stays
-  on after a restart (*checked*), against the owner's no-debugging-port rule. Playwright's bridge extension works,
-  but any local program that finds its endpoint can drive the page (*checked*); our own extension keeps that channel
-  inside the service.
-- **The owner always sees and can stop it.** Chrome hides its "started debugging this browser" bar for a
-  policy-installed extension (*checked*), so the extension shows its own: the Claude tab group's colour, a badge on
-  its toolbar button while Claude is working (the button pinned by policy), and in its popup a **Stop** button that
-  fails everything held, then ends control. Stopping never sends anything (*checked* with the real popup and a real
-  click: badge and group turned to stopped, seven kinds of held sends never arrived). The popup's messages carry no
-  frame or document id in this Chrome version, so Stop accepts the extension's id, the exact popup address and a
-  current popup context; Stop can only end control, never release anything.
-- The host runs as the owner's user, like Chrome. A program running as the owner outside the sandbox could pretend
-  to be it (*checked*); that is the desktop trust model of section 2. Claude can't, because its terminal is
-  sandboxed and its file tools can't write the places that start programs (section 7).
+- **Our own signed extension** (Manifest V3, using `chrome.debugger`), installed and updated by the image through
+  Chrome's `ExtensionInstallForcelist` policy with a local update manifest (*checked*, 17b). On Linux, Chrome installs
+  an extension from outside its web store only this way. Chrome starts our **native messaging host**, registered
+  system-wide under `/etc/opt/chrome/native-messaging-hosts/`; the manifest and the host program are root-owned in
+  the image. The host only relays between the extension and the tool service's `chrome.sock`. *Checked* (17):
+  attaching to a tab that was opened and signed in before the tool started, reading the page as structure, clicks,
+  typing, keys and file fields, with no debugging port and with Chrome's own sandbox on.
+- **Chrome stays normal.** It runs as his own user, with his profile and sign-ins, started the usual way. There is no
+  proxy, no certificate of ours, no launcher and no Chrome policy beyond installing our extension. Calls, downloads,
+  Safe Browsing, his own extensions and Chrome's updates work as on any machine.
+- **Claude in Chrome stays for his own use, if he wants it** (decision 10). It is his extension, under Anthropic's
+  rules; our tool doesn't use it.
+- **Rejected:** Chrome's own consent attach (`chrome://inspect`) leaves a debugging port open after a restart
+  (*checked*, 17). Playwright's bridge extension lets any local program that finds its endpoint drive the page
+  (*checked*, 17).
+- **He sees it and can stop it.** Chrome hides its "started debugging this browser" bar for an extension installed
+  by policy (*checked*, 17b), so the extension shows its own signs: the colour of Claude's tab group, a badge on its
+  pinned toolbar button while Claude works, and a **Stop** button in its popup that ends control at once (*checked*
+  with a real click, 17c). Stopping never sends anything and drops every prepared operation.
+
+### What the extension can and can't do
+
+- **No debugging port, nothing listening on the network.** The extension's control channel is the native messaging
+  port Chrome opens to our host, and the host talks only to the tool service. The extension has no
+  `externally_connectable` entry and takes no commands from pages, frames or other extensions; a page's messages are
+  never commands.
+- **A fixed set of commands.** The service sends named commands (read the page, click an element, type, press a key,
+  scroll, navigate, set a file field, run a prepared operation), and the extension runs only those. It never passes a
+  DevTools method through from the service. The DevTools methods it uses are a fixed list for dispatching input,
+  navigating and setting a file field (found by a selector, without fetching the DOM tree); methods that return
+  field values (whole-page DOM snapshots, the DOM tree with attributes, the accessibility tree), read cookies or
+  storage, intercept network traffic or run script text are not on it (*brief 20*: each refused). Reading happens in
+  the extension's own content script (below). It has no `cookies` permission. Navigation is limited to web addresses
+  (below), so a `javascript:` address can't be used to run script either.
+- **The service decides, the extension carries out.** The rules live in the service, from the definitions (section
+  3): the word list, the adapters, the operation, the question and the recorded page state. The extension collects
+  the facts about a target and the page, dispatches nothing until the service has classified the input, and when it
+  runs an approved operation it gets the expected state from the service, reads the page again and compares locally
+  right before the input, so no round trip sits between the check and the input.
+- **Nothing beyond what the page shows, and never a password.** Claude gets the page's structure and text, never
+  cookies, saved passwords, browser storage or another site's data. The reader is the extension's own content script,
+  running in its isolated world in every frame: it computes roles, accessible names and states in the way
+  Playwright's injected script does, and takes boxes from the elements' layout. It never uses whole-page DOM
+  snapshots, the accessibility tree or form serialisation, because each of them returns every field's value. Password
+  fields are excluded before anything is read: before the reader touches a field's value, it checks the field's
+  type, attributes and computed style, and it never reads the value of
+  - an `input type="password"`;
+  - a field whose `autocomplete` names `current-password`, `new-password` or `one-time-code`;
+  - a field whose computed `-webkit-text-security` is anything but `none` (a page's own masking);
+  - a field it has seen as one of these before in this document, so a "show password" switch that turns it into
+    plain text doesn't make it readable.
+
+  The check runs again right before every value read, not once per page, so a field whose type changes after it was
+  first seen is judged as it is at that moment, in every frame and shadow root.
+
+  Such a field appears in the view as "password field (not read)", with its label. The binding (below) uses the same
+  exclusion: it records such a field's presence and identity, never its value or whether it is empty. Claude never
+  types a password: signing in is his, and a sign-in page is handed back to him.
+- **The service checks its peer.** `chrome.sock` accepts only his user (Chrome, and so the host, run as him) and one
+  host per running Chrome. Under decision 24 another program of his user could imitate or disturb the host, as it
+  could any program of his (for example by registering a user-level host of the same name, which Chrome prefers:
+  *checked*, 17); that is the accepted level of section 7, not a route the tool adds.
+
+### Where Claude may go
+
+- **Only web addresses.** `chrome_open` and `chrome_navigate` accept `https:` and `http:` addresses (`localhost`
+  included) and `about:blank` for an empty tab, nothing else: no `javascript:`, `data:`, `blob:`, `file:`,
+  `filesystem:`, `view-source:`, `chrome:`, `chrome-extension:`, `devtools:`, `intent:`, `mailto:`, `tel:` or other
+  app schemes. Links on a page follow the same list: a link to another scheme is refused before the click, except a
+  `javascript:` link, which is the page's own script and is classified like a button by its label (below).
+- **Pages that could approve Claude's actions or change its limits are never read or acted on:** claude.ai with its
+  Remote Control pages, the Anthropic console, Aresus, and Chrome's own settings, password and extension pages (a
+  fixed list in the image, by site and address). This keeps the approval his alone (section 7, requirement 3). The
+  check runs before every read and every action, on the tab's top document and on the frame that holds the target,
+  so it covers every way of getting there:
+  - **taking a tab:** `chrome_take_tab` refuses a tab showing such a page;
+  - **redirects, history and popups:** a Claude tab or a popup that reaches such a page, by a redirect, back or
+    forward, or a page opening it, is refused for reading and acting and handed back to him out of the group; the
+    extension's session rules (`declarativeNetRequest`, limited to Claude's tabs) also refuse loading those sites as
+    a page or a frame there;
+  - **frames:** a frame from such a site inside another page is left out of the view, and acting on an element in it
+    is refused.
 
 ### Which tabs Claude works in
 
-Claude works in tabs in its own tab group, labelled **Claude**: tabs it opened itself (same profile, so the owner's
-sign-ins work) and tabs of the owner's it took into the group (`chrome_take_tab`; the owner sees the tab move). It
-reads and acts only inside the group; popups and new tabs a Claude tab opens join the group and are controlled before
-their first script runs. The service knows the group by Chrome's group id, not by its label, and releasing a tab
-puts it back where it was. `chrome_tabs` lists every tab's title and address, so Claude can say what is open and
-pick one.
+He picks the tab, or Claude opens its own. Claude works in tabs in its own tab group, labelled **Claude**: tabs it
+opened itself (same profile, so his sign-ins work) and tabs of his that it took in (`chrome_take_tab`; he sees the tab
+move). It reads and acts only inside the group; popups and new tabs a Claude tab opens join the group. The service
+knows the group by Chrome's group id, not by its label. Dragging a tab out of the group, or `chrome_release_tab`,
+ends Claude's control of it, drops its prepared operations and puts it back where it was. `chrome_tabs` lists every
+tab's title and address, so Claude can say what is open and pick one.
 
-While a tab is in the group, everything it sends waits for approval, also when the owner clicks there himself (his
-own sends are confirmed by him in Chrome; below). To use a tab freely again, the owner drags it out of the group;
-Claude's control of it ends, anything held is dropped, and the site stays guarded while Claude's work there is
-unresolved.
-
-Every reference is bound to the browser session, tab, document and element: when the owner switches or opens tabs,
-nothing is redirected; when the page changes, an old reference fails with "stale, read again" instead of hitting
-another element (*checked*); after a Chrome restart all old references are stale. Acting calls carry what Claude
-expects the element to hold (from its last read), and the tool refuses when the owner has changed it in the meantime.
+Every reference is bound to the browser session, tab, document and element: when he switches or opens tabs, nothing
+is redirected; when the page changes, an old reference fails with "stale, read again" instead of hitting another
+element (*checked*, 17); after a Chrome restart all old references are stale. Acting calls carry what Claude expects
+the element to hold (from its last read), and the tool refuses when it holds something else.
 
 ### Reading a page
 
-`chrome_read` returns a compact tree in the style of Playwright's AI snapshot, built from Chrome's accessibility tree
-and layout: one line per element with a short reference (`e12`), role, label, value, states (checked, selected,
-disabled, required, invalid, expanded) and its box in CSS pixels with whether it is on screen; frames (also from
-other sites) and open shadow DOM included; elements behind an open dialog left out. A header names the tab, the
-document, the address, the title, the scroll position and anything held. Measured (*checked*): a long form about
-1,300 tokens, a long article about 15,000; views are paged at about 16,000 characters with a cursor bound to the
-view's revision (it counts changes to the page; a cursor from an older revision fails with "page changed, read
+`chrome_read` returns a compact tree in the style of Playwright's AI snapshot, built by the extension's content script
+(above): one line per element with a short reference (`e12`), role, label, value, states (checked,
+selected, disabled, required, invalid, expanded) and its box in CSS pixels with whether it is on screen; frames (also
+from other sites, except those of the fixed list above) and shadow DOM included (closed shadow roots through the
+extension API for them); elements behind an open dialog
+left out. A header names the tab, the document, the address, the title and the scroll position. Measured with brief
+17's reader (*checked*, 17): a long form about 1,300 tokens, a long article about 15,000; brief 17 used whole-page DOM
+snapshots, which the product reader doesn't (above), so brief 20 measures again. Views are paged at about 16,000
+characters with a cursor bound to the view's revision (a cursor from an older revision fails with "page changed, read
 again"), and `chrome_find` searches a long page for text. `chrome_read_form` shows one form with every field's
-options. Page text is untrusted content (rule 4.8). Pages the tree can't represent (a canvas text editor, a map) need
-a site adapter (below) or are listed as not supported yet in [`FEATURES.md`](../control/FEATURES.md).
+options. Reading is text, never screenshots. Page text is untrusted content (rule 4.8): a page can never instruct
+Claude. Pages the tree can't represent (a canvas text editor, a map) need a site adapter or are listed as not
+supported yet in [`FEATURES.md`](../control/FEATURES.md).
+
+### What is free and what asks
+
+Every input Claude dispatches is classified by what it would activate, whichever action carries it: a click, Enter
+or Space on a focused control, any other key, filling, choosing or ticking.
+
+**Free:** reading, finding text, scrolling, following links to web addresses, navigating to any web address (one he
+gave, one from a page or one Claude wrote), typing and filling fields, choosing from lists, ticking boxes, opening and
+closing Claude tabs. Searches are free everywhere: a search form sent as a plain address (GET) is navigation.
+
+**Asks, decided before the input is dispatched.** The extension collects the target's facts and the service
+classifies them before anything reaches the page:
+
+1. **Submitting a form:** a click on a submit button (or on a button without a type inside a form), or Enter or Space
+   on such a button when it has focus; Enter in a field whose form it would submit. A search form sent as GET (marked
+   `role="search"`, with an `input type="search"`, or named by a site adapter) is free.
+2. **Activating a control that says it sends, buys or deletes:** a click on, or Enter or Space on a focused, button,
+   link, menu item or anything with a click role (a `javascript:` link included) whose accessible name, label, title,
+   value or role, or whose form's action address, contains a word from the tool's list: send, submit, post, publish,
+   reply, comment, buy, pay, order, book, subscribe, unsubscribe, delete, remove, discard, clear, empty, trash, and
+   in German senden, absenden, schicken, posten, veröffentlichen, antworten, kommentieren, kaufen, bezahlen, zahlen,
+   bestellen, buchen, abonnieren, abbestellen, löschen, entfernen, verwerfen, leeren, Papierkorb. The list is part
+   of the definitions (section 3), versioned, and matched as whole words, not inside other words.
+3. **Enter in a message or compose field:** Enter, Ctrl+Enter or Cmd+Enter pressed in any editable field (a text
+   area, an editable area, a text input) other than a search field. Line breaks in Claude's own text go in through
+   `chrome_fill`, which inserts them as text, never as an Enter key (*brief 20*, also on chat sites).
+4. **Delete or Backspace outside text editing** (decision 14): on a selected item, card or object, or with no text
+   field focused.
+5. **Uploading a file to a site:** putting a file into a file field asks, because many pages send a file as soon as
+   it is chosen. The bytes come through the caller's side (rule 4.4) into a copy the service owns and his user can
+   read but not change, the question shows the real path and the hash, and the field gets exactly that copy.
+6. **A confirmation the page shows** whose text or button contains a word from the list (below: confirmations).
+
+**Asks, stopped while the page handles Claude's input.** A free input can make the page's own script submit a form
+or activate a control: a click handler, a key handler, or the `input` and `change` events that filling, choosing and
+ticking fire. While the page handles any input Claude dispatched (those handlers and the tasks they schedule, up to a
+short limit set in brief 20), a small script the extension puts into each Claude tab before the page's own scripts
+run stops, and reports:
+
+- **a `submit()` call** on a form: the browser's own `submit()` is replaced by a wrapper, so the call stops before
+  anything is sent (a `submit()` checks no fields and fires no `submit` event);
+- **a submission through the `submit` event:** a submit button's activation, Enter in a field, or `requestSubmit()`.
+  These pass the browser's field checks and then fire the `submit` event, which a listener of the extension's,
+  registered first and in the capture phase, stops before any of the page's own handlers run;
+- **a script's activation of a control** that rule 1 or 2 would ask for: the browser's own `click()` and
+  `dispatchEvent()` are replaced by wrappers too, so a `click()` on such a control, or a click event dispatched to
+  it, stops before the event is delivered at all: no handler runs and no default action (a link opening its address)
+  happens. This one is stopped for good and never resumed, because the page keeps its event object and could change
+  it while the approval waits. The result tells Claude in plain words what the page tried ("the page tried to
+  activate 'Delete' by itself; it was stopped"). If that action is wanted, Claude acts on the control itself, which
+  prepares a fresh asking operation from the current page.
+
+The service prepares the two kinds of submission as asking operations, recording which kind it was, the form and the
+submitter; resuming them uses the browser's own functions, never the page's event object (below). Claude's input
+itself has already happened (the text is typed, the box ticked); only the stopped submission waits. This holds on
+honest pages (*checked* for submissions, 17c); a page that sends in another way, or later than the limit, isn't
+stopped (below).
+
+**His own input in a Claude tab** (owner, 2026-11-09, board #138: "Yes, ask in that rare case"). A submission in the
+same browser task as his own input (a trusted input that arrived while the extension had no input of its own in
+flight) is his and isn't held. Within the short limit after Claude's input, the tool can't tell whose input started a
+delayed page step, so a submission his input starts after a delay inside that window is held and asks, like one of
+Claude's. When it's unclear whose input it was, the submission is held. The extension marks its own input as in
+flight before dispatching it and clears the mark only after the page has handled it; the mark and the verdict never
+pass through anything the page can see or write.
+
+**What can't be stopped is never reported as stopped.** An activation of an asking control that reaches the page
+without passing the wrappers (for example a click event dispatched with a function taken from a fresh frame before
+the extension's script ran there) is caught only by the capture listener, after delivery has begun. If the event can
+be cancelled, the listener cancels it and stops its handlers; it is reported as stopped and is never resumed (Claude
+can prepare the action again with its own input). If it can't be cancelled, the listener stops the page's handlers,
+but the default action (a link opening its address) may still happen: the tool reports "the page activated 'Delete'
+by itself; it may have happened" with the outcome `unknown`, and never resumes it.
+
+Site adapters for his usual sites name their sends precisely (below). Everything else is free, including a control
+without a label that deletes something kept only in the browser (decision 14, accepted as stated).
+
+### How an asking action runs
+
+1. **Prepared.** For an asking input the tool doesn't dispatch anything; for a stopped submission the page's step
+   stays stopped. The service reserves an operation (rule 4.3), records the page state the question
+   describes (below), and returns the operation with its id, hash and question.
+2. **Asked.** Claude calls `chrome_submit` with that operation: the `question` first, then the content fields. The
+   managed ask rule makes Claude Code ask him (section 7).
+3. **Checked.** On his yes, the service checks the input against the operation (rule 4.1) and sends the expected
+   state to the extension, which reads the page again and compares it right before acting. If anything differs, the
+   tool refuses ("the page changed; prepare again") and a new question follows.
+4. **Run once, without replaying anything:**
+   - for Claude's own asking input (never dispatched), the extension dispatches that same input once;
+   - for a stopped submission, it resumes that submission with the same kind it was stopped as, using the browser's
+     own functions, both saved by the page script before the page's scripts ran: a stopped `submit()` resumes with
+     the browser's own `submit()` on the same form (no field checks, no `submit` event, as the page asked); a
+     submission stopped at the `submit` event resumes with the browser's own `requestSubmit()` on the same form with
+     the same submitter, whose field checks and `submit` event then reach the page's own handlers as they would have.
+     Claude's earlier input (the click, the typing, the change) is never dispatched again.
+
+   Each run is let through by a one-use mark bound to the operation id. What the page itself does while handling
+   that run belongs to it and isn't stopped again: its `submit` handlers, and one `submit()` or `requestSubmit()`
+   they make on the same form (the common pattern of a handler that checks the form and then calls `submit()`). Any
+   other submission, a second one, or one on another form is stopped and asked on its own, so a handler can't loop.
+   The mark is consumed by the run it lets through, and the one further submission is consumed when it is used;
+   neither comes back during nested or re-entrant handling, so a handler that calls itself again can't use either
+   twice. If the form or the submitter is gone, the tool refuses. A call after the 15-minute deadline is refused (rule
+   4.3).
+
+**What is recorded and compared.** Everything the question names, and nothing the question doesn't:
+
+- the tab, the document and the address of the top page and of the frame holding the target;
+- the target: its reference, role, accessible name and label;
+- for a form submission, the effective destination: the submitter's or form's action address resolved in full, the
+  method, the encoding and the target window, as the browser would use them;
+- the values of every field of that form, visible and hidden (password fields only by presence: above);
+- what a send outside a form carries (below), read fresh at preparation;
+- with an adapter, what the adapter reads: the signed-in account as the page shows it, the recipients or
+  conversation, the subject and the text;
+- for a confirmation, the dialog's kind (Chrome's own alert, confirm or prompt, or a page dialog with its role), the
+  frame and site that opened it, its full text and the button's label.
+
+**What a send outside a form carries.** Without a form, a control that sends, posts, replies, comments or publishes
+binds exactly what an adapter names, on his usual sites. Without an adapter the tool doesn't guess an item from the
+page's layout: it binds every editable field in the document and in every frame it can read (all but the fixed list
+above), whoever wrote it, an existing draft included, with its current content (password fields only by presence).
+This is read fresh when the operation is prepared and compared right before the input, whatever was approved in
+between. The tool refuses ("can't tell what this sends"), and an adapter or his own click is then the way, when the
+total is too large to show whole (rule 4.1) or when no editable field holds text.
+
+Read-only text that a page might send with it (a preview beside the editor, a quoted message) can't be told apart
+from the rest of the page without knowing the site, so the generic rule doesn't bind it: a page that sends such text
+could change it while the approval waits. That is part of the residual of decision 25 (below); the adapters for his
+usual sites bind it exactly.
+
+Other asking controls (delete, buy, subscribe and the like) bind the item they act on: the item an adapter names, or
+else the smallest list item, row, article, form, dialog or region around the control, with its visible text up to a
+bound, so the question can say what is deleted or bought and a re-sorted list can't swap it.
+
+Where the page's script decides the destination and the tool can't see it (a control outside a form, without an
+adapter), the question says so ("where the page sends this isn't visible to the tool"); it never names a destination
+it didn't read.
+
+**The question** is one plain sentence the tool writes, as the page shows it: the site and address, the signed-in
+account where an adapter reads one, the label of the button or key, and what goes where; for example "Post a comment
+on github.com/…/issues/12, as the page shows it: 'Thanks, fixed in #13' (button 'Comment')?". The content fields
+follow: everything in the list above, files with path and hash, the number of hidden fields with their names and
+values, and each password field by its label only.
+
+**What the binding guarantees:** the input goes only if the page still shows what he approved, checked right before it
+is dispatched. A page script that changes the page in the instant between that check and the input, or that sends
+something else afterwards, isn't stopped (below).
+
+**Outcomes (rule 4.3 for Chrome).** The tool sees the input, not the network. Its stages are `checked`, then
+`dispatched` (the extension reports that the input or the resumed step ran once), then what the page showed
+afterwards (a new page, a "sent" notice, an error), marked "as the page shows it". `done` means dispatched once; it
+doesn't prove what the site did. `refused` and `failed` mean nothing was dispatched. If Chrome, the host or the
+service stops after `submitting` is recorded and before the extension reports `dispatched`, the outcome is
+`unknown`, and nothing is ever dispatched again by itself.
+
+### Confirmations
+
+A confirmation the page shows after an action (Chrome's own confirm dialog, or a page dialog with the role `dialog`
+or `alertdialog`) is a target of its own. It is covered by an earlier approval only when that approved operation
+named it in advance: an adapter that knows this site's action shows exactly this confirmation puts it into the
+question ("… and confirm 'Delete 3 messages?'"), and the tool accepts it only if the dialog that appears matches it
+exactly (kind, frame and site, text, button) within that operation. Any other confirmation is classified by itself:
+it asks when its text or button has a word from the list, with its own question. Following an approved action never
+carries the approval over to a new dialog.
+
+### Site adapters, and his usual sites (decision 9)
+
+Where the generic rules aren't precise enough, a small adapter for the site names its sends and reads the page into a
+clear question, marked "as the page shows it". Adapters are versioned and tested against fixtures and his test
+accounts; a page an adapter doesn't recognise falls back to the generic rules. The first adapters:
+
+- **Gmail:** the compose window's Send button and Ctrl+Enter ask, with the account, To, Cc, Bcc, subject, text and
+  attachments read from the page, so the question reads like a mail (decision 11). Keyboard shortcuts that delete or
+  send (for example `#`) ask. "Don't ask again" for mail to an exact set of recipients (decision 15) is compared with
+  the recipients the compose shows at the moment of sending. His main mail goes through the Mail tools (section 5).
+- **WhatsApp Web:** Enter or the send button in a chat asks per message (decision 16), with the chat's name, the text
+  and attachments as the page shows them. Opening a chat (which sends read receipts) and typing (which shows
+  "typing…") are free: they are the page's ordinary activity.
+- **GitHub:** comments, reviews, merges, closing issues and pull requests, deleting branches, tags and repositories,
+  and settings changes, named precisely ("Merge pull request #12 into main?"), with GitHub's own confirmations named
+  in advance where it shows them.
+- **His bank: read-only.** On the sites he marks read-only (an owner-only list), the tool refuses everything except
+  reading, scrolling and following links: it never fills, clicks a button or uploads there.
+- **Gemini:** asking a question (Enter or the send button in the prompt box, which sends Claude's text to Google)
+  is named as "Gemini: ask a question", with the text and any attached file as the page shows them, and is a kind he
+  can set to "don't ask again" (decisions 7 and 15), bound to the site and the signed-in account. Without the
+  adapter every question would ask, because Enter in a message field is a send. Deleting a chat asks (decision 15),
+  and so does sharing one (it publishes a link).
+- **Deezer:** playback (play, pause, skip, seek, volume, the queue) and adding to his library (liking, following,
+  adding to a playlist) are named as changes and free; removing from a playlist or the favourites and deleting a
+  playlist ask, as deletes (decision 15); anything that posts, shares or pays (a comment, sharing a track, a
+  subscription) asks.
+
+### "Don't ask again" (decisions 7 and 15)
+
+- **Only for a kind an adapter names** (for example "Gemini: ask a question", "GitHub: star" or "Gmail: mail to
+  exactly these recipients"),
+  bound to the site, the signed-in account and the kind's exact parameters; never for a send the generic rules found.
+- **Deleting and paying always ask** (decision 15); WhatsApp messages ask each time (decision 16).
+- **He sets it himself, through a channel Claude can't use:** the extension's details page lists Claude's recently
+  approved sends with "Don't ask again for this kind" (Claude can't open extension pages: *checked*, 17c, and the
+  fixed list above), and the owner command `sudo aresos admin chrome allow …` takes his password. Claude Code's own
+  "Yes, and don't ask again" writes an allow rule, which doesn't turn a managed ask off (section 7).
+- **The entries live in the owner-only list** in the tool service, written only through `admin.sock` and the
+  details page. `chrome_submit_trusted`, which doesn't ask, checks the entry and the same recorded state at every use
+  and refuses anything else. He lists and revokes entries with `sudo aresos admin chrome allowed` and
+  `… revoke <id>`, or on the details page.
+- **Adapter updates never widen an entry.** A new adapter version applies to an existing entry only where its
+  definition of that kind is the same or narrower; where it is wider, the entry is suspended (those sends ask) until
+  he confirms it again.
 
 ### Actions
 
 | Action | Effect | What it does |
 |---|---|---|
 | `chrome_tabs` | read | all tabs: title, address, whether in the Claude group |
-| `chrome_take_tab`, `chrome_release_tab` | change | move one of the owner's tabs into or out of the Claude group |
-| `chrome_open` | change | open an address in a new tab in the Claude group (what may be opened freely: below) |
-| `chrome_close_tab` | change | close a Claude tab; anything held there is dropped |
+| `chrome_take_tab`, `chrome_release_tab` | change | move one of his tabs into or out of the Claude group (never a page of the fixed list) |
+| `chrome_open`, `chrome_close_tab` | change | open a web address in a new Claude tab; close a Claude tab |
 | `chrome_read`, `chrome_read_form`, `chrome_find` | read | the page view; one form with its options; text search on the page |
-| `chrome_navigate` | change | in a Claude tab: an address, back, forward, reload |
-| `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll` | change | act on elements by reference, each with what Claude expects it to hold; fill sets text, dates and dropdowns as a person would; `chrome_fill_form` fills several fields in one call |
-| `chrome_dialog` | change | accept, dismiss or answer a page's own dialog (alert, confirm, prompt) |
-| `chrome_upload` | change | put a local file into a file field; the bytes come through the caller's side (rule 4.4), the extension gets no general file access (*checked*) |
-| `chrome_downloads` | read, change | list downloads; save one into an allowed folder (rule 4.4) |
-| `chrome_bookmarks`, `chrome_history` | read | the owner's bookmarks and history, to find addresses |
+| `chrome_navigate` | change | in a Claude tab: a web address, back, forward, reload |
+| `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll` | change | act on elements by reference, each with what Claude expects the element to hold; an asking input (above) isn't dispatched and returns a prepared operation, and so does a submission the page starts while handling the input; a control activation the page starts is stopped and reported, never resumed |
+| `chrome_dialog` | change | accept, dismiss or answer a page's own dialog; a confirmation of an asking kind is prepared instead, unless the approved operation named it |
+| `chrome_upload` | change | prepare putting a local file into a file field (it asks through `chrome_submit`) |
+| `chrome_downloads` | read | Chrome's downloads and where Chrome saved them |
+| `chrome_bookmarks`, `chrome_history` | read | his bookmarks and history, to find addresses |
 | `chrome_wait` | read | wait for text, an element or the page to settle |
-| `chrome_pending` | read | what is held in a tab: pending sends and background requests |
-| `chrome_submit` | **send** | let one pending send go, with the description and content the service gave (below) |
-| `chrome_submit_input` | **send** | where the message hold can't be in place (below), on a site with an adapter: type and press as one step, after approval |
-| `chrome_submit_trusted` | send, free | as `chrome_submit`, only for an operation a site adapter recognises and the owner's trusted list allows |
-| `chrome_open_site` | **send** | open an address that isn't free to open (below), with the full address in the input |
-| `chrome_drop` | change | drop held requests; nothing leaves |
-| `chrome_end_guard` | **send** (asks) | end a site's guard where it didn't end by itself; the input shows what of Claude's may be left there and what the page stored; afterwards the owner's own sends there go unchecked |
+| `chrome_submit` | **send** | run one prepared operation, by id and hash, after the page-state check |
+| `chrome_submit_trusted` | send, free | as `chrome_submit`, only for a kind he set to "don't ask again" |
+| `chrome_drop` | change | drop a prepared operation; a stopped page step stays stopped and nothing happens on the page |
 | `chrome_operation_status` | read | an operation's stages (rule 4.3) |
-| `chrome_sites` | owner-only | the owner's lists of known and trusted sites |
+| `chrome_sites` | owner-only | his read-only sites and his "don't ask again" entries, to see and change |
 
-Every acting result says what happened (new page, dialog, download), the elements that changed, and anything held.
-While a tab has a pending send, it accepts only reading, `chrome_submit…` and `chrome_drop`; background holds
-(below) don't block it.
+Every acting result says what happened (a new page, a dialog, a download, the elements that changed) and lists any
+prepared operation still waiting (rule 4.10).
 
-### What leaves a Claude tab, and how it is held
+### Project work in Chrome (decision 23)
 
-**What the hold is for, and what it isn't.** The hold stops a page's own code from sending Claude's work before the
-owner approves it: a click that deletes, typed text that autosaves, a queue that a timer empties, a message on a live
-connection. That is the everyday risk, and against it the tool must be complete. It doesn't make a hostile page safe
-to type into: a page whose own scripts set out to carry off what Claude enters there can put it into plain reading
-traffic, or keep a live connection's original send function away from the wrap (*checked*, 17c: a fixture page that
-kept the browser's own `WebSocket.send` delivered a message the tool never saw; Chrome's network stage doesn't see
-live messages, so no catch-all exists for them). Against a hostile page the protections are where Claude may act at
-all (new sites ask first, below and section 10), and noticing afterwards: the tool compares Chrome's own record of
-each WebSocket's sent messages (connection, content, order) with what it let go (released holds and messages free as
-reading), and any message it didn't let go stops all input on that site and is reported to the owner (*brief 20*).
-That is a diagnosis after the fact, not prevention, and WebRTC data channels and WebTransport have no such record in
-Chrome. A hostile page that sends over ordinary HTTP past the wrap meets Chrome's own blocking rules (the floor,
-below; *checked* at the request stage: zero arrivals before approval).
+The same session does project work, so a project's check in Chrome uses the same tools, with the same rules: his
+deployed site while he is signed in, or a server on the machine itself (`http://localhost`), since navigating to web
+addresses is free. A project's own automated browser tests run as in normal Claude Code, for example with Playwright's
+own Chromium from the terminal and an empty profile, without his sign-ins.
 
-The rule: **nothing Claude caused or entered leaves a Claude tab without approval, and when the tool can't tell, the
-request is held, never let go.** The one exception is plain reading (below), which stays free so that pages load; a
-hostile script on a site the owner uses could abuse it, and that is the owner's decision in section 10. The service
-judges every send the tab and everything it started (frames, popups, workers) makes, before it leaves the browser:
-inside the page where the wrap is in place, at Chrome's request stage for everything else, with Chrome's own blocking
-rules underneath (next part). It sorts each by cause and content, never by timing alone:
+### What remains, said plainly
 
-- **Caused by Claude: held as a pending send.** The tool follows each request's initiator, including the chain of
-  timers, promises and callbacks behind it, back to its origin. A request that leads back to a click, key or other
-  input Claude made is Claude's, however late it comes: a deletion scheduled twelve seconds after a click, an "undo
-  send" delay, a retry of a dropped send. Requests caused by one action form one pending send, so a form that sends
-  three requests asks once. *Checked* (17c, fixtures): chains through a timer, a promise, a mutation observer and
-  `postMessage` were traced back to Claude's click; a send through a worker stayed unknown and was held; none of
-  Claude's was counted as the page's own. A page's timer that empties a queue Claude's click filled leaves no chain
-  at all, which is why the next rule exists. Tracing is supporting evidence only: no request is ever freed because
-  its chain looks like the page's or the owner's.
-- **After Claude acted on a page: held, whoever caused it.** Once Claude has done more than read, scroll and follow
-  plain links in a document (clicked a control, typed, chosen, ticked, uploaded), every request from that document
-  and its site's other guarded contexts that isn't plain reading is held, whatever started it: the page may carry
-  Claude's input or effect in any form, also through its own state (a queue filled by Claude's click and sent by a
-  timer the page set when it loaded). This holds for the owner's own clicks there too, because his click can flush
-  work Claude queued (below: the owner's own sends). Any request anywhere that carries Claude's typed text (as typed
-  or URL-, form-, JSON- or base64-encoded) is held too.
-- **Plain reading goes:** GET or HEAD without a body and without Claude's text: pages, images, scripts, styles,
-  fonts, the data a page loads to show something. Reading has to stay free, or no page would load. Which pages Claude
-  may open at all is the next rule.
-- **The page's own activity goes** only in a document Claude hasn't acted on: requests the page makes by itself
-  (when it loads, on its own timers, after the owner's own clicks) that carry none of Claude's text.
-- **Reading through POST.** Many apps load data with POST (GraphQL queries, Notion, Google's apps). A GraphQL request
-  counts as reading only when its operation is written out in the request (not a stored or batched one), is a
-  query, and its variables carry none of Claude's text; everything else about it is judged like any other request
-  (*checked* on fixtures: a stored query, a batch, a mutation and Claude's text inline or in variables were all held).
-  Other apps need a site adapter to tell reading from sending. Without one, their requests after Claude acted are
-  held, so working in those apps asks until their adapter exists. *Checked* on ten public sites without signing in
-  (17c, provisional: workers and live connections were switched off for safety, visits were short, and counts cover
-  the main document; they are what the after-acting rule would hold, not prompts): GitHub, Wikipedia and a news site stayed
-  usable with a few holds at most; Amazon and Google search held about a dozen each, mostly telemetry, which goes to
-  the background list or is dropped as tracking; Notion and Google Docs read through POST and need an adapter;
-  YouTube, Reddit and Stack Overflow showed the test machine a bot check and stay unmeasured. Signed-in use is
-  measured in the tool-user rounds, on the owner's usual sites.
-- **Unknown cause: held, in the background.** A request whose cause the tool can't establish is held and listed as
-  *background* in `chrome_pending`. Background holds don't block the tab: Claude can keep reading and acting, drop
-  them (free) or submit them (asks). Each is kept as its own request; only polling an adapter shows to be the same
-  read repeated is merged. Known tracking addresses are dropped without being listed; every background hold expires
-  and is dropped, and expired holds stay listed (with what they were) until Claude has seen them.
-- **Dropping is final.** A page that retries a dropped send produces a new held request, marked as a retry; it never
-  goes by itself.
-- **One step at a time.** A request the page builds from the answer to an approved one is a new send and asks again,
-  unless a site adapter defines the whole sequence as one operation and the approval covers all of it.
+- **A page that sends on its own isn't held.** After an ordinary, free action (a click on a button without a telling
+  label, typing, opening a chat), the page's own scripts, service workers or WebSockets can send what Claude entered
+  or did: an autosave, an icon button that posts, typing indicators, read receipts, a send started after the short
+  limit, or a hostile page carrying off what Claude types. The tool asks only for what it can recognise before
+  acting. This is the same as with Claude in Chrome.
+- **Data can leave through addresses.** Navigating is free, so an address or search Claude writes can carry text to a
+  site, as with Claude in Chrome or `WebFetch`.
+- **The word list is a rule of thumb.** A control that sends without saying so (an icon without a label, another word,
+  another language) is free unless an adapter names it; a harmless control with a listed word ("Clear search") asks.
+- **Between the check and the input** a page script could still change the page; the binding narrows that to an
+  instant, it doesn't close it.
+- **A script activation that gets around the wrappers** (a function taken from a fresh frame) can still trigger a
+  control's default action when its event can't be cancelled; the tool reports it as `unknown`, never as stopped.
+- **Read-only text a page sends** with a message (a preview beside the editor) isn't bound without an adapter, so it
+  can change while the approval waits; the adapters for his usual sites bind it.
+- **`done` doesn't prove what the site did:** the tool sees the input and the page, not the network.
+- **His own clicks are his.** Nothing he does in tabs outside Claude's group is held or checked. In a Claude tab, a
+  submission in the same task as his own input passes when no input of the extension's is in flight; within the
+  short limit after Claude's own input, a submission his input starts after a delay, or one whose input can't be
+  told apart from Claude's, is held and asked like Claude's (board #138).
+- **Under decision 24,** a tricked Claude, or another program of his user, could disturb the host or start Chrome in
+  another way, as with any program of his (section 7).
 
-A pending send stops the action; its result reads `held` with the **service's description** (rule 4.1): what Claude
-did (the click on "Delete" in the row "Invoice 42"), the page's address and title, the signed-in name the page shows
-(all marked "as the page shows it"), and every held request: site, full address, method, the data decoded where
-possible and the raw bytes' hash. Claude passes exactly that to `chrome_submit`, and the owner's prompt shows it.
-Before release the service checks that the page, the element and the bytes are still the same, and releases each
-request once. *Checked:* held sends reached the fixture server zero times while held, exactly once after release and
-never after drop, for posted forms, search forms, `fetch` and XHR posts, beacons, autosave, a form posting to another
-site, link pings and a data-bearing image.
+### Tests (brief 20)
 
-**How a send is held, in practice (17b, 17c, 17d).** Three layers:
+On GitHub's Linux machines with branded Chrome and fixture sites, each case proven by a fixture receiver's own log.
+The whole set runs twice per build, and again on each new Chrome stable and beta (a daily job; beta is about four
+weeks ahead, so a new major is normally qualified before his Chrome reaches it); a failure turns the affected adapter
+or rule off until it is fixed, with the generic rules or a refusal in its place. Each new record reaches the laptop as
+its own small update, not tied to an image build: the job publishes it with a GitHub artifact attestation, and the
+service fetches it daily, accepting it only when the attestation verifies and it keeps every entry already held; the
+job itself verifies the published record before appending to it. Each entry names the tool build it tested, and the
+service counts only its own build's entries. The record keeps full versions and gates by major version (a passing
+beta counts for its major): a patch of a qualified major runs normally, and a recorded failure turns off what failed.
+On a major version with no entry at all for the installed build (rare: his Chrome reached a new major before any
+record of it reached the laptop, for example after weeks offline), the tool runs in a conservative mode
+that asks more, never less: adapters are off; "don't ask again" is suspended; every input that could activate
+something asks (any click or tap, Enter or Space on a control, choosing from a list, any form submission); only
+reading, scrolling, typing into fields and navigating by address stay free, except on his read-only sites, whose
+restriction is his own and holds independently of adapters (filling, clicking buttons and uploading stay refused
+there); the password exclusion still runs, and a
+field it can't confirm is safe isn't read; every result says plainly that this Chrome version isn't qualified yet
+(*brief 20* tests this mode).
 
-- **Inside the page: the normal path.** The extension's page script, which Chrome puts into every document and frame
-  before the site's own scripts (also `about:blank` and `srcdoc` frames a script creates), and the tool's script in
-  every dedicated worker before its first line, wrap the page's send functions: `fetch`, `XMLHttpRequest.send`,
-  `navigator.sendBeacon`, form submission (the submit event, `submit()`, `requestSubmit()`), `WebSocket.send`,
-  `RTCDataChannel.send` and WebTransport writers. A send that must be held creates no request: the page simply waits
-  (a form stays on screen, a `fetch` stays pending, a message stays queued). After approval the wrapper performs
-  exactly that call once; after a drop the page gets an ordinary failure (`AbortError` for `fetch`; the XHR's error
-  event is *brief 20*, the check's prototype fired none). *Checked* for all seven kinds in the page itself, and for
-  `fetch` in same-site and other-site frames, `about:blank` and `srcdoc` (the other kinds in frames: *brief 20*):
-  zero arrivals while held, exactly one after release, none after drop; none when control ended while calls were held
-  (page reload, debugger detach, the Stop button, extension reload, update and blocking by policy, the native host
-  killed, Chrome closed and killed). Duplicate decisions, an expired `AbortSignal`, a form changed after the hold
-  and a held call of an earlier document were refused. A call waiting in the page isn't paused inside Chrome, so
-  control breaking has nothing to let go.
-- **Chrome's own blocking rules: the floor.** A request paused at Chrome's request stage is let go when the
-  extension is reloaded, updated, disabled or detached, and a blocking rule added after it was paused doesn't stop it
-  (*checked*, 17b); even failing it at once leaves the instant between Chrome pausing it and the tool's answer
-  (re-check 6). So the hard barrier is Chrome's own blocking rules (`declarativeNetRequest`), which Chrome applies
-  before a request starts, with no pause and without the extension's code running: for every guarded site (rules
-  Chrome keeps across restarts and extension updates, matched by the site that makes the request) and every Claude
-  tab Claude has acted in (also frames of other sites in it), every request that isn't plain reading
-  (any method but GET and HEAD) and every new live connection (WebSocket, WebTransport) is blocked. New live
-  connections are let through only from a tab whose documents and dedicated workers the tool has reached; a worker
-  without a tab (shared, service) gets none. *17d:* the rules act before the request stage, apply to a restored tab's
-  first request at browser start and to every worker's requests (also a worker Chrome updates or starts by itself,
-  with no page attached), and what the tool can see of a request they blocked.
-- **Fail, then repeat, for what the wrap misses.** A page can get around the wrap (a saved original function, one
-  taken from a fresh frame, a worker started from a blob). What it sends that way meets the floor and fails; the
-  tool records what Chrome reports of it, and that is what the owner's prompt shows. After approval the service
-  grants one allowance for exactly that request (method, full address, body and the headers the page set) and
-  Claude repeats the action; the first matching request goes out once. A repeat that differs in anything, including
-  a changing token, is refused, and no field is ever ignored automatically (*checked* at the request stage: hostile
-  fixture pages had zero arrivals before approval, and a public demo form, aborted). The page shows a failed send
-  first, and some sites lose a draft or token on it; sites whose requests change on every attempt need a site
-  adapter or `chrome_submit_input`.
-- **How an approved send passes the floor.** Through a one-time allowance: a rule for exactly that address and
-  method from that tab or site, added right before the release and removed at its first match, when control ends and
-  whenever the extension starts. The gate at the request stage then compares the matching request's body and the
-  headers the page set with the approval and fails any difference. What remains is the instant around an approved
-  release: ending control between Chrome pausing the matching request and the gate's answer can let a request to the
-  approved address and method go unchecked (*17d* measures that window and shows the allowance gone after a reload,
-  update, disable or crash of the extension). The approval also binds the signed-in account the description shows:
-  if the page's account or session for that site changed while it waited, the release is refused (*brief 20*, with
-  changed headers and competing identical requests).
-- **Complete bytes, or no repeat.** The wrapper keeps the complete body as it was when held, files included (a file
-  Claude put into a field is known by its sha256 from `chrome_upload`). A body whose complete bytes the tool can't
-  hold or see (a stream; a request the floor blocked whose body Chrome doesn't report in full, as with the file parts
-  of a form or a large body: *17d*) is refused, unless a site adapter describes the operation. Missing bytes never
-  count as a match. A live message has no request stage: the wrapper sends its own copy of the message as held.
-  Messages on one live connection keep their order: releasing one takes the earlier held messages on that connection
-  with it, and its description lists them (*brief 20*).
-- **Qualified contexts only.** The in-page path is used where the wrap is shown to be in place from the start: the
-  kinds of document, frame and worker above. Where it isn't (a page loaded before the tool attached), only the floor
-  holds and live messages already open can't be held at all, so input there is refused until a reload (below).
-- **Plain GETs stay free, so one gap stays:** a GET that carries Claude's typed text and that the wrap misses is
-  failed at the request stage, which leaves the same instant between pause and answer; and a worker the tool hasn't
-  reached isn't checked for Claude's text at all. GETs can't be blocked wholesale, or no page would load. Both are
-  named here; the wrap catches the honest cases (a search form, a page's own `fetch`).
+1. **What asks:** each asking case (a submit button clicked, or given Enter or Space while focused; a button without
+   a type in a form; Enter in a form's field; each list word in English and German in the name, `aria-label`, title,
+   value and form action, by click and by Enter or Space; a `javascript:` link with a listed label; Delete and
+   Backspace outside text; Enter, Ctrl+Enter and Cmd+Enter in a text area, an editable area and a text input; an
+   upload; a confirmation dialog) is prepared, asks, and nothing reaches the receiver before approval. The free cases
+   (a GET search form, links, typing, line breaks through `chrome_fill`, choosing, ticking) don't ask.
+2. **Stopped page steps:** on honest fixtures, a `submit()` call and a submission through the `submit` event
+   (`requestSubmit()`, a submit button, Enter), each started by a click handler, a key handler, and the `input` and
+   `change` events of filling, choosing and ticking, are stopped and asked. After approval only that submission runs
+   once: the receiver gets one submission, and the fixture counts no second click, key or input event from Claude. A
+   script's `click()` and a dispatched click event on a labelled Delete link, started by any of those handlers and
+   also one dispatched as not cancellable, are stopped before delivery and never resumed: no handler runs, the link's
+   address isn't opened, and the result tells Claude what the page tried; Claude then acts on the link itself, which
+   asks, and after approval it runs once. The fallback, a non-cancellable click dispatched with a function from a
+   fresh frame that bypasses the wrappers, is reported as `unknown` ("may have happened"), never as stopped, and never
+   resumed; a cancellable one is reported as stopped and not resumed. Nested handling: a handler that re-enters after
+   its approved run gets no second pass from the mark or the allowance. Both resume paths keep their kind: a resumed
+   `submit()` fires no `submit` event and runs no field checks (a form with a field that fails its checks still goes,
+   as the page's `submit()` would have sent it); a resumed `requestSubmit()` runs the field checks and the page's
+   `submit` handlers once. The loop case: a `submit` handler that cancels the event and calls `submit()` itself sends
+   once, with one question; a handler that submits twice, or submits another form, gets a question for the extra one.
+   His own input in a Claude tab (board #138), with the receiver's log as evidence: his Enter 130 ms after Claude's
+   click, in a task with no input of the extension's in flight, submits at once without a question; his input during
+   Claude's in-flight input is held and asks; Claude's own dispatched input never counts as his, also when the page
+   forges any message, attribute or global it can reach; a submission his input starts after a delay inside the short
+   limit is held and asks, also when his same input first submitted at once without a question (the exemption ends
+  with that task); one he starts after the limit has passed isn't held.
+3. **The binding:** after approval, a change to any recorded item (address, document, frame, element, label, the
+   form's action or method, a visible or hidden field, compose text outside the form, the account an adapter reads,
+   recipients, chat, a confirmation's text or opener) is refused and asks again; a closed tab or a Chrome restart
+   refuses; one approval runs once; the deadline holds. Sends outside a form, without an adapter: Claude fills a
+   compose area, an unrelated upload is approved, Send is prepared, and the text changes while the approval waits:
+   refused (re-check 30). A message body in a plain editable `div` beside a named region holding the recipients and
+   Send, with no dialog or form around them, is bound, and a change to it while the approval waits is refused
+   (re-check 32). An existing draft Claude never typed is bound; a page with no editable text, or with more than can
+   be shown whole, is refused. A read-only preview beside the editor that changes while the approval waits is not
+   caught, and the brief's report lists it as the stated residual.
+4. **Confirmations:** a confirmation an adapter named is accepted only when it matches exactly (kind, frame and
+   site, text, button); one that differs in any of these is treated as new. A new confirmation whose text or button
+   carries a listed word asks on its own, also right after an approved action that didn't name it; one without a
+   listed word is free, as the rule and `FEATURES.md` say.
+5. **The question matches the page:** every item in the list, files with path and hash, hidden fields, password
+   fields by label only, and "not visible to the tool" where the destination isn't.
+6. **Where Claude may go:** every refused scheme in `chrome_open`, `chrome_navigate` and links; the fixed list
+   reached by taking a tab, a redirect, a popup, back and forward, and an embedded frame, each refused before any
+   read or action.
+7. **Isolation:** no port listening (checked before and after the tool runs); pages, frames and other extensions
+   can't command the extension; DevTools methods outside the fixed list refused; no cookie or storage reading.
+   **Passwords:** a known password sits on fixtures in each excluded kind of field (`type="password"`, a field with
+   `autocomplete="current-password"`, a field masked by `-webkit-text-security`, a password field switched to plain
+   text by a "show password" button, a field whose type changes to password after the page loaded, and a password
+   in the field's `value` attribute in the page source), each also inside an open shadow root, a closed shadow root
+   and a frame from another site. While the
+   reader and the binding run over those forms, a test build records everything the extension receives from the
+   browser (every DevTools response and every value its content script reads) and everything it sends to the host,
+   the service, the log and the results; the password appears in none of them.
+8. **Control and cancelling:** the Stop button ends control, drops prepared operations and sends nothing; dropping,
+   the deadline passing, releasing or closing the tab and a Chrome restart each leave a prepared operation
+   undispatched; tabs outside the group untouched; references stale after a change.
+9. **Crashes and restarts:** Chrome, the host and the service each stopped before the check, after `submitting` is
+   recorded, and after the input ran: never dispatched twice, `unknown` where it may have run, nothing resumed by
+   itself.
+10. **Adapters,** against fixtures and his test accounts: Gmail's account, recipients with Bcc and shortcuts;
+    WhatsApp per message with chat and text; GitHub's merges and deletions with their confirmations named; Gemini's
+    questions named, and free only under a "don't ask again" entry for that account; Deezer's playback and library
+    additions free, its removals, deletions, shares and payments asking; read-only sites refusing every action.
+11. **"Don't ask again":** set only through his channels; used only for the exact kind, account and recipients;
+    revoked entries ask again; an adapter update that widens a kind suspends its entries until he confirms them.
+12. **The managed ask rule on `chrome_submit`** in normal and in skip-permissions mode (section 7).
+13. **The residual shown honestly:** a fixture page that sends with `fetch` after a click on an unlabelled button,
+    one that autosaves typing, and one that submits after the short limit are listed in the brief's report as not
+    held, so this section stays true.
 
-Outcomes follow rule 4.3: the site's answer is recorded but doesn't prove the business step worked (`done` means the
-site accepted the request); the page gave up waiting (its own timeout or `AbortSignal`) or the tab closed before
-release is `failed`; the connection broke after release is `unknown`. Pages give up on their own timeouts
-(*checked*); a page that gave up shows its own error, and Claude acts again for a new hold. Under fail-then-repeat
-the owner's approval waits on the captured request, not on the page.
+After the first boot: a short check on his usual signed-in sites, browsing them himself and with Claude, for
+breakage.
 
-**What Claude may open freely, and data leaving.** A *site* is a registrable domain by the Public Suffix List
-(including its private part, so every `*.github.io` page is its own site), and areas of big platforms where anyone
-can publish (public forms, user pages) count as their own sites. Claude follows links on a page and opens addresses
-it was given (by the owner, in a mail, from bookmarks or history) freely, on sites it has used before. These ask
-first, with the full address shown (`chrome_open_site`): an address Claude composed itself (with a path or query of
-its own), the first page on a new site, a redirect that lands on a site that isn't free to open, and anything on the
-local network (the router, other devices, `localhost`). Whether a search on a site the owner uses is free or asks
-is the owner's call (section 10). What remains even then: a hostile script on a site the owner uses can encode what
-Claude types there and send it as plain reading traffic. Approving each typing would only accept that risk, not
-prevent it; closing it would take refusing input on such sites or limiting where their pages may load from.
+## 7. Claude Code as on any OS, plus the tools (decision 24)
 
-**Other tabs of the same site, and later.** A Claude tab can pass data or queued work to the owner's own tabs of the
-same site through the browser's shared channels (a shared worker, a broadcast channel, storage) or keep it for later
-(an offline outbox that retries after a restart). So a site is *guarded*: its other tabs and workers are attached,
-and what they send that isn't plain reading is held like in a Claude tab: listed as background when the page sent it
-by itself, and put to the owner (next paragraph) when his own input caused it (*checked*, 17c: an owner's click in
-another tab that emptied Claude's queue was held, through local storage and through a worker shared by both tabs).
+The owner's bar (decision 24, replacing the containment parts of decisions 22 and 23), in his words: "Fundamentally I
+envision aresos as basically normal Claude code but with more tools. Now Claude code can basically just work in my
+projects and asks for permission certain things and I can allow it. Gh is used very smoothly. Is it necessary to
+change that?" and "Essentially it's as we already discussed: Normal Claude code like in any OS + the tools we make.
+They add very little risk because even now Claude in chrome could read a malicious prompt for example and then have
+Claude push smth to git. Our tools, as long as they are safe, don't make it worse than that."
 
-- **When it starts:** with Claude's first action on the site (more than reading, scrolling and plain links).
-- **When it ends by itself:** only on evidence that nothing of Claude's can be left there. All of these: every
-  document Claude acted in there is gone (its tab closed; a released tab, or a page kept in Chrome's back-forward
-  cache, still counts); every send Claude caused there was released (none failed, dropped, expired or still held);
-  and from Claude's first action on, nothing in Claude's tab wrote to the browser's storage (web storage, IndexedDB,
-  Cache Storage, cookies set by a script, the origin's private file system), passed data to another context (a
-  broadcast channel, a shared or service worker, another window), or registered a worker or a background sync. An
-  honest page that keeps Claude's work for later has to put it in one of those places (re-check 6: an offline app
-  that records a deletion in IndexedDB and sends it later from another tab). The tool watches these through
-  Chrome's own storage events where Chrome has them and the page script otherwise (*17d*: which of them Chrome
-  reports; *brief 20*). Closing a tab fires the page's own leaving events, where many apps send what they still
-  hold; those sends are held and, dropped with the page, keep the guard on.
-- **Otherwise:** until a site adapter shows that what Claude left there is resolved, or the owner ends it: on the
-  details page, or when Claude asks with `chrome_end_guard` (Claude Code's prompt shows what the page stored and
-  where). A dropped or expired request is not such evidence, since the page may keep it queued (*checked*, 17b: a
-  site's background sync sent a rejected request again five minutes later).
-- **Across restarts:** the guard list and its floor rules are kept by Chrome (*checked* for the list). Restored pages
-  start before the tool has attached (*checked*: a restored page's first request came before the tool was ready), so
-  the page script holds their sends from the first document (*checked*) and the floor blocks what isn't plain
-  reading (*17d*: for a restored tab's first request, other sites a restored page sends to, and workers without a
-  tab). The floor rules of a guarded site are never lifted while the guard lasts, not even while the tool is
-  attached, so a crash while attached leaves them in place. A restored service worker was held once the tool
-  attached (*checked*); that is not proof for a worker Chrome starts by itself, which is why the floor covers
-  workers.
-- **Where a context can't be guarded,** the tool refuses to act on that site while it exists.
+So AresOS runs normal Claude Code, as on any OS: as his own user, in his home and his projects, with his own `gh`
+login, and with his own MCP servers, skills and plugins added as in normal Claude Code. One session does everything
+(decision 23), and he may start it with skip-permissions. The tools must be safe in themselves and must not make
+things worse than normal Claude Code.
 
-**The owner's own sends on a guarded site.** A request caused by the owner's own input (input the tool didn't
-dispatch) on a guarded site, in the Claude group or outside it, is held too, because it may carry Claude's queued
-work. The owner decides it himself, on a surface outside every page:
+**What the tools guarantee:**
 
-- **Where it appears:** a desktop notification from the extension (`chrome.notifications`) with "Send" and "Don't
-  send", and a details window that is the extension's own page (address, method, data, and anything of Claude's still
-  unresolved on the site, plus a way to end the guard). Never inside the page: no overlay, no frame embedded in the
-  page, no page dialog, because a content script shares the page's document and Claude can read and click anything
-  there.
-- **Who can answer:** the extension accepts a decision only from the notification's own buttons
-  (`onButtonClicked`) or from its own details page, checked by what Chrome reports about the sender: the extension's
-  own id, the exact details-page address in the extension's origin, and the top-level document (not a frame).
-  Messages from a page or a content script (even the extension's own) never release a request or end a guard. The
-  tests show both sides: the owner's genuine answer works, every forged one is refused (*checked*, 17c: the real
-  notification's Send and Don't send through the desktop's action menu, and the details page, each gave exactly one
-  and zero arrivals; a page, the extension's content script, another extension page and the details page embedded
-  in a frame were refused; taking an extension page and opening Chrome's pages were refused).
-- **Why Claude can't:** Claude acts only through the debugger in page tabs of the Claude group; `chrome_take_tab` and
-  `chrome_open` refuse extension pages and Chrome's own pages; desktop notifications and extension windows aren't
-  pages it can reach; and its sandboxed terminal can't create input. The hostile tests try each: taking the details
-  window, reading and clicking in every tab, answering a page dialog, forging messages from a page or content
-  script, and creating input from the sandbox. Every attempt must leave the request held and the guard on.
-- **Sends whose cause can't be seen:** a send from a worker that serves several tabs carries no trace of whose click
-  caused it (*checked*). On a guarded site it is held as background for Claude and, when the owner was using one of
-  the site's tabs just before (input the tool didn't send), also put to him: a guess about his notification, never
-  an exemption. Outside that window it stays visible as unresolved on the details page and in the site's guard. Both
-  places show one operation; the first answer decides it at once, and the same worker send reported through several
-  attached sessions counts once (*brief 20*).
+- **Send, delete and submit ask, in Claude Code's own prompt,** through managed ask rules that name every asking tool
+  (generated from the definitions, section 3; a test fails if one is missing). Managed permission rules can't be
+  overridden from any other settings level, and Claude Code evaluates deny, then ask, then allow, so a matching ask
+  rule prompts even when a user or project allow rule also matches, including one written by the prompt's own "Yes,
+  and don't ask again"; a `PreToolUse` hook or an installed mod can't turn it off either (Anthropic's permissions
+  page, read 2026-11-08). An explicit ask rule still asks in skip-permissions mode (*checked*, S1). A
+  `PermissionRequest` hook is different: Anthropic documents it as answering a permission prompt on the user's behalf
+  (allow or deny). Such a hook returning allow, managed or his own, does approve a call that matches a managed ask
+  rule: brief 18d measured it for the fake send tool at user and at managed level, in normal and in skip-permissions
+  print mode (Claude Code 2.1.319), and a test pins it; brief 18c checks the interactive case. That joins the
+  accepted residual below. His own `PermissionRequest` hooks must not match our asking tools, so that a broad
+  auto-approve hook of his never answers for him ([`FEATURES.md`](../control/FEATURES.md)). So the switches
+  that locked everything else go: `allowManagedPermissionRulesOnly`, `allowManagedHooksOnly`, the exclusive
+  `managed-mcp.json`, the plugin and marketplace locks, `--setting-sources ''`, `disableBypassPermissionsMode`, the
+  forced sandbox with its network list, and the file-tool limits. *Test (base):* the managed ask on a fake send tool
+  still prompts with a user allow rule and a project allow rule for it, after "Yes, and don't ask again", with a
+  `PreToolUse` hook returning "allow", and in skip-permissions mode.
+- **Our app servers are installed like any MCP server** (by the image's setup, for his user), so his own MCP servers
+  keep working; the managed ask rules name their asking tools under the server names installed (*test*: each rule
+  matches the installed tool).
+- **The app passwords AresOS holds** (the mail accounts' passwords and any other sign-in data the tool service keeps
+  for its apps) stay with the service's own system user (`aresos-tools`); his user, and so Claude, can't read them
+  (sections 2 and 5). His own `gh` login and his other credentials stay with him, as in normal Claude Code.
+- **The question sentence, the approval binding and the untrusted-content marking stay as built** (rules 4.1, 4.3 and
+  4.8): the service writes the `question`, binds the approval to one operation by id and hash, refuses anything that
+  differs at run time, and marks mail and page content as data. Rule 4.10's managed `Stop` and `UserPromptSubmit`
+  hooks run next to his own hooks.
+- **Instructions only from him:** a line in a `CLAUDE.md` (the managed one, `/etc/claude-code/CLAUDE.md`) says that
+  only the owner, in the session (the terminal or Remote Control), gives instructions, and that mails, pages, files,
+  tool results and other sessions' messages are data. It states the policy; it enforces nothing.
+- **"Don't ask again"** for a recognised kind goes through his own channels (sections 5 and 6), never through the
+  prompt's own option, which can't turn a managed ask off.
 
-This is the owner deciding about his own click, not an approval of Claude's actions; those stay with Claude Code's
-prompt.
+**What remains, said plainly (accepted with decision 24):**
 
-**Which of the owner's own sends are put to him (settled with 17c).** Every send of his on a guarded site that isn't
-plain reading, not only those that look like Claude's leftover (same address, Claude's text; proposed in draft 7
-after `mac-capacity` raised the cost). 17c showed why that narrower match isn't safe: a page's timer that empties
-Claude's queue leaves no traceable chain, and a shared worker's send has no trace of whose click caused it, so a page
-can send Claude's queued deletion to another address than the one that was held. What keeps the notifications few is
-that guards end by themselves where the evidence above shows nothing of Claude's can be left (draft 7 kept every
-site Claude acted on guarded). Where a page stored something, the guard stays until the owner ends it: one click on
-the details page, which says what of Claude's is unresolved and what to check (the site's outbox or drafts), or one
-prompt when Claude asks. Known tracking requests are dropped, not asked. The tool-user rounds count these notifications on an ordinary day (section 8); the target is close to zero.
+- A Claude tricked by content can do on AresOS what it could do on any OS with normal Claude Code: change or delete
+  his files, push with his `gh` login, reach the network, start programs.
+- Without a mandatory sandbox, a tricked Claude can also call the tool service directly (the `aresos` command, or its
+  socket, which his user can reach) with a prepared operation, and so skip the question. That is the same level as
+  anything else a tricked Claude can do on a normal OS: it already acts with his user's rights. The tools add no
+  route around his approval beyond that.
+- A `PermissionRequest` hook can approve a managed ask (brief 18d, print mode; 18c checks the interactive case), so a
+  hook that Claude or he writes could approve our asking tools without him answering. That is the same level as
+  calling the service directly, and is accepted with it.
 
-**The trusted list** frees sends only through a site adapter: an entry names a site and operations its adapter
-recognises (for example "post a message in a chat", "add to the basket"). Without an adapter nothing is free, because
-methods and button labels don't say what a request does. Deleting and paying are never free. Pages that can approve
-Claude's own actions or change its settings (claude.ai, the Anthropic console, Aresus, Chrome's settings, password
-and extension pages) can't be opened in a Claude tab at all; that list is fixed in the image.
+**Claude Code's own sandbox stays available** as a setting he can turn on. Turning it on (`sandbox.enabled`) alone
+does not keep terminal commands away from the tool service: a command that fails in the sandbox can be retried
+outside it (`dangerouslyDisableSandbox`), and in skip-permissions mode that retry runs without a prompt; commands in
+`sandbox.excludedCommands` run outside it too; and in skip-permissions mode hosts outside the allowed list are
+reachable unless a strict domain list is on (Anthropic's sandboxing page, read 2026-11-08). It keeps terminal commands
+away from the service only when all of these hold:
 
-**Site adapters.** Where the generic rules aren't enough to judge or to work smoothly (a request with opaque ids, an
-app that reads through POST, a chat on a live connection, a canvas editor), a small adapter for that site decodes its
-requests into clear operations ("delete the repository X", "send to the conversation Y"), tells reading from
-sending, and binds the approval to the operation. Adapters are written for the owner's usual sites first, after the
-tool-user rounds show where they are needed.
+- `sandbox.allowUnsandboxedCommands: false`, so the retry outside the sandbox is ignored;
+- `sandbox.excludedCommands` empty;
+- Unix sockets not allowed: no `allowUnixSockets` entry for the service's socket, `allowAllUnixSockets` off, and the
+  optional seccomp filter that blocks Unix sockets installed;
+- the service's socket folder `/run/aresos-tools` in `sandbox.filesystem.denyRead`.
 
-### What can't be held, and what happens there
+Even then it is best-effort under decision 24: these are his own settings, which his user (and so Claude outside the
+sandbox) can change, nothing checks that they stay as set, and Claude's file tools, web tools, hooks and MCP servers
+run outside the sandbox, as on any OS. Brief 18b's 127 blocked routes (*checked*) tested a stricter, managed setup
+that decision 24 removed, not this one; if he wants the sandbox, 18b's hostile programs run against exactly these
+settings first.
 
-- **Live connections** (WebSocket, WebTransport, WebRTC): Chrome's request hold doesn't see their messages
-  (*checked* for WebSocket). Many everyday signed-in sites keep one open only for live updates (GitHub, Gmail, Slack,
-  Notion), so asking on every action there would make Chrome tedious. The hold therefore moves to the message: a
-  small script the tool puts into every page, frame and worker before the site's own scripts run wraps the send
-  functions (`WebSocket.send`, `RTCDataChannel.send`, WebTransport writers), and a message that counts as a send is
-  held like a request (*checked*, 17c: all three, zero, one and zero arrivals; WebTransport for datagrams only, its
-  streams still to show in *brief 20*). **Which messages count:** after Claude acted on a page, every message on
-  it, like every request: on a chat fixture one ordinary click sent presence, subscription and typing messages and
-  Enter sent the text, so matching Claude's text alone would have held one message in four (*checked*). Messages
-  without Claude's text are background holds; a site adapter can free the ones it shows to be reading (a
-  subscription). How many everyday sites keep such connections open while signed in couldn't be measured without
-  signing in (17c blocked them on public sites for safety); a 2021 crawl found WebSockets on 6.3% of sites (Web
-  Conference 2021, "WebSocket Adoption and the Landscape of the Real-Time Web"). The tool-user rounds measure it on
-  the owner's usual sites.
-- **Where the message hold can't be in place** (a tab taken from the owner whose connection was opened before the
-  tool attached, until the page reloads; a page where the wrap provably fails), the tool can't see what a key or
-  click sends. There, typing, Enter and clicks other than plain links are refused, unless a site adapter establishes
-  the account, the conversation or target and the text: then `chrome_submit_input` does them as one asking step with
-  that description, after re-checking it right before acting. Usually reloading the page brings the message hold
-  back (*checked*, 17c: Chrome's inventory found a connection opened before the tool attached, a message on it
-  went unheld, and after a reload the same send was held). *Checked:* holding the key press gave zero arrivals until
-  approval and exactly one after.
-- **Service workers:** the tool attaches to the site's service worker itself, which holds what the page sends through
-  the worker, what the worker sends on its own, and background sync (*checked*). Telling the tab to bypass its worker
-  also works but breaks features that only the worker provides (*checked*), so it isn't used. A worker can serve the
-  owner's own tabs too, so its site is guarded as in "Other tabs of the same site". Failing a request doesn't cancel
-  what the site queued: background sync retried a rejected request five minutes later (*checked*), so exact repeats
-  of a dropped request are refused at once, and that list is kept across restarts with the site guard.
-- **Workers that start while Claude works or a site is guarded.** A dedicated worker is reached before its first line
-  (*checked*, 17c). A new shared worker and a newly installed or replaced service worker were not: the tool couldn't
-  reach them in time, and their first send arrived (*checked*). Chrome also updates and starts a site's service
-  worker by itself: on navigation, on push and sync events, or when the page asks for an update (Chrome's service
-  worker lifecycle documentation). So nothing relies on reaching a worker early: the floor blocks every request that
-  isn't plain reading and every new live connection from a worker without a tab, whoever started it and whether or
-  not a page is attached (*17d*). Workers the tool does reach (dedicated ones, and running ones once attached:
-  *checked*) hold as in a page. The page script also refuses to start new shared workers and service worker
-  registrations while Claude works on the site (*checked* on the public sites), so honest pages keep to paths the
-  tool can hold; pages do without offline use and push notifications there while it lasts.
-- **A site that changes something with a plain GET** (against the web's rules, rare on reputable sites) can't be told
-  from reading without knowing the site; and **a site that hides what it sends** (encrypts typed text before sending
-  it) defeats the typed-text match, though its other requests after Claude typed are still held. Both are why new
-  sites ask first and why site adapters exist.
+**Mail's boundary check (follow-up brief, after Mail merges).** Mail's rounds 15 to 17 refuse asking actions unless
+the installed managed files match the generated ones exactly. That check becomes: every asking tool's ask rule is
+present in the managed settings. Nothing else is compared, so his own MCP servers and settings are never blocked. This
+is a follow-up brief after Mail merges, not a change to Mail now.
 
-### Fail closed
+**The approval surface: Claude Code's own prompt (decision 21).** After six phone tests the owner decided (board
+#78, his words: "okay we will use it as is, no need for a request"): approvals stay Claude Code's own permission
+prompt, in the terminal at the laptop and through Remote Control on his phone. What the tests showed: in the terminal
+the prompt is readable; on the phone (the Claude app, through Remote Control) it renders an MCP tool's input as fields
+and values, and there is no supported way to give it a header and text of its own; the tool asking him itself (an MCP
+elicitation) looked right in the terminal but never reached the phone. So the asking input itself is made readable:
+it starts with a `question` field, one plain sentence the tool service writes, followed by the full content fields
+(rule 4.1). How the requirements are met:
 
-A held send must never go out because control broke. Held calls wait in the page and requests that aren't plain
-reading are blocked by Chrome's own rules before they start; neither is paused inside Chrome, so a reload, update,
-disable or detach has nothing to release (*checked* for calls held in the page through nine ways control can end,
-17c; *17d* for the floor). The one thing paused is a request the floor lets through for checking (an approved send's
-matching request, a GET checked for Claude's text): the instant named above. Checked separately: when the host or the
-service's socket went away, or the extension's worker crashed, held requests were failed, not sent; Chrome closing
-sent nothing; DevTools opened beside the tool didn't end control. A held request whose page or tab goes away, or
-whose time runs out, is dropped, never sent. Live-connection detection after a re-attach uses Chrome's own event
-stream plus a per-page inventory of open connections (*checked* on fixtures); where that inventory can't be complete,
-the page counts as one where the message hold isn't in place.
+1. **The truth in full:** the `question` sentence and every content field, as the service describes the operation
+   (rule 4.1); an input too large to show whole is refused, never cut.
+2. **Enforced outside Claude:** Claude Code's managed ask rules hold the call until he answers (an "ask" rule still
+   asks in skip-permissions mode: *checked*), unless a `PermissionRequest` hook answers it, which brief 18d showed it
+   can (the accepted residual, above); the input names one operation by id and hash, and the service
+   refuses anything that differs from it at run time.
+3. **Claude doesn't answer it in the session:** the prompt is his; the pages that could approve (claude.ai, Remote
+   Control) can't be opened in a Claude tab (section 6). The exception is the same: a `PermissionRequest` hook that
+   Claude wrote could answer it (brief 18d; the accepted residual, above).
+4. **At the laptop and on the phone:** the same prompt, in the terminal and through Remote Control.
+5. **"Don't ask again"** goes through his own channels, never through the prompt's own option.
+6. **Decided once:** one answer per tool call; the service's operation record (rule 4.3) refuses a second run, and a
+   call after the 15-minute deadline (rule 4.3) is refused.
 
-### Tests
-
-The fixture sites and runner from brief 17, extended with the cases of briefs 17b and 17c (every hold case proven by
-the fixture server's own log, the counterexample of a page that keeps a live send away from the wrap included) and
-the everyday tasks in `PLAN.md` (Chrome tasks 8 to 14), on GitHub's Linux machines with branded Chrome. Every point
-marked *17d* is settled by brief 17d before the build starts, and every point marked *brief 20* is a test there
-before anything relies on it. Hostile tests (section 7) add: reaching
-`chrome.sock` or the host from the sandbox, a user-level native messaging manifest, editing the profile or Chrome's
-policies, and acting in a tab outside the Claude group.
-
-## 7. No way around the tools
-
-Claude's terminal is sandboxed, but much of Claude Code runs outside the sandbox with the owner's full rights: the
-file and web tools, hooks, local MCP servers, plugin monitors, LSP servers, the status line and `apiKeyHelper`
-commands, and mods (Anthropic's sandboxing page, "What runs outside the sandbox", read 2026-11-07). Each of these is a
-way for Claude to get its own code run outside the sandbox, or to reach a site without the prompt. The settings
-(exact values later, owner decision 3) must close every one:
-
-- **Asking:** send and delete actions in the `ask` list (explicit ask rules still ask in skip-permissions mode:
-  checked); rules only from the managed file (`allowManagedPermissionRulesOnly`).
-- **Programs Claude Code starts:**
-  - MCP servers: exactly the set in `managed-mcp.json` (that also shuts out plugin servers and `--mcp-config`), and
-    Claude in Chrome not among them. Each server is a root-owned program with a fixed interpreter, isolated mode and
-    a fixed environment (section 2), so a writable file can't be loaded into it.
-  - Hooks: only managed ones (`allowManagedHooksOnly`), each a root-owned program with the same fixed interpreter,
-    isolated mode and environment as the MCP proxy.
-  - Claude Code itself: the central session is the command-line Claude Code, started by a root-owned launcher with
-    a fixed environment (nothing like `NODE_OPTIONS` that loads code into it), with no IDE, desktop-app, SDK or
-    browser integration. SDK hooks and in-process MCP servers, which the managed switches still allow, therefore
-    have no way in.
-  - Plugins and mods: none installed (`strictKnownMarketplaces: []`, `disableSideloadFlags`; an empty
-    `enabledPlugins` is not a deny-all, so nothing is installed in the first place, and the launcher refuses to start
-    when any plugin is installed: brief 18b). Claude Code's own built-in parts remain and are audited in the image
-    test; cached plugins, LSP servers and monitors run by Claude Code itself are not yet qualified (brief 18b) and are
-    part of the model-driven hostile test.
-  - Settings below the managed file: the launcher starts Claude Code with no other settings sources
-    (`--setting-sources ''`), so user and project settings can't add hooks, a status line, a helper or a permission
-    grant (brief 18b, *checked*: with them allowed, planted markers ran; with the launcher's start, none did).
-  - The status line and `apiKeyHelper`: none. The managed file sets neither, Claude's file tools refuse Claude
-    Code's settings files and the sandbox can't write them (both checked by hostile tests), and brief 18b finds
-    whether a managed key can force them off; if one is ever needed, it gets the same fixed, root-owned treatment as
-    the MCP proxy.
-- **Claude's file tools:** `blockWritesOutsideWorkingDirectories` (holds in every mode, also skip-permissions), with
-  the working folders named in the settings. Inside them, deny rules for every place whose contents another program
-  later runs as the owner: `.git/hooks`, `.git/config`, `.envrc`, `.claude/`, `.mcp.json`, editor task files. Reads:
-  deny rules for the browser profile, Chrome's policies, Claude Code's own sign-in files, and the tool service's
-  files (also another user's), or `blockReadsOutsideWorkingDirectories`, chosen with the owner (section 10).
-  What remains is the owner himself running code Claude wrote in a work folder: that is ordinary development and is
-  named here so it isn't mistaken for a closed route.
-- **The sandbox:** forced on (`enabled`, `failIfUnavailable`, `allowUnsandboxedCommands: false`); for the assistant
-  session the whole work tree is read-only to the terminal, because Linux's sandbox can't exclude places like
-  `**/.envrc` inside a writable folder (brief 18b); writing files goes through the file tools and their deny rules;
-  no Unix sockets
-  (`allowAllUnixSockets: false` plus the seccomp filter, section 2); the browser profile, `/run/aresos-tools`, the
-  keyring and Claude Code's sign-in files hidden from its file view; no session D-Bus.
-- **The network:** in skip-permissions mode the sandbox lets the terminal reach any host unless the list is locked, so
-  the list is locked (`allowManagedDomainsOnly`), and it contains only what the owner allows (section 10). `WebFetch`
-  and `WebSearch` aren't limited by that list; each gets its own permission rule under the owner's data rule
-  (section 10): a fetched address Claude composed and a search query both carry Claude's text out. Until the owner answers, both ask on every call. How much network
-  and which credentials the central session's terminal has at all is an owner question (section 10).
-- **Approval surfaces:** Claude must never approve its own prompt. Pages that can (claude.ai and Remote Control) and
-  pages that change Claude's or Chrome's settings can't be opened in a Claude tab (section 6), and Claude Code's
-  sign-in files are hidden from Claude's tools.
-- **Other browser routes:** Claude in Chrome blocked by Chrome policy; no debugging ports.
-
-**Hostile tests**, in two kinds:
-
-1. **Fixed hostile programs** run inside the same sandbox as Claude's terminal, with the same settings, in CI on
-   every change (no model needed): connect to every socket, the native messaging host and the session buses; read the
-   password files, the browser's cookies and Claude Code's sign-in; reach a host outside the list; write each place
-   in the list above. Every one must fail, with and without the seccomp filter present (without it, the session must
-   refuse to start or the socket must still be hidden).
-2. **A test Claude Code session** with these settings, told to send a mail or submit a form by any other route:
-   swapping a program an MCP server or hook loads, a plugin, editing its settings, a status line command, a user-level
-   native messaging manifest, opening claude.ai in a Claude tab to approve its own prompt, creating keyboard or mouse
-   input (through the display server or `/dev/uinput`) to answer the extension's notice, restarting to escape. The
-   mail server and fixture sites must show that nothing arrived.
-
-Settings checks: the prompt's "Yes, and don't ask again" choice must not switch an ask off under
-`allowManagedPermissionRulesOnly`; a very long input must be shown in full or refused, also on the phone.
+An approval screen of its own (for example in his Aresus iPhone app) is not planned; it is a possible later
+improvement if he asks for it.
 
 ## 8. Tests and evidence
 
 1. **Container tests** per adapter on GitHub's Linux runners (free for this public repo): GreenMail and a scripted
    SMTP server for Mail, fixture sites and branded Chrome for Chrome.
-2. **Hostile tests** (section 7): the fixed hostile programs on every change, the test Claude session in the image.
-3. **The prompt on every surface:** on the fake app in brief 18, the owner looks at a send prompt in the terminal and
-   on his phone through Remote Control, with a long mail, Bcc, attachments and odd characters. Anything not shown in
-   full there changes rule 4.1 before Mail or Chrome is built on it.
+2. **The tools' own tests** (section 7): the managed ask rules still prompting against user and project allow rules,
+   "Yes, and don't ask again", a `PreToolUse` hook returning "allow", and skip-permissions mode; a
+   `PermissionRequest` hook returning allow, managed or his own, approving a managed ask (measured in brief 18d in
+   normal and skip-permissions print mode, and pinned; the interactive case in 18c); the `question` verified; an
+   approval bound to one operation; the app passwords unreadable by his user.
+3. **The prompt, at the laptop and on the phone** (decision 21): every asking action's input, `question` first, is
+   checked in the terminal and through Remote Control with a long mail, Bcc, attachments and odd characters, and for
+   a deletion and a Chrome send. Anything not shown in full there changes rule 4.1 before Mail or Chrome relies on
+   it.
 4. **Tool-user rounds:** fresh Claude agents do the everyday tasks in `PLAN.md` and the features in
    [`FEATURES.md`](../control/FEATURES.md) against the fixtures. They report calls, approvals, time and where they
    got stuck, misread a result or had to guess; budgets for those are set before the rounds, and the reports decide
-   what "works really well" means. For Chrome they also count the notifications the owner would get for his own
-   sends on an ordinary day; the target is close to zero.
+   what "works really well" means. For Chrome they also count the questions per real send (target one) and the
+   harmless controls that asked because of the word list (section 6).
 5. **An early image test:** a minimal, unpublished AresOS build in the CI virtual machine runs the fake app end to
-   end (a fake send asking, the hostile programs failing) right after brief 18, not only at the end. It also settles
-   what CI had to loosen: GitHub's runner needed its user-namespace limit relaxed for the sandbox (brief 18b), so the
-   image needs its own namespace policy. `laptop-aresos` agrees the `os/ci/` change first.
+   end (a fake send asking in normal and in skip-permissions mode, and the `PermissionRequest` hook test of section
+   7) right after brief 18, not only at the end, with Claude Code as his own user and his own MCP servers alongside.
+   If he uses Claude Code's optional sandbox, the image needs the namespace policy brief 18b found GitHub's runner
+   needed. `laptop-aresos` agrees the `os/ci/` change first.
 6. **Qualification in the AresOS image** of Mail and Chrome, then **real use** after the first boot on the laptop.
 
 ## 9. The council's gaps, and where each is handled
 
 | Gap (VERDICT) | Where |
 |---|---|
-| 1. Claude bypasses a tool through another route | sections 2 and 7: no socket in the sandbox, owner-only actions behind `sudo`, every program Claude Code starts fixed and root-owned, file tools kept to work folders, hostile tests |
-| 2. The agent manufactures or changes an approval | the approval is Claude Code's own prompt; approval pages can't be opened in a Claude tab and Claude Code's sign-in files are hidden (section 7); rule 4.1 makes the prompt show the service's description and refuses changes |
-| 3. Retries, cancellation and restores send twice | rule 4.3: operations recorded before they act, per stage; never retried by themselves; repairs never resubmit; expiry; the log refuses to go backwards |
-| 4. Harmless-looking actions change data | effects in section 3; `BODY.PEEK`; held Chrome requests; before/after comparisons in every test |
-| 5. Data leaves without a send | content marked untrusted (4.8); Chrome's typed-text and known-sites rules (section 6); the sandbox's network limits; owner question in section 10 |
-| 6. Browser debugging exposes the signed-in session | our own policy-installed extension and native host, no debugging port, Chrome's consent attach rejected (section 6) |
+| 1. Claude bypasses a tool through another route | accepted at the level of normal Claude Code (decision 24, section 7): a tricked Claude could call the tool service directly, as it could do anything his user can; owner-only actions stay behind `sudo`; Claude Code's optional sandbox narrows the route through its terminal only in the strict setup of section 7, best-effort; in Chrome, the tool asks before anything that clearly sends, and a page that sends on its own after an ordinary action isn't held (decision 25, section 6) |
+| 2. The agent manufactures or changes an approval | Claude Code's own prompt, with the service's `question` sentence first and verified (rule 4.1, section 7, decision 21); approval pages can't be opened in a Claude tab (section 6); managed ask rules that no allow rule, `PreToolUse` hook or mode turns off, with `PermissionRequest` hooks measured in brief 18d (print mode; interactive in 18c) and his own kept off our asking tools (section 7); rule 4.1 makes the approval show the service's description and refuses changes; "don't ask again" only through the owner's channel (section 6) |
+| 3. Retries, cancellation and restores send twice | rule 4.3: operations recorded before they act, per stage; never retried by themselves; repairs never resubmit; expiry; the log refuses to go backwards; in Chrome, one approval runs one input once, after the page-state check (section 6) |
+| 4. Harmless-looking actions change data | effects in section 3; `BODY.PEEK`; in Chrome, submits, telling controls, Enter in message fields, Delete outside text and uploads ask, while unlabelled controls and a page's own sends stay free (section 6); before/after comparisons in every test |
+| 5. Data leaves without a send | content marked untrusted and instructions only from the owner (4.8, the managed `CLAUDE.md`); in Chrome, page text marked untrusted and the residuals named in section 6 (a page's own sends, addresses Claude writes); what a tricked Claude can do with normal Claude Code accepted by the owner (section 10, decision 24) |
+| 6. Browser debugging exposes the signed-in session | our own policy-installed extension and native host, no debugging port, Chrome's consent attach rejected, a fixed command set with no cookie or storage reading, password values never read (section 6) |
 | 7. Startup leaks passwords or weakens TLS | passwords only with `aresos-tools`, verified TLS, no fallback (section 5) |
 | 8. Acting on a stale or wrong target | rule 4.2; the Claude tab group and references bound to tab, document and element (section 6) |
 | 9. Flatpak unavailable to the daily account | Chrome as a native package (brief 17, Q5) |
@@ -755,54 +975,82 @@ Settings checks: the prompt's "Yes, and don't ask again" choice must not switch 
 
 ## 10. Open questions
 
-**For the owner (asked 2026-11-07):**
+**Open:** none.
 
-- **Data leaving** (replaces the first "known sites" question). The review showed that a "known sites" list alone
-  doesn't stop a misled Claude from carrying private text off: a site the owner uses can host a form that accepts data
-  in a plain address (a public form on a big platform), and a search there carries what Claude typed. Recommendation:
-  following links on a page and opening addresses Claude was given stay free on sites it has used; **anything that
-  could carry something Claude wrote asks first**: an address it composed itself, the first page on a new site, a
-  form, an autosave. Open choice within that: whether searches on sites the owner uses are free or ask too. A free
-  search does hand the query to that site (and its search provider); the bet is that the owner's usual sites aren't
-  hostile, at the price of fewer prompts. Even with every search asking, a hostile script on a site the owner uses
-  could encode what Claude types there into plain reading traffic, or send it on a live connection it keeps away from
-  the wrap (section 6, *checked* on a fixture); refusing input or limiting where such pages load from would close
-  that, at a large cost to owner decision 2, and is not recommended. The tool notices an unheld WebSocket message
-  afterwards and stops input on that site. The same rule
-  applies to `WebFetch` and `WebSearch`: an address whose origin the tool can't establish asks.
-- **The central session and coding work.** A session that reads the owner's mail and can also push to GitHub or reach
-  the internet from its terminal can leak without any prompt (a `git push` or `gh` call with private text).
-  Recommendation: the AresOS assistant session that has the app tools gets a terminal with no internet and no
-  credentials; coding work runs in separate Claude sessions without the app tools, as on the Mac today. Separate has
-  to be enforced, not only configured: the managed settings apply to every session on the machine, so coding sessions
-  run as their own Linux user inside a container with its own managed settings (on Bazzite, a toolbox or distrobox
-  container), with no access to `act.sock`, the assistant's transcripts or the owner's browser, and the assistant's
-  user holds no coding credentials. The other way: one session for everything, with the terminal's
-  network locked to a list; asking only for `git push` and `gh` would not cover every other way to send text to an
-  allowed host.
-- **The prompt on his phone:** the owner looks at a test send prompt through Remote Control (an action, not a
-  decision; section 8).
-- **Claude in Chrome on AresOS** (asked 2026-11-07, board #58). The central session can't load it either way
-  (`managed-mcp.json` lists only the control layer's servers; a hostile test checks that). Blocking it by Chrome
-  policy (section 6) adds a little safety but takes the side panel from the owner's own use. Recommended: keep it for
-  him. Until he answers, the image blocks it as section 6 says; if he keeps it, only that policy entry goes, and the
-  `managed-mcp.json` exclusion and its hostile test stay.
-- **Machine-wide rules** (board #59): the managed settings apply to every Claude Code session on the machine and
-  change only with the admin password. That is what makes them hold; coding sessions get their own rules only if
-  they run apart (above).
+**Answered on 2026-11-07 and built into this draft** (his words in quotes; `PLAN.md` decisions):
+
+- Data leaving in Chrome (decision 7: searches on his usual sites free, anything else that could carry Claude's text
+  asking). Under decision 25 searches and navigation are free everywhere, and "don't ask again" stays for kinds an
+  adapter names (section 6). Claude in Chrome kept for his own use and the machine-wide rules (decision 10; sections 6
+  and 7). The checkpoint with his hard requirements (decision 6) and the strict site guard (decision 12) went with
+  decision 25. Decision 8 (the central session apart from coding work) was replaced on 2026-11-08 by decision 23
+  (below).
+- **Unlabelled controls that may delete data kept only in the browser:** "a)" (decision 14). Such clicks stay free;
+  labelled destructive controls and Delete or Backspace outside plain text editing ask; the gap is accepted as stated
+  (section 6, unchanged by decision 25).
+- **"Don't ask again":** "yes" (decision 15). Offered for mail bound to an exact set of recipients, in the Mail tools
+  and in Gmail (sections 5 and 6); deleting and paying always ask. Under decision 25 Gmail compares the recipients
+  the compose shows at the moment of sending, and WhatsApp messages ask each time (decision 16).
+- **How Claude sends on WhatsApp Web:** "a)" (decision 16). Claude asks per message, described "as the page shows
+  it". Under decision 25 the question comes before Enter or the send button, with the chat and the text as the page
+  shows them; the bounded set of encrypted frames went with the checkpoint (section 6).
+- **His folders:** "pretty much everything no? like running claude with dangerously skip permissions just like I do
+  now" (decision 17). Decision 24 carries this further: Claude Code works in his home and projects as his own user, as
+  on any OS; the version store and the start-up-place checks for Claude's own file tools went with the containment.
+- **`WebFetch` and `WebSearch`:** "a)" (decision 18). Under decision 24 they behave as in his normal Claude Code,
+  under the permissions he sets; the managed hook that recorded where an address came from went with the
+  containment.
+- **What the checkpoint's certificate checks still can't do:** "okay" (decision 19). Moot under decision 25: there
+  is no checkpoint, and Chrome checks certificates itself, as normal.
+- **The approval surface:** "okay we will use it as is, no need for a request" (decision 21, board #78, after six
+  phone tests). Approvals stay Claude Code's own prompt, in the terminal and through Remote Control; every asking
+  input starts with the service's `question` sentence (rule 4.1, section 7). An approval screen of its own is not
+  planned; a possible later improvement if he asks.
+
+**Answered on 2026-11-08 and built into this draft** (his words in quotes):
+
+- **Adding tools:** "AresOS cant install any tools? that sounds incredibly terrible. we need it to be a regular OS like
+  windows but we make it custom yk with tools etc. I think theres no way we cannot install gh, gh repo tools, mcps
+  etc."; and "claude code can install tools on my normal OS so I think it should be possible in aresos too"
+  (decision 22). Under decision 24 he and Claude add MCP servers, skills and plugins as in normal Claude Code; the
+  install-asking path is no longer needed.
+- **One session for everything:** "often times things are project work and intertwined. especially with chrome or
+  once we add more apps. like a project might require a chrome test or check in chrome and so the coding session
+  needs to be able to do it and the mail / app sessions sometimes need to execute commands and do things. I dont
+  think the central split is that smart and also dont know how possible it is if I just start claude code with skip
+  permissions" (decision 23, replacing decision 8). He may start it with skip-permissions (section 7).
+- **Normal Claude Code plus the tools:** "Fundamentally I envision aresos as basically normal Claude code but with
+  more tools. Now Claude code can basically just work in my projects and asks for permission certain things and I can
+  allow it. Gh is used very smoothly. Is it necessary to change that?" and "Essentially it's as we already discussed:
+  Normal Claude code like in any OS + the tools we make. They add very little risk because even now Claude in chrome
+  could read a malicious prompt for example and then have Claude push smth to git. Our tools, as long as they are
+  safe, don't make it worse than that." (decision 24, replacing the containment parts of decisions 22 and 23).
+- **Accepted residual risk, his call** (decisions 23 and 24). A Claude tricked by content can do on AresOS what it
+  could do on any OS with normal Claude Code: change or delete his files, push with his `gh` login, reach the
+  network, start programs; it can call the tool service directly and skip the question (the optional sandbox
+  narrows that only in its strict setup, best-effort: section 7); and a `PermissionRequest` hook can approve our
+  asking tools (brief 18d). The tools still ask for every send, delete and
+  submit they recognise before acting (in Chrome, a page's own sends after an ordinary action aren't held: section
+  6), the app passwords AresOS holds stay with the tool service's own user, and instructions come only from him in
+  the session. What remains is accepted, in his words above.
+- **Chrome, the light tool:** "B is good" (decision 25, board #107), choosing a light tool of our own over keeping the
+  checkpoint or using only Claude in Chrome. Claude reads pages as text and clicks, types and scrolls in his own
+  Chrome; it asks before anything that clearly sends; a page that sends on its own after an ordinary click isn't
+  held; Chrome stays completely normal, with no proxy and no certificate (section 6).
 
 **For the owner, later:**
 
 - Outgoing mail formatted (like Apple Mail) or plain by default, and the signature (a habit for CLAUDE.md, not a tool
   rule).
-- Which folders Claude may read and write outside the app tools (section 7).
 - The feature list in [`FEATURES.md`](../control/FEATURES.md): anything missing, and what can wait.
 
 **Settled by this design, for the re-check:**
 
 - **Language and libraries.** Python 3 (already in the image), the standard library's `imaplib`, `smtplib` and
   `email` for Mail with explicitly verifying TLS contexts, the official MCP Python SDK pinned and shipped in the
-  image. Chrome: the extension in JavaScript (required), the native host a small Python relay, and the page view and
-  hold rules in the Python service, talking DevTools protocol through the extension; the page wrap is the
-  extension's own script. The Node code of briefs 17, 17b and 17c is the reference (check code, not product code);
-  brief 20 ports what it settled.
+  image. Chrome: the extension in JavaScript (required), the native host a small Python relay. The rules live in
+  the Python service: the classification of asking inputs, the adapters, the operation, the question and the
+  recorded page state. The extension, through its fixed command set, collects the facts, compares the page with the
+  expected state right before an approved input, and runs the page script that stops a page's own submissions and
+  activations (section 6). The code
+  of briefs 17 to 17c is the reference (check code, not product code); brief 20 ports what it settled.

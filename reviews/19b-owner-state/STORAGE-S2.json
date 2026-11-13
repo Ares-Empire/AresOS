@@ -1,0 +1,377 @@
+{
+  "after": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 5524,
+      "journal_records": 7,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 22317,
+      "sqlite_file_bytes": 32768
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 1032,
+      "journal_records": 3,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 2585,
+      "sqlite_file_bytes": 8192
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2410,
+      "journal_records": 7,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 10688,
+      "sqlite_file_bytes": 16384
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 10918,
+      "journal_records": 16,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 57570,
+      "sqlite_file_bytes": 73728
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 10920,
+      "journal_records": 16,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 66980,
+      "sqlite_file_bytes": 81920
+    }
+  },
+  "after_fixes_round_1": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 3942,
+      "journal_records": 5,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 16454,
+      "sqlite_file_bytes": 24576
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 688,
+      "journal_records": 2,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 1592,
+      "sqlite_file_bytes": 0
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2064,
+      "journal_records": 6,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 9377,
+      "sqlite_file_bytes": 16384
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 9506,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 50361,
+      "sqlite_file_bytes": 65536
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 9508,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 58595,
+      "sqlite_file_bytes": 73728
+    }
+  },
+  "after_fixes_round_2": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 3942,
+      "journal_records": 5,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 16454,
+      "sqlite_file_bytes": 24576
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 688,
+      "journal_records": 2,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 1592,
+      "sqlite_file_bytes": 0
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2064,
+      "journal_records": 6,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 9377,
+      "sqlite_file_bytes": 16384
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 9506,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 50361,
+      "sqlite_file_bytes": 65536
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 9508,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 58595,
+      "sqlite_file_bytes": 73728
+    }
+  },
+  "after_fixes_round_3": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 3942,
+      "journal_records": 5,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 16454,
+      "sqlite_file_bytes": 24576
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 688,
+      "journal_records": 2,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 1592,
+      "sqlite_file_bytes": 0
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2064,
+      "journal_records": 6,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 9377,
+      "sqlite_file_bytes": 16384
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 9506,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 50361,
+      "sqlite_file_bytes": 65536
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 9508,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 58595,
+      "sqlite_file_bytes": 73728
+    }
+  },
+  "after_fold": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 3942,
+      "journal_records": 5,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 16454,
+      "sqlite_file_bytes": 24576
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 688,
+      "journal_records": 2,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 1592,
+      "sqlite_file_bytes": 0
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2064,
+      "journal_records": 6,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 9377,
+      "sqlite_file_bytes": 16384
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 9506,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 50361,
+      "sqlite_file_bytes": 65536
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 9508,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 58595,
+      "sqlite_file_bytes": 73728
+    }
+  },
+  "after_source": "d87bc02d (part B closing head; repeated exact measurements)",
+  "before": {
+    "delete": {
+      "index_bytes": 0,
+      "journal_bytes": 3942,
+      "journal_records": 5,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 11202,
+      "sqlite_file_bytes": 24576
+    },
+    "free_change": {
+      "index_bytes": 0,
+      "journal_bytes": 688,
+      "journal_records": 2,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 1229,
+      "sqlite_file_bytes": 0
+    },
+    "move": {
+      "index_bytes": 0,
+      "journal_bytes": 2064,
+      "journal_records": 6,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 7279,
+      "sqlite_file_bytes": 12288
+    },
+    "send": {
+      "index_bytes": 0,
+      "journal_bytes": 9506,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 36663,
+      "sqlite_file_bytes": 57344
+    },
+    "send_25mib": {
+      "index_bytes": 0,
+      "journal_bytes": 9508,
+      "journal_records": 14,
+      "outcome": "done",
+      "projection_bytes": 0,
+      "sqlite_event_bytes": 42977,
+      "sqlite_file_bytes": 57344
+    }
+  },
+  "before_source": "fda0d164 (production before stage 2)",
+  "encoding_equivalence": "The final optional-role/independent folder-name fix repeats all five ordinary-role measurements byte-for-byte.",
+  "fixes_round_1_journal_growth": {
+    "delete": 0,
+    "free_change": 0,
+    "move": 0,
+    "send": 0,
+    "send_25mib": 0
+  },
+  "fixes_round_1_log_sha256": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
+  "fixes_round_2_journal_growth": {
+    "delete": 0,
+    "free_change": 0,
+    "move": 0,
+    "send": 0,
+    "send_25mib": 0
+  },
+  "fixes_round_3_journal_growth": {
+    "delete": 0,
+    "free_change": 0,
+    "move": 0,
+    "send": 0,
+    "send_25mib": 0
+  },
+  "fixes_round_3_log_sha256": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
+  "fold_extra_records_in_five_samples": {
+    "delete": 0,
+    "free_change": 0,
+    "move": 0,
+    "send": 0,
+    "send_25mib": 0
+  },
+  "fold_gate": {
+    "comparison": "strictly under 1000 bytes above fda0d164 for both ordinary send and permanent delete",
+    "delete_growth": 0,
+    "limit_bytes": 1000,
+    "passed": true,
+    "send_growth": 0
+  },
+  "fold_source": "e394516adc08c81a05fe1857a8f4c0eaadccc3bf (fold including public RENAME audit preservation; all five samples repeated)",
+  "folded_into": {
+    "DELETE, Trash MOVE, permanent STORE": "submitting; next batch member context on preceding target stage",
+    "HTTPS POST": "https_post=attempting stage",
+    "Mail answered STORE": "preceding sent_copy stage, or repair submitting",
+    "RENAME": "existing rename intent after its identity reads",
+    "SMTP DATA": "smtp_data=attempting stage",
+    "Sent APPEND (send and repair)": "Sent APPEND attempt started, with the repair context on the repair identity",
+    "filing MOVE/COPY": "existing per-command started write",
+    "free CREATE and first flag STORE": "existing starting change intent; live changes still require a replacement commit",
+    "onboarding CREATE": "probe configuration and new free intent in one transaction",
+    "permanent EXPUNGE": "marked stage before exact UID EXPUNGE",
+    "test-app LOCAL_STAGE": "last recipient result, then preceding local-stage result",
+    "test-app RECEIVE/DELETE/repair": "submitting; identical set context covers the batch"
+  },
+  "harness_sha256": "8a0a0df02cfeba2f2d6e907a3150252f56150880ba75a28b3fc64fbb06642763",
+  "journal_record_definition": "journal_records counts format-2 fence records (one per transaction). Each has one separate commit marker in every completed sample; physical JSONL lines are twice this count. Byte counts include both.",
+  "logs": {
+    ".work/19b-fold/storage-audit-fix.txt": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
+    ".work/19b-fold/storage-before.txt": "513d149331d60cbb987cff90b2e4ed34356ccd22b26de1606c34af4a18acf336",
+    ".work/19b-fold/storage-final.txt": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
+    ".work/19b-fold/storage-part-b.txt": "ea0b1a1d366c5c05466b85fde600c4060c968c4c85c66d679559a45d62cb93f2",
+    ".work/19b-fold/storage-records.txt": "10e1d9270d90aeeba25a2c6f91414ae15d76bf3055cedfe00cf87337760eb0c5",
+    ".work/19b-s2-fixes-2/storage-final.txt": "d115662b1a98024c1da0c9699221f4960e03f3dfeff83106bf6d5b271c232230",
+    ".work/19b-s2/storage-after-final.txt": "ea0b1a1d366c5c05466b85fde600c4060c968c4c85c66d679559a45d62cb93f2",
+    ".work/19b-s2/storage-after.txt": "ea0b1a1d366c5c05466b85fde600c4060c968c4c85c66d679559a45d62cb93f2",
+    ".work/19b-s2/storage-before.txt": "513d149331d60cbb987cff90b2e4ed34356ccd22b26de1606c34af4a18acf336"
+  },
+  "measurement": "Synthetic ordinary Mail send, MOVE, permanent delete and CREATE; includes compose/prepare, excludes caller import; direct dispatch; one Sent copy; 25 MiB binary caller attachment. SQLite file growth is page allocation, SQLite event bytes are canonical complete committed events, permanent journal includes fences and markers. The disposable index allocates no additional pages in these samples. Stage 3 projection is not built (zero bytes).",
+  "record_retention_reasons": {
+    "delete (5)": "Reservation; submitting with STORE context; marked stage with EXPUNGE context; target result; final outcome.",
+    "free_change (2)": "Generic started intent with CREATE context; completion.",
+    "move (6)": "Generic start; filing intent; per-command started fence; post-command evidence; filing completion; generic completion. All predate stage 2.",
+    "send (14)": "Composition; reservation; submitting; message_id, wire_sha256, recipient RCPT, smtp_data attempting, smtp_data accepted, recipient result stages; Sent APPEND attempt start/end; sent_copy and answered_flag stages; final outcome. Each retains its original durability/lifecycle role. The 25 MiB sample has the same records."
+  },
+  "retained_separate_context_records": [
+    {
+      "path": "draft APPEND",
+      "reason": "Exact generated draft Message-ID and MIME hash become available after the generic starting intent; no existing intervening commit precedes APPEND."
+    },
+    {
+      "path": "onboarding probe APPEND",
+      "reason": "The probe message and its hash are generated after CREATE completion; no existing intervening commit precedes APPEND. Its own new free identity and completion remain required."
+    },
+    {
+      "path": "test-app free CONFIGURE and LOCAL_FLAG",
+      "reason": "No pre-effect write exists; the context intent must precede receiver configuration or the local-item write. LOCAL_FLAG closes its intent in that existing item write; CONFIGURE needs its separate completion."
+    },
+    {
+      "path": "live context changes and additional flag variants",
+      "reason": "A later role/identity/source change, or another flags command without an intervening existing write, needs a replacement context commit before dispatch. Equality reuse never accepts changed input."
+    }
+  ]
+}

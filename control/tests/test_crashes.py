@@ -101,22 +101,24 @@ class Crashes(EngineCase):
     def test_backup_before_first_restart_at_every_send_write(self):
         # The same durability points occur in submission, each recipient/local
         # stage and the final outcome, so target each occurrence explicitly.
-        writes = ("submission", "alpha", "beta", "hidden", "sent_copy", "answered_flag", "outcome")
-        for occurrence, write in enumerate(writes, 1):
+        writes = (("submission+receive", 0), ("alpha", 1), ("beta", 2),
+                  ("hidden+sent_copy_context", 3), ("sent_copy+answered_context", 3),
+                  ("answered_flag", 3), ("outcome", 3))
+        for occurrence, (write, arrivals) in enumerate(writes, 1):
             for point in ("journal_appended", "sqlite_prepared", "sqlite_committed", "journal_committed"):
                 with self.subTest(write=write, point=point), self.fresh_store():
                     approval = self.reserve(subject="Send write " + write)
                     self.kill_at(point, "send", approval, occurrence, restore_backup=True)
                     self.check_backup_recovery([approval["operation_id"]])
                     before = self.engine.receiver.evidence(approval["operation_id"])["arrivals"]
-                    self.assertEqual(len(before), min(occurrence - 1, 3))
+                    self.assertEqual(len(before), arrivals)
                     self.assertFalse(self.call("testapp_send", approval)["ok"])
                     self.restart()
                     self.assertFalse(self.call("testapp_send", approval)["ok"])
                     self.assertEqual(self.engine.receiver.evidence(approval["operation_id"])["arrivals"], before)
 
     def test_backup_before_first_restart_at_every_delete_write(self):
-        writes = ("submission", "delete:1", "stage:1", "delete:2", "stage:2", "outcome")
+        writes = ("submission+delete_context", "delete:1", "stage:1", "delete:2", "stage:2", "outcome")
         for occurrence, write in enumerate(writes, 1):
             for point in ("journal_appended", "sqlite_prepared", "sqlite_committed", "journal_committed"):
                 with self.subTest(write=write, point=point), self.fresh_store():
@@ -131,7 +133,7 @@ class Crashes(EngineCase):
                     self.assertEqual(self.engine.store.get("testapp")["items"], items)
 
     def test_backup_before_first_restart_at_every_repair_write(self):
-        for occurrence, write in enumerate(("reservation", "submission", "outcome"), 1):
+        for occurrence, write in enumerate(("reservation", "submission+context", "outcome"), 1):
             for point in ("journal_appended", "sqlite_prepared", "sqlite_committed", "journal_committed"):
                 with self.subTest(write=write, point=point), self.fresh_store():
                     self.configure("sent_copy")

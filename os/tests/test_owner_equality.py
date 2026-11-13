@@ -14,22 +14,35 @@ OWNER_PAGES = ('INSTALL.md', 'INSTALL-PROCEDURES.md', 'INSTALL-REFERENCE.md',
                'INSTALL-RECORD.md', 'EMERGENCY.md', 'INSTALL-STATUS.md')
 
 
+PENDING = ROOT/'os/manifest/ci/16/pending-rebind.json'
+
+
 def fingerprint_documents():
     documents={name:(ROOT/'docs'/name).read_text() for name in OWNER_PAGES}
-    # Reports explicitly retain historical receipts below their current delta.
-    # Check the live sections without rewriting those superseded fingerprints.
-    for package,boundary in (('14-owner-tools','## 14zze '),('15-owner-path','## 15c ')):
-        documents[package+' current report']=(ROOT/'reviews'/package/'REPORT.md').read_text().split(boundary,1)[0]
+    # Reports retain historical receipts. Each tools change replaces the
+    # fingerprint the earlier reports gave (packages 14, 15, 15f, then 22), so
+    # those stay history, not rewritten; only the package 27 report is current.
+    documents['27 current report']=(ROOT/'reviews/27-first-update-release/REPORT.md').read_text()
     return documents
 
 
+def unwalked_commands():
+    """Owner commands added after the package 16 walk, typed by no rehearsal yet.
+
+    Package 22's update commands need a newer signed release, which does not
+    exist yet; the release package's rehearsal types them and empties this list.
+    """
+    return set(json.loads(PENDING.read_text()).get('unwalked_commands', []))
+
+
 def check_bootstrap(guide, commands):
-    """The literal owner block is exactly what package 14's tamper tests run."""
+    """Both literal owner blocks (step 4 and the update route) are exactly what
+    package 14's tamper tests run."""
     fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')
     expected=common.module('bootstrap').command(fingerprint).encode('utf-8')
     blocks=re.findall(rb'```bash\n(.*?)\n```',guide,re.S)
     copies=[block for block in blocks if block.startswith(b'sudo bash -c ')]
-    if copies != [expected] or commands['install'].encode('utf-8') != expected or len(expected.splitlines()) != 13:
+    if copies != [expected, expected] or commands['install'].encode('utf-8') != expected or len(expected.splitlines()) != 13:
         raise AssertionError('Trusted bootstrap differs from the tested 13-line block')
 
 
@@ -41,7 +54,7 @@ def check_fingerprints(documents, fingerprint):
     Historical package-14 receipts stay superseded, not rewritten.
     """
     pins=set()
-    for name in ('installer-isos.json','media-tools.json','release.json','ci/11n/b-1/release.json'):
+    for name in ('installer-isos.json','media-tools.json','release.json','releases/13.json','ci/11n/b-1/release.json'):
         pins.update(re.findall(r'\b[0-9a-f]{64}\b',(ROOT/'os/manifest'/name).read_text()))
     seen=False
     for page,text in documents.items():
@@ -121,8 +134,17 @@ class EqualityTest(unittest.TestCase):
                              (b'sha256sum -c --strict SHA256SUMS',b'true'),
                              (b'bash ./at install',b'bash ./at install ')):
             self.assertIn(before,guide)
-            with self.subTest(mutation=before), self.assertRaisesRegex(AssertionError,'Trusted bootstrap differs'):
-                check_bootstrap(guide.replace(before,after,1),commands)
+            # Mutate the step 4 copy, then the update route's copy.
+            parts = guide.split(before)
+            self.assertEqual(len(parts), 3)
+            for changed in (parts[0] + after + parts[1] + before + parts[2],
+                            parts[0] + before + parts[1] + after + parts[2]):
+                with self.subTest(mutation=before, copy=changed.index(after)), self.assertRaisesRegex(AssertionError,'Trusted bootstrap differs'):
+                    check_bootstrap(changed,commands)
+        block = b'```bash\n' + commands['install'].encode('utf-8') + b'\n```'
+        self.assertEqual(guide.count(block), 2)
+        with self.assertRaisesRegex(AssertionError,'Trusted bootstrap differs'):
+            check_bootstrap(guide.replace(block, b'', 1), commands)
 
     def test_extra_stale_fingerprint_is_rejected_in_every_owner_page(self):
         fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')
@@ -146,17 +168,27 @@ class EqualityTest(unittest.TestCase):
     def test_every_owner_command_equals_the_command_physically_typed_by_ci(self):
         commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
         result=walk.walk()
-        typed={text.rstrip('\n') for text,profile in result['visible_blocks']}
+        # Package 27's update route types update and previous on top of the qualification.
+        update=walk.walk(route='update')
+        typed={text.rstrip('\n') for text,profile in result['visible_blocks']+update['visible_blocks']}
         guide='\n'.join((ROOT/name).read_text() for name in
             ('docs/INSTALL.md', 'docs/INSTALL-PROCEDURES.md'))
-        for command in commands.values():
-            self.assertIn(command, typed)
+        waiting=unwalked_commands()
+        self.assertTrue(waiting <= set(commands), waiting)
+        for name, command in commands.items():
             self.assertIn(command, guide)
+            # A waiting command must not already be typed, so the list empties
+            # as soon as a rehearsal walks it; every other one must be typed.
+            if name in waiting:
+                self.assertNotIn(command, typed)
+            else:
+                self.assertIn(command, typed)
         allowed=set(commands.values())
         for block in re.findall(r'```bash\n(.*?)\n```',guide,re.S):
             if block not in allowed:
                 for line in block.splitlines(): self.assertIn(line, allowed)
-        self.assertEqual(sum(text.rstrip('\n')==commands['install'] for text,profile in result['visible_blocks']),1)
+        for run in (result, update):
+            self.assertEqual(sum(text.rstrip('\n')==commands['install'] for text,profile in run['visible_blocks']),1)
         self.assertIn('layout-reset-trial-QMP-system-reset',result['checks'])
         self.assertIn(commands['layout-abandon'],typed)
         for name in OWNER_PAGES:

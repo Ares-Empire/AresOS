@@ -6,6 +6,7 @@ import sqlite3
 import time
 import uuid
 
+from .action_context import action_scope, fold_context
 from . import retention
 from .adapters import NothingLeft, Uncertain
 from .blobs import Blobs
@@ -251,14 +252,16 @@ class Engine:
         approval = approval_input(op_id, {**description, "expires_at": expires}, question)
         op = {"id": op_id, "generation": self.store.generation, "app": app, "action": app + "_" + verb,
               "input_hash": digest(approval), "approval": approval, "payload": payload, "state": "reserved",
-              "expires": expires, "stages": {}, "reason": "Awaiting exact approval; nothing submitted."}
+              "expires": expires, "stages": {}, "context_version": 1, "reason": "Awaiting exact approval; nothing submitted."}
+        if app == 'mail':
+            op['roles_before'] = self.adapters[app].preparation_roles(payload)
         if app == 'mail' and payload.get('composition'):
             op['sent_copy_check'] = {'state': 'open'}
         self.store.write({"op:" + op_id: op}, op["action"], "reserved " + op["action"], op_id)
         self.store.checkpoint("reserved")
         return {"approval": approval, "state": "reserved"}
 
-    def stage(self, op_id, name, outcome):
+    def stage(self, op_id, name, outcome, context=None):
         op = self.operation(op_id)
         if op["app"] == "mail":
             outcome = self.adapters["mail"].stage_outcome(op, name, outcome)
@@ -270,11 +273,14 @@ class Engine:
             from .warnings import check_result
             check_result(self.store, op, 'op:' + op_id, 'sent_copies', [])
         self.store.observations.stage(op_id, name, outcome)
+        changes = {"op:" + op_id: op}
+        if context is not None:
+            changes = fold_context(self.store, context, changes)
         if op["app"] in {"mail","chrome"}:
-            self.store.write({"op:" + op_id: op}, op["action"], op['app'].capitalize()+" operation stage recorded", op_id,
+            self.store.write(changes, op["action"], op['app'].capitalize()+" operation stage recorded", op_id,
                              untrusted_content={"stage": name, "outcome": outcome})
         else:
-            self.store.write({"op:" + op_id: op}, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
+            self.store.write(changes, op["action"], "stage " + visible(name) + ": " + outcome, op_id)
         self.store.checkpoint("stage:" + name)
 
     def submit(self, action, args):
@@ -293,6 +299,12 @@ class Engine:
             self.adapters[op["app"]].drop(op)
             return {"operation": self.public_operation(op)}
         adapter = self.adapters[action.app]
+        if action.trusted_send:
+            check = getattr(adapter, 'require_trusted_send', None)
+            if check is None:
+                raise Refused('permission_denied', 'No owner-only trusted-send entry checker is installed.')
+            if check(action.verb, op) is not True:
+                raise Refused('permission_denied', 'No matching owner-only trusted-send entry.')
         replacement = adapter.revalidate(op)
         if isinstance(replacement, dict):
             return replacement
@@ -314,11 +326,16 @@ class Engine:
         op["state"], op["reason"] = "submitting", "Durably submitting; do not cancel or retry."
         if action.app == 'mail' and op.get('payload', {}).get('composition'):
             op['sent_copy_check'] = {'state': 'open'}
+        with action_scope(self.store, action.name, args, "op:" + op["id"]):
+            value = adapter.submission_context(op)
+        if value is not None:
+            op.update(context=value, context_version=1)
         self.store.write({"op:" + op["id"]: op}, action.name, "submitting", op["id"])
         self.store.checkpoint("submitting")
         replacement = None
         try:
-            state, reason = adapter.execute(op, lambda name, outcome: self.stage(op["id"], name, outcome))
+            with action_scope(self.store, action.name, args, "op:" + op["id"]):
+                state, reason = adapter.execute(op, lambda name, outcome, **kw: self.stage(op["id"], name, outcome, **kw))
         except NothingLeft as exc:
             self.store.observations.storage(exc.__cause__ or exc)
             state, reason = "failed", "Submission stopped before delivery; no mail submitted." if action.app == "mail" else str(exc)
@@ -340,7 +357,7 @@ class Engine:
 
     def public_operation(self, op):
         result = {k: v for k, v in op.items() if k not in
-                  {'payload', 'input_hash', 'attempt_ended_at', 'repair_identity_missing',
+                  {'payload', 'input_hash', 'context', 'context_version', 'roles_before', 'attempt_ended_at', 'repair_identity_missing',
                    'sent_append_started_at', 'sent_append_ended_at', 'sent_copy_check', 'warning_checks'} and v is not None}
         if op.get('app')=='chrome':
             result['stages']={name:value if isinstance(value,dict) and set(value)=={'untrusted_content'}
@@ -459,12 +476,17 @@ class Engine:
         repair = {"id": op_id, "generation": self.store.generation, "app": app, "action": app + "_operation_repair",
                   "approval": approval, "input_hash": digest(args), "payload": args,
                   "state": "reserved", "stages": {}, "reason": "Reserved local repair only.", "expires": time.time() + self.ttl,
-                  "repair_of": old["id"]}
+                  "repair_of": old["id"], "context_version": 1, "roles_before": old.get("roles_before", {})}
         self.store.write({"op:" + op_id: repair}, repair["action"], "reserved local repair of " + old["id"], op_id)
         repair.update(state="submitting", reason="Repairing local stage only.")
+        with action_scope(self.store, repair["action"], args, "op:" + op_id):
+            value = self.adapters[app].submission_context(repair)
+        if value is not None:
+            repair.update(context=value, context_version=1)
         self.store.write({"op:" + op_id: repair}, repair["action"], "local repair of " + old["id"], op_id)
         try:
-            result = self.adapters[app].repair(old, args["stage"])
+            with action_scope(self.store, repair["action"], args, "op:" + op_id):
+                result = self.adapters[app].repair(old, args["stage"])
             self.store.observations.stage(old['id'], args['stage'], result)
             old = self.operation(old['id'], app)
             old["stages"][args["stage"]] = result

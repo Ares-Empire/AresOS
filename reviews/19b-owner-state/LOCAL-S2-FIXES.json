@@ -1,0 +1,115 @@
+{
+  "alterations": {
+    "kinds": {
+      "boolean": 47412,
+      "effect": 645508,
+      "key-deletion": 805077,
+      "restore": 1452,
+      "row": 2942,
+      "sequence": 1452,
+      "state": 499851
+    },
+    "scenarios": 94,
+    "slipped": 0,
+    "total": 2003694,
+    "validators": {
+      "alterations": 2003694,
+      "changed": 14904,
+      "coherent": 257524,
+      "completion_errors.changed": 1329,
+      "completion_errors.own_catches": 2395,
+      "filing_claims.changed": 90,
+      "filing_claims.own_catches": 1054,
+      "local.errors.changed": 1170,
+      "local.errors.own_catches": 1544,
+      "payload_claims.changed": 24,
+      "payload_claims.own_catches": 59821,
+      "script_differences.changed": 647,
+      "script_differences.own_catches": 5380,
+      "stage_claims.changed": 1415,
+      "stage_claims.own_catches": 50082,
+      "transition.changed": 3588,
+      "transition.own_catches": 12134
+    }
+  },
+  "logs": [
+    {
+      "file": ".work/19b-s2-fixes/self-latest144.txt",
+      "sha256": "4d8637ee01f19e128b4a4b918e0acc0be23e38d8a44e1c184d9ce501f7b4e69d",
+      "source": "ad9d6d5903bc7519d271d46dbaffed2091675fb1",
+      "tests": [
+        [
+          "144",
+          "0.403"
+        ]
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes/focused-last26.txt",
+      "sha256": "500da4694213d409f373d7c6dc977ffa2e5ad0503a7005dcfb828fddcbdfabe2",
+      "source": "ad9d6d5903bc7519d271d46dbaffed2091675fb1",
+      "tests": [
+        [
+          "26",
+          "461.195"
+        ]
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes/all-last-0.txt",
+      "sha256": "8b28e04fdda863172fd84deac18cfa923606ea3cb0254fdb50d6292ca4d281ea",
+      "source": "ad9d6d5903bc7519d271d46dbaffed2091675fb1",
+      "tests": [
+        [
+          "1",
+          "1261.398"
+        ]
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes/all-last-1.txt",
+      "sha256": "1df795a0207acdc0437eb4e6e2b978ccd48ff1a0815128e24cb0e9809ea337ab",
+      "source": "ad9d6d5903bc7519d271d46dbaffed2091675fb1",
+      "tests": [
+        [
+          "1",
+          "1699.011"
+        ]
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes/all-last-2.txt",
+      "sha256": "bce60485f85e173ba86cae52333e23a212cd830798433a43093fc286c6a8cbd6",
+      "source": "ad9d6d5903bc7519d271d46dbaffed2091675fb1",
+      "tests": [
+        [
+          "1",
+          "1255.418"
+        ]
+      ]
+    },
+    {
+      "file": ".work/19b-s2-fixes/all-last-3.txt",
+      "sha256": "682948eb5c69c173f37f0659f1ad164e8df90dba700b8dc3a374545d8528d303",
+      "source": "ad9d6d5903bc7519d271d46dbaffed2091675fb1",
+      "tests": [
+        [
+          "1",
+          "682.663"
+        ]
+      ]
+    }
+  ],
+  "note": "All local logs use the same last-source.txt head. Local managed-policy fixture and candidate-gap recording before re-pin; GitHub Linux supplies strict installed/server verification.",
+  "post_capture_test_recorder": {
+    "log": ".work/19b-s2-fixes/mailto-recorder-local.txt",
+    "output": [
+      "Ran 1 test in 0.545s",
+      "OK"
+    ],
+    "scope": "Actual standalone mailto test body, real TLS SMTP, memory IMAP, worktree-local policy and independent-history path fixture. Strict Linux runs use the full real-server setup.",
+    "sha256": "34f8185eebb649cc3783780dbcfcdfbc9c9e1b31d1e642cac70eaaeeb0b66d77",
+    "source": "46f9c1238e6a5415d2ea70519229a226448bf820"
+  },
+  "source": "ad9d6d5903bc7519d271d46dbaffed2091675fb1"
+}

@@ -47,8 +47,8 @@
     "/home/assistant/work/nested/.vscode/tasks.json",
     "/home/assistant/.claude/settings.json",
     "/etc/claude-code/managed-settings.json",
-    "/etc/claude-code/managed-mcp.json",
-    "/opt/aresos-control/launch.py"
+    "/etc/claude-code/CLAUDE.md",
+    "/opt/aresos-control/optional-sandbox.json"
   ],
   "notebooks": [
     "/home/assistant/work/nested/.claude/denied.ipynb",

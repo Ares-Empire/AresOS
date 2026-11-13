@@ -39,6 +39,12 @@ public final class AppInput {
         return true;
     }
 
+    /** Focus moved to or from another window, so the button's release may never arrive here. */
+    public static void reset() {
+        useHeld = false;
+        pendingUsePresses = 0;
+    }
+
     public static void endTick() {
         // Discard clicks vanilla ignored (for example, while using another item or opening a screen).
         pendingUsePresses = 0;

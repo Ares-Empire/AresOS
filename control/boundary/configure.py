@@ -24,11 +24,11 @@ def derive(settings):
 
 
 if __name__ == '__main__':
-    settings = json.loads(Path('/etc/claude-code/managed-settings.json').read_text())
+    settings = json.loads((ROOT / 'optional-sandbox.json').read_text())
     (ROOT / 'sandbox.json').write_text(json.dumps(derive(settings), indent=2) + '\n')
     # SRT 0.0.81 otherwise asks bwrap 0.8 to create missing mandatory-deny
     # mount points after mounting this re-exposed work root read-only. Keep
-    # benign placeholders in the image; the launcher canary detects omissions.
+    # benign placeholders in the image; the hostile checks detect omissions.
     work = Path('/home/assistant/work')
     for name in ['.gitconfig', '.gitmodules', '.bashrc', '.bash_profile',
                  '.zshrc', '.zprofile', '.profile', '.ripgreprc', '.mcp.json']:

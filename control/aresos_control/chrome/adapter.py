@@ -56,6 +56,17 @@ def destination(state):
 class Chrome:
     app = 'chrome'
 
+    def submission_context(self,operation):
+        from ..action_context import context
+        payload=operation['payload'];state=payload['binding']
+        return context(self.store,operation['action'],state['url'],
+            identities=[{'tab':state['tab'],'document':state.get('document'),'control':state.get('control')}],
+            destination=destination(state),arguments={'operation_id':operation['id'],'binding_sha256':digest(state),'input':payload.get('input')},
+            authorization=payload.get('authorization'))
+
+    def require_trusted_send(self,verb,operation):
+        return verb=='submit_trusted' and self.trusted(operation) is True
+
     def __init__(self, engine, build=None, record=None):
         self.engine, self.store, self.blobs = engine, engine.store, engine.blobs
         self.process_session = uuid.uuid4().hex
@@ -785,7 +796,7 @@ class Chrome:
         if verb == 'submit_trusted':
             require_question(args)
             operation = self.engine.operation(args['operation_id'],'chrome')
-            if not self.trusted(operation):
+            if self.require_trusted_send(verb,operation) is not True:
                 raise Refused('refused','No current owner entry covers this exact kind, account and parameters; call chrome_submit to ask.')
             # The trusted decision is checked again immediately before dispatch.
             operation['payload']['authorization']={'route':'owner_rule','entry_id':self.allow_id(operation),'kind_hash':operation['payload']['adapter']['kind_hash']}

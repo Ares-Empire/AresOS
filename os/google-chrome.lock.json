@@ -1,0 +1,11 @@
+{
+  "nevra": "google-chrome-stable-157.0.8103.50-1.x86_64",
+  "url": "https://dl.google.com/linux/chrome/rpm/stable/x86_64/google-chrome-stable-157.0.8103.50-1.x86_64.rpm",
+  "sha256": "e378bf27152d5b0ae612b36aa30d0175509d38ce4115a09e2234bbab0b9bd3e5",
+  "signing_key": {
+    "file": "keys/google-linux-signing-key.pub",
+    "source": "https://dl.google.com/linux/linux_signing_key.pub",
+    "sha256": "54dea5f6c2a26091578cf52a999cebc6b64df478d37ad4dce96376b711e3b27c",
+    "fingerprint": "eb4c1bfd4f042f6dddccec917721f63bd38b4796"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "assertions": 675562,
+  "equal": true,
+  "groups": 1623,
+  "new_bytes": 804042,
+  "new_format": 3,
+  "new_sha256": "2283f4b5a22dc7f27e854a60acb86bf5a96fc532640e0a476d9d6b4fc9465bcb",
+  "old_bytes": 51862908,
+  "old_format": 2,
+  "old_sha256": "5d161a823ba92ac4077e16c38aaa5af3f45d5e1ee3136bdf66df6c38a59ba3bd",
+  "stage_counts": {
+    "2": 44856,
+    "3": 630706
+  }
+}

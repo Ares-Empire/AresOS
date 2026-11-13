@@ -1,4 +1,5 @@
 """Free filing with durable intent and reporting only after role drift."""
+from ..action_context import mutation
 import imaplib
 import re
 import sqlite3
@@ -64,13 +65,22 @@ LOCATION_PAGE_BYTES = 12 * 1024
 
 
 def rename_folder(mail, account, client, source, target, roles_before):
+    # safe_folder enumerates on another connection. A recreated mailbox has a
+    # different UID namespace even when its name and special roles stay equal.
+    if select(client, source['folder']) != source['uidvalidity']:
+        raise Refused('stale_reference', 'Folder changed; inspect it again before renaming.')
     filing_id = uuid.uuid4().hex
     intent = {'id': filing_id, 'source': source['folder'], 'target': target,
               'account': account['id'], 'message_count': len(source['uids']), 'roles_before': roles_before, 'state': 'started'}
     key = 'mail:rename:' + filing_id
-    mail.store.write({key: intent}, 'mail_folder_rename', 'folder rename intent',
+    # Folder identity does not depend on MIME contents or body size.
+    identities = [{'account': account['id'], 'folder': source['folder'],
+                   'uidvalidity': source['uidvalidity'], 'uid': uid} for uid in source['uids']]
+    value = mail.mutation_context(account, 'RENAME', source=source['folder'], destination=target, identities=identities)
+    mail.store.write({key: {**intent, 'context': value, 'context_version': 1}}, 'mail_folder_rename', 'folder rename intent',
                      outcome='started', untrusted_content={'rename': intent})
-    ok(client.rename(quote(source['folder']), quote(target)), 'Rename folder')
+    with mutation(mail.store, value, source_key=key):
+        ok(client.rename(quote(source['folder']), quote(target)), 'Rename folder')
     try:
         listed = folders(client)
         entry = next((f for f in listed if f['name'] == target), None)
@@ -366,9 +376,12 @@ def file_messages(mail, account, client, verb, refs, target, names, needed):
                 changed = True
                 break
             mail.message(source, writable=True, client=client)
+            value = mail.mutation_context(account, verb.upper(), identities=refs, source=source['folder'], destination=target)
+            intent.update(context=value, context_version=1)
             record('started')
             client.response('COPYUID')  # Discard an old response before this one-UID command.
-            ok(client.uid(verb.upper(), str(source['uid']), quote(target)), 'UID ' + verb.upper())
+            with mutation(mail.store, value, source_key=key):
+                ok(client.uid(verb.upper(), str(source['uid']), quote(target)), 'UID ' + verb.upper())
             try:
                 entry['destination'] = copyuid(client, source, target)
             except Uncertain:

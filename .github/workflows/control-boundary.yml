@@ -1,21 +1,25 @@
 name: Control boundary
 on:
   push:
-    branches: ['pkg/18b-control-boundary', main]
+    branches: [main]
     paths:
-      - 'control/boundary/**'
-      - 'control/settings/**'
+      - 'control/**'
       - 'reviews/18b-control-boundary/**'
+      - 'reviews/18d-base-slim/**'
       - '.github/workflows/control-boundary.yml'
   pull_request:
     paths:
-      - 'control/boundary/**'
-      - 'control/settings/**'
+      - 'control/**'
       - 'reviews/18b-control-boundary/**'
+      - 'reviews/18d-base-slim/**'
       - '.github/workflows/control-boundary.yml'
   workflow_dispatch:
 permissions:
   contents: read
+# A newer push to the same pull request cancels the older run. Main keeps its check after each merge.
+concurrency:
+  group: control-boundary-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
   hostile:
     runs-on: ubuntu-24.04
@@ -50,9 +54,6 @@ jobs:
             fi
           done
           exit "$result"
-      - name: Separate coding policy and user
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: bash control/boundary/isolation.sh
       - name: Run identity
         if: always()
         run: |

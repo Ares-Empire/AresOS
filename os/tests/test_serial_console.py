@@ -46,7 +46,9 @@ class SerialTerminalTest(unittest.TestCase):
     def test_queries_split_at_every_socket_boundary(self):
         cases = [(b'\x1b[6n', b'\x1b[24;80R'),
                  (b'\x1b]11;?\x1b\\', b'\x1b]11;rgb:0000/0000/0000\x1b\\'),
-                 (b'\x1b]10;?\x07', b'\x1b]10;rgb:ffff/ffff/ffff\x1b\\')]
+                 (b'\x1b]10;?\x07', b'\x1b]10;rgb:ffff/ffff/ffff\x1b\\'),
+                 # systemd 259's terminfo query (XTGETTCAP "name"); answered "not supported".
+                 (b'\x1bP+q6E616D65\x1b\\', b'\x1bP0+r\x1b\\')]
         for query, reply in cases:
             for split in range(len(query) + 1):
                 with self.subTest(query=query, split=split):
@@ -61,6 +63,25 @@ class SerialTerminalTest(unittest.TestCase):
         replies = b''.join(terminal.feed(bytes([byte])) for byte in output)
         self.assertEqual(replies, (b'\x1b]11;rgb:0000/0000/0000\x1b\\\x1b[24;80R') * 3)
         self.assertEqual(terminal.counts, {'color-11': 3, 'cursor-position': 3})
+
+    def test_systemd_terminfo_query_between_size_probes_is_answered_in_order(self):
+        # As rehearsal runs 6 and 12 logged it: the XTGETTCAP query, then DSR, cursor move, DSR.
+        output = (b'\x1bP+q6E616D65\x1b\\NET: Registered PF_VSOCK protocol family\r\n'
+                  b'\x1b[6n\x1b[32766;32766H\x1b[6n')
+        for split in range(len(output) + 1):
+            with self.subTest(split=split):
+                terminal = TerminalReplies()
+                replies = terminal.feed(output[:split]) + terminal.feed(output[split:])
+                self.assertEqual(replies, b'\x1bP0+r\x1b\\' + b'\x1b[24;80R' * 2)
+                self.assertEqual(terminal.counts, {'terminfo': 1, 'cursor-position': 2})
+
+    def test_several_terminfo_queries_in_one_read_each_get_one_answer(self):
+        terminal = TerminalReplies()
+        replies = terminal.feed(b'\x1bP+q6E616D65\x1b\\\x1b[6n\x1bP+q544e\x1b\\\x1bP+q\x1b\\')
+        self.assertEqual(replies, b'\x1bP0+r\x1b\\\x1b[24;80R\x1bP0+r\x1b\\\x1bP0+r\x1b\\')
+        self.assertEqual(terminal.counts, {'terminfo': 3, 'cursor-position': 1})
+        # Other DCS strings are not queries and get nothing.
+        self.assertEqual(terminal.feed(b'\x1bP$qm\x1b\\\x1bPq#0;2;0;0;0\x1b\\'), b'')
 
     def test_shell_text_and_other_escape_sequences_do_not_receive_input(self):
         terminal = TerminalReplies()

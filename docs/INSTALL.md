@@ -1,8 +1,10 @@
 # Install AresOS on its own SSD
 
-Read on your phone; save the [emergency card](EMERGENCY.md) there. **Start at step 1 and follow the numbered steps in order.** The [current gate/status table](INSTALL-STATUS.md#current-gates) is the only release authority. Follow only its released stage: **A (steps 1–2) is done and was checked on 2026-11-05**; **B (step 3) is released now**; **C (steps 4 onward)** requires checked A and B, a passed native mounted-child check, and the maintainer updating the table. Send each stage's records at its boundary; during C, send each step's record to the maintainer before continuing. Agents do none of those actions.
+Read on your phone; save the [emergency card](EMERGENCY.md) there. **Start at step 1 and follow the numbered steps in order.** The [current gate/status table](INSTALL-STATUS.md#current-gates) is the only release authority. Follow only its released stage: **A (steps 1–2) is done and was checked on 2026-11-05**; **B (step 3) is done and was checked on 2026-11-07**; **C (steps 4 onward) is released now**. Send each stage's records at its boundary; during C, send each step's record to the maintainer before continuing.
 
-This route is for Lenovo LOQ 15IRH8 (82XV), German Windows 11 Home and Crucial P310 500 GB (`CT500P310SSD801`). Crucial is the target; Micron `MTFDKCD512TFK…` 512 GB is **Windows — KEEP**. Expected sizes 465/477 GiB are estimates, never identification. Use model + serial + GUIDs. No C: resizing, shared Windows EFI or Linux mounts/writes on Micron. Ordinary Windows records still write ordinary files. The same-drive route is archived, not a fallback.
+The maintainer (Claude) runs the Windows-side commands itself. Before an impactful action, it explains what changes and what could go wrong, and obtains the owner's OK. Read-only checks need no OK. The owner does F2/F12 and every firmware screen, types every passphrase or token himself, and types the offline Linux commands with a guiding session. Codex does not run disk or boot tools on the real laptop.
+
+This route is for Lenovo LOQ 15IRH8 (82XV), German Windows 11 Home and Crucial P310 500 GB (`CT500P310SSD801`; screens show its model as `CT500P310SSD8`). Crucial is the target; Micron `MTFDKCD512TFK…` 512 GB is **Windows — KEEP**. Expected sizes 465/477 GiB are estimates, never identification. Use model + serial + GUIDs. No C: resizing, shared Windows EFI or Linux mounts/writes on Micron. Ordinary Windows records still write ordinary files. The same-drive route is archived, not a fallback.
 
 Keep a private checklist and [record](INSTALL-RECORD.md) off-device. At each step write its number, time and PASS/FAIL. Every blank or unclear check means **STOP → go to [Help](INSTALL-REFERENCE.md#help)** with that number; resume only at the named return step after resolution. Never photograph passwords, tokens or recovery keys. **Ctrl = Strg**. F12/F2 at power-on have **Fn+F12/Fn+F2** alternatives; [console entry/exit](INSTALL-REFERENCE.md#console) supplies both FnLock cases.
 
@@ -38,13 +40,13 @@ First command normally prints nothing; second must show **Ruhezustand / Schnells
 - [ ] Use the pinned **Bazzite nvidia-open live KDE ISO, no Steam Gaming Mode**, and **Fedora Media Writer Windows x64 5.3.2**. [Download and full-hash checkpoint](INSTALL-REFERENCE.md#media-checksums): compare the complete ISO and writer against both repository pins and fresh publisher checksums. A changed/missing stable file requires maintainer requalification, never a new owner pin. **Return to step 2** here after that checkpoint.
 - [ ] Disconnect recovery/backup devices. Connect only **ARESOS INSTALLER — ERASE OK**. Media Writer: **.iso-Datei auswählen → Weiter → Auswählen...** → checked ISO. Under **Ausgewählte Datei**, check the filename; under **USB-Laufwerk**, match the labelled stick's name/capacity.
 - [ ] **Schreiben** opens **Löschbestätigung**: the entire device will be erased. Recheck the target before its second **Schreiben**. Wrong/unclear target → **Abbrechen**, no write. Expect **<ISO name> erfolgreich geschrieben** after writing/verification → **Fertig**. [Exact warning and cancellation reference](INSTALL-REFERENCE.md#writer-labels); **Return to step 2** here. Safely eject; cancel Windows format prompts.
-- [ ] **F12** (or **Fn+F12**) → UEFI installer USB. Expect Bazzite boot menu then live desktop; do not install. Shut down through the desktop; unplug and return to Windows. Both sticks must boot successfully before fitting.
+- [ ] **F12** (or **Fn+F12**) → UEFI installer USB. Expect Bazzite boot menu then live desktop; do not install. Shut down through the desktop; unplug and return to Windows. A hung shutdown uses the [wait and recovery rule](INSTALL-REFERENCE.md#hung-shutdown-or-restart); **Return to step 2** after resolution. Both sticks must boot successfully before fitting.
 
 **Record:** filenames/versions/full hashes, exact stick identity, erase-dialog cancellation trial and successful boot. **STOP → go to [Help](INSTALL-REFERENCE.md#help)** on any mismatch/error. Return to step 2 after resolution; **End of Stage A: stop here and send your records to the maintainer**. Continue to [step 3](#3-fit-and-identify-both-drives) only after the maintainer has checked A and released B.
 
 ## 3. Fit and identify both drives
 
-**Stage B — released 2026-11-05 after the maintainer checked A.** Owner fitting uses the checkpoint below. At the end, **stop here and send your records to the maintainer**: seating and battery photos, firmware showing both drives, and record B after-fit. Target about **2026-11-09**, the SSD return deadline. Battery warning: qualified repairer first.
+**Stage B — done 2026-11-07; the maintainer checked its records the same day.** Owner fitting uses the checkpoint below. At the end, **stop here and send your records to the maintainer**: seating and battery photos, firmware showing both drives, and record B after-fit. Target about **2026-11-09**, the SSD return deadline. Battery warning: qualified repairer first.
 
 - [ ] Open the [model-specific fitting and battery checkpoint](INSTALL-REFERENCE.md#fitting). **Return to step 3** here only after its entire sequence passes. Battery warning signs require Lenovo/qualified repairer, with no connector work or reconnection. Occupied slot, missing parts, poor seating, resistance, damaged clips or unclear thermal pieces mean stop without powering on. Never use the screw to pull the SSD into place; leave Micron alone.
 - [ ] After closing, reconnect AC. Power on → **F2** (or **Fn+F2**) → **More Settings** → storage/device information. Require **both Micron and Crucial**, model/serial where available; the boot list alone cannot identify an empty SSD. Exit without other changes.
@@ -54,15 +56,22 @@ First command normally prints nothing; second must show **Ruhezustand / Schnells
 
 ## 4. Install and prepare corrected stock
 
-**Stage C — NOT RELEASED:** start only after the maintainer has checked A and B, the native mounted-child check has passed, and the maintainer has updated the [status table](INSTALL-STATUS.md#current-gates) to release C. From here, at the end of **each step, stop here and send your records to the maintainer** before continuing.
+**Stage C — released 2026-11-07** in the [status table](INSTALL-STATUS.md#current-gates), after the maintainer checked A and B and the native mounted-child check passed. From here, at the end of **each step, stop here and send your records to the maintainer** before continuing.
 
-- [ ] AC connected, lid open. **Offline from this live boot until prepare passes:** no Wi-Fi profile or Ethernet. The installer copies network profiles. Disconnect backup/recovery devices. **F12** (or **Fn+F12**) → UEFI installer USB.
-- [ ] Before Konsole: **System Settings → Keyboard → Layouts → Enable** (accessible name **Configure Layouts**) → **Add → German → OK**, German first/active, Global switching if offered → **Apply**. In a text editor physically type `y z / - " $ ä ö ü`; correct every character. Repeat after every live boot. Then open Konsole → [record C](INSTALL-RECORD.md#c-identify-both-drives-in-live-linux). Match Micron to A and Crucial to its label by full identity, never disk number/size alone. Require Micron unchanged/unmounted and Crucial empty (no partitions, signatures, mounts or prior data). **Return to step 4** here with a same-session mapping.
+**Reinstall only after a failed first install, before the tools are installed:** preserve the failure and resolve it with the guiding session (including ruling out layout for a rejected password). If choosing to reinstall, **Return to step 4, box 1** below. On that pass replace only the Crucial-empty check: it must hold **only the failed install's EFI, boot and system partitions, nothing else**, matched to that install's saved plan/records; Micron must still be unchanged/unmounted. Anything else on Crucial, missing evidence or uncertain identity → **STOP → [Help](INSTALL-REFERENCE.md#help)**. Then repeat every box, **Use entire disk** on **Crucial only**. After tools installation or for a later reinstall, this exception does not apply: get Help.
+
+- [ ] Before leaving Windows, have the maintainer save the [printed Micron serial and its link to record A](INSTALL-RECORD.md#windows-printed-serial-checkpoint); **Return to step 4, box 1** with that private reading. AC connected, lid open. **Offline from this live boot until prepare passes:** no Wi-Fi profile or Ethernet. The installer copies network profiles. Disconnect backup/recovery devices. **F12** (or **Fn+F12**) → UEFI installer USB.
+- [ ] Open **Konsole** and type `sudo localectl set-x11-keymap de`. While US is active on the German keyboard: each `-` uses the key labelled **ß** (right of **0**); `y` uses **Z** (between **T** and **U**); space uses the spacebar. No Shift/AltGr; check the displayed command before Enter. Then, in a text editor, physically type `y z / - " $ ä ö ü`. **PASS** only if every character matches; otherwise **STOP → [Help](INSTALL-REFERENCE.md#help)**. System Settings alone did not change live Wayland typing on this laptop. Repeat after every live boot. [Checked key positions](INSTALL-REFERENCE.md#live-keyboard-source).
+
+  Continue with [record C](INSTALL-RECORD.md#live-linux-identification). Match Micron to A using the **printed serial linked to A's EUI-64**, and Crucial to its label, never disk number/size alone. Require Micron unchanged/unmounted and Crucial empty (no partitions, signatures, mounts or prior data), except for the bounded reinstall above. **PASS → [Return to step 4, box 3](#installer-keyboard-and-destination)** with this same-session mapping, without rebooting.
+
+<a id="installer-keyboard-and-destination"></a>
+
 - [ ] Installer **English (United States) → Welcome → Change system keyboard layout**: add German, remove US, **Save**; summary contains only **de**. **Date and time**: automatic timezone off → **Europe → Berlin**.
 - [ ] **Installation method → Change destination**: match current whole-disk path in record C, only Crucial selected → **Use entire disk**. Do not use alongside/reclaim/manual. **Storage configuration**: **Encrypt my data** unchecked for this disposable trial. Personal use/encryption is a later decision.
-- [ ] **Create Account**: **Use local account** checked, administrator access stated. Enter **ares-recovery** as User name first, full name, strong unique passphrase twice. Do not create daily `ares` or enable root. Keep the passphrase securely off-device.
+- [ ] **Create Account**: **Use local account** checked, administrator access stated. Enter **ares-recovery** as User name first, then full name. For **every install**, use a long, unique passphrase made only of **lowercase letters a–x and top-row digits 0–9**; for example, several randomly chosen words joined together, all within that alphabet. No y/z, capitals, spaces, umlauts or punctuation. These allowed characters type the same in US and German. Enter it twice yourself; never send it to the guiding session. Do not create daily `ares` or enable root. Keep the passphrase securely off-device.
 - [ ] **Review and install**: record C installer-plan PASS requires every storage row on Crucial, its own **new EFI at /boot/efi**, boot/system/data, no Micron mount/write/EFI reuse. Join every path to this session's identity map. Save the entire summary privately. Any unclear/shared Windows EFI → **Quit**. Only all PASS permits **Erase data and install**.
-- [ ] On success, reboot/remove installer; press nothing. **Linux is initially default**, including stock's one-time local hardware setup/possible automatic reboot. Stay offline through sign-in as **ares-recovery**, German layout. Unexpected signature/enrollment/error screens → stop.
+- [ ] On success, reboot/remove installer; press nothing. **Linux is initially default**, including stock's one-time local hardware setup/possible automatic reboot. One expected exception: the blue shim **Perform MOK management** menu → select **Continue boot**, Enter; never enroll or change keys. [Screen/source check](INSTALL-REFERENCE.md#mok-screen), then **Return to step 4** here. Any other signature, enrollment or error screen → **STOP → [Help](INSTALL-REFERENCE.md#help)**. Stay offline through sign-in as **ares-recovery**, German layout. Rejected password → Help and the bounded reinstall route above. Hung shutdown/restart → [wait and recovery rule](INSTALL-REFERENCE.md#hung-shutdown-or-restart), then return here only after resolution.
 - [ ] Shut down normally offline, installer absent. **F2** (or **Fn+F2**) → **More Settings → Boot → UEFI**: recorded **Windows Boot Manager first → Save and Exit**. Press nothing; require unattended Windows. Windows remains first thereafter. In Windows plug in only the former installer stick.
 - [ ] Media Writer 5.3.2: **<stick name> wiederherstellen → Weiter** → **Laufwerk <stick name> wiederherstellen**. Recheck identity and the warning that live system/all saved data will be deleted → **Wiederherstellen**. Require **Das Laufwerk wurde erfolgreich wiederhergestellt! → Fertig**. This makes exFAT. [Restore details](INSTALL-REFERENCE.md#writer-labels), then **Return to step 4** here. On error stop; no diskpart/Format/third-stick fallback.
 - [ ] PowerShell 7 in the reviewed repository used for record A; replace `T` with the restored stick's actual D–Z letter checked in Explorer, never C:
@@ -72,8 +81,8 @@ Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
 Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
 ```
 
-Require `PASS tools manifest SHA256 3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` The Windows helper checks both SHA256.json and SHA256SUMS. Safely eject/unplug. Do not use WINDOWS RECOVERY. Run record B **after-bazzite**, both sticks absent; **Return to step 4** here with PASS.
-- [ ] **F12** (or **Fn+F12**) → recorded Linux entry → **ares-recovery** sign-in. [Enter tty3 and become administrator](INSTALL-REFERENCE.md#console); **Return to step 4** here, keeping that session open. Only now insert ARESTOOLS. If text covers the prompt, press Enter. Type this entire 13-line block exactly; the continuation prompt is expected until the final quote:
+Require `PASS tools manifest SHA256 851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` The Windows helper checks both SHA256.json and SHA256SUMS. Safely eject/unplug. Do not use WINDOWS RECOVERY. Run record B **after-bazzite**, both sticks absent; **Return to step 4** here with PASS.
+- [ ] **F12** (or **Fn+F12**) → **Bazzite** (the installer's recorded Linux entry; [step 8 explains Fedora](#8-everyday-boot-and-recovery)) → **ares-recovery** sign-in. [Enter tty3 and become administrator](INSTALL-REFERENCE.md#console); **Return to step 4** here, keeping that session open. Only now insert ARESTOOLS. If text covers the prompt, press Enter. Type this entire 13-line block exactly; the continuation prompt is expected until the final quote:
 
 ```bash
 sudo bash -c 'set -euo pipefail
@@ -83,7 +92,7 @@ p=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir "$p/m"
 mount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS "$p/m"; trap "umount $p/m" EXIT
 cd "$p"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools
 test -z "$(find . ! -type d ! -type f -print -quit)"
-echo "3e2c78ebedf7789b0616e7a4f21ad791d76784667344e76e97a1fbd95115a6fd  SHA256SUMS" | sha256sum -c --strict
+echo "851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33  SHA256SUMS" | sha256sum -c --strict
 cmp -s \
   <(find . -type f -printf "%P\n" | sort) \
   <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
@@ -91,7 +100,7 @@ sha256sum -c --strict SHA256SUMS
 bash ./at install'
 ```
 
-The trusted system tools copy into a fresh private directory and check the literal SHA256SUMS fingerprint, exact file list and every hash **before any stick code executes**. Require `SHA256SUMS: OK` and every listed file's OK result before the serial prompts. Enter photographed Crucial serial and record A's Micron serial; require `PASS install` and the same fingerprint. It stages root-only shared tools and publishes atomically; the bootstrap unmounts even on STOP. After an interruption, preserve the screen and [export/get help](EMERGENCY.md#a-tools-command-stopped). Only after help resolves it, **Return to step 4** and repeat this exact block: installation resumes only an exactly matching interrupted operation. Never delete a partial installation/journal or try another mount path.
+The trusted system tools copy into a fresh private directory and check the literal SHA256SUMS fingerprint, exact file list and every hash **before any stick code executes**. Require `SHA256SUMS: OK` and every listed file's OK result before the serial prompts. Enter the **printed label serial** for Crucial. At **Windows baseline Micron serial**, enter the **printed Micron serial**: on Windows read `(Get-PhysicalDisk | Where-Object FriendlyName -like 'Micron*').AdapterSerialNumber`, take the part before `_`, trimmed. Record C first ties that device to record A by **SerialNumber = Disk.Serial** (the EUI-64) and the matching disk GUID; do not enter the EUI-64 here. Require `PASS install` and the same fingerprint. It stages root-only shared tools and publishes atomically; the bootstrap unmounts even on STOP. After an interruption, preserve the screen and [export/get help](EMERGENCY.md#a-tools-command-stopped). Only after help resolves it, **Return to step 4** and repeat this exact block: installation resumes only an exactly matching interrupted operation. In the same root shell you may recall the block with Up instead of retyping: display it first, compare all 13 lines and especially **line 8** with this guide before Enter. Never delete a partial installation/journal or try another mount path.
 
 ```bash
 sudo /var/lib/ares/at prepare
@@ -119,7 +128,7 @@ sudo /var/lib/ares/at reboot
 ```
 
 Require `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear on restart). **Press nothing:** Windows must start unattended, without USB. Then direct **F12** (or **Fn+F12**) → Windows and [record B](INSTALL-RECORD.md#b-compare-windows-after-each-stage), stage **after-bazzite**. Require `PASS: Administrator terminal.` and `PASS: Windows disk identity, all partition GUIDs/types/boundaries and original Windows boot target match.` Copy records off-device. ARESTOOLS may be inserted in running Windows just to copy exports; eject/unplug before comparisons/restart. **Return to step 5** here.
-- [ ] **F12** (or **Fn+F12**) → recorded Linux → stock greeter → **ares-recovery**, German password. [Fresh tty3 login → sudo -i](INSTALL-REFERENCE.md#console), then **Return to step 5** here:
+- [ ] **F12** (or **Fn+F12**) → **Bazzite** → stock greeter → **ares-recovery**, German password. [Fresh tty3 login → sudo -i](INSTALL-REFERENCE.md#console), then **Return to step 5** here:
 
 ```bash
 sudo /var/lib/ares/at check
@@ -144,7 +153,7 @@ sudo /var/lib/ares/at verify
 ```
 
 At prompts enter GitHub username and the approved unexpired **read:packages-only** token, **only at the hidden token prompt**. Record its identifying note/expiry privately for retirement, never the secret. Require `PASS login` and `PASS verify` for the exact release/signature:
-`ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb`.
+`ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c`.
 Credentials are root-owned mode0600 in `/etc/ostree/auth.json`; no token in commands/photos/chat/records. Failed checks → help, never public-image/signature bypass.
 - [ ] Step 5 marker still valid, verify PASS:
 
@@ -165,13 +174,13 @@ Require `PASS switch`, `PASS title`, exact signed staged release and saved corre
 sudo /var/lib/ares/at reboot
 ```
 
-Expect `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear). **F12** (or **Fn+F12**) → recorded Linux. A failed first boot means **F12 → Windows → help**, never a guessed GRUB title. Successful boot → [step 7](#7-check-the-first-aresos-session).
+Expect `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear). **Wait for shutdown finalization**; a hang uses the [10-minute rule](INSTALL-REFERENCE.md#hung-shutdown-or-restart), never an immediate power hold. **F12** (or **Fn+F12**) → **Bazzite**. A failed first boot, including stock returning instead of AresOS, means **F12 → Windows → help**, never a guessed GRUB title or repeated switch. Successful boot → [step 7](#7-check-the-first-aresos-session).
 
 **Record:** token note/expiry only, signature/digest PASS, staged identity/title/time. **STOP → go to [Help](INSTALL-REFERENCE.md#help)**. Return to step 6 only with step 5 proof rechecked; permanently abandoning → [step 9](#9-retire-access-and-return-to-windows).
 
 ## 7. Check the first AresOS session
 
-- [ ] Expect **labwc and foot**, no Minecraft yet. Enter [tty3 as ares-recovery → sudo -i](INSTALL-REFERENCE.md#console) using German; **Return to step 7** here:
+- [ ] Expect **labwc and foot**, no Minecraft yet. Stock KDE returning after the switch → **STOP → [Help](INSTALL-REFERENCE.md#help)**, even if a check prints PASS; that does not prove AresOS booted. Enter [tty3 as ares-recovery → sudo -i](INSTALL-REFERENCE.md#console) using German; **Return to step 7** here:
 
 ```bash
 sudo /var/lib/ares/at check
@@ -180,8 +189,8 @@ sudo /var/lib/ares/at records
 ```
 
 Require all PASS: exact AresOS + corrected pinned stock final pair, no surviving old serial or retained keymap overrides, daily `ares` UID1001/no wheel and running labwc/foot. Save refreshed stock title before trusting recovery; staged title is now INVALID. Prove console `yz-/!ü` and fresh password sudo as step 5; return to desktop using the console-exit instructions. Test the same public text in foot without executing it.
-- [ ] Stay on AC, lid open. Check RTX4060 with `nvidia-smi`, display/brightness, audible sound, network after reboot and touchpad. Test **Super+Ctrl+Escape (Ctrl = Strg)**, fresh recovery login/logout/desktop return. For restarts: recovery account → `sudo /var/lib/ares/at reboot`; expect `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear), all sticks absent → **F12** (or **Fn+F12**) → Linux. Require a second Linux boot.
-- [ ] Log out the recovery console to its login prompt. From the desktop briefly press physical power; require clean shutdown. Boot Linux again, recovery tty3 → `sudo -i`:
+- [ ] Stay on AC, lid open. Check RTX4060 with `nvidia-smi`, display/brightness, audible sound, network after reboot and touchpad. Test **Super+Ctrl+Escape (Ctrl = Strg)**, fresh recovery login/logout/desktop return. For restarts: recovery account → `sudo /var/lib/ares/at reboot`; expect `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear), all sticks absent → **F12** (or **Fn+F12**) → **Bazzite**. Require a second Linux boot. Hung shutdown/restart → [wait and recovery rule](INSTALL-REFERENCE.md#hung-shutdown-or-restart), then Return to step 7 after resolution.
+- [ ] Log out the recovery console to its login prompt. From the desktop briefly press physical power; require clean shutdown. Boot **F12 → Bazzite** again, recovery tty3 → `sudo -i`:
 
 ```bash
 sudo /var/lib/ares/at logs
@@ -194,7 +203,7 @@ Require `PASS logs` (collection only); inspect saved previous logind/full journa
 
 ## 8. Everyday boot and recovery
 
-Windows stays default after step 5 (first set during step 4's round trip). **F12** (or **Fn+F12**) picks the recorded Linux entry for one start; its label may remain Fedora/Bazzite. Never make Linux first to avoid this.
+Windows stays default after step 5 (first set during step 4's round trip). **F12** (or **Fn+F12**) picks the recorded Linux entry for one start: **Bazzite**, made by the installer. Lenovo's firmware also lists its own **Fedora** entry for the same Crucial EFI partition and re-adds it at every start, so deleting it does not last; leave it, and the tools accept exactly one such entry beside Bazzite. Never make Linux first to avoid this.
 
 Before changing boot order, stop on these anomalies:
 
@@ -206,9 +215,100 @@ If order changes: repeat step 1's encryption check, **F2** (or **Fn+F2**) → **
 
 Tools stick: insert only after Linux is up and you are signed in; export → SAFE TO REMOVE → unplug before every shutdown/restart. If forgotten at power-on, do not select it; unplug and continue. Text over prompt → Enter. Backup stock keeps **German**, even after a later AresOS layout change.
 
-Later work is outside this installation path: [layout trial](INSTALL-PROCEDURES.md#later-layout), [rollback/keep-stock and recovery menu](INSTALL-PROCEDURES.md#recovery-menu), [optional removal/erasure](INSTALL-PROCEDURES.md#optional-removal-or-erasure). Each has its own checks and return destination; **Return to step 8** after a completed later procedure. No guessed GRUB positions, firmware resets, TPM clear, entry deletion or boot repair.
+Later work is outside this installation path: [update to a new release](#update-aresos-to-a-new-release), [layout trial](INSTALL-PROCEDURES.md#later-layout), [rollback/keep-stock and recovery menu](INSTALL-PROCEDURES.md#recovery-menu), [optional removal/erasure](INSTALL-PROCEDURES.md#optional-removal-or-erasure). Each has its own checks and return destination; **Return to step 8** after a completed later procedure. No guessed GRUB positions, firmware resets, TPM clear, entry deletion or boot repair.
 
 **Record:** current boot order, latest stock title, future procedure result. **STOP → go to the [symptom card](EMERGENCY.md)**, then [Help](INSTALL-REFERENCE.md#help) if unresolved; return to step 8 after resolution. When permanently leaving AresOS, continue to [step 9](#9-retire-access-and-return-to-windows).
+
+### Update AresOS to a new release
+
+**Update gate: require STEP 5 COMPLETE and a checked running AresOS before authentication or updating.** Use this route only when the maintainer announces a newer release and this guide carries its tools fingerprint. If the marker, step 7's record or the announcement is missing, STOP → [Help](INSTALL-REFERENCE.md#help).
+
+An update keeps Windows the firmware default, the **current AresOS as rollback** and the **corrected stock pinned**. After the first update there are three deployments; the stock rollback, keep-stock, recovery-menu and layout-trial procedures then refuse, and the way back is the **previous** box below or **F12 → Windows → Help**. Run one owner command at a time: a second one STOPs with **Another owner command is running**; let the first finish.
+
+- [ ] **Windows side** (the maintainer runs it): PowerShell 7 in the reviewed repository at the announced release, only ARESTOOLS connected; replace `T` with its actual D–Z letter, never C:. The first line keeps the old bundle under a dated name (skip it on a stick without `ares-tools`):
+
+```powershell
+Rename-Item -LiteralPath T:\ares-tools -NewName ('ares-tools-replaced-' + (Get-Date -Format yyyyMMdd-HHmm))
+Import-Module ./docs/install-tools/OwnerTools.psm1 -Force
+Copy-AresOwnerTools -Source ./os/owner-tools/payload -DriveLetter T
+```
+
+Require `PASS tools manifest SHA256 851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33` and `PASS ARESTOOLS ready; safely eject and unplug before shutdown/restart or record B.` Safely eject and unplug. Another fingerprint or any STOP → **STOP → [Help](INSTALL-REFERENCE.md#help)**; Return to this update route after resolution.
+
+- [ ] **AresOS, tools first:** all sticks absent, **F12** (or **Fn+F12**) → **Bazzite** → AresOS desktop. [Enter tty3 and become administrator](INSTALL-REFERENCE.md#console), then Return to this update route, keeping that session open. Only now insert ARESTOOLS. Type this entire 13-line block exactly, as in step 4; compare **line 8** with this guide before Enter:
+
+```bash
+sudo bash -c 'set -euo pipefail
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin; umask 077
+trap "echo STOP bootstrap: verification or install refused" ERR
+p=$(mktemp -d /run/ares-bootstrap.XXXXXX); mkdir "$p/m"
+mount -o ro,nodev,nosuid,noexec LABEL=ARESTOOLS "$p/m"; trap "umount $p/m" EXIT
+cd "$p"; cp -R --no-preserve=mode,ownership m/ares-tools .; test ! -L ares-tools; cd ares-tools
+test -z "$(find . ! -type d ! -type f -print -quit)"
+echo "851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33  SHA256SUMS" | sha256sum -c --strict
+cmp -s \
+  <(find . -type f -printf "%P\n" | sort) \
+  <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
+sha256sum -c --strict SHA256SUMS
+bash ./at install'
+```
+
+Require `SHA256SUMS: OK`, every listed file's OK and `PASS install` with **Tools updated from version** and the same fingerprint (a repeat says **Tools already installed; nothing changed**). It asks no serials, keeps every record, keeps the replaced tools privately and refuses older tools (a downgrade) with nothing changed. Keep every other console idle: it STOPs while anything uses the installed tools, and for a moment the owner commands are unavailable; a STOP always leaves working tools in place. Any STOP → [A tools command stopped](EMERGENCY.md#a-tools-command-stopped); Return to this update route only after Help.
+
+- [ ] **Stage the new release:**
+
+```bash
+sudo /var/lib/ares/at update
+```
+
+Require `PASS update`, **Signed exact release staged** with the announced release, **Running release stays as rollback** and **pin yes; transaction idle**. Before staging it checks the saved registry login, the signature, identity and digest; a pending deployment, queued rollback, running updater, unfinished layout trial or a release that is not newer STOPs with nothing changed. **If it STOPs with `Registry login missing, expired or unreachable`:** make a new **read:packages-only** token as in step 6 (record its note/expiry privately, never the secret), then:
+
+```bash
+sudo /var/lib/ares/at login
+sudo /var/lib/ares/at update
+```
+
+Enter the username and token **only at the hidden token prompt**; require `PASS login`, then `PASS update`. Any other STOP → **STOP → [Help](INSTALL-REFERENCE.md#help)**; never retry with another target or reboot.
+
+- [ ] **Title and stick:**
+
+```bash
+sudo /var/lib/ares/at title
+sudo /var/lib/ares/at export
+```
+
+Require `PASS title`, `PASS export` and **SAFE TO REMOVE ARESTOOLS**; unplug. Save the new title as **provisional** with its state and time; every older title is INVALID.
+
+- [ ] **Restart into the new release:**
+
+```bash
+sudo /var/lib/ares/at reboot
+```
+
+Require `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear). The update finishes during shutdown: a hang uses the [10-minute rule](INSTALL-REFERENCE.md#hung-shutdown-or-restart), never an immediate power hold. At power-on **F12** (or **Fn+F12**) → **Bazzite**. The new AresOS not starting, or the old one or stock returning → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); never a guessed GRUB title or a repeated update.
+
+- [ ] **Check:** [tty3 → sudo -i](INSTALL-REFERENCE.md#console), then Return to this update route:
+
+```bash
+sudo /var/lib/ares/at check
+sudo /var/lib/ares/at title
+sudo /var/lib/ares/at records
+```
+
+Require `PASS check` with **Update to … confirmed after the restart**, then `PASS title` and `PASS records`: the new release booted, the previous AresOS as rollback, the corrected stock still pinned, labwc and foot running and the daily account exactly as this release's record says. Save the refreshed title; the provisional one is INVALID. Prove console and foot typing of `yz-/!ü` and fresh password sudo as in step 7. A STOP saying the update **did not finish at the restart** (old release running, or still pending) or was **interrupted before its result was recorded** → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); the tools refuse to confirm it, and Help decides each repeat.
+
+- [ ] **Administrator password, once:** on the first update to a release whose announcement says `ares` is an administrator, set its password in this root session with `sudo passwd ares`. Type a long, unique passphrase twice yourself, by the every-install rule: only **lowercase a–x and top-row digits 0–9**, so it types the same in German, US International and US. Require the line ending **updated successfully**. Never photograph, record or send it; keep it private. Then in foot as `ares`, run `sudo -v` and require that password to be accepted.
+
+- [ ] **If the new release misbehaves** but starts: in the tty3 root session:
+
+```bash
+sudo /var/lib/ares/at previous
+sudo /var/lib/ares/at title
+```
+
+Require `PASS previous`, **Previous AresOS queued for the next start** and `PASS title`; save that title, old titles are INVALID. Then `sudo /var/lib/ares/at reboot`, requiring `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`, **F12** (or **Fn+F12**) → **Bazzite**, and repeat the check box: the previous release must be booted and `PASS check` must show **Return to … confirmed after the restart**. Tell the maintainer; the newer release stays beside it until the next update.
+
+**Record:** tools fingerprint, every PASS line, staged and booted release, titles with times, whether the password was set (never the password). **STOP → go to [Help](INSTALL-REFERENCE.md#help)**; Return to this update route after resolution. When the check passes, [Return to step 8](#8-everyday-boot-and-recovery).
 
 ## 9. Retire access and return to Windows
 

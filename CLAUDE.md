@@ -1,7 +1,7 @@
 # AresOS: Claude's operating notes
 
 Read this first every session. Then:
-- `README.md`: the design and phases
+- `docs/design/DESIGN.md`: the design and phases
 - `docs/WORKFLOW.md`: how a change gets built
 - `docs/REVIEW.md`: reviews and councils
 
@@ -15,7 +15,14 @@ The workflow is nametbd's Codex-era workflow (branch `archive/codex-era-workflow
 - **Claude (me):** planner, orchestrator and integrator. I cut the design into small packages, write the briefs, launch Codex, check its work, merge, and keep the docs true.
 - **Codex:** the builder. One headless `codex exec` run per package, in its own git worktree. It builds, tests, and opens a PR. It never merges.
 
-I only build things myself when writing the brief would cost more than doing it (a one-line fix, a config tweak). Anything I build still gets reviewed by a fresh Codex context. I never review my own work.
+**Claude agents may build packages too** (owner, 2026-11-09: "we could work with claude agents too", to use his Claude allowance). They get the same brief, worktree, branch and AGENTS.md rules as Codex. Pick Codex or a Claude agent per package by fit and remaining allowance. Claude agents run on Opus by default. For a hard AresOS task or a problem that resists normal attempts, use Fable 5.2 (owner, 2026-11-09: "in the dev of an own OS I could imagine hard tasks"). Design work (how something looks, feels or is laid out) runs on Fable agents (owner, 2026-11-13: "if you do actual design work use fable agents").
+
+**Reviews (owner, 2026-11-11: "Yes change it").** Every package gets a fresh reviewer that isn't its builder: a fresh Codex context while Codex is available (ChatGPT Pro ends 2026-11-21), otherwise a fresh Claude agent.
+- A Claude reviewer runs on **Opus** by default.
+- Use **Fable 5.2** only for high-stakes reviews: where AresOS adds its own risk (updates and rollback, disks, software installs, credentials, system settings), and for the final review before something reaches the owner's laptop. Fable's allowance is for building.
+- Nobody reviews their own work, me included.
+
+I only build things myself when writing the brief would cost more than doing it (a one-line fix, a config tweak). Anything I build still gets that fresh review.
 
 ## Orienting at session start
 
@@ -29,10 +36,12 @@ I only build things myself when writing the brief would cost more than doing it 
 |---|---|
 | `STATE.md` | Current state, open owner decisions, next steps. Short on purpose. |
 | `HANDOFF.md` | The baton: where the last session stopped, what's running, how to resume. Overwrite it when you pick it up. |
-| `README.md` | What AresOS is: design, game rules, phases, safety rules. |
+| `README.md` | The front page for visitors: what AresOS is, its status, how to build the mod. |
+| `docs/design/DESIGN.md` | The design: game rules, the Nether home, desktop and companion ideas, phases, open questions, safety rules. |
 | `AGENTS.md` | Rules for Codex in every run. |
 | `docs/WORKFLOW.md`, `docs/REVIEW.md` | How a package gets built, reviewed and merged, and how councils run. |
 | `docs/design/OS-BASE.md` | The Linux layer design (council-approved). Long, so read the section you need. |
+| `docs/design/HUB.md` | The home screen, version 1: the flat world, the logos and where they stand, "My apps", short names, and the `aresos-shell/1.1` additions (section 3.8). The hub packages (briefs 32 to 37) build it. |
 | `docs/INSTALL.md` | The owner's install guide for AresOS on its own SSD (briefs 10 and 10b). The same-drive fallback is `docs/INSTALL-SAME-DRIVE.md`. Physical install stays NOT RELEASED until the remaining gates in its "Maintainer release gate" section pass (brief 06's image gate is done). |
 | `docs/EMERGENCY.md` | The owner's one-page "If something goes wrong" card (escape routes back to Windows, recovery, rollback). Keep it in line with INSTALL.md. |
 | `briefs/NN-slug.md` | One frozen task per package. Follow-ups are `NNb`, `NNc`. |
@@ -43,9 +52,11 @@ I only build things myself when writing the brief would cost more than doing it 
 
 **Only one Minecraft client-test run at a time on the laptop.** Two test clients steal each other's window focus, which opens vanilla's pause menu and breaks click-driven tests. Seen 2026-10-22, when brief 10's run collided with my 09 integration gate. Don't start an integration gate while a Codex package is in its client-test phase, and vice versa.
 
+**Memory on the laptop (16 GB).** Gradle needs about 6 GB free, and a full WSL suite 4–5 GB, one suite at a time. Each package uses its own `pkgNN-` script and `/tmp` names. Claude Code may stop background work while memory is low. Restart it once enough memory is free again (owner, 2026-11-10, board #160). First check whether the work actually finished: a stopped review often still wrote its `REVIEW-N.md`.
+
 ## Owner decides (always ask, never assume)
 
-- Anything touching the laptop's disks, partitions or BIOS/boot settings, or installing AresOS onto a drive.
+- Anything touching the laptop's disks, partitions or BIOS/boot settings, or installing AresOS onto a drive. Once he has said yes, Claude may carry it out itself (hard rule 1).
 - Installing system software on Windows (JDK, drivers, tools). Ask once per tool.
 - Spending money: hardware, subscriptions, credits.
 - Publishing an AresOS image (a new release in the package registry) or changing what the laptop installs (the pinned image in `docs/INSTALL.md`). Test images that a CI job builds and throws away (never pushed to a registry, never pinned) need no OK (owner, 2026-11-07).
@@ -58,7 +69,7 @@ I only build things myself when writing the brief would cost more than doing it 
    - AresOS lives on a second internal NVMe SSD in the free M.2 2280 slot (Crucial P310 500 GB).
    - The Windows SSD (Micron 512 GB) is never partitioned, formatted, resized or written to, and Windows' boot files are never modified.
    - Same-drive dual boot stays documented only as a fallback.
-   - Agents never run disk or boot tools on the real laptop.
+   - Claude runs the laptop's disk, boot and terminal steps itself where it can, instead of handing the owner commands to type (owner, 2026-11-08: "If you give me cmds and I run them there's no real diff"). Before a step that could destroy or change something that matters (erasing or writing a drive, partitions, boot order or firmware settings, system software), say in plain words what it does and what could go wrong, and wait for his OK. Read-only checks need no OK. The owner still does what needs his hands or eyes (F2/F12 screens, the Linux side until Claude runs there), and his secrets (passphrases, tokens) stay with him. Codex never runs disk or boot tools on the real laptop.
 2. Never commit Mojang or Supercell assets. Vanilla textures load from the game at runtime.
 3. Never touch the owner's real `.minecraft` folder or Lunar Client unless asked. Development uses the Gradle dev client (`runClient`).
 4. Agents never merge or push to `main`. Only I merge, after the checks in `docs/WORKFLOW.md`.

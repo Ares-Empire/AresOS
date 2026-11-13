@@ -106,7 +106,11 @@ def verify_git(root, rows, ref='HEAD'):
 def active_tables(root):
     """Current qualification, probe and preflight records; history stays intact."""
     root = pathlib.Path(root)
-    staged = root / 'os/manifest/ci/16/source-bindings.json'
+    # The newest VM rehearsal's bindings are current: package 27's once its
+    # rehearsal passed and recorded them, before that package 16's.
+    staged = root / 'os/manifest/ci/27/source-bindings.json'
+    if not staged.exists():
+        staged = root / 'os/manifest/ci/16/source-bindings.json'
     if staged.exists():
         record = json.loads(staged.read_text())
         return [(row['name'],row['sources']) for row in record['tables']]

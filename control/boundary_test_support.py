@@ -13,12 +13,10 @@ def install_boundary(directory):
     directory = Path(directory)
     directory.mkdir(parents=True, exist_ok=True, mode=0o755)
     settings = json.loads((ROOT / 'settings/managed-settings.draft.json').read_text())
-    settings_path, mcp_path = directory / 'managed-settings.json', directory / 'managed-mcp.json'
+    settings_path = directory / 'managed-settings.json'
     settings_path.write_text(json.dumps(settings))
-    mcp_path.write_bytes((ROOT / 'settings/managed-mcp.json').read_bytes())
-    for path in (settings_path, mcp_path):
-        path.chmod(0o644)
-    return {'managed_settings': str(settings_path), 'managed_mcp': str(mcp_path)}
+    settings_path.chmod(0o644)
+    return {'managed_settings': str(settings_path)}
 
 
 _FIXTURES = {}

@@ -26,7 +26,7 @@ trap cleanup EXIT
 docker network create --internal "$network"
 docker run -d --name mail-tests -v "$PWD:/workspace" -w /workspace registry.fedoraproject.org/fedora:45-x86_64@sha256:79dd6556b8fe1a559051fad5159d4987ead218f1914e7a5bd20350d9ea0f9e52 sleep infinity
 # Dependencies and the whole existing suite run before egress is disconnected.
-if [ "$selection" = sweep ]; then
+if [ "$selection" != suite ] && [ "$selection" != all ]; then
   docker exec mail-tests bash control/ci/setup.sh 2>&1 | tee "$work/setup.txt"
 else
   docker exec mail-tests bash control/ci/test.sh 2>&1 | tee "$work/base.txt"
@@ -44,5 +44,5 @@ printf 'Mail fixture isolation PASS: internal network, one test network, no publ
 docker exec -e PYTHONPATH=/workspace/control:/usr/lib/aresos-control/vendor -e PYTHONDONTWRITEBYTECODE=1 -e MAIL_CERT_DIR=/workspace/.work/mail-ci/certs mail-tests python3 control/ci/mail/ready.py
 python3 control/ci/mail/roles_fixture.py "$work" >"$work/roles.txt" 2>&1 &
 roles_pid=$!
-docker exec -e PYTHONPATH=/workspace/control:/usr/lib/aresos-control/vendor -e PYTHONDONTWRITEBYTECODE=1 -e MAIL_CERT_DIR=/workspace/.work/mail-ci/certs  -e MAIL_SWEEP_SHARD="${MAIL_SWEEP_SHARD:-0}" -e MAIL_SWEEP_SHARDS="${MAIL_SWEEP_SHARDS:-1}" mail-tests python3 control/ci/mail/tests.py "$selection" 2>&1 | tee "$work/mail.txt"
+docker exec -e PYTHONPATH=/workspace/control:/usr/lib/aresos-control/vendor -e PYTHONDONTWRITEBYTECODE=1 -e MAIL_CERT_DIR=/workspace/.work/mail-ci/certs  -e MAIL_SWEEP_SHARD="${MAIL_SWEEP_SHARD:-0}" -e MAIL_SWEEP_SHARDS="${MAIL_SWEEP_SHARDS:-1}" -e OWNER_SWEEP_WORKERS="${OWNER_SWEEP_WORKERS:-3}" -e MAIL_FLOW_GROUP="${MAIL_FLOW_GROUP:-0}" -e MAIL_FLOW_GROUPS="${MAIL_FLOW_GROUPS:-1}" -e MAIL_SUITE_SHARD="${MAIL_SUITE_SHARD:-0}" -e MAIL_SUITE_SHARDS="${MAIL_SUITE_SHARDS:-1}" -e OWNER_PERTURB_SHARD="${OWNER_PERTURB_SHARD:-0}" -e OWNER_PERTURB_SHARDS="${OWNER_PERTURB_SHARDS:-1}" mail-tests python3 control/ci/mail/tests.py "$selection" 2>&1 | tee "$work/mail.txt"
 printf 'Control Mail suite PASS\n' | tee -a "$work/mail.txt"

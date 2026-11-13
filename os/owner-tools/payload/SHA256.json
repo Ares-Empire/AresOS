@@ -4,15 +4,19 @@
     "path": "at"
   },
   {
-    "sha256": "e3b548c1e59416ce91c3c50a0971c27a052a766e244bee3e565c3c9c7d45b949",
+    "sha256": "7e81ba50333191eceec69749216ddeae3c9d234c4ca8ccc3d7de652bc1d2d5fd",
+    "path": "history.json"
+  },
+  {
+    "sha256": "148e2ad19c0f31f6d3791cd1ac8a191bdebc9a6286aeb2ce6d5b095115de8c46",
     "path": "media.py"
   },
   {
-    "sha256": "42456d5b99b28af1423bb804f7b6b9824653e7ca89a257bbe99ddcde2e110ea6",
+    "sha256": "0100b73d3cdeef52f4d125e673569a3beb79b843e121e3ce4b0211855015b17f",
     "path": "owner.py"
   },
   {
-    "sha256": "b9383166a21fff6ef961f400d94b51a0c5286d154dfe86cfa528f59dcda6fa6d",
+    "sha256": "975da14646648fb39f219f52f232d4b674180a2a892bf3a91069035bdf1ea45e",
     "path": "release.json"
   },
   {
@@ -26,6 +30,10 @@
   {
     "sha256": "32cc7ff61f5135b924a64ab851c862f0a95cb2e9b71144b6ae244e7aaa89a649",
     "path": "release/pin-stock.sh"
+  },
+  {
+    "sha256": "5da8834d5496751b7222cc9dfb33423ec8287ffce8092c98cfe7f11f018154ec",
+    "path": "release/previous.sh"
   },
   {
     "sha256": "74d6c5a9476d83c569ecbc15ba0ce8a342c5679db87947dab5cd28e2ae28edc8",
@@ -42,6 +50,10 @@
   {
     "sha256": "014af878488ce708de7ebf5e5869021cf2ae7e8ab37d78193111576ddafae945",
     "path": "release/system-keyboard.sh"
+  },
+  {
+    "sha256": "e154ac4bf7cb55571d027e3a6b892c6b5b79474110c07a1a12796e62703e59a6",
+    "path": "release/update.sh"
   },
   {
     "sha256": "55947bd644f9741d613dfd9fc2b88aba6e4465a68747ed25c648e59fe95064a3",

@@ -1,0 +1,375 @@
+"""Stage 1 independent owner-state comparisons at every inherited fault site."""
+from collections import Counter
+from ci.mail.tests import flow_partition
+from contextlib import contextmanager, ExitStack
+import hashlib
+import os
+import shutil
+import tempfile
+import time
+import unittest
+from unittest.mock import patch
+
+from aresos_control.engine import Engine
+from owner_state_oracle.driver import Driver
+from owner_state_oracle.model import Oracle
+from owner_state_oracle.gaps import Gaps, owner, BUCKETS, SUITE_BUCKETS
+from owner_state_oracle.clock import scripted_calendar, recorded_samples
+from owner_state_oracle.identity import scripted_ids, caller_name, caller_directory
+from test_review23_sweep import Scenario
+from storage_faults import OSWrites
+
+FLOWS = ('send', 'repair', 'delete_trash', 'delete_permanent', 'unsubscribe_mailto', 'unsubscribe_https',
+         'status', 'settlement', 'cancel', 'restore', 'attachment_export', 'testapp_export',
+         'password', 'filing_move', 'filing_copy', 'filing_rename', 'expiry', 'maintenance',
+         'restart_index', 'restart_tail', 'export_rollback', 'archive', 'send_duplicate')
+EXTRA = ('draft_append', 'folder_create', 'folder_delete', 'onboarding', 'flag', 'settings', 'folder_review',
+         'testapp_send', 'testapp_delete', 'testapp_config', 'local_flag')
+
+
+def owns_case(case, shard, shards, worker=0, workers=1):
+    parts = case.split('/')
+    point = int(parts[2])
+    if point == 0:
+        return True
+    # Write transactions repeat syscall patterns. Direct point modulo grouped
+    # their expensive rollback/cleanup sites onto the same shard.
+    value = int.from_bytes(hashlib.sha256(f'{parts[0]}/{point}'.encode()).digest()[:8])
+    return value % shards == shard and (value // shards) % workers == worker
+
+
+class OwnerScenario(Scenario):
+    def advance_archive_clock(self):
+        # Age the real commits instead of rewriting their working timestamps
+        # away from the independently committed fence.
+        self.test_clock += 2
+
+    def __init__(self, flow, point=0, mode='single', cleanup=0, phase='live'):
+        try:
+            self._initialize(flow, point, mode, cleanup, phase)
+        except BaseException:
+            try:
+                if hasattr(self, 'stack'):
+                    self.stack.close()
+                if hasattr(self, 'fixture'):
+                    self.fixture.doCleanups()
+            finally:
+                if hasattr(self, 'script_patch'):
+                    self.script_patch.stop()
+                if hasattr(self, 'clock_patches'):
+                    self.clock_patches.close()
+            raise
+
+    def _initialize(self, flow, point, mode, cleanup, phase):
+        if flow in {'attachment_export', 'testapp_export', 'export_rollback'}:
+            name = caller_name(flow, point, mode, cleanup, phase)
+            self.caller_directory = lambda **kwargs: caller_directory(name, self.fixture, **kwargs)
+        self.test_clock = 1794225600.0
+        self.clock_patches = ExitStack()
+        self.clock_patches.enter_context(patch('time.time', side_effect=lambda: self.test_clock))
+        self.clock_patches.enter_context(scripted_calendar())
+        self.clock_patches.enter_context(scripted_ids(flow))
+        self.owner_oracle = Oracle()
+        request = Engine.request
+        def scripted(engine, envelope, *args, **kwargs):
+            from storage_faults import ACTIVE
+            fault = ACTIVE
+            self.test_clock += 0.001
+            clock = time.time()
+            self.owner_oracle.call(envelope.get('action', envelope.get('method')), envelope.get('arguments', {key: value for key, value in envelope.items() if key not in {'v', 'password'}}), clock,
+                {'mode': fault.mode, 'at': fault.fail_at, 'cleanup': fault.cleanup_at} if fault else {})
+            index = len(self.owner_oracle.script) - 1
+            self.owner_oracle.script[index]['parent'] = getattr(self.owner_oracle, 'active_call', None)
+            self.owner_oracle.script[index]['request_method'] = envelope.get('method')
+            observer = getattr(self.owner_oracle, 'response_observer', None)
+            if observer:
+                before = observer.__self__.snapshot()
+                self.owner_oracle.script[index]['start_seq'] = max(before.committed, default=0)
+                self.owner_oracle.script[index]['restore_precondition'] = before.locked
+            try:
+                with recorded_samples(self.owner_oracle, index):
+                    reply = request(engine, envelope, *args, **kwargs)
+            except BaseException:
+                self.owner_oracle.script[index]['reply'] = 'lost'
+                raise
+            self.owner_oracle.script[index].update(reply='delivered', result=reply)
+            observer = getattr(self.owner_oracle, 'response_observer', None)
+            if observer:
+                record = observer.__self__.snapshot()
+                self.owner_oracle.script[index]['end_seq'] = max(record.committed, default=0)
+                if fault:
+                    self.owner_oracle.script[index]['faults']['trace'] = list(fault.failures)
+                    self.owner_oracle.script[index]['faults']['active_exhaustion'] = fault.mode == 'persistent' and fault.failed
+                observer(index, reply)
+            return reply
+        self.script_patch = patch.object(Engine, 'request', side_effect=None, autospec=True)
+        # Use a real function so Engine's descriptor still binds self.
+        self.script_patch = patch.object(Engine, 'request', scripted)
+        self.script_patch.start()
+        super().__init__('fixture' if flow in EXTRA else flow)
+        self.stack.callback(self.script_patch.stop)
+        if flow not in EXTRA:
+            return
+        f = self.fixture
+        self.flow, self.admin = flow, False
+        self.action, self.args = 'mail_accounts', {}
+        def create(name):
+            name = name.strip('"')
+            self.remote['CREATE'] += 1
+            f.imap.boxes[name], f.imap.roles[name], f.imap.validities[name] = {}, [], len(f.imap.validities) + 1
+            return 'OK', [b'Created']
+        def delete(name):
+            name = name.strip('"')
+            self.remote['DELETE'] += 1
+            if f.imap.boxes[name]:
+                return 'NO', [b'[CANNOT] Nonempty DELETE forbidden']
+            for values in (f.imap.boxes, f.imap.roles, f.imap.validities):
+                values.pop(name)
+            return 'OK', [b'Deleted']
+        self.stack.enter_context(patch.object(f.imap, 'create', side_effect=create, create=True))
+        self.stack.enter_context(patch.object(f.imap, 'delete', side_effect=delete, create=True))
+        if flow == 'draft_append':
+            def draft_append(account, folder, raw, flags=None):
+                self.remote['APPEND'] += 1
+                uid = max(f.imap.boxes[folder], default=0) + 1
+                f.imap.boxes[folder][uid] = raw
+                return {'account': account['id'], 'folder': folder, 'uidvalidity': f.imap.validities[folder],
+                        'uid': uid, 'message_id': str(__import__('email.parser', fromlist=['BytesParser']).BytesParser().parsebytes(raw)['Message-ID'])}
+            self.stack.enter_context(patch.object(f.mail, 'append', side_effect=draft_append))
+            self.action, self.args = 'mail_draft_save', f.compose()
+        elif flow == 'folder_create':
+            self.action, self.args = 'mail_folder_create', {'account': 'box', 'name': 'Created'}
+        elif flow == 'folder_delete':
+            self.args = f.approval('folder_delete', {'account': 'box', 'folder': 'Target'})
+            self.operation_id = self.args['operation_id']
+            self.action = 'mail_folder_delete'
+        elif flow == 'onboarding':
+            self.action, self.args, self.admin = 'mail_account_add', {'id': 'new', 'addresses': ['owner@mail.invalid'],
+                'username': 'synthetic', 'imap_host': 'mail.invalid', 'imap_port': 993, 'smtp_host': 'mail.invalid',
+                'smtp_port': 465, 'smtp_tls': 'implicit'}, True
+            class SMTP:
+                esmtp_features = {}
+                def has_extn(self, _): return False
+                def mail(self, *a, **kw): return 250, b'ok'
+                def rcpt(self, *a): return 250, b'ok'
+                def data(self, raw):
+                    self_remote['DATA'] += 1
+                    return 250, b'ok'
+            self_remote = self.remote
+            @contextmanager
+            def smtp(_): yield SMTP()
+            self.stack.enter_context(patch.object(f.mail.transport, 'smtp', side_effect=smtp))
+            def append(account, folder, raw, flags=None):
+                self.remote['APPEND'] += 1
+                uid = max(f.imap.boxes[folder], default=0) + 1
+                f.imap.boxes[folder][uid] = raw
+                return {'account': account['id'], 'folder': folder, 'uidvalidity': f.imap.validities[folder],
+                        'uid': uid, 'message_id': str(__import__('email.parser', fromlist=['BytesParser']).BytesParser().parsebytes(raw)['Message-ID'])}
+            self.stack.enter_context(patch.object(f.mail, 'append', side_effect=append))
+            self.stack.enter_context(patch('aresos_control.mail.onboarding.time.sleep'))
+        elif flow == 'flag':
+            self.action, self.args = 'mail_flag', {'references': [{'account': 'box', 'folder': 'Source',
+                'uidvalidity': f.imap.validities['Source'], 'uid': 1, 'message_id': f.imap.mid}], 'add': ['\\Seen'], 'remove': []}
+        elif flow == 'settings':
+            self.action, self.args, self.admin = 'mail_account_settings', {'id': 'box', 'format': 'plain'}, True
+        elif flow == 'folder_review':
+            review = f.engine.request({'v': 1, 'method': 'call', 'action': 'mail_account_folders', 'arguments': {'id': 'box'}}, True)
+            self.action, self.args, self.admin = 'mail_account_folders', {'id': 'box', 'roles_hash': review['data']['roles_hash']}, True
+        elif flow == 'testapp_config':
+            self.action, self.args, self.admin = 'testapp_fixture_configure', {'refuse': [], 'failure': 'none'}, True
+        elif flow == 'local_flag':
+            reference = f.engine.request({'v': 1, 'method': 'call', 'action': 'testapp_list', 'arguments': {'limit': 1}})['data']['items'][0]['reference']
+            self.action, self.args = 'testapp_flag', {'reference': reference, 'flagged': True}
+        else:
+            verb = flow.removeprefix('testapp_')
+            arguments = {'account': 'fixture', 'to': ['alpha'], 'cc': [], 'bcc': [], 'subject': 'Synthetic', 'text': 'Exact', 'attachments': []}
+            if verb == 'delete':
+                listing = f.engine.request({'v': 1, 'method': 'call', 'action': 'testapp_list', 'arguments': {}})['data']
+                arguments = {'references': [listing['items'][0]['reference']]}
+            approval = f.engine.request({'v': 1, 'method': 'call', 'action': 'testapp_prepare_' + verb, 'arguments': arguments})['data']['approval']
+            self.action, self.args, self.operation_id = 'testapp_' + verb, approval, approval['operation_id']
+
+    def close(self):
+        try:
+            super().close()
+        finally:
+            self.clock_patches.close()
+
+    def call(self):
+        if self.flow == 'onboarding':
+            return self.fixture.engine.request({'v': 1, 'method': 'mail_account_add', 'arguments': self.args,
+                                                'password': 'Synthetic fixture credential'}, True)
+        return super().call()
+
+
+def exercise(flow, number=None, mode='single', cleanup_at=None, gaps=None, phase='live'):
+    s = OwnerScenario(flow, number or 0, mode, cleanup_at or 0, phase)
+    gaps.aliases = {}
+    try:
+        d, fault = Driver(s), OSWrites(number, mode=mode, cleanup_at=cleanup_at)
+        d.alias_callback = gaps.bind
+        gaps.bind(d.record)
+        case = f'{flow}/{mode}/{number or 0}/{cleanup_at or 0}'
+        with d.observe(fault), fault.wrap(None if flow.startswith('restart_') else s.fixture.engine.store):
+            reply = s.call()
+        d.reply(reply, delivered=False if number else True)
+        points, cleanups = list(fault.points), list(fault.cleanup_points)
+        if number is None:
+            assert reply['ok'] or flow == 'password' and reply['error']['code'] == 'server_refused' or flow == 'export_rollback' and reply['error']['code'] == 'storage_limit', (flow, reply)
+            assert points, ('Flow did not reach a durable boundary', flow)
+        if number is not None:
+            assert fault.failed, (case, points)
+        if phase == 'crash':
+            # Copy the crash bytes BEFORE any view, flush or orderly close.
+            # Closing the old handles may roll back; restore the captured bytes
+            # so the new Engine sees exactly the injected boundary instead.
+            f = s.fixture
+            d.startup_sequence = max((fence['seq'] for fence in d.snapshot().fences), default=0)
+            d._snapshot_key = None
+            with tempfile.TemporaryDirectory(prefix='crash-bytes-', dir=f.root) as temporary:
+                saved = __import__('pathlib').Path(temporary)
+                for name in ('state', 'evidence'):
+                    shutil.copytree(f.root / name, saved / name)
+                f.engine.close()
+                for name in ('state', 'evidence'):
+                    shutil.rmtree(f.root / name)
+                    shutil.copytree(saved / name, f.root / name)
+            s.bind(Engine(f.root / 'state', f.root / 'evidence'))
+            if f.engine.store.locked:
+                d.compare(gaps.checker(case + '/crash-locked'))
+                f.engine.request({'v': 1, 'method': 'call', 'action': 'control_restore_confirm',
+                    'arguments': {'confirm': 'invalidate earlier approvals'}}, True)
+            d.compare(gaps.checker(case + '/crash-restart'))
+        else:
+            if flow.startswith('restart_') and number is not None and not reply['ok']:
+                s.bind(Engine(s.fixture.root / 'state', s.fixture.root / 'evidence'))
+            if mode == 'persistent':
+                exhaustion = OSWrites(1, mode='persistent')
+                with exhaustion.wrap(s.fixture.engine.store):
+                    d.compare(gaps.checker(case + '/exhausted'))
+            d.compare(gaps.checker(case + '/live-restored'))
+        return points, cleanups
+    finally:
+        s.close()
+
+
+class OwnerStateSweep(unittest.TestCase):
+    def test_last_status_committed_lie_is_in_same_comparisons_proof(self):
+        scenario = OwnerScenario('send')
+        try:
+            driver = Driver(scenario)
+            with driver.observe():
+                reply = scenario.call()
+            driver.reply(reply)
+            engine = scenario.fixture.engine
+            request = engine.request
+            def lying_status(envelope, *args, **kwargs):
+                result = request(envelope, *args, **kwargs)
+                if envelope.get('action') == 'mail_operation_status':
+                    key = 'op:' + envelope['arguments']['operation_id']
+                    row = engine.store.get(key)
+                    row['stages']['message_id'] = '<forged@mail.invalid>'
+                    engine.store.write({key: row}, 'fixture', 'Synthetic false status-stage commit')
+                return result
+            proofs = []
+            def check(label, expected, actual):
+                if label == 'lifecycle-proof':
+                    proofs.append(actual)
+            with patch.object(engine, 'request', side_effect=lying_status):
+                driver.compare(check)
+            self.assertEqual(len(proofs), 1)
+            self.assertTrue(any(f.kind == 'unjustified-stage' and f.detail == 'message_id' for f in proofs[0]))
+        finally:
+            scenario.close()
+
+    def test_constructor_failure_restores_request_and_clock(self):
+        import uuid
+        request, clock, localtime, nanos, identity = Engine.request, time.time, time.localtime, time.time_ns, uuid.uuid4
+        with patch.object(Scenario, '__init__', side_effect=RuntimeError('Synthetic constructor failure')):
+            with self.assertRaisesRegex(RuntimeError, 'Synthetic constructor failure'):
+                OwnerScenario('send')
+        self.assertIs(Engine.request, request)
+        self.assertIs(time.time, clock)
+        self.assertIs(time.localtime, localtime)
+        self.assertIs(time.time_ns, nanos)
+        self.assertIs(uuid.uuid4, identity)
+
+    def test_repeated_fault_is_independent_of_ambient_identity_order(self):
+        import uuid
+        results = []
+        for ambient in (1, (1 << 128) - 1):
+            gaps = Gaps(recording=True)
+            with patch.object(uuid, 'uuid4', return_value=uuid.UUID(int=ambient)) as outside:
+                points = exercise('repair', 185, gaps=gaps)
+                self.assertIs(uuid.uuid4, outside)
+                outside.assert_not_called()
+            results.append((points, gaps.entries))
+        self.assertEqual(results[0], results[1])
+
+    def test_export_repeated_fault_uses_same_caller_path_and_exact_delta(self):
+        results = []
+        for _ in range(2):
+            gaps = Gaps(recording=True)
+            points = exercise('attachment_export', 101, 'persistent', gaps=gaps)
+            results.append((points, gaps.entries))
+        self.assertEqual(results[0], results[1])
+
+    def test_shards_cover_every_fault_and_keep_its_cleanup_and_crash_cases(self):
+        for shards in (1, 2, 4, 12, 24):
+            for workers in ((1,) if shards >= 12 else (1, 2, 3)):
+                for point in range(1, 102):
+                    owners = []
+                    for shard in range(shards):
+                        for worker in range(workers):
+                            cases = [f'flow/{mode}/{point}/{cleanup}/{phase}/view'
+                                     for mode in ('single', 'persistent') for cleanup in (0, point + 1)
+                                     for phase in ('exhausted', 'live-restored', 'crash-locked', 'crash-restart')]
+                            assignment = [owns_case(case, shard, shards, worker, workers) for case in cases]
+                            self.assertEqual(len(set(assignment)), 1)
+                            if assignment[0]:
+                                owners.append((shard, worker))
+                    self.assertEqual(len(owners), 1)
+                self.assertTrue(all(owns_case('flow/single/0/0/live-restored/view', shard, shards, worker, workers)
+                                    for shard in range(shards) for worker in range(workers)))
+        for flow in FLOWS + EXTRA:
+            count = SUITE_BUCKETS.get(flow, BUCKETS)
+            for point in range(1, 21):
+                case = f'{flow}/single/{point}/0/live-restored/view'
+                self.assertTrue(owns_case(case, int(owner(case)), count, 0, 1))
+        self.assertEqual({shard for flow in FLOWS + EXTRA for shard in range(4)
+                          if owns_case(f'{flow}/single/1', shard, 4)}, set(range(4)))
+        self.assertEqual({shard for point in range(1, 1409, 44) for shard in range(4)
+                          if owns_case(f'flow/single/{point}', shard, 4)}, set(range(4)))
+
+    def test_all_flows_all_storage_modes_independent_views(self):
+        gaps, counts = Gaps(), Counter()
+        shard, shards = int(os.environ.get('MAIL_SWEEP_SHARD', '0')), int(os.environ.get('MAIL_SWEEP_SHARDS', '1'))
+        worker, workers = int(os.environ.get('OWNER_SWEEP_WORKER', '0')), int(os.environ.get('OWNER_SWEEP_WORKERS', '1'))
+        self.assertGreater(shards, 0)
+        self.assertIn(shard, range(shards))
+        self.assertGreater(workers, 0)
+        self.assertIn(worker, range(workers))
+        flows = flow_partition(FLOWS + EXTRA, int(os.environ.get('MAIL_FLOW_GROUP', '0')), int(os.environ.get('MAIL_FLOW_GROUPS', '1')), isolated=('onboarding',))
+        for flow in flows:
+            started = time.monotonic()
+            points, _ = exercise(flow, gaps=gaps)
+            counts['clean'] += 1
+            for number, label in enumerate(points, 1):
+                if label.endswith('.close') or not owns_case(f'{flow}/single/{number}', shard, shards, worker, workers):
+                    continue
+                for mode in ('single', 'persistent'):
+                    with self.subTest(flow=flow, point=number, mode=mode):
+                        _, cleanups = exercise(flow, number, mode, gaps=gaps)
+                        exercise(flow, number, mode, gaps=gaps, phase='crash')
+                        counts[mode] += 1
+                        counts['crash'] += 1
+                    if mode == 'single':
+                        for cleanup_at, _, _ in cleanups:
+                            if cleanup_at > number:
+                                with self.subTest(flow=flow, point=number, cleanup=cleanup_at):
+                                    exercise(flow, number, cleanup_at=cleanup_at, gaps=gaps)
+                                    exercise(flow, number, cleanup_at=cleanup_at, gaps=gaps, phase='crash')
+                                    counts['pairs'] += 1
+            print(f'Owner oracle flow={flow} points={len(points)} elapsed={time.monotonic()-started:.3f}s', flush=True)
+        gaps.verify(set(flows), shard, shards, worker, workers)
+        print(f'Owner oracle shard={shard}/{shards} worker={worker}/{workers} modes={dict(counts)} strict expected failures={len(gaps.seen)}', flush=True)

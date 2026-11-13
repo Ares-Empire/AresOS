@@ -29,6 +29,24 @@ def wait_session(extra_terminal=False):
     raise TimeoutError('AresOS terminal did not start')
 
 
+def terminal_shells(pids):
+    """Each AresOS terminal runs the system bash with the AresOS rcfile."""
+    for _ in range(30):
+        terminals = []
+        for pid in pids:
+            cmdline = pathlib.Path(f'/proc/{pid}/cmdline').read_bytes().split(b'\0')[:-1]
+            children = run('pgrep', '-P', pid)['stdout'].split()
+            terminals.append(dict(pid=pid, cmdline=[part.decode() for part in cmdline],
+                                  shells=[os.readlink(f'/proc/{child}/exe') for child in children]))
+        if all(terminal['shells'] == ['/usr/bin/bash'] for terminal in terminals):
+            break
+        time.sleep(1)
+    for terminal in terminals:
+        assert terminal['cmdline'][:3] == ['/usr/bin/foot', '--title=AresOS', '/usr/bin/bash'], terminals
+        assert terminal['shells'] == ['/usr/bin/bash'], terminals
+    return terminals
+
+
 def check(action, request):
     if action == 'policy':
         wait_session()
@@ -57,7 +75,33 @@ def check(action, request):
     if action == 'power-events':
         return run('python3', str(HERE / 'power-events.py'))
     if action == 'shortcut':
-        return wait_session(extra_terminal=True)
+        result = wait_session(extra_terminal=True)
+        # Package 21 review 5: the session, its terminal and the recovery
+        # terminal started although broken copies of every startup command
+        # head the daily account's ~/.local/bin; none of them may have run.
+        names = (HERE / 'shadow-names.txt').read_text().split()
+        missing = [name for name in names if not os.access(f'/var/home/ares/.local/bin/{name}', os.X_OK)]
+        assert names and not missing, ('shadowing programs missing', missing)
+        result['terminals'] = terminal_shells(result['stdout'].split())
+        # greetd's wrapper (non-interactive, not a login shell) sources
+        # /etc/profile before the session: its profile scripts keep the system PATH.
+        # Review 6: a missing probe or no wrapper record fails instead of passing.
+        probe = pathlib.Path('/tmp/aresos-ci-profile-path')
+        assert probe.is_file(), 'the profile probe recorded nothing'
+        lines = probe.read_text().splitlines()
+        wrappers = []
+        for line in lines:
+            arg0, flags, login, path = line.split('|', 3)
+            if 'i' not in flags and not arg0.startswith('-') and not login:
+                wrappers.append(path)
+        assert wrappers, ('no non-interactive, non-login profile run (greetd wrapper) recorded', lines)
+        for path in wrappers:
+            assert '/var/home/ares/.local/bin' not in path.split(':'), ('session wrapper got the daily PATH', lines)
+        result['profile_paths'] = lines
+        ran = pathlib.Path('/tmp/aresos-ci-shadow-ran')
+        assert not ran.exists(), ('a shadowing program ran', ran.read_text())
+        result['shadowed'] = names
+        return result
     if action == 'export':
         return dict(returncode=0, files={name: export_bytes(pathlib.Path(path).read_bytes())
                                        for name, path in EXPORTS.items() if pathlib.Path(path).exists()})

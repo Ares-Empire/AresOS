@@ -217,7 +217,7 @@ case('recheck2c-clipboard-reader',R,'...(clipboard?{clipboard}:{})','...{}',node
 case('recheck2c-clipboard-navigation',B,'owner.clipboardRoutes.add(message.route);','',node('background','2c private clipboard facts'))
 case('recheck2c-clipboard-post-input',B,'return finish({available:false,url:current.url','return ({available:false,url:current.url',node('background','2c private clipboard facts'))
 case('recheck2c-clipboard-route',B,"!['write','writeText','copy'].includes(message.route)",'false',node('background','2c clipboard messages'))
-case('recheck2c-clipboard-description','control/aresos_control/chrome/definitions.py',"purpose += ' ' + CLIPBOARD_NOTICE","purpose += ''",'test_policy.ClipboardDescriptions.test_2c_click_descriptions_warn_without_changing_the_liftable_shared_block',True)
+case('recheck2c-clipboard-description','control/aresos_control/chrome/definitions.py',"CLIPBOARD_NOTICE = ('If a click result says the page wrote to the clipboard, tell the owner. '", "CLIPBOARD_NOTICE = ('A clipboard write needs no report. '",'test_policy.ClipboardDescriptions.test_2c_click_descriptions_warn_without_changing_the_liftable_shared_block',True)
 case('recheck2c-owner-exact-url','control/chrome/ci/owner-ui.mjs',"exec('xdotool',['key','--clearmodifiers','Delete']);",'',node('owner-ui','owner navigation deletes an inline history'))
 case('recheck2b-transport-reset','control/boundary/hostile.py',', errno.ECONNRESET','', 'control.tests.test_boundary_host_transport.HostTransport.test_reset_and_timeout_are_unqualified_not_policy_denials',True)
 

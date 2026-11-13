@@ -27,6 +27,7 @@ class DiagnosticsTest(unittest.TestCase):
     def setUp(self):
         self.stack = contextlib.ExitStack()
         self.addCleanup(self.stack.close)
+        self.stack.enter_context(common.kept_umask())
         self.root = pathlib.Path(self.stack.enter_context(tempfile.TemporaryDirectory(dir=ROOT/'os/tests')))
         self.usb = self.root/'usb'; self.usb.mkdir()
         self.payload = self.usb/'ares-tools'; common.fixture_bundle(self.payload)
@@ -36,6 +37,9 @@ class DiagnosticsTest(unittest.TestCase):
         self.stack.enter_context(patch.object(owner, '__file__', str(self.payload/'owner.py')))
         self.stack.enter_context(patch.object(owner, 'HOME', self.home))
         self.stack.enter_context(patch.object(owner, 'STOP_RECORDS', self.records))
+        # The owner lock lives in /run; keep it outside the snapshotted fixture tree.
+        locks = pathlib.Path(self.stack.enter_context(tempfile.TemporaryDirectory(dir=ROOT/'os/tests')))
+        self.stack.enter_context(patch.object(owner, 'LOCK', locks/'ares-owner.lock'))
         self.stack.enter_context(patch.object(owner, 'Host', return_value=self.host))
         self.stack.enter_context(patch.object(owner.os, 'geteuid', return_value=0))
         self.stack.enter_context(patch.object(owner.os, 'umask'))

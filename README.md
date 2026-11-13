@@ -1,137 +1,115 @@
 # AresOS
 
-A personal "operating system" where the desktop is a game. You boot, you spawn, and your apps live in the world.
+AresOS is an operating system being built around Minecraft Java: Linux, based on Bazzite, that starts straight into a
+Minecraft world instead of a normal desktop. A Fabric mod turns that world into the app launcher. Apps open over the
+game, and closing one puts you back where you stood.
 
-First theme: **Minecraft** (real Minecraft Java + our own Fabric mod). Possible later theme: **Brawl Stars** (custom-built, since it can't be modded).
+## Status (2026-11-12)
+
+AresOS is installed on the owner's laptop, on its own SSD next to Windows. It starts into a minimal desktop with a
+terminal; the game and the apps aren't in it yet.
+
+- **The mod** works in Minecraft's development client on Windows. Right-click an app item and the installed Windows app
+  or website opens. Walk into a block logo and its app opens. The Nether home, Live mode (you can't die) and Build mode
+  (creative), each with its own inventory, work. Unit tests, server game tests and client game tests cover it; they
+  run on Windows, not in CI.
+- **The OS image** is a Bazzite derivative (`bazzite-nvidia-open`) that starts into a minimal labwc session with a
+  terminal. GitHub Actions builds it, boots it in virtual machines, and tests the recovery login, the switch from stock
+  Bazzite and the rollback. A signed release exists; it is private for now.
+- **The install** onto a second SSD, next to a Windows drive that is never written, was rehearsed in CI virtual
+  machines with the real Bazzite installer, then done on the owner's laptop on 2026-11-08/09 with the install guide,
+  the emergency card and the install tools. Graphics, the network, sound and the touchpad work there; brightness and
+  the power button don't yet.
+- **The control layer** (apps as tools for a Claude Code session): the base service is merged and tested with a
+  made-up test app. Mail is merged: Claude can read, search, sort and send mail, and every send, delete and
+  unsubscribe asks first. It is tested against test mail servers, not yet with a real account. The Chrome tool is
+  built and in review.
+
+Not done yet: Minecraft inside the image, opening apps on Linux (the mod waits for a helper in the OS), and the first
+update of the installed laptop to a new release, which is the next step.
 
 ## How it works
 
-- **The world is real Minecraft.** We don't rebuild the game. We write a Fabric mod that turns the game into an app launcher.
-- **The mod starts real programs.** Minecraft is a Java program, and Java can start any other program on the computer.
-- **Apps open on top of the game.** Closing one drops you back into the world where you were standing.
-- **Underneath (phase 2) is Linux.** It has no normal desktop and boots straight into a Minecraft world, the same way SteamOS is Linux with Steam on top. The base is **Bazzite**, a gaming-focused Fedora with NVIDIA built in (owner decision, 2026-10-21). AresOS is a custom image built from this repo, and a bad update can be rolled back at startup.
-- **AresOS is just the operating system.** Only the AresOS world follows desktop rules. Playing normal Minecraft (survival, Hypixel BedWars, maybe Lunar Client) is an app you open from AresOS, and it plays completely normally.
+- **The game is real Minecraft Java.** Nothing is rebuilt. A Fabric mod changes how the AresOS world behaves.
+- **Apps are items.** Pinned apps sit in the hotbar and all others in the inventory, each with a pixel icon made from
+  the app's real icon, or a plain Minecraft item when there is none. Right-click one to open it. Big block logos in
+  the world open their app when you walk into them.
+- **Home is the Nether.** Every start puts you at your home spot. In Live mode you can't die. G switches to Build mode
+  (creative) for building, and the app hotbar comes back when you switch back.
+- **Only the AresOS world follows these rules.** Every other world plays like normal Minecraft, and normal Minecraft
+  will be an app you open from AresOS.
+- **Underneath is Linux.** The image is defined in this repository on top of Bazzite, a gaming-focused Fedora with
+  NVIDIA drivers. The previous version stays on disk, so a bad update can be rolled back.
+- **Apps as tools for Claude Code** (being built). A Claude Code session on AresOS uses Mail, Chrome and later apps
+  through command-line and MCP tools. The tools ask before an explicit send, delete or submit; in Chrome, a send that
+  a page itself starts after an ordinary click is not held back.
 
-## Minecraft design
+## What's in the repository
 
-| In the game | In the OS |
+| Path | What it holds |
 |---|---|
-| Boot logo | Mojang logo, then straight into the world |
-| Hotbar (1–9, right-click) | Pinned apps |
-| Inventory (E) | All other apps (the normal survival inventory, with extra pages if needed); drag into the hotbar to pin |
-| **Walk-in app logos** (owner idea, 2026-10-21) | Big block logos of apps or sites. Walk into one and it opens like a portal. Optional auto-build of a logo from the app's real icon as block pixel art. A sign door is an optional alternative. |
-| Close the app (X) | Back in front of the logo, facing it (no re-trigger). Zones are off in Build mode. |
-| Villagers | App shops; each job is a category (librarian = notes/reading, cartographer = maps), trading = installing |
-| Bed | Sleep mode |
-| Esc → Save and Quit | Shut down |
-| World select screen | Pick your desktop: **Survival** world or **BedWars** world |
+| `mod/` | The Fabric mod for Minecraft Java 26.2 (Java 25), with its tests. |
+| `os/` | The AresOS image: Containerfile, build script, policy, install tools and the CI test harness. |
+| `control/` | The control layer: the tool service, its command-line and MCP side, and its checks. |
+| `docs/` | The design, the install guide, the emergency card, the control-layer plan and the workflow. |
+| `briefs/` | One task per change, as handed to Codex. Frozen once it has run. |
+| `reviews/` | Reports, reviews, screenshots and test evidence for each change, and council decisions. |
+| `.github/workflows/` | CI: the OS image build and VM tests, and the control-layer tests. |
+| `STATE.md`, `HANDOFF.md`, `CLAUDE.md`, `AGENTS.md` | Where the work stands, and the working rules for Claude and Codex. |
 
-Real survival play is not part of the desktop world. It's normal Minecraft opened as an app (see "How it works").
+## Build and try it
 
-BedWars world extras:
-- Islands = app groups (uni, work, gaming)
-- Item shop villager = app store
-- Upgrades villager = settings
-- Generators drop finished downloads as items
-- Throwing a file into the void deletes it
+The mod needs Java 25; the Gradle wrapper is included. From `mod/`:
 
-## Home: the Nether
+```sh
+./gradlew build               # unit tests and server game tests
+./gradlew runClientGameTest   # client game tests; opens a Minecraft window
+./gradlew runClient           # the development client
+```
 
-Ares, god of war, lives in the Nether. Phase 1 is built here.
+On Windows in PowerShell, use `.\gradlew.bat`. The client game tests write their screenshots into `reviews/`;
+`git checkout -- ../reviews/` (from `mod/`) puts the committed ones back. In the development client, click **AresOS** above
+Singleplayer to create the Nether home. Opening apps works on Windows only for now. More in
+[mod/README.md](mod/README.md).
 
-- **Spawn:** every AresOS start puts you at your home spot, like a home screen.
-  - **Seed and spot are not locked yet** (owner decision 2026-10-21). The owner explores seeds and picks a spot later, then sets it with `/aresos home set`.
-  - Until then, seed 49 and a placeholder glass hub are the default.
-  - The owner builds the hub and houses themselves.
-- **How:** vanilla Minecraft starts players in the Overworld, so the mod moves you to the saved home when the world loads and uses it for respawn. The default placeholder has an anchor; `/aresos home set` saves a new spot without placing or removing blocks.
-- **Sleep:** beds explode in the Nether, so sleep mode is the respawn anchor.
-- **Shops:** there are no villagers in the Nether. Piglins are the shopkeepers (they already trade for gold in the real game).
-- **Trash:** lava. Throw a file in to delete it.
-- **Nether portal:** the door to other worlds (Overworld survival desktop, BedWars) later.
-- **Safety:** handled by Live mode and world settings (see Game rules).
+The OS image is built and tested by `.github/workflows/os-image.yml` on GitHub Actions, started by hand. Details are
+in [os/README.md](os/README.md), the install in [docs/INSTALL.md](docs/INSTALL.md), and the ways back if something
+goes wrong in [docs/EMERGENCY.md](docs/EMERGENCY.md). The control layer's tests run in a disposable Fedora container
+on GitHub Actions (`control/ci/test.sh`); the script installs packages, so run it only inside a container. More in
+[control/README.md](control/README.md).
 
-## Game rules
+## How it's built
 
-These rules apply **only in the AresOS world** (a marker stored in the world save). Every other world plays like normal Minecraft.
+Each change starts as a brief in `briefs/`. Codex builds it in its own git worktree and opens a pull request, a
+separate Codex run reviews it against the brief, and Claude checks the result and merges it. Reports, reviews and
+screenshots are kept in `reviews/`. The full loop is in [docs/WORKFLOW.md](docs/WORKFLOW.md).
 
-The mod decides the rules. There are two modes:
-- **Build mode (creative):** for building the hub and houses. Flying, unlimited blocks.
-- **Live mode (survival, the everyday mode):** the normal survival look, but you can't die. The mod blocks all damage and death, and hunger never drains.
-- One key switches between them. Your app hotbar comes back when you return to Live mode.
+## Design
 
-The survival bars can show system info (idea): hearts = battery, hunger = RAM use, XP bar = disk space.
+- [docs/design/DESIGN.md](docs/design/DESIGN.md): the full design. How Minecraft maps to the OS, the Nether home,
+  game rules, shaders, desktop and companion ideas, phases, open questions and safety rules.
+- [docs/design/OS-BASE.md](docs/design/OS-BASE.md): the Linux layer.
+- The control layer: its [plan](docs/control/PLAN.md) and its [design](docs/design/CONTROL.md).
 
-World settings:
-- No random mob spawning. Shopkeeper piglins are placed on purpose.
-- Fire doesn't spread, and mobs can't break blocks.
-- Bonus: crimson and warped wood can't burn.
-- App doors and signs are protected from accidental breaking.
+## Minecraft
 
-## Shaders
+NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
 
-- AresOS runs on Fabric, not Lunar Client, because our mod can't run inside Lunar.
-- The user's shader pack (Complementary Reimagined r5.9.3, in `.minecraft\shaderpacks`) works on Fabric via **Iris + Sodium**. Both exist for 26.2.
-- While an app is open, the mod throttles Minecraft to a low frame rate, since the game keeps running behind it.
-- On battery, shaders turn off automatically (Iris has a toggle API) and come back when plugged in.
+No Mojang code or assets are in this repository. Textures load at runtime from the player's own copy of the game.
 
-Textures come from the user's own Minecraft install (nothing copied into this repo). The old 1.8.9 look is available through the built-in "Programmer Art" resource pack.
+## License
 
-## Desktop and companion (owner ideas, 2026-10-24)
+Free to use, change and share for non-commercial purposes, such as study, research, hobby projects, schools and
+charities, under the [PolyForm Noncommercial License 1.0.0](LICENSE.md). Commercial use, also inside a company, needs
+permission: [ares-empire.de/contact](https://www.ares-empire.de/contact). Until 2026-11-08 the mod in `mod/` was under
+CC0; copies taken before then keep that licence.
 
-To try and tune once AresOS runs on the laptop. Not frozen; real use decides what changes.
+The licence covers the code. It does not cover the Ares names or the screenshots. Parts from others keep their own
+licences:
 
-- **Windows are free.** Two apps side by side, a small window, or fullscreen. Not always fullscreen.
-- **Behind a small window: the companion's home.** A still picture, not the live Minecraft world. When an app goes small, the companion walks into its home. When the app goes fullscreen again, it comes back out.
-- **Minecraft doesn't draw behind apps.** It stays open but paused while an app is open, so the hub comes back instantly. Measure its memory cost on the laptop.
-- **The wheel.** Hold a key, and open apps appear in a circle around the mouse. Flick to one to switch. A **"+"** spot is always there and opens a nice app menu, sorted by favourites.
-- **Home key.** One key always goes back to the hub. Apps stay open.
-- **Rooms** (saved app arrangements, e.g. a browser left and a writer right). Good idea, but the Minecraft design for them is still open.
-- **Search** like macOS Spotlight is needed. Its design is open.
-- **The companion.** A small, "alive" character on the desktop:
-  - It perches on things (like a browser's address bar) and walks between spots with animations.
-  - It has idle gimmicks (sunglasses, a chair) and a thinking animation.
-  - It moves to wherever it's working.
-  - A hotkey opens a small chat bar. It sees the screen when asked, and can do things, with a confirmation before anything that can't be undone.
-  - In the hub it's a creature that walks around and can be chatted with. Give it a task and it walks into the app's logo, the app opens, and the desktop companion takes over inside the app.
-  - It starts automatically, can be switched off, and we build it ourselves, animations included, so other companions are easy to add.
-  - The owner's companion is Claude's crab. Its art and anything personal live in a separate private add-on, never in this repo.
-- **AI-native extras (ideas):**
-  - a help command that starts Claude Code with the system's details already loaded, which also works from the recovery login
-  - AI piglin shopkeepers that find and install apps
-  - "build me an app", which adds a new logo to the hub
-- **Open:**
-  - The window system. labwc doesn't tell other programs where windows are, but the companion, the wheel and rooms need that. KDE's KWin (already in Bazzite) is the main alternative.
-  - Keeping the repo publishable: no personal data, and no Anthropic art.
-
-## Phases
-
-AresOS = Linux base + the Minecraft mod as its shell. The mod is the same code on Windows and on AresOS. Only how apps get launched differs.
-
-1. **Shell mod + OS base, in parallel.**
-   - Mod: Nether hub, app items, sign doors, return-to-world on close. Developed in normal Minecraft on Windows for fast testing.
-   - OS base: Linux defined as code in this repo, with NVIDIA drivers, Mojang boot logo, auto-login, and boot straight into the Nether world. Also auto-restart if Minecraft crashes, and a hidden escape key to a plain terminal.
-2. **AresOS on its own SSD** (owner decision, 2026-10-22; replaces same-drive dual boot).
-   - A second internal NVMe SSD (Crucial P310 500 GB) goes into the free M.2 2280 slot, and AresOS takes that whole drive.
-   - Windows keeps all its space and is never touched. Pick the OS at startup.
-   - Same-drive dual boot stays documented as a fallback.
-3. **Polish:** piglin app shops, respawn anchor = sleep, Save and Quit = shut down, more worlds via the portal (Overworld survival, BedWars).
-4. **Later, optional:** a Brawl Stars theme (custom app).
-
-## Open questions
-
-- Minecraft version: defaulting to 26.2 (Fabric API, Sodium and Iris all available, Fabric already installed locally).
-- Seed and home spot: the owner picks them later by exploring (not locked).
-- Linux base: **decided, Bazzite**. Secure Boot stays off, so no MOK enrollment is needed. See [OS base design](docs/design/OS-BASE.md).
-- The ordered second SSD is the primary install target. Confirm the 2280 slot and fitting parts before installation; the [install guide](docs/INSTALL.md) remains gated.
-- **Laptop facts (msinfo32, 2026-10-21):**
-  - UEFI mode, and **Secure Boot OFF**.
-  - Device encryption was believed off. A missing "Geräteverschlüsselung" page or Secure Boot off does not prove it; confirm fully decrypted status before hardware/firmware changes.
-  - Turning Secure Boot on later is a separate owner decision.
-- **Hardware (ordered 2026-10-22):** Crucial P310 500 GB NVMe SSD for the free 2280 slot, plus a Kingston Exodia M 2×64 GB USB pack (one Windows recovery stick that's kept, one installer stick).
-- App icons: **decided**, generated automatically from each app's real icon on the laptop, in a Minecraft pixel-art style. The owner doesn't draw them (owner decision 2026-10-21). Test and tune later.
-
-## Safety rules
-
-- Mod development on Windows touches only Minecraft's mod folder and this project.
-- AresOS installs only onto its own SSD. Never partition, format, resize or write to the Windows SSD, and never modify Windows boot files. Back up first anyway.
-- Before BIOS/boot changes, confirm encryption status and independently save the matching BitLocker recovery key if encryption exists. Unknown/encrypted status stops this install path for owner review; do not assume protection is off because Secure Boot is off.
+- The Gradle wrapper (`mod/gradlew`, `mod/gradlew.bat`, `mod/gradle/wrapper/`): Apache-2.0.
+- Everything kept as test evidence under `os/manifest/ci/`: files and source archives copied from other projects,
+  including the Bazzite and Fedora installers, the Linux kernel, QEMU, systemd, util-linux, coreutils, glibc, OSTree,
+  EDK II and the cosign installer (`os/manifest/ci/14/14zz-cosign/`, Apache-2.0, its `LICENSE` beside it). Each keeps
+  its project's own licence and notices, such as GPL-2.0-only for the kernel's files and BSD-2-Clause-Patent for
+  EDK II.

@@ -4,7 +4,7 @@
   "version": "${version}",
   "name": "AresOS",
   "description": "Minecraft as a personal desktop: app items and Build/Live modes.",
-  "license": "CC0-1.0",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "environment": "*",
   "entrypoints": {
     "main": ["dev.aresos.AresOs"],

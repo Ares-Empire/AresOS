@@ -59,7 +59,7 @@ class Lifecycle29(unittest.TestCase):
             fixture.restart()
             with patch.object(fixture.mail.transport, 'imap', side_effect=OSError('Synthetic offline')):
                 fixture.data('notice_ack', {'operation_id': intent['id']})
-                with patch('aresos_control.retention.time.time', return_value=time.time() + 90000):
+                with scenario.clock_jump(seconds=90000):
                     fixture.engine.expire()
                 self.assertTrue(fixture.engine.store.get(key)['check_open'])
                 self.assertIn('not yet checked', str(fixture.engine.pending()))

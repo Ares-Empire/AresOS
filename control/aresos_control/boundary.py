@@ -1,28 +1,12 @@
-"""Installation precondition; actual confinement is qualified by 18b/18c."""
+"""Asking-tool installation precondition. Does not confine Claude Code."""
 import os
 from pathlib import PurePosixPath
 import stat
 
-from .common import storage_stream, cleanup, WIRE_LIMIT, Refused, canonical, strict_json_loads
-from .boundary_policy import asking_rules, managed_servers, managed_settings, managed_mcp
+from .common import storage_stream, cleanup, WIRE_LIMIT, Refused, strict_json_loads
+from .boundary_policy import asking_rules
 
 DEFAULT_SETTINGS = '/etc/claude-code/managed-settings.json'
-DEFAULT_MCP = '/etc/claude-code/managed-mcp.json'
-
-
-def differences(expected, actual, path=''):
-    if type(expected) is dict and type(actual) is dict:
-        for key in sorted(expected.keys() | actual.keys()):
-            child = path + '.' + key if path else key
-            if key not in expected or key not in actual:
-                yield child
-            else:
-                yield from differences(expected[key], actual[key], child)
-    elif canonical(expected) != canonical(actual):
-        # Arrays are ordered policy values. Include their full differing entries
-        # so a missing ask rule is as diagnosable as an extra Bash grant.
-        yield path + ': expected ' + canonical(expected) + ', installed ' + canonical(actual)
-
 
 def protected(info):
     if info.st_uid != 0:
@@ -33,7 +17,7 @@ def protected(info):
 
 class Boundary:
     def __init__(self):
-        self.settings, self.mcp = DEFAULT_SETTINGS, DEFAULT_MCP
+        self.settings = DEFAULT_SETTINGS
         self.reason = None
         try:
             self.require()
@@ -61,37 +45,7 @@ class Boundary:
                 protected(info)
                 return strict_json_loads(stream.read(WIRE_LIMIT + 1))
         except (OSError, ValueError, Refused, TypeError) as exc:
-            raise Refused('boundary_not_installed', f'{path}: {exc}; install the managed Claude Code boundary.') from exc
-        finally:
-            with cleanup('policy descriptor close'):
-                if fd is not None:
-                    os.close(fd)
-
-    def absent_or_empty(self, path):
-        """Walk even optional sources without following a link, including dangling ones."""
-        fd = None
-        try:
-            parts = PurePosixPath(path).parts
-            if not parts or parts[0] != '/' or '..' in parts:
-                raise ValueError('requires an absolute production path')
-            fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-            for part in parts[1:-1]:
-                protected(os.fstat(fd))
-                parent = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
-                os.close(fd)
-                fd = parent
-            protected(os.fstat(fd))
-            leaf = os.open(parts[-1], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
-            os.close(fd)
-            fd = leaf
-            protected(os.fstat(fd))
-            entries = sorted(os.listdir(fd))
-            if entries:
-                raise ValueError('must be empty; unexpected entry ' + canonical(entries[0]))
-        except FileNotFoundError:
-            return
-        except (OSError, ValueError) as exc:
-            raise Refused('boundary_not_installed', f'{path}: {exc}') from exc
+            raise Refused('boundary_not_installed', f'{path}: {exc}; install the managed Claude Code ask rules.') from exc
         finally:
             with cleanup('policy descriptor close'):
                 if fd is not None:
@@ -99,12 +53,14 @@ class Boundary:
 
     def require(self):
         try:
-            for path, expected in ((self.settings, managed_settings()), (self.mcp, managed_mcp())):
-                actual = self.read(path)
-                if canonical(expected) != canonical(actual):
-                    paths = '; '.join(differences(expected, actual))
-                    raise ValueError(f'{path}: generated policy differs at {paths}')
-            self.absent_or_empty(str(PurePosixPath(self.settings).with_name('managed-settings.d')))
+            actual = self.read(self.settings)
+            permissions = actual.get('permissions') if type(actual) is dict else None
+            rules = permissions.get('ask') if type(permissions) is dict else None
+            if type(rules) is not list or any(type(rule) is not str for rule in rules):
+                raise ValueError(f'{self.settings}: permissions.ask must be a list of rules')
+            missing = [rule for rule in asking_rules() if rule not in rules]
+            if missing:
+                raise ValueError(f'{self.settings}: missing permissions.ask: ' + ', '.join(missing))
         except (ValueError, TypeError, AttributeError, Refused) as exc:
             self.reason = str(exc)
             raise Refused('boundary_not_installed', self.reason) from exc

@@ -59,14 +59,33 @@ field-list changes. Linux late-reader and one-call-read cases are added to the
 required inventory; their browser evidence and the slim-generator artifacts
 are still pending. `KNOWN-LIMITS.md` remains current.
 
+**Main/slim integration (in progress):** `origin/main` is merged into this branch.
+Mail's action scopes, contexts, recovery semantics and slim policy are retained.
+Chrome keeps the native daemon socket (its sole browser channel), hash-verified
+committed-journal reads (current warnings when working SQLite fails), live owner
+projections and the service network configuration (Mail and qualification HTTPS).
+The network lines and their comment are byte-for-byte equal to `8b7e799c`.
+19b on main ends at stage 2 and ships no generic replacement for Chrome's
+independent committed projection, so that projection remains rather than claiming
+a migration to an absent shared reader.
+
+Chrome is discovered through `ACTIONS`; normal user-scope MCP installation and
+asking rules are generated. The trusted send is explicitly marked and implements
+`require_trusted_send(verb, op)` using the current owner entry. `SHARED` is lifted
+unchanged into `instructions_for('chrome')`, with the clipboard sentence and the
+owner's typed-field instruction there once. Descriptions keep their own purpose.
+An explicit `asking_read` declaration extends the generator to cover the new read
+without pretending it sends. Generated managed-MCP is removed, and all artifacts
+are regenerated. Group 12 and final merged acceptance are still pending.
+
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
 blank-frame base case. The new fixture had duplicate blank-frame addresses, so
 pointer routing correctly refused; an inherited about:blank base is also a
 creator snapshot. The correction gives receiver sinks distinct addresses and
 changes the inline document’s effective base itself while keeping its initial
-inherited base. Zero-arrival assertions remain strict. One replacement dispatch
-is next: **235**. Its explicit probe output
+inherited base. Zero-arrival assertions remain strict. Replacement dispatch **43453115578** passed both external and policy installs;
+the ledger is **235**. It is focused destination evidence, not full acceptance. Its explicit probe output
 is not full acceptance. Intermediate and report-only pushes use `[skip ci]`;
 a normal final code push starts **two runs** through push and pull_request.
 The approximate limit is **260**; report here before passing it. Shards within a

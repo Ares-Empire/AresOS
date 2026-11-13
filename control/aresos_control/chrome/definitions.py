@@ -1,4 +1,4 @@
-"""The Chrome action catalogue. Shared description suffix remains liftable for 18d."""
+"""Chrome action descriptions; app-wide rules are MCP instructions."""
 from ..definitions import obj, string, array, APPROVAL, OP, BLOB, PAGE, PREPARED_RESULT, OP_RESULT
 from .policy import WORDS, WORD_LIST_VERSION
 
@@ -29,13 +29,11 @@ CLIPBOARD_NOTICE = ('If a click result says the page wrote to the clipboard, tel
 def actions(Action):
     result = []
     result.append(Action('chrome','prepare_read_typed_fields','change',obj({'tab':TAB}),
-        'Prepare a one-call read of single-line text fields in unwatched documents. Returns the exact field-label question without values; pass its approval to read_typed_fields. '+SHARED,result=PREPARED_RESULT))
+        'Prepare a one-call read of single-line text fields in unwatched documents. Returns the exact field-label question without values; pass its approval to read_typed_fields. ',result=PREPARED_RESULT))
     result.append(Action('chrome','read_typed_fields','read',APPROVAL,
-        'Read the listed single-line text fields once after the exact prepared question is approved. Credentials always remain unreadable. A changed field list refuses and re-asks; ordinary reads retain filled/empty. '+SHARED,result={'type':'object'},asking_read=True))
+        'Read the listed single-line text fields once after the exact prepared question is approved. Credentials always remain unreadable. A changed field list refuses and re-asks; ordinary reads retain filled/empty. ',result={'type':'object'},asking_read=True))
     def add(verb, effect, schema, purpose, owner=False, output=None):
-        if verb in {'click','fill','select','check','press','upload','fill_form','dialog','submit','submit_trusted'}:
-            purpose += ' ' + CLIPBOARD_NOTICE
-        result.append(Action('chrome', verb, effect, schema, purpose + ' ' + SHARED, owner, output or {'type': 'object'}, verb != 'submit_trusted'))
+        result.append(Action('chrome', verb, effect, schema, purpose, owner, output or {'type': 'object'}, trusted_send=verb == 'submit_trusted'))
     for verb, purpose in {
         'tabs': 'List all tab titles, addresses, native window/position, active/focused state and Claude-group membership; no page content is read.',
         'downloads': 'List Chrome downloads and the paths Chrome chose. Changes nothing; Chrome saves normally.',

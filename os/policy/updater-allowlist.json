@@ -40,5 +40,8 @@
   "user@1000.service": "The recovery administrator instance of the reviewed systemd v259.9 user@.service manager template; no software installation.",
   "user@1001.service": "The daily ares instance of the same reviewed systemd v259.9 user@.service manager template; no software installation.",
   "unity-gtk-module.service": "Sets local GTK module environment in the user manager; no software installation.",
-  "xdg-document-portal.service": "xdg-document-portal exposes selected local documents to sandboxed applications; no package/Flatpak installation."
+  "xdg-document-portal.service": "xdg-document-portal exposes selected local documents to sandboxed applications; no package/Flatpak installation.",
+  "flatpak-system-helper.service": "Flatpak 1.18.4's D-Bus-activated system helper. It installs, removes or updates a system-wide Flatpak app only when a client asks and polkit authorizes it; for the daily account AresOS asks for his own password (owner, 2026-11-09, package 21). No timer or boot activation, and it cannot change the OS image. Automatic Flatpak updates stay masked (flatpak-system-update.*, flatpak-update.*).",
+  "flatpak-portal.service": "Flatpak 1.18.4's user portal (org.freedesktop.portal.Flatpak): running sandboxed apps use it to start their own sub-sandboxes. D-Bus activated; installs or updates nothing.",
+  "flatpak-session-helper.service": "Flatpak 1.18.4's user session helper: gives running sandboxed apps the host's resolv.conf, certificates and p11-kit. D-Bus activated; installs or updates nothing."
 }

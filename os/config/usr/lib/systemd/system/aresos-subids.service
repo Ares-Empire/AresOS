@@ -1,0 +1,12 @@
+[Unit]
+Description=Subordinate ID ranges for the AresOS daily account
+Documentation=file:/usr/libexec/aresos-subids
+After=systemd-sysusers.service
+Before=systemd-user-sessions.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/aresos-subids
+
+[Install]
+WantedBy=multi-user.target

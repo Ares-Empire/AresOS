@@ -23,7 +23,7 @@ class CapabilitiesTest(unittest.TestCase):
         workflow=yaml.load((ROOT/'.github/workflows/os-image.yml').read_text(),Loader=yaml.BaseLoader)
         steps=workflow['jobs']['rehearsal']['steps']
         capability,=[s for s in steps if s.get('name')==caps.STEP]
-        self.assertEqual(capability['if'],"(github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release')")
+        self.assertEqual(capability['if'],"(github.ref_name == 'pkg/14-owner-tools' || github.ref_name == 'pkg/16-staged-release') || github.ref_name == 'pkg/27-first-update-release'")
         self.assertEqual(capability['timeout-minutes'],'3')
         self.assertIn('sudo -E python3 os/ci/owner_capabilities.py',capability['run'])
         self.assertNotIn('GH_TOKEN',capability.get('env',{}))

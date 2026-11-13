@@ -20,6 +20,11 @@ def protected(path):
             raise SystemExit("AresOS requires root-owned non-writable code, dependencies and configuration: " + str(part))
 
 
+def require_owner(owner_uid):
+    if type(owner_uid) is not int or owner_uid <= 0 or os.getuid() != owner_uid or os.geteuid() != owner_uid:
+        raise SystemExit("AresOS MCP proxy requires the configured owner user (real and effective UID).")
+
+
 def main():
     if not sys.flags.isolated or not sys.flags.no_site:
         raise SystemExit("Use the fixed isolated launcher: /usr/bin/python3 -I -S")
@@ -40,8 +45,7 @@ def main():
         config = strict_json_loads(stream.read())
     if mode == "proxy" and len(sys.argv) == 3:
         owner_uid = strict_json_loads((CONFIG / "service.json").read_text())["owner_uid"]
-        if owner_uid <= 0 or os.getuid() != owner_uid:
-            raise SystemExit("AresOS MCP proxy requires the configured assistant user.")
+        require_owner(owner_uid)
         from aresos_control.proxy import main as proxy_main
         proxy_main(sys.argv[2], config)
     elif mode == "cli":

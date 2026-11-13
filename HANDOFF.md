@@ -1,162 +1,44 @@
 # Handoff
 
-The baton from the last session. Read it after `STATE.md`. Overwrite it when you pick it up. Detailed history lives in each package's `reviews/NN-*/REPORT.md` and its briefs.
+The baton from the last session. Read it after `STATE.md`. Overwrite it when you pick it up. Detailed history lives in each package's `reviews/NN-*/REPORT.md` and its briefs; the handoff before this one (the Windows laptop, up to 2026-11-13) is in this file's git history.
 
-## The repo is public now (2026-11-02, from the MacBook session; keep this until both points are done)
+Written 2026-11-13 about 15:30 by `linux-aresos`, the OS lead, now running on the laptop itself (AresOS, user `ares`). `STATE.md` is current as of `7d96b30e`.
 
-- `Ares-Empire/AresOS` is a fresh **public** repo since 2026-11-02 23:59. Every branch came over with the same commit
-  hashes, so clones and worktrees need nothing: pull as usual. The old repo is the private archive
-  `Ares-Empire/AresOS-archive-2026-11` (read-only): the pull requests #1–#15 and their discussion, the old branch
-  `pkg/03-os-image` and the Actions history live there. PR numbers start again at #1 in the new repo.
-- Public repos get free Actions minutes on GitHub's standard runners, so the $0 budget no longer limits `os-image.yml`.
-- **Two settings did not come along** (GitHub keeps them per repo); Patrik restored both on 2026-11-07:
-  1. The repository secret `GHCR_READ_TOKEN` (used by the release-13 and rehearsal runs): a new classic token with only
-     `read:packages`, valid 30 days (until about 2026-12-07). Renew it the same way before then if runs still need it.
-  2. Write access for the new repo's workflows on the `aresos` package in GHCR (Package settings → Manage Actions
-     access → `AresOS`, Write role). Not yet exercised: the next publishing run shows it works.
-- Public means: nothing personal in commits (the pre-push privacy check enforces it; never `--no-verify`).
+## Running right now
 
-## Where things are (2026-11-01)
+1. **Package 23, review fixes 5** (PR #36, branch `pkg/23-minecraft-starts`, worktree `~/AresOS-23-minecraft-starts`, was at `b32af2e2`). A Claude agent on Fable 5.2 builds `briefs/23-review-fixes-5.md` (the brief is on the branch). It was also told to merge `origin/main` into the branch once the fixes pass, to run both full suites natively on the merged head, and to push work in progress.
+   - Next: read its report. If the image inputs changed through the merge, start a check build (`gh workflow run "OS image" --ref pkg/23-minecraft-starts -f check_build=build`). Then a fresh Codex review as `REVIEW-6.md` (gpt-6-astra high fits; give it the owner's review bar from the brief). Merge on SAFE with passing checks.
+   - On merge, send one line each to `linux-hub` (its brief 30 is cut from a main with 23) and `linux-tools` (18c's `os/` part likewise).
+2. **27b is merged** (PR #41, `4d0c4dc5`, 2026-11-13): INSTALL-STATUS records the laptop's update, bound files may wait again in `os/manifest/ci/16/pending-rebind.json`, and the hosted checks-only job is green again (it now fetches full history).
+3. **22c, every way back works after an update** (empire brief 278; brief `briefs/22c-ways-back-after-update.md`, on main since `6cca14b6`; worktree `~/AresOS-22c-ways-back-after-update`, branch `pkg/22c-ways-back-after-update`). The council's verdict is `reviews/councils/2026-11-13-22c-ways-back/VERDICT.md` (GAPS-FOUND 11, the direction stands); the brief carries every finding and a fresh Codex check's six edits.
+   - A Claude agent on Fable 5.2 builds **stage 0 only** (the harness wiring and a VM probe of plain `set-default`), then stops and reports. Started 2026-11-13 about 16:05; Claude's usage window was expected to pause it until 17:40. If it did not survive the pause, start a fresh builder from the branch and the stage 0 section of `reviews/22c-ways-back-after-update/REPORT.md`.
+   - The brief stops after stages 0, 1a, 1b and 2. Each next stage starts from a fresh builder with the brief and the report. Before stage 2 (the rehearsal): a fresh review of the tools (gpt-6-astra high, or a Fable reviewer: updates and rollback are the high-stakes class).
+   - Owner: the repaired tools go on the laptop in their own short session before the next release (board #205, "Yes, tools on their own first"); Claude types the steps, he approves the password prompts. `update` going to the newest installed AresOS from anywhere is the integrator's decision on the council's advice; he sees it as a JUDGMENT-CALL with the "try this" note before the merge.
+4. **Lunar Client** is installed in his home and he is signed in (`lunar`; details in `STATE.md`). Done on his "Both" (board #197): the external monitor at 180 Hz (until the next login; `wlr-randr --output HDMI-A-1 --mode 1920x1080@180Hz`) and Discord for his user (`discord`). Open: the check of graphics card, sound and frame rate once a game runs (a background watcher in the lead's session reports it). Read-only checks only; never touch `~/.lunarclient`.
 
-**The November round is running.** The owner's Actions budget is **$0 with "stop usage" on** (checked 2026-11-01), so only free minutes are used.
+## Waiting on others
 
-- **14zv** (free minutes, reserve 150) pushed `becfb22`, then STOPPED before the probe. The cause: on 2026-11-01 the owner moved the privacy check from GitHub to aresync's local pre-push hook (`fabd476`), so there was no PR privacy run and no `PRIVATE_TERMS` secret.
-- **14zw** merged `main` and made the local hook the privacy proof; pushes now cost no minutes. On `75a2c63`, probe 27 PASSED.
-  - Qualification 16 reached a new stage: US International was installed, its login worked, and `layout proof` and `layout finish` passed. It then stopped on a harness bug: `public_typing` collapsed `us-intl` to `us` and couldn't type `ü`.
-  - Package ledger: 1832/2750 minutes.
-- **14zx** fixed the profile adapter, and probe 28 PASSED.
-  - **Qualification 17 proved** US International success, back to German, rollback, rollback-from-stock refused, and keep-stock.
-  - It then stopped at the final stock login, with 65 of 66 key events counted. The cause was the harness's `EVIOCGKEY` on the counting evdev fd, which flushed the Return press.
-  - **Still left:** the final stock verification and the final Windows checks.
-  - Package ledger: 1967/2750 minutes.
-- **14zy** fixed the counter: key-state queries now use their own evdev client, and a real-kernel uinput proof showed 0/1 for the old getter and 1/1 for the fix. On `cbaa985`, probe 29 PASSED.
-  - Codex cancelled qualification 18 before its VM stage, for two reasons:
-    1. GitHub's job `started_at` for probe 29 came after its `completed_at`, and the guard clamped that to 1 minute; the real charge was 26.
-    2. A full-log scan found cosign-installer `RELEASE_COSIGN_PUB_KEY_SHA` lines. These are public checksums, verified against the pinned action source.
-  - Package ledger: about 1998/2750 minutes.
-- **14zz** made the accounting fail-safe (probe 29 is now charged 26) and approved the cosign class. On `10921f8`, probe 30 PASSED.
-- **14zza** fixed the local classifier, which now judges whole source lines rather than gitleaks' redacted Match.
-  - Qualification 19 ran on the same head. It proved US-intl, back to German and rollback; the post-rollback login took 10 s, and the sudo counts were 66/66.
-  - It then hit the **106-minute VM step limit**. This was not a bug.
-  - Package ledger: 2144/2750 minutes.
-- **14zzb** set the VM step limit to 180 and the qualification bound to 220.
-  - **PROBE 31 AND QUALIFICATION 20 PASSED** on `211df98`: the complete owner path, 600 native tests, VM 117.67/180 minutes. **Acceptance is met.**
-  - The closing report `f13ac8e` is pushed. Package ledger: 2301/2750 minutes.
-- **The package review** (`reviews/14-owner-tools/REVIEW.md` at `f13ac8e`) returned **CHANGES-NEEDED**.
-  - **Blocking:**
-    1. The bootstrap runs stick code before verifying it.
-    2. An abandoned layout trial can't be recovered, and its layout could be active at the next boot's login.
-  - **Should-fix:**
-    3. resumable install/prepare
-    4. STOP diagnostics left out of the export
-    5. stale status lines
-- **14zzc** implemented all five fixes and pushed `b15d52f`. The new bootstrap fingerprint is `3e2c78eb…`. A layout trial now changes only the runtime map, and `layout abandon` was added. The qualification gained a mid-trial `system_reset` stage.
-  - Probe 32 FAILED in its native suite: test fixtures copied a source tree that contained CI-written `__pycache__`. Production is unaffected (`-I -B`, read-only stick).
-  - Package ledger: 2310/2750 minutes.
-- **14zzd** built the fixtures from the manifest and pushed `dda72ed`. Probe 33 passed all 627 native tests, then STOPPED with "Host walk is stale".
-  - Cause: a CRLF-declared PowerShell test source was bound to its LF blob hash. All 195 blobs match, so it's an end-of-line binding bug only.
-  - Package ledger: 2326/2750 minutes.
-- **14zze** bound the sources to Git's checkout bytes and pushed `3fd7916`.
-  - **PROBE 34 AND QUALIFICATION 21 PASSED,** with 630 native tests each. The qualification included the mid-trial `system_reset`, the German login and `layout abandon`. VM acceptance is met.
-  - The closing report `ae90dd3` is pushed. Package ledger: 2474/2750 minutes. All dispatch allowances are used (34/21).
-- **The re-checks:**
-  - **REVIEW-2:** findings 1, 2, 3 and 5 CLOSED.
-  - **14zzf:** a real STOP → export → reboot diagnostics test; no payload change.
-  - **REVIEW-3:** finding 4 CLOSED, and the payload is unchanged since `3fd7916`. **SAFE.**
-- **MERGED 2026-11-02** (owner's "merge") as squash `79a67d2`. The worktree `C:/Users/pab/AresOS-14-owner-tools` is kept for now: its `.work/` holds private retained evidence.
+- `linux-hub`: brief 30, his installed programs in the hub (`~/AresOS-30-installed-programs/briefs/30-installed-programs.md`). It builds after 23 merges and sends the PR number when its two reviews say SAFE; the OS lead then reads the `os/` diff.
+- `linux-tools`: brief 18c, the control tools in the image (`~/AresOS-18c-image-test/briefs/18c-image-test.md`, draft PR #42). Its "os/ change proposal" and 12 questions wait for the OS lead's answers. Already told: 23 lands first, and nothing of 18c goes into a release without the owner's separate OK.
+- `mac-aresos-control`: the Chrome PR #27, planned for Monday 11-16; it closes the `pkg/20-chrome*` board items itself.
+- `mac-capacity` coordinates the Claude and Codex allowances. Ask it before several Fable agents at once. On 2026-11-13 14:45 Codex stood at 55% of its week (refill Tuesday 11-17 10:53; ChatGPT Pro ends 11-21).
 
-### Package 15 next step (2026-11-02)
+## Then, in `STATE.md`'s order
 
-- **15d** is running (log `../AresOS-15d.log`, summary `../AresOS-15d.last.md`):
-  - merge `origin/main` with `--no-ff`
-  - the new bootstrap block, fingerprint `3e2c78eb…`, `layout abandon`, card entries and the qualification 21 status
-  - equality tests, then one push, and mark PR #14 ready
-- **Then:** a package review of 15. It also checks the council delta's November runtime conditions against qualification 21. Then the merge, then the physical install (SSD return deadline about 2026-11-09).
-- **Owner permission (2026-11-02):** "you can merge once its safe to merge, this is permission."
-- **15d and 15e:**
-  - REVIEW-3 was CHANGES-NEEDED: a second abandon, and an interrupted finish that may have persisted the new map. The mounted-child runtime check is kept OPEN.
-  - 15e fixed the documents only. REVIEW-4: **SAFE**.
-- **PR #14 MERGED 2026-11-02** as squash `2f4c0d9`.
+- **21b** (backlight and power button): the read-only results are in `STATE.md`. Still needed: the owner's key test for brightness, and a watched press of the power button (take a `handle-power-key` inhibitor first, or the press powers the laptop off). Board #149's list sits on the Mac (`ssh aresium cat aresos-checks-21b.md`); delete it there once 21b's brief is written.
+- **The next release**: 23, 21b, 22c's tools and the image items in `STATE.md`. It goes beyond the owner's standing OK for packages 21 to 24, so publishing needs his OK. `at update` on the laptop stays his step; Claude may type it for him with his OK.
+- **Documents that still describe the Windows laptop**: `CLAUDE.md` (the PowerShell model list, `.\gradlew.bat`), `docs/WORKFLOW.md` and `docs/REVIEW.md` (`/c/Users/pab/...` paths), `AGENTS.md` (the WSL suite). The rows of `docs/INSTALL-STATUS.md` that still describe the time before the update are listed in 27b's report section.
+- **Tests on the laptop itself**: the 22c planner read that `test_owner_update`'s real-entry tests use `Required tool missing: rpm-ostree` as their marker, so they cannot pass where `rpm-ostree` exists. Unverified until package 23's native run reports.
 
-### Next: the release decision (owner)
+## How things work on this machine
 
-- `docs/INSTALL-STATUS.md` keeps the physical install NOT RELEASED until physical and novice gates close "before opening the laptop, writing installation media or installing". Most of those can only close on the laptop.
-- **OWNER DECISION (2026-11-02): staged release,** with the owner as first reader and Claude checking each stage's records before the next:
-  - **A, released now:** steps 1–2 (Windows prep, recovery stick, record A, installer stick write and test boot).
-  - **B, after A's records are checked:** step 3, fitting, by about 2026-11-09, with Claude checking the photos and record B.
-  - **C:** steps 4 onward, after A and B, package 16's native mounted-child check, and a table update.
-- **Package 16** (`pkg/16-staged-release`, worktree `C:/Users/pab/AresOS-16-staged-release`, Codex thread `01a19de6-f5b9-7b83-bfe8-3c530e9402eb`, log `../AresOS-16.log`):
-  - records the staged release in `INSTALL-STATUS.md`/INSTALL.md
-  - adds the native mounted-protected-child refusal check
-  - wires a probe-only dispatch (cap 120 minutes, 2 probes)
-  - one push, a PR, one probe
-- **Package 16 MERGED 2026-11-02** as `4e69540`. Review SAFE, no findings. Probe run 41532052332 passed: mounted-child refusal, zero mutations, cleanup. INSTALL-STATUS: stage A RELEASED, B after A is checked, C NOT RELEASED.
-- **Stage A help:** Claude copied the verified ISO (776b76f3…, equal to the pin and the fresh official checksum) and FedoraMediaWriter-win64-5.3.2.exe (f53e0c11…, equal to the pin and the GitHub digest) into Downloads. The owner installs the writer and writes the sticks themselves.
-- **Stage A DONE and CHECKED 2026-11-05.** PR #1 of the public repo **MERGED** as `e0f737b` (reviews `reviews/status-stage-a-checked/`, REVIEW-4 SAFE). INSTALL-STATUS: A CHECKED, B RELEASED, C NOT RELEASED.
-  - Every step 1–2 record passed: cloud backups opened online, recovery stick booted, UEFI/Secure Boot off/decrypted/hibernation off, record A in OneDrive, writer cancel trial, "erfolgreich geschrieben", live desktop boot.
-  - Afterwards the Windows disk and its four partitions matched record A (read-only check).
-  - Private records stay out of the public repo.
-- **Stage B is released.** The owner plans fitting on **2026-11-06**, guided step by step in chat. Claude checks the photos (battery, seating, Crucial label: private, never committed), the F2 screen showing both drives, and record B after-fit.
-- **Owner to-dos:**
-  - Shift+Delete `C:\Users\pab\AresOS-delete-me` (115 GB of old replay ISOs).
-
-### Package 14: owner tools (PR #13, draft)
-
-- **Where:** branch `pkg/14-owner-tools`, worktree `C:/Users/pab/AresOS-14-owner-tools`.
-- **Codex session:** `01a165f9-31fc-79c2-80de-0a8237188116` (gpt-6.1-sol xhigh). Resume it with `codex exec resume …` from the worktree, logging to `../AresOS-14<id>.log`.
-- **Briefs:** `briefs/14*.md`. The latest is `14zu`.
-- **Full story:** `reviews/14-owner-tools/REPORT.md`, newest section first.
-- **Pushed head:** `65edb11`. **Local commits after it aren't pushed** (14zs/14zt reports, the 14zu work).
-- **Proven in the VM qualification:**
-  - offline install and hardware setup
-  - Windows round trips
-  - tools stick hot-plug, `install`, `prepare` and its zero-change rerun
-  - network invariance
-  - records and export, corrected stock
-  - real token login (owner-length token proven)
-  - `verify`, `switch`, `title`
-  - the AresOS boot and login
-  - `layout begin us`, the rejected plain-US login, the refused trial reboot, `layout revert`
-- **Still to prove:** US International success, back to German, rollback, keep-stock, the final Windows checks.
-- **Real owner-tool bugs the runs found (all fixed):**
-  - flat `lsblk` JSON
-  - `efibootmgr` 18 format; entries are now decided from the decoded `dp:` bytes
-  - sudo `use_pty` broke the physical-session check (now logind/cgroup plus a nested sudo chain)
-  - `ostree admin finalize-staged --hold` counted as busy
-  - `loginctl` comma selectors
-
-  Most other stops were in the test harness's console emulation.
-- **Last stop (qualification 15):** the guest's xHCI controller died and took the USB keyboard with it. **14zu is done locally** (`8507dd6`, not pushed): the test keyboard is on i8042/PS-2, with AT-device counters and xHCI health STOPs; 103 regressions and the full stand-in walk pass.
-- **On 1 November, resume Codex with a short brief:**
-  - free minutes, org reserve back to **150**, closing reservation **12**
-  - package cap and allowances raised to fit the bound; the settings are in `os/ci/rehearsal-packages.json`
-  - one push, then probe and qualification on the same head
-
-  If the console-typing harness needs more than about 3 more rounds, switch the remaining stages to serial-run commands. Physical typing is already proven for the earlier stages.
-- **After acceptance:** a fresh package review (gpt-6.1-sol high, read-only), then the owner's "merge".
-
-### Package 15: owner path and emergency card (PR #14, draft)
-
-- **Where:** branch `pkg/15-owner-path`, worktree `C:/Users/pab/AresOS-15-owner-path`.
-- **Codex session:** `01a17936-3347-7552-b472-a7e664893959`.
-- **Status:** reviewed and fixed. The council delta re-check was **DELTA-CLEAN** on `e077bdf` (`reviews/councils/2026-10-25-install-gate/delta/`). Local commits aren't pushed.
-- **Before merge:**
-  1. Merge package 14's final head into it, with **merge commits only: never rebase or force-push.**
-  2. Update the tools fingerprint and the PASS lines, then rerun its doc tests.
-  3. Merge after 14.
-- **Council check:** the tool changes since `e077bdf` need a short chair re-check, or at least the package review.
-
-### Other
-
-- **Hardware arrived 2026-10-26** (SSD, 2 sticks, screwdrivers). Keep it boxed until the guide is released: record A must come before fitting. The SSD return deadline is about **2026-11-09**.
-- **Package 12** (the companion in the hub): the brief is drafted, waiting for the owner's go (scratchpad draft path in the transcript). Companions live in the private repo `Ares-Empire/companions`.
-- **The CI secret `GHCR_READ_TOKEN`** expires about 2026-11-22.
+- Worktrees are `~/AresOS-NN-slug`. Codex is installed (`codex exec -m … -c model_reasoning_effort=… -s read-only -C <worktree> -o <file>`); its model list is `~/.codex/models_cache.json`, its usage is in `~/.codex/sessions/<date>/*.jsonl` (`rate_limits`).
+- `ares` is an administrator behind his own password since R27. Anything with `sudo`, system settings, boot or disks needs the owner's explicit OK in the session; he types his password himself (`sudo -A` opens the desktop's password prompt).
+- The owner uses the laptop while agents run: one full suite at a time, no Gradle client tests on his screen (`linux-hub` runs them headless under the lock `~/.cache/aresos-dev/client-test.lock`), and modest local load while he plays.
 
 ## Watch out
 
-- **Pushes no longer cost Actions minutes** (2026-11-01): the privacy check runs locally before each push (aresync's pre-push hook) instead of on GitHub. Only `os-image.yml` dispatches use the org's minutes. gitleaks 8.30.1 flags 12 false alarms on `pkg/14-owner-tools` (sha256 checksums next to key/token file names in `os/manifest/ci/14/host-walk/*.json`, plus code in `os/ci/owner_vm.py` and `os/ci/owner_key_counter.py`): a new local commit carrying them (e.g. a local squash merge) is blocked until they're allowlisted in `.gitleaks.toml`.
-- **Low memory** stops Claude's background wrappers, but `codex.exe` keeps running. Find its PID and watch its log for `turn.completed`.
-- **Never force-push, and never push `pre-rewrite/*`** (the 2026-10-23 history rewrite). The repo-local git identity uses the noreply email.
-- **Only one Minecraft client-test run at a time** on the laptop.
-- **Check every new check's assumptions against real retained output, not mocks.** Most of package 14's lost rounds came from invented fixtures.
-- **Leftover worktrees** for merged branches 03–11 and 13 can be removed with `git worktree remove` once they're no longer needed.
+- Never force-push, and never push `pre-rewrite/*` (the 2026-10-23 history rewrite). The repo-local git identity uses the noreply email. The repo is public: nothing personal in commits; the pre-push privacy check enforces it; never `--no-verify`.
+- The repository secret `GHCR_READ_TOKEN` (rehearsal and release runs) is valid until about 2026-12-07; the owner renews it.
+- Check every new check's assumptions against real retained output, not mocks.
+- From a Claude Bash call, `pgrep -f` matches its own shell: match processes by PID or exact executable path.

@@ -12,7 +12,8 @@ import unittest
 from unittest.mock import patch
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-RELEASE = json.loads((ROOT / 'os/manifest/release.json').read_text())
+# Package 13's squash binding; release 13 is no longer the pinned release.
+RELEASE = json.loads((ROOT / 'os/manifest/releases/13.json').read_text())
 SOURCE = RELEASE['source_commit']
 MERGED = '775be05b7f0d6971cbdc8a3bd1aea617fc008c4d'
 PAYLOAD = ['os/Containerfile.keyboard', 'os/.containerignore', 'os/packages.lock.json',

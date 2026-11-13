@@ -1,0 +1,240 @@
+diff --git a/control/aresos_control/storage.py b/control/aresos_control/storage.py
+index 1a4e404a..b604ddc4 100644
+--- a/control/aresos_control/storage.py
++++ b/control/aresos_control/storage.py
+@@ -13,6 +13,7 @@ from . import retention
+ from .common import Refused, canonical, storage_stream, cleanup, digest, json_value, visible, storage_refusal
+ from .results import Observations, recorded_write
+ from .space import SpaceLedger, record_budget
++from .owner_projection import OwnerProjection, PREFIXES as OWNER_PREFIXES, KEYS as OWNER_KEYS
+ 
+ RESTORE_BATCH_BYTES = 64 * 1024
+ RESTORE_BATCH_COUNT = 32
+@@ -130,7 +131,7 @@ class JournalRecords:
+ 
+ class Store:
+     def __init__(self, state_dir, evidence_dir, checkpoint=lambda _: None):
+-        self.db = self.index = self.journal = None
++        self.db = self.index = self.journal = self.owner_projection = None
+         try:
+             self._initialize(state_dir, evidence_dir, checkpoint)
+         except BaseException as exc:
+@@ -181,6 +182,18 @@ class Store:
+         self.events = JournalRecords(self)
+         try:
+             self.events, self.committed = self._read_journal()
++            self.owner_projection = OwnerProjection(self)
++            sync_directory(self.evidence_dir)
++            if not self.owner_projection.path.stat().st_size and self.committed:
++                # Upgrade only the surviving owner facts. Historical operation
++                # fences remain untouched; this snapshot grants no replay right.
++                event = self._prepared(self.committed)
++                if event is not None:
++                    baseline = dict(event)
++                    baseline['set'] = {key: value for key, value in self.iter_items('')
++                                       if key in OWNER_KEYS or key.startswith(OWNER_PREFIXES)}
++                    self.ledger.admit(len(canonical(baseline).encode()) * 3 + 65536)
++                    self.owner_projection.append(baseline, baseline=True)
+             seq, hash_value = self.db.execute("SELECT seq,hash FROM head WHERE id=1").fetchone()
+             expected = self.events[seq - 1]["hash"] if 0 < seq <= len(self.events) else ""
+             if seq > len(self.events) or hash_value != expected:
+@@ -625,6 +638,7 @@ class Store:
+         # A crash here may need owner confirmation: compact metadata cannot
+         # reconstruct the full event, and absence cannot prove no restore.
+         self.write_failed = True
++        self.owner_projection.append(event)
+         offset = self._append(record)
+         self._index_record(record, offset)
+         self.checkpoint("journal_appended")
+@@ -780,6 +794,8 @@ class Store:
+         return result
+ 
+     def close(self):
++        if self.owner_projection is not None:
++            self.owner_projection.close()
+         if self.db is not None:
+             self.db.close()
+         if self.index is not None:
+diff --git a/control/aresos_control/owner_projection.py b/control/aresos_control/owner_projection.py
+new file mode 100644
+index 00000000..2aa8f83d
+--- /dev/null
++++ b/control/aresos_control/owner_projection.py
+@@ -0,0 +1,177 @@
++"""Append-only owner facts beside the independent operation fence.
++
++The working database and its disposable index are never needed to decode this
++file. Frames precede the corresponding fence; only its commit marker publishes
++them. A failed transaction can leave an ignored frame, never a false resolution.
++"""
++import base64
++import copy
++import json
++import os
++import zlib
++
++from .common import Refused, canonical, cleanup, digest, storage_stream
++
++
++PREFIXES = ('op:', 'intent:', 'export:', 'notice:', 'mail:filing:', 'mail:rename:',
++            'mail:filing-locations:', 'mail:account:', 'archived:', 'archive:')
++KEYS = {'generation', 'restore_pending'}
++OP_FIELDS = {'id', 'generation', 'app', 'action', 'state', 'expires', 'reason', 'stages',
++             'notice', 'ack', 'context_version', 'roles_before', 'repair_of',
++             'repair_identity_missing', 'attempt_ended_at', 'sent_append_started_at',
++             'sent_append_ended_at', 'sent_copy_check', 'warning_checks'}
++
++
++def fact(key, value):
++    if value is None:
++        return None
++    if key.startswith('op:'):
++        value = {k: v for k, v in value.items() if k in OP_FIELDS or k == 'context'}
++    if isinstance(value, dict) and 'context' in value:
++        # Authored bodies and approval prose stay in compactable working history.
++        # Dispatch identities, roles and recipients remain independently durable.
++        value = {**value, 'context': {k: v for k, v in value['context'].items() if k != 'arguments'}}
++    if key.startswith('intent:') and isinstance(value, dict):
++        value = {k: v for k, v in value.items() if k != 'arguments'}
++    return copy.deepcopy(value)
++
++
++def difference(old, new):
++    """A dictionary is a recursive patch; [value] replaces; [] removes."""
++    if isinstance(old, dict) and isinstance(new, dict):
++        return {key: [] if key not in new else difference(old.get(key), new[key])
++                for key in old.keys() | new.keys() if key not in old or key not in new or old[key] != new[key]}
++    return [new]
++
++
++def apply(old, patch):
++    if isinstance(patch, list):
++        return copy.deepcopy(patch[0]) if patch else None
++    result = dict(old or {})
++    for key, value in patch.items():
++        if value == []:
++            result.pop(key, None)
++        else:
++            result[key] = apply(result.get(key), value)
++    return result
++
++
++class OwnerProjection:
++    def __init__(self, store):
++        self.store = store
++        path = store.evidence_dir / 'owner-state.jsonl'
++        self.path = path
++        fd = os.open(path, os.O_RDWR | os.O_APPEND | os.O_CREAT | os.O_NOFOLLOW, 0o600)
++        self.stream = os.fdopen(fd, 'a+b', buffering=0)
++        self.previous = ''
++        # Retain no catalogue in memory. Every fallback can reconstruct it from
++        # the independent files, including after a failed SQLite rollback.
++        for frame, _ in self.frames():
++            self.previous = frame['hash']
++
++    def close(self):
++        self.stream.close()
++
++    def frames(self):
++        previous = ''
++        with storage_stream(open(self.path, 'rb')) as stream:
++            for line in stream:
++                if not line.endswith(b'\n'):
++                    # An incomplete append has never been published by a fence.
++                    return
++                try:
++                    frame = json.loads(line)
++                    body = {k: v for k, v in frame.items() if k != 'hash'}
++                    if frame['previous'] != previous or digest(body) != frame['hash'] or frame['format'] != 1:
++                        raise ValueError('broken projection chain')
++                    raw = zlib.decompress(base64.b85decode(frame['delta']))
++                    data = json.loads(raw)
++                except (ValueError, KeyError, TypeError, zlib.error) as exc:
++                    raise Refused('evidence_corrupt', 'Owner-state projection is damaged; owner recovery required.') from exc
++                previous = frame['hash']
++                yield frame, data
++
++    def published(self):
++        """Collate two ordered streams with no SQLite access or history cache."""
++        frames = iter(self.frames())
++        candidate = next(frames, None)
++        with storage_stream(open(self.store.journal.name, 'rb')) as journal:
++            fence = None
++            for line in journal:
++                if not line.endswith(b'\n'):
++                    break
++                record = json.loads(line)
++                if 'commit' not in record:
++                    fence = record
++                    continue
++                if fence is None or record != {'commit': fence['seq'], 'hash': fence['hash']}:
++                    raise Refused('evidence_corrupt', 'Owner-state publication has no matching journal fence.')
++                while candidate and candidate[0]['seq'] <= fence['seq']:
++                    frame, data = candidate
++                    if frame['seq'] == fence['seq'] and frame['fence'] == fence['hash']:
++                        yield frame, data
++                    candidate = next(frames, None)
++
++    def get(self, key, default=None):
++        value = default
++        for _, data in self.published():
++            if key in data['changes']:
++                value = apply(value, data['changes'][key])
++        return value
++
++    def iter_items(self, prefix):
++        # Match the journal's bounded fallback: 32 identities, then rescan.
++        cursor = ''
++        while True:
++            batch = {}
++            for _, data in self.published():
++                for key, patch in data['changes'].items():
++                    if not key.startswith(prefix) or key <= cursor:
++                        continue
++                    if key not in batch and len(batch) == 32:
++                        largest = max(batch)
++                        if key > largest:
++                            continue
++                        del batch[largest]
++                    batch[key] = apply(batch.get(key), patch)
++            if not batch:
++                return
++            for key in sorted(batch):
++                if batch[key] is not None:
++                    yield key, batch[key]
++            cursor = max(batch)
++
++    def append(self, event, baseline=False):
++        changes = {}
++        for key, value in event['set'].items():
++            if key not in KEYS and not key.startswith(PREFIXES):
++                continue
++            value = fact(key, value)
++            old = None if baseline else self.get(key)
++            if baseline or old != value:
++                changes[key] = [] if value is None else difference(old, value)
++        audit = {k: event[k] for k in ('action', 'summary', 'outcome', 'operation_id')}
++        if 'untrusted_content' in event:
++            audit['untrusted_content'] = event['untrusted_content']
++        data = {'changes': changes, 'audit': audit}
++        frame = {'format': 1, 'seq': event['seq'], 'fence': event['record']['hash'],
++                 'previous': self.previous,
++                 'delta': base64.b85encode(zlib.compress(canonical(data).encode(), 9)).decode()}
++        frame['hash'] = digest(frame)
++        encoded = (canonical(frame) + '\n').encode()
++        self.stream.seek(0, os.SEEK_END)
++        offset = self.stream.tell()
++        try:
++            if self.stream.write(encoded) != len(encoded):
++                raise OSError(28, 'Short owner-state projection write')
++            os.fsync(self.stream.fileno())
++        except OSError as exc:
++            with cleanup('unpublished owner-state append', exc):
++                self.stream.truncate(offset)
++                os.fsync(self.stream.fileno())
++            raise
++        self.previous = frame['hash']
++
++    def audit(self):
++        for frame, data in self.published():
++            yield {'seq': frame['seq'], **data['audit']}
