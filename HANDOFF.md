@@ -20,6 +20,7 @@ Written 2026-11-13 (last update 19:00) by `linux-aresos`, the OS lead, now runni
 - `linux-hub`: brief 30, his installed programs in the hub (`~/AresOS-30-installed-programs/briefs/30-installed-programs.md`). It builds after 23 merges and sends the PR number when its two reviews say SAFE; the OS lead then reads the `os/` diff.
 - `linux-tools`: brief 18c, the control tools in the image (`~/AresOS-18c-image-test/briefs/18c-image-test.md`, draft PR #42). Its "os/ change proposal" and 12 questions wait for the OS lead's answers. Already told: 23 lands first, and nothing of 18c goes into a release without the owner's separate OK.
 - `mac-aresos-control`: the Chrome PR #27, planned for Monday 11-16; it closes the `pkg/20-chrome*` board items itself.
+- **Codex rule for all sessions (mac-capacity, 2026-11-13 21:10; one shared allowance, 73% used at 21:05, refill Tuesday 11-17 10:53):** below 90% use it freely; from 90% only reviews and fix checks, new Codex builds wait for Tuesday; at 100% reviews switch to Opus until Tuesday.
 - `mac-capacity` coordinates the Claude and Codex allowances. Ask it before several Fable agents at once. On 2026-11-13 14:45 Codex stood at 55% of its week (refill Tuesday 11-17 10:53; ChatGPT Pro ends 11-21).
 
 ## Then, in `STATE.md`'s order
