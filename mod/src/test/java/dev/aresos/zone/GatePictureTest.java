@@ -208,7 +208,10 @@ class GatePictureTest {
     @Test void oddAndTinySizesAreRefused() {
         assertThrows(IllegalArgumentException.class, () -> GatePicture.plain("stone", 11));
         assertThrows(IllegalArgumentException.class, () -> GatePicture.of(ring(), 4));
-        assertEquals(12, GateNumbers.SIZE);
+        assertDoesNotThrow(() -> GateNumbers.checkSize(GateNumbers.SIZE));
+        var defaultPicture = GatePicture.of(ring(), GateNumbers.SIZE);
+        assertEquals(GateNumbers.SIZE, defaultPicture.size());
+        assertDoor(defaultPicture);
         assertEquals(3, GateNumbers.DEPTH);
     }
 }

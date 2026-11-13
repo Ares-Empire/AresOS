@@ -51,8 +51,9 @@ import static dev.aresos.test.WalkInLogosClientGameTest.zoneCount;
  */
 public final class GateLogoClientGameTest implements FabricClientGameTest {
     private static final int Y = 150;
-    /** Four gates side by side as in a row of the town: 14 blocks from one doorway's centre line to the next. */
-    private static final int PINWHEEL = -14, SUNNY = 0, TREE = 14, PLAIN = 28;
+    /** Four gates side by side with the town's two-block gap. */
+    private static final int SPACING = GateNumbers.SIZE + 2;
+    private static final int PINWHEEL = -SPACING, SUNNY = 0, TREE = SPACING, PLAIN = 2 * SPACING;
     /** He stands here when he builds a gate, facing north. Its front layer is then at z 14, its front face at z 15. */
     private static final double BUILD_Z = 20.5, FACE_Z = 15;
     /**
@@ -129,7 +130,7 @@ public final class GateLogoClientGameTest implements FabricClientGameTest {
                     // No icon: a plain front in the group's colour with the black door frame's back.
                     var blocks = ZoneData.get(server).zones().get(3).gate().orElseThrow().placed().stream().map(AppZone.Placed::block).collect(java.util.stream.Collectors.toSet());
                     check(blocks.equals(Set.of("minecraft:yellow_concrete", "minecraft:black_concrete", "minecraft:light")), "Plain gate is built from " + blocks);
-                    check(pinwheelGate.gate().orElseThrow().placed().stream().noneMatch(placed -> placed.pos().equals(new BlockPos(PINWHEEL - 6, Y + 11, 14))),
+                    check(pinwheelGate.gate().orElseThrow().placed().stream().noneMatch(placed -> placed.pos().equals(new BlockPos(PINWHEEL - GateNumbers.SIZE / 2, Y + GateNumbers.SIZE - 1, 14))),
                             "The round icon's gate has a block in its top corner");
                 });
                 // A second gate on the same place is refused and changes nothing.
@@ -138,9 +139,9 @@ public final class GateLogoClientGameTest implements FabricClientGameTest {
                 check(zoneCount(world) == 4, "A gate was built into another gate");
 
                 // Walking along the front, as close as the face allows, opens nothing.
-                stand(context, world, new Vec3(PINWHEEL - 9.5, Y, FACE_Z + 0.31), -90, 0);
+                stand(context, world, new Vec3(PINWHEEL - GateNumbers.SIZE / 2.0 - 3.5, Y, FACE_Z + 0.31), -90, 0);
                 context.getInput().holdKey(options -> options.keyUp);
-                try { context.waitFor(client -> client.player.getX() > PINWHEEL + 7.5, 400); }
+                try { context.waitFor(client -> client.player.getX() > PINWHEEL + GateNumbers.SIZE / 2.0 + 1.5, 400); }
                 finally { context.getInput().releaseKey(options -> options.keyUp); }
                 context.waitTicks(5);
                 check(calls.isEmpty(), "Walking past the front opened " + calls);
@@ -174,7 +175,7 @@ public final class GateLogoClientGameTest implements FabricClientGameTest {
                 screenshot(context, world, new Vec3(SUNNY, Y, FACE_Z + 20), 180, -12, "gate-sunny-from-20");
                 screenshot(context, world, new Vec3(TREE, Y, FACE_Z + 20), 180, -12, "gate-tree-from-20");
                 screenshot(context, world, new Vec3(SUNNY, Y, FACE_Z + 10), 180, -25, "gate-sunny-from-10");
-                screenshot(context, world, new Vec3(PINWHEEL - 6 - 16, Y, 13.5), -90, -12, "gate-pinwheel-from-the-side");
+                screenshot(context, world, new Vec3(PINWHEEL - GateNumbers.SIZE / 2.0 - 16, Y, 13.5), -90, -12, "gate-pinwheel-from-the-side");
                 var corner = new Vec3(PINWHEEL - 15, Y, FACE_Z + 13);
                 var towards = new Vec3(PINWHEEL, Y + 7, 13.5).subtract(corner.add(0, 1.62, 0));
                 screenshot(context, world, corner, (float)Math.toDegrees(Math.atan2(-towards.x, towards.z)),
