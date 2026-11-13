@@ -351,6 +351,64 @@ unchanged copy passes all 12). Each line gives the flipped change, then the test
 `os/ci/check-image.sh`, `os/ci/image-checks.sh`, `os/tests/test_aresos_desktop.py`) is among package 27's 250
 bound paths, so `os/manifest/ci/16/pending-rebind.json` gets no row.
 
+**Local checks** (from the worktree, under `nice -n 10`): `test_aresos_desktop` with `-W error::ResourceWarning`:
+three runs. The first gave `Ran 152 tests`, `FAILED (failures=1, skipped=1)`, and its output was not kept, so which
+test failed is unknown. The next two gave `Ran 152 tests`, `OK (skipped=1)` (176 s and 181 s; the skip is the
+real-scope test, as before). `test_everyday_account` and `test_aresos_shell`: 108 OK. `bash -n` passes on the four
+changed scripts.
+
+**Run 43480151763** (`check_build=build` on `d14834fb`, runner image `20261111.370.1`): **success**, 40 min. This
+was the first image build and VM pass with fix round 5's supervisor and wrapper.
+- **Build:**
+  - `ARESOS_BUILD_KIND throwaway`.
+  - `build.sh packages` passed, so no other pin had vanished: the 29 locked RPMs, Prism 11.1.1, the Fabric
+    libraries, the mods and Prism's metadata (the renewed `9c23199a…`).
+  - `MOD_SOURCE d14834fb…`, then `MOD_JAR_BUILT 8f505f26…b627311 from d14834fb…`: the same bytes as the three
+    builds before.
+  - Configure printed `MOD_JAR_UNPINNED pin 8b04c511…, built 8f505f26… from d14834fb…: allowed in a throwaway
+    build; a release build stops here`, which also shows as the run's warning annotation, and went on.
+  - `bootc container lint`: 11 checks passed.
+  - The image records `{"sha256": "8f505f26…", "source_revision": "d14834fb…", "pinned_sha256": "8b04c511…"}`.
+- **Image checks** (`image-checks.sh`): 40 `PASS` lines and `IMAGE_CHECKS_PASSED`. Package 23's checks:
+  - `PASS Java 25 from the package lock (java-25-openjdk-headless-1:25.0.5.0.8-3.1.fc44.x86_64) …, runnable by ares`
+  - `PASS Prism Launcher PrismLauncher 11.1.1 from its pinned bundle: updater removed, …`
+  - `PASS every provisioning input in /usr/share/aresos/minecraft matches its pin; Java and Prism are present`. The
+    supervisor's own `verify_inputs` accepted the jar the image carries.
+  - The new check: `MOD_JAR_RECORDED 8f505f26… from d14834fb… NOT its pin 8b04c511… (throwaway build)`, then
+    `PASS the mod jar in the image is the one its manifest records (aresos-mod.json: SHA-256 and source commit)`.
+  - `PASS labwc autostart starts the desktop supervisor …`, `PASS provisioning as ares creates the managed instance
+    …, is idempotent and reports a changed instance`, `PASS no system service runs the desktop …`.
+
+  Then `check-image.sh` gave `ROOTLESS_MAPPING_PASSED`, the polkit check (which still fails without the AresOS rule,
+  as it must), `Throwaway image: mod jar 8f505f26…, pin 8b04c511…`, `Image manifest locks equal the reviewed locks`
+  and `CHECK_BUILD_PASSED`.
+- **VM pass 1:** each guest step returned 0 (`Guest policy`, `export`, `power-events`, `shortcut`, `recovery`,
+  `prepare-poweroff`). The pass printed `ARESOS_DAILY_ACCOUNT_LOCKED`, `Updater audit passed: 1090 system/user
+  units inspected`, `ARESOS_ACTIVE_SESSION_POLKIT_PASSED`, `ARESOS_GUEST_CHECKS_PASSED`,
+  `ARESOS_POWER_EVENTS_PASSED`, `PASS: offline logind power-key path …`, `UEFI VM checks passed: …` and
+  `CHECK_BUILD_VM_PASSED`.
+- **The desktop checks** run inside `Guest shortcut`. They print no PASS lines of their own: each one asserts, and
+  returns what it found in `shortcut-result.json`.
+  - `desktop_session`: the supervisor is in `SETUP`, not latched. The keeper, the supervisor, the app helper (with
+    the launch nonce) and Prism (without it) are running. Prism runs in
+    `aresos.slice/aresos-desktop-2318b577edf0.scope` with `--launch AresDesktop` and `Updates Enabled: No`, and the
+    instance's links point into `/usr/share/aresos/minecraft`.
+  - `memory_protection`: `memory.low` is 1 GiB on `user.slice`, `user-1001.slice` and `session-1.scope`;
+    `user.oomd_avoid=1` is set on the session scope; systemd-oomd is active.
+  - `desktop_jvm`, the JVM in its memory scope: a real JVM through the real wrapper, in
+    `user@1001.service/aresos.slice/aresos-game-2318b577edf0.scope`, with `memory.high` 5368709120 (5 GiB). Its
+    environment has the launch nonce and the instance, and no NVIDIA offload.
+  - The whole-scope kill latching recovery: `systemctl --user kill --signal=SIGKILL` of that scope gave wrapper exit
+    137, and the supervisor latched `RECOVERY killed`. 12 s later (longer than both crash backoffs) it was still
+    `RECOVERY killed` with no JVM. So nothing restarted by itself, and no failure was counted (`failures 0`).
+  - `memory_pressure`: a source in `aresos-ci-pressure.scope` allocated 5376 MiB and was killed by the kernel
+    (`oom-kill:… task_memcg=/user.slice/…/aresos.slice/aresos-ci-pressure.scope`, unit `Result=oom-kill`). The
+    supervisor answered all 26 status requests (0.10 s to 2.71 s; the limit is 30 s). labwc, the keeper, the
+    supervisor and the recovery terminal survived in the session scope.
+
+Evidence: `runs/build-43480151763/` (`summary.txt`: the job's marker lines, the build's mod lines and every image
+check line; `vm-desktop-checks.json`; `aresos-mod.json`).
+
 ### Checks of this round
 
 Natively on AresOS itself (Fedora-based, Linux 7.2, Python 3.14.8, systemd 259), the owner's running laptop, not
@@ -404,7 +462,8 @@ WSL. Never two suites at once; temporary files in a work folder outside the repo
 ### Not proven
 
 - A real Prism and Minecraft, and a real systemd-oomd kill: as before, tests kill by hand.
-- The VM's `desktop_jvm` check has not run against this round's wrapper (no CI run; the check itself is unchanged).
+- ~~The VM's `desktop_jvm` check has not run against this round's wrapper.~~ It has now, in run 43480151763 (see
+  "the mod jar's pin binds releases only"), with the throwaway jar `8f505f26…`.
 - The merged head is not green: `test_release27`'s package-diff test fails on it (see "Merge of main"); left for
   the integrator.
 - `WrapperTest.test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target` is skipped natively (see the
@@ -423,7 +482,8 @@ WSL. Never two suites at once; temporary files in a work folder outside the repo
   the live machine rule out. The image's own session is not affected (there the wrapper has the real folder, and
   the VM check passed on it).
 - **PLAN-GAP: "no CI" and the merge.** This round's own changes need no CI by the brief's rule, but the merge of
-  main changes build inputs (above), and the VM's `desktop_jvm` has not seen this round's wrapper.
+  main changes build inputs (above), and the VM's `desktop_jvm` had not seen this round's wrapper (it has since,
+  in run 43480151763).
 - **PLAN-GAP for the release that carries package 23 (from "the mod jar's pin binds releases only").**
   - **The jar's pin must be renewed once the jar builds reproducibly.** A release build stops on any jar but
     `8b04c511…`, and today's runner image builds `8f505f26…` from the same `mod/`. Likely cause, not proven: Loom
