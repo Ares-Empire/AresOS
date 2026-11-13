@@ -44,14 +44,27 @@ class PackageDiffTest(unittest.TestCase):
         self.new = {n: name_of(n) for n in new}
         self.old_lock, self.new_lock = old_lock, new_lock
 
-    def test_the_real_lock_change_is_exactly_packages_21s_and_the_renewed_pin(self):
+    def test_the_real_lock_change_is_exactly_packages_21s_and_23s_and_the_renewed_pin(self):
         rows, added, removed = rd.package_diff(self.old, self.new, self.old_lock, self.new_lock)
-        self.assertEqual(len(added), 17)  # 16 new lock entries and Chrome
+        owner = {}
+        for row in rows:
+            found = re.match(r'package (21|23)\b', row['reason'])
+            self.assertTrue(found, row)
+            owner[row['nevra']] = found.group(1)
+        self.assertEqual(len(added), 21)
+        self.assertEqual(sum(owner[n] == '21' for n in added), 17)  # 16 new lock entries and Chrome
         self.assertIn('google-chrome-stable-157.0.8103.50-1.x86_64', added)
+        # Package 23: Java 25 and the three dependencies dnf resolved with it
+        # (Java's two vanished 25.0.4 pins renewed to 25.0.5 by run 43466199049).
+        self.assertEqual(sorted(n for n in added if owner[n] == '23'), [
+            'java-25-openjdk-crypto-adapter-1:25.0.5.0.8-3.1.fc44.x86_64',
+            'java-25-openjdk-headless-1:25.0.5.0.8-3.1.fc44.x86_64',
+            'javapackages-filesystem-6.4.1-10.fc44.noarch',
+            'tzdata-java-2026f-1.fc44.noarch'])
         self.assertIn('xdg-desktop-portal-wlr-0.8.4-1.fc44.x86_64', removed)
         self.assertIn('util-linux-2.41.5-1.fc44.x86_64', removed)
         self.assertEqual(len(removed), 12)
-        self.assertTrue(all(row['reason'].startswith('package 21') for row in rows))
+        self.assertEqual({owner[n] for n in removed}, {'21'})
 
     def test_an_unlocked_extra_missing_replacement_or_unknown_name_stops(self):
         extra = dict(self.new, **{'nano-8.0-1.fc44.x86_64': 'nano'})

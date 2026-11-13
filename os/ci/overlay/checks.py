@@ -3,6 +3,7 @@ import json
 import os
 import pathlib
 import subprocess
+import threading
 import time
 import traceback
 
@@ -29,22 +30,307 @@ def wait_session(extra_terminal=False):
     raise TimeoutError('AresOS terminal did not start')
 
 
+RECOVERY_TERMINAL = ['/usr/bin/foot', '--title=AresOS', '/usr/bin/bash', '--rcfile', '/usr/share/aresos/bashrc', '-i']
+# Package 23: the desktop supervisor's message window (first start, sign-in, recovery).
+DESKTOP_VIEW = ['/usr/bin/foot', '--title=AresOS', '--app-id=aresos.desktop', '--window-size-chars=104x32',
+                '/usr/bin/bash', '--rcfile', '/usr/share/aresos/desktop-view.bashrc', '-i']
+
+
 def terminal_shells(pids):
-    """Each AresOS terminal runs the system bash with the AresOS rcfile."""
+    """Each AresOS terminal (recovery or desktop message) runs the system bash with an AresOS rcfile."""
     for _ in range(30):
         terminals = []
         for pid in pids:
             cmdline = pathlib.Path(f'/proc/{pid}/cmdline').read_bytes().split(b'\0')[:-1]
+            environ = pathlib.Path(f'/proc/{pid}/environ').read_bytes().split(b'\0')
             children = run('pgrep', '-P', pid)['stdout'].split()
             terminals.append(dict(pid=pid, cmdline=[part.decode() for part in cmdline],
+                                  terminal=[v.decode() for v in environ if v.startswith(b'ARESOS_TERMINAL=')],
                                   shells=[os.readlink(f'/proc/{child}/exe') for child in children]))
         if all(terminal['shells'] == ['/usr/bin/bash'] for terminal in terminals):
             break
         time.sleep(1)
     for terminal in terminals:
-        assert terminal['cmdline'][:3] == ['/usr/bin/foot', '--title=AresOS', '/usr/bin/bash'], terminals
+        assert terminal['cmdline'] in (RECOVERY_TERMINAL, DESKTOP_VIEW), terminals
         assert terminal['shells'] == ['/usr/bin/bash'], terminals
+        # Both are set up as recovery terminals: system PATH, never his ~/.bashrc.
+        assert terminal['terminal'] == ['ARESOS_TERMINAL=recovery'], terminals
+    assert [t for t in terminals if t['cmdline'] == RECOVERY_TERMINAL], ('no recovery terminal', terminals)
     return terminals
+
+
+def processes():
+    rows = []
+    for entry in pathlib.Path('/proc').iterdir():
+        if not entry.name.isdigit():
+            continue
+        try:
+            cmdline = [p.decode(errors='replace') for p in (entry / 'cmdline').read_bytes().split(b'\0')[:-1]]
+            uid = int(next(line.split()[1] for line in (entry / 'status').read_text().splitlines()
+                           if line.startswith('Uid:')))
+            exe = os.readlink(entry / 'exe')
+            cgroup = (entry / 'cgroup').read_text().strip()
+            environ = (entry / 'environ').read_bytes().split(b'\0')
+        except (OSError, StopIteration):
+            continue
+        rows.append(dict(pid=int(entry.name), uid=uid, cmdline=cmdline, exe=exe, cgroup=cgroup,
+                         env={k.decode(): v.decode(errors='replace') for k, _, v in
+                              (item.partition(b'=') for item in environ if b'=' in item)}))
+    return rows
+
+
+def desktop_session():
+    """Package 23: the desktop supervisor, the app helper and Prism run as ares in the session, nothing as root."""
+    for _ in range(90):
+        status = run('runuser', '-u', 'ares', '--', 'env', '-i', 'HOME=/var/home/ares', 'XDG_RUNTIME_DIR=/run/user/1001',
+                     '/usr/libexec/aresos-desktop', 'status')
+        rows = processes()
+        prism = [r for r in rows if r['exe'].startswith('/usr/lib/prismlauncher/') or
+                 any('/usr/lib/prismlauncher/' in part for part in r['cmdline'][:1])]
+        if status['returncode'] == 0 and prism:
+            break
+        time.sleep(2)
+    assert status['returncode'] == 0, status
+    state = json.loads(status['stdout'])
+    # A fresh VM has no Microsoft account and no hub world: first start.
+    assert state['state'] == 'SETUP' and not state['latched'], state
+    ours = [r for r in rows if any(name in ' '.join(r['cmdline'][:2]) for name in
+                                   ('aresos-desktop', 'aresos-shell', 'prismlauncher'))
+            or r['exe'].startswith('/usr/lib/prismlauncher/')]
+    assert ours and all(r['uid'] == 1001 for r in ours), [(r['pid'], r['uid'], r['cmdline']) for r in ours]
+    keeper = [r for r in ours if r['cmdline'][1:3] == ['/usr/libexec/aresos-desktop', 'session']]
+    supervisor = [r for r in ours if r['cmdline'][1:3] == ['/usr/libexec/aresos-desktop', 'supervise']]
+    assert len(keeper) == 1 and len(supervisor) == 1, ours
+    assert keeper[0]['cmdline'][0] == '/usr/bin/python3', keeper
+    helper = [r for r in ours if r['cmdline'][1:2] == ['/usr/libexec/aresos-shell']]
+    assert len(helper) == 1, ours
+    runtime = json.loads(pathlib.Path('/run/user/1001/aresos/desktop-runtime.json').read_text())
+    assert helper[0]['env'].get('ARESOS_DESKTOP_INSTANCE') == state['instance'] == runtime['instance'], helper
+    assert helper[0]['env'].get('ARESOS_LAUNCH_NONCE') == runtime['nonce'], 'the helper has the launch nonce'
+    assert prism, ours
+    assert all('ARESOS_LAUNCH_NONCE' not in r['env'] for r in prism), 'Prism must not get the launch nonce'
+    scope = [r for r in prism if f'/aresos.slice/aresos-desktop-{runtime["launch"]}.scope' in r['cgroup']]
+    assert scope, [(r['pid'], r['cgroup']) for r in prism]
+    instance = pathlib.Path('/var/home/ares/.local/share/PrismLauncher/instances/AresDesktop')
+    links = {link: os.readlink(instance / link) for link in ('patches', 'libraries', 'minecraft/mods',
+                                                              'minecraft/saves')}
+    assert links == {'patches': '/usr/share/aresos/minecraft/patches',
+                     'libraries': '/usr/share/aresos/minecraft/libraries',
+                     'minecraft/mods': '/usr/share/aresos/minecraft/mods',
+                     'minecraft/saves': '/var/home/ares/.local/share/aresos/worlds'}, links
+    prism_log = pathlib.Path('/var/home/ares/.local/share/PrismLauncher/logs/PrismLauncher-0.log').read_text(
+        errors='replace')
+    assert 'Updates Enabled            : No' in prism_log
+    assert 'ID of instance to launch   : "AresDesktop"' in prism_log, prism_log[:3000]
+    supervisor_log = pathlib.Path('/var/home/ares/.local/state/aresos/desktop.log').read_text(errors='replace')
+    return dict(state=state, runtime={k: v for k, v in runtime.items() if k != 'nonce'}, links=links,
+                prism_scope=scope[0]['cgroup'],
+                processes=[dict(pid=r['pid'], uid=r['uid'], cmdline=r['cmdline'][:4]) for r in ours],
+                supervisor_log=supervisor_log[-4000:], prism_log=prism_log[:6000])
+
+
+AS_ARES = ['runuser', '-u', 'ares', '--', 'env', '-i', 'HOME=/var/home/ares', 'XDG_RUNTIME_DIR=/run/user/1001',
+           'PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin']
+GIB = 1024 ** 3
+
+
+def desktop_status():
+    result = run(*AS_ARES, '/usr/libexec/aresos-desktop', 'status')
+    assert result['returncode'] == 0, result
+    return json.loads(result['stdout'])
+
+
+def cgroup_folder(pid):
+    line = next(l for l in pathlib.Path(f'/proc/{pid}/cgroup').read_text().splitlines() if l.startswith('0::'))
+    return '/sys/fs/cgroup' + line.split('::', 1)[1]
+
+
+def desktop_jvm():
+    """Package 23 review 1 (findings 1 and 4): a real JVM through the real wrapper and supervisor, as Prism would
+    start it from outside the desktop's scope. It must run in its own game scope with the 5 GiB target; killing that
+    whole scope must latch recovery and never start Minecraft again by itself."""
+    lock = json.loads(pathlib.Path('/usr/share/aresos/minecraft/desktop.lock.json').read_text())
+    instance = '/var/home/ares/.local/share/PrismLauncher/instances/AresDesktop'
+    pause = '/tmp/aresos-ci-jvm.paused'
+    # A real JVM that waits (HotSpot's PauseAtStartup) until its pause file is removed or it is killed.
+    wrapper = subprocess.Popen([*AS_ARES, 'INST_ID=AresDesktop', f'INST_DIR={instance}',
+                                '/usr/libexec/aresos-desktop-java', lock['java']['path'],
+                                '-XX:+UnlockDiagnosticVMOptions', '-XX:+PauseAtStartup',
+                                f'-XX:PauseAtStartupFile={pause}', '-version'],
+                               cwd=f'{instance}/minecraft', stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT)
+    for _ in range(120):
+        state = desktop_status()
+        if state['jvm_pid']:
+            break
+        assert wrapper.poll() is None, wrapper.communicate()
+        time.sleep(0.5)
+    jvm = state['jvm_pid']
+    assert jvm, state
+    runtime = json.loads(pathlib.Path('/run/user/1001/aresos/desktop-runtime.json').read_text())
+    unit = f'aresos-game-{runtime["launch"]}.scope'
+    folder = cgroup_folder(jvm)
+    assert folder.endswith(f'/user@1001.service/aresos.slice/{unit}'), folder
+    memory_high = pathlib.Path(folder, 'memory.high').read_text().strip()
+    assert memory_high == str(5 * GIB), memory_high
+    assert os.path.realpath(f'/proc/{jvm}/exe') == os.path.realpath(lock['java']['path'])
+    environ = dict(item.split('=', 1) for item in pathlib.Path(f'/proc/{jvm}/environ').read_text().split('\0')
+                   if '=' in item)
+    assert environ.get('ARESOS_LAUNCH_NONCE') == runtime['nonce'], 'the JVM has the launch nonce'
+    assert environ.get('ARESOS_DESKTOP_INSTANCE') == runtime['instance']
+    assert '__NV_PRIME_RENDER_OFFLOAD' not in environ, 'no NVIDIA offload without the NVIDIA driver'
+    kill = run(*AS_ARES, '/usr/bin/systemctl', '--user', 'kill', '--signal=SIGKILL', unit)
+    assert kill['returncode'] == 0, kill
+    output, _ = wrapper.communicate(timeout=60)
+    assert wrapper.returncode == 128 + 9, (wrapper.returncode, output)
+    for _ in range(60):
+        state = desktop_status()
+        if state['latched']:
+            break
+        time.sleep(0.5)
+    assert (state['state'], state['reason'], state['latched']) == ('RECOVERY', 'killed', True), state
+    time.sleep(12)  # longer than the 5 s and 10 s crash backoffs: nothing may start again by itself
+    after = desktop_status()
+    assert (after['state'], after['reason'], after['jvm_pid']) == ('RECOVERY', 'killed', None), after
+    return dict(jvm_cgroup=folder, memory_high=memory_high, unit=unit, wrapper_exit=wrapper.returncode,
+                wrapper_output=output.decode(errors='replace')[-2000:], after=after)
+
+
+def survivors():
+    rows = processes()
+    wanted = {}
+    for row in rows:
+        if row['uid'] != 1001:
+            continue
+        if row['exe'] == '/usr/bin/labwc':
+            wanted['labwc'] = row
+        elif row['cmdline'][1:3] == ['/usr/libexec/aresos-desktop', 'supervise']:
+            wanted['supervisor'] = row
+        elif row['cmdline'][1:3] == ['/usr/libexec/aresos-desktop', 'session']:
+            wanted['keeper'] = row
+        elif row['cmdline'] == RECOVERY_TERMINAL:
+            wanted['recovery terminal'] = row
+    return {name: (row['pid'], row['cgroup']) for name, row in wanted.items()}
+
+
+def memory_protection():
+    """Package 23 review 1 (finding 9): the effective protection of the session and its ancestors, and oomd."""
+    found = survivors()
+    session = '/sys/fs/cgroup' + found['labwc'][1].split('::', 1)[1]
+    assert '/user.slice/user-1001.slice/session-' in session and session.endswith('.scope'), session
+    low = {}
+    for folder in ('/sys/fs/cgroup/user.slice', '/sys/fs/cgroup/user.slice/user-1001.slice', session):
+        low[folder] = pathlib.Path(folder, 'memory.low').read_text().strip()
+        assert low[folder] == str(GIB), low
+    for name in ('supervisor', 'recovery terminal'):
+        assert '/sys/fs/cgroup' + found[name][1].split('::', 1)[1] == session, found
+    avoid = {}
+    for name in ('user.oomd_avoid', 'trusted.oomd_avoid'):
+        try:
+            avoid[name] = os.getxattr(session, name).decode(errors='replace')
+        except OSError as error:
+            avoid[name] = f'unset ({error.strerror})'
+    assert any(not value.startswith('unset') for value in avoid.values()), avoid
+    oomd = run('systemctl', 'show', 'user@1001.service', '-p', 'ManagedOOMMemoryPressure',
+               '-p', 'ManagedOOMMemoryPressureLimit', '-p', 'ManagedOOMSwap')
+    oomctl = run('oomctl')
+    return dict(memory_low=low, oomd_avoid=avoid, user_service=oomd['stdout'], oomctl=oomctl['stdout'][-3000:],
+                oomd_active=run('systemctl', 'is-active', 'systemd-oomd.service')['stdout'].strip())
+
+
+PRESSURE_UNIT = 'aresos-ci-pressure.scope'
+# The pressure source says where it runs, then how much it holds after each step (64 MiB, every page touched).
+HOG = """
+import os, time
+print('SCOPE', os.getpid(), open('/proc/self/cgroup').read().strip().replace('\\n', ' '), flush=True)
+chunks = []
+while True:
+    chunk = bytearray(64 << 20)
+    chunk[::4096] = b'\\1' * (len(chunk) // 4096)
+    chunks.append(chunk)
+    print('ALLOCATED', len(chunks) * 64, flush=True)
+    time.sleep(0.05)
+"""
+# The source must reach at least this much before it is killed, so the kill comes from real memory pressure.
+PRESSURE_MIN_MIB = 1024
+# Every status request to the supervisor during the pressure must be answered within this time.
+RESPONSIVE = 30.0
+
+
+def pressure_command():
+    return [*AS_ARES, '/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--slice=aresos.slice',
+            f'--unit={PRESSURE_UNIT}', '--property=MemorySwapMax=0', '/usr/bin/python3', '-c', HOG]
+
+
+def timed_status():
+    """Seconds the supervisor took to answer a status request, or None if it did not answer in time."""
+    started = time.monotonic()
+    try:
+        result = subprocess.run([*AS_ARES, '/usr/libexec/aresos-desktop', 'status'], capture_output=True,
+                                text=True, timeout=RESPONSIVE)
+        json.loads(result.stdout)
+    except (subprocess.TimeoutExpired, ValueError):
+        return None
+    return time.monotonic() - started if result.returncode == 0 else None
+
+
+def oom_evidence(pid):
+    """The kernel's or systemd-oomd's record of killing the pressure source, and its scope's systemd result."""
+    kernel = run('journalctl', '-k', '-o', 'cat', '--no-pager', '-n', '3000')['stdout'].splitlines()
+    oomd = run('journalctl', '-u', 'systemd-oomd.service', '-o', 'cat', '--no-pager', '-n', '200')['stdout']
+    unit = run(*AS_ARES, '/usr/bin/systemctl', '--user', 'show', PRESSURE_UNIT, '-p', 'Result')['stdout'].strip()
+    kernel = [line for line in kernel if f'Killed process {pid} ' in line
+              or (f'/{PRESSURE_UNIT},' in line and f'pid={pid},' in line)]
+    oomd = [line for line in oomd.splitlines() if PRESSURE_UNIT in line]
+    return dict(kernel=kernel, oomd=oomd, unit=unit,
+                proven=bool(kernel or oomd or unit == 'Result=oom-kill'))
+
+
+def memory_pressure():
+    """Package 23 (review 1 finding 9, review 2 finding 9): exhaust memory from a scope next to the game's. The
+    source must enter that scope, allocate, and be killed for memory (kernel or systemd-oomd evidence for exactly
+    that scope or process); the supervisor answers throughout, and the compositor, the supervisor, its keeper and
+    the recovery terminal survive."""
+    before = survivors()
+    assert set(before) == {'labwc', 'supervisor', 'keeper', 'recovery terminal'}, before
+    hog = subprocess.Popen(pressure_command(), stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                           stderr=subprocess.STDOUT, text=True)
+    lines = []
+
+    def read():
+        for line in hog.stdout:
+            lines.append(line.rstrip('\n'))
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
+    answers = []
+    deadline = time.monotonic() + 600
+    while hog.poll() is None and time.monotonic() < deadline:
+        if any(line.startswith('ALLOCATED ') for line in lines):
+            answers.append(timed_status())
+        time.sleep(0.5)
+    if hog.poll() is None:
+        hog.kill()
+        hog.wait()
+        raise AssertionError(('the pressure source was not stopped within 600 s', lines[-5:]))
+    reader.join(10)
+    hog.stdout.close()
+    scope = [line.split(' ', 2) for line in lines if line.startswith('SCOPE ')]
+    assert scope, ('the pressure source never ran in its scope', hog.returncode, lines[-5:])
+    pid, cgroup = int(scope[0][1]), scope[0][2]
+    assert cgroup.endswith(f'/aresos.slice/{PRESSURE_UNIT}'), ('the pressure source ran elsewhere', cgroup)
+    allocated = max([int(line.split()[1]) for line in lines if line.startswith('ALLOCATED ')], default=0)
+    assert allocated >= PRESSURE_MIN_MIB, ('the pressure source ended before it made pressure', allocated,
+                                           hog.returncode, lines[-5:])
+    assert hog.returncode in (128 + 9, -9), ('the pressure source was not killed', hog.returncode, lines[-5:])
+    evidence = oom_evidence(pid)
+    assert evidence['proven'], ('no kernel or systemd-oomd record of killing the pressure source', evidence)
+    assert answers and all(answer is not None for answer in answers), (
+        'the supervisor did not answer within %d s during the pressure' % RESPONSIVE, answers)
+    after = survivors()
+    assert after == before, ('a protected process did not survive', before, after)
+    state = desktop_status()
+    return dict(hog_exit=hog.returncode, pid=pid, cgroup=cgroup, allocated_mib=allocated, status_seconds=answers,
+                survivors=after, supervisor_state=state['state'], evidence=evidence)
 
 
 def check(action, request):
@@ -83,6 +369,10 @@ def check(action, request):
         missing = [name for name in names if not os.access(f'/var/home/ares/.local/bin/{name}', os.X_OK)]
         assert names and not missing, ('shadowing programs missing', missing)
         result['terminals'] = terminal_shells(result['stdout'].split())
+        result['desktop'] = desktop_session()
+        result['memory_protection'] = memory_protection()
+        result['game_scope'] = desktop_jvm()
+        result['pressure'] = memory_pressure()
         # greetd's wrapper (non-interactive, not a login shell) sources
         # /etc/profile before the session: its profile scripts keep the system PATH.
         # Review 6: a missing probe or no wrapper record fails instead of passing.

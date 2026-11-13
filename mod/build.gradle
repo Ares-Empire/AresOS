@@ -52,6 +52,12 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
 }
 jar { from('LICENSE') { rename { "${it}_aresos" } } }
+// The AresOS image pins the jar's SHA-256 (package 23), so the same sources
+// must give the same bytes: no build-time timestamps, a fixed entry order.
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
 
 // The image pins this jar's hash. Keep this block separate from game/test configuration.
 tasks.withType(AbstractArchiveTask).configureEach {
