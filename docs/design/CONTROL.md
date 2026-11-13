@@ -451,7 +451,7 @@ sites and synthetic profiles).
   reaching Claude is never accepted (owner, 2026-11-11). Its price is under "Known limits": in his own tab Claude
   can't read back what he typed.
 - **The service checks its peer.** `chrome.sock` accepts only his user (Chrome, and so the host, run as him) and one
-  host per running Chrome. Under decision 24 another program of his user could imitate or disturb the host, as it
+  host per running Chrome, from the pinned profile ("Which tabs Claude works in", *brief 28b*). Under decision 24 another program of his user could imitate or disturb the host, as it
   could any program of his (for example by registering a user-level host of the same name, which Chrome prefers:
   *checked*, 17); that is the accepted level of section 7, not a route the tool adds.
 
@@ -496,8 +496,10 @@ the front when he should look at it or sign in there.
   are untrusted content (rule 4.8).
   - **Incognito windows are never listed, read or taken.** The extension's manifest says `"incognito":
     "not_allowed"`. Incognito is his way of saying "not for the record".
-  - **Other Chrome profiles** aren't listed. The service accepts one native host per running Chrome (*brief 20*), so
-    Claude sees the profile whose extension connected. [`FEATURES.md`](../control/FEATURES.md) says so.
+  - **Other Chrome profiles** aren't listed. Claude sees one profile, and it is pinned: the service remembers the
+    first profile whose extension connected and refuses any other, also after a reconnect, until he switches it
+    with an owner-only command. Brief 20 accepts whichever extension connects (*brief 20*), so without the pin a
+    second profile could quietly take the first one's place. [`FEATURES.md`](../control/FEATURES.md) says so.
   - **Never readable:** the pages of "Where Claude may go" (the fixed list, his own never-list, anything that isn't a
     web page). They are listed with title and site and marked `no`, so Claude can say why it can't help there.
 - **Looking needs no take.** `chrome_read` works on every listed tab that isn't marked `no`. One of his tabs is read
@@ -510,6 +512,12 @@ the front when he should look at it or sign in there.
   - A tab that shows one of Chrome's own dialogs can't answer. The tool waits two seconds, never hangs, and tells
     Claude to ask him.
   - Nothing he does in a tab that isn't Claude's or taken is held or checked, also right after Claude looked at it.
+- **The page Claude chose is the page it gets.** Between the list and Claude's next call he may have gone
+  somewhere else in that tab. So the list carries a short token (`seen`), and every call that names one of his
+  tabs passes it: a read, a take, a close, and opening the tab's address in a Claude tab. The tool compares, right
+  before it reads or changes anything, the page the tab shows with the page the list showed (the document and the
+  full address). If they differ, it refuses and Claude lists the tabs again. If they don't, nothing extra happens
+  and he is asked nothing. A new connection to Chrome drops every list.
 - **Which tab: the one his request clearly needs.** The tool can't know what he asked. Three things carry the rule:
   - *The instructions tell Claude* (the Chrome server's MCP instructions, generated from the definitions): read or
     take one of his tabs only when his current request names it or can't be done without it. Choose by site, not by
@@ -1108,6 +1116,11 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
 
 **Reading and his tabs** (*brief 28*, *brief 28b*)
 
+- **A page that changes what it shows without changing its address.** A read, a take or a close of one of his
+  tabs is bound to the document and address the list showed. A page that swaps its content in place (a chat that
+  switches conversations) keeps both. *Harm:* Claude reads other content of the same site than the title in the
+  list promised. *Accepted:* it is the same page of the same site that his request pointed at, the result shows
+  the title as it now is, and nothing in Chrome tells the two states apart.
 - **The tool can't check that a tab is the one his request needs.** A careless or tricked Claude could read a tab
   of his that the request didn't need. *Harm:* that page's text reaches Claude. *Accepted:* reading his open tabs is
   what he asked for; the call must state the request, he sees the tab marked and listed, the log keeps it, his
@@ -1305,6 +1318,12 @@ harness's helper functions change, never an assertion.
       no debugger is attached; his own Enter in that tab right afterwards submits natively; a tab of the fixed list
       or his never-list is refused; an asleep tab is loaded and the result says so; a tab with an open dialog
       answers `owner_dialog` within the bound;
+    - the page Claude chose: a read, a take, a close and opening a tab's address are refused without the list's
+      token; after he navigates the listed tab (a new document, or a new address in the same document) each is
+      refused before anything is read or changed, and nothing of the new page is in a result; unchanged, each
+      works with no further step;
+    - one profile: a second profile's extension is refused, also after the first one disconnects, until the owner
+      command names it; then every token and reference from before is refused;
     - the reason: a read, a take or a close of one of his tabs without `request` is refused; with it, the popup and
       `aresos log` show the tab, the time and the request, and the button shows **READ**;
     - taking: typing or playing media gives `reload_required` and the tab hasn't moved; `reload: true` takes it; a

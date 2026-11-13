@@ -79,13 +79,34 @@ catch a page that submits by itself. If you have typed something there, or music
   address in brief 28's public form (no query, no fragment, no sign-in path).
 - **Incognito never.** Add `"incognito": "not_allowed"` to the manifest. An incognito window's tabs are never
   listed, read or taken.
-- **One profile.** The service accepts one native host per running Chrome, so only the profile whose extension
-  connected is seen. Add that line to `docs/control/FEATURES.md`. Don't build more.
+- **One profile, and it is pinned.** Brief 20's service accepts one native host at a time: whichever profile's
+  extension connects, also after a reconnect (`Bridge.accept` in `bridge.py`; the hello carries a session and a
+  version, nothing about the profile). So a second Chrome profile could quietly take the place of the one Claude
+  worked in. Build the smallest thing that stops it:
+  - the extension keeps a random id for its profile in its own storage (the service worker's IndexedDB; no new
+    permission) and sends it in its hello;
+  - the service remembers the first profile id that ever connects, and refuses a hello with another one. While
+    only that other profile runs, the tools answer `chrome_unavailable`, "Chrome is connected from another profile
+    than the one Claude works in";
+  - he changes the pinned profile himself: the extension's details page shows its profile's id, and the owner-only
+    `chrome_sites` gets one command, `profile`, behind `sudo aresos admin chrome profile <id>`;
+  - on every new connection the service empties the reference table and drops every list (`seen`), as brief 28
+    built it, so nothing chosen under one connection is used under another.
+  Add the line "Claude sees one Chrome profile, the pinned one" to `docs/control/FEATURES.md`. Don't build more.
 
 ### 2. Looking in place
 
 `chrome_read` (and with it `ref`, `find`, `until` and `tabs`) works on every tab that isn't marked `no`.
 
+- **The page Claude chose is the page it gets.** Every call that names one of his tabs passes the `seen` of the
+  list Claude chose it from (brief 28, item 6): `chrome_read` here, and `chrome_take`, `chrome_close` and
+  `chrome_open` with `tab`. With `tabs`, one `seen` covers the call. The extension checks first, in the same
+  command, that the tab still shows that document at that address. Its messages to the page are addressed to that
+  document, so a page he navigated to in the meantime can never answer. If the tab moved on: `stale_reference`,
+  "this tab shows another page than the list did; list the tabs again", **before anything is read**. If nothing
+  changed, there is no extra step and no extra question. A page that changes what it shows without changing its
+  document or its address (a chat that switches conversations) can't be told apart this way; the result names the
+  page's title and address as they are, and section 6 lists the limit.
 - **In one of his tabs it reads in place.** No debugger attach, no move, no reload. Nothing is injected into the
   page's own (main) world. Nothing of ours in that tab can cancel, hold or change an event. The tab isn't selected
   or focused, and its scroll position isn't touched. After the read, only the reader's idle content script remains
@@ -135,8 +156,9 @@ and report.
 
 `chrome_take` (input `tab`, `reload`, `request`) becomes the one step before acting in one of his tabs:
 
-1. **Check first, in place:** not a page of the fixed list or his never-list; `request` given; loaded by a plain
-   GET (otherwise refused: "open its address fresh in a Claude tab"); no dialog open.
+1. **Check first, in place:** the tab still shows the page of the list (`seen`, item 2); not a page of the fixed
+   list or his never-list; `request` given; loaded by a plain GET (otherwise refused: "open its address fresh in a
+   Claude tab"); no dialog open.
 2. **Unsaved typing or playing media:** if the tab holds a changed field, any rich-text editor or playing media
    (brief 20's `reload_state`) and `reload` isn't `true`, answer `reload_required` and **change nothing**: the tab
    hasn't moved. The answer says what would be lost: how many fields hold typing, with their labels (never their
@@ -152,7 +174,8 @@ own group, and **pinned** if it was pinned (brief 20's record of the original pl
 
 ### 5. Closing his tabs (judgment call 3, answer a)
 
-`chrome_close` closes one of his tabs only when `request` is given, and never one with unsaved typing or playing
+`chrome_close` closes one of his tabs only when `request` and `seen` are given and the tab still shows the page
+of that list, and never one with unsaved typing or playing
 media (the same check as item 4; such a tab is listed under `kept` with the reason). The result lists each closed
 tab with its title and its address in the public form. A page of the fixed list or his never-list is never closed
 by Claude.
@@ -232,6 +255,16 @@ password cases under `password_exclusion`):
   target is attached; the tab didn't move, wasn't selected and its window wasn't focused. Then his own Enter in
   that tab submits natively (the receiver has it, with no question), and the comparison with an untouched Chrome
   still passes.
+- **The page Claude chose:** a read, a take, a close and a `chrome_open` with `tab` are refused without `seen`.
+  Between the list and the call the owner navigates the listed tab to a private fixture page, once as a new
+  document and once as a new address inside the same document: each call is refused with `stale_reference`; the
+  private page's marker text is in no result and its fixture records no message from the reader; the tab isn't
+  attached, moved, reloaded or closed. With the tab unchanged every call works with no further step. For a tab
+  asleep the address binds: he wakes it and navigates it, and the read is refused.
+- **One profile:** two profiles run with the extension. The first to connect is pinned; the second is refused,
+  also after the first one's windows close; none of its tabs is ever listed. After the owner command names the
+  second profile it connects, and every `seen` and reference from before is refused. If two profiles can't run in
+  the container, say so (PLAN-GAP) and prove the rule with a second connection that presents another profile id.
 - **Never readable:** a tab of the fixed list, of his never-list, a `chrome://` page and a page with a fixed-list
   frame (the frame left out) are handled as section 6 says.
 - **The reason:** a read, a take and a close of one of his tabs without `request` are refused. With it, the popup
@@ -294,8 +327,10 @@ byte-identical to `main`'s.
 ## Paths
 
 **May change:** in `control/chrome/extension/`: `background.js`, `reader.js`, `guard.js` (its isolated part, for a
-passive mode only), `manifest.json` (the one entry above), `popup.html`, `popup.js`;
-`control/aresos_control/chrome/adapter.py`, `definitions.py` and the view module; the generated files; `control/chrome_tests/`, `control/chrome/ci/`;
+passive mode only), `manifest.json` (the one entry above), `popup.html`, `popup.js`, `details.html` and
+`details.js` (the profile id); `control/aresos_control/chrome/adapter.py`, `definitions.py`, the view module and
+`bridge.py` (the hello); `control/aresos_control/cli.py` (the one `admin chrome profile` line); the generated
+files; `control/chrome_tests/`, `control/chrome/ci/`;
 `.github/workflows/control-chrome.yml` (not the qualification workflow); `docs/control/TOOLS.md`,
 `docs/control/FEATURES.md`, `control/README.md`;
 `reviews/28b-chrome-his-tabs/`.

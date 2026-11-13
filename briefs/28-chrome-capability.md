@@ -268,8 +268,9 @@ Result:
 
 ### 4. `chrome_open` and `chrome_go` (effect change)
 
-**`chrome_open`** input: exactly one of `url`; `tab` (open the address that tab shows); `ref` (open the address
-behind a link's or a library entry's reference; `tab` may accompany a link's reference and must then be its tab).
+**`chrome_open`** input: exactly one of `url`; `tab` (open the address that tab shows; with `seen` when the tab is
+his, item 6); `ref` (open the address behind a link's or a library entry's reference; `tab` may accompany a link's
+reference and must then be its tab).
 Also `until`, `timeout_ms` (0 to 20,000, default 8,000) and `max` (default 4,000).
 **`chrome_go`** input: `tab`, and exactly one of `url` or `to` (`back`, `forward`, `reload`); `until`, `timeout_ms`,
 `max` as above.
@@ -286,8 +287,9 @@ Result of both:
   refusal of form-loaded history entries, the guarded reload). Then the service waits: until the top document has
   changed and `readyState` is `complete`, and the revision has been still for 150 ms; or until `until` is met; or
   until the timeout. `loaded` says which.
-- `chrome_open` with `tab` or `ref`: the service takes the full address from the tab or from its reference table
-  (Claude only ever saw the public form), and the rules of "Where Claude may go" apply to it.
+- `chrome_open` with `tab` or `ref`: the service takes the full address from its own record (the list Claude named
+  with `seen`, the tab's present address for a Claude tab, or the reference table). Claude only ever saw the
+  public form. The rules of "Where Claude may go" apply to it.
 - The outline is the same as `chrome_read`'s, with references ready for the next call.
 
 ### 5. `chrome_do` (effect change)
@@ -389,12 +391,26 @@ references; brief 20's rules for the three kinds of dialog are unchanged.
   `pinned`, `sound`, `asleep`, `popup`, `no` (never readable: the fixed list, his never-list, not a web page) and
   `look` (a read-only site); the title, quoted and cut at 80 characters; the address in the public form (item 2),
   cut at 60 characters.
+- **The list binds what follows** (section 6, "Which tabs Claude works in"). The result of `chrome_tabs` carries
+  `seen`, a reference (item 3) for this list. For every tab in it the service keeps what it showed Claude: the tab,
+  its top document (Chrome's document id) and its full address; for a tab asleep, the address alone. It keeps the
+  last 8 lists, in memory, and drops them all when the connection to Chrome changes.
+  - A call that names **one of his tabs** by its number must pass the `seen` of the list Claude chose it from. In
+    this package that is `chrome_take` and `chrome_open` with `tab`. Without it: `invalid_input`, "list the tabs
+    and pass seen". With a `seen` the service doesn't know (dropped, or from before a restart): `stale_reference`,
+    "list the tabs again".
+  - `chrome_take`: the extension checks first, in the same command and before it attaches, moves, reads or changes
+    anything, that the tab still shows that document at that address. If not: `stale_reference`, "this tab shows
+    another page than the list did; list the tabs again". A tab that was asleep is checked by its address.
+  - `chrome_open` with `tab` opens the address the list showed, taken from the service's record. It doesn't matter
+    where the tab has gone since.
+  - Claude's own tabs and a taken tab need no `seen`.
 - **`chrome_show`** (change; input: `tab`). Makes the tab the one showing in its window and brings that window to
   the front. For him: to look, to sign in, to answer a dialog. Refused for nothing but an unknown tab.
 - **`chrome_close`** (change; input: `tabs`, 1 to 20; `request`, accepted and ignored now). Closes Claude's own
   tabs, as `chrome_close_tab` does. In this package a tab that isn't Claude's is refused. The result lists `closed`
   and, with the reason, `kept`.
-- **`chrome_take`** (change; input: `tab`, `reload`, `request` accepted and ignored now) and **`chrome_release`**
+- **`chrome_take`** (change; input: `tab`, `seen`, `reload`, `request` accepted and ignored now) and **`chrome_release`**
   (change; input: `tab`). In this package they are brief 20's `take_tab` and `release_tab`, with one difference:
   the explicit reload has one home. `chrome_take` without `reload` takes the tab and keeps its page, and its result
   says whether a reload is still due and what it would lose. `chrome_take` with `reload: true` also does that
@@ -575,6 +591,12 @@ actions, in a frame's address, in a redirect's target, and in history, bookmark 
   and a new top document that loads during a `wait`, stop the list the same way;
 - a control inside a folded part of the outline, found with `find` and labelled Delete, still asks;
 - the read-only fixture site refuses every acting step and still allows `wait` and scrolling;
+- **the list binds:** `chrome_take` and `chrome_open` with one of his tabs are refused without `seen`. The owner
+  then navigates the listed tab, once to a new document and once to a new address inside the same document:
+  `chrome_take` is refused with `stale_reference`, the new page's fixture records no message from the reader, and
+  the tab isn't attached, moved or reloaded. `chrome_open` with `tab` still opens the address the list showed. With
+  the tab unchanged both work without any further question. A `seen` older than 8 lists, and one from before a
+  restart of Chrome or the service, are refused;
 - the conservative mode (an unqualified Chrome major) asks for the same inputs through `chrome_do` as brief 20's
   tools did.
 
