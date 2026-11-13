@@ -1,8 +1,6 @@
 """B2/B3/B10/B11: independent ledger vs real Tools entry points and captured ostree.
 
-B2 is BLOCKED: its one-command destination invariant contradicts A4(b)/A6.
-The assertion remains red; the counterexample test below pins the required A4
-behavior. Do not call this a complete/green model or disable the assertion.
+B2 includes the integrator's boot-menu exception for a newer uninstalled bundle.
 
 Only the environment is replaced: files, host processes, login sessions and time.
 Expected results are computed BEFORE executing a command. Nothing returned by Tools
@@ -23,7 +21,7 @@ from unittest.mock import patch
 import test_owner_update as base  # library only; never runs that module's tests
 from ways_back_keyboard import PowerCut, PROFILES, identity
 from ways_back_host import Host, status, compact
-from ways_back_ledger import Ledger, Journal, Trial, Result, starts, transition, events, invariants
+from ways_back_ledger import Ledger, Journal, Trial, Result, starts, transition, events, invariants, destination_paths
 
 owner = base.owner
 ROOT = base.ROOT
@@ -213,6 +211,11 @@ class Driver:
         if expected.announcement:
             assert (REFS[expected.announcement] + ' is removed when the update finishes at shutdown' in text or
                     'At shutdown, this update removes ' in text and REFS[expected.announcement] in text), ('unannounced removal', event, expected.announcement, text)
+        if expected.announcement and word == 'update' and self.phase == 'full':
+            assert REFS[expected.announcement] + ' is removed when the update finishes at shutdown' in text
+            if s.running < expected.announcement:
+                assert "The new release starts with this system's settings (Wi-Fi, passwords, layout), not " in text, text
+                assert self.host.templates[expected.announcement]['container-image-reference-digest'][7:19] in text, text
         assert [self.by_id[identity(r)] for r in host.state['rpm']['deployments'] if r['pinned']] == ['S'], 'stock pin changed'
         return found
 
@@ -410,12 +413,8 @@ class RevertTest(unittest.TestCase):
 
 
 class ModelTest(unittest.TestCase):
-    def test_brief_conflict_new_bundle_cannot_select_newest_installed_in_one_command(self):
-        """A4(b)/A6 require this behavior; it contradicts B2's destination invariant.
-
-        This is a counterexample, NOT a proof that that invariant holds.
-        No rule is widened to invent a command that selects installed R27 here.
-        """
+    def test_new_bundle_stages_and_the_newer_installed_release_has_a_walked_menu_path(self):
+        """The follow-up keeps A4/A6 and supplies the formerly missing B2 path."""
         s = starts()[3]
         with driver() as d:
             for event in (('previous', 'full'), ('restart', 'default'), ('title', 'full')):
@@ -430,6 +429,14 @@ class ModelTest(unittest.TestCase):
                 destinations[word] = 'STOP' if expected.stop else found.rows[0]
             self.assertEqual(destinations, dict(update='28', previous='13', rollback='S', **{'keep-stock': 'STOP'}))
             self.assertNotIn('27', destinations.values())
+            invariants(s)
+            row, menu_only, path = next(p for p in destination_paths(s) if p[0] == '27')
+            self.assertTrue(menu_only)
+            selected = RevertTest().path(d, s, path)
+            self.assertEqual(selected.outcome(), 'selection-applied')
+            confirmed = RevertTest().path(d, selected, [('restart', 'default'), ('title', 'full')])
+            self.assertEqual(confirmed.rows[0], row)
+            self.assertIsNone(confirmed.journal)
 
     def test_reachable_state_space(self):
         began = time.perf_counter()
@@ -440,12 +447,7 @@ class ModelTest(unittest.TestCase):
         with driver() as d:
             while queue:
                 s = queue.popleft()
-                missing = invariants(s)
-                if missing:
-                    print('22c model blocked: %d discovered states, %d checked states, %d edges, %.3fs; closure NOT reached'
-                          % (len(parents), processed, edges, time.perf_counter() - began), flush=True)
-                self.assertFalse(missing, 'BLOCKED B2 destination invariant contradicts A4(b)/A6: '
-                                 + repr(s) + '; no single command selects ' + repr(missing))
+                invariants(s)
                 processed += 1
                 if processed % 10000 == 0:
                     print('22c model: %d processed, %d discovered' % (processed, len(parents)), flush=True)

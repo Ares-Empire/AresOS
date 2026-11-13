@@ -10,7 +10,8 @@
     "Package 22c stage 0 (reorder probe): os-image.yml, the dispatch guard and its ledger, the owner harness lists and owner_vm.py know package 22c and its mode reorder-probe; owner_vm.py shares package 27's route up to release 27 confirmed (laptop_update, confirmed_update) and owner_media.py can copy a bundle from history; the tests that pin the workflow's expressions and the local walk follow",
     "22c stage 1a: main merged in (27c's checks-only step and time limit beside 22c's probe mode in os-image.yml)",
     "22c stage 1a, step 1: owner.py holds the state machine of section A (free order, one reorder, the journal by the list, tools version 3); os/release/start-next.sh is new and in the bundle; the payload is refreshed",
-    "22c stage 1a step 2: layout/model regressions, four narrow fixes; B2 blocked by A4 destination conflict"
+    "22c stage 1a step 2: layout/model regressions, four narrow fixes; B2 blocked by A4 destination conflict",
+    "22c step 2b part a: narrowed destination invariant and confirmed boot-menu path"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [

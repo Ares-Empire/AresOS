@@ -72,7 +72,7 @@ class Ledger:
 
 def starts():
     return [Ledger(bundle, rows, rows[0], settings=tuple(sorted((r, 'de', 'de') for r in rows)))
-            for rows in (('13', 'S'), ('27', '13', 'S')) for bundle in ('27', '28')]
+            for rows in (('13', 'S'), ('27', '13', 'S'), ('27', 'S')) for bundle in ('27', '28')]
 
 
 @dataclass(frozen=True)
@@ -279,13 +279,28 @@ def events(s):
             yield kind, choice
 
 
-def invariants(s):
-    """Return the unsatisfiable destination clause's counterexamples; assert the rest.
+def destination_paths(s):
+    """The integrator's B2 exception: boot-menu/newest-installed/update, then confirm.
 
-    A4(b) and A6 explicitly stage over the running older AresOS. B2 cannot also
-    promise a command selecting the newer installed AresOS in that state. The
-    caller reports this as a blocking plan gap, never as a proved invariant.
+    Repairs still prohibit staging (A6); they never prohibit this reorder path.
+    A5's interrupted staging intent needs update before destination commands.
     """
+    if s.stage or s.outcome() in ('waiting', 'retry', 'complete') or s.trial:
+        return
+    releases = sorted(r for r in s.rows if r != 'S')
+    for row in s.rows:
+        if row == s.rows[0]:
+            continue
+        word = ('keep-stock' if s.running == 'S' else 'rollback') if row == 'S' else 'update' if row == releases[-1] else 'previous'
+        menu_only = (s.bundle not in releases and s.running != 'S' and s.running == s.rows[0]
+                     and row != 'S' and row > s.running)
+        path = [('restart', row)] if menu_only else []
+        path.append((word, 'full'))
+        yield row, menu_only, tuple(path)
+
+
+def invariants(s):
+    """Assert the reference rules, including the narrowed destination invariant."""
     for role, console, x11 in s.settings:
         if console != x11:
             assert (s.trial and s.trial.row == role and s.trial.finishing) or any(n[0] == role for n in s.repairs), 'half-written layout lost its owner'
@@ -321,17 +336,20 @@ def invariants(s):
                 assert not proof.stop
                 finished = transition(proof.state, ('finish', 'full'))
                 assert not finished.stop and not finished.state.trial, 'proof/finish cannot end trial'
-    missing = []
-    # A5's same-boot staging intent still waits for update to continue, even
-    # before its primitive. Keep it distinct from a restart waiting on an
-    # applied selection; neither is a resting state for destination commands.
-    if not s.stage and s.outcome() not in ('waiting', 'retry', 'complete') and not s.trial:
-        releases = sorted(r for r in s.rows if r != 'S')
-        for row in s.rows:
-            if row == s.rows[0]:
-                continue  # already selected: no change is needed
-            word = ('keep-stock' if s.running == 'S' else 'rollback') if row == 'S' else 'update' if row == releases[-1] else 'previous'
-            selected = transition(s, (word, 'full'))
-            if selected.stop or selected.state.rows[0] != row:
-                missing.append(row)
-    return tuple(missing)
+    for row, menu_only, path in destination_paths(s):
+        selected = s
+        for event in path:
+            result = transition(selected, event)
+            assert not result.stop, ('destination refuses', row, s, result)
+            selected = result.state
+        assert selected.rows[0] == row and not selected.stage, ('destination missing', row, s)
+        if menu_only:
+            assert selected.outcome() == 'selection-applied'
+            restarted = transition(selected, ('restart', 'default')).state
+            confirmed = transition(restarted, ('title', 'full'))
+            assert confirmed.confirmation and confirmed.state.journal is None, 'menu path not confirmed'
+            update = transition(s, ('update', 'full'))
+            if any(n[0] == s.running for n in s.repairs):
+                assert update.stop == 'layout abandon'  # A6's repair lock still applies.
+            else:
+                assert update.state.stage == s.bundle and update.announcement == row, 'update must stage the bundle'
