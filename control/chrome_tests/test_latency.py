@@ -282,6 +282,47 @@ class LatencySummary(unittest.TestCase):
 
 
 class LatencyGate(unittest.TestCase):
+    def test_round3_measured_cost_removal_probe_fails_the_production_ci_command(self):
+        import json
+        from pathlib import Path
+        import subprocess
+        import sys
+        import tempfile
+        root=Path(__file__).resolve().parents[2]
+        ci=root/'control/chrome/ci'
+        reference=json.loads((ci/'latency-reference.json').read_text())
+        fixture=json.loads((root/'control/chrome_tests/fixtures/latency-round3-cost.json').read_text())
+        self.assertEqual(reference['measurement_run'],'43502970342')
+        self.assertEqual(fixture['source_run'],'43490400410')
+        for profile,observed in fixture['profiles'].items():
+            with self.subTest(profile=profile),tempfile.TemporaryDirectory(dir=root/'.work') as temporary:
+                directory=Path(temporary)
+                accepted=reference['profiles'][profile]
+                current=copy.deepcopy(accepted['current'])
+                self.assertEqual(current['chrome'],observed['chrome'])
+                baseline=directory/'baseline.json';baseline.write_text(json.dumps(accepted['baseline']))
+                source=directory/'current.json';source.write_text(json.dumps(current))
+                command=[sys.executable,'-B',str(ci/'latency-check.py'),str(source),str(baseline),str(ci/'latency-reference.json'),str(ci/'latency-targets.json')]
+                nominal=subprocess.run(command,capture_output=True,text=True,timeout=30)
+                self.assertEqual(nominal.returncode,0,nominal.stdout+nominal.stderr)
+                group=current['phases']['history-4000']
+                for call,metric in observed['client_total'].items():
+                    group[call]['client_total']=copy.deepcopy(metric)
+                by_identity={(row['sample'],row['call']):row for row in observed['input_samples']}
+                for row in current['input_samples']:
+                    if row['phase']=='history-4000':row.update(by_identity[(row['sample'],row['call'])])
+                for call in self.gate.INPUTS:
+                    rows=[row for row in current['input_samples'] if row['phase']=='history-4000' and row['call']==call]
+                    for stage,values in [('client_total',[row['client_ms'] for row in rows]),('post_input_observation_wait',[row['wait_ms'] for row in rows]),('client_without_wait',[max(0,row['client_ms']-row['wait_ms']) for row in rows])]:
+                        group[call][stage]=self.stats(values)
+                source.write_text(json.dumps(current))
+                restored=subprocess.run(command,capture_output=True,text=True,timeout=30)
+                self.assertEqual(restored.returncode,1,restored.stdout+restored.stderr)
+                result=json.loads((directory/'latency-check.json').read_text())
+                self.assertFalse(result['passed'])
+                failures={(row['phase'],row['call']) for row in result['failures']}
+                self.assertEqual(failures,{('history-4000',call) for call in self.gate.CALLS})
+
     def stats(self,values):
         import statistics
         return {'samples':len(values),'median_ms':statistics.median(values),'p95_ms':sorted(values)[18]}

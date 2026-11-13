@@ -1,13 +1,42 @@
 {
   "format": 1,
-  "status": "awaiting-lead",
-  "basis": "Proposed in reviews/20-chrome/REPORT.md; the lead sets these before ready",
+  "status": "lead-approved",
+  "basis": "Set by mac-aresos-control, 2026-11-13; briefs/20-post-18d-g.md (47740f9b, 9fc7a9da)",
   "ceilings_ms": {
-    "read": {"median_ms": 35, "p95_ms": 60},
-    "navigate": {"median_ms": 100, "p95_ms": 150},
-    "free_click": {"median_ms": 650, "p95_ms": 750},
-    "fill": {"median_ms": 650, "p95_ms": 750},
-    "asking_click": {"median_ms": 60, "p95_ms": 100},
-    "approval_to_done": {"median_ms": 700, "p95_ms": 850}
-  }
+    "read": {
+      "median_ms": 35,
+      "p95_ms": 60
+    },
+    "navigate": {
+      "median_ms": 100,
+      "p95_ms": 150
+    },
+    "free_click": {
+      "median_ms": 650,
+      "p95_ms": 750
+    },
+    "fill": {
+      "median_ms": 650,
+      "p95_ms": 750
+    },
+    "asking_click": {
+      "median_ms": 60,
+      "p95_ms": 100
+    },
+    "approval_to_done": {
+      "median_ms": 700,
+      "p95_ms": 850
+    }
+  },
+  "measurement_run": "43502970342",
+  "baseline": "ab7aba92",
+  "histories": [
+    0,
+    1000,
+    4000
+  ],
+  "profiles": [
+    "plain",
+    "audit"
+  ]
 }

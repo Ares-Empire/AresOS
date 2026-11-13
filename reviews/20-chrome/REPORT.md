@@ -1,11 +1,31 @@
 <!-- POST18D CURRENT START -->
-# Post-18d integration — lead targets and final repetitions pending
+# Handover
+
+- **Addenda:** -c credential exclusion, -d/-e asking reads and -f exact prepared
+  binding/withheld-form refusal are done and SAFE. -g ceilings and editor decision
+  are applied; its measured-cost removal probe passes locally. Scoped review of
+  that probe and final acceptance remain open. No asking-read binding or
+  withheld-form refusal is reopened.
+- **Post-18d:** base-URL/SVG class, main/slim merge, group 12, latency measurement,
+  expiry optimization and sharding are done. Main is merged through `b2b51107`.
+  Final-head full local checks and every Control workflow twice are open.
+- **In flight:** Control Mail `43513676712`, resumed with one blocking watcher
+  (session `11711`, `.work/post18d/43513676712-watch-resumed.log`). It tests the
+  complete eight fault shards with a 60-minute budget. No Chrome run is in flight.
+- **Budget:** 249 / about 280 Chrome workflow runs; final pair is still required.
+- **Exact next step:** finish the scoped -g probe review, commit/push that finished
+  step with `[skip ci]`, then freeze the final candidate, run full local checks,
+  and run the final sharded Chrome pair plus base/Mail/boundary/qualification twice
+  on that head. Handle the Mail diagnostic outcome when its blocking watch ends.
+
+# Post-18d integration — final repetitions pending
 
 **Current status:** the base-URL/SVG class, credential/late-reader work, slim
 integration and reported review FIXes are closed. The runtime is frozen at
 `e0cc9846` (`b9de9a97d18c56090421614364239471ef82b8c1002ee1696f86ba39d2afb3b4`).
-The measured regression reference and CI gate are ready; the lead must set the
-latency ceilings before final acceptance. PR #27 remains draft.
+The measured regression reference and CI gate use the ceilings set by the lead
+(mac-aresos-control, 2026-11-13, addendum-g). Final acceptance is pending; PR #27
+remains draft.
 
 **Done:**
 
@@ -19,8 +39,9 @@ latency ceilings before final acceptance. PR #27 remains draft.
   connection, tab, native/private frame documents, reader instances, exact
   elements and shown labels. Changed eligibility/identity refuses. Values stay
   transient. Recognised forms holding withheld content cannot submit, even after
-  a read approval. Editable areas remain readable per addendum-f; board #216's
-  accepted secret-masking limit is in KNOWN-LIMITS. Tab-group handling is unchanged.
+  a read approval. Editable areas remain readable without asking, accepted by the owner on
+  board #216 (2026-11-13); the unlabelled revealed-secret limit is accepted in
+  KNOWN-LIMITS. Addendum-f's future asking-scope provision is dropped. Tab-group handling is unchanged.
 - Merged only `origin/main`, through `b2b51107` (merge `e2ee3a52`), preserving Mail/19b/18d and
   PR #43/#47. Chrome retains its native socket and hash-verified committed owner
   projection because 19b has no generic replacement yet. The full service unit
@@ -53,19 +74,25 @@ hash in both profiles. At 4,000 retained inputs, plain read is 20.6/21.2 ms and
 free click 586.9/594.3 ms median/p95, versus rebuilt `ab7aba92` 585.6/595.9 and
 1,337.2/1,405.0 ms. All proposed ceilings are met in every measured history and
 both plain/instrumented profiles. [Sample/metric preflight](records/post18d/latency-43502970342-preflight.json).
-Proposed ceilings remain read 35/60, navigate 100/150, click 650/750, fill 650/750,
-asking click 60/100 and approval-to-done 700/850 ms. `latency-targets.json` is still
-`awaiting-lead`: section 4 says the lead sets them. No target was silently adopted.
+The lead-set ceilings are read 35/60, navigate 100/150, click 650/750, fill 650/750,
+asking click 60/100 and approval-to-done 700/850 ms. `latency-targets.json` is
+`lead-approved`: mac-aresos-control set them on 2026-11-13 in addendum-g
+(`47740f9b`, `9fc7a9da`). Their provenance is run `43502970342`, including
+4,000 retained inputs in plain and instrumented profiles, measured against the
+rebuilt 11-10 baseline `ab7aba92`.
 
-The decision requested from the lead is to adopt or replace these median/p95
-ceilings. The fixed 525 ms input wait remains; the proposed click/fill ceilings
+The fixed 525 ms input wait remains; the accepted click/fill ceilings
 allow runner variation without hiding a new history-dependent scan. The relative
 check also compares work after subtracting each sample's own fixed wait and
 scales against the paired old runtime, so the absolute ceilings are not the only
-regression check. The target file refuses acceptance while its status is
-`awaiting-lead`; silence does not approve these numbers.
+regression check. The production gate passes both optimized profiles and fails
+all six history-4000 calls when the measured pre-optimization cost is restored
+in memory from run `43490400410`. This retains the safety wait and executes the
+actual CI command. Disabling rejection is killed by the same test.
+[Four CLI results](records/post18d/latency-round3-removal.json),
+[removal mutation](records/post18d/g-latency-mutation.json).
 
-| Call | Proposed median / p95 ceiling (ms) |
+| Call | Lead-set median / p95 ceiling (ms) |
 | --- | ---: |
 | Read | 35 / 60 |
 | Navigate | 100 / 150 |
@@ -81,17 +108,26 @@ sharded pair. All 92 original named cases and their required current shards are
 listed in [round3-required-cases.json](records/post18d/round3-required-cases.json).
 The stopgap cause is per-input slowdown plus the larger unsplit matrices.
 
-**Still required:** the lead's ceiling decision and final-head local checks and
+**Still required:** final-head local checks and
 every Control workflow twice, with both Chrome installs and independent receiver
 audits. Replacement base/boundary/qualification diagnostics pass on the current
 runtime; replacement Mail `43513676712` is running with all eight fault shards
 retained and a 60-minute sweep-job budget. No final green or ready claim. Chrome
-ledger: **249 / about 260**. A normal final code push starts two runs (push and PR);
-report before exceeding 260. No local browser/profile/container has been accessed.
+ledger: **249 / about 280** (addendum-g). A normal final code push starts two runs (push and PR);
+report before exceeding 280. No local browser/profile/container has been accessed.
 
 The latest main merge changes no Control source, generated tools or Control
 workflow. Generator and full-unit checks pass after the merge;
 [merge receipt](records/post18d/main-e2ee3a52.json).
+
+**Open idea only (addendum-g):** “end the hold window once the page's queued
+tasks are done.” This package keeps the full 525 ms wait. In run `43502970342`,
+that wait is about 89–94% of the 557–587 ms median click/fill total; eliminating
+all of it would be an upper-bound saving of about 525 ms. A capability that can
+safely finish after roughly half the window could save about 260 ms, about half
+of a click/fill total. This is an estimate, not a demonstrated safe early end;
+the lead passes the capability idea to linux-tools for the owner. No early-end
+implementation or safety trade-off is included here.
 
 The chronological sections below retain historical commands and corrections;
 their old pending statements/totals are superseded by this current status.
