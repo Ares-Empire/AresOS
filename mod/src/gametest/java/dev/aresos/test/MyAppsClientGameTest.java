@@ -117,6 +117,11 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
             try (var world = context.worldBuilder().adjustSettings(settings ->
                     settings.setGameMode(WorldCreationUiState.SelectedGameMode.SURVIVAL)).create()) {
                 world.getConnection().waitForChunksRender();
+                world.getServer().runOnServer(server -> {
+                    var player = world.getConnection().getServerPlayer();
+                    for (String command : List.of("aresos app add ", "aresos app remove ", "aresos give "))
+                        check(completions(player, command).isEmpty(), "Normal-world completion exposed My apps");
+                });
                 context.runOnClient(client -> client.player.connection.sendCommand("aresos desktop on"));
                 context.waitFor(client -> items(client).size() == 5);
                 context.runOnClient(client -> {
@@ -373,6 +378,15 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
         });
         world.getServer().runOnServer(server -> {
             var player = world.getConnection().getServerPlayer();
+            var cookie = net.minecraft.server.network.CommonListenerCookie.createInitial(
+                    new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "Guest"), false);
+            var guest = new net.minecraft.server.level.ServerPlayer(server, player.level(), cookie.gameProfile(), cookie.clientInformation());
+            for (String command : List.of("aresos app add ", "aresos app remove ", "aresos give ")) {
+                check(completions(guest, command).isEmpty(), "Guest completion exposed My apps");
+                var dispatcher = server.getCommands().getDispatcher();
+                check(dispatcher.getCompletionSuggestions(dispatcher.parse(command, server.createCommandSourceStack())).join()
+                        .getList().isEmpty(), "Console completion exposed My apps");
+            }
             var add = completions(player, "aresos app add ");
             var remove = completions(player, "aresos app remove ");
             check(remove.equals(his), "\"app remove\" offers " + remove);

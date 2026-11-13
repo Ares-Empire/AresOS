@@ -33,10 +33,16 @@ public final class AppCommands {
     /** Completion over the right list: programs that are not his for add, his apps for remove. */
     private static RequiredArgumentBuilder<CommandSourceStack, String> argument(boolean mine) {
         return Commands.argument("app", word()).suggests((c, b) -> {
+            if (!allowed(c.getSource())) return b.buildFuture();
             String typed = b.getRemainingLowerCase();
             for (AppDefinition app : AresOs.apps()) if (app.mine() == mine && app.id().startsWith(typed)) b.suggest(app.id());
             return b.buildFuture();
         });
+    }
+
+    public static boolean allowed(CommandSourceStack source) {
+        var player = source.getPlayer();
+        return player != null && DesktopWorld.isHost(source.getServer(), player) && DesktopWorld.isEnabled(source.getServer());
     }
 
     private static ServerPlayer host(CommandSourceStack source) throws CommandSyntaxException {

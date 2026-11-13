@@ -174,7 +174,9 @@ public final class AresOs implements ModInitializer {
                                 .then(Commands.literal("off").executes(context -> desktop(context.getSource(), false))))
                         .then(Commands.literal("give").then(Commands.argument("app", word())
                                 .suggests((context, builder) -> {
-                                    apps.forEach(app -> builder.suggest(app.id()));
+                                    if (dev.aresos.item.AppCommands.allowed(context.getSource()))
+                                        apps.stream().filter(app -> app.id().startsWith(builder.getRemainingLowerCase()))
+                                                .forEach(app -> builder.suggest(app.id()));
                                     return builder.buildFuture();
                                 }).executes(context -> {
                                     var source = context.getSource();
