@@ -10,7 +10,7 @@ class LinuxLauncherTest {
  @Test void commandsAndUrlsFailClosedWithoutAHelper() {
   var launcher=new LinuxAppLauncher();
   var error=assertThrows(java.util.concurrent.CompletionException.class,()->launcher.launch(List.of("must-never-run")).toCompletableFuture().join());
-  assertTrue(error.getCause().getMessage().contains("aresos-shell/1.0"));
+  assertTrue(error.getCause().getMessage().contains("aresos-shell/1.1"));
   assertThrows(java.util.concurrent.CompletionException.class,()->launcher.launch(new AppDefinition("site","Site",List.of(),"minecraft:paper",false,"url","https://example.test",null)).toCompletableFuture().join());
  }
 }

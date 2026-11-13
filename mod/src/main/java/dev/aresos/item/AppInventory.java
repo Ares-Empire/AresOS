@@ -1,25 +1,58 @@
 package dev.aresos.item;
 
 import dev.aresos.AresOs;
+import dev.aresos.config.AppDefinition;
 import dev.aresos.mode.LiveMode;
+import dev.aresos.mode.ModeInventories;
 import dev.aresos.world.DesktopWorld;
 import net.fabricmc.fabric.api.networking.v1.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.ItemStack;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * The app items in a player's inventory. The inventory holds My apps and nothing else (docs/design/HUB.md 2.4):
+ * missing items are supplied and unwanted ones removed here. Containers outside the player inventory are not
+ * searched, so storing an app there can leave another copy. When this runs is {@link MyAppsGame}'s job.
+ */
 public final class AppInventory {
     private AppInventory() { }
     public static void register() {
         PayloadTypeRegistry.serverboundPlay().register(TakeAppPayload.TYPE, TakeAppPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(TakeAppPayload.TYPE, (payload, context) -> take(context.player(), payload.id()));
+        PayloadTypeRegistry.serverboundPlay().register(MyAppPayload.TYPE, MyAppPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(MyAppPayload.TYPE,
+                (payload, context) -> MyAppsGame.asked(context.player(), payload.id(), payload.mine()));
+        MyAppsGame.register();
     }
-    public static void populate(ServerPlayer player) { populate(player, AresOs.apps()); }
-    public static void populate(ServerPlayer player, List<dev.aresos.config.AppDefinition> apps) {
-        if (!LiveMode.isLive(player)) return;
+    public static List<AppDefinition> populate(ServerPlayer player) {
+        long version = MyAppsGame.version();
+        var without = populate(player, AresOs.apps());
+        MyAppsGame.populated(player, without, version);
+        return without;
+    }
+    /**
+     * Live mode only. Takes out the items of apps that are not his, puts pinned apps in the hotbar, gives every
+     * item its current look and name, and puts each of his apps that has no item in the first free slot beside
+     * the hotbar. Another item is never moved or replaced.
+     *
+     * @return his apps that have no item now, because no slot was free
+     */
+    public static List<AppDefinition> populate(ServerPlayer player, List<AppDefinition> apps) {
+        if (!LiveMode.isLive(player)) return List.of();
         AppItems.placePinned(player, apps);
+        return reconcile(player, apps);
+    }
+
+    /** Later changes preserve all existing positions. Pins are placed only by the initial population paths. */
+    public static List<AppDefinition> reconcile(ServerPlayer player, List<AppDefinition> apps) {
+        if (!LiveMode.isLive(player)) return List.of();
+        sweep(player, apps);
         var inventory = player.getInventory();
         var present = new HashSet<String>();
         for (int i = 0; i < inventory.getContainerSize(); i++) {
@@ -34,13 +67,86 @@ public final class AppInventory {
                 });
             }
         }
+        var without = new ArrayList<AppDefinition>();
         for (var app : apps) {
-            if (present.contains(app.id())) continue;
-            for (int slot = 9; slot < 36; slot++) if (inventory.getItem(slot).isEmpty()) {
-                inventory.setItem(slot, AppItems.create(app)); present.add(app.id()); break;
+            if (!app.mine() || present.contains(app.id())) continue;
+            boolean placed = false;
+            for (int slot = 9; slot < 36 && !placed; slot++) if (inventory.getItem(slot).isEmpty()) {
+                inventory.setItem(slot, AppItems.create(app));
+                placed = true;
+            }
+            if (!placed) without.add(app);
+        }
+        return List.copyOf(without);
+    }
+
+    /** True for the item of an app that is known and is not one of his. An item of an unknown app is left alone. */
+    public static boolean notHis(ItemStack stack, List<AppDefinition> apps) {
+        if (!stack.is(AppItems.APP)) return false;
+        String id = stack.get(AppItems.APP_ID);
+        return apps.stream().anyMatch(app -> app.id().equals(id) && !app.mine());
+    }
+
+    /** Takes the items of apps that are not his out of the inventory he holds, in either mode. No other slot is touched. */
+    public static int sweep(ServerPlayer player, List<AppDefinition> apps) {
+        var inventory = player.getInventory();
+        int removed = 0;
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) if (notHis(inventory.getItem(slot), apps)) {
+            inventory.setItem(slot, ItemStack.EMPTY);
+            removed++;
+        }
+        return removed;
+    }
+
+    public static boolean has(ServerPlayer player, String id) {
+        var inventory = player.getInventory();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            var stack = inventory.getItem(slot);
+            if (stack.is(AppItems.APP) && id.equals(stack.get(AppItems.APP_ID))) return true;
+        }
+        return false;
+    }
+
+    /** Player drops are refused in an AresOS world: Q must not remove an app. Container drops are outside this rule. */
+    public static boolean keeps(ServerPlayer player, ItemStack stack) {
+        return stack.is(AppItems.APP) && DesktopWorld.isEnabled(player.level().getServer());
+    }
+
+    /** Q in the world: the item stays in the hand. The client has already taken it out, so it is sent again. */
+    public static boolean keepSelected(ServerPlayer player) {
+        var inventory = player.getInventory();
+        if (!keeps(player, inventory.getSelectedItem())) return false;
+        player.connection.send(inventory.createInventoryUpdatePacket(inventory.getSelectedSlot()));
+        return true;
+    }
+
+    /** Q over a slot, or a click outside the window with the item on the cursor: the click does nothing. */
+    public static boolean keepsOnClick(ServerPlayer player, AbstractContainerMenu menu, int slot, ContainerInput input) {
+        if (input == ContainerInput.THROW)
+            return slot >= 0 && slot < menu.slots.size() && menu.getCarried().isEmpty() && keeps(player, menu.getSlot(slot).getItem());
+        return slot == AbstractContainerMenu.SLOT_CLICKED_OUTSIDE && input != ContainerInput.QUICK_CRAFT && keeps(player, menu.getCarried());
+    }
+
+    /**
+     * The last line of defence: something still tried to put an app's item on the ground (a menu closed over a
+     * full inventory, a death, a creative drop). The item goes into a free slot instead. With no free slot, or
+     * during a mode switch, it is let go: the app is still his and its item is made again when there is room.
+     */
+    public static void giveBack(ServerPlayer player, ItemStack stack) {
+        var inventory = player.getInventory();
+        if (!ModeInventories.of(player).pending()) {
+            // Beside the hotbar first: an item that lands in the hotbar would look like a pin he never made.
+            for (int index = 0; index < 36; index++) {
+                int slot = (index + 9) % 36;
+                if (inventory.getItem(slot).isEmpty()) {
+                    inventory.setItem(slot, stack.copy());
+                    return;
+                }
             }
         }
+        MyAppsGame.changed();
     }
+
     public static Set<String> hotbar(ServerPlayer player) {
         var ids = new HashSet<String>();
         for (int i = 0; i < 9; i++) {
@@ -62,24 +168,64 @@ public final class AppInventory {
             player.sendSystemMessage(Component.literal("Could not save app pins: " + error.getMessage()));
         }
     }
+    /** The command reuses an item in the active inventory before supplying a missing one. */
+    public static int give(net.minecraft.commands.CommandSourceStack source, AppDefinition app) {
+        var player = source.getPlayer();
+        if (player == null || ModeInventories.of(player).pending() || ModeInventories.of(player).changingMode()
+                || player.containerMenu != player.inventoryMenu || !player.inventoryMenu.getCarried().isEmpty()
+                || !player.inventoryMenu.getCraftSlots().isEmpty()) {
+            source.sendFailure(Component.literal("Finish moving inventory items first"));
+            return 0;
+        }
+        var inventory = player.getInventory();
+        int present = -1;
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            var stack = inventory.getItem(slot);
+            if (!stack.is(AppItems.APP) || !app.id().equals(stack.get(AppItems.APP_ID))) continue;
+            present = slot;
+            break;
+        }
+        // Creative insertion discards overflow and still reports success. Choose a real destination first;
+        // an existing main-inventory item can use its own slot, in the same order as vanilla insertion.
+        int destination = -1;
+        for (int slot = 0; slot < Inventory.INVENTORY_SIZE; slot++) if (slot == present || inventory.getItem(slot).isEmpty()) {
+            destination = slot;
+            break;
+        }
+        if (destination < 0) {
+            source.sendFailure(Component.literal("Inventory is full"));
+            return 0;
+        }
+        if (!MyAppsGame.own(source, app)) return 0;
+        var stack = present < 0 ? AppItems.create(app) : inventory.getItem(present);
+        inventory.setItem(destination, stack);
+        if (present >= 0 && present != destination) inventory.setItem(present, ItemStack.EMPTY);
+        return 1;
+    }
+
     private static void take(ServerPlayer player, String id) {
-        if (dev.aresos.mode.ModeInventories.of(player).pending()
+        if (ModeInventories.of(player).pending()
                 || !LiveMode.isLive(player) || !DesktopWorld.isHost(player.level().getServer(), player)
-                || player.containerMenu != player.inventoryMenu || !player.inventoryMenu.getCarried().isEmpty()) return;
+                || player.containerMenu != player.inventoryMenu || !player.inventoryMenu.getCarried().isEmpty()
+                || !player.inventoryMenu.getCraftSlots().isEmpty()) return;
         var app = AresOs.app(id);
-        if (app == null) return;
+        // Only one of his apps has an item to pick up; a program that is not his is added first.
+        if (app == null || !app.mine()) return;
         // Move an existing item instead of duplicating it. The cursor is managed by vanilla inventory packets.
         var before = hotbar(player);
-        ItemStack stack = ItemStack.EMPTY;
-        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-            var existing = player.getInventory().getItem(i);
+        var inventory = player.getInventory();
+        int present = -1;
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            var existing = inventory.getItem(i);
             if (existing.is(AppItems.APP) && id.equals(existing.get(AppItems.APP_ID))) {
-                stack = existing; player.getInventory().setItem(i, ItemStack.EMPTY); break;
+                present = i;
+                break;
             }
         }
-        if (stack.isEmpty()) stack = AppItems.create(app);
+        var stack = present < 0 ? AppItems.create(app) : inventory.getItem(present);
         ((AppMenuPins)player.inventoryMenu).aresos$beginMove(before);
         player.inventoryMenu.setCarried(stack);
+        if (present >= 0) inventory.setItem(present, ItemStack.EMPTY);
         player.inventoryMenu.broadcastChanges();
     }
 }

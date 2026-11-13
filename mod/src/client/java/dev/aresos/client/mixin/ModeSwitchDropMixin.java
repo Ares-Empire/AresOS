@@ -11,6 +11,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class ModeSwitchDropMixin {
     @Inject(method = "drop", at = @At("HEAD"), cancellable = true)
     private void aresos$blockDrop(boolean all, CallbackInfoReturnable<Boolean> cir) {
-        if (ModeSwitchClient.pending()) cir.setReturnValue(false);
+        // Q on an app's item does nothing (the server refuses it too; this spares the item a flicker).
+        var player = (LocalPlayer) (Object) this;
+        if (ModeSwitchClient.pending() || (player.getInventory().getSelectedItem().is(dev.aresos.item.AppItems.APP)
+                && dev.aresos.client.AppsScreen.active(net.minecraft.client.Minecraft.getInstance()))) cir.setReturnValue(false);
     }
 }
