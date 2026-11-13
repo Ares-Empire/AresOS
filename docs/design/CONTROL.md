@@ -566,7 +566,8 @@ the front when he should look at it or sign in there.
     (below) has to be in place before the page's scripts run, and a reload is the only way to get it there.
   - **Whatever could be lost is reported first.** Unless the tool knows that nothing of his is lost (next point),
     `chrome_take` changes nothing and answers `reload_required` with what it found. Claude tells him. Only
-    `reload: true`, passed when he agrees, reloads such a tab.
+    `reload: true`, passed when he agrees, reloads such a tab. It doesn't override an open dialog, a load or a
+    form submission under way, or a frame that doesn't answer: there the tool found nothing to tell him.
   - **A page loaded by a form submission is never reloaded,** because Chrome might submit it again. Claude opens its
     address fresh in a Claude tab instead.
   - `chrome_take` returns the reloaded page's outline, so the next call can act.
@@ -1568,8 +1569,9 @@ the first input (brief 28b).
       used, a wizard whose finished step lives only in its script's memory, any other page he clicked or typed
       in, playing media, fields restored after Back, a frame that doesn't answer, a load or a submission under
       way; a fresh tab he never clicked or typed in is taken, also when he scrolled it;
-      `reload: true` takes the others, except while a load, a submission or a dialog is in the way; a page loaded
-      by a form submission is refused; `chrome_do` on one of his tabs that isn't taken is refused;
+      `reload: true` takes the others, except while a load, a submission, a dialog or a frame that doesn't
+      answer is in the way; a page loaded by a form submission is refused; `chrome_do` on one of his tabs that
+      isn't taken is refused;
       `chrome_release`, **Give back**, dragging out and **Stop** each restore the window, the place, his group and
       the pin;
     - marked in place: a taken tab keeps its window and its place and shows a Claude group around it, also when

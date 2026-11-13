@@ -227,8 +227,10 @@ keep brief 20's rule and say so (PLAN-GAP).
 3. **Otherwise take it, where it stands:** attach, mark it (item 4b), reload it once as brief 20 does, wait for the
    load, and return the new page's outline (brief 28's result shape, with `"whose": "taken"`).
 4. **`reload: true` is his decision, passed on by Claude.** It takes and reloads a tab that isn't known clean. It
-   never overrides three things: a dialog that is open, a load or a form submission that is still under way, and a
-   page that a form submission loaded.
+   never overrides four things: a dialog that is open; a load or a form submission that is still under way; a
+   page that a form submission loaded; and a frame that doesn't answer the check. His decision rests on what the
+   tool told him it found, and for a frame that doesn't answer it found nothing: the page may be stuck or behind
+   a dialog. The result says so, and he looks at the tab himself.
 5. Popups keep brief 20's rule (a reload before the first input in the popup, through `chrome_do`'s result).
 
 ### 4a. Before the tool reloads or closes one of his tabs
@@ -489,11 +491,12 @@ password cases under `password_exclusion`):
   These are taken and reloaded without `reload`: a tab he opened fresh and never clicked or typed in, although the
   server prefilled a field; and one he opened fresh and only scrolled with the wheel.
   **The mark itself, measured** (item 4a): a click and a key each set it, in the top frame and in a frame from
-  another site; an in-place read, the check and a message from the extension don't; the report says what a same-
-  site navigation, a drop from another window, a paste from Chrome's menu and a dropped file do.
-  `reload: true` takes every tab of the first list except the unanswering frame, the load and the submission
-  under way, which stay refused. The check is the last thing before the reload: he types into a field while the
-  take is running (the test holds the command right before its check), and the tab isn't reloaded.
+  another site; an in-place read, the check and a message from the extension don't; the report says what a
+  navigation within the same site, a drop from another window, a paste from Chrome's menu and a dropped file do.
+  `reload: true` takes every tab of the first list except the one with a frame that doesn't answer, the load and
+  the submission under way, which stay refused (item 4, point 4). The check is the last thing before the reload:
+  he types into a field while the take is running (the test holds the command right before its check), and the
+  tab isn't reloaded.
   A page loaded by a form submission is refused. An untaken tab answers `take_first` to `chrome_do`, `chrome_go`
   and `chrome_upload`.
 - **"Leave site?":** a fixture page with a `beforeunload` guard, used by the owner: the report says what Chrome
