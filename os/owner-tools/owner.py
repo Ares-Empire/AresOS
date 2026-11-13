@@ -44,12 +44,12 @@ RELEASE_IDENTITY = r'https://github\.com/Ares-Empire/AresOS/\.github/workflows/[
 # The only installed tools without a release history: package 15f's bundle,
 # installed on the laptop on 2026-11-08. Any other history-less bundle STOPs.
 LEGACY_TOOLS = ('3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc',)
-def command(*words):
+def typed(*words):
     """The one place that spells an owner command in a message (os/owner-tools/commands.json is compared with it)."""
     return ' '.join(('sudo', '/var/lib/ares/at', *words))
 
 
-LOGIN_REFUSAL = ('Registry login missing, expired or unreachable: run ' + command('login') + ', '
+LOGIN_REFUSAL = ('Registry login missing, expired or unreachable: run ' + typed('login') + ', '
                  'then run this command again; nothing was changed')
 # What update/previous expect the next start to show (records/outcome-pending.json).
 OUTCOME = 'outcome-pending'
@@ -1247,7 +1247,7 @@ class Tools:
                 if retry == 'update' and self.completion(value, state) is not None:
                     return 'complete'
                 raise Stop('The ' + change + ' was interrupted before its result was recorded; do not reboot; run '
-                    + command('update') + ' to continue it, or get help: EMERGENCY Failed or bad update')
+                    + typed('update') + ' to continue it, or get help: EMERGENCY Failed or bad update')
             require(keys == value['staged'] and waiting, 'The ' + change + ' changed before the restart; do not reboot; get help')
             return 'pending'
         if keys == value['before'] and not waiting:
@@ -1448,7 +1448,7 @@ class Tools:
                 paused_state(self.host, self.pause)
             except (Stop, OSError, subprocess.SubprocessError) as error:
                 lines.append('WARNING: ' + str(error) + '. Bazzite must not update while AresOS is installed: run '
-                    + command('update') + ' to go back to AresOS, then get help')
+                    + typed('update') + ' to go back to AresOS, then get help')
         return lines
 
     def title(self):
@@ -1524,7 +1524,7 @@ class Tools:
         disk_record(self.host, self.load('disks'))
         if settled == 'pending':
             raise Stop('The ' + self.change(journalled(self.load(OUTCOME))) + ' waits for the restart: restart first ('
-                + command('reboot') + '), then run this command again; nothing changed')
+                + typed('reboot') + '), then run this command again; nothing changed')
         require(shape['staged'] is None, 'A staged deployment already exists; do not reboot; get help')
         require(unmodified(shape['ares']), 'Modified AresOS deployment; get help')
         validate_bls(state, resolved_bls())
@@ -1536,7 +1536,7 @@ class Tools:
         require(booted is not shape['stock'] and state['rpm']['deployments'][0] is booted,
             'Update stages only from a running AresOS that starts next; get help')
         require(not self.repair_note(booted), "This system's keyboard layout is half written: run "
-            + command('layout', 'abandon') + ' first, then update again; nothing changed')
+            + typed('layout', 'abandon') + ' first, then update again; nothing changed')
 
     def start_next(self, word, state, shape, settled, target):
         """Rule 3, the one reorder: target becomes the first deployment by one `ostree admin
@@ -1576,7 +1576,7 @@ class Tools:
             state, shape, settled = self.survey(retry='update')
             require(settled != 'complete', 'An interrupted update only needs recording: run update')
             require(shape is not None and not any(d['container-image-reference-digest'] == self.release['reference'].split('@')[1]
-                for d in shape['ares']), 'The release of these tools is installed already: ' + command('update') + ' needs no login')
+                for d in shape['ares']), 'The release of these tools is installed already: ' + typed('update') + ' needs no login')
             self.may_stage(state, shape, settled)
         require(sys.stdin.isatty(), 'Login requires a real hidden terminal prompt')
         podman = shutil.which('podman', path='/usr/bin:/usr/sbin')
@@ -1629,8 +1629,8 @@ class Tools:
         require(shape is not None, NOT_INSTALLED)
         on_stock = shape['booted'] is shape['stock']
         if keep != on_stock:
-            raise Stop(('Plain Bazzite runs here: use ' + command('keep-stock') + ' (rollback is for a running AresOS)' if on_stock
-                else 'An AresOS runs here: use ' + command('rollback') + ' (keep-stock is for running plain Bazzite)')
+            raise Stop(('Plain Bazzite runs here: use ' + typed('keep-stock') + ' (rollback is for a running AresOS)' if on_stock
+                else 'An AresOS runs here: use ' + typed('rollback') + ' (keep-stock is for running plain Bazzite)')
                 + '; nothing changed')
         if keep:
             # Rule 10: stock may stay the default only while its own updaters are off.
@@ -1638,7 +1638,7 @@ class Tools:
                 paused_state(self.host, self.pause)
             except Stop as error:
                 raise Stop(str(error) + '; nothing changed. Bazzite must not update while AresOS is installed: run '
-                    + command('update') + ' to go back to AresOS, then get help') from None
+                    + typed('update') + ' to go back to AresOS, then get help') from None
         return self.select('keep-stock' if keep else 'rollback', state, shape, settled, shape['stock'],
             'Saved stock is default' if keep else 'Saved stock rollback queued')
 
@@ -1668,7 +1668,7 @@ class Tools:
         if booted is shape['stock'] or rows[0] is not booted:
             lines = self.select('update', before, shape, settled, newest, 'Newest installed AresOS starts next ' + image_reference(newest))
             return [*lines, 'The release of these tools is newer still and is not installed (' + target + '): '
-                    + ('run ' if newest is booted else 'restart, then run ') + command('update') + ' again']
+                    + ('run ' if newest is booted else 'restart, then run ') + typed('update') + ' again']
         self.may_stage(before, shape, settled)
         stored_login(target)
         require(shutil.which('cosign', path='/usr/sbin:/usr/bin:/sbin:/bin'), 'cosign is missing')
@@ -1949,11 +1949,11 @@ class Tools:
             self.may_change(state, shape, settled)
             booted = shape['booted']
             require(booted is not shape['stock'], "Plain Bazzite keeps the installer's German layout: no layout trial here; "
-                'nothing changed; run ' + command('update') + ' to go back to AresOS first')
+                'nothing changed; run ' + typed('update') + ' to go back to AresOS first')
             require(state['rpm']['deployments'][0] is booted, 'This AresOS does not start next: make it the next start first ('
-                + command('update') + ' or ' + command('previous') + '), then begin the trial; nothing changed')
+                + typed('update') + ' or ' + typed('previous') + '), then begin the trial; nothing changed')
             require(not self.repair_note(booted), "This system's keyboard layout is half written: run "
-                + command('layout', 'abandon') + ' first; nothing changed')
+                + typed('layout', 'abandon') + ' first; nothing changed')
             session = self.session()
             old = self.keyboard()
             require(old in profiles.values(), 'Unsupported finished system layout; get help')
@@ -1973,8 +1973,8 @@ class Tools:
             return ['Console-only trial; system/greeter layout stays finished until layout finish',
                 'Keep this administrator console OPEN; reboot is not authorized',
                 'Ctrl+Alt+F4: fresh ares-recovery password login in the new layout',
-                'Then sudo -k; ' + command('layout', 'proof'),
-                'If typing/login fails: Ctrl+Alt+F3; ' + command('layout', 'revert')]
+                'Then sudo -k; ' + typed('layout', 'proof'),
+                'If typing/login fails: Ctrl+Alt+F3; ' + typed('layout', 'revert')]
         if action == 'abandon':
             # On whichever system runs, stock included. A trial belongs to the deployment it began on.
             state, shape, settled = self.survey()
@@ -2014,7 +2014,7 @@ class Tools:
                         notes.append(dict(deployment_identity=value['deployment_identity'], old=value['old'], new=value['new']))
                         self.save('layout-repair', dict(schema='layout-repair1', notes=notes))
                         lines.append('The trial began on another system and its finish had started: run '
-                            + command('layout', 'abandon') + ' there too, to restore its settings')
+                            + typed('layout', 'abandon') + ' there too, to restore its settings')
                 self.trial_keyboard(finished)
                 self.save('layout-abandoned', dict(trial=value, administrator=current, restored=finished,
                     persistent_settings_unchanged=self.keyboard() == persistent_before, stock_side=stock_side))
@@ -2043,7 +2043,7 @@ class Tools:
             value.update(reverted=True, proof=None, began_us=int(time.monotonic() * 1000000))
             self.save('layout-pending', value)
             return ['Old console/X11 settings restored; no reboot', 'Log out tty4; prove a fresh password login using the old layout',
-                    'Then sudo -k; ' + command('layout', 'proof')]
+                    'Then sudo -k; ' + typed('layout', 'proof')]
         if action == 'proof':
             require(current['session'] != value['administrator']['session']
                 and current['tty'] != value['administrator']['tty'] and current['started_us'] > value['began_us'],
@@ -2599,7 +2599,7 @@ def install(payload, host=None):
     records.save(datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-install',
         dict(status='passed', command=['install'], manifest=fingerprint, trace=host.trace,
             tools_volume_uuid=device['volume']['uuid']))
-    return ['manifest SHA256 ' + fingerprint, 'Use ' + command('prepare')]
+    return ['manifest SHA256 ' + fingerprint, 'Use ' + typed('prepare')]
 
 
 def refusal_record(host, result):
@@ -2668,7 +2668,7 @@ def main():
             require((payload == HOME / 'tools' or payload == HOME / ('tools-' + fingerprint)) and HOME.stat().st_uid == 0
                     and stat.S_IMODE(HOME.stat().st_mode) == 0o700, 'Run the installed root-only tools')
             require(payload == HOME / 'tools' or entry_toolset() == payload.name, 'These tools are not the installed entry '
-                    '(the tools update was undone or superseded); run ' + command(*action) + ' again')
+                    '(the tools update was undone or superseded); run ' + typed(*action) + ' again')
             private_tree(payload)
             private_tree(HOME / 'records')
             if STOP_RECORDS.exists():

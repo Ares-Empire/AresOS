@@ -197,7 +197,7 @@ class ShapeTest(Unchanged, unittest.TestCase):
             if name == 'install':
                 continue
             words = ['layout', {'us': 'begin us', 'intl': 'begin us-intl', 'de': 'begin de'}.get(name[7:], name[7:])] if name.startswith('layout-') else [name]
-            self.assertEqual(text.removeprefix('sudo -k; '), owner.command(*' '.join(words).split()))
+            self.assertEqual(text.removeprefix('sudo -k; '), owner.typed(*' '.join(words).split()))
         source = (ROOT / 'os/owner-tools/owner.py').read_text()
         # No message spells a command by hand: the entry's path is quoted once, in the helper.
         self.assertEqual((source.count("'/var/lib/ares/at'"), source.count('sudo /var/lib/ares/at')), (1, 0))

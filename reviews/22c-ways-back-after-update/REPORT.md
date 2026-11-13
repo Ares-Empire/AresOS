@@ -169,3 +169,139 @@ column gives the `(ostree:N)` number and the row it starts. Every title is `Bazz
 - JUDGMENT-CALL 6: no second probe run now. The captures meet every point of P6 and are what stage 1's fake is held to; the job was red on a check the brief does not ask for, which is corrected. If stage 2 passes with dispatches to spare, the corrected probe runs once more for a green record.
 - PLAN-GAP 3: main's checks-only job allows unprivileged user namespaces since 27c (PR #47), so hosted checks-only runs no longer skip the 136 tests once this branch has main merged in. The rehearsal job gets the same step in this package when stage 2 adds its mode.
 - Stage 1a starts from this report with a fresh builder. Its first step is to merge `origin/main` (27c changed the workflow's checks-only job and its waiting-list row) and regenerate the host walk and the waiting list.
+
+## Stage 1a, step 1: the state machine
+
+Stage 1a is cut into three runs. This is the first: section A in `os/owner-tools/owner.py`, the new release
+script, and the tests that pin each rule directly. The model (B2) and the tools 2-to-3 tests (B8) are the next two
+runs. Head after this step: see the last commit of the branch; main (`16a0c886`) is merged in.
+
+### The merge of main
+
+One conflict, in `os/manifest/ci/16/pending-rebind.json`: main's two 27c notes and file row against this branch's
+stage 0 note and rows. Resolved by keeping every change note of both sides; the file rows and the 22c host walk
+were regenerated (`walk-host.py`, then `rebind.py pending`), not merged by hand. `.github/workflows/os-image.yml`
+merged without a conflict and holds both sides (27c's namespace step and 25-minute limit; the probe mode).
+
+### Built, rule by rule
+
+- **Rules 1 and 2** (`qualified_state`): before the first switch the two states of version 2, by the same checks
+  and messages, returning `None`. With AresOS installed: the saved pinned stock, one or two known releases, at most
+  one staged target in front of a running AresOS that is first; any order, any running member. It returns the rows
+  by role (`stock`, `ares`, `staged`, `booted`), which every command then uses.
+- **Rule 3** (`Tools.may_change`, `Tools.start_next`, `os/release/start-next.sh`): the read-only preflight, the
+  intent, the script (re-read, index by checksum and serial, digest and reference, nothing staged, one
+  `ostree admin set-default`, `sync`, re-read and compare), then the postcondition (the same rows, the target
+  first, the others in their old order), boot entries equal, the record, a fresh title.
+- **Rule 4** (`update`, `previous`, `recover`, `select`, `login`): each word a destination. A destination that is
+  already first writes nothing and says whether it runs. `rollback` and `keep-stock` refuse on the other side
+  after the resolution and name the other word. `update` (c) reorders to the newest installed AresOS and says the
+  bundle's release is newer still, with the next step.
+- **Rule 5** (`journalled`, `Tools.outcome`, `intend`, `completion`, `finish`, `archive`): one journal for staging
+  and every reorder, with `schema` (`change1`), `mode`, `word`, `boot`, `target`, `running`, `before`, `intended`
+  (and `staged` for a staging record). `outcome` returns `retry`, `complete`, `pending` (waits for the restart),
+  `applied` (applied, nothing waits), `done` (confirmed by a later boot), `elsewhere` (in place, not yet started),
+  or `None` after archiving `not-applied`. Only `title` confirms. A new change archives the open record as
+  `confirmed`, `applied-not-restarted`, `in-place-not-started` or `retried`.
+- **Rule 6** (`may_stage`, `update`, `reconcile_update`): staging only from a running AresOS that is first; the
+  line names the other AresOS, whichever it is; the second line when the running one is the older; the stop
+  routine deletes nothing unless the staged row is the only row before the running one.
+- **Rule 7** (`layout`, `repair_notes`): begin and abandon no longer use the pair check; abandon works on any
+  system; a trial whose finish had begun leaves a note in `layout-repair.json` when it is abandoned elsewhere, and
+  `layout abandon` on the note's deployment restores the old settings. **Built, not tested**: see "Not built".
+- **Rule 8** (`standing`, `role`, `name`): the title's first two lines with AresOS installed, and the cause only
+  where a record proves one.
+- **Rule 9**: `history.json` says tools version 3; `journalled` reads version 2's records; an unknown schema
+  refuses. The tools-update journal is untouched.
+- **Rule 10**: the staged-row STOP comes first in `qualified_state`, so every command gives it; `title` prints
+  the updater finding as a `WARNING:` line; `keep-stock` STOPs on it; `update` never reads it.
+- **Rule 11** (`typed`): every message that names a command builds it there.
+- `os/owner-tools/bundle.py` lists `start-next`; the payload is refreshed (fingerprint `6b6b1269…`, which changes
+  again in 1b). The three old scripts stay in the payload until 1b.
+
+### Not built in this step
+
+- **B7, the layout tests.** Rule 7's code has no direct test yet. The next builder must write them before
+  trusting it: begin and abandon with three deployments, begin refused on stock and with a change waiting, abandon
+  on stock from the menu, and the repair sequence.
+- B2 (the model), B8 (tools 2 to 3), B10 (the fixture test), B11's table, and B3 as a whole: the machine in
+  `test_owner_update.py` now models `set-default` (it also drops a staged row), `sync` and `cleanup --pending`'s
+  rule, but finalize lives in `test_ways_back.restart`, and the machine still logs a script as a mutation before
+  the script's own checks.
+- **B9, the changed expectations in the older modules.** `test_owner_update.py`'s classes `ShapeTest`,
+  `UpdateCommandTest`, `PreviousTest`, `LoginTest`, `OutcomeTest` and `IntentTest` still pin version 2's refusals
+  and its journal fields (`kind`, `pending`, `expected`). The hosted run below lists what fails.
+- `preflight_recovery` is no longer called by the tools. It is still in `owner.py` because tests in six modules
+  call it; delete it together with those expectations.
+
+### Verified
+
+- Local, Python 3.14, one module at a time: `test_ways_back` 29 tests OK, plain and with `-B`;
+  `test_checkout_sources` 5, `test_owner_step_limits` 4, `test_ways_back_probe` 40, `test_owner_walk` 27, all OK
+  on the pushed head.
+- Hosted checks-only: HOSTED_RUN_PLACEHOLDER
+
+`test_ways_back` by class: `ShapeTest` 8 (all 4 pair and 18 triple combinations, the names and the row map,
+version 2's queued pair, wrong sets, rule 10 in every order, before the first switch, the updater warning, the
+command helper), `ScriptTest` 3, `DestinationTest` 5, `JournalTest` 7 (among them every cut of every reorder,
+each followed by no restart and by a start of each row), `StagingTest` 6.
+
+### Changed lines so far
+
+- New PASS lines: `<name> runs and starts next`, `<name> runs; <name> starts next, after the restart`,
+  `<name> runs; <name> starts next; this start was not the default`,
+  `<name> runs and now starts next; no restart is waiting`, `Boot menu at the next start: …`,
+  `Boot menu after the update finishes at shutdown (expected): …`, `<Name> already starts next; nothing changed`
+  with `It runs now` or `It does not run yet: it starts at the next restart`, `Newest AresOS starts next <ref>`,
+  `Newest installed AresOS starts next <ref>`, `<Change> is in place and has not started yet`,
+  `Newer AresOS <ref> is removed when the update finishes at shutdown` and the settings line after it.
+- Kept as they were: `Saved stock rollback queued`, `Saved stock is default`,
+  `Previous AresOS queued for the next start <ref>`, `Older AresOS <ref> is removed …`, the two confirmation lines.
+- Reworded STOPs: the two side refusals, `Only one AresOS is installed …`, `… waits for the restart: restart
+  first …`, the interrupted-update STOP (it now names `update`), `… did not finish as recorded (…)`.
+
+### JUDGMENT-CALL
+
+7. Rule 6's two lines when `update` stages from the older AresOS are built as owner decision 5 says.
+8. `update` goes to the newest installed AresOS from anywhere (owner decision 1), built as rule 4 says.
+9. Rule 10's message says "the installed AresOS" in place of "both AresOS releases" when only one is installed.
+10. The old PASS lines for `rollback`, `keep-stock` and `previous` stay word for word; they name the system by the
+    old words, and the title's first line names it by role and digest.
+11. A note that rule 5 resolved something (`… was not applied …`, `The interrupted … had made its change; it is
+    recorded now`) is printed before the command's own result, also before a STOP (`Tools.notes`, printed by
+    `main`).
+
+### PLAN-GAP
+
+5. Rule 1 says every AresOS is "unmodified"; rule 9 says version 3 accepts every state version 2 accepts, and
+   version 2's `check`, `title` and `reboot` accept a modified AresOS. Built: every change (reorder, staging,
+   `layout begin`) refuses a modified AresOS, as known limit 3 says; `check`, `title`, `records` and `reboot` do
+   not look, so he keeps working commands.
+6. Rule 2 lets nothing depend on `rollbackQueued`. `qualified_state` still compares bootc's rollback slot and flag
+   with the order (first other row; queued when the running row is not first), as the probe showed at all 15
+   stages. Nothing is decided by it, but a bootc that ever disagreed would STOP every command. No capture has a
+   staged row over three deployments, so with something staged only `rollbackQueued` false is required, as today.
+7. In the boot that staged, a staging record whose staged list is gone STOPs every command, `update` included,
+   as version 2 does ("changed before the restart"). After a restart rule 5 resolves it as not applied. The model
+   should say whether that same-boot state is reachable (a `cleanup --pending` typed with Help).
+8. A repair note for a deployment that a later update removed stays in `layout-repair.json`. It blocks nothing.
+
+### For the next builder
+
+- **Run locally:** `cd os/tests && nice -n 10 python3 -m unittest test_ways_back`. It imports
+  `test_owner_update` as a library (`machine`, `Machine`, `route`, the rows); importing is safe on the laptop,
+  running that module is not.
+- **The three states.** `outcome` never merges them: "applied" is `keys == intended`; "restart waiting" is that
+  with `boot == boot_id()` and a target that does not run (`pending`); "confirmed" needs another boot id and the
+  target running (`done`), and only `title` archives it. `applied` and `elsewhere` leave the record open.
+- **What differs from the brief**, for the model's own rules: the points under PLAN-GAP 5 to 7 and JUDGMENT-CALL
+  9 to 11; a destination that is already first runs no `title` and writes nothing but the command's receipt;
+  `keep-stock` checks the updaters before it answers "already starts next"; before the first switch the title
+  prints no new line and `update`, `previous`, `rollback` and `keep-stock` refuse; `(ostree:N)` is read from the
+  entry's title, and "starts next" marks the first deployment.
+- **For the compatibility tests:** `journalled()` turns a version 2 record into version 3's form (`update` →
+  staging, `previous` → reorder with the target first). A version 2 intent that is in place becomes a `change1`
+  record. `system_ready()` calls `qualified()`, so a tools update can archive or record the open journal with the
+  new tools' code before they are published: check that this is what rule 9 wants.
+- **For 1b:** the fingerprint pins, the three old scripts out of the payload, `preflight_recovery` out, the
+  guides' quoted lines above.
