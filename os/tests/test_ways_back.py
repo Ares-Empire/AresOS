@@ -16,9 +16,11 @@ import json
 import pathlib
 import subprocess
 import unittest
+import time
 from unittest.mock import patch
 
 import test_owner_update as base
+from ways_back_keyboard import KeyboardMachine, PowerCut, PROFILES, identity, keyboard_sessions
 
 owner, machine, route = base.owner, base.machine, base.route
 R13, R21, R30, H21, H30 = base.R13, base.R21, base.R30, base.H21, base.H30
@@ -549,6 +551,98 @@ class StagingTest(Unchanged, unittest.TestCase):
             with self.assertRaisesRegex(owner.Stop, 'nothing was deleted'):
                 tools.reconcile_update(before, owner.agree(before), R30)
             self.assertEqual((host.state, host.changes), (saved, []))
+
+
+class LayoutTest(Unchanged, unittest.TestCase):
+    """B7: real layout entry points, independent persistent settings on all three rows."""
+
+    def fresh(self, tools, current, tty='tty3'):
+        current[0] = dict(tty=tty, session='fresh-' + str(time.monotonic_ns()), boot=tools.boot[0],
+                          started_us=int(time.monotonic() * 1000000) + 1)
+
+    def boot(self, tools, host, current, role):
+        restart(tools, host, choice=roles(host)[0].index(role))
+        host.loaded = host.keyboard()['VConsoleKeymap']
+        self.fresh(tools, current)
+
+    def finishing_cut(self, tools, host, current):
+        admin = copy.deepcopy(current[0])
+        tools.layout('begin', 'us-intl')
+        self.fresh(tools, current, 'tty4')
+        tools.layout('proof')
+        current[0] = admin
+        host.cut_keyboard = True
+        with self.assertRaises(PowerCut):
+            tools.layout('finish')
+        self.assertEqual(host.keyboard(), dict(base.DE, VConsoleKeymap='us-intl'))
+        self.assertTrue(tools.load('layout-pending')['finishing'])
+
+    def test_begin_and_fresh_login_abandon_with_three_rows_preserve_every_etc(self):
+        with laptop(listed((R21, R13, 'S'), R21), host_class=KeyboardMachine) as (tools, host, store), keyboard_sessions(tools, host) as current:
+            before = copy.deepcopy(host.settings)
+            tools.layout('begin', 'us')
+            self.assertEqual((host.settings, host.loaded), (before, 'us'))
+            self.unchanged(host, lambda: tools.layout('abandon'), 'fresh physical administrator login')
+            self.fresh(tools, current)
+            tools.layout('abandon')
+            self.assertEqual((host.settings, host.loaded), (before, 'de'))
+            self.assertFalse((store / 'layout-pending.json').exists())
+
+    def test_begin_refuses_on_stock_when_not_default_and_with_a_change_waiting(self):
+        for running, waiting, message in (('S', False, 'German layout'), (R13, False, 'does not start next'),
+                                          (R21, True, 'restart first')):
+            with self.subTest(running=running, waiting=waiting), laptop(listed((R21, R13, 'S'), running), host_class=KeyboardMachine) as (tools, host, store), keyboard_sessions(tools, host):
+                if waiting:
+                    tools.previous()
+                before = copy.deepcopy(host.settings)
+                self.unchanged(host, lambda: tools.layout('begin', 'us'), message)
+                self.assertEqual(host.settings, before)
+                self.assertFalse((store / 'layout-pending.json').exists())
+
+    def test_runtime_trial_abandoned_on_menu_stock_writes_neither_etc(self):
+        with laptop(listed((R21, R13, 'S'), R21), host_class=KeyboardMachine) as (tools, host, store), keyboard_sessions(tools, host) as current:
+            tools.layout('begin', 'us')
+            self.boot(tools, host, current, 'S')
+            before, offset = copy.deepcopy(host.settings), len(host.changes)
+            tools.layout('abandon')
+            self.assertEqual(host.settings, before)
+            self.assertFalse(any(c[0] == 'localectl' for c in host.changes[offset:]))
+            self.assertFalse((store / 'layout-repair.json').exists())
+
+    def test_interrupted_finish_abandon_on_stock_return_restore_and_new_trial(self):
+        with laptop(listed((R21, R13, 'S'), R21), host_class=KeyboardMachine) as (tools, host, store), keyboard_sessions(tools, host) as current:
+            self.finishing_cut(tools, host, current)
+            self.boot(tools, host, current, 'S')
+            before, offset = copy.deepcopy(host.settings), len(host.changes)
+            tools.layout('abandon')
+            self.assertEqual(host.settings, before)
+            self.assertFalse(any(c[0] == 'localectl' for c in host.changes[offset:]))
+            self.assertEqual(tools.load('layout-repair')['notes'], [dict(deployment_identity=list(identity(row(R21))), old=base.DE, new=PROFILES['us-intl'])])
+            self.boot(tools, host, current, R21)
+            self.unchanged(host, lambda: tools.layout('begin', 'us'), 'layout abandon')
+            tools.layout('abandon')
+            self.assertEqual(host.keyboard(), base.DE)
+            self.assertEqual(tools.load('layout-repair')['notes'], [])
+            tools.layout('begin', 'us')
+
+    def test_repair_blocks_staging_but_all_ways_back_work_then_whole_settings_are_inherited(self):
+        for command in ('previous', 'rollback', 'check', 'reboot', 'repair-update'):
+            with self.subTest(command=command), laptop(listed((R21, R13, 'S'), R21), H30, host_class=KeyboardMachine) as (tools, host, store), keyboard_sessions(tools, host) as current:
+                self.finishing_cut(tools, host, current)
+                self.boot(tools, host, current, 'S')
+                tools.layout('abandon')
+                self.boot(tools, host, current, R21)
+                self.unchanged(host, tools.update, 'layout abandon first, then update again')
+                if command == 'repair-update':
+                    tools.layout('abandon')
+                    tools.update()
+                    inherited = copy.deepcopy(host.keyboard())
+                    restart(tools, host)
+                    host.settings[identity(host.running())] = inherited
+                    self.assertEqual((roles(host)[1], host.keyboard()), (R30, base.DE))
+                else:
+                    tools.title()
+                    {'previous': tools.previous, 'rollback': tools.recover, 'check': tools.check, 'reboot': tools.reboot}[command]()
 
 
 if __name__ == '__main__':

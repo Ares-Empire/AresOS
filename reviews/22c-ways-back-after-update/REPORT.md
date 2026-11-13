@@ -326,3 +326,18 @@ each followed by no restart and by a start of each row), `StagingTest` 6.
   new tools' code before they are published: check that this is what rule 9 wants.
 - **For 1b:** the fingerprint pins, the three old scripts out of the payload, `preflight_recovery` out, the
   guides' quoted lines above.
+
+## Stage 1a, step 2: layout tests and the model
+
+### Part (a): layout tests (B7)
+
+- Added five direct layout tests to `test_ways_back`, backed by `ways_back_keyboard.py`:
+  three-row begin/abandon, refusal on stock/non-default AresOS/while waiting, menu-stock abandon without
+  persistent writes, the interrupted-finish repair round trip, and the repair note's staging lock with the
+  R28 test bundle. The latter also exercises previous, rollback, check and reboot, then repair and staging.
+- Each deployment has separate persistent console/X11 settings. A `PowerCut` between the real
+  `set_keyboard` method's two fake localed calls bypasses normal exception cleanup. No host keyboard
+  command executes. The direct tests use synthetic R21/R30 as the brief's R27/R28, as step 1 does.
+- Local: `cd os/tests && nice -n 10 python3 -m unittest test_ways_back` printed
+  `Ran 34 tests in 11.761s`, `OK` (7187 MB available before it). No code defect was found by B7;
+  `owner.py` is unchanged in this part. The full model and fixture/revert proofs follow in part (b).
