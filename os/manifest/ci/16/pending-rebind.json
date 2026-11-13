@@ -5,12 +5,13 @@
   "changes": [
     "Package 27b (laptop update record): os/tests/test_owner_path.py pins the laptop's step 8 update in INSTALL-STATUS; os/tests/test_checkout_sources.py and os/tests/test_owner_step_limits.py check this list by rules that hold at any time instead of requiring it empty while package 27's bindings exist",
     "27b: the checks-only job fetches full history (the suite reads earlier commits)",
-    "27c: the checks-only job lets the disposable runner create unprivileged user namespaces (kernel.apparmor_restrict_unprivileged_userns=0), so test_owner_update.ToolsUpdateTest runs instead of skipping"
+    "27c: the checks-only job lets the disposable runner create unprivileged user namespaces (kernel.apparmor_restrict_unprivileged_userns=0), so test_owner_update.ToolsUpdateTest runs instead of skipping",
+    "27c: the checks-only job's time limit goes from 15 to 25 minutes, since the namespace tests now run"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "0e2ca79188fd51b21537b59f7376780f9d6393abd0a2939eb52a8ccca0187732",
+      "sha256": "82a30759b82d776474c06a0004aa6d3227a7bdacd1ff6cd28a948590bcd41cad",
       "path": ".github/workflows/os-image.yml"
     },
     {
