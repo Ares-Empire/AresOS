@@ -41,8 +41,8 @@ the tool can read for a send outside a form without an adapter, states read-only
 resume an event object that changed. Draft 31 (re-check [33](../../reviews/control-design/2026-11-08-RECHECK-33.md))
 stops a page's own activation of an asking control for good instead: Claude acts on the control itself if the action
 is wanted. Draft 32 (2026-11-13, no re-check yet) rewrites section 6 for what brief 20 built, for the owner's
-change to decision 25 on 2026-11-11 (Claude works in his open tabs) and for the capability design of briefs 28
-and 28b (reading, references, navigation, batched steps and a smaller tool list). Covers the shared base, Mail
+change to decision 25 on 2026-11-11 (Claude works in his open tabs) and for the capability design of briefs 28,
+28a and 28b (reading, references, navigation, batched steps and a smaller tool list). Covers the shared base, Mail
 and Chrome. The frontier
 review ([`REVIEW`](../../reviews/control-design/2026-11-07-REVIEW.md), 8 blocking) and five re-checks
 ([1](../../reviews/control-design/2026-11-07-RECHECK.md), [2](../../reviews/control-design/2026-11-07-RECHECK-2.md),
@@ -76,8 +76,8 @@ ask again", WhatsApp Web). After the twelfth re-check ([12](../../reviews/contro
 draft 15 defines WhatsApp Web's approval as one page-trusting approval of a bounded set of encrypted captures and
 removes "don't ask again" there; draft 16 (re-check [13](../../reviews/control-design/2026-11-07-RECHECK-13.md)) adds
 a short collection phase after Send and separate sets for late frames. Points marked *checked* name the check that
-showed them; points marked *brief 20*, *brief 28* or *brief 28b* must be shown by that build's own tests before
-anything relies on them.
+showed them; points marked *brief 20*, *brief 28*, *brief 28a* or *brief 28b* must be shown by that build's own
+tests before anything relies on them.
 
 The plan, the owner's decisions and who does what: [`docs/control/PLAN.md`](../control/PLAN.md). The owner's
 picture: [`OWNER-SCOPE.md`](../../reviews/councils/2026-11-07-control-layer/OWNER-SCOPE.md). The council's 13 gaps
@@ -352,10 +352,12 @@ and it asks before anything that clearly sends. Chrome stays completely normal, 
 
 **Where it stands.** Brief 20 (PR #27) built the tool: the extension, the page reader, the page script that stops a
 page's own submissions, the questions, the adapters and the qualification record. Its reports are in
-`reviews/20-chrome/`. Briefs 28 and 28b build this section's capability design on top of it: 28 the reading, the
-references, navigation, batched steps and the smaller tool list; 28b his open tabs. Points marked *checked* name the
-check that showed them. Points marked *brief 20*, *brief 28* or *brief 28b* must be shown by that build's own tests
-before anything relies on them. Until brief 28 merges, the tools carry brief 20's names and results
+`reviews/20-chrome/`. Three briefs build this section's capability design on top of it, in this order: 28 the
+baseline, the rules for fields and addresses, and the new read, behind an internal action; 28a the new tool list,
+acting by short reference, navigation, batched steps and the budgets; 28b his open tabs. Each leaves `main`
+working, and none reaches his laptop before all three are merged. Points marked *checked* name the check that
+showed them. Points marked *brief 20*, *brief 28*, *brief 28a* or *brief 28b* must be shown by that build's own
+tests before anything relies on them. Until brief 28a merges, the tools carry brief 20's names and results
 (`reviews/20-chrome/TOOL-DESCRIPTIONS.md`); "Actions" maps the old names to the new ones.
 
 **History.** Briefs 17b to 17e and design drafts 9 to 25 built and checked a checkpoint outside Chrome that held
@@ -629,9 +631,9 @@ asking.
 **Until brief 28b merges** the tool does what brief 20 built: Claude reads and acts only inside the group. Looking at
 one of his tabs needs `chrome_take` first, which moves the tab and keeps its page; the first input then reloads it,
 and unsaved typing or playing media stops that reload until `chrome_take` is called with `reload: true`. The check
-before that reload is still brief 20's, with the gaps named above, so brief 28 alone doesn't go onto his laptop.
-Brief 28 already stops two things brief 20 allowed: closing a taken tab, and navigating one before its reload
-without that check.
+before that reload is still brief 20's, with the gaps named above, so briefs 28 and 28a alone don't go onto his
+laptop. Brief 28a already stops two things brief 20 allowed: closing a taken tab, and navigating one before its
+reload without that check.
 
 **Popups.** A popup or new tab that a Claude tab opens belongs to Claude while its opener does, and follows the same
 rule: one reload before the first input. A new tab joins the group. A popup window stays where it is: the opener's
@@ -640,8 +642,8 @@ closing or reloading it. Nothing of ours ever opens a window or takes the focus 
 
 ### Reading a page
 
-*brief 28.* Reading is text, built by the extension's own content script (above): never a screenshot, never
-Chrome's accessibility tree. `chrome_read` gives an **outline** first and the detail on request. Page text is
+*brief 28* builds the read, and *brief 28a* makes it the `chrome_read` Claude is offered. Reading is text, built
+by the extension's own content script (above): never a screenshot, never Chrome's accessibility tree. `chrome_read` gives an **outline** first and the detail on request. Page text is
 untrusted content (rule 4.8): a page can never instruct Claude.
 
 **The outline** is one line per element, indented by depth:
@@ -699,7 +701,7 @@ fits its kind:
 only as `(filled, not read)`, Claude can ask him for the values with `chrome_read_typed_fields`. That covers
 single-line and multi-line form fields alike (lead, 2026-11-13). It is a tool of its own under the managed ask
 rules (section 7), so Claude Code asks him and Claude can't answer for him. Brief 20 builds it before it merges,
-and briefs 28 and 28b keep it as built:
+and briefs 28, 28a and 28b keep it as built:
 
 - the question names the tab and lists the labels of the fields it will read, with a stable description for a
   field without a label, and never a value;
@@ -712,8 +714,8 @@ and briefs 28 and 28b keep it as built:
   that preparation, verified as strictly as a send's input when the approval comes back, and used once. Right
   before any value is read, the page is compared with the preparation: a field replaced by another with the same
   label, a relabelled field, a frame that navigated and a field that has become credential-like each refuse the
-  read, and it asks again. Brief 20 builds this binding (*brief 20*: not shown by a test yet), and briefs 28 and
-  28b must keep it;
+  read, and it asks again. Brief 20 builds this binding (*brief 20*: not shown by a test yet), and briefs 28,
+  28a and 28b must keep it;
 - the values come back marked as page text, like everything else from a page;
 - a normal read says how many such fields a tab has, so Claude knows the tool exists for them; the instructions
   tell it to ask only when his request needs such a value;
@@ -748,7 +750,8 @@ always advances. The tool measures the answer as it is sent, where a character o
 ends a page earlier when the whole wouldn't fit the base's bound of 48 KiB. The header names the tab, the address,
 the title, the scroll position, and how many characters the whole answer has.
 
-**Addresses: a public form, and a short form for lists and records.** *brief 28.* An address can carry a sign-in:
+**Addresses: a public form, and a short form for lists and records.** *brief 28* builds the one function and uses
+it in the read; *brief 28a* puts it in front of every other surface. An address can carry a sign-in:
 a code after `?`, a token after `#`, a user name and password in front of the site, or a reset link whose path is
 the key. It also says which video, which search or which article a page is, and a browser tool that hides that is
 of little use. The owner decided it on 2026-11-13 (board #213, "Show link addresses"): on the pages Claude reads it
@@ -818,7 +821,7 @@ bringing his tab to the front or attaching to it.
 
 ### Going to pages and acting
 
-*brief 28.* One call does a whole step of work and returns what Claude needs to go on, so a second read is rarely
+*brief 28a.* One call does a whole step of work and returns what Claude needs to go on, so a second read is rarely
 needed.
 
 - **Going.** `chrome_open` opens a web address in a new Claude tab: an address Claude gives, the link or library entry
@@ -1115,7 +1118,7 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 
 ### Actions
 
-*brief 28*, and *brief 28b* for his tabs. Eighteen tools are offered to Claude, where brief 20 has 29 when it
+*brief 28a*, and *brief 28b* for his tabs. Eighteen tools are offered to Claude, where brief 20 has 29 when it
 merges (28 at `8b7e799c`, and the asking read for typed fields).
 
 | Action | Effect | What it does | Replaces (brief 20) |
@@ -1163,7 +1166,8 @@ merges (28 at `8b7e799c`, and the asking read for typed fields).
 
 ### Efficiency, as a tested property
 
-*brief 28.* "Better" is a number here. A test group runs fixed scripts against fixture pages, with no model and no
+*brief 28* records the baseline and measures the rows that only read; *brief 28a* measures every row on the new
+tool list. "Better" is a number here. A test group runs fixed scripts against fixture pages, with no model and no
 real site, counts the calls and the characters returned, and fails the build when a budget is exceeded. The baseline
 is brief 20's tool list on the same fixtures, recorded once before it is replaced, and used as well as it allows
 (its wait that returns a read, its form fill, its find). No test compares against Claude in Chrome.
@@ -1185,20 +1189,20 @@ is brief 20's tool list on the same fixtures, recorded once before it is replace
 | What a session loads: descriptions and instructions | 29 tools; recorded on main after PR #27 | 18 tools, at most 10,500 characters, and not above the baseline (11,500 with brief 28b's rule for his tabs) |
 | What a session loads: names and input schemas | 28 tools, about 10,600 characters at `8b7e799c`; recorded again on main with the 29th | at most 6,300 characters (6,800 with brief 28b's inputs) |
 
-- Every budget names the exact calls it allows (brief 28's table), and the test makes those calls and no others. A
-  budget nobody can meet is changed in the brief, never in the test.
+- Every budget names the exact calls it allows (the tables of briefs 28 and 28a), and the test makes those calls
+  and no others. A budget nobody can meet is changed in the brief, never in the test.
 - Characters are counted on the whole result as Claude receives it, so a quote or a line break of the outline
-  counts as two. Brief 20's two *checked* numbers count the page text alone, which is a little less. Brief 28
-  works each row through for its fixture; the table's row is larger than its cells' text because every cell stays
-  quoted, which is what keeps a cell from forging a line.
-- Where the middle column has no number, brief 28 measures brief 20's tools on the fixture before it removes them,
-  and the budget must also beat that number.
+  counts as two. Brief 20's two *checked* numbers count the page text alone, which is a little less. Briefs 28
+  and 28a work each row through for its fixture; the table's row is larger than its cells' text because every
+  cell stays quoted, which is what keeps a cell from forging a line.
+- Where the middle column has no number, brief 28 measures brief 20's tools on the fixture before brief 28a
+  removes them, and the budget must also beat that number.
 - Mail's 28 tools take 21,055 characters after brief 18d. A test pins Chrome's totals, so a later change can't grow
   them unnoticed.
 - **Latency:** fewer calls don't prove a faster tool, because a step still reads the page's facts as brief 20 does.
-  So brief 28 times brief 20's tools and the new ones in the same CI run, where the runner is the same: the first
-  read of the long page, a free click with its report, and the 6-field form must each take at most 1.10 times
-  brief 20's median plus 50 ms. PR #27 has no latency check at `8b7e799c`; one that its later part brings stays
+  So brief 20's tools and the new ones are timed in the same CI run, where the runner is the same: the first
+  read of the long page (brief 28, and again in 28a), a free click with its report, and the 6-field form (brief
+  28a) must each take at most 1.10 times brief 20's median plus 50 ms. PR #27 has no latency check at `8b7e799c`; one that its later part brings stays
   green.
 - The efficiency group is a CI check only. It never turns anything off on the laptop: the qualification record
   ("Tests") counts the safety groups, not the budgets.
@@ -1269,7 +1273,7 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
 - **A dialog opened through a borrowed function** always asks, and what the page does after the answer isn't held.
   *Harm:* as "a page that sends on its own". *Accepted:* the question says so, and the answer runs once.
 
-**Reading and his tabs** (*brief 28*, *brief 28b*)
+**Reading and his tabs** (*brief 28*, *brief 28a*, *brief 28b*)
 
 - **A page that changes what it shows without changing its address.** A read, a take or a close of one of his
   tabs is bound to the document and address the list showed. A page that swaps its content in place (a chat that
@@ -1488,13 +1492,18 @@ field it can't confirm is safe isn't read; every result says plainly that this C
     one that autosaves typing, one that submits after the hold, and one that borrows every step from a window
     outside Claude's tabs are listed in the brief's report as not held, so "Known limits" stays true.
 
-**Groups added by briefs 28 and 28b.** Groups 1 to 13 keep their cases and run through the new tools. The harness's
-helper functions change, and never an assertion about a question, a binding, an approval or what the receiver got. Two
-kinds of assertion do change, each listed in its brief's harness map: reading a text field in a taken tab before its
-reload now gives `(filled, not read)` for a typed field (brief 28), and a take reloads the tab itself instead of
-the first input (brief 28b).
+**Groups added by briefs 28, 28a and 28b.** Groups 1 to 13 keep their cases. Through brief 28 they still run on
+brief 20's tools; from brief 28a on they run through the new ones. The harness's helper functions change, and never
+an assertion about a question, a binding, an approval or what the receiver got. Three kinds of assertion do
+change, each listed in its brief's harness map: reading a text field in a taken tab before its reload now gives
+`(filled, not read)` for a typed field, and a form that holds such a field isn't sent (brief 28); a test of "any
+change makes every reference stale" becomes a test of the fingerprint (brief 28a); and a take reloads the tab
+itself instead of the first input (brief 28b).
 
-14. **Reading and references** (*brief 28*):
+14. **Reading and references** (*brief 28* through its internal read: the outline, paging, detail reads, `find`,
+    several tabs, `until`, references for reads, passwords and the asking read's binding; *brief 28a*: an action on
+    a reference and its fingerprint, the addresses on every other surface, and everything again through
+    `chrome_read`):
     - the outline's rules on fixtures, compared with stored expected outlines: text once, every fold with its exact
       count, frames and open and closed shadow roots in place, an open dialog hiding the rest;
     - paging: a text of 100,000 characters, a row wider than the budget and a long value each come back whole over
@@ -1541,7 +1550,7 @@ the first input (brief 28b).
       named like a credential, or masked at that moment, isn't. A form that holds a field withheld for unknown
       history isn't sent: a click on its Send button, Enter in it and a submission the page starts are refused
       without a question, also after an approved asking read, and the receiver has nothing.
-15. **Going and acting in one call** (*brief 28*):
+15. **Going and acting in one call** (*brief 28a*):
     - `chrome_open` and `chrome_go` return the outline after the load, say `loaded: false` on a timeout, and refuse
       what group 6 refuses; a navigation inside the same document counts as loaded without a new document, and a
       reload doesn't before the new document is there;
@@ -1570,7 +1579,8 @@ the first input (brief 28b).
       call works; and a caller that goes away in the middle leaves every step that ran in the log and none
       running later;
     - two similar tabs, and he switches tabs while a list runs (PLAN task 14): every step lands in the named tab.
-16. **Efficiency** (*brief 28*): the budgets of "Efficiency, as a tested property", against the recorded baseline.
+16. **Efficiency** (*brief 28* for the baseline and the rows that only read, *brief 28a* for every row): the
+    budgets of "Efficiency, as a tested property", against the recorded baseline.
 17. **His open tabs** (*brief 28b*):
     - the list: every normal window, the marks, every address in the short form, an incognito window absent, a
       hostile title (instructions, forged marks, direction-changing characters) quoted and escaped;
