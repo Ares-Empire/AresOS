@@ -56,6 +56,7 @@ def bls_files(stage):
         target=next(x[7:] for x in options.split() if x.startswith('ostree='))
         targets['/sysroot'+target]=row['deployment']
     def glob(path,pattern):
+        if str(path)=='/run/user':return iter(()) # No user-manager bus is part of these retained fixtures.
         return iter(pathlib.Path(p) for p in byfile) if str(path)=='/boot/loader/entries' else original_glob(path,pattern)
     def read(path,*a,**kw):return byfile[str(path)]['content'] if str(path) in byfile else original_read(path,*a,**kw)
     def resolve(path,*a,**kw):return pathlib.Path(targets[str(path)]) if str(path) in targets else original_resolve(path,*a,**kw)

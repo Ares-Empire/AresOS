@@ -430,11 +430,17 @@ class ShapeTest(unittest.TestCase):
         for state in (staged_update(), pair(R99)):
             with self.subTest(refused=state), route(state) as (tools, host, store):
                 UpdateCommandTest.unchanged(self, tools, host, store, tools.recover,
-                    'staged deployment' if state == staged_update() else 'Unknown deployment')
+                    'staged deployment' if state == staged_update() else 'Unexpected prepared deployment list/pending state')
         # The old pair helper is no longer a command's acceptance rule (A3/A7).
         for state in (pair(), updated()):
             with route(state) as (tools, host, store), patch.object(owner, 'preflight_recovery', side_effect=AssertionError('obsolete pair gate')):
                 tools.recover()
+            with route(state) as (tools, host, store), patch.object(owner, 'preflight_recovery', side_effect=AssertionError('obsolete pair gate')), \
+                    patch.object(tools, 'session', return_value=dict(tty='tty3', session='fixture', boot='boot-1', started_us=1)), \
+                    patch.object(tools, 'trial_keyboard'):
+                tools.layout('begin', 'us')
+                self.assertEqual(tools.load('layout-pending')['deployment_identity'], list(owner.key(owner.agree(state))))
+                self.assertEqual(host.changes, [])
 
 
 class HistoryTest(unittest.TestCase):

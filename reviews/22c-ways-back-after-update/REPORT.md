@@ -901,3 +901,28 @@ Preserve A5's three outcomes, the absent-bundle exception, and `finish_proof` be
 - Local `cd os/tests && nice -n 10 python3 -B -m unittest test_ways_back`: **34 tests in 11.876s, OK**,
   after 5013 MB available. An initial invocation from the repo root failed import (`ModuleNotFoundError`,
   one loader error); corrected the working directory and ran the command above.
+
+
+### Part (a), first hosted round and corrections
+
+[43517900883](https://github.com/Ares-Empire/AresOS/actions/runs/43517900883), tested head `85c037b1`:
+**1038 tests in 974.729s; 11 failures, 1 error, 0 skipped**. One blocking watch, exit 1. The four existing
+fingerprint pins remain; eight other entries were fixed as below. No test is removed or skipped.
+
+| Test | Old / first-round expectation or fake | Correct expectation / fake | Rule |
+|---|---|---|---|
+| `ShapeTest.test_recovery_and_layout_accept_known_pairs_and_triples_but_refuse_staging`, R99 pair | Expected unknown-installed diagnostic | With no recognized installed AresOS this is the unchanged prepared-list refusal; exact diagnostic asserted | A1 |
+| same, layout portion | Old shared pair gate | Begin succeeds on known pair/triple without calling the obsolete pair helper; binds the trial to the running identity | A7 |
+| `IntentTest.test_every_interruption_resolves_by_list_except_same_boot_staging`, records at all four cuts | Refused command must leave private records unchanged | Keep that assertion; production `records` must resolve before writing `record-c` | A5.2 |
+| `test_owner_abandon.AbandonTest.test_stock_side_recovery_preserves_stocks_own_installer_layout` | Fake menu choice swapped slots but kept `rollbackQueued=false` | The first other row precedes running stock: queued true, bootOrder rollback; persistent stock settings still unchanged | B3, A2 |
+| `test_owner_retained.RetainedTest.test_title_switch_and_recovery_real_pairs_and_bls` | Fixture accidentally sees runner's `/run/user` bus | Explicit empty user-manager bus list for retained captures lacking that observation; modeled paused system units still read | A10 |
+| `test_owner_path.OwnerPathTest.test_card_clears_real_pending_state_then_completion_does_not_abandon_again` | Missing-private-trial diagnostic after completion | No active trial **and** no repair note; exact new diagnostic; card completion still never abandons twice | A7 |
+
+**Defect found (A5.2):** same-boot staging intent at any of its four cuts → `records` → the disk read and
+`record-c.json` write happened before `title` refused the unresolved intent. Fix: `records` calls the common
+`survey()` first. The unchanged-record assertion that caught this is retained. A B11 mutant will remove
+that call and must reproduce the assertion failure. This changes no schema, destination or PASS line.
+
+The older fake failures exposed additional missing observations only after the first fixture repair let
+those tests reach their later assertions. The route test's new diagnostic follows A7's repair-note support;
+no guide, route sequence or binding assertion is changed.

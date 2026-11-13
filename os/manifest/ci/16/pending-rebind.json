@@ -15,7 +15,8 @@
     "22c step 2b part b: close 486627 model states and 12176910 steps; preserve all live layouts and journal outcomes",
     "22c step 2b part c: executable per-rule revert proofs; finalize mutant fails model retention",
     "22c step 2b audit: assert complete layout records and preserved finish authority before reconstructing each model state",
-    "22c stage 1a step 3(a): replace v2 expectations by A2-A5/A9 and repair older BLS/updater fakes"
+    "22c stage 1a step 3(a): replace v2 expectations by A2-A5/A9 and repair older BLS/updater fakes",
+    "22c stage 1a step 3(a) hosted corrections: records resolves before disk writes; complete old fixture observations"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -68,15 +69,15 @@
       "path": "os/owner-tools/history.json"
     },
     {
-      "sha256": "24d0f8310a87d6ba8ec6060f9ba3f9e58057525e8ca57e9afbea64afc8a374f3",
+      "sha256": "a852344ec4e33c3f7ac842696488558e5b9e93c733ed871fd517a2e85663a0f2",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "c5e82526d746f173950b7a7b1520b0d8e7c1359371881e2e54222df8da3eb58f",
+      "sha256": "b0f4ea1459eaa7f9da41a3a536b4bb96c1f6cc157ea7404dbf737e491cef1fd0",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "d2b40b50e091b377bc8d9258a35643065202525f27053599f16dbeef08dcb679",
+      "sha256": "2d31170fc05210f19631749457f3e9f1c898c4496486540d30b0f394b1879db9",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -84,12 +85,16 @@
       "path": "os/owner-tools/payload/history.json"
     },
     {
-      "sha256": "24d0f8310a87d6ba8ec6060f9ba3f9e58057525e8ca57e9afbea64afc8a374f3",
+      "sha256": "a852344ec4e33c3f7ac842696488558e5b9e93c733ed871fd517a2e85663a0f2",
       "path": "os/owner-tools/payload/owner.py"
     },
     {
       "sha256": "042737ea1f9c190e6686e40044b4d04a5169ae5d9aa82b6853366f149baab775",
       "path": "os/tests/test_checkout_sources.py"
+    },
+    {
+      "sha256": "e550b72047d37e7ca17fab7407e77d7a4b952cb0664854d625b78fd6b2556034",
+      "path": "os/tests/test_owner_abandon.py"
     },
     {
       "sha256": "b8fc6884066845578824de3fb676a20cfb961ca19ee76ce99ca7d00537550b6f",
@@ -108,11 +113,11 @@
       "path": "os/tests/test_owner_guard.py"
     },
     {
-      "sha256": "f7d82304d3c1df773d68510e0bd8d05079590eef516881992ce7aab964dfb646",
+      "sha256": "ce7aeb8caadd155cc9ece1dd8967df3794e97f9863366436087c588719c01d30",
       "path": "os/tests/test_owner_path.py"
     },
     {
-      "sha256": "7a9629335508f0bbec000da3f1a26f61c75fd87342664d61565bc4c66f986401",
+      "sha256": "a48d208fbc503297cfe5c194e68bed083cbf20c02422fa46b4e04a42a7d8b658",
       "path": "os/tests/test_owner_retained.py"
     },
     {

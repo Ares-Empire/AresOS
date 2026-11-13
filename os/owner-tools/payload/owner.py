@@ -1490,6 +1490,7 @@ class Tools:
                 'Flatpak sync state saved; unfinished sync is expected and does not block']
 
     def records(self):
+        self.survey()
         record = disk_record(self.host, self.load('disks'))
         self.save('record-c', record)
         return ['target ' + record['target']['path'] + ' serial ' + str(record['target']['serial']),

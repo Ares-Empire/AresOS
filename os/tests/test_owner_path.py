@@ -656,7 +656,7 @@ class OwnerPathTest(unittest.TestCase):
             self.assertEqual(events, ['abandon', 'completion'])
             self.assertFalse(pending.exists())
             self.assertEqual(abandon_card_route(documents(), pending=False, recorded_pass=True), ['completion'])
-            with self.assertRaisesRegex(setup.owner.Stop, 'Missing private layout-pending record'):
+            with self.assertRaisesRegex(setup.owner.Stop, 'No layout trial and no half-written layout to abandon on this system; nothing changed'):
                 fixture.tools.layout('abandon')
             self.assertEqual(abandon_card_route(documents(), pending=False, recorded_pass=True,
                              refusal='Missing private layout-pending record'), ['completion'])
