@@ -1,0 +1,6 @@
+{
+  "normal-permission-user": {"prompt_shown": false, "send_arrivals": 1, "hook_calls": 1},
+  "normal-permission-managed": {"prompt_shown": false, "send_arrivals": 1, "hook_calls": 1},
+  "skip-permission-user": {"prompt_shown": false, "send_arrivals": 1, "hook_calls": 1},
+  "skip-permission-managed": {"prompt_shown": false, "send_arrivals": 1, "hook_calls": 1}
+}
