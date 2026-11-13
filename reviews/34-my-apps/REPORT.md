@@ -204,3 +204,16 @@ Built by Codex (GPT-6.1 Sol) for `briefs/34-review-fixes-2.md` and the new findi
 **PLAN-GAP:** none. **Open questions:** none.
 
 **Large files:** `.work/` contains only local verification logs (668 KiB total), with no file over 500 MB and no downloads.
+
+## Review 3 and the orchestrator's decision
+
+Review 3 (`REVIEW-3.md`, gpt-6-astra, on `da90757e`) closes the `/aresos give` finding and names one more case in the pick-up path, older than this round: with all 36 inventory slots full and an app's item in the off hand, picking that app up in the Apps screen puts the item on the cursor; pressing Escape then finds no slot to put it back, and the item is gone. The app stays in My apps, and the mod puts a fresh item into the inventory as soon as a slot is free.
+
+**Decision (orchestrator, 2026-11-13): a known limit, not another fix round.** What is lost is an app's item, which the mod makes from the app's entry and makes again by itself; nothing he made or collected is touched, and the app, its pin state in the apps file and its place stay. It needs a completely full inventory with that very app in the off hand. Under the owner's bar for AresOS tools (2026-11-11: safe the way a normal tool is, unusual edge cases as known limits) this is a limit to write down.
+
+### Known limits (all rounds)
+
+- **A full inventory and an app in the off hand:** picking that app up in the Apps screen and closing the screen loses its item until a slot is free; then the mod puts a new one in.
+- **Chests and other containers:** an app's item is not unique. If he puts one into a chest, the mod may put a fresh one into his inventory.
+- **An icon file swapped by a program of his own user** while the mod reads it is not defended against; a broken or slow file is (the game never waits on it).
+- **Moving a schema-1 apps file on Linux** keeps the Windows commands in the backup only, as `docs/design/OS-BASE.md` B1 says.
