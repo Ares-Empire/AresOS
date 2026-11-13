@@ -90,6 +90,14 @@ class RuleRevertsTest(unittest.TestCase):
             with patch.object(owner.Tools, 'layout', change):
                 self.ledger_detects(d, s, ('abandon', 'full'))
 
+    def test_a7_revert_preserves_the_interrupted_finish_authority(self):
+        change = mutated(owner.Tools.layout, "if value.get('finishing') and value['proof']:", 'if False:')
+        with model.driver() as d:
+            s = model.RevertTest().path(d, starts()[2], [
+                ('begin', 'us'), ('proof', 'full'), ('finish', 'console')])
+            with patch.object(owner.Tools, 'layout', change):
+                self.ledger_detects(d, s, ('revert', 'full'), 'finish authority lost')
+
     def test_a8_title_has_the_identity_based_menu(self):
         real = owner.Tools.standing
         with patch.object(owner.Tools, 'standing', lambda *a: real(*a)[:1]):

@@ -244,6 +244,24 @@ class Driver:
         if word == 'restart' and s.stage:
             assert found.rows == (s.stage, s.running, 'S'), ('retention after finalize', found.rows)
         assert found == expected.state, ('ledger differs', event, expected.state, found)
+        for role, console, x11 in expected.state.settings:
+            values = dict(PROFILES[x11], VConsoleKeymap=PROFILES[console]['VConsoleKeymap'])
+            assert host.settings[tuple(self.ids[role])] == values, 'persistent layout fields differ'
+
+        trial = self.files.get('layout-pending')
+        if trial:
+            # This field is derivable in the reference state, but Tools must
+            # actually preserve it before the adapter reconstructs the next step.
+            encoded_trial = self.trial_record(expected.state.trial)
+            assert bool(trial.get('finish_proof')) == bool(encoded_trial.get('finish_proof')), 'finish authority lost'
+            def trial_fields(value):
+                value = copy.deepcopy(value)
+                value.pop('began_us')  # timestamp is not state; session ordering is supplied by the adapter
+                for name in ('administrator', 'proof', 'finish_proof'):
+                    if value.get(name):
+                        value[name]['boot'] = value[name]['boot'] == tools.boot[0]
+                return value
+            assert trial_fields(trial) == trial_fields(encoded_trial), 'layout journal fields differ'
         raw = self.files.get('outcome-pending')
         if raw:
             encoded = self.journal_record(expected.state.journal)
