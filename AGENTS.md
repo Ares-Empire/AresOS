@@ -20,16 +20,18 @@ You get one **brief** (`briefs/NN-slug.md`), your own worktree and your own bran
 3. Verify (see below) and fix until green.
 4. Commit in small logical commits. Push your branch and open a PR against `main` with `gh pr create`. Never merge, never push to `main`.
 5. Write `reviews/NN-slug/REPORT.md` (format below), then commit and push it on your branch.
-6. Stop every Gradle daemon you started (`./gradlew --stop`, and `gradle --stop` for any other Gradle version you ran). Then stop. A leftover daemon keeps your `codex exec` process alive after you finish (seen in package 01).
+6. Stop every Gradle daemon you started (`./gradlew --stop`, and `gradle --stop` for any other Gradle version you ran). Then stop. A leftover daemon keeps your `codex exec` process alive after you finish (seen in package 01). **Under AresOS never run `--stop`:** the dev scripts below run Gradle without a daemon, and `--stop` would end other builders' builds on the same laptop.
 
 Nobody can answer questions mid-run. If the brief doesn't settle something, take the safest reversible option and record it in the report.
 
 ## Verification
 
-- `./gradlew build` must pass (inside `mod/`).
+- `./gradlew build` must pass (inside `mod/`). On the laptop under AresOS use `mod/dev/build.sh` and `mod/dev/client-test.sh` instead of calling Gradle (`mod/README.md`, "On Linux"): they find Java, keep the game off the owner's screen, let one client run through at a time, and refuse (exit 75) while his own game runs or memory is short. Never pass `--force`; wait and try again.
 - Write automated tests where they make sense. Use Fabric game tests for game logic. Use Fabric client game tests for anything visual, and save their screenshots under `reviews/NN-slug/screenshots/` so they can be inspected.
 - Report exactly what you ran and what it printed. A test you didn't run is not evidence. If something can only be checked by a human playing, say so.
 - Watch for things that fail silently, where the tests pass but the result in the game is wrong. Those are the ones reviews exist for.
+- A server game test never forces or releases chunks it does not own: the framework holds the chunks of each test's plot, and releasing them took four neighbouring tests' chunks away in package 33, so the run never ended. Hold a ticket of your own. Build relative to your test's own plot: the test world can be kept between runs.
+- Screenshot names carry a running number over the whole client suite. Add a new client test at the end of the list, or every later package's pictures are renamed.
 - Before reporting green, run the full `build runClientGameTest` **twice**. A test that passes once and fails once is a failure: fix its cause, never the assertion. Package 04c passed for Codex and then failed in Claude's rerun with a non-deterministic world-generation search.
 
 ## Report format (`reviews/NN-slug/REPORT.md`)
@@ -53,7 +55,8 @@ Nobody can answer questions mid-run. If the brief doesn't settle something, take
 
 ## Environment (the owner's laptop)
 
-- Windows 11 with PowerShell 7 and Git Bash. Lenovo LOQ 15IRH8: i5-13500H, 16 GB RAM, RTX 4060.
+- Lenovo LOQ 15IRH8: i5-13500H, 16 GB RAM, RTX 4060. Since 2026-11-13 the work runs under **AresOS** itself (Linux, user `ares`, no sudo, nothing installed system-wide; Java 25 in `~/.local/opt/jdk-25`, `gh` in `~/.local/bin`). The real desktop session belongs to the owner: never open a window in it, never send input to it. Several builders share the laptop's memory: one heavy step at a time.
+- Before that: Windows 11 with PowerShell 7 and Git Bash; the mod still builds there with `.\gradlew.bat`.
 - Minecraft 26.2 needs **Java 25**.
 - Versions as of 2026-10-21 (check Modrinth for newer before pinning):
   - Fabric Loader 0.19.5
