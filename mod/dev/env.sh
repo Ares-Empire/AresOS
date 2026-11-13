@@ -3,7 +3,9 @@
 #
 # It finds Java 25 without touching the shell's PATH or ~/.bashrc, and holds the checks that keep a run from
 # disturbing the owner or the other sessions on this laptop: the memory floor, his own Minecraft (Lunar Client)
-# and the one-client-test-at-a-time lock. The scripts run from mod/, whatever the caller's directory.
+# and the one-client-test-at-a-time lock. It also owns everything a script starts: every process runs in a
+# systemd user scope that the script created and named, and every exit stops those scopes. The scripts run from
+# mod/, whatever the caller's directory.
 
 ARESOS_CALLER_DIR=$PWD
 ARESOS_MOD_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
@@ -18,7 +20,10 @@ ARESOS_NVIDIA_OFFLOAD=(__NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvi
 
 cd -- "$ARESOS_MOD_DIR"
 
-aresos_say() { printf '%s: %s\n' "${0##*/}" "$*" >&2; }
+# Messages go to the caller's stderr even while a call's own stderr is redirected (a log, /dev/null), which is
+# where a signal during that call would otherwise send the cleanup's messages.
+exec {ARESOS_STDERR}>&2
+aresos_say() { printf '%s: %s\n' "${0##*/}" "$*" >&"$ARESOS_STDERR"; }
 
 # aresos_fail <exit code> <sentence>
 aresos_fail() {
@@ -51,14 +56,15 @@ aresos_find_java() {
     aresos_fail 1 "No Java 25 JDK found: set JAVA_HOME to one, or unpack Temurin 25 as ~/.local/opt/jdk-25 (mod/README.md, On Linux)."
 }
 
-# PIDs of the owner's own Minecraft: a process whose executable lives under ~/.lunarclient (the Lunar Client game).
-# Only /proc is read. Matching command lines instead would also match the shell running this check.
+# PIDs of the owner's own Minecraft: a Java process whose executable lives under ~/.lunarclient (the Lunar Client
+# game, run by Lunar's own Java runtime). Its launcher and other programs there do not count. Only /proc is read.
+# Matching command lines instead would also match the shell running this check.
 aresos_lunar_game_pids() {
     local real
     real=$(cd -- "$HOME" && pwd -P)
     /usr/bin/find /proc -mindepth 2 -maxdepth 2 -name exe \
-        \( -lname "$HOME/.lunarclient/*" -o -lname "$real/.lunarclient/*" \) -printf '%h\n' 2>/dev/null \
-        | /usr/bin/sed 's|^/proc/||' || true
+        \( -lname "$HOME/.lunarclient/*/bin/java" -o -lname "$real/.lunarclient/*/bin/java" \) -printf '%h\n' \
+        2>/dev/null | /usr/bin/sed 's|^/proc/||' || true
 }
 
 aresos_available_kib() {
@@ -77,7 +83,7 @@ aresos_check_room() {
         aresos_fail "$ARESOS_EXIT_BUSY" "The owner's Minecraft (Lunar Client, PID ${pids//$'\n'/, }) is running; try again once it has closed, or pass --force."
     fi
     kib=$(aresos_available_kib)
-    if (( kib < ARESOS_MIN_AVAILABLE_KIB )); then
+    if ((kib < ARESOS_MIN_AVAILABLE_KIB)); then
         aresos_fail "$ARESOS_EXIT_BUSY" "Only $((kib / 1048576)).$((kib % 1048576 * 10 / 1048576)) GB of memory is available and a run needs 6 GB; try again later, or pass --force."
     fi
 }
@@ -87,60 +93,90 @@ aresos_check_room() {
 # daemon of this Gradle version on the laptop, including other sessions' builds in other worktrees.
 ARESOS_GRADLE=("$ARESOS_MOD_DIR/gradlew" --no-daemon)
 
-# aresos_scoped <unit prefix> <command...>: runs the command in its own systemd user scope and stops that scope
-# afterwards, so nothing it started (Gradle's daemon, a game, a compositor) outlives it, also after Ctrl+C.
-ARESOS_SCOPE=
-ARESOS_SCOPE_PID=
-aresos_stop_scope() {
-    [[ -n $ARESOS_SCOPE ]] || return 0
-    # The PID first: if systemd-run has not created the scope yet, nothing may start after this.
-    [[ -z $ARESOS_SCOPE_PID ]] || kill -TERM "$ARESOS_SCOPE_PID" 2>/dev/null || true
-    /usr/bin/systemctl --user stop "$ARESOS_SCOPE" 2>/dev/null || true
-    ARESOS_SCOPE= ARESOS_SCOPE_PID=
+# Refuses Gradle's own daemon switches among the forwarded arguments: --daemon would win over --no-daemon (Gradle
+# takes the last of the two), and --stop and --status act on every daemon of this Gradle version on the laptop.
+aresos_check_gradle_args() {
+    local arg
+    for arg; do
+        case $arg in
+            --daemon | --stop | --status)
+                aresos_fail 2 "Gradle's $arg is refused: these scripts run Gradle without a lasting daemon and leave other sessions' daemons alone." ;;
+        esac
+    done
 }
+
+# Everything a script starts runs in a systemd user scope that the script created and named
+# (aresos-dev-<name>-<pid>-<random>.scope). A script stops things only by stopping its own scopes: never by a
+# remembered PID, which may belong to another process by then, and never something an earlier run left behind.
+ARESOS_SCOPES=()
+ARESOS_DEFER=0
+ARESOS_PENDING=0
+
+# True while the background job with this PID has not ended (bash's own job table, so a reused PID never counts).
+aresos_job_running() {
+    local pid
+    for pid in $(jobs -rp); do [[ $pid != "$1" ]] || return 0; done
+    return 1
+}
+
+# aresos_scope_start <name> [systemd-run options...] -- <command...>: starts the command in the background in a
+# new scope of this script and returns once that scope exists (or the command has already ended). Sets
+# ARESOS_UNIT to the scope and ARESOS_JOB to the job, which is only ever waited for. A stop sends TERM to
+# everything in the scope and KILL 20 s later (TimeoutStopSec; an option may set another).
+aresos_scope_start() {
+    ARESOS_UNIT="aresos-dev-$1-$$-$SRANDOM.scope"
+    shift
+    # systemd-run creates the scope before it starts the command in it, so a stop by name before then would miss
+    # a command that is about to start. A signal until the scope exists is held, then acted on below.
+    ARESOS_DEFER=1
+    ARESOS_SCOPES+=("$ARESOS_UNIT")
+    /usr/bin/systemd-run --user --scope --quiet --collect --unit="$ARESOS_UNIT" --property=TimeoutStopSec=20 "$@" &
+    ARESOS_JOB=$!
+    while aresos_job_running "$ARESOS_JOB" && ! /usr/bin/systemctl --user --quiet is-active "$ARESOS_UNIT"; do
+        /usr/bin/sleep 0.02
+    done
+    ARESOS_DEFER=0
+    ((ARESOS_PENDING == 0)) || exit "$ARESOS_PENDING"
+}
+
+# aresos_scoped <name> [systemd-run options...] -- <command...>: aresos_scope_start, then waits for the command and
+# stops its scope, so nothing it started (Gradle's daemon, a game, a compositor) outlives it. The command runs in
+# the background with `wait`, so a signal to this script alone (TERM, HUP) runs its trap at once rather than after
+# the command. Background commands ignore SIGINT; Ctrl+C reaches them through the trap too.
 aresos_scoped() {
     local status=0
-    ARESOS_SCOPE="$1-$$.scope"
-    shift
-    # In the background with `wait`, so that a signal to this script alone (TERM, HUP) runs its trap at once
-    # rather than after the run. Background commands ignore SIGINT; Ctrl+C reaches them through the trap too.
-    /usr/bin/systemd-run --user --scope --quiet --collect --unit="$ARESOS_SCOPE" --property=TimeoutStopSec=20 \
-        -- "$@" &
-    ARESOS_SCOPE_PID=$!
-    wait "$ARESOS_SCOPE_PID" || status=$?
-    # Reaped: its PID may belong to another process from now on.
-    ARESOS_SCOPE_PID=
-    aresos_stop_scope
+    aresos_scope_start "$@"
+    wait "$ARESOS_JOB" || status=$?
+    /usr/bin/systemctl --user stop -- "$ARESOS_UNIT" 2>/dev/null || true
     return "$status"
 }
 
 # aresos_lock <file> <what holds it>: holds an exclusive lock on <file> until this script and everything it
-# started have exited, waiting for it (and saying so) while another run holds it. Sets ARESOS_LOCK_WAITED=1 after
-# a wait. The wait runs in the background, so a signal still stops this script at once.
-ARESOS_LOCK_PID=
-ARESOS_LOCK_WAITED=0
+# started have exited, waiting for it (and saying so) while another run holds it. It polls instead of leaving a
+# blocked `flock` behind, so a signal still ends this script within half a second.
 aresos_lock() {
     exec {ARESOS_LOCK_FD}>>"$1"
     /usr/bin/flock -n "$ARESOS_LOCK_FD" && return 0
     aresos_say "Waiting for $2 to finish ($1)..."
-    /usr/bin/flock "$ARESOS_LOCK_FD" &
-    ARESOS_LOCK_PID=$!
-    wait "$ARESOS_LOCK_PID" || aresos_fail 1 "Could not lock $1."
-    ARESOS_LOCK_PID=
-    ARESOS_LOCK_WAITED=1
+    until /usr/bin/flock -n "$ARESOS_LOCK_FD"; do /usr/bin/sleep 0.5; done
 }
 
-# Every exit (success, failure, Ctrl+C, a closed terminal) first stops the scope with everything in it; a script
-# adds its own steps by defining aresos_cleanup, which then runs with the exit code.
+# Every exit (success, failure, Ctrl+C, a closed terminal) first stops this script's scopes with everything in
+# them; signals are ignored meanwhile, so a second Ctrl+C cannot cut that short. A script adds its own steps by
+# defining aresos_cleanup, which runs with the exit code; if it fails, an exit code of 0 becomes 1.
 aresos_exit() {
     local status=$?
-    trap - EXIT INT TERM HUP
-    [[ -z $ARESOS_LOCK_PID ]] || kill -TERM "$ARESOS_LOCK_PID" 2>/dev/null || true
-    aresos_stop_scope
-    if declare -F aresos_cleanup >/dev/null; then aresos_cleanup "$status" || true; fi
+    trap - EXIT
+    trap '' INT TERM HUP
+    ((${#ARESOS_SCOPES[@]} == 0)) || /usr/bin/systemctl --user stop -- "${ARESOS_SCOPES[@]}" 2>/dev/null || true
+    if declare -F aresos_cleanup >/dev/null; then aresos_cleanup "$status" || ((status)) || status=1; fi
     exit "$status"
 }
+# A signal ends the script with 128 + its number; while a scope is being started, only once it exists.
+aresos_signal() {
+    if ((ARESOS_DEFER)); then ARESOS_PENDING=$1; else exit "$1"; fi
+}
 trap aresos_exit EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
-trap 'exit 129' HUP
+trap 'aresos_signal 130' INT
+trap 'aresos_signal 143' TERM
+trap 'aresos_signal 129' HUP
