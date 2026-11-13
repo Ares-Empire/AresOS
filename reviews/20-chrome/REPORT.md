@@ -246,6 +246,22 @@ owner input and unrelated animations remain unchanged. Restoring a property the
 page changed while held is avoided. Removing this protection would restore the
 measured unasked new-tab default. No new DevTools method or tab-group change.
 
+**Scoped SVG follow-up:** the [package re-check](BUILD-POST18D-SVG-REVIEW-2.md)
+is SAFE on `aaf3d4b1`; the [security re-check](BUILD-POST18D-SVG-SECURITY-2.md)
+found two further FIXes in animation cleanup. A form's named control could shadow
+querySelectorAll and abort midway; a retargeted/detached animation could lose its
+restoration record on reentry. Saved native Document/DocumentFragment/Element
+queries now collect the whole batch before mutation. Refreshing a hold retains
+the union of outstanding restoration records. Regressions exercise the real
+private relay with clobbering, retargeting and detachment.
+
+**363 Node/artifact tests pass**; **281 removal probes** reject their mutation
+with passing baselines. The expanded Linux probe covers **27** animated-default
+cases plus all **66** absolute destination/context cases. Round-3's unchanged
+original cases remain alongside the added cases (**134** exact receiver sequences).
+Replacement dispatch brings the count to **245**. These fixes still need their
+scoped re-check and browser result before addendum -f begins.
+
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
 blank-frame base case. The new fixture had duplicate blank-frame addresses, so

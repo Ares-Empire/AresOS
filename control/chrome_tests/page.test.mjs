@@ -85,7 +85,10 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   class Document extends EventTarget {createElement(){const node=new HTMLElement();node.root=node;node.isConnected=false;node.parentNode=null;return node;}}
   if(nativeNodeKinds){Object.defineProperty(Node.prototype,'nodeType',{get(){return this.fixtureKind??1;}});Node.prototype.cloneNode=function(){const clone=new Node();clone.fixtureKind=this.fixtureKind??1;clone.ownerDocument=document;clone.root=clone;return clone;};}
   const document=new Document();document.root=document;document.fixtureWindowListeners=windowListeners;document.getElementById=key=>document.labels?.[key];
-  if(svgAnimations)document.querySelectorAll=()=>nodes.filter(node=>node instanceof SVGAnimationElement);
+  if(svgAnimations){
+    Document.prototype.querySelectorAll=function(){if(!(this instanceof Document))throw TypeError('Document brand');return nodes.filter(node=>node instanceof SVGAnimationElement&&!node.fixtureDetached);};
+    Element.prototype.querySelectorAll=function(){if(!sharedDOM.elements.has(this))throw TypeError('Element brand');return this.fixtureAnimationDescendants||[];};
+  }
   if(!relay)document.createElement=undefined;
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);},removeEventListener(type,fn){windowListeners.set(type,(windowListeners.get(type)||[]).filter(value=>value!==fn));}};
   class MessageChannel {port1={close(){}};port2={postMessage:token=>setImmediate(()=>this.port1.onmessage?.({data:token})),close(){}};}
@@ -99,7 +102,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     read(){throw Error('Clipboard read is forbidden');}readText(){throw Error('Clipboard read is forbidden');}
   }
   const clipboardObject=new Clipboard(),nativeClipboard={write:Clipboard.prototype.write,writeText:Clipboard.prototype.writeText};
-  const globals={window,document,...(svgAnimations?{SVGAElement,SVGAnimatedString,SVGAnimationElement,SVGSVGElement}:{}),...(clipboard?{Clipboard,navigator:{clipboard:clipboardObject}}:{}),performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,DocumentFragment:Node,Element,HTMLElement,SVGElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document,ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>{if(!(host instanceof HTMLElement))throw TypeError('chrome.dom requires an HTMLElement');return hostShadows.get(host);}}}}:browserDOM?{Document}:{})};
+  const globals={window,document,...(svgAnimations?{Document,SVGAElement,SVGAnimatedString,SVGAnimationElement,SVGSVGElement}:{}),...(clipboard?{Clipboard,navigator:{clipboard:clipboardObject}}:{}),performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,DocumentFragment:Node,Element,HTMLElement,SVGElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document,ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>{if(!(host instanceof HTMLElement))throw TypeError('chrome.dom requires an HTMLElement');return hostShadows.get(host);}}}}:browserDOM?{Document}:{})};
   const dialogCalls=[],dialogReports=[],dialogValues=[],dialogValue=value=>value===undefined?'':`${value}`;if(dialogs)Object.assign(globals,{alert:({alert(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogValues.push([dialogValue(value),dialogValue(initial)]);dialogCalls.push('prompt');return 'native response';}}).prompt});const nativeDialogs=dialogs?{alert:globals.alert,confirm:globals.confirm,prompt:globals.prompt}:{};
   let guard;const isolated=vm.createContext({...globals,fixtureDialogPause:()=>onDialogBoundary(guard)});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();'),isolated);
@@ -989,7 +992,7 @@ test('recheck3 adopted capture preserves its conservative recipient against a le
 });
 
 for(const attribute of ['href','xlink:href'])test('post18d uncancellable SVG '+attribute+' animation loses native authority through dispatch and restores afterwards',async()=>{
-  const f=fixture({svgAnimations:true}),link=new f.SVGAElement(),animation=new f.SVGAnimationElement(),svg=new f.SVGSVGElement();
+  const f=fixture({svgAnimations:true,relay:true,nativeShadows:true}),link=new f.SVGAElement(),animation=new f.SVGAnimationElement(),svg=new f.SVGSVGElement();
   link.textContent='Delete';link.setAttribute('href','https://fixture.test/first');link.setAttribute('target','_blank');link.svgOwner=svg;
   animation.animatedTarget=link;animation.attributeName=attribute;animation.to='https://fixture.test/second';animation.svgOwner=svg;
   assert.equal(link.href.animVal,'https://fixture.test/second');
@@ -1001,7 +1004,7 @@ for(const attribute of ['href','xlink:href'])test('post18d uncancellable SVG '+a
 });
 
 test('post18d SVG quarantine covers external target animations and preserves page changes on restoration',async()=>{
-  const f=fixture({svgAnimations:true}),link=new f.SVGAElement(),other=new f.SVGAElement(),animation=new f.SVGAnimationElement(),unrelated=new f.SVGAnimationElement();
+  const f=fixture({svgAnimations:true,relay:true,nativeShadows:true}),link=new f.SVGAElement(),other=new f.SVGAElement(),animation=new f.SVGAnimationElement(),unrelated=new f.SVGAnimationElement();
   link.textContent='Delete';link.setAttribute('href','https://fixture.test/delete');animation.animatedTarget=link;animation.attributeName='target';animation.to='_blank';
   unrelated.animatedTarget=other;unrelated.attributeName='target';unrelated.to='_blank';
   f.guard.arm({generation:'epoch',config:{...policy,defaultBlock:'https://aresos-hold.invalid/'},target:f.id(link)});
@@ -1013,7 +1016,7 @@ test('post18d SVG quarantine covers external target animations and preserves pag
 
 test('post18d repeated native activation rechecks authority restored by the page within the same task',async()=>{
   for(const svg of [false,true]){
-    const f=fixture({svgAnimations:svg}),link=svg?new f.SVGAElement():new f.HTMLElement(),animation=svg?new f.SVGAnimationElement():null;
+    const f=fixture({svgAnimations:svg,relay:true,nativeShadows:true}),link=svg?new f.SVGAElement():new f.HTMLElement(),animation=svg?new f.SVGAnimationElement():null;
     if(!svg)link.tagName='A';link.textContent='Delete';link.setAttribute('href','https://fixture.test/original');
     if(svg){animation.animatedTarget=link;animation.attributeName='href';animation.to='https://fixture.test/animated';}
     f.guard.arm({generation:'epoch',config:{...policy,defaultBlock:'https://aresos-hold.invalid/'},target:f.id(link)});
@@ -1023,4 +1026,25 @@ test('post18d repeated native activation rechecks authority restored by the page
     await new Promise(resolve=>setTimeout(resolve,5));assert.equal(link.getAttribute('href'),'https://fixture.test/page-change');if(svg)assert.equal(animation.attributeName,'href');
     f.cleanup();f.guard.dispose();
   }
+});
+
+test('post18d SVG scan uses native queries when a watched form has a clobbering named control',async()=>{
+  const f=fixture({svgAnimations:true,relay:true,nativeShadows:true}),link=new f.SVGAElement(),animation=new f.SVGAnimationElement(),form=new f.HTMLFormElement();
+  link.textContent='Delete';link.setAttribute('href','https://fixture.test/delete');animation.animatedTarget=link;animation.attributeName='href';animation.to='https://fixture.test/animated';
+  form.querySelectorAll=new f.HTMLInputElement();form.fixtureAnimationDescendants=[animation];f.guard.watch(form);
+  f.guard.arm({generation:'epoch',config:{...policy,defaultBlock:'https://aresos-hold.invalid/'},target:f.id(link)});
+  f.originalDispatch.call(link,new f.Event('click',{cancelable:false}));assert.equal(link.getAttribute('href'),null);assert.equal(link.href.animVal,'');assert.equal(f.reports[0].kind,'activation');
+  await new Promise(resolve=>setTimeout(resolve,5));assert.equal(animation.attributeName,'href');assert.equal(link.href.animVal,'https://fixture.test/animated');
+  f.cleanup();f.guard.dispose();
+});
+for(const change of ['retarget','detach'])test('post18d reentry retains restoration for an animation the page '+change+'s',async()=>{
+  const f=fixture({svgAnimations:true,relay:true,nativeShadows:true}),link=new f.SVGAElement(),other=new f.SVGAElement(),animation=new f.SVGAnimationElement();
+  link.textContent='Delete';link.setAttribute('href','https://fixture.test/original');animation.animatedTarget=link;animation.attributeName='href';animation.to='https://fixture.test/animated';
+  f.guard.arm({generation:'epoch',config:{...policy,defaultBlock:'https://aresos-hold.invalid/'},target:f.id(link)});
+  f.originalDispatch.call(link,new f.Event('click',{cancelable:false}));
+  if(change==='retarget')animation.animatedTarget=other;else animation.fixtureDetached=true;
+  link.setAttribute('href','https://fixture.test/page-change');f.originalDispatch.call(link,new f.Event('click',{cancelable:false}));
+  assert.equal(link.getAttribute('href'),null);await new Promise(resolve=>setTimeout(resolve,5));
+  assert.equal(animation.attributeName,'href');assert.equal(link.getAttribute('href'),'https://fixture.test/page-change');
+  f.cleanup();f.guard.dispose();
 });

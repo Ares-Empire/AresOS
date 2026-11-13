@@ -62,7 +62,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   });
   if(runs('core'))await destinationMatrix({check:inBlock('core'),nav,call,target,approval,fixture,receiverEvidence,eventually});
   if(runs('core'))await lateReaderMatrix({check:inBlock('core'),nav,call,rpc,read,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
-  if(runs('core'))await animatedDefaultMatrix({check:inBlock('core'),nav,call,target,approval,receiverEvidence,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor});
+  if(runs('core'))await animatedDefaultMatrix({check:inBlock('core'),nav,call,target,approval,receiverEvidence,eventually,fixture,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor});
   if(process.env.DESTINATION_PROBE==='true'){console.log('Post-18d destination and late-reader probes; not full acceptance');return [];}
   if(runs('recheck3'))await recheck3Matrices({check:inBlock('recheck3'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor});
   if(runs('recheck2'))await recheck2Matrices({check:inBlock('recheck2'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl});

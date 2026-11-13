@@ -335,6 +335,10 @@ case('post18d-svg-native-target-default',G,"if(target!==node)continue;","if(targ
 
 case('post18d-native-default-reentry',G,"const earlier=quarantined.get(node),blockedAddress=config.defaultBlock;","if(quarantined.has(node))return true;const earlier=quarantined.get(node),blockedAddress=config.defaultBlock;",node('page','post18d repeated native activation rechecks authority'))
 
+case('post18d-native-query-clobber',G,"for(const animation of animationElements(root))","for(const animation of root.querySelectorAll?.('animate,set,animateTransform,animateMotion')||[])",node('page','post18d SVG scan uses native queries'))
+for change in ['retarget','detach']:
+    case('post18d-animation-restore-'+change,G,"for(const item of earlier?.animations||[])if(!animations.some(([node])=>node===item[0]))animations.push(item);",'',node('page','post18d reentry retains restoration for an animation the page '+change))
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']

@@ -17,6 +17,12 @@
   const svgHref=svgGetter(globalThis.SVGAElement,'href'),animatedValue=svgGetter(globalThis.SVGAnimatedString,'animVal');
   const svgOwner=svgGetter(globalThis.SVGElement,'ownerSVGElement');
   const svgTime=globalThis.SVGSVGElement?.prototype.getCurrentTime,svgSeek=globalThis.SVGSVGElement?.prototype.setCurrentTime;
+  const animationQueries=[globalThis.Document?.prototype.querySelectorAll,globalThis.DocumentFragment?.prototype.querySelectorAll,Element.prototype.querySelectorAll].filter(query=>typeof query==='function');
+  function animationElements(root){
+    // A form's named controls can shadow DOM methods even in ISOLATED.
+    for(const query of animationQueries)try{return query.call(root,'animate,set,animateTransform,animateMotion');}catch{}
+    return [];
+  }
   function sampleAnimations(animations){
     if(!svgOwner||!svgTime||!svgSeek)return;
     const owners=new Set(animations.map(([node])=>svgOwner.call(node)).filter(Boolean));
@@ -25,11 +31,15 @@
   function stopSVGAnimations(node){
     if(node.namespaceURI!=='http://www.w3.org/2000/svg'||!animationTarget)return [];
     const animations=[],seen=new Set();
-    for(const root of [ownDocument,...[...watchedRoots()].map(([root])=>root)])for(const animation of root.querySelectorAll?.('animate,set,animateTransform,animateMotion')||[]){
+    for(const root of [ownDocument,...[...watchedRoots()].map(([root])=>root)])for(const animation of animationElements(root)){
       if(seen.has(animation))continue;seen.add(animation);
       let target;try{target=animationTarget.call(animation);}catch{continue;}
       if(target!==node)continue;
       animations.push([animation,getAttribute.call(animation,'attributeName')]);
+    }
+    // Finish collection before changing any property: a bad receiver cannot
+    // strand an earlier animation halfway through the scan.
+    for(const [animation]of animations){
       // SVG animation elements cannot be custom elements. Changing only the
       // animated property avoids adoption/disconnection callbacks on the link.
       setAttribute.call(animation,'attributeName','aresos-held-attribute');
@@ -76,6 +86,7 @@
     const legacy=earlier&&currentLegacy===null?earlier.legacy:currentLegacy;
     const animations=hyperlink?stopSVGAnimations(node):[];
     for(const item of animations){const saved=earlier?.animations.find(([node])=>node===item[0]);if(saved&&item[1]==='aresos-held-attribute')item[1]=saved[1];}
+    for(const item of earlier?.animations||[])if(!animations.some(([node])=>node===item[0]))animations.push(item);
     previous.animations=animations;previous.legacy=legacy;
     quarantined.set(node,previous);
     if(hyperlink){
