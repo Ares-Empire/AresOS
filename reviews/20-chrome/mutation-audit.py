@@ -182,14 +182,14 @@ case('recheck2-network-restart',B,'removeRuleIds:previous.map(rule=>rule.id),add
 case('recheck2-network-release',B,'record.promise=(async()=>{\n    await rules();','record.promise=(async()=>{',node('background','recheck2 release removes'))
 case('recheck2-compose-reader',R,'compose:element?composeText(element,nodes):null','compose:null',node('reader','recheck2 compose text'))
 case('recheck2-compose-service',A,"'compose':frame.get('compose') if not adapter and kind in {'send','confirmation','form'} else None,","'compose':None,",'test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once',True)
-case('recheck2-compose-reask',A,"if fresh.get('compose')!=state['compose']:","if False:",'test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once',True)
+case('recheck2-compose-reask',A,"if fresh.get('compose')!=state.get('compose'):","if False:",'test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once',True)
 case('recheck2-compose-bounded',A,"if payload.get('compose_reasked'):return result","if False:return result",'test_questions.Questions.test_recheck2_compose_second_change_stops_and_tells_owner_without_an_ask_loop',True)
 case('recheck2-compose-change-shown',A,"summary += f\"; text next to Send changed from '{changed['before']}' to '{changed['after']}'\"","summary += '; text changed'",'test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once',True)
 
 case('recheck2-markup-handler',M,'set onclick(handler){watchCreated(this);invoke(method,this,[handler]);}','set onclick(handler){invoke(method,this,[handler]);}',node('page','recheck2 native markup'))
 case('recheck2-single-capture',G,'if(capturedBefore(event,root))return;','',node('page','recheck2 node and ancestor'))
 case('recheck2-compose-extension',B,"compose:!adapter&&['send','confirmation','form'].includes(kind)?frame.compose||null:null,",'compose:null,',node('background','recheck2 final extension binding'))
-case('recheck2-compose-final-boundary',A,"if exc.code=='stale_approval' and payload['binding'].get('compose') is not None:",'if False:','test_questions.Questions.test_recheck2_preview_changed_at_extension_boundary_reasks_without_dispatch',True)
+case('recheck2-compose-final-boundary',A,"if exc.code=='stale_approval' and not payload.get('native_dialog'):",'if False:','test_questions.Questions.test_recheck2_preview_changed_at_extension_boundary_reasks_without_dispatch',True)
 
 case('recheck2-engine-reask','control/aresos_control/engine.py','if isinstance(replacement, dict):','if False:','test_questions.Questions.test_recheck2_changed_compose_reasks_with_exact_change_once_then_sends_once',True)
 case('recheck2-engine-boundary-reask','control/aresos_control/engine.py',"replacement = getattr(exc, 'replacement', None)",'replacement = None','test_questions.Questions.test_recheck2_preview_changed_at_extension_boundary_reasks_without_dispatch',True)
@@ -268,6 +268,28 @@ case('recheck3-unavailable-private-peer',G,"else if(hold){if(event.cancelable)ev
 case('recheck3-conservative-adopted-recipient',G,'inheritedCapture.config.conservative||combined?.conservative','inheritedCapture.config.conservative',node('page','adopted capture preserves its conservative recipient'))
 
 case('recheck3-passive-cleanup-ack',G,'if(relayMain)restored=!native.dispatch.call','restored=!native.dispatch.call',node('page','passive controlled recipient'))
+
+
+for source in ['a','area','svg-href','svg-xlink']:
+    before={
+        'a':"if(element.tagName==='A'&&anchorHref)return anchorHref.call(element);",
+        'area':"if(element.tagName==='AREA'&&areaHref)return areaHref.call(element);",
+        'svg-href':"new URL(address,baseURI(element)).href",
+        'svg-xlink':"new URL(address,baseURI(element)).href",
+    }[source]
+    after="return new URL(element.getAttribute('href'),location.href).href;" if source in ['a','area'] else "new URL(address,location.href).href"
+    case('post18d-'+source,R,before,after,node('reader','post18d destination '+source+' follows'))
+for source in ['form-action','button-formaction','input-formaction']:
+    before="action: button?.hasAttribute('formaction') ? button.formAction : formProperty(form,'action'),"
+    after="action: new URL('delete',location.href).href,"
+    case('post18d-'+source,R,before,after,node('reader','post18d destination '+source+' uses'))
+case('post18d-target',R,"const fallback=base?.getAttribute('target')||'_self';","const fallback='_self';",node('reader','post18d destination target and formtarget'))
+case('post18d-formtarget',R,"browsingTarget(button,'formtarget')","'_self'",node('reader','post18d destination target and formtarget'))
+case('post18d-destination-service',A,"if destination(fresh)!=destination(state):","if False:",'test_questions.Questions.test_post18d_destination_changes_reask_before_input_and_on_final_refusal',True)
+case('post18d-destination-final',A,"if destination(fresh)!=destination(payload['binding']):","if False:",'test_questions.Questions.test_post18d_destination_changes_reask_before_input_and_on_final_refusal',True)
+
+case('post18d-target-service-binding',A,"'href','browsing_target','value'","'href','value'",'test_questions.Questions.test_post18d_destination_changes_reask_before_input_and_on_final_refusal',True)
+case('post18d-target-extension-binding',B,"'href','browsing_target','value'","'href','value'",node('background','post18d final destination binding'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

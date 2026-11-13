@@ -31,7 +31,7 @@ export async function fixtures(options={}) {
     if(url.pathname === '/events'){res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache'});res.write(': ready\n\n');const id=url.searchParams.get('id');streams.set(id,res);res.on('close',()=>{if(streams.get(id)===res)streams.delete(id);});return;}
     if(url.pathname === '/observe'){let body='';for await(const part of req)body+=part;fs.appendFileSync('/out/page-events.jsonl',body+'\n');res.end('observed');return;}
     if(url.pathname==='/mutation-ack'){const pending=mutations.get(url.searchParams.get('nonce'));if(pending)pending();res.writeHead(204);res.end();return;}
-    if(url.pathname === '/receive'||url.pathname==='/'&&url.searchParams.has('field')&&url.searchParams.get('case')?.startsWith('submit-empty-')) {
+    if(['/receive','/first/receive','/second/receive'].includes(url.pathname)||url.pathname==='/'&&url.searchParams.has('field')&&url.searchParams.get('case')?.startsWith('submit-empty-')) {
       let body='';for await(const part of req)body+=part;
       const record={time:Date.now(),url:req.url,method:req.method,body,host:req.headers.host};arrivals.push(record);fs.appendFileSync('/out/receiver.jsonl',JSON.stringify(record)+'\n');
       res.end(page('<p>Received synthetic input</p>'));return;

@@ -33,7 +33,7 @@ def binding(facts, reference, kind, adapter):
     generic_draft = not adapter and (kind == 'confirmation' or kind == 'send' and not frame.get('form'))
     if generic_draft and any(item.get('eligible',True) for item in facts.get('uncovered', [])):
         raise Refused('refused', 'A complete draft binding needs every frame; a frame could not be inspected.')
-    keys = ['element','role','name','label','title','href','value','rich','password','states','editable','search','submit','page_dialog','options','implicit_submitter']
+    keys = ['element','role','name','label','title','href','browsing_target','value','rich','password','states','editable','search','submit','page_dialog','options','implicit_submitter']
     return {'session':facts['session'],'tab':facts['tab'],'control':facts.get('control'),'url':facts['url'],'title':facts.get('title', ''),'document':frame['document'],
             'frame':frame['frame'],'frame_url':frame['url'],'frame_title':frame.get('title',''),'effective_url':frame.get('effective_url',frame['url']),'target':{key:target[key] for key in keys if key in target},
             'form':frame.get('form'),
@@ -44,6 +44,13 @@ def binding(facts, reference, kind, adapter):
             'item':frame['item'] if kind in {'delete','pay','item','activation','confirmation'} else None,
             'item_fields':frame.get('item_fields',[]) if kind in {'delete','pay','item','activation','confirmation'} else None,
             'adapter':frame['adapter'] if adapter else None,'dialog':facts.get('dialog')}
+
+
+def destination(state):
+    target=state.get('target') or {}
+    form=state.get('form') or {}
+    return [target.get('href'),target.get('browsing_target'),
+            {key:form.get(key) for key in ['element','action','target','browsing_target']}]
 
 
 class Chrome:
@@ -345,6 +352,9 @@ class Chrome:
         if form:
             fields = form['fields']
             summary += f" to {form['action']} ({form['method']}, {len(fields)} fields, {sum(bool(field.get('hidden')) for field in fields)} hidden)"
+            summary += f" in target '{form.get('browsing_target') or form.get('target') or '_self'}'"
+        elif target.get('href'):
+            summary += f" to {target['href']} in target '{target.get('browsing_target') or '_self'}'"
         elif data['input']['verb'] != 'dialog':
             summary += "; where the page sends this isn't visible to the tool"
         if data.get('file'):
@@ -376,11 +386,27 @@ class Chrome:
             raise Refused('stale_approval', 'Chrome session changed; read and prepare again.')
         self.check_readonly(operation['payload'])
         state=operation['payload']['binding']
-        if state.get('compose') is not None:
+        if state.get('compose') is not None or state.get('form') or state.get('target',{}).get('href'):
             facts=self.bridge.call('facts',reference=operation['payload']['reference'])
             fresh=binding(facts,operation['payload']['reference'],operation['payload']['kind'],site_adapter)
-            if fresh.get('compose')!=state['compose']:
+            if destination(fresh)!=destination(state):
+                return self.changed_destination(operation,facts)
+            if fresh.get('compose')!=state.get('compose'):
                 return self.changed_compose(operation,facts,fresh)
+
+    def changed_destination(self,operation,facts):
+        payload=operation['payload']
+        reason='The destination or browsing target changed; the previous approval was stopped before input.'
+        operation.update(state='failed',reason=reason,notice=True)
+        self.store.write({'op:'+operation['id']:operation},'chrome_destination_changed',reason,operation['id'])
+        reference={**payload['reference'],'view':view_identity(facts)}
+        if payload.get('resume_kind'):
+            replacement=copy.deepcopy(payload)
+            replacement.update(reference=reference,binding=binding(facts,reference,payload['kind'],payload.get('adapter')))
+            self.check_readonly(replacement)
+        else:
+            replacement,_=self.payload(payload['input']['verb'],{**{key:value for key,value in payload['input'].items() if key!='verb'},'reference':reference})
+        return {'operation':self.engine.public_operation(operation)}|self.engine.reserve('chrome','submit',replacement)
 
     def changed_compose(self,operation,facts,fresh):
         payload=operation['payload']
@@ -446,10 +472,14 @@ class Chrome:
             reply = self.bridge.call(**command)
         except Refused as exc:
             if exc.code in {'stale_reference','stale_approval','owner_signin','refused'}:
-                if exc.code=='stale_approval' and payload['binding'].get('compose') is not None:
+                if exc.code=='stale_approval' and not payload.get('native_dialog'):
                     facts=self.bridge.call('facts',reference=payload['reference'])
                     fresh=binding(facts,payload['reference'],payload['kind'],payload.get('adapter'))
-                    if fresh.get('compose')!=payload['binding']['compose']:
+                    if destination(fresh)!=destination(payload['binding']):
+                        stopped=NothingLeft('Destination changed before input; nothing was sent.')
+                        stopped.replacement=self.changed_destination(operation,facts)
+                        raise stopped from exc
+                    if fresh.get('compose')!=payload['binding'].get('compose'):
                         stopped=NothingLeft('Text next to Send changed before input; nothing was sent.')
                         stopped.replacement=self.changed_compose(operation,facts,fresh)
                         raise stopped from exc

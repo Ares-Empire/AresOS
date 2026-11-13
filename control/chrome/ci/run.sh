@@ -43,5 +43,10 @@ runuser -u owner -- env GITHUB_ACTIONS=true dbus-run-session -- xvfb-run -a -s '
   node control/chrome/ci/browser.mjs
 ' 2>&1 | tee /out/browser.txt
 
+if test "${DESTINATION_PROBE:-}" = true; then
+  echo 'Destination-only probe complete; not full acceptance'
+  exit
+fi
+
 # A successful browser matrix is not CI acceptance until the complete Python suite passes.
 python3 -m unittest discover -s control/chrome_tests -v 2>&1 | tee /out/python.txt

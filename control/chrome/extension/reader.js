@@ -21,6 +21,16 @@
   const traces = [], files = new Map(), watchedRoots = new WeakSet();
   const formGetters=globalThis.HTMLFormElement?Object.fromEntries(['elements','action','method','enctype','target'].map(key=>[key,Object.getOwnPropertyDescriptor(HTMLFormElement.prototype,key)?.get])):{};
   const formProperty=(form,key)=>formGetters[key]?formGetters[key].call(form):form[key];
+  const nativeGetter=(Constructor,key)=>Constructor?.prototype&&Object.getOwnPropertyDescriptor(Constructor.prototype,key)?.get;
+  const anchorHref=nativeGetter(globalThis.HTMLAnchorElement,'href'),areaHref=nativeGetter(globalThis.HTMLAreaElement,'href');
+  const nodeBase=nativeGetter(globalThis.Node,'baseURI');
+  const baseURI=node=>nodeBase?nodeBase.call(node):node.baseURI;
+  function browsingTarget(element,attribute,explicit=element.getAttribute(attribute)) {
+    if(explicit!==null&&explicit!=='')return explicit;
+    const base=document.querySelector?.('base[target]');
+    const fallback=base?.getAttribute('target')||'_self';
+    return /[\n\r\t<]/.test(fallback)?'_blank':fallback;
+  }
   const formQuery=(form,selector)=>Element.prototype.querySelector?Element.prototype.querySelector.call(form,selector):form.querySelector(selector);
   const shadow=element=>html(element,HTMLElement) ? chrome.dom.openOrClosedShadowRoot(element):null;
   function composedParent(element) {
@@ -211,6 +221,7 @@
       method: (button?.hasAttribute('formmethod') ? button.formMethod : formProperty(form,'method')).toLowerCase(),
       encoding: button?.hasAttribute('formenctype') ? button.formEnctype : formProperty(form,'enctype'),
       target: button?.hasAttribute('formtarget') ? button.formTarget : formProperty(form,'target'),
+      browsing_target: button?.hasAttribute('formtarget') ? browsingTarget(button,'formtarget') : browsingTarget(form,'target',formProperty(form,'target')),
       search: form.role === 'search' || !!formQuery(form,'input[type=search]'),
       fields: [...formProperty(form,'elements')].map(field)};
   }
@@ -256,6 +267,7 @@
       ...(html(element,HTMLSelectElement,'select') && !value.password ? {options:field(element).options}:{}),
       ...(implicitSubmitter(element) ? {implicit_submitter:id(implicitSubmitter(element))}:{}),
       href: hyperlinkAddress(element),
+      ...(hyperlink(element)?{browsing_target:browsingTarget(element,'target')}:{}),
       editable: !clickControl && (html(element,HTMLInputElement,'input') && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || html(element,HTMLTextAreaElement,'textarea') || element.isContentEditable),
       search: element.type === 'search' || element.getAttribute('role') === 'searchbox', submit: !!element.form && (element.type === 'submit' || element.type === 'image'),
       states: {checked: !!element.checked, selected: !!element.selected, disabled: !!element.disabled, required: !!element.required, invalid: element.getAttribute('aria-invalid') === 'true', expanded: element.getAttribute('aria-expanded')},
@@ -274,8 +286,10 @@
   }
   function hyperlinkAddress(element){
     if(!hyperlink(element))return null;
+    if(element.tagName==='A'&&anchorHref)return anchorHref.call(element);
+    if(element.tagName==='AREA'&&areaHref)return areaHref.call(element);
     const address=element.getAttribute('href')??element.getAttributeNS?.('http://www.w3.org/1999/xlink','href');
-    try{return new URL(address,location.href).href;}catch{return address;}
+    try{return new URL(address,baseURI(element)).href;}catch{return address;}
   }
   function hyperlink(element){
     return (['A','AREA'].includes(element.tagName)||element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a')&&

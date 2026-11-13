@@ -319,3 +319,38 @@ class Questions(unittest.TestCase):
                     self.call('submit',replacement);self.assertEqual(self.browser.dispatched,[])
                     fresh=self.prepare();self.assertTrue(self.call('submit',fresh)['ok'])
                     self.call('submit',fresh);self.assertEqual(len(self.browser.dispatched),1)
+
+    def test_post18d_destination_changes_reask_before_input_and_on_final_refusal(self):
+        from aresos_control.common import Refused
+        from aresos_control.chrome.adapter import binding
+        frame=self.browser.facts['frames'][0]
+        for source in ['href','browsing_target','form-action','form-target','form-browsing_target','form-element']:
+            for boundary in [False,True]:
+                with self.subTest(source=source,boundary=boundary):
+                    frame['target'].update(name='Delete',label='Delete',href='https://fixture.test/first/delete',browsing_target='sink')
+                    frame['form']={'element':'form-first','action':'https://fixture.test/first/delete','method':'post','fields':[],'target':'sink','browsing_target':'sink'}
+                    self.browser.dispatched.clear();approval=self.prepare()
+                    before=copy.deepcopy(binding(self.browser.facts,{'frame':0},'delete',None))
+                    def change():
+                        if source.startswith('form-'):frame['form'][source[5:]]='https://fixture.test/second/delete' if source=='form-action' else 'second'
+                        else:frame['target'][source]='https://fixture.test/second/delete' if source=='href' else 'second'
+                    original=self.browser.call
+                    if boundary:
+                        def late(name,**args):
+                            if name=='input':
+                                change()
+                                raise Refused('stale_approval','page changed during frame setup')
+                            return original(name,**args)
+                        self.browser.call=late
+                    else:change()
+                    try:reply=self.call('submit',approval)
+                    finally:self.browser.call=original
+                    self.assertTrue(reply['ok'],reply)
+                    self.assertIn('approval',reply['data'],reply)
+                    replacement=reply['data']['approval']
+                    self.assertNotEqual(approval['operation_id'],replacement['operation_id'])
+                    self.assertNotEqual(before,binding(self.browser.facts,{'frame':0},'delete',None))
+                    self.assertEqual(self.browser.dispatched,[])
+                    self.call('submit',approval);self.assertEqual(self.browser.dispatched,[])
+                    self.assertEqual(self.call('submit',replacement)['data']['operation']['state'],'done')
+                    self.call('submit',replacement);self.assertEqual(len(self.browser.dispatched),1)

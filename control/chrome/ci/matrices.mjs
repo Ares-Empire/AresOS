@@ -5,6 +5,7 @@ import {verdicts,assertComplete} from './verdicts.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {measureCompatibility,compareCompatibility} from './compatibility.mjs';
 import {completeIngress,protocolEvents} from './ingress-scan.mjs';
+import {destinationMatrix} from './destination-matrix.mjs';
 import {recheck3Matrices} from './recheck3-matrices.mjs';
 import {recheck2Matrices} from './recheck2-matrices.mjs';
 import {reviewMatrices} from './review-matrices.mjs';
@@ -52,6 +53,8 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       await approval(await call('click',await target('Continue')),id);
     }
   });
+  await destinationMatrix({check,nav,call,target,approval,fixture,receiverEvidence});
+  if(process.env.DESTINATION_PROBE==='true'){console.log('Destination-only probe; not full acceptance');return [];}
   await recheck3Matrices({check,nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor});
   await recheck2Matrices({check,nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl});
   await reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab:value=>{tab=value},ownerKey,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});

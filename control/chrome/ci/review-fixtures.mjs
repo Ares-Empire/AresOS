@@ -1,7 +1,9 @@
+import {destinationPage} from './destination-fixtures.mjs';
 import {recheck3Page} from './recheck3-fixtures.mjs';
 import {settleClipboard} from './activation-evidence.mjs';
 // Every address and identity here belongs to the disposable receiver.
 export function reviewPage(url){
+  if(url.searchParams.get('mode')==='destination')return destinationPage(url);
   if(['mixed','mixed-child','activation-default','compose-whitespace'].includes(url.searchParams.get('mode')))return recheck3Page(url);
   const id=url.searchParams.get('id'),mode=url.searchParams.get('mode'),variant=url.searchParams.get('variant')||'';
   const receive='/receive?case='+encodeURIComponent(id),send=`fetch(${JSON.stringify(receive)},{method:'POST',body:'review fixture'})`;

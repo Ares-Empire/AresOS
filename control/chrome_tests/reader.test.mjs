@@ -7,12 +7,18 @@ import {webcrypto,createHash} from 'node:crypto';
 
 function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false}={}) {
   let calls=0,fileSequence=0,clipboardInfo=null;const timers=[];
-  class Element {
+  let base='https://fixture.test/';
+  class NativeNode {get baseURI(){return base;}}
+  NativeNode.TEXT_NODE=3;
+  class Element extends NativeNode {
     isConnected=true;nodeType=1;tagName='INPUT';textContent='';childNodes=[];hidden=false;type='text';isContentEditable=false;labels=[];files=[];name='';
-    constructor(config={}){Object.assign(this,config);}
+    constructor(config={}){super();Object.assign(this,config);}
     get value(){calls++;if(this.forbidden)throw Error('PASSWORD VALUE WAS READ');return 'safe visible text';}
     getAttribute(name){if(name==='value' && this.forbidden)throw Error('PASSWORD SOURCE ATTRIBUTE WAS READ');return this.attrs?.[name] ?? null;}
     hasAttribute(name){return this.getAttribute(name)!==null;}
+    getAttributeNS(namespace,name){return this.getAttribute('xlink:'+name);}
+    hasAttributeNS(namespace,name){return this.getAttributeNS(namespace,name)!==null;}
+    get href(){return new URL(this.getAttribute('href'),this.baseURI).href;}
     matches(selector){if(selector===':disabled')return !!this.disabled;return selector==='input,textarea,select,[contenteditable]' || selector.includes('input') && this.tagName==='INPUT';}
     getRootNode(){return document;}
     getBoundingClientRect(){return {x:1,y:1,width:10,height:10,bottom:11,right:11};}
@@ -26,12 +32,12 @@ function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false}={}
   class HTMLButtonElement extends Element{}
   const nodes=fields.map(config=>new HTMLInputElement(config));
   const document={title:'Fixture',childNodes:[],getElementById(){return null;},
-    querySelectorAll(selector){return nodes;},addEventListener(){},dispatchEvent(){}};
+    querySelector(selector){return selector==='base[target]'?nodes.find(node=>node.tagName==='BASE'&&node.hasAttribute('target'))||null:null;},querySelectorAll(selector){return nodes;},addEventListener(){},dispatchEvent(){}};
   let listener,observer,readerAPI;const observationOptions=[];
   const chrome={dom:{openOrClosedShadowRoot:element=>element.fixtureShadow||null},runtime:{id:'fixture',sendMessage:async()=>({}),onMessage:{addListener(fn){listener=fn;},removeListener(){}}}};
   class MutationObserver {constructor(fn){this.fn=fn;this.records=[];observer=this;}observe(root,options){observationOptions.push(options);}takeRecords(){return this.records.splice(0);}disconnect(){}}
   const context=vm.createContext({document,chrome,Blob:NativeBlob,crypto:{subtle:subtle?webcrypto.subtle:undefined,getRandomValues:array=>array.fill(++fileSequence)},MutationObserver,
-    Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,Node:{TEXT_NODE:3},CustomEvent:class{},
+    Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,HTMLAnchorElement:Element,HTMLAreaElement:Element,Node:NativeNode,CustomEvent:class{},
     atob:value=>Buffer.from(value,'base64').toString('binary'),setTimeout:fn=>timers.push(fn),
     URL,getComputedStyle:element=>({display:['DIV','P','PRE'].includes(element.tagName)?'block':'inline',visibility:element.visibility||'visible',webkitTextSecurity:element.mask || 'none',whiteSpace:element.whiteSpace||(element.tagName==='PRE'?'pre':undefined)}),
     [Symbol.for('aresos.chrome.guard.v2')]:{protectedPeer,clipboard(take){const value=clipboardInfo;if(take)clipboardInfo=null;return value;},watch(){},reader(value){readerAPI=value;},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];}},
@@ -40,7 +46,7 @@ function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false}={}
   function read(){let result;listener({command:'read'},{id:'fixture'},value=>result=value);assert.equal(result.ok,true,JSON.stringify(result));return result;}
   function command(message){let result;listener(message,{id:'fixture'},value=>result=value);return result;}
   const readAsync=()=>new Promise(resolve=>listener({command:'read'},{id:'fixture'},resolve));
-  return {nodes,Element,atPoint:node=>{document.elementFromPoint=()=>node;},textarea:node=>Object.setPrototypeOf(node,HTMLTextAreaElement.prototype),setClipboard:value=>{clipboardInfo=value},observeAsync:()=>new Promise(resolve=>listener({command:'observe'},{id:'fixture'},resolve)),designMode:value=>{document.designMode=value},generic:node=>Object.setPrototypeOf(node,Element.prototype),reinject:()=>{readerAPI.dispose();vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);},read,readAsync,command,form:(element,submitter)=>readerAPI.form(element,submitter),observationOptions,expire:()=>{for(const fn of timers.splice(0))fn();},mutations:()=>observer.records,calls:()=>calls};
+  return {nodes,Element,setBase:value=>{base=value;},atPoint:node=>{document.elementFromPoint=()=>node;},textarea:node=>Object.setPrototypeOf(node,HTMLTextAreaElement.prototype),setClipboard:value=>{clipboardInfo=value},observeAsync:()=>new Promise(resolve=>listener({command:'observe'},{id:'fixture'},resolve)),designMode:value=>{document.designMode=value},generic:node=>Object.setPrototypeOf(node,Element.prototype),reinject:()=>{readerAPI.dispose();vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);},read,readAsync,command,form:(element,submitter)=>readerAPI.form(element,submitter),observationOptions,expire:()=>{for(const fn of timers.splice(0))fn();},mutations:()=>observer.records,calls:()=>calls};
 }
 
 test('group7 protected values never reach a getter, source attribute, trace or binding',()=>{
@@ -346,4 +352,38 @@ test('recheck3 adopted peer password provenance stays private and sticky across 
   assert.equal(f.read().data.editable[0].password,true);assert.equal(f.calls(),0);
   protectedPeer=false;f.read();f.reinject();f.read();assert.equal(f.calls(),0);
   const recipient=fixture([]);recipient.nodes.push(f.nodes[0]);assert.equal(recipient.read().data.editable[0].password,true);assert.equal(f.calls(),0,'private node provenance survives adoption into another reader realm');
+});
+
+for(const [source,config] of [
+  ['a',{tagName:'A',attrs:{href:'delete'}}],['area',{tagName:'AREA',attrs:{href:'delete'}}],
+  ['svg-href',{tagName:'a',namespaceURI:'http://www.w3.org/2000/svg',localName:'a',attrs:{href:'delete'}}],
+  ['svg-xlink',{tagName:'a',namespaceURI:'http://www.w3.org/2000/svg',localName:'a',attrs:{'xlink:href':'delete'}}],
+])test('post18d destination '+source+' follows the effective base on every read',()=>{
+  const f=fixture([]),node=new f.Element(config);f.nodes.push(node);
+  f.setBase('https://fixture.test/invoice-1/');const before=f.read().data.rows.find(row=>row.role==='link');
+  assert.equal(before.href,'https://fixture.test/invoice-1/delete');
+  f.setBase('https://fixture.test/invoice-2/');const after=f.read().data.rows.find(row=>row.role==='link');
+  assert.equal(after.href,'https://fixture.test/invoice-2/delete');assert.notEqual(before.href,after.href);
+  node.attrs.target='sink';assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'sink');
+});
+
+test('post18d destination target and formtarget inherit the live base target',()=>{
+  const f=fixture([]),base=new f.Element({tagName:'BASE',attrs:{target:'first'}}),link=new f.Element({tagName:'A',attrs:{href:'delete'}});f.nodes.push(base,link);
+  const form={tagName:'FORM',elements:[],action:'https://fixture.test/delete',method:'post',enctype:'application/x-www-form-urlencoded',target:'',querySelector(){return null;}};
+  const submitter=new f.Element({tagName:'BUTTON',type:'submit',form,attrs:{}});
+  assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'first');assert.equal(f.form(form,submitter).browsing_target,'first');
+  base.attrs.target='second';assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'second');assert.equal(f.form(form,submitter).browsing_target,'second');
+  submitter.attrs.formtarget='explicit';submitter.formTarget='explicit';assert.equal(f.form(form,submitter).browsing_target,'explicit');
+  submitter.attrs.formtarget='';submitter.formTarget='';form.target='ignored';assert.equal(f.form(form,submitter).browsing_target,'second');
+  base.attrs.target='unsafe\nname';assert.equal(f.form(form,submitter).browsing_target,'_blank');
+});
+
+for(const source of ['form-action','button-formaction','input-formaction'])test('post18d destination '+source+' uses the native resolved action',()=>{
+  const f=fixture([]);let base='https://fixture.test/first/';
+  const form={tagName:'FORM',elements:[],get action(){return new URL('delete',base).href;},method:'post',enctype:'application/x-www-form-urlencoded',target:'',querySelector(){return null;}};
+  const submitter=new f.Element({tagName:source==='input-formaction'?'INPUT':'BUTTON',type:'submit',form,attrs:source==='form-action'?{}:{formaction:'override'}});
+  Object.defineProperty(submitter,'formAction',{get(){return new URL('override',base).href;}});
+  const path=source==='form-action'?'delete':'override';assert.equal(f.form(form,submitter).action,'https://fixture.test/first/'+path);
+  base='https://fixture.test/second/';assert.equal(f.form(form,submitter).action,'https://fixture.test/second/'+path);
+  const other={...form,action:'https://fixture.test/other'};submitter.form=other;assert.notEqual(f.form(other,submitter).element,f.form(form,submitter).element);
 });

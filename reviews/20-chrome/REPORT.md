@@ -1,3 +1,46 @@
+# Post-18d integration — in progress
+
+**Order:** `20-post-18d.md` and addenda b–e govern this run. The base-URL class is
+first; late-reader credential protection and the owner's board #210 asking tool
+follow, then the main merge, slim generator, precedence and latency work.
+No local browser, browser profile or container has been accessed. All browser
+probes run through `control-chrome.yml` in GitHub Linux containers.
+
+**Done so far:** HTML anchor/area addresses use saved native resolved getters;
+SVG href/xlink destinations use the native effective base URI. Form action and
+submitter overrides retain native resolution. Effective browsing targets include
+the live base target and are bound in both the service and extension. Destination
+and form-owner changes retire the old operation and prepare a fresh question,
+also when the final extension check catches the change. A held submission keeps
+its original resume kind. Questions show absolute destinations and targets.
+
+**Tests added:** 60 receiver sequences cover each URL source, base/attribute/target
+mutations and form-owner changes, in top, blank and srcdoc documents. Each requires
+zero arrivals through a stale approval and exactly one after the fresh question,
+including replay. The independent auditor rejects missing or altered evidence.
+Local reader, service, final-dispatch and removal probes accompany these cases.
+Browser acceptance on this source is pending. Local commands/results are retained
+in [base-local.json](records/post18d/base-local.json): **327 Node tests**, **57 focused
+Python tests**, **238 removal mutations rejected with every baseline passing**.
+`python3 control/generate.py --check` prints `Generated artifacts match definitions`;
+`git diff --check` prints nothing. The expanded final full suites remain pending.
+
+**Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
+One destination-only dispatch is planned next: **234**. Its explicit probe output
+is not full acceptance. Intermediate and report-only pushes use `[skip ci]`;
+a normal final code push starts **two runs** through push and pull_request.
+The approximate limit is **260**; report here before passing it. Shards within a
+workflow run do not create extra workflow runs. Existing round-3 runs
+`43437786144` and `43437906776` on `63c81414` are watched with one blocking shell
+call each; their outcome is still pending and will be handled by section 0.
+
+**Not verified / open:** the destination browser probe, late-reader work, main
+merge, generator, group 12, latency targets and the final two full workflow sets.
+PR #27 remains draft. No PR/main merge or force push is authorized. The fixed
+service network lines will remain byte-for-byte equal to `8b7e799c`.
+
+---
+
 # Recheck fixes 3 / 3b — verification in progress
 
 **Read:** briefs `20-recheck-fixes-3.md` and `-3b.md` govern this round on `pkg/20-chrome`.

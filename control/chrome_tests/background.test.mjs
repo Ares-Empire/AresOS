@@ -1104,3 +1104,11 @@ test('recheck3 private cross-document wiring rejects mismatched native carriers 
   const length=commands.length;await f.run('linkPrivateDocuments()');assert.equal(f.run('wiring.length'),length);
   f.run("controlled.delete(8);[...preloadTargets.values()].forEach(state=>state.documents.forEach(doc=>doc.links?.clear()))");await f.run('linkPrivateDocuments()');assert.equal(f.run('wiring.length'),length);
 });
+
+test('post18d final destination binding refuses href targets actions and form owners before native input',async()=>{
+  for(const [object,key,value] of [['target','href','http://fixture.test/second/delete'],['target','browsing_target','second'],['form','action','http://fixture.test/second/delete'],['form','target','second'],['form','browsing_target','second'],['form','element','second']]){
+    const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.effects=[];globalThis.snapshot={tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:'Delete',href:'http://fixture.test/first/delete',browsing_target:'first'},form:{element:'f1',action:'http://fixture.test/first/delete',target:'first',browsing_target:'first',fields:[]}}]};facts=async()=>snapshot;content=async()=>({});pointer=async()=>({x:1,y:1});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async()=>effects.push('input')};globalThis.approved=JSON.parse(JSON.stringify(binding(snapshot,{frame:0},'delete',false)));");
+    f.run(`snapshot.frames[0][${JSON.stringify(object)}][${JSON.stringify(key)}]=${JSON.stringify(value)}`);
+    await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'delete',binding:approved})"),/page changed/);assert.equal(f.run('effects.length'),0);
+  }
+});

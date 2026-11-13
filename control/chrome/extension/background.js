@@ -707,7 +707,7 @@ function binding(facts, reference, kind, adapter) {
   const genericDraft=!adapter&&(kind==='confirmation'||kind==='send'&&!frame.form);
   if(genericDraft&&facts.uncovered?.some(frame=>frame.eligible!==false))throw Error('refused: a complete draft binding needs every frame; a frame could not be inspected');
   return {session,tab:facts.tab,control:facts.control,url:facts.url,title:facts.title||'',document:frame.document,frame:frame.frame,frame_url:frame.url,frame_title:frame.title||'',effective_url:frame.effective_url||frame.url,
-    target:Object.fromEntries(['element','role','name','label','title','href','value','rich','password','states','editable','search','submit','page_dialog','options','implicit_submitter'].filter(key=>key in target).map(key=>[key,target[key]])),
+    target:Object.fromEntries(['element','role','name','label','title','href','browsing_target','value','rich','password','states','editable','search','submit','page_dialog','options','implicit_submitter'].filter(key=>key in target).map(key=>[key,target[key]])),
     form:frame.form,
     compose:!adapter&&['send','confirmation','form'].includes(kind)?frame.compose||null:null,
     selected_files:facts.frames.map(frame=>({frame:frame.frame,document:frame.document,fields:frame.selected_files||[]})),
