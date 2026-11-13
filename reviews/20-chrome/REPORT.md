@@ -14,11 +14,13 @@
   document and stable view, retains strict stale/receiver checks and inputs once.
   Both scoped reviews are SAFE. Old Mail was cancelled before obsolete attempt 2.
   Old base/boundary/qualification greens are intermediate, not this head's evidence.
+- **Green twice on this head:** qualification **`43530064053`**, 47 Python and
+  368 Node tests each attempt, zero failures/skips.
 - **In flight on this head:** Chrome push **`43530057774`** (watch `36280`), PR
-  **`43530063897`** (`24021`); base **`43530063893`** (`85505`), Mail
-  **`43530064032`** (`65418`), boundary **`43530063854`** (`37034`), qualification
-  **`43530064053`** (`98323`). One blocking watcher each. Four shared watchers
-  request attempt 2 only after attempt 1 succeeds; Chrome runs once each.
+  **`43530063897`** (`24021`); base **`43530063893`** (`85505`, first passed,
+  second underway), Mail **`43530064032`** (`65418`, first underway), boundary
+  **`43530063854`** (`37034`, first passed, second underway). One blocking watcher
+  each; Mail requests attempt 2 only after attempt 1 succeeds.
 - **Budget:** **253 / about 280** Chrome runs, including both final attempts.
 - **Exact next step:** resume these watchers; if stopped, start one blocking watch
   per run. Inspect `.work/post18d/acceptance/` receipts before requesting a rerun.
@@ -154,9 +156,13 @@ settling condition is killed with a passing baseline
 Own superseded Mail `43521486798` was cancelled; its watch exited 1 with
 `conclusion=cancelled` and did not request attempt 2.
 
-**Still required on `7d9c0b95`:** base, Mail, boundary and qualification twice,
+**Current final CI:** [qualification](records/post18d/final-qualification-43530064053.json)
+passes both attempts on `7d9c0b95`: 47 Python and 368 Node tests, zero failed/skipped
+each. Base and boundary first attempts pass; their second attempts are underway.
+
+**Still required on `7d9c0b95`:** base, Mail and boundary twice,
 plus the full Chrome pair in both installs with independent receiver audits.
-[Run inventory](records/post18d/final-7d9c0b95-runs.json); all six current watchers
+[Run inventory](records/post18d/final-7d9c0b95-runs.json); all five current watchers
 are listed in the Handover. Earlier shared passes and the successful old Chrome
 companion remain intermediate evidence. Complete Mail diagnostic `43513676712`
 passed 12/12 jobs, longest 54m53s, within the 60-minute budget
