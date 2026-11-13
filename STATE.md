@@ -1,14 +1,22 @@
 # AresOS: state
 
-Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
+Updated 2026-11-13. The live truth is `git log`, `gh pr list` and `git worktree list`. Update this file when a PR merges or a decision lands.
 
 ## Done (on main)
+
+- **Release 27, the first update release** (PR #35, brief 27 to 27-review-fixes-3 and 27-rehearsal-fixes-1, empire brief 266, merged 2026-11-13 as `41b06513`):
+  - Image `ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c` (packages 21, 22 and 24; private, keyless-signed, run 42842793096). Tools fingerprint `851eb742…`.
+  - Update rehearsal run 14 (43302603386) passed the owner's whole route in the VM: tools v1 to v2, `at update`, `at title`, `at reboot` into R27 with R13 as rollback and stock pinned, `sudo passwd ares`, package 21's rules, `at previous` back to R13 (forward refused), every protected-disk audit unchanged.
+  - Built by a Claude agent (Opus). Reviews 1–3 CHANGES-NEEDED (the update stop routine); reviews 4 (owner tools), 5 and 6 (harness) SAFE. Runs, reviews and known limits: `reviews/27-first-update-release/REPORT.md`.
+  - Owner answers: board #175 (JUDGMENT-CALL 11, unmasking the two staging finalizers) and board #188 (JUDGMENT-CALLs 1 and 2, "OK to both").
+  - **Next: the owner runs the update route on the laptop** (`docs/INSTALL.md` → "Update AresOS to a new release", then `sudo passwd ares`). INSTALL-STATUS stays "NOT USED" until his records come back.
+  - Later fixes (harness only): `fetch-depth: 0` on the checks-only job; cache the pinned rehearsal tool .debs; PLAN-GAP for the next image: stop masking the two finalize units.
 
 - **The update route: `at update`, `at previous`, tools updating themselves** (PR #32, brief 22 to 22-review-fixes-9, empire brief 263, merged 2026-11-10 as `002dcc09`):
   - `at update` moves a running AresOS to a newer signed release whose reference comes only through the fingerprint-pinned tools bundle. `at previous` goes back to the last AresOS. The tools update themselves through `at install`: recovery-first, with versioned toolsets and an atomic entry switch. The guide has the step 8 route, and INSTALL-STATUS records steps 4–7.
   - Built by a Claude agent; a Fable 5.2 agent rebuilt the tools self-update from round 5 on. Reviews 1–9 were CHANGES-NEEDED. Review 10 (gpt-6.1-sol) said SAFE, and review 11 checked the merge with main as SAFE. The full WSL suite at the merged head ran 853 tests, failing only in the known WSL-only set.
   - Owner answers: board #154 (judgment calls 1 and 4) and board #166 (the rest).
-  - `update` and `previous` stay in `unwalked_commands` until package 27's rehearsal walks them. 22c (rollback, keep-stock and layout trials after an update) comes before the second update.
+  - Package 27's rehearsal walked `update` and `previous` (`unwalked_commands` is empty since then). 22c (rollback, keep-stock and layout trials after an update) comes before the second update.
 
 - **Everyday account like Windows, Google Chrome, daily-use fixes** (PR #31, brief 21 to 21-review-fixes-6, empire brief 262, merged 2026-11-10 as `25ef5cd1`):
   - `ares` is in wheel behind his own password: sudo asks every time and keeps no ticket, no polkit authorization is cached, and the upstream passwordless rules ask instead. The control layer relies on these three properties.
@@ -110,33 +118,7 @@ Updated 2026-11-10. The live truth is `git log`, `gh pr list` and `git worktree 
     - REVIEW-5 (Astra, on `d6aab7ab`): CHANGES-NEEDED, 1 blocking (an attempted SIGKILL counted as sent) and 3 should-fix. **Parked until after the Claude reset (Thu 11-12 00:00).** Next: a fresh Fable 5.2 builder with `briefs/23-review-fixes-5.md` (only certain crashes restart; uncertain ends wait for `retry`). The full WSL suite at `d6aab7ab` did run: 995 tests, plain and `-B`, only the 13 known WSL-only failures.
     - Updated JUDGMENT-CALL 10 (a memory kill or unexplained whole-scope death latches recovery, no automatic restart) was accepted by the owner (board #170, 2026-11-10: "Yes").
   - Merges after 27.
-- **Package 27, the first update release, started 2026-11-10** (brief `27-first-update-release.md`, empire brief 266; Claude agent, Opus; branch `pkg/27-first-update-release`):
-  - build, image diff, publish, then a VM rehearsal of the owner's update from release 13 (update, admin password, previous, forward again);
-  - after the rehearsal passes, pin the release and empty `pending-rebind.json`;
-  - then the owner runs `at update` and `sudo passwd ares` on the laptop.
-  - 2026-11-10: the first release run (42807087845) failed in an extra second VM pass the agent had added (a host-side nbd race in the offline journal reader after all guest checks passed). Nothing was published. The release job now keeps the reviewed single VM pass; the integrator approved one more release dispatch (the last).
-  - Release run 2 (42817411051) stopped in the classified image diff before publishing: 13 unexplained of 916 changed paths. One is real: package 21's `cp -a` of `os/config` set `/etc/sudoers.d` to 0755 (Fedora and release 13 have 0750; the files stay 0440). Fix: restore 0750 in `os/build.sh` with a check, and confirm no other directory changed mode. The other 12 get exact classifier rules. A third release dispatch is approved (still one publish).
-  - Release runs 3 (42831158090) and 4 (42835704653) failed in "Install pinned tools" on Ubuntu's snapshot mirror (500/504, or the 20-minute timeout). Nothing was built or published.
-    - `b216f28f` adds apt retries and a 40-minute limit for the release job only, and raises the release cap to 5.
-    - The next dispatch waits until the mirror is healthy.
-  - **Release 27 is published (2026-11-10, run 42842793096 at `b216f28f`):**
-    - image `ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c`;
-    - private: an anonymous pull gets 401;
-    - keyless-signed by `os-image.yml@refs/heads/pkg/27-first-update-release`;
-    - image diff: 0 unexplained of 915 changed paths, and `/etc/sudoers.d` equals release 13 again.
-    - Not pinned yet. Records with this digest are on the branch (tools fingerprint `167f587c…`).
-    - Update rehearsal run 1 (42924871252) failed after 11 minutes, before the VM: two scripts didn't accept the update mode. A new test (`UpdateJobGatesTest`) checks every gate of the job's steps.
-    - Run 2 (42933781975) failed 3 minutes into the VM: the installer WebUI transport didn't know package 27 (six package sets in `installer_webui.py`). New tests: `OwnerHarnessPackagesTest` and `VmStepDecisionsTest` (40 decisions, each either equal to package 14's or reviewed).
-    - The rehearsal job's install step now has apt retries and a 40-minute limit, for update only.
-    - Run 3 of 3 (42940741765 at `fb06ccde`) reached the owner walk. Everything passed up to `at update`, with every protected-disk audit unchanged.
-    - Then `at update` failed: "Failed to start ostree-finalize-staged.service". Every image since #3 masks `ostree-finalize-staged` and `bootc-finalize-staged` (`os/policy/masked-system-units.txt`), so nothing can be staged from a running AresOS. The earlier switch ran from stock. On the laptop it would have stopped safely ("do not reboot").
-    - Fix (option 1, tools only, no new image): `update.sh` unmasks exactly those two right before the switch, all-or-nothing. Automatic updaters stay masked.
-    - The owner accepted it (board #175, 2026-11-11: "yes to 175"; JUDGMENT-CALL 11). Built as `329c7479`, new tools fingerprint `daa31228…`.
-    - **Rehearsal run 4 (42974982988) proved `at update`:** R13 staged the signed R27 with R13 kept as rollback, `at title` and `at reboot` ran, and R27 booted. Every protected-disk audit was unchanged.
-    - It then stopped in the harness: the login observer pins util-linux 2.41.5, and R27 ships 2.41.6.
-    - **Paused for the Claude reset.** Next: a fresh Opus agent with `briefs/27-rehearsal-fixes-1.md`: compare 2.41.5 with 2.41.6, accept both, cap 6, run 5, then records, Codex review, merge, and guide the owner.
-    - PLAN-GAP for the next release: stop masking the two units in the image.
-    - Also found: the owner tools' `main()` sets umask 077 and three test modules never restored it, which made a later test flaky. Fixed in 27 (`common.kept_umask`).
+- **Package 27 merged 2026-11-13** (see Done). Left over for 22c and the next release:
   - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.
   - Also for 22c (PR #37 REVIEW-1 should-fix, older than that fix): the refusal invariant in `test_owner_update` tries a persistent refusal twice but never asserts that it refused. Assert the refusal on both attempts wherever the check applies.
   - Packages 23 and 21b go into the next release, which needs 22c first.
