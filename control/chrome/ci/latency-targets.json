@@ -1,0 +1,13 @@
+{
+  "format": 1,
+  "status": "awaiting-lead",
+  "basis": "Proposed in reviews/20-chrome/REPORT.md; the lead sets these before ready",
+  "ceilings_ms": {
+    "read": {"median_ms": 35, "p95_ms": 60},
+    "navigate": {"median_ms": 100, "p95_ms": 150},
+    "free_click": {"median_ms": 650, "p95_ms": 750},
+    "fill": {"median_ms": 650, "p95_ms": 750},
+    "asking_click": {"median_ms": 60, "p95_ms": 100},
+    "approval_to_done": {"median_ms": 700, "p95_ms": 850}
+  }
+}

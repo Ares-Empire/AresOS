@@ -145,3 +145,67 @@ class LatencySummary(unittest.TestCase):
             for bad in [rows[:-1],rows[:-1]+[rows[0]]]:
                 (root/'latency-client.json').write_text(json.dumps({**client,'samples':bad}))
                 with self.assertRaises(AssertionError):module.summarize(root)
+
+
+class LatencyGate(unittest.TestCase):
+    def setUp(self):
+        import importlib.util
+        from pathlib import Path
+        path=Path(__file__).resolve().parents[1]/'chrome/ci/latency-check.py'
+        spec=importlib.util.spec_from_file_location('latency_gate',path)
+        self.gate=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.gate)
+        def measurement(runtime,active):
+            phases={}
+            for phase in self.gate.PHASES:
+                group={}
+                for call in self.gate.CALLS:
+                    wait=525 if call in self.gate.INPUTS else 0
+                    value=active*(1 if phase=='fresh' else 2)
+                    group[call]={'client_total':{'samples':20,'median_ms':wait+value,'p95_ms':wait+value*1.2}}
+                    for stage in ['service_total','service_without_bridge','bridge_round_trip','extension_total','session_rule_add','session_rule_remove','compose_binding','clipboard_hooks']:
+                        group[call][stage]={'samples':20,'median_ms':1,'p95_ms':2}
+                    if wait:group[call]['post_input_observation_wait']={'samples':20,'median_ms':wait,'p95_ms':wait+.1}
+                phases[phase]=group
+            return {'runtime':runtime,'privacy':'plain','chrome':'Synthetic Chrome','phases':phases}
+        self.current=measurement('current',20);self.old=measurement('ab7aba92',15)
+        self.reference={'privacy':'plain','current':copy.deepcopy(self.current),'baseline':copy.deepcopy(self.old)}
+        self.targets={'format':1,'status':'lead-approved','ceilings_ms':{call:{'median_ms':100 if call not in self.gate.INPUTS else 650,'p95_ms':150 if call not in self.gate.INPUTS else 750} for call in self.gate.CALLS}}
+
+    def check(self):return self.gate.check(self.current,self.old,self.reference,self.targets)
+
+    def scale(self,measurement,factor,only=None):
+        for group in measurement['phases'].values():
+            for call,details in group.items():
+                if only and call!=only:continue
+                for stat in ['median_ms','p95_ms']:
+                    wait=details.get('post_input_observation_wait',{}).get(stat,0)
+                    details['client_total'][stat]=wait+(details['client_total'][stat]-wait)*factor
+
+    def test_accepts_nominal_and_common_runner_noise(self):
+        self.assertTrue(self.check()['passed'])
+        self.scale(self.current,1.8);self.scale(self.old,1.8)
+        self.assertTrue(self.check()['passed'])
+
+    def test_clear_regression_in_each_call_and_history_phase_fails(self):
+        original=copy.deepcopy(self.current)
+        for call in self.gate.CALLS:
+            for phase in self.gate.PHASES:
+                self.current=copy.deepcopy(original)
+                for stat in ['median_ms','p95_ms']:self.current['phases'][phase][call]['client_total'][stat]+=200
+                result=self.check();self.assertFalse(result['passed'],(phase,call))
+                self.assertIn((phase,call),[(row['phase'],row['call']) for row in result['failures']])
+
+    def test_tail_spike_alone_does_not_fail_but_shortened_safety_wait_does(self):
+        self.current['phases']['fresh']['read']['client_total']['p95_ms']=1000
+        self.assertTrue(self.check()['passed'])
+        self.current['phases']['fresh']['fill']['post_input_observation_wait']['median_ms']=400
+        with self.assertRaises(AssertionError):self.check()
+
+    def test_missing_stage_phase_or_unset_lead_targets_cannot_pass(self):
+        for change in ['stage','phase','targets']:
+            original=copy.deepcopy(self.current)
+            if change=='stage':del self.current['phases']['fresh']['fill']['session_rule_remove']
+            elif change=='phase':del self.current['phases']['history-4000']
+            else:self.targets['status']='awaiting-lead'
+            with self.assertRaises((AssertionError,KeyError)):self.check()
+            self.current=original

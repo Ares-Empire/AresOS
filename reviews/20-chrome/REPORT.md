@@ -387,6 +387,30 @@ All seven focused latency/selection tests pass. The
 does not supersede the package finding. Run `43490400410` (**248**) predates this
 fix and remains intermediate timing/diagnostic evidence only.
 
+**Migration fix closed locally:** both scoped re-checks are SAFE on `ae0047d8`
+([package](BUILD-POST18D-LATENCY-RECHECK-2.md),
+[security](BUILD-POST18D-LATENCY-SECURITY-RECHECK-2.md)). The pending CI run still
+predates the fix; final-source evidence remains required.
+
+**Round 3 outcome:** [43437906776](https://github.com/Ares-Empire/AresOS/actions/runs/43437906776)
+at `63c81414` passes both installs. Its
+[job receipt](records/post18d/round3-43437906776.json) records 322m32s policy and
+296m26s external. This is round-3 evidence under the 350-minute stopgap, caused by
+per-input slowdown plus the larger unsplit round-3 matrices. It is not final
+post-18d acceptance. The companion `43437786144` is still watched. New sharded
+runs have already removed the stopgap and retain every round-3 case.
+
+**Regression gate prepared, not yet activated:** fresh calls use the lead's
+nominal ceilings. Each retained-history phase also compares with a frozen current
+measurement; the paired historical runtime scales common runner noise. A clear
+failure needs both median and p95 to cross the threshold. The 525 ms safety wait
+is checked separately and cannot be subtracted to hide its removal. Missing stages,
+incomplete phases and unapproved targets cannot pass. Local tests exercise real
+regressions in each call/phase, common slowdown, isolated tail noise and missing
+metadata. The frozen warm reference awaits run 248, and
+`control/chrome/ci/latency-targets.json` explicitly remains `awaiting-lead`.
+No target has been silently adopted. Ready and final acceptance remain pending.
+
 **Latency proposal — lead decision pending:** intermediate Linux run
 `43466571812` measured 20 calls per category, without owner think time, against
 `ab7aba92` rebuilt with the same driver and exact Chrome package. Times below are
