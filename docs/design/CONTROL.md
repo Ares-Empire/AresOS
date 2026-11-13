@@ -1316,7 +1316,9 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   document the reader didn't watch from its start, an editable area is read unless its name says credential or
   it is masked at that moment. A page that keeps a secret in an editable area, masks it by style, labels it only
   "Value", and that he switched to visible before Claude looked, is read like the text it then is. *Harm:* that
-  secret reaches Claude. *Accepted* (lead, 2026-11-13): whole-page editors are editable areas, so not reading
+  secret reaches Claude. *Accepted by the owner* (board #216, 2026-11-13: "Read editors without asking", told of
+  this risk; the final security check asked for the choice to be his): whole-page editors are editable areas, so
+  not reading
   them would stop Claude from reading what he writes; a secret is kept in a form field on nearly every page, and
   every typed form field with unknown history stays unread; such a secret is plain text on his screen at that
   moment, like a key a page prints as text; the name list covers the labelled ones (secret, token, private key,

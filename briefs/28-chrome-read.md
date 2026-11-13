@@ -182,8 +182,9 @@ The node never holds its descendants' text, a box or a style.
       kinds (`date`, `time`, `datetime-local`, `month`, `week`), and a `select`. The browser itself forces these
       values into a fixed shape, so none of them can still hold a password;
     - **an editable area (`contenteditable`) is read.** Whole-page editors are editable areas, and what he writes
-      in one must be readable. What that leaves is the one written known limit: a secret in an editable area
-      whose mask was taken off before the reader came and whose label doesn't name it (section 6);
+      in one must be readable. The owner chose this (board #216, 2026-11-13: "Read editors without asking"),
+      knowing what it leaves: a secret in an editable area whose mask was taken off before the reader came and
+      whose label doesn't name it is read (section 6, "Known limits");
     - **above all of it:** a field named like a credential is never read (the name rule), and a field that is
       masked right now is never read (brief 20's rule), whatever element it is.
     The reader knows which case a document is from how it was installed, never from anything a page can set; when
@@ -994,9 +995,11 @@ No open JUDGMENT-CALL.
 - The design is built as three packages, 28, 28a and 28b, in that order, and none reaches the laptop before all
   three are merged.
 - "Ask first" covers single-line and multi-line form fields alike, because a field's present type proves nothing
-  about its past. Every typed form field with unknown history shows only filled or empty. Editable areas stay
-  read; what that leaves is section 6's known limit about a secret in an editable area (item 1; security
+  about its past. Every typed form field with unknown history shows only filled or empty (item 1; security
   re-check 2, finding (a)).
+- Editable areas are read without asking: the owner's choice (board #216, 2026-11-13: "Read editors without
+  asking"), made after the final security check asked for it to be his and not the lead's. He was told the risk:
+  a secret he un-hid in such an editor, not labelled as one, would be read. It is section 6's known limit.
 - The asking read's approval is bound to a prepared read; PR #27 builds that binding and these packages keep it
   (item 5; finding (c)).
 - A form that holds a field withheld for unknown history isn't sent by Claude, and an approved asking read
