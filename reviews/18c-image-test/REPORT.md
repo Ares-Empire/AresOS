@@ -13,7 +13,7 @@
 - **read — `interactive_model.py`:** scripted streaming Messages double, separate from `native.py`. A step either uses a fixed fixture approval or prepares and copies `data.approval` unchanged. Only a new scripted owner marker selects another send. Stop continuations get plain text and are recorded with their complete requests.
 - **read — `interactive_suite.py`, Dockerfile, workflow:** all 17 B1 cases run in a separate networkless container on GitHub's runner using the existing locked native binary. Every case allows preparation at user scope. DAA retains settings for send 2 and the fresh CLI for send 3. The fixture receiver, hook events, native transcripts, per-turn settings and model requests are saved. The new step also runs after an independent sandbox failure; that failure still fails the job. No workflow permission was added.
 - **read — `test_interactive.py`, boundary README, this review folder:** six quick parser/model/input-guard regressions, driver documentation, representative rendered screens, and `verify-evidence.py` for independent artifact checks.
-- **run — scope audit:** `git diff 2558e25a -- os control/boundary/native.py control/boundary/precedence.py control/boundary/permission-request-expected.json` printed nothing. No Part A, B2 or C was built. No production Control behavior, existing tests, generated files, settings or dependencies were edited.
+- **run — scope audit:** `git diff 2558e25a -- os control/boundary/native.py control/boundary/precedence.py control/boundary/permission-request-expected.json` printed nothing. No Part A, B2 or C was built. No production Control Python code, existing tests, generated files, settings or Python/npm dependency locks were edited.
 
 ## Verified
 
