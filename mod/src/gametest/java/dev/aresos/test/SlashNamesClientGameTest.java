@@ -161,14 +161,14 @@ public final class SlashNamesClientGameTest implements FabricClientGameTest {
                 String signText = world.getServer().computeOnServer(server -> {
                     var gate = ZoneData.get(server).zones().getLast().gate().orElseThrow();
                     var sign = (Display.TextDisplay)world.getConnection().getServerLevel().getEntity(gate.sign().orElseThrow());
-                    return sign.getText().getString();
+                    return signText(sign);
                 });
                 check(signText.equals("Discord\n/discord"), "New sign lacks slash name: " + signText);
                 command(context, world, "aresos app name discord chat");
                 world.getServer().runOnServer(server -> {
                     var gate = ZoneData.get(server).zones().getLast().gate().orElseThrow();
                     var sign = (Display.TextDisplay)world.getConnection().getServerLevel().getEntity(gate.sign().orElseThrow());
-                    check(sign.getText().getString().equals(signText), "Renaming rewrote a standing sign");
+                    check(signText(sign).equals(signText), "Renaming rewrote a standing sign");
                 });
                 world.getServer().runOnServer(server -> {
                     var player = world.getConnection().getServerPlayer();
@@ -196,6 +196,15 @@ public final class SlashNamesClientGameTest implements FabricClientGameTest {
             });
             if (previousConfig == null) System.clearProperty("aresos.appsConfig"); else System.setProperty("aresos.appsConfig", previousConfig);
         }
+    }
+
+    private static String signText(Display.TextDisplay sign) {
+        var output = net.minecraft.world.level.storage.TagValueOutput.createWithContext(
+                net.minecraft.util.ProblemReporter.DISCARDING, sign.registryAccess());
+        sign.saveWithoutId(output);
+        return net.minecraft.network.chat.ComponentSerialization.CODEC.parse(
+                sign.registryAccess().createSerializationContext(net.minecraft.nbt.NbtOps.INSTANCE),
+                output.buildResult().get("text")).getOrThrow().getString();
     }
 
     private static List<AppDefinition> read(Path config) {
