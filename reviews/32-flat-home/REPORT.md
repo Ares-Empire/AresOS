@@ -16,7 +16,8 @@ Click **AresOS** on the title screen. If an `AresHub` from before exists in the 
 screen shows **Home: Flat**; click **Create**. You stand on the dark pad with the gold block under you and look north
 along the road with the light blue line; INTERNET hangs over it. Turn around for GAMES (east, red), SYSTEM & TOOLS
 (south, yellow) and WORK & MEDIA (west, purple). Try to break the gold block: it stays, with a line over the hotbar.
-Press **G**, fly up and look down at the cross; in Build mode you can break and replace anything. Leave and click
+Press **G**, fly up and look down at the cross; in Build mode he can change every block; the names are the mod's
+and change with the look (package 36). Leave and click
 **AresOS** again: you are back on the pad, facing north, and what you changed is still as you left it.
 
 ## Done
@@ -60,8 +61,9 @@ Press **G**, fly up and look down at the cross; in Build mode you can break and 
   and roads are protected. Press G for Build mode.") or by an explosion.
 - A block he changed in Build mode no longer matches the record, so it is his: not protected, never put back. The
   record is not rewritten when he edits.
-- Text displays take no damage from anything in 26.2 (`Display.hurtServer` is final and returns false), so the names
-  needed no code.
+- Text displays take no damage from anything in 26.2 (`Display.hurtServer` is final and returns false). In version 1
+  the names belong to the mod and change with the look (package 36), including in Build mode. The name-survival
+  test stays; block editing is unrestricted in Build mode.
 
 **The create screen** (`client/HomeCreateScreen.java`): one button, "Home: Flat" or "Home: Nether", Flat first. The
 seed label and box, the three seed buttons, the placeholder toggle and the Build-mode hint show only for Nether.
