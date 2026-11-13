@@ -1,0 +1,83 @@
+name: Mod
+
+on:
+  pull_request:
+    paths: ['mod/**', '.github/workflows/mod.yml']
+  push:
+    paths: ['mod/**', '.github/workflows/mod.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mod-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build, test and reproduce jar
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    # The exact mod-builder image from package 23's os/Containerfile.
+    container:
+      image: docker.io/library/eclipse-temurin:25.0.5_8-jdk-noble@sha256:95e350ad1eb738f943e141640f7e3d797e483359a3b33c3864255bfd1ad71f8a
+    env:
+      GRADLE_USER_HOME: ${{ github.workspace }}/.gradle-user-home
+      SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.SOURCE_REVISION }}
+          path: first
+          persist-credentials: false
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: |
+            ${{ env.GRADLE_USER_HOME }}/caches
+            ${{ env.GRADLE_USER_HOME }}/wrapper
+          key: mod-gradle-${{ runner.os }}-temurin-25.0.5_8-${{ hashFiles('first/mod/gradle/wrapper/gradle-wrapper.properties', 'first/mod/gradle.properties', 'first/mod/build.gradle', 'first/mod/settings.gradle') }}
+          restore-keys: |
+            mod-gradle-${{ runner.os }}-temurin-25.0.5_8-
+      - name: Build and run unit and server game tests
+        working-directory: first/mod
+        run: |
+          java -version
+          ./gradlew --no-daemon --console=plain build
+      - name: Clean checkout of the same commit in another path
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ env.SOURCE_REVISION }}
+          path: second
+          persist-credentials: false
+      - name: Build and test the second checkout
+        working-directory: second/mod
+        run: ./gradlew --no-daemon --console=plain build
+      - name: Compare hashes and publish summary
+        id: jar
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version=//p' first/mod/gradle.properties)
+          [[ $version =~ ^[0-9A-Za-z.+-]+$ ]]
+          first="first/mod/build/libs/aresos-$version.jar"
+          second="second/mod/build/libs/aresos-$version.jar"
+          sha256sum "$first" "$second" | tee reproducibility.sha256
+          {
+            printf '### Reproducible mod jar\n\nCommit: `%s`\n\n' "$SOURCE_REVISION"
+            printf 'JDK: Temurin 25.0.5+8 (digest-pinned image). Gradle: wrapper 9.8.0.\n\n```text\n'
+            cat reproducibility.sha256
+            printf '```\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+          cmp "$first" "$second"
+          echo "path=$first" >> "$GITHUB_OUTPUT"
+      - name: Upload verified jar and hashes
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: aresos-jar-${{ env.SOURCE_REVISION }}
+          path: |
+            ${{ steps.jar.outputs.path }}
+            reproducibility.sha256
+          if-no-files-found: error

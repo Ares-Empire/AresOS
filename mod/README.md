@@ -4,6 +4,20 @@ Minecraft Java 26.2, Java 25, Fabric Loader 0.19.5, Fabric API 0.161.0+26.2.
 Based on the official [Fabric example mod, 26.2 branch](https://github.com/FabricMC/fabric-example-mod/tree/26.2).
 Loom 1.19.2 requires the included Gradle 9.8.0 wrapper.
 
+## The same jar everywhere
+
+Build with **Temurin 25.0.5+8** and the SHA-256-checked **Gradle 9.8.0** wrapper;
+Loom **1.19.2**, Minecraft **26.2**, Loader **0.19.5** and Fabric API
+**0.161.0+26.2** are pinned in `gradle.properties`. Archives use fixed order,
+timestamps and permissions, compilation/resource filtering use UTF-8, and the
+Gradle JVM uses English/US and UTC. A small final jar action sorts Loom's
+client-entry manifest list and manifest attributes, preserving their values.
+Run `dev/build.sh` on the laptop, then `sha256sum build/libs/aresos-0.1.0.jar`
+(PowerShell: `Get-FileHash build/libs/aresos-0.1.0.jar -Algorithm SHA256`).
+Compare with the **Mod** workflow's summary for the same commit. That workflow
+uses the image's exact digest-pinned Temurin container, builds/tests two clean
+checkouts in different paths, checks equal bytes and uploads the jar and hashes.
+
 From this directory in PowerShell:
 
 ```powershell
