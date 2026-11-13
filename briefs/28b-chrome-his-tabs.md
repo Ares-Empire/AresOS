@@ -177,7 +177,9 @@ past. So the reader doesn't guess.
   tab before its reload:
   - it takes `seen` and `request` like every call on one of his tabs. The tab must still show the page of that
     list when the question is prepared **and** when the fields are read; if he went elsewhere in between, nothing
-    is read and Claude lists the tabs again;
+    is read and Claude lists the tabs again. Brief 20's binding of the approval to the prepared read (brief 28,
+    item 6: the exact fields, their frames' documents, their labels) is kept as it is, and the listed page is
+    one more thing the preparation holds;
   - a tab of the fixed list or his never-list is refused before any question;
   - the read is in place: nothing in his tab moves, reloads or is attached, and the page can observe nothing;
   - it sets the **READ** sign and writes a line to the popup list and the log: the tab, the time, the request and
@@ -476,7 +478,8 @@ password cases under `password_exclusion`):
     show the tab, the request and the fields' labels, never a value;
   - a field named `otp` and one labelled "Password" that he made plain are absent from the question and from the
     result, though he approved;
-  - a field added to the page after the question asks again, and nothing is read;
+  - a field added to the page after the question asks again, and nothing is read; the same for a field replaced
+    by one with the same label and for a frame of his tab that navigated while the approval waited;
   - refused: nothing is read, and the next read still shows `(filled, not read)`;
   - he navigates the tab between the list and the question, and between the question and the read: each time
     nothing is read and the call answers `stale_reference`;

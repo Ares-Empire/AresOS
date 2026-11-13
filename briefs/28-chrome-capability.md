@@ -747,8 +747,23 @@ the start of the call, and no timeout is raised:
     field without a label, and never a value;
   - credential-like fields are never included, also when he approves: the name rule and brief 20's password rule
     stand above the approval;
-  - one approval covers one call. A refusal leaves `(filled, not read)` and `(empty)` as they were. If the list of
-    fields differs between the question and the read, nothing is read and it asks again;
+  - one approval covers one call. A refusal leaves `(filled, not read)` and `(empty)` as they were;
+  - **the approval is bound to a prepared read, as strictly as a send is bound to its input** (security re-check
+    2, finding (c)). PR #27 implements this binding; this package and brief 28b must keep it, and neither brief
+    claims that it is verified. As it has to be:
+    - the service prepares the read before it asks. The preparation holds the connection to Chrome, the tab,
+      each frame's document and reader instance, the exact identity of every field it will read (the reader's
+      element in that frame, not its label), and the label or description shown for each. No value is read to
+      prepare it;
+    - the service generates the question from that preparation and, when the approval comes back, verifies the
+      question and the preparation as strictly as it verifies a send's input. An altered question or list
+      doesn't run;
+    - the approval is used once;
+    - right before any value is read, the preparation is compared with the page. A field replaced by another
+      one, also by one with the same label; a field whose label or description changed; a frame that navigated;
+      a field that has become credential-like (by its name, its type, its `autocomplete` or a mask): each
+      refuses the whole read. No value is read, and Claude asks again;
+    - so "the list of fields differs" means the fields' identities and descriptions, never their labels alone;
   - the values come back marked as page text.
 
   What this package does with it, and nothing more:
@@ -840,8 +855,8 @@ Restructure in steps that keep everything working:
   `question`, `revalidate`, `changed_compose`, `execute`, `command` and `trusted` in `adapter.py`; the adapters
   (`sites.py`); `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`, `chrome_operation_status` and the notices; the
   15-minute deadline; one approval, one run. Brief 20's asking read belongs to it too: `chrome_read_typed_fields` with
-  its question, its one approval for one call, its refusal of credential-like fields and its new question when the field
-  list changed. **Three narrow exceptions, each named where it is specified, and nothing beyond them:** `prepare`,
+  its question, its binding to the prepared read, its one approval for one call, its refusal of credential-like
+  fields and its new question when a field was added, replaced or relabelled. **Three narrow exceptions, each named where it is specified, and nothing beyond them:** `prepare`,
   `question`, `free` and `stage` write addresses in the public form while the payload and every comparison keep the full
   address (item 2); `input` brings its target on screen inside the armed hold before brief 20's own hit test (item 5);
   the password rule gets its two additions (item 1). What asks, what is bound, and what is compared before an approved
@@ -1003,6 +1018,15 @@ surface, with the taken, not yet reloaded tab):
   plain text, and one masked right now are in neither the question nor the result, and the recording shows their
   values in nothing the extension kept or sent;
 - **a field added after the question asks again:** nothing is read, and the new question lists the new field;
+- **the binding** (security re-check 2, finding (c)), each case with the recording showing that no value was
+  read:
+  - a field replaced, while the approval waits, by another field with the same label;
+  - two fields with the same label, and two without any label: the question tells them apart by their stable
+    descriptions, and swapping the two while the approval waits refuses the read;
+  - a frame that holds a listed field navigates while the approval waits, and the top document stays;
+  - a listed field becomes credential-like while the approval waits (its type set to `password`; a mask added);
+  - the question or the field list is altered between the question and the approval;
+  - an approval used a second time (a replay);
 - **refused:** nothing is read, and the next normal read still shows `(filled, not read)` and `(empty)`;
 - **one approval, one call:** a second call asks again;
 - **the ask can't be skipped,** as for `chrome_submit` (group 12): an allow rule for the tool, and

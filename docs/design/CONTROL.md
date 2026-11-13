@@ -691,8 +691,15 @@ and briefs 28 and 28b keep it as built:
   field without a label, and never a value;
 - a field that is named like a credential, is a password field or is masked is never included, also when he
   approves;
-- one approval covers one call. If he refuses, the fields stay `(filled, not read)`. If the list of fields has
-  changed between the question and the read, nothing is read and it asks again;
+- one approval covers one call. If he refuses, the fields stay `(filled, not read)`;
+- the approval is bound to a prepared read, as a send's approval is bound to its input. The service prepares the
+  read before it asks: the connection to Chrome, the tab, each frame's document and reader, the exact fields
+  (the elements, not their labels) and the label or description shown for each. The question is generated from
+  that preparation, verified as strictly as a send's input when the approval comes back, and used once. Right
+  before any value is read, the page is compared with the preparation: a field replaced by another with the same
+  label, a relabelled field, a frame that navigated and a field that has become credential-like each refuse the
+  read, and it asks again. Brief 20 builds this binding (*brief 20*: not shown by a test yet), and briefs 28 and
+  28b must keep it;
 - the values come back marked as page text, like everything else from a page;
 - a normal read says how many such fields a tab has, so Claude knows the tool exists for them; the instructions
   tell it to ask only when his request needs such a value;
@@ -1489,8 +1496,10 @@ the first input (brief 28b).
       message holds no page text; a page of 100,000 elements is cut with a plain notice;
     - the asking read: a normal read never returns a typed field's value and counts such fields; an
       approved read returns exactly the fields the question listed, as page text; a field named like a
-      credential is absent though he approved; a field added after the question asks again; a refusal leaves
-      "filled" and "empty"; one approval covers one call;
+      credential is absent though he approved; a field added after the question asks again; a field replaced by
+      one with the same label, two fields with the same label or with none, a frame that navigated, a field
+      that became credential-like, an altered question and a replayed approval each read nothing; a refusal
+      leaves "filled" and "empty"; one approval covers one call;
     - passwords: group 7's fixtures and recording run over every new output (the outline, a form read by `ref`,
       `find` for the password itself, several tabs, `until`, the change report after a "show password" click, the
       results of `chrome_open`, `chrome_go` and `chrome_take`, a prepared operation's question); the password
