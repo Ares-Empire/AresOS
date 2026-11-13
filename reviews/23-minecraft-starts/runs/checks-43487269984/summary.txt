@@ -1,0 +1,20 @@
+Run 43487269984, checks_only=true on b17f93dc (merge of origin/main 5065ff9c; runner image 20261111.370.1): success.
+
+261:kernel.apparmor_restrict_unprivileged_userns = 0
+325:test_a_pinned_jar_is_installed_and_recorded_in_either_build (test_aresos_desktop.ModJarPinTest.test_a_pinned_jar_is_installed_and_recorded_in_either_build) ... ok
+326:test_a_release_build_stops_on_a_jar_that_is_not_its_pin (test_aresos_desktop.ModJarPinTest.test_a_release_build_stops_on_a_jar_that_is_not_its_pin) ... ok
+327:test_a_release_is_the_default_and_only_the_job_that_cannot_publish_throws_away (test_aresos_desktop.ModJarPinTest.test_a_release_is_the_default_and_only_the_job_that_cannot_publish_throws_away) ... ok
+328:test_a_throwaway_build_goes_on_says_so_and_records_its_jar (test_aresos_desktop.ModJarPinTest.test_a_throwaway_build_goes_on_says_so_and_records_its_jar) ... ok
+329:test_check_image_holds_a_release_image_to_the_reviewed_locks (test_aresos_desktop.ModJarPinTest.test_check_image_holds_a_release_image_to_the_reviewed_locks) ... ok
+330:test_only_the_check_build_job_builds_a_throwaway_image (test_aresos_desktop.ModJarPinTest.test_only_the_check_build_job_builds_a_throwaway_image) ... ok
+331:test_the_image_check_fails_when_the_jar_is_not_the_recorded_one (test_aresos_desktop.ModJarPinTest.test_the_image_check_fails_when_the_jar_is_not_the_recorded_one) ... ok
+436:test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target (test_aresos_desktop.WrapperTest.test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target) ... ok
+2627:Ran 1095 tests in 972.453s
+2629:OK
+2630:TTY3_LOGIN_PASSWORD_ECHO_DISABLED
+2631:PASS tools manifest SHA256 851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33
+2632:PASS 17 destination refusals with zero writes; copied payload equals source
+2644:Live hosted system manager passed: 437 unit files, 476 unit names
+2658:Package visibility metadata NOT VERIFIED from the org; no owner-token API request made
+test_owner_update tests ok: 54
+skipped: 0

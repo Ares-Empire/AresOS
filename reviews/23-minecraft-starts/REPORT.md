@@ -409,6 +409,21 @@ was the first image build and VM pass with fix round 5's supervisor and wrapper.
 Evidence: `runs/build-43480151763/` (`summary.txt`: the job's marker lines, the build's mod lines and every image
 check line; `vm-desktop-checks.json`; `aresos-mod.json`).
 
+**Merge of main, again.** So that the hosted checks use the current workflow, `origin/main` (`5065ff9c`: 27c's
+namespace tests, 18c, the hub design and state commits) was merged into the branch as `b17f93dc`, a merge commit.
+- No conflicts: main changed none of this branch's image files.
+- Main's `.github/workflows/os-image.yml` change touches only the regressions job: 25 minutes, and unprivileged user
+  namespaces allowed. Main's `os/manifest/ci/16/pending-rebind.json` rows came along unchanged.
+- After the merge: `ModJarPinTest`, `ImageBuildTest` and `test_checkout_sources`, 17 OK.
+
+**Run 43487269984** (`checks_only=true` on `b17f93dc`): **success**, `Ran 1095 tests`, `OK`, no test skipped.
+- That is the 1088 of run 43474901419 plus `ModJarPinTest`'s 7. The 136 tests that skipped there now run: 54 of
+  `test_owner_update` pass, and so does `WrapperTest.test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target`.
+  That is the real-scope test of this round's wrapper that skips on AresOS itself (PLAN-GAP above); on the hosted
+  runner it now ran and passed.
+- `Live hosted system manager passed: 437 unit files, 476 unit names`.
+- Evidence: `runs/checks-43487269984/summary.txt`.
+
 ### Checks of this round
 
 Natively on AresOS itself (Fedora-based, Linux 7.2, Python 3.14.8, systemd 259), the owner's running laptop, not
@@ -467,7 +482,8 @@ WSL. Never two suites at once; temporary files in a work folder outside the repo
 - The merged head is not green: `test_release27`'s package-diff test fails on it (see "Merge of main"); left for
   the integrator.
 - `WrapperTest.test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target` is skipped natively (see the
-  checks): the changed wrapper was not run against a real user manager in this round.
+  checks): the changed wrapper was not run against a real user manager in this round. (It has since passed on the
+  hosted runner, run 43487269984, and the VM's `desktop_jvm` passed in run 43480151763.)
 
 ### PLAN-GAP and judgment calls of this round
 
