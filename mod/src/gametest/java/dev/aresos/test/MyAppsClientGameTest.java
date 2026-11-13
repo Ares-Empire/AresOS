@@ -229,11 +229,11 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
             check(rows(client).stream().filter(AppsScreen.Row::inMyApps).map(row -> row.app().id()).toList().equals(List.of("okular")),
                     "The added program is not shown under My apps");
             check(status(client).contains("Added Okular to My apps."), "The screen does not say what happened: " + status(client));
+            check(client.gui.screen().getFocused() == search(client), "The click took the keyboard away from the search box");
         });
         screenshot(context, "34-apps-after-add");
 
-        // Typing goes to the search box although the click left the focus on the list; Enter adds the only match,
-        // found by its kind ("Archiving Tool").
+        // Typing still goes to the search box; Enter adds the only match, found by its kind ("Archiving Tool").
         for (int i = 0; i < 3; i++) context.getInput().pressKey(GLFW.GLFW_KEY_BACKSPACE);
         context.getInput().typeChars("archiv");
         context.waitTicks(2);
@@ -336,12 +336,13 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
         command(context, "aresos app add no-such-program");
         waitForChat(context, "Unknown AresOS app");
 
-        // No free slot: the program is his all the same, has no item, and the chat says so.
+        // No free slot: the program is his all the same, has no item, and the chat says so. (Bedrock, because picking
+        // up most other blocks unlocks recipes and puts the game's toast into the last screenshot.)
         var filled = new ArrayList<Integer>();
         world.getServer().runOnServer(server -> {
             var inventory = world.getConnection().getServerPlayer().getInventory();
             for (int slot = 9; slot < 36; slot++) if (inventory.getItem(slot).isEmpty()) {
-                inventory.setItem(slot, new ItemStack(Items.STONE, 3));
+                inventory.setItem(slot, new ItemStack(Items.BEDROCK, 3));
                 filled.add(slot);
             }
         });
@@ -352,7 +353,7 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
         world.getServer().runOnServer(server -> {
             var inventory = world.getConnection().getServerPlayer().getInventory();
             for (int slot : filled) {
-                check(inventory.getItem(slot).is(Items.STONE) && inventory.getItem(slot).getCount() == 3,
+                check(inventory.getItem(slot).is(Items.BEDROCK) && inventory.getItem(slot).getCount() == 3,
                         "Adding with a full inventory changed slot " + slot);
                 inventory.setItem(slot, ItemStack.EMPTY);
             }

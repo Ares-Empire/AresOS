@@ -225,10 +225,12 @@ about later edits, and restores the backup's bytes atomically. **The old backup
 excludes later apps, edits, pins and My apps.** Compare both retained versions
 before using the older mod. Starting the new mod again moves the file to schema 3.
 
-On Linux, `aresos-shell/1.0` is a stub until the OS helper arrives. Legacy migration
-imports appearance/pins and removes command argv from schema 2 (the original
-remains in its backup). Unknown/custom IDs stay visible. All Linux launches,
-including URLs, fail with an unavailable-helper diagnostic; no commands execute.
+On Linux (AresOS) the program list and every launch come from the OS app helper
+over `aresos-shell` (this mod speaks 1.1 and works with a 1.0 helper as before);
+the mod never runs a command itself. Legacy migration imports appearance/pins and
+removes command argv from schema 2 (the original remains in its backup).
+Unknown/custom IDs stay visible. While the helper is away, every launch,
+including URLs, fails with a message that says so.
 
 Generated icons live only in `aresos-runtime/` under the game directory, in a
 required runtime resource pack. Each source becomes a 16×16 texture, fitted within
@@ -265,7 +267,32 @@ system lists is still there to pick from ("All programs"), but has no item.
 - Only a complete list counts. While the helper is away or its list will not hold
   still, My apps stays as it is.
 
-Commands, for the singleplayer host in an AresOS world (Tab completes the ID):
+### The Apps screen
+
+**E → Apps…** (Live mode, in an AresOS world) opens one list that scrolls: a
+search box on top, then **My apps**, then **All programs**, both by name. Each
+row shows the program's icon and name and, in gray, what kind of program the
+system says it is. Under All programs a check mark marks the ones that are yours.
+
+| You do | What happens |
+|---|---|
+| Click a program that is not yours | It becomes yours: its item lands in the first free inventory slot beside the hotbar. The screen stays open, so you can add more. |
+| Click one of yours | You pick up its item and are back in the inventory, to put it in the hotbar (that pins it). An app without an item, because the inventory was full, gets one this way. |
+| Right-click one of yours | It leaves My apps, as with `/aresos app remove`. It stays under All programs. |
+| Type | The letters go to the search box, wherever you clicked last. The search looks in the name, the generic name and the keywords the system gives, so "mail" or "pdf" finds the right program. Every word you type must be found; upper and lower case are the same. |
+| Enter | A click on the program, if the search found exactly one. The search text is then selected, so typing starts the next search. |
+| The wheel, the scroll bar, Up, Down, Page Up, Page Down | Scroll the list (three rows for each notch of the wheel). |
+| Escape, or Done | Back to the inventory. |
+
+The line above Done says what a click does and, for five seconds, what just
+happened ("Added Steam to My apps."). The chat gets the same line, but it is
+hidden behind the screen. When the list changes while the screen is open (an
+add, a remove, a program you just installed), the row under the pointer stays
+where it is.
+
+### Commands
+
+For the singleplayer host in an AresOS world (Tab completes the ID):
 
 | Command | What it does |
 |---|---|
@@ -297,14 +324,13 @@ existing pinned app from inventory into it instead of creating another item.
 Switching modes restores the exact saved layout instead of repopulating it;
 home arrival from Build also restores Live exactly, and My apps is then brought
 in step on the first safe tick (only app items are added or taken out). Ordinary
-joins already in Live keep catalogue population. Use the Apps catalogue for additional apps between joins.
-**E → Apps…** opens a paged catalogue, including apps that did not fit. Pick an app
-to put its item on the inventory cursor, then place it with normal inventory input.
+joins already in Live keep catalogue population. An app of yours that did not
+fit can be picked up in the Apps screen (above) and placed with normal inventory input.
 Moving an item into/out of the hotbar updates its `pinned` value once the cursor
 is empty, including through chest and other container menus; reordering within the
 hotbar does not change pins. A failed save displays
 a diagnostic. More than nine pins remain configured; overflow stays in the
-inventory/catalogue. Build mode and normal worlds get no catalogue or pin edits.
+inventory. Build mode and normal worlds get no Apps screen and no pin edits.
 
 Only survival players in marked AresOS worlds receive Live protection. Void
 recovery uses their personal bed/anchor spawn, or the world's default spawn if

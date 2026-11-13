@@ -47,6 +47,7 @@ import java.util.Set;
 public final class AppsScreen extends Screen {
     private static final Component HELP = Component.literal(
             "Click to add, or to pick up one of yours. Right-click to remove.").withStyle(ChatFormatting.GRAY);
+    private static final Component HINT = Component.literal("Search programs…").withStyle(EditBox.SEARCH_HINT_STYLE);
     private static final Identifier CHECK = Identifier.withDefaultNamespace("icon/checkmark");
     /** A row is a 16-pixel icon with the list's two pixels around it. */
     private static final int ROW = 20;
@@ -66,6 +67,8 @@ public final class AppsScreen extends Screen {
     private Set<String> shownIcons;
     private Component news;
     private int ticks, newsAt;
+    // One of his apps while the left button is down on its row; see mouseReleased.
+    private String pressed;
 
     public AppsScreen(Screen parent) { super(Component.literal("Apps")); this.parent = parent; }
 
@@ -92,22 +95,34 @@ public final class AppsScreen extends Screen {
         header.defaultCellSetting().alignHorizontallyCenter();
         header.addChild(new StringWidget(title, font));
         search = header.addChild(new EditBox(font, 0, 0, 200, 20, Component.literal("Search programs")));
-        search.setHint(Component.literal("Search programs…").withStyle(EditBox.SEARCH_HINT_STYLE));
+        search.setHint(HINT);
         search.setResponder(typed -> show(false));
         list = layout.addToContents(new ProgramList());
-        var footer = layout.addToFooter(LinearLayout.vertical().spacing(4));
-        footer.defaultCellSetting().alignHorizontallyCenter();
-        status = footer.addChild(new StringWidget(HELP, font));
-        footer.addChild(Button.builder(CommonComponents.GUI_DONE, button -> onClose()).width(200).build());
+        layout.addToFooter(Button.builder(CommonComponents.GUI_DONE, button -> onClose()).width(200).build(),
+                settings -> settings.alignVerticallyBottom().paddingBottom(6));
         layout.visitWidgets(this::addRenderableWidget);
+        // Placed by hand above Done: in the footer's layout its changing width would nudge the button.
+        status = addRenderableWidget(new StringWidget(HELP, font));
         repositionElements();
         show(false);
     }
 
     @Override protected void repositionElements() {
-        status.setMaxWidth(width - 16, StringWidget.TextOverflow.SCROLLING);
         layout.arrangeElements();
         list.updateSize(width, layout);
+        placeStatus();
+    }
+
+    private void placeStatus() {
+        status.setMaxWidth(width - 16, StringWidget.TextOverflow.SCROLLING);
+        status.setPosition((width - status.getWidth()) / 2, height - layout.getFooterHeight() + 6);
+    }
+
+    @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
+        // The box hides its own hint while it has the keyboard, which here is nearly always.
+        if (search.isFocused() && search.getValue().isEmpty())
+            graphics.text(font, HINT, search.getX() + 4, search.getY() + (search.getHeight() - 8) / 2, CommonColors.WHITE);
     }
 
     @Override protected void setInitialFocus() { setInitialFocus(search); }
@@ -140,7 +155,7 @@ public final class AppsScreen extends Screen {
         news = message;
         newsAt = ticks;
         status.setMessage(message == null ? HELP : message);
-        repositionElements();
+        placeStatus();
     }
 
     @Override public boolean charTyped(CharacterEvent event) {
@@ -150,7 +165,7 @@ public final class AppsScreen extends Screen {
     }
 
     @Override public boolean keyPressed(KeyEvent event) {
-        // A click on a row or the scroll bar leaves the focus on the list; Backspace still belongs to the search.
+        // Tab can put the focus on the list; any other key still belongs to the search.
         if (getFocused() == list && !event.isCycleFocus()) setFocused(search);
         if (getFocused() == search) {
             if (event.isConfirmation()) { enter(); return true; }
@@ -161,17 +176,23 @@ public final class AppsScreen extends Screen {
         return super.keyPressed(event);
     }
 
-    /** Enter is a click on the only program the search found. */
+    /** Enter is a left click on the only program the search found. */
     private void enter() {
         String only = list.only();
-        if (only == null || !act(only, false) || minecraft.gui.screen() != this) return;
+        if (only == null || !press(only, false)) return;
+        if (pressed != null) {
+            pressed = null;
+            pickUp(only);
+            return;
+        }
         // The search stays to show what happened, selected, so the next letters start a new one.
         search.moveCursorToEnd(false);
         search.setHighlightPos(0);
     }
 
-    /** A click on a program: left adds it or picks up its item, right takes it out of My apps. */
-    private boolean act(String id, boolean right) {
+    /** A button goes down on a program: left adds it or starts picking up its item, right takes it out of My apps. */
+    private boolean press(String id, boolean right) {
+        pressed = null;
         if (!active(minecraft)) { onClose(); return true; }
         // As it is now: the row may be a moment older than the list.
         var app = AresOs.app(id);
@@ -179,11 +200,32 @@ public final class AppsScreen extends Screen {
         AbstractWidget.playButtonClickSound(minecraft.getSoundManager());
         if (!app.mine()) ClientPlayNetworking.send(new MyAppPayload(id, true));
         else if (right) ClientPlayNetworking.send(new MyAppPayload(id, false));
-        else {
-            ClientPlayNetworking.send(new TakeAppPayload(id));
-            minecraft.gui.setScreen(parent);
-        }
+        else pressed = id;
         return true;
+    }
+
+    /**
+     * The item of one of his apps is picked up when the button is let go, not when it goes down. The inventory
+     * screen places what is on the cursor when a button is let go; had this screen closed on the press, that
+     * release would reach the inventory and put the item into whatever slot lies under the pointer.
+     */
+    @Override public boolean mouseReleased(MouseButtonEvent event) {
+        boolean handled = super.mouseReleased(event);
+        // A click on a row or a pull at the scroll bar took the focus to the list; the search box gets it back.
+        if (getFocused() == list) setFocused(search);
+        if (event.button() != 0 || pressed == null) return handled;
+        String id = pressed;
+        pressed = null;
+        pickUp(id);
+        return true;
+    }
+
+    private void pickUp(String id) {
+        if (!active(minecraft)) { onClose(); return; }
+        var app = AresOs.app(id);
+        if (app == null || !app.mine()) return;
+        ClientPlayNetworking.send(new TakeAppPayload(id));
+        minecraft.gui.setScreen(parent);
     }
 
     private String clip(String text, int room) {
@@ -314,7 +356,7 @@ public final class AppsScreen extends Screen {
         }
 
         @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-            return (event.button() == 0 || event.button() == 1) && act(app.id(), event.button() == 1);
+            return (event.button() == 0 || event.button() == 1) && press(app.id(), event.button() == 1);
         }
 
         @Override public Component getNarration() {
