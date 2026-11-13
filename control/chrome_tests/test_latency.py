@@ -220,6 +220,13 @@ class LatencyGate(unittest.TestCase):
                 result=self.check();self.assertFalse(result['passed'],(phase,call))
                 self.assertIn((phase,call),[(row['phase'],row['call']) for row in result['failures']])
 
+    def test_nominal_ceilings_apply_to_warm_histories_even_without_relative_regression(self):
+        for value in [self.current,self.reference['current']]:
+            value['phases']['history-4000']['read']['client_total'].update(median_ms=200,p95_ms=240)
+        result=self.check();self.assertFalse(result['passed'])
+        row=next(row for row in result['failures'] if row['phase']=='history-4000' and row['call']=='read')
+        self.assertTrue(row['target_miss']);self.assertFalse(row['regression'])
+
     def test_correlated_wait_tail_cannot_hide_fivefold_warm_work_regression(self):
         phase='history-4000';call='fill'
         self.paired(self.reference['current'],phase,call,[40]*20,[525]*20)

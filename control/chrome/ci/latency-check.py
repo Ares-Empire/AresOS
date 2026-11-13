@@ -56,7 +56,8 @@ def check(current,baseline,reference,targets):
     for limits in targets['ceilings_ms'].values():
         assert 0<limits['median_ms']<=limits['p95_ms'] and all(math.isfinite(v) for v in limits.values())
     assert current['runtime']=='current' and baseline['runtime']=='ab7aba92'
-    assert current['privacy']==baseline['privacy']==reference['privacy']
+    assert reference['current']['runtime']=='current' and reference['baseline']['runtime']=='ab7aba92'
+    assert current['privacy']==baseline['privacy']==reference['privacy']==reference['current']['privacy']==reference['baseline']['privacy']
     assert current['chrome']==baseline['chrome'],'Paired measurements must use one exact Chrome package'
     for value in [current,baseline,reference['current'],reference['baseline']]:
         assert set(value['phases'])==PHASES
@@ -88,14 +89,12 @@ def check(current,baseline,reference,targets):
             allowed={'median_ms':active(accepted,call,'median_ms')*allowance*1.5+10,
                      'p95_ms':active(accepted,call,'p95_ms')*allowance*1.75+20}
             regression=all(observed[stat]>allowed[stat] for stat in observed)
-            target_miss=False
-            if phase=='fresh':
-                target_miss=all(metric(group,call,stat)>targets['ceilings_ms'][call][stat]*allowance for stat in observed)
+            target_miss=all(metric(group,call,stat)>targets['ceilings_ms'][call][stat]*allowance for stat in observed)
             if regression or target_miss:failures.append({'phase':phase,'call':call,'regression':regression,'target_miss':target_miss})
             rows.append({'phase':phase,'call':call,'runner_factor':noise,'paired_work_ms':observed,'regression_threshold_ms':allowed,
-                         'client_ms':{stat:metric(group,call,stat) for stat in observed},'fresh_target_miss':target_miss})
+                         'client_ms':{stat:metric(group,call,stat) for stat in observed},'target_miss':target_miss})
     return {'passed':not failures,'failures':failures,'measurements':rows,
-            'policy':'Fresh lead ceilings and every-phase reference regression; median and p95 must both cross. Common paired runner slowdown scales allowance; Matched per-sample waits are subtracted before percentiles; the 525 ms wait is checked separately.'}
+            'policy':'Lead ceilings and reference regression in every measured history phase; median and p95 must both cross. Common paired runner slowdown scales allowance; Matched per-sample waits are subtracted before percentiles; the 525 ms wait is checked separately.'}
 
 
 if __name__=='__main__':

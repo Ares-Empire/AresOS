@@ -400,7 +400,7 @@ per-input slowdown plus the larger unsplit round-3 matrices. It is not final
 post-18d acceptance. The companion `43437786144` is still watched. New sharded
 runs have already removed the stopgap and retain every round-3 case.
 
-**Regression gate prepared, not yet activated:** fresh calls use the lead's
+**Regression gate prepared, not yet activated:** all measured histories use the lead's
 nominal ceilings. Each retained-history phase also compares with a frozen current
 measurement; the paired historical runtime scales common runner noise. A clear
 failure needs both median and p95 to cross the threshold. The 525 ms safety wait
@@ -422,6 +422,18 @@ total/wait pairs and missing timing fields refuse. A valid 20-sample fivefold
 warm-work regression now fails. **13 focused latency tests pass**. The gate is
 still unwired until the measured reference and lead targets are present; no
 runtime or browser authority changed.
+
+**Gate fixes closed locally:** [package](BUILD-POST18D-GATE-RECHECK-2.md) and
+[security](BUILD-POST18D-GATE-SECURITY-RECHECK-2.md) are SAFE on `73c3abdf`.
+The subsequent small gate change applies the same proposed nominal ceilings to
+all measured histories, rather than only fresh calls; a warm-target regression
+covers it. **14 focused latency tests pass**. Current safety removal audit rejects
+all **304** mutations with passing baselines
+([record](records/post18d/final-mutations.json)); **370 Node/artifact tests pass**.
+The full local Python file shards are finishing. The shared runtime is frozen
+since the reservation-order fix. Base/Mail/boundary/qualification diagnostics on
+this runtime follow while the intermediate Chrome measurements finish; final
+head repetitions are still required.
 
 **Latency proposal — lead decision pending:** intermediate Linux run
 `43466571812` measured 20 calls per category, without owner think time, against
