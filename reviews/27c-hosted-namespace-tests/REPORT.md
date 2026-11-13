@@ -1,7 +1,5 @@
 Brief: `briefs/27c-hosted-namespace-tests.md` (empire board brief 284). Builder: a Claude agent (Opus 5.5). Review: a fresh Codex context.
 
-**Note:** `reviews/27c-hosted-namespace-tests/REPORT.md` is not committed yet. The agent harness refused to let the builder subagent write a `.md` report file. The report's full text is below, ready to commit as that file.
-
 ---
 
 # 27c report: the hosted checks run the owner tools' namespace tests
