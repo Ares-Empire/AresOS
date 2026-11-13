@@ -9,6 +9,8 @@ import net.minecraft.world.level.levelgen.WorldOptions;
 
 public final class HomeCreateScreen extends Screen {
     private final Screen parent;
+    // The flat home is the first choice; the Nether home and its seed settings stay one click away.
+    private boolean flat = true;
     private String seedText = "49";
     private boolean placeholder = true;
     private Button toggle;
@@ -21,8 +23,29 @@ public final class HomeCreateScreen extends Screen {
     @Override
     protected void init() {
         int left = width / 2 - 140;
-        int top = Math.max(12, height / 2 - 98);
+        // 212 high with the Nether settings; the smallest GUI the game allows is 240 high.
+        int top = Math.max(12, height / 2 - 106);
         addRenderableWidget(new StringWidget(left, top, 280, 20, title, font));
+        var choice = addRenderableWidget(Button.builder(Component.literal("Home: " + (flat ? "Flat" : "Nether")), button -> {
+            flat = !flat;
+            rebuildWidgets();
+        }).bounds(left, top + 24, 280, 20).build());
+        if (flat) {
+            addRenderableWidget(new StringWidget(left, top + 56, 280, 16,
+                    Component.literal("Flat grass at noon, a home pad and four roads"), font));
+            setInitialFocus(choice);
+        } else nether(left, top + 28);
+        addRenderableWidget(Button.builder(Component.translatable("aresos.home.create"), button -> {
+            button.active = false;
+            if (flat) HomeButton.createFlat(minecraft, parent);
+            else HomeButton.create(minecraft, parent, WorldOptions.parseSeed(seedText).orElseGet(WorldOptions::randomSeed), placeholder);
+        }).bounds(left, top + 192, 136, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), button -> onClose())
+                .bounds(left + 144, top + 192, 136, 20).build());
+    }
+
+    /** The seed, the quick picks and the placeholder toggle: only a Nether home has them. */
+    private void nether(int left, int top) {
         addRenderableWidget(new StringWidget(left, top + 28, 280, 16, Component.literal("Seed"), font));
         var seed = addRenderableWidget(new EditBox(font, left, top + 46, 280, 20, Component.literal("Seed")));
         seed.setMaxLength(128);
@@ -44,13 +67,6 @@ public final class HomeCreateScreen extends Screen {
         }
         addRenderableWidget(new StringWidget(left, top + 130, 280, 16,
                 Component.literal("Explore in Build mode (G), then /aresos home set"), font));
-        addRenderableWidget(Button.builder(Component.translatable("aresos.home.create"), button -> {
-            button.active = false;
-            long chosenSeed = WorldOptions.parseSeed(seedText).orElseGet(WorldOptions::randomSeed);
-            HomeButton.create(minecraft, parent, chosenSeed, placeholder);
-        }).bounds(left, top + 164, 136, 20).build());
-        addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), button -> onClose())
-                .bounds(left + 144, top + 164, 136, 20).build());
         setInitialFocus(seed);
     }
 

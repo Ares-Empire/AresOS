@@ -1,0 +1,77 @@
+Package 23 review fixes 5: the full os/tests suite, natively on AresOS (Fedora-based, Python 3.14.8, systemd 259),
+from a fresh full clone of pkg/23-minecraft-starts at 88ac79fd (the merged head), one run at a time.
+
+Command, in the clone: python3 [-B] -m unittest discover -s os/tests -v
+under nice -n 10 and setpriv --no-new-privs, in a clean environment (env -i): a scratch HOME and XDG_RUNTIME_DIR,
+TMPDIR in the work folder, no display, no session bus, DBUS_SYSTEM_BUS_ADDRESS pointing at nothing.
+
+plain: Ran 1088 tests in 833 s; FAILED (failures=102, errors=23, skipped=1)
+-B:    Ran 1088 tests in 865 s; FAILED (failures=102, errors=23, skipped=1)
+
+Both runs fail and skip exactly the same tests (below; a subtest counts as one result; "xN" = N subtests of one
+test with the same reason). test_aresos_desktop (145 tests, 1 skipped) and test_aresos_shell (74) pass in both.
+
+test_inherited_homebrew: 8
+  ERROR InheritedHomebrewTest.test_absent_inherited_installation_is_not_created
+      subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '-R', '1001:1001', '<work>/stmp/tmpX']' returned non-zero exit status 1.
+  ERROR InheritedHomebrewTest.test_daily_account_reads_and_runs_without_write_and_owner_unchanged_idempotently
+      subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '0:0', '<work>/stmp/tmpX', '<work>/stmp/tmpX/var', '<work>/stmp/tmpX/var/home']' returne
+  ERROR InheritedHomebrewTest.test_daily_account_reads_and_runs_without_write_and_owner_unchanged_idempotently
+      subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '-R', '1001:1001', '<work>/stmp/tmpX']' returned non-zero exit status 1.
+  ERROR InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask
+      subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '0:0', '<work>/stmp/tmpX', '<work>/stmp/tmpX/var', '<work>/stmp/tmpX/var/home']' returne
+  ERROR InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask
+      subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '-R', '1001:1001', '<work>/stmp/tmpX']' returned non-zero exit status 1.
+  ERROR InheritedHomebrewTest.test_replaces_the_deny_entry_left_by_earlier_images
+      subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '0:0', '<work>/stmp/tmpX', '<work>/stmp/tmpX/var', '<work>/stmp/tmpX/var/home']' returne
+  ERROR InheritedHomebrewTest.test_replaces_the_deny_entry_left_by_earlier_images
+      subprocess.CalledProcessError: Command '['sudo', '-n', 'chown', '-R', '1001:1001', '<work>/stmp/tmpX']' returned non-zero exit status 1.
+  FAIL InheritedHomebrewTest.test_absent_inherited_installation_is_not_created
+      AssertionError: 1 != 0 : sudo: The "no new privileges" flag is set, which prevents sudo from running as root.
+test_owner_commands: 5
+  ERROR CommandTest.test_prepare_shared_steps_one_two_de_us_no_override_and_rerun x4 [count=2, override='de', ...]
+      TypeError: CommandTest.setUp.<locals>.<lambda>() got an unexpected keyword argument 'case_sensitive'
+  ERROR CommandTest.test_staged_fixture_cleanup_and_updater_transaction_cancel_once
+      TypeError: CommandTest.setUp.<locals>.<lambda>() got an unexpected keyword argument 'case_sensitive'
+test_owner_diagnostics: 1
+  ERROR DiagnosticsTest.test_last_install_step_failure_has_no_premature_success_record
+      owner.Stop: Unsafe private setup directory: uninstalled
+test_owner_export: 2
+  ERROR ExportTest.test_readonly_refusals_and_success_unmount_with_private_records_only
+      owner.Stop: Unsafe private diagnostic parent
+  FAIL ExportSurvivalTest.test_real_stop_export_reboot_and_fresh_export_preserve_exact_diagnostic
+      AssertionError: 0 != 1 : Controlled STOP must actually save a diagnostic
+test_owner_retained: 1
+  ERROR RetainedTest.test_title_switch_and_recovery_real_pairs_and_bls
+      TypeError: bls_files.<locals>.glob() got an unexpected keyword argument 'case_sensitive'
+test_owner_setup_resume: 6
+  ERROR PrepareResumeTest.test_changed_interrupted_identity_or_arguments_refuses_without_mutation x4 [change='serial', ...]
+      TypeError: CommandTest.setUp.<locals>.<lambda>() got an unexpected keyword argument 'case_sensitive'
+  ERROR PrepareResumeTest.test_resume_after_every_real_mutation
+      TypeError: CommandTest.setUp.<locals>.<lambda>() got an unexpected keyword argument 'case_sensitive'
+  ERROR PrepareResumeTest.test_resume_after_every_record_write
+      TypeError: CommandTest.setUp.<locals>.<lambda>() got an unexpected keyword argument 'case_sensitive'
+test_owner_update: 99
+  FAIL ToolsUpdateTest.test_a_versioned_toolset_updates_by_the_entry_switch_alone_and_refuses_afterwards
+      AssertionError: None != 'new'
+  FAIL ToolsUpdateTest.test_every_entry_settles_the_tools_before_any_check [cut=6]
+      AssertionError: None != 'new' : pkg22-namespace-ready
+  FAIL ToolsUpdateTest.test_invariant_broad_detection_refuses_every_kind_of_legacy_process x7 [kind='python3 -B, no -I', ...]
+      AssertionError: unexpectedly None : no marker: pkg22-namespace-ready
+  FAIL ToolsUpdateTest.test_invariant_one_working_toolset_after_any_interruption_and_any_refusal x70 [cut=1, refusal='layout trial', ...]
+      AssertionError: unexpectedly None : no marker: pkg22-namespace-ready
+  FAIL ToolsUpdateTest.test_the_real_entry_reaches_a_toolset_after_every_cut_and_every_bootstrap_failure x20 [cut=6, failure='mount', ...]
+      AssertionError: unexpectedly None : no marker: pkg22-namespace-ready
+test_release27: 1
+  FAIL PackageDiffTest.test_the_real_lock_change_is_exactly_packages_21s_and_the_renewed_pin
+      AssertionError: STOP: unexplained package change: java-25-openjdk-crypto-adapter-1:25.0.4.1.1-1.1.fc44.x86_64
+test_sysusers: 2
+  ERROR SysusersRebaseTest.test_existing_daily_account_joins_wheel_on_upgrade_without_other_changes
+      subprocess.CalledProcessError: Command '['sudo', '-n', 'systemd-sysusers', '--root=<work>/stmp/tmpX', '<work>/clone/os/config/usr/lib/sysusers.d/aresos.conf']' returned non-zero exit st
+  ERROR SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_admin_idempotently
+      subprocess.CalledProcessError: Command '['sudo', '-n', 'systemd-sysusers', '--root=<work>/stmp/tmpX', '<work>/clone/os/config/usr/lib/sysusers.d/aresos.conf']' returned non-zero exit st
+skipped: 1
+  test_aresos_desktop: 1 x 'no user systemd manager reachable here (CI runner); WSL and the image have one'  (test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target)
+
+In each run three stand-ins of owner-tool tests were still running when the suite ended (a `sleep 3600`, a `bash` and
+a `python-adapter.py` poller with a 30-minute deadline); the driver ended them.

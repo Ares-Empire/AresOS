@@ -1,0 +1,15 @@
+Run 43471903820, check_build=build on a4dcc3e1 (runner image 20261111.370.1); excerpt of evidence/build.log:
+1:[1/4] STEP 1/3: FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS packages
+136:[1/4] STEP 3/3: RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages
+296:Complete!
+297:Prism 11.1.1, Fabric Loader 0.19.5 and 2 mods installed from their pins
+300:[2/4] STEP 1/4: FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS source
+305:[2/4] STEP 4/4: RUN bash /tmp/aresos-mod/build.sh source "$ARESOS_SOURCE_REVISION" /source
+306:MOD_SOURCE a4dcc3e1b93761ffe88de02884c371dc0879960e 12deca74cf3c6564d0678726bf891cd2616307052e90c27dd1ca701e61e9c02c
+308:[3/4] STEP 1/5: FROM docker.io/library/eclipse-temurin:25.0.5_8-jdk-noble@sha256:95e350ad1eb738f943e141640f7e3d797e483359a3b33c3864255bfd1ad71f8a AS mod
+324:[3/4] STEP 5/5: RUN bash /tmp/aresos-mod/build.sh mod /tmp/aresos-mod/mod /out "$ARESOS_SOURCE_REVISION"
+365:MOD_JAR_BUILT 8f505f267f4b07a76e636e0bd9bc70845eb1742bdfc52da42a9608310b627311 from a4dcc3e1b93761ffe88de02884c371dc0879960e
+367:[4/4] STEP 1/5: FROM 3a88e27a8cfd8d9272bc58aa42221f628cc45d383c56eb4a23b906f8ccea40f6 AS aresos
+374:[4/4] STEP 5/5: RUN cp -a /tmp/aresos/config/. / &&     cp -a /tmp/aresos/policy /usr/share/aresos/ &&     install -m 0755 /tmp/aresos/tests/audit.py /usr/libexec/aresos-audit &&     bash /tmp/aresos/build.sh configure && bootc container lint
+377:AssertionError: The AresOS mod jar built from this commit is 8f505f267f4b07a76e636e0bd9bc70845eb1742bdfc52da42a9608310b627311; desktop.lock.json pins 8b04c511d11d0fa4bd4dad509949026e5346435a0f04bfe9d63084dd65386743
+378:Error: building at STEP "RUN cp -a /tmp/aresos/config/. / &&     cp -a /tmp/aresos/policy /usr/share/aresos/ &&     install -m 0755 /tmp/aresos/tests/audit.py /usr/libexec/aresos-audit &&     bash /tmp/aresos/build.sh configure && bootc container lint": while running runtime: exit status 1

@@ -1,0 +1,40 @@
+
+ ▐▛███▛█   Claude Code v2.1.319
+▝▜██████▀  Opus 5.5 · API Usage Billing
+ ▝▝   ▝▝   ~/work
+
+
+❯ INTERACTIVE_OWNER_TURN_1
+
+  Called testapp
+
+● INTERACTIVE_DONE_1
+
+✻ Brewed for 0s · done 2:40 PM
+
+❯ INTERACTIVE_OWNER_TURN_2
+
+  Calling testapp…
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Tool use
+ testapp — Send Tool: (MCP)
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ question: "Send this fixture message?"
+ operation_id: "fixture:interactive-2"
+ description: { text: "Synthetic fixed payload" }
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ About the testapp — Send Tool:
+ │ Submit one prepared fake message after approval. Input must equal the whole service-provided approval. Returns
+ │ operation state and per-recipient, Sent and flag stages; done means fixture acceptance. Effect: send. Pass the…
+ (ctrl+o to expand description)
+
+ Permission rule mcp__testapp__send requires confirmation for this tool.
+
+ Do you want to proceed?
+ ❯ 1. Yes
+   2. Yes, and don't ask again for testapp — Send commands in /home/assistant/work
+   3. No
+
+ Esc to cancel · Tab to amend
+
