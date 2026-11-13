@@ -572,20 +572,24 @@ the front when he should look at it or sign in there.
   - `chrome_take` returns the reloaded page's outline, so the next call can act.
   - Often Claude needs the site, not his tab. Then it leaves his tab alone and opens the same address in a Claude
     tab (`chrome_open` with his tab's number).
-- **Before the tool reloads or closes one of his tabs, it must know that nothing of his is lost.** Unknown is not clean.
-  Brief 20 looked for a field that differs from its default, an editor, and playing media (read in its `reloadState`).
-  That misses typing on the many pages that copy it into the field's default, work kept in a canvas, and a form on its
-  way to the server. With brief 28b a tab is known clean only when all of this holds:
+- **Before the tool reloads or closes one of his tabs, it must know that nothing of his is lost.** Unknown is not
+  clean, and work a page holds only in its script's memory is still work. Brief 20 looked for a field that differs
+  from its default, an editor, and playing media (read in its `reloadState`). That misses typing on the many pages
+  that copy it into the field's default, work kept in a canvas, the finished steps of a wizard, and a form on its
+  way to the server. So with brief 28b **a tab he has used is never known clean.** Used means that he has clicked
+  or typed in the page since it loaded, or that the page wasn't opened fresh (it was restored, reloaded or reached
+  by Back). The tool installs no watcher to know this: the browser itself records a click or a key in a page (its
+  sticky user activation), and the reader reads that on demand. A tab is known clean only when all of this holds:
   - every frame answered, no dialog is open, and no load or form submission is under way;
   - nothing plays;
-  - there is no editable area, no chosen file, no password field, and no field that differs from its default;
-  - no text field holds text (a search box aside), unless he has never clicked or typed in the page since it
-    loaded and it was opened fresh, not restored or reached by Back;
-  - there is no canvas on a page he has used.
+  - he hasn't used the page;
+  - there is no editable area, no chosen file, no password field, and no field that differs from its default.
 
   In every other case the tab is left as it is and the result says what the tool found, with the labels of
-  fields and never their values. The check runs in his tab without a debugger, as the last thing before the
-  reload or the close. If Chrome itself asks "Leave site?", that question is his and the tool never answers it.
+  fields and never their values. For a take, `reload: true` is then his decision. For a close there is no
+  override: the tab stays open, and the result tells him which tabs were kept and why. The check runs in his tab
+  without a debugger, as the last thing before the reload or the close. If Chrome itself asks "Leave site?",
+  that question is his and the tool never answers it.
 - **Giving it back.** `chrome_release`, the **Give back** button next to the tab in the popup, dragging the tab out
   of its Claude group, or **Stop** (which gives back everything) each end Claude's control of the tab, drop its prepared
   operations and put it back where it was: its window, its place, his own group, pinned if it was pinned. If his
@@ -1311,11 +1315,14 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
 - **A reload on take loses what isn't work:** an open menu, a place in an endless list, a selection. *Harm:* he
   finds his tab reset. *Accepted:* the take rule (owner, 2026-11-11); looking needs no take, and Claude can work on
   a copy of the page in its own tab.
-- **Work a page keeps where the tool can't look.** The check before a reload or a close looks at fields, editors,
-  files, canvases, media and loading. A page he has used can still hold something in its script's memory alone,
-  with no field showing it (an earlier step of a wizard). *Harm:* that state is lost when the tab is reloaded or
-  closed. *Accepted:* the same happens when he closes the tab himself; pages that care ask "Leave site?", and the
-  tool never answers that for him.
+- **Work that reached a page without a click or a key of his.** A tab he has clicked or typed in is never
+  reloaded or closed by the tool's own choice, so work a page holds only in its script's memory (an earlier
+  step of a wizard) is safe. The mark for "clicked or typed" is the browser's own record. Text dropped in from
+  another window, or pasted from Chrome's own menu, may not set it. The check still sees a changed field, an
+  editor and a chosen file then; it doesn't see what only a script holds (a file dropped onto a page's own drop
+  zone). *Harm:* that state is lost when the tab is reloaded or closed. *Accepted:* it needs work that arrived
+  with no click and no key in the page and that shows in no field; brief 28b measures which inputs set the mark,
+  and its report lists them.
 - **A group of his that held only the taken tab comes back as a new group.** Chrome removes a group when its
   last tab leaves, and the tool makes one with the same name and colour on release. *Harm:* a group he had saved
   or synced isn't linked to the new one. *Accepted:* the tab, its place and the group's look are restored; Chrome
@@ -1558,8 +1565,9 @@ the first input (brief 28b).
       `aresos log` show the tab, the time and the request, and the button shows **READ**;
     - taking: a tab that isn't known clean gives `reload_required` with the reason and hasn't moved: a changed
       field, typing on a page that copies it into the field's default, an editor, a chosen file, a canvas he
-      used, playing media, fields restored after Back, a frame that doesn't answer, a load or a submission under
-      way; a fresh tab he never touched, and a used one with nothing but an empty or a search field, are taken;
+      used, a wizard whose finished step lives only in its script's memory, any other page he clicked or typed
+      in, playing media, fields restored after Back, a frame that doesn't answer, a load or a submission under
+      way; a fresh tab he never clicked or typed in is taken, also when he scrolled it;
       `reload: true` takes the others, except while a load, a submission or a dialog is in the way; a page loaded
       by a form submission is refused; `chrome_do` on one of his tabs that isn't taken is refused;
       `chrome_release`, **Give back**, dragging out and **Stop** each restore the window, the place, his group and
