@@ -63,7 +63,8 @@ class NameRulesTest {
         assertEquals("chrome", NameRules.cleanProgram("/usr/bin/google-chrome-stable"));
         assertEquals("foo", NameRules.cleanProgram("C:\\Apps\\bazzite-gnome-plasma-foo42.exe"));
         assertEquals("gimp", NameRules.cleanDesktop("org.gimp.GIMP.desktop"));
-        assertEquals("orgtest", NameRules.cleanDesktop("org.test"));
+        // Two parts are taken whole, then step 2 still strips the org. prefix.
+        assertEquals("test", NameRules.cleanDesktop("org.test"));
         for (String wrapper : List.of("flatpak", "env", "sh", "bash", "python", "python3", "pkexec", "sudo",
                 "xdg-open", "xdg-terminal-exec", "gtk-launch")) assertEquals("", NameRules.cleanProgram(wrapper));
         for (String suffix : List.of("appimage", "sh", "py", "bin", "exe", "x86_64"))
