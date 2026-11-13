@@ -91,8 +91,9 @@ def exercise(case, skip, steps, answers, permission=False):
     evidence = OUT / case / ('session-' + str(steps[0]['prompt'][-1]))
     evidence.mkdir(parents=True, exist_ok=True)
     env = dict(ENV, ARESOS_BOUNDARY_CASE=case)
-    flags = ['--dangerously-skip-permissions'] if skip else []
+    flags = ['--dangerously-skip-permissions'] if skip else ['--permission-mode', 'default']
     shown, daa, warnings = [], [], []
+    resumed = 0
     before = snapshot()
     (evidence / 'settings-before.json').write_text(json.dumps(before, indent=2))
     with Model(steps, evidence) as model:
@@ -115,7 +116,15 @@ def exercise(case, skip, steps, answers, permission=False):
                     offered = any(t.startswith("Yes, and don't ask again") for _, t in options(screen))
                     daa.append(offered)
                     terminal.choose(screen, 'DAA' if answer == 'DAA' and offered else ('Yes' if answer == 'DAA' else (answer or 'No')))
-                terminal.wait('completed-' + str(index + 1), lambda s: done in s)
+                completed = terminal.wait('completed-or-interrupted-' + str(index + 1),
+                    lambda s: done in s or 'Interrupted · What should Claude do instead?' in s)
+                if done not in completed:
+                    # Native No interrupts the turn. The denied result reaches
+                    # the model only after another owner prompt; this marker
+                    # cannot select another scripted send.
+                    terminal.prompt('INTERACTIVE_RESUME_CURRENT_TURN')
+                    resumed += 1
+                    terminal.wait('completed-' + str(index + 1), lambda s: done in s)
                 assert model.error is None, model.error
                 assert len(model.script.results) == index + 1, model.script.results
                 warnings.append(terminal.warning)
@@ -129,7 +138,8 @@ def exercise(case, skip, steps, answers, permission=False):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, target)
     return {'prompt_shown': shown, 'daa_offered': daa, 'warning_answered': any(warnings),
-            'model_requests': len(model.requests), 'stop_continuations': len(model.script.continuations)}
+            'model_requests': len(model.requests), 'stop_continuations': len(model.script.continuations),
+            'resumed_after_no': resumed}
 
 
 def main():
