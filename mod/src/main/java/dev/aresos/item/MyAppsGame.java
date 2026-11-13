@@ -74,6 +74,14 @@ public final class MyAppsGame {
     /** Any thread: what is his, or what an item looks like, changed. The inventories follow on a tick. */
     public static void changed() { CHANGES.incrementAndGet(); }
 
+    /** Initial population can finish additions, but never the pending sweep of the saved inventory. */
+    static void populated(ServerPlayer player, List<AppDefinition> without) {
+        var modes = ModeInventories.of(player);
+        var seen = SEEN.get(player.getUUID());
+        if (seen == null || !LiveMode.isLive(player) || modes.pending() || modes.changingMode()) return;
+        seen.added = without.isEmpty() ? CHANGES.get() : 0;
+    }
+
     /** Any thread: a complete program list went into the apps file. */
     public static void listed(AppsConfig.Merged merged) {
         // Day one fills My apps quietly; a program that turns up later is announced by name.

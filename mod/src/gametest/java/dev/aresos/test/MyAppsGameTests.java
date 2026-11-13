@@ -132,6 +132,26 @@ public final class MyAppsGameTests {
     }
 
     @GameTest(environment = BATCH)
+    public void completedInitialLivePopulationDoesNotRepeatOnTheNextTick(GameTestHelper helper) {
+        try (var fixture = Fixture.open(helper)) {
+            var player = fixture.player();
+            // Enabling a desktop has already populated Live. A later ordinary slot edit is not another login.
+            player.getInventory().setItem(9, ItemStack.EMPTY);
+            var edited = capture(player);
+            MyAppsGame.tick(player.level().getServer());
+            assertExact(player, edited, "Completed initial Live population repeated on a later tick");
+            // An initial attempt in Build must not claim that it populated Live.
+            check(switchAndAcknowledge(player, GameType.CREATIVE), "Switch to Build failed");
+            add(player, "other");
+            AppInventory.populate(player);
+            check(switchAndAcknowledge(player, GameType.SURVIVAL), "Return to Live failed");
+            MyAppsGame.tick(player.level().getServer());
+            check(items(player, "other") == 1, "A Build population marked Live additions complete");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(environment = BATCH)
     public void everyLoginRemovesStaleAppsFromBothInventories(GameTestHelper helper) {
         // Both ordinary Live login and a login that restores Live from a saved Build session.
         for (boolean quitInBuild : List.of(false, true)) try (var fixture = Fixture.open(helper)) {

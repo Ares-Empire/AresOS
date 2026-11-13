@@ -29,7 +29,11 @@ public final class AppInventory {
                 (payload, context) -> MyAppsGame.asked(context.player(), payload.id(), payload.mine()));
         MyAppsGame.register();
     }
-    public static List<AppDefinition> populate(ServerPlayer player) { return populate(player, AresOs.apps()); }
+    public static List<AppDefinition> populate(ServerPlayer player) {
+        var without = populate(player, AresOs.apps());
+        MyAppsGame.populated(player, without);
+        return without;
+    }
     /**
      * Live mode only. Takes out the items of apps that are not his, puts pinned apps in the hotbar, gives every
      * item its current look and name, and puts each of his apps that has no item in the first free slot beside
