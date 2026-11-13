@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static dev.aresos.test.ModeInventoryFixtures.*;
+import static net.minecraft.world.entity.player.Inventory.SLOT_OFFHAND;
 
 /**
  * My apps in the game (brief 34, B4): the inventory holds his apps and nothing else. Each test runs from start to
@@ -200,6 +201,107 @@ public final class MyAppsGameTests {
         var items = new ArrayList<>(inventory.items());
         items.set(slot, ItemStack.EMPTY);
         return new Inventory(List.copyOf(items), inventory.selected());
+    }
+
+    @GameTest(environment = BATCH)
+    public void giveWithAFullBuildInventoryPreservesTheOffhandItemAndSavedLive(GameTestHelper helper) {
+        try (var fixture = Fixture.open(helper)) {
+            var player = fixture.player();
+            player.getInventory().setItem(21, new ItemStack(Items.DIAMOND, 7));
+            var live = capturePersisted(player);
+            check(switchAndAcknowledge(player, GameType.CREATIVE), "Switch to Build failed");
+            fill(player, true);
+            var app = AresOs.app("mine");
+            var stack = AppItems.create(app);
+            stack.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, Component.literal("Keep my offhand app"));
+            player.getInventory().setItem(SLOT_OFFHAND, stack);
+            var build = capture(player);
+            long failures = fixture.said("Inventory is full");
+
+            int result = AppInventory.give(player.createCommandSourceStack(), app);
+
+            assertExact(player, build, "Giving the offhand app with a full Build inventory");
+            assertInactive(player, live, "Giving the offhand app changed saved Live");
+            check(result == 0 && fixture.said("Inventory is full") == failures + 1,
+                    "Giving the offhand app did not report failure");
+            check(player.inventoryMenu.getCarried().isEmpty() && appsOnTheGround(player) == 0,
+                    "The offhand app left the inventory");
+            check(fixture.savedAsMine("mine"), "Failed give changed My apps");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(environment = BATCH)
+    public void giveMovesOneExistingItemToTheFirstAvailableMainSlot(GameTestHelper helper) {
+        for (var mode : List.of(GameType.CREATIVE, GameType.SURVIVAL))
+            for (int from : List.of(15, SLOT_OFFHAND)) for (int free : List.of(-1, 4, 20)) {
+                if (from == SLOT_OFFHAND && free == -1) continue; // The failure case above.
+                try (var fixture = Fixture.open(helper)) {
+                    var player = fixture.player();
+                    // Save a distinct, fully populated other inventory before preparing the active one.
+                    if (mode == GameType.SURVIVAL)
+                        check(switchAndAcknowledge(player, GameType.CREATIVE), "Switch to saved Build failed");
+                    fill(player, mode == GameType.SURVIVAL);
+                    var inactive = capturePersisted(player);
+                    check(switchAndAcknowledge(player, mode), "Switch to active mode failed");
+                    fill(player, mode == GameType.CREATIVE);
+                    var inventory = player.getInventory();
+                    var app = AresOs.app("mine");
+                    var stack = AppItems.create(app);
+                    stack.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, Component.literal("Move me intact"));
+                    var prototype = stack.copy();
+                    inventory.setItem(from, stack);
+                    if (free >= 0) inventory.setItem(free, ItemStack.EMPTY);
+                    var before = capture(player);
+                    int destination = free < 0 ? from : Math.min(from, free);
+                    var expected = new ArrayList<>(before.items());
+                    expected.set(from, ItemStack.EMPTY);
+                    expected.set(destination, before.items().get(from));
+                    var moved = new Inventory(List.copyOf(expected), before.selected());
+                    long failures = fixture.said("Inventory is full");
+
+                    check(AppInventory.give(player.createCommandSourceStack(), app) == 1, "Give failed with a destination");
+                    assertExact(player, moved, "Give moved or replaced another item in " + mode);
+                    assertInactive(player, inactive, "Give changed the saved inventory");
+                    check(totalItems(player, prototype) == 1, "Give lost or copied the customized app item");
+                    check(AppInventory.give(player.createCommandSourceStack(), app) == 1, "Repeated give failed");
+                    assertExact(player, moved, "Repeated give moved or copied an item");
+                    assertInactive(player, inactive, "Repeated give changed the saved inventory");
+                    check(fixture.said("Inventory is full") == failures, "Successful give reported failure");
+                }
+            }
+        helper.succeed();
+    }
+
+    @GameTest(environment = BATCH)
+    public void giveOnlyAddsAMissingAppAfterFindingRoom(GameTestHelper helper) {
+        try (var fixture = Fixture.open(helper)) {
+            var player = fixture.player();
+            var live = capturePersisted(player);
+            check(switchAndAcknowledge(player, GameType.CREATIVE), "Switch to Build failed");
+            fill(player, true);
+            var inventory = player.getInventory();
+            var build = capture(player);
+            long failures = fixture.said("Inventory is full");
+
+            check(AppInventory.give(player.createCommandSourceStack(), AresOs.app("other")) == 0,
+                    "Give claimed to supply a missing item with no room");
+            assertExact(player, build, "Failed give of a missing app changed Build");
+            assertInactive(player, live, "Failed give of a missing app changed saved Live");
+            check(fixture.said("Inventory is full") == failures + 1, "Missing app failure was not reported");
+            check(!AresOs.app("other").mine() && !fixture.savedAsMine("other"), "Failed give changed My apps");
+
+            inventory.setItem(20, ItemStack.EMPTY);
+            check(AppInventory.give(player.createCommandSourceStack(), AresOs.app("other")) == 1,
+                    "Give failed to supply a missing app with room");
+            var expected = new ArrayList<>(build.items());
+            expected.set(20, AppItems.create(AresOs.app("other")));
+            assertExact(player, new Inventory(List.copyOf(expected), build.selected()), "Giving a missing app with room");
+            assertInactive(player, live, "Giving a missing app changed saved Live");
+            check(AresOs.app("other").mine() && fixture.savedAsMine("other") && items(player, "other") == 1,
+                    "Successful give did not supply and save exactly one app");
+        }
+        helper.succeed();
     }
 
     @GameTest(environment = BATCH)
