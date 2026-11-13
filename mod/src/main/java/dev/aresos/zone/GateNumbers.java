@@ -21,6 +21,11 @@ public final class GateNumbers {
     public static final double SIGN_GAP = 0.5;
     public static final float SIGN_SCALE = 4;
     public static final int SIGN_LINE_WIDTH = 120;
+    /**
+     * The sign's plate, as ARGB: three quarters black, as in the design's drawing. On the game's own quarter-black
+     * plate the white name is hard to read against a bright sky.
+     */
+    public static final int SIGN_BACKGROUND = 0xC0000000;
     /** A text display is drawn up to 64 blocks away times this. */
     public static final float SIGN_VIEW_RANGE = 160 / 64f;
     /** The two hidden light blocks stand this many columns in from each edge. */

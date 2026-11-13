@@ -161,6 +161,7 @@ public final class GateBuilder {
         var tag = new CompoundTag();
         tag.put("text", ComponentSerialization.CODEC.encodeStart(level.registryAccess().createSerializationContext(NbtOps.INSTANCE), text).getOrThrow());
         tag.putInt("line_width", GateNumbers.SIGN_LINE_WIDTH);
+        tag.putInt("background", GateNumbers.SIGN_BACKGROUND);
         // Turns around the upright axis only.
         tag.putString("billboard", "vertical");
         tag.putFloat("view_range", GateNumbers.SIGN_VIEW_RANGE);
