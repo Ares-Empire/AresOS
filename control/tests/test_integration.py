@@ -83,7 +83,14 @@ class Integration(unittest.TestCase):
 
     def request(self, uid, kind, request):
         # An independent client process provides genuine kernel peer credentials.
-        code = "import json,socket,sys; s=socket.socket(socket.AF_UNIX); s.connect(sys.argv[1]); s.sendall((sys.argv[2]+'\\n').encode()); f=s.makefile(); print(f.readline())"
+        # The service answers a refused peer and closes without reading its request. When that close wins the
+        # race, the client's send fails with a broken pipe while the answer already waits to be read. The answer
+        # is what every caller of this helper asserts on, so a lost send must not hide it.
+        code = ("import json,socket,sys\n"
+                "s=socket.socket(socket.AF_UNIX); s.connect(sys.argv[1])\n"
+                "try: s.sendall((sys.argv[2]+'\\n').encode())\n"
+                "except BrokenPipeError: pass\n"
+                "print(s.makefile().readline())")
         result = self.run_user(uid, code, str(self.root / ("sockets/" + kind + ".sock")), json.dumps({"v": 1, **request}))
         return validate_response(request, result)
 

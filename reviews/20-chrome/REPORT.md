@@ -317,6 +317,17 @@ artifacts match. The native-value recorder covers the new parent/child/form
 routes. The next Linux safety dispatch brings the count to **246**. Main's
 PR #43/#47 integration, latency limits and final workflow repetitions follow.
 
+**Main refresh for -f:** merged fetched `origin/main` at `f89d0237`, including
+PR #43's native interactive driver/17 cases and tmux dependency, both flaky-test
+fixes, the second service-unit pin test, PR #42's image-test brief and PR #47's
+hosted namespace tests. The only conflict was comment wording in hostile.py;
+main's wording is retained and its executable code was already identical.
+Chrome's precedence-only entry remains, alongside the main interactive workflow.
+Both unit pin tests remain and the complete service unit is still byte-identical
+to `8b7e799c`. Generated artifacts match and all merged Python sources parse.
+Forbidden-area changes in this commit come only from the authorised main merge.
+Full integration CI follows; no local container or browser was run.
+
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
 blank-frame base case. The new fixture had duplicate blank-frame addresses, so
