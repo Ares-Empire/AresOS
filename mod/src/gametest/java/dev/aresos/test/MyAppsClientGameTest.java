@@ -147,6 +147,8 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
                     check(player.level().getEntitiesOfClass(ItemEntity.class, player.getBoundingBox().inflate(16)).isEmpty(),
                             "Q put an app's item on the ground");
                 });
+                // A full inventory unlocked a recipe on the way; its toast is not part of this picture.
+                context.runOnClient(client -> client.gui.toastManager().clear());
                 context.waitTicks(5);
                 screenshot(context, "34-hotbar-pixel-icons");
             }
@@ -190,6 +192,16 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
             check(client.gui.screen().getFocused() == search(client), "The search box does not have the keyboard");
         });
         screenshot(context, "34-apps-150-programs");
+
+        // The keyboard scrolls too: Down and Up by a row, Page Down and Page Up by a screenful.
+        context.getInput().pressKey(GLFW.GLFW_KEY_DOWN);
+        context.runOnClient(client -> check(list(client).scrollAmount() == 20, "Down scrolled to " + list(client).scrollAmount()));
+        context.getInput().pressKey(GLFW.GLFW_KEY_PAGE_DOWN);
+        context.runOnClient(client -> check(list(client).scrollAmount() > 60 && list(client).scrollAmount() < list(client).getHeight(),
+                "Page Down scrolled to " + list(client).scrollAmount() + " in a list " + list(client).getHeight() + " high"));
+        context.getInput().pressKey(GLFW.GLFW_KEY_PAGE_UP);
+        context.getInput().pressKey(GLFW.GLFW_KEY_UP);
+        context.runOnClient(client -> check(list(client).scrollAmount() == 0, "Page Up and Up scrolled to " + list(client).scrollAmount()));
 
         // The wheel reaches the last of the 150 programs.
         double[] middle = context.computeOnClient(client -> window(client, list(client).getX() + list(client).getWidth() / 2.0,
@@ -336,8 +348,7 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
         command(context, "aresos app add no-such-program");
         waitForChat(context, "Unknown AresOS app");
 
-        // No free slot: the program is his all the same, has no item, and the chat says so. (Bedrock, because picking
-        // up most other blocks unlocks recipes and puts the game's toast into the last screenshot.)
+        // No free slot: the program is his all the same, has no item, and the chat says so.
         var filled = new ArrayList<Integer>();
         world.getServer().runOnServer(server -> {
             var inventory = world.getConnection().getServerPlayer().getInventory();
