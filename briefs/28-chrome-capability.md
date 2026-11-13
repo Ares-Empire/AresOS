@@ -232,28 +232,52 @@ methods or the session rules.
 The service renders the nodes; the reader only collects. Put the rendering and the references in a module of their
 own (for example `control/aresos_control/chrome/view.py`), tested without a browser against recorded node lists.
 
-**Addresses: one public form** (section 6, "Reading a page"). One function in the service, `public_address`, turns
-an address into the only form that may leave the service. It returns:
+**Addresses: a public form, and a short form for lists** (section 6, "Reading a page"). One function in the
+service, `public_address`, writes every address that leaves the service. No other code does. The lead decided the
+two forms on 2026-11-13: an address has to say which video, search or article it is, as in any browser tool, and
+only what looks like a sign-in is hidden.
+
+**The public form** holds:
 
 - the site: the host in lower case and ASCII, with the port when it isn't the scheme's default, and `http://` in
-  front when the address isn't `https`; never a user name or a password;
+  front when the address isn't `https`; **never a user name or a password**;
 - the path as the browser gives it, with two cuts. After a segment that holds a sign-in word (reset, verify,
   confirm, activate, magic, token, invite, auth, oauth, sso, saml, login, signin, logon, callback, password,
   passwort, otp; as a whole word or a part of the segment), everything that follows is one `…`. And a segment that
-  looks like a random value is `…`: it holds a run of 20 or more letters and digits with at least one of each, or
-  it is 24 or more hex digits once its hyphens are taken out;
-- `?…` when the address has a query and `#…` when it has a fragment: never a name or a value from either;
-- nothing but letters, digits and `. - _ ~ / % :` besides those marks. Everything else is percent-encoded, so an
-  address can't break an outline line.
+  **looks random** is `…`;
+- the query, parameter by parameter, names shown. A value is replaced by `…` when:
+  - **its name is a credential name.** The name, split into parts at `_`, `-`, `.`, brackets and a change of case,
+    has one of these words as a part: token, code, key, secret, signature, sig, password, passwd, pwd, auth,
+    session, sid, otp, ticket, state, nonce, jwt. So `access_token`, `id_token`, `refresh_token`, `api_key`,
+    `client_secret` and `sessionToken` match. A name written as one word (`apikey`, `sessionid`, `authtoken`)
+    matches when it begins or ends with one of the words; or
+  - **the value looks random,** tested after percent-decoding.
+  A parameter without `=` is a value without a name. A name that itself looks random is `…` too;
+- the fragment, treated the same way: like a query when it holds `=` (`#access_token=…&state=…`), like a path when
+  it holds `/` (a single-page site's route), and otherwise shown unless it looks random;
+- at most 300 characters, the rest counted as `…+N`; and nothing but letters, digits and
+  `. - _ ~ / % : ? & = + # ; ,` besides the `…` marks. Everything else is percent-encoded, so an address can't
+  break an outline line.
 
-Everything that leaves the service toward Claude, toward his question or toward the log carries addresses in this
-form and no other:
+**Looks random** means one thing everywhere: a run of 20 or more letters and digits with at least one letter and
+one digit in it, or 24 or more hex digits once the hyphens are taken out. An 11-character video id, a page
+number, search words and a slug with a year in it stay. A session token, a sign-in code, a UUID and a JWT don't.
+
+**The short form** is the public form with the query and the fragment reduced to the marks `?…` and `#…`. It is
+used where Claude is shown pages his request may have nothing to do with:
+
+- the list of `chrome_tabs`;
+- the entries of `chrome_library` (bookmarks, history, and where a download came from);
+- the `closed` and `kept` lists of `chrome_close`, and with brief 28b the popup and log lines that name one of his
+  tabs.
+
+**The public form is used everywhere else** that leaves the service toward Claude, toward his question or toward
+the log:
 
 - reads: the `url` of a page, a link's and a form's target, detail reads, `find`, change reports;
-- `chrome_tabs` and `chrome_library` (bookmarks, history, and where a download came from);
-- the results and error messages of every tool, the notices;
+- the results and error messages of every other tool, the notices;
 - a prepared operation's question and description, and what `chrome_operation_status` returns;
-- what the service writes to its audit log (`aresos log`).
+- what the service writes to its audit log (`aresos log`) about an operation.
 
 Full addresses stay inside the service and the extension: in the reference table, in an operation's payload
 (`binding`, `reference`) and in the commands to the extension. **Nothing about comparing changes:** the extension
@@ -263,8 +287,8 @@ went through `public_address` (`url`, `frame_url`, `effective_url`, `form.action
 `editable[].url`, a dialog's `frame_url`, and the `url` the extension reports after an input). The payload isn't
 touched. This is the one change this package makes inside those functions; show its lines in the report.
 
-Claude uses an address it can't see by reference: a link's `ref`, his tab's number, a library entry's `ref` (items
-4 and 6).
+Claude uses an address it can't see whole by reference: a link's `ref`, his tab's number, a library entry's `ref`
+(items 4 and 6). So a `…` never blocks a navigation.
 
 **The outline format** (normative; section 6 shows an example):
 
@@ -662,7 +686,7 @@ the start of the call, and no timeout is raised:
 
   Per tab: Chrome's tab number; whose (`claude`, `his`, `taken`); the marks `*` (the tab showing in its window),
   `pinned`, `sound`, `asleep`, `popup`, `no` (never readable: the fixed list, his never-list, not a web page) and
-  `look` (a read-only site); the title, quoted and cut at 80 characters; the address in the public form (item 2),
+  `look` (a read-only site); the title, quoted and cut at 80 characters; the address in the short form (item 2),
   cut at 60 characters.
 - **The list binds what follows** (section 6, "Which tabs Claude works in"). The result of `chrome_tabs` carries
   `seen`, a reference (item 3) for this list. For every tab in it the service keeps what it showed Claude: the tab,
@@ -696,16 +720,16 @@ the start of the call, and no timeout is raised:
   - **Brief 20's check before that reload is unchanged in this package.** It calls a tab clean when no field
     differs from its default, which many pages defeat by copying his typing into the default. Brief 28b replaces
     it (its item 4a). Say so in `KNOWN-LIMITS.md`; brief 28 must not reach his laptop without 28b.
-- **`chrome_library`** (read; input: `kind`, one of `downloads`, `bookmarks`, `history`; `text`; `cursor`; `limit`).
-  The three brief 20 tools merged, with their snapshot paging. Two differences: every address is in the public
-  form, and every entry carries a reference (item 3) that `chrome_open` takes as `ref`. The service keeps the full
-  address under that reference for as long as the snapshot lives.
+- **`chrome_library`** (read; input: `kind`, one of `downloads`, `bookmarks`, `history`; `text`; `cursor`; `limit`). The
+  three brief 20 tools merged, with their snapshot paging. Two differences: every address is in the short form (item 2),
+  and every entry carries a reference (item 3) that `chrome_open` takes as `ref`. The service keeps the full address
+  under that reference for as long as the snapshot lives.
 - **`chrome_upload`** (change; input: `tab`, `ref`, `path`). Brief 20's tool with a short reference. The proxy's
   file branch stays as it is, apart from the field names it reads.
 - **Unchanged in name, input, result and behaviour:** `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`,
   `chrome_operation_status`, `chrome_notices`, `chrome_notice_ack`, and the owner-only `chrome_sites`. The one
   thing that differs in what they return is item 2's: every address in a question, a description, a stage or a
-  notice is in the public form.
+  notice is in the public form, so a value that looks like a sign-in shows as `…`.
 - A new error code, `take_first`, for `chrome_read`, `chrome_go`, `chrome_do` and `chrome_upload` on a tab that
   isn't in Claude's group: "this is one of the owner's tabs; take it, or open its address in a Claude tab". (Brief
   28b lets `chrome_read` work there without a take.)
@@ -719,11 +743,12 @@ the start of the call, and no timeout is raised:
   its check that Claude Code passes them on unshortened): untrusted page text; what to do on `stale_reference`,
   `reload_required`, `take_first`, `owner_signin`, `owner_dialog`, `not_read` and `unknown`; the version notice; that
   `done` doesn't prove delivery and pages can send on their own; the clipboard rule; how to read an outline line, a fold
-  and `(filled, not read)`; that `full` reads everything; that an address is shown without what follows `?` or `#` and
-  is opened by reference; that a reference stays valid until its element changes; that one of his tabs is named together
-  with the list's `seen`; that `chrome_do` stops at the first asking step, that its `prepared` entry goes unchanged to
-  `chrome_submit`, and that steps it reports as not run are sent again. Each description keeps only what is specific to
-  its action. Write them for Claude: what it does, when to use it, what comes back.
+  and `(filled, not read)`; that `full` reads everything; that `…` in an address hides a part that may be a sign-in,
+  that lists show addresses without their query, and that such an address is opened by reference; that a reference stays
+  valid until its element changes; that one of his tabs is named together with the list's `seen`; that `chrome_do` stops
+  at the first asking step, that its `prepared` entry goes unchanged to `chrome_submit`, and that steps it reports as
+  not run are sent again. Each description keeps only what is specific to its action. Write them for Claude: what it
+  does, when to use it, what comes back.
 - **Sizes** (measured as brief 18d measured Mail's): all descriptions plus the instructions at most 10,000
   characters and not above the baseline; all names plus input schemas at most 6,000 characters. A test pins the
   exact totals; a change that grows them fails until the pin is changed on purpose.
@@ -807,10 +832,14 @@ Every new rule gets a test that fails without it.
   entries were dropped at the 5,000 bound and after the table was emptied; every stale case of item 3; a new
   reader instance in the same document; the letters differ from those of the last 100 runs, and are still drawn
   when the store fails;
-- `public_address` against a table: a user name and password, ports, a non-ASCII host, `http`, queries, fragments,
-  each sign-in word, random-looking segments such as a UUID, 40 hex digits, a 43-character token and a JWT,
-  segments that stay such as a slug with digits, a numeric id and an 11-character id, and characters such as `|`,
-  `[`, quotes, spaces and line breaks;
+- `public_address` against a table, in both forms: a user name and password, ports, a non-ASCII host, `http`; each
+  sign-in word in a path; each credential name as a parameter, alone, as a part (`access_token`, `apiKey`) and
+  written as one word (`sessionid`); values that look random (a UUID, 40 hex digits, a 43-character token, a JWT,
+  one hidden behind percent-encoding) in a path, a query and a fragment; what must stay (`?v=` with an
+  11-character id, `?q=` with words, `?page=2`, a slug with a year, a numeric id, a plain `#section-2`); a
+  fragment that is a query and one that is a route; a parameter without `=`; the 300-character cut; and
+  characters such as `|`, `[`, quotes, spaces and line breaks. The short form of each shows `?…` and `#…` and
+  nothing of either;
 - the `chrome_do` loop with a fake bridge: the check before the first step; the check before each step on fresh
   facts, with the value compared whole; a queued page step, a dialog and a new document found between two steps
   and after a `wait`; every stop, `not_run`, the deadline, nothing twice after an interruption at each point;
@@ -913,15 +942,21 @@ isn't just an empty table:
 - A tab is released and taken again without a reload in between: a reference from before is refused, although
   the document id and the reader's element id are the same.
 
-**Addresses, in group 14.** Fixture pages carry one marker value in the query, in the fragment, as a user name and
-password, and as a 40-character path segment after `/reset/`: in the page's own address, in link targets, in form
-actions, in a frame's address, in a redirect's target, and in history, bookmark and download entries.
+**Addresses, in group 14.** Fixture pages carry one marker value in every place a sign-in travels: under the
+parameter names `code`, `access_token`, `sig` and `session`; as a random-looking value of 40 characters under an
+ordinary name; the same in the fragment; as a user name and password; and as a 40-character path segment after
+`/reset/`. They carry it in the page's own address, in link targets, in form actions, in a frame's address, in a
+redirect's target, and in history, bookmark and download entries.
 
 - The marker appears in no result of any tool, in no error message, in no question or description, in nothing
   `chrome_operation_status` or `chrome_notices` returns and in no line of the audit log.
+- **An ordinary query is shown:** `?v=` with an 11-character id, `?q=red+shoes` and `?page=2` are in a read's `url`
+  and in a link's detail read, as they are, next to a hidden `…` for the marker in the same address.
+- **Lists show none of it:** the same addresses in `chrome_tabs` and `chrome_library` end in `?…`.
 - `chrome_open` with `ref` (a link, a library entry) and with `tab` still reaches the full address: the fixture
-  receiver logs the query.
-- Group 3's binding still refuses a destination whose query changed while the approval waited.
+  receiver logs the whole query.
+- Group 3's binding still refuses a destination whose query changed while the approval waited, also when the
+  changed value is one the question shows as `…`.
 
 **Group 15, going and acting in one call** (browser): as section 6 lists it. In addition:
 
@@ -1068,8 +1103,10 @@ No open JUDGMENT-CALL.
 - A reference is checked on its own element, by a fingerprint the service keeps, not on the whole view (item 3;
   section 6 gives the reasons and names what is no longer checked).
 - The tool list is replaced, not kept beside the new one: one surface to describe, test and review.
-- Claude doesn't see what follows `?` or `#` in an address (item 2). It costs something: Claude can't quote a
-  video's link. It opens such an address by reference instead.
+- An address is shown with its query, and a value is hidden only when its name says credential or it looks
+  random and is 20 characters or longer; lists show no query at all (item 2; the lead's decision of 2026-11-13,
+  replacing a first version that hid every query). The library is listed in the short form like the tabs: a
+  choice made here, easy to turn.
 - In a document the reader didn't watch from its start, a single-line text field shows only whether it is
   filled; a `textarea` and an editable area are read (item 1; narrowed by the lead on 2026-11-13). What that
   leaves is in section 6's known limits: a secret he unmasked in a long field under a label that says nothing.

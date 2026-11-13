@@ -85,7 +85,7 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
 ### 1. What Claude sees
 
 - `chrome_tabs` as brief 28 built it: every tab of every normal window, whose it is, the marks, the title, and the
-  address in brief 28's public form (no query, no fragment, no sign-in path).
+  address in brief 28's short form (no query, no fragment, no sign-in path).
 - **Incognito never.** Add `"incognito": "not_allowed"` to the manifest. An incognito window's tabs are never
   listed, read or taken.
 - **One profile, and it is pinned.** Brief 20's service accepts one native host at a time: whichever profile's
@@ -137,7 +137,9 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
   "Leaves no trace" (tests) is a promise for a tab that is already loaded.
 - **A tab that can't answer** (one of Chrome's own dialogs is open, or the page is stuck): the read gives up after
   two seconds with `owner_dialog`, "this tab doesn't answer; a dialog may be open; ask the owner". It never hangs.
-- **The result** carries `"whose": "his"` for such a tab.
+- **The result** carries `"whose": "his"` for such a tab, and the page's address in the public form, as every read
+  does (brief 28, item 2): the list showed that tab without its query, the read of the tab his request needs shows
+  it.
 - **References** from one of his tabs work for further reads (`ref`, `find`) and for `chrome_open` with `ref` (open
   that link in a Claude tab). An action on one answers `take_first`.
 - `chrome_open` with `tab` already works for his tabs (brief 28). Keep it: it is how Claude works on the same page
@@ -284,7 +286,7 @@ The owner, 2026-11-13 (board #201): "Yes, when I ask."
 - It closes only a tab that is **known clean** (item 4a). Every other tab stays open and is listed under `kept`
   with the reason. **There is no input that closes a kept tab:** where work could be lost, or the tool can't tell,
   he closes the tab himself.
-- The result lists each closed tab with its title and its address in the public form, so Claude tells him.
+- The result lists each closed tab with its title and its address in the short form, so Claude tells him.
 - A page of the fixed list or his never-list is never closed by Claude. A taken tab is given back first.
 
 ### 6. What he sees
@@ -297,7 +299,7 @@ The owner, 2026-11-13 (board #201): "Yes, when I ask."
   and requests are shown as text, never as markup. A taken tab has a **Give back** button, which is `release` for that
   tab. **Stop** still gives everything back.
 - **The log.** Every read, copy, take and close of one of his tabs is written to the service's log with the time,
-  the tab's title, its address in the public form and the request, so `aresos log` shows it (rule 4.9 covers
+  the tab's title, its address in the short form and the request, so `aresos log` shows it (rule 4.9 covers
   these reads although they change nothing).
 - **Nothing of ours opens a window or takes the focus.**
 
@@ -369,8 +371,9 @@ owner with real keys and clicks (`owner-ui.mjs`). Every new rule gets a test tha
 password cases under `password_exclusion`):
 
 - **The list:** two normal windows with groups, a pinned tab, a tab playing sound, an asleep tab, a popup; an
-  incognito window whose tab is absent; every address is in the public form (brief 28's marker fixture, in his
-  tabs: nothing of the query, the fragment or the sign-in path is in a result, the popup list or the log); a title
+  incognito window whose tab is absent; every address is in the short form (brief 28's marker fixture, in his
+  tabs: nothing of the query or the fragment is in the list, the popup list or a log line about his tabs, while an
+  in-place read of the same tab shows its ordinary query and `…` for the marker); a title
   made of instructions, forged marks (`claude`, `taken`, `no`) and direction-changing characters comes back quoted
   and escaped.
 - **Looking in place leaves no trace, in a tab that is loaded.** A fixture page records everything it can observe: every
