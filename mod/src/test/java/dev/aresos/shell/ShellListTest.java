@@ -58,6 +58,27 @@ class ShellListTest {
 
     private static boolean isList(JsonObject message) { return "list_apps".equals(FakeHelper.string(message, "op")); }
 
+    @Test void aReallyFreshFileWithAOneZeroHelperOwnsAllThreeStartersWithoutABaseline() throws Exception {
+        var file = folder.resolve("apps.json");
+        assertFalse(Files.exists(file));
+        dev.aresos.config.AppsConfig.load(file, true);
+        helper.minor = 0;
+        connect();
+        var listed = dev.aresos.catalogue.LinuxAppCatalogue.definitions(client.apps());
+        var first = dev.aresos.config.AppsConfig.merge(file, listed, client.detailed(), java.time.LocalDate.now());
+        assertEquals(Set.of("browser", "terminal", "notepad"), first.apps().stream()
+                .filter(dev.aresos.config.AppDefinition::mine).map(dev.aresos.config.AppDefinition::id)
+                .collect(java.util.stream.Collectors.toSet()));
+        assertNull(dev.aresos.config.AppsConfig.load(file).baseline());
+        dev.aresos.config.AppsConfig.mine(file, Map.of("browser", false));
+        var again = dev.aresos.config.AppsConfig.merge(file, listed, false, null);
+        assertFalse(again.apps().stream().filter(app -> app.id().equals("browser")).findFirst().orElseThrow().mine());
+        assertNull(again.baseline());
+        // Upgrading to a detailed helper must respect that removal too.
+        var detailed = dev.aresos.config.AppsConfig.merge(file, listed, true, java.time.LocalDate.now());
+        assertFalse(detailed.apps().stream().filter(app -> app.id().equals("browser")).findFirst().orElseThrow().mine());
+    }
+
     private List<String> cursors() {
         return helper.received("list_apps").stream().map(message -> FakeHelper.string(message, "cursor")).toList();
     }

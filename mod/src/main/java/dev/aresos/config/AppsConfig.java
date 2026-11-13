@@ -172,7 +172,7 @@ public final class AppsConfig {
         write(file, document(JSON.toJsonTree(apps).getAsJsonArray()));
     }
 
-    /** A program list without origins (Windows, a 1.0 helper): apps are added, nothing joins My apps by itself. */
+    /** A list without origins: newly discovered starter IDs are his; other programs wait for a detailed list. */
     public static synchronized List<AppDefinition> merge(Path file, List<AppDefinition> discovered) throws IOException {
         return merge(file, discovered, false, null).apps();
     }
@@ -226,8 +226,11 @@ public final class AppsConfig {
                 if (app.system().isEmpty()) entry.remove("system");
                 else entry.add("system", JSON.toJsonTree(app.system()));
             }
-            boolean joins = dayOne ? MyApps.dayOne(app.id(), app.system())
-                    : detailed && match < 0 && MyApps.joinsLater(app.system());
+            boolean starter = MyApps.STARTERS.contains(app.id());
+            // A starter discovered by 1.0 is his too, but an existing false entry is his own removal.
+            boolean joins = match < 0 && starter || (dayOne
+                    ? MyApps.dayOne(app.id(), app.system()) && !(starter && match >= 0)
+                    : detailed && match < 0 && MyApps.joinsLater(app.system()));
             if (joins && !mine) {
                 entry.addProperty("mine", true);
                 joined.add(app.id());
