@@ -2,6 +2,7 @@ package dev.aresos.zone;
 
 import dev.aresos.catalogue.AppGroup;
 import dev.aresos.config.AppDefinition;
+import dev.aresos.icon.AppIcons;
 import dev.aresos.world.HomeSites;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -29,9 +30,7 @@ import net.minecraft.world.level.block.LightBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.TagValueInput;
 
-import javax.imageio.ImageIO;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -58,19 +57,18 @@ public final class GateBuilder {
 
     /**
      * The picture of an app's gate: its icon by the rules of HUB.md 3.6, or a plain front in its group's colour
-     * when it has no readable icon or nothing of it is visible (HUB.md 2.3).
+     * when it has no readable icon or nothing of it is visible (HUB.md 2.3). The icon is the one {@link AppIcons}
+     * reads for the app's item: the owner's own path first, otherwise the picture the system named, within its limits.
      */
     public static GatePicture picture(AppDefinition app, int size) {
-        if (app.icon() != null) {
-            try {
-                var icon = ImageIO.read(Path.of(app.icon()).toFile());
-                if (icon != null) {
-                    var picture = GatePicture.of(icon, size);
-                    if (!picture.isEmpty()) return picture;
-                }
-            } catch (IOException | RuntimeException unreadable) {
-                // Falls through to the plain front; the sign says which app it is.
+        try {
+            var icon = AppIcons.read(app);
+            if (icon != null) {
+                var picture = GatePicture.of(icon.image(), size);
+                if (!picture.isEmpty()) return picture;
             }
+        } catch (IOException | RuntimeException unreadable) {
+            // Falls through to the plain front; the sign says which app it is.
         }
         return GatePicture.plain(concrete(app), size);
     }
