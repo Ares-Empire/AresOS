@@ -4,12 +4,13 @@
   "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Only test files and the CI workflow (its checks-only job) wait now, no tool, guide or image file.",
   "changes": [
     "Package 27b (laptop update record): os/tests/test_owner_path.py pins the laptop's step 8 update in INSTALL-STATUS; os/tests/test_checkout_sources.py and os/tests/test_owner_step_limits.py check this list by rules that hold at any time instead of requiring it empty while package 27's bindings exist",
-    "27b: the checks-only job fetches full history (the suite reads earlier commits)"
+    "27b: the checks-only job fetches full history (the suite reads earlier commits)",
+    "27c: the checks-only job lets the disposable runner create unprivileged user namespaces (kernel.apparmor_restrict_unprivileged_userns=0), so test_owner_update.ToolsUpdateTest runs instead of skipping"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "e85e522b91285c1225c6b967abcd07128badcb32add7d1e358a58f1bdb7088a6",
+      "sha256": "0e2ca79188fd51b21537b59f7376780f9d6393abd0a2939eb52a8ccca0187732",
       "path": ".github/workflows/os-image.yml"
     },
     {
