@@ -95,7 +95,7 @@ ARESOS_GRADLE=("$ARESOS_MOD_DIR/gradlew" --no-daemon)
 
 # Refuses Gradle's own daemon switches among the forwarded arguments: --daemon would win over --no-daemon (Gradle
 # takes the last of the two), --foreground starts a daemon that other sessions' builds could use, and --stop and
-# --status act on every daemon of this Gradle version on the laptop.
+# --status act on every daemon of this Gradle version on the laptop. Single-dash long options do the same.
 aresos_check_gradle_args() {
     local arg
     for arg; do
@@ -122,11 +122,17 @@ aresos_job_running() {
 
 # aresos_scope_start <name> [systemd-run options...] -- <command...>: starts the command in the background in a
 # new scope of this script and returns once that scope exists (or the command has already ended). Sets
-# ARESOS_UNIT to the scope and ARESOS_JOB to the job, which is only ever waited for. A stop sends TERM to
+# ARESOS_UNIT to the scope and ARESOS_JOB to the job. A launcher still awaiting activation is killed and reaped
+# after 15 s, before it can launch late. A stop sends TERM to
 # everything in the scope and KILL to what is left 20 s later (TimeoutStopSec; an option may set another).
 aresos_scope_start() {
-    local deadline=$((SECONDS + 15))
-    ARESOS_UNIT="aresos-dev-$1-$$-$SRANDOM.scope"
+    local deadline=$((SECONDS + 15)) units status=0
+    while :; do
+        ARESOS_UNIT="aresos-dev-$1-$$-$SRANDOM.scope"
+        units=$(systemctl --user list-units --all --no-legend --plain "$ARESOS_UNIT") \
+            || aresos_fail 1 "Could not check whether $ARESOS_UNIT already exists; not starting it."
+        [[ -n $units ]] || break
+    done
     shift
     # systemd-run creates the scope before it starts the command in it, so a stop by name before then would miss
     # a command that is about to start. A signal until the scope exists is held, then acted on below.
@@ -134,7 +140,11 @@ aresos_scope_start() {
     ARESOS_SCOPES+=("$ARESOS_UNIT")
     systemd-run --user --scope --quiet --collect --unit="$ARESOS_UNIT" --property=TimeoutStopSec=20 "$@" &
     ARESOS_JOB=$!
-    while aresos_job_running "$ARESOS_JOB" && ! systemctl --user --quiet is-active "$ARESOS_UNIT"; do
+    while ! systemctl --user --quiet is-active "$ARESOS_UNIT"; do
+        if ! aresos_job_running "$ARESOS_JOB"; then
+            wait "$ARESOS_JOB" || { status=$?; unset 'ARESOS_SCOPES[-1]'; }
+            break
+        fi
         if ((SECONDS >= deadline)); then
             # This is still our live launcher job. Reap it before cleanup so it cannot launch a command later.
             kill -KILL "$ARESOS_JOB" 2>/dev/null || true
@@ -147,6 +157,7 @@ aresos_scope_start() {
     done
     ARESOS_DEFER=0
     ((ARESOS_PENDING == 0)) || exit "$ARESOS_PENDING"
+    return "$status"
 }
 
 # aresos_stop_scopes <unit...>: stops these scopes of this script and returns once they are gone. systemd sends
@@ -181,7 +192,7 @@ aresos_stop_scopes() {
 # the command. Background commands ignore SIGINT; Ctrl+C reaches them through the trap too.
 aresos_scoped() {
     local status=0
-    aresos_scope_start "$@"
+    aresos_scope_start "$@" || return $?
     wait "$ARESOS_JOB" || status=$?
     aresos_stop_scopes "$ARESOS_UNIT"
     return "$status"
