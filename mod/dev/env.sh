@@ -106,11 +106,11 @@ aresos_scoped() {
 }
 
 # Every exit (success, failure, Ctrl+C, a closed terminal) stops the scope; a script adds its own steps by
-# defining aresos_cleanup, which runs first.
+# defining aresos_cleanup, which runs first and gets the exit code.
 aresos_exit() {
     local status=$?
     trap - EXIT INT TERM HUP
-    if declare -F aresos_cleanup >/dev/null; then aresos_cleanup || true; fi
+    if declare -F aresos_cleanup >/dev/null; then aresos_cleanup "$status" || true; fi
     aresos_stop_scope
     exit "$status"
 }
