@@ -392,7 +392,8 @@ class DiscoveredLaunchTest(DiscoveryBase):
         command = popen.call_args.args[0]
         self.assertEqual(command, ['/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--collect',
                                   '--slice=app.slice', '--unit=app-aresos-org\\x2dtest\\x2dprogram-ab1234.scope',
-                                  '--description=AresOS app: Test Program', '--', '/usr/bin/tool', 'a; b & c'])
+                                  '--description=AresOS app: Test Program', '--expand-environment=no', '--',
+                                  '/usr/bin/tool', 'a; b & c'])
         options = popen.call_args.kwargs
         self.assertEqual(options['cwd'], '/srv/notes')
         self.assertEqual(options['env'], {'HOME': '/test/home', 'WAYLAND_DISPLAY': 'test-display'})

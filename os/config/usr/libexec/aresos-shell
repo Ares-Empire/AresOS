@@ -1158,8 +1158,10 @@ class ScopeLauncher:
         return f'app-aresos-{unit_escape(app.id)}-{launch_id}.scope'
 
     def command(self, app, argv, launch_id):
+        # systemd-run expands ${NAME} in the command by default; the parsed Exec words must arrive unchanged.
         return [SYSTEMD_RUN, '--user', '--scope', '--quiet', '--collect', '--slice=app.slice',
-                f'--unit={self.unit(app, launch_id)}', f'--description=AresOS app: {app.name}', '--', *argv]
+                f'--unit={self.unit(app, launch_id)}', f'--description=AresOS app: {app.name}',
+                '--expand-environment=no', '--', *argv]
 
     def environment(self, app=None):
         env = {key: value for key, value in self.environ.items() if key not in PRIVATE_ENVIRONMENT and key not in GPU_KEYS}

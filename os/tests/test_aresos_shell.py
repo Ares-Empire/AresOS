@@ -438,7 +438,8 @@ class LaunchTest(Base):
         argv, options = self.popen.call_args.args[0], self.popen.call_args.kwargs
         self.assertEqual(argv, ['/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--collect', '--slice=app.slice',
                                 f'--unit=app-aresos-terminal-{reply["launch_id"]}.scope',
-                                '--description=AresOS app: Terminal', '--', '/usr/bin/foot', '--app-id=aresos.terminal',
+                                '--description=AresOS app: Terminal', '--expand-environment=no', '--',
+                                '/usr/bin/foot', '--app-id=aresos.terminal',
                                 '/usr/bin/bash', '--rcfile', '/usr/share/aresos/bashrc', '-i'])
         self.assertEqual(options['cwd'], '/var/home/ares')
         self.assertTrue(options['start_new_session'])
