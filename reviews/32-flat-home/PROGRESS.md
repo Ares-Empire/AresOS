@@ -6,20 +6,33 @@ Rules for whoever continues: read `AGENTS.md`, `briefs/32-flat-home.md` and `doc
 
 ## Done
 
-- Step 0 (this commit): everything the brief says to read has been read; the plan below is the result. **No code is written yet.**
+- Step 0: read everything the brief lists; the plan below.
+- Step 1: looked up the real 26.2 names (section "Real names in 26.2").
+- Step 2 (built, green): `hub/HubLayout.java` and `src/test/.../hub/HubLayoutTest.java` (6 unit tests pass).
+- Step 3 to 5 (built, compiles, the 38 older server tests pass): `world/FlatHome.java`, `hub/HubData.java`, `hub/FlatHub.java`, the home kind and `startPlan` in `world/NetherHome.java`, the two protection hooks (`zone/WalkInZones.java`, `mixin/LogoExplosionMixin.java`), `client/HomeCreateScreen.java` ("Home: Flat" / "Home: Nether"), `client/HomeButton.createFlat`, one `systemProperty 'aresos.hubReviewDir'` in `mod/build.gradle`, and one added click (`clickScreenButton("Home: Flat")`) in `NetherHomeClientGameTest` and twice in `HomeChoiceClientGameTest` so they still create a Nether home.
+- Step 6 (written, **4 of 7 fail**, see next section): `src/gametest/.../FlatHomeGameTests.java`, registered in the gametest `fabric.mod.json`, with the new environment `test_environment/flat_home.json`.
+
+**Nothing of the flat home has run in a real client yet.** `client-test.sh` has not been run on this branch at all, so the two edited Nether client tests are also unverified.
+
+## State of the server tests (last run: `build.sh` exit 1)
+
+Passing: `flatHomeRulesAreTheNetherOnesPlusFrozenTimeAndWeather`, `flatWorldHasTheDesignedLayersAndNoStructures`, `homeIsBuiltOnlyInANewWorldAndOnlyOnce`. All three hub tests passed once (third build), before leftovers of that run broke them.
+
+Failing, with the cause where it is known:
+
+1. `fixedThingsStandWhereTheDesignPutsThem` and `hubIsNotBuiltWhereSomethingStands`: **the server test world is kept between runs on this laptop.** `build/run/gameTest/world` still held region files from the first build although Gradle printed `deleteGameTestRunDir`. The tests build at fixed far coordinates (30000 / 31000 / 32000, 30000), so the second run found the first run's hub (gold under the home block; 104 road blocks already paved in the chunks that had been saved). Fix: take the origin from the test's own plot, which is at new far coordinates every run (`helper.absolutePos(BlockPos.ZERO)` was around -10281574, -59, 8669650), plus a few thousand blocks so the 49 x 49 hub cannot reach another plot. Do not assume clean ground at any fixed place. I deleted `mod/build/run/gameTest/world` after the last run so no stale hub record or rules mislead the next one.
+2. `liveModeProtectsHubBlocksAndBuildModeDoesNot`: `player.setGameMode(SURVIVAL)` on the player from `helper.makeMockServerPlayerInLevel()` did not switch ("Fixture: the player did not switch to SURVIVAL"). That vanilla mock class overrides `gameMode()`. Use a plain `ServerPlayer` through `placeNewPlayer` as `ZoneSafetyGameTests.join` does, and look at `ModeInventoryFixtures.switchAndAcknowledge` for how the other tests change mode in a marked world. Not yet known whether the rest of that test passes.
+3. `noMobAppearsInTenMinutes`: the ten minutes themselves pass (no mob), but **the control fails**: with `SPAWN_MOBS` on again, no mob appeared anywhere in 2400 ticks, so the test proves nothing yet and must stay red until the control works. Known so far: nothing ticks a mock player, so the test now calls `level.getChunkSource().move(player)` after the teleport; after that the home chunk ticks entities and 289 chunks count for spawning, and still nothing spawns. Not yet checked: whether the mock counts as a player for `NaturalSpawner` (try the plain `ServerPlayer` of point 2), and `ServerChunkCache.spawnEnemies`, a cached flag that `MinecraftServer.onGameRuleChanged` refreshes only when `SPAWN_MONSTERS` changes (its value is `SPAWN_MOBS && SPAWN_MONSTERS` at that moment). Animals do not depend on that flag and spawn only when `gameTime % 400 == 0`. When the control times out, the `restore` step does not run: rules stay changed and the player stays in the list, and with a kept world that carries into the next run. Make the restore happen on every path.
+
+The whole server suite, with the 12000 ticks, takes about 20 to 27 seconds.
 
 ## Left, in order
 
-1. Check the real 26.2 names with `javap` (list under "Still to look up"). Write what you find into this file.
-2. `hub/HubLayout.java` (numbers and group table, pure data) and its JUnit test.
-3. `world/FlatHome.java` (generator settings, rules, provisioning of a flat home), `hub/HubData.java` (`hub.dat`), `hub/FlatHub.java` (builds the fixed things through one `place` function). Manifest gets the home kind. Provisioning decision pulled out of `NetherHome.register()` so it can be tested.
-4. Protection hooks: `zone/WalkInZones.java` break hook and `mixin/LogoExplosionMixin.java`.
-5. Client side: `HomeCreateScreen` choice, `HomeButton.createFlat`.
-6. Server game tests (`FlatHomeGameTests`), including the ten-minute no-mob test.
-7. Client game test (`FlatHomeClientGameTest`) with the screenshots; one added click in the two existing Nether client tests so they still create a Nether home.
-8. `mod/dev/build.sh`, then `mod/dev/client-test.sh` twice. Look at every screenshot.
-9. `mod/README.md`, `README.md` ("Home is the Nether" line), `reviews/32-flat-home/REPORT.md` with a "try this" note (`mod/dev/run-hub.sh`, click AresOS).
-10. Fetch, merge main if #44 merged, delete this file, push, `gh pr create` against `main`. Do not merge.
+1. Make the four failing server tests pass for the right reasons (above). Run `build.sh` twice in a row to prove they survive a kept world.
+2. Client game test `FlatHomeClientGameTest` (design under "Tests" below), registered after `HomeChoiceClientGameTest`; screenshots into `System.getProperty("aresos.hubReviewDir")`.
+3. `mod/dev/client-test.sh` twice (`--keep-screenshots <dir>`). Look at every screenshot. Tune the names' colours only if a screenshot shows they are wrong (red 0xB02E26 and purple 0x8932B8 on the default dark background may be too dim against the sky) and say what changed. Afterwards `git checkout -- ../reviews/` from `mod/` for the other packages' screenshots; commit only `reviews/32-flat-home/screenshots/`.
+4. `mod/README.md` (the flat home next to the Nether home), `README.md` ("Home is the Nether" line), `reviews/32-flat-home/REPORT.md` with the "try this" note.
+5. `git fetch origin`; if #44 merged, merge `origin/main` (main's `mod/dev/` on conflict). Delete this file. Push. `gh pr create` against `main`. Do not merge.
 
 ## The plan (decided while reading; nothing here is tested yet)
 
@@ -54,21 +67,28 @@ To test the rules of brief point 8 without a real save, pull the decision at the
 
 **Shared files I expect to touch by a line or two (name them in the report):** `mod/build.gradle` (one `systemProperty 'aresos.hubReviewDir'`, placed between the `homeReviewDir` and `seedReviewDir` lines so it merges next to what 33 and 34 append; the 10-minute `timeout` only if the suite no longer fits), `mod/src/gametest/resources/fabric.mod.json` (two test classes; a one-line list, so expect a merge conflict with 33/34), a new test environment JSON, `zone/WalkInZones.java`, `mixin/LogoExplosionMixin.java`, the two Nether client tests.
 
-## Still to look up (26.2 is not obfuscated; no sources jar on the laptop)
+## Real names in 26.2 (found with `javap`; no sources jar on the laptop)
 
-Jars: `~/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-common-deobf/26.2/minecraft-common-deobf-26.2.jar` and `minecraft-clientonly-deobf`. `~/.local/opt/jdk-25/bin/javap -p -cp <jar> <class>` shows signatures (`-c` for bytecode). Maven Central is reachable if a decompiler jar is wanted in the scratchpad; never commit decompiled code.
+Jars: `~/.gradle/caches/fabric-loom/minecraftMaven/net/minecraft/minecraft-common-deobf/26.2/minecraft-common-deobf-26.2.jar` and `minecraft-clientonly-deobf`. `~/.local/opt/jdk-25/bin/javap -p -cp <jar> <class>` shows signatures (`-c` for bytecode).
 
-- `GameRules`: the real names of the day-cycle and weather-cycle rules (the design guesses `ADVANCE_TIME`, `ADVANCE_WEATHER`).
-- How to set the day time to 6000 and clear weather on a `ServerLevel` in 26.2.
-- `FlatLevelGeneratorSettings` / `FlatLayerInfo` / `FlatLevelSource` constructors; `WorldDimensions.replaceOverworldGenerator`; that `FlatLevelSource.spawnOriginalMobs` does nothing; that an empty structure override plus `generateStructures=false` gives no structures.
-- Setting the world spawn (`setRespawnData` or its 26.2 name).
-- `Display.TextDisplay`: text, billboard (vertical), brightness (full), view range (160 blocks is 2.5), scale 3 through the transformation, text colour; `hurtServer`.
-- Whether spawn chunks stay loaded in 26.2 and whether `addFreshEntity` into a chunk loaded only by `setBlock` keeps the entity (the client test must find all four displays after a reopen).
-- `GameTestHelper`: mock player, cleanup hook; the test environment JSON types.
-- How fast the test server runs 12000 ticks (expected well under a minute; measure with `build.sh`).
+- Rules: `GameRules.ADVANCE_TIME` and `GameRules.ADVANCE_WEATHER` exist, as the design guessed. `rules.set(rule, value, server)`; the server may be null in a test.
+- Time is a clock now: `server.clockManager().setTotalTicks(server.registryAccess().lookupOrThrow(Registries.WORLD_CLOCK).getOrThrow(WorldClocks.OVERWORLD), 6000)`; read it with `level.getOverworldClockTime()`. There is no `setDayTime`. `ClockTimeMarkers.NOON` exists for `moveToTimeMarker`.
+- Weather: `server.setWeatherParameters(clearTime, rainTime, raining, thundering)`; state in `server.getWeatherData()`.
+- World spawn: `server.setRespawnData(LevelData.RespawnData.of(dimension, pos, yaw, pitch))`.
+- Flat world: `new FlatLevelGeneratorSettings(Optional<HolderSet<StructureSet>>, Holder<Biome>, lakes).withBiomeAndLayers(layers, overrides, biome)`, `new FlatLayerInfo(height, Block)`, `WorldPresets.createNormalWorldDimensions(registries).replaceOverworldGenerator(registries, new FlatLevelSource(settings))`. `FlatLevelSource.spawnOriginalMobs` is empty. `settings.getLayers()` has one entry per block of height, index 0 at y -64.
+- Coloured blocks are collections: `Blocks.CONCRETE.lightBlue()`, `.red()`, `.yellow()`, `.purple()`; there is no `Blocks.RED_CONCRETE`. The block IDs (`minecraft:red_concrete`) are unchanged.
+- Entity types are in `EntityTypes` (`EntityTypes.TEXT_DISPLAY`). A display's setters are private, so `FlatHub` creates it from its saved form: `EntityType.create(type, TagValueInput.create(ProblemReporter.DISCARDING, registries, tag), level, EntitySpawnReason.COMMAND)`, with the public tag names `Display.TAG_BILLBOARD`, `TAG_BRIGHTNESS`, `TAG_VIEW_RANGE`, `TAG_TRANSFORMATION`, `Display.TextDisplay.TAG_TEXT`. Read one back in a test with `TagValueOutput.createWithContext(...)`, `entity.saveWithoutId(output)`, `output.buildResult()`.
+- `Display.hurtServer` is final and returns false: a group name cannot be hit by anything, in either mode. Nothing had to be added for that.
+- Saved data: `server.getDataStorage()` is one `SavedDataStorage` for the save; `get(TYPE)` returns null when missing or unreadable and never calls the type's constructor, `computeIfAbsent` does.
+- Server tests: `GameTestServer` uses vanilla's default flat preset (plains, grass at y -61, seed 0, no structures) and leaves the rules at their defaults, so mobs do spawn around test players. `isSingleplayerOwner` is always false there, so `DesktopWorld.isHost` is false for every test player. `helper.makeMockServerPlayerInLevel()` really joins through `placeNewPlayer`. `level.getHeight(...)` returns the minimum y for a chunk that is not loaded (load it first); `level.getBlockState` loads the chunk.
+- Explosion mode rule as built: `HubData.protectsFromExplosions(server)` is true unless some player is in creative mode. It does not ask for the host, because of the point above.
+- Client: `Screen.rebuildWidgets()` exists; `createFreshLevel(String, LevelSettings, WorldOptions, Function<HolderLookup.Provider, WorldDimensions>, Screen)`.
 
 ## Things the code does not show
 
 - `clickScreenButton("text")` in the client tests matches a button's literal text as well as a translation key (the existing tests click "50" and "Placeholder hub: OFF").
 - The client tests share `build/run/clientGameTest/saves/AresHub`; a test must move an existing one aside or archive it through the UI, never delete it.
 - `client-test.sh` takes about seven minutes today and Gradle stops it at ten.
+- `build.sh` logs of this session are in the scratchpad only; rerun to see output. `FlatHub.place` logs every position it leaves unbuilt with the two blocks it found, which is how the kept test world was found.
+- Names that are now misleading (say so in the report, do not rename): the class `NetherHome` and `data/aresos/nether_home.dat` also hold the flat home.
+- Decided while building: a flat manifest whose site is not `FlatHome.SITE`, or a world whose Overworld generator is not the one `FlatHome.dimensions` makes, is refused before anything is built. `hub.dat` stores the home as dimension plus block, so protection applies in that dimension only.

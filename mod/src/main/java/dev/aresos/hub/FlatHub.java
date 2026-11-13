@@ -58,8 +58,10 @@ public final class FlatHub {
      * anything else is his, or another build's, and stays. What it places is recorded with its position.
      */
     private static void place(ServerLevel level, BlockPos pos, String id, List<HubData.Placed> placed) {
-        if (!level.getBlockState(pos).is(Blocks.GRASS_BLOCK) || !level.getBlockState(pos.above()).isAir()) {
-            AresOs.LOGGER.warn("AresOS hub: left {} unbuilt, something stands there", pos.toShortString());
+        var ground = level.getBlockState(pos);
+        var above = level.getBlockState(pos.above());
+        if (!ground.is(Blocks.GRASS_BLOCK) || !above.isAir()) {
+            AresOs.LOGGER.warn("AresOS hub: left {} unbuilt, something stands there (ground {}, above it {})", pos.toShortString(), ground, above);
             return;
         }
         Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(id));
