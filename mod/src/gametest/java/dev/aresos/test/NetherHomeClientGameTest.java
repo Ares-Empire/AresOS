@@ -70,6 +70,7 @@ public final class NetherHomeClientGameTest implements FabricClientGameTest {
                 check(s.getWorldData().getGameType() == GameType.SURVIVAL, "World not survival");
                 check(s.getWorldData().getDifficulty() == Difficulty.NORMAL, "Wrong difficulty");
                 check(DesktopWorld.isEnabled(s), "Desktop marker missing");
+                check(dev.aresos.hub.HubData.get(s) == null, "A Nether home got the flat home's pad and roads");
                 NetherHomeGameTests.assertRules(s.getGameRules());
                 NetherHomeGameTests.assertHub(s.getLevel(Level.NETHER), NetherHome.DEFAULT_SITE);
                 check(s.getLevel(Level.NETHER).getEntitiesOfClass(net.minecraft.world.entity.item.ItemEntity.class,

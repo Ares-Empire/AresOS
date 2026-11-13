@@ -107,7 +107,16 @@ public final class FlatHomeGameTests {
     public void fixedThingsStandWhereTheDesignPutsThem(GameTestHelper helper) {
         var level = helper.getLevel();
         BlockPos home = homeAt(level, far(helper, 3000, 0));
-        var fixed = build(level, home);
+        assertFixedThings(level, home, build(level, home));
+        helper.succeed();
+    }
+
+    /**
+     * The pad, the four avenues and the four names around {@code home}, as HUB.md 3.2 states them, with nothing else
+     * built in the square they lie in, and a record that lists exactly these. The client test calls this for the
+     * real world, where home is (0, 64, 0) and these offsets are the design's world coordinates.
+     */
+    public static void assertFixedThings(ServerLevel level, BlockPos home, HubData.Fixed fixed) {
         var expected = new HashMap<BlockPos, Block>();
         for (int x = -2; x <= 2; x++) for (int z = -2; z <= 2; z++) expected.put(home.offset(x, -1, z), Blocks.POLISHED_BLACKSTONE_BRICKS);
         expected.put(home.below(), Blocks.GOLD_BLOCK);
@@ -153,7 +162,6 @@ public final class FlatHomeGameTests {
             check(scale.size() == 3 && scale.getFloatOr(0, 0) == 3 && scale.getFloatOr(1, 0) == 3 && scale.getFloatOr(2, 0) == 3,
                     words[i] + " has scale " + scale);
         }
-        helper.succeed();
     }
 
     @GameTest(environment = "aresos-test:home")
@@ -187,7 +195,10 @@ public final class FlatHomeGameTests {
         ServerPlayer player = join(level, "FlatHubTest");
         try {
             DesktopWorld.setEnabled(server, true);
-            BlockPos home = homeAt(level, far(helper, 9000, 0));
+            // At x 15, z 3 within its chunk, the west name hangs in the chunk the build loads last: the layout in which
+            // a freshly loaded chunk does not show its entities yet (see build below).
+            BlockPos column = far(helper, 9000, 0);
+            BlockPos home = homeAt(level, new BlockPos((column.getX() & ~15) + 15, 0, (column.getZ() & ~15) + 3));
             var fixed = build(level, home);
             HubData.store(server, new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), fixed));
             player.snapTo(home.getX() + 0.5, home.getY(), home.getZ() + 0.5, 180, 0);
@@ -419,8 +430,14 @@ public final class FlatHomeGameTests {
     }
 
     private static HubData.Fixed build(ServerLevel level, BlockPos home) {
-        try { return FlatHub.build(level, home); }
+        HubData.Fixed fixed;
+        try { fixed = FlatHub.build(level, home); }
         catch (IOException error) { throw new AssertionError(error); }
+        // A chunk loaded in this tick shows its entities only after the server has run that chunk's queued promotion,
+        // which it does before the next tick or during the next chunk load. Until then a name added to the chunk
+        // loaded last is in the world but cannot be looked up, so run what is queued, as the server itself would.
+        for (int task = 0; task < 10000 && level.getChunkSource().pollTask(); task++) { }
+        return fixed;
     }
 
     /** A column this far from the test's own plot: new ground in every run, out of reach of the plots and of each other. */

@@ -270,6 +270,7 @@ public final class HomeChoiceClientGameTest implements FabricClientGameTest {
                 for (String action : List.of("", " set", " info")) check(command(server, player, "aresos home" + action) == 0, "Normal world accepted home" + action);
                 check(NetherHome.get(server) == null, "Normal world acquired home data");
                 DesktopWorld.setEnabled(server, true);
+                check(dev.aresos.hub.HubData.get(server) == null, "A marked desktop world got the flat home's pad and roads");
                 var before = snapshot(server.overworld(), BlockPos.containing(PICKED), 2, -1, 3);
                 check(command(server, player, "aresos home set") == 1, "Marked desktop could not choose a home");
                 assertTarget(NetherHome.get(server).home(), Level.OVERWORLD);
