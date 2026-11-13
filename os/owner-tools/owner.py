@@ -1680,6 +1680,10 @@ class Tools:
         booted = shape['booted']
         removed = finalizer_masks()
         self.intend('update', again, settled)
+        # A power loss after staging can reach finalize without the result/record below.
+        # Name the deployment it will remove before making that possible.
+        for other in (d for d in shape['ares'] if d is not booted):
+            say('At shutdown, this update removes ' + role(shape, other) + ' ' + image_reference(other))
         text = self.render('update', {'REFERENCE': target, 'CURRENT': image_reference(booted),
                                       'CURRENT_DIGEST': booted['container-image-reference-digest']})
         # From the start of the step to the end of its stop routine, Ctrl+C, a closed
@@ -1834,10 +1838,12 @@ class Tools:
         dump = self.host.read('dumpkeys', '-C', '/dev/tty3', '--keys-only')
         profile = settings['VConsoleKeymap']
         require(profile in ('de', 'us', 'us-intl'), 'Unsupported loaded keyboard profile; get help')
+        layout_next = ('; from a fresh physical administrator login run ' + typed('layout', 'abandon')
+            + ', then ' + typed('check') + ' again') if (self.store / 'layout-pending.json').exists() else '; get help'
         for code, letter in zip((21, 44), ('z', 'y') if profile == 'de' else ('y', 'z')):
             rows = re.findall(r'^keycode\s+' + str(code) + r'\s*=\s*([^\s]+)', dump, re.M)
             require(len(rows) == 1 and rows[0] in (letter, '+' + letter, 'U+' + format(ord(letter), '04x'), '+U+' + format(ord(letter), '04x')),
-                'Loaded console keys differ from system layout')
+                'Loaded console keys differ from system layout' + layout_next)
         cmdline = pathlib.Path('/proc/cmdline').read_text().split()
         bls = resolved_bls()
         options = [bls_arguments(e) for e in keyboard_entries(state, saved, bls)]
@@ -2001,13 +2007,18 @@ class Tools:
                     require(value['old'] in profiles.values() and value['new'] in profiles.values(),
                         'Unsupported recorded layout trial; get help')
                     partial = dict(value['old'], **{k:value['new'][k] for k in ('VConsoleKeymap', 'VConsoleKeymapToggle')})
-                    require(finished == value['old'] or value.get('finishing') and value['proof']
+                    require(finished == value['old'] or value.get('finishing') and (value['proof'] or value.get('finish_proof'))
                         and finished in (partial, value['new']), 'Finished system layout changed during the abandoned trial')
                     if finished != value['old']:
                         self.set_keyboard(value['old'])
                         finished = value['old']
                 else:
-                    require(finished in profiles.values(), 'Unsupported finished system layout; get help')
+                    # The running deployment may itself have a repair note from an earlier
+                    # trial. Its exact recorded partial setting is repaired below; another
+                    # deployment's pending trial must not make that repair unreachable.
+                    repairable = any(n['old'] in profiles.values() and finished == dict(n['old'],
+                        **{k: n['new'][k] for k in ('VConsoleKeymap', 'VConsoleKeymapToggle')}) for n in mine)
+                    require(finished in profiles.values() or repairable, 'Unsupported finished system layout; get help')
                     if value.get('finishing'):
                         # Its finish had begun: that deployment's /etc may be half written, and only it
                         # can be repaired from there. The note stays until layout abandon runs on it.
@@ -2040,6 +2051,10 @@ class Tools:
         if action == 'revert':
             require(current == value['administrator'], 'Revert from the original open administrator session')
             self.trial_keyboard(value['old'])
+            # Revert asks for a new proof, but cannot erase why an interrupted finish
+            # was allowed to write /etc. Abandon still needs that evidence to repair it.
+            if value.get('finishing') and value['proof']:
+                value['finish_proof'] = value['proof']
             value.update(reverted=True, proof=None, began_us=int(time.monotonic() * 1000000))
             self.save('layout-pending', value)
             return ['Old console/X11 settings restored; no reboot', 'Log out tty4; prove a fresh password login using the old layout',

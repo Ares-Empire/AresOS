@@ -9,7 +9,8 @@
     "27c: the checks-only job's time limit goes from 15 to 25 minutes, since the namespace tests now run",
     "Package 22c stage 0 (reorder probe): os-image.yml, the dispatch guard and its ledger, the owner harness lists and owner_vm.py know package 22c and its mode reorder-probe; owner_vm.py shares package 27's route up to release 27 confirmed (laptop_update, confirmed_update) and owner_media.py can copy a bundle from history; the tests that pin the workflow's expressions and the local walk follow",
     "22c stage 1a: main merged in (27c's checks-only step and time limit beside 22c's probe mode in os-image.yml)",
-    "22c stage 1a, step 1: owner.py holds the state machine of section A (free order, one reorder, the journal by the list, tools version 3); os/release/start-next.sh is new and in the bundle; the payload is refreshed"
+    "22c stage 1a, step 1: owner.py holds the state machine of section A (free order, one reorder, the journal by the list, tools version 3); os/release/start-next.sh is new and in the bundle; the payload is refreshed",
+    "22c stage 1a step 2: layout/model regressions, four narrow fixes; B2 blocked by A4 destination conflict"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -62,15 +63,15 @@
       "path": "os/owner-tools/history.json"
     },
     {
-      "sha256": "8d22ae3ad9e4df33aadc0da521426d02a48590e1d1cf2e1dd3d7dadff7dfceb9",
+      "sha256": "24d0f8310a87d6ba8ec6060f9ba3f9e58057525e8ca57e9afbea64afc8a374f3",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "5dcf121f02eca19af162533bb472b74c429285f993c155738b10f7e6988a5583",
+      "sha256": "c5e82526d746f173950b7a7b1520b0d8e7c1359371881e2e54222df8da3eb58f",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "28900bf138f96ba12b5a934d4ccfebdb4f4583972f1d22ee3d872b70a21e4784",
+      "sha256": "d2b40b50e091b377bc8d9258a35643065202525f27053599f16dbeef08dcb679",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -78,7 +79,7 @@
       "path": "os/owner-tools/payload/history.json"
     },
     {
-      "sha256": "8d22ae3ad9e4df33aadc0da521426d02a48590e1d1cf2e1dd3d7dadff7dfceb9",
+      "sha256": "24d0f8310a87d6ba8ec6060f9ba3f9e58057525e8ca57e9afbea64afc8a374f3",
       "path": "os/owner-tools/payload/owner.py"
     },
     {

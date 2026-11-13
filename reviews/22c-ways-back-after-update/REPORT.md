@@ -341,3 +341,195 @@ each followed by no restart and by a start of each row), `StagingTest` 6.
 - Local: `cd os/tests && nice -n 10 python3 -m unittest test_ways_back` printed
   `Ran 34 tests in 11.761s`, `OK` (7187 MB available before it). No code defect was found by B7;
   `owner.py` is unchanged in this part. The full model and fixture/revert proofs follow in part (b).
+
+### Part (b): model checkpoint — STOP, the brief's rules conflict
+
+**This is not completion of B2 or a green stage 1a.** The builder stops under the instruction to report a
+required rule change instead of making one. A4(b) and A6 require staging R28 from a running/default R13,
+even when R27 is installed. B2 also requires every installed system to be selectable by one command in
+that resting state. No defined command can select R27 there.
+
+Reproduction, with the R28 test bundle:
+
+1. Start `[R27*, R13, S]`; `previous`; restart with no menu choice: `[R13*, R27, S]`.
+2. `title` confirms and archives the previous record. Nothing is staged, no restart is waiting, no trial or
+   repair note exists, and all settings are whole. The conflict also exists before that title.
+3. Independently try each destination command from that same state:
+
+| Word | Required result under A4/A6 |
+|---|---|
+| `update` | Stage R28: `[R28(staged), R13*, R27, S]`; finalize removes R27. |
+| `previous` | R13 already starts next; nothing changes. |
+| `rollback` | S starts next. |
+| `keep-stock` | STOP: AresOS runs, so use rollback. |
+
+`ModelTest.test_brief_conflict_new_bundle_cannot_select_newest_installed_in_one_command` verifies this
+counterexample against the real entry points, including the title that closes the journal. The separate
+`ModelTest.test_reachable_state_space` retains B2's assertion and **fails** on the R13 default state.
+It is not skipped, marked expected-failure, or changed to accept this gap. The request to add no hosted
+failure cannot be satisfied together with that assertion and the instruction not to change a rule.
+The hosted comparison below distinguishes this one new name from the inherited failures.
+
+### Done in part (b)
+
+- `os/tests/ways_back_ledger.py`: independent immutable event ledger. It imports no owner code or fake-host
+  code. State includes named deployments, running identity, stage, full open journal, trial/session/boot
+  equivalence, repair notes, and separate console/X11 settings for every installed deployment. All three
+  profiles are explicit. Selection applied, restart waiting, and target boot confirmed stay separate.
+- `os/tests/ways_back_host.py`: the B3 fake used by the model and the fixture tests. It runs the real
+  reorder/update script assertions with intercepted subprocess calls, records mutations only at primitives,
+  implements staged-row dropping on list writes, destructive cleanup's real rule, finalize's new/pinned/
+  booted/merge/other-stateroot retention, and settings inheritance. bootc slots and boot order are independent
+  of owner helpers. Reorders keep entry files fixed and swap the positional links, including the stale
+  kernel link demonstrated by stage 0. Running identity always comes from the `booted` row.
+- `os/tests/test_ways_back_model.py`: real `Tools` entry points over private in-memory records and the fake.
+  The expected transition is computed from the ledger **before** calling the tools; their return values
+  never choose the oracle branch or the next queued state. State comparisons include journal fields,
+  archives, confirmations, persistent settings, pins and boot-entry identities. Power cuts bypass normal
+  cleanup after intent, primitive, record, layout finishing intent, console write and both persistent writes.
+  Each reachable phase has restart/default/menu-choice and power-off successors. Refused commands have no
+  reached primitive at which to inject a cut.
+- B10: all **15** stage-0 deployment/layout captures replayed through that same fake, with six set-default
+  outputs and journal messages, every slot/flag/pin, unchanged entry bytes and their new resolved identities,
+  and the misleading positional kernel link. Captured entry arrays follow directory enumeration, so files
+  are compared by filename, not array position. Five older retained pair/first-switch captures also bind
+  slots, queued flags and boot order. There is **no real triple-finalize evidence** here.
+- B11's four named executable mutant proofs: append instead of prepend fails the stage-0 fixture; retaining
+  bootc's rollback row fails the independent finalize retention assertion; a side check before resolution
+  fails the rollback cut/restart-on-stock path; requiring the recorded target to run fails the rollback/
+  restart-on-R27/check path. Four short regression paths preserve the defects below independently of where
+  the exhaustive walk stops.
+- Four narrow `owner.py` fixes, described below. Its payload copy and generated manifests were refreshed
+  because tests read the payload; no guide, fingerprint pin, release/history pin, or commands.json changed.
+  Generated payload fingerprint: `d2b40b50e091b377bc8d9258a35643065202525f27053599f16dbeef08dcb679`.
+- Regenerated the 22c host walk, then the pending-rebind rows (25 bound files). Package 27's receipt is untouched.
+
+### Defects found in the state machine, and fixes
+
+The exploratory walk found these before the full invariant audit. Each sequence now has a short regression
+in `RevertTest.test_the_four_found_defects_have_short_replaying_regressions`. No destination rule changed.
+The tests use synthetic R21/R30 references as R27/R28, consistently with step 1.
+
+1. **Unannounced removal at a staging cut (A6/B2).** `[R27*, R13, S]`, R28 bundle; `update`; cut immediately
+   after bootc stages, before the completion record/returned output; a normal shutdown can then finalize
+   and remove R13. The removal line previously existed only in returned output after recording. Fix: print
+   `At shutdown, this update removes <role> <reference>` after intent and before staging. The previous
+   completion lines and return values remain unchanged. The cut test failed with `unannounced removal`.
+2. **`check` offered no way out of a runtime trial (A8/B2).** `[R13*, S]`; `layout begin us`; `check`.
+   It STOPped with only `Loaded console keys differ from system layout`. Fix: while a trial exists, name a
+   fresh physical administrator login, `sudo /var/lib/ares/at layout abandon`, then `sudo /var/lib/ares/at check`.
+   Outside a trial the line now ends `; get help`. The check/recovery path leaves every deployment intact.
+3. **Revert erased repair authorization after interrupted finish (A7).** `[R13*, S]`; begin US; proof;
+   cut after the finish's console persistence; `layout revert` in the original session; fresh login;
+   `layout abandon`. Revert cleared `proof`, so abandon refused the exact recorded half-written setting.
+   Fix: before clearing proof on a finishing trial, retain it as `finish_proof`; abandon accepts that saved
+   evidence too. Revert still requires a fresh proof before finishing. No arbitrary partial setting is accepted.
+4. **A second trial stranded an existing repair note (A7).** `[R27*, R13, S]`; begin US, proof, cut after
+   console persistence; boot R13; abandon (note for R27); `previous` makes the running R13 default;
+   begin a trial on R13; boot R27; abandon. R27's exact partial setting was rejected before its own note's
+   repair loop. Fix: while abandoning another deployment's trial, also accept the exact partial value
+   authorized by this running deployment's existing repair note; the existing loop then restores it.
+   The other deployment's `/etc` is never written.
+
+### Verified locally
+
+All commands ran in this worktree; tests ran one module at a time with `nice -n 10`, after `free -m`
+showed at least 4500 MB available. No `test_owner_update` suite, full local suite, Gradle, VM or real owner
+command ran. That module was imported only as a fixture library.
+
+| Command/module | Result |
+|---|---|
+| `cd os/tests && nice -n 10 python3 -m unittest test_ways_back` (part a) | 34 tests, 11.761s, OK. |
+| Same command after all four fixes and payload refresh | 34 tests, 12.110s, OK. Printed the new pre-staging removal lines. |
+| `nice -n 10 python3 -m unittest -f test_ways_back_model.CaptureTest test_ways_back_model.FakeRulesTest test_ways_back_model.RevertTest test_ways_back_model.ModelTest.test_brief_conflict_new_bundle_cannot_select_newest_installed_in_one_command` | 11 tests, 0.242s, OK. |
+| `nice -n 10 python3 -m unittest test_ways_back_model` (final local run) | 12 tests, 1.508s, **1 failure**, the B2/A4 conflict. The other 11 passed. |
+| `python3 os/owner-tools/bundle.py --refresh` | `PASS bundle manifest SHA256 d2b40b50e091b377bc8d9258a35643065202525f27053599f16dbeef08dcb679`. |
+| `python3 reviews/22c-ways-back-after-update/walk-host.py` | `PASS package 22c host walks (reorder-probe): 257 sources; no VM started`. |
+| `python3 reviews/27-first-update-release/rebind.py pending "22c stage 1a step 2: layout/model regressions, four narrow fixes; B2 blocked by A4 destination conflict"` | `pending: 25 bound files differ from the active bindings`. |
+| `git diff --check` | No output, success. |
+
+**Size and time of the state space:** closure was **not reached** and no total size is claimed. The strict
+model's final local run printed `417 discovered states, 151 checked states, 3602 edges, 1.293s; closure NOT
+reached` before failing B2. Earlier transition-only exploration found defects 3 and 4 after 14.957s and
+138.475s. A later exploratory run was stopped after 27,416 discovered states / 550,034 edges to bound work
+and inspect runtime. Another was stopped after 20,000 checked states / 34,689 discovered states. A ledger-only
+counting experiment (no Tools proof) was stopped after 980,000 expanded states / 1,183,904 discovered states /
+24,213,237 edges at 276.37s; these are lower bounds, **not** completion evidence. The three processes were
+interrupted by their own recorded PIDs, and their temporary directories cleaned by context managers. The
+unfinished model will need runtime work after the rule conflict is settled; do not dispatch it as a claimed
+full-state proof merely because the short counterexample is fixed. No asserted test was skipped to obtain green.
+
+### B11 assertion map and its limits
+
+The executable mutants above were run. The following maps every existing A rule to its guarding assertion;
+this is **not** a claim that every row has had a separate production-code mutation run. Completing that campaign,
+and the full model, remains open at this stop. All names below are in `test_ways_back` unless qualified.
+
+| Rule removed | Assertion that detects it |
+|---|---|
+| A1, accepted deployment sets | `ShapeTest.test_wrong_sets_keep_refusing`, and `test_before_the_first_switch_nothing_changes_and_rule_10_does_not_speak`. |
+| A2, free order/running member | `ShapeTest.test_every_order_and_running_system_of_the_pair_and_the_triple_is_accepted` (22 combinations). |
+| A3, exact reorder/sync | `ScriptTest.test_reads_immediately_before_one_set_default_syncs_and_checks_the_result`, `test_a_wrong_list_afterwards_or_a_failed_call_fails`; `DestinationTest` compares exact rows and calls. |
+| A4, named destinations | `DestinationTest.test_each_word_moves_only_its_target_to_the_front_from_every_order_and_system`; the new counterexample separately pins A4(b). **B2's stronger promise is blocked.** |
+| A5, resolve first/three outcomes | `JournalTest.test_every_cut_of_every_reorder_resolves_from_the_list_alone`, `test_applied_nothing_waits_is_its_own_outcome_and_the_next_start_decides`; the two new journal mutants fail the model assertions. |
+| A6, staging/retention/settings | `StagingTest.test_staging_from_the_older_aresos_prints_both_lines_and_finalize_keeps_three`, `test_completion_is_right_with_the_stock_in_the_middle`; the new finalize mutant fails `retention after finalize`. |
+| A7, trial/repair ownership | All five new `LayoutTest` methods; the two new multi-trial/revert regressions compare every deployment's persistent settings. |
+| A8, truthful title/next step | `ShapeTest.test_the_names_are_roles_with_a_short_digest_and_the_row_map_follows_the_boot_entries`, `JournalTest`'s same-boot confirmation assertions; new `check has no executable next step` assertion. |
+| A9, schemas/compatibility | `JournalTest.test_any_other_list_stops_and_an_unknown_schema_refuses` covers unknown schemas. **Version 2 compatibility and its revert proofs remain B8, step 3.** |
+| A10, stock updater protections | Both `ShapeTest` methods beginning `test_a_staged_row_on_running_stock` and `test_stock_updaters_warn`. |
+| A11, one command helper | `ShapeTest.test_one_helper_spells_every_command_as_commands_json_does`. |
+| B3 fake rules | `test_ways_back_model.CaptureTest.test_append_instead_of_prepend_fails_the_fixture`; `RevertTest.test_finalize_that_keeps_bootcs_rollback_fails_retention`; `FakeRulesTest` tests cleanup, list writes, other-stateroot/merge retention, and pre-primitive refusal. |
+
+### JUDGMENT-CALL
+
+12. No A4/A6 rule was widened to satisfy B2. A new command or changed `update` behavior would change the
+    owner's destination/settings rule; excluding that resting state would change the invariant. None was chosen.
+13. The removal notice is streamed before staging in addition to the existing completion summary. Removing it
+    later would reopen the power-cut gap; the quoted completion lines are preserved.
+14. `finish_proof` preserves authorization already earned by the interrupted finish while `proof` can be cleared
+    for a new proof after revert. It is additive to layout records; no tools-update journal field changed.
+15. If a running deployment needs repair while another deployment has an active trial, `layout abandon` can
+    clear the other trial and repair the running deployment under its own recorded old settings in that call.
+    Rejecting the call stranded the repair. No stock trial or arbitrary mixed profile becomes allowed.
+
+### PLAN-GAP / not verified / open questions
+
+9. **Blocking:** B2's one-command invariant contradicts A4(b)/A6 in the concrete sequence above. The integrator
+   must settle the rule before another builder can finish the model; this report chooses neither alternative.
+10. Even before closure, the independent ledger has over 1.18 million discovered states with all profiles and
+    repair-note histories. Full execution must be made practical without collapsing the three journal outcomes,
+    losing per-deployment settings/repair notes, or deriving expectations from the code. No full-space claim here.
+11. B10 has the committed stage-0 and older pair captures; stage 2 has no captures yet. It still needs its future
+    fixture hook. Triple-finalize is held only by the independent retention assertion and its mutant, never by
+    a purported VM fixture.
+
+Not verified: exhaustive closure/all-state invariants, all per-rule production mutations, tools 2-to-3 (B8),
+old expectation/fake rewrites (B9), guides, fingerprint pins, stage 1b, VM rehearsal or physical laptop behavior.
+No real keyboard, deployment, boot, system or window operation was performed. `.work/` had no file over
+500 MB at the closing size check; no large download was made. No temp file was created outside the worktree.
+
+### For the next builder
+
+1. Read the **blocking A4/A6 versus B2 counterexample first**. This is a stop with a failing invariant, not a
+   completed step 2 handed directly to step 3. `test_reachable_state_space` must not be disabled or marked an
+   expected failure. The runtime issue also remains before a full-space acceptance claim.
+2. The older module is still import-only on this laptop. Run only the changed safe modules locally, separately
+   under `nice -n 10` after the memory check. Hosted checks remain necessary for the full suite.
+3. B8 must include an interrupted finishing layout followed by revert: `finish_proof` may exist alongside
+   `proof: null`. Old records without that field still use their original proof. `layout-repair1`, `change1`
+   and `tools-update1` schemas are unchanged; the tools-update journal itself was not edited.
+4. B9 still has step 1's 51 old expectations plus the nine older-fake updater failures. None was rewritten here.
+   Preserve A4(b)/A6's staging-from-older behavior until the integrator changes the brief. The new pre-staging
+   removal line is streamed; existing returned completion lines remain. `check`'s layout mismatch STOP now
+   names fresh-login abandon. Do not reintroduce either layout dead end described above.
+5. Reuse `ways_back_host.Host` and its fixture tests when extending the model; do not derive a running row from
+   the positional kernel link. Initial fixture entries are immutable input; later link targets are simulated.
+6. The payload was refreshed for source consistency only. Stage 1b still owns all published fingerprint pins,
+   guides and the bundle/script removal work. Regenerate the host walk before the waiting-list generator after
+   any further bound edit. No VM was dispatched in this step.
+
+### Hosted check (pending at this commit)
+
+The next report commit records the requested checks-only run, exact totals, and comparison with the 63
+failure/error entries in baseline run 43496675626. One new failing name is expected and explicitly unresolved:
+`test_reachable_state_space (test_ways_back_model.ModelTest.test_reachable_state_space)`.

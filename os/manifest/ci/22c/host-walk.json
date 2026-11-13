@@ -567,15 +567,15 @@
       "path": "os/owner-tools/media.py"
     },
     {
-      "sha256": "8d22ae3ad9e4df33aadc0da521426d02a48590e1d1cf2e1dd3d7dadff7dfceb9",
+      "sha256": "24d0f8310a87d6ba8ec6060f9ba3f9e58057525e8ca57e9afbea64afc8a374f3",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "5dcf121f02eca19af162533bb472b74c429285f993c155738b10f7e6988a5583",
+      "sha256": "c5e82526d746f173950b7a7b1520b0d8e7c1359371881e2e54222df8da3eb58f",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "28900bf138f96ba12b5a934d4ccfebdb4f4583972f1d22ee3d872b70a21e4784",
+      "sha256": "d2b40b50e091b377bc8d9258a35643065202525f27053599f16dbeef08dcb679",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -591,7 +591,7 @@
       "path": "os/owner-tools/payload/media.py"
     },
     {
-      "sha256": "8d22ae3ad9e4df33aadc0da521426d02a48590e1d1cf2e1dd3d7dadff7dfceb9",
+      "sha256": "24d0f8310a87d6ba8ec6060f9ba3f9e58057525e8ca57e9afbea64afc8a374f3",
       "path": "os/owner-tools/payload/owner.py"
     },
     {
