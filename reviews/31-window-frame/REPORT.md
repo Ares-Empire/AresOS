@@ -249,3 +249,9 @@ The OS lead must add the compiled-schema image-diff rule before the next release
 
 All screenshot-session processes were stopped by their held namespace PIDs, never by process name. Final build-process
 cleanup and the inventory of `.work/` files over 500 MB will be recorded before closing.
+
+## After the hosted runs (orchestrator, 2026-11-13)
+
+- The check build with VM on `fe6db50f` passed (run 43501555136).
+- The hosted regressions on `fe6db50f` failed in one test, `test_checkout_sources`: "Checkout source binding mismatch: .gitattributes". The builder had added a line to the root `.gitattributes` to keep the font licence's CRLF line ends, and that file is bound by the rehearsal records. The line is taken out again and the licence is stored with LF line ends like every other text file; its words are unchanged, and nothing checks its bytes (the image check reads its copyright line and its title). The font file itself is untouched and still matches its checksum. "FONT_AND_LICENCE_BYTES_UNCHANGED_IN_GIT" above therefore holds for the font only.
+- `main` is merged in; the hosted regressions and the check build are run again on the new head, and their results are in the pull request.
