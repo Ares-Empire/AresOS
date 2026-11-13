@@ -81,8 +81,30 @@ states that are set, the link address, a form's method, action and hidden field 
 chosen option, and the element's **own** text (not its descendants').
 
 - Roles and names as the reader computes them today. Headings carry their level.
-- **The password rule is unchanged and comes first:** the exclusion check runs before every value or text read, in
-  every frame and shadow root; a password-kind field yields its label and the kind, nothing else.
+- **The password rule comes first, and it gets two additions** (section 6, "What the extension can and can't do").
+  The exclusion check runs before every value or text read, in every frame and shadow root; a password-kind field
+  yields its label and the kind, nothing else. The additions are built into the reader's own functions, so every
+  reader of a page gets them: `outline`, brief 20's `read` and `facts`, the binding and the question.
+  - **Names** (in `password`, the one exclusion function). A field a person types into (not `type="hidden"`) is a
+    password-kind field when its `name`, `id`, label, placeholder, `aria-label` or `autocomplete` holds a
+    credential word. This holds in every document, whatever the field's type and however long the reader has
+    watched. The words are in the definitions, versioned like the send-word list: password, passwort, kennwort,
+    passcode, passphrase, pwd, pin, otp, totp, tan, mtan, 2fa, mfa, secret, token, cvv, cvc; and `code` only next to
+    one of verification, verify, security, sms, login, auth, einmal, bestätigung, sicherheit ("verification code",
+    "Einmalcode"). They match as whole words and as parts of a name (`user_password`, `otpCode`), never inside
+    another word (`shipping` is not `pin`). Such a field is handled exactly like `type="password"`: not read, not
+    typed into by Claude, bound by its presence only. Keep the words in a new module beside `policy.py`, with a
+    copy inside `reader.js` that a test compares with the definitions; `policy.py` and `policy.js` stay untouched,
+    so the send-word classification can't change by accident.
+  - **History** (in the value and text readers, `safeValue` and `editableText`). The reader returns what a text
+    field or an editable area holds only in a document it has watched since before the page's scripts ran (brief
+    20's preload: Claude's own tabs, and a taken tab after its reload). In every other document (a taken tab
+    before its reload, a frame the preload missed) every text-like `input`, every `textarea` and every editable
+    area is `(not read)`, and the reader doesn't touch its value or text. Ticks, radio choices and a list's chosen
+    option are still returned. Why: there the reader can't know whether a field was a password field before it
+    arrived, and a password he made visible looks like any other text. The reader knows which case it is from how
+    it was installed, never from anything a page can set; when it can't tell, the document counts as not watched.
+    `reload_state` keeps comparing a field with its default inside the content script; only its counts leave.
 - Left out: scripts, styles, hidden elements, elements behind an open modal dialog, frames of the fixed list.
   Frames of other sites and open and closed shadow roots are included, as today.
 - No box, no computed style beyond what the checks above need. The command must be cheaper than `read` on the same
@@ -108,7 +130,8 @@ line    = indent role [" " name] [" = " value] {" " state} [" → " target] [" "
 indent  = two spaces per level of depth
 role    = the reader's role; h1 to h6 for headings; "text" for plain text; "password" for a password-kind field
 name    = the accessible name or own text, in double quotes
-value   = a field's value in double quotes; for "password" the words (not read) instead
+value   = a field's value in double quotes; the words (not read) instead for "password" and for a field whose
+          history the reader doesn't know (item 1)
 state   = checked | selected | disabled | required | invalid | expanded | collapsed | current | readonly
 target  = for a link that leaves the page's site: its site; for a form: its method, site and path
 ref     = "e" and a number (item 3)
@@ -343,7 +366,8 @@ Restructure in steps that keep everything working:
    an `expected` or a `view` by hand (the staleness and mismatch cases), with its new form. A test may change how
    it reaches the tool. It never changes what it asserts about the receiver's log, the question, the binding or the
    outcome. A test of the old "any change makes every reference stale" rule becomes a test of item 3's rule, named
-   in the map.
+   in the map. A brief 20 test that reads a text field's value in a taken tab before its reload now gets
+   `(not read)` (item 1, history): list each one in the map.
 4. Remove brief 20's replaced tools (`chrome_find`, `chrome_read_form`, `chrome_wait`, `chrome_click`,
    `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll`,
    `chrome_dialog`, `chrome_navigate`, `chrome_take_tab`, `chrome_release_tab`, `chrome_close_tab`,
@@ -367,8 +391,9 @@ Restructure in steps that keep everything working:
   the 15-minute deadline; one approval, one run.
 - **The hold:** `guard.js`, `page.js`, the 500 ms window, the default block, the owner's own Enter, the three kinds
   of dialog.
-- **The reader's password rule,** and that the extension uses no DOM snapshot, no accessibility tree and no form
-  serialisation. No new DevTools method. No new permission in the manifest.
+- **The reader's password rule only gets stricter** (item 1's two additions); nothing in it is relaxed. The
+  extension still uses no DOM snapshot, no accessibility tree and no form serialisation. No new DevTools method. No
+  new permission in the manifest.
 - **Where Claude may go:** the schemes, the fixed list, the owner-only excluded-sites setting, read-only sites.
 - **The take rules:** a reload before the first input, unsaved typing and playing media reported first, no reload
   of a form-loaded page. Popups as brief 20 built them.
@@ -391,7 +416,24 @@ escape, depth, the `ref` forms, `find`, the cut at `max` and at 48 KiB with non-
 (same element same reference, never reused, the four stale cases, the 5,000 bound, another tab's reference); the
 `chrome_do` loop with a fake bridge (the check before the first step, every stop, `not_run`, nothing twice after an
 interruption at each point); the change report; the reader's `outline` command in the Node VM doubles that
-`reader.test.mjs` uses, with the password fixtures.
+`reader.test.mjs` uses, with the password fixtures; the credential words (each word, as a whole word and as a name
+part, in each of the six places; `shipping`, `postal code` and `pinned` don't match).
+
+**Passwords, in group 14 and in `password_exclusion`.** Group 7's fixtures and recording run over every new output.
+Added cases, each with group 7's known password and a label that says nothing ("Code"):
+
+- **A field made plain before the reader arrived** (a taken tab before its reload): once by `type` changed from
+  `password` to `text`, once by a removed `autocomplete="current-password"`, once by a removed mask (as a style and
+  as a class); each in the page, in an open and a closed shadow root and in a frame from another site.
+- **A sign-in code known only by its name** (`name="otp"`, a label "Verification code", no `autocomplete`), in a
+  document watched from its start and in one that wasn't.
+- Every surface reads them: the outline, a form by `ref`, `find` for the password itself, several tabs, `until`,
+  the change report, the results of `chrome_open`, `chrome_go` and `chrome_take`, and a prepared operation's
+  question for a form that holds such a field.
+- Expected: the fields are `(not read)` or `password … (not read)`; the recording shows that the content script
+  read none of these values, and the password is in nothing the extension received or sent, in no result and in no
+  log line. A plain text typed into a `textarea` of the not yet reloaded tab is `(not read)` too. After the tab's
+  reload a plain, unnamed text field of that page is read, and the named ones still aren't.
 
 **Group 14, reading and references** (browser): as section 6 lists it. Fixtures:
 
@@ -453,8 +495,7 @@ The base's, 18d's and Mail's suites still pass, and the generated artifacts are 
 
 ## Out of scope
 
-- His open tabs in place, the **READ** sign, the popup list, the password marker, incognito, tabs in the
-  background: brief 28b.
+- His open tabs in place, the **READ** sign, the popup list, incognito, tabs in the background: brief 28b.
 - Anything in the asking path or the hold ("What must not change").
 - Screenshots, coordinates, hover, drag, console or network reading, running script text, a search that needs a
   model, loops or conditions in a step list, steps across tabs, a richer result for `chrome_submit` (section 6,

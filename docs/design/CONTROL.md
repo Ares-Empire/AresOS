@@ -429,7 +429,10 @@ sites and synthetic profiles).
   - a field whose `autocomplete` names `current-password`, `new-password` or `one-time-code`;
   - a field whose computed `-webkit-text-security` is anything but `none` (a page's own masking);
   - a field it has seen as one of these before in this document, so a "show password" switch that turns it into
-    plain text doesn't make it readable.
+    plain text doesn't make it readable;
+  - a field whose name, id, label, placeholder or `autocomplete` holds a credential word (password, PIN, OTP, TAN,
+    "verification code" and the like, in English and German; the list is part of the definitions), whatever its
+    type: a sign-in code in a plain text field is handled like a password (*brief 28*).
 
   The check runs again right before every value read, not once per page, so a field whose type changes after it was
   first seen is judged as it is at that moment, in every frame and shadow root.
@@ -438,12 +441,15 @@ sites and synthetic profiles).
   records such a field's presence and identity, never its value or whether it is empty. Claude never types a
   password: signing in is his, and a sign-in page is handed back to him.
 
-  **A page the reader didn't watch from its start** (*brief 28b*). One of his tabs may hold a field he switched to
-  plain text himself (a "show password" button) before Claude ever read that tab. Two things keep it unread. A
-  passive marker runs in every tab from the moment a page loads, in the extension's own isolated world: it notes
-  which fields were password fields, reads no value and changes nothing. And in a page loaded before the extension
-  itself, a field isn't read when its name, id, label, placeholder or `autocomplete` contains a password word. What
-  that leaves is under "Known limits".
+  **Where the reader can't know a field's history, it leaves the value out** (*brief 28*). "Seen before" only
+  helps in a document the reader has watched since before the page's scripts ran: Claude's own tabs, and a taken
+  tab after its reload. In any other document a password he made visible earlier is by now an ordinary text
+  field, and nothing in the page says what it was. That is the case in a taken tab before its reload, and in every
+  tab of his that Claude looks at in place (*brief 28b*). There the reader doesn't read what any text field or
+  editable area holds: each appears with its label and `(not read)`. The page's text and structure, ticks, radio
+  choices and chosen options are read as everywhere. This is a rule, not a known limit: a password or sign-in code
+  reaching Claude is never accepted (owner, 2026-11-11). Its price is under "Known limits": in his own tab Claude
+  can't read back what he typed.
 - **The service checks its peer.** `chrome.sock` accepts only his user (Chrome, and so the host, run as him) and one
   host per running Chrome. Under decision 24 another program of his user could imitate or disturb the host, as it
   could any program of his (for example by registering a user-level host of the same name, which Chrome prefers:
@@ -496,7 +502,8 @@ the front when he should look at it or sign in there.
 - **Looking needs no take.** `chrome_read` works on every listed tab that isn't marked `no`. One of his tabs is read
   in place: nothing moves, nothing reloads, no debugger attaches and nothing runs in the page's own world. His
   typing, his scroll position and playing media stay as they are. The reader is the same content script with the
-  same password rule (above).
+  same password rule (above). Because it arrives late in his tab, it reads the page's text but not what he typed
+  into its fields.
   - A tab that Chrome put to sleep to save memory is loaded by reading it, as his own click would load it; the
     result says so.
   - A tab that shows one of Chrome's own dialogs can't answer. The tool waits two seconds, never hangs, and tells
@@ -589,7 +596,8 @@ main
 - Left out: boxes and coordinates (Claude acts by reference; the tool finds the place and checks that the click
   lands on the element), elements behind an open dialog, hidden elements, and frames of the fixed list. Frames from
   other sites and shadow DOM, closed roots too, are part of the outline.
-- A password field is the line `password "Label" (not read)`.
+- A password field is the line `password "Label" (not read)`. A text field whose history the reader doesn't know
+  is `textbox "Label" (not read)`.
 - A page's text can't forge a line. Names and values are quoted, with quotes, line breaks, control and
   direction-changing characters escaped (rule 4.1's escaping), and a reference the service didn't issue doesn't
   work.
@@ -1072,10 +1080,12 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   of his that the request didn't need. *Harm:* that page's text reaches Claude. *Accepted:* reading his open tabs is
   what he asked for; the call must state the request, he sees the tab marked and listed, the log keeps it, his
   never-list and incognito are out of reach, and any send still asks.
-- **A password he made visible before the tool watched the page.** In a tab loaded before the extension itself, or
-  inside a shadow root, a field he switched to plain text and whose name, label and hints say nothing about a
-  password is read as ordinary text. *Harm:* one password in Claude's context. *Accepted:* it needs all of these at
-  once; the marker and the name check cover the rest; a screenshot tool would show the same field.
+- **In his own tabs Claude doesn't see what he typed.** Where the reader hasn't watched a page from its start, it
+  reads no text field and no editable area ("What the extension can and can't do"). *Harm:* Claude can't proofread
+  a draft or read back a form in a tab of his; it sees them after a take with its reload, or in a copy of the page
+  in its own tab, where his unsent typing isn't. *Accepted:* the tool can't tell a password he made visible from
+  other text there, and a password is never a limit. A passive marker that proves each field's history could lift
+  this later, after his live test.
 - **A reload on take loses what isn't typing or media:** an open menu, a place in an endless list, a game's state.
   *Harm:* he finds his tab reset. *Accepted:* the take rule (owner, 2026-11-11); looking needs no take, and Claude
   can work on a copy of the page in its own tab.
@@ -1176,7 +1186,9 @@ field it can't confirm is safe isn't read; every result says plainly that this C
    `autocomplete="current-password"`, a field masked by `-webkit-text-security`, a password field switched to plain
    text by a "show password" button, a field whose type changes to password after the page loaded, and a password
    in the field's `value` attribute in the page source), each also inside an open shadow root, a closed shadow root
-   and a frame from another site. While the
+   and a frame from another site. With brief 28: a sign-in code in a plain field known only by its name, and the
+   late cases, where the field was made plain before the reader arrived (by its type, by a removed `autocomplete`,
+   by a removed mask), with a label that says nothing. While the
    reader and the binding run over those forms, a test build records everything the extension receives from the
    browser (every DevTools response and every value its content script reads) and everything it sends to the host,
    the service, the log and the results; the password appears in none of them.
@@ -1217,7 +1229,9 @@ harness's helper functions change, never an assertion.
       quoted and escaped inside the untrusted fields; a page of 100,000 elements is cut with a plain notice;
     - passwords: group 7's fixtures and recording run over every new output (the outline, a form read by `ref`,
       `find` for the password itself, several tabs, `until`, the change report after a "show password" click, the
-      results of `chrome_open` and `chrome_go`); the password appears in none.
+      results of `chrome_open`, `chrome_go` and `chrome_take`, a prepared operation's question); the password
+      appears in none. In a document the reader didn't watch from its start, no text field or editable area is
+      read at all, and the recording shows that the content script touched none of those values.
 15. **Going and acting in one call** (*brief 28*):
     - `chrome_open` and `chrome_go` return the outline after the load, say `loaded: false` on a timeout, and refuse
       what group 6 refuses;
@@ -1245,8 +1259,10 @@ harness's helper functions change, never an assertion.
       `chrome_release`, **Give back**, dragging out and **Stop** each restore the window, the place, his group and
       the pin;
     - closing: one of his tabs with typing or media stays open; a clean one closes and is listed;
-    - passwords: a field he switched to plain text before Claude's first read isn't read (in the page itself, in a
-      frame, and by its name alone where the marker can't have seen it);
+    - passwords: in one of his tabs no text field and no editable area is read in place, so a field he switched
+      to plain text before Claude's first read isn't either, whatever its label (in the page itself, in a frame, in
+      an open and a closed shadow root; made plain by its type, its `autocomplete` or its mask); after a take with
+      its reload a plain field is read again;
     - the background: a new Claude tab doesn't come to the front, and a list of steps in a Claude tab leaves his
       front tab in front (or the brief's report says why it can't, and the question goes to him).
     A tool-user round (section 8) then checks the rule "the tab his request clearly needs" with a model: tabs named

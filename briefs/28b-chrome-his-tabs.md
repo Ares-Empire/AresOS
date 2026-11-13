@@ -88,14 +88,14 @@ catch a page that submits by itself. If you have typed something there, or music
 
 - **In one of his tabs it reads in place.** No debugger attach, no move, no reload. Nothing is injected into the
   page's own (main) world. Nothing of ours in that tab can cancel, hold or change an event. The tab isn't selected
-  or focused, and its scroll position isn't touched. After the read, only passive things of ours remain in the tab
-  (the reader's idle content script, the marker of item 3).
+  or focused, and its scroll position isn't touched. After the read, only the reader's idle content script remains
+  in the tab.
 - **How** the reader runs there without the page guard's listeners is yours to choose (a passive mode of
   `guard.js`'s isolated part, or the reader running without it). `page.js` and the main-world wrappers are never
   installed in a tab that isn't Claude's or taken.
-- **The same reader, the same rules:** the password rule before every value read; the fixed list and his
-  never-list checked on the top document and on every frame, before the read; frames from other sites and shadow
-  roots included.
+- **The same reader, the same rules:** the password rule before every value read, with brief 28's two additions
+  (item 3 below); the fixed list and his never-list checked on the top document and on every frame, before the
+  read; frames from other sites and shadow roots included.
 - **`request` is required** on a call that touches one of his tabs: his request in a few words, 1 to 200
   characters. Without it the call is refused (`invalid_input`, "say which request of the owner needs this tab").
   The tool doesn't judge the text. With `tabs`, one `request` covers the call.
@@ -109,24 +109,27 @@ catch a page that submits by itself. If you have typed something there, or music
 - `chrome_open` with `tab` already works for his tabs (brief 28). Keep it: it is how Claude works on the same page
   without touching his tab.
 
-### 3. A password he made visible before Claude looked
+### 3. What he typed in his own tabs stays unread
 
-In a tab Claude opened, the reader watches a page from its start and remembers which fields were password fields.
-In one of his tabs it arrives late. Two additions, both small:
+In a tab Claude opened, the reader watches a page from before its scripts run and remembers which fields were
+password fields. In one of his tabs it arrives late: a password he made visible earlier ("show password") is by
+then an ordinary text field, and nothing in the page says what it was. So the reader doesn't guess.
 
-- **A passive marker in every tab.** A static content script from the manifest (isolated world, every frame, at
-  document start; the fixed hosts excluded). It watches for a field's `type` changing away from `password` and
-  marks that element in the reader's existing privacy record, so the reader treats it as a password field for the
-  life of the document. It reads no value, sends no message, changes nothing, and no page can see it. Keep it to a
-  few lines.
-- **A name check for pages the marker never saw** (a page loaded before the extension itself, or a field inside a
-  shadow root): in a document the reader didn't watch from its start, a text field isn't read when its name, id,
-  label, placeholder or `autocomplete` contains a password word (password, passwort, kennwort, passcode,
-  passphrase, pwd, pin, otp, tan, secret, cvv, cvc; whole words or name parts, in the definitions like the word
-  list). It appears as `password "Label" (not read)`.
+- **Brief 28's history rule does the work, and this package adds nothing to it:** one of his tabs is a document the
+  reader hasn't watched from its start, so every text-like `input`, every `textarea` and every editable area in it
+  is `(not read)`. The reader doesn't touch those values. Claude gets the page's text and structure, the labels of
+  the fields, ticks, radio choices and chosen options.
+- **Brief 28's name rule applies as everywhere:** a field whose name, id, label, placeholder or `autocomplete`
+  holds a credential word shows as `password "Label" (not read)`.
+- **No marker, no content script from the manifest, no observer in his tabs.** An earlier draft of this brief
+  watched his tabs for "show password" switches. It couldn't cover a field inside a shadow root, a mask taken off
+  by a style, or a page loaded before the extension, and a password is never a known limit (owner, 2026-11-11).
+- **What it costs, said plainly in the report and in the instructions:** in his own tab Claude can't read back a
+  draft or a form he is filling in. After a take with its reload, or in a copy of the page in a Claude tab, the
+  reader has watched the document from its start and reads fields under brief 20's rule.
 
-What remains is the known limit in section 6. If the marker can't see the change (for example the old value isn't
-delivered), stop and report: don't replace it with something heavier.
+If an in-place read can't be built without reading a field's value somewhere (for example to compute a name), stop
+and report.
 
 ### 4. Taking a tab, in one step
 
@@ -200,10 +203,10 @@ The size pins of brief 28 move with it and stay within the budget (at most 10,00
   selection of item 7 may change.
 - **The take rules:** a reload before the first input; unsaved typing and playing media reported first; no reload
   of a page that a form submission loaded.
-- **The password rule.** Items 2 and 3 add to it; nothing is relaxed.
+- **The password rule,** as brief 28 left it (its name and history additions included). Nothing is relaxed.
 - **Ordinary tabs stay ordinary:** nothing in the page's own world, no listener that cancels or changes anything,
   no debugger, unless Claude took the tab. The compatibility comparison with an untouched Chrome still passes.
-- **The manifest** gains only `"incognito": "not_allowed"` and the marker's content script. No new permission.
+- **The manifest** gains only `"incognito": "not_allowed"`. No new permission and no content script.
 - **No new DevTools method.**
 - The qualification record's format, the service unit, Mail, the base, `os/`.
 
@@ -242,11 +245,15 @@ password cases under `password_exclusion`):
   window, the index, his group and the pin; prepared operations for the tab are dropped and nothing is sent.
 - **Closing:** a tab with typing and one playing media stay open and are listed as kept; a clean one closes and is
   listed; a fixed-list tab is refused.
-- **Passwords:** group 7's known password, in a field he switched to plain text **before** Claude's first read:
-  in the page, in a cross-site frame, and in a field the marker can't have seen but whose name says password
-  (loaded before the content script, simulated by the test build). With group 7's recording on, the password is in
-  nothing the extension sends. The marker itself: it sends no message and reads no value (the recording shows
-  none), and the fixture page can't detect it.
+- **Passwords:** group 7's known password in a field he switched to plain text **before** Claude's first read,
+  with a label that says nothing ("Code"): once by its `type`, once by a removed `autocomplete`, once by a removed
+  mask (as a style and as a class); each in the page, in a frame from another site, and in an open and a closed
+  shadow root. An in-place read, a `find` for the password itself, a read by `ref`, a read with `until` and a read
+  of several tabs return `(not read)` for every text field and editable area of that tab. With group 7's recording
+  on, the content script read none of those values, and the password is in nothing the extension received or sent,
+  in no result, not in the popup list and not in the log. A plain text he typed into a `textarea` is `(not read)`
+  too: the cost of the rule, asserted so that it can't loosen unnoticed. After a take with its reload, a plain
+  unnamed text field of the page is read under brief 20's rule, and a field named like a credential still isn't.
 - **The background:** `chrome_open` leaves his front tab in front; a list of steps in a Claude tab lands every
   input while his tab stays in front (or the report says which input kinds need the selection).
 - **Hostile pages in his tabs:** a look-alike tab (the title of the tab he means, another site) is listed with its
@@ -275,6 +282,8 @@ byte-identical to `main`'s.
 - An "ask me first" list (judgment call 1, answer b), unless he chooses it.
 - More than one Chrome profile; moving tabs between windows; a window of Claude's own (only as the judgment call of
   item 7, if the measurement needs it).
+- Reading what he typed in his own tabs (item 3). It needs a passive marker in every tab that can prove each
+  field's history; possible later, after his live test.
 - Screenshots, and everything brief 28 left out.
 - The image: the extension's update on the laptop, and Aresus's host in the excluded-sites setting, are brief 18c's
   and the image session's.
@@ -282,15 +291,13 @@ byte-identical to `main`'s.
 ## Paths
 
 **May change:** in `control/chrome/extension/`: `background.js`, `reader.js`, `guard.js` (its isolated part, for a
-passive mode only), `context.js` or a new marker script, `manifest.json` (the two entries above), `popup.html`,
-`popup.js`; `control/aresos_control/chrome/adapter.py`, `definitions.py`, the view module, and `policy.py` only to
-hold the password words; the generated files; `control/chrome_tests/`, `control/chrome/ci/`;
+passive mode only), `manifest.json` (the one entry above), `popup.html`, `popup.js`;
+`control/aresos_control/chrome/adapter.py`, `definitions.py` and the view module; the generated files; `control/chrome_tests/`, `control/chrome/ci/`;
 `.github/workflows/control-chrome.yml` (not the qualification workflow); `docs/control/TOOLS.md`,
 `docs/control/FEATURES.md`, `control/README.md`;
 `reviews/28b-chrome-his-tabs/`.
 
-**Must not touch:** `page.js`, `policy.js` (except the mirrored password words, if the reader needs them there),
-`sites.py`, `qualification.py`, `qualify.py`, `committed.py`, `uploads.py`; and everything brief 28 lists outside
+**Must not touch:** `page.js`, `policy.js`, `policy.py`, `context.js`, `sites.py`, `qualification.py`, `qualify.py`, `committed.py`, `uploads.py`; and everything brief 28 lists outside
 the Chrome code (`os/`, `mod/`, `docs/design/`, `docs/control/PLAN.md`, `STATE.md`, `HANDOFF.md`, `briefs/`, Mail,
 the boundary, the packaging, other packages' `reviews/`).
 
@@ -313,8 +320,8 @@ instructions as Claude reads them; every claim marked **run**, **read** or **ass
 
 **Known limits.** Keep `reviews/28b-chrome-his-tabs/KNOWN-LIMITS.md`, starting from section 6's "Reading and his
 tabs" lines: for each line you add, change or find untrue, what it is, the harm, and why it is acceptable or not.
-A password read, an action without its question, a tab of his changed by a mere look, or his normal use broken is
-never a limit: fix it or stop.
+A password or sign-in code read, an action without its question, a tab of his changed by a mere look, work of his
+lost, or his normal use broken is never a limit: fix it or stop.
 
 ## If unsure
 
@@ -325,7 +332,6 @@ password, and that tells him more rather than less. Say what you chose in the re
 
 - Stop and report if looking in place can't be done without something of ours that could cancel or change what he
   does in that tab.
-- Stop if the marker needs more than a passive observer.
 - Stop if any test would need a real site or a real account.
 - Plan about 8 full `control-chrome.yml` runs; tell the lead in the report before passing 12. One blocking call per
   run; `[skip ci]` on report-only pushes.
