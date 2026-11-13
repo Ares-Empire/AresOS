@@ -1,8 +1,8 @@
 # 22c: every way back works after an update — builder report
 
 Brief: `briefs/22c-ways-back-after-update.md`. Branch `pkg/22c-ways-back-after-update`, cut from main `6cca14b6`.
-PR #46 (draft). Stages 1a, 1b and 2 are not started. Shorthand as in the brief: R27 the newer AresOS, R13 the
-older one, S the pinned stock.
+PR #46 (draft). Stage 0 is captured; stage 1a step 2 stops on the A4/A6 versus B2 rule conflict documented
+below. Stages 1b and 2 are not started. Shorthand: R27 the newer AresOS, R13 the older one, S the pinned stock.
 
 ## Stage 0 (P): the reorder probe
 
@@ -524,12 +524,34 @@ No real keyboard, deployment, boot, system or window operation was performed. `.
    names fresh-login abandon. Do not reintroduce either layout dead end described above.
 5. Reuse `ways_back_host.Host` and its fixture tests when extending the model; do not derive a running row from
    the positional kernel link. Initial fixture entries are immutable input; later link targets are simulated.
+   The unfinished walker currently seeds the historical R13/S pair and the laptop triple. Add the R27/S pair
+   explicitly too, so B2's target-already-installed pair is a seed under both bundles; that seed is not yet walked.
 6. The payload was refreshed for source consistency only. Stage 1b still owns all published fingerprint pins,
    guides and the bundle/script removal work. Regenerate the host walk before the waiting-list generator after
    any further bound edit. No VM was dispatched in this step.
 
-### Hosted check (pending at this commit)
+### Hosted check and final stop
 
-The next report commit records the requested checks-only run, exact totals, and comparison with the 63
-failure/error entries in baseline run 43496675626. One new failing name is expected and explicitly unresolved:
-`test_reachable_state_space (test_ways_back_model.ModelTest.test_reachable_state_space)`.
+`gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`, followed by exactly one
+blocking `gh run watch 43506717597 --exit-status` invocation (exit 1). No VM dispatched.
+
+| Run | Tested head | Result |
+|---|---|---|
+| [43506717597](https://github.com/Ares-Empire/AresOS/actions/runs/43506717597) | `9dd4fc82cf525040ac8a86515d15f7260ce4f292` | **1019 tests in 736.154s; 41 failures, 23 errors, 0 skipped.** |
+
+Hosted: `test_ways_back` **34 passed**; `test_ways_back_model` **12 run, 11 passed, 1 failed**. The strict model
+printed `417 discovered states, 151 checked states, 3602 edges, 2.053s; closure NOT reached`.
+
+A multiset comparison of every `FAIL:`/`ERROR:` header against baseline run 43496675626 found:
+
+- Added: **only** `test_reachable_state_space (test_ways_back_model.ModelTest.test_reachable_state_space)`.
+- Removed: none. All 63 inherited failure/error entries remain. There is no second new failure hidden behind
+  the expected red baseline.
+- The sole additional failure is the unresolved brief contradiction, not a claim of a passing model.
+  Making it green needs a rule decision; the builder has not waived the invariant to satisfy the no-new-failure
+  request. The test and the counterexample remain reviewable at this stop.
+
+Small committed evidence: `runs/checks-43506717597.json`. The final commit changes only this report and that
+receipt; the tested implementation stays at the head above. Temporary fetched logs under `.work/22c-step2/`
+were removed after comparison. No file over 500 MB remains in `.work/`; no outside-worktree temp directory was
+used, and no builder-started test or watch process remains. PR #46 is still open and draft; nothing merged.

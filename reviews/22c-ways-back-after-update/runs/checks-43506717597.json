@@ -1,0 +1,34 @@
+{
+  "schema": "22c-step2-checks1",
+  "run": 43506717597,
+  "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43506717597",
+  "head": "9dd4fc82cf525040ac8a86515d15f7260ce4f292",
+  "conclusion": "failure",
+  "baseline": {
+    "run": 43496675626,
+    "tests": 1002,
+    "failures": 40,
+    "errors": 23,
+    "skipped": 0
+  },
+  "result": {
+    "tests": 1019,
+    "seconds": 736.154,
+    "failures": 41,
+    "errors": 23,
+    "skipped": 0
+  },
+  "added_failure_or_error_entries": [
+    "test_reachable_state_space (test_ways_back_model.ModelTest.test_reachable_state_space)"
+  ],
+  "removed_failure_or_error_entries": [],
+  "model": {
+    "discovered_states": 417,
+    "checked_states": 151,
+    "edges": 3602,
+    "seconds": 2.053,
+    "closure_reached": false,
+    "blocker": "B2 requires selecting installed R27 in one command from R13 default with R28 absent; A4(b)/A6 require update to stage R28."
+  },
+  "vm_dispatched": false
+}
