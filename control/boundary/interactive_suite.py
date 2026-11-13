@@ -149,7 +149,8 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     # Bounded native UI discovery stays in runner evidence, never in the repo.
     binary = Path('/usr/local/bin/claude').resolve().read_bytes()
-    for needle in (b"Yes, and don't ask again", b'What should Claude do instead?', b'Do you want to proceed?'):
+    for needle in (b"Yes, and don't ask again", b'What should Claude do instead?', b'Do you want to proceed?',
+                   b'wouldTakeAnswer:', b'function ly(', b'function ra(', b'function so(', b'var xo='):
         snippets, offset = [], 0
         for _ in range(6):
             offset = binary.find(needle, offset)

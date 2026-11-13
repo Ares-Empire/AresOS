@@ -61,9 +61,10 @@ class Terminal:
         assert result.returncode == 0, 'Terminal exited before expected text'
         return result.stdout
 
-    def wait(self, label, predicate, timeout=60, warning=False, expected_options=()):
+    def wait(self, label, predicate, timeout=60, warning=False, expected_options=(), stable_for=0):
         deadline = time.monotonic() + timeout
         previous = None
+        ready_since = None
         while time.monotonic() < deadline:
             screen = self.screen()
             if screen != previous:
@@ -74,24 +75,35 @@ class Terminal:
                 self.choose(screen, 'warning')
                 self.warning = True
             elif predicate(screen):
-                self.save(label, screen)
-                return screen
+                now = time.monotonic()
+                if ready_since is None:
+                    ready_since = now
+                if now - ready_since >= stable_for:
+                    self.save(label, screen)
+                    return screen
             elif options(screen) and options(screen) != expected_options and not any(
                     t == 'Yes' or t == 'No' for _, t in options(screen)):
                 raise AssertionError('Unexpected dialog: ' + screen)
+            else:
+                ready_since = None
             time.sleep(.1)  # Poll cadence only; named rendered text is the proof.
         self.save('TIMEOUT-' + label, self.screen())
         raise AssertionError('Deadline waiting for ' + label)
 
     def choose(self, screen, answer):
         number, text = answer_option(screen, answer)
+        choices = options(screen)
+        # The native UI refuses answers immediately after an owner keystroke.
+        # Require a continuously rendered dialog before typing; the subsequent
+        # completion screen and independent arrival count still prove the result.
+        screen = self.wait('ready-' + answer, lambda s: options(s) == choices,
+                           expected_options=choices, stable_for=1)
         shot = self.save('answer-' + answer, screen)
         with (self.evidence / 'actions.jsonl').open('a') as log:
             log.write(json.dumps({'screen': shot, 'option': text, 'key': number}) + '\n')
         self.tmux('send-keys', '-t', 'case:0.0', number)
         # Numeric shortcuts can submit immediately, or only move the selection.
         # Observe which happened before sending a confirming Enter.
-        choices = options(screen)
         after = self.wait('selected-or-submitted-' + answer,
             lambda s: selected_option(s, number, text) or options(s) != choices,
             expected_options=choices)
