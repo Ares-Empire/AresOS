@@ -39,6 +39,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.Explosion;
+import net.minecraft.world.level.ServerExplosion;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biomes;
 import net.minecraft.world.level.block.Block;
@@ -105,6 +107,7 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
             assertHomeCommands(context, world, messages);
             assertRespawn(context, world);
             photographAboveInBuildMode(context, world);
+            assertHostExplosions(context, world);
             groundBefore = world.getServer().computeOnServer(server -> {
                 var level = server.overworld();
                 var player = world.getConnection().getServerPlayer();
@@ -385,6 +388,44 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
         context.waitTicks(70);
         photograph(context, "above-build");
         context.runOnClient(client -> client.options.fov().set(fov));
+    }
+
+    private static void assertHostExplosions(ClientGameTestContext context, TestSingleplayerContext world) {
+        world.getServer().runOnServer(server -> {
+            var player = world.getConnection().getServerPlayer();
+            check(DesktopWorld.isHost(server, player), "Fixture: player is not the real host");
+            check(!HubData.protectsFromExplosions(server), "Build host did not disable explosion protection");
+            BlockPos road = new BlockPos(12, 63, 0);
+            explode(server.overworld(), player, Vec3.atCenterOf(road.above()));
+            check(server.overworld().getBlockState(road).isAir(), "An explosion in host Build mode spared the road");
+            check(HubData.get(server).fixed().blocks().stream().noneMatch(block -> block.pos().equals(road)),
+                    "An exploded block stayed in the record");
+            assertNames(server.overworld(), HubData.get(server).fixed());
+            player.setGameMode(GameType.SURVIVAL);
+        });
+        waitForMode(context, world, GameType.SURVIVAL);
+        world.getServer().runOnServer(server -> {
+            var player = world.getConnection().getServerPlayer();
+            check(HubData.protectsFromExplosions(server), "Live host did not enable explosion protection");
+            var before = HubData.get(server).fixed();
+            explode(server.overworld(), player, Vec3.atCenterOf(new BlockPos(0, 64, 12)));
+            check(server.overworld().getBlockState(new BlockPos(0, 63, 12)).is(Blocks.CONCRETE.yellow()),
+                    "An explosion in host Live mode broke the road");
+            check(HubData.get(server).fixed().equals(before), "A Live explosion removed recorded blocks");
+            player.setGameMode(GameType.CREATIVE);
+        });
+        waitForMode(context, world, GameType.CREATIVE);
+    }
+
+    private static void waitForMode(ClientGameTestContext context, TestSingleplayerContext world, GameType mode) {
+        context.waitFor(client -> client.gameMode.getPlayerMode() == mode);
+        waitForServer(context, world, server -> world.getConnection().getServerPlayer().gameMode.getGameModeForPlayer() == mode
+                && !ModeInventories.of(world.getConnection().getServerPlayer()).pending(), "Mode switch did not finish: " + mode);
+    }
+
+    private static void explode(ServerLevel level, ServerPlayer player, Vec3 centre) {
+        var tnt = new net.minecraft.world.entity.item.PrimedTnt(level, centre.x, centre.y, centre.z, player);
+        new ServerExplosion(level, tnt, null, null, centre, 4, false, Explosion.BlockInteraction.DESTROY).explode();
     }
 
     /** Open real saved NBT, including a Vec3 decode with a partial value that SavedDataStorage would accept. */

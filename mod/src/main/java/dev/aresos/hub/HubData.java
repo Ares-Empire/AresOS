@@ -4,6 +4,7 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.aresos.AresOs;
 import dev.aresos.mode.LiveMode;
+import dev.aresos.world.DesktopWorld;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.UUIDUtil;
@@ -110,9 +111,15 @@ public final class HubData extends SavedData {
         return hub != null && hub.holds(player.level(), pos);
     }
 
-    /** Explosions spare the hub's own blocks, except while somebody is in Build mode, where anything may change. */
+    /** Only the singleplayer host chooses the explosion policy; LAN guests cannot disable protection. */
     public static boolean protectsFromExplosions(MinecraftServer server) {
         return server.getPlayerList().getPlayers().stream()
-                .noneMatch(player -> player.gameMode.getGameModeForPlayer() == GameType.CREATIVE);
+                .filter(player -> DesktopWorld.isHost(server, player))
+                .findFirst().map(player -> protectsFromExplosions(player.gameMode.getGameModeForPlayer())).orElse(true);
+    }
+
+    /** Unknown host means protected, just like Live mode. */
+    public static boolean protectsFromExplosions(GameType hostMode) {
+        return hostMode != GameType.CREATIVE;
     }
 }

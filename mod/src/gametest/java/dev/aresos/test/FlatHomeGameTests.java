@@ -190,10 +190,16 @@ public final class FlatHomeGameTests {
         helper.succeed();
     }
 
-    /**
-     * Alone in its test environment: explosions spare the hub unless somebody is in Build mode, and the other
-     * desktop tests have creative players of their own in the world.
-     */
+    @GameTest(environment = "aresos-test:home")
+    public void explosionPolicyUsesOnlyTheHostMode(GameTestHelper helper) {
+        check(HubData.protectsFromExplosions((GameType) null), "An unknown host must be protected");
+        for (GameType mode : GameType.values()) {
+            check(HubData.protectsFromExplosions(mode) == (mode != GameType.CREATIVE), "Wrong host policy for " + mode);
+        }
+        helper.succeed();
+    }
+
+    /** Server tests have no singleplayer host; the real host's Live/Build explosions are in the client test. */
     @GameTest(environment = "aresos-test:flat_hub")
     public void liveModeProtectsHubBlocksAndBuildModeDoesNot(GameTestHelper helper) {
         var level = helper.getLevel();
@@ -237,7 +243,8 @@ public final class FlatHomeGameTests {
             check(HubData.protectsFrom(player, gold), "Fixture: the record is back");
 
             mode(player, GameType.CREATIVE);
-            check(!HubData.protectsFromExplosions(server), "Build mode still shields the hub from explosions");
+            check(!DesktopWorld.isHost(server, player) && HubData.protectsFromExplosions(server),
+                    "A creative guest with no identifiable host disabled explosion protection");
             check(player.gameMode.destroyBlock(gold), "Build mode could not break gold");
             check(HubData.get(server).fixed().blocks().stream().noneMatch(block -> block.pos().equals(gold)),
                     "Mining did not immediately remove gold from the record");
@@ -260,7 +267,7 @@ public final class FlatHomeGameTests {
             level.setBlockAndUpdate(stale, Blocks.GOLD_BLOCK.defaultBlockState());
             check(!observed.holds(level, stale), "An observed mismatch regained ownership");
             explode(level, player, Vec3.atCenterOf(Group.S.block(home, 10, 0, 0)));
-            check(level.getBlockState(Group.S.block(home, 10, 0, -1)).isAir(), "An explosion in Build mode left the road intact");
+            check(level.getBlockState(Group.S.block(home, 10, 0, -1)).is(Blocks.CONCRETE.yellow()), "A creative guest let an explosion break the road");
             check(level.getEntity(fixed.names().get(2)).isAlive(), "An explosion in Build mode removed a group name");
 
             mode(player, GameType.SURVIVAL);
