@@ -252,6 +252,38 @@ public final class SlashNamesGameTests {
         helper.succeed();
     }
 
+    /** Review 1, finding 4: a program the latest complete list no longer names has no command until it returns. */
+    @GameTest(environment = BATCH)
+    public void programsTheSystemNoLongerListsHaveNoCommands(GameTestHelper helper) throws Exception {
+        try (var f = new Fixture(helper)) {
+            Path file = Path.of(System.getProperty("aresos.appsConfig"));
+            var root = f.server.getCommands().getDispatcher().getRoot();
+            var everything = AresOs.apps();
+            var names = AresOs.app("discord").names();
+            check(names.equals(List.of("discord", "dc")) && root.getChild("dc") != null, "Fixture: Discord has no commands");
+            AppsConfig.merge(file, everything.stream().filter(app -> !app.id().equals("discord")).toList(), false, null, true);
+            AresOs.saveMine(Map.of()); SlashCommands.refresh(f.server);
+            var gone = AresOs.app("discord");
+            check(gone.absent() && gone.mine() && gone.names().equals(names), "Discord lost its place or names: " + gone);
+            check(names.stream().allMatch(name -> root.getChild(name) == null), "An absent program kept a command");
+            check(names.stream().noneMatch(f.visibleNames()::contains), "The command list still offers an absent program");
+            check(f.run("open discord") == 0 && f.said("No program matches"), "/open found an absent program");
+            check(!f.completions("open dis").contains("discord"), "/open completes an absent program");
+            int launches = f.launches().size();
+            check(f.run("aresos app open discord") == 0 && f.said("not installed"), "An absent program opened by ID");
+            check(f.launches().size() == launches, "An absent program sent a launch");
+            int clickable = f.clickable().size();
+            check(f.run("apps") == 4 && f.said("Discord  not installed"), "/apps does not say Discord is not installed");
+            check(f.clickable().size() == clickable + 3, "/apps offers a click for an absent program");
+            // The next complete list names it again: the same names, the same place, its commands back.
+            AppsConfig.merge(file, everything, false, null, true);
+            AresOs.saveMine(Map.of()); SlashCommands.refresh(f.server);
+            check(!AresOs.app("discord").absent() && AresOs.app("discord").names().equals(names), "Discord did not return as it was");
+            check(f.run("dc") == 1 && f.launches().getLast().equals("discord"), "The returned program has no command");
+        }
+        helper.succeed();
+    }
+
     @GameTest(environment = BATCH)
     public void openOneManyNoneCompletionAndClickableApps(GameTestHelper helper) throws Exception {
         try (var f = new Fixture(helper)) {

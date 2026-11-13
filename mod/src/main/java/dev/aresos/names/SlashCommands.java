@@ -67,13 +67,13 @@ public final class SlashCommands {
         }
         for (var entry : state.owned.entrySet()) if (root.getChild(entry.getKey()) == entry.getValue()) remove(root, entry.getKey());
         state.owned.clear();
-        if (enabled) for (var app : AresOs.apps()) if (app.mine()) for (String name : app.names()) {
+        if (enabled) for (var app : AresOs.apps()) if (app.mine() && !app.absent()) for (String name : app.names()) {
             // Check again at the actual registration, without merging into somebody else's literal.
             if (root.getChild(name) != null || NameRules.OWN.contains(name)) continue;
             var node = dispatcher.register(Commands.literal(name).requires(AppCommands::allowed)
                     .executes(c -> {
                         var current = AresOs.app(app.id());
-                        return current != null && current.mine() && current.names().contains(name) ? launch(c.getSource(), app.id()) : 0;
+                        return current != null && current.mine() && !current.absent() && current.names().contains(name) ? launch(c.getSource(), app.id()) : 0;
                     }));
             state.owned.put(name, node);
         }
@@ -94,6 +94,7 @@ public final class SlashCommands {
         if (!AppCommands.allowed(source)) return 0;
         var app = AresOs.app(id);
         if (app == null) { source.sendFailure(Component.literal("Unknown AresOS app")); return 0; }
+        if (app.absent()) { source.sendFailure(Component.literal(app.name() + " is not installed: the system no longer lists it.")); return 0; }
         var player = source.getPlayer();
         if (!ServerPlayNetworking.canSend(player, ZoneLaunchPayload.TYPE)) {
             source.sendFailure(Component.literal("This client cannot receive AresOS app requests.")); return 0;

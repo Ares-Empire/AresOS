@@ -119,7 +119,8 @@ public final class AppsConfig {
                             bool(app, "pinned"), optional(app, "type", "command"), optional(app, "url", null),
                             optional(app, "icon", null), identity(app), mine,
                             app.has("system") ? JSON.fromJson(app.getAsJsonObject("system"), SystemInfo.class) : null,
-                            app.has("names") ? names(app.getAsJsonArray("names")) : List.of()));
+                            app.has("names") ? names(app.getAsJsonArray("names")) : List.of(),
+                            app.has("absent") && bool(app, "absent")));
                 } catch (RuntimeException error) { throw new IllegalArgumentException("App " + id + ": " + error.getMessage(), error); }
             }
             validate(apps);
@@ -182,7 +183,16 @@ public final class AppsConfig {
     }
     public static synchronized void save(Path file, List<AppDefinition> apps) throws IOException {
         validate(apps);
-        write(file, document(JSON.toJsonTree(apps).getAsJsonArray()));
+        var entries = new JsonArray();
+        for (var app : apps) entries.add(entry(app));
+        write(file, document(entries));
+    }
+
+    /** One entry as saved. "absent" is written only while true, so entries of listed programs look as before. */
+    private static JsonObject entry(AppDefinition app) {
+        var entry = JSON.toJsonTree(app).getAsJsonObject();
+        if (!app.absent()) entry.remove("absent");
+        return entry;
     }
 
     /** A list without origins: newly discovered starter IDs are his; other programs wait for a detailed list. */
@@ -200,6 +210,18 @@ public final class AppsConfig {
      */
     public static synchronized Merged merge(Path file, List<AppDefinition> discovered, boolean detailed, LocalDate today)
             throws IOException {
+        return merge(file, discovered, detailed, today, false);
+    }
+
+    /**
+     * As above. With {@code presence} the list is the whole truth about what can be opened, as the AresOS app
+     * helper's is on Linux (it owns every launch): a program it does not name is marked {@code absent}, and one it
+     * names again loses the mark. Nothing else of an absent program changes. Lists without it (Windows discovery,
+     * which returns only the shortcuts it found) leave the marks alone, and so does no list at all: while the helper
+     * is down or its list is incomplete, the last complete list stays in force, also across a restart.
+     */
+    public static synchronized Merged merge(Path file, List<AppDefinition> discovered, boolean detailed, LocalDate today,
+                                            boolean presence) throws IOException {
         validate(discovered);
         load(file);
         var document = read(file).getAsJsonObject();
@@ -231,7 +253,7 @@ public final class AppsConfig {
             } else {
                 var fresh = app.withMine(false);
                 existing.add(fresh);
-                entry = JSON.toJsonTree(fresh).getAsJsonObject();
+                entry = entry(fresh);
                 document.getAsJsonArray("apps").add(entry);
                 added.add(app.id());
             }
@@ -253,6 +275,15 @@ public final class AppsConfig {
             baseline = Objects.requireNonNull(today);
             document.addProperty("baseline", baseline.toString());
         }
+        if (presence) {
+            var named = new HashSet<String>();
+            for (var app : discovered) named.add(app.id());
+            for (JsonElement element : document.getAsJsonArray("apps")) {
+                JsonObject entry = element.getAsJsonObject();
+                if (named.contains(string(entry.get("id")))) entry.remove("absent");
+                else entry.addProperty("absent", true);
+            }
+        }
         var result = parse(document);
         writeIfChanged(file, document);
         return new Merged(result, List.copyOf(added), List.copyOf(joined), baseline, dayOne);
@@ -262,14 +293,17 @@ public final class AppsConfig {
         return icon.replace('\\', '/').toLowerCase(Locale.ROOT).contains("/aresos-runtime/discovery/sources/");
     }
 
-    /** Assign only missing names, and replace names a real command now reserves. Inactive apps keep theirs. */
+    /**
+     * Assign only missing names, and replace names a real command now reserves, for the apps that have commands: his,
+     * and listed by the system. The others keep theirs untouched for their return.
+     */
     public static synchronized List<AppDefinition> assignNames(Path file, Set<String> commands) throws IOException {
         load(file);
         var document = read(file).getAsJsonObject();
         var apps = parse(document);
         var held = new HashSet<String>();
         for (var app : apps) held.addAll(app.names());
-        var order = dev.aresos.names.NameRules.order(apps.stream().filter(AppDefinition::mine)
+        var order = dev.aresos.names.NameRules.order(apps.stream().filter(app -> app.mine() && !app.absent())
                 .map(dev.aresos.names.NameRules::of).toList());
         for (var program : order) {
             int index = 0;
@@ -303,6 +337,7 @@ public final class AppsConfig {
         var app = apps.stream().filter(entry -> entry.id().equals(id)).findFirst()
                 .orElseThrow(() -> new IOException("Unknown AresOS app: " + id));
         if (!app.mine()) throw new IOException(app.name() + " is not in My apps. Add it first.");
+        if (app.absent()) throw new IOException(app.name() + " is not installed: the system no longer lists it.");
         if (!dev.aresos.names.NameRules.valid(name))
             throw new IOException("Invalid name: use 2 to 16 lower-case letters or digits, starting with a letter.");
         if (dev.aresos.names.NameRules.reserved(name, commands)) throw new IOException("Reserved command: /" + name);

@@ -83,9 +83,13 @@ public final class AresOs implements ModInitializer {
         apps = AppsConfig.unname(configPath(), name);
     }
 
-    /** One complete program list from the helper goes into the apps file; My apps follows (item/MyAppsGame). */
+    /**
+     * One complete program list from the helper goes into the apps file; My apps follows (item/MyAppsGame). The helper
+     * owns every launch here, so what it does not name is marked absent: no command, no /open, until it returns.
+     */
     private static synchronized void takeIn(ShellClient.AppList listed) throws IOException {
-        var merged = AppsConfig.merge(configPath(), LinuxAppCatalogue.definitions(listed.apps()), listed.detailed(), java.time.LocalDate.now());
+        var merged = AppsConfig.merge(configPath(), LinuxAppCatalogue.definitions(listed.apps()), listed.detailed(),
+                java.time.LocalDate.now(), true);
         apps = merged.apps();
         dev.aresos.item.MyAppsGame.listed(merged);
     }

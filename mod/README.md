@@ -603,7 +603,13 @@ commands and `aresos`, `home`, `go`, `open`, `apps` are always reserved (`home` 
 Names are saved in schema 4 of `config/aresos/apps.json`, in `names`, main first.
 The migration keeps an untouched sibling backup of older schemas. Names survive
 program renames and removal from My apps; an app outside My apps has no short
-command, and keeps its names for its return. A newly reserved real command forces
+command, and keeps its names for its return. A program that the AresOS app helper's
+latest complete list no longer names is saved with `"absent": true`: it keeps its
+names and its place in My apps, but has no command, `/open` neither finds nor
+completes it, and `/apps` shows it as not installed, without a click. The next
+complete list that names it again brings it all back. While the helper is down,
+the last complete list stays in force, also across a restart. Windows discovery
+marks nothing absent. A newly reserved real command forces
 an alternative app name. Apps… shows the main name beside each of My apps and
 searches all saved names. Newly built gates show `/mainname` on the second sign
 line; standing gates keep the text they were built with.

@@ -54,6 +54,31 @@ class SavedNamesTest {
         assertEquals(List.of("fallback"), AppsConfig.assignNames(file, Set.of("help")).getFirst().names());
     }
 
+    /** Review 1, finding 4: what the latest complete list no longer names is absent, and keeps everything for its return. */
+    @Test void programsMissingFromACompleteListAreAbsentUntilTheyReturn() throws Exception {
+        var file = temp.resolve("apps.json");
+        var discord = app("discord", "Discord");
+        var other = app("other", "Other").withMine(false);
+        AppsConfig.save(file, List.of(discord, other));
+        AppsConfig.assignNames(file, Set.of());
+        // Windows discovery returns only the shortcuts it found: it marks nothing.
+        assertTrue(AppsConfig.merge(file, List.of(other), false, null).apps().stream().noneMatch(AppDefinition::absent));
+        var gone = AppsConfig.merge(file, List.of(other), false, null, true).apps().getFirst();
+        assertTrue(gone.absent() && gone.mine());
+        assertEquals(List.of("discord", "dc"), gone.names());
+        // Saved: a restart while the helper is down keeps the last complete list in force.
+        assertTrue(AppsConfig.load(file).apps().getFirst().absent());
+        assertTrue(Files.readString(file).contains("\"absent\": true"));
+        // While absent its names are neither displaced nor added to.
+        assertEquals(List.of("discord", "dc"), AppsConfig.assignNames(file, Set.of("discord")).getFirst().names());
+        assertThrows(java.io.IOException.class, () -> AppsConfig.name(file, "discord", "chat", Set.of()));
+        var back = AppsConfig.merge(file, List.of(discord, other), false, null, true).apps().getFirst();
+        assertFalse(back.absent());
+        assertTrue(back.mine());
+        assertEquals(List.of("discord", "dc"), back.names());
+        assertFalse(Files.readString(file).contains("\"absent\""));
+    }
+
     @Test void schemaThreeMigratesWithoutLosingFieldsAndNamesValidate() throws Exception {
         var file = temp.resolve("apps.json");
         String old = """

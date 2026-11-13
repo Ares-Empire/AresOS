@@ -25,7 +25,7 @@ public final class ProgramCommands {
         if (dispatcher.getRoot().getChild("open") == null) dispatcher.register(Commands.literal("open").requires(AppCommands::allowed)
                 .then(Commands.argument("name", greedyString()).suggests((c, b) -> {
                     if (!AppCommands.allowed(c.getSource())) return b.buildFuture();
-                    var apps = AresOs.apps();
+                    var apps = listed();
                     var reserved = SlashCommands.reserved(c.getSource().getServer());
                     var keys = new java.util.TreeSet<String>();
                     for (var app : apps) keys.addAll(OpenPrograms.keys(app, apps, reserved));
@@ -38,7 +38,7 @@ public final class ProgramCommands {
 
     private static int open(CommandSourceStack source, String query) {
         if (!AppCommands.allowed(source)) return 0;
-        var found = OpenPrograms.find(AresOs.apps(), query, SlashCommands.reserved(source.getServer()));
+        var found = OpenPrograms.find(listed(), query, SlashCommands.reserved(source.getServer()));
         if (found.isEmpty()) { source.sendFailure(Component.literal("No program matches \"" + query + "\".")); return 0; }
         if (found.size() == 1) return SlashCommands.launch(source, found.getFirst().id());
         source.sendSuccess(() -> Component.literal("Several programs match. Click one to open it:"), false);
@@ -50,11 +50,20 @@ public final class ProgramCommands {
         if (!AppCommands.allowed(source)) return 0;
         var mine = AresOs.apps().stream().filter(AppDefinition::mine).sorted(AppSearch.BY_NAME).toList();
         source.sendSuccess(() -> Component.literal("My apps: " + mine.size() + ". Click one to open it."), false);
+        // Absent programs are listed too, as not installed: he sees why their commands are gone.
         for (var app : mine) source.sendSuccess(() -> line(app), false);
         return mine.size();
     }
 
+    /** The programs the latest complete list from the system names; only these can be opened. */
+    private static java.util.List<AppDefinition> listed() {
+        return AresOs.apps().stream().filter(app -> !app.absent()).toList();
+    }
+
     private static MutableComponent line(AppDefinition app) {
+        // Still one of his apps, kept for its return, but nothing to open and no command while it is gone.
+        if (app.absent()) return Component.literal(app.name()).withStyle(ChatFormatting.DARK_GRAY)
+                .append(Component.literal("  not installed  · " + AppGroup.of(app).title()).withStyle(ChatFormatting.DARK_GRAY));
         String commands = app.mine() ? app.names().stream().map(name -> "/" + name).collect(java.util.stream.Collectors.joining(", ")) : "";
         return Component.literal(app.name()).withStyle(ChatFormatting.AQUA)
                 .append(Component.literal("  " + commands + "  · " + AppGroup.of(app).title()).withStyle(ChatFormatting.GRAY))
