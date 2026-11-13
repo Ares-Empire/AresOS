@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "ostree",
+    "admin",
+    "set-default",
+    "1"
+  ],
+  "returncode": 0,
+  "stdout": "Transaction complete; bootconfig swap: no; bootversion: boot.0.0, deployment count change: 0\n",
+  "stderr": ""
+}

@@ -75,15 +75,16 @@ def main():
     left = {name: sorted(set(re.findall(UUID, text))) for name, text in texts.items() if re.search(UUID, text)}
     assert not left, 'STOP: an identifier of another kind is left; decide about it first: ' + repr(left)
 
-    # 3. The audits, one row per boot.
+    # 3. The audits, one row per boot, in boot order.
+    baseline = json.loads((evidence / 'protected-baseline.json').read_text())['sha256']
     audits = []
-    for path in sorted(evidence.glob('*-protected.json'), key=lambda p: p.stat().st_mtime):
+    for path in evidence.glob('*-protected.json'):
         stage = path.name.removesuffix('-protected.json')
-        value = json.loads(path.read_text())
-        audits.append(dict(stage=stage, protected_disk_sha256=value.get('sha256'),
-                           equals_baseline=stage == 'protected-baseline' or value.get('sha256') == audits[0]['protected_disk_sha256']))
-    assert audits and audits[0]['stage'] == 'protected-baseline' and all(row['equals_baseline'] for row in audits), \
-        'STOP: a protected-disk audit differs from the baseline'
+        boot = json.loads((evidence / (stage + '-bootnext-audit.json')).read_text())['boot']
+        audits.append(dict(boot=boot, stage=stage, protected_disk_equals_baseline=json.loads(path.read_text())['sha256'] == baseline))
+    audits.sort(key=lambda row: row['boot'])
+    assert audits and [row['boot'] for row in audits] == list(range(1, len(audits) + 1)), 'STOP: a boot without its audit'
+    assert all(row['protected_disk_equals_baseline'] for row in audits), 'STOP: a protected-disk audit differs from the baseline'
 
     folder = ROOT / 'reviews/22c-ways-back-after-update/runs' / f'{kind}-{run}'
     folder.mkdir(parents=True, exist_ok=False)
@@ -93,7 +94,7 @@ def main():
                  status=result['status'], files=sorted(names),
                  replaced=dict(vm_root_filesystem_uuids=len(roots), boot_ids=len(boots),
                                rule='the same fixed word for the same value in every file; nothing else was changed'),
-                 checked_for=list(FORBIDDEN), audits=audits)
+                 checked_for=list(FORBIDDEN), protected_disk_baseline_sha256=baseline, audits=audits)
     (folder / 'index.json').write_text(json.dumps(index, indent=2) + '\n', encoding='utf-8', newline='\n')
     print(f'wrote {len(names) + 1} files to {folder.relative_to(ROOT)}; {len(audits)} audits equal the baseline\n')
     print('| Stage | Reached by | Order | Runs | bootc booted / rollback | rollbackQueued | Pinned (origin file) | Titles top to bottom | Swap |')
