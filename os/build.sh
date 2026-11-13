@@ -1,6 +1,50 @@
 #!/usr/bin/bash
 set -euo pipefail
 
+# Package 23: build the AresOS mod jar from the repository at one exact commit,
+# in two of the Containerfile's stages that every image build runs (and
+# os/ci/build-mod.sh, which sets or renews the pin, builds the same two):
+#   source  in the pinned base (it has curl): fetch that commit, keep only mod/
+#   mod     in the digest-pinned JDK, which has no curl or wget: Gradle only
+# minecraft/builder-tools.txt lists what the JDK image has; the tests run the
+# mod mode with exactly those tools. The image's configure step accepts the
+# jar only with its pinned SHA-256.
+exact_revision() {
+    if [[ ! ${1-} =~ ^[0-9a-f]{40}$ ]]; then
+        echo "The AresOS mod is built from an exact commit: pass --build-arg ARESOS_SOURCE_REVISION=<full commit> (got '${1-}')" >&2
+        exit 1
+    fi
+}
+if [[ $1 == source ]]; then
+    revision=${2-} out=${3-}
+    exact_revision "$revision"
+    [[ $out == /* ]]
+    work=$(mktemp -d)
+    curl -fsSL --proto '=https' --tlsv1.2 --retry 3 -o "$work/source.tar.gz" \
+        "https://codeload.github.com/Ares-Empire/AresOS/tar.gz/$revision"
+    mkdir -p "$out"
+    tar -xzf "$work/source.tar.gz" -C "$out" --strip-components=1 --wildcards '*/mod/*'
+    test -x "$out/mod/gradlew"
+    echo "MOD_SOURCE $revision $(sha256sum "$work/source.tar.gz" | cut -d' ' -f1)"
+    rm -rf "$work"
+    exit 0
+fi
+if [[ $1 == mod ]]; then
+    src=${2-} out=${3-} revision=${4-}
+    exact_revision "$revision"
+    [[ $src == /* && $out == /* ]]
+    cd "$src"
+    version=$(sed -n 's/^version=//p' gradle.properties)
+    [[ $version =~ ^[0-9A-Za-z.+-]+$ ]]
+    work=$(mktemp -d)
+    GRADLE_USER_HOME="$work/gradle" ./gradlew --no-daemon --console=plain jar
+    mkdir -p "$out"
+    cp "build/libs/aresos-$version.jar" "$out/aresos.jar"
+    echo "MOD_JAR_BUILT $(sha256sum "$out/aresos.jar" | cut -d' ' -f1) from $revision"
+    rm -rf "$work"
+    exit 0
+fi
+
 if [[ $1 == packages ]]; then
     mkdir -p /usr/share/aresos/manifest /tmp/ares-rpms /tmp/ares-chrome
     rpm -qa --qf '%{NEVRA}\n' | sort > /tmp/base-packages.txt
@@ -76,6 +120,64 @@ PY
         exit 1
     fi
     cp /tmp/aresos/google-chrome.lock.json /usr/share/aresos/manifest/google-chrome.lock.json
+    # Package 23: Prism Launcher's official Linux bundle and the desktop's
+    # Fabric inputs, each from its pinned URL and accepted only with its pinned
+    # SHA-256 and size (os/minecraft/desktop.lock.json). The AresOS mod jar is
+    # built by the Containerfile's mod stage and installed by the configure
+    # step below. Minecraft itself is never in the image: Prism downloads it
+    # after the owner signs in.
+    python3 - <<'PY'
+import hashlib, json, os, pathlib, shutil, subprocess, tarfile
+lock = json.loads(pathlib.Path('/tmp/aresos/minecraft/desktop.lock.json').read_text())
+share = pathlib.Path('/usr/share/aresos/minecraft')
+downloads = pathlib.Path('/tmp/ares-minecraft')
+downloads.mkdir()
+
+def fetch(entry, target):
+    subprocess.run(['curl', '-fsSL', '--proto', '=https', '--tlsv1.2', '--retry', '3', '-o', str(target), entry['url']],
+                   check=True)
+    check(entry, target)
+
+def check(entry, target):
+    data = target.read_bytes()
+    assert hashlib.sha256(data).hexdigest() == entry['sha256'], f'{target.name} differs from its pin'
+    if 'size' in entry:
+        assert len(data) == entry['size'], f'{target.name} has the wrong size'
+
+prism = downloads / 'prism.tar.gz'
+fetch(lock['prism'], prism)
+root = pathlib.Path('/usr/lib/prismlauncher')
+assert not root.exists()
+with tarfile.open(prism) as archive:
+    archive.extractall(root, filter='data')
+# The bundle's own updater and portable mode stay out: updates come with AresOS
+# releases, and Prism keeps his data in ~/.local/share/PrismLauncher.
+for name in ('portable.txt', 'bin/prismlauncher_updater', 'shared/bin/prismlauncher_updater'):
+    (root / name).unlink()
+assert not list(root.rglob('*updater*')), list(root.rglob('*updater*'))
+assert not (root / 'UserData').exists()
+os.symlink('/usr/lib/prismlauncher/bin/prismlauncher', '/usr/bin/prismlauncher')
+for folder in ('libraries', 'mods'):
+    (share / folder).mkdir(parents=True)
+for library in lock['fabric_loader']['libraries']:
+    _, artifact, version = library['name'].split(':')
+    fetch(library, share / 'libraries' / f'{artifact}-{version}.jar')
+for mod in lock['mods']:
+    if 'url' in mod:
+        fetch(mod, share / 'mods' / mod['file'])
+# Prism's own metadata for Minecraft and LWJGL, as local components (versions, natives and hashes fixed).
+(share / 'patches').mkdir()
+for component in lock['components']:
+    fetch(component, share / 'patches' / component['file'])
+shutil.copyfile('/tmp/aresos/minecraft/desktop.lock.json', share / 'desktop.lock.json')
+manifest = []
+for path in sorted(p for p in root.rglob('*') if p.is_file() and not p.is_symlink()):
+    manifest.append(f'{hashlib.sha256(path.read_bytes()).hexdigest()}  {path}')
+pathlib.Path('/usr/share/aresos/manifest/prism-files.sha256').write_text('\n'.join(manifest) + '\n')
+shutil.rmtree(downloads)
+print(f'Prism {lock["prism"]["version"]}, Fabric Loader {lock["fabric_loader"]["version"]} and '
+      f'{len(lock["mods"])} mods installed from their pins')
+PY
     rpm -qa --qf '%{NEVRA}\n' | sort > /usr/share/aresos/manifest/packages.txt
     grep -E '^(kernel|kmod-nvidia|akmod-nvidia|nvidia|libnvidia|xorg-x11-drv-nvidia)' /tmp/base-packages.txt > /tmp/drivers-before
     grep -E '^(kernel|kmod-nvidia|akmod-nvidia|nvidia|libnvidia|xorg-x11-drv-nvidia)' /usr/share/aresos/manifest/packages.txt > /tmp/drivers-after
@@ -86,13 +188,54 @@ PY
     exit 0
 fi
 
+# Package 23: the mod jar the `mod` stage built from this commit. A release
+# build (ARESOS_BUILD_KIND=release, the Containerfile's default) accepts it only
+# with its pinned SHA-256; without it, or with other bytes, it stops here. A
+# throwaway check build (ARESOS_BUILD_KIND=throwaway: only os/ci/check-build.sh
+# sets it, in the workflow's check-build job, which cannot push, sign or
+# publish) says in one line that the jar is not its pin and goes on; the
+# image's copy of the desktop lock then names the jar it carries, which the
+# desktop checks before every start. Both record the jar the image carries in
+# /usr/share/aresos/manifest/aresos-mod.json (os/ci/image-checks.sh checks it).
+python3 - /tmp/aresos /usr/share/aresos <<'PY'
+import hashlib, json, os, pathlib, re, shutil, sys
+source, share = (pathlib.Path(arg) for arg in sys.argv[1:])
+kind = os.environ.get('ARESOS_BUILD_KIND', 'release')
+assert kind in ('release', 'throwaway'), f'ARESOS_BUILD_KIND is {kind!r}: release or throwaway'
+revision = os.environ.get('ARESOS_SOURCE_REVISION', '')
+assert re.fullmatch('[0-9a-f]{40}', revision), f'The mod jar is recorded with its exact commit (got {revision!r})'
+lock = json.loads((source / 'minecraft/desktop.lock.json').read_text())
+mod = next(mod for mod in lock['mods'] if mod['file'] == 'aresos.jar' and 'url' not in mod)
+pin = mod['sha256']
+jar = source / 'minecraft/aresos.jar'
+assert jar.is_file(), 'The AresOS mod jar is missing: the Containerfile mod stage builds it'
+digest = hashlib.sha256(jar.read_bytes()).hexdigest()
+if digest != pin:
+    assert kind == 'throwaway', f'The AresOS mod jar built from this commit is {digest}; desktop.lock.json pins {pin}'
+    print(f'MOD_JAR_UNPINNED pin {pin}, built {digest} from {revision}: '
+          'allowed in a throwaway build; a release build stops here')
+    mod['sha256'] = digest
+    (share / 'minecraft/desktop.lock.json').write_text(json.dumps(lock, indent=2) + '\n')
+target = share / 'minecraft/mods/aresos.jar'
+assert not target.exists()
+shutil.copyfile(jar, target)
+target.chmod(0o644)
+record = dict(sha256=digest, source_revision=revision, pinned_sha256=pin)
+(share / 'manifest/aresos-mod.json').write_text(json.dumps(record, indent=2) + '\n')
+if digest == pin:
+    print(f'MOD_JAR_PINNED {digest}')
+PY
+
 # Use the same declaration at build and boot: local /etc/passwd changes from
 # the installer otherwise hide new accounts in the image's /usr/etc/passwd.
 systemd-sysusers /usr/lib/sysusers.d/aresos.conf
 passwd --lock ares
 passwd --lock root
 chmod 0755 /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/bin/brew /usr/libexec/aresos-audit \
-    /usr/libexec/aresos-keyboard /usr/libexec/aresos-shell /usr/libexec/aresos-subids
+    /usr/libexec/aresos-keyboard /usr/libexec/aresos-shell /usr/libexec/aresos-subids \
+    /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java
+# The owner's command for the desktop (retry, status, reset-instance, forget-hub).
+ln -sfn ../libexec/aresos-desktop /usr/bin/aresos-desktop
 chmod 0440 /etc/sudoers.d/aresos-everyday
 # cp -a of os/config gives /etc/sudoers.d the checkout's 0755; keep Fedora's
 # root-only directory (package 27's image diff found this).
