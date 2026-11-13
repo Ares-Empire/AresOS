@@ -15,7 +15,11 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
-/** A scripted aresos-shell/1.0 helper on a real Unix socket. It never starts anything; it counts launches. */
+/**
+ * A scripted aresos-shell helper on a real Unix socket. It never starts anything; it counts launches. It speaks 1.0
+ * by default, like the helper on the laptop today; with {@link #minor} 1 it speaks 1.1 (docs/design/HUB.md 3.8) to a
+ * client that offers minor 1: pages, what the system knows about each program, and apps_changed.
+ */
 final class FakeHelper implements AutoCloseable {
     static final String INSTANCE = "desk-test";
     static final String NONCE = "nonce-for-tests-0123456789";
@@ -26,8 +30,15 @@ final class FakeHelper implements AutoCloseable {
     final Map<String, JsonObject> journal = new ConcurrentHashMap<>();
     volatile List<String> capabilities = List.of("list_apps", "open_app", "app_state", "shell_focus", "world_ready",
             "heartbeat", "windows");
-    volatile List<String[]> apps = List.of(new String[] {"terminal", "Terminal", null},
-            new String[] {"notepad", "Notepad", null}, new String[] {"browser", "Chrome", "not_installed"});
+    static final List<String> DETAIL_CAPABILITIES = List.of("app_details", "apps_changed", "list_paging");
+    /** The helper's own minor version. The reply to hello names the lower of this and the client's. */
+    volatile int minor;
+    /** What the helper lists, in this order. Entries may carry the 1.1 fields. */
+    volatile List<JsonObject> entries = List.of(entry("terminal", "Terminal", null),
+            entry("notepad", "Notepad", null), entry("browser", "Chrome", "not_installed"));
+    volatile String revision = "fixture";
+    /** Entries per page for a 1.1 client; 0 puts everything on one page. */
+    volatile int pageSize;
     /** Overrides the reply to an operation; returning null sends nothing. */
     volatile Function<JsonObject, JsonObject> override = message -> null;
     /** What a new launch reports first. */
@@ -40,6 +51,30 @@ final class FakeHelper implements AutoCloseable {
     private final Thread acceptor;
     private volatile SocketChannel current;
     private final Object writeLock = new Object();
+    /** The minor each connection agreed to in hello. */
+    private final Map<SocketChannel, Integer> negotiated = new ConcurrentHashMap<>();
+
+    /** A starter as 1.0 lists it: {@code reason} null means available. */
+    static JsonObject entry(String id, String name, String reason) {
+        var row = new JsonObject();
+        row.addProperty("id", id);
+        row.addProperty("name", name);
+        row.addProperty("available", reason == null);
+        if (reason == null) row.add("reason", JsonNull.INSTANCE);
+        else row.addProperty("reason", reason);
+        return row;
+    }
+
+    /** A program as 1.1 lists it; more optional fields can be added to the result. */
+    static JsonObject entry(String id, String name, String reason, String source) {
+        var row = entry(id, name, reason);
+        row.addProperty("source", source);
+        return row;
+    }
+
+    private JsonObject listed(String id) {
+        return entries.stream().filter(row -> id != null && id.equals(string(row, "id"))).findFirst().orElse(null);
+    }
 
     FakeHelper(Path folder) throws IOException {
         path = folder.resolve("s.sock");
@@ -103,23 +138,33 @@ final class FakeHelper implements AutoCloseable {
         reply.addProperty("ok", true);
         switch (op) {
             case "hello" -> {
+                var asked = message.get("minor");
+                int agreed = Math.min(minor, asked != null && asked.isJsonPrimitive() ? asked.getAsInt() : 0);
+                negotiated.put(channel, agreed);
                 reply.addProperty("major", 1);
-                reply.addProperty("minor", 0);
+                reply.addProperty("minor", agreed);
                 var offered = new JsonArray();
                 capabilities.forEach(offered::add);
+                if (minor >= 1) DETAIL_CAPABILITIES.forEach(offered::add);
                 reply.add("capabilities", offered);
             }
             case "list_apps" -> {
-                reply.addProperty("revision", "fixture");
+                reply.addProperty("revision", revision);
                 var rows = new JsonArray();
-                for (var app : apps) {
-                    var row = new JsonObject();
-                    row.addProperty("id", app[0]);
-                    row.addProperty("name", app[1]);
-                    row.addProperty("available", app[2] == null);
-                    if (app[2] == null) row.add("reason", JsonNull.INSTANCE);
-                    else row.addProperty("reason", app[2]);
-                    rows.add(row);
+                if (negotiated.getOrDefault(channel, 0) < 1) {
+                    // A 1.0 client gets what it gets today: the starters with the four fields, in one reply.
+                    for (var row : entries) {
+                        String source = string(row, "source");
+                        if (source == null || source.equals("image"))
+                            rows.add(entry(string(row, "id"), string(row, "name"), string(row, "reason")));
+                    }
+                } else {
+                    var all = entries;
+                    String cursor = string(message, "cursor");
+                    int from = cursor == null ? 0 : Integer.parseInt(cursor.substring(1));
+                    int to = pageSize <= 0 ? all.size() : Math.min(all.size(), from + pageSize);
+                    for (var row : all.subList(from, to)) rows.add(row);
+                    if (to < all.size()) reply.addProperty("next", "p" + to);
                 }
                 reply.add("apps", rows);
             }
@@ -130,10 +175,11 @@ final class FakeHelper implements AutoCloseable {
                     known = new JsonObject();
                     known.addProperty("request_id", id);
                     known.addProperty("app_id", app);
-                    if (apps.stream().noneMatch(row -> row[0].equals(app))) {
+                    var row = listed(app);
+                    if (row == null) {
                         known.addProperty("state", "failed");
                         known.addProperty("error", "unknown_app");
-                    } else if (apps.stream().anyMatch(row -> row[0].equals(app) && row[2] != null)) {
+                    } else if (!row.get("available").getAsBoolean()) {
                         known.addProperty("state", "failed");
                         known.addProperty("error", "unavailable");
                         known.addProperty("reason", "not_installed");
@@ -188,7 +234,8 @@ final class FakeHelper implements AutoCloseable {
     private void send(SocketChannel channel, JsonObject message) throws IOException {
         if (!message.has("protocol")) {
             var stamped = new JsonObject();
-            stamped.addProperty("protocol", "aresos-shell/1.0");
+            // Like the real helper: its own minor until hello, then the one both sides agreed to.
+            stamped.addProperty("protocol", "aresos-shell/1." + negotiated.getOrDefault(channel, minor));
             message.entrySet().forEach(entry -> stamped.add(entry.getKey(), entry.getValue()));
             message = stamped;
         }

@@ -1,0 +1,90 @@
+{
+  "protocol": "aresos-shell/1.1",
+  "id": "l-5f0c9a12-3",
+  "ok": true,
+  "revision": "9b2d4f6a8c0e1357",
+  "apps": [
+    {
+      "id": "notepad",
+      "name": "Notepad",
+      "available": true,
+      "reason": null,
+      "source": "image",
+      "icon": "/run/user/1000/aresos/icons/notepad.png",
+      "categories": [
+        "Utility",
+        "TextEditor"
+      ],
+      "generic_name": "Text Editor",
+      "keywords": [
+        "text",
+        "editor"
+      ],
+      "desktop_id": "org.kde.kwrite.desktop"
+    },
+    {
+      "id": "org-kde-dolphin",
+      "name": "Dolphin",
+      "available": true,
+      "reason": null,
+      "source": "system",
+      "icon": "/run/user/1000/aresos/icons/org-kde-dolphin.png",
+      "categories": [
+        "System",
+        "FileManager"
+      ],
+      "generic_name": "File Manager",
+      "keywords": [
+        "files",
+        "folders"
+      ],
+      "desktop_id": "org.kde.dolphin.desktop",
+      "exec_name": "dolphin",
+      "terminal": false
+    },
+    {
+      "id": "org-kde-okular",
+      "name": "Okular",
+      "available": true,
+      "reason": null,
+      "source": "flatpak-system",
+      "icon": "/run/user/1000/aresos/icons/org-kde-okular.png",
+      "categories": [
+        "Office",
+        "Viewer"
+      ],
+      "generic_name": "Document Viewer",
+      "keywords": [
+        "pdf",
+        "epub"
+      ],
+      "desktop_id": "org.kde.okular.desktop",
+      "exec_name": "org.kde.okular",
+      "terminal": false
+    },
+    {
+      "id": "steam",
+      "name": "Steam",
+      "available": true,
+      "reason": null,
+      "source": "system",
+      "icon": "/run/user/1000/aresos/icons/steam.png",
+      "categories": [
+        "Network",
+        "FileTransfer",
+        "Game"
+      ],
+      "generic_name": "Game Store",
+      "desktop_id": "steam.desktop",
+      "exec_name": "bazzite-steam",
+      "terminal": false
+    },
+    {
+      "id": "terminal",
+      "name": "Terminal",
+      "available": true,
+      "reason": null,
+      "source": "image"
+    }
+  ]
+}
