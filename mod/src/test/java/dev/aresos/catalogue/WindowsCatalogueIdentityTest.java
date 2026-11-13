@@ -2,6 +2,8 @@ package dev.aresos.catalogue;
 
 import com.google.gson.*;
 import dev.aresos.config.*;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import java.nio.charset.StandardCharsets;
@@ -14,7 +16,8 @@ import static dev.aresos.catalogue.WindowsCatalogueFixesTest.*;
 class WindowsCatalogueIdentityTest {
     @TempDir Path directory;
 
-    @Test void migratedDefaultNotepadReconcilesStoreAndShortcutWithoutChangingOwnerFields() throws Exception {
+    @Test @EnabledOnOs(value = OS.WINDOWS, disabledReason = WindowsOnly.WINDOWS_PATHS)
+    void migratedDefaultNotepadReconcilesStoreAndShortcutWithoutChangingOwnerFields() throws Exception {
         Path file = directory.resolve("apps.json"), cache = directory.resolve("cache");
         String legacy = """
                 [{"id":"notepad","name":"Owner notes","command":["notepad.exe"],
@@ -38,7 +41,8 @@ class WindowsCatalogueIdentityTest {
         }
     }
 
-    @Test void nativeCmdShortcutsWithDifferentRawQuotingRemainTwoApps() throws Exception {
+    @Test @EnabledOnOs(value = OS.WINDOWS, disabledReason = WindowsOnly.POWERSHELL)
+    void nativeCmdShortcutsWithDifferentRawQuotingRemainTwoApps() throws Exception {
         Path menu = directory.resolve("menu"), cache = directory.resolve("cache"), config = directory.resolve("apps.json");
         Files.createDirectories(menu);
         String setup = "$s=New-Object -ComObject WScript.Shell;";
