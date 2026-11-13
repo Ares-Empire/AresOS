@@ -75,10 +75,27 @@ job of its own in `control-chrome.yml`.
 ### 1. The reader collects outline nodes (extension, read-only)
 
 A new read-only command of the content script, `outline`, next to `read`. For every readable frame it returns the
-document, its revision, address, title, scroll position and page height, and a flat list of nodes in document order:
-the reader's element id, the parent's id, the role, the accessible name, and only what applies of: the value, the
-states that are set, the link address, a form's method, action and hidden field names, a list's option count and
-chosen option, and the element's **own** text (not its descendants').
+frame, the document, the reader instance (item 3), whether the reader has watched the document from its start, the
+address, the title, the scroll position and page height, how many nodes were left out, and `nodes`, a flat list in
+document order. **A node holds, and nothing else:**
+
+- `id`, the reader's element id, and `parent`, the id of the nearest ancestor that has a node;
+- `role`, from the role list (item 2), with the level for a heading;
+- `name`: the accessible name, whole;
+- `text`: the element's own text **in order**, as a list of parts: a string for each run of its own text, and the
+  id of a child node where that child stands between two runs. `<p>See the <a>timetable</a> for week 46.</p>`
+  gives `["See the ", 12, " for week 46."]`. One joined string would lose where the link stands;
+- for a field: `value`, or `unread` when the password rule keeps it out; and `error`, the text its
+  `aria-errormessage` or `aria-describedby` points to while `aria-invalid` is true;
+- `states`: only those that are set;
+- for a link: `href`, resolved and in full (the service keeps it and shows the public form);
+- for a form: `method`, `action` and the names of its hidden fields;
+- for a `combobox` or `listbox`: the number of options, the chosen option's label, and the first 50 options
+  (label, value, chosen, disabled). A read of that field by its own `ref` fetches all of them with a third
+  read-only command, `options`, for one element;
+- `title`, when the element has one that differs from its name; for a `frame`, the child frame's id.
+
+The node never holds its descendants' text, a box or a style.
 
 - **Roles come from a fixed list** (item 2), never from a page's own string. Brief 20's `role` returns a `role`
   attribute verbatim (`reader.js`, `role`), and the outline prints the role outside the quotes, so a page could
@@ -196,10 +213,11 @@ Claude uses an address it can't see by reference: a link's `ref`, his tab's numb
 **The outline format** (normative; section 6 shows an example):
 
 ```
-line    = indent role [" " name] [" = " value] {" " state} [" → " target] [" " ref]
+line    = indent role {" " part} [" = " value] {" " state} [" → " target] [" " ref]
 indent  = two spaces per level of depth
 role    = one word from the role list below, nothing else
-name    = the accessible name or own text, in double quotes
+part    = quoted | "[" role " " quoted [" " ref] "]"
+quoted  = the accessible name, or a run of own text, in double quotes
 value   = a field's value in double quotes; the words (not read) instead for "password" and for a field whose
           history the reader doesn't know (item 1)
 state   = checked | selected | disabled | required | invalid | expanded | collapsed | current | readonly
@@ -241,6 +259,12 @@ ref     = three letters and a number, for example kqt5 (item 3)
   `chrome_do`. `chrome_open` and `chrome_upload` give the message alone, and Claude reads the element again.
 - Text appears once, on the deepest element that owns it. A label whose text is its field's name gets no line of
   its own. An element without a role, a name or own text gets no line, and its children move up a level.
+- **Text keeps its order.** A line's quoted runs and its inline children alternate as they stand in the page. A
+  child stands inline, in square brackets, when it is a link or a control with nothing below it and its parent has
+  text of its own: `p "See the " [link "timetable" kqt12] " for week 46."`. Every other child gets its own line,
+  one level deeper, in document order; where the parent's own text runs between such children, each run is a
+  `text` line in its place. Brackets outside quotes are always the tool's: a page's text is only ever inside
+  quotes.
 - A name or value can never start a new line or end its quotes (the escaping rule above).
 - **Folds** (each says what it hides):
   - a name, a text or a value longer than 200 characters is cut and ends in `…+N`, N being the characters left
@@ -251,6 +275,20 @@ ref     = three letters and a number, for example kqt5 (item 3)
   - a list of more than 12 options is `(N options)` on the field's line, with the chosen one as the value;
   - a form shows its first 40 fields, then a fold like the one for neighbours; hidden fields are `(N hidden)` on
     the form's line.
+- **The order of folding,** from the top of the tree down: (1) a table folds whole; (2) inside a form, the fields
+  after the 40th fold into one line; (3) among the children of one parent, a run of more than 8 children in a row
+  with the same role shows its first 5 and folds the rest; (4) a list field with more than 12 options shows its
+  count; (5) on every line that is shown, the name, each text run and the value are cut so that the line's quoted
+  text has at most 200 characters, with inline children after the cut left to the element's own `ref`. What sits
+  inside a folded part isn't rendered, so it has no folds of its own until it is read.
+- **What the numbers count:** characters of outline text. The number in a fold line is the length of what a read
+  of that fold returns with `full`, before any cut by `max`. `…+N` is the number of characters left out of that
+  line's text. R and C of a table are its rows and its widest row's cells.
+- **A fold's reference** stands for "the children of this parent from this child on, with this role". The table
+  entry (item 3) holds the parent, the first hidden child and the role. The same fold keeps its reference across
+  reads for as long as that parent and that child live. A read of it returns those children as they are then. It
+  is stale when the parent or that child is gone. No step of `chrome_do` accepts it. A folded table and a cut text
+  need no reference of their own: the table's or the element's reference reads them.
 - A reference is put on every element that can be acted on, and on every element that can be read by itself: a
   form, table, list, landmark, dialog, article or frame, and anything cut or folded.
 
@@ -635,7 +673,8 @@ profile on the machine you run on; locally run only plain Python and Node tests 
 
 Every new rule gets a test that fails without it.
 
-**Without a browser** (Python and Node): the outline renderer against recorded node lists (every fold, every
+**Without a browser** (Python and Node): the outline renderer against recorded node lists (every fold, the order of folding, each fold's count against a `full` read of it, text with
+inline links in its order, every role of the tag table, every
 escape, depth, the `ref` forms, `find`, the cut at `max` and at 48 KiB with non-ASCII text); the reference table
 (same element same reference; one counter for all tabs; no string issued twice, also after entries were dropped at
 the 5,000 bound and after the table was emptied; every stale case of item 3; a new reader instance in the same

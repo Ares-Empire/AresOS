@@ -603,6 +603,7 @@ untrusted content (rule 4.8): a page can never instruct Claude.
 ```
 main
   h1 "Week 46"
+  p "Rooms change in " [link "week 47" kqt4] "."
   button "Next week" kqt5
   form "Filter" → GET uni.example/timetable kqt7
     combobox "Semester" = "Winter 2026" kqt8
@@ -619,8 +620,10 @@ main
   disabled, required, invalid, expanded, current), where a link or a form leads when that isn't obvious, and a
   reference.
 - Text appears once, on the element that owns it: a label's text is on its field, not beside it as well. Wrappers
-  without a role or name get no line.
-- Long content is folded. The fold says how much it hides, and its reference reads exactly that. A text longer than
+  without a role or name get no line. A link or control inside a sentence stands in square brackets where it
+  stands in the text, so the sentence keeps its order.
+- Long content is folded. The fold says how much it hides, in characters of what reading it returns, and its
+  reference reads exactly that. A text longer than
   200 characters is cut. Of more than 8 neighbours of the same kind (paragraphs, list items, rows, cards) the first
   5 are shown. A table shows its size. A list of more than 12 options shows the chosen one and the count. A form
   shows its first 40 fields.
