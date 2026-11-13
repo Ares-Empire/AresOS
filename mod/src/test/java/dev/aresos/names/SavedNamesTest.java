@@ -48,6 +48,12 @@ class SavedNamesTest {
         assertEquals(before, Files.readString(file));
     }
 
+    @Test void aDisplacedMainCanUseTheSameAppsExistingNextBestAlias() throws Exception {
+        var file = temp.resolve("apps.json");
+        AppsConfig.save(file, List.of(app("test", "Help").withNames(List.of("help", "fallback"))));
+        assertEquals(List.of("fallback"), AppsConfig.assignNames(file, Set.of("help")).getFirst().names());
+    }
+
     @Test void schemaThreeMigratesWithoutLosingFieldsAndNamesValidate() throws Exception {
         var file = temp.resolve("apps.json");
         String old = """

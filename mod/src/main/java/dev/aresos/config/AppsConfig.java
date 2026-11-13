@@ -275,14 +275,16 @@ public final class AppsConfig {
             int index = 0;
             while (!apps.get(index).id().equals(program.id())) index++;
             var app = apps.get(index);
+            held.removeAll(app.names());
             var kept = app.names().stream().filter(name -> !dev.aresos.names.NameRules.reserved(name, commands)).toList();
             var updated = new ArrayList<>(kept);
             if (app.names().isEmpty()) updated.addAll(dev.aresos.names.NameRules.assign(program, held, commands));
             else if (kept.size() != app.names().size()) {
-                // Replace every displaced name, including a main name; a surviving alias does not silently become main.
+                // Apply the rules again for each displaced name. An alias this app already owns is free to reuse.
                 for (int i = 0; i < app.names().size(); i++) if (!kept.contains(app.names().get(i))) {
                     String replacement = dev.aresos.names.NameRules.main(program, held, commands);
                     held.add(replacement);
+                    updated.remove(replacement);
                     updated.add(Math.min(i, updated.size()), replacement);
                 }
             }
