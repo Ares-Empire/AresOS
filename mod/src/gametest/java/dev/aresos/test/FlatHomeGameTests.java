@@ -5,7 +5,7 @@ import dev.aresos.AresOs;
 import dev.aresos.hub.FlatHub;
 import dev.aresos.hub.HubData;
 import dev.aresos.hub.HubLayout;
-import dev.aresos.hub.HubLayout.Group;
+import dev.aresos.catalogue.AppGroup;
 import dev.aresos.mode.LiveMode;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.world.FlatHome;
@@ -219,7 +219,7 @@ public final class FlatHomeGameTests {
             HubData.store(server, new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), fixed));
             player.snapTo(home.getX() + 0.5, home.getY(), home.getZ() + 0.5, 180, 0);
             BlockPos gold = home.below();
-            BlockPos road = Group.N.block(home, 10, 0, -1);
+            BlockPos road = AppGroup.INTERNET.block(home, 10, 0, -1);
             BlockPos grass = home.offset(3, -1, 3);
 
             check(LiveMode.isLive(player), "Fixture: the player is not in Live mode");
@@ -256,7 +256,7 @@ public final class FlatHomeGameTests {
             // A replacement changed back to the original concrete is still his.
             level.setBlockAndUpdate(road, Blocks.DIAMOND_BLOCK.defaultBlockState());
             level.setBlockAndUpdate(road, Blocks.CONCRETE.lightBlue().defaultBlockState());
-            BlockPos replaced = Group.W.block(home, 10, 0, -1);
+            BlockPos replaced = AppGroup.WORK_MEDIA.block(home, 10, 0, -1);
             level.setBlockAndUpdate(replaced, Blocks.DIAMOND_BLOCK.defaultBlockState());
             level.setBlockAndUpdate(replaced, Blocks.CONCRETE.purple().defaultBlockState());
             check(HubData.get(server).fixed().blocks().stream().noneMatch(block -> block.pos().equals(replaced)),
@@ -269,8 +269,8 @@ public final class FlatHomeGameTests {
                     "An observed mismatch was not persistently forgotten");
             level.setBlockAndUpdate(stale, Blocks.GOLD_BLOCK.defaultBlockState());
             check(!observed.holds(level, stale), "An observed mismatch regained ownership");
-            explode(level, player, Vec3.atCenterOf(Group.S.block(home, 10, 0, 0)));
-            check(level.getBlockState(Group.S.block(home, 10, 0, -1)).is(Blocks.CONCRETE.yellow()), "A creative guest let an explosion break the road");
+            explode(level, player, Vec3.atCenterOf(AppGroup.SYSTEM_TOOLS.block(home, 10, 0, 0)));
+            check(level.getBlockState(AppGroup.SYSTEM_TOOLS.block(home, 10, 0, -1)).is(Blocks.CONCRETE.yellow()), "A creative guest let an explosion break the road");
             check(level.getEntity(fixed.names().get(2)).isAlive(), "An explosion in Build mode removed a group name");
 
             mode(player, GameType.SURVIVAL);

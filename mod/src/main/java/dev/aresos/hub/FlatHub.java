@@ -2,6 +2,7 @@ package dev.aresos.hub;
 
 import com.mojang.math.Transformation;
 import dev.aresos.AresOs;
+import dev.aresos.catalogue.AppGroup;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -40,7 +41,7 @@ public final class FlatHub {
             }
         }
         int side = HubLayout.ROAD / 2;
-        for (HubLayout.Group group : HubLayout.Group.values()) {
+        for (AppGroup group : AppGroup.clockwise()) {
             // Row 0 with no logos yet; package 36 extends an avenue when its group grows.
             for (int outward = HubLayout.AVENUE_START; outward <= HubLayout.avenueEnd(0); outward++) {
                 for (int sideways = -side; sideways <= side; sideways++) {
@@ -49,7 +50,7 @@ public final class FlatHub {
             }
         }
         var names = new ArrayList<UUID>();
-        for (HubLayout.Group group : HubLayout.Group.values()) names.add(name(level, home, group));
+        for (AppGroup group : AppGroup.clockwise()) names.add(name(level, home, group));
         return new HubData.Fixed(placed, names);
     }
 
@@ -70,7 +71,7 @@ public final class FlatHub {
     }
 
     /** The group's name over its avenue: a text display, so it cannot be hit or broken in either mode. */
-    private static UUID name(ServerLevel level, BlockPos home, HubLayout.Group group) throws IOException {
+    private static UUID name(ServerLevel level, BlockPos home, AppGroup group) throws IOException {
         // A display's settings have no public setters; its saved form is the one /summon takes.
         var tag = new CompoundTag();
         tag.store(Display.TextDisplay.TAG_TEXT, ComponentSerialization.CODEC, level.registryAccess().createSerializationContext(NbtOps.INSTANCE),

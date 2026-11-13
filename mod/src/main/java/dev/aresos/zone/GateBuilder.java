@@ -1,5 +1,6 @@
 package dev.aresos.zone;
 
+import dev.aresos.catalogue.AppGroup;
 import dev.aresos.config.AppDefinition;
 import dev.aresos.world.HomeSites;
 import net.minecraft.ChatFormatting;
@@ -71,15 +72,18 @@ public final class GateBuilder {
                 // Falls through to the plain front; the sign says which app it is.
             }
         }
-        return GatePicture.plain(GateGroup.concreteFor(app.id()), size);
+        return GatePicture.plain(concrete(app), size);
     }
+
+    /** The concrete of the app's group, named as the gate names blocks: its doormat and its plain front. */
+    static String concrete(AppDefinition app) { return GatePalette.name(AppGroup.of(app).concrete()); }
 
     /** The gate `/aresos logo <app>` builds: in front of the player, facing him, on the ground he stands on. */
     public static GatePlan planInFrontOf(ServerPlayer player, AppDefinition app) {
         var facing = player.getDirection();
         return GatePlan.of(picture(app, GateNumbers.SIZE), player.level().dimension(),
                 GatePlan.originInFrontOf(player.position(), facing, GateNumbers.SIZE), facing, app.name(), null,
-                GateGroup.concreteFor(app.id()));
+                concrete(app));
     }
 
     /** Builds the gate and saves its zone, or throws with the reason and changes nothing. */

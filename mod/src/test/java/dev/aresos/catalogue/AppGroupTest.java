@@ -5,6 +5,7 @@ import dev.aresos.config.SystemInfo;
 import dev.aresos.shell.ShellClient;
 import org.junit.jupiter.api.Test;
 import java.util.List;
+import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AppGroupTest {
@@ -41,5 +42,22 @@ class AppGroupTest {
         for (var group : AppGroup.values()) assertTrue(group.look().matches("minecraft:[a-z_]+"), group.title());
         assertNull(definitions.getLast().system());
         assertEquals("system", definitions.get(3).system().source());
+    }
+
+    /** One table: the rule above, and the avenue, letter, concrete and colour of HUB.md 3.2 reached from its result. */
+    @Test void everythingAboutAGroupIsReachedFromTheAppsGroup() {
+        var steam = AppGroup.of("steam", List.of("Network", "Game"));
+        assertEquals('E', steam.letter());
+        assertEquals("minecraft:red_concrete", steam.concrete());
+        assertEquals(0xFF6257, steam.colour());
+        assertEquals(List.of(0x3AB3DA, 0xFF6257, 0xFED83D, 0xC774F2), AppGroup.clockwise().stream().map(AppGroup::colour).toList());
+        // The pad builds its avenues and names clockwise from the one straight ahead.
+        assertEquals(List.of(AppGroup.INTERNET, AppGroup.GAMES, AppGroup.SYSTEM_TOOLS, AppGroup.WORK_MEDIA), AppGroup.clockwise());
+        for (var group : AppGroup.values()) {
+            assertEquals(Optional.of(group), AppGroup.ofLetter(group.letter()));
+            assertEquals(group.outward().getClockWise(), group.right());
+        }
+        assertEquals(Optional.empty(), AppGroup.ofLetter('n'));
+        assertEquals(Optional.empty(), AppGroup.ofLetter('X'));
     }
 }
