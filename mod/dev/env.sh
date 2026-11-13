@@ -123,7 +123,7 @@ aresos_job_running() {
 # aresos_scope_start <name> [systemd-run options...] -- <command...>: starts the command in the background in a
 # new scope of this script and returns once that scope exists (or the command has already ended). Sets
 # ARESOS_UNIT to the scope and ARESOS_JOB to the job, which is only ever waited for. A stop sends TERM to
-# everything in the scope and KILL 20 s later (TimeoutStopSec; an option may set another).
+# everything in the scope and KILL to what is left 20 s later (TimeoutStopSec; an option may set another).
 aresos_scope_start() {
     ARESOS_UNIT="aresos-dev-$1-$$-$SRANDOM.scope"
     shift
@@ -140,6 +140,26 @@ aresos_scope_start() {
     ((ARESOS_PENDING == 0)) || exit "$ARESOS_PENDING"
 }
 
+# aresos_stop_scopes <unit...>: stops these scopes of this script and returns once they are gone. systemd sends
+# TERM once to what is in a scope at that moment, so a process started just after it (cage starting its client
+# while it had the TERM held for its event loop, Gradle forking a JVM) would run on until the KILL; everything
+# still in a scope therefore gets TERM again every half second.
+aresos_stop_scopes() {
+    local unit live
+    /usr/bin/systemctl --user stop --no-block -- "$@" 2>/dev/null || true
+    while :; do
+        live=()
+        for unit; do
+            case $(/usr/bin/systemctl --user show --property=ActiveState --value -- "$unit" 2>/dev/null) in
+                active | activating | deactivating | reloading) live+=("$unit") ;;
+            esac
+        done
+        ((${#live[@]})) || return 0
+        /usr/bin/sleep 0.5
+        /usr/bin/systemctl --user kill --signal=TERM -- "${live[@]}" 2>/dev/null || true
+    done
+}
+
 # aresos_scoped <name> [systemd-run options...] -- <command...>: aresos_scope_start, then waits for the command and
 # stops its scope, so nothing it started (Gradle's daemon, a game, a compositor) outlives it. The command runs in
 # the background with `wait`, so a signal to this script alone (TERM, HUP) runs its trap at once rather than after
@@ -148,7 +168,7 @@ aresos_scoped() {
     local status=0
     aresos_scope_start "$@"
     wait "$ARESOS_JOB" || status=$?
-    /usr/bin/systemctl --user stop -- "$ARESOS_UNIT" 2>/dev/null || true
+    aresos_stop_scopes "$ARESOS_UNIT"
     return "$status"
 }
 
@@ -169,7 +189,7 @@ aresos_exit() {
     local status=$?
     trap - EXIT
     trap '' INT TERM HUP
-    ((${#ARESOS_SCOPES[@]} == 0)) || /usr/bin/systemctl --user stop -- "${ARESOS_SCOPES[@]}" 2>/dev/null || true
+    ((${#ARESOS_SCOPES[@]} == 0)) || aresos_stop_scopes "${ARESOS_SCOPES[@]}"
     if declare -F aresos_cleanup >/dev/null; then aresos_cleanup "$status" || ((status)) || status=1; fi
     exit "$status"
 }
