@@ -6,6 +6,7 @@ import {verdicts,assertComplete} from './verdicts.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {measureCompatibility,compareCompatibility} from './compatibility.mjs';
 import {completeIngress,protocolEvents} from './ingress-scan.mjs';
+import {animatedDefaultMatrix} from './animated-default-matrix.mjs';
 import {lateReaderMatrix} from './late-reader-matrix.mjs';
 import {destinationMatrix} from './destination-matrix.mjs';
 import {recheck3Matrices} from './recheck3-matrices.mjs';
@@ -59,8 +60,9 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       await approval(await call('click',await target('Continue')),id);
     }
   });
-  if(runs('core'))await destinationMatrix({check:inBlock('core'),nav,call,target,approval,fixture,receiverEvidence});
+  if(runs('core'))await destinationMatrix({check:inBlock('core'),nav,call,target,approval,fixture,receiverEvidence,eventually});
   if(runs('core'))await lateReaderMatrix({check:inBlock('core'),nav,call,rpc,read,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
+  if(runs('core'))await animatedDefaultMatrix({check:inBlock('core'),nav,call,target,approval,receiverEvidence,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor});
   if(process.env.DESTINATION_PROBE==='true'){console.log('Post-18d destination and late-reader probes; not full acceptance');return [];}
   if(runs('recheck3'))await recheck3Matrices({check:inBlock('recheck3'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor});
   if(runs('recheck2'))await recheck2Matrices({check:inBlock('recheck2'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl});

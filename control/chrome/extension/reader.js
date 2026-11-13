@@ -30,7 +30,7 @@
   const nodeBase=nativeGetter(globalThis.Node,'baseURI');
   const baseURI=node=>nodeBase?nodeBase.call(node):node.baseURI;
   function browsingTarget(element,attribute,explicit=element.getAttribute(attribute)) {
-    if(attribute==='target'&&svgLink(element)&&svgTarget&&animatedValue)explicit=animatedValue.call(svgTarget.call(element));
+    if(attribute==='target'&&svgLink(element))return svgTarget&&animatedValue?animatedValue.call(svgTarget.call(element))||'_self':explicit||'_self';
     if(explicit!==null&&explicit!=='')return explicit;
     const base=document.querySelector?.('base[target]');
     const fallback=base?.getAttribute('target')||'_self';

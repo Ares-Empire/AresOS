@@ -325,7 +325,9 @@ case('post18d-credential-combined-labels',R,"signals.push([...element.labels||[]
 
 for source in ['href','xlink:href']:
     case('post18d-svg-animated-'+source,R,"svgHref&&animatedValue?animatedValue.call(svgHref.call(element)):",'',node('reader','post18d SVG animated '+source+' is the native destination'))
-case('post18d-svg-animated-target',R,"if(attribute==='target'&&svgLink(element)&&svgTarget&&animatedValue)explicit=animatedValue.call(svgTarget.call(element));",'',node('reader','post18d SVG animated target uses the native'))
+case('post18d-svg-animated-target',R,"if(attribute==='target'&&svgLink(element))return svgTarget&&animatedValue?animatedValue.call(svgTarget.call(element))||'_self':explicit||'_self';",'',node('reader','post18d SVG animated target uses the native'))
+
+case('post18d-svg-empty-target',R,"if(attribute==='target'&&svgLink(element))return svgTarget&&animatedValue?animatedValue.call(svgTarget.call(element))||'_self':explicit||'_self';",'',node('reader','post18d SVG empty native target stays self'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

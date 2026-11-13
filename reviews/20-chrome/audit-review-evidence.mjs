@@ -93,10 +93,11 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
   assert.deepEqual([...pyProof.modules].sort(),fs.readdirSync('control/chrome_tests').filter(name=>/^test_.*\.py$/.test(name)).map(name=>name.slice(0,-3)).sort());
   const aggregate=json(path.join(folder,'aggregate-complete.json'));
   assert(precedenceVerdict(json(path.join(folder,'chrome-precedence.json')),read('control/generated/chrome-instructions.txt').replace(/\n$/,''),{head:aggregate.head,run:aggregate.run}));
-  const rawDestinations=[],destinationSnapshots=[];
+  const rawDestinations=[],destinationSnapshots=[],destinationContexts=[];
   for await(const row of jsonLines(path.join(folder,'receiver.jsonl')))if(caseId(row)?.startsWith('post18d-destination-'))rawDestinations.push(row);
   for await(const row of jsonLines(path.join(folder,'page-receiver.jsonl')))if(row.id.startsWith('post18d-destination-'))destinationSnapshots.push(row);
-  const destinations=assertDestinations(json(path.join(folder,'destinations.json')),destinationSnapshots,rawDestinations);
+  for await(const row of jsonLines(path.join(folder,'native-compatibility.jsonl')))if(row.phase==='destination-context')destinationContexts.push(row);
+  const destinations=assertDestinations(json(path.join(folder,'destinations.json')),destinationSnapshots,rawDestinations,destinationContexts);
   const late=json(path.join(folder,'late-reader.json'));assert.equal(late.length,3);assert(!JSON.stringify(late).includes('SENTINEL_PRIVATE_PASSWORD_20'));
   assert(late[2].approved.untrusted_content);assert(!late[2].repeat.untrusted_content);assert(late[2].reasked.approval);
 

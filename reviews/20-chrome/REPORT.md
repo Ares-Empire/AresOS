@@ -192,6 +192,24 @@ destination sequences now: the original 60 plus animated href/xlink and targets.
 with all baselines passing. The replacement safety probe brings the count to
 **241**. Linux evidence and scoped re-checks are pending; latency changes wait.
 
+**SVG replacement:** `43471454320` (**241**) passes all 64 destination cases
+and the late-reader/asking-read checks in both installs, with raw getter ingress
+recording active. The scoped package re-check is SAFE on `5630a8a5` (62 exact-source
+reader/auditor tests; three independent removal mutations rejected). The security
+re-check confirms the reader change and requests a directly related native-default
+probe before class closure: removing base href attributes may leave animated
+navigation authority on a non-cancellable activation. The next probe uses only
+borrowed dispatch, including `_blank`, and requires zero arrivals/no new context
+before fresh approval. It brings the count to **242**.
+
+The same review noticed that SVG's empty native target follows the controlled top
+tab despite an HTML base target. The resolver now reports `_self` for that native
+case. Named-frame SVG fixtures carry their explicit target, and two additional
+empty-target cases check actual top/frame context via receiver-page observations
+and native tab identity. All original 60 sequences remain, with **66** total.
+The final independent destination audit now requires that context evidence too.
+No tab-group behavior changes.
+
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
 blank-frame base case. The new fixture had duplicate blank-frame addresses, so

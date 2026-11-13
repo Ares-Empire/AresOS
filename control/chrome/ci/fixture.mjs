@@ -34,7 +34,7 @@ export async function fixtures(options={}) {
     if(['/receive','/first/receive','/second/receive'].includes(url.pathname)||url.pathname==='/'&&url.searchParams.has('field')&&url.searchParams.get('case')?.startsWith('submit-empty-')) {
       let body='';for await(const part of req)body+=part;
       const record={time:Date.now(),url:req.url,method:req.method,body,host:req.headers.host};arrivals.push(record);fs.appendFileSync('/out/receiver.jsonl',JSON.stringify(record)+'\n');
-      res.end(page('<p>Received synthetic input</p>'));return;
+      res.end(page('<p>Received synthetic input</p>',url.searchParams.get('case')?.startsWith('post18d-destination-')?`fetch('/compat-report',{method:'POST',body:JSON.stringify({id:${JSON.stringify(url.searchParams.get('case'))},phase:'destination-context',name:window.name,top:window===top,url:location.href})});`:''));return;
     }
     if(url.pathname!=='/'){res.writeHead(404);res.end('Unknown fixture path');return;}
     const kind=url.searchParams.get('case') || 'compose';

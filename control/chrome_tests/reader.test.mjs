@@ -491,3 +491,10 @@ test('post18d SVG animated target uses the native current window before every ac
   assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'first');node.currentTarget='second';
   assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'second');assert.equal(node.attrs.target,'first');
 });
+
+test('post18d SVG empty native target stays self despite an HTML base target',()=>{
+  const f=fixture([]),base=new f.Element({tagName:'BASE',attrs:{target:'sink'}}),node=new f.Element({tagName:'a',localName:'a',namespaceURI:'http://www.w3.org/2000/svg',attrs:{href:'delete'}});f.nodes.push(base,node);
+  assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'_self');base.attrs.target='changed';
+  assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'_self');node.currentTarget='explicit';
+  assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'explicit');
+});
