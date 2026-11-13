@@ -229,7 +229,7 @@ ref     = three letters and a number, for example kqt5 (item 3)
 
 Input: `tab` (integer), or `tabs` (2 to 5 integers; then only `max` and `request` may accompany it); `ref`; `find`
 (1 to 200 characters); `role` (with `find`); `until` (an object with `text` or `gone`, each up to 200 characters);
-`timeout_ms` (0 to 8,000, default 3,000, with `until`); `max` (1,000 to 40,000; default 6,000, or 3,000 per tab with
+`timeout_ms` (0 to 6,000, default 3,000, with `until`); `max` (1,000 to 40,000; default 6,000, or 3,000 per tab with
 `tabs`); `cursor`; `request` (up to 200 characters; unused until brief 28b, accepted and ignored now).
 
 Result:
@@ -325,7 +325,7 @@ Result:
 **`chrome_open`** input: exactly one of `url`; `tab` (open the address that tab shows; with `seen` when the tab is
 his, item 6); `ref` (open the address behind a link's or a library entry's reference; `tab` may accompany a link's
 reference and must then be its tab).
-Also `until`, `timeout_ms` (0 to 20,000, default 8,000) and `max` (default 4,000).
+Also `until`, `timeout_ms` (0 to 15,000, default 8,000) and `max` (default 4,000).
 **`chrome_go`** input: `tab`, and exactly one of `url` or `to` (`back`, `forward`, `reload`); `until`, `timeout_ms`,
 `max` as above.
 
@@ -348,7 +348,7 @@ Result of both:
 
 ### 5. `chrome_do` (effect change)
 
-Input: `tab`; `steps`, 1 to 32 objects, each with `do` and what that step needs; `max` (500 to 8,000, default 2,000:
+Input: `tab`; `steps`, 1 to 20 objects, each with `do` and what that step needs; `max` (500 to 8,000, default 2,000:
 the bound of the change report).
 
 | `do` | Needs | Is brief 20's |
@@ -411,7 +411,8 @@ How it runs:
    `not_run` counts the steps after it. Nothing is retried, and no step runs twice, also when Chrome, the host or
    the service stops in the middle.
 5. **Report.** Take the outline nodes before the first step and again after the last one that ran, once the page has
-   gone quiet (the revision still for 150 ms, at most 1,500 ms; after a new top document: loaded, at most 8,000 ms).
+   gone quiet (the revision still for 150 ms, at most 1,500 ms; after a new top document: loaded, within the
+   call's deadline, see "Time" below).
    `changed` lists what differs by element: a line starting `+ ` for a new element, `~ ` for one whose line changed
    (the new line), `- ` for one that is gone; new elements are shown under their new parent. At most `max`
    characters; `more_changes` counts the rest. After a new top document, `outline` holds the new page's outline
@@ -423,6 +424,24 @@ How it runs:
 
 `dialog`: the service compares the open dialog with the one it last showed Claude for that tab, as it compares
 references; brief 20's rules for the three kinds of dialog are unchanged.
+
+**Time: every call ends before its caller gives up.** The base's client waits 10 seconds for a read and 30 for a
+change (`READ_TIMEOUT` and `CHANGE_TIMEOUT` in `protocol.py`), and the CI harness waits 20. A caller that times out
+doesn't know what ran, while the service would go on. So every tool has one deadline, measured in the service from
+the start of the call, and no timeout is raised:
+
+- **`chrome_read`: 8 seconds in all.** `until` waits at most 6. With `tabs`, a tab whose turn hasn't come by second
+  6 gets the error `not_read`, "time ran out; read this tab by itself", and the others are returned.
+- **`chrome_open`, `chrome_go`, `chrome_take`: 18 seconds in all,** with `timeout_ms` at most 15,000.
+- **`chrome_do`: 18 seconds in all.** No step starts after second 12. A `wait` ends at second 12 at the latest. The
+  report's waiting ends at second 16 at the latest, also for a new page, which is then returned as far as it has
+  loaded (`loaded: false`). Steps that weren't started are counted in `not_run`, and the result says
+  `"deadline": true`. Their references stay good, so Claude sends them in the next call.
+- **Why 20 steps and not 32:** brief 20 waits out its hold after every input (`collectSteps`, a little over half a
+  second), and reads the page's facts before it. About a dozen input steps fit in one call.
+- **A caller that goes away** changes nothing about this: the list ends at its deadline at the latest, each step
+  that ran is its own committed operation (in the log and in `chrome_operation_status`), a prepared step stays
+  prepared until it expires, and nothing runs later.
 
 ### 6. The smaller tools
 
@@ -657,6 +676,12 @@ actions, in a frame's address, in a redirect's target, and in history, bookmark 
 
 **Group 15, going and acting in one call** (browser): as section 6 lists it. In addition:
 
+- **time, through the real transports** (the `aresos` command and the MCP proxy, not a fake bridge): a list of 20
+  `wait` steps of 8 seconds returns a normal result within 20 seconds, with `deadline` and `not_run`; a list of 20
+  fills on F4 returns within 20 seconds with the fills that ran and the rest counted; a `chrome_read` with `until`
+  on a text that never comes returns within 10 seconds; five tabs of which one is slow return four outlines and
+  one `not_read`. A caller killed in the middle of a list: the fixture counts no input later than 12 seconds after
+  the call began, every step that ran is in the log as its own operation, and the next call works;
 - every asking case of group 1 runs through `chrome_do` once the harness has moved, with the receiver's log as
   evidence: nothing before approval, one arrival after, none on a repeat;
 - a list whose third step asks: the fixture counts the first two inputs, no input from steps three to five, and

@@ -654,7 +654,7 @@ The match is literal and ignores case.
 **Several tabs at once.** `tabs` takes up to five tabs and returns each one's outline, so comparing pages is one
 call. A tab that can't be read gets its reason, and the others are still returned.
 
-**Waiting.** With `until` (a text that must appear, or one that must be gone), the read waits up to 8 seconds and
+**Waiting.** With `until` (a text that must appear, or one that must be gone), the read waits up to 6 seconds and
 says whether it happened.
 
 **Size.** Every read has a budget, `max`, in characters: 6,000 unless Claude says otherwise, 3,000 per tab when
@@ -719,11 +719,11 @@ needed.
 - **Going.** `chrome_open` opens a web address in a new Claude tab: an address Claude gives, the link behind a
   reference, or the address one of his tabs shows. `chrome_go` moves a Claude tab: to an address, back, forward or
   reload. Both wait until the page has loaded and gone quiet, or until a text Claude names appears, for 8 seconds
-  unless Claude says otherwise and never more than 20. Both return the new page's outline with references. When the
+  unless Claude says otherwise and never more than 15. Both return the new page's outline with references. When the
   time runs out the result says `loaded: false`, with the outline as far as it is. The rules of "Where Claude may
   go" hold. Back or forward to a page that a form submission loaded is refused, because Chrome might submit it again
   (*brief 20*).
-- **Acting.** `chrome_do` takes a tab and a list of up to 32 steps: click, fill, select, check, press, scroll,
+- **Acting.** `chrome_do` takes a tab and a list of up to 20 steps: click, fill, select, check, press, scroll,
   dialog, wait. Each step names its element by reference.
   - All references are checked before the first step runs. If one is stale, nothing has run.
   - Steps run in order. Each is classified right before its input, on what the element shows at that moment,
@@ -740,6 +740,12 @@ needed.
     retried and nothing runs twice.
   - So filling a form and sending it is one call and one question: the fills run, the click on the submit button is
     prepared, and its question shows the whole form as the page then holds it. `chrome_submit` runs it.
+- **Every call ends before its caller gives up.** The caller's side waits 10 seconds for a read and 30 for a
+  change (*checked*, brief 20's `protocol.py`), and a caller that times out doesn't know what ran. So each tool
+  has one deadline of its own, inside those: 8 seconds for a read, 18 for opening, going, taking and for a list of
+  steps. In a list no step starts after second 12, and the steps that weren't started are reported as not run;
+  Claude sends them again. About a dozen input steps fit in one call, because the tool waits out its hold of half
+  a second after each input.
 - **What a result carries.** What happened per step. Then, once the page has gone quiet (at most 1.5 seconds),
   **what changed**: the outline lines that are new, different or gone since before the call, in at most 2,000
   characters, with a count of the rest. When a new page loaded, its outline instead. A dialog that opened, a
@@ -1004,7 +1010,7 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 | `chrome_read` | read | the outline of a tab, or of up to five tabs; one part by `ref`; `find`; `until`; paged by `max` and `cursor`. In one of his tabs it reads in place and needs `request` | `chrome_read`, `chrome_read_form`, `chrome_find`, `chrome_wait` |
 | `chrome_open` | change | open a web address in a new Claude tab (an address, a link or a library entry by reference, or the address of one of his tabs), wait, return the outline | `chrome_open`, then wait and read |
 | `chrome_go` | change | in a Claude tab: an address, back, forward or reload; wait, return the outline | `chrome_navigate`, then wait and read |
-| `chrome_do` | change | up to 32 steps in one tab (click, fill, select, check, press, scroll, dialog, wait), each by reference. An asking step isn't dispatched and returns a prepared operation, and so does a submission the page starts while handling a step; an activation the page starts is stopped and reported, never resumed. Returns what changed | `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll`, `chrome_dialog` |
+| `chrome_do` | change | up to 20 steps in one tab (click, fill, select, check, press, scroll, dialog, wait), each by reference. An asking step isn't dispatched and returns a prepared operation, and so does a submission the page starts while handling a step; an activation the page starts is stopped and reported, never resumed. Returns what changed | `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll`, `chrome_dialog` |
 | `chrome_upload` | change | prepare putting a local file into a file field (it asks through `chrome_submit`) | the same |
 | `chrome_show` | change | bring a tab and its window to the front, for him | new |
 | `chrome_close` | change | close Claude tabs; one of his only when he asked (`request`) and the tab is known clean; never a taken tab | `chrome_close_tab` |
@@ -1359,6 +1365,9 @@ harness's helper functions change, never an assertion.
       submission after, none on a repeat, and the question shows every field as filled;
     - the change report names exactly the added, changed and removed lines on the fixture, within its bound;
     - Chrome, the host and the service each stopped in the middle of a list: no step runs twice;
+    - time: through the real command and the real MCP proxy, a list that would wait longer than its deadline
+      returns in time with the steps it didn't start counted, and a caller that goes away in the middle leaves
+      every step that ran in the log and none running later;
     - two similar tabs, and he switches tabs while a list runs (PLAN task 14): every step lands in the named tab.
 16. **Efficiency** (*brief 28*): the budgets of "Efficiency, as a tested property", against the recorded baseline.
 17. **His open tabs** (*brief 28b*):
