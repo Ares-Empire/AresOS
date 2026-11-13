@@ -43,3 +43,14 @@ editable areas easy to move under asking.
 
 Up to about 280 runs of `control-chrome.yml` on `pkg/20-chrome`. Batch browser evidence where several fixes can
 share one run, and keep `[skip ci]` with single runs in between. Never cut the final pair.
+
+## 5. Handover: Codex's allowance is running out
+
+Codex is at 84% of its weekly allowance and rising about 5% an hour, so it may run out before post-18d is done. The
+work must be able to stop at any point and be finished by someone else.
+
+- Commit and push (with `[skip ci]`) at every finished step, so the branch never holds work only you know about.
+- Keep a short **Handover** section at the top of `REPORT.md` current at every push: which addenda (`-c` to `-g`)
+  and which post-18d items are done, which are open, which runs are in flight, and the exact next step.
+- The remaining steps are mechanical; you now run at `high`. If a step reopens the asking tool's binding or the
+  refusal of forms with withheld fields, say so in the Handover section before changing it.
