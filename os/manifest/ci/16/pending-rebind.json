@@ -19,7 +19,8 @@
     "22c stage 1a step 3(a) hosted corrections: records resolves before disk writes; complete old fixture observations",
     "22c stage 1a step 3(b,c): exact v2 compatibility and publication cuts; defer journal migration until v3 publication",
     "22c review fixes 1: durable layout restoration intent and abandon interruption coverage",
-    "22c review fixes 1: bind set-default fresh read to caller deployment snapshot"
+    "22c review fixes 1: bind set-default fresh read to caller deployment snapshot",
+    "22c review fixes 1: survey installed lifecycle before login verify switch and prepare refusals"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -72,15 +73,15 @@
       "path": "os/owner-tools/history.json"
     },
     {
-      "sha256": "51da7b09a5861dc21a92f22d06eea36c876f0722f9c18e4951a60eff4d0b83d6",
+      "sha256": "07ae9ae67ded380d2081f9256f5b321493e12c662e4d2632928971e2cb1bf002",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "d30c3d595f62e38b7b667b54fb6f82fec3e033d928beab48dfc9a3e90da5fdeb",
+      "sha256": "d6d6172356bfbf68f4cffd0976ec0fd9f677e0e633f6b6ceceb9cf4498eb4718",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "5bd543c0757f0ad22d3a10e48fc84759f8c656adbd4e94ae48b02e8bedccaffe",
+      "sha256": "3e5dea90a1d2d66fcd019db1b4b83810f12ee7653c610a9f598c40776fa4003f",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -88,7 +89,7 @@
       "path": "os/owner-tools/payload/history.json"
     },
     {
-      "sha256": "51da7b09a5861dc21a92f22d06eea36c876f0722f9c18e4951a60eff4d0b83d6",
+      "sha256": "07ae9ae67ded380d2081f9256f5b321493e12c662e4d2632928971e2cb1bf002",
       "path": "os/owner-tools/payload/owner.py"
     },
     {

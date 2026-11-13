@@ -1352,10 +1352,11 @@ class Tools:
         self.host.script("python3 - <<'OWNER_PIN'\n" + source + '\nOWNER_PIN\n', 'cleanup' if cleanup_only else 'pin')
 
     def prepare(self):
-        expected = self.load('disks')
-        disks = setup_identity(disk_record(self.host, expected))
         state = observations(self.host)
         saved = self.load('prepared') if (self.store / 'prepared.json').exists() else None
+        self.survey_installed(state, saved)
+        expected = self.load('disks')
+        disks = setup_identity(disk_record(self.host, expected))
         intent = self.load('prepare-intent') if (self.store / 'prepare-intent.json').exists() else None
         processes = self.processes()
         stock = agree(state) if intent and not saved else preflight_prepare(state, processes, saved, self.pause['SYSTEM'])
@@ -1499,6 +1500,7 @@ class Tools:
     def before_switch(self):
         saved = self.load('prepared')
         state = observations(self.host)
+        self.survey_installed(state, saved)
         stock = agree(state)
         idle(state, self.processes())
         require(key(stock) == tuple(saved['stock_identity']) and stock['pinned'], 'Not booted saved pinned stock')
@@ -1509,8 +1511,16 @@ class Tools:
         paused_state(self.host, self.pause)
         return state
 
+    def survey_installed(self, state, saved=None, retry=None):
+        """Install-only commands keep their original prepared/first-switch checks,
+        but an installed lifecycle must resolve and warn before those checks."""
+        known = {reference.split('@')[1] for reference in self.known()}
+        if any(not d.get('staged') and d.get('container-image-reference-digest') in known
+                for d in state['rpm']['deployments']):
+            return self.qualified(state, saved, retry)
+
     def survey(self, retry=None):
-        """What every command that may change the next start reads first: the list accepted by
+        """What list-reading installed commands read first: the list accepted by
         rule 1 and the journal resolved by rule 5, before any check of its own."""
         saved = self.load('prepared')
         state = observations(self.host)
@@ -1572,7 +1582,9 @@ class Tools:
     def login(self):
         # Before the first switch the stock rules apply unchanged; on a
         # running AresOS a login only serves an update that needs a download.
-        if agree(observations(self.host))['container-image-reference-digest'] == BASE:
+        state = observations(self.host)
+        self.survey_installed(state, retry='update')
+        if agree(state)['container-image-reference-digest'] == BASE:
             self.before_switch()
         else:
             state, shape, settled = self.survey(retry='update')

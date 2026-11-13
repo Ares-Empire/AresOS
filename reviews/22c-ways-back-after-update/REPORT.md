@@ -1219,3 +1219,32 @@ model run; no test result is claimed at this checkpoint.
 The payload was refreshed without changing stage-1b inventory or fingerprint
 pins. The host walk and pending bindings were refreshed in that order. No new
 JUDGMENT-CALL, PLAN-GAP or changed brief rule.
+
+### Finding 3 — survey every installed-list entry point
+
+**Done:** `survey_installed` sends an installed lifecycle through the existing
+`qualified`/journal resolution before install-only command checks. It runs at
+the start of `prepare`, before `before_switch`'s refusals (thus verify and
+switch), and before login chooses its stock/AresOS branch. With no installed
+AresOS, the prepared and first-switch checks stay in charge. The audit found
+prepare had the same gap; its disk/setup checks now follow the installed survey.
+
+**Tests and revert proof:**
+`JournalTest.test_install_commands_resolve_the_installed_journal_before_their_own_refusals`
+cuts rollback before/after its primitive, starts stock, then tries each of login,
+verify, switch and prepare separately. It requires the recorded/not-applied
+outcome before each own refusal and zero further deployment mutations.
+The existing every-command A10 test now includes those four, check and layout
+begin. `ShapeTest.test_install_survey_leaves_prepared_and_first_switch_checks_in_charge`
+checks the pre-install boundary, including foreign staging and the unchanged
+before-switch refusal. The fake disk record now supplies its full structural
+shape, so prepare's own refusal is exercised rather than a fixture KeyError.
+`JournalTest.test_removing_install_survey_fails_resolution_and_danger_warning_regressions`
+removes the gate in memory and requires both guarding tests to fail assertions,
+with no unrelated exception accepted. Local execution and hosted totals follow
+below after the current full-model process completes.
+
+No brief rule changed. The review's three findings stand; the extra `check`
+next-step case belongs to interrupted restoration, and prepare was explicitly
+part of the requested audit. All three fixes have separate pushed commits;
+final verification and any follow-up corrections will be recorded below.

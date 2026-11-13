@@ -52,6 +52,7 @@ def laptop(state, known=H21, **options):
     """Tools over the modelled machine, with boot entries as on the laptop."""
     with route(state, known, **options) as (tools, host, store):
         owner.resolved_bls.side_effect = lambda: menu(host.state)
+        owner.disk_record.return_value.update(protected={}, partitions=[])
         tools.notes = []
         yield tools, host, store
 
@@ -160,8 +161,9 @@ class ShapeTest(Unchanged, unittest.TestCase):
             for new in (foreign, row(R30, staged=True)):  # also when the staged row is the bundle's target
                 state = machine([new, *[row(role, booted=role == 'S') for role in order]])
                 with self.subTest(order=order, digest=new['container-image-reference-digest'][:12]), laptop(state, H30) as (tools, host, store):
-                    for method in (tools.title, tools.records, tools.reboot, tools.update, tools.previous, tools.recover,
-                                   lambda: tools.recover(True), lambda: tools.layout('abandon')):
+                    for method in (tools.title, tools.check, tools.records, tools.reboot, tools.update, tools.previous, tools.recover,
+                                   tools.login, tools.verify, tools.switch, tools.prepare,
+                                   lambda: tools.recover(True), lambda: tools.layout('begin', 'us'), lambda: tools.layout('abandon')):
                         self.unchanged(host, method, 'A Bazzite update is waiting. Do not restart: the restart deletes both AresOS releases. Get help.')
         with laptop(machine([foreign, row(R13), row('S', True)])) as (tools, host, store):
             self.unchanged(host, tools.title, 'the restart deletes the installed AresOS')
@@ -192,6 +194,23 @@ class ShapeTest(Unchanged, unittest.TestCase):
             tools.reboot()
             self.assertEqual(tools.update()[:2], ['Newer AresOS ' + R21.split(':')[1][:12] + ' already starts next; nothing changed',
                                                   'It does not run yet: it starts at the next restart'])
+
+    def test_install_survey_leaves_prepared_and_first_switch_checks_in_charge(self):
+        saved = base.prepared()
+        stock = saved['state']['rpm']['deployments']
+        foreign = dict(copy.deepcopy(stock[0]), checksum='f0' * 32, booted=False, pinned=False, staged=True)
+        for state in (saved['state'], machine([row(R21, staged=True), *stock]), machine([foreign, *stock])):
+            with self.subTest(state=state), laptop(state) as (tools, host, store):
+                prepared = dict(saved, bls=menu(saved['state']))
+                tools.save('prepared', prepared)
+                with patch.object(tools, 'qualified', side_effect=AssertionError('Installed survey reached a pre-install state')):
+                    if state == saved['state']:
+                        self.assertEqual(tools.before_switch(), state)
+                    else:
+                        for method in (tools.login, tools.verify, tools.switch):
+                            self.unchanged(host, method, 'Stock list/pin/pending/BLS changed before switch')
+                    tools.survey_installed(state, prepared)
+                self.assertEqual(host.changes, [])
 
     def test_one_helper_spells_every_command_as_commands_json_does(self):
         commands = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
@@ -515,6 +534,37 @@ class JournalTest(Unchanged, unittest.TestCase):
             self.unchanged(host, tools.recover, 'use sudo /var/lib/ares/at keep-stock')
             self.assertEqual(journal(store)['status'], 'recorded')
             self.assertTrue(any(line.endswith('confirmed after the restart') for line in tools.title()))
+
+    def test_install_commands_resolve_the_installed_journal_before_their_own_refusals(self):
+        for word in ('login', 'verify', 'switch', 'prepare'):
+            for applied in (False, True):
+                with self.subTest(word=word, applied=applied), laptop(listed((R21, R13, 'S'), R21)) as (tools, host, store):
+                    host.interrupt = ('start-next', 'after' if applied else 'before')
+                    with self.assertRaises(owner.Stop):
+                        tools.recover()
+                    restart(tools, host, choice=0 if applied else 2)
+                    self.assertEqual(roles(host)[1], 'S')
+                    before = copy.deepcopy(host.state), list(host.changes)
+                    with self.assertRaises(owner.Stop):
+                        getattr(tools, word)()
+                    self.assertEqual((host.state, host.changes), before)
+                    if applied:
+                        self.assertEqual(journal(store)['status'], 'recorded')
+                        self.assertTrue(any('had made its change; it is recorded now' in line for line in tools.notes))
+                    else:
+                        self.assertIsNone(journal(store))
+                        self.assertEqual(archived(store), ['not-applied'])
+                        self.assertTrue(any('was not applied' in line for line in tools.notes))
+
+    def test_removing_install_survey_fails_resolution_and_danger_warning_regressions(self):
+        result = unittest.TestResult()
+        with patch.object(owner.Tools, 'survey_installed', lambda *args, **kwargs: None):
+            JournalTest('test_install_commands_resolve_the_installed_journal_before_their_own_refusals').run(result)
+            ShapeTest('test_a_staged_row_on_running_stock_beside_aresos_says_rule_10_from_every_command').run(result)
+        self.assertEqual(result.errors, [])
+        self.assertGreaterEqual(len(result.failures), 8)
+        self.assertTrue(any('intent' in failure for _, failure in result.failures))
+        self.assertTrue(any('A Bazzite update is waiting' in failure for _, failure in result.failures))
 
     def test_any_other_list_stops_and_an_unknown_schema_refuses(self):
         with laptop(listed((R21, R13, 'S'), R21)) as (tools, host, store):
