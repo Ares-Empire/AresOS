@@ -13,6 +13,7 @@ export async function destinationMatrix({check,nav,call,target,approval,fixture,
       assert.equal(new URL(address).pathname,'/first/receive',row.id);
       assert.equal(original.form?.browsing_target||original.target.browsing_target,'sink-first');
       await fixture.mutate(row.id,'review-change');
+      if(row.change==='animation')await new Promise(resolve=>setTimeout(resolve,150));
       const reasked=await call('submit',prepared.approval);
       assert.equal(receiverEvidence(row.id,'changed destination held').count,0);
       assert.equal(reasked.operation.state,'failed');assert.ok(reasked.approval,JSON.stringify(reasked));

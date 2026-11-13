@@ -16,7 +16,7 @@ function fixture(){
   return {evidence,snapshots,arrivals};
 }
 test('post18d independent destination audit requires every source and zero arrivals through stale approval',()=>{
-  const f=fixture();assert.equal(assertDestinations(f.evidence,f.snapshots,f.arrivals).cases,60);
+  const f=fixture();assert.equal(assertDestinations(f.evidence,f.snapshots,f.arrivals).cases,62);
   for(const mutate of [f=>f.evidence.pop(),f=>f.snapshots[0].count=1,f=>f.arrivals.push(f.arrivals[0]),f=>f.evidence[0].reasked.approval.operation_id='old',f=>f.arrivals[0].url=f.arrivals[0].url.replace('/second/','/first/')]){
     const changed=fixture();mutate(changed);assert.throws(()=>assertDestinations(changed.evidence,changed.snapshots,changed.arrivals));
   }

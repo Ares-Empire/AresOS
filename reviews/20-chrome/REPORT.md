@@ -159,6 +159,22 @@ the same corrected Dockerfile path as latency; local tar inspection confirms
 both paths exist within their context. The independent report no longer emits
 an invented zero Python duration for file shards; it records their actual counts.
 
+**Complete local file shards:** the corrected launcher passes **237 tests**
+across all **21** test modules, each module appearing exactly once. Shard times
+are 14.008 / 512.299 / 0.724 / 192.410 seconds; the fault sweeps retain all scenarios.
+[Commands, inventory and results](records/post18d/local-complete.json) and the four
+raw outputs are retained. No local browser or container was used. Final-source
+verification will follow any measured performance change. The current installed
+runtime digest is `1ed9248c7136763a545f5f9a79a9da47fd597444c57e37aaa3e21ce6f1655df0`.
+
+**Destination follow-up probe:** SVG exposes an animated destination separately
+from its underlying href attribute. Two additional Linux cases change that
+native animated destination while a question waits, without changing the source
+attribute. This checks whether the current resolver follows the actual action.
+The probe is intentionally run before any production change; a failure will be
+fixed before further latency work. It brings the ledger to **240**. Existing
+60 base/attribute/owner/target sequences remain required.
+
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
 blank-frame base case. The new fixture had duplicate blank-frame addresses, so
