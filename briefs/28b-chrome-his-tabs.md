@@ -285,7 +285,8 @@ byte-identical to `main`'s.
 passive mode only), `context.js` or a new marker script, `manifest.json` (the two entries above), `popup.html`,
 `popup.js`; `control/aresos_control/chrome/adapter.py`, `definitions.py`, the view module, and `policy.py` only to
 hold the password words; the generated files; `control/chrome_tests/`, `control/chrome/ci/`;
-`.github/workflows/control-chrome*.yml`; `docs/control/TOOLS.md`, `docs/control/FEATURES.md`, `control/README.md`;
+`.github/workflows/control-chrome.yml` (not the qualification workflow); `docs/control/TOOLS.md`,
+`docs/control/FEATURES.md`, `control/README.md`;
 `reviews/28b-chrome-his-tabs/`.
 
 **Must not touch:** `page.js`, `policy.js` (except the mirrored password words, if the reader needs them there),

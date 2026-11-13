@@ -574,17 +574,18 @@ main
     … 12 rows, 5 columns (1,840 characters)
   list e11
     link "Lecture 1: Graphs" e12
-    … 47 more (2,900 characters)
+    … 47 more (2,900 characters) e17
 ```
 
 - A line holds the role, the name in quotes, a field's value after `=`, the states that are set (checked, selected,
   disabled, required, invalid, expanded, current), where a link or a form leads when that isn't obvious, and a
   reference.
-- Text appears once, on the element that owns it. Wrappers without a role or name get no line.
-- Long content is folded, and the fold says how much it hides. A text longer than 200 characters is cut. Of more
-  than 8 neighbours of the same kind (paragraphs, list items, rows, cards) the first 5 are shown. A table shows its
-  size. A list of more than 12 options shows the chosen one and the count. A form's fields are never folded, up to
-  40 fields.
+- Text appears once, on the element that owns it: a label's text is on its field, not beside it as well. Wrappers
+  without a role or name get no line.
+- Long content is folded. The fold says how much it hides, and its reference reads exactly that. A text longer than
+  200 characters is cut. Of more than 8 neighbours of the same kind (paragraphs, list items, rows, cards) the first
+  5 are shown. A table shows its size. A list of more than 12 options shows the chosen one and the count. A form
+  shows its first 40 fields.
 - Left out: boxes and coordinates (Claude acts by reference; the tool finds the place and checks that the click
   lands on the element), elements behind an open dialog, hidden elements, and frames of the fixed list. Frames from
   other sites and shadow DOM, closed roots too, are part of the outline.
@@ -975,18 +976,20 @@ in Chrome.
 | Long page (120 paragraphs, 80 fields): the first read | 16,000 characters, page 1 of 14 (*checked*) | the whole outline in 1 call, at most 6,000 characters |
 | The same page read to the end | 221,477 characters, 14 calls (*checked*) | at most 75,000 characters, at most 4 calls |
 | Its 80 fields with their values | inside the 14 pages | 1 call, at most 6,000 characters |
-| A table of 200 rows | recorded by brief 28 | at most 1.2 times the cells' own text, at most 2 calls |
+| A table of 200 rows | recorded by brief 28 | at most 1.3 times the cells' own text, at most 2 calls |
 | Finding one link among 300 | recorded by brief 28 | 1 call, at most 800 characters |
 | Open a page and read a fact from it | open, wait, read | 1 call |
 | Fill 6 fields and send the form | read, fill, read, click, submit, read | 2 calls and `chrome_submit`, one question |
 | Three result pages, one click each | a click and a read per page | 3 calls |
 | Compare three open tabs | a read per tab, each paged | 1 call |
-| List 25 open tabs | 3 calls | 1 call, at most 3,000 characters |
+| List 25 open tabs | 3 calls | 1 call, at most 3,500 characters |
 | A free click that changes part of the page | a click, then a full read | 1 call, at most 2,500 characters |
 | Read a fact from one of his tabs (*brief 28b*) | list, take, read; the tab moves | list, read; the tab untouched |
 | What a session loads: descriptions and instructions | 28 tools; recorded on main after PR #27 | 17 tools, at most 10,000 characters, and not above the baseline |
 | What a session loads: names and input schemas | 28 tools, about 10,600 characters (PR #27 at `8b7e799c`) | at most 6,000 characters |
 
+- Characters are counted on the whole result as Claude receives it. Brief 20's two *checked* numbers count the page
+  text alone, which is a little less.
 - Where the middle column has no number, brief 28 measures brief 20's tools on the fixture before it removes them,
   and the budget must also beat that number.
 - Mail's 28 tools take 21,055 characters after brief 18d. A test pins Chrome's totals, so a later change can't grow

@@ -8,10 +8,10 @@ The lead removes this file once the final message has been read; nothing here is
 
 | Piece | State |
 |---|---|
-| `docs/design/CONTROL.md` section 6, rewritten (draft 32) | written, committed; one read-through for coherence still to do |
-| `briefs/28-chrome-capability.md` | written, committed |
-| `briefs/28b-chrome-his-tabs.md` | to write (the content is settled below) |
-| Final message to `linux-tools` | to write (the content is settled below) |
+| `docs/design/CONTROL.md` section 6, rewritten (draft 32) | done, read through once |
+| `briefs/28-chrome-capability.md` | done |
+| `briefs/28b-chrome-his-tabs.md` | done |
+| Final message to `linux-tools` | sent with the last commit; its content is this file plus the two briefs |
 
 Edits outside section 6, each because a cross-reference would otherwise be false: the status line (draft 32), rule
 4.2 (what a Chrome reference is bound to), rule 4.4 (`chrome_library`), section 10 ("Open": the three judgment

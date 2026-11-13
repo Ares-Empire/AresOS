@@ -92,9 +92,9 @@ chosen option, and the element's **own** text (not its descendants').
 A second read-only command, `page_state`, returns the top document's id, its revision and `readyState`. The service
 uses it to wait; it never polls with full reads.
 
-`background.js` gets these two commands and a `tabs` reply that holds every tab at once (item 6). **Nothing else in
-`background.js` changes in this package:** not `input`, `resume`, `dialog`, `prepare_control`, `take`, `release`,
-the debugger methods or the session rules.
+`background.js` gets these two commands, a `show` command for `chrome_show`, and a `tabs` reply that holds every
+tab at once with the fields item 6 needs. **Nothing else in `background.js` changes in this package:** not `input`,
+`resume`, `dialog`, `prepare_control`, `take`, `release`, the debugger methods or the session rules.
 
 ### 2. The outline, and `chrome_read` (service)
 
@@ -114,16 +114,19 @@ target  = for a link that leaves the page's site: its site; for a form: its meth
 ref     = "e" and a number (item 3)
 ```
 
-- Text appears once, on the deepest element that owns it. An element without a role, a name or own text gets no
-  line, and its children move up a level.
+- Text appears once, on the deepest element that owns it. A label whose text is its field's name gets no line of
+  its own. An element without a role, a name or own text gets no line, and its children move up a level.
 - Quoting: the base's `visible()` escaping (control and direction-changing characters, backslash), then `"` as
   `\"`. A name or value can never start a new line or end its quotes.
 - **Folds** (each says what it hides):
-  - a name or text longer than 200 characters is cut and ends in `…+N`, N being the characters left out;
-  - of more than 8 neighbours with the same role, the first 5 are shown, then `… N more (C characters)`;
-  - a table is its line and `… R rows, C columns (N characters)`;
+  - a name or text longer than 200 characters is cut and ends in `…+N`, N being the characters left out; the
+    element's reference reads it whole;
+  - of more than 8 neighbours with the same role, the first 5 are shown, then `… N more (C characters) eK`; that
+    reference reads exactly the neighbours left out, and nothing can act on it;
+  - a table is its line and `… R rows, C columns (N characters)`; the table's reference reads it;
   - a list of more than 12 options is `(N options)` on the field's line, with the chosen one as the value;
-  - a form's fields are never folded, up to 40 per form; hidden fields are `(N hidden)` on the form's line.
+  - a form shows its first 40 fields, then a fold like the one for neighbours; hidden fields are `(N hidden)` on
+    the form's line.
 - A reference is put on every element that can be acted on, and on every element that can be read by itself: a
   form, table, list, landmark, dialog, article or frame, and anything cut or folded.
 
@@ -306,8 +309,9 @@ references; brief 20's rules for the three kinds of dialog are unchanged.
   file branch stays as it is, apart from the field names it reads.
 - **Unchanged in name, input, result and behaviour:** `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`,
   `chrome_operation_status`, `chrome_notices`, `chrome_notice_ack`, and the owner-only `chrome_sites`.
-- A new error code, `take_first`, for `chrome_go`, `chrome_do` and `chrome_upload` on a tab that isn't in Claude's
-  group: "this is one of the owner's tabs; take it, or open its address in a Claude tab".
+- A new error code, `take_first`, for `chrome_read`, `chrome_go`, `chrome_do` and `chrome_upload` on a tab that
+  isn't in Claude's group: "this is one of the owner's tabs; take it, or open its address in a Claude tab". (Brief
+  28b lets `chrome_read` work there without a take.)
 
 ### 7. Definitions, instructions and sizes
 
@@ -392,7 +396,8 @@ interruption at each point); the change report; the reader's `outline` command i
 **Group 14, reading and references** (browser): as section 6 lists it. Fixtures:
 
 - F1, brief 20's long page (120 paragraphs, 80 fields);
-- F2, a table of 200 rows and 6 columns with a link in each row;
+- F2, a table of 200 rows and 6 columns of text (cells of 12 characters or more), and a small second table with a
+  link and a checkbox in each row;
 - F3, a listing of 300 links in a list, with navigation and footer link groups;
 - F4, a form of 25 fields: text, a date, checkboxes, radios, a list of 200 options, a required field with an error
   text, three hidden fields, each kind of password field from group 7;
@@ -417,20 +422,22 @@ Small fixtures are compared with stored expected outlines, character for charact
   tools did.
 
 **Group 16, efficiency** (browser, in the latency harness): the scripted tasks below, each run against the baseline
-file. The build fails when a budget is exceeded or when a number is worse than the baseline.
+file. Characters are counted on the whole result as Claude receives it (the JSON text of the tool result), for the
+baseline and for the new tools alike. The build fails when a budget is exceeded or when a number is worse than the
+baseline.
 
 | Task | Budget |
 |---|---|
 | F1: the first read | 1 call, the whole outline, at most 6,000 characters |
 | F1: everything (the outline, then each folded part by `ref`) | at most 75,000 characters, at most 4 calls |
 | F1: the 80 fields with their values | 1 call, at most 6,000 characters |
-| F2: the whole table | at most 1.2 times the cells' own text, at most 2 calls |
+| F2: the whole table | at most 1.3 times the cells' own text, at most 2 calls |
 | F3: find one named link | 1 call, at most 800 characters |
 | Open a fixture page and return one fact from it | 1 call |
 | F4: fill 6 fields and send the form | 2 calls and `chrome_submit`; one question; the receiver has it once |
 | Three result pages, one click each, the titles collected | 3 calls |
 | Compare three open tabs | 1 call |
-| List 25 open tabs | 1 call, at most 3,000 characters |
+| List 25 open tabs (titles of about 30 characters) | 1 call, at most 3,500 characters |
 | F5: a free click that changes part of the page | 1 call, at most 2,500 characters, the change named |
 | Descriptions plus instructions | at most 10,000 characters, and not above the baseline |
 | Names plus input schemas | at most 6,000 characters |
@@ -459,7 +466,8 @@ The base's, 18d's and Mail's suites still pass, and the generated artifacts are 
 **May change:** `control/aresos_control/chrome/adapter.py`, `definitions.py` and new modules beside them;
 `control/chrome/extension/reader.js` and `background.js` (only as item 1 says); `control/aresos_control/proxy.py`
 (the Chrome upload branch's field names); the generated files; `control/chrome_tests/`, `control/chrome/ci/`;
-`.github/workflows/control-chrome*.yml`; `docs/control/TOOLS.md`, `docs/control/FEATURES.md` (item 9),
+`.github/workflows/control-chrome.yml` (not the qualification workflow); `docs/control/TOOLS.md`,
+`docs/control/FEATURES.md` (item 9),
 `control/README.md`; `reviews/28-chrome-capability/`.
 
 **Must not touch:** `os/`, `mod/`, `docs/design/`, `docs/control/PLAN.md`, `docs/control/TOOLS-HANDOFF.md`,
