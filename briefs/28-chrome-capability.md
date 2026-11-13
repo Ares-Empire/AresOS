@@ -385,7 +385,7 @@ ref     = five letters and a number, for example kqtvm5 (item 3)
     the form's line.
 - **The order of folding,** from the top of the tree down: (1) a table folds whole; (2) inside a form, the fields
   after the 40th fold into one line; (3) among the children of one parent, a run of more than 8 children in a row
-  with the same role shows its first 5 and folds the rest; (4) a list field with more than 12 options shows its
+  with the same role shows its first 5 and folds the rest, except a form's fields, which follow (2) alone; (4) a list field with more than 12 options shows its
   count; (5) on every line that is shown, the name, each text run and the value are cut so that the line's quoted
   text has at most 200 characters, with inline children after the cut left to the element's own `ref`. What sits
   inside a folded part isn't rendered, so it has no folds of its own until it is read.
@@ -420,8 +420,9 @@ Result:
 - No `ref`, no `find`: the outline with its folds.
 - `ref`: that element with **one level unfolded**, in the form that fits its role: its own name, text and value whole,
   and its direct content complete (every row, item, field or hidden neighbour). Below that level the fold rules apply
-  again. A table: a first line `columns: A | B | C`, then one line per row with the cells separated by ` | `, and
-  controls inside a cell as `[link "Open" kqtvm31]`. A list: its items. A form: every field as an outline line with its
+  again. A table: the table's own line, then a line `columns: "A" | "B" | "C"`, then one line per row, not indented,
+  with each cell in quotes and the cells separated by ` | `, and controls inside a cell as `[link "Open" kqtvm31]`.
+  A list: its items. A form: every field as an outline line with its
   options (up to 50 per field, more by the field's own `ref`), `required`, the field's error text, the hidden fields by
   name, the buttons, and the form's target. A text: in full. A single link or control: everything known about it (its
   address in the public form, the title, all options).
@@ -1050,13 +1051,16 @@ Added cases, each with group 7's known password and a label that says nothing ("
 **Group 14, reading and references** (browser): as section 6 lists it. Fixtures:
 
 - F1, brief 20's long page (120 paragraphs, 80 fields);
-- F2, a table of 200 rows and 6 columns of text (cells of 12 characters or more), and a small second table with a
-  link and a checkbox in each row;
-- F3, a listing of 300 links in a list, with navigation and footer link groups;
+- F2, a table of 200 rows and 6 columns of text with a header row, each cell exactly 12 letters and digits (the
+  budget row is computed from this size), and a small second table with a link and a checkbox in each row;
+- F3, a listing of 300 links in a list, with navigation and footer link groups; one link has a name that no
+  other link's name contains;
 - F4, a form of 25 fields: text, a date, checkboxes, radios, a list of 200 options, a required field with an error
   text, three hidden fields, each kind of password field from group 7;
-- F5, a page that changes part of itself on a click (rows replaced, a status line, one element renamed, one removed)
-  and a page that loads a new document on a click;
+- F5, a page that changes part of itself on a click (5 rows replaced, a status line, one element renamed, one
+  removed: at most 13 changed lines of at most 80 characters) and a page that loads a new document on a click.
+  Its three result pages are short: each one's outline, the link to the next page included, fits the 4,000
+  characters a step returns;
 - F6, a page with frames from a second fixture site and open and closed shadow roots;
 - H1, hostile text: names and paragraphs shaped like outline lines, references (`kqtvm5`), folds (`… 40 more`),
   instructions to Claude, quotes, line breaks and direction-changing characters; a page of 100,000 elements; a name
@@ -1231,17 +1235,45 @@ is worse than the baseline.
 | F1: the first read: `chrome_read` with the tab | 1 call, the whole outline, at most 6,000 characters |
 | F1: everything: `chrome_read` with `full` and `max` 40,000, then the same call with each `cursor` it returns | at most 3 calls, at most 75,000 characters in all |
 | F1: the 80 fields with their values: after the first read, `chrome_read` with the form's `ref` | 1 further call, at most 6,000 characters |
-| F2: the whole table: after the first read, `chrome_read` with the table's `ref` and `max` 20,000 | 1 further call, at most 1.3 times the cells' own text |
-| F3: find one named link: `chrome_read` with `find` and `role` | 1 call, at most 800 characters |
+| F2: the whole table: after the first read, `chrome_read` with the table's `ref` and `max` 40,000 | 1 further call, at most the cells' own text plus 7 characters for each cell plus 800: 23,600 characters for this fixture |
+| F3: find the one link with the unique name: `chrome_read` with `find` and `role` | 1 call, at most 800 characters |
 | Open a fixture page and return one fact from it: `chrome_open` with `url` | 1 call |
 | F4: fill 6 fields and send the form: `chrome_open` of the form's page, `chrome_do` with six fills and the click, `chrome_submit` | 2 calls and `chrome_submit`; one question; the receiver has it once |
 | Three result pages, one click each, the titles collected: from an outline in hand, three `chrome_do` calls of one click, each returning the next page | 3 calls |
 | Compare three open tabs: `chrome_read` with `tabs` | 1 call |
 | List 25 open tabs (titles of about 30 characters): `chrome_tabs` | 1 call, at most 3,500 characters |
-| F5: a free click that changes part of the page: from an outline in hand, one `chrome_do` | 1 call, at most 2,500 characters, the change named |
+| F5: a free click that changes part of the page: from an outline in hand, one `chrome_do` | 1 call, at most 2,500 characters, every changed line named (`more_changes` is 0) |
 | Descriptions plus instructions (18 tools) | at most 10,500 characters, and not above the baseline |
 | Names plus input schemas (18 tools) | at most 6,300 characters |
 | Latency ("Before anything else", the comparison in one run) | the first read of F1, a free click with its report, and the 6-field form are each at most 1.10 times brief 20's median plus 50 ms; a latency check PR #27 brings stays within its targets |
+
+**The rows add up** (package re-check 2, N3). Every budget counts the JSON text of the result, so each quote
+of the outline costs 2 characters, each line break 2, and each `…`, `→`, `·` and `›` 6. A read's result has about
+310 characters around its outline, and a `chrome_do` result about 450. Worked through for the fixtures as they
+are defined above:
+
+- F1, first read: 5 paragraphs cut at 200 characters, a fold line, the form's first 40 fields and a fold line:
+  about 3,300 characters of outline, about 3,900 as sent. The budget is 6,000.
+- F1, everything: about 60,100 characters of outline. `max` 40,000 makes that 2 pages, each inside 48 KiB as
+  sent (a full page is about 40,300 bytes), about 61,500 characters in all. The budget is 3 calls and 75,000.
+- F1, the form by `ref`: 80 field lines, about 4,250 characters of outline, about 4,950 as sent. The budget is
+  6,000, and the default `max` of 6,000 holds the outline in one page.
+- F2: 1,200 cells of 12 characters are 14,400 characters. Each row's line adds 12 quotes, 5 separators of 3
+  characters and a line break: 100 characters of outline a row, 113 as sent. With the table's line and the
+  header that is about 20,100 characters of outline, which is why the call passes `max` 40,000 and not 20,000,
+  and about 23,050 as sent. The budget is 14,400 + 7 × 1,200 + 800 = 23,600. Quoting every cell stays: it is
+  what keeps a cell from forging a line.
+- F3: one hit with its path is about 100 characters of outline, about 420 as sent. The budget is 800.
+- 25 tabs: a line is at most about 120 characters with a ten-digit tab number, a title of 30 and an address at
+  its cut of 60: about 3,200 as sent. The budget is 3,500.
+- F5: at most 13 changed lines of at most 80 characters are about 1,050 characters of outline, about 1,650 as
+  sent with the result around them. The budget is 2,500, and the default `max` of 2,000 doesn't cut the report.
+- F4, six fills and a click: all 25 fields and the button are in the 4,000 characters `chrome_open` returns,
+  because a form's fields follow the form's own fold rule. Seven steps take about 5 seconds of the 12 a list
+  has for its inputs.
+
+If the built tool misses one of these by more than its fixture explains, the budget or the tool changes in the
+brief (stop rule); the fixture isn't made smaller to fit.
 
 **Brief 20's groups 1 to 13** pass twice on the final head, through the new tools, in both install modes. Register
 the new browser cases in the named inventory (`ci/verdicts.mjs`) the way brief 20's FEATURE and VIEW cases are

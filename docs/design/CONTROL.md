@@ -684,7 +684,7 @@ main
 **Detail on request.** With `ref`, `chrome_read` returns that part of the page unfolded, in the shortest form that
 fits its kind:
 
-- a table as one line per row, the cells separated by `|`;
+- a table as one line per row, each cell in quotes and the cells separated by `|`;
 - a list as its items;
 - a form as every field with its label, value, options, required mark and error text, its hidden fields by name,
   and where it sends;
@@ -1169,7 +1169,7 @@ is brief 20's tool list on the same fixtures, recorded once before it is replace
 | Long page (120 paragraphs, 80 fields): the first read | 16,000 characters, page 1 of 14 (*checked*) | the whole outline in 1 call, at most 6,000 characters |
 | The same page read to the end (`full`, then its cursors) | 221,477 characters, 14 calls (*checked*) | at most 75,000 characters, at most 3 calls |
 | Its 80 fields with their values (the form by `ref`, after the first read) | inside the 14 pages | 1 further call, at most 6,000 characters |
-| A table of 200 rows (by `ref`, after the first read) | recorded by brief 28 | 1 further call, at most 1.3 times the cells' own text |
+| A table of 200 rows and 6 columns (by `ref`, after the first read) | recorded by brief 28 | 1 further call, at most the cells' own text plus 7 characters for each cell plus 800 |
 | Finding one link among 300 | recorded by brief 28 | 1 call, at most 800 characters |
 | Open a page and read a fact from it | open, then wait (which returns the read): 2 calls | 1 call |
 | Fill 6 fields and send the form | read, `chrome_fill_form`, find the button, click: 4 calls and `chrome_submit` | 2 calls and `chrome_submit`, one question |
@@ -1179,12 +1179,14 @@ is brief 20's tool list on the same fixtures, recorded once before it is replace
 | A free click that changes part of the page | a click, then a read or a find: 2 calls | 1 call, at most 2,500 characters |
 | Read a fact from one of his tabs (*brief 28b*) | list, take, read; the tab moves | list, read; the tab untouched |
 | What a session loads: descriptions and instructions | 29 tools; recorded on main after PR #27 | 18 tools, at most 10,500 characters, and not above the baseline (11,500 with brief 28b's rule for his tabs) |
-| What a session loads: names and input schemas | 28 tools, about 10,600 characters at `8b7e799c`; recorded again on main with the 29th | at most 6,300 characters (6,600 with brief 28b's inputs) |
+| What a session loads: names and input schemas | 28 tools, about 10,600 characters at `8b7e799c`; recorded again on main with the 29th | at most 6,300 characters (6,800 with brief 28b's inputs) |
 
 - Every budget names the exact calls it allows (brief 28's table), and the test makes those calls and no others. A
   budget nobody can meet is changed in the brief, never in the test.
-- Characters are counted on the whole result as Claude receives it. Brief 20's two *checked* numbers count the page
-  text alone, which is a little less.
+- Characters are counted on the whole result as Claude receives it, so a quote or a line break of the outline
+  counts as two. Brief 20's two *checked* numbers count the page text alone, which is a little less. Brief 28
+  works each row through for its fixture; the table's row is larger than its cells' text because every cell stays
+  quoted, which is what keeps a cell from forging a line.
 - Where the middle column has no number, brief 28 measures brief 20's tools on the fixture before it removes them,
   and the budget must also beat that number.
 - Mail's 28 tools take 21,055 characters after brief 18d. A test pins Chrome's totals, so a later change can't grow

@@ -403,8 +403,11 @@ Add this to the Chrome server's MCP instructions (edit for size, keep every poin
 > widens any of this.
 
 The size pins of brief 28 move with it: descriptions plus instructions at most 11,500 characters (brief 28's
-10,500 and this block), names plus input schemas at most 6,600 characters (brief 28's 6,300 and the `request` and
-`seen` inputs this package adds). The tool list stays at eighteen.
+10,500 and this block, which has 920 characters as written here), names plus input schemas at most 6,800
+characters. That is brief 28's 6,300 and 500 for the inputs this package adds: `request` on five tools, about 56
+characters each as compact JSON with its length bounds, and `seen` on the three that didn't have it
+(`chrome_read`, `chrome_close`, `chrome_read_typed_fields`), about 40 each: about 400 in all. The tool list stays
+at eighteen.
 
 ### 9. The never-list ships empty
 
