@@ -1,26 +1,31 @@
 <!-- POST18D CURRENT START -->
 # Handover
 
-- **Addenda:** -c credential exclusion, -d/-e asking reads and -f exact prepared
-  binding/withheld-form refusal are done and SAFE. -g ceilings, editor decision
-  and measured-cost removal probe are done and SAFE in both scoped reviews.
-  Final acceptance remains open. No asking-read binding or
-  withheld-form refusal is reopened.
-- **Post-18d:** base-URL/SVG class, main/slim merge, group 12, latency measurement,
+- **Addenda c–g:** done. Credential exclusion, service-prepared asking-read binding,
+  withheld-form refusal, approved latency ceilings and measured-cost removal
+  probe are implemented and SAFE in scoped reviews. Editors stay read under the
+  owner's board #216 acceptance. No binding/refusal change is open.
+- **Post-18d:** base-URL/SVG class, main/slim integration, group 12, measured
   expiry optimization and sharding are done. Main is merged through `b2b51107`.
-  Final acceptance candidate: the full local suite runs before its normal push;
-  every Control workflow twice and independent audits remain open.
-- **In flight:** Control Mail `43513676712`, resumed with one blocking watcher
-  (session `11711`, `.work/post18d/43513676712-watch-resumed.log`). It tests the
-  complete eight fault shards with a 60-minute budget. No Chrome run is in flight.
-- **Budget:** 249 / about 280 Chrome workflow runs; final pair is still required.
-- **Exact next step:** run `.work/post18d/final-local.py` against this candidate
-  and finish the Mail diagnostic watch before pushing. The normal final push
-  starts the two full Chrome runs; identify those and the four named Control
-  workflow runs, then watch each once. Rerun base/Mail/boundary/qualification on
-  the same head for their second executions. Independently audit both Chrome
-  installs from both runs. Commit all receipts and update this Handover with
-  `[skip ci]`; keep PR #27 draft.
+  Final code head is **`0ca3f6d7`**; subsequent commits contain evidence/report only.
+  On that head, **268 Python, 370 Node/artifact and 315 removal probes pass**, every
+  mutation baseline passing. Generator, diff and exact-unit checks pass.
+- **Mail diagnostic:** `43513676712` passed all four suites and eight complete
+  fault shards; longest job **54m53s**, within the 60-minute job budget.
+- **In flight on the final code head:** Chrome push **`43521476596`** (watch session
+  `64588`) and PR **`43521486785`** (`56197`); base **`43521486682`** (`85771`), Mail
+  **`43521486798`** (`77388`), boundary **`43521486793`** (`76388`), qualification
+  **`43521486667`** (`1327`). Each has one blocking watcher. The four non-Chrome
+  watchers request a second attempt only after success; Chrome runs once each.
+- **Budget:** **251 / about 280** Chrome workflow runs, including this final pair.
+- **Exact next step:** resume those watchers (if stopped, start one blocking watch
+  on each run). Before restarting the four repeat helpers, read their retained
+  attempt receipts under `.work/post18d/acceptance/` to avoid an extra rerun.
+  Finish both attempts of each named Control workflow and both full Chrome runs;
+  independently audit both Chrome installs in both runs, require all 92 original
+  round-3 case names, and rerun both measured latency gates. The metadata-only
+  helper is `.work/post18d/fetch-final-chrome.py RUN`. Commit receipts and update
+  this Handover with `[skip ci]` at each finished step. Keep PR #27 draft.
 
 # Post-18d integration — final repetitions pending
 
@@ -63,9 +68,9 @@ remains draft.
   observation wait is unchanged. The gate validates paired samples and rejects
   missing/invalid required metrics; only named sparse diagnostics are optional.
 
-**Verified:** all 267 Chrome Python tests, 370 Node/artifact tests and 314 removal
-probes pass on the candidate, with every mutation baseline passing.
-[Commands/results](records/post18d/local-expiry-final.json). All scoped runtime
+**Verified on final code head `0ca3f6d7`:** all 268 Chrome Python tests,
+370 Node/artifact tests and 315 removal probes pass, with every mutation baseline
+passing. [Commands/results](records/post18d/final-local-0ca3f6d7.json). All scoped runtime
 FIXes have SAFE package/security re-checks; the small Mail fixture/shard change
 has a SAFE package review. Focused Linux247 (`43488005234`) passes both installs,
 including 66 destination/context sequences, 27 animated defaults and addendum-f.
@@ -76,7 +81,7 @@ changes require final acceptance.
 **Latency:** diagnostic249 (`43502970342`) matches the current installed runtime
 hash in both profiles. At 4,000 retained inputs, plain read is 20.6/21.2 ms and
 free click 586.9/594.3 ms median/p95, versus rebuilt `ab7aba92` 585.6/595.9 and
-1,337.2/1,405.0 ms. All proposed ceilings are met in every measured history and
+1,337.2/1,405.0 ms. All accepted ceilings are met in every measured history and
 both plain/instrumented profiles. [Sample/metric preflight](records/post18d/latency-43502970342-preflight.json).
 The lead-set ceilings are read 35/60, navigate 100/150, click 650/750, fill 650/750,
 asking click 60/100 and approval-to-done 700/850 ms. `latency-targets.json` is
@@ -114,13 +119,15 @@ sharded pair. All 92 original named cases and their required current shards are
 listed in [round3-required-cases.json](records/post18d/round3-required-cases.json).
 The stopgap cause is per-input slowdown plus the larger unsplit matrices.
 
-**Still required:** final-head local checks and
-every Control workflow twice, with both Chrome installs and independent receiver
-audits. Replacement base/boundary/qualification diagnostics pass on the current
-runtime; replacement Mail `43513676712` is running with all eight fault shards
-retained and a 60-minute sweep-job budget. No final green or ready claim. Chrome
-ledger: **249 / about 280** (addendum-g). A normal final code push starts two runs (push and PR);
-report before exceeding 280. No local browser/profile/container has been accessed.
+**Still required:** every named Control workflow twice on final code head
+`0ca3f6d7`, with both Chrome installs and independent receiver audits. The pair
+and four other runs are listed in the Handover and
+[run inventory](records/post18d/final-0ca3f6d7-runs.json). Replacement diagnostics
+base/boundary/qualification pass; the complete
+[Mail diagnostic passes](records/post18d/mail-43513676712.json) (12/12 jobs,
+54m53s longest). No final green or ready claim. Chrome ledger: **251 / about 280**.
+The normal final code push started two runs (push and PR), with triggers unchanged.
+Report before exceeding 280. No local browser/profile/container has been accessed.
 
 The latest main merge changes no Control source, generated tools or Control
 workflow. Generator and full-unit checks pass after the merge;

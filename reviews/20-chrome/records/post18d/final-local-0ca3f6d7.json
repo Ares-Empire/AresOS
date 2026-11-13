@@ -1,0 +1,236 @@
+{
+  "head": "0ca3f6d7a1d0f792f9bb4bbc57e1d285266e358f",
+  "browser_free": true,
+  "python_tests": 268,
+  "python_shards": [
+    95,
+    54,
+    63,
+    56
+  ],
+  "node_tests": 370,
+  "node_failures": 0,
+  "removal_mutations": 315,
+  "every_mutation_baseline_passed": true,
+  "successful": true,
+  "commands": [
+    {
+      "label": "python-0",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "environment": {
+        "PYTHON_SHARD": "0",
+        "TEST_OUT": "<worktree>/.work/post18d/final-local-0ca3f6d7/python-0",
+        "RUNTIME_COMMIT": "0ca3f6d7a1d0f792f9bb4bbc57e1d285266e358f"
+      },
+      "exit_code": 0,
+      "seconds": 157.709,
+      "output": "final-local-0ca3f6d7-python-0.txt"
+    },
+    {
+      "label": "python-1",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "environment": {
+        "PYTHON_SHARD": "1",
+        "TEST_OUT": "<worktree>/.work/post18d/final-local-0ca3f6d7/python-1",
+        "RUNTIME_COMMIT": "0ca3f6d7a1d0f792f9bb4bbc57e1d285266e358f"
+      },
+      "exit_code": 0,
+      "seconds": 464.725,
+      "output": "final-local-0ca3f6d7-python-1.txt"
+    },
+    {
+      "label": "python-2",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "environment": {
+        "PYTHON_SHARD": "2",
+        "TEST_OUT": "<worktree>/.work/post18d/final-local-0ca3f6d7/python-2",
+        "RUNTIME_COMMIT": "0ca3f6d7a1d0f792f9bb4bbc57e1d285266e358f"
+      },
+      "exit_code": 0,
+      "seconds": 2.093,
+      "output": "final-local-0ca3f6d7-python-2.txt"
+    },
+    {
+      "label": "python-3",
+      "command": [
+        "python3",
+        "-B",
+        "control/chrome/ci/python-shard.py"
+      ],
+      "environment": {
+        "PYTHON_SHARD": "3",
+        "TEST_OUT": "<worktree>/.work/post18d/final-local-0ca3f6d7/python-3",
+        "RUNTIME_COMMIT": "0ca3f6d7a1d0f792f9bb4bbc57e1d285266e358f"
+      },
+      "exit_code": 0,
+      "seconds": 0.97,
+      "output": "final-local-0ca3f6d7-python-3.txt"
+    },
+    {
+      "label": "node",
+      "command": [
+        "node",
+        "--test",
+        "<worktree>/control/chrome_tests/activation-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/background.test.mjs",
+        "<worktree>/control/chrome_tests/compatibility.test.mjs",
+        "<worktree>/control/chrome_tests/destination-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/failure.test.mjs",
+        "<worktree>/control/chrome_tests/fixture.test.mjs",
+        "<worktree>/control/chrome_tests/ingress-scan.test.mjs",
+        "<worktree>/control/chrome_tests/latency.test.mjs",
+        "<worktree>/control/chrome_tests/owner-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/owner-ui.test.mjs",
+        "<worktree>/control/chrome_tests/pack.test.mjs",
+        "<worktree>/control/chrome_tests/page.test.mjs",
+        "<worktree>/control/chrome_tests/password-ingress.test.mjs",
+        "<worktree>/control/chrome_tests/popup.test.mjs",
+        "<worktree>/control/chrome_tests/precedence-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/qualification-completion.test.mjs",
+        "<worktree>/control/chrome_tests/qualification-reader.test.mjs",
+        "<worktree>/control/chrome_tests/reader.test.mjs",
+        "<worktree>/control/chrome_tests/receiver-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/recheck3-evidence.test.mjs",
+        "<worktree>/control/chrome_tests/shards.test.mjs",
+        "<worktree>/control/chrome_tests/site-results.test.mjs",
+        "<worktree>/control/chrome_tests/sites.test.mjs",
+        "<worktree>/control/chrome_tests/state-catalogues.test.mjs",
+        "<worktree>/control/chrome_tests/tabs.test.mjs",
+        "<worktree>/control/chrome_tests/verdicts.test.mjs",
+        "reviews/20-chrome/audit-streams.test.mjs"
+      ],
+      "environment": {},
+      "exit_code": 0,
+      "seconds": 7.881,
+      "output": "final-local-0ca3f6d7-node.txt"
+    },
+    {
+      "label": "mutations",
+      "command": [
+        "python3",
+        "-B",
+        "reviews/20-chrome/mutation-audit.py",
+        ".work/post18d/final-local-0ca3f6d7/mutations.json"
+      ],
+      "environment": {},
+      "exit_code": 0,
+      "seconds": 66.029,
+      "output": "final-local-0ca3f6d7-mutations.txt"
+    },
+    {
+      "label": "generator",
+      "command": [
+        "python3",
+        "control/generate.py",
+        "--check"
+      ],
+      "environment": {},
+      "exit_code": 0,
+      "seconds": 0.031,
+      "output": "final-local-0ca3f6d7-generator.txt"
+    },
+    {
+      "label": "diff-check",
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "environment": {},
+      "exit_code": 0,
+      "seconds": 0.03,
+      "output": "final-local-0ca3f6d7-diff-check.txt"
+    },
+    {
+      "label": "unit-pin",
+      "command": [
+        "git",
+        "diff",
+        "--exit-code",
+        "8b7e799c",
+        "--",
+        "control/packaging/aresos-toold.service"
+      ],
+      "environment": {},
+      "exit_code": 0,
+      "seconds": 0.014,
+      "output": "final-local-0ca3f6d7-unit-pin.txt"
+    }
+  ],
+  "proofs": [
+    {
+      "index": 0,
+      "count": 4,
+      "head": "0ca3f6d7a1d0f792f9bb4bbc57e1d285266e358f",
+      "run": null,
+      "modules": [
+        "test_bridge",
+        "test_exclusions",
+        "test_publisher",
+        "test_questions",
+        "test_state_fixes",
+        "test_storage"
+      ],
+      "tests": 95,
+      "successful": true
+    },
+    {
+      "index": 1,
+      "count": 4,
+      "head": "0ca3f6d7a1d0f792f9bb4bbc57e1d285266e358f",
+      "run": null,
+      "modules": [
+        "test_build",
+        "test_fault_surface",
+        "test_qualification",
+        "test_sites",
+        "test_state_mutations",
+        "test_unit"
+      ],
+      "tests": 54,
+      "successful": true
+    },
+    {
+      "index": 2,
+      "count": 4,
+      "head": "0ca3f6d7a1d0f792f9bb4bbc57e1d285266e358f",
+      "run": null,
+      "modules": [
+        "test_committed",
+        "test_latency",
+        "test_qualification_service",
+        "test_state_crashes",
+        "test_state_oracle"
+      ],
+      "tests": 63,
+      "successful": true
+    },
+    {
+      "index": 3,
+      "count": 4,
+      "head": "0ca3f6d7a1d0f792f9bb4bbc57e1d285266e358f",
+      "run": null,
+      "modules": [
+        "test_engine",
+        "test_policy",
+        "test_qualification_shards",
+        "test_state_exhaustion",
+        "test_state_sweeps"
+      ],
+      "tests": 56,
+      "successful": true
+    }
+  ]
+}
