@@ -1,55 +1,12 @@
-# 33 gate logo: builder handoff (delete in the last commit before the PR is ready)
+# 33: The gate logo: report
 
-Read `briefs/33-gate-logo.md` first. This file holds only what the code and the brief don't show.
+Built by Claude Fable 5.2 agents in three sittings (a usage limit and the step rule cut the work); this file was put together by the orchestrator from the builders' handoff notes, because the builders' tool refused to create it.
 
-## Coordinator's rules, 2026-11-13
-
-- Work in steps. After each step: commit, update this file, push. After roughly 80 tool calls, or at a natural break, end the turn with one line on what is left; a fresh builder continues from here.
-- The owner answered the height question: **12**. `SIZE` stays one number, and the tests for 10, 14 and 16 stay.
-- Do not edit `mod/dev/`. Before finishing: `git fetch origin`; if PR #44 (package 29) is in `main`, merge `origin/main` and take main's `mod/dev/` on any conflict there. (Still open at 18:00 on 2026-11-13.)
-
-## Done
-
-- Palette, picture rules, plan, build, record, removal, commands, neighbour check, group colours (all in `mod/src/main/java/dev/aresos/zone/`).
-- Unit tests (`GatePaletteTest`, `GatePictureTest`) and server game tests (`GateGameTests`, 9 tests). `mod/dev/build.sh` passed four times on 2026-11-13: 47 game tests, all unit tests.
-- Client game test `GateLogoClientGameTest` with nine screenshots under `reviews/33-gate-logo/screenshots/` (0033 to 0041). Two full `mod/dev/client-test.sh` runs, both exit 0: 7 min 15 s (before the sign's dark plate and before the test moved to the end of the list) and 7 min 34 s on the final code, with the real-icon look switched on. The gate test itself takes about 27 s. I looked at all nine pictures against `reviews/hub-design-v1/gate.png`: shape, door, black niche back, doormat colours, the enlarged sun on its plate, the round pinwheel, the plain front, the mirrored back, the sign on its dark plate and the lit fronts at night are as designed.
-- `mod/dev/build.sh` passed five times, the last on the final code: 47 game tests, all unit tests.
-- The three real icons, looked at in scratch (contact sheets `…/scratchpad/pkg33/look/sheet-12.png` and `sheet-sizes.png`; nothing committed). In words, for the report:
-  - **Chrome at 12:** clearly Chrome: a round build, red on top, green left, yellow right, a blue disc with a light ring in the middle. The red is red mushroom block, whose cap texture has white spots; from 20 blocks the red reads as red with a few light dots.
-  - **Discord at 12:** a dark blue (lapis) front with a big light face, two blue eyes and a light blue edge: recognisable by the face, as the design says.
-  - **Lunar Client at 12:** a black front with a grey ring and a white crescent shape. The weakest of the three: readable as "the moon logo" if you know it. A few of its dark grey cells came out olive green (green terracotta): with lightness counted half, a dark grey with almost no colour can land on a dull green block.
-  - **10, 14, 16:** at 10 Chrome still reads, Discord's eyes run together and Lunar is a grey smudge. At 14 and 16 all three are clearer, Lunar most of all (at 16 the moon is plain). 12 is the smallest size at which all three can be told apart from other apps; this agrees with HUB.md 2.3 and does not change my view of 12.
-  - PLAN-GAP to add: near-grey colours can pick a dull coloured block (Lunar's olive cells). Proposal, not built: when a cell's colour has almost no chroma, match it among the neutral blocks only. And: the red mushroom block's white spots.
-- `mod/README.md`: the gate, the doormat, `logo remove`.
-
-## Left, in order
-
-1. **One more full `mod/dev/client-test.sh` pass on the final code** (it must pass twice; one pass on the final code is done). After a run: from the repo root `git checkout -- reviews/` and `git clean -fdq -- reviews/04-nether-home reviews/07-real-apps reviews/08-walk-in-logos reviews/09-mode-inventories`; the gate's pictures should come out byte-identical or be committed again.
-2. **`reviews/33-gate-logo/REPORT.md`:** the draft is at the end of this file; add the "Verified" section from "Done" above and the real-icon words. The Write tool refused to create a file named REPORT.md from a subagent ("return findings as text"); the coordinator has to create it or say how.
-3. `git fetch origin`; merge `origin/main` if PR #44 is in (still open at 18:35 on 2026-11-13); delete this file; push; `gh pr create` against `main`.
-
-## Things a fresh builder must know
-
-- **Wall and floor must stay exactly as today.** `LogoPixels.convert`, `LogoPixels.nearest` (plain RGB) and the 48 numbers in `LogoPixels.PALETTE` feed them and a frozen layout test. The gate has its own match and table.
-- **Never force or release chunks in a server game test.** The framework forces the chunks of each test structure and releases them when that test ends; `setChunkForced(…, false)` in one test took the chunks of four neighbouring tests away before they had started, and the run never ended (no timeout applies to a test that has not started; the log filled with progress lines). `GateGameTests.Site` holds its chunks with a ticket of its own instead. If a run prints the progress bar thousands of times a second, stop it and look for this.
-- **The game-test server ticks as fast as it can** (about 70,000 ticks a second when idle), so a wait for anything from disk needs a large `maxTicks`.
-- **Commands cannot run in server game tests:** `DesktopWorld.isHost` needs a singleplayer owner. They are tested in the client test.
-- **Screenshot names start with a running number** over the whole client suite. A test added in the middle of the list renames every later package's pictures, so `GateLogoClientGameTest` is last in `fabric.mod.json`.
-- **The sign:** made from NBT because a display's setters are private; `Display.hurtServer` is final and returns false and it has no hit box.
-- **Doormat colour:** `AppDefinition` has no categories yet; `GateGroup` holds the gate's own copy of the four group concretes and knows only the three starters.
-- **Real-icon look:** `ARESOS_GATE_LOOK=<folder>` with `<folder>/icons/<name>.png`; pictures go to `<folder>/screenshots/`. The three icons are in `…/scratchpad/pkg33/look/icons/` (Chrome from `/usr/share/icons/hicolor/256x256/apps/`, Discord's SVG rendered with `magick`, Lunar Client from `~/.local/share/icons/hicolor/512x512/apps/`).
-
-## Dead ends
-
-- Forcing the site's chunks in the server tests (see above).
-
-## Draft of REPORT.md
-
-### Try this
+## Try this
 
 In an AresOS world, stand on open flat ground, look where the logo should stand and type `/aresos logo browser` (or any app ID; Tab lists them). A gate appears six blocks ahead, facing you, with the app's name above it. Walk along its front: nothing happens. Walk into the doorway: the app opens. Close the app: you stand where you built it, looking at the door. `/aresos logo remove here` (or `/aresos logo remove browser` from anywhere near) takes it down and puts the grass under the doormat back. Before removing, press G, swap one of its blocks for something of yours, press G again: that block stays.
 
-### Done
+## Done
 
 - **`zone/GatePalette`:** the 60 blocks with colours measured from the game's own textures, and the nearest block in Oklab with lightness counted half. The wall keeps its own table and its RGB match.
 - **`zone/GatePicture`, `zone/GateNumbers`:** HUB.md 3.6 as pure functions. `SIZE` (12), `DEPTH` (3) and every other number of the gate are in `GateNumbers`.
@@ -64,7 +21,20 @@ In an AresOS world, stand on open flat ground, look where the logo should stand 
 
 **The palette, measured.** Each colour is the plain mean of the block's side texture per sRGB channel, rounded. Of the wall's 48 numbers, 16 are the same and 32 differ by one step in one or more channels (the old numbers look cut off instead of rounded); the largest difference is pink terracotta's red, `a0` then, `a2` measured. Too small to see, so the wall's table is left alone. All twelve new blocks are full blocks that do not fall, burn, tick, hold data or give a redstone signal in 26.2 (`GateGameTests.paletteBlocksAreFullAndStill` checks all 60). Nine are plain blocks. Three have a class of their own and stay: a red mushroom block hides the faces that touch another mushroom block, amethyst chimes when hit, blue ice is slippery to walk on.
 
-### JUDGMENT-CALL
+## Verified
+
+- `mod/dev/build.sh` passed five times, the last on the final code: all unit tests (`GatePaletteTest`, `GatePictureTest` among them) and 47 server game tests, nine of them `GateGameTests`: the worked examples of HUB.md 3.2, sizes 10, 12, 14 and 16 in all four facings, build, record and remove leaving the world as it was, a changed block surviving the removal, 15 refusals that change no block, and zones files written before this package.
+- `mod/dev/client-test.sh` (headless, RTX 4060): two full runs with exit 0, 7 min 15 s and 7 min 34 s; the second is on the final code. A third pass on the final code was run by the orchestrator before the review (see the pull request). `GateLogoClientGameTest` takes about 27 s and is last in the list: four gates built by command and a refusal on an occupied place; walking past opens nothing; walking in opens the app once through the fake launcher and the return lands on the exit point; Live-mode protection; `zone remove` leaves gates; `logo remove here` and by name, also after a rejoin; a wall's blocks stay.
+- Nine screenshots under `reviews/33-gate-logo/screenshots/` (0033 to 0041), all looked at against `reviews/hub-design-v1/gate.png`: shape, door, black niche back, doormat colours, the enlarged sun on its plate, the round pinwheel, the plain front, the mirrored back, the sign on its dark plate and the lit fronts at night are as designed.
+
+## The three real icons at 12 blocks (looked at in scratch, never committed)
+
+- **Chrome:** clearly Chrome: a round build, red on top, green left, yellow right, a blue disc with a light ring in the middle. The red is red mushroom block, whose cap texture has white spots; from 20 blocks the red reads as red with a few light dots.
+- **Discord:** a dark blue (lapis) front with a big light face, two blue eyes and a light blue edge: recognisable by the face, as the design says.
+- **Lunar Client:** a black front with a grey ring and a white crescent shape. The weakest of the three: readable as "the moon logo" if you know it. A few of its dark grey cells came out olive green (green terracotta).
+- **10, 14, 16:** at 10 Chrome still reads, Discord's eyes run together and Lunar is a grey smudge. At 14 and 16 all three are clearer, Lunar most of all. 12 is the smallest size at which all three can be told apart from other apps; this agrees with HUB.md 2.3. The owner chose 12 on 2026-11-13 (board #207).
+
+## JUDGMENT-CALL
 
 1. `/aresos zone remove` leaves a gate's zone alone and points to `/aresos logo remove`. Rejected: removing the zone and leaving 420 unprotected blocks and a sign nothing can remove any more.
 2. The plate test counts a pixel from half opacity, not from the 12% of the cut. With 12% Lunar Client's glow counts as figure and the icon is not enlarged, against HUB.md 2.3; with half, the design's 24 icons give exactly the four it names.
@@ -76,7 +46,7 @@ In an AresOS world, stand on open flat ground, look where the logo should stand 
 8. The wall and floor forms now use the shared neighbour check, which also accepts natural ground and the mod's own logo blocks next to a logo. Before, a wall next to a grass block was refused.
 9. The sign's plate is three quarters black (`GateNumbers.SIGN_BACKGROUND`), as in the design's drawing, instead of the game's quarter-black default, on which the white name was hard to read against the sky. HUB.md 3.2 gives no number.
 
-### PLAN-GAP
+## PLAN-GAP
 
 1. Grass under a gate turns to dirt after a while, as under any solid block. A removal puts back the ground under the doormat, not this. HUB.md 3.3 calls a place buildable when its floor is "the untouched grass block or a block the mod placed"; package 36 should accept dirt there, or the gate should record the floor it stands on.
 2. Three of the twelve new blocks are not "plain" blocks in the game's sense (red mushroom block, amethyst block, blue ice); none does anything a logo would notice, so all twelve stay.
@@ -85,13 +55,15 @@ In an AresOS world, stand on open flat ground, look where the logo should stand 
 5. Shared one-line files: one class name in `mod/src/gametest/resources/fabric.mod.json` and one line in `mod/build.gradle`. Packages 32 and 34 touch the same lines; expect a small merge conflict, and keep this test last (screenshot numbers).
 6. The client suite's ten-minute limit: this package adds about half a minute to a suite that takes a little over seven minutes here.
 7. Server game tests must never release forced chunks (see above). Worth a line in `AGENTS.md`.
+8. Near-grey colours can pick a dull coloured block: Lunar Client gets a few olive cells at 12, because with lightness counted half a dark grey with almost no colour can land on a dull green block. Proposal, not built: when a cell's colour has almost no chroma, match it among the neutral blocks only.
+9. The red mushroom block has white spots, so Chrome's red is dotted from close up.
 
-### Not verified
+## Not verified
 
 - A gate in a world with weather, mobs and a day cycle over a long time.
 - The doormat colours for apps other than the three starters.
 
-### Open questions
+## Open questions
 
 - Should a gate remember the floor it stands on, so a removal can put grass back?
 - The sign's second line (the short name in gold) is built and has a field in the plan; it stays empty until package 35.
