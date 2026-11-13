@@ -477,5 +477,20 @@ class GoogleChromePinTest(unittest.TestCase):
         self.assertFalse(any(name.startswith(('kernel', 'nvidia', 'kmod-nvidia', 'akmod-nvidia')) for name in names))
 
 
+
+class SudoersDirectoryTest(unittest.TestCase):
+    """Package 27: copying os/config must not leave /etc/sudoers.d world-readable."""
+
+    def test_build_restores_the_root_only_sudoers_directory_after_the_config_copy(self):
+        script = (ROOT / 'build.sh').read_text()
+        configure = script.split('if [[ $1 == packages ]]; then', 1)[1].split('\nfi\n', 1)[1]
+        self.assertIn('chown root:root /etc/sudoers.d\nchmod 0750 /etc/sudoers.d\n', configure)
+        # The configure step runs after the Containerfile's `cp -a .../config/. /`.
+        containerfile = (ROOT / 'Containerfile').read_text()
+        self.assertLess(containerfile.index('cp -a /tmp/aresos/config/. /'), containerfile.index('build.sh configure'))
+        checks = (ROOT / 'ci/image-checks.sh').read_text()
+        self.assertIn("test \"$(stat -c '%a %u %g' /etc/sudoers.d)\" = '750 0 0'", checks)
+        self.assertTrue((CONFIG / 'etc/sudoers.d').is_dir())
+
 if __name__ == '__main__':
     unittest.main()

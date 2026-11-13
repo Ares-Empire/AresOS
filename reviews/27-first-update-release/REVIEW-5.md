@@ -1,0 +1,29 @@
+Reviewed **761d9ae7**, scoped to `bf2dd553..761d9ae7`. **No blocking findings. Two harness-only nits remain.** No files modified.
+
+1. **Nit — cleanup does not attempt loop detachment on every exception.**  
+   **Where:** [owner_vm.py:1100](C:/Users/pab/AresOS-27-review/os/ci/owner_vm.py:1100).  
+   If `mount` fails, cleanup attempts `umount` on the unmounted directory; that failure skips `losetup --detach`. An actual unmount failure or `os.rmdir()` failure also skips detachment. Allocation itself occurs outside the `try`, leaving an additional timeout uncertainty. These paths can leak runner resources and obscure the initial error, but cannot produce a passing rehearsal or hurt the laptop.  
+   **Fix:** track successful mounting, make cleanup steps independent using nested `try/finally`, retain cleanup errors, and add injected mount/unmount/removal-failure tests.
+
+2. **Nit — diagnostic failures can replace the original boot timeout.**  
+   **Where:** [login():181](C:/Users/pab/AresOS-27-review/os/ci/owner_vm.py:181), [boot_stall():342](C:/Users/pab/AresOS-27-review/os/ci/owner_vm.py:342).  
+   The QMP probes are protected, but diagnostic initialization and evidence writes are not completely protected. For example, a failed `td.save()` escapes before the caller’s bare `raise`, replacing the original `TimeoutError`. The run still fails; this affects diagnosis only.  
+   **Fix:** protect the complete diagnostic call and always re-raise the original timeout. Test an exception from evidence saving.
+
+The requested checks:
+
+- **Protected disk:** the new attachment command receives only the harness-created `WORK/target.raw`; partition selection is restricted to the returned loop device. No new code selects the protected image, mounts its partitions, or changes firmware. The installer VM has closed before pinning begins. Existing audits remain intact: QEMU protected-write counters, offline whole-image SHA-256/GPT/EFI comparisons, firmware comparisons and marker boots. Whole-image hashing also detects persistent host-side protected-image changes outside QEMU’s counters.
+
+- **Pinning robustness:** exactly one ext4 partition, one BLS entry and one `options` line are required. The append is idempotent, preserves existing arguments, flushes/fsyncs and reads back. Mounting is intentionally writable with `nosuid,nodev,noexec`. `losetup --find` avoids the hardcoded `/dev/nbd0` reuse problem. Apart from the cleanup nit, failures stop the run. Partition discovery uses one glob after `udevadm settle`, so delayed device discovery could still waste a correct run; the existing `wait_loop_partitions()` helper would improve that runner-only limitation.
+
+- **Argument inheritance and comparisons:** bootc 1.16.13 starts with the merge deployment’s BLS options and applies changes from image-owned `kargs.d`; these six local additions survive the normal switches. `at previous` selects the retained deployment, preserving its arguments. [bootc argument handling](https://github.com/bootc-dev/bootc/blob/v1.16.13/crates/lib/src/bootc_kargs.rs#L183), [deployment staging](https://github.com/bootc-dev/bootc/blob/v1.16.13/crates/lib/src/deploy.rs#L844). The harness and owner tools capture their baselines after pinning. Their equality checks therefore include these arguments consistently; keymap repair/checking targets `vconsole.keymap` arguments.
+
+- **Systemd names:** the claim is correct. PID 1 reads `systemd.tty.term.console` before considering XTGETTCAP. Console reset reads the `rows.console`/`columns.console` settings and bypasses DSR when configured. Service setup similarly reads the `ttyS0` settings before probing. [PID 1 environment](https://github.com/systemd/systemd/blob/v259/src/core/main.c#L1427), [console reset and size keys](https://github.com/systemd/systemd/blob/v259.9/src/basic/terminal-util.c#L913), [service terminal type](https://github.com/systemd/systemd/blob/v259/src/core/exec-invoke.c#L4507), [service dimensions](https://github.com/systemd/systemd/blob/v259/src/core/execute.c#L76).
+
+- **TerminalReplies:** the short systemd query survives arbitrary socket boundaries; complete DCS/DSR queries are answered once, in order, including several per read. Unrelated DCS forms do not match. The unsupported reply exactly matches systemd’s `DCS_TERMINFO_R0`. [Systemd response parser](https://github.com/systemd/systemd/blob/v259.9/src/basic/terminal-util.c#L2356). There is **no absolute guarantee against late replies reaching login input**: the responder has no guest-consumption acknowledgement. That can contaminate serial login and fail the run, but supplies no Enter and cannot establish successful authentication. Pinning removes these installed-boot systemd queries. The 64-byte retention also limits support for unusually long XTGETTCAP requests; systemd’s request fits comfortably.
+
+- **Diagnostics and fidelity:** diagnostics run only after login has already timed out while `authentication_started` remains false. They cannot rescue that boot or affect a passing boot. The six arguments normalize the VM-only serial terminal to the existing 24×80/vt220 behavior without bypassing install, update, rollback, authentication or disk-safety checks. The rehearsal consequently excludes exercising those serial probes; that does not weaken its laptop claims.
+
+Verification: `git diff --check` passed; all **48 pending-list** and **250 host-walk** hashes matched; owner-tool files have no diff. Python tests and VM boots were not executed here (`py -0p`: “No installed Pythons found!”). Run 13’s status was not verified because `gh` configuration access was denied.
+
+SAFE

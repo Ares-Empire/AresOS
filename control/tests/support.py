@@ -5,6 +5,9 @@ import unittest
 
 from aresos_control.engine import Engine
 from aresos_control.definitions import BY_NAME
+from response_checks import check_responses
+
+check_responses()
 
 ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / "control" / "test-work"

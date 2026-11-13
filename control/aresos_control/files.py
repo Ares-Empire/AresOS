@@ -1,10 +1,12 @@
 """Caller-side descriptor-relative Linux file transfers. No home path reaches toold."""
+from datetime import datetime
 import os
 from pathlib import Path
 import re
 import stat
 
-from .common import FILE_LIMIT, Refused, sha256
+from .common import FILE_LIMIT, Refused, cleanup, sha256, storage_refusal
+from .space import SpaceLedger
 
 # Dot components are always blocked. These catch non-dot credential/profile and
 # executable configuration directories, including aliases under an allowed root.
@@ -66,8 +68,9 @@ class FilePolicy:
                 os.close(fd)
                 fd = new_fd
             return fd
-        except BaseException:
-            os.close(fd)
+        except BaseException as exc:
+            with cleanup('file directory descriptor close', exc):
+                os.close(fd)
             raise
 
     def real_directory(self, fd, expected):
@@ -81,9 +84,10 @@ class FilePolicy:
             if (a.st_dev, a.st_ino) != (b.st_dev, b.st_ino):
                 raise Refused("file_refused", "Destination or source folder was swapped during transfer; try again after it is stable.")
         finally:
-            os.close(other)
+            with cleanup('file verification descriptor close'):
+                os.close(other)
 
-    def read(self, path, checkpoint=lambda _: None):
+    def read(self, path, checkpoint=lambda _: None, mail_metadata=False):
         _, relative = self.locate(path)
         if not relative:
             raise Refused("file_refused", "Choose a regular file inside the folder.")
@@ -111,20 +115,30 @@ class FilePolicy:
                 raise Refused("file_refused", "File changed during import; import again when stable.")
             self.real_directory(parent_fd, parent)
             # A replacement after this point is harmless: all subsequent use is these bytes.
-            return bytes(data), {"sha256": sha256(data), "size": len(data), "name": Path(path).name, "real_path": real_path}
+            reference = {"sha256": sha256(data), "size": len(data), "name": Path(path).name, "real_path": real_path}
+            if mail_metadata:
+                changed = datetime.fromtimestamp(max(after.st_mtime_ns, after.st_ctime_ns) / 1_000_000_000).astimezone()
+                reference["last_changed"] = changed.isoformat(timespec="microseconds") + " [" + changed.tzname() + "]"
+            return bytes(data), reference
         except OSError as exc:
             raise Refused("file_refused", "File path contains a link, missing or non-regular component, or is inaccessible; choose a safe regular file.") from exc
         finally:
-            if fd is not None:
-                os.close(fd)
-            if parent_fd is not None:
-                os.close(parent_fd)
+            with cleanup('file descriptor close'):
+                if fd is not None:
+                    os.close(fd)
+            with cleanup('file parent descriptor close'):
+                if parent_fd is not None:
+                    os.close(parent_fd)
 
-    def save(self, folder, name, data, expected_hash, checkpoint=lambda _: None):
+    def save(self, folder, name, data, expected_hash, checkpoint=lambda _: None, *, admission=None):
         self.locate(folder)
         safe_name(name)
         if len(data) > self.limit or sha256(data) != expected_hash:
             raise Refused("file_refused", "Download bytes exceed the limit or differ from their hash; save refused.")
+        ledger = SpaceLedger((Path(folder),))
+        if admission:
+            ledger.holds['service'] = admission['other_holds']
+        ledger.admit(len(data) + 8192)
         parent_fd, published, completed = None, False, False
         fd = None
         try:
@@ -151,6 +165,8 @@ class FilePolicy:
             return {"path": str(Path(folder) / name), "sha256": expected_hash, "size": len(data)}
         except BaseException as exc:
             if published and not completed:
+                original = storage_refusal(exc)
+                cause = str(original) + ' ' if original else ''
                 # Linux has no unlink-if-inode-matches. Clear the pinned inode,
                 # including renamed/hard-linked aliases, without touching a name.
                 own = os.fstat(fd)
@@ -160,23 +176,30 @@ class FilePolicy:
                     current_folder = "unavailable (folder moved or removed)"
                 location = (f"device {own.st_dev}, inode {own.st_ino}, originally published at {str(Path(folder) / name)!r}; "
                             f"pinned folder now {current_folder!r}")
-                try:
+                cleared = False
+                with cleanup('published export rollback', exc):
                     os.ftruncate(fd, 0)
                     os.fsync(fd)
-                except OSError as rollback:
-                    raise Refused("save_incomplete", "Save incomplete: clearing exported bytes could not be confirmed; "
+                    cleared = True
+                if not cleared:
+                    raise Refused(original.code if original else "save_incomplete", cause + "Save incomplete: clearing exported bytes could not be confirmed; "
                                   f"bytes may remain readable or survive a storage failure ({location}). "
                                   "No directory entries removed; renamed/hard-link locations cannot be enumerated. "
-                                  "Inspect this inode before retrying. " + str(rollback)) from exc
-                raise Refused("file_refused", "Save refused after publication: exported inode emptied and synced "
+                                  "Inspect this inode before retrying.") from exc
+                raise Refused(original.code if original else "file_refused", cause + "Save refused after publication: exported inode emptied and synced "
                               f"(0 bytes, {os.fstat(fd).st_nlink} remaining links; {location}). "
                               "No directory entries removed: empty output or renamed/hard-link remnants may remain; "
                               "other link locations cannot be enumerated. Inspect empty remnants and choose a new name.") from exc
             if isinstance(exc, OSError):
+                import errno
+                if exc.errno not in {errno.EEXIST, errno.ELOOP, errno.ENOENT, errno.ENOTDIR, errno.EACCES, errno.EPERM}:
+                    raise Refused('storage_limit', 'Disk full or storage write failed; no Downloads file was published. Free storage before retrying.') from exc
                 raise Refused("file_refused", "Destination already exists, is linked, moved or inaccessible; choose a new safe file name.") from exc
             raise
         finally:
-            if fd is not None:
-                os.close(fd)
-            if parent_fd is not None:
-                os.close(parent_fd)
+            with cleanup('file descriptor close'):
+                if fd is not None:
+                    os.close(fd)
+            with cleanup('file parent descriptor close'):
+                if parent_fd is not None:
+                    os.close(parent_fd)

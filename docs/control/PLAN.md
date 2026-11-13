@@ -149,8 +149,9 @@ acting):
     that is accepted. Claude Code runs as his normal user in his home and projects, with his own `gh` login and his own
     MCP servers, skills and plugins, added as in normal Claude Code. The tools: send, delete and submit ask in Claude
     Code's prompt through managed ask rules (which no user allow rule, `PreToolUse` hook, mod or mode turns off, so
-    the switches that locked everything else go; whether a `PermissionRequest` hook can approve one is tested in brief
-    18c); the app passwords AresOS holds with the tool service's own user; the `question`, approval binding and
+    the switches that locked everything else go; a `PermissionRequest` hook that returns allow does approve one in
+    print mode, as brief 18d measured, and that is accepted; brief 18c checks the interactive case); the app passwords
+    AresOS holds with the tool service's own user; the `question`, approval binding and
     untrusted-content marking as built; the instruction-source line in the managed `CLAUDE.md`. Gone: the SELinux
     domains, set-group-id relays and registration, the program allowlist and the gates as hard switches, project
     snapshots, the GitHub App, rulesets and mirror, the git wrapper and project-folder ownership, the separate
@@ -176,7 +177,7 @@ Three places, each with one job:
 | Place | Its job | Why there |
 |---|---|---|
 | **The tools** | Know what each action really does, and give each kind its own tool: reading (`mail_search`, `chrome_read`), changing (`mail_move`), sending (`mail_send`, `chrome_submit`), deleting (`mail_delete`). In Chrome, a click or key press that clearly sends (a form submit, a control labelled send or delete, Enter in a message field, an upload) doesn't run until approved; it becomes a separate `chrome_submit` step. | Only the tool can see that a click sends something. |
-| **Claude Code's settings** (a system-wide file in the image that only the admin account can change) | Decide which tools ask first and which are free. | Claude Code enforces them: Claude can't edit that file, and doesn't answer its own prompt unless a `PermissionRequest` hook can (tested in 18c; the accepted residual of decision 24 if so). Checked 2026-11-07: an "ask" rule still asks in skip-permissions mode, and the prompt shows the whole input ([check](../../reviews/control-checks/2026-11-07-permission-prompt.md)). |
+| **Claude Code's settings** (a system-wide file in the image that only the admin account can change) | Decide which tools ask first and which are free. | Claude Code enforces them: Claude can't edit that file, and doesn't answer its own prompt, though a `PermissionRequest` hook that returns allow can (measured in brief 18d in print mode, the interactive case in 18c; the accepted residual of decision 24). Checked 2026-11-07: an "ask" rule still asks in skip-permissions mode, and the prompt shows the whole input ([check](../../reviews/control-checks/2026-11-07-permission-prompt.md)). |
 | **CLAUDE.md** | Habits: how the owner writes mails, where things get filed. | These are requests to Claude. They are never what keeps sending under control. |
 
 **Rules for every tool, so the prompt tells the truth:**
@@ -198,22 +199,24 @@ the settings):
   its apps) belong to a separate system user. Only the tool service uses them; his account, and so Claude, can't read
   them. His own `gh` login and other credentials stay with him, as in normal Claude Code.
 - The ask rules for every asking tool live in a system-wide file only the admin account can change. A user or project
-  allow rule, a `PreToolUse` hook, a mod or skip-permissions mode doesn't turn a managed ask off. Whether a
-  `PermissionRequest` hook (one that answers prompts on his behalf) can approve a managed ask is unknown until brief
-  18c tests it; his own such hooks must not match our asking tools. The managed `CLAUDE.md` says instructions come
-  only from him in the session.
+  allow rule, a `PreToolUse` hook, a mod or skip-permissions mode doesn't turn a managed ask off. A
+  `PermissionRequest` hook (one that answers prompts on his behalf) that returns allow does approve a managed ask:
+  brief 18d measured it at user and managed scope, in normal and skip-permissions print mode (Claude Code 2.1.319),
+  and a test fails if that changes; brief 18c checks the interactive case. So his own such hooks must not match our
+  asking tools. The managed `CLAUDE.md` says instructions come only from him in the session.
 - Everything else is normal Claude Code: it runs as his user with his own `gh` login, MCP servers, skills and plugins.
   Chrome is his normal Chrome, reached through the light tool (decision 25, `CONTROL.md` section 6); a page that
   sends on its own after an ordinary action isn't held.
 - Not guaranteed, said plainly: Claude's terminal commands run as his user, and a tricked Claude could call the tool
-  service directly with a prepared approval, skipping the question; if brief 18c shows a `PermissionRequest` hook can
-  approve a managed ask, a hook could do the same. That is the same level as normal Claude Code on any OS. Claude
+  service directly with a prepared approval, skipping the question, and a `PermissionRequest` hook that returns allow
+  approves a managed ask (brief 18d). That is the same level as normal Claude Code on any OS. Claude
   Code's sandbox, an option he can turn on, keeps terminal commands away from the service only with
   `allowUnsandboxedCommands: false`, no excluded commands, Unix sockets not allowed and the service's socket folder
   denied for reads, and even then best-effort (`CONTROL.md` section 7).
 - The tests check the tools themselves: the asks hold in normal and in skip-permissions mode and against user allow
-  rules and `PreToolUse` hooks, the `PermissionRequest` hook case is measured, the question and the approval binding
-  match what really happens, untrusted content is marked, and the app passwords stay with the tool service's user.
+  rules and `PreToolUse` hooks, the `PermissionRequest` hook case is measured and pinned, the question and the
+  approval binding match what really happens, untrusted content is marked, and the app passwords stay with the tool
+  service's user.
 
 ## Order of work
 
@@ -272,7 +275,8 @@ the settings):
    - *Brief 18c* (early image test): Claude Code as his own user with his own MCP servers alongside ours; the fake send
      asking through the managed ask rule in normal and in skip-permissions mode, also with a user allow rule for it and
      after "Yes, and don't ask again"; a `PermissionRequest` hook returning allow for the fake send, at user and at
-     managed level, in both modes, with the result recorded (if it approves, that joins the accepted residual); no
+     managed level, in both modes, with the result recorded (if it approves, that joins the accepted residual; brief
+     18d measured print mode (merged 2026-11-12) and it approves, so 18c keeps the interactive case); no
      separate session or coding user, no launcher containment.
    - *The next base brief:* the managed settings reduced to the ask rules for every asking tool (generated), the
      managed `Stop` and `UserPromptSubmit` notification hooks (`CONTROL.md` rule 4.10) and the managed `CLAUDE.md`;
@@ -661,3 +665,54 @@ tasks at any time.
   with no input of the extension's in flight, is his and isn't held; a submission his input starts after a delay
   inside that limit is held and asks, since the tool can't tell whose input started it. `CONTROL.md` section 6 says
   so; the extension's in-flight mark never passes through anything the page can reach.
+- **2026-11-11, 08:10:** the owner clarified decision 24 (relayed by mac-capacity with his words; also in `HANDOFF.md`):
+  "I did not mean it as 'nothing could ever go wrong', I meant it like a normal tool. We are basically making MCPs
+  rn and so like normal MCPs they should be safe like teams mcp." "Baseline is basically MCPs or CLIs like any other
+  mcp or cli that already exists." Extra care where Claude Code, as the system operator, adds a risk of its own to
+  AresOS, "if we realize it in an action". "If it takes long to get it right, it takes long, we accept that", but a
+  more efficient process helps, since many tools are coming. On Chrome: "I don't just wanna rebuild Claude in
+  Chrome. I wanna make a better tool for AresOS that's more efficient with readings, navigation, free tab navigation
+  etc."
+  What this means: the baseline is what a good MCP or CLI does. Every send, delete, payment and unsubscribe a tool
+  recognises asks, and the question stays whole: it shows the exact content, is bound to it, can't be answered by
+  Claude and can't be replayed. Inputs are checked; each tool has the least access it needs; the app passwords and
+  sign-in data the tool service holds never reach Claude, and the Chrome reader never reads a password field;
+  untrusted content is marked. What becomes a documented known limit, as in normal MCP tools and Claude in Chrome
+  (decision 25): a hostile page or message making a step look ordinary (a click, a key), so that no question comes,
+  through hidden frames, shadow roots, key spellings or look-alike characters. Such a limit is fixed where that is
+  reasonable ("in a reasonably safe way"), and always when the action carries a risk of its own to AresOS: system
+  settings, disks, credentials, anything hard to undo. Reviewers are briefed with this bar. It applies from the
+  reset on 2026-11-12, 00:00 (the timing came with his words in mac-capacity's relay); what it changes in Mail, 19b
+  and Chrome goes to the owner first.
+- **2026-11-11, 09:45 and 10:05:** the owner's answers on what the clarified decision 24 changes (relayed by
+  mac-capacity with his words):
+  1. **19b stops at stage 2.** "Database crash recovery is not needed haha." Stage 3 (a warning copy readable without
+     the database, every fault mode in every flow, the restore sweep) is dropped. No double-send after a crash stays.
+  2. **The exhaustive proof leaves required CI.** "I agree to drop the exhaustive proof although it's very cool it
+     exists so I wouldn't throw it away since it's small. Maybe we keep it and eventually rerun it once or smth but
+     not necessary." The strict gap ledger and the full fault-matrix oracle stay in the repo as an optional check;
+     the normal-use checks and targeted regression tests stay required.
+  3. **Flaws worth fixing are fixed.** "If a found flaw / vulnerability is worth fixing we should do it, not just
+     accept the possible failure. Only in actually important cases … maybe like preventing Claude doing an obv
+     malware install or stuff like that." A flaw with real harm (an action without its question, credentials,
+     installs or system changes, data loss) is fixed; known limits are for low-harm edge cases.
+  4. **Decision 25 changes: Claude may work in his open tabs.** "Claude can make group tabs but he can also work in
+     my open tabs basically as if I was working in them … Claude sees everything once I need it or ask a question
+     or smth, then that's automatically given. Eg 2 tabs open, one 'Car', the other 'Uni website' and I ask Claude
+     to check my lectures he goes to uni website. Although the permission interpretation on this needs to be good."
+     Claude sees the titles and addresses of his tabs and takes the tab his request clearly needs, without a
+     separate question, never an unrelated one, and it shows which of his tabs it took. The take rules stay (reload
+     before the first act, report unsaved typing or playing media first), and so do the questions for sends,
+     deletes and payments. The Chrome capability brief builds it and updates `CONTROL.md` section 6.
+  5. **A lighter review process for each tool** (`docs/REVIEW.md`, "Tools for Claude").
+  On Chrome he also asked for capability over more hardening: "a better tool for AresOS that's more efficient with
+  readings, navigation, free tab navigation etc." (entry above).
+- **2026-11-12:** Mail with 19b (PR #9, `25528195`) and the slim base 18d (PR #25, `9b27a2fe`) are on main. 18d
+  measured the open `PermissionRequest` case in print mode: a hook that returns allow approves a managed ask, at user
+  and managed scope, in normal and skip-permissions mode. That is decision 24's accepted residual, at the level of
+  normal Claude Code; a test pins it, and brief 18c checks the interactive case. Image setup installs the slim
+  managed settings; he adds our user-scope MCP entries with the step in `control/README.md`, and his own
+  auto-approving hooks must not match our asking tools. Chrome (PR #27) merges next, onto the slim generator. The
+  optional owner oracle's strict pins hash exact fault positions, which 18d's slimmer check shifts. Its run
+  43153770175 found zero stage-2 gaps and, across the captures together, the same stage-3 total as the pin
+  (1,966,234); the pins are redone once after Chrome merges.

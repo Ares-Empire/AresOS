@@ -1,0 +1,111 @@
+{
+  "attachment_export": {
+    "count": 4,
+    "production_behavior": "Original export and download envelopes omit the unfinished export publication notice.",
+    "sha256": "d1b613c05c2a88ffbfd7ca93503e782fb1d59f1778ad302e94353ee8ae23c5b3",
+    "stage": 3,
+    "views": [
+      "envelope.download.notice-count",
+      "envelope.download.notice-head",
+      "envelope.mail_attachment_save.notice-count",
+      "envelope.mail_attachment_save.notice-head"
+    ]
+  },
+  "cancel": {
+    "count": 4,
+    "production_behavior": "Cancellation notice and resolved work are absent from passive pending envelopes.",
+    "sha256": "bcd7902b752c50e36c921af9872b5ecb3d9c93800243d7cb4b65c06c90f7b467",
+    "stage": 3,
+    "views": [
+      "envelope.control_log.pending-head",
+      "envelope.control_log.pending-total",
+      "envelope.control_pending.pending-head",
+      "envelope.control_pending.pending-total"
+    ]
+  },
+  "expiry": {
+    "count": 4,
+    "production_behavior": "Expiry notice and resolved work are absent from passive pending envelopes.",
+    "sha256": "fecb684b85c6716064c07c85d326dad5df1493ad6caa230898cc1d93cc27e1d6",
+    "stage": 3,
+    "views": [
+      "envelope.control_log.pending-head",
+      "envelope.control_log.pending-total",
+      "envelope.control_pending.pending-head",
+      "envelope.control_pending.pending-total"
+    ]
+  },
+  "export_rollback": {
+    "count": 4,
+    "production_behavior": "Refused export publication and download envelopes omit the unfinished export notice.",
+    "sha256": "e3d1d33510c6fd14cff61d2ff70ac5b86f3b8bc6a56676923768e0915d8a9936",
+    "stage": 3,
+    "views": [
+      "envelope.download.notice-count",
+      "envelope.download.notice-head",
+      "envelope.mail_attachment_save.notice-count",
+      "envelope.mail_attachment_save.notice-head"
+    ]
+  },
+  "password": {
+    "count": 19,
+    "production_behavior": "Failed account setup leaves the committed password-publication intent undisclosed.",
+    "sha256": "f0a3a03ebf5d1eaa0ece2255a91fcd81f4a390fcd80abb84160ecd323bd24cbd",
+    "stage": 3,
+    "views": [
+      "aresos log.notice-count",
+      "aresos log.notice-head",
+      "control_pending.notice-count",
+      "control_pending.notice-head",
+      "envelope.control_log.notice-count",
+      "envelope.control_log.notice-head",
+      "envelope.control_pending.notice-count",
+      "envelope.control_pending.notice-head",
+      "envelope.mail_account_add.notice-count",
+      "envelope.mail_account_add.notice-head",
+      "envelope.mail_accounts.notice-count",
+      "envelope.mail_accounts.notice-head",
+      "envelope.mail_filing_notices.notice-count",
+      "envelope.mail_filing_notices.notice-head",
+      "mail catalogue.complete",
+      "mail catalogue.page",
+      "mail catalogue.total",
+      "passive.notice-count",
+      "passive.notice-head"
+    ]
+  },
+  "restore": {
+    "count": 7,
+    "production_behavior": "Restore drops committed sequences outside its declared rollback interval and omits restored pending work from passive envelopes.",
+    "sha256": "6fed809bca3c1a390a997e6e69428fbc684879a511eae2daf416efca94872ca8",
+    "stage": 3,
+    "views": [
+      "envelope.control_log.pending-head",
+      "envelope.control_log.pending-total",
+      "envelope.control_pending.pending-head",
+      "envelope.control_pending.pending-total",
+      "envelope.control_restore_confirm.pending-head",
+      "envelope.control_restore_confirm.pending-total",
+      "lifecycle-proof"
+    ]
+  },
+  "settlement": {
+    "count": 1,
+    "production_behavior": "Duplicate-case public sent_copy_warning stage differs from the committed parent stage.",
+    "sha256": "7fd826536ddcea1151d1d481053691b56684dfb5df65b6a337d5b34603da7da8",
+    "stage": 3,
+    "views": [
+      "operation-stages"
+    ]
+  },
+  "testapp_export": {
+    "count": 2,
+    "production_behavior": "Download envelope omits the unfinished export publication notice.",
+    "sha256": "c76828443bc6705aa14a49bad8f9a4244d13b223aa1616f60683e836a3295592",
+    "stage": 3,
+    "views": [
+      "envelope.download.notice-count",
+      "envelope.download.notice-head"
+    ]
+  }
+}

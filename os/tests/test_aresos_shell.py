@@ -1383,6 +1383,9 @@ class StartupTest(Base):
 
         helper, wayland = shell.build(str(REGISTRY), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
                                       clock=self.clock, connect=connect)
+        # build() starts the scope watcher; left running, its subprocess waits disturbed
+        # later tests that patch time.sleep (rehearsal run 8).
+        self.addCleanup(helper.watcher.stop)
         thread.join(5)
         kwrite = FakeCompositor.TOPLEVEL + 1
         entries = helper.journal.entries

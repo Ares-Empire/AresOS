@@ -1,0 +1,13 @@
+Reviewed `origin/main...HEAD` at **9bcacd84**, including the combined Mail/19b paths, against the specified owner bar. **No FIX findings.**
+
+- **Asking coverage:** all six exposed asking actions retain generated rules: testapp send/delete and Mail send/delete/folder-delete/unsubscribe. No payment action exists on this head. Generation rejects missing or misnamed rules and checks installed server names.
+- **Approval integrity:** first-field ordering, exact question/content binding, expiry, generation invalidation and single-execution checks remain intact. Changed approvals refuse; repeated submissions do not execute again.
+- **18d/19b integration:** boundary rejection precedes operation preparation and submission-context creation. The trusted-send guard precedes revalidation, R2 context commits and execution. Rejected reservations remain unsubmitted; recovery reports unfinished work without resuming delivery. See [engine.py](control/aresos_control/engine.py:163) and [recovery.py](control/aresos_control/recovery.py:14).
+- **Trusted sends:** none are currently exposed. The new contract refuses missing checkers, revoked/mismatched entries and truthy substitutes for literal `True`. A future adapter’s actual owner-only entry storage will still require review.
+- **Remaining protections:** the settings reader retains root ownership, non-writable path components, regular-file and no-symlink checks. Closed input schemas, owner-only administration, restricted file transfers, service-private passwords and untrusted-content marking remain. Moving shared guidance into MCP instructions preserves action-specific approval instructions.
+
+The inspected native **2.1.319** harness and saved 24-case results show managed asks holding against user/project/local allows, `PreToolUse` allow hooks and skip-permissions, with working positive controls. They also show `PermissionRequest` hooks approving all four tested combinations. That and direct terminal/socket access are the explicitly accepted decision-24 residuals, not new FIX findings. I found no additional KNOWN LIMIT requiring reporting.
+
+Verification performed here: generated-artifact check passed; **10 existing evidence-validator tests passed**; **six additional in-memory review probes passed**, covering rule omissions, trusted guards, binding/replay and policy-reader checks. The probes used mocked storage/filesystem boundaries. I did not rerun native Claude, Linux filesystem integration or container suites. No files were edited.
+
+SAFE

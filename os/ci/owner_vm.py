@@ -14,6 +14,7 @@ import socket
 import string
 import subprocess
 import sys
+import tempfile
 import time
 
 import two_disk_vm as td
@@ -30,6 +31,7 @@ import owner_login
 import owner_xhci
 from owner_keys import maps, physical_keys, at_keycodes
 from owner_media import Media, bundle_module
+from prepare_two_disks import wait_loop_partitions
 
 COMMANDS = json.loads(pathlib.Path('os/owner-tools/commands.json').read_text())
 TEXT = 'yz-/!ü'
@@ -178,7 +180,13 @@ class Guest(td.Guest):
         pass
 
     def login(self):
-        super().login()
+        try:
+            super().login()
+        except TimeoutError:
+            # Only a boot that never showed `login:`; later prompts have their own evidence.
+            if not self.authentication_started:
+                boot_stall(self, getattr(self, 'boot_purpose', self.mode))
+            raise
         self.owner_signed_in = True
         self.keyboard_device()
         owner_xhci.checkpoint(self, 'boot-' + str(self.boot_number) + '-begin')
@@ -268,6 +276,14 @@ PY'''))
 
     def close(self, stage):
         try:
+            # Evidence only, never a check: the kernel command line this boot logged and the terminal
+            # queries the harness answered on the serial console (rehearsal runs 6 and 12).
+            lines = re.findall(r'Command line: ([^\r\n]*)', getattr(self, 'boot_transcript', '') or '')
+            td.save(stage + '-serial-terminal', dict(kernel_command_line=lines[0] if lines else None,
+                    terminal_replies=dict(getattr(getattr(self, 'replies', None), 'counts', {}) or {})))
+        except Exception:
+            pass
+        try:
             if self.webui_server:
                 self.webui_server.shutdown()
                 self.webui_server.server_close()
@@ -277,6 +293,58 @@ PY'''))
                 self.webui_socket = None
         finally:
             super().close(stage)
+
+
+def vcpu_ticks(monitor, proc=pathlib.Path('/proc')):
+    """CPU time (utime + stime, in clock ticks) of each vCPU thread QEMU reports."""
+    rows = {}
+    for cpu in monitor.command('query-cpus-fast'):
+        # Fields after the command name's closing parenthesis start at field 3 (state);
+        # utime and stime are fields 14 and 15.
+        fields = (proc / str(cpu['thread-id']) / 'stat').read_text().rsplit(')', 1)[1].split()
+        rows[cpu['cpu-index']] = dict(thread_id=cpu['thread-id'], ticks=int(fields[11]) + int(fields[12]))
+    return rows
+
+
+def boot_stall(guest, stage, seconds=5, settle=10):
+    """A boot that never reached `login:` (rehearsal run 6, 43136407300): tell a frozen guest
+    from an idle or busy one whose consoles stopped, before close() pauses and ends it.
+
+    Each probe is best effort and records its own error; the caller re-raises the timeout.
+    sysrq-w prints blocked tasks only if kernel.sysrq allows it; otherwise the kernel says so.
+    """
+    value = dict(stage=stage, boot=getattr(guest, 'boot_number', None), seconds=seconds,
+                 clock_ticks_per_second=os.sysconf('SC_CLK_TCK'))
+    try:
+        value['status'] = guest.monitor.command('query-status')
+    except Exception as error:
+        value['status_error'] = repr(error)[:200]
+    try:
+        before = vcpu_ticks(guest.monitor)
+        time.sleep(seconds)
+        after = vcpu_ticks(guest.monitor)
+        value['vcpus'] = [dict(cpu=cpu, thread_id=row['thread_id'], ticks_before=row['ticks'],
+                               ticks_after=after[cpu]['ticks'], ticks_used=after[cpu]['ticks'] - row['ticks'])
+                          for cpu, row in sorted(before.items()) if cpu in after]
+    except Exception as error:
+        value['vcpu_error'] = repr(error)[:200]
+    try:
+        guest.monitor.command('send-key', {'keys': [{'type': 'qcode', 'data': name} for name in ('alt', 'sysrq', 'w')],
+                                           'hold-time': 100})
+        value['sysrq_w_sent'] = True
+        try:
+            # Keep reading the UART so the kernel's answer lands in the boot console transcript.
+            guest.wait(r'(?!)', timeout=settle)
+        except (TimeoutError, EOFError):
+            pass
+    except Exception as error:
+        value.update(sysrq_w_sent=False, sysrq_error=repr(error)[:200])
+    td.save(stage + '-boot-stall', value)
+    try:
+        guest.screenshot(stage + '-boot-stall')
+    except Exception as error:
+        td.save(stage + '-boot-stall-screenshot', dict(error=repr(error)[:200]))
+    return value
 
 
 def retain_vcsa(tty, stage, phase, raw):
@@ -341,8 +409,11 @@ else: raise SystemExit('Owner command did not finish')
 
 
 class Console:
-    def __init__(self, guest, tty='tty3'):
+    def __init__(self, guest, tty='tty3', commands=None):
         self.guest, self.tty = guest, tty
+        # The laptop's older tools differ only in the bootstrap's fingerprint.
+        self.commands = COMMANDS if commands is None else commands
+        self.user, self.uid = 'ares-recovery', 1000
         self.root = False
         self.completed_epoch = None
         self.pending_hidden = None
@@ -373,7 +444,7 @@ class Console:
                         +'    stable=stable+1 if line.endswith('+repr(value)+') else 0\n'
                         +'    if stable>=3: ready=True;break\n    time.sleep(.1)\n'
                         +'print(json.dumps(dict(ready=ready,echo_matches=ready,value_recorded=False)))\n')
-                    result=(self.login_prepared.rpc('echo') if self.login_prepared is not None
+                    result=(self.login_prepared.rpc('echo', self.user) if self.login_prepared is not None
                         else self.guest.capture_json(name,sw.framed('python3 -c '+shlex.quote(owner_xhci.guard(source,owner_xhci.context(self.guest))))))
                     td.save(name,result)
                     assert result['ready'] and result['echo_matches'], 'Visible text differs; Enter withheld'
@@ -502,7 +573,7 @@ class Console:
         td.save(name, value)
         return value
 
-    def send_hidden(self, value, layout=None, public_inputs=(), expect_rejection=False, chunk_token=False):
+    def send_hidden(self, value, layout=None, public_inputs=(), expect_rejection=False, chunk_token=False, repeat=None):
         pending = self.pending_hidden
         assert pending is not None, 'No hidden reader authority'
         assert not pending.get('sent'), 'Hidden input already attempted; no caller retry'
@@ -577,6 +648,20 @@ class Console:
         self.last_hidden = pending
         # No secret goes into this script/receipt. Never resend after a timeout.
         self.resync_serial_after_hidden(pending['stage'] + '-read-left')
+        if repeat is not None:
+            # passwd asks twice: the same reader must wait again, echo off, at
+            # its second prompt; that new observation authorizes the next value.
+            epoch = self.guest.owner_input_epoch
+            again = self.guest.capture_json(pending['stage'] + '-repeat', sw.framed('python3 -c ' + shlex.quote(
+                owner_hidden.source(self.tty, pending['expected'], prompt=repeat, health=owner_xhci.context(self.guest)))))
+            assert self.guest.owner_input_epoch == epoch, 'Input revoked repeat prompt proof'
+            if not again['ready']:
+                retain_vcsa(self.tty, pending['stage'] + '-repeat', 1, base64.b64decode(again['raw'], validate=True))
+                raise AssertionError('The hidden reader did not ask again; the value is not retyped')
+            assert all(again['reader'][k] == pending['reader'][k] for k in ('pid', 'start', 'exe', 'tty')), \
+                'Hidden reader changed between its two prompts'
+            self.pending_hidden = None
+            return again
         if pending.get('token'):
             self.hidden_diagnostics(pending, 'completion-start')
         for number, (prompt, public_value, _) in enumerate(public_inputs, 1):
@@ -612,7 +697,10 @@ class Console:
         self.pending_hidden = None
         return result
 
-    def login(self, password, stage, wrong=False):
+    def login(self, password, stage, wrong=False, user='ares-recovery'):
+        # Package 27 also signs in the daily account with its new password.
+        assert user in ('ares-recovery', 'ares') and not (wrong and user != 'ares-recovery')
+        self.user, self.uid = user, 1000 if user == 'ares-recovery' else 1001
         for attempt in (1,2):
             try:
                 result=self.login_attempt(password,stage+('-restart' if attempt==2 else ''),wrong)
@@ -641,7 +729,7 @@ class Console:
         self.login_prepared=owner_login.Prepared(self,stage)
         self.login_prepared.begin()
         self.guest.screenshot_safe = False
-        self.visible('ares-recovery\n',stage+'-username')
+        self.visible(self.user + '\n',stage+'-username')
         self.hidden(stage + '-password-prompt', dict(kind='login'), 'Password:')
         # The failure fixture deliberately uses German physical positions while
         # the loaded map is plain US. This does not claim the password was typed.
@@ -701,13 +789,13 @@ class Console:
         td.save(stage + '-hidden-completed', dict(status='passed', completion_uses_echo=False,
             foreground_shell=True, input_epoch=epoch, token_recorded=False))
 
-    def run(self, name, stage, inputs=(), password=None, expect_stop=False, token_chunks=False):
+    def run(self, name, stage, inputs=(), password=None, expect_stop=False, token_chunks=False, record=None):
         owner_xhci.checkpoint(self.guest, stage + '-begin')
         self.select()
         self.prompt(stage + '-ready')
         before = self.records()
-        self.visible(COMMANDS[name] + '\n',stage+'-command')
-        args = COMMANDS[name].split('/at ', 1)[-1].split()
+        self.visible(self.commands[name] + '\n',stage+'-command')
+        args = self.commands[name].split('/at ', 1)[-1].split()
         hidden_input = password is not None
         if password is not None:
             assert all(not hidden for _, _, hidden in inputs), 'Unwalked hidden continuation after sudo'
@@ -732,7 +820,8 @@ class Console:
             self.guest.media_absent(stage)
             self.guest.finish_shutdown(stage, 'guest-reset')
             return
-        command = COMMANDS[name].split('/at ', 1)[-1].split()[0] if name != 'install' else 'install'
+        # A tools update through the bootstrap writes its own receipt name.
+        command = record or (self.commands[name].split('/at ', 1)[-1].split()[0] if name != 'install' else 'install')
         source = owner_xhci.guard(diagnostic_reader(before, command), owner_xhci.context(self.guest))
         result = self.guest.capture_json(stage + '-owner-result', sw.framed('python3 -c ' + shlex.quote(source)))
         # Save before checking acceptance: an unexpected STOP is the evidence
@@ -744,10 +833,47 @@ class Console:
         self.guest.screenshot_safe = True
         if not expect_stop:
             self.guest.screenshot(stage + '-owner-pass')
-        td.save(stage + '-command', dict(command=COMMANDS[name], physical=True, status=result['status'], profile=self.guest.owner_layout))
+        td.save(stage + '-command', dict(command=self.commands[name], physical=True, status=result['status'], profile=self.guest.owner_layout))
         if hidden_input and name=='login':
             assert self.last_hidden['key_comparison']['matches'], 'Guest keyboard counts differ; preserve diagnostics; never retype token'
         return result
+
+    def passwd(self, password, stage):
+        """The guide's one-time `sudo passwd ares`, typed in this root console."""
+        assert self.root and password and set(password) <= set(ARES_LETTERS)
+        if password not in self.guest.secrets:
+            self.guest.secrets.append(password)
+        self.select()
+        self.prompt(stage + '-ready')
+        self.visible('sudo passwd ares\n', stage + '-command')
+        reader = owner_hidden.passwd_reader('ares')
+        self.hidden(stage + '-new', reader, 'New password:')
+        self.guest.screenshot_safe = False
+        self.send_hidden(password, repeat='Retype new password:')
+        self.hidden(stage + '-retype', reader, 'Retype new password:')
+        self.send_hidden(password)
+        self.after_hidden(stage)
+        wait_tty(self.guest, self.tty, "'updated successfully' in full and bool(re.search(r'[$#]$',line))", stage + '-updated')
+        self.guest.screenshot_safe = True
+        td.save(stage + '-result', dict(status='passed', command='sudo passwd ares', console=self.tty,
+            value_recorded=False, letters='lowercase a-x and digits'))
+
+    def ares_sudo(self, password, stage):
+        """His new password signs him in and works for sudo, which keeps no ticket (package 21)."""
+        assert self.tty != 'tty3' and not self.root
+        self.login(password, stage, user='ares')
+        self.prompt(stage + '-ares-shell')
+        self.visible('sudo -v\n', stage + '-validate')
+        self.hidden(stage + '-sudo-hidden', owner_hidden.sudo_reader(['-v'], dict(kind='shell')), ARES_SUDO_PROMPT)
+        self.guest.screenshot_safe = False
+        self.send_hidden(password)
+        self.after_hidden(stage + '-sudo')
+        self.guest.screenshot_safe = True
+        self.visible('sudo -n true\n', stage + '-no-ticket')
+        wait_tty(self.guest, self.tty, "'a password is required' in full and bool(re.search(r'[$#]$',line))", stage + '-ticket-refused')
+        self.logout(stage + '-logout')
+        td.save(stage + '-result', dict(status='passed', login_with_new_password=True, sudo_password_accepted=True,
+            sudo_kept_no_ticket=True, console=self.tty, value_recorded=False))
 
     def logout(self, stage):
         self.select()
@@ -759,7 +885,7 @@ class Console:
         self.prompt(stage+'-sudo-reset-done')
         self.visible('exit\n',stage+'-logout')
         wait_tty(self.guest, self.tty, "line.endswith('login:')", stage + '-getty-returned')
-        self.guest.command(stage + '-no-session', 'set -e; if pgrep -t ' + self.tty + ' -u 1000 -x bash; then exit 1; fi')
+        self.guest.command(stage + '-no-session', 'set -e; if pgrep -t ' + self.tty + ' -u ' + str(self.uid) + ' -x bash; then exit 1; fi')
 
 
 def probe_media(guest, media):
@@ -908,10 +1034,86 @@ def common_boot(guest, stage, profile, password, stock, release, ares=False):
     return console, hashes[0]
 
 
-def qualification(audit, media, password, hashed):
-    release = json.loads(pathlib.Path('os/manifest/release.json').read_text())['reference']
+# The VM's console is serial (console=ttyS0, carried over by the installer), so systemd 259 probes
+# it for its terminfo name and size. Runs 6 and 12 hung in that size probe at an installed boot.
+# These kernel args give systemd the answer the probe yields today, so it never probes: PID 1
+# reads systemd.tty.*.console for /dev/console, services read systemd.tty.*.ttyS0 (systemd v259:
+# core/main.c fixup_environment, terminal-util.c reset_dev_console_fd, core/exec-invoke.c).
+# VM only: the laptop has no serial console.
+TTY_ARGS = ('systemd.tty.term.console=vt220', 'systemd.tty.rows.console=24', 'systemd.tty.columns.console=80',
+            'systemd.tty.term.ttyS0=vt220', 'systemd.tty.rows.ttyS0=24', 'systemd.tty.columns.ttyS0=80')
+
+
+def with_tty_args(entry):
+    """The BLS entry with TTY_ARGS appended once to its only `options` line; nothing else changes."""
+    lines = entry.split('\n')
+    found = [index for index, line in enumerate(lines) if line.split(None, 1)[:1] == ['options']]
+    assert len(found) == 1, 'STOP: the installed boot entry has ' + str(len(found)) + ' options lines'
+    present = lines[found[0]].split()[1:]
+    missing = [arg for arg in TTY_ARGS if arg not in present]
+    if missing:
+        lines[found[0]] = lines[found[0]].rstrip() + ' ' + ' '.join(missing)
+    return '\n'.join(lines)
+
+
+def edit_boot_entries(boot):
+    """Pin the serial console in the only boot entry under a mounted /boot, and read it back."""
+    entries = sorted(pathlib.Path(boot).glob('loader/entries/*.conf'))
+    assert len(entries) == 1, 'STOP: expected exactly one installed boot entry, found ' + str(len(entries))
+    entry = entries[0]
+    before = entry.read_text()
+    after = with_tty_args(before)
+    if after != before:
+        with open(entry, 'w') as stream:
+            stream.write(after)
+            stream.flush()
+            os.fsync(stream.fileno())
+    read = entry.read_text()
+    assert read == after and with_tty_args(read) == read, 'STOP: the boot entry did not read back with the console args'
+    option = lambda text: next(line for line in text.split('\n') if line.split(None, 1)[:1] == ['options'])
+    return dict(entry=entry.name, before=option(before), after=option(read),
+                added=[arg for arg in TTY_ARGS if arg not in option(before).split()])
+
+
+def pin_serial_console(stage='stock-serial-console'):
+    """Before stock's first boot, from the host: TTY_ARGS on the installed boot entry of the target only.
+
+    The target is the harness's own target image (WORK/target.raw, which QEMU serves with the
+    CRUCIAL-TARGET serial); the protected disk is never attached. ostree keeps the args for every
+    later deployment (release 13 and release 27).
+    """
+    image = td.WORK / 'target.raw'
+    assert image.is_file() and image.resolve().is_relative_to(td.WORK.resolve()), 'STOP: no target image'
+    loop = subprocess.check_output(['losetup', '--find', '--show', '--partscan', str(image)], text=True, timeout=30).strip()
+    try:
+        # The shared wait: the loop is backed by this image, and exactly its GPT's partition nodes are ready.
+        ready = wait_loop_partitions(loop, image)
+        parts = [loop + 'p' + str(partition['number']) for partition in ready['expected']]
+        types = {part: subprocess.run(['blkid', '-o', 'value', '-s', 'TYPE', part], capture_output=True,
+                                      text=True, timeout=30).stdout.strip() for part in parts}
+        boot = [part for part, kind in types.items() if kind == 'ext4']
+        assert len(boot) == 1, 'STOP: expected exactly one ext4 /boot on the target, found ' + repr(types)
+        mount = tempfile.mkdtemp(prefix='aresos-target-boot-')
+        try:
+            subprocess.run(['mount', '-t', 'ext4', '-o', 'nosuid,nodev,noexec', boot[0], mount], check=True, timeout=60)
+            try:  # unmounted only once the mount succeeded
+                result = edit_boot_entries(mount)
+            finally:
+                subprocess.run(['umount', mount], check=True, timeout=60)
+        finally:
+            os.rmdir(mount)
+        result.update(partition=boot[0].removeprefix(loop), partitions=types)
+    finally:
+        subprocess.run(['losetup', '--detach', loop], check=True, timeout=30)
+    td.save(stage, dict(status='passed', image='target.raw', **result))
+    return result
+
+
+def prepare_and_switch(audit, media, password, hashed, release, commands=None):
+    """Steps 4 to 6: offline stock, tools and prepare, then login, verify and switch."""
     Guest.network_up = False
     td.install(audit, password, hashed)
+    pin_serial_console()
     guest = td.start_installed(password, hashed, 'stock', firmware_default=True)
     try:
         raw = kb.deployment_snapshot(guest, 'offline-first-stock')
@@ -931,7 +1133,7 @@ def qualification(audit, media, password, hashed):
     try:
         guest.owner_layout = 'de'
         kb.deployment_snapshot(guest, 'tools-stock-before-prepare')
-        console = Console(guest)
+        console = Console(guest, commands=commands)
         console.login(password, 'tools-stock')
         console.become_root(password, 'tools-stock')
         media.attach(guest, 'tools-stock')
@@ -972,7 +1174,7 @@ exit 1''', timeout=360)
         assert dict(rpm=snapshot['rpm'], bootc=snapshot['bootc']) == prepared['state']
         old = [ke.key(d) for d in snapshot['rpm']['deployments'] if not d['booted']]
         keyboard(guest, 'corrected-stock', 'de', temporary_old=old[0] if old else None)
-        console = Console(guest)
+        console = Console(guest, commands=commands)
         console.login(password, 'corrected-stock')
         console.become_root(password, 'corrected-stock')
         console.run('title', 'corrected-stock-title')
@@ -989,6 +1191,12 @@ exit 1''', timeout=360)
         console.run('reboot', 'owner-switch-reboot')
     finally:
         finish(guest, audit, 'corrected-stock')
+    return stock, brew
+
+
+def qualification(audit, media, password, hashed, release=None):
+    release = release or json.loads(pathlib.Path('os/manifest/release.json').read_text())['reference']
+    stock, brew = prepare_and_switch(audit, media, password, hashed, release)
     abandoned_trial(audit, password, hashed, stock, release, brew)
     for stage, profile in (('aresos', 'de'), ('aresos-intl', 'us-intl'), ('aresos-back-de', 'de')):
         guest = td.start_installed(password, hashed, stage)
@@ -1068,14 +1276,357 @@ exit 1''', timeout=360)
         protected_disk_audits=True, nvram_rule_unchanged=True, bootnext_audits=True))
 
 
+# Package 27: the owner's first update, from the laptop's real state.
+# The laptop runs package 15f's tools (merged as 17fe261c, fingerprint
+# 3ef85c4a...), which switched it to release 13 on 2026-11-09.
+LAPTOP_TOOLS_COMMIT = '17fe261cc00e5dac39d443e0be30b849567daf4c'
+LAPTOP_TOOLS = '3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc'
+LAPTOP_RELEASE = 'os/manifest/releases/13.json'
+# Qualification 21's head: the policy scripts that last passed on release 13.
+RELEASE_13_SCRIPTS = '3fd79165fa96406948c17ea90f94f943cd9bc201'
+ARES_SUDO_PROMPT = '[sudo] password for ares:'
+ARES_LETTERS = 'abcdefghijklmnopqrstuvwx0123456789'
+DAILY_PATH = '/var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin'
+SYSTEM_PATH = '/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin'
+HUB_TERMINAL = ['/usr/bin/foot', '--app-id=aresos.terminal', '/usr/bin/bash', '--rcfile', '/usr/share/aresos/bashrc', '-i']
+
+
+def git_blob(commit, path):
+    # owner_vm runs as root in the runner's checkout; trust only that checkout.
+    return subprocess.check_output(['git', '-c', 'safe.directory=' + os.getcwd(), 'show', commit + ':' + path])
+
+
+def laptop_payload(destination):
+    """The laptop's installed tools bundle, byte-exact from main's history."""
+    destination = pathlib.Path(destination)
+    names = subprocess.check_output(['git', '-c', 'safe.directory=' + os.getcwd(), 'ls-tree', '-r', '--name-only',
+        LAPTOP_TOOLS_COMMIT, 'os/owner-tools/payload'], text=True).split()
+    assert names, 'STOP: the laptop tools are not in this checkout'
+    for name in names:
+        target = destination / name[len('os/owner-tools/payload/'):]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(git_blob(LAPTOP_TOOLS_COMMIT, name))
+    assert hashlib.sha256((destination / 'SHA256SUMS').read_bytes()).hexdigest() == LAPTOP_TOOLS, 'STOP: laptop tools fingerprint'
+    return destination
+
+
+def laptop_commands():
+    """The command strings of the laptop's tools; only line 8 of the bootstrap differs."""
+    return dict(COMMANDS, install=bundle_module('bootstrap').command(LAPTOP_TOOLS))
+
+
+def deployment_shape(snapshot, stock, expected, staged=False, queued=False):
+    """Exactly package 22's reviewed lists: expected digests in order, stock last and pinned."""
+    rows = snapshot['rpm']['deployments']
+    status = snapshot['bootc']['status']
+    assert snapshot['rpm']['transaction'] is None, 'STOP: a deployment transaction is active'
+    assert [d['container-image-reference-digest'] for d in rows] == expected, 'STOP: unexpected deployment list'
+    assert ke.key(rows[-1]) == ke.key(stock) and rows[-1]['pinned'], 'STOP: corrected stock identity or pin lost'
+    assert not any(d['pinned'] for d in rows[:-1]), 'STOP: an AresOS deployment is pinned'
+    assert [bool(d.get('staged')) for d in rows] == [staged and i == 0 for i in range(len(rows))], 'STOP: unexpected staged row'
+    assert bool(status.get('staged')) == staged and bool(status.get('rollbackQueued')) == queued, 'STOP: unexpected pending state'
+    if staged:
+        assert status['staged']['image']['imageDigest'] == expected[0], 'STOP: staged release differs'
+    booted, = [d for d in rows if d['booted']]
+    assert ke.key(booted) == (status['booted']['ostree']['checksum'], status['booted']['ostree']['deploySerial'],
+                              status['booted']['ostree']['stateroot']), 'STOP: bootc/rpm-ostree disagreement'
+    return {d['container-image-reference-digest']: ke.key(d) for d in rows}, booted['container-image-reference-digest']
+
+
+def result_lines(*results):
+    return [line for result in results for line in result.get('result', [])]
+
+
+# His graphical session on seat0 (guest.sh's lookup) is active again after a VT switch.
+ACTIVE_DESKTOP = ('set -e; for n in {1..60}; do '
+                  'session=$(loginctl list-sessions --no-legend | awk \'$3 == "ares" && $4 == "seat0" {print $1; exit}\'); '
+                  'if test -n "$session" && test "$(loginctl show-session "$session" -p Active --value)" = yes '
+                  '&& test "$(loginctl show-session "$session" -p State --value)" = active; then '
+                  'loginctl show-session "$session" -p Id -p Active -p State -p Seat -p VTNr; exit 0; fi; '
+                  'sleep 1; done; exit 1')
+
+
+def path_probe(target, seconds, required):
+    """Wait in the guest for the terminal's PATH probe; only the last attempt fails on a miss."""
+    miss = "raise SystemExit('No terminal PATH probe')" if required else 'print(json.dumps(dict(found=False)))'
+    return sw.framed('''python3 - <<'PY'
+import json,pathlib,time
+p=pathlib.Path(@TARGET@)
+for n in range(@SECONDS@):
+    if p.exists() and p.stat().st_size:
+        value=json.loads(p.read_text()); value.update(found=True,owner_uid=p.stat().st_uid); print(json.dumps(value)); break
+    time.sleep(1)
+else: @MISS@
+PY'''.replace('@TARGET@', repr(target)).replace('@SECONDS@', str(seconds)).replace('@MISS@', miss))
+
+
+def terminal_path(guest, stage):
+    """The PATH his AresOS terminal really exports, typed in foot like any command."""
+    target = '/tmp/aresos-path-' + stage
+    program = ('import json,os,pathlib\npathlib.Path(' + repr(target) + ').write_text(json.dumps('
+               'dict(uid=os.getuid(),path=os.environ["PATH"])))\n')
+    guest.keys(['ctrl', 'alt', 'f1'])
+    guest.command(stage + '-path-foot', 'set -e; for n in {1..120}; do if test "$(cat /sys/class/tty/tty0/active)" = tty1 && pgrep -u ares -x foot; then exit 0; fi; sleep 1; done; exit 1')
+    # Run 5 (43120759117) typed right after the switch and the probe never ran. As in
+    # kb.foot, a serial round trip comes first, then his session must be active again,
+    # then labwc gets a moment to take its input devices back (as tty3's sudo does).
+    guest.command(stage + '-path-prepare', 'set -e; rm -f ' + target + '; printf %s ' + shlex.quote(
+        base64.b64encode(program.encode()).decode()) + ' | base64 -d > /run/aresos-path.py; chmod 0644 /run/aresos-path.py')
+    guest.command(stage + '-path-session', ACTIVE_DESKTOP)
+    time.sleep(1)
+    type_text(guest, 'python3 /run/aresos-path.py\n', 'de')
+    value = guest.capture_json(stage + '-path-result', path_probe(target, 20, required=False))
+    retried = value.get('found') is not True
+    if retried:
+        # This step proves his PATH; kb.foot already proved typing in foot on this boot.
+        # One retry: clear whatever reached the line, then type the idempotent probe again.
+        guest.screenshot(stage + '-path-miss')
+        guest.keys(['ctrl', 'u'])
+        type_text(guest, 'python3 /run/aresos-path.py\n', 'de')
+        value = guest.capture_json(stage + '-path-retry-result', path_probe(target, 60, required=True))
+    assert value.get('found') is True, 'STOP: no terminal PATH probe'
+    value['retried'] = retried
+    td.save(stage + '-terminal-path', value)
+    guest.screenshot(stage + '-path')
+    assert value['uid'] == value['owner_uid'] == 1001, 'STOP: the AresOS terminal does not run as ares'
+    assert value['path'] == DAILY_PATH or value['path'].startswith(DAILY_PATH + ':'), 'STOP: the AresOS terminal lacks his PATH'
+    return value
+
+
+RULES = r'''import grp,json,os,pathlib,re,subprocess
+# His commands below start from / , not from the root shell's home he cannot read (rehearsal run 7).
+os.chdir('/')
+env={'LC_ALL':'C','PATH':'/usr/sbin:/usr/bin'}
+out={}
+out['ares_in_wheel']='ares' in grp.getgrnam('wheel').gr_mem
+listing=subprocess.run(['sudo','-l','-U','ares'],capture_output=True,text=True,env=env).stdout
+out['sudo_all_with_password']=bool(re.search(r'^\s+\(ALL\) ALL$',listing,re.M)) and not re.search(r'NOPASSWD|!authenticate',listing)
+out['sudo_keeps_no_ticket']='timestamp_timeout=0' in listing
+n=subprocess.run(['runuser','-u','ares','--','sudo','-n','true'],capture_output=True,text=True,env=env)
+out['sudo_n_refused']=n.returncode==1 and 'a password is required' in n.stderr
+# The hash itself, as package 21's checks read it: `passwd -S` formats differ between the old
+# Red Hat passwd ("PS") and shadow-utils' (rehearsal run 9 on Fedora 44's shadow-utils 4.19).
+def password_set(entry):
+    hashed=entry.split(':')[1]
+    return hashed.startswith('$')
+out['ares_password_set']=password_set(subprocess.check_output(['getent','shadow','ares'],text=True,env=env))
+chrome=subprocess.run(['timeout','150','runuser','-u','ares','--','/usr/bin/env','HOME=/var/home/ares',
+    '/usr/bin/google-chrome','--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check',
+    '--user-data-dir=/tmp/aresos-chrome-rehearsal','--dump-dom','data:text/html,<p>ARESOS_CHROME_STARTED</p>'],
+    capture_output=True,text=True,env=env)
+out['chrome_started']=chrome.returncode==0 and 'ARESOS_CHROME_STARTED' in chrome.stdout
+out['chrome_stderr_tail']=chrome.stderr[-400:] if not out['chrome_started'] else ''
+out['chrome_version']=subprocess.check_output(['runuser','-u','ares','--','/usr/bin/google-chrome','--version'],text=True,env=env).strip()
+labwc,=subprocess.check_output(['pgrep','-u','ares','-x','labwc'],text=True,env=env).split()
+session=dict(s.split('=',1) for s in pathlib.Path('/proc',labwc,'environ').read_bytes().decode().split('\0') if '=' in s)
+out['session_path']=session.get('PATH')
+out['hub_terminal_argv']=json.loads(pathlib.Path('/usr/share/aresos/apps/terminal.json').read_text()).get('argv')
+listed=subprocess.run(['runuser','-u','ares','--','/usr/bin/env','-i','HOME=/var/home/ares','PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin',
+    '/usr/libexec/aresos-shell','--list'],capture_output=True,text=True)
+out['aresos_shell']={row['id']:row['available'] for row in json.loads(listed.stdout)['apps']} if listed.returncode==0 else listed.stderr[-400:]
+out['aresos_shell_executable']=os.access('/usr/libexec/aresos-shell',os.X_OK)
+print(json.dumps(out))
+'''
+
+
+def release_rules(guest, stage):
+    """Package 21's rules on the updated laptop state, after the owner set the password."""
+    value = guest.capture_json(stage + '-rules', sw.framed('python3 -c ' + shlex.quote(RULES)))
+    td.save(stage + '-package21-rules', value)
+    for name in ('ares_in_wheel', 'sudo_all_with_password', 'sudo_keeps_no_ticket', 'sudo_n_refused',
+                 'ares_password_set', 'chrome_started', 'aresos_shell_executable'):
+        assert value[name] is True, 'STOP: package 21 rule failed on the updated system: ' + name
+    assert value['session_path'] == SYSTEM_PATH, 'STOP: the session lost the system PATH'
+    assert value['hub_terminal_argv'] == HUB_TERMINAL, "STOP: the hub's terminal does not read his PATH"
+    assert value['aresos_shell'] == {'browser': True, 'notepad': True, 'terminal': True}, 'STOP: aresos-shell apps'
+    return value
+
+
+# Package 21: no polkit grant lets `ares` act without his password beyond the
+# reviewed list (os/ci/polkit-review.json, which polkit-check.js enforces on the
+# image's rules). Here polkitd itself answers every installed action for his
+# active desktop session on the updated system, so /etc kept from release 13
+# counts too. pkcheck: 0 authorized, 1 not authorized, 2 needs authentication.
+POLKIT = r'''import json,subprocess
+env={'LC_ALL':'C','PATH':'/usr/sbin:/usr/bin'}
+rows=[r.split() for r in subprocess.check_output(['loginctl','list-sessions','--no-legend'],text=True,env=env).splitlines()]
+session,=[r[0] for r in rows if r[2:4]==['ares','seat0']]
+state=dict(l.split('=',1) for l in subprocess.check_output(['loginctl','show-session',session,'-p','Active','-p','Remote'],
+    text=True,env=env).splitlines())
+labwc,=subprocess.check_output(['pgrep','-u','ares','-x','labwc'],text=True,env=env).split()
+scope=open('/proc/'+labwc+'/cgroup').read()
+actions=subprocess.check_output(['pkaction'],text=True,env=env).split()
+codes={a:subprocess.run(['pkcheck','--action-id',a,'--process',labwc],capture_output=True,env=env).returncode for a in actions}
+print(json.dumps(dict(session_active=state.get('Active'),session_remote=state.get('Remote'),
+    session_scope=('/session-'+session+'.scope') in scope,actions=len(actions),
+    answers={str(c):sum(1 for v in codes.values() if v==c) for c in sorted(set(codes.values()))},
+    passwordless=sorted(a for a,c in codes.items() if c==0))))
+'''
+
+
+def polkit_sweep(guest, stage):
+    """Every installed polkit action, asked for his active desktop session on the booted release."""
+    reviewed = set(json.loads(pathlib.Path('os/ci/polkit-review.json').read_text())['passwordless'])
+    value = guest.capture_json(stage + '-polkit', sw.framed('python3 -c ' + shlex.quote(POLKIT)))
+    td.save(stage + '-polkit-sweep', value)
+    assert value['session_active'] == 'yes' and value['session_remote'] == 'no' and value['session_scope'] is True, \
+        'STOP: the polkit sweep needs his active local desktop session'
+    assert value['actions'] > 0 and set(value['answers']) <= {'0', '1', '2'}, 'STOP: polkit did not answer every action'
+    extra = sorted(set(value['passwordless']) - reviewed)
+    assert not extra, 'STOP: polkit lets ares act without his password beyond the reviewed list: ' + ', '.join(extra)
+    return value
+
+
+def owner_scripts(guest, stage, commit=None, homebrew_stage='aresos'):
+    """Policy and inherited-Homebrew checks of the release that is booted."""
+    read = (lambda path: git_blob(commit, path).decode()) if commit else (lambda path: pathlib.Path(path).read_text())
+    policy = guest.command(stage + '-policy', read('os/tests/guest.sh'))
+    output = guest.command(stage + '-homebrew', read('os/tests/inherited-homebrew.sh').replace('@STAGE@', homebrew_stage))
+    hashes = re.findall(r'^([0-9a-f]{64})  /', output, re.M)
+    assert len(hashes) == 1
+    return policy, hashes[0]
+
+
+def update_rehearsal(audit, media, password, hashed, ares_password):
+    old = json.loads(pathlib.Path(LAPTOP_RELEASE).read_text())['reference']
+    new = json.loads(pathlib.Path('os/manifest/release.json').read_text())['reference']
+    old_digest, new_digest = old.split('@')[1], new.split('@')[1]
+    assert old != new and media.fingerprint == LAPTOP_TOOLS
+    history = json.loads(pathlib.Path('os/owner-tools/history.json').read_text())['releases']
+    assert [r['reference'] for r in history[-2:]] == [old, new] and history[-1]['daily_wheel'] is True
+    # Steps 4 to 6 as on 2026-11-08/09, with the laptop's own tools.
+    stock, brew = prepare_and_switch(audit, media, password, hashed, old, laptop_commands())
+    stock_digest = stock['container-image-reference-digest']
+    media.replace('update-windows-copy')
+    assert media.fingerprint == bundle_module('bundle').check(pathlib.Path('os/owner-tools/payload'))
+    guest = td.start_installed(password, hashed, 'release-13')
+    try:
+        snapshot = kb.deployment_snapshot(guest, 'release-13')
+        ke.retained_pair(snapshot, stock, old)
+        assert sw.booted_digest(snapshot['bootc']) == old_digest
+        first = {d['container-image-reference-digest']: ke.key(d) for d in snapshot['rpm']['deployments']}
+        keyboard(guest, 'release-13', 'de')
+        console = Console(guest, commands=laptop_commands())
+        console.login(password, 'release-13')
+        console.become_root(password, 'release-13')
+        console.run('check', 'release-13-check')
+        console.run('title', 'release-13-title')
+        console.run('records', 'release-13-records')
+        public_typing(guest, 'release-13', 'de', console, foot=True)
+        _, observed = owner_scripts(guest, 'release-13', RELEASE_13_SCRIPTS)
+        assert observed == brew
+        # Step 8: the new tools first, through the same 13-line bootstrap.
+        media.attach(guest, 'update-tools')
+        console.commands = COMMANDS
+        installed = console.run('install', 'update-tools-install', record='tools-update')
+        assert installed['manifest'] == media.fingerprint and installed['previous_manifest'] == LAPTOP_TOOLS
+        assert (installed['previous_version'], installed['tools_version']) == (1, 2)
+        assert installed['releases'][-1]['reference'] == new
+        update = console.run('update', 'owner-update')
+        assert 'Signed exact release staged ' + new in result_lines(update)
+        staged, _ = deployment_shape(kb.deployment_snapshot(guest, 'owner-update-staged'), stock,
+                                     [new_digest, old_digest, stock_digest], staged=True)
+        assert staged[old_digest] == first[old_digest], 'STOP: the running release changed while staging'
+        console.run('title', 'owner-update-title')
+        console.run('export', 'owner-update-export')
+        media.detach(guest, 'update-tools')
+        console.run('reboot', 'owner-update-reboot')
+    finally:
+        finish(guest, audit, 'release-13')
+    guest = td.start_installed(password, hashed, 'release-27')
+    try:
+        identities, booted = deployment_shape(kb.deployment_snapshot(guest, 'release-27'), stock,
+                                              [new_digest, old_digest, stock_digest])
+        assert booted == new_digest and identities[old_digest] == first[old_digest], 'STOP: the update did not boot the new release'
+        updated = identities[new_digest]
+        keyboard(guest, 'release-27', 'de')
+        console = Console(guest)
+        console.login(password, 'release-27')
+        console.become_root(password, 'release-27')
+        checked = console.run('check', 'release-27-check')
+        titled = console.run('title', 'release-27-title')
+        assert 'Update to ' + new + ' confirmed after the restart' in result_lines(checked, titled), 'STOP: update not confirmed'
+        console.run('records', 'release-27-records')
+        public_typing(guest, 'release-27', 'de', console, foot=True)
+        terminal = terminal_path(guest, 'release-27')
+        # terminal_path left his desktop in front, so polkit sees his active session.
+        policy, observed = owner_scripts(guest, 'release-27')
+        assert observed == brew and 'ARESOS_ACTIVE_SESSION_POLKIT_PASSED' in policy and 'ARESOS_GUEST_CHECKS_PASSED' in policy
+        polkit = polkit_sweep(guest, 'release-27')
+        # The one-time administrator password, as the guide says, then his sudo.
+        console.passwd(ares_password, 'release-27-ares-password')
+        Console(guest, 'tty4').ares_sudo(ares_password, 'release-27-ares-sudo')
+        console.select()
+        rules = release_rules(guest, 'release-27')
+        returned = console.run('previous', 'owner-previous')
+        assert 'Previous AresOS queued for the next start ' + old in result_lines(returned)
+        queued, _ = deployment_shape(kb.deployment_snapshot(guest, 'owner-previous-queued'), stock,
+                                     [old_digest, new_digest, stock_digest], queued=True)
+        assert queued[new_digest] == updated and queued[old_digest] == first[old_digest]
+        console.run('title', 'owner-previous-title')
+        console.run('reboot', 'owner-previous-reboot')
+    finally:
+        finish(guest, audit, 'release-27')
+    guest = td.start_installed(password, hashed, 'previous-13')
+    try:
+        identities, booted = deployment_shape(kb.deployment_snapshot(guest, 'previous-13'), stock,
+                                              [old_digest, new_digest, stock_digest])
+        assert booted == old_digest and identities == {new_digest: updated, old_digest: first[old_digest], stock_digest: ke.key(stock)}
+        keyboard(guest, 'previous-13', 'de')
+        console = Console(guest)
+        console.login(password, 'previous-13')
+        console.become_root(password, 'previous-13')
+        checked = console.run('check', 'previous-13-check')
+        titled = console.run('title', 'previous-13-title')
+        assert 'Return to ' + old + ' confirmed after the restart' in result_lines(checked, titled), 'STOP: return not confirmed'
+        console.run('records', 'previous-13-records')
+        public_typing(guest, 'previous-13', 'de', console, foot=True)
+        # No forward route exists after a return (PLAN-GAP): update refuses and changes nothing.
+        refused = console.run('update', 'previous-13-update-refused', expect_stop=True)
+        assert refused['error'] == 'Target release is already deployed; get help'
+        assert not any(r.get('mutation') for r in refused['trace']), 'STOP: the refused update changed something'
+        after, _ = deployment_shape(kb.deployment_snapshot(guest, 'previous-13-after-refusal'), stock,
+                                    [old_digest, new_digest, stock_digest])
+        assert after == identities
+        console.logout('previous-13-logout')
+    finally:
+        finish(guest, audit, 'previous-13')
+    td.marker(audit, 'final-unattended-windows')
+    td.marker(audit, 'final-detached-windows', detached=True)
+    td.save('update-rehearsal-result', dict(status='passed', commit=os.environ['GITHUB_SHA'], order='protected-second',
+        starting_state='corrected pinned stock switched to release 13 by the laptop tools (15f)',
+        laptop_tools=LAPTOP_TOOLS, laptop_tools_commit=LAPTOP_TOOLS_COMMIT, previous_release=old, release=new,
+        bundle_manifest=media.fingerprint, tools_updated_from_version=1, tools_updated_to_version=2,
+        update_staged=True, update_confirmed=True, previous_confirmed=True, forward_after_previous='refused (no route)',
+        ares_password_set_by_typing=True, ares_sudo_password_accepted=True, ares_sudo_no_ticket=True,
+        package21_rules=rules, terminal_path=terminal['path'], terminal_path_retried=terminal['retried'],
+        stock_pinned_throughout=True,
+        polkit_sweep=dict(actions=polkit['actions'], answers=polkit['answers'], passwordless=len(polkit['passwordless'])),
+        deployments=dict(release_13=list(first[old_digest]), release_27=list(updated), stock=list(ke.key(stock))),
+        owner_commands_physically_typed=True, protected_disk_audits=True, nvram_rule_unchanged=True, bootnext_audits=True))
+
+
+def bound_sources(walk_sources):
+    """Package 16's binding tables with this checkout's bytes, plus this walk's own sources."""
+    def current(rows):
+        return [dict(sha256=hashlib.sha256(pathlib.Path(row['path']).read_bytes()).hexdigest(), path=row['path']) for row in rows]
+    previous = json.loads(pathlib.Path('os/manifest/ci/16/source-bindings.json').read_text())
+    tables = [dict(name='package27 host walk', sources=current(walk_sources))]
+    for table in previous['tables'][1:]:
+        tables.append(dict(name=table['name'].replace('package16 rebind', 'package27 rebind'), sources=current(table['sources'])))
+    return dict(package='27', encoding='checkout bytes on the hosted runner (core.autocrlf=false; repository attributes)',
+                commit=os.environ['GITHUB_SHA'], tables=tables)
+
+
 def main():
     global PROBE_MEDIA
     mode, = sys.argv[1:]
-    assert mode in ('probe', 'owner-tools')
+    assert mode in ('probe', 'owner-tools', 'update')
     from owner_media import require_runner
     require_runner()
     package=os.environ['REHEARSAL_PACKAGE']
     assert package!='16' or mode=='probe', 'STOP: package16 permits only the owner-tools probe'
+    assert (package=='27') == (mode=='update'), 'STOP: the update rehearsal is package 27 only'
     authorization = json.loads(pathlib.Path('evidence/'+package+'-dispatch-authorization.json').read_text())
     assert authorization['allowance'] == package and authorization['native']['status'] == 'passed'
     assert authorization['native']['sha'] == os.environ['GITHUB_SHA']
@@ -1083,9 +1634,11 @@ def main():
     capabilities = json.loads(pathlib.Path('evidence/14-host-capabilities.json').read_text())
     assert capabilities['status'] == 'passed' and capabilities['sha'] == os.environ['GITHUB_SHA']
     assert all(capabilities['checks'].get(name) is True for name in CHECKS), 'STOP: host capabilities incomplete'
-    if mode != 'probe':
+    if mode == 'owner-tools':
+        # Package 27's update rehearsal proves its native step in its own run instead.
         assert authorization['probe']['status'] == 'passed' and authorization['probe']['commit'] == os.environ['GITHUB_SHA']
-    walk_path=('os/manifest/ci/16/host-walk.json' if package=='16' else 'os/manifest/ci/14/host-walk/result.json')
+    walk_path={'16':'os/manifest/ci/16/host-walk.json','27':'os/manifest/ci/27/host-walk.json'}.get(
+        package,'os/manifest/ci/14/host-walk/result.json')
     walk = json.loads(pathlib.Path(walk_path).read_text())
     assert walk['status'] == 'passed' and walk['stick_across_reboot'] is False
     assert isinstance(walk['sources'], list) and walk['sources']
@@ -1094,6 +1647,9 @@ def main():
         assert list(row) == ['sha256', 'path'], 'Host source must put hash before path'
         assert hashlib.sha256(pathlib.Path(row['path']).read_bytes()).hexdigest() == row['sha256'], 'Host walk is stale'
     td.EVIDENCE.mkdir(parents=True, exist_ok=True)
+    if package == '27':
+        # The checkout bytes this walk ran on, for source-bindings.json after a pass.
+        td.save('27-bound-sources', bound_sources(walk['sources']))
     sw.WORK, sw.EVIDENCE = td.WORK, td.EVIDENCE
     td.Guest = sw.Guest = Guest
     Guest.order = 'protected-second'
@@ -1102,7 +1658,10 @@ def main():
         with (td.WORK / name).open('wb') as output:
             subprocess.run(['bsdtar', '-xOf', str(td.WORK / td.LIVE['filename']), 'images/pxeboot/' + name], stdout=output, check=True)
     media = Media()
-    media.create()
+    if mode == 'update':
+        media.create(source=laptop_payload(td.WORK / 'laptop-tools'))
+    else:
+        media.create()
     audit = td.Audit()
     shutil.copyfile(td.WORK / 'vars.fd', td.EVIDENCE / 'pre-firmware-vars.fd')
     td.marker(audit, 'baseline-firmware', baseline=True)
@@ -1128,7 +1687,15 @@ def main():
     print(f'::add-mask::{password}', flush=True)
     print(f'::add-mask::{hashed}', flush=True)
     try:
-        qualification(audit, media, password, hashed)
+        if mode == 'update':
+            ares_password = ''.join(secrets.choice(ARES_LETTERS) for _ in range(24))
+            print(f'::add-mask::{ares_password}', flush=True)
+            try:
+                update_rehearsal(audit, media, password, hashed, ares_password)
+            finally:
+                del ares_password
+        else:
+            qualification(audit, media, password, hashed)
     finally:
         del password, hashed
 

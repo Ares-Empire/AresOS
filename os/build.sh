@@ -216,6 +216,10 @@ chmod 0755 /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/bin/brew /usr/l
 # The owner's command for the desktop (retry, status, reset-instance, forget-hub).
 ln -sfn ../libexec/aresos-desktop /usr/bin/aresos-desktop
 chmod 0440 /etc/sudoers.d/aresos-everyday
+# cp -a of os/config gives /etc/sudoers.d the checkout's 0755; keep Fedora's
+# root-only directory (package 27's image diff found this).
+chown root:root /etc/sudoers.d
+chmod 0750 /etc/sudoers.d
 /usr/libexec/aresos-subids
 systemctl enable aresos-subids.service
 

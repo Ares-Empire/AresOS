@@ -80,6 +80,39 @@ def build(tools):
         registry.rmdir()
 
 
+def build_release27(tools):
+    """Package 27: verify and pull release 13 with the job token, then diff it."""
+    tools = validate(tools)
+    assert os.environ['GITHUB_REPOSITORY'] == 'Ares-Empire/AresOS'
+    assert os.environ['GITHUB_REF_NAME'] == 'pkg/27-first-update-release'
+    assert os.environ['REHEARSAL_MODE'] == 'release-27'
+    assert 'GHCR_READ_TOKEN' not in os.environ, 'Release 13 is read with the job token; no owner secret'
+    previous = json.loads(pathlib.Path('os/manifest/releases/13.json').read_text())
+    from registry_auth import auth_file
+    auth = auth_file()
+    registry = pathlib.Path(os.environ['RUNNER_TEMP']) / 'aresos-27-previous-cosign'
+    registry.mkdir(mode=0o700)
+    try:
+        (registry / 'config.json').symlink_to(auth)
+        with pathlib.Path('evidence/previous-release-signature.json').open('w') as stream:
+            subprocess.run([tools['cosign'], 'verify', '--certificate-identity', previous['signature']['identity'],
+                '--certificate-oidc-issuer', previous['signature']['issuer'], previous['reference']], check=True,
+                env=dict(os.environ, DOCKER_CONFIG=str(registry)), stdout=stream)
+        subprocess.run([tools['podman'], 'pull', '--authfile', str(auth), previous['reference']], check=True)
+        import release_diff
+        release_diff.main(tools)
+        copy = "import pathlib,shutil; [(shutil.copyfile(p, pathlib.Path('/evidence')/p.name)) for p in pathlib.Path('/usr/share/aresos/manifest').iterdir() if p.is_file()]"
+        subprocess.run([tools['podman'], 'run', '--rm', '--network=none', '--read-only',
+            '--entrypoint=/usr/bin/python3', '-v', str(pathlib.Path('evidence').resolve()) + ':/evidence',
+            'localhost/aresos:ci', '-c', copy], check=True)
+        raw = subprocess.check_output([tools['skopeo'], 'inspect', '--raw', 'containers-storage:localhost/aresos:ci'])
+        pathlib.Path('evidence/image-oci-manifest.json').write_bytes(raw)
+        pathlib.Path('evidence/image-digest.txt').write_text(hashlib.sha256(raw).hexdigest() + '  evidence/image-oci-manifest.json\n')
+    finally:
+        (registry / 'config.json').unlink(missing_ok=True)
+        registry.rmdir()
+
+
 def main():
     mode, manifest, *extra = sys.argv[1:]
     if mode == 'resolve':
@@ -98,6 +131,8 @@ def main():
         assert extra in ([], ['--check-tools'])
         if extra:
             print('BUILD_TOOLS_VALIDATED_WITHOUT_CREDENTIALS ' + json.dumps(tools, sort_keys=True))
+        elif os.environ.get('REHEARSAL_MODE') == 'release-27':
+            build_release27(tools)
         else:
             build(tools)
     else:

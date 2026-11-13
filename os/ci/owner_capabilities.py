@@ -144,7 +144,8 @@ def qemu(directory, image):
 def main():
     owner_media.require_runner()
     assert os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch'
-    assert os.environ.get('REHEARSAL_MODE') in ('probe', 'owner-tools')
+    # owner_media.require_runner() allows update only for package 27's branch.
+    assert os.environ.get('REHEARSAL_MODE') in ('probe', 'owner-tools', 'update')
     base = pathlib.Path('.work').resolve()
     directory = base / '14-host-capabilities'
     assert directory.parent == base and not directory.exists(), 'STOP: fresh capability directory required'

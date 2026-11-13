@@ -39,8 +39,32 @@ assert run['head_sha'] == source and run['path'] == '.github/workflows/os-image.
 job_listing = api('/jobs?per_page=100')
 assert job_listing['total_count'] == len(job_listing['jobs']) <= 100, 'Incomplete release job listing'
 jobs = job_listing['jobs']
-qualified = [job for job in jobs if job['name'] == 'image' and job['conclusion'] == 'success']
+# Package 27 built and published in its own reviewed job (release_27).
+RELEASE27 = 'Package 27 release build, image diff, VM and publish'
+job_name = RELEASE27 if run.get('head_branch') == 'pkg/27-first-update-release' else 'image'
+qualified = [job for job in jobs if job['name'] == job_name and job['conclusion'] == 'success']
 assert len(qualified) == 1, 'Original image build/two-VM/publish job must have succeeded'
+if org and run['head_branch'] == 'pkg/27-first-update-release':
+    assert repository == 'Ares-Empire/AresOS'
+    assert run['event'] == 'workflow_dispatch' and run['display_title'] == 'Package 27 image release' and run['run_attempt'] == 1
+    assert release['signature'] == dict(method='cosign keyless',
+        identity='https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/27-first-update-release',
+        issuer='https://token.actions.githubusercontent.com')
+    assert release['image_diff']['status'] == 'passed' and not release['image_diff']['unexplained']
+    assert release['job_token_read']['status'] == 'passed' and not release['job_token_read']['owner_token_used']
+    # The image source is bound by Git tree identity, so a squash merge keeps it.
+    # Rows put the Git object ID before the path (repository convention).
+    trees = release['source_trees']
+    assert isinstance(trees, list) and all(isinstance(row, dict) and list(row) == ['tree', 'path'] for row in trees)
+    assert sorted(row['path'] for row in trees) == sorted(['os/Containerfile', 'os/.containerignore', 'os/build.sh',
+        'os/packages.lock.json', 'os/google-chrome.lock.json', 'os/config', 'os/policy', 'os/manifest/base.json', 'os/keys',
+        'os/tests/audit.py'])
+    for row in trees:
+        assert re.fullmatch(r'[0-9a-f]{40}', row['tree'])
+        actual = subprocess.check_output(['git', 'rev-parse', 'HEAD:' + row['path']]).decode().strip()
+        assert actual == row['tree'], 'Release 27 runtime payload changed: ' + row['path']
+    print(f'Qualified private org release {source}; runtime payload unchanged; testing {release["reference"]}')
+    sys.exit(0)
 if org:
     assert repository == 'Ares-Empire/AresOS'
     assert run['head_branch'] == 'pkg/13-keyboard-layout' and run['event'] == 'workflow_dispatch'

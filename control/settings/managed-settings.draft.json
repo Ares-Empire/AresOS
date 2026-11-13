@@ -1,123 +1,36 @@
 {
-  "allowManagedPermissionRulesOnly": true,
-  "allowManagedHooksOnly": true,
-  "disableSideloadFlags": true,
-  "strictKnownMarketplaces": [],
-  "enabledPlugins": {},
-  "syncClaudeAiPlugins": false,
-  "disableCommandPluginSources": true,
-  "allowAllClaudeAiMcps": false,
-  "allowClaudeInChromeWithManagedMcp": false,
   "permissions": {
-    "defaultMode": "default",
-    "disableBypassPermissionsMode": "disable",
-    "blockWritesOutsideWorkingDirectories": true,
-    "blockReadsOutsideWorkingDirectories": true,
-    "additionalDirectories": [],
-    "allow": [],
     "ask": [
-      "WebFetch",
-      "WebSearch"
-    ],
-    "deny": [
-      "Read(//run/aresos-tools/**)",
-      "Read(//var/lib/aresos-tools/**)",
-      "Read(~/.config/**)",
-      "Read(~/.local/share/keyrings/**)",
-      "Read(~/.claude/**)",
-      "Read(~/.claude.json)",
-      "Edit(~/.claude/**)",
-      "Edit(~/.claude.json)",
-      "Edit(~/.config/**)",
-      "Edit(~/.local/share/applications/**)",
-      "Edit(~/.local/bin/**)",
-      "Edit(~/.bashrc)",
-      "Edit(~/.bash_profile)",
-      "Edit(~/.bash_login)",
-      "Edit(~/.profile)",
-      "Edit(~/.zshrc)",
-      "Edit(~/.zprofile)",
-      "Edit(~/.zshenv)",
-      "Edit(~/.gitconfig)",
-      "Edit(**/.git/hooks/**)",
-      "Edit(**/.git/config)",
-      "Edit(**/.envrc)",
-      "Edit(**/.claude/**)",
-      "Edit(**/.mcp.json)",
-      "Edit(**/.vscode/**)",
-      "Edit(**/.idea/**)",
-      "Edit(//etc/claude-code/**)",
-      "Edit(//opt/aresos-control/**)"
+      "mcp__testapp__send",
+      "mcp__testapp__delete",
+      "mcp__mail__send",
+      "mcp__mail__delete",
+      "mcp__mail__folder_delete",
+      "mcp__mail__unsubscribe"
     ]
   },
-  "sandbox": {
-    "enabled": true,
-    "failIfUnavailable": true,
-    "autoAllowBashIfSandboxed": false,
-    "allowUnsandboxedCommands": false,
-    "excludedCommands": [],
-    "enableWeakerNestedSandbox": false,
-    "allowNestedUserNamespaces": false,
-    "bwrapPath": "/usr/bin/bwrap",
-    "socatPath": "/usr/bin/socat",
-    "ripgrep": {
-      "command": "/usr/bin/rg",
-      "args": []
-    },
-    "ignoreViolations": {},
-    "credentials": {
-      "files": [],
-      "envVars": [],
-      "allowPlaintextInject": false,
-      "awsPairs": [],
-      "sigv4": {
-        "streaming": "deny",
-        "presigned": "deny",
-        "sigv4a": "deny"
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -S /usr/libexec/aresos-control/launch.py hook Stop",
+            "timeout": 15
+          }
+        ]
       }
-    },
-    "network": {
-      "allowManagedDomainsOnly": true,
-      "strictAllowlist": true,
-      "allowedDomains": [],
-      "deniedDomains": [],
-      "allowAllUnixSockets": false,
-      "allowLocalBinding": false
-    },
-    "filesystem": {
-      "disabled": false,
-      "allowManagedReadPathsOnly": true,
-      "denyRead": [
-        "/home",
-        "/root",
-        "/run/aresos-tools",
-        "/var/lib/aresos-tools",
-        "/run/user",
-        "/tmp/.X11-unix"
-      ],
-      "allowRead": [
-        "/home/assistant/work"
-      ],
-      "allowWrite": [
-        "/home/assistant/work"
-      ],
-      "denyWrite": [
-        "~/.bashrc",
-        "~/.bash_profile",
-        "~/.bash_login",
-        "~/.profile",
-        "~/.zshrc",
-        "~/.zprofile",
-        "~/.zshenv",
-        "~/.gitconfig",
-        "~/.config",
-        "~/.local",
-        "~/.claude",
-        "~/.claude.json",
-        "/etc/claude-code",
-        "/opt/aresos-control",
-        "/home/assistant/work"
-      ]
-    }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /bin/sh -c 'if context=$(/usr/bin/python3 -I -S /usr/libexec/aresos-control/launch.py hook UserPromptSubmit 2>/dev/null); then printf \"%s\" \"$context\"; fi; exit 0'",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
   }
 }

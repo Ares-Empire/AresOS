@@ -14,6 +14,7 @@ import json
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -30,7 +31,10 @@ from test_owner_devices import FixtureHost, fixture
 ROOT, owner = common.ROOT, common.owner
 PAYLOAD = ROOT / 'os/owner-tools/payload'
 VALUES = {r['kind']: r['value'] for r in json.loads((ROOT / 'os/tests/fixtures/owner-tools/retained-parsers.json').read_text())}
-RELEASE = json.loads((ROOT / 'os/manifest/release.json').read_text())
+# The modelled machine runs release 13, the laptop's release; R21 and R30 are
+# synthetic newer releases. The pinned release (27) is checked separately.
+RELEASE = json.loads((ROOT / 'os/manifest/releases/13.json').read_text())
+PINNED = json.loads((ROOT / 'os/manifest/release.json').read_text())
 R13 = RELEASE['reference']
 R21 = 'ghcr.io/ares-empire/aresos@sha256:' + '21' * 32
 R30 = 'ghcr.io/ares-empire/aresos@sha256:' + '30' * 32
@@ -133,6 +137,9 @@ def write_bundle(destination, history=None, target=None, drop=(), extra=None):
     files = {row['path']: (PAYLOAD / row['path']).read_bytes() for row in json.loads((PAYLOAD / 'SHA256.json').read_text())}
     if history is not None:
         files['history.json'] = (json.dumps(history, indent=2) + '\n').encode()
+    if target is None and 'history.json' in drop:
+        # A history-less (15f) bundle targets release 13, as on the laptop.
+        files['release.json'] = (ROOT / 'os/manifest/releases/13.json').read_bytes()
     if target is not None:
         release = copy.deepcopy(RELEASE)
         release['reference'], release['signature']['identity'] = target['reference'], target['identity']
@@ -197,6 +204,12 @@ class Machine(owner.Host):
     def mutate(self, *command, **unused):
         self.trace.append(dict(command=list(command), mutation=True))
         self.changes.append(command)
+        if command == ('rpm-ostree', 'cleanup', '--pending'):
+            # As rpm-ostree does: the staged deployment goes, everything else stays.
+            self.state = machine([r for r in self.state['rpm']['deployments'] if not r.get('staged')])
+
+    def start(self, text, name):
+        return ModelStep(self, text, name)
 
     def script(self, text, name, mutation=True):
         syntax(name, text)
@@ -223,6 +236,9 @@ class Machine(owner.Host):
             self.interrupt = None
             raise owner.Stop('Shared step failed: ' + name + '; injected before the change')
         rows = self.state['rpm']['deployments']
+        # The one transaction after the shell checks (update.sh first unmasks
+        # the staging finalizers; test_release27.UpdateFinalizerTest runs that part).
+        tail, = [line for line in tail.splitlines() if line.startswith(('bootc switch --retain ', 'bootc rollback'))]
         if tail.startswith('bootc switch --retain '):
             reference = tail.split()[-1]
             self.state = machine([release_row(reference, staged=True), *rows])
@@ -241,8 +257,33 @@ class Machine(owner.Host):
         return ''
 
 
+class ModelStep:
+    """The update step on the modelled machine: Machine.script's model, reported as owner.Step does."""
+
+    def __init__(self, host, text, name):
+        self.host, self.text, self.name = host, text, name
+        self.stdout = self.stderr = ''
+        self.process = SimpleNamespace(returncode=None)
+
+    def wait(self, timeout, signals=None):
+        try:
+            self.host.script(self.text, self.name)
+        except owner.Stop:
+            self.process.returncode = 1
+            return 'failed'
+        self.process.returncode = 0
+        return 'done'
+
+    def stop(self):
+        return True
+
+    def record(self, mutation, stopped=None, gone=None):
+        # Machine.script already traced the step itself.
+        return dict(step=self.name, mutation=mutation, stopped=stopped, group_gone=gone)
+
+
 @contextlib.contextmanager
-def route(state, bundle_history=H21, target=None, wheel=False, signed=None, login=True):
+def route(state, bundle_history=H21, target=None, wheel=False, signed=None, login=True, host_class=None):
     """Tools over a synthetic target bundle and a modelled running machine."""
     target = target or bundle_history[-1]
     with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary, contextlib.ExitStack() as stack:
@@ -251,7 +292,7 @@ def route(state, bundle_history=H21, target=None, wheel=False, signed=None, logi
         write_bundle(payload, history(bundle_history), target)
         store = root / 'home/records'
         store.mkdir()
-        host = Machine(state, wheel, {R21: IDENTITY, R30: IDENTITY} if signed is None else signed)
+        host = (host_class or Machine)(state, wheel, {R21: IDENTITY, R30: IDENTITY} if signed is None else signed)
         tools = owner.Tools(payload, host, store)
         tools.processes = lambda: []
         tools.keyboard = lambda: dict(DE)
@@ -365,8 +406,11 @@ class HistoryTest(unittest.TestCase):
     def test_reviewed_history_ends_with_the_pinned_release_and_r13_is_not_wheel(self):
         value = owner.lineage(PAYLOAD)
         self.assertEqual(value['tools_version'], 2)
-        self.assertEqual(value['releases'], H13)
-        self.assertEqual(value['releases'][-1]['reference'], RELEASE['reference'])
+        # Package 27 appended release 27, whose daily account is an administrator.
+        self.assertEqual(value['releases'][:1], H13)
+        self.assertEqual(value['releases'][-1], dict(reference=PINNED['reference'], identity=PINNED['signature']['identity'],
+                                                     daily_wheel=True))
+        self.assertEqual(len(value['releases']), 2)
         self.assertIs(value['releases'][0]['daily_wheel'], False)
         self.assertEqual((ROOT / 'os/owner-tools/history.json').read_bytes(), (PAYLOAD / 'history.json').read_bytes())
 
@@ -691,12 +735,17 @@ class IntentTest(unittest.TestCase):
                 with self.subTest(kind=kind, point=point), self.interrupted(kind, point) as (tools, host, store, command, start):
                     made = bool(host.changes)
                     self.assertEqual(made, point != 'before')
+                    # A failed update step is undone before the STOP (review 1): its staging is removed.
+                    undone = kind == 'update' and point == 'after'
+                    if undone:
+                        self.assertEqual(host.changes[-1], ('rpm-ostree', 'cleanup', '--pending'))
+                        self.assertEqual(host.state, start)
                     lines = command()
-                    if made:
+                    if made and not undone:
                         self.assertEqual(len(host.changes), 1)
                         self.assertTrue(lines[0].startswith('Interrupted '))
                     else:
-                        self.assertEqual(len(host.changes), 1)
+                        self.assertEqual(len(host.changes), 3 if undone else 1)
                         self.assertEqual(len(list(store.glob('*-outcome-retried.json'))), 1)
                     self.assertEqual(tools.load(owner.OUTCOME)['status'], 'recorded')
                     self.assertTrue(any('not finished until the restart' in line for line in tools.check()))
@@ -706,7 +755,9 @@ class IntentTest(unittest.TestCase):
 
     def test_after_a_restart_the_same_command_records_a_finished_change_or_redoes_a_lost_one(self):
         for kind in ('update', 'previous'):
-            with self.subTest(kind=kind, restart='finished'), self.interrupted(kind, 'after') as (tools, host, store, command, start):
+            # A failed update step is undone at once (review 1); a lost read after it leaves the staging.
+            point = 'observe' if kind == 'update' else 'after'
+            with self.subTest(kind=kind, restart='finished'), self.interrupted(kind, point) as (tools, host, store, command, start):
                 host.state = updated() if kind == 'update' else returned()
                 host.wheel, tools.boot[0] = kind == 'update', 'boot-2'
                 UpdateCommandTest.unchanged(self, tools, host, store, tools.check, 'interrupted before its result was recorded')
@@ -714,7 +765,7 @@ class IntentTest(unittest.TestCase):
                 self.assertTrue(lines[0].startswith('Interrupted '))
                 self.assertTrue(any(line.endswith('confirmed after the restart') for line in lines))
                 self.assertEqual(len(host.changes), 1)
-            with self.subTest(kind=kind, restart='lost'), self.interrupted(kind, 'after') as (tools, host, store, command, start):
+            with self.subTest(kind=kind, restart='lost'), self.interrupted(kind, point) as (tools, host, store, command, start):
                 host.state, tools.boot[0] = copy.deepcopy(start), 'boot-2'
                 command()
                 self.assertEqual(len(host.changes), 2)
@@ -751,7 +802,7 @@ class LockTest(unittest.TestCase):
 
             def run(*argv):
                 out = io.StringIO()
-                with patch.object(owner.sys, 'argv', ['at', *argv]), contextlib.redirect_stdout(out):
+                with patch.object(owner.sys, 'argv', ['at', *argv]), contextlib.redirect_stdout(out), common.kept_umask():
                     owner.main()
                 return out.getvalue()
             yield tools, host, store, run
@@ -948,7 +999,10 @@ class ToolsUpdateTest(unittest.TestCase):
             self.assertEqual({k: v for k, v in records.items()}, {p.name: p.read_bytes() for p in (home / 'records').iterdir()
                                                                 if not p.name.endswith('-tools-update.json')})
             receipt = json.loads(next((home / 'records').glob('*-tools-update.json')).read_text())
-            self.assertEqual((receipt['previous_manifest'], receipt['manifest'], receipt['releases']), (old, fingerprint, H13))
+            # The reviewed bundle over the 15f tools: the laptop's own update, release 13 then 27.
+            self.assertEqual((receipt['previous_manifest'], receipt['manifest'], receipt['releases']),
+                             (old, fingerprint, owner.lineage(PAYLOAD)['releases']))
+            self.assertEqual([r['reference'] for r in receipt['releases']], [R13, PINNED['reference']])
             self.private.assert_any_call(home / 'tools')
             self.assertFalse(any(row.get('mutation') for row in host.trace))
             again = self.snapshot(home)
@@ -1759,6 +1813,384 @@ class ToolsUpdateTest(unittest.TestCase):
                 run()
             self.assertEqual(before, self.snapshot(home))
 
+
+# The fake bootc's staging, by mode. Every mode records its pid; a child records its own.
+STOP_BOOTC = r'''#!/bin/bash
+printf 'bootc %s\n' "$*" >> "$FIXTURE_CALLS"
+case "$*" in
+    'status --json') cat "$FIXTURE_ROOT/state.json" ;;
+    'switch --retain '*)
+        echo $$ > "$FIXTURE_ROOT/bootc.pid"; echo $PPID > "$FIXTURE_ROOT/step.pid"
+        if [[ -e $FIXTURE_ROOT/weird-name ]]; then printf '\xff\xfe\xfdbootc' > /proc/$BASHPID/comm; fi
+        target=${*: -1}
+        case $(cat "$FIXTURE_ROOT/mode") in
+            # Ignores TERM: only KILL ends it.
+            hang) trap '' TERM; while :; do sleep 0.1; done ;;
+            # Stages (another release if told), then is still running when the time limit hits.
+            stage-then-run)
+                if [[ -s $FIXTURE_ROOT/foreign ]]; then target=$(cat "$FIXTURE_ROOT/foreign"); fi
+                echo "$target" > "$FIXTURE_ROOT/staged"; sleep 3600 ;;
+            # Fails, leaving a TERM-proof child that closed the step's pipes.
+            fail-with-child)
+                ( trap '' TERM; exec > /dev/null 2>&1 < /dev/null
+                  if [[ -e $FIXTURE_ROOT/weird-name ]]; then printf '\xc3' > /proc/$BASHPID/comm; fi
+                  while :; do sleep 0.1; done ) &
+                echo $! > "$FIXTURE_ROOT/child.pid"; exit 42 ;;
+            stage-ok) echo "$target" > "$FIXTURE_ROOT/staged" ;;
+        esac ;;
+    *) echo UNEXPECTED_BOOTC_COMMAND >&2; exit 97 ;;
+esac
+'''
+
+
+class StopRunner(Machine):
+    """The update step through the real owner.Step: real bash, the real update.sh
+    (fixture paths), a fake bootc and systemctl over a fixture /etc/systemd/system.
+    Status reads, cleanup and the stop routine's systemctl calls go to the same model."""
+    root = None
+    failing_reads = 0
+    broken_masks = False
+
+    def start(self, text, name):
+        if name != 'update':
+            return super().start(text, name)
+        for old, new in (('test -r /etc/ostree/auth.json', 'test -r "$FIXTURE_ROOT/auth.json"'),
+                         ('policy=/usr/share/aresos/policy\n', 'policy="$FIXTURE_ROOT/policy"\n'),
+                         ('units=/etc/systemd/system\n', 'units="$FIXTURE_ROOT/units"\n')):
+            assert text.count(old) == 1, old
+            text = text.replace(old, new)
+        syntax(name, text)
+        (self.root / 'state.json').write_text(json.dumps(self.state['bootc']))
+        prefix = ('export FIXTURE_ROOT=' + shlex.quote(str(self.root)) + ' FIXTURE_CALLS='
+                  + shlex.quote(str(self.root / 'calls')) + '\nPATH="$FIXTURE_ROOT/bin:$PATH"\n')
+        return owner.Host.start(self, prefix + text, name)
+
+    def sync(self):
+        marker = self.root / 'staged'
+        rows = self.state['rpm']['deployments']
+        if marker.exists() and not any(r.get('staged') for r in rows):
+            self.state = machine([release_row(marker.read_text().strip(), staged=True), *rows])
+
+    def json(self, *command):
+        if self.failing_reads and (self.root / 'bootc.pid').exists():
+            self.failing_reads -= 1
+            raise OSError('injected status read failure after the kill')
+        self.sync()
+        return super().json(*command)
+
+    def mutate(self, *command, **unused):
+        super().mutate(*command)
+        if command == ('rpm-ostree', 'cleanup', '--pending'):
+            (self.root / 'staged').unlink(missing_ok=True)
+
+    def read(self, *command, **unused):
+        if command[:2] == ('systemctl', 'is-enabled'):
+            self.trace.append(dict(command=list(command), mutation=False))
+            path = self.root / 'units' / command[2]
+            masked = path.is_symlink() and os.readlink(path) == '/dev/null' and not self.broken_masks
+            return 'masked\n' if masked else 'static\n'
+        return super().read(*command)
+
+
+class ToolKilled(BaseException):
+    """Stands in for the default action of SIGTERM or SIGHUP: the tool dying where it stands."""
+
+
+@unittest.skipIf(os.name == 'nt', 'needs a Linux bash, /proc and process groups')
+class UpdateStopTest(unittest.TestCase):
+    """Reviews 1 and 2: one stop routine for every unsuccessful end of the update step.
+
+    The step runs in its own session through the real owner.Step. From its start to the
+    end of the stop routine, SIGINT, SIGTERM and SIGHUP only note themselves. The routine
+    ends every process of the step and proves none is left, removes only this update's
+    own staged deployment, restores the finalizer masks in every case, and claims a
+    clean stop only when every check passed.
+    """
+    MASKED = dict.fromkeys(owner.FINALIZERS, '/dev/null')
+
+    spawned = []
+
+    @classmethod
+    def tearDownClass(cls):
+        # Review 3: no test may leave a process behind; the survivor case kills its own after its checks.
+        left = [(pid, start) for pid, start in cls.spawned if start is not None and cls.started(pid) == start]
+        for pid, start in left:
+            cls.kill(pid, start)
+        assert not left, 'UpdateStopTest left processes behind: ' + repr(left)
+
+    def run_stopped(self, mode, timeout=6, signals=(), foreign=None, failing_reads=0,
+                    stdout=None, swallow_kill=False, weird_name=False, outsider=False, patches=(), broken_masks=False):
+        import signal, threading
+        import test_release27 as r27
+        with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as directory, \
+                route(pair(), host_class=StopRunner) as (tools, host, store), contextlib.ExitStack() as stack:
+            root = pathlib.Path(directory)
+            for name in ('units', 'policy', 'bin'):
+                (root / name).mkdir()
+            for name in ('masked-system-units.txt', 'masked-user-units.txt'):
+                shutil.copyfile(ROOT / 'os/policy' / name, root / 'policy' / name)
+            for name in ('auth.json', 'calls', 'system-unmasked', 'user-unmasked'):
+                (root / name).write_text('{}\n' if name == 'auth.json' else '')
+            (root / 'mode').write_text(mode)
+            (root / 'foreign').write_text(foreign or '')
+            for unit in owner.FINALIZERS:
+                os.symlink('/dev/null', root / 'units' / unit)
+            stubs = dict(systemctl=r27.UPDATE_STUBS['systemctl'], bootc=STOP_BOOTC,
+                         python3='#!/bin/bash\nexec ' + shlex.quote(sys.executable) + ' "$@"\n')
+            for name, source in stubs.items():
+                (root / 'bin' / name).write_text(source)
+                (root / 'bin' / name).chmod(0o755)
+            host.root, host.failing_reads, host.broken_masks = root, failing_reads, broken_masks
+            if weird_name:
+                (root / 'weird-name').write_text('')
+            if outsider:
+                # A process outside the step whose /proc name is not UTF-8 (15 raw bytes may cut a character).
+                other = subprocess.Popen([sys.executable, '-c', "open('/proc/self/comm', 'wb').write(b'\\xe2\\x82'); "
+                                          "import time; time.sleep(120)"], start_new_session=True)
+                self.addCleanup(other.wait, 5)
+                self.addCleanup(other.kill)
+                deadline = time.monotonic() + 10
+                while pathlib.Path('/proc', str(other.pid), 'comm').read_bytes() != b'\xe2\x82\n':
+                    self.assertLess(time.monotonic(), deadline, 'the outsider never took its name')
+                    time.sleep(0.02)
+            for target, replacement in patches:
+                stack.enter_context(patch.object(owner.Step, target, replacement))
+            # As at a terminal: Ctrl+C raises KeyboardInterrupt, and TERM or HUP would end the
+            # tool where it stands (modelled by ToolKilled, so a failure cannot kill the test run).
+            def killed(signum, frame):
+                raise ToolKilled(signum)
+            for signum, handler in ((signal.SIGINT, signal.default_int_handler), (signal.SIGTERM, killed),
+                                    (signal.SIGHUP, killed)):
+                self.addCleanup(signal.signal, signum, signal.signal(signum, handler))
+            # Signals count from the fake bootc's start, so a slow (loaded) update.sh preamble cannot reorder them.
+            cancelled = threading.Event()
+
+            def send():
+                started = time.monotonic() + 30
+                while not (root / 'bootc.pid').exists() and not cancelled.is_set() and time.monotonic() < started:
+                    time.sleep(0.02)
+                begin = time.monotonic()
+                for after, signum in sorted(signals):
+                    if cancelled.wait(max(0, begin + after - time.monotonic())):
+                        return
+                    os.kill(os.getpid(), signum)
+            timers = [threading.Thread(target=send, daemon=True)] if signals else []
+            stack.enter_context(patch.object(owner, 'SCRIPT_TIMEOUT', timeout))
+            stack.enter_context(patch.object(owner, 'STOP_GRACE', 1 if swallow_kill else 3))
+            stack.enter_context(patch.object(owner, 'UNITS', root / 'units'))
+            if swallow_kill:
+                # A process that survives KILL: the routine's KILLs never arrive (TERM is ignored).
+                real_kill, real_killpg = os.kill, os.killpg
+                stack.enter_context(patch.object(owner.os, 'kill', side_effect=lambda pid, signum:
+                    None if signum == signal.SIGKILL else real_kill(pid, signum)))
+                stack.enter_context(patch.object(owner.os, 'killpg', side_effect=lambda pgid, signum:
+                    None if signum == signal.SIGKILL else real_killpg(pgid, signum)))
+            printed = io.StringIO() if stdout is None else stdout
+            stack.enter_context(contextlib.redirect_stdout(printed))
+            start = time.monotonic()
+            for timer in timers:
+                timer.start()
+            try:
+                tools.update()
+                outcome = None
+            except BaseException as error:
+                outcome = error
+            finally:
+                cancelled.set()
+                for timer in timers:
+                    timer.join(5)
+            elapsed = time.monotonic() - start
+            # What the fake bootc really left, whether or not the tool looked again.
+            host.sync()
+            links = {path.name: os.readlink(path) if path.is_symlink() else None for path in (root / 'units').iterdir()}
+            pids = [int((root / name).read_text()) for name in ('bootc.pid', 'child.pid') if (root / name).exists()]
+            # Captured before the fixture directory goes (review 3: a path-based cleanup came too late);
+            # the step's own shell too, for the case whose stop() is broken on purpose.
+            shell = [int((root / 'step.pid').read_text())] if (root / 'step.pid').exists() else []
+            for pid in pids + shell:
+                # By start time too, so a reused PID is never killed.
+                self.spawned.append((pid, self.started(pid)))
+                self.addCleanup(self.kill, pid, self.started(pid))
+            intent = tools.load(owner.OUTCOME)
+            settled = None if host.state != pair() else tools.qualified(host.state, tools.load('prepared'), retry='update')
+            return SimpleNamespace(outcome=outcome, links=links, pids=pids, host=host, intent=intent, settled=settled,
+                                   elapsed=elapsed, printed=printed.getvalue() if stdout is None else '',
+                                   calls=(root / 'calls').read_text().splitlines())
+
+    @staticmethod
+    def started(pid):
+        """The live process's start time (stat field 22), or None once it is gone or a zombie."""
+        try:
+            raw = pathlib.Path('/proc', str(pid), 'stat').read_bytes()
+        except (FileNotFoundError, ProcessLookupError):
+            return None
+        fields = raw.rsplit(b')', 1)[1].split() if raw else []
+        return fields[19] if len(fields) > 19 and fields[0] != b'Z' else None
+
+    @classmethod
+    def kill(cls, pid, start):
+        # Only a reverted fix (or the survivor case) leaves a fake process running; never leave it behind.
+        import signal
+        if start is not None and cls.started(pid) == start:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            # SIGKILL lands asynchronously: wait until it is gone or a zombie, so the class check sees the result.
+            deadline = time.monotonic() + 5
+            while cls.started(pid) == start and time.monotonic() < deadline:
+                time.sleep(0.02)
+
+    @staticmethod
+    def alive(pid):
+        try:
+            raw = pathlib.Path('/proc', str(pid), 'stat').read_bytes()
+        except (FileNotFoundError, ProcessLookupError):
+            return False
+        return bool(raw) and raw.rsplit(b')', 1)[1].split()[0] != b'Z'
+
+    def stopped_cleanly(self, run, words):
+        # The named assertions (revert proofs): no staged deployment, the masks back, no
+        # process of the step left, then the STOP that says so.
+        self.assertEqual(run.host.state, pair(), 'a staged deployment remained after the stop')
+        self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
+        self.assertTrue(run.pids, 'the fake bootc never started staging')
+        self.assertFalse([pid for pid in run.pids if self.alive(pid)], 'a process of the step outlived the tool')
+        self.assertIsInstance(run.outcome, owner.Stop, 'the tool did not STOP through its routine')
+        self.assertIn(words, str(run.outcome))
+        self.assertIn('was stopped safely', str(run.outcome))
+        self.assertIn('Nothing changes at the next start', str(run.outcome))
+        # The running release, its rollback and the pinned stock are as before; the same command may retry.
+        self.assertEqual((run.intent['status'], run.intent['before']),
+                         ('intent', [list(owner.key(d)) for d in pair()['rpm']['deployments']]))
+        self.assertEqual(run.settled, 'retry')
+
+    def step(self, run):
+        return [row for row in run.host.trace if row.get('script') == 'update' and row.get('stopped')][-1]
+
+    def test_a_hung_staging_is_stopped_at_the_time_limit_and_undone(self):
+        run = self.run_stopped('hang')
+        self.stopped_cleanly(run, 'The update timed out')
+        self.assertIn('bootc switch --retain ' + R21, run.calls)
+        self.assertEqual((self.step(run)['stopped'], self.step(run)['group_gone']), ('timed out', True))
+        self.assertIn('the staging finalizers are masked again', str(run.outcome))
+        # The first line says what happens and for how long.
+        self.assertIn('Stopping the update safely; this takes up to ', run.printed)
+        self.assertLess(run.elapsed, 30)
+
+    def test_staging_that_finished_before_the_time_limit_hits_the_still_running_step_is_removed(self):
+        run = self.run_stopped('stage-then-run')
+        self.stopped_cleanly(run, 'The update timed out')
+        self.assertIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes)
+        self.assertIn('its staged release was removed', str(run.outcome))
+
+    def test_ctrl_c_stops_the_step_and_undoes_it(self):
+        import signal
+        run = self.run_stopped('hang', timeout=60, signals=[(1, signal.SIGINT)])
+        self.stopped_cleanly(run, 'The update was interrupted (Ctrl+C)')
+        self.assertLess(run.elapsed, 30)
+
+    def test_a_second_and_third_ctrl_c_during_the_term_grace_cannot_cut_the_stop_short(self):
+        import signal
+        # The hung bootc ignores TERM, so the routine sits in its 3 s grace when the next two arrive.
+        run = self.run_stopped('hang', timeout=60, signals=[(1, signal.SIGINT), (2, signal.SIGINT), (3, signal.SIGINT)])
+        self.stopped_cleanly(run, 'The update was interrupted (Ctrl+C)')
+        self.assertGreater(run.elapsed, 4)  # the TERM grace (3 s) ran after the first, around the others
+
+    def test_a_closed_window_or_a_kill_starts_the_stop_routine(self):
+        import signal
+
+        class Closed(io.StringIO):
+            def write(self, text):
+                raise OSError(5, 'Input/output error')
+        for signum, words in ((signal.SIGHUP, 'the window closing'), (signal.SIGTERM, 'a termination request')):
+            with self.subTest(signal=signum):
+                # A closed window also breaks the output; the routine still runs to its end.
+                run = self.run_stopped('hang', timeout=60, signals=[(1, signum)],
+                                       stdout=Closed() if signum == signal.SIGHUP else None)
+                self.stopped_cleanly(run, 'The update was interrupted (' + words + ')')
+
+    def test_a_failed_shell_with_a_surviving_child_is_stopped_before_anything_else(self):
+        run = self.run_stopped('fail-with-child', timeout=60)
+        self.assertEqual(len(run.pids), 2)
+        self.stopped_cleanly(run, 'The update failed')
+        # update.sh's own trap passes bootc's status on; the routine still had a child to stop.
+        self.assertEqual(self.step(run)['returncode'], 42)
+        self.assertLess(run.elapsed, 30)
+
+    def test_a_status_read_that_fails_after_the_kill_still_restores_the_masks(self):
+        run = self.run_stopped('stage-then-run', failing_reads=1)
+        self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
+        self.assertFalse([pid for pid in run.pids if self.alive(pid)], 'a process of the step outlived the tool')
+        self.assertNotIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes)
+        self.assertIsInstance(run.outcome, owner.Stop)
+        self.assertIn('stopping it did not finish: deployments: injected status read failure', str(run.outcome))
+        self.assertIn('Do not reboot', str(run.outcome))
+        self.assertNotIn('stopped safely', str(run.outcome))
+
+    def test_a_foreign_staged_deployment_is_never_deleted(self):
+        run = self.run_stopped('stage-then-run', foreign=R30)
+        self.assertNotIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes, 'a foreign staged deployment was deleted')
+        self.assertEqual([r['container-image-reference-digest'] for r in run.host.state['rpm']['deployments'] if r.get('staged')],
+                         [R30.split('@')[1]])
+        self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
+        self.assertIn('a staged deployment this update did not make is present; nothing was deleted', str(run.outcome))
+        self.assertIn('Do not reboot', str(run.outcome))
+
+    def test_a_process_that_survives_kill_is_reported_and_nothing_is_deleted_behind_it(self):
+        run = self.run_stopped('hang', swallow_kill=True)
+        self.assertTrue(run.pids and self.alive(run.pids[0]), 'the survivor is a real, live process')
+        self.kill(run.pids[0], self.started(run.pids[0]))
+        self.assertEqual(self.step(run)['group_gone'], False, 'a survivor was not reported')
+        self.assertIn('survived TERM and KILL, so nothing was deleted', str(run.outcome), 'a survivor was not reported')
+        self.assertNotIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes)
+        self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
+        self.assertIn('Do not reboot', str(run.outcome))
+
+    def test_names_that_are_not_utf8_inside_and_outside_the_step_do_not_stop_the_stop(self):
+        import signal
+        # Review 3: one such name anywhere made the scan raise before the first signal.
+        for name, options, words in (
+                ('time limit', dict(mode='hang'), 'The update timed out'),
+                ('Ctrl+C', dict(mode='hang', timeout=60, signals=[(1, signal.SIGINT)]), 'The update was interrupted (Ctrl+C)'),
+                ('failed shell', dict(mode='fail-with-child', timeout=60), 'The update failed')):
+            with self.subTest(name):
+                run = self.run_stopped(weird_name=True, outsider=True, **options)
+                self.stopped_cleanly(run, words)
+
+    def test_an_exception_in_the_scan_deletes_nothing_and_still_restores_the_masks(self):
+        def broken(step):
+            raise RuntimeError('injected scan failure')
+        run = self.run_stopped('stage-then-run', patches=[('members', broken)])
+        self.assertNotIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes, 'something was deleted behind an unproved stop')
+        self.assertEqual([r['container-image-reference-digest'] for r in run.host.state['rpm']['deployments'] if r.get('staged')],
+                         [R21.split('@')[1]])
+        self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
+        self.assertIsInstance(run.outcome, owner.Stop)
+        self.assertIn('stopping the update step failed (RuntimeError: injected scan failure), so nothing was deleted',
+                      str(run.outcome))
+        self.assertIn('Do not reboot', str(run.outcome))
+        self.assertNotIn('stopped safely', str(run.outcome))
+
+    def test_an_exception_in_stop_and_a_failed_mask_check_are_both_reported(self):
+        def broken(step):
+            raise RuntimeError('injected stop failure')
+        run = self.run_stopped('stage-then-run', patches=[('stop', broken)], broken_masks=True)
+        self.assertNotIn(('rpm-ostree', 'cleanup', '--pending'), run.host.changes, 'something was deleted behind an unproved stop')
+        self.assertEqual(run.links, self.MASKED, 'the masks this run removed are not back')
+        self.assertIn('stopping the update step failed (RuntimeError: injected stop failure), so nothing was deleted',
+                      str(run.outcome))
+        self.assertIn('finalizer masks: The mask of ', str(run.outcome))
+        self.assertIn('Do not reboot', str(run.outcome))
+
+    def test_a_successful_step_through_the_real_runner_stages_and_keeps_the_finalizers_unmasked(self):
+        run = self.run_stopped('stage-ok', timeout=60)
+        self.assertIsNone(run.outcome)
+        self.assertEqual(run.links, {})
+        self.assertEqual([r['container-image-reference-digest'] for r in run.host.state['rpm']['deployments'] if r.get('staged')],
+                         [R21.split('@')[1]])
+        self.assertNotIn('Stopping the update', run.printed)
+        self.assertEqual(run.intent['status'], 'recorded')
 
 if __name__ == '__main__':
     unittest.main()

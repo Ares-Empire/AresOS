@@ -17,7 +17,8 @@ ROOT,owner=common.ROOT,common.owner
 FIXTURES=ROOT/'os/tests/fixtures/owner-tools'
 ROWS=json.loads((FIXTURES/'retained-parsers.json').read_text())
 VALUES={r['kind']:r['value'] for r in ROWS}
-REFERENCE=json.loads((ROOT/'os/manifest/release.json').read_text())['reference']
+# The retained parsers are release 13's machine (package 13 qualification).
+REFERENCE=json.loads((ROOT/'os/manifest/releases/13.json').read_text())['reference']
 
 
 def state(stage):
@@ -92,7 +93,7 @@ class RetainedTest(unittest.TestCase):
             host=ReadHost(stage);value=owner.observations(host)
             owner.qualified_state(value,saved,REFERENCE);owner.idle(value,[])
             with bls_files(stage),tempfile.TemporaryDirectory(dir=ROOT/'os/tests') as tmp,patch.object(owner,'runtime_state',return_value={'observed':False,'reason':'not retained in package13; opaque diagnostic only'}):
-                tools=owner.Tools(ROOT/'os/owner-tools/payload',host,pathlib.Path(tmp))
+                tools=owner.Tools(common.release13_bundle(pathlib.Path(tmp)/'payload'),host,pathlib.Path(tmp))
                 tools.save('prepared',saved);tools.save('network-verified',{})
                 tools.processes=lambda:[]
                 output=tools.title()

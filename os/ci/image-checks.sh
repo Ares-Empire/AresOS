@@ -39,6 +39,7 @@ if grep -rhEv '^[[:space:]]*(#|$)' /etc/sudoers /etc/sudoers.d | grep -E 'NOPASS
 fi
 visudo --check
 test "$(stat -c '%a %u %g' /etc/sudoers.d/aresos-everyday)" = '440 0 0'
+test "$(stat -c '%a %u %g' /etc/sudoers.d)" = '750 0 0'
 pass 'sudo for ares: (ALL) ALL with a password, no remembered ticket, no passwordless rule'
 expect_failure runuser -u ares -- sudo -n true
 grep -q 'password is required' <<< "$LAST_FAILURE"

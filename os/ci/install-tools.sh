@@ -10,9 +10,17 @@ while read -r suite; do
     printf 'deb-src [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg check-valid-until=no] %s %s main universe restricted multiverse\n' "$repository" "$suite"
 done < <(jq -r '.suites[]' os/ci/toolchain.json) > "$directory/sources.list"
 printf 'Package: *\nPin: release o=Ubuntu\nPin-Priority: 1001\n' > "$directory/preferences"
-options=(-o Acquire::Retries=3 -o "Dir::Etc::sourcelist=$directory/sources.list" -o Dir::Etc::sourceparts=-
+# A job may ask for more patience with the snapshot mirror (package 27's release
+# job does); every other job keeps three retries and apt's own timeouts.
+retries=${ARESOS_APT_RETRIES:-3}
+[[ $retries =~ ^[0-9]+$ ]]
+options=(-o Acquire::Retries="$retries" -o "Dir::Etc::sourcelist=$directory/sources.list" -o Dir::Etc::sourceparts=-
          -o "Dir::State::lists=$directory/lists" -o "Dir::Etc::preferences=$directory/preferences"
          -o Dir::Etc::preferencesparts=-)
+if [[ -n ${ARESOS_APT_TIMEOUT:-} ]]; then
+    [[ $ARESOS_APT_TIMEOUT =~ ^[0-9]+$ ]]
+    options+=(-o Acquire::http::Timeout="$ARESOS_APT_TIMEOUT" -o Acquire::https::Timeout="$ARESOS_APT_TIMEOUT")
+fi
 sudo apt-get "${options[@]}" update
 packages=()
 names=()

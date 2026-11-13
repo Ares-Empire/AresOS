@@ -277,7 +277,7 @@ class Operations(EngineCase):
         result = self.call("testapp_file_import", {"path": "/fixture/never-opened"})
         self.assertEqual(result["error"]["code"], "proxy_required")
         first, second = self.reserve(), self.reserve()
-        self.assertFalse(self.call("testapp_send", {"operation_id": second["operation_id"], "description": first["description"]})["ok"])
+        self.assertFalse(self.call("testapp_send", {"question": second["question"], "operation_id": second["operation_id"], "description": first["description"]})["ok"])
         self.assertEqual(self.engine.receiver.evidence(first["operation_id"])["arrivals"], [])
         self.assertEqual(self.engine.receiver.evidence(second["operation_id"])["arrivals"], [])
 
@@ -336,11 +336,12 @@ class Generated(EngineCase):
         for name, content in module.generated().items():
             self.assertEqual((ROOT / name).read_text(), content, name)
         ask = json.loads((ROOT / "control/settings/ask-rules.json").read_text())["permissions"]["ask"]
-        self.assertEqual(set(ask), {f"mcp__{a.app}__{a.verb}" for a in ACTIONS if a.effect in {"send", "delete"} and not a.owner_only})
+        self.assertEqual(set(ask), {f"mcp__{a.app}__{a.verb}" for a in ACTIONS if a.effect in {"send", "delete"} and not a.owner_only and not a.trusted_send})
         for action in ACTIONS:
             self.assertIn(action.effect, {"read", "change", "send", "delete"})
             self.assertEqual(action.input.get("additionalProperties"), False)
-            self.assertIn("untrusted", action.description)
+            from aresos_control.definitions import instructions_for
+            self.assertIn("untrusted", action.description + instructions_for(action.app))
             if action.owner_only:
                 self.assertNotIn(action.verb, [t["name"] for t in tools_for(action.app)])
         self.assertEqual(len(BY_NAME), len(ACTIONS))

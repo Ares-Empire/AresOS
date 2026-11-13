@@ -1,10 +1,13 @@
 import asyncio
 import json
+import sys
 
-from .common import FILE_LIMIT, Refused, canonical, validate
-from .definitions import APPS, BY_NAME
-from .files import FilePolicy
+from .common import FILE_LIMIT, WIRE_LIMIT, JSONInputError, Refused, cleanup, display_json, require_question, strict_json_loads, validate, storage_refusal
+from .definitions import obj, string
+from .definitions import APPS, BY_NAME, instructions_for
+from .files import FilePolicy, safe_name
 from .protocol import Client
+from .results import bounded
 
 
 class Proxy:
@@ -23,35 +26,149 @@ class Proxy:
         return [tool for tool in result["data"]["tools"] if
                 self.app + "_" + tool["name"] in BY_NAME and not BY_NAME[self.app + "_" + tool["name"]].owner_only]
 
+    @bounded
     def call(self, verb, arguments):
         action = BY_NAME.get(self.app + "_" + verb)
         try:
             if not action or (action.owner_only and not self.admin):
                 raise Refused("permission_denied", "This action is not available through the MCP proxy; owner-only actions require sudo aresos admin.")
+            if action.effect in {"send", "delete"}:
+                require_question(arguments)
             validate(arguments, action.input)
             if verb == "file_import":
                 if self.files is None:
                     raise Refused("file_refused", "No caller file folders configured; ask the owner to configure them.")
-                data, file_ref = self.files.read(arguments["path"])
+                data, file_ref = self.files.read(arguments["path"], mail_metadata=True) if self.app == "mail" else self.files.read(arguments["path"])
                 return self.client.upload(self.app, file_ref, data)
             if verb == "file_save":
                 if self.files is None:
                     raise Refused("file_refused", "No caller file folders configured.")
+                self.files.locate(arguments['folder'])
+                safe_name(arguments['name'])
                 result, data = self.client.download(self.app, arguments["sha256"], self.files.limit)
                 if not result["ok"]:
                     return result
+                admission = result['data']
                 try:
-                    saved = self.files.save(arguments["folder"], arguments["name"], data, arguments["sha256"])
-                except Exception:
-                    self.client.request({"method": "saved", "app": self.app, "outcome": "refused"})
+                    saved = self.files.save(arguments["folder"], arguments["name"], data, arguments["sha256"], admission=admission)
+                except Exception as exc:
+                    with cleanup('export refusal report', exc):
+                        self.client.request({"method": "saved", "app": self.app, "outcome": "refused", 'export_id': admission['export_id']})
                     raise
-                result = self.client.request({"method": "saved", "app": self.app, "outcome": saved})
-                result["data"] = saved
+                result = self.client.request({"method": "saved", "app": self.app, "outcome": saved, 'export_id': admission['export_id']})
+                if result['ok']:
+                    result["data"] = saved
+                elif result.get('error', {}).get('code') == 'unknown':
+                    result['data']['saved'] = saved
+                return result
+            if self.app == "mail" and verb == "compose":
+                arguments = dict(arguments)
+                imported = []
+                for item in arguments.get("attachments", []):
+                    if "path" in item:
+                        if self.files is None:
+                            raise Refused("file_refused", "No allowed caller folders configured.")
+                        data, ref = self.files.read(item["path"], mail_metadata=True)
+                        result = self.client.upload("mail", ref, data)
+                        if not result["ok"]:
+                            return result
+                        imported.append(result["data"]["file"])
+                    else:
+                        imported.append(item)
+                arguments["attachments"] = imported
+            if self.app == "mail" and verb == "attachment_save":
+                if self.files is None:
+                    raise Refused("file_refused", "No allowed caller folders configured.")
+                from pathlib import Path
+                folder = arguments.get('folder', str(Path(self.files.home) / 'Downloads'))
+                self.files.locate(folder)
+                if 'name' in arguments:
+                    safe_name(arguments['name'])
+                result = self.client.call(action.name, arguments)
+                if not result["ok"]:
+                    return result
+                item = result["data"]["file"]
+                downloaded, data = self.client.download("mail", item["sha256"], self.files.limit, item['export_id'])
+                if not downloaded["ok"]:
+                    if downloaded.get('error', {}).get('code') != 'unknown':
+                        self.client.request({'method': 'saved', 'app': 'mail', 'outcome': 'refused', 'export_id': item['export_id']})
+                    return downloaded
+                try:
+                    saved = self.files.save(folder, arguments.get("name", item["name"]), data, item["sha256"], admission=downloaded['data'])
+                except Exception as exc:
+                    with cleanup('export refusal report', exc):
+                        self.client.request({"method": "saved", "app": "mail", "outcome": "refused", 'export_id': item['export_id']})
+                    raise
+                result = self.client.request({"method": "saved", "app": "mail", "outcome": saved, 'export_id': item['export_id']})
+                if result['ok']:
+                    result['data'] = saved
+                elif result.get('error', {}).get('code') == 'unknown':
+                    result['data']['saved'] = saved
                 return result
             return self.client.call(action.name, arguments)
         except (Refused, OSError, ValueError) as exc:
-            return {"ok": False, "error": {"code": getattr(exc, "code", "file_refused"), "message": str(exc)},
-                    "pending": self.client.call("control_pending", {}).get("data", {})}
+            exc = storage_refusal(exc) or exc
+            pending = self.client.request({'method': 'pending'})
+            return {"ok": False, "error": {"code": getattr(exc, "code", "file_refused"), "message": str(exc),
+                    **({"notes": list(exc.__notes__)} if getattr(exc, "__notes__", None) else {})},
+                    "pending": pending.get("data", pending.get("pending", {})),
+                    **({"observations": pending["observations"]} if "observations" in pending else {})}
+
+
+class StrictMCPInput:
+    def __init__(self, app, source):
+        self.app, self.source = app, source
+        self.errors = None
+
+    async def __aiter__(self):
+        import mcp_types as types
+        from mcp.shared.message import SessionMessage
+        async for line in self.source:
+            try:
+                request = strict_json_loads(line)
+                validate(request, obj({'jsonrpc': {'type': 'string', 'enum': ['2.0']},
+                    'id': {'anyOf': [{'type': 'string', 'maxLength': 512}, {'type': 'integer'}, {'type': 'null'}]},
+                    'method': string(128), 'params': {'type': 'object'}}, ['jsonrpc', 'method']), 'MCP envelope')
+                if request['method'] == 'tools/call':
+                    validate(request.get('params'), obj({'name': string(128), 'arguments': {'type': 'object'},
+                        '_meta': {'type': 'object'}}, ['name']), 'MCP tools/call')
+            except Refused as exc:
+                if isinstance(exc, JSONInputError):
+                    exc.for_actions([self.app + "_" + name for name in exc.values("params", "name") if isinstance(name, str)])
+                    candidates = exc.values('id')
+                else:
+                    candidates = [request.get('id')] if type(request) is dict else []
+                # Answer every candidate id when even the id field is repeated.
+                ids = list(dict.fromkeys(v for v in candidates if type(v) is int or type(v) is str and len(v) <= 512)) or [None]
+                for request_id in ids:
+                    error = {"jsonrpc": "2.0", "id": request_id, "error": {
+                        "code": -32602, "message": str(exc), "data": {"code": exc.code}}}
+                    await self.errors.send(SessionMessage(types.jsonrpc_message_adapter.validate_json(display_json(error), by_name=False)))
+                continue
+            yield line.decode('utf-8') if isinstance(line, bytes) else line
+
+
+class MCPLineInput:
+    """Read bounded binary lines so text decoding cannot substitute invalid bytes."""
+    def __init__(self, stream):
+        self.stream = stream
+
+    async def __aiter__(self):
+        import anyio
+        while True:
+            line = await anyio.to_thread.run_sync(self.stream.readline, WIRE_LIMIT + 1)
+            if not line:
+                return
+            if len(line) > WIRE_LIMIT:
+                # Drain the rest without retaining an unbounded line or dispatching it.
+                tail = line
+                while not tail.endswith(b'\n'):
+                    tail = await anyio.to_thread.run_sync(self.stream.readline, WIRE_LIMIT + 1)
+                    if not tail:
+                        break
+                yield b'\x00'
+            else:
+                yield line
 
 
 async def serve(app, config):
@@ -59,7 +176,6 @@ async def serve(app, config):
     import mcp_types as types
     from mcp.server.lowlevel import Server
     from mcp.server.stdio import stdio_server
-
     proxy = Proxy(app, config)
     offered = {tool["name"]: tool for tool in proxy.tools()}
 
@@ -76,11 +192,15 @@ async def serve(app, config):
         else:
             # One serial service handles operations; avoid blocking the SDK's event loop.
             result = await asyncio.to_thread(proxy.call, parameters.name, parameters.arguments or {})
-        return types.CallToolResult(content=[types.TextContent(type="text", text=canonical(result))],
+        from .results import bound_result
+        result = bound_result(result)
+        return types.CallToolResult(content=[types.TextContent(type="text", text=display_json(result))],
                                     structured_content=result, is_error=not result["ok"])
 
-    server = Server("aresos-" + app, version="0.1.0", on_list_tools=list_tools, on_call_tool=call_tool)
-    async with stdio_server() as (read_stream, write_stream):
+    server = Server("aresos-" + app, version="0.1.0", instructions=instructions_for(app), on_list_tools=list_tools, on_call_tool=call_tool)
+    stdin = StrictMCPInput(app, MCPLineInput(sys.stdin.buffer))
+    async with stdio_server(stdin=stdin) as (read_stream, write_stream):
+        stdin.errors = write_stream
         await server.run(read_stream, write_stream, server.create_initialization_options())
 
 

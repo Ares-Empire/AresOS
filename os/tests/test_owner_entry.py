@@ -67,7 +67,7 @@ def entry_stdout():
             argv=arguments(command)
             stack.enter_context(patch.object(owner.sys,'argv',['at',*argv]))
             out=io.StringIO()
-            with contextlib.redirect_stdout(out): owner.main()
+            with contextlib.redirect_stdout(out), common.kept_umask(): owner.main()
             captured[name]=out.getvalue()
             passes=[line for line in captured[name].splitlines() if line.startswith('PASS ')]
             check.assertEqual(passes,['PASS '+' '.join(argv)])

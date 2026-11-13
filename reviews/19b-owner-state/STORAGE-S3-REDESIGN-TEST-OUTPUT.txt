@@ -1,0 +1,260 @@
+Local candidate run; absolute worktree prefix normalized to <worktree>.
+test_archive_keeps_unresolved_work_checks_and_unacknowledged_warnings (__main__.ProjectionCandidate.test_archive_keeps_unresolved_work_checks_and_unacknowledged_warnings) ... ok
+test_changed_committed_payload_is_rejected (__main__.ProjectionCandidate.test_changed_committed_payload_is_rejected) ... ok
+test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) ... AGREEMENT attempted flow send sample fault 22 sqlite.main.write
+SQLITE READ FAILED ('send', 'persistent', 865, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow send sample fault 865 sqlite.main.write
+AGREEMENT attempted flow repair sample fault 11 sqlite.main.write
+SQLITE READ FAILED ('repair', 'persistent', 352, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow repair sample fault 352 sqlite.main.write
+AGREEMENT attempted flow delete_trash sample fault 22 sqlite.main.write
+SQLITE READ FAILED ('delete_trash', 'persistent', 279, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow delete_trash sample fault 279 sqlite.main.write
+AGREEMENT attempted flow delete_permanent sample fault 22 sqlite.main.write
+SQLITE READ FAILED ('delete_permanent', 'persistent', 415, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow delete_permanent sample fault 415 sqlite.main.write
+AGREEMENT attempted flow unsubscribe_mailto sample fault 22 sqlite.main.write
+SQLITE READ FAILED ('unsubscribe_mailto', 'persistent', 867, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow unsubscribe_mailto sample fault 867 sqlite.main.write
+AGREEMENT attempted flow unsubscribe_https sample fault 22 sqlite.main.write
+SQLITE READ FAILED ('unsubscribe_https', 'persistent', 346, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow unsubscribe_https sample fault 346 sqlite.main.write
+AGREEMENT attempted flow status sample fault 11 sqlite.main.write
+SQLITE READ FAILED ('status', 'persistent', 148, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow status sample fault 148 sqlite.main.write
+AGREEMENT attempted flow settlement sample fault 11 sqlite.main.write
+SQLITE READ FAILED ('settlement', 'persistent', 149, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow settlement sample fault 149 sqlite.main.write
+AGREEMENT attempted flow cancel sample fault 11 sqlite.main.write
+SQLITE READ FAILED ('cancel', 'persistent', 63, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow cancel sample fault 63 sqlite.main.write
+
+  test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=17, mode='single', phase='live') ... FAIL
+  test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=17, mode='single', phase='crash') ... FAIL
+  test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=17, mode='persistent', phase='live') ... FAIL
+  test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=17, mode='persistent', phase='crash') ... FAIL
+  test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=17, mode='cleanup-pair-discovery') ... FAIL
+AGREEMENT attempted flow restore sample fault 17 sqlite.main.write
+  test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=72, mode='single', phase='live') ... FAIL
+SQLITE READ FAILED ('restore', 'persistent', 72, None, False) OperationalError database or disk is full
+  test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=72, mode='persistent', phase='live') ... FAIL
+  test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=72, mode='cleanup-pair-discovery') ... FAIL
+AGREEMENT attempted flow restore sample fault 72 sqlite.main.write
+AGREEMENT attempted flow attachment_export sample fault 9 sqlite.main.write
+SQLITE READ FAILED ('attachment_export', 'persistent', 268, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow attachment_export sample fault 268 sqlite.main.write
+AGREEMENT attempted flow testapp_export sample fault 11 sqlite.main.write
+SQLITE READ FAILED ('testapp_export', 'persistent', 129, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow testapp_export sample fault 129 sqlite.main.write
+AGREEMENT attempted flow password sample fault 27 sqlite.main.write
+SQLITE READ FAILED ('password', 'persistent', 137, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow password sample fault 137 sqlite.main.write
+AGREEMENT attempted flow filing_move sample fault 9 sqlite.main.write
+SQLITE READ FAILED ('filing_move', 'persistent', 363, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow filing_move sample fault 363 sqlite.main.write
+AGREEMENT attempted flow filing_copy sample fault 9 sqlite.main.write
+SQLITE READ FAILED ('filing_copy', 'persistent', 364, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow filing_copy sample fault 364 sqlite.main.write
+AGREEMENT attempted flow filing_rename sample fault 9 sqlite.main.write
+SQLITE READ FAILED ('filing_rename', 'persistent', 234, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow filing_rename sample fault 234 sqlite.main.write
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+AGREEMENT attempted flow expiry sample fault 11 sqlite.main.write
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+SQLITE READ FAILED ('expiry', 'persistent', 63, None, False) OperationalError database or disk is full
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+AGREEMENT attempted flow expiry sample fault 63 sqlite.main.write
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+AGREEMENT attempted flow maintenance sample fault 6 sqlite.main.write
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+SQLITE READ FAILED ('maintenance', 'persistent', 57, None, False) OperationalError database or disk is full
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+Background maintenance: Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying.
+AGREEMENT attempted flow maintenance sample fault 57 sqlite.main.write
+AGREEMENT attempted flow restart_index sample fault 12 file.fsync
+AGREEMENT attempted flow restart_tail sample fault 12 file.fsync
+AGREEMENT attempted flow export_rollback sample fault 9 sqlite.main.write
+SQLITE READ FAILED ('export_rollback', 'persistent', 274, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow export_rollback sample fault 274 sqlite.main.write
+AGREEMENT attempted flow archive sample fault 11 sqlite.main.write
+SQLITE READ FAILED ('archive', 'persistent', 316, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow archive sample fault 316 sqlite.main.write
+AGREEMENT attempted flow send_duplicate sample fault 22 sqlite.main.write
+SQLITE READ FAILED ('send_duplicate', 'persistent', 950, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow send_duplicate sample fault 950 sqlite.main.write
+AGREEMENT attempted flow draft_append sample fault 9 sqlite.main.write
+SQLITE READ FAILED ('draft_append', 'persistent', 176, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow draft_append sample fault 176 sqlite.main.write
+AGREEMENT attempted flow folder_create sample fault 9 sqlite.main.write
+SQLITE READ FAILED ('folder_create', 'persistent', 117, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow folder_create sample fault 117 sqlite.main.write
+AGREEMENT attempted flow folder_delete sample fault 22 sqlite.main.write
+SQLITE READ FAILED ('folder_delete', 'persistent', 211, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow folder_delete sample fault 211 sqlite.main.write
+AGREEMENT attempted flow onboarding sample fault 27 sqlite.main.write
+SQLITE READ FAILED ('onboarding', 'persistent', 2661, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow onboarding sample fault 2661 sqlite.main.write
+AGREEMENT attempted flow flag sample fault 9 sqlite.main.write
+SQLITE READ FAILED ('flag', 'persistent', 119, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow flag sample fault 119 sqlite.main.write
+AGREEMENT attempted flow settings sample fault 9 sqlite.main.write
+SQLITE READ FAILED ('settings', 'persistent', 173, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow settings sample fault 173 sqlite.main.write
+AGREEMENT attempted flow folder_review sample fault 9 sqlite.main.write
+SQLITE READ FAILED ('folder_review', 'persistent', 176, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow folder_review sample fault 176 sqlite.main.write
+AGREEMENT attempted flow testapp_send sample fault 22 sqlite.main.write
+SQLITE READ FAILED ('testapp_send', 'persistent', 403, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow testapp_send sample fault 403 sqlite.main.write
+AGREEMENT attempted flow testapp_delete sample fault 22 sqlite.main.write
+SQLITE READ FAILED ('testapp_delete', 'persistent', 280, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow testapp_delete sample fault 280 sqlite.main.write
+AGREEMENT attempted flow testapp_config sample fault 9 sqlite.main.write
+SQLITE READ FAILED ('testapp_config', 'persistent', 133, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow testapp_config sample fault 133 sqlite.main.write
+AGREEMENT attempted flow local_flag sample fault 9 sqlite.main.write
+SQLITE READ FAILED ('local_flag', 'persistent', 118, None, False) OperationalError database or disk is full
+AGREEMENT attempted flow local_flag sample fault 118 sqlite.main.write
+AGREEMENT sampled scenario count 420
+AGREEMENT actual SQLite read failures 32
+AGREEMENT successful compact comparisons 549
+test_missing_projection_update_is_caught_by_agreement (__main__.ProjectionCandidate.test_missing_projection_update_is_caught_by_agreement) ... ok
+test_one_and_thousand_terminal_send_records_leave_same_live_size (__main__.ProjectionCandidate.test_one_and_thousand_terminal_send_records_leave_same_live_size) ... ARCHIVE size bound: 261 bytes after one and after 1001 synthetic terminal send records
+ok
+test_projection_reads_need_neither_sqlite_connection_nor_index (__main__.ProjectionCandidate.test_projection_reads_need_neither_sqlite_connection_nor_index) ... ok
+
+======================================================================
+FAIL: test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=17, mode='single', phase='live')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 218, in test_every_flow_and_mode_sample
+    _, observed = self.run_case(flow, point, mode)
+                  ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 198, in run_case
+    self.assert_agrees(s, (label, 'space restored'))
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 68, in assert_agrees
+    self.assertEqual(expected(record.rows), actual, label)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'gen[70 chars]': {'i': 'box', 'y': 1, 'h': 'b71f4cae30b64b9b[46 chars]9e'}} != {'gen[70 chars]': {'h': 'b71f4cae30b64b9bcd6a2e9d52f5c4a9ec27[540 chars]: 1}}
+Diff is 1432 characters long. Set self.maxDiff to None to see it. : (('restore', 'single', 17, None, False), 'space restored')
+
+======================================================================
+FAIL: test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=17, mode='single', phase='crash')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 222, in test_every_flow_and_mode_sample
+    self.run_case(flow, point, mode, crash=True)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 198, in run_case
+    self.assert_agrees(s, (label, 'space restored'))
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 68, in assert_agrees
+    self.assertEqual(expected(record.rows), actual, label)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'gen[70 chars]': {'i': 'box', 'y': 1, 'h': 'b71f4cae30b64b9b[46 chars]9e'}} != {'gen[70 chars]': {'h': 'b71f4cae30b64b9bcd6a2e9d52f5c4a9ec27[540 chars]: 1}}
+Diff is 1432 characters long. Set self.maxDiff to None to see it. : (('restore', 'single', 17, None, True), 'space restored')
+
+======================================================================
+FAIL: test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=17, mode='persistent', phase='live')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 218, in test_every_flow_and_mode_sample
+    _, observed = self.run_case(flow, point, mode)
+                  ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 197, in run_case
+    self.assert_agrees(s, (label, 'persistent, before restoring space'))
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 68, in assert_agrees
+    self.assertEqual(expected(record.rows), actual, label)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'gen[70 chars]': {'i': 'box', 'y': 1, 'h': 'b71f4cae30b64b9b[46 chars]9e'}} != {'gen[70 chars]': {'h': 'b71f4cae30b64b9bcd6a2e9d52f5c4a9ec27[540 chars]: 1}}
+Diff is 1432 characters long. Set self.maxDiff to None to see it. : (('restore', 'persistent', 17, None, False), 'persistent, before restoring space')
+
+======================================================================
+FAIL: test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=17, mode='persistent', phase='crash')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 222, in test_every_flow_and_mode_sample
+    self.run_case(flow, point, mode, crash=True)
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 197, in run_case
+    self.assert_agrees(s, (label, 'persistent, before restoring space'))
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 68, in assert_agrees
+    self.assertEqual(expected(record.rows), actual, label)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'gen[70 chars]': {'i': 'box', 'y': 1, 'h': 'b71f4cae30b64b9b[46 chars]9e'}} != {'gen[70 chars]': {'h': 'b71f4cae30b64b9bcd6a2e9d52f5c4a9ec27[540 chars]: 1}}
+Diff is 1432 characters long. Set self.maxDiff to None to see it. : (('restore', 'persistent', 17, None, True), 'persistent, before restoring space')
+
+======================================================================
+FAIL: test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=17, mode='cleanup-pair-discovery')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 225, in test_every_flow_and_mode_sample
+    self.assertIsNotNone(secondary, flow)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: unexpectedly None : restore
+
+======================================================================
+FAIL: test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=72, mode='single', phase='live')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 218, in test_every_flow_and_mode_sample
+    _, observed = self.run_case(flow, point, mode)
+                  ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 198, in run_case
+    self.assert_agrees(s, (label, 'space restored'))
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 68, in assert_agrees
+    self.assertEqual(expected(record.rows), actual, label)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'gen[70 chars]': {'i': 'box', 'y': 1, 'h': 'b71f4cae30b64b9b[46 chars]9e'}} != {'gen[70 chars]': {'h': 'b71f4cae30b64b9bcd6a2e9d52f5c4a9ec27[540 chars]: 1}}
+Diff is 1432 characters long. Set self.maxDiff to None to see it. : (('restore', 'single', 72, None, False), 'space restored')
+
+======================================================================
+FAIL: test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=72, mode='persistent', phase='live')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 218, in test_every_flow_and_mode_sample
+    _, observed = self.run_case(flow, point, mode)
+                  ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 197, in run_case
+    self.assert_agrees(s, (label, 'persistent, before restoring space'))
+    ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 68, in assert_agrees
+    self.assertEqual(expected(record.rows), actual, label)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'gen[70 chars]': {'i': 'box', 'y': 1, 'h': 'b71f4cae30b64b9b[46 chars]9e'}} != {'gen[70 chars]': {'h': 'b71f4cae30b64b9bcd6a2e9d52f5c4a9ec27[540 chars]: 1}}
+Diff is 1432 characters long. Set self.maxDiff to None to see it. : (('restore', 'persistent', 72, None, False), 'persistent, before restoring space')
+
+======================================================================
+FAIL: test_every_flow_and_mode_sample (__main__.ProjectionCandidate.test_every_flow_and_mode_sample) (flow='restore', point=72, mode='cleanup-pair-discovery')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "<worktree>/reviews/19b-owner-state/STORAGE-S3-REDESIGN-TESTS.py", line 225, in test_every_flow_and_mode_sample
+    self.assertIsNotNone(secondary, flow)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: unexpectedly None : restore
+
+----------------------------------------------------------------------
+Ran 6 tests in 8.652s
+
+FAILED (failures=8)

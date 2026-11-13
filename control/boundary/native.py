@@ -1,7 +1,7 @@
 """Fixed streaming Messages test double. No model, sign-in, or external provider.
 
-Only the root supervisor changes managed env in this disposable container; the
-launcher has no test options and the assistant cannot select its endpoint.
+Only the root supervisor installs synthetic loopback auth in this disposable
+container. The CLI starts normally, with user settings and user-scope MCP servers.
 """
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -11,7 +11,7 @@ from pathlib import Path
 import subprocess
 import threading
 from boundary_assertions import (container_identity, validate_identity, validate_sandbox_result,
-                                 require_source_positive, policy_mounts, observed_processes, tool_text)
+                                 policy_mounts, observed_processes, tool_text)
 from boundary_assertions import mount_view
 
 ROOT = Path('/opt/aresos-control')
@@ -44,7 +44,7 @@ class Session:
                 messages = request.get('messages', [])
                 session.requests.append({'path': self.path, 'stream': request.get('stream'),
                                          'messages': messages,
-                                         'tools': [t['name'] for t in request.get('tools', [])]})
+                                         'system': request.get('system'), 'tools': request.get('tools', [])})
                 (OUT / (name + '-requests.json')).write_text(json.dumps(session.requests, indent=2))
                 for message in messages:
                     for block in message.get('content', []) if isinstance(message.get('content'), list) else []:
@@ -114,11 +114,10 @@ class Session:
         policy = json.loads(self.original)
         policy['env'] = {'ANTHROPIC_BASE_URL': 'http://127.0.0.1:18081',
                          'ANTHROPIC_API_KEY': 'SYNTHETIC_BOUNDARY_NONCREDENTIAL' if self.credential else ''}
-        # Root-only, disposable-image stand-in for the owner approving exactly
-        # these fixed commands. No wildcard, other tool, or production change.
         assert all(command in ('/usr/bin/python3 -I boundary-hostile.py',
                                '/usr/bin/python3 -I boundary-socket-state.py') for command in self.grants)
-        policy['permissions']['allow'] += ['Bash(' + command + ')' for command in self.grants]
+        if self.grants:
+            policy['permissions'].setdefault('allow', []).extend('Bash(' + c + ')' for c in self.grants)
         (OUT / (self.name + '-managed-settings.json')).write_text(json.dumps(policy, indent=2))
         POLICY.write_text(json.dumps(policy))
         self.thread.start()
@@ -144,10 +143,10 @@ def tool(name, inputs, identifier):
     return {'type': 'tool_use', 'id': identifier, 'name': name, 'input': inputs}
 
 
-def invoke(run, blocks, name, launcher=True, env=None, sources='', credential=True, grants=()):
+def invoke(run, blocks, name, env=None, credential=True, grants=(), flags=()):
     with Session(blocks, name, credential, grants) as session:
         # No additional CLI flags: non-TTY stdin selects print mode natively.
-        args = ['/usr/local/bin/aresos-assistant'] if launcher else ['/usr/local/bin/claude', '--setting-sources', sources]
+        args = ['/usr/local/bin/claude', *flags]
         result = run(args, name, env=env, input='Execute the fixed local boundary test.\n',
                      timeout=100, required=False)
         if session.before is not None and session.results:
@@ -200,17 +199,17 @@ def native_checks(run, put, mode, snapshots, stub):
     (OUT / 'native-planted-helper-paths.json').write_text(json.dumps([str(p) for p in planted], indent=2))
     native_before = (OUT / 'stub.txt').read_text().splitlines()
     print('CONTAINER_IDENTITY ' + json.dumps({n: os.readlink('/proc/self/ns/' + n) for n in ('net', 'mnt')}), flush=True)
-    # The baseline receives no test grant. In absent mode only the launcher's
-    # checks are bypassed, keeping its environment/uid/cwd/native arguments.
+    # The baseline receives no test grant. Both helper modes start the native
+    # CLI normally with the same owner, environment and optional user settings.
     baseline_result, baseline = invoke(run, [tool('Bash', {'command': 'sleep 2'}, 'identity')],
-                                      'native-baseline', mode == 'present')
+                                      'native-baseline')
     assert baseline_result.returncode == 0 and not baseline['identity'].get('is_error')
     hostile = '/usr/bin/python3 -I boundary-hostile.py'
     state_command = '/usr/bin/python3 -I boundary-socket-state.py'
     name = 'native-hostile-approved'
     result, rows = invoke(run, [tool('Bash', {'command': hostile, 'timeout': 30000}, 'hostile'),
                                tool('Bash', {'command': state_command}, 'socket-state')],
-                          name, mode == 'present', grants=(hostile, state_command))
+                          name, grants=(hostile, state_command))
     assert result.returncode == 0 and len(rows) == 2, 'native CLI never returned tool results'
     executed = 'HOSTILE_DONE' in tool_text(rows['hostile'])
     if not executed:
@@ -221,13 +220,14 @@ def native_checks(run, put, mode, snapshots, stub):
         print('NATIVE_NOT_EXECUTED mode=' + mode + ' exact_command_approval_denied see=' +
               name + '-results.json', flush=True)
         # The brief forbids widening the grant after a real denial.
+        raise AssertionError('Optional native hostile commands did not execute; no qualification claimed')
     else:
         identities = {key: validate_sandbox_result(rows[key], container_identity()) for key in rows}
         assert all(identities.values()), 'approved native socket-state did not execute'
         baseline_contexts = observed_processes(OUT / 'native-baseline-processes.txt')
         contexts = observed_processes(OUT / (name + '-processes.txt'))
         assert len(baseline_contexts) == 1 and len(contexts) == 2, 'incomplete native outside observation'
-        settings = json.loads(POLICY.read_text())
+        settings = json.loads((ROOT / 'optional-sandbox.json').read_text())
         baseline_view = policy_mounts(baseline_contexts[0]['mountinfo'], settings)
         baseline_tree = mount_view(baseline_contexts[0]['mountinfo'])
         trees = {'baseline': baseline_tree}
@@ -277,252 +277,3 @@ def native_checks(run, put, mode, snapshots, stub):
             path.unlink(missing_ok=True)
     assert not list(Path('/tmp/claude').glob('planted-helper-*')), 'native used a non-pinned fallback'
     print('NATIVE_HELPER_PATHS_OK non_pinned_candidates_unused=' + str(len(planted)), flush=True)
-    failures = []
-    checks = [('ide', lambda: ide_checks(run, put, mode))]
-    if mode == 'present':
-        checks += [('file-tools', lambda: file_tool_checks(run)),
-                   ('sources', lambda: source_checks(run, put))]
-    for name, check in checks:
-        try:
-            check()
-        except Exception:
-            import traceback
-            failure = traceback.format_exc()
-            (OUT / ('native-' + name + '-failure.txt')).write_text(failure)
-            failures.append(name + ': ' + failure)
-    assert (OUT / 'stub.txt').read_text().splitlines() == native_before, 'native file/web receiver arrival'
-    assert not failures, '\n'.join(failures)
-
-
-
-def file_tool_checks(run):
-    fixtures = json.loads((ROOT / 'fixtures.json').read_text())
-    blocks = []
-    mapping = {}
-    for name in ('Edit', 'Write', 'NotebookEdit'):
-        for index, path in enumerate(fixtures['writes'] + fixtures['notebooks'] + ['/home/assistant/outside.txt']):
-            identifier = name + '-' + str(index)
-            inputs = {'file_path': path, 'old_string': 'synthetic fixture', 'new_string': 'HOSTILE_FILE_TOOL'}
-            if name == 'Write':
-                inputs = {'file_path': path, 'content': 'HOSTILE_FILE_TOOL'}
-            elif name == 'NotebookEdit':
-                inputs = {'notebook_path': path, 'new_source': 'HOSTILE_FILE_TOOL',
-                          'cell_type': 'code', 'edit_mode': 'insert'}
-            mapping[identifier] = path
-            blocks.append(tool(name, inputs, identifier))
-    for index, path in enumerate(fixtures['reads']):
-        blocks.append(tool('Read', {'file_path': path}, 'Read-' + str(index)))
-    blocks += [tool('Write', {'file_path': '/home/assistant/outside-new.txt',
-                               'content': 'HOSTILE_OUTSIDE'}, 'Write-outside-new'),
-               tool('WebFetch', {'url': 'http://blocked.boundary.localhost:18080/payload',
-                                'prompt': 'Read this fixed synthetic page.'}, 'WebFetch'),
-               tool('WebSearch', {'query': 'fixed boundary synthetic query'}, 'WebSearch'),
-               tool('Bash', {'command': '/usr/bin/python3 -I boundary-socket-state.py',
-                             'dangerouslyDisableSandbox': True}, 'disable-sandbox')]
-    results = []
-    for attempt in (1, 2):
-        result, rows = invoke(run, blocks, 'native-file-tools-' + str(attempt))
-        assert result.returncode == 0 and len(rows) == len(blocks)
-        results.append(rows)
-    # Retain parser/validation failures as unqualified; never relabel them as
-    # permission refusals. Some fixed filenames cannot be NotebookEdit targets.
-    unresolved = {}
-    for attempt, batch in enumerate(results, 1):
-        for identifier, row in batch.items():
-            text = tool_text(row)
-            if identifier == 'disable-sandbox':
-                if validate_sandbox_result(row, container_identity()) is None:
-                    unresolved[str(attempt) + ':' + identifier] = text
-            else:
-                assert row.get('is_error'), 'file/web tool unexpectedly ran: ' + identifier
-                if not any(word in text for word in ('permission', 'permissions', 'outside')):
-                    unresolved[str(attempt) + ':' + identifier] = text
-    (OUT / 'native-file-unqualified.json').write_text(json.dumps(unresolved, indent=2))
-    (OUT / 'native-file-tool-paths.json').write_text(json.dumps(mapping, indent=2))
-    print('NATIVE_FILE_DISCOVERY ' + str(len(rows)), flush=True)
-
-
-def ide_checks(run, put, mode):
-    import base64
-    import hashlib
-    class IDE(BaseHTTPRequestHandler):
-        arrivals = []
-        def log_message(self, *args):
-            pass
-        def do_GET(self):
-            IDE.arrivals.append(dict(self.headers))
-            key = self.headers.get('Sec-WebSocket-Key', '')
-            accept = base64.b64encode(hashlib.sha1((key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').encode()).digest()).decode()
-            self.send_response(101)
-            self.send_header('Upgrade', 'websocket')
-            self.send_header('Connection', 'Upgrade')
-            self.send_header('Sec-WebSocket-Accept', accept)
-            if self.headers.get('Sec-WebSocket-Protocol'):
-                self.send_header('Sec-WebSocket-Protocol', self.headers['Sec-WebSocket-Protocol'].split(',')[0].strip())
-            self.end_headers()
-    class Listener(ThreadingHTTPServer):
-        connections = 0
-        def get_request(self):
-            accepted = super().get_request()
-            self.connections += 1
-            return accepted
-    server = Listener(('127.0.0.1', 18082), IDE)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    config = Path('/home/assistant/.claude.json')
-    original = config.read_bytes()
-    put(config, json.dumps({'autoConnectIde': True, 'hasCompletedOnboarding': True, 'theme': 'dark',
-                            'customApiKeyResponses': {'approved': ['SYNTHETIC_BOUNDARY_NONCREDENTIAL'[-20:]]},
-                            'projects': {'/home/assistant/work': {'hasTrustDialogAccepted': True}}}))
-    lock = Path('/home/assistant/.claude/ide/18082.lock')
-    put(lock, json.dumps({'pid': os.getpid(), 'workspaceFolders': ['/home/assistant/work'],
-                          'ideName': 'Visual Studio Code', 'transport': 'ws',
-                          'authToken': 'SYNTHETIC_IDE_TOKEN', 'runningInWindows': False}))
-    try:
-        from check import ENV
-        positive_env = dict(ENV)
-        positive_env.pop('CLAUDE_CODE_AUTO_CONNECT_IDE')
-        invoke(run, [], 'ide-positive', launcher=False, env=positive_env)
-        if not IDE.arrivals:
-            interactive_probe('ide-positive-interactive', positive_env)
-        positive = len(IDE.arrivals)
-        positive_connections = server.connections
-        invoke(run, [], 'ide-launcher', launcher=mode == 'present')
-        if positive and mode == 'present':
-            interactive_probe('ide-launcher-interactive', ENV, launcher=True)
-        (OUT / 'ide-arrivals.json').write_text(json.dumps({'positive': positive, 'after_launcher': len(IDE.arrivals),
-                                                          'positive_tcp': positive_connections, 'final_tcp': server.connections,
-                                                          'requests': IDE.arrivals}, indent=2))
-        assert positive and len(IDE.arrivals) == positive and server.connections == positive_connections, 'IDE positive control or launcher suppression failed'
-        print('IDE_OK positive=' + str(positive) + ' launched=' + str(len(IDE.arrivals)-positive), flush=True)
-    finally:
-        config.write_bytes(original)
-        lock.unlink()
-        server.shutdown()
-        server.server_close()
-        thread.join()
-
-
-def source_checks(run, put):
-    scopes = {'user': Path('/home/assistant/.claude/settings.json'),
-              'project': Path('/home/assistant/work/.claude/settings.json'),
-              'local': Path('/home/assistant/work/.claude/settings.local.json')}
-    originals = {p: p.read_bytes() for p in scopes.values()}
-    global_config = Path('/home/assistant/.claude.json')
-    originals[global_config] = global_config.read_bytes()
-    put(global_config, json.dumps({'hasCompletedOnboarding': True, 'theme': 'dark',
-        'customApiKeyResponses': {'approved': ['SYNTHETIC_BOUNDARY_NONCREDENTIAL'[-20:]]},
-        'projects': {'/home/assistant/work': {'hasTrustDialogAccepted': True}}}))
-    policy_original = POLICY.read_bytes()
-    markers = []
-    for scope, path in scopes.items():
-        prefix = '/tmp/claude/source-' + scope + '-'
-        markers += [Path(prefix + k) for k in ('hook', 'status', 'key', 'permission', 'plugin')]
-        command = lambda k: 'echo ran > ' + prefix + k
-        put(path, json.dumps({'permissions': {'allow': ['Write', 'Read', 'WebFetch', 'WebSearch']},
-                              'hooks': {'SessionStart': [{'hooks': [{'type': 'command', 'command': command('hook')}]}]},
-                              'statusLine': {'type': 'command', 'command': command('status')},
-                              'apiKeyHelper': command('key') + '; echo SYNTHETIC_BOUNDARY_NONCREDENTIAL',
-                              'enabledPlugins': {'fixture@boundary': True}}))
-    plugin = Path('/home/assistant/.claude/plugins/cache/boundary/fixture/1.0.0')
-    put(plugin / '.claude-plugin/plugin.json', json.dumps({'name': 'fixture', 'version': '1.0.0'}))
-    put(plugin / 'hooks/hooks.json', json.dumps({'hooks': {'SessionStart': [{'hooks': [{'type': 'command',
-        'command': 'echo ran > /tmp/claude/source-user-plugin'}]}]}}))
-    registry = Path('/home/assistant/.claude/plugins/installed_plugins.json')
-    put(registry, json.dumps({'version': 2, 'plugins': {'fixture@boundary': [{'scope': 'user',
-        'installPath': str(plugin), 'version': '1.0.0', 'installedAt': '2026-11-07T00:00:00Z',
-        'lastUpdated': '2026-11-07T00:00:00Z'}]}}))
-    report = {}
-    try:
-        # Working positive controls remove ONLY the managed source gates, and
-        # explicitly enable the lower scopes. They are not launcher sessions.
-        positive = json.loads(policy_original)
-        positive['allowManagedPermissionRulesOnly'] = False
-        positive['allowManagedHooksOnly'] = False
-        POLICY.write_text(json.dumps(positive))
-        assert not Path('/home/assistant/work/source-permission.txt').exists(), 'stale Write positive'
-        for attempt in (1, 2):
-            positive_result, positive_rows = invoke(run, [tool('Write', {'file_path': '/home/assistant/work/source-permission.txt',
-                                       'content': 'positive source allow'}, 'source-permission')],
-                   'sources-positive-' + str(attempt), launcher=False,
-                   sources='user,project,local', credential=False)
-            assert positive_result.returncode == 0 and not positive_rows['source-permission'].get('is_error')
-        from check import ENV
-        for attempt in (1, 2):
-            interactive_probe('sources-positive-tty-' + str(attempt), ENV,
-                              sources='user,project,local', credential=False)
-        report['positive_markers'] = [str(p) for p in markers if p.exists()]
-        permission = Path('/home/assistant/work/source-permission.txt')
-        report['positive_permission'] = permission.exists() and permission.read_text() == 'positive source allow'
-        require_source_positive(report)
-        print('SOURCES_POSITIVE_OK three_hooks local_status local_helper ordinary_Write', flush=True)
-        POLICY.write_bytes(policy_original)
-        refused = run(['/usr/local/bin/aresos-assistant'], 'sources-installed-plugin', required=False)
-        assert refused.returncode == 78 and 'no installed plugins' in refused.stderr
-        registry.unlink()
-        for p in markers + [Path('/home/assistant/work/source-permission.txt')]:
-            p.unlink(missing_ok=True)
-        for attempt in (1, 2):
-            result, rows = invoke(run, [tool('Write', {'file_path': '/home/assistant/work/source-permission.txt',
-                                                      'content': 'HOSTILE_SOURCE'}, 'source-permission')],
-                                  'sources-launcher-' + str(attempt))
-            report['launcher_results_' + str(attempt)] = rows
-            assert result.returncode == 0 and rows
-        # A supplied key would bypass apiKeyHelper even if a lower setting
-        # leaked. Repeat without a managed key: exclusion must leave no auth
-        # source and must still execute no planted helper.
-        for attempt in (1, 2):
-            no_key, no_key_rows = invoke(run, [], 'sources-launcher-no-key-' + str(attempt), credential=False)
-            report['no_key_exit_' + str(attempt)] = no_key.returncode
-            assert no_key.returncode != 0 and not no_key_rows
-        for attempt in (1, 2):
-            interactive_probe('sources-launcher-tty-' + str(attempt), ENV, launcher=True)
-        report['launcher_markers'] = [str(p) for p in markers if p.exists()]
-        assert not report['launcher_markers'], report
-        assert not Path('/home/assistant/work/source-permission.txt').exists()
-        print('SOURCES_OK lower_scopes_no_markers_no_permission_grant', flush=True)
-    finally:
-        registry.unlink(missing_ok=True)
-        POLICY.write_bytes(policy_original)
-        for p, data in originals.items():
-            p.write_bytes(data)
-        (OUT / 'source-checks.json').write_text(json.dumps(report, indent=2))
-
-
-def interactive_probe(name, env, launcher=False, sources='', credential=True):
-    """Real TTY startup for integrations that print mode intentionally omits."""
-    import fcntl
-    import pty
-    import select
-    import signal
-    import struct
-    import termios
-    import time
-    from check import owner
-    master, slave = pty.openpty()
-    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack('HHHH', 40, 120, 0, 0))
-    def prepare():
-        owner()
-        os.setsid()
-        fcntl.ioctl(slave, termios.TIOCSCTTY, 0)
-    args = ['/usr/local/bin/aresos-assistant'] if launcher else ['/usr/local/bin/claude', '--setting-sources', sources]
-    output = bytearray()
-    with Session([], name, credential):
-        process = subprocess.Popen(args, stdin=slave, stdout=slave, stderr=slave,
-                                   env=env, cwd='/home/assistant/work', preexec_fn=prepare)
-        os.close(slave)
-        try:
-            until = time.monotonic() + 12
-            while time.monotonic() < until and process.poll() is None:
-                if select.select([master], [], [], .2)[0]:
-                    try:
-                        output.extend(os.read(master, 65536))
-                    except OSError:
-                        break
-        finally:
-            if process.poll() is None:
-                os.killpg(process.pid, signal.SIGTERM)
-            process.wait(timeout=10)
-            os.close(master)
-    (OUT / (name + '-tty.txt')).write_bytes(output)
-    print('TTY_PROBE ' + name + ' bytes=' + str(len(output)), flush=True)

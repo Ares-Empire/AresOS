@@ -11,36 +11,40 @@ class Record(EngineCase):
         journal = self.root / "independent/operations.jsonl"
         attachment = (b"private-attachment-marker-" * (FILE_LIMIT // 26 + 1))[:FILE_LIMIT]
         self.assertEqual(len(attachment), FILE_LIMIT)
-        key = self.engine.blobs.put(attachment)
+        key = self.engine.blobs.put(attachment, origin="caller_import")
         ref = {"sha256": key, "size": len(attachment), "name": "private-attachment.txt", "real_path": "/fixture/private-path"}
         self.engine.store.write({"blob:" + digest(ref): ref}, "testapp_file_import", "fixture import")
         while len(self.engine.store.events) < 10:
             self.engine.store.write({}, "fixture", "align sequence widths")
-        sizes = []
+        sizes, record_counts = [], []
         with patch("aresos_control.engine.time.time", return_value=1000):
             for large in (False, True):
                 # IDs and timestamps have fixed length, as do all input hashes.
                 args = {"text": "tiny-body-marker", "to": ["alpha"], "bcc": []}
                 if large:
                     args["attachments"] = [ref]
-                    template = {"operation_id": "0" * 32 + ":" + "0" * 32,
+                    template = {"question": "Send this fixture message?", "operation_id": "0" * 32 + ":" + "0" * 32,
                                 "description": {"action": "testapp_send", "account": "fixture", "to": ["alpha"],
                                                 "cc": [], "bcc": [], "subject": "Fixture message", "text": "",
                                                 "attachments": [ref], "expires_at": 1900}}
                     args["text"] = "private-body-marker-" + "z" * (ASK_LIMIT - len(canonical(template).encode()) - 20)
                     self.assertEqual(len(args["text"]) + len(canonical(template).encode()), ASK_LIMIT)
                 before = journal.stat().st_size
+                old_records = sum('operations' in json.loads(line) for line in journal.read_text().splitlines())
                 approval = self.reserve(**args)
                 if large:
                     self.assertEqual(len(canonical(approval).encode()), ASK_LIMIT)
                 self.assertEqual(self.data("testapp_send", approval)["operation"]["state"], "done")
                 sizes.append(journal.stat().st_size - before)
+                record_counts.append(sum('operations' in json.loads(line) for line in journal.read_text().splitlines()) - old_records)
         self.assertEqual(sizes[0], sizes[1])
         with patch("aresos_control.engine.time.time", return_value=1000):
             before = journal.stat().st_size
+            old_records = sum('operations' in json.loads(line) for line in journal.read_text().splitlines())
             typical = self.reserve()
             self.data("testapp_send", typical)
             typical_size = journal.stat().st_size - before
+            typical_records = sum('operations' in json.loads(line) for line in journal.read_text().splitlines()) - old_records
         raw = journal.read_bytes()
         for forbidden in (b"tiny-body-marker", b"private-body-marker", b"private-attachment-marker",
                           b"private-attachment.txt", b"private-path", attachment[:64].hex().encode(), b"Untrusted fixture content"):
@@ -52,10 +56,11 @@ class Record(EngineCase):
                 for op in row["operations"]:
                     self.assertEqual(set(op), {"id", "generation", "input_hash", "description", "state"})
                     self.assertLessEqual(op["description"].keys(), {"action", "account", "to", "cc", "bcc", "subject", "title", "targets"})
-        # This send has six durable state/stage records, each with a commit marker.
+        # Context commits join the existing state/stage records and commit markers.
+        self.assertEqual(record_counts[0], record_counts[1])
         print(f"Record growth: tiny send={sizes[0]} bytes; maximum body + 25 MiB send={sizes[1]} bytes; "
-              f"6 state/stage records, mean={sizes[0] / 6:.1f} bytes per record including commit")
-        print(f"Record growth: typical three-recipient send={typical_size} bytes across 8 state/stage records")
+              f"{record_counts[0]} context/state/stage records, mean={sizes[0] / record_counts[0]:.1f} bytes per record including commit")
+        print(f"Record growth: typical three-recipient send={typical_size} bytes across {typical_records} context/state/stage records")
         self.assertTrue(any("private-body-marker" in canonical(e) for e in self.engine.store.audit()))
         self.assertIn(b"private-attachment-marker", self.engine.blobs.read(key))
 

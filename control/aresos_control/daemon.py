@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 from pathlib import Path
 import selectors
@@ -8,7 +7,7 @@ import socket
 import stat
 import struct
 
-from .common import FILE_LIMIT, Refused
+from .common import FILE_LIMIT, Refused, cleanup, strict_json_loads, storage_refusal
 from .engine import Engine
 from .protocol import receive, send
 
@@ -40,27 +39,48 @@ class Daemon:
 
     def serve(self):
         while not self.stopping:
-            self.engine.expire()
+            try:
+                self.engine.expire()
+            except Exception:
+                # Engine records the cause and owner notice before re-raising.
+                pass
             for key, _ in self.selector.select(timeout=0.1):
                 connection, _ = key.fileobj.accept()
                 with connection:
                     connection.settimeout(2)
+                    authorized = False
                     try:
                         _, uid, _ = struct.unpack("3i", connection.getsockopt(socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i")))
                         kind = key.data
                         if kind == "chrome" or uid != (0 if kind == "admin" else self.config["owner_uid"]):
                             raise Refused("permission_denied", "This peer is not permitted on this socket; use act as owner, admin via sudo. Chrome bridge accepts nothing.")
+                        authorized = True
                         request = receive(connection)
                         if kind == "act" and type(request) is dict and request.get("method") in {"upload", "download"}:
                             self.engine.transfer(connection, request)
                             continue
                         result = self.engine.request(request, admin=kind == "admin")
-                    except (Refused, OSError, ValueError, KeyError, TypeError) as exc:
-                        result = {"ok": False, "error": {"code": getattr(exc, "code", "transport_error"), "message": str(exc)}, "pending": {"items": [], "total": 0, "cursor": None}}
+                    except Exception as exc:
+                        result = self.error_result(exc, authorized)
                     try:
-                        send(connection, result)
-                    except (OSError, Refused):
+                        send(connection, result, result=True)
+                    except Exception:
                         pass
+
+    def error_result(self, exc, authorized):
+        from .results import bound_result
+        exc = storage_refusal(exc) or exc
+        pending = {"items": [], "total": 0, "cursor": None}
+        if authorized:
+            try:
+                pending = self.engine.pending(resolve_checks=False)
+            except Exception:
+                pending = {**self.engine._last_pending.get(None, pending),
+                           "unavailable": "Live pending read failed; inspect this snapshot and service state before further changes."}
+        result = {"ok": False, "error": {"code": getattr(exc, "code", "internal_error"),
+            "message": str(exc) if isinstance(exc, Refused) else "Request failed unexpectedly; inspect operation status before repeating changes."},
+            "pending": pending}
+        return bound_result(result, self.engine.store)
 
     def close(self):
         self.selector.close()
@@ -74,14 +94,15 @@ def main():
     parser.add_argument("--config", default="/etc/aresos-control/service.json")
     args = parser.parse_args()
     with open(args.config) as stream:
-        config = json.load(stream)
+        config = strict_json_loads(stream.read())
     daemon = Daemon(config)
     for sig in (signal.SIGTERM, signal.SIGINT):
         signal.signal(sig, lambda *_: setattr(daemon, "stopping", True))
     try:
         daemon.serve()
     finally:
-        daemon.close()
+        with cleanup('daemon close'):
+            daemon.close()
 
 
 if __name__ == "__main__":

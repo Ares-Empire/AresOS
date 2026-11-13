@@ -2,7 +2,7 @@ import {SandboxManager} from '@anthropic-ai/sandbox-runtime';
 import {readFileSync} from 'node:fs';
 import {spawn} from 'node:child_process';
 
-// Only the trusted harness/launcher invokes this, never an arbitrary config path.
+// Only the trusted test harness invokes this, never an arbitrary config path.
 const nativeCanary = process.argv[2] === '--native-canary';
 const config = JSON.parse(readFileSync('/opt/aresos-control/' + (nativeCanary ? 'native-canary.json' : 'sandbox.json'), 'utf8'));
 try {

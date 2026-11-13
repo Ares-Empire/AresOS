@@ -15,9 +15,14 @@ The workflow is nametbd's Codex-era workflow (branch `archive/codex-era-workflow
 - **Claude (me):** planner, orchestrator and integrator. I cut the design into small packages, write the briefs, launch Codex, check its work, merge, and keep the docs true.
 - **Codex:** the builder. One headless `codex exec` run per package, in its own git worktree. It builds, tests, and opens a PR. It never merges.
 
-**Claude agents may build packages too** (owner, 2026-11-09: "we could work with claude agents too", to use his Claude allowance). They get the same brief, worktree, branch and AGENTS.md rules as Codex. A fresh Codex context reviews their work, so a builder never reviews itself. Pick Codex or a Claude agent per package by fit and remaining allowance. Claude agents run on Opus by default. For a hard AresOS task or a problem that resists normal attempts, use Fable 5.2 (owner, 2026-11-09: "in the dev of an own OS I could imagine hard tasks").
+**Claude agents may build packages too** (owner, 2026-11-09: "we could work with claude agents too", to use his Claude allowance). They get the same brief, worktree, branch and AGENTS.md rules as Codex. Pick Codex or a Claude agent per package by fit and remaining allowance. Claude agents run on Opus by default. For a hard AresOS task or a problem that resists normal attempts, use Fable 5.2 (owner, 2026-11-09: "in the dev of an own OS I could imagine hard tasks").
 
-I only build things myself when writing the brief would cost more than doing it (a one-line fix, a config tweak). Anything I build still gets reviewed by a fresh Codex context. I never review my own work.
+**Reviews (owner, 2026-11-11: "Yes change it").** Every package gets a fresh reviewer that isn't its builder: a fresh Codex context while Codex is available (ChatGPT Pro ends 2026-11-21), otherwise a fresh Claude agent.
+- A Claude reviewer runs on **Opus** by default.
+- Use **Fable 5.2** only for high-stakes reviews: where AresOS adds its own risk (updates and rollback, disks, software installs, credentials, system settings), and for the final review before something reaches the owner's laptop. Fable's allowance is for building.
+- Nobody reviews their own work, me included.
+
+I only build things myself when writing the brief would cost more than doing it (a one-line fix, a config tweak). Anything I build still gets that fresh review.
 
 ## Orienting at session start
 

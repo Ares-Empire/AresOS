@@ -5,10 +5,10 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import native
-from boundary_assertions import validate_managed_mcp, validate_sandbox_result, require_source_positive, policy_mounts, mount_view
+from boundary_assertions import validate_sandbox_result, policy_mounts, mount_view
 
 
 CONTAINER = {'namespaces': {'net': 'net:[1]', 'mnt': 'mnt:[1]'}, 'cap_eff': '0',
@@ -17,54 +17,30 @@ ISOLATED = {'namespaces': {'net': 'net:[2]', 'mnt': 'mnt:[2]'}, 'cap_eff': '0',
             'seccomp': ['Seccomp: 2', 'Seccomp_filters: 2']}
 
 
+class NativePolicyFixture(unittest.TestCase):
+    def test_synthetic_env_and_grants_restore_on_session_exception(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            policy = root / 'managed-settings.json'
+            original = json.dumps({'permissions': {'ask': ['mcp__testapp__send']}, 'hooks': {}}).encode()
+            policy.write_bytes(original)
+            with patch.multiple(native, ROOT=root, OUT=root, POLICY=policy), \
+                 patch.object(native, 'ThreadingHTTPServer', return_value=Mock()), \
+                 patch.object(native.threading, 'Thread', return_value=Mock()):
+                with self.assertRaisesRegex(RuntimeError, 'Synthetic interrupted session'):
+                    with native.Session([], 'fixture', grants=('/usr/bin/python3 -I boundary-hostile.py',)):
+                        installed = json.loads(policy.read_bytes())
+                        self.assertEqual(installed['permissions']['ask'], ['mcp__testapp__send'])
+                        self.assertEqual(installed['permissions']['allow'], ['Bash(/usr/bin/python3 -I boundary-hostile.py)'])
+                        self.assertNotIn('sandbox', installed)
+                        raise RuntimeError('Synthetic interrupted session')
+            self.assertEqual(policy.read_bytes(), original)
+
+
 def result(identity=ISOLATED, sockets=None):
     sockets = sockets if sockets is not None else [{'family': f, 'errno': 1} for f in ('AF_UNIX', 'AF_VSOCK')]
     return {'content': 'SANDBOX_IDENTITY ' + json.dumps(identity) + '\n' +
             '\n'.join('SOCKET_STATE ' + json.dumps(s) for s in sockets)}
-
-
-class ManagedMCPChecks(unittest.TestCase):
-    def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.temp.cleanup)
-        self.managed = Path(self.temp.name) / 'managed-mcp.json'
-        # Names deliberately differ from the shipped file: the installed file is authoritative.
-        self.names = ['fixture-notes', 'fixture-mail']
-        self.managed.write_text(json.dumps({'mcpServers': {name: {} for name in self.names}}))
-        self.rows = [name + ': /usr/bin/proxy ' + name +
-                     ' - ✘ Failed to connect — CONNECTION_CLOSED: Connection closed' for name in self.names]
-
-    def check(self, rows, require_failed=False, code=0, stderr=''):
-        result = SimpleNamespace(returncode=code, stdout='Checking MCP server health…\n\n' +
-                                 '\n'.join(rows) + '\n', stderr=stderr)
-        return validate_managed_mcp(result, self.managed, require_failed=require_failed)
-
-    def test_exact_installed_names_in_any_order(self):
-        self.assertEqual(self.check(self.rows[::-1]), sorted(self.names))
-        self.assertEqual(self.check(self.rows, require_failed=True), sorted(self.names))
-
-    def test_extra_missing_duplicate_and_malformed_rows_are_rejected(self):
-        for rows in (self.rows + ['rogue-user: python fixture.py - ✓ Connected'],
-                     self.rows + ['rogue-project: python fixture.py - ✓ Connected'],
-                     self.rows[:1], self.rows + self.rows[:1], [],
-                     [self.rows[0].replace(self.names[0] + ':', self.names[0] + '-extra:')] + self.rows[1:],
-                     self.rows + ['unrecognized output'], ['No MCP servers configured.']):
-            with self.subTest(rows=rows), self.assertRaises(AssertionError):
-                self.check(rows)
-        with self.assertRaises(AssertionError):
-            self.check(self.rows, code=1)
-        with self.assertRaises(AssertionError):
-            self.check(self.rows, stderr='rogue-user: python fixture.py - ✓ Connected\n')
-
-    def test_each_coding_server_must_explicitly_fail_to_connect(self):
-        for index in range(len(self.rows)):
-            for status in ('✓ Connected', '△ Needs authentication',
-                           '✓ Connected — description says Failed to connect'):
-                rows = self.rows.copy()
-                rows[index] = self.names[index] + ': /usr/bin/proxy - ' + status
-                self.check(rows)  # Assistant discovery does not require service availability.
-                with self.subTest(index=index, status=status), self.assertRaises(AssertionError):
-                    self.check(rows, require_failed=True)
 
 
 class EvidenceChecks(unittest.TestCase):
@@ -96,36 +72,6 @@ class EvidenceChecks(unittest.TestCase):
             validate_sandbox_result(result(), dict(CONTAINER, seccomp=['Seccomp: 2', 'Seccomp_filters: 2']))
         with self.assertRaises(AssertionError):
             validate_sandbox_result(result(dict(ISOLATED, cap_eff='80000')), CONTAINER)
-
-    def test_first_attempt_cannot_be_hidden_by_second(self):
-        # Reproduce the review's first-batch gap through the batch checker itself.
-        with tempfile.TemporaryDirectory() as folder:
-            root = Path(folder)
-            (root / 'fixtures.json').write_text(json.dumps({'writes': [], 'notebooks': [], 'reads': []}))
-            for bad_attempt in (0, 1):
-                batches = []
-                def invoke(run, blocks, name):
-                    rows = {b['id']: {'is_error': True, 'content': 'permission denied'} for b in blocks}
-                    rows['disable-sandbox'] = result(CONTAINER if len(batches) == bad_attempt else ISOLATED)
-                    batches.append(rows)
-                    return SimpleNamespace(returncode=0), rows
-                with patch.object(native, 'ROOT', root), patch.object(native, 'OUT', root), \
-                     patch.object(native, 'invoke', invoke), patch.object(native, 'container_identity', lambda: CONTAINER):
-                    with self.subTest(bad_attempt=bad_attempt), self.assertRaises(AssertionError):
-                        native.file_tool_checks(None)
-
-    def test_every_source_positive_is_required(self):
-        markers = ['/tmp/claude/source-' + scope + '-hook' for scope in ('user', 'project', 'local')]
-        markers += ['/tmp/claude/source-local-status', '/tmp/claude/source-local-key']
-        positive = {'positive_markers': markers, 'positive_permission': True}
-        require_source_positive(positive)
-        for marker in markers:
-            with self.subTest(marker=marker), self.assertRaises(AssertionError):
-                require_source_positive(dict(positive, positive_markers=[m for m in markers if m != marker]))
-        with self.assertRaises(AssertionError):
-            require_source_positive(dict(positive, positive_permission=False))
-        with self.assertRaises(AssertionError):
-            require_source_positive({'positive_markers': [], 'positive_permission': False})
 
     def test_effective_overmount_wins_and_view_keeps_access_mode(self):
         mounts = ('1 0 0:1 / / ro - overlay overlay rw\n'
