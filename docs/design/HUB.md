@@ -1,6 +1,12 @@
 # AresOS home screen, version 1: the flat hub
 
-Design, 2026-11-13. Nothing here is built yet.
+Design, 2026-11-13, by a Fable design agent. Nothing here is built yet.
+
+**Status (2026-11-13).** Accepted by the orchestrator as the plan for the hub packages (briefs 32 to 37). What the owner has said so far and what was decided for him:
+- His pointers of 2026-11-13 are the base (flat Overworld first, logos built from blocks with an opening at the front and not too tall, the hotbar as the taskbar, `/name` in chat; "This is not set, neither the logos nor the walk in etc. You can find better solutions but in minecraft as a homescreen").
+- Logo height (section 7, question 1) is asked on board #207 with the picture of the four sizes; the packages build with 12 until he answers. It is one number (`SIZE`).
+- Questions 2 and 3 of section 7 were not put to him as questions: a program he installs gets a logo by itself, and the four groups stand as designed. Both were shown to him with the design and are cheap to change (a rule and a table).
+- Section 3.8 (the interface additions) was added by the orchestrator so the mod and the helper are built to one description.
 
 It follows the owner's pointers of 2026-11-13: a flat Overworld first, app logos built from blocks that he walks into, the hotbar as the taskbar, `/name` in chat, logos that are not too tall and have an opening at the front. It replaces the Nether home of [DESIGN.md](DESIGN.md) as the first home. The Nether can come back later as a second look that uses the same rules.
 
@@ -369,6 +375,34 @@ Three things beyond that list:
 3. **The icon as a PNG at least 64 pixels wide** (128 or more is better), with its transparency. The mod works out itself when it changed.
 
 On Windows, where the mod is developed, every program found counts as "came with the system": only the pinned ones start in My apps.
+
+### 3.8 The interface additions (`aresos-shell/1.1`)
+
+One description for both sides: the mod's client (package 34) and the OS helper (package 30) are built to this, and `docs/design/OS-BASE.md` Appendix B1 takes it over when the helper lands. Everything in `aresos-shell/1.0` stays as it is.
+
+- **Version.** The helper's minor version becomes 1. `hello` works as today: the reply's `minor` is the lower of the two sides. A 1.1 helper also offers the capabilities `app_details`, `apps_changed` and `list_paging`. The mod requires none of them, so it keeps working with a 1.0 helper (three apps, no pictures, as today).
+- **An older mod (1.0) with a 1.1 helper** gets exactly what it gets today: the starter apps with `id`, `name`, `available`, `reason`, in one reply. Programs found through desktop entries are listed and opened only for a client that negotiated 1.1.
+- **`list_apps` in 1.1.**
+  - The request may carry `"cursor"` (a string of at most 64 characters that the helper handed out; no cursor means the first page).
+  - The reply carries `revision`, `apps` (one page, ordered by `id`) and, when more follow, `next` (the cursor for the next page). Every message stays within the 64 KiB limit.
+  - The client asks again with `cursor` until a reply has no `next`. If a page's `revision` differs from the first page's, it starts over; after three such starts it keeps the list it had and tries again at the next `apps_changed`.
+- **An entry in 1.1** has `id`, `name`, `available`, `reason` as today, and these optional fields. A missing field means "not known"; unknown fields are ignored by both sides.
+
+  | Field | Value |
+  |---|---|
+  | `source` | where it came from: `image` (a starter from the reviewed list), `system` (`/usr/share/applications`, `/usr/local/share/applications`), `flatpak-system`, `flatpak-user`, `user` (his own folder) |
+  | `icon` | absolute path of a PNG with transparency, at least 64 pixels wide (the helper writes 128 x 128), readable by him |
+  | `categories` | the entry's categories, at most 16, each `[A-Za-z0-9-]{1,32}` |
+  | `generic_name` | at most 64 characters |
+  | `keywords` | at most 16, each at most 32 characters |
+  | `desktop_id` | the desktop file ID, at most 128 characters |
+  | `exec_name` | the base name of the program file that runs; for a Flatpak, its app ID |
+  | `terminal` | true when it runs inside the terminal |
+
+  A starter that stands for desktop entries (Chrome for `google-chrome.desktop`) is listed once, as the starter, with `source` `image`, and takes `icon`, `categories`, `generic_name`, `keywords` and `desktop_id` from the first of those entries that is installed.
+- **`apps_changed`.** When the list or a picture changes while the helper runs, a client that negotiated 1.1 gets the event `{"event": "apps_changed", "revision": "<new revision>"}` (in the usual envelope). The client then lists again, at most once every two seconds.
+- **Never sent to the game:** a command, arguments, an environment, or a path other than `icon`.
+- **Example messages.** The mod package commits one example file per message kind under `mod/src/test/resources/shell-1.1/` (a first page with `next`, a last page, an entry with every field, an entry with none, `apps_changed`). The helper package's tests read the same files and check that the helper produces and accepts that shape.
 
 ---
 
