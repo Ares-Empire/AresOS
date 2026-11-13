@@ -218,15 +218,18 @@ public final class GateBuilder {
             throw new IOException("The gate of " + zone.app() + " isn't loaded. Go to it and use /aresos logo remove here. Nothing changed.");
         var ground = new HashMap<BlockPos, String>();
         for (var replaced : gate.ground()) ground.put(replaced.pos(), replaced.block());
-        int removed = 0, kept = 0;
+        var removing = new LinkedHashMap<BlockPos, BlockState>();
+        int kept = 0;
         for (var placed : gate.placed()) {
             if (!unchanged(level.getBlockState(placed.pos()), placed)) { kept++; continue; }
             var before = Optional.ofNullable(ground.get(placed.pos())).map(Identifier::tryParse).flatMap(BuiltInRegistries.BLOCK::getOptional);
-            level.setBlockAndUpdate(placed.pos(), before.orElse(Blocks.AIR).defaultBlockState());
-            removed++;
+            removing.put(placed.pos(), before.orElse(Blocks.AIR).defaultBlockState());
         }
+        // Refuse the whole operation before touching the sign, the record or any block.
+        Neighbors.check(level, removing.keySet(), removing.keySet(), 2);
+        removing.forEach(level::setBlockAndUpdate);
         gate.sign().map(level::getEntity).ifPresent(Entity::discard);
         ZoneData.get(server).remove(saved -> saved.id().equals(zone.id()));
-        return new Removal(removed, kept);
+        return new Removal(removing.size(), kept);
     }
 }

@@ -6,6 +6,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.decoration.BlockAttachedEntity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Fallable;
@@ -39,6 +40,16 @@ final class Neighbors {
      * Cells in {@code changing} are the build's own and are not looked at.
      */
     static void check(ServerLevel level, Set<BlockPos> changing, Collection<BlockPos> around, int reach) throws IOException {
+        var signs = ZoneData.get(level.getServer()).signs();
+        for (var cell : around) {
+            var entities = level.getEntities((Entity)null, new AABB(cell).inflate(1), entity -> !signs.contains(entity.getUUID())
+                    && (entity instanceof BlockAttachedEntity || standsOn(entity, cell)));
+            if (!entities.isEmpty()) {
+                var entity = entities.getFirst();
+                throw new IOException("Logo could disturb " + BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType())
+                        + " at " + entity.blockPosition().toShortString() + ". No blocks changed. Move it away, then retry.");
+            }
+        }
         var checked = new HashSet<BlockPos>();
         for (var cell : around) for (int x = -reach; x <= reach; x++) for (int y = -reach; y <= reach; y++) for (int z = -reach; z <= reach; z++) {
             if (Math.abs(x) + Math.abs(y) + Math.abs(z) > reach) continue;
@@ -51,9 +62,17 @@ final class Neighbors {
         }
     }
 
+    private static boolean standsOn(Entity entity, BlockPos cell) {
+        var body = entity.getBoundingBox();
+        return Math.abs(body.minY - (cell.getY() + 1)) < 0.01 && body.maxX > cell.getX() && body.minX < cell.getX() + 1
+                && body.maxZ > cell.getZ() && body.minZ < cell.getZ() + 1;
+    }
+
     /** Air, a plain full block, a block the mod itself builds with, or untouched ground. Anything unknown is refused. */
     static boolean inert(ServerLevel level, BlockPos pos, BlockState state) {
         if (state.isAir()) return true;
+        // A kept light retains its fluid and has no support to lose when an adjacent logo block disappears.
+        if (state.is(Blocks.LIGHT)) return true;
         if (!state.getFluidState().isEmpty() || state.hasBlockEntity() || state.isSignalSource()) return false;
         if (OWN.contains(state.getBlock())) return true;
         if (!state.isCollisionShapeFullBlock(level, pos) || state.getBlock() instanceof Fallable) return false;

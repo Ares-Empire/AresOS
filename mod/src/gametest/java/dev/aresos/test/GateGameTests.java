@@ -430,6 +430,44 @@ public final class GateGameTests {
     }
 
     @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
+    public void removalRefusesAttachmentsAndFallingBlocksBeforeChangingAnything(GameTestHelper helper) {
+        Site.run(helper, 190, site -> {
+            var level = site.level();
+            var plan = site.plan(GatePicture.plain("iron_block", 12));
+            var zone = site.build(plan);
+            var top = plan.at(1, 2, 11).above();
+            level.setBlockAndUpdate(top, Blocks.TORCH.defaultBlockState());
+            removalRefused(site, zone, "minecraft:torch", top);
+            level.setBlockAndUpdate(top, Blocks.AIR.defaultBlockState());
+            // A changed pixel resting on a still-owned one is no longer part of the removal set.
+            var sand = plan.at(1, 3, 7);
+            level.setBlockAndUpdate(sand, Blocks.SAND.defaultBlockState());
+            removalRefused(site, zone, "minecraft:sand", sand);
+            level.setBlockAndUpdate(sand, Blocks.IRON_BLOCK.defaultBlockState());
+            var frame = new net.minecraft.world.entity.decoration.ItemFrame(level, plan.at(-1, 2, 5), Direction.SOUTH);
+            check(frame.survives() && level.addFreshEntity(frame), "item frame fixture is not attached");
+            removalRefused(site, zone, "minecraft:item_frame", frame.blockPosition());
+            check(frame.isAlive(), "refusal removed the item frame");
+            frame.discard();
+            GateBuilder.remove(level.getServer(), zone);
+        });
+    }
+
+    private static void removalRefused(Site site, AppZone zone, String thing, BlockPos pos) {
+        var before = site.snapshot();
+        var zones = site.zones();
+        var signs = site.signs().stream().map(net.minecraft.world.entity.Entity::getUUID).toList();
+        try {
+            GateBuilder.remove(site.level().getServer(), zone);
+            throw new AssertionError("Removed despite " + thing);
+        } catch (IOException expected) {
+            check(expected.getMessage().contains(thing) && expected.getMessage().contains(pos.toShortString()), "removal refused with: " + expected.getMessage());
+        }
+        check(before.equals(site.snapshot()), "refused removal changed blocks around " + thing);
+        check(zones.equals(site.zones()) && signs.equals(site.signs().stream().map(net.minecraft.world.entity.Entity::getUUID).toList()), "refused removal lost the complete gate record or sign");
+    }
+
+    @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
     public void everyRefusalChangesNothing(GameTestHelper helper) {
         Site.run(helper, 100, site -> {
             var level = site.level();
