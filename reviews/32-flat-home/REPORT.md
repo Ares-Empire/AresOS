@@ -59,8 +59,9 @@ and change with the look (package 36). Leave and click
 **Protection** (`zone/WalkInZones.java` 3 lines, `mixin/LogoExplosionMixin.java` 3 lines).
 - In Live mode a recorded position whose block is still the recorded block cannot be broken by hand ("The home pad
   and roads are protected. Press G for Build mode.") or by an explosion.
-- A block he changed in Build mode no longer matches the record, so it is his: not protected, never put back. The
-  record is not rewritten when he edits.
+- A block he changed leaves the record immediately and permanently, including when he puts the original material
+  back. Successful block-kind changes at the server chunk remove the entry and dirty the saved data. An observed
+  mismatch in `holds` also removes it. The saved shape stays `{pos, block}`.
 - Text displays take no damage from anything in 26.2 (`Display.hurtServer` is final and returns false). In version 1
   the names belong to the mod and change with the look (package 36), including in Build mode. The name-survival
   test stays; block editing is unrestricted in Build mode.
@@ -118,8 +119,8 @@ All on the laptop, 2026-11-13, through the two scripts only.
 - In his own session through `mod/dev/run-hub.sh`: the tests drive the same title-screen buttons, but headless.
 - Breaking blocks with the mouse and real TNT: the tests call the server's own break and explosion paths, which is
   where the protection sits.
-- A LAN guest. The mod accepts only the singleplayer host for its commands; the explosion rule below looks at every
-  player.
+- A real LAN guest. Server tests cover a creative non-owner with no identifiable host, and the client test covers
+  the real host. Explosions now follow only the host's mode; an unknown host keeps protection.
 
 ## JUDGMENT-CALL
 
@@ -128,13 +129,10 @@ All on the laptop, 2026-11-13, through the two scripts only.
    mode). So TNT beside a road in Build mode breaks the road but not a logo. Rejected: making the hub explosion-proof
    in both modes like logos (contradicts the acceptance). Changing it later is one line in `HubData`; package 36
    moves both onto one function and can settle one rule.
-2. **"Build mode" for explosions means: some player in the world is in creative.** An explosion has no player, so the
-   rule looks at who is there. In his singleplayer world that is him. Rejected: asking for the singleplayer host,
-   which no server test can exercise. He would notice a difference only with a LAN guest in creative.
-3. **A block he changed is recognised by comparison, not by a list.** The mod treats a recorded position as its own
-   while the world still holds the recorded block there. If he breaks a road block and later puts the same kind of
-   block back in the same place, it is protected again in Live mode. Rejected: removing a position from `hub.dat` on
-   his first edit, which needs a hook on every way a block can change and loses information package 36 may want.
+2. **Settled by review fix 3:** only the singleplayer host's mode controls explosions. Guests are ignored, and an
+   unidentifiable host means protection stays on. This replaces the original any-creative-player decision.
+3. **Settled by review fix 2:** a changed block is removed from the saved list. Putting the same material back never
+   restores ownership. This replaces the original comparison-only decision.
 4. **The home kind is one extra key in the existing manifest** (`home=flat`, version still 1). Rejected: a version 2
    manifest or a second file; both would make "a Nether `AresHub` behaves exactly as before" harder to keep. An
    older mod reading a flat manifest would take it for a Nether manifest, but only a world it had just created is
@@ -181,6 +179,66 @@ All on the laptop, 2026-11-13, through the two scripts only.
 - Should explosions follow one rule for logos and for the pad and roads (JUDGMENT-CALL 1)? Package 36 is the place
   to settle it.
 - Nothing is left in `.work/`; this package downloaded nothing.
+
+## Review fixes 1
+
+Follow-up brief: `briefs/32-review-fixes-1.md`; review: `reviews/32-flat-home/REVIEW-1.md`.
+Builder: Codex, gpt-6.1-sol. No look, world preset, home coordinates, dependency, `mod/dev/`, or OS changes.
+
+**Done, per finding**
+
+1. **Damaged exact home:** `NetherHome` strips partial codec results before Minecraft's saved-data reader can accept
+   them. A `home=flat` manifest requires the nested exact home; an absent one is exposed as unreadable data without
+   dirtying or rewriting it. The existing warning, command refusal, and no-arrival paths apply. The client regression
+   opens the save with the nested home missing, malformed, and partially decodable, checks saved position and respawn,
+   rules, blocks, names and record, refuses `home set`, and compares file bytes after shutdown. The Nether client
+   regression explicitly checks its legacy file has no nested home, still arrives at the anchor, and remains byte-identical.
+2. **Permanent ownership:** `HubBlockChangeMixin` observes successful block-kind changes at `LevelChunk.setBlockState`.
+   `HubData` removes the position from both its lookup and saved `{pos, block}` list immediately and marks it dirty.
+   `holds` permanently drops observed mismatches too. Server regressions cover mined/replaced gold, an intervening
+   replacement changed back, direct replacement, and a stale record whose mismatch is observed. Client regressions
+   repeat the same-material gold and changed-back concrete checks after closing and reopening the save.
+3. **Host-only explosions:** `HubData.protectsFromExplosions(GameType)` is the small policy, with a separate server
+   test for every mode and an unknown host. Server selection uses `DesktopWorld.isHost`; a creative non-owner in
+   the server test cannot disable protection. The client exercises actual explosions with the real host in Build
+   and Live, checking destruction, record removal, protection, and name survival.
+4. **Group-name exception:** the report now says: in Build mode he can change every block; the names are the mod's.
+   Version 1 names change with the look in package 36. The name-survival assertions remain.
+5. **Continuous mob observation:** `MobAdditions` counts `ServerEntityEvents.ENTITY_LOAD` throughout the quiet
+   interval, including mobs that disappear before an assertion. Its own server test adds and removes a zombie in
+   one tick. The no-mob test retains its spawning-positive control, asserts the cumulative counter every quiet tick,
+   and restores every changed rule, including `SPAWN_MONSTERS` (restored last to refresh the cached spawning flag).
+
+**Verified so far**
+
+- `free -g` preceded every build/test attempt; only one heavy step ran at a time in this worktree.
+- `mod/dev/build.sh`: six successful runs, printing `BUILD SUCCESSFUL in 50s`, `46s`, `48s`, `37s`, `42s`, and `38s`.
+  The last two were consecutive on code commit `5ad95f74`, each printing `All 47 required tests passed :)`.
+  JUnit XML records 68 tests, 6 platform skips, 0 failures and 0 errors (62 passed, including all 6 layout tests).
+- In the last two builds the control saw slimes after 56 and 58 ticks; both printed
+  `32 server no-mob check: 12000 ticks, 0 mob additions`.
+- The first `mod/dev/client-test.sh` attempt included the optional real-home vanilla tick sprint. It printed
+  `Timed out waiting for predicate`, `BUILD FAILED in 9m 2s`, and exit code 1 after 9 min 3 s. A thread dump showed
+  the server waiting in Fabric's `ThreadingImpl.enterPhase` / `postRunTasks` test-tick barrier while the test waited
+  for the sprint. Fabric still paces those server ticks; vanilla's sprint does not bypass its synchronization.
+  The optional check was omitted under the follow-up brief's explicit eight-and-a-half-minute allowance. The full
+  server interval, positive control, and ordinary actual-home mob assertions remain.
+
+**Not verified / limits**
+
+- A 12,000-tick interval in the actual flat home through the client harness: omitted for the measured reason above.
+  The server interval uses the existing vanilla flat test world under the production rules; the actual production
+  preset, initialized fixed things, noon and weather are checked separately in the client test.
+- Manual mouse/TNT play, shaders, and a real LAN guest remain human checks. No real session window was opened.
+
+**JUDGMENT-CALL:** none beyond the brief's explicit decisions and optional sprint allowance. Original calls 2 and 3
+are superseded above; the other calls stand.
+
+**PLAN-GAP:** the follow-up says the orchestrator recorded the group-name exception in HUB.md. This worktree's
+section 2.5 still says "In Build mode he can change anything." The report follows the explicit follow-up decision;
+the design-document synchronization stays with the orchestrator because these fixes are scoped to code, tests and report.
+
+**Open questions:** no new implementation questions.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
