@@ -155,6 +155,14 @@ The node never holds its descendants' text, a box or a style.
     arrived, and a password he made visible looks like any other text. The reader knows which case it is from how
     it was installed, never from anything a page can set; when it can't tell, the document counts as not watched.
     `reload_state` keeps comparing a field with its default inside the content script; only its counts leave.
+  - **History, inside a watched document: a shadow root the reader met late.** Brief 20's observer learns of a
+    shadow root only at the next change it sees in a tree it already watches. A component that attaches its root
+    to an element that is already in the page (a custom element upgraded after the load) causes no such change.
+    He can type into its field and make it plain before the reader has met that root at all. So when the reader
+    first meets a shadow root, a text field in it that **already holds text** has no known history: it is
+    `(not read)` for the life of the document. An empty one is watched from then on.
+  - **An unread field is not typed into either.** A `fill` or a key on a field that is `(not read)` is refused like
+    one on a password field (`owner_signin`), because it would overwrite what Claude can't see.
 - Left out: scripts, styles, hidden elements, elements behind an open modal dialog, frames of the fixed list.
   Frames of other sites and open and closed shadow roots are included, as today.
 - No box, no computed style beyond what the checks above need. The command must be cheaper than `read` on the same
@@ -803,6 +811,12 @@ Added cases, each with group 7's known password and a label that says nothing ("
   as a class); each in the page, in an open and a closed shadow root and in a frame from another site.
 - **A sign-in code known only by its name** (`name="otp"`, a label "Verification code", no `autocomplete`), in a
   document watched from its start and in one that wasn't.
+- **A shadow root met late, in a document watched from its start:** a custom element is upgraded after the load
+  and attaches its root without any change the observer sees; the owner types the password with real keys and
+  switches the field to plain text before the first read. Once with the label "Password" (kept out by its name),
+  once with the label "Code" (kept out because it held text when the reader first met its root). In the same
+  root, a field that was empty at that first meeting is read afterwards, and a `fill` on the unread one is
+  refused.
 - Every surface reads them: the outline, a form by `ref`, `find` for the password itself, several tabs, `until`,
   the change report, the results of `chrome_open`, `chrome_go` and `chrome_take`, and a prepared operation's
   question for a form that holds such a field.

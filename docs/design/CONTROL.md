@@ -447,9 +447,11 @@ sites and synthetic profiles).
   field, and nothing in the page says what it was. That is the case in a taken tab before its reload, and in every
   tab of his that Claude looks at in place (*brief 28b*). There the reader doesn't read what any text field or
   editable area holds: each appears with its label and `(not read)`. The page's text and structure, ticks, radio
-  choices and chosen options are read as everywhere. This is a rule, not a known limit: a password or sign-in code
-  reaching Claude is never accepted (owner, 2026-11-11). Its price is under "Known limits": in his own tab Claude
-  can't read back what he typed.
+  choices and chosen options are read as everywhere. The same holds, inside a watched document, for a text field
+  that already held text when the reader first met its shadow root, because a component can attach a root
+  without the reader noticing at once. Claude doesn't type into a field it can't read. This is a rule, not a
+  known limit: a password or sign-in code reaching Claude is never accepted (owner, 2026-11-11). Its price is
+  under "Known limits": in his own tab Claude can't read back what he typed.
 - **The service checks its peer.** `chrome.sock` accepts only his user (Chrome, and so the host, run as him) and one
   host per running Chrome, from the pinned profile ("Which tabs Claude works in", *brief 28b*). Under decision 24
   another program of his user could imitate or disturb the host, as it could any program of his (for example by
@@ -1206,7 +1208,8 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   was woken. "Leaves no trace" is promised only for a tab that is already loaded, and a tab that wakes with
   restored fields isn't known clean for a later take or close.
 - **In his own tabs Claude doesn't see what he typed.** Where the reader hasn't watched a page from its start, it
-  reads no text field and no editable area ("What the extension can and can't do"). *Harm:* Claude can't proofread
+  reads no text field and no editable area ("What the extension can and can't do"). In Claude's own tabs the same
+  hits one case: a filled field inside a component whose shadow root the reader met late. *Harm:* Claude can't proofread
   a draft or read back a form in a tab of his; it sees them after a take with its reload, or in a copy of the page
   in its own tab, where his unsent typing isn't. *Accepted:* the tool can't tell a password he made visible from
   other text there, and a password is never a limit. A passive marker that proves each field's history could lift
