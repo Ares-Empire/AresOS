@@ -1,0 +1,78 @@
+{
+  "status": "passed",
+  "commit": "c90725286442324907397f0b3c6a84c3ba8637aa",
+  "order": "protected-second",
+  "starting_state": "corrected pinned stock switched to release 13 by the laptop tools (15f)",
+  "laptop_tools": "3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc",
+  "laptop_tools_commit": "17fe261cc00e5dac39d443e0be30b849567daf4c",
+  "previous_release": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+  "release": "ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
+  "bundle_manifest": "851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33",
+  "tools_updated_from_version": 1,
+  "tools_updated_to_version": 2,
+  "update_staged": true,
+  "update_confirmed": true,
+  "previous_confirmed": true,
+  "forward_after_previous": "refused (no route)",
+  "ares_password_set_by_typing": true,
+  "ares_sudo_password_accepted": true,
+  "ares_sudo_no_ticket": true,
+  "package21_rules": {
+    "ares_in_wheel": true,
+    "sudo_all_with_password": true,
+    "sudo_keeps_no_ticket": true,
+    "sudo_n_refused": true,
+    "ares_password_set": true,
+    "chrome_started": true,
+    "chrome_stderr_tail": "",
+    "chrome_version": "Google Chrome 157.0.8103.50",
+    "session_path": "/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin",
+    "hub_terminal_argv": [
+      "/usr/bin/foot",
+      "--app-id=aresos.terminal",
+      "/usr/bin/bash",
+      "--rcfile",
+      "/usr/share/aresos/bashrc",
+      "-i"
+    ],
+    "aresos_shell": {
+      "browser": true,
+      "notepad": true,
+      "terminal": true
+    },
+    "aresos_shell_executable": true
+  },
+  "terminal_path": "/var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/var/lib/flatpak/exports/bin",
+  "terminal_path_retried": false,
+  "stock_pinned_throughout": true,
+  "polkit_sweep": {
+    "actions": 401,
+    "answers": {
+      "0": 132,
+      "1": 74,
+      "2": 195
+    },
+    "passwordless": 132
+  },
+  "deployments": {
+    "release_13": [
+      "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c",
+      0,
+      "default"
+    ],
+    "release_27": [
+      "809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b",
+      0,
+      "default"
+    ],
+    "stock": [
+      "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71",
+      1,
+      "default"
+    ]
+  },
+  "owner_commands_physically_typed": true,
+  "protected_disk_audits": true,
+  "nvram_rule_unchanged": true,
+  "bootnext_audits": true
+}

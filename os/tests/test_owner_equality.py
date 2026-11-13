@@ -20,9 +20,9 @@ PENDING = ROOT/'os/manifest/ci/16/pending-rebind.json'
 def fingerprint_documents():
     documents={name:(ROOT/'docs'/name).read_text() for name in OWNER_PAGES}
     # Reports retain historical receipts. Each tools change replaces the
-    # fingerprint the earlier reports gave (packages 14, 15, then 15f), so
-    # those stay history, not rewritten; only the package 22 report is current.
-    documents['22 current report']=(ROOT/'reviews/22-update-route/REPORT.md').read_text()
+    # fingerprint the earlier reports gave (packages 14, 15, 15f, then 22), so
+    # those stay history, not rewritten; only the package 27 report is current.
+    documents['27 current report']=(ROOT/'reviews/27-first-update-release/REPORT.md').read_text()
     return documents
 
 
@@ -54,7 +54,7 @@ def check_fingerprints(documents, fingerprint):
     Historical package-14 receipts stay superseded, not rewritten.
     """
     pins=set()
-    for name in ('installer-isos.json','media-tools.json','release.json','ci/11n/b-1/release.json'):
+    for name in ('installer-isos.json','media-tools.json','release.json','releases/13.json','ci/11n/b-1/release.json'):
         pins.update(re.findall(r'\b[0-9a-f]{64}\b',(ROOT/'os/manifest'/name).read_text()))
     seen=False
     for page,text in documents.items():
@@ -168,7 +168,9 @@ class EqualityTest(unittest.TestCase):
     def test_every_owner_command_equals_the_command_physically_typed_by_ci(self):
         commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
         result=walk.walk()
-        typed={text.rstrip('\n') for text,profile in result['visible_blocks']}
+        # Package 27's update route types update and previous on top of the qualification.
+        update=walk.walk(route='update')
+        typed={text.rstrip('\n') for text,profile in result['visible_blocks']+update['visible_blocks']}
         guide='\n'.join((ROOT/name).read_text() for name in
             ('docs/INSTALL.md', 'docs/INSTALL-PROCEDURES.md'))
         waiting=unwalked_commands()
@@ -185,7 +187,8 @@ class EqualityTest(unittest.TestCase):
         for block in re.findall(r'```bash\n(.*?)\n```',guide,re.S):
             if block not in allowed:
                 for line in block.splitlines(): self.assertIn(line, allowed)
-        self.assertEqual(sum(text.rstrip('\n')==commands['install'] for text,profile in result['visible_blocks']),1)
+        for run in (result, update):
+            self.assertEqual(sum(text.rstrip('\n')==commands['install'] for text,profile in run['visible_blocks']),1)
         self.assertIn('layout-reset-trial-QMP-system-reset',result['checks'])
         self.assertIn(commands['layout-abandon'],typed)
         for name in OWNER_PAGES:

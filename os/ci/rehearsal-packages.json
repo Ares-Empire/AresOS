@@ -12,8 +12,15 @@
     "minute_cap": 2750,
     "full_cap": 0,
     "part_b_cap": 0,
-    "dispatch_caps": {"probe": 34, "owner-tools": 21},
-    "organization_budget": {"organization": "Ares-Empire", "included_minutes": 2000, "other_repos_reserve": 150},
+    "dispatch_caps": {
+      "probe": 34,
+      "owner-tools": 21
+    },
+    "organization_budget": {
+      "organization": "Ares-Empire",
+      "included_minutes": 2000,
+      "other_repos_reserve": 150
+    },
     "push_privacy_reservation": {
       "minutes": 0,
       "decision": "briefs/14zw-local-privacy.md"
@@ -23,7 +30,10 @@
       "decision": "briefs/14zw-local-privacy.md"
     },
     "publish_cap": 0,
-    "titles": {"probe": "Two-disk rehearsal (probe)", "owner-tools": "Two-disk rehearsal (owner-tools)"}
+    "titles": {
+      "probe": "Two-disk rehearsal (probe)",
+      "owner-tools": "Two-disk rehearsal (owner-tools)"
+    }
   },
   "13": {
     "branch": "pkg/13-keyboard-layout",
@@ -31,8 +41,17 @@
     "minute_cap": 460,
     "full_cap": 0,
     "part_b_cap": 0,
-    "dispatch_caps": {"release-13": 3, "checks": 1, "probe": 4, "keyboard": 3},
-    "organization_budget": {"organization": "Ares-Empire", "included_minutes": 2000, "other_repos_reserve": 150},
+    "dispatch_caps": {
+      "release-13": 3,
+      "checks": 1,
+      "probe": 4,
+      "keyboard": 3
+    },
+    "organization_budget": {
+      "organization": "Ares-Empire",
+      "included_minutes": 2000,
+      "other_repos_reserve": 150
+    },
     "publish_cap": 1,
     "titles": {
       "release-13": "Package 13 image release",
@@ -67,5 +86,35 @@
     "titles": {
       "probe": "Two-disk rehearsal (probe)"
     }
+  },
+  "27": {
+    "branch": "pkg/27-first-update-release",
+    "start": "first-dispatch",
+    "minute_cap": 1200,
+    "full_cap": 0,
+    "part_b_cap": 0,
+    "dispatch_caps": {
+      "release-27": 5,
+      "checks": 1,
+      "update": 15
+    },
+    "organization_budget": {
+      "organization": "Ares-Empire",
+      "included_minutes": 2000,
+      "other_repos_reserve": 150
+    },
+    "publish_cap": 1,
+    "job_bounds": {
+      "release-27": 180,
+      "checks": 15,
+      "update": 300
+    },
+    "titles": {
+      "release-27": "Package 27 image release",
+      "checks": "OS regressions only (no VM)",
+      "update": "Two-disk rehearsal (update)"
+    },
+    "release_retry": "Run 42807087845 stopped before publishing: its added second VM pass could not re-read the reused /dev/nbd0 (host-side offline journal). One more release dispatch, with the reviewed check build's single VM pass. Run 42817411051 stopped in the image diff (13 unexplained paths: /etc/sudoers.d 0750 to 0755 from cp -a of os/config, fixed in build.sh, and 12 exact classifier gaps); integrator OK 2026-11-10 for a third and last release dispatch. Run 42831158090 failed before building: snapshot.ubuntu.com answered 500 while the runner installed its pinned tools; integrator OK 2026-11-10 for a fourth dispatch of the same image source. Run 42835704653 timed out in the same step (mirror 504); integrator OK 2026-11-10 for a fifth dispatch with longer apt retries in the release job, once the mirror is healthy.",
+    "update_retry": "Run 43188392249 stopped before any VM work: snapshot.ubuntu.com answered 503 while the runner installed its pinned tools (a mirror outage); integrator OK 2026-11-12 for an unchanged rerun once the mirror is healthy. Run 43219365492, that rerun, timed out after 40 minutes in the same step on the slow mirror, before any VM work; integrator OK 2026-11-12 for one more unchanged rerun under a stricter mirror health check. Run 43277139615, that rerun, stalled at stock Bazzite's first installed boot right after systemd's terminal probes on the VM-only serial console, as run 43136407300 had at release 27's; integrator OK 2026-11-12 for one more run with the harness answering those probes. Run 43293692038, that run, stopped after 11 minutes in the regression tests, before any VM work: the new serial console pin used a partition scan without the shared loop partition wait; integrator OK 2026-11-12 for one more run with that fixed."
   }
 }

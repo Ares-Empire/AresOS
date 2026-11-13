@@ -66,11 +66,14 @@ class OwnerStepLimitTest(unittest.TestCase):
             'os/manifest/ci/14/14zzb-round/terminal-facts.json','.work/14/run-41324240079/evidence.zip','os/owner-tools/commands.json'])
         # A source set aside until the next VM rehearsal (see test_checkout_sources)
         # must match the bytes recorded then; every other source keeps its hash.
-        from test_checkout_sources import pending_rebind
+        from test_checkout_sources import pending_rebind, checkout
         waiting={row['path']:row['sha256'] for row in pending_rebind()}
+        # Once a rehearsal rebinds a waiting source, its current binding holds.
+        bound={row['path']:row['sha256'] for row in checkout.merge(checkout.active_tables(ROOT))}
         for index in (0,1,3):
             row=value['sources'][index]
-            self.assertEqual(hashlib.sha256((ROOT/row['path']).read_bytes()).hexdigest(),waiting.get(row['path'],row['sha256']))
+            expected=waiting.get(row['path'],bound.get(row['path'],row['sha256']) if not waiting else row['sha256'])
+            self.assertEqual(hashlib.sha256((ROOT/row['path']).read_bytes()).hexdigest(),expected)
         self.assertEqual(value['sources'][2]['sha256'],json.loads((ROOT/'os/manifest/ci/14/14zzb-round/qualification20-artifact.json').read_text())['sha256'])
         old=self.value; q20=json.loads((ROOT/'os/manifest/ci/14/14zzb-round/terminal-facts.json').read_text())
         observed=old['observed_runs']+[dict(qualification=20,stages=q20['stages'])]

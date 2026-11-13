@@ -31,7 +31,9 @@ class LoginShim:
             return dict(status='ready',timeout_seconds=60,half_budget_seconds=30,ticket=self.ticket,
                 counters_started_before_username=True,observers_prepared=True)
         if action=='begin':return dict(ready=True,fresh_getty=True)
-        if action=='echo':return dict(ready=True,echo_matches=True,value_recorded=False)
+        if action=='echo':
+            assert argument in (None,0,'ares-recovery','ares'), argument
+            return dict(ready=True,echo_matches=True,value_recorded=False)
         if action=='ready':
             value,rows,shape=execute_hidden(owner_hidden.source(self.tty,dict(kind='login'),prompt='Password:'),facts=True)
             assert value['ready'];self.reader=value['reader'];return value

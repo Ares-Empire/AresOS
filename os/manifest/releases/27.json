@@ -1,0 +1,310 @@
+{
+  "reference": "ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
+  "tag": "27-b216f28fdb072534856aff57481e33b641576ac7",
+  "source_commit": "b216f28fdb072534856aff57481e33b641576ac7",
+  "base": "ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+  "visibility": "private",
+  "signature": {
+    "method": "cosign keyless",
+    "identity": "https://github.com/Ares-Empire/AresOS/.github/workflows/os-image.yml@refs/heads/pkg/27-first-update-release",
+    "issuer": "https://token.actions.githubusercontent.com"
+  },
+  "run": "https://github.com/Ares-Empire/AresOS/actions/runs/42842793096",
+  "image_diff": {
+    "status": "passed",
+    "previous": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",
+    "pinned_base": "ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151",
+    "previous_source": "775be05b7f0d6971cbdc8a3bd1aea617fc008c4d",
+    "method": "full rebuild compared with release 13; every difference classified",
+    "package_count": {
+      "old": 2801,
+      "new": 2806
+    },
+    "packages": [
+      {
+        "nevra": "brightnessctl-0.5.1-16.fc44.x86_64",
+        "change": "added",
+        "reason": "package 21: brightness keys (brightnessctl)"
+      },
+      {
+        "nevra": "google-chrome-stable-157.0.8103.50-1.x86_64",
+        "change": "added",
+        "reason": "package 21: Google Chrome from its pinned RPM"
+      },
+      {
+        "nevra": "libblkid-2.41.6-1.fc44.i686",
+        "change": "added",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "libblkid-2.41.6-1.fc44.x86_64",
+        "change": "added",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "liberation-fonts-all-1:2.1.5-15.fc44.noarch",
+        "change": "added",
+        "reason": "package 21: Google Chrome's only Fedora dependency"
+      },
+      {
+        "nevra": "libfdisk-2.41.6-1.fc44.x86_64",
+        "change": "added",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "liblastlog2-2.41.6-1.fc44.x86_64",
+        "change": "added",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "libmount-2.41.6-1.fc44.i686",
+        "change": "added",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "libmount-2.41.6-1.fc44.x86_64",
+        "change": "added",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "libsmartcols-2.41.6-1.fc44.x86_64",
+        "change": "added",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "libuuid-2.41.6-1.fc44.i686",
+        "change": "added",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "libuuid-2.41.6-1.fc44.x86_64",
+        "change": "added",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "qrencode-4.1.1-12.fc44.x86_64",
+        "change": "added",
+        "reason": "package 21: qrencode"
+      },
+      {
+        "nevra": "util-linux-2.41.6-1.fc44.x86_64",
+        "change": "added",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "util-linux-core-2.41.6-1.fc44.x86_64",
+        "change": "added",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "util-linux-script-2.41.6-1.fc44.x86_64",
+        "change": "added",
+        "reason": "package 21: script (util-linux-script)"
+      },
+      {
+        "nevra": "xdg-desktop-portal-wlr-0.8.5-1.fc44.x86_64",
+        "change": "added",
+        "reason": "package 21 JUDGMENT-CALL 10: vanished Fedora pin 0.8.4 renewed to 0.8.5"
+      },
+      {
+        "nevra": "libblkid-2.41.5-1.fc44.i686",
+        "change": "removed",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "libblkid-2.41.5-1.fc44.x86_64",
+        "change": "removed",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "libfdisk-2.41.5-1.fc44.x86_64",
+        "change": "removed",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "liblastlog2-2.41.5-1.fc44.x86_64",
+        "change": "removed",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "libmount-2.41.5-1.fc44.i686",
+        "change": "removed",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "libmount-2.41.5-1.fc44.x86_64",
+        "change": "removed",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "libsmartcols-2.41.5-1.fc44.x86_64",
+        "change": "removed",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "libuuid-2.41.5-1.fc44.i686",
+        "change": "removed",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "libuuid-2.41.5-1.fc44.x86_64",
+        "change": "removed",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "util-linux-2.41.5-1.fc44.x86_64",
+        "change": "removed",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "util-linux-core-2.41.5-1.fc44.x86_64",
+        "change": "removed",
+        "reason": "package 21 JUDGMENT-CALL 4: util-linux 2.41.5 to 2.41.6, which util-linux-script requires"
+      },
+      {
+        "nevra": "xdg-desktop-portal-wlr-0.8.4-1.fc44.x86_64",
+        "change": "removed",
+        "reason": "package 21 JUDGMENT-CALL 10: vanished Fedora pin 0.8.4 renewed to 0.8.5"
+      }
+    ],
+    "compared_files": [
+      690389,
+      690710
+    ],
+    "changed_paths": 915,
+    "rules": {
+      "build: package 21: Chrome RPM files moved from /var/opt to /usr/lib/opt": 259,
+      "build: package 21: Chrome adds no repository": 1,
+      "build: package 21: Flatpak helper unit no longer masked": 3,
+      "build: package 21: ares in wheel (sysusers); shadow creation dates are build dates": 4,
+      "build: package 21: aresos-subids adds one range for ares": 2,
+      "build: package 21: aresos-subids.service enabled": 1,
+      "build: package 21: brew-bash-completion.sh no longer edited": 1,
+      "build: package 21: direct Chrome command links into /usr/lib/opt": 2,
+      "build: package 21: flatpak is executable again": 1,
+      "build: package 21: polkit defaults made uncached (and the Flatpak app-update implication)": 35,
+      "build: package 21: polkit defaults made uncached, written through the policy link": 1,
+      "build: package 21: usermod's backup of the previous subid file": 2,
+      "config: directory of new os/config files (packages 21/24)": 1,
+      "config: os/config changed since release 13 (packages 21/24); bytes equal the source": 21,
+      "generated: desktop database trigger (Chrome desktop entry)": 1,
+      "generated: dnf5 log": 1,
+      "generated: dnf5 repository state": 2,
+      "generated: dnf5 transaction history": 6,
+      "generated: icon cache trigger (Chrome icons)": 1,
+      "generated: ldconfig cache (libraries changed)": 1,
+      "generated: rpm database (package list compared separately)": 1,
+      "manifest: Chrome pin (package 21)": 1,
+      "manifest: installed package list (packages changed)": 1,
+      "manifest: package lock (package 21)": 1,
+      "manifest: updater audit output (Flatpak helper units unmasked, aresos-subids added)": 1,
+      "package: Chrome's install script (xdg-icon-resource / xdg-desktop-menu)": 7,
+      "package: owned by a changed package": 544,
+      "package: package 21: Chrome's install script links its NSS names to the system libraries": 7,
+      "package: package 21: parent directory of Chrome's RPM files": 3,
+      "policy: os/policy changed since release 13 (package 21: Flatpak helpers unmasked)": 3
+    },
+    "units": {
+      "etc/systemd/system/flatpak-system-helper.service": {
+        "rule": "build",
+        "reason": "package 21: Flatpak helper unit no longer masked"
+      },
+      "etc/systemd/system/multi-user.target.wants/aresos-subids.service": {
+        "rule": "build",
+        "reason": "package 21: aresos-subids.service enabled"
+      },
+      "etc/systemd/user/flatpak-portal.service": {
+        "rule": "build",
+        "reason": "package 21: Flatpak helper unit no longer masked"
+      },
+      "etc/systemd/user/flatpak-session-helper.service": {
+        "rule": "build",
+        "reason": "package 21: Flatpak helper unit no longer masked"
+      },
+      "usr/lib/systemd/system/aresos-subids.service": {
+        "rule": "config",
+        "reason": "os/config changed since release 13 (packages 21/24); bytes equal the source"
+      }
+    },
+    "generated": [
+      "usr/lib/sysimage/libdnf5/nevras.toml",
+      "usr/lib/sysimage/libdnf5/packages.toml",
+      "usr/lib/sysimage/libdnf5/system.toml",
+      "usr/lib/sysimage/libdnf5/transaction_history.sqlite",
+      "usr/lib/sysimage/libdnf5/transaction_history.sqlite-shm",
+      "usr/lib/sysimage/libdnf5/transaction_history.sqlite-wal",
+      "usr/share/applications/mimeinfo.cache",
+      "usr/share/icons/hicolor/icon-theme.cache",
+      "usr/share/rpm/rpmdb.sqlite",
+      "var/cache/ldconfig/aux-cache",
+      "var/lib/dnf/repos/fedora-cff72538bc9825a4/countme",
+      "var/lib/dnf/repos/updates-3cc07c89a20302f2/countme",
+      "var/log/dnf5.log"
+    ],
+    "unexplained": [],
+    "unexplained_count": 0,
+    "problems": [],
+    "runtime_config_changes": {},
+    "labels": {
+      "org.opencontainers.image.revision": {
+        "before": "2abc12e8aa6089f7576143d1fbccb6648a3291bd",
+        "after": "b216f28fdb072534856aff57481e33b641576ac7"
+      }
+    },
+    "base_ancestry_verified": true,
+    "runtime_config_equal": true,
+    "metadata_note": "File mtimes/inodes are storage metadata, excluded as in release 13; full classified inventory in classified-files.json.gz."
+  },
+  "job_token_read": {
+    "status": "passed",
+    "reference": "ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c",
+    "secret": "GITHUB_TOKEN",
+    "owner_token_used": false,
+    "visibility": "private",
+    "manifest_read": true
+  },
+  "source_trees": [
+    {
+      "tree": "ac652c146df57630d87177e2656dc6f1d2917340",
+      "path": "os/Containerfile"
+    },
+    {
+      "tree": "389ad38b7e11cc132d09510ab3431a306553770d",
+      "path": "os/.containerignore"
+    },
+    {
+      "tree": "0443d4bb5cd948de8b89fad53b7feb9e9e66038a",
+      "path": "os/build.sh"
+    },
+    {
+      "tree": "71b7948c9283163015004eb65e29e47027dfd7a1",
+      "path": "os/packages.lock.json"
+    },
+    {
+      "tree": "f856cac1f180d6cbbf125c97789a57f75f5a51af",
+      "path": "os/google-chrome.lock.json"
+    },
+    {
+      "tree": "0ba2336091e907de2bdfb38708a54c9634086624",
+      "path": "os/config"
+    },
+    {
+      "tree": "f957222c8a2057e64912c6fd43f403a185eb2387",
+      "path": "os/policy"
+    },
+    {
+      "tree": "27035216a9fd195de36f9408c907a808848186cb",
+      "path": "os/manifest/base.json"
+    },
+    {
+      "tree": "02cfcce92b6fdf798fd884942f2fb7166c0b5c23",
+      "path": "os/keys"
+    },
+    {
+      "tree": "4e16353ea8fd006d0ac03b9be0b1359249b7c140",
+      "path": "os/tests/audit.py"
+    }
+  ],
+  "daily_wheel": true,
+  "owner_review": "owner OK 2026-11-09 to publish and pin once the rehearsal passes"
+}

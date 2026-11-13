@@ -37,13 +37,49 @@ def retained(name):
     return json.loads((FIXTURES / (name + '-deployments.json')).read_text())
 
 
-def walk(ps2=False):
+UPDATE_STAGES = ['stock', 'tools-stock', 'corrected-stock', 'release-13', 'release-27', 'previous-13']
+QUALIFICATION_STAGES = ['stock','tools-stock','corrected-stock','layout-reset-trial','layout-reset-recovery','aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock']
+
+
+def update_states(pair):
+    """Package 22's three-deployment shapes, built from the retained release 13 pair."""
+    old = next(d for d in pair['rpm']['deployments'] if d['booted'])
+    stock = next(d for d in pair['rpm']['deployments'] if d['pinned'])
+    reference = json.loads((ROOT / 'os/manifest/release.json').read_text())['reference']
+    new = copy.deepcopy(old)
+    new.update(checksum='c2' * 32, serial=0, **{'container-image-reference': 'ostree-unverified-registry:' + reference,
+                                               'container-image-reference-digest': reference.split('@')[1]})
+    def slot(row):
+        return dict(ostree=dict(checksum=row['checksum'], deploySerial=row['serial'], stateroot=row['osname']),
+            pinned=row['pinned'], image=dict(image=dict(image=row['container-image-reference'].split(':', 1)[1],
+            transport='registry'), imageDigest=row['container-image-reference-digest']))
+    def machine(*rows):
+        rows = [copy.deepcopy(r) for r in rows]
+        booted = next(i for i, r in enumerate(rows) if r['booted'])
+        staged = [r for r in rows if r.get('staged')]
+        others = [i for i, r in enumerate(rows) if not r.get('staged') and i != booted]
+        bootc = copy.deepcopy(pair['bootc'])
+        bootc['status'].update(booted=slot(rows[booted]), staged=slot(staged[0]) if staged else None,
+            rollback=slot(rows[others[0]]), rollbackQueued=others[0] < booted)
+        return dict(rpm=dict(copy.deepcopy(pair['rpm']), deployments=rows), bootc=bootc, bls=[])
+    up = lambda row, **kw: dict(copy.deepcopy(row), **kw)
+    return {'owner-update-staged': machine(up(new, booted=False, staged=True), up(old, booted=True), stock),
+            'release-27': machine(up(new, booted=True), up(old, booted=False), stock),
+            'owner-previous-queued': machine(up(old, booted=False), up(new, booted=True), stock),
+            'previous-13': machine(up(old, booted=True), up(new, booted=False), stock)}
+
+
+def walk(ps2=False, route='qualification'):
+    assert route in ('qualification', 'update')
     visits, commands, typed, checks, markers = [], [], [], [], []
     visible_blocks = []
     physical_cases = []
     prompt_waits, idle_answers, hidden_reads = {}, [], []
     hidden_shapes, wait_shapes = [], []
     pinned, pair, staged, queued, rolled = (retained(n) for n in ('after-pin', 'aresos', 'after-switch-staged', 'after-rollback-queued', 'rollback'))
+    updates = update_states(pair)
+    old_reference = json.loads((ROOT / 'os/manifest/releases/13.json').read_text())['reference']
+    new_reference = json.loads((ROOT / 'os/manifest/release.json').read_text())['reference']
     stock = copy.deepcopy(pinned['rpm']['deployments'][0])
     first = common.stock()
     first['bls'] = copy.deepcopy(pinned['bls'])
@@ -91,6 +127,7 @@ def walk(ps2=False):
                     and isinstance(n.func,ast.Attribute) and n.func.attr=='b64decode']
                 compile(base64.b64decode(encoded),'prepared-observer-model','exec')
             if name.endswith('-homebrew'): return 'f' * 64 + '  /home/linuxbrew/.linuxbrew/bin/brew\n'
+            if name.endswith('-policy'): return 'ARESOS_ACTIVE_SESSION_POLKIT_PASSED\nARESOS_GUEST_CHECKS_PASSED\n'
             return ''
 
         def capture_json(self, name, source):
@@ -160,7 +197,11 @@ def walk(ps2=False):
                 tty,=re.findall(r"pathlib.Path\('/dev/(vcsa[34])'",script)
                 tty='tty'+tty[-1]
                 predicate,=re.findall(r'^    if \((.*)\):$',script,re.M)
-                if "bool(re.search(r'" in predicate:
+                if "'updated successfully' in full" in predicate or "'a password is required' in full" in predicate:
+                    text=('passwd: all authentication tokens updated successfully.\nroot@bazzite:~#' if 'updated' in predicate
+                          else 'sudo: a password is required\n[ares@bazzite ~]$')
+                    raw=vcsa(text);kind='owner-output';shape='root-console-output'
+                elif "bool(re.search(r'" in predicate:
                     wait=name.rsplit('-sample-',1)[0]
                     prompt_waits[wait]=prompt_waits.get(wait,0)+1
                     if ps2 and self.stage not in ('stock','tools-stock'):
@@ -185,9 +226,34 @@ def walk(ps2=False):
             if name in ('offline-first-stock-link', 'stock-offline-login', 'live-offline-before-webui'):
                 return dict(status='passed', physical_link_down=True)
             if name == 'owner-record-list': return []
+            if name == 'update-tools-install-owner-result':
+                return dict(status='passed', trace=[], manifest=media.fingerprint, previous_manifest=vm.LAPTOP_TOOLS,
+                    previous_version=1, tools_version=2, releases=[dict(reference=old_reference), dict(reference=new_reference)])
+            if name.endswith('-owner-result') and route == 'update':
+                lines = {'owner-update-owner-result': ['Signed exact release staged ' + new_reference],
+                         'release-27-title-owner-result': ['Update to ' + new_reference + ' confirmed after the restart'],
+                         'owner-previous-owner-result': ['Previous AresOS queued for the next start ' + old_reference],
+                         'previous-13-title-owner-result': ['Return to ' + old_reference + ' confirmed after the restart']}
+                if name == 'previous-13-update-refused-owner-result':
+                    return dict(status='stopped', trace=[], error='Target release is already deployed; get help')
+                if 'refus' in name or '-dummy-' in name:
+                    return dict(status='stopped', trace=[],
+                        error='Private release read failed; check read:packages permission/expiry and network; no credential was written')
+                return dict(status='passed', trace=[], result=lines.get(name, []))
             if name.endswith('-owner-result'):
                 return dict(status='stopped' if 'refus' in name or '-dummy-' in name else 'passed', trace=[],
                     error='Private release read failed; check read:packages permission/expiry and network; no credential was written')
+            if name.endswith('-path-result'):
+                return dict(found=True, uid=1001, owner_uid=1001, path=vm.DAILY_PATH + ':/home/linuxbrew/.linuxbrew/bin')
+            if name.endswith('-polkit'):
+                reviewed = sorted(json.loads((ROOT / 'os/ci/polkit-review.json').read_text())['passwordless'])
+                return dict(session_active='yes', session_remote='no', session_scope=True, actions=len(reviewed) + 2,
+                            answers={'0': len(reviewed) - 1, '1': 1, '2': 2}, passwordless=reviewed[1:])
+            if name.endswith('-rules'):
+                return dict(ares_in_wheel=True, sudo_all_with_password=True, sudo_keeps_no_ticket=True, sudo_n_refused=True,
+                    ares_password_set=True, chrome_started=True, chrome_stderr_tail='', chrome_version='Google Chrome 157.0.8103.50',
+                    session_path=vm.SYSTEM_PATH, hub_terminal_argv=vm.HUB_TERMINAL,
+                    aresos_shell=dict(browser=True, notepad=True, terminal=True), aresos_shell_executable=True)
             if name == 'owner-prepared': return dict(stock=stock,state=dict(rpm=pinned['rpm'],bootc=pinned['bootc']))
             if name == 'owner-switch-pending': return staged['bootc']
             if name == 'owner-rollback-pending': return queued['bootc']
@@ -268,19 +334,30 @@ def walk(ps2=False):
             self.last_visible_frame = None
 
     class Media:
-        fingerprint = '0' * 64
+        fingerprint = vm.LAPTOP_TOOLS if route == 'update' else '0' * 64
+        def replace(self, stage):
+            assert self.fingerprint == vm.LAPTOP_TOOLS and guest_media[0] is None
+            self.fingerprint = common.bundle.check(ROOT / 'os/owner-tools/payload')
+            checks.append(stage + '-windows-copy')
         def attach(self, guest, stage):
             assert guest.owner_signed_in and guest.owner_physical_signed_in
             guest.owner_media = self
+            guest_media[0] = self
             if ps2:vm.owner_xhci.checkpoint(guest,stage+'-model-after-hotplug',attached=True)
             checks.append(stage + '-hotplug')
         def detach(self, guest, stage):
             assert guest.owner_media is self
             guest.owner_media = None
+            guest_media[0] = None
             if ps2:vm.owner_xhci.checkpoint(guest,stage+'-model-after-detach',attached=False,needed=False)
             checks.append(stage + '-detach')
 
+    guest_media = [None]
+    media = Media()
+
     def snapshot(guest, stage):
+        if route == 'update' and stage in updates: return updates[stage]
+        if route == 'update' and stage == 'previous-13-after-refusal': return updates['previous-13']
         if stage == 'offline-first-stock': return first
         if stage == 'owner-switch-staged': return staged
         if stage == 'owner-rollback-queued': return queued
@@ -313,6 +390,8 @@ def walk(ps2=False):
             stack.enter_context(patch.object(module, 'EVIDENCE', pathlib.Path(temporary)))
         for name in ('install', 'restore_windows_order'):
             stack.enter_context(patch.object(vm.td, name))
+        # The host-side boot entry edit after the install (SerialConsolePinTest covers it).
+        stack.enter_context(patch.object(vm, 'pin_serial_console', side_effect=lambda: checks.append('stock-serial-console')))
         stack.enter_context(patch.object(vm.td, 'marker', side_effect=lambda audit,name,**kw: markers.append(name)))
         stack.enter_context(patch.object(vm.td, 'start_installed', side_effect=lambda p,h,s,**kw: Guest(s)))
         stack.enter_context(patch.object(vm.kb, 'deployment_snapshot', side_effect=snapshot))
@@ -322,19 +401,26 @@ def walk(ps2=False):
         stack.enter_context(patch.object(vm.time, 'sleep'))
         stack.enter_context(patch.dict(os.environ, GITHUB_ACTOR='synthetic-user', GH_TOKEN='synthetic_only_0123', GITHUB_SHA='a'*40))
         audit = Mock()
-        vm.qualification(audit, Media(), 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH')
-        result = json.loads((pathlib.Path(temporary) / 'owner-tools-result.json').read_text())
+        if route == 'update':
+            vm.update_rehearsal(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx')
+            result = json.loads((pathlib.Path(temporary) / 'update-rehearsal-result.json').read_text())
+        else:
+            # The retained switch fixtures are release 13's first switch.
+            vm.qualification(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', release=old_reference)
+            result = json.loads((pathlib.Path(temporary) / 'owner-tools-result.json').read_text())
         assert result['status'] == 'passed'
-        assert audit.check.call_count == 10
+        assert audit.check.call_count == len(UPDATE_STAGES if route == 'update' else QUALIFICATION_STAGES)
         events = [json.loads(p.read_text()) for p in pathlib.Path(temporary).glob('*-resync-1.json')]
         assert len(events) == len(prompt_waits) and all(n == 2 for n in prompt_waits.values())
         assert all(e['enter_sent'] and e['ready'] and e['observer']['ready'] and
                    e['observer']['observation']['foreground_chain'] for e in events)
         assert all(wait + '-idle-1' in idle_answers for wait in prompt_waits)
-        ready_names = [name for name, phase in hidden_reads if phase == 'ready']
+        # passwd's first value completes when the same reader asks again (-repeat).
+        ready_names = [name for name, phase in hidden_reads if phase == 'ready' and not name.endswith('-repeat')]
         left_names = [name.removesuffix('-left') for name, phase in hidden_reads if phase == 'left']
+        left_names += [name.removesuffix('-repeat') for name, phase in hidden_reads if phase == 'ready' and name.endswith('-repeat')]
         assert ready_names and len(set(ready_names)) == len(ready_names) and set(ready_names) == set(left_names)
-    assert visits == ['stock','tools-stock','corrected-stock','layout-reset-trial','layout-reset-recovery','aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock']
+    assert visits == (UPDATE_STAGES if route == 'update' else QUALIFICATION_STAGES)
     assert {'prepared-unattended-windows','offline-roundtrip-unattended-windows','offline-roundtrip-detached-windows','final-unattended-windows','final-detached-windows'} <= set(markers)
     assert checks.index('tools-stock-hotplug') < checks.index('tools-stock-detach') < checks.index('tools-stock-reboot-tools-absent')
     return dict(stages=visits, commands=commands, typed=typed, visible_blocks=visible_blocks, checks=checks, markers=markers,
@@ -374,6 +460,37 @@ class OwnerWalkTest(unittest.TestCase):
         self.assertTrue(any(name.endswith('-xhci-health') for name in names))
         for stage in ('aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock'):
             self.assertTrue(any(name.startswith(stage) and name.endswith('-xhci-health') for name in names),stage)
+
+    def test_update_route_walks_the_laptop_tools_update_password_and_previous(self):
+        commands = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
+        for ps2 in (False, True):
+            with self.subTest(ps2=ps2):
+                result = walk(ps2=ps2, route='update')
+                typed = [text for text, profile in result['visible_blocks']]
+                # Steps 4 to 6 with the laptop's 15f bootstrap, step 8 with this guide's.
+                self.assertEqual(sum(t.rstrip('\n') == vm.laptop_commands()['install'] for t in typed), 1)
+                self.assertEqual(sum(t.rstrip('\n') == commands['install'] for t in typed), 1)
+                self.assertNotEqual(vm.laptop_commands()['install'], commands['install'])
+                for name in ('prepare', 'login', 'verify', 'switch', 'update', 'previous', 'check', 'title', 'records', 'export', 'reboot'):
+                    self.assertIn(commands[name] + '\n', typed, name)
+                order = [typed.index(commands['install'] + '\n'), typed.index(commands['update'] + '\n'),
+                         typed.index('sudo passwd ares\n'), typed.index('sudo -v\n'), typed.index(commands['previous'] + '\n')]
+                self.assertEqual(order, sorted(order))
+                self.assertIn('ares\n', typed)
+                self.assertIn('sudo -n true\n', typed)
+                self.assertIn('sudo-passwd-reader', {s['shape'] for s in result['hidden_shapes']})
+                # polkit is asked while his desktop is in front: after the terminal PATH
+                # probe (which leaves tty1 active) and guest.sh, before the console returns.
+                names = [name for name, source in result['commands']]
+                self.assertEqual(names.count('release-27-polkit'), 1)
+                self.assertLess(names.index('release-27-path-result'), names.index('release-27-policy'))
+                self.assertLess(names.index('release-27-policy'), names.index('release-27-polkit'))
+                self.assertLess(names.index('release-27-polkit'), names.index('release-27-rules'))
+                checks = result['checks']
+                self.assertLess(checks.index('update-windows-copy-windows-copy'), checks.index('update-tools-hotplug'))
+                self.assertLess(checks.index('update-tools-hotplug'), checks.index('update-tools-detach'))
+                self.assertIn('owner-update-reboot-tools-absent', checks)
+                self.assertEqual(result['markers'][-2:], ['final-unattended-windows', 'final-detached-windows'])
 
     def test_live_offline_command_is_composed_and_checked(self):
         guest = object.__new__(vm.Guest)
@@ -467,7 +584,8 @@ class OwnerWalkTest(unittest.TestCase):
         saved=retained('after-pin')
         stock=saved['rpm']['deployments'][0]
         prepared=dict(stock_identity=list(common.owner.key(stock)), stock=stock, state=dict(rpm=saved['rpm'],bootc=saved['bootc']))
-        release=json.loads((ROOT/'os/manifest/release.json').read_text())['reference']
+        # The retained 13f states are release 13's.
+        release=json.loads((ROOT/'os/manifest/releases/13.json').read_text())['reference']
         for row in index['files']:
             self.assertEqual(hashlib.sha256((FIXTURES/row['file']).read_bytes()).hexdigest(),row['sha256'])
             state=json.loads((FIXTURES/row['file']).read_text())
@@ -507,6 +625,345 @@ class OwnerWalkTest(unittest.TestCase):
         old=next(e for e in bls if e['identity']!=prepared['stock_identity'])
         old['content']+='\noptions evil=changed\n'
         with self.assertRaises(common.owner.Stop):common.owner.keyboard_entries(prepared['state'],prepared,bls)
+
+
+class SerialConsolePinTest(unittest.TestCase):
+    """Runs 6 and 12 hung in systemd's size probe of the VM's serial console; these args skip the probes."""
+    ENTRY = ('title Fedora Linux 44.20261012.1 (Bazzite) (ostree:0)\nversion 1\n'
+             'linux /ostree/default-a2/vmlinuz-7.2.9\ninitrd /ostree/default-a2/initramfs-7.2.9.img\n'
+             'options console=tty0 console=ttyS0,115200n8 root=UUID=fixture vconsole.keymap=de rootflags=subvol=root rw '
+             'ostree=/ostree/boot.0/default/a2/0\n')
+
+    def test_the_six_args_are_the_ones_systemd_reads_for_the_console_and_ttys0(self):
+        self.assertEqual(vm.TTY_ARGS, ('systemd.tty.term.console=vt220', 'systemd.tty.rows.console=24',
+                                       'systemd.tty.columns.console=80', 'systemd.tty.term.ttyS0=vt220',
+                                       'systemd.tty.rows.ttyS0=24', 'systemd.tty.columns.ttyS0=80'))
+
+    def test_appended_once_to_the_options_line_and_nothing_else_changes(self):
+        after = vm.with_tty_args(self.ENTRY)
+        before_lines, after_lines = self.ENTRY.split('\n'), after.split('\n')
+        self.assertEqual(len(before_lines), len(after_lines))
+        for old, new in zip(before_lines, after_lines):
+            if old.startswith('options '):
+                self.assertEqual(new, old + ' ' + ' '.join(vm.TTY_ARGS))
+            else:
+                self.assertEqual(new, old)
+        self.assertEqual(vm.with_tty_args(after), after)  # idempotent
+        partial = self.ENTRY.replace(' rw ', ' rw systemd.tty.rows.console=24 ')
+        options = next(l for l in vm.with_tty_args(partial).split('\n') if l.startswith('options '))
+        self.assertEqual(options.split().count('systemd.tty.rows.console=24'), 1)
+        self.assertTrue(all(options.split().count(arg) == 1 for arg in vm.TTY_ARGS))
+
+    def test_an_entry_without_exactly_one_options_line_stops(self):
+        for entry in (self.ENTRY.replace('options ', 'optionsx '), self.ENTRY + 'options quiet\n'):
+            with self.subTest(entry=entry[-30:]), self.assertRaisesRegex(AssertionError, 'STOP: the installed boot entry has'):
+                vm.with_tty_args(entry)
+
+    def boot(self, root, names):
+        (root / 'loader/entries').mkdir(parents=True)
+        for name in names:
+            (root / 'loader/entries' / name).write_text(self.ENTRY)
+
+    def test_the_only_entry_is_edited_and_read_back_and_a_second_pass_changes_nothing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            self.boot(root, ['ostree-1.conf'])
+            first = vm.edit_boot_entries(root)
+            self.assertEqual((first['entry'], first['added']), ('ostree-1.conf', list(vm.TTY_ARGS)))
+            self.assertEqual((root / 'loader/entries/ostree-1.conf').read_text(), vm.with_tty_args(self.ENTRY))
+            second = vm.edit_boot_entries(root)
+            self.assertEqual(second['added'], [])
+            self.assertEqual(second['before'], second['after'])
+        for names in ([], ['ostree-1.conf', 'ostree-2.conf']):
+            with self.subTest(entries=names), tempfile.TemporaryDirectory() as folder:
+                self.boot(pathlib.Path(folder), names)
+                with self.assertRaisesRegex(AssertionError, 'STOP: expected exactly one installed boot entry'):
+                    vm.edit_boot_entries(folder)
+
+    def run_pin(self, types, entries=('ostree-1.conf',), mount_fails=False):
+        calls, saved, mounts = [], {}, []
+        with tempfile.TemporaryDirectory() as folder:
+            work = pathlib.Path(folder)
+            (work / 'target.raw').write_bytes(b'')
+            (work / 'protected.raw').write_bytes(b'')
+
+            def check_output(argv, **kw):
+                calls.append(list(argv))
+                return '/dev/loop7\n'
+
+            def wait(loop, image):
+                calls.append(['wait_loop_partitions', loop, str(image)])
+                return dict(status='passed', loop=loop, expected=[dict(number=int(part.rsplit('p', 1)[1]))
+                                                                  for part in types])
+
+            def run(argv, **kw):
+                calls.append(list(argv))
+                if argv[0] == 'blkid':
+                    return SimpleNamespace(stdout=types[argv[-1]] + '\n', returncode=0)
+                if argv[0] == 'mount':
+                    mounts.append(argv[-1])
+                    if mount_fails:
+                        raise vm.subprocess.CalledProcessError(32, argv)
+                    self.boot(pathlib.Path(argv[-1]), entries)
+                if argv[0] == 'umount':
+                    shutil.rmtree(pathlib.Path(argv[-1]) / 'loader')  # an unmounted mount point is empty again
+                return SimpleNamespace(stdout='', returncode=0)
+            with patch.object(vm.td, 'WORK', work), patch.object(vm.subprocess, 'check_output', side_effect=check_output), \
+                    patch.object(vm.subprocess, 'run', side_effect=run), patch.object(vm, 'wait_loop_partitions', side_effect=wait), \
+                    patch.object(vm.td, 'save', side_effect=lambda name, value: saved.__setitem__(name, value)):
+                try:
+                    result = vm.pin_serial_console()
+                except (AssertionError, vm.subprocess.CalledProcessError) as error:
+                    result = error
+            self.assertFalse(any(os.path.exists(mount) for mount in mounts))  # every mount point removed
+            return result, calls, saved, work
+
+    def test_the_host_attaches_only_the_target_edits_its_ext4_boot_and_cleans_up(self):
+        types = {'/dev/loop7p1': 'vfat', '/dev/loop7p2': 'ext4', '/dev/loop7p3': 'btrfs'}
+        result, calls, saved, work = self.run_pin(types)
+        self.assertNotIsInstance(result, Exception)
+        self.assertEqual(calls[0], ['losetup', '--find', '--show', '--partscan', str(work / 'target.raw')])
+        self.assertEqual(calls[1], ['wait_loop_partitions', '/dev/loop7', str(work / 'target.raw')])  # before any node is read
+        self.assertEqual([call[-1] for call in calls if call[0] == 'blkid'], sorted(types))
+        self.assertFalse(any('protected.raw' in ' '.join(call) for call in calls))
+        mount, = [call for call in calls if call[0] == 'mount']
+        self.assertEqual(mount[:5], ['mount', '-t', 'ext4', '-o', 'nosuid,nodev,noexec'])
+        self.assertEqual(mount[5], '/dev/loop7p2')
+        self.assertEqual([call[0] for call in calls[-2:]], ['umount', 'losetup'])
+        self.assertEqual(calls[-1], ['losetup', '--detach', '/dev/loop7'])
+        self.assertEqual(saved['stock-serial-console']['added'], list(vm.TTY_ARGS))
+        self.assertEqual(saved['stock-serial-console']['partition'], 'p2')
+
+    def test_an_unexpected_target_layout_stops_and_still_detaches(self):
+        for name, types, entries in (
+                ('two ext4', {'/dev/loop7p1': 'ext4', '/dev/loop7p2': 'ext4'}, ('ostree-1.conf',)),
+                ('no ext4', {'/dev/loop7p1': 'vfat', '/dev/loop7p2': 'btrfs'}, ('ostree-1.conf',)),
+                ('two entries', {'/dev/loop7p1': 'vfat', '/dev/loop7p2': 'ext4'}, ('ostree-1.conf', 'ostree-2.conf'))):
+            with self.subTest(name):
+                result, calls, saved, work = self.run_pin(types, entries)
+                self.assertIsInstance(result, AssertionError)
+                self.assertIn('STOP:', str(result))
+                self.assertEqual(calls[-1], ['losetup', '--detach', '/dev/loop7'])
+                self.assertEqual('umount' in [call[0] for call in calls], 'mount' in [call[0] for call in calls])
+                self.assertNotIn('stock-serial-console', saved)
+
+    def test_a_failed_mount_is_not_unmounted_and_still_detaches_the_loop(self):
+        """Review 5: a mount that fails must not end in a failing umount that skips the detach."""
+        types = {'/dev/loop7p1': 'vfat', '/dev/loop7p2': 'ext4', '/dev/loop7p3': 'btrfs'}
+        result, calls, saved, work = self.run_pin(types, mount_fails=True)
+        self.assertIsInstance(result, vm.subprocess.CalledProcessError)
+        self.assertEqual([call[0] for call in calls[-2:]], ['mount', 'losetup'])
+        self.assertNotIn('umount', [call[0] for call in calls])
+        self.assertEqual(calls[-1], ['losetup', '--detach', '/dev/loop7'])
+        self.assertNotIn('stock-serial-console', saved)
+
+
+class ReleaseRulesTest(unittest.TestCase):
+    """Package 21's rules on the updated system read the password hash itself (rehearsal run 9)."""
+
+    def password_set(self):
+        source = vm.RULES.split('def password_set(entry):', 1)[1].split('\nout[', 1)[0]
+        namespace = {}
+        exec('def password_set(entry):' + source, namespace)
+        return namespace['password_set']
+
+    def test_the_rules_compile_and_read_the_shadow_hash_not_a_passwd_status(self):
+        compile(vm.RULES, 'release-rules', 'exec')
+        self.assertIn("['getent','shadow','ares']", vm.RULES)
+        self.assertNotIn("'passwd','-S'", vm.RULES)
+
+    def test_only_a_crypt_hash_counts_as_a_set_password(self):
+        password_set = self.password_set()
+        for entry, expected in (('ares:$y$j9T$fixture$fixture:20404:0:99999:7:::\n', True),
+                                ('ares:$6$fixture$fixture:20404:0:99999:7:::\n', True),
+                                ('ares:!*:20404:0:99999:7:::\n', False),       # the image's locked account
+                                ('ares:!$y$j9T$fixture:20404:0:99999:7:::\n', False),  # locked again later
+                                ('ares:*:20404:0:99999:7:::\n', False),
+                                ('ares::20404:0:99999:7:::\n', False)):
+            with self.subTest(entry=entry):
+                self.assertIs(password_set(entry), expected)
+
+
+class TerminalPathTest(unittest.TestCase):
+    """Rehearsal run 5 (43120759117) typed the PATH probe right after Ctrl+Alt+F1 and it never ran."""
+    PATH = vm.DAILY_PATH + ':/home/linuxbrew/.linuxbrew/bin'
+
+    def run_path(self, answers):
+        events, saved = [], {}
+
+        class Guest:
+            owner_layout = 'de'
+            def keys(self, names): events.append(('keys', tuple(names)))
+            def command(self, name, source, **kw):
+                syntax(name, source); events.append(('command', name, source)); return ''
+            def capture_json(self, name, source):
+                syntax(name, source); events.append(('capture', name, source))
+                answer = answers.pop(0)
+                if isinstance(answer, BaseException): raise answer
+                return answer
+            def screenshot(self, name): events.append(('screenshot', name))
+        real_sleep = vm.time.sleep
+
+        def sleep(seconds):
+            # time.sleep is the time module's. Only terminal_path's own sleep belongs to the order;
+            # subprocess waits (the guest syntax check's bash -n, other tests' threads) keep the
+            # real one. On rehearsal run 8's runner and under load such waits slept 1 ms here.
+            if sys._getframe(1).f_code is vm.terminal_path.__code__:
+                events.append(('sleep', seconds))
+            else:
+                real_sleep(seconds)
+        with patch.object(vm.time, 'sleep', new=sleep), \
+                patch.object(vm.td, 'save', side_effect=lambda name, value: saved.__setitem__(name, value)):
+            try: result = vm.terminal_path(Guest(), 'release-27')
+            except AssertionError as error: result = error
+        return events, saved, result
+
+    def typed(self, events):
+        """The text typed in foot, read back from its physical German keys."""
+        german = {tuple(vm.physical_keys(c, 'de')): c for c in set('python3 /run/aresos-path.py\n')}
+        return ''.join(german[e[1]] for e in events if e[0] == 'keys' and e[1] not in (('ctrl', 'alt', 'f1'), ('ctrl', 'u')))
+
+    def test_types_only_after_switch_foot_round_trip_active_session_and_settle(self):
+        events, saved, result = self.run_path([dict(found=True, uid=1001, owner_uid=1001, path=self.PATH)])
+        self.assertNotIsInstance(result, AssertionError)
+        steps = [e[:2] for e in events if e[0] != 'keys']
+        first_key = next(i for i, e in enumerate(events) if e[0] == 'keys' and e[1] != ('ctrl', 'alt', 'f1'))
+        self.assertEqual(events[0], ('keys', ('ctrl', 'alt', 'f1')))
+        self.assertEqual([e[:2] for e in events[1:first_key]],
+                         [('command', 'release-27-path-foot'), ('command', 'release-27-path-prepare'),
+                          ('command', 'release-27-path-session'), ('sleep', 1)])
+        self.assertEqual(steps[-2:], [('capture', 'release-27-path-result'), ('screenshot', 'release-27-path')])
+        self.assertEqual(self.typed(events), 'python3 /run/aresos-path.py\n')
+        session = dict((e[1], e[2]) for e in events if e[0] == 'command')['release-27-path-session']
+        self.assertEqual(session, vm.ACTIVE_DESKTOP)
+        for needle in ('$3 == "ares" && $4 == "seat0"', '-p Active --value)" = yes', '-p State --value)" = active'):
+            self.assertIn(needle, session)
+        self.assertFalse(saved['release-27-terminal-path']['retried'])
+        self.assertNotIn(('screenshot', 'release-27-path-miss'), [e[:2] for e in events])
+
+    def test_one_miss_is_retried_once_after_a_screenshot_and_line_clear(self):
+        events, saved, result = self.run_path([dict(found=False),
+                                               dict(found=True, uid=1001, owner_uid=1001, path=self.PATH)])
+        self.assertNotIsInstance(result, AssertionError)
+        names = [e[:2] for e in events if e[0] != 'keys' or e[1] == ('ctrl', 'u')]
+        miss = names.index(('capture', 'release-27-path-result'))
+        self.assertEqual(names[miss + 1:], [('screenshot', 'release-27-path-miss'), ('keys', ('ctrl', 'u')),
+                                            ('capture', 'release-27-path-retry-result'), ('screenshot', 'release-27-path')])
+        self.assertEqual(self.typed(events), 'python3 /run/aresos-path.py\n' * 2)
+        self.assertTrue(saved['release-27-terminal-path']['retried'])
+        sources = {e[1]: e[2] for e in events if e[0] == 'capture'}
+        self.assertIn('range(20)', sources['release-27-path-result'])
+        self.assertNotIn('SystemExit', sources['release-27-path-result'])
+        self.assertIn('range(60)', sources['release-27-path-retry-result'])
+        self.assertIn("raise SystemExit('No terminal PATH probe')", sources['release-27-path-retry-result'])
+
+    def test_a_second_miss_stops_without_a_third_attempt(self):
+        failed = AssertionError('Guest command failed: release-27-path-retry-result, exit 1')
+        events, saved, result = self.run_path([dict(found=False), failed])
+        self.assertIs(result, failed)
+        self.assertEqual(self.typed(events), 'python3 /run/aresos-path.py\n' * 2)
+        self.assertNotIn('release-27-terminal-path', saved)
+        self.assertNotIn(('screenshot', 'release-27-path'), [e[:2] for e in events])
+
+    def test_the_guest_probe_reports_a_first_miss_and_reads_a_hit(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as folder:
+            target = str(pathlib.Path(folder) / 'probe')
+            def program(required):
+                source = vm.path_probe(target, 1, required)
+                return source.split("python3 - <<'PY'\n", 1)[1].split('\nPY', 1)[0]
+            miss = subprocess.run([sys.executable, '-c', program(False)], capture_output=True, text=True)
+            self.assertEqual((miss.returncode, json.loads(miss.stdout)), (0, dict(found=False)))
+            stop = subprocess.run([sys.executable, '-c', program(True)], capture_output=True, text=True)
+            self.assertNotEqual(stop.returncode, 0)
+            self.assertIn('No terminal PATH probe', stop.stderr)
+            pathlib.Path(target).write_text(json.dumps(dict(uid=1001, path=self.PATH)))
+            hit = subprocess.run([sys.executable, '-c', program(False)], capture_output=True, text=True)
+            value = json.loads(hit.stdout)
+            self.assertEqual((value['found'], value['uid'], value['path']), (True, 1001, self.PATH))
+            self.assertEqual(value['owner_uid'], os.stat(target).st_uid)
+
+
+class BootStallTest(unittest.TestCase):
+    """Rehearsal run 6 (43136407300): release 27's boot never showed `login:` and both consoles froze."""
+
+    @staticmethod
+    def stat(tid, utime, stime):
+        # A command name with a space and a parenthesis, as /proc allows.
+        return f'{tid} (CPU 0/KVM) x) S 1 1 1 0 -1 4194624 0 0 0 0 {utime} {stime} 0 0 20 0 1 0 100 0 0\n'
+
+    def monitor(self, folder, status=None):
+        calls = []
+        def command(name, arguments=None):
+            calls.append((name, arguments))
+            if name == 'query-status':
+                if isinstance(status, BaseException): raise status
+                return status or dict(running=True, status='running')
+            if name == 'query-cpus-fast': return [{'cpu-index': 0, 'thread-id': 101}, {'cpu-index': 1, 'thread-id': 102}]
+            if name == 'send-key': return {}
+            raise AssertionError(name)
+        return SimpleNamespace(command=command), calls
+
+    def test_vcpu_ticks_read_utime_and_stime_after_the_command_name(self):
+        with tempfile.TemporaryDirectory() as folder:
+            proc = pathlib.Path(folder)
+            for tid, (u, s) in ((101, (700, 50)), (102, (3, 4))):
+                (proc / str(tid)).mkdir(); (proc / str(tid) / 'stat').write_text(self.stat(tid, u, s))
+            monitor, _ = self.monitor(folder)
+            self.assertEqual(vm.vcpu_ticks(monitor, proc), {0: dict(thread_id=101, ticks=750), 1: dict(thread_id=102, ticks=7)})
+
+    def run_stall(self, status=None):
+        saved, events = {}, []
+        with tempfile.TemporaryDirectory() as folder:
+            proc = pathlib.Path(folder)
+            def write(ticks):
+                for tid, value in ticks.items():
+                    (proc / str(tid)).mkdir(exist_ok=True)
+                    (proc / str(tid) / 'stat').write_text(self.stat(tid, value, 0))
+            write({101: 100, 102: 200})
+            monitor, calls = self.monitor(folder, status)
+            def wait(pattern, timeout):
+                events.append(('wait', pattern, timeout))
+                raise TimeoutError('Guest console did not reach ' + pattern)
+            guest = SimpleNamespace(monitor=monitor, boot_number=11, wait=wait,
+                                    screenshot=lambda name: events.append(('screenshot', name)))
+            original = vm.vcpu_ticks
+            with patch.object(vm, 'vcpu_ticks', side_effect=lambda m: original(m, proc)), \
+                    patch.object(vm.time, 'sleep', side_effect=lambda s: (events.append(('sleep', s)), write({101: 100, 102: 690}))), \
+                    patch.object(vm.td, 'save', side_effect=lambda name, value: saved.__setitem__(name, value)):
+                value = vm.boot_stall(guest, 'release-27')
+        return value, saved, calls, events
+
+    def test_records_state_vcpu_time_and_a_sysrq_w_dump_then_a_screenshot(self):
+        value, saved, calls, events = self.run_stall()
+        self.assertIs(saved['release-27-boot-stall'], value)
+        self.assertEqual(value['status'], dict(running=True, status='running'))
+        self.assertEqual([(row['cpu'], row['thread_id'], row['ticks_used']) for row in value['vcpus']], [(0, 101, 0), (1, 102, 490)])
+        self.assertEqual([name for name, _ in calls], ['query-status', 'query-cpus-fast', 'query-cpus-fast', 'send-key'])
+        self.assertEqual([k['data'] for k in calls[-1][1]['keys']], ['alt', 'sysrq', 'w'])
+        self.assertTrue(value['sysrq_w_sent'])
+        self.assertEqual(events, [('sleep', 5), ('wait', '(?!)', 10), ('screenshot', 'release-27-boot-stall')])
+
+    def test_a_failed_probe_is_recorded_and_the_others_still_run(self):
+        value, saved, calls, events = self.run_stall(status=RuntimeError('QMP gone'))
+        self.assertIn('QMP gone', value['status_error'])
+        self.assertIn('vcpus', value)
+        self.assertTrue(value['sysrq_w_sent'])
+        self.assertIn(('screenshot', 'release-27-boot-stall'), events)
+
+    def test_login_runs_the_diagnostics_only_for_a_boot_that_never_showed_login(self):
+        timeout = TimeoutError('Guest console did not reach \\blogin: *')
+        for started, expected in ((False, 1), (True, 0)):
+            with self.subTest(authentication_started=started):
+                guest = object.__new__(vm.Guest)
+                guest.authentication_started, guest.mode, guest.boot_purpose = started, 'installed', 'release-27'
+                with patch.object(vm.td.Guest, 'login', side_effect=timeout), \
+                        patch.object(vm, 'boot_stall') as stall, self.assertRaises(TimeoutError) as raised:
+                    guest.login()
+                self.assertIs(raised.exception, timeout)
+                self.assertEqual(stall.call_count, expected)
+                if expected:
+                    stall.assert_called_once_with(guest, 'release-27')
 
 
 if __name__=='__main__': unittest.main()

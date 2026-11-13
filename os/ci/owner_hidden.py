@@ -21,6 +21,12 @@ def sudo_reader(args, next_reader):
     return dict(kind='sudo', argv=['sudo', *args], next=next_reader)
 
 
+def passwd_reader(user):
+    # Package 27: `sudo passwd <user>` typed in the root console; passwd reads
+    # both hidden values itself on sudo's pseudo-terminal.
+    return dict(kind='passwd', argv=['passwd', user])
+
+
 def device_number(fd):
     dev = os.fstat(fd).st_rdev
     minor = os.minor(dev)
@@ -47,6 +53,8 @@ def reader_matches(row, expected):
     if expected['kind'] == 'owner':
         return (bool(re.fullmatch(r'/usr/bin/python3(?:\.[0-9]+)?', row['exe'] or ''))
             and bool(re.fullmatch(r'python3(?:\.[0-9]+)?', row['comm'])) and row['argv'] == args)
+    if expected['kind'] == 'passwd':
+        return row['comm'] == 'passwd' and row['exe'] == '/usr/bin/passwd' and row['argv'] == args
     assert expected['kind'] == 'shell'
     return row['exe'] == '/usr/bin/bash' and row['comm'] == 'bash' and interactive_shell(row['argv'])
 
@@ -67,12 +75,14 @@ def reader_chain(rows, physical, expected):
         return [r for r in rows.values() if r['ppid'] == row['pid']]
     def shell(row):
         return reader_matches(row, dict(kind='shell'))
-    owner = expected if expected['kind'] == 'owner' else expected.get('next')
+    owner = expected if expected['kind'] in ('owner', 'passwd') else expected.get('next')
     allowed_sudo = [dict(kind='sudo', argv=['sudo', '-i'])]
     if expected['kind'] == 'sudo':
         allowed_sudo.append(expected)
     if owner and owner['kind'] == 'owner':
         allowed_sudo.append(dict(kind='sudo', argv=['sudo', '/var/lib/ares/at', *owner['argv'][4:]]))
+    if owner and owner['kind'] == 'passwd':
+        allowed_sudo.append(dict(kind='sudo', argv=['sudo', *owner['argv']]))
     for _ in range(16):
         if any(r['pid'] == current['pid'] for r in chain):
             return refuse('Cyclic foreground chain')
@@ -127,7 +137,7 @@ def reader_chain(rows, physical, expected):
 
 
 def redacted_chain(chain):
-    return [dict(pid=r['pid'], comm=r['comm'] if re.fullmatch(r'(?:sudo|bash|login|python3(?:\.[0-9]+)?)', r['comm']) else '[redacted]',
+    return [dict(pid=r['pid'], comm=r['comm'] if re.fullmatch(r'(?:sudo|bash|login|passwd|python3(?:\.[0-9]+)?)', r['comm']) else '[redacted]',
         argv=['[redacted]'], argv_redacted=True, ppid=r['ppid'], pgrp=r['pgrp'],
         session=r['session'], tty=r['tty'], tpgid=r['tpgid']) for r in chain]
 

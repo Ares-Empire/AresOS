@@ -16,6 +16,7 @@ import pathlib
 import re
 import shlex
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -49,6 +50,16 @@ LOGIN_REFUSAL = ('Registry login missing, expired or unreachable: run sudo /var/
 OUTCOME = 'outcome-pending'
 # One owner command at a time, bootstrap install included; /run is root-only.
 LOCK = pathlib.Path('/run/ares-owner.lock')
+# A release step's own time limit, and how long its process group gets after TERM, then after KILL.
+SCRIPT_TIMEOUT = 1800
+STOP_GRACE = 15
+# The stop routine's other bounds: each status read, the pending cleanup and systemd's reload.
+READ_TIMEOUT = 30
+CLEANUP_TIMEOUT = 300
+RELOAD_TIMEOUT = 120
+# update.sh unmasks exactly these two (package 27, JUDGMENT-CALL 11); a stopped update masks them again.
+UNITS = pathlib.Path('/etc/systemd/system')
+FINALIZERS = ('ostree-finalize-staged.service', 'bootc-finalize-staged.service')
 
 
 def boot_id():
@@ -225,7 +236,7 @@ class Host:
     def __init__(self):
         self.trace = []
 
-    def read(self, *command, allowed=(0,), timeout=30):
+    def read(self, *command, allowed=(0,), timeout=READ_TIMEOUT):
         path = shutil.which(command[0], path='/usr/sbin:/usr/bin:/sbin:/bin')
         require(path and pathlib.Path(path).is_absolute(), 'Required tool missing: ' + command[0])
         result = subprocess.run([path, *command[1:]], text=True, capture_output=True, timeout=timeout)
@@ -247,13 +258,226 @@ class Host:
                                stdout=result.stdout, stderr=result.stderr, mutation=True))
         require(result.returncode == 0, 'Operation failed: ' + command[0] + '; do not reboot')
 
+    def start(self, text, name):
+        return Step(text, name)
+
     def script(self, text, name, mutation=True):
-        result = subprocess.run(['/usr/bin/bash', '-seu'], input=text, text=True, capture_output=True, timeout=1800,
-            env=dict(os.environ, PATH='/usr/sbin:/usr/bin:/sbin:/bin'))
-        self.trace.append(dict(script=name, returncode=result.returncode, stdout=result.stdout,
-                               stderr=result.stderr, mutation=mutation))
-        require(result.returncode == 0, 'Shared step failed: ' + name + '; preserve diagnostics and do not reboot')
-        return result.stdout
+        """Run a release step; any unsuccessful end stops its whole session first (package 27, review 1)."""
+        step = self.start(text, name)
+        try:
+            reason = step.wait(SCRIPT_TIMEOUT)
+        except KeyboardInterrupt:
+            with Deferred():
+                try:
+                    gone = step.stop()
+                except Exception:
+                    gone = False
+            self.trace.append(step.record(mutation, 'interrupted', gone))
+            raise
+        if reason == 'done':
+            self.trace.append(step.record(mutation))
+            return step.stdout
+        with Deferred():
+            try:
+                gone = step.stop()
+            except Exception:
+                gone = False
+        self.trace.append(step.record(mutation, reason, gone))
+        if not gone:
+            raise Unstoppable('Shared step ' + name + ' could not be stopped; do not reboot; get help')
+        if reason == 'timed out':
+            raise Stop('Shared step timed out: ' + name + ' (stopped after ' + str(SCRIPT_TIMEOUT // 60)
+                       + ' minutes); preserve diagnostics and do not reboot')
+        raise Stop('Shared step failed: ' + name + '; preserve diagnostics and do not reboot')
+
+
+class Step:
+    """A release step (bash -seu) in its own session, so the tool can stop all of it.
+
+    subprocess.run's timeout SIGKILLs only the shell: its EXIT trap never runs and
+    bootc goes on (package 27, review 1). Here the tool waits in short slices, so a
+    deferred signal is noticed, and stop() ends every process of the session.
+    """
+
+    def __init__(self, text, name):
+        self.name, self.stdout, self.stderr = name, '', ''
+        self.process = subprocess.Popen(['/usr/bin/bash', '-seu'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE, text=True, env=dict(os.environ, PATH='/usr/sbin:/usr/bin:/sbin:/bin'),
+            start_new_session=True)
+        self.session = self.process.pid
+        self.text = text
+
+    def wait(self, timeout, signals=None):
+        """'done' (exit 0 and nothing of the step left), 'failed', 'timed out' or 'interrupted'."""
+        deadline = time.monotonic() + timeout
+        while True:
+            try:
+                out, err = self.process.communicate(self.text, timeout=0.2)
+                self.text = None
+                self.stdout, self.stderr = out or '', err or ''
+                break
+            except subprocess.TimeoutExpired:
+                self.text = None  # communicate() keeps the output; stop() collects it
+            if signals is not None and signals.received:
+                return 'interrupted'
+            if self.process.poll() is not None:
+                break  # the shell ended; a survivor may still hold its pipes
+            if time.monotonic() >= deadline:
+                return 'timed out'
+        alive, unknown = self.members()
+        if self.process.returncode != 0 or alive or unknown:
+            return 'failed'
+        return 'done'
+
+    def members(self):
+        """(live processes of the step's session or process group, /proc entries the scan could not read).
+
+        /proc/PID/stat is parsed as bytes after the last ')': a process name is 15 raw bytes
+        and may cut a multibyte character (package 27, review 3). A process that vanished
+        during the scan is gone; zombies cannot act; anything else unreadable is reported,
+        so the caller cannot take an incomplete scan for proof. This never raises.
+        """
+        alive, unknown = [], []
+        try:
+            names = [name for name in os.listdir('/proc') if name.isdigit()]
+        except Exception:
+            return alive, ['/proc']
+        for name in names:
+            try:
+                raw = pathlib.Path('/proc', name, 'stat').read_bytes()
+            except (FileNotFoundError, ProcessLookupError):
+                continue
+            except Exception:
+                unknown.append(name)
+                continue
+            if not raw:
+                continue
+            try:
+                fields = raw.rsplit(b')', 1)[1].split()
+                state, group, session = fields[0], int(fields[2]), int(fields[3])
+            except Exception:
+                unknown.append(name)
+                continue
+            if state != b'Z' and self.session in (group, session):
+                alive.append(int(name))
+        return alive, unknown
+
+    def stop(self):
+        """TERM, then KILL: the step's process group first, then every other member a scan finds.
+
+        True only once a complete scan finds none. self.left keeps what was still there.
+        """
+        alive, unknown = [], []
+        for signum in (signal.SIGTERM, signal.SIGKILL):
+            try:
+                os.killpg(self.session, signum)
+            except (ProcessLookupError, PermissionError):
+                pass
+            alive, unknown = self.members()
+            for pid in alive:
+                try:
+                    os.kill(pid, signum)
+                except (ProcessLookupError, PermissionError):
+                    pass
+            deadline = time.monotonic() + STOP_GRACE
+            while True:
+                self.process.poll()
+                alive, unknown = self.members()
+                if (not alive and not unknown) or time.monotonic() >= deadline:
+                    break
+                time.sleep(0.05)
+            if not alive and not unknown:
+                break
+        self.left = dict(alive=alive, unreadable=unknown)
+        gone = not alive and not unknown
+        if gone:
+            try:
+                out, err = self.process.communicate(timeout=2)
+                self.stdout, self.stderr = self.stdout + (out or ''), self.stderr + (err or '')
+            except (subprocess.SubprocessError, OSError, ValueError):
+                pass
+        else:
+            for stream in (self.process.stdin, self.process.stdout, self.process.stderr):
+                try:
+                    stream.close()  # a survivor keeps its own ends
+                except (OSError, ValueError, AttributeError):
+                    pass
+        return gone
+
+    def record(self, mutation, stopped=None, gone=None):
+        row = dict(script=self.name, returncode=self.process.returncode, stdout=self.stdout,
+                   stderr=self.stderr, mutation=mutation)
+        if stopped:
+            row.update(stopped=stopped, group_gone=gone)
+        return row
+
+
+class Deferred:
+    """While an update step or its stop routine runs, SIGINT, SIGTERM and SIGHUP only note
+    themselves: Ctrl+C, a closed window or a kill starts the stop routine, never cuts it short."""
+
+    SIGNALS = (signal.SIGINT, signal.SIGTERM, signal.SIGHUP)
+
+    def __enter__(self):
+        self.received, self.previous = [], {}
+        for signum in self.SIGNALS:
+            try:
+                self.previous[signum] = signal.signal(signum, self.note)
+            except ValueError:
+                pass  # only the main thread may set handlers; a test thread runs without them
+        return self
+
+    def note(self, signum, frame):
+        self.received.append(signum)
+
+    def __exit__(self, *unused):
+        for signum, handler in self.previous.items():
+            signal.signal(signum, handler)
+        return False
+
+
+def say(line):
+    """Print without failing: after a closed window, stdout answers EPIPE or EIO."""
+    try:
+        print(line, flush=True)
+    except (OSError, ValueError):
+        pass
+
+
+class Unstoppable(Stop):
+    """A step whose process survived TERM and KILL: nothing may be cleaned up behind it."""
+
+def stop_bound():
+    """The stop routine's worst case in seconds: TERM and KILL graces, collecting the output,
+    four status reads, the pending cleanup, systemd's reload and two mask checks."""
+    return 2 * STOP_GRACE + 2 + 4 * READ_TIMEOUT + CLEANUP_TIMEOUT + RELOAD_TIMEOUT + len(FINALIZERS) * READ_TIMEOUT
+
+
+def staged(state):
+    return bool(state['bootc']['status'].get('staged')) or any(d.get('staged') for d in state['rpm']['deployments'])
+
+
+def finalizer_masks():
+    """The staging finalizers still masked by the image's /dev/null link; update.sh removes exactly these."""
+    return [unit for unit in FINALIZERS if (UNITS / unit).is_symlink() and os.readlink(UNITS / unit) == '/dev/null']
+
+
+def restore_masks(host, removed):
+    """Mask again the finalizers this update removed, and prove systemd sees them masked. Idempotent."""
+    restored = []
+    for unit in removed:
+        path = UNITS / unit
+        if not path.is_symlink():
+            require(not path.exists(), 'Unexpected file in place of the ' + unit + ' mask; do not reboot; get help')
+            os.symlink('/dev/null', path)
+            restored.append(unit)
+        require(os.readlink(path) == '/dev/null', 'The ' + unit + ' mask was changed; do not reboot; get help')
+    if restored:
+        host.mutate('systemctl', 'daemon-reload', timeout=RELOAD_TIMEOUT)
+    for unit in removed:
+        require(host.read('systemctl', 'is-enabled', unit, allowed=(0, 1)).strip() == 'masked',
+                'The mask of ' + unit + ' could not be restored; do not reboot; get help')
+    return restored
 
 
 def observations(host):
@@ -1017,12 +1241,15 @@ class Tools:
         finally:
             temporary.unlink(missing_ok=True)
 
-    def script(self, name, replacements=None):
+    def render(self, name, replacements=None):
         text = (self.payload / 'release' / (name + '.sh')).read_text()
         for parameter, value in (replacements or {}).items():
             text = text.replace('@' + parameter + '@', value)
         require(not re.search('@[A-Z_]+@', text), 'Unresolved release script parameter')
-        return self.host.script(text, name)
+        return text
+
+    def script(self, name, replacements=None):
+        return self.host.script(self.render(name, replacements), name)
 
     def pin_step(self, cleanup_only):
         body = (self.payload / 'release/pin-stock.sh').read_text().split("<<'PIN_STOCK'\n", 1)[1].split('\nPIN_STOCK', 1)[0]
@@ -1265,9 +1492,22 @@ class Tools:
         again, _, _ = self.before_update()
         require(again['rpm']['deployments'] == before['rpm']['deployments'],
             'Deployments changed during verification; nothing was staged; get help')
+        removed = finalizer_masks()
         self.intend('update', before, target, None, settled)
-        self.script('update', {'REFERENCE': target, 'CURRENT': image_reference(booted),
-                               'CURRENT_DIGEST': booted['container-image-reference-digest']})
+        text = self.render('update', {'REFERENCE': target, 'CURRENT': image_reference(booted),
+                                      'CURRENT_DIGEST': booted['container-image-reference-digest']})
+        # From the start of the step to the end of its stop routine, Ctrl+C, a closed
+        # window or a kill only notes itself (package 27, reviews 1 and 2).
+        with Deferred() as signals:
+            step, reason = None, 'failed'
+            try:
+                step = self.host.start(text, 'update')
+                reason = step.wait(SCRIPT_TIMEOUT, signals)
+            except (Exception, KeyboardInterrupt) as error:
+                reason = 'failed (' + type(error).__name__ + ')'
+            if reason != 'done':
+                raise Stop(self.stop_update(step, reason, signals, before, booted, removed, target))
+            self.host.trace.append(step.record(True))
         after = observations(self.host)
         qualified_state(after, self.load('prepared'), target, self.known())
         status = after['bootc']['status']
@@ -1281,6 +1521,91 @@ class Tools:
         if len(retained) == 3:
             lines.append('Older AresOS ' + image_reference(retained[1]) + ' is removed when the update finishes at shutdown')
         return [*lines, *self.title(), 'Reboot only after saving this refreshed title; F12 then Linux']
+
+    def stop_update(self, step, reason, signals, before, booted, removed, target):
+        """The one stop routine for every unsuccessful end of the update step: a failed
+        shell, the time limit, Ctrl+C, a closed window or a kill (signals stay deferred).
+
+        It ends every process of the step and proves none is left; only then removes a
+        staged deployment, and only when it is exactly this update's (reconcile_update);
+        in every case tries to mask again the finalizers this run removed and checks it,
+        as the last line of defence; and claims a clean stop only when every one of those
+        checks passed. Each part is protected, so an error in one never skips the next.
+        update.sh's EXIT trap covers its ordinary failures; this runs after it and is
+        idempotent. Its waits are bounded (the printed limit is their sum).
+        """
+        if reason == 'interrupted':
+            cause = {signal.SIGINT: 'Ctrl+C', signal.SIGTERM: 'a termination request',
+                     signal.SIGHUP: 'the window closing'}.get(signals.received[0], 'a signal')
+            reason = 'was interrupted (' + cause + ')'
+        say('Stopping the update safely; this takes up to ' + str(-(-stop_bound() // 60))
+            + ' minutes. Do not close this window or restart.')
+        # Each part is protected on its own (review 3): no error in one may skip the next.
+        errors, removed_staging, gone = [], False, step is None
+        if step is not None:
+            try:
+                gone = step.stop()
+                if not gone:
+                    left = getattr(step, 'left', {})
+                    errors.append('a process of the update step survived TERM and KILL, so nothing was deleted'
+                                  if left.get('alive') or not left.get('unreadable') else
+                                  'the end of the update step could not be proved (unreadable /proc entries), '
+                                  'so nothing was deleted')
+            except Exception as error:
+                errors.append('stopping the update step failed (' + type(error).__name__ + ': ' + str(error)
+                              + '), so nothing was deleted')
+            try:
+                self.host.trace.append(step.record(True, reason, gone))
+            except Exception as error:
+                errors.append('diagnostics: ' + type(error).__name__ + ': ' + str(error))
+        if gone:
+            try:
+                removed_staging = self.reconcile_update(before, booted, target)
+            except Exception as error:
+                errors.append('deployments: ' + str(error))
+        try:
+            restore_masks(self.host, removed)
+        except Exception as error:
+            errors.append('finalizer masks: ' + str(error))
+        if errors:
+            return ('The update ' + reason + ', and stopping it did not finish: ' + ' | '.join(errors)
+                    + '. Do not reboot; export records and get help')
+        return ('The update ' + reason + ' and was stopped safely: '
+                + ('its staged release was removed, ' if removed_staging else 'nothing was staged, ')
+                + ('the staging finalizers are masked again, ' if removed else '')
+                + 'and the running release, its rollback and the pinned stock are unchanged. '
+                + 'Nothing changes at the next start; run update again later, or get help')
+
+    def reconcile_update(self, before, booted, target):
+        """True if this update's staged release was found and removed; STOP on anything else.
+
+        Nothing is deleted unless both status views agree, no deployment client or
+        transaction remains, the running, kept and pinned deployments are exactly as
+        before, and the only staged deployment is new, unpinned and this update's target.
+        """
+        state = observations(self.host)
+        running = agree(state)
+        idle(state, self.processes())
+        require(key(running) == key(booted), 'the running release changed; nothing was deleted')
+        rows, status = state['rpm']['deployments'], state['bootc']['status']
+        require(not status.get('rollbackQueued'), 'a rollback is queued; nothing was deleted')
+        kept = [d for d in rows if not d.get('staged')]
+        mine = [d for d in rows if d.get('staged')]
+        require(kept == before['rpm']['deployments'], 'the kept deployments changed; nothing was deleted')
+        if not mine and not status.get('staged'):
+            return False
+        digest = target.split('@')[1]
+        known = [list(key(d)) for d in before['rpm']['deployments']]
+        require(len(mine) == 1 and status.get('staged') is not None and not mine[0]['pinned']
+                and mine[0]['container-image-reference-digest'] == digest
+                and status['staged']['image']['imageDigest'] == digest and list(key(mine[0])) not in known,
+                'a staged deployment this update did not make is present; nothing was deleted')
+        self.host.mutate('rpm-ostree', 'cleanup', '--pending', timeout=CLEANUP_TIMEOUT)
+        after = observations(self.host)
+        agree(after)
+        require(not staged(after) and after['rpm']['deployments'] == before['rpm']['deployments'],
+                'the staged update could not be removed')
+        return True
 
     def previous(self):
         """Queue the previous AresOS release after an update; the stock pin stays."""
@@ -2164,6 +2489,6 @@ if __name__ == '__main__':
     try:
         main()
     except (Stop, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError, AssertionError, EOFError, KeyboardInterrupt) as error:
-        print('STOP: ' + str(error))
-        print('Keep the current administrator session open. Preserve diagnostics; do not reboot or retry a different target. See EMERGENCY / get help.')
+        say('STOP: ' + str(error))
+        say('Keep the current administrator session open. Preserve diagnostics; do not reboot or retry a different target. See EMERGENCY / get help.')
         sys.exit(1)

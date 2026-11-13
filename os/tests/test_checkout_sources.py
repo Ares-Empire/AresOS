@@ -24,15 +24,24 @@ def pending_rebind():
 
 
 class CheckoutSourcesTest(unittest.TestCase):
-    def test_package16_receipts_agree_and_package14_stays_historical(self):
-        folder=ROOT/'os/manifest/ci/16'
+    def test_current_receipts_agree_and_package14_stays_historical(self):
+        # Package 27's rehearsal rebinds package 16's tables; until it records
+        # them, package 16's stay current.
+        package='27' if (ROOT/'os/manifest/ci/27/source-bindings.json').exists() else '16'
+        folder=ROOT/'os/manifest/ci'/package
         walk=json.loads((folder/'host-walk.json').read_text())
         record=json.loads((folder/'source-bindings.json').read_text())
-        self.assertEqual(record['package'],'16')
+        self.assertEqual(record['package'],package)
         self.assertEqual(walk['status'],'passed')
         self.assertFalse(walk['stick_across_reboot'])
         self.assertEqual(walk['sources'],record['tables'][0]['sources'])
         self.assertIn('os/tests/test_owner_staged_release.py',{row['path'] for row in walk['sources']})
+        if package=='27':
+            old=json.loads((ROOT/'os/manifest/ci/16/source-bindings.json').read_text())
+            self.assertEqual([t['name'].replace('package16','package27') for t in old['tables'][1:]],
+                             [t['name'] for t in record['tables'][1:]])
+            for before,after in zip(old['tables'][1:],record['tables'][1:]):
+                self.assertEqual([r['path'] for r in before['sources']],[r['path'] for r in after['sources']])
         legacy=json.loads((ROOT/'os/manifest/ci/14/host-walk/result.json').read_text())
         self.assertNotEqual(walk['sources'],legacy['sources'])
         self.assertTrue(legacy['current_verification'].startswith('os/manifest/ci/14/'))
@@ -46,10 +55,13 @@ class CheckoutSourcesTest(unittest.TestCase):
         # differ from the walk and match the bytes recorded when set aside.
         pending = pending_rebind()
         waiting = {row['path'] for row in pending}
-        self.assertTrue(waiting and waiting <= {row['path'] for row in union})
+        self.assertTrue(waiting <= {row['path'] for row in union})
+        # The list empties exactly when a rehearsal recorded current bindings.
+        self.assertEqual(not waiting, (ROOT/'os/manifest/ci/27/source-bindings.json').exists())
         kept = [row for row in union if row['path'] not in waiting]
         self.assertEqual(checkout.verify(ROOT, kept), len(kept))
-        self.assertEqual(checkout.verify(ROOT, pending), len(pending))
+        if pending:
+            self.assertEqual(checkout.verify(ROOT, pending), len(pending))
         for row in union:
             if row['path'] in waiting:
                 with self.subTest(path=row['path']), self.assertRaisesRegex(AssertionError, 'binding mismatch'):

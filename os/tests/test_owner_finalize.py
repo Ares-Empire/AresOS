@@ -113,8 +113,10 @@ class FinalizeHoldTest(unittest.TestCase):
 
     def staged_tools(self, directory):
         fixture=self.fixture['staged_gate_fixture']
-        tools=object.__new__(owner.Tools);tools.store=pathlib.Path(directory);tools.payload=ROOT/'os/owner-tools/payload'
-        tools.release=json.loads((ROOT/'os/manifest/release.json').read_text())
+        # The staged-switch fixture is release 13's first switch.
+        tools=object.__new__(owner.Tools);tools.store=pathlib.Path(directory)
+        tools.payload=common.release13_bundle(pathlib.Path(directory)/'payload')
+        tools.release=json.loads((ROOT/'os/manifest/releases/13.json').read_text())
         tools.host=Mock(trace=[])
         tools.host.json.side_effect=lambda *argv:copy.deepcopy(fixture['after']['rpm' if argv[0]=='rpm-ostree' else 'bootc'])
         tools.pause={'deployment_processes':lambda:self.classify([self.hold])}
