@@ -210,6 +210,13 @@ and native tab identity. All original 60 sequences remain, with **66** total.
 The final independent destination audit now requires that context evidence too.
 No tab-group behavior changes.
 
+**Probe launcher correction:** `43472757698` (**242**) was cancelled by this
+builder before browser evidence after the local exact-inventory regression exposed
+a missing new helper in its file inventory. The assertion remains unchanged;
+the helper is now included. The complete suite passes **356 Node/artifact tests**,
+zero failures/skips. Replacement dispatch brings the count to **243**. The
+cancelled run is not acceptance evidence.
+
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
 blank-frame base case. The new fixture had duplicate blank-frame addresses, so
