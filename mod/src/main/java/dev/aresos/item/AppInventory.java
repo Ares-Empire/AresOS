@@ -8,6 +8,7 @@ import dev.aresos.world.DesktopWorld;
 import net.fabricmc.fabric.api.networking.v1.*;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ContainerInput;
 import net.minecraft.world.item.ItemStack;
@@ -176,18 +177,30 @@ public final class AppInventory {
             source.sendFailure(Component.literal("Finish moving inventory items first"));
             return 0;
         }
-        if (!MyAppsGame.own(source, app)) return 0;
         var inventory = player.getInventory();
+        int present = -1;
         for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
             var stack = inventory.getItem(slot);
             if (!stack.is(AppItems.APP) || !app.id().equals(stack.get(AppItems.APP_ID))) continue;
-            inventory.setItem(slot, ItemStack.EMPTY);
-            if (!inventory.add(stack)) inventory.setItem(slot, stack);
-            return 1;
+            present = slot;
+            break;
         }
-        if (inventory.add(AppItems.create(app))) return 1;
-        source.sendFailure(Component.literal("Inventory is full"));
-        return 0;
+        // Creative insertion discards overflow and still reports success. Choose a real destination first;
+        // an existing main-inventory item can use its own slot, in the same order as vanilla insertion.
+        int destination = -1;
+        for (int slot = 0; slot < Inventory.INVENTORY_SIZE; slot++) if (slot == present || inventory.getItem(slot).isEmpty()) {
+            destination = slot;
+            break;
+        }
+        if (destination < 0) {
+            source.sendFailure(Component.literal("Inventory is full"));
+            return 0;
+        }
+        if (!MyAppsGame.own(source, app)) return 0;
+        var stack = present < 0 ? AppItems.create(app) : inventory.getItem(present);
+        inventory.setItem(destination, stack);
+        if (present >= 0 && present != destination) inventory.setItem(present, ItemStack.EMPTY);
+        return 1;
     }
 
     private static void take(ServerPlayer player, String id) {
@@ -200,16 +213,19 @@ public final class AppInventory {
         if (app == null || !app.mine()) return;
         // Move an existing item instead of duplicating it. The cursor is managed by vanilla inventory packets.
         var before = hotbar(player);
-        ItemStack stack = ItemStack.EMPTY;
-        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
-            var existing = player.getInventory().getItem(i);
+        var inventory = player.getInventory();
+        int present = -1;
+        for (int i = 0; i < inventory.getContainerSize(); i++) {
+            var existing = inventory.getItem(i);
             if (existing.is(AppItems.APP) && id.equals(existing.get(AppItems.APP_ID))) {
-                stack = existing; player.getInventory().setItem(i, ItemStack.EMPTY); break;
+                present = i;
+                break;
             }
         }
-        if (stack.isEmpty()) stack = AppItems.create(app);
+        var stack = present < 0 ? AppItems.create(app) : inventory.getItem(present);
         ((AppMenuPins)player.inventoryMenu).aresos$beginMove(before);
         player.inventoryMenu.setCarried(stack);
+        if (present >= 0) inventory.setItem(present, ItemStack.EMPTY);
         player.inventoryMenu.broadcastChanges();
     }
 }
