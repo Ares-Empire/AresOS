@@ -1,7 +1,11 @@
 # 18c: CI image test with the Control tools inside
 
-Board #137 and #150. A frozen task for one builder. Parts A and B are built now; Part C waits for the Chrome tool
-(PR #27) and becomes its own brief, 18c-b.
+Board #137 and #150. A frozen task for one builder. Part C (the browser side of Chrome) becomes its own brief, 18c-b.
+
+**Order.** B1 (the interactive driver in the container) and the unit's network lines start at once, on `main` as it
+is. Part A and B2 are built on a `main` that has the Chrome tool (PR #27, planned for 2026-11-16), because from that
+merge on the service doesn't start without Chrome's startup files (see Part A). If PR #27 hasn't merged when B1 is
+green and `linux-aresos` has answered, stop and report; the lead decides whether to wait or to build without it.
 
 **Builder:** a Claude agent (Opus 5.5); move it to Fable 5.2 if the interactive Claude Code driver resists normal
 attempts. **Reviews:** the package review and a security review at the same time (`docs/REVIEW.md`, "Tools for
@@ -93,7 +97,9 @@ the owner's OK.
 2. `os/build.sh`: a new `control` mode, run in the `aresos` stage **before** `configure` (which runs the updater
    audit and removes `/tmp/aresos`). It installs, all root-owned, with no group or world write and no symlinks:
    - `/usr/libexec/aresos-control/` with `launch.py`, `aresos_control/` and `generated/` from `control/` (files 0644,
-     folders 0755);
+     folders 0755), and under `chrome/` the files the service loads when it starts once the Chrome tool is merged
+     (on PR #27's `8b7e799c`: `build-id.json`, made by `control/chrome/build.py` at image build, and
+     `qualification.json`);
    - `/usr/lib/aresos-control/vendor/` from `python3 -m pip install --no-cache-dir --require-hashes
      --only-binary=:all: --target` with `control/requirements.lock` (pip refuses any wheel whose SHA-256 isn't pinned);
    - `/etc/aresos-control/service.json` and `proxy.json` from `control/settings/`, 0644, with the AresOS values
@@ -112,7 +118,9 @@ the owner's OK.
 3. `gh` 2.102.0 or newer at `/usr/bin/gh`, because the service calls `gh` with `PATH=/usr/bin:/bin`: Fedora's RPM
    through `os/packages.lock.json` if Fedora 44 `updates` carries 2.102.0 or newer at `check_build=resolve`; otherwise
    GitHub's release RPM pinned like Chrome (`os/gh.lock.json` with version, URL and SHA-256, checked before install,
-   no repository added). His own `gh` in `~/.local/bin` stays first on his PATH.
+   no repository added). His own `gh` in `~/.local/bin` stays first on his PATH. For this, `os/ci/check-resolve.sh`
+   gains one narrow step: it reports Fedora's `gh` version and resolves it into the candidate lock, leaving every
+   other locked package as it is (today the script never looks at `gh`).
 4. `os/ci/image-checks.sh`: checks in the built image for every path above (owner, mode, no symlinks, content equal
    to the commit's files), the unit enabled, `gh --version` at least 2.102.0, no `managed-mcp.json`, and
    `aresos --help` through the installed launcher.
@@ -126,20 +134,26 @@ the owner's OK.
    runs the actions. `vm.py`'s own sequence stays as it is.
 7. `os/tests/`: static tests for the `control` mode and its install map. `os/README.md`: one paragraph on Control in
    the image.
+8. The folders the tools may take files from and save files to (mail attachments). The config names
+   `/var/home/ares/Downloads` and `/var/home/ares/Documents`. Neither exists on the laptop today (checked
+   2026-11-13: `ares` has no `Downloads`, `Documents` or `Desktop`, and no `user-dirs.dirs`), and the file policy
+   neither creates folders nor follows other names. Proposed: one tmpfiles line each in the image that creates the
+   two folders for `ares` if they are missing (0700, `ares`), and nothing else in his home. Which folders these are
+   is the owner's choice (a JUDGMENT-CALL below); the mechanism is `linux-aresos`'s (question 11).
 
 **Must not change:** the base digest, the other locked packages and the Chrome pin, the accounts (`ares` stays 1001;
 `aresos-tools` is a new system user with no login and no password), sudo, polkit, the unit masks, the session, PATH,
 repositories, `os/release/`, `os/owner-tools/`, `os/manifest/release.json` and `os/manifest/releases/`, and the
 release, switch and rehearsal jobs. No new enabled unit besides `aresos-toold.service`, no network listener (the
-service has Unix sockets only), nothing in Python's system site-packages, nothing in `/var/home/ares`. Claude Code
-itself is not in the image; he installs it in his home as on any OS.
+service has Unix sockets only), nothing in Python's system site-packages, nothing in `/var/home/ares` beyond the two
+empty folders of item 8. Claude Code itself is not in the image; he installs it in his home as on any OS.
 
 **One change outside `os/` that this needs:** the unit's network lines as decided for Chrome (PR #27, H1):
 `RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6` and no `IPAddressDeny=any`. Without it Mail can't reach a server
 under the real unit.
 
-**Later, with 18c-b (after Chrome merges):** Chrome's extension policy, its native host manifest and launcher, and
-the excluded-sites file (Part C).
+**Later, with 18c-b:** Chrome's extension policy, its native host manifest and launcher, and the excluded-sites file
+(Part C). Until then the service starts with Chrome's adapter and no browser connected.
 
 ### Details for the builder
 
@@ -150,10 +164,18 @@ the excluded-sites file (Part C).
 - **`aresos-tools` is created at boot** by `systemd-sysusers` from the image's file, the same path an installed laptop
   takes after an update (its `/etc/passwd` is local). Don't create it at build unless `linux-aresos` answers otherwise
   (question 5). tmpfiles creates `/run/aresos-tools` and both state folders at boot, owned by it.
+- **Chrome's startup files.** Read in the merged tree what the service loads when it starts (`Engine` builds every
+  adapter; on `8b7e799c`, `Chrome.__init__` in `aresos_control/chrome/adapter.py` reads `chrome/build-id.json`, or
+  runs `chrome/build.py`, and reads `chrome/qualification.json`). Install exactly those, with `build-id.json` made at
+  image build. Nothing of the browser side: no policy, no native host manifest, no extension. Ship the generated
+  files as they are, also where they now name Chrome (`user-mcp.json`, the ask rules), and record what
+  `aresos-mcp chrome` answers with no browser connected: a clear refusal, never a hang.
 - **The two config files** come from the drafts with only `owner_uid`, `home` and `folders` changed, and without
-  the drafts' `_comment` (it calls the file a draft; no code reads that key).
-- **`gh`.** Run `check_build=resolve` once. If Fedora's `gh` is 2.102.0 or newer, add it to `packages.lock.json` from
-  that resolution. If not, add `os/gh.lock.json` and the install step beside Chrome's in `build.sh packages`, with the
+  the drafts' `_comment` (it calls the file a draft; no code reads that key). `folders` is
+  `/var/home/ares/Downloads` and `/var/home/ares/Documents` unless the owner's answer (through the lead) says
+  otherwise.
+- **`gh`.** Extend `os/ci/check-resolve.sh` by the one step of item 3, then run `check_build=resolve` once. If
+  Fedora's `gh` is 2.102.0 or newer, add it to `packages.lock.json` from that resolution. If not, add `os/gh.lock.json` and the install step beside Chrome's in `build.sh packages`, with the
   same checks (bytes, name, version). Record which route and why as a JUDGMENT-CALL.
 - **Self-check at build:** after the install, run the installed launcher once as root (`aresos --help`) so a broken
   tree fails the build, and run `control/generate.py --check` with the vendored dependencies if it runs without
@@ -174,13 +196,17 @@ Interactive Claude Code needs a terminal and a scripted answer. Build one driver
   container) at a fixed size such as 120x40. Read the rendered screen with `tmux capture-pane -p`, never raw escape
   codes. Wait for named text with deadlines, never fixed sleeps as proof, and save every screen you act on.
 - **Model:** a new module beside `native.py` that speaks its streaming Messages format over several turns (leave
-  `native.py` itself as it is). Turn 1 calls `mcp__testapp__prepare_send` with the fixed message of
-  `control/tests/support.py` (`message()`); turn 2 reads that tool result and calls `mcp__testapp__send` with the
-  `approval` copied unchanged; any further request (the managed `Stop` hook blocks once while an operation is still
-  reserved) gets a plain end-of-turn text. In the container, where `mcp-fixture.py` has no preparation, use a fixed
-  approval as 18d does.
-- **First-run dialogs:** pre-seed `~/.claude.json` as 18d does (onboarding done, the synthetic key approved, the work
-  folder trusted, and acceptance of skip-permissions mode). Any dialog the driver doesn't expect fails the case with
+  `native.py` itself as it is), driven by a script per case, not one fixed sequence. A script is a list of steps;
+  the usual one is: call `mcp__testapp__prepare_send` with the fixed message of `control/tests/support.py`
+  (`message()`), read that tool result, call `mcp__testapp__send` with the `approval` copied unchanged, then end
+  the turn with plain text. The double tells two kinds of further request apart: a continuation the managed `Stop`
+  hook caused (answer with plain text, and record that it came) and the next owner prompt the driver typed (run the
+  script's next send, which the "don't ask again" case needs for send 2 in the same session). In the container,
+  where `mcp-fixture.py` has no preparation, use a fixed approval as 18d does.
+- **First-run dialogs:** pre-seed `~/.claude.json` as 18d's `precedence.py` does (onboarding done, the synthetic key
+  approved, the work folder trusted). 18d never ran interactive skip-permissions mode, so nothing there seeds its
+  warning. Find out first, on the pinned binary, how that warning is accepted (a setting, or the driver answering the
+  dialog once) and record it. After that setup is fixed, any dialog the driver doesn't expect fails the case with
   its screen saved.
 - **Answers:** "Yes", "Yes, and don't ask again" (if Claude Code offers it) and "No", chosen by the option text on
   screen, not by position alone.
@@ -189,7 +215,7 @@ Interactive Claude Code needs a terminal and a scripted answer. Build one driver
 - Use the same pinned Claude Code 2.1.319 as 18d, so the print and interactive results compare on one version.
 
 **The whole table runs here, in the container.** Which rule or hook wins is Claude Code's own behavior and doesn't
-depend on the image, so the cheap harness carries all of it and the VM (B2, check 8) repeats only four cases against
+depend on the image, so the cheap harness carries all of it and the VM (B2, check 9) repeats only four cases against
 the installed files and the real service. Each case is a fresh `claude`, the generated managed settings unless the
 case says otherwise, and a user allow rule for `mcp__testapp__prepare_send` in every case. Count arrivals at the
 `stub.py` receiver, as 18d does.
@@ -223,8 +249,8 @@ stands in for his `sudo` (`ares` has no password in CI):
 1. **Files.** Every path of Part A has the owner, mode and content of the commit; no symlinks; no `managed-mcp.json`.
 2. **The service.** `aresos-toold.service` is active after boot without anyone starting it, `NRestarts=0`, its main
    process runs as `aresos-tools` with `NoNewPrivs: 1` and no effective capabilities; `systemctl show` gives the
-   unit's sandbox values; `/run/aresos-tools` is 0711, `act.sock` 0666, `admin.sock` and `chrome.sock` 0600, owned by
-   the service user. Save `systemd-analyze security aresos-toold` (recorded, not asserted). Record SELinux's mode and
+   unit's sandbox values; `/run/aresos-tools` and its sockets have the modes the merged `daemon.py` sets (read them
+   from the code; on `8b7e799c`: `act.sock` and `chrome.sock` 0666, `admin.sock` 0600), owned by the service user. Save `systemd-analyze security aresos-toold` (recorded, not asserted). Record SELinux's mode and
    any AVC denial naming the service, its files or its sockets; a denial fails.
 3. **Entry points for the daily user.** As `ares`: `aresos testapp list --input '{"limit":3}'` and `aresos log`
    answer; `aresos-mcp mail` and `aresos-mcp control` answer MCP `initialize` and `tools/list` with exactly the tools
@@ -232,13 +258,27 @@ stands in for his `sudo` (`ares` has no password in CI):
    `act.sock` and by the proxy; `ares` is refused by `admin.sock`.
 4. **The precondition check.** As `ares`, `aresos testapp prepare_send` succeeds. With `managed-settings.json` made
    group-writable, then with one ask rule removed, it refuses with `boundary_not_installed`; after each, restore the
-   file and prove its hash equals the shipped one.
+   file and prove its hash equals the shipped one. Then clear the successful preparation (see "A clean baseline"
+   below).
 5. **The user-scope install step.** As `ares`: put Claude Code where its installer would
    (`~/.local/share/claude/versions/2.1.319`, linked from `~/.local/bin/claude`); add a fixture server of "his own" at
    user scope; run the install step from `control/README.md` word for word, twice. `~/.claude.json` then holds
    `control` and `mail` exactly as in `/usr/share/aresos/control/user-mcp.json`, his own entry unchanged, nothing
    duplicated; `claude mcp list` shows them connected. The harness then adds `testapp` the same way (`proxy testapp`).
-6. **Mail under the real unit.** Through the installed entry points only:
+6. **An ordinary session stays ordinary.** The managed hooks run in every Claude Code session he starts, also ones
+   that never touch our tools. With B1's driver, as `ares`, with a notification hook of "his own" (`Stop` and
+   `UserPromptSubmit`, each writing a line to a file) beside ours: a session whose model only calls his own fixture
+   MCP tool and answers.
+   - Service healthy and nothing pending: the tool call runs without a prompt of ours, his hooks ran, the turn ends
+     with no extra model request, and nothing of ours appears on screen.
+   - Service stopped (`systemctl stop`): his prompt still reaches the model, his tool call still runs, and the turn
+     ends within a fixed deadline. Record exactly what he sees and what it costs: the text on screen, and how many
+     extra model requests the `Stop` hook's "service unavailable" reminder causes per turn. Start the service again
+     and show the next turn is clean.
+
+   Report the stopped-service result as a JUDGMENT-CALL with the numbers: whether a session that never used our
+   tools should get that reminder at all.
+7. **Mail under the real unit.** Through the installed entry points only:
    - onboarding: `aresos admin mail account add --input JSON` in a terminal (tmux), the password typed at the
      prompt, Dovecot for IMAP and GreenMail for SMTP, then `account_settings` with `sent_policy: client`; the account
      is ready;
@@ -247,20 +287,23 @@ stands in for his `sudo` (`ares` has no password in CI):
    - send: `compose`, `prepare_send`, `send` with the approval; GreenMail holds exactly one arrival, the operation is
      `done` and the Sent copy is in the Sent folder;
    - delete: `prepare_delete` and `delete` move the message to Trash;
+   - files: a file `ares` put in the first configured folder goes out as an attachment and arrives byte for byte,
+     and a received attachment is saved into that folder, owned by `ares`. A file outside the configured folders is
+     refused. The folders exist because the image created them (Part A item 8), never because the test did;
    - one Mail send through Claude Code: the prompt shows, "Yes" sends it once.
 
    The existing Mail tests are not reused as tests (they drive an in-process engine); their fixtures and flows are:
    the server images, `dovecot.conf`, the certificate steps, `ready.py`, and the flows of `test_admin.py`,
    `test_read.py`, `test_compose.py`, `test_outcomes.py` and `test_changes.py`. Put the new flows in
    `control/ci/image/`. The container suites keep proving Mail's details on every pull request.
-7. **The app passwords.** As `ares`, `/var/lib/aresos-tools` and the password files can't be listed or read. As root:
+8. **The app passwords.** As `ares`, `/var/lib/aresos-tools` and the password files can't be listed or read. As root:
    the password folder is 0700 and its file 0600, both `aresos-tools`; the synthetic password occurs in exactly that
    one file, and not in the journal, `~ares` (including Claude Code's transcripts), `/tmp`, the evidence folder or
    `operations.jsonl`. Evidence records its hash and the counts, never the password.
-8. **The ask, interactive, against the installed files** (B1's driver against the real service and testapp's real
+9. **The ask, interactive, against the installed files** (B1's driver against the real service and testapp's real
    receiver). Four cases, each a fresh `claude` as `ares` with the managed files exactly as the image shipped them
    and a user allow rule for `mcp__testapp__prepare_send`. Count arrivals from `aresos testapp operation_status` and
-   from the receiver's SQLite, read by root; cancel every unanswered operation before the next case.
+   from the receiver's SQLite, read by root. Every case starts from a clean baseline (below).
 
    | Case | Mode | Expected |
    |---|---|---|
@@ -271,8 +314,14 @@ stands in for his `sudo` (`ares` has no password in CI):
 
    The managed files aren't edited in the VM; the managed-level hook cases stay in the container. If a VM case
    differs from the same case in the container, that is a finding: stop and report it.
-9. **`gh`.** `/usr/bin/gh --version` is at least 2.102.0, also when run as `aresos-tools` under the unit's sandbox
-   (`systemd-run` with the unit's properties).
+10. **`gh`.** `/usr/bin/gh --version` is at least 2.102.0, also when run as `aresos-tools` under the unit's sandbox
+    (`systemd-run` with the unit's properties).
+
+**A clean baseline.** Cancelling an operation doesn't clear it: the engine keeps it in the pending list with its
+notice set until the notice is acknowledged (`notice_ack`; `test_operations.py` pins this). So after every case or
+check that prepared something: save the evidence first (the reminder text, the operation's state), then cancel what
+is still reserved, acknowledge the expected notice, and assert that nothing is pending before the next case starts.
+A leftover notice would show up in a later case's hook output and spoil it.
 
 Finally restart the service and check it comes back with the Mail account still ready and nothing pending, then
 power the guest off cleanly.
@@ -289,7 +338,8 @@ the uploaded `check-build-evidence` artifact, under 180 MB, never the image, the
 | `CONTROL_ENTRY_POINTS_PASS` | `control/entry-points.json` with every refusal's error code |
 | `CONTROL_PRECONDITION_PASS` | `control/precondition.json`: each refusal and each restored hash |
 | `CONTROL_USER_MCP_INSTALL_PASS` | `control/user-mcp-install.json`: the MCP entries before and after each run |
-| `CONTROL_MAIL_FLOWS_PASS` | `control/mail-flows.json`, plus the runner's fixture logs |
+| `CONTROL_ORDINARY_SESSION_PASS` | `control/ordinary/<case>/`: screens, his hooks' lines, the model requests counted |
+| `CONTROL_MAIL_FLOWS_PASS` | `control/mail-flows.json` (with the attachment hashes), plus the runner's fixture logs |
 | `CONTROL_PASSWORDS_PRIVATE_PASS` | `control/passwords.json`: refusals, modes, hit counts, the password's hash |
 | `CONTROL_INTERACTIVE_ASK_PASS` | `control/interactive/<case>/`: screens, hook events, arrivals, transcript |
 | `CONTROL_PERMISSION_REQUEST_RECORDED {json}` | `control/permission-request.json` |
@@ -314,10 +364,10 @@ harness. 18c-b will add:
 - **Image:** the extension policy (`ExtensionInstallForcelist` and the toolbar pin) under
   `/etc/opt/chrome/policies/managed/` (package 21's image check already proves that folder can be created); the
   native host manifest `org.aresos.chrome` under `/etc/opt/chrome/native-messaging-hosts/`, its launcher
-  `/usr/libexec/aresos-control/chrome/host` (0755) and `native_host.py` (0644); `chrome/build-id.json` from
-  `control/chrome/build.py` at image build; `/etc/aresos/control/chrome-excluded-sites.json` with
-  `{"format":1,"hosts":[]}`, 0640, root and the service's group; `chrome` in `user-mcp.json`, generated. All as
-  described in PR #27's `control/chrome/packaging/README.md`.
+  `/usr/libexec/aresos-control/chrome/host` (0755) and `native_host.py` (0644);
+  `/etc/aresos/control/chrome-excluded-sites.json` with `{"format":1,"hosts":[]}`, 0640, root and the service's
+  group. All as described in PR #27's `control/chrome/packaging/README.md`. (The service's own startup files and the
+  generated `chrome` entries already ship with Part A.)
 - **Settled before 18c-b:** where the signed extension and its update manifest are served from (the packaging README
   names "the image's local HTTPS update endpoint", which doesn't exist yet), and where the production extension key
   lives (outside the repo; a key is a credential).
@@ -368,8 +418,9 @@ an allow hook approve the managed ask interactively, at user and at managed leve
 the measured times of the VM steps.
 
 - **JUDGMENT-CALL:** anything hard to undo or that changes how AresOS behaves for him once released: the unit enabled
-  by default, the owner values baked into the config, the `gh` route, anything you chose where this brief or
-  `linux-aresos`'s answers left a choice. Give what you chose, the alternatives, why, and what changing it later
+  by default, the owner values baked into the config, the two folders the tools may use and that the image creates
+  them, what an ordinary session shows while the service is down (check 6), the `gh` route, anything you chose where
+  this brief or `linux-aresos`'s answers left a choice. Give what you chose, the alternatives, why, and what changing it later
   costs. These go to the owner before merge.
 - **PLAN-GAP:** anything this brief, the design or the plan gets wrong or misses, for example a check that can't be
   done the way it is written here.
@@ -393,8 +444,9 @@ alone, and say so in the report.
 
 ## Owner decides
 
-Nothing in this package: throwaway CI images need no OK (`CLAUDE.md`). A release that carries Control, and the live
-tests on his laptop, are later and his.
+Throwaway CI images need no OK (`CLAUDE.md`). His before merge: the report's JUDGMENT-CALLs, among them which
+folders the tools may use (the lead asks him; build with `Downloads` and `Documents` meanwhile). A release that
+carries Control, and the live tests on his laptop, are later and his.
 
 ## Open questions for `linux-aresos` (the lead sends them with the proposal)
 
@@ -404,7 +456,7 @@ tests on his laptop, are later and his.
    merges meanwhile?
 3. Is `build.sh control` before `configure` in the `aresos` stage the right place?
 4. `gh`: Fedora's RPM through `packages.lock.json` if it is 2.102.0 or newer, otherwise GitHub's release RPM pinned
-   like Chrome. Agreed?
+   like Chrome, with `check-resolve.sh` extended by the one step that reports and resolves Fedora's `gh`. Agreed?
 5. `aresos-tools`: created only at boot by `systemd-sysusers` (as on the laptop after an update), or also at build
    like `ares`?
 6. The unit enabled by default in the image: agreed?
@@ -418,6 +470,11 @@ tests on his laptop, are later and his.
 10. Once Part A is on main, the next release built from main carries Control. Fine, with Control named in that
     release's image diff and the owner's release OK, or should it stay out of releases until he approves it
     separately?
+11. `ares` has no `Downloads` or `Documents` on the laptop. Is one tmpfiles line each (create if missing, 0700,
+    `ares`) the right way for the image to provide them, or do you want the session to run `xdg-user-dirs-update`
+    instead?
+12. The update from release 27 (a local `/etc`, `aresos-tools` added by sysusers at the first boot, the new folders)
+    isn't tested by 18c. Will the next release's rehearsal cover it?
 
 ## Rules for this run
 
