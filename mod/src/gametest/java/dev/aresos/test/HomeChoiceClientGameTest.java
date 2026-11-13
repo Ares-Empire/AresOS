@@ -64,6 +64,7 @@ public final class HomeChoiceClientGameTest implements FabricClientGameTest {
             natural = reference.getServer().computeOnServer(server -> snapshot(server.getLevel(Level.NETHER), naturalSite.floor(), 8, -1, 10));
         }
         archiveThroughUi(context, directory);
+        context.clickScreenButton("Home: Flat");
         screenshot(context, "04c-create-default");
         context.clickScreenButton("50");
         assertCreateSettings(context, "50", false);
@@ -119,6 +120,7 @@ public final class HomeChoiceClientGameTest implements FabricClientGameTest {
             AresOs.LOGGER.info("04c selected home PASSED: Nether and Overworld exact position/facing persisted through rejoin; actual respawn in both dimensions");
         }
         archiveThroughUi(context, directory);
+        context.clickScreenButton("Home: Flat");
         context.clickScreenButton("50");
         context.clickScreenButton("Placeholder hub: OFF");
         assertCreateSettings(context, "50", true);

@@ -54,6 +54,7 @@ public final class NetherHomeClientGameTest implements FabricClientGameTest {
         context.takeScreenshot(TestScreenshotOptions.of("title-button").withDestinationDir(homeDir()));
         context.clickScreenButton("aresos.home");
         context.waitForScreen(dev.aresos.client.HomeCreateScreen.class);
+        context.clickScreenButton("Home: Flat");
         context.clickScreenButton("aresos.home.create");
         context.waitFor(client -> client.player != null && client.gui.screen() == null, 2400);
         var server = context.computeOnClient(Minecraft::getSingleplayerServer);
