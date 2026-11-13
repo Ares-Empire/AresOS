@@ -4,17 +4,66 @@
   "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Only test files and the CI workflow (its checks-only job) wait now, no tool, guide or image file.",
   "changes": [
     "Package 27b (laptop update record): os/tests/test_owner_path.py pins the laptop's step 8 update in INSTALL-STATUS; os/tests/test_checkout_sources.py and os/tests/test_owner_step_limits.py check this list by rules that hold at any time instead of requiring it empty while package 27's bindings exist",
-    "27b: the checks-only job fetches full history (the suite reads earlier commits)"
+    "27b: the checks-only job fetches full history (the suite reads earlier commits)",
+    "Package 22c stage 0 (reorder probe): os-image.yml, the dispatch guard and its ledger, the owner harness lists and owner_vm.py know package 22c and its mode reorder-probe; owner_vm.py shares package 27's route up to release 27 confirmed (laptop_update, confirmed_update) and owner_media.py can copy a bundle from history; the tests that pin the workflow's expressions and the local walk follow"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "e85e522b91285c1225c6b967abcd07128badcb32add7d1e358a58f1bdb7088a6",
+      "sha256": "5048257b422e2b10f30a101f5d6a9fe509bd85e36333329fd7b7283a4154792d",
       "path": ".github/workflows/os-image.yml"
+    },
+    {
+      "sha256": "ba439f07383368b67092d91b0a4ed7fce2f4b6569cf32043d63911b26851a210",
+      "path": "os/ci/installer_webui.py"
+    },
+    {
+      "sha256": "6b79707f2533afb6d9b3bf81c4a7207cc9f3a9a7e1de8bb01674505edf23bf4c",
+      "path": "os/ci/owner_capabilities.py"
+    },
+    {
+      "sha256": "819cef38705d5fbfe5b7bcdb5fd70bc570fda6e6ae3d212a9c2bbf8305dbb961",
+      "path": "os/ci/owner_devices.py"
+    },
+    {
+      "sha256": "5fd94b1df701a100804df0e6b71e31f95b3379cdcb34ace1010bc4331ff4e667",
+      "path": "os/ci/owner_media.py"
+    },
+    {
+      "sha256": "840654185ab60d7ca374b11b062e78409ee24739353a5a2c7dfaaa11d8fe292a",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "ab246d3989be1bffca0f55b27669d525453306cba61f3f928c3a58c956ec83a8",
+      "path": "os/ci/registry_auth.py"
+    },
+    {
+      "sha256": "021ad4619ea2446946e504aa9c60c19a3fc4a0d6d629704eb5831a2d85d71600",
+      "path": "os/ci/rehearsal-packages.json"
+    },
+    {
+      "sha256": "ab383b43f0f186e54f5fe529d97bdbb724756f682a61ce7797bd7806e61cb41e",
+      "path": "os/ci/rehearsal_guard.py"
+    },
+    {
+      "sha256": "f5db3954e04786274171995722ce8649244ce0c8416c48aa4a512e83aa0e241e",
+      "path": "os/ci/two_disk_vm.py"
     },
     {
       "sha256": "042737ea1f9c190e6686e40044b4d04a5169ae5d9aa82b6853366f149baab775",
       "path": "os/tests/test_checkout_sources.py"
+    },
+    {
+      "sha256": "b8fc6884066845578824de3fb676a20cfb961ca19ee76ce99ca7d00537550b6f",
+      "path": "os/tests/test_owner_capabilities.py"
+    },
+    {
+      "sha256": "1878da535d481636f91306dd492fdb0c34a6fc3e957cea509fa263f205a50357",
+      "path": "os/tests/test_owner_devices_native.py"
+    },
+    {
+      "sha256": "e062bb255acfad988357dee66de5ac11d48241a9b59c0e8745b81946ca6fdfc2",
+      "path": "os/tests/test_owner_guard.py"
     },
     {
       "sha256": "f7d82304d3c1df773d68510e0bd8d05079590eef516881992ce7aab964dfb646",
@@ -23,6 +72,14 @@
     {
       "sha256": "21d51d8d7aea49af0ecd0c83891a2faff4f97b78263b3077d94014422c2c070d",
       "path": "os/tests/test_owner_step_limits.py"
+    },
+    {
+      "sha256": "8c4f4a91f5aa0bdff3af573b15b5570701312ee7ca0eee13a486bceac5a684cb",
+      "path": "os/tests/test_owner_walk.py"
+    },
+    {
+      "sha256": "65d4987f9887cf06b29c64655cfad9468683911781b8d3cbdc899a055eb87dfb",
+      "path": "os/tests/test_rehearsal_budget.py"
     }
   ],
   "unwalked_commands": [],

@@ -1,0 +1,1082 @@
+{
+  "status": "passed",
+  "kind": "local synthetic owner host walks (package 22c's routes); not VM or physical qualification",
+  "stick_across_reboot": false,
+  "stages": {
+    "reorder-probe": [
+      "stock",
+      "tools-stock",
+      "corrected-stock",
+      "release-13",
+      "release-27",
+      "walk-1-booted",
+      "walk-2-booted",
+      "walk-3-booted",
+      "walk-4-booted",
+      "walk-5-booted",
+      "walk-6-booted",
+      "menu-stock",
+      "after-menu-booted"
+    ]
+  },
+  "checks": {
+    "reorder-probe": 144
+  },
+  "markers": {
+    "reorder-probe": [
+      "offline-roundtrip-unattended-windows",
+      "offline-roundtrip-detached-windows",
+      "prepared-unattended-windows",
+      "final-unattended-windows",
+      "final-detached-windows"
+    ]
+  },
+  "command_count": {
+    "reorder-probe": 589
+  },
+  "typed_count": {
+    "reorder-probe": 417
+  },
+  "set_default_indexes": {
+    "reorder-probe": [
+      2,
+      1,
+      2,
+      2,
+      1,
+      2
+    ]
+  },
+  "inherited_from": "os/manifest/ci/27/host-walk.json",
+  "no_longer_bound": [],
+  "sources": [
+    {
+      "sha256": "f26078d31ff5ecf2b031799d4d98fc6ae6c3727f024675dd86edfc30426932f3",
+      "path": ".gitattributes"
+    },
+    {
+      "sha256": "5048257b422e2b10f30a101f5d6a9fe509bd85e36333329fd7b7283a4154792d",
+      "path": ".github/workflows/os-image.yml"
+    },
+    {
+      "sha256": "dd2eea95f06037b9b04edf49b48a27685220354ff5a2e8cd58bd9013576f37c7",
+      "path": "briefs/14zzd-fixture-bundles.md"
+    },
+    {
+      "sha256": "175ff86c95483ef709cc8e69b4eb2d327e38eb83c19a19949493addd468562f8",
+      "path": "briefs/14zze-checkout-bytes.md"
+    },
+    {
+      "sha256": "30adf4f3e0624095782608c529812969e051bd51e53e0a88afef419cc50a1d41",
+      "path": "docs/EMERGENCY.md"
+    },
+    {
+      "sha256": "9222d9cfcb3512fccb29c321615a0c927ee91adb4d210d5f50ccce9a87b377e9",
+      "path": "docs/INSTALL.md"
+    },
+    {
+      "sha256": "e9350dc5a131ed29370711fbe62f59b3d1f71e0a15c6441190b937920837de44",
+      "path": "docs/install-tools/OwnerTools.psm1"
+    },
+    {
+      "sha256": "6566f2efc06e79d3190ded48cdb119c4fc79f4ed5fc6ef784babc52438fb8223",
+      "path": "os/ci/checkout_sources.py"
+    },
+    {
+      "sha256": "661741f8506495c1043aa703c14d14e33093abac687681efb2c8041292ba9f86",
+      "path": "os/ci/greeter.py"
+    },
+    {
+      "sha256": "f903d01ec9d88727baa53cb0dc1681acac6d0c4b4d0f9347405cbf65cff003b0",
+      "path": "os/ci/greeter_probe.py"
+    },
+    {
+      "sha256": "5e6aa9fdd411cf8cbd37f0174bd147892ce9cb7d176b70534d61664b6dc7a36b",
+      "path": "os/ci/grub_bls.py"
+    },
+    {
+      "sha256": "13ab9ba9879a7cf628daaa326643df109da61cbd297663e5b711f0c9e6331057",
+      "path": "os/ci/installer_inspect.py"
+    },
+    {
+      "sha256": "ba439f07383368b67092d91b0a4ed7fce2f4b6569cf32043d63911b26851a210",
+      "path": "os/ci/installer_webui.py"
+    },
+    {
+      "sha256": "57b6e241686452368eb07b1f4f0539c85a9d8379fb1dad9859dc6e3754cf7fb1",
+      "path": "os/ci/keyboard_entries.py"
+    },
+    {
+      "sha256": "b1171ec1dde6bb8a011d31dee17c8b6f8e624ecdaa8771117fc807f379e18aed",
+      "path": "os/ci/keyboard_vm.py"
+    },
+    {
+      "sha256": "c13f2920b0e42f295fad80aaeae40d97bc9d99b658678058f5c9f74ddd6c43b5",
+      "path": "os/ci/offline_webui.py"
+    },
+    {
+      "sha256": "6b79707f2533afb6d9b3bf81c4a7207cc9f3a9a7e1de8bb01674505edf23bf4c",
+      "path": "os/ci/owner_capabilities.py"
+    },
+    {
+      "sha256": "662478226f64b2b7df1c7731e584426f899afc1339a49e825943a354f0a47749",
+      "path": "os/ci/owner_console.py"
+    },
+    {
+      "sha256": "64dcda6e8c3d699b96284578c2a9fd86b8e0b31fff571b88c6377e76431e8f78",
+      "path": "os/ci/owner_counter_kernel.py"
+    },
+    {
+      "sha256": "819cef38705d5fbfe5b7bcdb5fd70bc570fda6e6ae3d212a9c2bbf8305dbb961",
+      "path": "os/ci/owner_devices.py"
+    },
+    {
+      "sha256": "56143e7310331cef87aac1e143df5ed99eefac61c9f3e1d49cf0dc727865de1c",
+      "path": "os/ci/owner_fuse.py"
+    },
+    {
+      "sha256": "c8774757b96cb90e3a6d31741dc9379c2fc895b330bf838e9f8b9771e98cdb3c",
+      "path": "os/ci/owner_hidden.py"
+    },
+    {
+      "sha256": "86387f41c01cd256360953e62229af7e433220488d189cc68810d16e751aece1",
+      "path": "os/ci/owner_key_counter.py"
+    },
+    {
+      "sha256": "f2452f7cd01efa6ff038b6fc5f8959cf8ae35ea0af5cb71d06b8912f7aab5e15",
+      "path": "os/ci/owner_keys.py"
+    },
+    {
+      "sha256": "7e9fff163cd33ca65676aa6791828b23302c45ef1599bb1fcf52277d219ba3ca",
+      "path": "os/ci/owner_login.py"
+    },
+    {
+      "sha256": "5fd94b1df701a100804df0e6b71e31f95b3379cdcb34ace1010bc4331ff4e667",
+      "path": "os/ci/owner_media.py"
+    },
+    {
+      "sha256": "204b8f43c087bc08820fd6de095c5b1a1942bc2fe687a31990aea1198ad42936",
+      "path": "os/ci/owner_read_diagnostics.py"
+    },
+    {
+      "sha256": "840654185ab60d7ca374b11b062e78409ee24739353a5a2c7dfaaa11d8fe292a",
+      "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "b63ee2f11764077cc4041a4c0c0deba86b459cae7ee93986d265bf3060560b9a",
+      "path": "os/ci/owner_xhci.py"
+    },
+    {
+      "sha256": "d060f9bfa185cc2087c94d7ae75f58f832dd135efe8d031fcb5efac1b4c2e2a4",
+      "path": "os/ci/polkit-review.json"
+    },
+    {
+      "sha256": "f0425f057a39fe2216b97da0049f61c1ec4ba1a099a9eea0e558e2b3289ee251",
+      "path": "os/ci/prepare_two_disks.py"
+    },
+    {
+      "sha256": "ab246d3989be1bffca0f55b27669d525453306cba61f3f928c3a58c956ec83a8",
+      "path": "os/ci/registry_auth.py"
+    },
+    {
+      "sha256": "021ad4619ea2446946e504aa9c60c19a3fc4a0d6d629704eb5831a2d85d71600",
+      "path": "os/ci/rehearsal-packages.json"
+    },
+    {
+      "sha256": "ab383b43f0f186e54f5fe529d97bdbb724756f682a61ce7797bd7806e61cb41e",
+      "path": "os/ci/rehearsal_guard.py"
+    },
+    {
+      "sha256": "c012cd8dd55d1130b9c8d4149a3984a3c4f95e8fb76a5cf9ef680743d33c8e1f",
+      "path": "os/ci/reorder_probe.py"
+    },
+    {
+      "sha256": "aab8e9c939449d0feb02e693e6ed9ffa832f4ff1c52f746d0a11496629e7b23c",
+      "path": "os/ci/serial_console.py"
+    },
+    {
+      "sha256": "e365cad208c09b5aeafe32a4f7c0805dde2070d1aac1818ffe0736ffc17a6ebb",
+      "path": "os/ci/serial_transport.py"
+    },
+    {
+      "sha256": "3d977e51e019a1a6c44d5d2068f537264050e791ed4d3e1fa6b272e5c67d536f",
+      "path": "os/ci/switch_vm.py"
+    },
+    {
+      "sha256": "f5db3954e04786274171995722ce8649244ce0c8416c48aa4a512e83aa0e241e",
+      "path": "os/ci/two_disk_vm.py"
+    },
+    {
+      "sha256": "a314a8268404ba7df1ca63adaab535ce743f79ffa2e9e6627cb16c8c215d6b35",
+      "path": "os/ci/verify_release.py"
+    },
+    {
+      "sha256": "927a93154c46a93b7ffb91328552fa9a591fd1fcc7d2cc54bba0869647fb9f1e",
+      "path": "os/ci/vm.py"
+    },
+    {
+      "sha256": "1ab95aeeeb04ada969d55a9aa240f6154854adb87b3bfbf951a88f811190ca76",
+      "path": "os/manifest/ci/14/14zu-local/atkbd.c.gz"
+    },
+    {
+      "sha256": "3b2e268c3a6059369a643e5f71199d7adf7aea2cac699476522f034b2f9ecb77",
+      "path": "os/manifest/ci/14/14zu-local/evdev.c.gz"
+    },
+    {
+      "sha256": "abdd51d39d0627a36347d3a4f7f4b7f0248fc3b1390398afd496a15c31411a86",
+      "path": "os/manifest/ci/14/14zu-local/input-keymap.c.gz"
+    },
+    {
+      "sha256": "bac19f8fd535e100bddcdb9d0bf560df3f80b6b590c1980c5912d094c96bec2e",
+      "path": "os/manifest/ci/14/14zu-local/input.h.gz"
+    },
+    {
+      "sha256": "76e12ce286fe0e331fbe94d54e73376131928ee58f420fcabb7195f4a62b5f2a",
+      "path": "os/manifest/ci/14/14zu-local/pc.c.gz"
+    },
+    {
+      "sha256": "a2ebf8b40d5c83e2d469030f6c395427fea3dfcb6b42692aeae86322cba0bf5e",
+      "path": "os/manifest/ci/14/14zu-local/pc_q35.c.gz"
+    },
+    {
+      "sha256": "080b35b53b73d0072a32e3023e62d3850cb0e69c614de9adf7b9b4a617956818",
+      "path": "os/manifest/ci/14/14zu-local/ps2.c.gz"
+    },
+    {
+      "sha256": "be473597af3a2879baac9d1fcfe36b041307a4512e489026f70a61e93edf3202",
+      "path": "os/manifest/ci/14/14zu-local/ps2.h.gz"
+    },
+    {
+      "sha256": "f7663914480c30cbb829f97e1fbea5738f64106fe6b27e425902041a3e790799",
+      "path": "os/manifest/ci/14/14zu-local/source-proof.json"
+    },
+    {
+      "sha256": "e5cf1475fcf48ce50e459f27abd68e23b4250fd1096d5bd395c381f8f9aeaf51",
+      "path": "os/manifest/ci/14/14zu-local/source-proof.py"
+    },
+    {
+      "sha256": "9f62e7efa642e768f5a70e70c9b7ec26aa3dc02eb0c950eb6ec4ac2e1247274b",
+      "path": "os/manifest/ci/14/14zu-local/sources.json"
+    },
+    {
+      "sha256": "034c2db395bb757b7f5b147dab163be9f053c5945afa5df8a8a965b85db66f9d",
+      "path": "os/manifest/ci/14/14zu-local/walk.py"
+    },
+    {
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "path": "os/manifest/ci/14/14zz-cosign/LICENSE"
+    },
+    {
+      "sha256": "87ea40f3402cc329014626204c09661fd0c3ec8109041da6cb892f041cac9f30",
+      "path": "os/manifest/ci/14/14zz-cosign/action.yml.template"
+    },
+    {
+      "sha256": "aede5dce8ef97073d37cec98233edbcbd4102c78575ad430cddb7052283042b8",
+      "path": "os/manifest/ci/14/14zz-cosign/source.json"
+    },
+    {
+      "sha256": "d0b5385b0285e89bcdf31211ca0794ba814a81bc1526d21869db17d1bf198ca4",
+      "path": "os/manifest/ci/14/14zzb-timing/projection.json"
+    },
+    {
+      "sha256": "d37d7598439ce423894022524d7e72f7766fa6e82061c1d35a48cc2c47a0f801",
+      "path": "os/manifest/ci/14/14zzc-preflight/source-proof.json"
+    },
+    {
+      "sha256": "0745c2ec91938a506f61255596081f405c0d01f2bc4880d6f3bfe4f9bc68bb75",
+      "path": "os/manifest/ci/14/14zzc-timing/projection.json"
+    },
+    {
+      "sha256": "1e61b39c2b4a8366c0a8b0422c0a8a5f0df212d51240da98838a96bdf7bd21f4",
+      "path": "os/manifest/ci/14/14zze-preflight/after-run-review.py"
+    },
+    {
+      "sha256": "7b544dbe36c4ab8cad12420d249a887fa3ef636bcbe7e66205dfdf9dfff75888",
+      "path": "os/manifest/ci/14/14zze-preflight/artifact-collector.py"
+    },
+    {
+      "sha256": "b9a6b3a9e719b5b6d9d53f7cff00ad13d648470cf7c1eb2a71f04814cbf7edd6",
+      "path": "os/manifest/ci/14/14zze-preflight/basic-diagnostics.py"
+    },
+    {
+      "sha256": "a833af8eea5a8988c8fec8cb893bb88d3eb778a022f2334009c12ac2c0ecf560",
+      "path": "os/manifest/ci/14/14zze-preflight/binding-audit.json"
+    },
+    {
+      "sha256": "18e322a9f9cac6680a3dea5cf135958bc23b94894a651c0d81f6b9e14b5ffdac",
+      "path": "os/manifest/ci/14/14zze-preflight/build-preparation.py"
+    },
+    {
+      "sha256": "3cbfcc43ba8770358ea732bcca66006b1f60bda648f953a903b7d7f38489c849",
+      "path": "os/manifest/ci/14/14zze-preflight/cache-reclaim-extra.json"
+    },
+    {
+      "sha256": "c588c2f1ce1896fcbe25d4732c2529d56336520a5d73a58e0ad2ebd3837d4bbe",
+      "path": "os/manifest/ci/14/14zze-preflight/cache-reclaim.json"
+    },
+    {
+      "sha256": "0f7348323e6e59c63bf4249a7350e7880cac0b59d7b5e4ca44b8dc3fa4525bef",
+      "path": "os/manifest/ci/14/14zze-preflight/classify-whole-lines.py"
+    },
+    {
+      "sha256": "2cf0bd0e5c8d7db2bd105996d5b5762f3d167187c9c8b36b34543da91550703b",
+      "path": "os/manifest/ci/14/14zze-preflight/closing-guard.py"
+    },
+    {
+      "sha256": "e659d5c448406e53f3c0f6d4761d620bae411171bc99427533afd8b06e4d429f",
+      "path": "os/manifest/ci/14/14zze-preflight/commit-preflight.py"
+    },
+    {
+      "sha256": "16e201eb20f67d00ebf0b75e62718313157d54f937e9266388d4609d4f7b115f",
+      "path": "os/manifest/ci/14/14zze-preflight/dispatch-control.py"
+    },
+    {
+      "sha256": "a42cae084ff25e3c0aaadafdea1cc60bf33a703cc29f387fdc7cd0ac30595108",
+      "path": "os/manifest/ci/14/14zze-preflight/dispatch-watcher.py"
+    },
+    {
+      "sha256": "0a405c08779b9bd9030b0a48f32d3c2ba8eb646ec63c596d03156ec0c99e454e",
+      "path": "os/manifest/ci/14/14zze-preflight/final-local.py"
+    },
+    {
+      "sha256": "2ff2d6488e9c28e87895fd7e16fa679527f8034c2ff0e99e0fe157eef207b1d8",
+      "path": "os/manifest/ci/14/14zze-preflight/full-log-review.py"
+    },
+    {
+      "sha256": "17b1cdf9c9a59d7a39e2db40836fb698d28be39b0e6a4b77e64b084215e44d5b",
+      "path": "os/manifest/ci/14/14zze-preflight/independent-audits.py"
+    },
+    {
+      "sha256": "932882d614cf793a5d93e741e721c05030bc4ea659e636df60f6d4d1e80a5e7c",
+      "path": "os/manifest/ci/14/14zze-preflight/installer-adapter.py"
+    },
+    {
+      "sha256": "1a865a4ad7f923c5437c76ab394ee325549fd8aa64824ae14ca855ce9f6092b2",
+      "path": "os/manifest/ci/14/14zze-preflight/kernel-review.py"
+    },
+    {
+      "sha256": "2613c00b0cdb186a3f423ceb5cdb6ba80d813c06af3ac88710d0137c1960240e",
+      "path": "os/manifest/ci/14/14zze-preflight/local-privacy.py"
+    },
+    {
+      "sha256": "6d2b8e25ee4c6b8ff05cf203e129f025985c9727edc446269026c0d78ea0d5c5",
+      "path": "os/manifest/ci/14/14zze-preflight/local-receipt.py"
+    },
+    {
+      "sha256": "8196ee7fc651f9a81a05e5490d70443c59511c1e86a9bac9cf38a70a35a2f7dc",
+      "path": "os/manifest/ci/14/14zze-preflight/monitor.py"
+    },
+    {
+      "sha256": "89b7dea01cfd04851604bbc29453ede60bbc9e9c6f33059f83e6f3e7b3e3d348",
+      "path": "os/manifest/ci/14/14zze-preflight/native-timing-review.py"
+    },
+    {
+      "sha256": "bd151b5b6ef1eb0e3dadaae52e1ba1ca178fe12659e09b0a72d013c649f9eaf9",
+      "path": "os/manifest/ci/14/14zze-preflight/preparation.json"
+    },
+    {
+      "sha256": "ea16fd44bb42e1de43ee97e1b49c13444dd8d27d8f9c4645ae681446345d0820",
+      "path": "os/manifest/ci/14/14zze-preflight/previous-dispatch.json"
+    },
+    {
+      "sha256": "17c8162b48a7b32f088c5e4553ab68a43f4a9809ffd2bfc0c73360b6ef3ea379",
+      "path": "os/manifest/ci/14/14zze-preflight/probe-retry.py"
+    },
+    {
+      "sha256": "4e548353ae2d118558505a1e759a1629404d1a61b92198c682ebc675bf13e2cd",
+      "path": "os/manifest/ci/14/14zze-preflight/probe-review.py"
+    },
+    {
+      "sha256": "90824c84e0799ec5eaff24cc52b848b9f3959e69d427581236e32cc823546e1b",
+      "path": "os/manifest/ci/14/14zze-preflight/probe-walk.json"
+    },
+    {
+      "sha256": "d5e8c48420f84b564fa46c21d0f18169921f4d63c55e9a5390242f6c0d3867e6",
+      "path": "os/manifest/ci/14/14zze-preflight/probe-walk.py"
+    },
+    {
+      "sha256": "16eb947a848c3181980a086cb639689846c64cc88759ff2ab7b140294528f9b0",
+      "path": "os/manifest/ci/14/14zze-preflight/push-once.py"
+    },
+    {
+      "sha256": "e89febcb97ab368388f3389aca7ff7c8eee78832cdb4d8cbad7e08d999dd84cf",
+      "path": "os/manifest/ci/14/14zze-preflight/qualification-installer.py"
+    },
+    {
+      "sha256": "d0b46ee7e9308a875299d17bb4d075f4a5d4497783444808c2c15620e6193ff2",
+      "path": "os/manifest/ci/14/14zze-preflight/qualification-reclaim.py"
+    },
+    {
+      "sha256": "eb265b89cd9cefb94b28aef5b3184af5b79ec0329cc838ede9cbc6fcbd879b26",
+      "path": "os/manifest/ci/14/14zze-preflight/qualification-retry.py"
+    },
+    {
+      "sha256": "744ac84236ec2f1e61c1dd7436f61e6696fa199a94ddcbe598b3f10e5125e774",
+      "path": "os/manifest/ci/14/14zze-preflight/qualification-review.py"
+    },
+    {
+      "sha256": "d0bf6e52362b2728e6620a30abbee03a0c825c49e7b700a50de9ff5590f4e4ce",
+      "path": "os/manifest/ci/14/14zze-preflight/qualification-walk.py"
+    },
+    {
+      "sha256": "058e4a18191c7285aaf8e3339c8bb8d5da3c18731750dea15f53846c5db78155",
+      "path": "os/manifest/ci/14/14zze-preflight/read-only-replay.py"
+    },
+    {
+      "sha256": "e6ceacb7c0d60abe6a2655c45a6a17784fb65d7164630189ad72698ee224a2f7",
+      "path": "os/manifest/ci/14/14zze-preflight/recompute.py"
+    },
+    {
+      "sha256": "f66713958ad92148d7c2101ae4c4edce71b90a13482f6cf7b9eb20f4f8f02bea",
+      "path": "os/manifest/ci/14/14zze-preflight/syntax-checks.py"
+    },
+    {
+      "sha256": "12a0473b08b159230db8926efd63e17e7cad31d58a54d2b197ef98236b2995d1",
+      "path": "os/manifest/ci/14/14zze-preflight/test_basic.py"
+    },
+    {
+      "sha256": "d9c0629ebc697d64bc945c2470f377580fff2ee8c19042aa28da14d228488734",
+      "path": "os/manifest/ci/14/14zze-preflight/test_classify.py"
+    },
+    {
+      "sha256": "2ff056beb4a63d8c4c0be94783fb36ca5dc5531154eff433c9b82c31ad804043",
+      "path": "os/manifest/ci/14/14zze-preflight/test_dispatch_control.py"
+    },
+    {
+      "sha256": "530e25973b869d72a80927899715909e24638141b804077edc96d48756d79ff2",
+      "path": "os/manifest/ci/14/14zze-preflight/test_local_privacy.py"
+    },
+    {
+      "sha256": "caae94272d8285adfd751ad131e3de3edd912cfa312979e0aeecf5b071a109b0",
+      "path": "os/manifest/ci/14/14zze-preflight/walk.json"
+    },
+    {
+      "sha256": "bfaca6641c39da3f1806d562525d7de5ca33190dbcd6a19c8fc5b55d4af78e8c",
+      "path": "os/manifest/ci/14/14zze-preflight/whole.py"
+    },
+    {
+      "sha256": "7ed3c328e2e41f45638b8666cecf6aed3821a2e7cd8a9ee148aaea8c514b9947",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_bus.c"
+    },
+    {
+      "sha256": "75e51513e85ee1dfd7153d55eb00d43f3321c3f21f10967565c549332cfd776b",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_dev-storage-bot.c"
+    },
+    {
+      "sha256": "41516450961aaf5382a3fb02fa6537fd781a17ccc17ee2fae9ed6e2a1a3f4c7c",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_dev-storage-classic.c"
+    },
+    {
+      "sha256": "18d2554b4256eccb6cc3f56edc2829fd6f8a6e18092bf2e6161b1116ca9a7869",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_dev-storage.c"
+    },
+    {
+      "sha256": "29f5d722ffd5ee895c46df333b1e81d73561f2531d93edd187a48a4ad3a62dad",
+      "path": "os/manifest/ci/14/hotplug-sources/hw_usb_hcd-xhci.c"
+    },
+    {
+      "sha256": "57dd731f6425f59cd94b9d4a91439414796911f3ff4eba03c0607fa3b9eecc9b",
+      "path": "os/manifest/ci/14/hotplug-sources/index.json"
+    },
+    {
+      "sha256": "cbbd6852b3bc2740721d1c956af12444107e79205a63a0bd22746bb1377e7110",
+      "path": "os/manifest/ci/14/hotplug-sources/net_net.c"
+    },
+    {
+      "sha256": "6942b099b20a65a4bd4747d26c2f1e1ec99bb1171daf96f1e9f975874060c6e5",
+      "path": "os/manifest/ci/14/hotplug-sources/qapi_block-core.json"
+    },
+    {
+      "sha256": "9f1d208a44d46dc18aba99eef6c9ae7cce7952357ff7db20eb3631844a32519b",
+      "path": "os/manifest/ci/14/hotplug-sources/qapi_net.json"
+    },
+    {
+      "sha256": "f8069239e7e361f6a999567ccba6286871d13c1d10e0ae84663b83583bdc6e49",
+      "path": "os/manifest/ci/14/hotplug-sources/qapi_qdev.json"
+    },
+    {
+      "sha256": "724e0b333940e134cf26bf50ac4b021823b583ab88903e763f24b109bfbe52cd",
+      "path": "os/manifest/ci/14/keyboard-sources/README.md"
+    },
+    {
+      "sha256": "b635598d31059279adb4d8fd9d06195568acbcb0d5bfefd554687b8acb836c09",
+      "path": "os/manifest/ci/14/keyboard-sources/de.map"
+    },
+    {
+      "sha256": "85c9505ca41855d544b19db43cc02ae9c6fd2137f764a6d51b6de621fd4d3efe",
+      "path": "os/manifest/ci/14/keyboard-sources/index.json"
+    },
+    {
+      "sha256": "ae279da2f69b22d4a732089e7a7ac4bdf084ab3591a550d40e0d1277b66e5c30",
+      "path": "os/manifest/ci/14/keyboard-sources/us-intl.map"
+    },
+    {
+      "sha256": "06e81bf550edf93d2a9129b573adb9d3bdfb8a3939364088f62de58bc36c4041",
+      "path": "os/manifest/ci/14/keyboard-sources/us.map"
+    },
+    {
+      "sha256": "e5af3edc3f5ae73286aeca85caf43979d59129243edc368a1edc68ee7deac5be",
+      "path": "os/manifest/ci/14/parser-sources/README.md"
+    },
+    {
+      "sha256": "05d311d4bd78efb08446d713faee09fb37ed4468097041ad5927cc7639937dc3",
+      "path": "os/manifest/ci/14/parser-sources/index.json"
+    },
+    {
+      "sha256": "8c26de99d74aa06c030d1b0a270340ac435de8ac7cfd6f13f33b1866e9af8467",
+      "path": "os/manifest/ci/14/parser-sources/packages.json"
+    },
+    {
+      "sha256": "554849aa8e9328e71e0890bc54e035380ad0d770dff4e20848f0ef103fca40fa",
+      "path": "os/manifest/ci/14/parser-sources/source-files.zip"
+    },
+    {
+      "sha256": "e5124ee8f6a525d67afd03dd735afc6753562656c183e7ca804c04775c0e6720",
+      "path": "os/manifest/installer-isos.json"
+    },
+    {
+      "sha256": "975da14646648fb39f219f52f232d4b674180a2a892bf3a91069035bdf1ea45e",
+      "path": "os/manifest/release.json"
+    },
+    {
+      "sha256": "b9383166a21fff6ef961f400d94b51a0c5286d154dfe86cfa528f59dcda6fa6d",
+      "path": "os/manifest/releases/13.json"
+    },
+    {
+      "sha256": "f95cc4600c00f7bd27cc7973a1e653ece53a8be00efeea334dc79930b34b7c5b",
+      "path": "os/owner-tools/at"
+    },
+    {
+      "sha256": "5fbc65ef999be2ec3f30daf9afbced7443e4d4b5ac357c19b5b84b52f5e3db98",
+      "path": "os/owner-tools/bootstrap.py"
+    },
+    {
+      "sha256": "499629256f83b8604eab9562cb4fd18684d4634f6e5a47b7b27f044a44588512",
+      "path": "os/owner-tools/bundle.py"
+    },
+    {
+      "sha256": "8a4862867d96f449475b92187dbbfcf5420b8fe2fac4dd78d13150e79f66cf25",
+      "path": "os/owner-tools/commands.json"
+    },
+    {
+      "sha256": "7e81ba50333191eceec69749216ddeae3c9d234c4ca8ccc3d7de652bc1d2d5fd",
+      "path": "os/owner-tools/history.json"
+    },
+    {
+      "sha256": "148e2ad19c0f31f6d3791cd1ac8a191bdebc9a6286aeb2ce6d5b095115de8c46",
+      "path": "os/owner-tools/media.py"
+    },
+    {
+      "sha256": "0100b73d3cdeef52f4d125e673569a3beb79b843e121e3ce4b0211855015b17f",
+      "path": "os/owner-tools/owner.py"
+    },
+    {
+      "sha256": "7c78ac68d19f5fb1c0f58c11685acafa8455734d7418e610f8c4b06c205d1835",
+      "path": "os/owner-tools/payload/SHA256.json"
+    },
+    {
+      "sha256": "851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33",
+      "path": "os/owner-tools/payload/SHA256SUMS"
+    },
+    {
+      "sha256": "f95cc4600c00f7bd27cc7973a1e653ece53a8be00efeea334dc79930b34b7c5b",
+      "path": "os/owner-tools/payload/at"
+    },
+    {
+      "sha256": "7e81ba50333191eceec69749216ddeae3c9d234c4ca8ccc3d7de652bc1d2d5fd",
+      "path": "os/owner-tools/payload/history.json"
+    },
+    {
+      "sha256": "148e2ad19c0f31f6d3791cd1ac8a191bdebc9a6286aeb2ce6d5b095115de8c46",
+      "path": "os/owner-tools/payload/media.py"
+    },
+    {
+      "sha256": "0100b73d3cdeef52f4d125e673569a3beb79b843e121e3ce4b0211855015b17f",
+      "path": "os/owner-tools/payload/owner.py"
+    },
+    {
+      "sha256": "975da14646648fb39f219f52f232d4b674180a2a892bf3a91069035bdf1ea45e",
+      "path": "os/owner-tools/payload/release.json"
+    },
+    {
+      "sha256": "f38c58b334422e624fe20adba35cb75287a8b144a0827c1b952f23d8be83f0c6",
+      "path": "os/owner-tools/payload/release/default-stock.sh"
+    },
+    {
+      "sha256": "2e5b201038127a80f9cc02642017a6d010693ba367d5373173684ca7d6528e00",
+      "path": "os/owner-tools/payload/release/pause-stock-updates.sh"
+    },
+    {
+      "sha256": "32cc7ff61f5135b924a64ab851c862f0a95cb2e9b71144b6ae244e7aaa89a649",
+      "path": "os/owner-tools/payload/release/pin-stock.sh"
+    },
+    {
+      "sha256": "74d6c5a9476d83c569ecbc15ba0ce8a342c5679db87947dab5cd28e2ae28edc8",
+      "path": "os/owner-tools/payload/release/rollback.sh"
+    },
+    {
+      "sha256": "630ce503e72b71011fe885d3bc2616aa6b84b31579faa94d879ef34f20a5da7a",
+      "path": "os/owner-tools/payload/release/stock-session.sh"
+    },
+    {
+      "sha256": "8714f4cbc6e6ffbb84d1b20092b36710f6cdb994cbeb7e871bef6b8ed753572c",
+      "path": "os/owner-tools/payload/release/switch.sh"
+    },
+    {
+      "sha256": "014af878488ce708de7ebf5e5869021cf2ae7e8ab37d78193111576ddafae945",
+      "path": "os/owner-tools/payload/release/system-keyboard.sh"
+    },
+    {
+      "sha256": "55947bd644f9741d613dfd9fc2b88aba6e4465a68747ed25c648e59fe95064a3",
+      "path": "os/owner-tools/payload/release/verify.sh"
+    },
+    {
+      "sha256": "f38c58b334422e624fe20adba35cb75287a8b144a0827c1b952f23d8be83f0c6",
+      "path": "os/release/default-stock.sh"
+    },
+    {
+      "sha256": "2e5b201038127a80f9cc02642017a6d010693ba367d5373173684ca7d6528e00",
+      "path": "os/release/pause-stock-updates.sh"
+    },
+    {
+      "sha256": "32cc7ff61f5135b924a64ab851c862f0a95cb2e9b71144b6ae244e7aaa89a649",
+      "path": "os/release/pin-stock.sh"
+    },
+    {
+      "sha256": "74d6c5a9476d83c569ecbc15ba0ce8a342c5679db87947dab5cd28e2ae28edc8",
+      "path": "os/release/rollback.sh"
+    },
+    {
+      "sha256": "630ce503e72b71011fe885d3bc2616aa6b84b31579faa94d879ef34f20a5da7a",
+      "path": "os/release/stock-session.sh"
+    },
+    {
+      "sha256": "8714f4cbc6e6ffbb84d1b20092b36710f6cdb994cbeb7e871bef6b8ed753572c",
+      "path": "os/release/switch.sh"
+    },
+    {
+      "sha256": "014af878488ce708de7ebf5e5869021cf2ae7e8ab37d78193111576ddafae945",
+      "path": "os/release/system-keyboard.sh"
+    },
+    {
+      "sha256": "55947bd644f9741d613dfd9fc2b88aba6e4465a68747ed25c648e59fe95064a3",
+      "path": "os/release/verify.sh"
+    },
+    {
+      "sha256": "79bd8177a207bc4050a25399cf89548d17f1982113368cda0b4948e2a9fac2dd",
+      "path": "os/tests/fixtures/owner-console/14i-hotplug.vcsa"
+    },
+    {
+      "sha256": "a518be16c9f05419de35f2ab1485afe9920246efa5266ec89d2e2875cda5a914",
+      "path": "os/tests/fixtures/owner-console/14za-login-command.json"
+    },
+    {
+      "sha256": "455eff33528a582a83bd633aba27178c75d6ebb111f228f1d232abf55ac707c9",
+      "path": "os/tests/fixtures/owner-console/14ze-qualification5.json"
+    },
+    {
+      "sha256": "38447358dbbe160328c9a58b1a233c88b0a4eef156be8508849c3e7687afd96e",
+      "path": "os/tests/fixtures/owner-console/14zg-source.json"
+    },
+    {
+      "sha256": "852db3dfcf94dc53e9106bd24c1e6cc8d961b47a21fba98826adc4b546ec4dd7",
+      "path": "os/tests/fixtures/owner-console/14zg-title-completed.vcsa"
+    },
+    {
+      "sha256": "404f6bf8b18fb21d4e521f300fbf67676e83f6fcfc0414dc52d72188616028e1",
+      "path": "os/tests/fixtures/owner-console/14zi-qualification7.json"
+    },
+    {
+      "sha256": "1ed75cd72f09a7133f1e925912a3578b56532b3ba5855eb3867e1f12499470cc",
+      "path": "os/tests/fixtures/owner-console/14zj-probe18-ack.json"
+    },
+    {
+      "sha256": "a064207daa020fab513ac089f0aa5af1415935d9aa71b484e37fa13b382ee5aa",
+      "path": "os/tests/fixtures/owner-console/14zk-q8-prompt.vcsa"
+    },
+    {
+      "sha256": "dcad36f516d6f8fa7bb4d079167caefad8356667dbb1bd4ef40e43ba9c0ef8e9",
+      "path": "os/tests/fixtures/owner-console/14zk-q8-transition.json"
+    },
+    {
+      "sha256": "984e365443e7b0793244a370349566294b77af3fdf91009ddc9f00138ca58421",
+      "path": "os/tests/fixtures/owner-console/14zt-q15-shape.json"
+    },
+    {
+      "sha256": "4867d41dc7d7c4aee82e007a93be6e301f0d5a24530462bc0a8887045b9f87f4",
+      "path": "os/tests/fixtures/owner-console/sources.json"
+    },
+    {
+      "sha256": "f137c5c809ab62889ac4f6864ace40054d26f595ca1648dbf0c9446327c80a75",
+      "path": "os/tests/fixtures/owner-tools/14zy-probe29-job.json"
+    },
+    {
+      "sha256": "2decacb15f0553bc559bfeed41563d0b55a382c974846a65eb365def6065a9ef",
+      "path": "os/tests/fixtures/owner-tools/14zz-accounting-source.json"
+    },
+    {
+      "sha256": "8746eb5a08a19a215560bc6b96835af3e08bcf3e3e4f0b04b260120e7fff0b39",
+      "path": "os/tests/fixtures/owner-tools/14zz-cosign-log-sources.json"
+    },
+    {
+      "sha256": "4334df3b48142273f30191f7b285242da852bc458c8f7618697d9d2248b3248d",
+      "path": "os/tests/fixtures/owner-tools/14zzd-checkout-sources.json"
+    },
+    {
+      "sha256": "61e60a134c0d19c5f1cf21851630cb7415f2cfd6886a1a1deeb2564e7756d1f8",
+      "path": "os/tests/fixtures/owner-tools/blkid-p-gpt-source.json"
+    },
+    {
+      "sha256": "a4db20027ecc75ace51c1805a362fa38a3a03a37a2b94ffd22d723585d8c8740",
+      "path": "os/tests/fixtures/owner-tools/blkid-p-gpt.txt"
+    },
+    {
+      "sha256": "1b406c6a5cf55dfe57d8a359074846a610225a3d38d91f6c5a748a38ec24ceda",
+      "path": "os/tests/fixtures/owner-tools/cosign-combined.template"
+    },
+    {
+      "sha256": "a1829d50b4b19def3efd5b7b8b1b39429096e5a7432416fe4f915c6983fa9572",
+      "path": "os/tests/fixtures/owner-tools/cosign-step.template"
+    },
+    {
+      "sha256": "684b921c71889d96af9a6deb7811f5d581dd3f697efca59527cd06300660f37f",
+      "path": "os/tests/fixtures/owner-tools/counter-14zx-released.py"
+    },
+    {
+      "sha256": "79aece957464a7d7b45a6150dc94318d84e4a4ac5d6e6bf3268f310958415b72",
+      "path": "os/tests/fixtures/owner-tools/counter-flush-source.json"
+    },
+    {
+      "sha256": "ff1950fc39761d227d55cf7beb2c725278725476aab829f4dff7cd6ad29544af",
+      "path": "os/tests/fixtures/owner-tools/dumpkeys-de.json"
+    },
+    {
+      "sha256": "3df456bd5a61d62420335304cff3196f655d9756c663f4ffb2864a88bd219394",
+      "path": "os/tests/fixtures/owner-tools/dumpkeys-us-intl.json"
+    },
+    {
+      "sha256": "b35d1bc9f91a3bf08b036110bc259e1b3e9380588405233be17109d122b60a12",
+      "path": "os/tests/fixtures/owner-tools/dumpkeys-us.json"
+    },
+    {
+      "sha256": "c039cafb54189eae97cc7c950aee97326faf4645acf11af1f4a347268d3c3919",
+      "path": "os/tests/fixtures/owner-tools/efibootmgr18-efivar39.txt"
+    },
+    {
+      "sha256": "d7d069cff7c7cbb8ee86958369ddfec7990b6873d7264c3b7c021a017acbf73f",
+      "path": "os/tests/fixtures/owner-tools/efibootmgr18-qualification3.txt"
+    },
+    {
+      "sha256": "cafd2e661ef35fd700e2dbb83b907476239fa7e7f5de01be0fe2717f1ff4aca7",
+      "path": "os/tests/fixtures/owner-tools/finalize-hold.json"
+    },
+    {
+      "sha256": "41a1aa7095568036c6e589240f9ed33374669f63c5d63aa2bd303ccbad7358aa",
+      "path": "os/tests/fixtures/owner-tools/layout-adapter-sources.json"
+    },
+    {
+      "sha256": "fe27c5cdbe4cadf8528effe599fdb58b1194284d23224c93ba6f04913f6d9308",
+      "path": "os/tests/fixtures/owner-tools/retained-parsers.json"
+    },
+    {
+      "sha256": "b156cc601b2d091f739410defcf2fcb6c13bb158adbf141550083eb5a5752118",
+      "path": "os/tests/fixtures/owner-tools/storage-flat.json"
+    },
+    {
+      "sha256": "dad3213300c7d6d922dd084355a74a8ae6deb9cc4859ee2b2e47a8f79549e3d4",
+      "path": "os/tests/fixtures/owner-tools/storage-tree.json"
+    },
+    {
+      "sha256": "5ef6da72bde9700a16e4eb2c5a5f66e9e7ab8f5e2aeaf131c619dbb612b7d521",
+      "path": "os/tests/fixtures/owner-tools/tool-output-sources.json"
+    },
+    {
+      "sha256": "9cd15ec4e24cb44eb0917a70f80000659df6e10191bdd2ca917a5c6c15e28f99",
+      "path": "os/tests/guest_shell.py"
+    },
+    {
+      "sha256": "62a1fd816586ffae3fb1f2f35072d1e2da9373fb9359930eb323684103772948",
+      "path": "os/tests/owner-tools.Tests.ps1"
+    },
+    {
+      "sha256": "77148d16f9fa6015e804b3b4315953a029a79c8093db03c3e6b9549226ea5342",
+      "path": "os/tests/owner_bundle_fixture.py"
+    },
+    {
+      "sha256": "46e75d800ea4f52d3a4138cf06fca830ff14582b5fc72ae3ace113a31dc17978",
+      "path": "os/tests/owner_console_shim.py"
+    },
+    {
+      "sha256": "9248364aa556368df5186d64b6af74a4c81621b4955a2885d355e02e93561cfb",
+      "path": "os/tests/owner_fuse_shim.py"
+    },
+    {
+      "sha256": "be5d87d38bc0d9dac8373523bdc80a19653e2639bea8aa12678d4ead6cbdb683",
+      "path": "os/tests/owner_login_shim.py"
+    },
+    {
+      "sha256": "797508ca7ae3511b0c8ba9b36f71ed98dfe76b8d6c2120de023e34f16eea97a3",
+      "path": "os/tests/owner_shim.py"
+    },
+    {
+      "sha256": "0d679ec30361e0e2d8b6cc4e67746e7d2b1dc0beace22b5834dfa20dbb1ca9e0",
+      "path": "os/tests/serial_pty.py"
+    },
+    {
+      "sha256": "042737ea1f9c190e6686e40044b4d04a5169ae5d9aa82b6853366f149baab775",
+      "path": "os/tests/test_checkout_sources.py"
+    },
+    {
+      "sha256": "c488b3a78c260296117bea9ac82fa3472d3bcf0770f82d9bcbd8128698d3cde8",
+      "path": "os/tests/test_ci_api_permissions.py"
+    },
+    {
+      "sha256": "fcae2dc86accd40ef60814881c3b936f5bc029a8a2caa8db4eb0a3345869603b",
+      "path": "os/tests/test_ci_step_environment.py"
+    },
+    {
+      "sha256": "572ce562f035f928db778ac79ebfb3a13dc4b1a4992422a4d2746958d53a4f1c",
+      "path": "os/tests/test_cosign_log_class.py"
+    },
+    {
+      "sha256": "567b73154c0d28eb9f935ae3649a1f3d1341da80a9c439c5007da7eb2d781186",
+      "path": "os/tests/test_guest_framing.py"
+    },
+    {
+      "sha256": "af3344f5ebdf006ca051d9b868f1859528ca4b7153b042984ca6ca4a2fb56a6c",
+      "path": "os/tests/test_installer_download.py"
+    },
+    {
+      "sha256": "eb4ea4d20e100abb629135f7052fc0b278c04d564c6631b46bd9fce23baf8900",
+      "path": "os/tests/test_installer_webui.py"
+    },
+    {
+      "sha256": "a3e7af177cd663d1168839760a67aa6c8557091b9a2e2cef309c23bfd40305e1",
+      "path": "os/tests/test_job_accounting.py"
+    },
+    {
+      "sha256": "14571d4a0f8d9c58498570f63bd94ea0e95808801b9042de19cbd1aeba60df29",
+      "path": "os/tests/test_keyboard_release.py"
+    },
+    {
+      "sha256": "f4a354342eb255ae8a762bf02130120317082b9a701495b46f845374e35c1876",
+      "path": "os/tests/test_keyboard_walk.py"
+    },
+    {
+      "sha256": "8b3e8c52e4139a61a831c1235b62e6b1f7ee5ee28cceca1d48f3bcb2e3826f6b",
+      "path": "os/tests/test_loop_nodes.py"
+    },
+    {
+      "sha256": "72ec6cf18146649fd323892a018085f051f022f04797d69c86543e91e04ef4dc",
+      "path": "os/tests/test_organization_budget.py"
+    },
+    {
+      "sha256": "67428a6a19bd49f0840aa0f3066dc39c0f441a4f5d7fd0dd36a3e096b08afc93",
+      "path": "os/tests/test_owner_abandon.py"
+    },
+    {
+      "sha256": "e48a5c6f1ddece5d6f2e89ded5f6a001f5f5d62011fef699157aaedb42918bf3",
+      "path": "os/tests/test_owner_artifact_class.py"
+    },
+    {
+      "sha256": "c34048662a718b6d2916d996236f2b6bb1466ae89fb29309650248a6d77c3618",
+      "path": "os/tests/test_owner_bootstrap.py"
+    },
+    {
+      "sha256": "b8fc6884066845578824de3fb676a20cfb961ca19ee76ce99ca7d00537550b6f",
+      "path": "os/tests/test_owner_capabilities.py"
+    },
+    {
+      "sha256": "0a08886200065318894415207575d8cf2b3ff7e9cf9aa858b69e1a3f117d18ef",
+      "path": "os/tests/test_owner_commands.py"
+    },
+    {
+      "sha256": "48b89146778b75959976c79c469cc8c244e341448c6fa197edcb1447997daf69",
+      "path": "os/tests/test_owner_completion.py"
+    },
+    {
+      "sha256": "399033dafe70330f23e4a8fd2618a69524961a794abad4f163d528fed9c634ec",
+      "path": "os/tests/test_owner_console.py"
+    },
+    {
+      "sha256": "205778ccfcf42cb2d2f93284632a4112aa7bb6019335b1de930dc3199cc32c5a",
+      "path": "os/tests/test_owner_counter_flush.py"
+    },
+    {
+      "sha256": "8eada0800e64e2fed17702b1d9f8ecf07a7f7c226e08bdf4b0b60a2a44a95fe2",
+      "path": "os/tests/test_owner_devices.py"
+    },
+    {
+      "sha256": "1878da535d481636f91306dd492fdb0c34a6fc3e957cea509fa263f205a50357",
+      "path": "os/tests/test_owner_devices_native.py"
+    },
+    {
+      "sha256": "e3ffbd52aa32822f26b858915e9036395ae1db878f0213c65bb2793979ec686b",
+      "path": "os/tests/test_owner_diagnostics.py"
+    },
+    {
+      "sha256": "4504189cb631115881d025dc051545e1338b91cedb3249bd258d600994016f11",
+      "path": "os/tests/test_owner_entry.py"
+    },
+    {
+      "sha256": "318c4c39801caea591940e756341a0709452f57d03d1d4e554d464dffbbf0f66",
+      "path": "os/tests/test_owner_equality.py"
+    },
+    {
+      "sha256": "b9fe565be3081bf58b82a8cf592809c5b86c851d0891c05680af0ce512edd670",
+      "path": "os/tests/test_owner_export.py"
+    },
+    {
+      "sha256": "83af0961f15ce5bf0ebdfa6153df2775d7448d26a04a9f1619afe582ca251735",
+      "path": "os/tests/test_owner_finalize.py"
+    },
+    {
+      "sha256": "6d30c2a12160aa3e8dd206e8d711854539661ef77eabf8e7ee5207fd31c8a1cd",
+      "path": "os/tests/test_owner_firmware.py"
+    },
+    {
+      "sha256": "6e18968bc4fcf39fe47dec9394ff79a7736dd245a3f92d856b63887349d4eda4",
+      "path": "os/tests/test_owner_format_audit.py"
+    },
+    {
+      "sha256": "e062bb255acfad988357dee66de5ac11d48241a9b59c0e8745b81946ca6fdfc2",
+      "path": "os/tests/test_owner_guard.py"
+    },
+    {
+      "sha256": "46020d39915f9c8698d2d259439682c372df27d48fe4d62d1aca0fa044cdf127",
+      "path": "os/tests/test_owner_hidden.py"
+    },
+    {
+      "sha256": "2005983c47c7623439304265f34c9386734210282bf7473487fb35f1e7fa314c",
+      "path": "os/tests/test_owner_key_counter.py"
+    },
+    {
+      "sha256": "08489e27e514ccea53b583d56bb6495856a173e5aed6cf6781fcda65a789a5b3",
+      "path": "os/tests/test_owner_layout_adapter.py"
+    },
+    {
+      "sha256": "f88864b0c59a2a8aac384705ce5ab4ad323dd8037e34163628f087bd06c6dd9e",
+      "path": "os/tests/test_owner_login.py"
+    },
+    {
+      "sha256": "35162391f9b36183b063ac604d833168000e1ff715146ca50a241a85f55f6de6",
+      "path": "os/tests/test_owner_media.py"
+    },
+    {
+      "sha256": "f7d82304d3c1df773d68510e0bd8d05079590eef516881992ce7aab964dfb646",
+      "path": "os/tests/test_owner_path.py"
+    },
+    {
+      "sha256": "c98e4de09519a108e37896dd79c7edbdc78ed2bc7fb943f94ee7cebb7128844c",
+      "path": "os/tests/test_owner_properties.py"
+    },
+    {
+      "sha256": "dbf18289051f50e68cb1bf4604f6acc42a70902465c08ab3153e92c71b916749",
+      "path": "os/tests/test_owner_ps2.py"
+    },
+    {
+      "sha256": "7cf254defde2247c00a4ca07d0a378040ff3c44e6135ca26e2d9174045d84232",
+      "path": "os/tests/test_owner_read_diagnostics.py"
+    },
+    {
+      "sha256": "a91704d410481fdab5e6fd13031df21dc4602ad901dccd3f11839b7bffe43255",
+      "path": "os/tests/test_owner_records_prompt.py"
+    },
+    {
+      "sha256": "74e379f079c961dd6411c09e475ad53f1373bdfd485f0ac60a3dbbf175308eef",
+      "path": "os/tests/test_owner_reliable_typing.py"
+    },
+    {
+      "sha256": "15c30ccf1ad4b5c84a8116077365b68c2f5aeef0bed4b9cd0578ed90326af768",
+      "path": "os/tests/test_owner_reset.py"
+    },
+    {
+      "sha256": "9117293c2a4db4d92326c9660cf5cf9455a71b83ea20f5e3f2669387c7cd77ba",
+      "path": "os/tests/test_owner_retained.py"
+    },
+    {
+      "sha256": "8f9ea12b8909c7af965bfec4a1ac37355984fbcb7c13d55b39eb389ea4b0fe6c",
+      "path": "os/tests/test_owner_session.py"
+    },
+    {
+      "sha256": "c582f1de888ff0186761ef0dab90063644d4145fa32faf775a5b853cef2a1b2d",
+      "path": "os/tests/test_owner_setup_resume.py"
+    },
+    {
+      "sha256": "974351787c3a3f408d38dbce6c0f1395ef82434b6b79345ed0a5075ca23faabc",
+      "path": "os/tests/test_owner_staged_release.py"
+    },
+    {
+      "sha256": "21d51d8d7aea49af0ecd0c83891a2faff4f97b78263b3077d94014422c2c070d",
+      "path": "os/tests/test_owner_step_limits.py"
+    },
+    {
+      "sha256": "6006917ef698643f1aa76c0676db36a271862cec55d9db01419159edc25a7421",
+      "path": "os/tests/test_owner_sudo_idle.py"
+    },
+    {
+      "sha256": "e9fe8e0841e583e5a1ca960da0ec6d6be7fa5448efd86ae323ecd46b5f27d103",
+      "path": "os/tests/test_owner_tools.py"
+    },
+    {
+      "sha256": "13d630b9d5827953a62064e78dab0566fa100896dc5b5b5b89434b519bb77a90",
+      "path": "os/tests/test_owner_transport.py"
+    },
+    {
+      "sha256": "8c4f4a91f5aa0bdff3af573b15b5570701312ee7ca0eee13a486bceac5a684cb",
+      "path": "os/tests/test_owner_walk.py"
+    },
+    {
+      "sha256": "65d4987f9887cf06b29c64655cfad9468683911781b8d3cbdc899a055eb87dfb",
+      "path": "os/tests/test_rehearsal_budget.py"
+    },
+    {
+      "sha256": "b708251301dfc00a0cb884eb071bae2dae78d524469430956216aa48865148ed",
+      "path": "os/tests/test_rehearsal_history.py"
+    },
+    {
+      "sha256": "419c0f16e685cd9df398178f8a16265fb68eb884738ceb5f100acbb1f6d24529",
+      "path": "os/tests/test_rehearsal_retry.py"
+    },
+    {
+      "sha256": "cddfb200bc20187784db2fc311305a0ea383c8eb3ac7e4af53817c696a786404",
+      "path": "os/tests/test_release_squash_binding.py"
+    },
+    {
+      "sha256": "067a49e76d78218e61e9c68927489086bc909242db69e75f83dbe6e0693e9ec4",
+      "path": "os/tests/test_serial_ack.py"
+    },
+    {
+      "sha256": "6a5bab671de1bd32458280ed9df648bb79e6caf3ab25512f603a4f74b92a9b2f",
+      "path": "os/tests/test_serial_console.py"
+    },
+    {
+      "sha256": "f30f17a1474b0739904d1a34f30a1149edfc65a19cf9a7eb52bb2811b5f09f81",
+      "path": "os/tests/test_serial_staging.py"
+    },
+    {
+      "sha256": "0fe53b423add66bdd9b75ef0d5498737e02b5a046e59bb2452579c0f4aa47f9e",
+      "path": "os/tests/test_ways_back_probe.py"
+    },
+    {
+      "sha256": "6d0467153f768f2e714d26d4bc465c653a2450ec44990f76de1bcb465386ec61",
+      "path": "reviews/14-owner-tools/classify-artifacts.py"
+    },
+    {
+      "sha256": "46542d2905abc0c05142e445b6dd5bb8fd0a794b7cbfd1d91c4e4079d5ffa42f",
+      "path": "reviews/14-owner-tools/verify-parser-rpmdb.py"
+    },
+    {
+      "sha256": "6a20ae9ff38ba22e13cea7d06c7e67096ea95234a5766593a14543568510aade",
+      "path": "reviews/14-owner-tools/walk-host.py"
+    },
+    {
+      "sha256": "66ee8ba262909d8cc8cd14f1c1a07e30fc0d376b6fd8247c65c4e655005f56f7",
+      "path": "reviews/22c-ways-back-after-update/walk-host.py"
+    },
+    {
+      "sha256": "801ef3f411a13ac6cb694e1442390f42659263d3064d107aaefb94f926a7dc0d",
+      "path": "reviews/27-first-update-release/walk-host.py"
+    }
+  ]
+}

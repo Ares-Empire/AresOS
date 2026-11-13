@@ -132,6 +132,10 @@ class LaptopDisk:
     def set_default(self, index):
         assert 0 < index < len(self.order)
         self.order.insert(0, self.order.pop(index))
+        return self.wrote(index)
+
+    def wrote(self, index):
+        """ostree's report of a list write, printed and logged."""
         self.sets.append(index)
         message = 'Bootloader updated; bootconfig swap: yes; bootversion: boot.1.1, deployment count change: 0'
         self.journal.append(dict(MESSAGE=message, SYSLOG_IDENTIFIER='ostree', _COMM='ostree'))

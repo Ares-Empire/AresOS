@@ -59,6 +59,8 @@ print(json.dumps(dict(
 JOURNAL = r'''import json,subprocess
 FIELDS=('MESSAGE','MESSAGE_ID','SYSLOG_IDENTIFIER','_COMM','_PID','_UID','PRIORITY','__REALTIME_TIMESTAMP','__MONOTONIC_TIMESTAMP')
 rows=[]
+# journald writes what it has received, so that a line logged a moment ago is read below.
+subprocess.run(['journalctl','--sync'],check=False,capture_output=True)
 reader=subprocess.Popen(['journalctl','-b','-o','json','--no-pager'],stdout=subprocess.PIPE,text=True,errors='replace')
 for line in reader.stdout:
     if 'bootconfig swap' not in line: continue
@@ -226,7 +228,12 @@ class Probe:
         before = self.last
         assert before is not None and [self.roles[ke.key(row)] for row in snapshot['rpm']['deployments']] == before['order']
         identity = next(identity for identity, name in self.roles.items() if name == role)
-        index, = [number for number, row in enumerate(snapshot['rpm']['deployments']) if ke.key(row) == identity]
+        found = [number for number, row in enumerate(snapshot['rpm']['deployments']) if ke.key(row) == identity]
+        assert len(found) == 1, 'STOP: the target is not in the list exactly once'
+        index = found[0]
+        if not self.expect(stage, 'the target is not first before its move', index > 0, dict(order=before['order'], target=role)):
+            # Only after an earlier contradiction. Nothing is run; the walk goes on to show the rest.
+            return before
         journal = lambda name: guest.capture_json(name, sw.framed('python3 -c ' + shlex.quote(JOURNAL)))
         earlier = journal(stage + '-journal-before')
         done = guest.capture_json(stage + '-set-default', sw.framed('python3 -c ' + shlex.quote(set_default_program(index))))

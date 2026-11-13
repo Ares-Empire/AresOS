@@ -341,14 +341,19 @@ class AptPatienceTest(unittest.TestCase):
         self.assertEqual(sorted(install['env']), ['ARESOS_APT_RETRIES', 'ARESOS_APT_TIMEOUT'])
         self.assertIn('bash os/ci/install-tools.sh', install['run'])
 
-        def value(text, mode):
+        def value(text, mode, branch='main'):
             expression = re.fullmatch(r'\$\{\{(.*)\}\}', text.strip()).group(1)
-            return eval(expression.replace('inputs.rehearsal', repr(mode)).replace('&&', ' and ').replace('||', ' or '),
-                        {'__builtins__': {}}, {})
+            expression = expression.replace('inputs.rehearsal', repr(mode)).replace('github.ref_name', repr(branch))
+            return eval(expression.replace('&&', ' and ').replace('||', ' or '), {'__builtins__': {}}, {})
         # The same patience as the release job for package 27's update rehearsal...
         self.assertEqual([value(install[k], 'update') for k in ('timeout-minutes',)] +
                          [value(install['env'][k], 'update') for k in ('ARESOS_APT_RETRIES', 'ARESOS_APT_TIMEOUT')],
                          [40, '5', '60'])
+        # ...and for package 22c's branch (its probe and its rehearsal start with package 27's route)...
+        ways_back = 'pkg/22c-ways-back-after-update'
+        self.assertEqual([value(install['timeout-minutes'], 'reorder-probe', ways_back),
+                          value(install['env']['ARESOS_APT_RETRIES'], 'reorder-probe', ways_back),
+                          value(install['env']['ARESOS_APT_TIMEOUT'], 'reorder-probe', ways_back)], [40, '5', '60'])
         # ...and every other rehearsal keeps 20 minutes, three retries and apt's own timeouts.
         for mode in ('inspect', 'fixture', 'probe', 'part-b', 'keyboard', 'owner-tools'):
             self.assertEqual([value(install['timeout-minutes'], mode), value(install['env']['ARESOS_APT_RETRIES'], mode),
@@ -533,10 +538,10 @@ UPDATE_INPUTS = {'github.ref_name': UPDATE_REF, 'github.event_name': 'workflow_d
 UNKNOWN = object()
 
 
-def workflow_expression(expression):
-    """A workflow expression's value for an update dispatch on the package 27 branch."""
+def workflow_expression(expression, inputs=None):
+    """A workflow expression's value for a dispatch (by default the update one on the package 27 branch)."""
     expression = re.sub(r'\bsecrets\.\w+', repr('secret'), expression)
-    for name, value in UPDATE_INPUTS.items():
+    for name, value in (UPDATE_INPUTS if inputs is None else inputs).items():
         expression = expression.replace(name, repr(value))
     for call, value in (('always()', 'True'), ('success()', 'True'), ('cancelled()', 'False'), ('failure()', 'False')):
         expression = expression.replace(call, value)
@@ -545,10 +550,10 @@ def workflow_expression(expression):
     return eval(expression, {'__builtins__': {}}, {})
 
 
-def workflow_text(value):
+def workflow_text(value, inputs=None):
     """Text as the runner renders it: each ${{ }} replaced by its string."""
     def render(match):
-        result = workflow_expression(match.group(1))
+        result = workflow_expression(match.group(1), inputs)
         return ('true' if result else 'false') if isinstance(result, bool) else str(result)
     return re.sub(r'\$\{\{(.*?)\}\}', render, value, flags=re.S)
 
@@ -853,9 +858,9 @@ def shell_lines(run, environment):
             heredoc = opened.group(1)
 
 
-def step_runs(step, environment):
+def step_runs(step, environment, inputs=None):
     """Each os/ci Python script a step can run: its path, argv and `env -u` removals."""
-    for line in shell_lines(workflow_text(step['run']), environment):
+    for line in shell_lines(workflow_text(step['run'], inputs), environment):
         for match in re.finditer(r'\bos/ci/[\w/-]+\.py\b', line):
             try:
                 words = shlex.split(line[match.start():])
@@ -906,6 +911,8 @@ class OwnerHarnessPackagesTest(unittest.TestCase):
                 if {'14', '16'} & set(value):
                     checked.append(f'{path}:{line}')
                     self.assertIn('27', value, f'{path}:{line}: {value}')
+                    # Package 22c's probe and rehearsal run in the same harness (brief 22c, P1).
+                    self.assertIn('22c', value, f'{path}:{line}: {value}')
         self.assertGreaterEqual(len(checked), 7, checked)
 
     def run_as(self, package, call):
@@ -919,6 +926,7 @@ class OwnerHarnessPackagesTest(unittest.TestCase):
         for call in (lambda module, guest: module.start(guest, 'install'),
                      lambda module, guest: module.readback(guest, 'install', '/dev/vda', '/dev/vdb')):
             self.assertEqual(self.run_as('27', call), self.run_as('14', call))
+            self.assertEqual(self.run_as('22c', call), self.run_as('14', call))
         # The WebUI transport is what run 42933781975 lacked.
         self.assertIn(unittest.mock.call.start_offline_webui_transport(),
                       self.run_as('27', lambda module, guest: module.start(guest, 'install')))
@@ -939,13 +947,15 @@ REVIEWED_DECISIONS = {
         "the guard's dispatch authorization names the running package",
     ('os/ci/owner_vm.py', "mode == 'owner-tools'"):
         'only the qualification needs a passing probe on the same commit (JUDGMENT-CALL 5)',
-    ('os/ci/owner_vm.py', "{'16': 'os/manifest/ci/16/host-walk.json', '27': 'os/manifest/ci/27/host-walk.json'}.get(package, "
-                          "'os/manifest/ci/14/host-walk/result.json')"):
+    ('os/ci/owner_vm.py', "{'16': 'os/manifest/ci/16/host-walk.json', '27': 'os/manifest/ci/27/host-walk.json', "
+                          "'22c': 'os/manifest/ci/22c/host-walk.json'}.get(package, 'os/manifest/ci/14/host-walk/result.json')"):
         "each package's own host walk",
     ('os/ci/owner_vm.py', "package == '27'"):
         'package 27 records the checkout bytes it walked (27-bound-sources)',
     ('os/ci/owner_vm.py', "mode == 'update'"):
-        "the update rehearsal starts from the laptop's tools and runs its own route",
+        "the update rehearsal runs its own route",
+    ('os/ci/owner_vm.py', "mode in ('update', 'reorder-probe')"):
+        "the update rehearsal (and package 22c's probe) starts from the laptop's tools",
     ('os/ci/rehearsal_auth.py', "mode in ('probe', 'part-b') or release_diff"):
         'owner-secret auth: its create, preflight and pull steps do not run on pkg/27',
 }
@@ -1034,6 +1044,39 @@ def decide(node, world, aliases, constants):
     return list(value) if isinstance(value, tuple) else value
 
 
+def differing_decisions(worlds, reviewed):
+    """Every decision of the VM step's modules that two worlds take differently and `reviewed` does not name.
+
+    Returns the differences, the reviewed keys that were met, and the modules read.
+    """
+    entries = ('os/ci/owner_vm.py', 'os/ci/prepare_two_disks.py')
+    paths, todo = [], list(entries)
+    while todo:
+        path = todo.pop()
+        if path in paths:
+            continue
+        paths.append(path)
+        for node in ast.walk(ast.parse((ROOT / path).read_text(encoding='utf-8'))):
+            names = ([a.name for a in node.names] if isinstance(node, ast.Import) else
+                     [node.module] if isinstance(node, ast.ImportFrom) and node.module and not node.level else [])
+            todo += [m for m in ('os/ci/' + n.split('.')[0] + '.py' for n in names) if (ROOT / m).exists()]
+    differing, used = [], set()
+    for path, root, node, aliases, constants in vm_step_decisions(sorted(paths), entries):
+        for candidate in (root, node):
+            key = (path, ast.unparse(candidate))
+            if key in reviewed:
+                used.add(key)
+                break
+            values = [decide(candidate, world, aliases, constants) for world in worlds]
+            if UNKNOWN not in values:
+                if values[0] != values[1]:
+                    differing.append(f'{path}:{node.lineno}: {key[1]} -> {values}')
+                break
+        else:
+            differing.append(f'{path}:{node.lineno}: {ast.unparse(root)} (not decidable)')
+    return differing, used, paths
+
+
 class VmStepDecisionsTest(unittest.TestCase):
     """Every package, mode or branch decision the VM step can reach treats the update rehearsal as the owner-tools one.
 
@@ -1050,31 +1093,7 @@ class VmStepDecisionsTest(unittest.TestCase):
     """
 
     def test_the_update_rehearsal_decides_like_the_owner_tools_qualification(self):
-        entries = ('os/ci/owner_vm.py', 'os/ci/prepare_two_disks.py')
-        paths, todo = [], list(entries)
-        while todo:
-            path = todo.pop()
-            if path in paths:
-                continue
-            paths.append(path)
-            for node in ast.walk(ast.parse((ROOT / path).read_text(encoding='utf-8'))):
-                names = ([a.name for a in node.names] if isinstance(node, ast.Import) else
-                         [node.module] if isinstance(node, ast.ImportFrom) and node.module and not node.level else [])
-                todo += [m for m in ('os/ci/' + n.split('.')[0] + '.py' for n in names) if (ROOT / m).exists()]
-        differing, used = [], set()
-        for path, root, node, aliases, constants in vm_step_decisions(sorted(paths), entries):
-            for candidate in (root, node):
-                key = (path, ast.unparse(candidate))
-                if key in REVIEWED_DECISIONS:
-                    used.add(key)
-                    break
-                values = [decide(candidate, world, aliases, constants) for world in WORLDS.values()]
-                if UNKNOWN not in values:
-                    if values[0] != values[1]:
-                        differing.append(f'{path}:{node.lineno}: {key[1]} -> {values}')
-                    break
-            else:
-                differing.append(f'{path}:{node.lineno}: {ast.unparse(root)} (not decidable)')
+        differing, used, paths = differing_decisions(WORLDS.values(), REVIEWED_DECISIONS)
         self.assertEqual(differing, [])
         self.assertEqual(sorted(set(REVIEWED_DECISIONS) - used), [], 'stale reviewed decisions')
         self.assertIn('os/ci/installer_webui.py', paths)
