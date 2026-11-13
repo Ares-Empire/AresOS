@@ -26,6 +26,8 @@ import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobCategory;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.Level;
@@ -69,7 +71,8 @@ public final class FlatHomeGameTests {
     /** The test server runs ticks as fast as it can; chunks load at the disk's and the other builds' pace. */
     private static final int LOAD_LIMIT = 6000;
     private static final List<GameRule<Boolean>> SWITCHES = List.of(GameRules.SPAWN_MOBS, GameRules.MOB_GRIEFING, GameRules.KEEP_INVENTORY,
-            GameRules.SPAWN_PHANTOMS, GameRules.SPAWN_PATROLS, GameRules.SPAWN_WANDERING_TRADERS, GameRules.ADVANCE_TIME, GameRules.ADVANCE_WEATHER);
+            GameRules.SPAWN_PHANTOMS, GameRules.SPAWN_PATROLS, GameRules.SPAWN_WANDERING_TRADERS, GameRules.ADVANCE_TIME, GameRules.ADVANCE_WEATHER,
+            GameRules.SPAWN_MONSTERS);
 
     @GameTest(environment = "aresos-test:home")
     public void flatHomeRulesAreTheNetherOnesPlusFrozenTimeAndWeather(GameTestHelper helper) {
@@ -353,6 +356,20 @@ public final class FlatHomeGameTests {
         }
     }
 
+    @GameTest(environment = "aresos-test:home")
+    public void mobCounterSeesAMobRemovedInTheSameTick(GameTestHelper helper) {
+        var level = helper.getLevel();
+        try (var counter = new MobAdditions(level, null)) {
+            var mob = EntityTypes.ZOMBIE.create(level, EntitySpawnReason.COMMAND);
+            check(mob != null, "Could not create counter fixture");
+            mob.snapTo(Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(1, 2, 1))));
+            check(level.addFreshEntity(mob), "Could not add counter fixture");
+            mob.discard();
+            check(counter.count() == 1, "A mob removed before the next tick was missed");
+        }
+        helper.succeed();
+    }
+
     /**
      * Ten minutes of game time with the owner standing at home in Live mode under the flat home's rules: no mob may
      * appear. The control runs first, in the same place with the same player: with mob spawning on, a mob appears
@@ -372,8 +389,10 @@ public final class FlatHomeGameTests {
         ServerPlayer player = join(level, "FlatHomeMobs");
         // Mobs spawn within 128 blocks of a player; anything in this box is this test's.
         AABB[] area = {null};
+        MobAdditions[] additions = {null};
         // Runs on every way out, pass or fail: the test world, its rules included, can be kept for the next run.
         Runnable restore = () -> {
+            if (additions[0] != null) additions[0].close();
             for (var rule : SWITCHES) rules.set(rule, before.get(rule), server);
             rules.set(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, fire, server);
             if (area[0] != null) mobs(level, area[0]).forEach(Entity::discard);
@@ -385,6 +404,7 @@ public final class FlatHomeGameTests {
             DesktopWorld.setEnabled(server, true);
             home = homeAt(level, far(helper, 0, 8000));
             area[0] = new AABB(home).inflate(200, 400, 200);
+            additions[0] = new MobAdditions(level, area[0]);
             player.teleportTo(level, home.getX() + 0.5, home.getY(), home.getZ() + 0.5, Set.of(), 180, 0, false);
             // Nothing ticks a test player's connection, so the chunk map would go on loading the place where he joined.
             level.getChunkSource().move(player);
@@ -405,7 +425,7 @@ public final class FlatHomeGameTests {
                 long tick = helper.getTick();
                 if (quietSince[0] < 0) {
                     var appeared = mobs(level, area[0]);
-                    if (appeared.isEmpty()) {
+                    if (additions[0].count() == 0) {
                         if (loadedAt[0] < 0 && loaded(level, home)) loadedAt[0] = tick;
                         if (loadedAt[0] < 0 && tick >= LOAD_LIMIT) throw new AssertionError("Fixture: the ground around home did not load within "
                                 + LOAD_LIMIT + " ticks. " + spawningState(level, home, player));
@@ -413,11 +433,14 @@ public final class FlatHomeGameTests {
                                 + " with mob spawning on, so ten quiet minutes would prove nothing. " + spawningState(level, home, player));
                         return;
                     }
-                    AresOs.LOGGER.info("32 no-mob control: with mob spawning on, {} appeared within {} ticks", describe(appeared), tick);
+                    AresOs.LOGGER.info("32 no-mob control: with mob spawning on, {} added within {} ticks", additions[0].examples(), tick);
                     FlatHome.applyRules(rules, server);
                     appeared.forEach(Entity::discard);
+                    additions[0].reset();
                     quietSince[0] = tick;
-                } else if (tick >= quietSince[0] + TEN_MINUTES) {
+                } else {
+                    check(additions[0].count() == 0, "Mob added during the quiet interval: " + additions[0].examples());
+                    if (tick < quietSince[0] + TEN_MINUTES) return;
                     check(!player.isRemoved() && player.level() == level && player.blockPosition().closerThan(home, 2),
                             "Fixture: the player is not at home: " + player.position());
                     check(LiveMode.isLive(player), "Fixture: the player left Live mode");
@@ -427,6 +450,7 @@ public final class FlatHomeGameTests {
                     NetherHomeGameTests.assertRules(rules);
                     var appeared = mobs(level, area[0]);
                     check(appeared.isEmpty(), appeared.size() + " mob(s) appeared within ten minutes under the flat home's rules: " + describe(appeared));
+                    AresOs.LOGGER.info("32 server no-mob check: 12000 ticks, {} mob additions", additions[0].count());
                     restore.run();
                     helper.succeed();
                 }
@@ -434,6 +458,9 @@ public final class FlatHomeGameTests {
                 restore.run();
                 // The test runner reports its own exception type from a tick callback, and no Error.
                 helper.fail(error.getMessage());
+            } catch (RuntimeException error) {
+                restore.run();
+                throw error;
             }
         });
     }
