@@ -554,7 +554,8 @@ Restructure in steps that keep everything working:
     tested.
   The fourth place it judged, the password additions, is brief 28's and is on `main` when this package starts:
   a form that holds a field withheld for unknown history is refused, not asked. That stays, through `chrome_do`
-  too.
+  too. **The time check in `input` is newer than that review** (it came with package re-check 2, N2). It can
+  only stop a dispatch, never start or change one, and this package's security review looks at it first.
 - **Brief 28's field rules and its read:** the password rule with its two additions, the outline format, the
   reference table and its run letters, the read's deadline. Nothing in them is relaxed or reshaped here.
 - **The hold:** `guard.js`, `page.js`, the 500 ms window, the default block, the owner's own Enter, the three kinds
