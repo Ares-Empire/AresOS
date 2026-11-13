@@ -504,6 +504,13 @@ would go on. So every new tool has one deadline, measured in the service from th
 timeout is raised. This package builds the read's deadline and the way a deadline reaches the extension. Brief
 28a adds the deadlines of the tools that act, on the same mechanism.
 
+The deadline covers the whole call, not only the new read inside the adapter. The engine looks at pending
+operations before it dispatches and again when it builds the response, and a reserved Chrome operation asks the
+extension whether it is still valid (`Chrome.pending_state`, through the bridge) at both points. Start the call's
+time budget before that first look and carry it through the response. A validity that couldn't be checked in time
+is reported as unchecked, never as a refused approval, and the pending warnings stay. Test it through the real
+transport: a read with an approval outstanding whose frame doesn't answer still ends inside its deadline.
+
 - **The read: 8 seconds in all.** `until` waits at most 6, and every command of a read has to answer by
   second 7. A read that didn't gets the error `not_read`, "time ran out; read this tab by itself". With `tabs`,
   each tab gets an equal share of the time left to second 7 when its turn comes: with five tabs 1.4 seconds each
@@ -887,9 +894,12 @@ side by side, and nothing else changes in the harness:
 - a test that reads a typed field's value in a taken tab before its reload now gets the reader's "filled, not
   read" for an `input` or a `textarea`, where merged PR #27 doesn't already assert that;
 - a test that reads or fills a field named like a credential now gets a password-kind field;
-- a test that sends a form holding a field withheld for unknown history now gets the refusal.
+- a test that sends a form holding a field withheld for unknown history now gets the refusal. For exactly those
+  cases the consequences change with it and are listed in the map: no question is asked and the receiver has no
+  arrival.
 
-A test never changes what it asserts about the receiver's log, a question, a binding or an approval.
+In every case that stays permitted, a test never changes what it asserts about the receiver's log, a question, a
+binding or an approval.
 
 Register the new browser cases in the named inventory (`ci/verdicts.mjs`) the way brief 20's FEATURE and VIEW
 cases are registered. The password cases join the `password_exclusion` group, and the cases of the refused form

@@ -223,7 +223,9 @@ past. So the reader doesn't guess.
   watch for "show password" switches. It couldn't cover a field inside a shadow root, a mask taken off by a style,
   or a page loaded before the extension, and a password is never a known limit (owner, 2026-11-11). That marker is
   gone: no content script from the manifest, none registered for his tabs beyond brief 20's empty `context.js`,
-  and nothing that observes a tab before a read.
+  and nothing that observes a tab before a read. The one exception is narrow and separate from passwords: the
+  drop-and-paste record of item 4a, added only if the measurement there requires it. It records that a drop or a
+  paste happened and nothing else, and it is never evidence about a field's history.
 - **The reader that a read installs keeps its passive observers** (package re-check 2, N5). The in-place reader
   is brief 20's `reader.js`, installed on demand, and it brings its two `MutationObserver`s. One counts DOM
   changes; the state token, `until` and every cursor need that count (brief 28, item 1). The other remembers a

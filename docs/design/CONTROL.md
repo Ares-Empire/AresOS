@@ -1575,8 +1575,9 @@ itself instead of the first input (brief 28b).
       submission after, none on a repeat, and the question shows every field as filled;
     - the change report names exactly the added, changed and removed lines on the fixture, within its bound;
     - a taken tab stays his: closing it is refused, and navigating it before its reload goes through the same
-      check as a first input; a take, and opening one of his tabs' address, need the list's token and are refused
-      when the tab has moved on (the opened address is the one the list showed);
+      check as a first input; a take needs the list's token and is refused when the tab has moved on; opening
+      one of his tabs' address needs the token too and opens the address the list showed, wherever his tab went
+      since;
     - Chrome, the host and the service each stopped in the middle of a list: no step runs twice;
     - time: through the real command and the real MCP proxy, a list whose waits are met one after another until
       its cut-off has passed returns in time with the steps it didn't dispatch counted; an input that is held
