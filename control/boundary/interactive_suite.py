@@ -147,6 +147,18 @@ def main():
     assert json.loads((ROOT / 'package-lock.json').read_text())['packages'][
         'node_modules/@anthropic-ai/claude-code-linux-x64']['version'] == '2.1.319'
     OUT.mkdir(parents=True, exist_ok=True)
+    # Bounded native UI discovery stays in runner evidence, never in the repo.
+    binary = Path('/usr/local/bin/claude').resolve().read_bytes()
+    for needle in (b"Yes, and don't ask again", b'What should Claude do instead?', b'Do you want to proceed?'):
+        snippets, offset = [], 0
+        for _ in range(6):
+            offset = binary.find(needle, offset)
+            if offset < 0:
+                break
+            snippets.append(binary[max(0, offset - 9000):offset + 9000].decode('utf-8', errors='replace'))
+            offset += len(needle)
+        (OUT / ('discovery-' + str(len(needle)) + '.txt')).write_text('\n'.join(snippets))
+    del binary
     print('INTERACTIVE_VERSION ' + run(['/usr/local/bin/claude', '--version']).stdout.strip(), flush=True)
     original = POLICY.read_bytes()
     stub_log = Path('/evidence/stub.txt').open('w')

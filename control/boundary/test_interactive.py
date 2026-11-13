@@ -36,7 +36,7 @@ class Answers(unittest.TestCase):
                 with patch.object(terminal, 'tmux') as command, patch.object(terminal, 'wait', return_value=after):
                     terminal.choose(before, 'No')
                 sent = [call.args[-1] for call in command.call_args_list]
-                self.assertEqual(sent, ['3', 'Enter'] if confirms else ['3'])
+                self.assertEqual(sent, ['3', '\r'] if confirms else ['3'])
 
 
 class Turns(unittest.TestCase):

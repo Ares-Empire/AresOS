@@ -96,12 +96,12 @@ class Terminal:
             lambda s: selected_option(s, number, text) or options(s) != choices,
             expected_options=choices)
         if selected_option(after, number, text):
-            self.tmux('send-keys', '-t', 'case:0.0', 'Enter')
+            self.tmux('send-keys', '-t', 'case:0.0', '-l', '\r')
 
     def prompt(self, marker):
         self.save('owner-prompt', self.screen())
         self.tmux('send-keys', '-t', 'case:0.0', '-l', marker)
-        self.tmux('send-keys', '-t', 'case:0.0', 'Enter')
+        self.tmux('send-keys', '-t', 'case:0.0', '-l', '\r')
 
     def __enter__(self):
         self.evidence.mkdir(parents=True, exist_ok=True)

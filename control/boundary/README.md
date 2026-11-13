@@ -112,6 +112,10 @@ uses deadlines and rendered `capture-pane -p` text. `choose(screen, answer)`
 selects the option by its full text before sending its displayed number; it
 accepts `Yes`, `No`, `DAA`, and the separately named bypass warning. Every screen
 acted on, launch command and choice is saved. Unknown dialogs fail the case.
+Numeric choices may submit immediately or only select an option; the driver
+observes the rendered result and confirms with Enter only if still selected.
+Normal cases pass `--permission-mode default` explicitly: this pinned binary
+otherwise advertised auto mode as its interactive default during discovery.
 
 `interactive_model.Model(steps, evidence)` is a loopback streaming Messages
 double. Each step names a unique owner `prompt` marker and a `send` tool, with
@@ -121,6 +125,9 @@ After each tool result it ends the turn with `INTERACTIVE_DONE_<index>`; a
 further request without a new owner marker is recorded as a Stop continuation
 and answered with text, without another tool call. `Terminal.prompt(marker)`
 starts the next step in the same CLI session. A new Terminal starts a fresh CLI.
+Native No interrupts the turn. The supervisor waits for that named rendered
+interruption and types `INTERACTIVE_RESUME_CURRENT_TURN` so the double can see
+the denied result and finish with text. That marker never selects another send.
 The supervisor owns service baselines, policy setup and independent arrival
 counts; neither reusable module changes the installed service or its policy.
 
