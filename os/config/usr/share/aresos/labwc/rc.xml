@@ -16,5 +16,7 @@
   </keyboard>
   <windowRules>
     <windowRule identifier="foot"><action name="Maximize" /></windowRule>
+    <!-- The desktop (package 23): a borderless maximized Minecraft window below normal apps (OS-BASE section 4). -->
+    <windowRule identifier="aresos-desktop" serverDecoration="no"><action name="Maximize" /></windowRule>
   </windowRules>
 </labwc_config>

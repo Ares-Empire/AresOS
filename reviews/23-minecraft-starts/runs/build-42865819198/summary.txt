@@ -1,0 +1,52 @@
+check_build=build run 42865819198 on 953bf8928ac780b2c7a922b4e2a8ddf05b87e96d: success
+
+MOD_SOURCE 953bf8928ac780b2c7a922b4e2a8ddf05b87e96d dc88704b974d1c155a4a1f56bf8574bbb2771aec36664e5ec9f5317e9cc42d0c
+MOD_JAR_BUILT 8b04c511d11d0fa4bd4dad509949026e5346435a0f04bfe9d63084dd65386743 from 953bf8928ac780b2c7a922b4e2a8ddf05b87e96d
+MOD_JAR_PINNED 8b04c511d11d0fa4bd4dad509949026e5346435a0f04bfe9d63084dd65386743
+
+PASS ares is in wheel
+PASS the image sets no password for ares (locked)
+PASS sudo for ares: (ALL) ALL with a password, no remembered ticket, no passwordless rule
+PASS sudo as ares fails without a password
+PASS after a successful sudo, a child exec of sudo -n is refused (the old ppid ticket allowed it)
+PASS polkit: after ares authorizes once, the same process is asked again (a cached control action is reused)
+PASS uupd, ujust, topgrade, the Bazzite updater/portal and the stores are not executable by ares
+PASS flatpak and brew are executable by ares
+PASS automatic updaters masked; Flatpak helpers available; static updater audit passes
+PASS Chrome NEVRA matches its pin; every packaged /opt file lives under /usr/lib/opt; commands point there
+PASS ares can run google-chrome: Google Chrome 157.0.8103.50 
+PASS tmpfiles links /opt/google to the image copy
+PASS no Google repository, cron job or trusted key in the image
+PASS xdg-open sends http and https links to Chrome in the AresOS session
+PASS /etc/opt/chrome/policies can be created for the control layer
+PASS daily login PATH with Homebrew absent: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin (no errors printed)
+PASS daily login PATH with Homebrew present: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:/var/home/ares/.local/share/flatpak/exports/bin (no errors printed)
+PASS the 60-flatpak user environment generator runs for ares without errors
+PASS normal AresOS terminal PATH: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:/var/home/ares/.local/share/flatpak/exports/bin
+PASS recovery AresOS terminal PATH: /usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin
+PASS hub AresOS terminal PATH: /var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:/var/home/ares/.local/share/flatpak/exports/bin
+PASS the session itself starts with the system PATH and absolute commands
+PASS greetd's profile wrapper keeps the system PATH (/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin); his login shell adds his own (/var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/home/linuxbrew/.linuxbrew/bin:/var/home/ares/.local/share/flatpak/exports/bin)
+PASS all 30 absolute startup commands exist: /usr/bin/agreety /usr/bin/aresos-session /usr/bin/aresos-terminal /usr/bin/bash /usr/bin/brightnessctl /usr/bin/busctl /usr/bin/cat /usr/bin/cut /usr/bin/dbus-daemon /usr/bin/dbus-run-session /usr/bin/env /usr/bin/foot /usr/bin/getent /usr/bin/google-chrome /usr/bin/id /usr/bin/kwrite /usr/bin/labwc /usr/bin/prismlauncher /usr/bin/python3 /usr/bin/stat /usr/bin/sudo /usr/bin/systemctl /usr/bin/systemd-run /usr/bin/wpctl /usr/libexec/aresos-desktop /usr/libexec/aresos-desktop-java /usr/libexec/aresos-keyboard /usr/libexec/aresos-shell /usr/libexec/kf6/polkit-kde-authentication-agent-1 /usr/sbin/usermod 
+PASS the app helper resolves browser, notepad and terminal and launches by absolute paths under the system PATH with shadows first
+PASS ares runs read-only brew directly; installs go through sudo as the prefix owner and fail without a password
+PASS both terminals run /usr/bin/foot even with a broken foot first on PATH
+PASS every power profile ares can switch to leaves the bootloader and kernel arguments alone
+PASS foot default font size 16 (a user foot.ini replaces this file)
+PASS the labwc session starts the base image polkit agent
+PASS brightness, volume, mute and mic-mute keys are bound to brightnessctl and wpctl; recovery terminal kept
+PASS script, qrencode and brightnessctl are installed
+PASS ares has subordinate ID ranges; the boot service is enabled and idempotent
+PASS Java 25 from the package lock (java-25-openjdk-headless-1:25.0.4.1.1-1.1.fc44.x86_64) at /usr/lib/jvm/java-25-openjdk/bin/java, runnable by ares
+PASS Prism Launcher PrismLauncher 11.1.1 from its pinned bundle: updater removed, data in his home, no setuid files
+PASS every provisioning input in /usr/share/aresos/minecraft matches its pin; Java and Prism are present
+PASS labwc autostart starts the desktop supervisor (no session terminal); the hub window is borderless and maximized
+PASS provisioning as ares creates the managed instance from the image inputs, is idempotent and reports a changed instance
+PASS no system service runs the desktop: it starts inside the everyday session only
+IMAGE_CHECKS_PASSED
+
+From the job log:
+CHECK_BUILD_PASSED
+UEFI VM checks passed: session, updater/sleep policy, recovery shortcut, tty3 getty, password authentication via login PAM, ignored lid/sleep events, clean ACPI poweroff
+CHECK_BUILD_VM_PASSED
+VM details for review fixes 1 and 2 (memory protection, the game scope, memory pressure): vm-memory-checks.json

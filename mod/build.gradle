@@ -52,6 +52,12 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
 }
 jar { from('LICENSE') { rename { "${it}_aresos" } } }
+// The AresOS image pins the jar's SHA-256 (package 23), so the same sources
+// must give the same bytes: no build-time timestamps, a fixed entry order.
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
 
 // The image pins this jar's hash. Keep this block separate from game/test configuration.
 tasks.withType(AbstractArchiveTask).configureEach {
@@ -101,6 +107,7 @@ tasks.named('runClientGameTest') {
     systemProperty 'aresos.modeReviewDir', file('../reviews/09-mode-inventories/screenshots').absolutePath
     systemProperty 'aresos.reviewDir', file('build/review/01-first-app').absolutePath
     systemProperty 'aresos.homeReviewDir', file('../reviews/04-nether-home/screenshots').absolutePath
+    systemProperty 'aresos.hubReviewDir', file('../reviews/32-flat-home/screenshots').absolutePath
     systemProperty 'aresos.seedReviewDir', file('../reviews/04-nether-home/seeds').absolutePath
     timeout = Duration.ofMinutes(10)
 }
