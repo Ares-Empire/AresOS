@@ -11,7 +11,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: mod-${{ github.head_ref || github.ref_name }}
+  # github.ref holds the pull request's number, so two branches of the same name never share a group.
+  group: mod-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
