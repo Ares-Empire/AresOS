@@ -173,11 +173,14 @@ under the real unit.
    1000, that Fedora's static list (`/usr/share/doc/setup/uidgid`) and the image's own sysusers and passwd files don't
    use, and record the evidence. This is the one allowed change to `control/packaging/aresos-tools.sysusers`, with a
    pin test; the CI containers keep working with it.
-6. **The unit is enabled, and a broken service never costs him his session.** No session or boot unit may depend
-   on `aresos-toold.service` (nothing orders after it or requires it; a failed service never delays login). Check 6
-   of B2 also runs with the service **failed** (for example a config file made unreadable for that case, then
-   restored with its hash checked), not only stopped: the desktop session comes up as usual, Claude Code starts
-   and does ordinary work, and our tools refuse clearly. Claude Code on the laptop is his help channel.
+6. **The unit is enabled, and a broken service never costs him his session.** Enabling it through
+   `multi-user.target` is the normal way and stays (the target wants it, with systemd's usual ordering). What may
+   not exist: a login, session, display or recovery unit that requires `aresos-toold.service` or orders itself after
+   it. The unit keeps `Type=simple`, so a slow or failing start never holds the target. Check 6 of B2 also runs with
+   the service **failed**, not only stopped: a CI-only drop-in under `/run/systemd/system` makes it fail (the config
+   in `/usr/share` can't be edited), armed before a fresh session starts. Then the desktop session comes up as
+   usual, Claude Code starts and does ordinary work, and our tools refuse clearly. Claude Code on the laptop is his
+   help channel.
 7. **The config follows the image.** `owner_uid` and the home are derived at build from `aresos.conf`, not written
    as a second literal. `service.json` and `proxy.json` move from `/etc/aresos-control/` to
    `/usr/share/aresos/control/`: `/etc` is merged per deployment, and a file changed there once silently stops
@@ -456,7 +459,10 @@ digest; in `os-image.yml` every job except `check-build`, and no new permission 
 the existing files under `control/tests/`, and 18d's `precedence.py`, `native.py`'s behavior and
 `permission-request-expected.json`; in `control/packaging/` everything except the unit's two network lines and the
 sysusers line's fixed numbers; in `control/launch.py` and `control/aresos_control/daemon.py` everything except the
-two config path constants (agreed change 7); other worktrees. Anything under `os/` beyond the agreed proposal needs `linux-aresos`'s OK through the lead first: stop
+two config path constants (agreed change 7). For that same change, and only for it, the old config path may be
+replaced by the new one where existing tests and CI files name it (`control/tests/test_integration.py` in five
+places, `control/ci/setup.sh`, the README, and the folder Chrome's CI Dockerfile creates), with no assertion
+changed. Other worktrees. Anything under `os/` beyond the agreed proposal needs `linux-aresos`'s OK through the lead first: stop
 and report instead.
 
 ## Acceptance
