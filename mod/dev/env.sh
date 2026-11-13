@@ -133,7 +133,7 @@ aresos_scope_start() {
     ARESOS_SCOPES+=("$ARESOS_UNIT")
     /usr/bin/systemd-run --user --scope --quiet --collect --unit="$ARESOS_UNIT" --property=TimeoutStopSec=20 "$@" &
     ARESOS_JOB=$!
-    while aresos_job_running "$ARESOS_JOB" && ! /usr/bin/systemctl --user --quiet is-active "$ARESOS_UNIT"; do
+    while aresos_job_running "$ARESOS_JOB" && ! systemctl --user --quiet is-active "$ARESOS_UNIT"; do
         /usr/bin/sleep 0.02
     done
     ARESOS_DEFER=0
@@ -145,18 +145,24 @@ aresos_scope_start() {
 # while it had the TERM held for its event loop, Gradle forking a JVM) would run on until the KILL; everything
 # still in a scope therefore gets TERM again every half second.
 aresos_stop_scopes() {
-    local unit live
-    /usr/bin/systemctl --user stop --no-block -- "$@" 2>/dev/null || true
+    local unit state live deadline=$((SECONDS + 30))
     while :; do
+        systemctl --user stop --no-block -- "$@" 2>/dev/null || true
         live=()
         for unit; do
-            case $(/usr/bin/systemctl --user show --property=ActiveState --value -- "$unit" 2>/dev/null) in
-                active | activating | deactivating | reloading) live+=("$unit") ;;
-            esac
+            if state=$(systemctl --user show --property=ActiveState --value -- "$unit" 2>/dev/null); then
+                case $state in inactive | failed) continue ;; esac
+            fi
+            live+=("$unit")
         done
         ((${#live[@]})) || return 0
+        if ((SECONDS >= deadline)); then
+            # Absence is unknown: leave private folders intact, and do not repeat cleanup on EXIT.
+            trap - EXIT
+            aresos_fail 1 "FAILED: scopes not confirmed gone after 30 s: ${live[*]}."
+        fi
         /usr/bin/sleep 0.5
-        /usr/bin/systemctl --user kill --signal=TERM -- "${live[@]}" 2>/dev/null || true
+        systemctl --user kill --signal=TERM -- "${live[@]}" 2>/dev/null || true
     done
 }
 
