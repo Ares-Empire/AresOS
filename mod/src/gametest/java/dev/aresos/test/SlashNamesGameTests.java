@@ -71,6 +71,25 @@ public final class SlashNamesGameTests {
             return dispatcher.getCompletionSuggestions(dispatcher.parse(text, player.createCommandSourceStack()))
                     .join().getList().stream().map(com.mojang.brigadier.suggestion.Suggestion::getText).toList();
         }
+        Set<String> visibleNames() {
+            var packet = channel.outboundMessages().stream().filter(ClientboundCommandsPacket.class::isInstance)
+                    .map(ClientboundCommandsPacket.class::cast).reduce((first, last) -> last).orElseThrow();
+            var root = packet.getRoot(Commands.createValidationContext(server.registryAccess()),
+                    new ClientboundCommandsPacket.NodeBuilder<net.minecraft.commands.CommandSourceStack>() {
+                        @Override public com.mojang.brigadier.builder.ArgumentBuilder<net.minecraft.commands.CommandSourceStack, ?> createLiteral(String name) {
+                            return Commands.literal(name);
+                        }
+                        @Override public com.mojang.brigadier.builder.ArgumentBuilder<net.minecraft.commands.CommandSourceStack, ?> createArgument(
+                                String name, com.mojang.brigadier.arguments.ArgumentType<?> type, net.minecraft.resources.Identifier suggestions) {
+                            return Commands.argument(name, type);
+                        }
+                        @Override public com.mojang.brigadier.builder.ArgumentBuilder<net.minecraft.commands.CommandSourceStack, ?> configure(
+                                com.mojang.brigadier.builder.ArgumentBuilder<net.minecraft.commands.CommandSourceStack, ?> builder, boolean executable, boolean restricted) {
+                            return executable ? builder.executes(c -> 1) : builder;
+                        }
+                    });
+            return root.getChildren().stream().map(com.mojang.brigadier.tree.CommandNode::getName).collect(java.util.stream.Collectors.toSet());
+        }
         boolean said(String text) {
             return channel.outboundMessages().stream().anyMatch(packet -> packet instanceof ClientboundSystemChatPacket chat
                     && chat.content().getString().contains(text));
@@ -89,7 +108,7 @@ public final class SlashNamesGameTests {
     public void namesAreHostOnlyAndFollowMembershipWithoutRejoin(GameTestHelper helper) throws Exception {
         try (var f = new Fixture(helper)) {
             var dispatcher = f.server.getCommands().getDispatcher();
-            check(f.completions("d").containsAll(List.of("dc", "discord")), "Host cannot complete both names");
+            check(f.visibleNames().containsAll(List.of("dc", "discord")), "Host command packet lacks both names");
             check(f.run("dc") == 1, "Alias did not launch");
             check(f.channel.outboundMessages().stream().anyMatch(packet -> packet instanceof ClientboundCustomPayloadPacket custom
                     && custom.payload() instanceof ZoneLaunchPayload launch && launch.app().equals("discord") && launch.visit() == 0),
@@ -105,7 +124,8 @@ public final class SlashNamesGameTests {
             MyAppsGame.add(f.player, "other");
             check(dispatcher.getRoot().getChild("other") != null, "Return did not restore command");
             f.server.setSingleplayerProfile(new GameProfile(UUID.randomUUID(), "DifferentHost"));
-            check(f.completions("d").stream().noneMatch(name -> name.equals("dc") || name.equals("discord")), "Guest sees app commands");
+            f.server.getCommands().sendCommands(f.player);
+            check(f.visibleNames().stream().noneMatch(name -> name.equals("dc") || name.equals("discord")), "Guest sees app commands");
             f.server.setSingleplayerProfile(f.player.getGameProfile());
             DesktopWorld.setEnabled(f.server, false); SlashCommands.refresh(f.server);
             check(dispatcher.getRoot().getChild("discord") == null && dispatcher.getRoot().getChild("dc") == null,
@@ -181,7 +201,7 @@ public final class SlashNamesGameTests {
             check(f.channel.outboundMessages().stream().filter(packet -> packet instanceof ClientboundCustomPayloadPacket p
                     && p.payload() instanceof ZoneLaunchPayload).count() == before + lines.size(), "Clicks did not send one launch each");
             DesktopWorld.setEnabled(f.server, false); SlashCommands.refresh(f.server);
-            check(!f.completions("op").contains("open") && !f.completions("app").contains("apps"), "Normal-world list exposes commands");
+            check(!f.visibleNames().contains("open") && !f.visibleNames().contains("apps"), "Normal-world packet exposes commands");
         }
         helper.succeed();
     }
