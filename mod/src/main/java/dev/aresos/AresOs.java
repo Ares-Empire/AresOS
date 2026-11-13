@@ -43,7 +43,8 @@ public final class AresOs implements ModInitializer {
     private static volatile List<AppDefinition> apps = List.of();
     private static String configError;
     private static String discoveryError;
-    public static Set<String> generatedIcons = Set.of();
+    // The apps that have a pixel icon the game can draw; swapped whole (item/MyAppsGame, icon/IconRefresh).
+    public static volatile Set<String> generatedIcons = Set.of();
     private static final Duration HELPER_WAIT = Duration.ofSeconds(5);
     private static ShellClient shell;
 
@@ -64,9 +65,22 @@ public final class AresOs implements ModInitializer {
         return shell;
     }
 
+    public static synchronized void saveMine(java.util.Map<String, Boolean> changes) throws IOException {
+        apps = AppsConfig.mine(configPath(), changes);
+    }
+
+    /** One complete program list from the helper goes into the apps file; My apps follows (item/MyAppsGame). */
+    private static synchronized void takeIn(List<AppDefinition> listed) throws IOException {
+        var merged = AppsConfig.merge(configPath(), listed, shell.detailed(), java.time.LocalDate.now());
+        apps = merged.apps();
+        dev.aresos.item.MyAppsGame.listed(merged);
+    }
+
     private static synchronized void mergeHelperApps(List<ShellClient.App> listed) {
-        try { apps = AppsConfig.merge(configPath(), LinuxAppCatalogue.definitions(listed)); }
-        catch (IOException | RuntimeException error) {
+        try {
+            takeIn(LinuxAppCatalogue.definitions(listed));
+            dev.aresos.item.MyAppsGame.pictures(apps);
+        } catch (IOException | RuntimeException error) {
             LOGGER.error("Could not merge apps from the AresOS app helper; existing catalogue kept", error);
         }
     }
@@ -90,7 +104,7 @@ public final class AresOs implements ModInitializer {
             var loaded = AppsConfig.load(configPath(), !windows);
             apps = loaded.apps();
             if (loaded.migrationBackup() != null) {
-                LOGGER.info("Migrated apps.json to schema 2; original saved at {}", loaded.migrationBackup());
+                LOGGER.info("Moved apps.json to schema {}; original saved at {}", AppsConfig.SCHEMA, loaded.migrationBackup());
             }
             boolean discovery = !Boolean.getBoolean("aresos.disableDiscovery");
             if (!windows && FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
@@ -100,9 +114,9 @@ public final class AresOs implements ModInitializer {
             }
             if (discovery && (windows || shell != null)) {
                 try {
-                    var catalogue = windows ? new WindowsAppCatalogue(FabricLoader.getInstance().getGameDir().resolve("aresos-runtime/discovery"), apps)
-                            : new LinuxAppCatalogue(shell, HELPER_WAIT);
-                    apps = AppsConfig.merge(configPath(), catalogue.listApps());
+                    if (windows) apps = AppsConfig.merge(configPath(), new WindowsAppCatalogue(
+                            FabricLoader.getInstance().getGameDir().resolve("aresos-runtime/discovery"), apps).listApps());
+                    else takeIn(new LinuxAppCatalogue(shell, HELPER_WAIT).listApps());
                 } catch (ShellClient.ShellException helper) {
                     // Reported in game from the connection status; apps stay as configured until the helper answers.
                     LOGGER.warn("AresOS app helper not available at startup: {}", helper.getMessage());
@@ -114,7 +128,7 @@ public final class AresOs implements ModInitializer {
                     @Override public void apps(List<ShellClient.App> listed) { mergeHelperApps(listed); }
                 });
             }
-            try { generatedIcons = IconPack.generate(iconPackPath(), apps, new PixelIconConverter()); }
+            try { generatedIcons = IconPack.generate(iconPackPath(), apps, new PixelIconConverter()).generated(); }
             catch (IOException error) { LOGGER.error("Cannot write icon cache; using configured vanilla looks", error); }
         } catch (IOException error) {
             configError = error.getMessage();
@@ -152,6 +166,7 @@ public final class AresOs implements ModInitializer {
                         .then(dev.aresos.world.HomeCommands.command())
                         .then(dev.aresos.zone.ZoneCommands.zone())
                         .then(dev.aresos.zone.ZoneCommands.logo())
+                        .then(dev.aresos.item.AppCommands.app())
                         .then(Commands.literal("desktop")
                                 .then(Commands.literal("on").executes(context -> desktop(context.getSource(), true)))
                                 .then(Commands.literal("off").executes(context -> desktop(context.getSource(), false))))
@@ -175,6 +190,8 @@ public final class AresOs implements ModInitializer {
                                         context.getSource().sendFailure(Component.literal("Unknown AresOS app"));
                                         return 0;
                                     }
+                                    // What is in his inventory is his: giving a program that is not makes it his.
+                                    if (!dev.aresos.item.MyAppsGame.own(source, app)) return 0;
                                     if (!player.getInventory().add(AppItems.create(app))) {
                                         context.getSource().sendFailure(Component.literal("Inventory is full"));
                                         return 0;

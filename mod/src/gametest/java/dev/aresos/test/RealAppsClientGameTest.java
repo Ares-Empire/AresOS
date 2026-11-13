@@ -33,11 +33,12 @@ public final class RealAppsClientGameTest implements FabricClientGameTest {
             }
             var fixtures=new ArrayList<AppDefinition>();
             fixtures.add(new AppDefinition("fixture-notes","Fixture Notes",List.of("fixture-notes.exe"),"minecraft:book",true,"command",null,root.resolve("compass.png").toString()));
-            fixtures.add(new AppDefinition("fixture-site","Fixture Moodle",List.of(),"minecraft:paper",false,"url","https://example.test/moodle",null));
-            for(int i=0;i<40;i++) fixtures.add(new AppDefinition("fixture-"+i,"Fixture "+(i+1),List.of("fixture-"+i+".exe"),"minecraft:paper",false,"command",null,root.resolve((i%2==0?"sunset":"compass")+".png").toString()));
+            // The inventory holds My apps and nothing else: every fixture this test expects an item for is his.
+            fixtures.add(new AppDefinition("fixture-site","Fixture Moodle",List.of(),"minecraft:paper",false,"url","https://example.test/moodle",null).withMine(true));
+            for(int i=0;i<40;i++) fixtures.add(new AppDefinition("fixture-"+i,"Fixture "+(i+1),List.of("fixture-"+i+".exe"),"minecraft:paper",false,"command",null,root.resolve((i%2==0?"sunset":"compass")+".png").toString()).withMine(true));
             Path config=root.resolve("apps.json");AppsConfig.save(config,fixtures);System.setProperty("aresos.appsConfig",config.toString());
             context.runOnClient(client->AppsTestAccess.aresos$setApps(List.copyOf(fixtures)));
-            AresOs.generatedIcons=IconPack.generate(AresOs.iconPackPath(),fixtures,new PixelIconConverter());
+            AresOs.generatedIcons=IconPack.generate(AresOs.iconPackPath(),fixtures,new PixelIconConverter()).generated();
             var reload=context.computeOnClient(client->client.reloadResourcePacks());
             context.waitFor(client->reload.isDone());reload.join();
             TestWorldSave save;
