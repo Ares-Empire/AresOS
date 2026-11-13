@@ -463,8 +463,13 @@ sites and synthetic profiles).
 
   The same holds, inside a watched document, for a typed field that already held text when the reader first
   met its shadow root, because a component can attach a root without the reader noticing at once. Claude doesn't
-  type into a field whose value it can't read. A password or sign-in code reaching Claude is never an accepted
-  limit (owner, 2026-11-11). What this rule costs and what it leaves are under "Known limits".
+  type into a field whose value it can't read. **It doesn't send a form that holds one either** (*brief 28*). A
+  question has to show and bind what is sent, and a field withheld for unknown history can't be shown. So a step
+  the tool recognises as a send or a form submission is refused there, before any question and with the reason:
+  he sends it himself, or the page is reloaded first, after which the reader knows every field. An approved
+  asking read doesn't change that. A known password field keeps its own rule: the question names it, and the
+  binding holds that it is there. A password or sign-in code reaching Claude is never an accepted limit (owner,
+  2026-11-11). What this rule costs and what it leaves are under "Known limits".
 - **The service checks its peer.** `chrome.sock` accepts only his user (Chrome, and so the host, run as him) and one
   host per running Chrome, from the pinned profile ("Which tabs Claude works in", *brief 28b*). Under decision 24
   another program of his user could imitate or disturb the host, as it could any program of his (for example by
@@ -1282,7 +1287,8 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   any is read. A field named like a credential stays unread even then. What he writes in an editor (an editable
   area) is read without a question. A passive marker that proves each field's history could spare him the
   question later, after his live test. In Claude's own tabs the same hits one case: a filled typed field inside
-  a component whose shadow root the reader met late.
+  a component whose shadow root the reader met late. A form that holds such a field isn't sent by Claude at all,
+  also after he approved a read of it: he sends it, or the page is reloaded first.
 - **An approved read can still hold a password.** He approves a list of labels, and a password he made visible
   sits in a field whose label says nothing. *Harm:* that password reaches Claude after his own OK. *Accepted:* he
   is asked with the labels in front of him, for the tab he pointed Claude to; the tool can't know more about that
@@ -1519,7 +1525,9 @@ the first input (brief 28b).
       appears in none. In a document the reader didn't watch from its start, a typed field of any type (text,
       search, email, a multi-line field) shows only whether it is filled, and the recording shows that the
       content script kept and sent none of those values; a draft in an editable area is read; an editable area
-      named like a credential, or masked at that moment, isn't.
+      named like a credential, or masked at that moment, isn't. A form that holds a field withheld for unknown
+      history isn't sent: a click on its Send button, Enter in it and a submission the page starts are refused
+      without a question, also after an approved asking read, and the receiver has nothing.
 15. **Going and acting in one call** (*brief 28*):
     - `chrome_open` and `chrome_go` return the outline after the load, say `loaded: false` on a timeout, and refuse
       what group 6 refuses; a navigation inside the same document counts as loaded without a new document, and a

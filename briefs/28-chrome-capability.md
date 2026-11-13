@@ -186,6 +186,23 @@ The node never holds its descendants' text, a box or a style.
   - **A field whose value isn't read is not typed into either.** A `fill` or a key on a field that is
     `(filled, not read)` is refused like one on a password field (`owner_signin`), because it would overwrite what
     Claude can't see.
+  - **A form that holds such a field is not sent by Claude** (security re-check 2, the new fix; the lead's
+    decision, 2026-11-13). Brief 20's form facts take each field's value from `safeValue` (`field` and
+    `formFacts` in `reader.js`), and the binding and the question are made from those facts (`binding` in
+    `adapter.py`). A field withheld for unknown history has no value there. A question about its form wouldn't
+    show what is sent, and it couldn't notice one draft replaced by another. So:
+    - the reader marks a field withheld for unknown history as exactly that, apart from a password-kind field.
+      A known password field keeps brief 20's rule: named by its label, bound by its presence;
+    - a step the service recognises as a send, a delete, a payment or a form submission is **refused before any
+      question** when the binding it would need holds a field with that mark: a field of the form being
+      submitted, or, for a send outside a form, a field of the draft brief 20 binds. A submission that the page
+      starts and the tool holds is treated the same way: it isn't prepared, it stays stopped, and it is reported
+      with this reason;
+    - the code is `refused` and the message is the tool's own: "this form holds a field the tool may not read;
+      the owner sends it himself, or the page is reloaded first (for one of his tabs: take it with a reload)";
+    - **an approved asking read doesn't lift it.** That read shows Claude a value once. It doesn't make the
+      field readable for a binding;
+    - a free step isn't touched: a GET search form has no question that could be wrong.
 - Left out: scripts, styles, hidden elements, elements behind an open modal dialog, frames of the fixed list.
   Frames of other sites and open and closed shadow roots are included, as today.
 - No box, no computed style beyond what the checks above need. The command must be cheaper than `read` on the same
@@ -593,7 +610,7 @@ Result:
 | `unchanged` | the element was already as asked, for example a box already ticked | no |
 | `prepared` | the step asks; its approval is in `prepared` | no |
 | `stale` | item 3 refused the reference; the element's present line is in `untrusted_content.now` | no |
-| `refused` | a rule refused it: a read-only site, a password field, an option that doesn't exist, an address that isn't allowed; `code` and `message` say which | no |
+| `refused` | a rule refused it: a read-only site, a password field, a form that holds a field the tool may not read, an option that doesn't exist, an address that isn't allowed; `code` and `message` say which | no |
 | `timeout` | a `wait` wasn't met | no |
 | `unknown` | it may have run; its `operation_id` is also in `unknown` | maybe |
 
@@ -941,6 +958,19 @@ Added cases, each with group 7's known password and a label that says nothing ("
 - **The limit, shown honestly:** an editable area that was masked by a style, is labelled "Value", and was
   unmasked before the reader arrived is read. The report lists the case under known limits. A `textarea` with the
   same history isn't read: it shows `(filled, not read)`.
+- **A form with an unread field isn't sent** (item 1), with the fixture receiver's log as evidence:
+  - the late shadow root holds a form with the field that held text at the first meeting, a second field and a
+    Send button. A click on Send, Enter in the second field, and a submission the page starts from a click
+    handler: each is refused, or stays stopped, with the tool's own message; there is no question, and the
+    receiver has nothing;
+  - after an approved asking read of that field, the same click is still refused;
+  - the same form with group 7's known password field in place of the unread one still asks and sends once, as
+    before;
+  - **a value change while an approval waits.** No approval can wait for such a form, and the test shows both
+    sides of that. After the refusal the owner changes the unread field's text, and no operation exists that
+    `chrome_submit` could run. And a form that was prepared while all its fields were readable, into which the
+    page then moves the late root's filled field while the approval waits, is refused by `chrome_submit` (brief
+    20's comparison: the form's fields differ), with the receiver at zero.
 - Every surface reads them: the outline, a form by `ref`, `find` for the password itself, several tabs, `until`,
   the change report, the results of `chrome_open`, `chrome_go` and `chrome_take`, and a prepared operation's
   question for a form that holds such a field.
