@@ -3,7 +3,9 @@ name: Mod
 on:
   pull_request:
     paths: ['mod/**', '.github/workflows/mod.yml']
+  # Branches are covered by their pull request; a push runs only for main.
   push:
+    branches: [main]
     paths: ['mod/**', '.github/workflows/mod.yml']
   workflow_dispatch:
 
