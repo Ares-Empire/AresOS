@@ -157,6 +157,7 @@ public final class MyAppsGame {
     /** Once per server tick; also called right after a change, so the usual case shows at once. */
     public static void tick(MinecraftServer server) {
         if (!DesktopWorld.isEnabled(server)) return;
+        dev.aresos.names.SlashCommands.refresh(server);
         long now = CHANGES.get();
         for (ServerPlayer player : List.copyOf(server.getPlayerList().getPlayers())) {
             var seen = SEEN.get(player.getUUID());

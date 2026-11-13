@@ -67,6 +67,19 @@ public final class AresOs implements ModInitializer {
         apps = AppsConfig.mine(configPath(), changes);
     }
 
+    public static synchronized void assignNames(Set<String> reserved) throws IOException {
+        var updated = AppsConfig.assignNames(configPath(), reserved);
+        if (!apps.equals(updated)) apps = updated;
+    }
+
+    public static synchronized void name(String id, String name, Set<String> reserved) throws IOException {
+        apps = AppsConfig.name(configPath(), id, name, reserved);
+    }
+
+    public static synchronized void unname(String name) throws IOException {
+        apps = AppsConfig.unname(configPath(), name);
+    }
+
     /** One complete program list from the helper goes into the apps file; My apps follows (item/MyAppsGame). */
     private static synchronized void takeIn(ShellClient.AppList listed) throws IOException {
         var merged = AppsConfig.merge(configPath(), LinuxAppCatalogue.definitions(listed.apps()), listed.detailed(), java.time.LocalDate.now());
@@ -152,6 +165,7 @@ public final class AresOs implements ModInitializer {
                         dev.aresos.mode.ModeInventories.of(context.player()).rejectToggle(context.player());
                 });
         AppInventory.register();
+        dev.aresos.names.SlashCommands.register();
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             dev.aresos.mode.ModeInventories.of(handler.player).reportLoginError(handler.player);
             if (!dev.aresos.mode.ModeInventories.of(handler.player).restoredForLogin()) AppInventory.populate(handler.player);

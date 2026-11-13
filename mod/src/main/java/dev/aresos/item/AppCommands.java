@@ -27,7 +27,14 @@ public final class AppCommands {
         return Commands.literal("app")
                 .then(Commands.literal("add").then(argument(false).executes(c -> change(c.getSource(), getString(c, "app"), MyAppsGame::add))))
                 .then(Commands.literal("remove").then(argument(true).executes(c -> change(c.getSource(), getString(c, "app"), MyAppsGame::remove))))
-                .then(Commands.literal("list").executes(c -> list(c.getSource())));
+                .then(Commands.literal("list").executes(c -> list(c.getSource())))
+                .then(Commands.literal("name").then(argument(true).then(Commands.argument("name", word())
+                        .executes(c -> name(c.getSource(), getString(c, "app"), getString(c, "name"))))))
+                .then(Commands.literal("unname").then(Commands.argument("name", word()).suggests((c, b) -> {
+                    if (allowed(c.getSource())) for (var app : AresOs.apps()) for (String name : app.names())
+                        if (name.startsWith(b.getRemainingLowerCase())) b.suggest(name);
+                    return b.buildFuture();
+                }).executes(c -> unname(c.getSource(), getString(c, "name")))));
     }
 
     /** Completion over the right list: programs that are not his for add, his apps for remove. */
@@ -69,6 +76,27 @@ public final class AppCommands {
             source.sendFailure(Component.literal(MyAppsGame.failure(error)));
             return 0;
         }
+    }
+
+    private static int name(CommandSourceStack source, String id, String name) throws CommandSyntaxException {
+        if (host(source) == null) return 0;
+        try {
+            dev.aresos.names.SlashCommands.refresh(source.getServer());
+            AresOs.name(id, name, dev.aresos.names.SlashCommands.reserved(source.getServer()));
+            dev.aresos.names.SlashCommands.refresh(source.getServer());
+            source.sendSuccess(() -> Component.literal("/" + name + " is now the main name of " + AresOs.app(id).name() + "."), false);
+            return 1;
+        } catch (IOException | RuntimeException error) { source.sendFailure(Component.literal(error.getMessage())); return 0; }
+    }
+
+    private static int unname(CommandSourceStack source, String name) throws CommandSyntaxException {
+        if (host(source) == null) return 0;
+        try {
+            AresOs.unname(name);
+            dev.aresos.names.SlashCommands.refresh(source.getServer());
+            source.sendSuccess(() -> Component.literal("Removed /" + name + "."), false);
+            return 1;
+        } catch (IOException | RuntimeException error) { source.sendFailure(Component.literal(error.getMessage())); return 0; }
     }
 
     private static int list(CommandSourceStack source) throws CommandSyntaxException {
