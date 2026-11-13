@@ -132,11 +132,13 @@ class LatencySummary(unittest.TestCase):
         module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[2]/'.work') as temporary:
             root=Path(temporary)
-            rows=[{'sample':phase+':'+str(i),'phase':phase,'call':call,'milliseconds':10+i} for phase in sorted(module.PHASES) for i in range(20) for call in sorted(module.CALLS)]
+            rows=[{'sample':phase+':'+str(i),'phase':phase,'call':call,'milliseconds':(525 if call in module.INPUTS else 0)+10+i} for phase in sorted(module.PHASES) for i in range(20) for call in sorted(module.CALLS)]
             client={'samples':rows,'baseline':'current','privacy':'plain'}
             for file,value in [('chrome-version.txt','Synthetic Chrome'),('runtime-build.txt','synthetic-build')]:
                 (root/file).write_text(value)
-            (root/'latency-service.jsonl').write_text('\n'.join(json.dumps({'stage':'history_fixture','count':count}) for count in [1000,4000]))
+            internal=[{'sample':row['sample'],'call':row['call'],'stage':'post_input_observation_wait','milliseconds':525} for row in rows if row['call'] in module.INPUTS]
+            internal += [{'stage':'history_fixture','count':count} for count in [1000,4000]]
+            (root/'latency-service.jsonl').write_text('\n'.join(map(json.dumps,internal)))
             (root/'latency-client.json').write_text(json.dumps(client))
             result=module.summarize(root)
             self.assertEqual(set(result['phases']),module.PHASES)
@@ -148,6 +150,10 @@ class LatencySummary(unittest.TestCase):
 
 
 class LatencyGate(unittest.TestCase):
+    def stats(self,values):
+        import statistics
+        return {'samples':len(values),'median_ms':statistics.median(values),'p95_ms':sorted(values)[18]}
+
     def setUp(self):
         import importlib.util
         from pathlib import Path
@@ -155,31 +161,46 @@ class LatencyGate(unittest.TestCase):
         spec=importlib.util.spec_from_file_location('latency_gate',path)
         self.gate=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.gate)
         def measurement(runtime,active):
-            phases={}
+            phases={};pairs=[]
             for phase in self.gate.PHASES:
                 group={}
                 for call in self.gate.CALLS:
-                    wait=525 if call in self.gate.INPUTS else 0
                     value=active*(1 if phase=='fresh' else 2)
-                    group[call]={'client_total':{'samples':20,'median_ms':wait+value,'p95_ms':wait+value*1.2}}
+                    values=[value]*18+[value*1.2]*2
+                    wait=525 if call in self.gate.INPUTS else 0
+                    group[call]={'client_total':self.stats([wait+v for v in values])}
                     for stage in ['service_total','service_without_bridge','bridge_round_trip','extension_total','session_rule_add','session_rule_remove','compose_binding','clipboard_hooks']:
-                        group[call][stage]={'samples':20,'median_ms':1,'p95_ms':2}
-                    if wait:group[call]['post_input_observation_wait']={'samples':20,'median_ms':wait,'p95_ms':wait+.1}
+                        group[call][stage]=self.stats([1]*18+[2]*2)
+                    if wait:
+                        group[call]['post_input_observation_wait']=self.stats([wait]*20)
+                        group[call]['client_without_wait']=self.stats(values)
+                        pairs.extend({'sample':phase+':'+str(i),'phase':phase,'call':call,'client_ms':wait+v,'wait_ms':wait} for i,v in enumerate(values))
                 phases[phase]=group
-            return {'runtime':runtime,'privacy':'plain','chrome':'Synthetic Chrome','phases':phases}
+            return {'runtime':runtime,'privacy':'plain','chrome':'Synthetic Chrome','phases':phases,'input_samples':pairs}
         self.current=measurement('current',20);self.old=measurement('ab7aba92',15)
         self.reference={'privacy':'plain','current':copy.deepcopy(self.current),'baseline':copy.deepcopy(self.old)}
         self.targets={'format':1,'status':'lead-approved','ceilings_ms':{call:{'median_ms':100 if call not in self.gate.INPUTS else 650,'p95_ms':150 if call not in self.gate.INPUTS else 750} for call in self.gate.CALLS}}
 
     def check(self):return self.gate.check(self.current,self.old,self.reference,self.targets)
 
-    def scale(self,measurement,factor,only=None):
-        for group in measurement['phases'].values():
+    def paired(self,measurement,phase,call,values=None,waits=None):
+        rows=[row for row in measurement['input_samples'] if row['phase']==phase and row['call']==call]
+        for index,row in enumerate(rows):
+            value=values[index] if values is not None else row['client_ms']-row['wait_ms']
+            wait=waits[index] if waits is not None else row['wait_ms']
+            row.update(client_ms=wait+value,wait_ms=wait)
+        group=measurement['phases'][phase][call]
+        for stage,numbers in [('client_total',[r['client_ms'] for r in rows]),('post_input_observation_wait',[r['wait_ms'] for r in rows]),('client_without_wait',[max(0,r['client_ms']-r['wait_ms']) for r in rows])]:
+            group[stage]=self.stats(numbers)
+
+    def scale(self,measurement,factor):
+        for phase,group in measurement['phases'].items():
             for call,details in group.items():
-                if only and call!=only:continue
-                for stat in ['median_ms','p95_ms']:
-                    wait=details.get('post_input_observation_wait',{}).get(stat,0)
-                    details['client_total'][stat]=wait+(details['client_total'][stat]-wait)*factor
+                if call in self.gate.INPUTS:
+                    rows=[r for r in measurement['input_samples'] if r['phase']==phase and r['call']==call]
+                    self.paired(measurement,phase,call,[(r['client_ms']-r['wait_ms'])*factor for r in rows])
+                else:
+                    for stat in ['median_ms','p95_ms']:details['client_total'][stat]*=factor
 
     def test_accepts_nominal_and_common_runner_noise(self):
         self.assertTrue(self.check()['passed'])
@@ -191,14 +212,26 @@ class LatencyGate(unittest.TestCase):
         for call in self.gate.CALLS:
             for phase in self.gate.PHASES:
                 self.current=copy.deepcopy(original)
-                for stat in ['median_ms','p95_ms']:self.current['phases'][phase][call]['client_total'][stat]+=200
+                if call in self.gate.INPUTS:
+                    rows=[r for r in self.current['input_samples'] if r['phase']==phase and r['call']==call]
+                    self.paired(self.current,phase,call,[r['client_ms']-r['wait_ms']+200 for r in rows])
+                else:
+                    for stat in ['median_ms','p95_ms']:self.current['phases'][phase][call]['client_total'][stat]+=200
                 result=self.check();self.assertFalse(result['passed'],(phase,call))
                 self.assertIn((phase,call),[(row['phase'],row['call']) for row in result['failures']])
+
+    def test_correlated_wait_tail_cannot_hide_fivefold_warm_work_regression(self):
+        phase='history-4000';call='fill'
+        self.paired(self.reference['current'],phase,call,[40]*20,[525]*20)
+        self.paired(self.current,phase,call,[200]*18+[40]*2,[525]*18+[750]*2)
+        result=self.check();self.assertFalse(result['passed'])
+        row=next(row for row in result['measurements'] if row['phase']==phase and row['call']==call)
+        self.assertEqual(row['paired_work_ms'],{'median_ms':200,'p95_ms':200})
 
     def test_tail_spike_alone_does_not_fail_but_shortened_safety_wait_does(self):
         self.current['phases']['fresh']['read']['client_total']['p95_ms']=1000
         self.assertTrue(self.check()['passed'])
-        self.current['phases']['fresh']['fill']['post_input_observation_wait']['median_ms']=400
+        self.paired(self.current,'fresh','fill',waits=[400]*20)
         with self.assertRaises(AssertionError):self.check()
 
     def test_missing_stage_phase_or_unset_lead_targets_cannot_pass(self):
@@ -209,3 +242,14 @@ class LatencyGate(unittest.TestCase):
             else:self.targets['status']='awaiting-lead'
             with self.assertRaises((AssertionError,KeyError)):self.check()
             self.current=original
+
+    def test_corrupt_percentiles_missing_timings_and_impossible_totals_refuse(self):
+        original=copy.deepcopy(self.current)
+        for change in ['order','stage','short','pair','nan']:
+            self.current=copy.deepcopy(original)
+            if change=='order':self.current['phases']['fresh']['read']['client_total'].update(median_ms=10000,p95_ms=1)
+            elif change=='stage':self.current['phases']['fresh']['read']['service_total']={'samples':20}
+            elif change=='short':self.current['phases']['fresh']['fill']['client_total'].update(median_ms=1,p95_ms=2)
+            elif change=='pair':self.current['input_samples'][0]['client_ms']=1
+            else:self.current['phases']['fresh']['read']['service_total']['median_ms']=float('nan')
+            with self.assertRaises((AssertionError,KeyError)):self.check()

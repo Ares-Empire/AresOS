@@ -8,6 +8,7 @@ import sys
 
 CALLS={'read','navigate','free_click','fill','asking_click','approval_to_done'}
 PHASES={'fresh','history-1000','history-4000'}
+INPUTS={'free_click','fill','approval_to_done'}
 
 
 def summary(values):
@@ -34,11 +35,19 @@ def summarize(root):
         assert (row['sample'],row['call']) in identities
         internal[(row['sample'],row['call'],row['stage'])]+=row['milliseconds']
     for (sample,call,stage),duration in internal.items():stages[(phases[sample],call,stage)].append(duration)
+    pairs=[]
+    for row in rows:
+        if row['call'] not in INPUTS:continue
+        wait=internal[(row['sample'],row['call'],'post_input_observation_wait')]
+        assert wait>=500 and row['milliseconds']+2>=wait
+        work=max(0,row['milliseconds']-wait)
+        pairs.append({'sample':row['sample'],'phase':row['phase'],'call':row['call'],'client_ms':row['milliseconds'],'wait_ms':wait})
+        stages[(row['phase'],row['call'],'client_without_wait')].append(work)
     groups={phase:{call:{stage:summary(values) for (part,category,stage),values in stages.items() if part==phase and category==call} for call in sorted(CALLS)} for phase in sorted(PHASES)}
     assert all(detail['client_total']['samples']==20 for group in groups.values() for detail in group.values())
     assert [row['count'] for row in history]==[1000,4000]
     return {'runtime':client['baseline'],'privacy':client['privacy'],'chrome':(root/'chrome-version.txt').read_text().strip(),
-        'build':(root/'runtime-build.txt').read_text().strip(),'calls':groups['fresh'],'phases':groups,'history_fixtures':history,
+        'build':(root/'runtime-build.txt').read_text().strip(),'calls':groups['fresh'],'phases':groups,'input_samples':pairs,'history_fixtures':history,
         'notes':['20 samples per call and history phase; owner think time absent.',
             'Retained history is disposable synthetic timing input shaped from a real completed free input, not receiver or qualification evidence.',
             'Page handlers are no-op/local receiver; browser dispatch is not pure tool CPU.',

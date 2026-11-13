@@ -411,6 +411,18 @@ metadata. The frozen warm reference awaits run 248, and
 `control/chrome/ci/latency-targets.json` explicitly remains `awaiting-lead`.
 No target has been silently adopted. Ready and final acceptance remain pending.
 
+**Prepared gate FIXes:** scoped [package](BUILD-POST18D-GATE-REVIEW-1.md) and
+[security](BUILD-POST18D-GATE-SECURITY-1.md) reviews caught invalid-summary acceptance
+and subtraction of marginal percentiles, which could hide a real warm-history
+regression. The summary now subtracts matched input/wait samples first, then
+calculates work median/p95. It retains the 180 paired input samples across phases;
+the checker independently recomputes total, wait and work summaries and validates
+finite, nonnegative, ordered metrics for every provided stage/profile. Impossible
+total/wait pairs and missing timing fields refuse. A valid 20-sample fivefold
+warm-work regression now fails. **13 focused latency tests pass**. The gate is
+still unwired until the measured reference and lead targets are present; no
+runtime or browser authority changed.
+
 **Latency proposal — lead decision pending:** intermediate Linux run
 `43466571812` measured 20 calls per category, without owner think time, against
 `ab7aba92` rebuilt with the same driver and exact Chrome package. Times below are

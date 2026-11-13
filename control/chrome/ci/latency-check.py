@@ -10,16 +10,44 @@ INPUTS={'free_click','fill','approval_to_done'}
 PHASES={'fresh','history-1000','history-4000'}
 
 
+def validate_metric(row):
+    assert type(row['samples']) is int and row['samples']==20
+    for stat in ['median_ms','p95_ms']:
+        value=row[stat];assert type(value) in {int,float} and math.isfinite(value) and value>=0
+    assert row['median_ms']<=row['p95_ms'],'Percentiles are out of order'
+
+
 def metric(group,call,stat):
-    row=group[call]['client_total'];assert row['samples']==20
-    value=row[stat];assert isinstance(value,(int,float)) and math.isfinite(value) and value>=0
-    return value
+    row=group[call]['client_total'];validate_metric(row)
+    return row[stat]
 
 
 def active(group,call,stat):
-    value=metric(group,call,stat)
-    if call in INPUTS:value-=group[call]['post_input_observation_wait'][stat]
-    return max(1,value)
+    # Paired subtraction happened before percentile calculation in the summary.
+    row=group[call]['client_without_wait' if call in INPUTS else 'client_total']
+    validate_metric(row)
+    return max(1,row[stat])
+
+
+def validate_pairs(value):
+    pairs=value['input_samples'];assert len(pairs)==180
+    identities={(row['sample'],row['phase'],row['call']) for row in pairs};assert len(identities)==180
+    assert all(row['phase'] in PHASES and row['call'] in INPUTS for row in pairs)
+    for phase in PHASES:
+        for call in INPUTS:
+            rows=[row for row in pairs if row['phase']==phase and row['call']==call];assert len(rows)==20
+            for row in rows:
+                assert row['sample'].startswith(phase+':')
+                for key in ['client_ms','wait_ms']:
+                    assert type(row[key]) in {int,float} and math.isfinite(row[key]) and row[key]>=0
+                assert row['wait_ms']>=500 and row['client_ms']+2>=row['wait_ms'],'Total is shorter than its wait'
+            for stage,values in [
+                ('client_total',[row['client_ms'] for row in rows]),
+                ('post_input_observation_wait',[row['wait_ms'] for row in rows]),
+                ('client_without_wait',[max(0,row['client_ms']-row['wait_ms']) for row in rows])]:
+                block=value['phases'][phase][call][stage];validate_metric(block)
+                expected={'median_ms':statistics.median(values),'p95_ms':sorted(values)[18]}
+                assert all(math.isclose(block[stat],number,abs_tol=1e-6) for stat,number in expected.items()),'Summary does not match paired samples'
 
 
 def check(current,baseline,reference,targets):
@@ -32,10 +60,11 @@ def check(current,baseline,reference,targets):
     assert current['chrome']==baseline['chrome'],'Paired measurements must use one exact Chrome package'
     for value in [current,baseline,reference['current'],reference['baseline']]:
         assert set(value['phases'])==PHASES
+        validate_pairs(value)
         for phase,group in value['phases'].items():
             assert set(group)==CALLS
             for call in CALLS:
-                for stat in ['median_ms','p95_ms']:metric(group,call,stat)
+                for block in group[call].values():validate_metric(block)
                 if call in INPUTS:
                     wait=group[call]['post_input_observation_wait']
                     assert wait['samples']==20 and 520<=wait['median_ms']<=wait['p95_ms']<=750,'Missing or changed 525 ms safety wait'
@@ -54,7 +83,7 @@ def check(current,baseline,reference,targets):
             if call=='asking_click':stages+=['compose_binding']
             if call=='free_click':stages+=['clipboard_hooks']
             for stage in stages:
-                assert group[call][stage]['samples']==20,'Incomplete current stage '+stage
+                validate_metric(group[call][stage])
             observed={stat:active(group,call,stat) for stat in ['median_ms','p95_ms']}
             allowed={'median_ms':active(accepted,call,'median_ms')*allowance*1.5+10,
                      'p95_ms':active(accepted,call,'p95_ms')*allowance*1.75+20}
@@ -63,10 +92,10 @@ def check(current,baseline,reference,targets):
             if phase=='fresh':
                 target_miss=all(metric(group,call,stat)>targets['ceilings_ms'][call][stat]*allowance for stat in observed)
             if regression or target_miss:failures.append({'phase':phase,'call':call,'regression':regression,'target_miss':target_miss})
-            rows.append({'phase':phase,'call':call,'runner_factor':noise,'active_ms':observed,'regression_threshold_ms':allowed,
+            rows.append({'phase':phase,'call':call,'runner_factor':noise,'paired_work_ms':observed,'regression_threshold_ms':allowed,
                          'client_ms':{stat:metric(group,call,stat) for stat in observed},'fresh_target_miss':target_miss})
     return {'passed':not failures,'failures':failures,'measurements':rows,
-            'policy':'Fresh lead ceilings and every-phase reference regression; median and p95 must both cross. Common paired runner slowdown scales allowance; 525 ms wait is checked separately.'}
+            'policy':'Fresh lead ceilings and every-phase reference regression; median and p95 must both cross. Common paired runner slowdown scales allowance; Matched per-sample waits are subtracted before percentiles; the 525 ms wait is checked separately.'}
 
 
 if __name__=='__main__':
