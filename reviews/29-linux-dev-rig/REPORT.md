@@ -462,3 +462,136 @@ descriptor, and all of them were gone.
 - `run-hub.sh` on the real screen was not run in this round, as the brief says, so neither was walking into a
   logo.
 - Two helpers at once: package 23's own helper is not on the laptop yet.
+
+## Review fixes 2
+
+Brief `briefs/29-review-fixes-2.md`, addressing `REVIEW-2.md` on `5e53ca2f`.
+Builder: Codex, gpt-6.1-sol. This section supersedes round 1's claims about
+Gradle option spellings, unbounded startup and unchecked systemd query results.
+No mod source or tests changed.
+
+### Done
+
+1. **Gradle options (`db29de28`).** The shared guard rejects `--daemon`,
+   `--stop`, `--status`, `--foreground` and all four single-dash forms in all
+   three scripts.
+2. **Unknown systemd state (`ad135550`).** Cleanup retries stop requests and
+   checks each query's status separately from its output. Only a successful
+   inactive/failed result confirms absence. After 30 seconds without
+   confirmation it prints one error naming the units, exits 1 and skips folder
+   cleanup. Stale-folder checks in `run-hub.sh` retry failed listings for the
+   same deadline and preserve the folder on failure. `systemctl` uses `PATH`
+   so the checks can be exercised with a private wrapper.
+3. **Startup deadline (`70ade912`).** Startup waits at most 15 seconds for
+   activation. If its launcher is still running, it kills and reaps that live
+   child before exiting, preventing a late command launch. Exit cleanup stops
+   the unit by name; a deferred signal supplies the exit status (TERM: 143),
+   otherwise the timeout exits 1. `systemd-run` also uses `PATH` for stand-ins.
+4. **Scope ownership (`cbff956d`).** Each candidate name is checked before
+   launch; existing names get another random suffix. A launcher that ends
+   unsuccessfully before activation is reaped and unregistered, and the caller
+   propagates its failure without stopping that name. An already active scope
+   remains owned if its command subsequently fails, so its children still get
+   cleaned up.
+
+`mod/README.md` describes the deadlines, single-dash options and known limits.
+Each fix has its own commit with a `Model: gpt-6.1-sol` trailer.
+
+### Verified
+
+All checks ran in this worktree on the owner's Linux laptop, without sudo or
+`--force`. The real session's display variables were removed before launching
+the full client checks; the client script created its own headless cage and
+Xwayland. The `run-hub.sh` stale-folder stand-in used a private runtime folder
+inside `.work/`, a nonexistent display name and `/usr/bin/false` as helper;
+it never started a helper or game.
+
+- `bash -n mod/dev/{env,build,client-test,run-hub}.sh`: exit 0, no output.
+  `git diff --check`: exit 0, no output. `shellcheck` is not installed.
+- One loop over the eight Gradle spellings, invoking each of `build.sh`,
+  `client-test.sh` and `run-hub.sh` with `-- <spelling>`: all 24 exited 2 and
+  printed `Gradle's <spelling> is refused: these scripts run Gradle without a
+  lasting daemon and leave other sessions' daemons alone.`
+- `python3 .work/review-fixes-2/query-checks.py` on the final scripts, using a
+  private `PATH` wrapper that fails the first stop and selected state queries:
+  - Persistent failed state queries: exit 1 after 29.40 s; stop retried; real
+    scope inactive; stand-in lock free. Printed `FAILED: scopes not confirmed
+    gone after 30 s: <unit>.` once.
+  - Three transient failed state queries: exit 0 after 1.66 s; stop retried;
+    real scope inactive; lock free.
+  - Failed stale-folder listings: exit 1 after 29.32 s, one error naming
+    `aresos-dev-*-777777777-*` and the retained folder. Its marker survived;
+    no helper/game started and no run folder was deleted.
+- `python3 .work/review-fixes-2/private-cleanup-check.py`: exit 1 after 30.50 s;
+  one error naming the unconfirmed scope, this run's private folder retained,
+  cleanup callback skipped, lock free.
+- `python3 .work/review-fixes-2/startup-checks.py` on the final scripts, with
+  a launcher that never activates: exit 1 after 14.74 s; with TERM sent after
+  one second, exit 143 after 14.98 s. Each printed `Scope <unit> did not
+  activate within 15 s; cancelled its launcher.` once. Launchers were reaped,
+  no late command ran, scopes were inactive and both stand-in locks were free.
+- `python3 .work/review-fixes-2/ownership-checks.py`: forced suffix 111 to name
+  an existing real scope, then provided suffix 222. Printed `PASS collision:
+  suffix 111 existed; suffix 222 used; existing scope still active afterwards;
+  new scope gone; lock free.` The driver then stopped only its own fixture
+  scope. Failed creation exited 42, or 143 with TERM pending; both printed
+  `PASS failed creation`, made no stop/kill request and left the lock free.
+- `mod/dev/build.sh`: exit 0, `All 38 required tests passed :)`,
+  `BUILD SUCCESSFUL in 20s`, `17 actionable tasks: 3 executed, 14 up-to-date`.
+- `python3 .work/review-fixes-2/old-standins.py`: the round-1 stand-ins also
+  passed: a child launched during TERM was cleaned up in 0.59 s (exit 0);
+  `RuntimeMaxSec=3` plus `TimeoutStopSec=5` killed a TERM-ignoring command in
+  8.33 s (exit 137); TERM while waiting for a lock exited 143 in 0.02 s, with
+  the lock free after the holder ended. An initial scratch harness had broken
+  shell quoting and timed out after 30 s; these are the corrected harness's
+  results. No process from the failed harness remained afterwards.
+- `python3 .work/review-fixes-2/lock-order-check.py`: `PASS lock order` in
+  all six rounds; the earlier scoped waiter acquired the lock before a later
+  blocking `flock` each time.
+- A created scope whose command starts a child and exits 42: printed `PASS
+  failed command in created scope: exit 42; child stopped; lock free.`
+
+- `python3 .work/review-fixes-2/full-checks.py` launches
+  `mod/dev/client-test.sh --keep-screenshots <absolute .work path> build`
+  twice, with `DISPLAY`, `WAYLAND_DISPLAY` and `WAYLAND_SOCKET` removed from
+  its environment. Each invokes `./gradlew --no-daemon runClientGameTest build`,
+  covering the full build and client tests twice as required by `AGENTS.md`.
+
+  | Run | Result |
+  |---|---|
+  | 1 | Exit 0 after 426.15 s; `BUILD SUCCESSFUL in 7m 5s`; all 35 client pass lines, `All 38 required tests passed :)`; RTX 4060 headless; 33 PNG screenshots copied. |
+  | 2 | Exit 0 after 424.22 s; `BUILD SUCCESSFUL in 7m 3s`; all 35 client pass lines, `All 38 required tests passed :)`; RTX 4060 headless; 33 PNG screenshots copied. |
+
+`free -g` showed 10 GiB available before the standalone build and each combined
+run. No run returned 75 or required a retry. Both full runs printed that their
+single-use Gradle daemon would stop at the end of the build.
+
+Afterwards, `systemctl --user list-units 'aresos-dev-*' --all --no-legend --plain`
+printed nothing and a nonblocking `flock` confirmed the shared client-test lock
+was free. No scope, game, compositor or Gradle daemon from these runs remained.
+The final syntax and whitespace checks again exited 0 with no output.
+
+Each run's 33 PNG screenshots and logs are preserved in the ignored
+`.work/review-fixes-2/` (the `client-1-screenshots/` and
+`client-2-screenshots/` folders). Restored the two tracked PNGs rewritten by the
+tests and removed 25 generated untracked PNGs after saving the copies; no
+screenshot changes are committed. **Files left in `.work/` over 500 MB: none.**
+
+### Not verified
+
+- A physical Ctrl+C or an actually closed terminal; these remain signal-only
+  checks as in round 1. A truly wedged GPU probe remains represented by a
+  stand-in.
+- `run-hub.sh` on the owner's screen, walking into a logo, or two helpers
+  watching windows at once. No real-session window was opened.
+- A systemd manager that hangs calls, or a process racing to take a name
+  between its successful absence check and creation. These are the brief's
+  accepted limits, now documented in `mod/README.md`.
+
+**JUDGMENT-CALL:** none beyond the limits explicitly accepted by the brief.
+
+**PLAN-GAP:** none new. As recorded above, stopping all Gradle daemons with
+`./gradlew --stop` would affect other builders. These scripts use single-use
+Gradle daemons and clean up their own scopes instead.
+
+**Open questions:** none.
