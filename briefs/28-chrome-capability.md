@@ -234,10 +234,12 @@ methods or the session rules.
 The service renders the nodes; the reader only collects. Put the rendering and the references in a module of their
 own (for example `control/aresos_control/chrome/view.py`), tested without a browser against recorded node lists.
 
-**Addresses: a public form, and a short form for lists** (section 6, "Reading a page"). One function in the
-service, `public_address`, writes every address that leaves the service. No other code does. The lead decided the
-two forms on 2026-11-13: an address has to say which video, search or article it is, as in any browser tool, and
-only what looks like a sign-in is hidden.
+**Addresses: a public form, and a short form for lists and records** (section 6, "Reading a page"). One function
+in the service, `public_address`, writes every address that leaves the service. No other code does. **The owner
+decided this on 2026-11-13 (board #213, "Show link addresses"):** on a page Claude reads, it sees link addresses
+with their query, as in any browser tool, and only what looks like a sign-in is hidden by the rule below. He chose
+this knowing that a short sign-in code in a link can slip through; that is a known limit (section 6), not a
+finding to reopen.
 
 **The public form** holds:
 
@@ -265,21 +267,23 @@ only what looks like a sign-in is hidden.
 one digit in it, or 24 or more hex digits once the hyphens are taken out. An 11-character video id, a page
 number, search words and a slug with a year in it stay. A session token, a sign-in code, a UUID and a JWT don't.
 
-**The short form** is the public form with the query and the fragment reduced to the marks `?…` and `#…`. It is
-used where Claude is shown pages his request may have nothing to do with:
+**The short form** is the public form with the query and the fragment reduced to the marks `?…` and `#…`: the
+site and the path, nothing else. It is used in two kinds of place.
 
-- the list of `chrome_tabs`;
-- the entries of `chrome_library` (bookmarks, history, and where a download came from);
-- the `closed` and `kept` lists of `chrome_close`, and with brief 28b the popup and log lines that name one of his
-  tabs.
+- **Lists,** where Claude is shown pages his request may have nothing to do with: the list of `chrome_tabs`; the
+  entries of `chrome_library` (bookmarks, history, and where a download came from); the `closed` and `kept` lists
+  of `chrome_close`; and with brief 28b the popup lines that name one of his tabs.
+- **Records,** because a record needs no query value (owner, 2026-11-13, board #213): everything the service writes
+  to its audit log (`aresos log`), and the texts that the log holds, which are an operation's stage texts and a
+  notice's text. Brief 20 writes one stage text to the operation and to the log (`Engine.stage`), so it is written
+  once, in the short form. The stages that `chrome_submit` and `chrome_operation_status` return therefore show
+  an address without its query; Claude reads the tab when it needs more.
 
-**The public form is used everywhere else** that leaves the service toward Claude, toward his question or toward
-the log:
+**The public form is used everywhere else** that leaves the service toward Claude or toward his question:
 
 - reads: the `url` of a page, a link's and a form's target, detail reads, `find`, change reports;
-- the results and error messages of every other tool, the notices;
-- a prepared operation's question and description, and what `chrome_operation_status` returns;
-- what the service writes to its audit log (`aresos log`) about an operation.
+- the results and error messages of every other tool;
+- a prepared operation's question and description, also as `chrome_operation_status` returns them.
 
 Full addresses stay inside the service and the extension: in the reference table, in an operation's payload
 (`binding`, `reference`) and in the commands to the extension. **Nothing about comparing changes:** the extension
@@ -760,8 +764,9 @@ the start of the call, and no timeout is raised:
   file branch stays as it is, apart from the field names it reads.
 - **Unchanged in name, input, result and behaviour:** `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`,
   `chrome_operation_status`, `chrome_notices`, `chrome_notice_ack`, and the owner-only `chrome_sites`. The one
-  thing that differs in what they return is item 2's: every address in a question, a description, a stage or a
-  notice is in the public form, so a value that looks like a sign-in shows as `…`.
+  thing that differs in what they return is item 2's: every address in a question or a description is in the
+  public form, so a value that looks like a sign-in shows as `…`, and every address in a stage text or a notice is
+  in the short form.
 - A new error code, `take_first`, for `chrome_read`, `chrome_go`, `chrome_do` and `chrome_upload` on a tab that
   isn't in Claude's group: "this is one of the owner's tabs; take it, or open its address in a Claude tab". (Brief
   28b lets `chrome_read` work there without a take.)
@@ -1006,6 +1011,9 @@ redirect's target, and in history, bookmark and download entries.
 - **An ordinary query is shown:** `?v=` with an 11-character id, `?q=red+shoes` and `?page=2` are in a read's `url`
   and in a link's detail read, as they are, next to a hidden `…` for the marker in the same address.
 - **Lists show none of it:** the same addresses in `chrome_tabs` and `chrome_library` end in `?…`.
+- **Records show none of it:** after a free click and after an approved send on a page whose address carries
+  `?q=red+shoes`, no line of the audit log, no stage text and no notice holds `red` or anything else of a query or
+  a fragment; each such address ends in `?…`.
 - `chrome_open` with `ref` (a link, a library entry) and with `tab` still reaches the full address: the fixture
   receiver logs the whole query.
 - Group 3's binding still refuses a destination whose query changed while the approval waited, also when the
@@ -1153,16 +1161,19 @@ No open JUDGMENT-CALL.
 - 2026-11-13 (board #210): "Ask first." Where the reader can't know a single-line field's history, a normal read
   shows only whether the field is filled, and its value is read only after he was asked: brief 20's
   `chrome_read_typed_fields`, kept here as it is built.
+- 2026-11-13 (board #213, "Show link addresses"): Claude sees link addresses with their query on the pages it
+  reads. A value that looks like a sign-in stays hidden by item 2's rule: a credential-named parameter, a long
+  random-looking value, what follows a sign-in word in a path, and never a user name. The security re-check asked
+  for every unclassified value to be hidden; he chose otherwise, knowing that a short sign-in code in a link can
+  slip through. Lists keep the short form, and so does everything the service writes to its log.
 
 **Decided here, and the lead's to defend:**
 
 - A reference is checked on its own element, by a fingerprint the service keeps, not on the whole view (item 3;
   section 6 gives the reasons and names what is no longer checked).
 - The tool list is replaced, not kept beside the new one: one surface to describe, test and review.
-- An address is shown with its query, and a value is hidden only when its name says credential or it looks
-  random and is 20 characters or longer; lists show no query at all (item 2; the lead's decision of 2026-11-13,
-  replacing a first version that hid every query). The library is listed in the short form like the tabs: a
-  choice made here, easy to turn.
+- The library is listed in the short form like the tabs, and an operation's stage texts and notices are written
+  in the short form because the log holds the same texts (item 2). Both are choices made here and easy to turn.
 - In a document the reader didn't watch from its start, a single-line text field shows only whether it is
   filled, and its value needs his OK; a `textarea` and an editable area are read (item 1; narrowed by the lead on
   2026-11-13). What that

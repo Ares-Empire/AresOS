@@ -721,11 +721,12 @@ always advances. The tool measures the answer as it is sent, where a character o
 ends a page earlier when the whole wouldn't fit the base's bound of 48 KiB. The header names the tab, the address,
 the title, the scroll position, and how many characters the whole answer has.
 
-**Addresses: a public form, and a short form for lists.** *brief 28.* An address can carry a sign-in: a code after
-`?`, a token after `#`, a user name and password in front of the site, or a reset link whose path is the key. It
-also says which video, which search or which article a page is, and a browser tool that hides that is of little
-use (lead, 2026-11-13). So one function in the service writes every address that leaves it, and hides only what
-looks like a sign-in. The public form holds:
+**Addresses: a public form, and a short form for lists and records.** *brief 28.* An address can carry a sign-in:
+a code after `?`, a token after `#`, a user name and password in front of the site, or a reset link whose path is
+the key. It also says which video, which search or which article a page is, and a browser tool that hides that is
+of little use. The owner decided it on 2026-11-13 (board #213, "Show link addresses"): on the pages Claude reads it
+sees link addresses with their query, and only what looks like a sign-in is hidden. So one function in the
+service writes every address that leaves it. The public form holds:
 
 - the site, with `http://` in front when the page isn't `https`, and never a user name or password;
 - the path, except what follows a sign-in word (`/reset/…`, `/verify/…`) and any part that looks random;
@@ -738,12 +739,13 @@ looks like a sign-in. The public form holds:
 or more hex digits. A video's 11-character id, a page number and search words stay.
 
 **The short form** is the same without the query and the fragment: only `?…` and `#…` say that there was one. It
-is used where Claude is shown pages his request may have nothing to do with: the list of his tabs, the library's
-bookmarks and history, and the records that name one of his tabs. Everything else uses the public form: a page's
-address in a read, link and form targets, every other tool result and error, the notices, the question and
-description of a prepared operation, the operation's status and the log. The full address stays inside the
-service and the extension, where navigation and the binding need it: an approved input is still compared with the
-full destination. Claude opens a link, a library entry or the address of one of his tabs by reference with
+is used in lists, where Claude is shown pages his request may have nothing to do with (his tabs, the library's
+bookmarks and history, the tabs a close names), and in records, because a record needs no query value: every line
+of the log, and the texts the log holds, which are an operation's stage texts and the notices. Everything else
+uses the public form: a page's address in a read, link and form targets, every other tool result and error, and
+the question and description of a prepared operation. The full address stays inside the service and the
+extension, where navigation and the binding need it: an approved input is still compared with the full
+destination. Claude opens a link, a library entry or the address of one of his tabs by reference with
 `chrome_open`, so a `…` never blocks a navigation.
 
 **References.** A reference is a short name the service issues: three letters and a number, such as `kqt5`. No
@@ -1272,13 +1274,15 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   fields to be readable; a password field is always a single-line input, and those stay unread; such a secret is
   plain text on his screen at that moment, like a key a page prints as text; the name list covers the labelled
   ones (secret, token, private key, recovery phrase, seed).
-- **A short token under an ordinary name is shown.** The public form hides a value whose parameter is named like a
-  credential or that looks random and is 20 characters or longer, and in a path what follows a sign-in word or
-  looks random. A short code under a plain name (`?c=8f3k2j`), or a short or wordy key in a path, is shown, as in
-  any browser tool. *Harm:* such a code reaches Claude's context and the log. *Accepted* (lead, 2026-11-13): an
-  address has to say which video, search or article it is, and the tool can't tell a short code from a page
-  number; the names that sign-ins use are covered; and the list of his tabs, where his request may have nothing
-  to do with a tab, shows no query at all.
+- **A short sign-in code under an ordinary name is shown.** The public form hides a value whose parameter is named
+  like a credential or that looks random and is 20 characters or longer, and in a path what follows a sign-in
+  word or looks random. A short code under a plain name (`?c=8f3k2j`), or a short or wordy key in a path, is
+  shown on a page Claude reads, as in any browser tool. *Harm:* such a code reaches Claude's context, and a link
+  that signs in by that code alone could be used by whoever holds it. *Accepted:* the owner's decision
+  (2026-11-13, board #213, "Show link addresses"), taken knowing this. An address has to say which video, search
+  or article it is, and the tool can't tell a short code from a page number. The names that sign-ins use are
+  covered. The code doesn't reach the log, whose lines hold no query at all, and it isn't in the list of his
+  tabs, where his request may have nothing to do with a tab.
 - **A harmless long value is hidden too.** A document's id or a playlist's id looks as random as a token. *Harm:*
   Claude can't quote such a link whole; it opens the link by reference, or shows him the tab. *Accepted:* the
   tool can't tell the two apart, and hiding is the safe side.
@@ -1469,8 +1473,8 @@ the first input (brief 28b).
       fragment, one as the user name and one in a sign-in path, in a page's own address, in link and form targets,
       in frames, redirects and library entries: it appears in no result, error, question, status, notice or log
       line; an ordinary query (a short id, search words, a page number) is shown in a read and in a link's detail;
-      the tab list and the library show no query at all; `chrome_open` by reference still reaches the full
-      address; the binding still refuses a destination whose query changed;
+      the tab list, the library, the log, the stage texts and the notices show no query at all; `chrome_open` by
+      reference still reaches the full address; the binding still refuses a destination whose query changed;
     - hostile content: text and names shaped like outline lines, references, folds or instructions come back
       quoted and escaped inside the untrusted fields, in the outline, in tables, lists and forms read by `ref`, in
       a `find` hit's path, in a change report and in a stale reference's present line; a `role` attribute made of

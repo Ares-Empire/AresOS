@@ -61,6 +61,9 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
   that is known clean, never one where work could be lost or where the tool can't tell, and it tells him which
   ones it closed. Nothing here promises that Chrome's "reopen closed tab" brings work back.
 - **Text only first** (2026-11-13, board #202): "Text only first." No screenshots in this package or in brief 28.
+- **Link addresses are shown** (2026-11-13, board #213, "Show link addresses"). A read of one of his tabs shows the
+  page's address and its links with their query, with what looks like a sign-in hidden by brief 28's rule. The
+  list of his tabs, the popup and the log keep the short form: the site and the path, no query.
 - **Single-line fields in his tabs: ask first** (2026-11-13, board #210): "Ask first." A normal read shows such a
   field only as filled or empty. Its value is read after a question that names the tab and lists the fields'
   labels, never a value. One approval covers one call, and a field named like a credential is never read, also
