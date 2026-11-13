@@ -217,6 +217,44 @@ removed the test fails with `STOP: unexplained package change: tzdata-java-2026f
 24, so a release diff of an image with package 23 would still stop on its build-time files (for example
 `/usr/lib/prismlauncher`, `/usr/share/aresos/minecraft`).
 
+### After the merge: the package lock renewed
+
+By a Claude agent (Opus 5.5), for the integrator. The check build at `bab298fc` (run 43450839739) stopped in
+`build.sh packages`: `No package "java-25-openjdk-crypto-adapter-1:25.0.4.1.1-1.1.fc44.x86_64" available`. Fedora's
+`updates` repository keeps only the newest build, and it had replaced the Java 25.0.4 builds this branch locked on
+2026-11-10 (PLAN-GAP 2 foresaw it). The repository's way to renew the lock is `check_build=resolve` (os/README.md),
+but its candidate step requested every locked NEVRA exactly, so it would have stopped on the same missing pin and
+written no candidate. `os/ci/check-resolve.sh` now requests a locked NEVRA that Fedora no longer serves by name and
+architecture (its `existing-lock-availability` section decides, as before), so the candidate renews only vanished
+pins; README says so (`e0f12477`). **Run 43466199049** (`check_build=resolve` on `e0f12477`): success. Missing:
+exactly `java-25-openjdk-headless` and `java-25-openjdk-crypto-adapter` 1:25.0.4.1.1-1.1.fc44 (the other 27 pins
+answered). Its candidate holds the same 29 packages, 27 with the same NEVRA and bytes, and these two moved:
+`java-25-openjdk-headless` 1:25.0.4.1.1-1.1.fc44 to **1:25.0.5.0.8-3.1.fc44** (`28f00e52…`) and
+`java-25-openjdk-crypto-adapter` 1:25.0.4.1.1-1.1.fc44 to **1:25.0.5.0.8-3.1.fc44** (`f92517a8…`). Java's other two
+packages (`javapackages-filesystem` 6.4.1-10, `tzdata-java` 2026f) did not move; Fedora's `updates` now has only
+25.0.5 for Java 25. `os/packages.lock.json` is now exactly that candidate (the rule of package 21's JUDGMENT-CALL 10:
+only vanished pins move; the procedure requests every other pin exactly, so it does not renew the whole lock). The
+install preview with the pinned Chrome passes. Chrome: Google's metadata lists only 157.0.8103.78 now, but the pinned
+157.0.8103.50 URL still serves the pinned bytes (`e378bf27…`, streamed and hashed on 2026-11-13). Tests:
+`test_release27`'s package-diff test pins package 23's four NEVRAs, so its two Java NEVRAs moved with the lock; its
+counts and the reasons need no change (they name packages, not versions). Revert proof: with the old NEVRAs it fails
+(`Lists differ`). From the worktree: `test_release27` 41 OK, `test_everyday_account` 34 OK, `test_owner_path` 39 OK,
+`test_release_squash_binding` 7 OK, `test_ci_api_permissions` 4 OK, `test_ci_step_environment` 4 OK,
+`test_checkout_sources` 5 OK, `test_owner_login`'s harness-pin test 1 OK. None of the changed files is among package
+27's bound paths, so no row was added to `os/manifest/ci/16/pending-rebind.json`. Evidence:
+`runs/resolve-43466199049/`.
+
+**Found, not changed: the mod jar no longer builds to its pin.** The same resolve built the jar twice from
+`e0f12477`: both `8f505f26…b627311`, while `desktop.lock.json` pins `8b04c511…65386743` (`runs/resolve-43466199049/
+mod-jar.txt`). `mod/` is byte-identical to `953bf892`, whose image build gave `8b04c511…`; the JDK image, Gradle,
+Loom and every library are pinned to the same versions, and the runner's installed toolchain is the same. What
+changed is the hosted runner image (`20261101.360.1` then, `20261111.370.1` now). Likely cause, not proven (the old
+jar is gone): Loom's manifest attribute `Fabric-Loom-Client-Only-Entries` lists the client classes in the order the
+file system returns them, not sorted (`runs/resolve-43466199049/mod-jar-manifest.txt`); `reproducibleFileOrder` sorts
+only the jar's entries. A new runner image can then give other bytes, while two builds on one runner agree. So the
+next image build of this branch should stop in `build.sh configure` on the jar pin (the check build below). Renewing the pin to `8f505f26…` would
+hold only until the next runner image; the integrator decides (renew, or make that attribute sorted).
+
 ### Checks of this round
 
 Natively on AresOS itself (Fedora-based, Linux 7.2, Python 3.14.8, systemd 259), the owner's running laptop, not
