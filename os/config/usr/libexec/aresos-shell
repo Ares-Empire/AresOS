@@ -2295,6 +2295,10 @@ class Helper:
                 self.active_handle, self.active_owner = target.handle, target.owner
                 return
         if active.owner == Windows.SHELL:
+            # The compositor already returned us. A pending close must not later
+            # steal focus from another app deliberately opened during its grace.
+            self.discovered_closing = {app: (deadline, False)
+                                       for app, (deadline, _) in self.discovered_closing.items()}
             self.returning_until = None
             self.handoff = None
             self.foreground_app = None

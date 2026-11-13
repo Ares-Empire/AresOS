@@ -239,6 +239,21 @@ class DiscoveredLifecycleTest(DiscoveredBase):
         self.assertEqual(self.activations, [])
         self.assertEqual(self.helper_.foreground_app, 'terminal')
 
+    def test_compositor_return_then_new_app_inside_close_grace_does_not_steal_focus(self):
+        self.open()
+        self.window(2, 'lunarclient', active=True)
+        self.close(2)
+        self.focus(1)
+        self.open('btop', 'o-2')
+        self.window(3, 'aresos.app.btop', active=True)
+        before = len(self.conn.events('shell_focus'))
+        self.expire_close()
+        self.assertEqual(self.state(), 'closed')
+        self.assertEqual(self.state('o-2'), 'focused')
+        self.assertEqual(self.activations, [])
+        self.assertEqual(self.helper_.foreground_app, 'btop')
+        self.assertEqual(self.conn.events('shell_focus')[before:], [])
+
     def test_terminal_program_matches_its_private_wrapper(self):
         self.open('btop')
         self.window(2, 'aresos.app.btop', active=True)

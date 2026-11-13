@@ -1,0 +1,1207 @@
+{
+  "display": ".work/h30/r/wayland-0",
+  "kcalc_binary": "/var/lib/flatpak/app/org.kde.kcalc/x86_64/stable/76c1a2b7ad833224076ac283d2b43af728a45b2f8b03f45c0e50812a9316c206/files/bin/kcalc",
+  "observations": [
+    {
+      "app_id": "check-kcalc",
+      "unit": "app-aresos-check\\x2dkcalc-449687ad4dbc3dad.scope",
+      "properties": "ActiveState=active\nSlice=app.slice\nControlGroup=/user.slice/user-1001.slice/user@1001.service/app.slice/app-aresos-check\\x2dkcalc-449687ad4dbc3dad.scope\n",
+      "window_app_id": "org.kde.kcalc",
+      "scope_pids": [
+        "1171729",
+        "1171730",
+        "1171731",
+        "1171733",
+        "1171734",
+        "1171742",
+        "1171748",
+        "1171754",
+        "1171758",
+        "1171770"
+      ],
+      "focused": {
+        "protocol": "aresos-shell/1.1",
+        "id": "e-1",
+        "event": "app_state",
+        "request_id": "open-check-kcalc",
+        "launch_id": "449687ad4dbc3dad",
+        "app_id": "check-kcalc",
+        "state": "focused"
+      },
+      "returned": {
+        "protocol": "aresos-shell/1.1",
+        "id": "e-5",
+        "event": "shell_focus",
+        "focus": "foreground",
+        "reason": "desktop_activated"
+      }
+    },
+    {
+      "app_id": "check-btop",
+      "unit": "app-aresos-check\\x2dbtop-69956cf08ceabc9c.scope",
+      "properties": "ActiveState=active\nSlice=app.slice\nControlGroup=/user.slice/user-1001.slice/user@1001.service/app.slice/app-aresos-check\\x2dbtop-69956cf08ceabc9c.scope\n",
+      "window_app_id": "aresos.app.check-btop",
+      "scope_pids": [
+        "1171833",
+        "1171834"
+      ],
+      "focused": {
+        "protocol": "aresos-shell/1.1",
+        "id": "e-7",
+        "event": "app_state",
+        "request_id": "open-check-btop",
+        "launch_id": "69956cf08ceabc9c",
+        "app_id": "check-btop",
+        "state": "focused"
+      },
+      "returned": {
+        "protocol": "aresos-shell/1.1",
+        "id": "e-9",
+        "event": "shell_focus",
+        "focus": "foreground",
+        "reason": "desktop_activated"
+      }
+    }
+  ],
+  "transcript": [
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "hello",
+      "ok": true,
+      "major": 1,
+      "minor": 1,
+      "capabilities": [
+        "app_details",
+        "app_state",
+        "apps_changed",
+        "heartbeat",
+        "list_apps",
+        "list_paging",
+        "open_app",
+        "shell_focus",
+        "windows",
+        "world_ready"
+      ]
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "list",
+      "ok": true,
+      "revision": "192d184a6ea3f61b",
+      "apps": [
+        {
+          "id": "bazzite-documentation",
+          "name": "Documentation",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Documentation",
+            "System"
+          ],
+          "keywords": [
+            "bazzite",
+            "docs",
+            "manual",
+            "guide",
+            "help",
+            "tutorial"
+          ],
+          "desktop_id": "bazzite-documentation.desktop",
+          "exec_name": "serve.sh",
+          "terminal": false
+        },
+        {
+          "id": "bazzite-steam-bpm",
+          "name": "Steam Big Picture Mode",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Network",
+            "FileTransfer",
+            "Game"
+          ],
+          "desktop_id": "bazzite-steam-bpm.desktop",
+          "exec_name": "bazzite-steam-bpm",
+          "terminal": false
+        },
+        {
+          "id": "bbrew",
+          "name": "Bold Brew",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Utility"
+          ],
+          "desktop_id": "bbrew.desktop",
+          "exec_name": "xdg-terminal-exec",
+          "terminal": false
+        },
+        {
+          "id": "btrfs-assistant",
+          "name": "Btrfs Assistant",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "System"
+          ],
+          "desktop_id": "btrfs-assistant.desktop",
+          "exec_name": "btrfs-assistant-launcher",
+          "terminal": false
+        },
+        {
+          "id": "cardwire-gui",
+          "name": "Cardwire",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "System",
+            "Settings",
+            "HardwareSettings"
+          ],
+          "keywords": [
+            "GPU",
+            "Graphics",
+            "Hardware",
+            "Management"
+          ],
+          "desktop_id": "cardwire-gui.desktop",
+          "exec_name": "cardwire-gui",
+          "terminal": false
+        },
+        {
+          "id": "check-btop",
+          "name": "Btop check",
+          "available": true,
+          "reason": null,
+          "source": "user",
+          "desktop_id": "check-btop.desktop",
+          "exec_name": "btop",
+          "terminal": true
+        },
+        {
+          "id": "check-kcalc",
+          "name": "KCalc check",
+          "available": true,
+          "reason": null,
+          "source": "user",
+          "desktop_id": "check-kcalc.desktop",
+          "exec_name": "dbus-run-session",
+          "terminal": false
+        },
+        {
+          "id": "com-gerbilsoft-rom-properties-rp-config",
+          "name": "ROM Properties Page configuration",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Settings"
+          ],
+          "generic_name": "rp-config",
+          "desktop_id": "com.gerbilsoft.rom-properties.rp-config.desktop",
+          "exec_name": "rp-config",
+          "terminal": false
+        },
+        {
+          "id": "com-github-matoking-protontricks",
+          "name": "Protontricks",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "categories": [
+            "Utility"
+          ],
+          "generic_name": "Winetricks for Proton games",
+          "keywords": [
+            "Steam",
+            "Proton",
+            "Wine",
+            "Winetricks"
+          ],
+          "desktop_id": "com.github.Matoking.protontricks.desktop",
+          "exec_name": "com.github.Matoking.protontricks",
+          "terminal": false
+        },
+        {
+          "id": "com-github-tchx84-flatseal",
+          "name": "Flatseal",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "categories": [
+            "Utility"
+          ],
+          "keywords": [
+            "seal",
+            "sandbox",
+            "override"
+          ],
+          "desktop_id": "com.github.tchx84.Flatseal.desktop",
+          "exec_name": "com.github.tchx84.Flatseal",
+          "terminal": false
+        },
+        {
+          "id": "com-vysp3r-protonplus",
+          "name": "ProtonPlus",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "categories": [
+            "Game"
+          ],
+          "desktop_id": "com.vysp3r.ProtonPlus.desktop",
+          "exec_name": "com.vysp3r.ProtonPlus",
+          "terminal": false
+        },
+        {
+          "id": "discourse",
+          "name": "Discourse",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Utility"
+          ],
+          "keywords": [
+            "forums"
+          ],
+          "desktop_id": "discourse.desktop",
+          "exec_name": "xdg-open",
+          "terminal": false
+        },
+        {
+          "id": "fcitx5-configtool",
+          "name": "Fcitx 5 Configuration",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Settings"
+          ],
+          "generic_name": "Input Method Configuration",
+          "desktop_id": "fcitx5-configtool.desktop",
+          "exec_name": "fcitx5-configtool",
+          "terminal": false
+        },
+        {
+          "id": "firewall-config",
+          "name": "Firewall",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "System",
+            "Settings",
+            "Security"
+          ],
+          "keywords": [
+            "firewall",
+            "network",
+            "security",
+            "iptables",
+            "netfilter"
+          ],
+          "desktop_id": "firewall-config.desktop",
+          "exec_name": "firewall-config",
+          "terminal": false
+        },
+        {
+          "id": "foot",
+          "name": "Foot",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "System",
+            "TerminalEmulator"
+          ],
+          "generic_name": "Terminal",
+          "keywords": [
+            "shell",
+            "prompt",
+            "command",
+            "commandline"
+          ],
+          "desktop_id": "foot.desktop",
+          "exec_name": "foot",
+          "terminal": false
+        },
+        {
+          "id": "foot-server",
+          "name": "Foot Server",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "System",
+            "TerminalEmulator"
+          ],
+          "generic_name": "Terminal",
+          "keywords": [
+            "shell",
+            "prompt",
+            "command",
+            "commandline"
+          ],
+          "desktop_id": "foot-server.desktop",
+          "exec_name": "foot",
+          "terminal": false
+        },
+        {
+          "id": "footclient",
+          "name": "Foot Client",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "System",
+            "TerminalEmulator"
+          ],
+          "generic_name": "Terminal",
+          "keywords": [
+            "shell",
+            "prompt",
+            "command",
+            "commandline"
+          ],
+          "desktop_id": "footclient.desktop",
+          "exec_name": "footclient",
+          "terminal": false
+        },
+        {
+          "id": "google-chrome",
+          "name": "Google Chrome",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Network",
+            "WebBrowser"
+          ],
+          "generic_name": "Web Browser",
+          "desktop_id": "google-chrome.desktop",
+          "exec_name": "google-chrome-stable",
+          "terminal": false
+        },
+        {
+          "id": "input-remapper-gtk",
+          "name": "Input Remapper",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Settings"
+          ],
+          "desktop_id": "input-remapper-gtk.desktop",
+          "exec_name": "input-remapper-gtk",
+          "terminal": false
+        },
+        {
+          "id": "io-github-denysmb-kontainer",
+          "name": "Kontainer",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "categories": [
+            "Utility"
+          ],
+          "keywords": [
+            "container",
+            "podman",
+            "distrobox"
+          ],
+          "desktop_id": "io.github.DenysMb.Kontainer.desktop",
+          "exec_name": "io.github.DenysMb.Kontainer",
+          "terminal": false
+        },
+        {
+          "id": "io-github-flattool-warehouse",
+          "name": "Warehouse",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "categories": [
+            "GTK",
+            "System",
+            "Utility"
+          ],
+          "keywords": [
+            "flatpak",
+            "packages",
+            "apps",
+            "remotes",
+            "snapshots"
+          ],
+          "desktop_id": "io.github.flattool.Warehouse.desktop",
+          "exec_name": "io.github.flattool.Warehouse",
+          "terminal": false
+        },
+        {
+          "id": "io-github-ublue_os-yafti_gtk",
+          "name": "Bazzite Portal",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "System",
+            "Settings"
+          ],
+          "keywords": [
+            "bazzite",
+            "setup",
+            "configuration"
+          ],
+          "desktop_id": "io.github.ublue_os.yafti_gtk.desktop",
+          "exec_name": "yafti_gtk.py",
+          "terminal": false
+        },
+        {
+          "id": "kbd-layout-viewer5",
+          "name": "Keyboard layout viewer",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Utility"
+          ],
+          "desktop_id": "kbd-layout-viewer5.desktop",
+          "exec_name": "kbd-layout-viewer5",
+          "terminal": false
+        },
+        {
+          "id": "kdesystemsettings",
+          "name": "KDE System Settings",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Settings"
+          ],
+          "generic_name": "KDE System Settings",
+          "keywords": [
+            "systemsettings"
+          ],
+          "desktop_id": "kdesystemsettings.desktop",
+          "exec_name": "systemsettings",
+          "terminal": false
+        },
+        {
+          "id": "net-lutris-lutris",
+          "name": "Lutris",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Game",
+            "PackageManager"
+          ],
+          "keywords": [
+            "gaming",
+            "wine",
+            "emulator"
+          ],
+          "desktop_id": "net.lutris.Lutris.desktop",
+          "exec_name": "lutris",
+          "terminal": false
+        },
+        {
+          "id": "nvidia-settings",
+          "name": "NVIDIA X Server Settings",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "System",
+            "Settings"
+          ],
+          "keywords": [
+            "nvidia",
+            "vulkan",
+            "opengl",
+            "driver"
+          ],
+          "desktop_id": "nvidia-settings.desktop",
+          "exec_name": "nvidia-settings",
+          "terminal": false
+        },
+        {
+          "id": "org-gnome-diskutility",
+          "name": "Disks",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "GNOME",
+            "GTK",
+            "Utility",
+            "X-GNOME-Utilities"
+          ],
+          "keywords": [
+            "disk",
+            "drive",
+            "volume",
+            "harddisk",
+            "hdd",
+            "disc",
+            "cdrom",
+            "dvd",
+            "partition",
+            "iso",
+            "image",
+            "backup",
+            "restore",
+            "benchmark",
+            "raid",
+            "luks"
+          ],
+          "desktop_id": "org.gnome.DiskUtility.desktop",
+          "exec_name": "gnome-disks",
+          "terminal": false
+        },
+        {
+          "id": "org-gnome-firmware",
+          "name": "Firmware",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "categories": [
+            "GNOME",
+            "GTK",
+            "System"
+          ],
+          "keywords": [
+            "Firmware"
+          ],
+          "desktop_id": "org.gnome.Firmware.desktop",
+          "exec_name": "org.gnome.Firmware",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-ark",
+          "name": "Ark",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Utility",
+            "Archiving",
+            "Compression",
+            "X-KDE-Utilities-File"
+          ],
+          "generic_name": "Archiving Tool",
+          "desktop_id": "org.kde.ark.desktop",
+          "exec_name": "ark",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-dolphin",
+          "name": "Dolphin",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "System",
+            "FileTools",
+            "FileManager"
+          ],
+          "generic_name": "File Manager",
+          "keywords": [
+            "files",
+            "file management",
+            "file browsing",
+            "samba",
+            "network shares",
+            "Explorer",
+            "Finder"
+          ],
+          "desktop_id": "org.kde.dolphin.desktop",
+          "exec_name": "dolphin",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-filelight",
+          "name": "Filelight",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Utility"
+          ],
+          "generic_name": "Disk Usage Statistics",
+          "keywords": [
+            "disk",
+            "drive",
+            "space",
+            "storage",
+            "usage"
+          ],
+          "desktop_id": "org.kde.filelight.desktop",
+          "exec_name": "filelight",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-gwenview",
+          "name": "Gwenview",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Graphics",
+            "Viewer",
+            "Photography"
+          ],
+          "generic_name": "Image Viewer",
+          "desktop_id": "org.kde.gwenview.desktop",
+          "exec_name": "org.kde.gwenview",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-haruna",
+          "name": "Haruna",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "AudioVideo",
+            "Player",
+            "Video",
+            "TV"
+          ],
+          "generic_name": "Media Player",
+          "desktop_id": "org.kde.haruna.desktop",
+          "exec_name": "org.kde.haruna",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-kate",
+          "name": "Kate",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Development",
+            "TextEditor"
+          ],
+          "generic_name": "Advanced Text Editor",
+          "keywords": [
+            "text",
+            "txt",
+            "editor",
+            "programming",
+            "programmer",
+            "development",
+            "developer",
+            "code"
+          ],
+          "desktop_id": "org.kde.kate.desktop",
+          "exec_name": "kate",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-kcalc",
+          "name": "KCalc",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Utility",
+            "Calculator",
+            "X-KDE-Utilities-Desktop"
+          ],
+          "generic_name": "Scientific Calculator",
+          "desktop_id": "org.kde.kcalc.desktop",
+          "exec_name": "org.kde.kcalc",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-kdebugsettings",
+          "name": "KDebugSettings",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Development"
+          ],
+          "generic_name": "Debug settings",
+          "keywords": [
+            "log",
+            "logging",
+            "category",
+            "categories",
+            "journal",
+            "logging levels",
+            "debug"
+          ],
+          "desktop_id": "org.kde.kdebugsettings.desktop",
+          "exec_name": "kdebugsettings",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-kdeconnect-app",
+          "name": "KDE Connect",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Network"
+          ],
+          "generic_name": "Device Synchronization",
+          "desktop_id": "org.kde.kdeconnect.app.desktop",
+          "exec_name": "kdeconnect-app",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-kdeconnect-nonplasma",
+          "name": "KDE Connect Indicator",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Network"
+          ],
+          "desktop_id": "org.kde.kdeconnect.nonplasma.desktop",
+          "exec_name": "kdeconnect-indicator",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-kdeconnect-sms",
+          "name": "KDE Connect SMS",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Network",
+            "InstantMessaging"
+          ],
+          "generic_name": "Text Messaging",
+          "desktop_id": "org.kde.kdeconnect.sms.desktop",
+          "exec_name": "kdeconnect-sms",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-kfind",
+          "name": "KFind",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Utility"
+          ],
+          "generic_name": "Find Files/Folders",
+          "keywords": [
+            "search",
+            "file search",
+            "search tool",
+            "finder"
+          ],
+          "desktop_id": "org.kde.kfind.desktop",
+          "exec_name": "kfind",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-kjournaldbrowser",
+          "name": "Journald Browser",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "System",
+            "Monitor"
+          ],
+          "generic_name": "Journald Browser",
+          "desktop_id": "org.kde.kjournaldbrowser.desktop",
+          "exec_name": "kjournaldbrowser",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-konsole",
+          "name": "Konsole",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "System",
+            "TerminalEmulator"
+          ],
+          "generic_name": "Terminal",
+          "keywords": [
+            "terminal",
+            "console",
+            "script",
+            "run",
+            "execute",
+            "command",
+            "command-line",
+            "commandline",
+            "cli",
+            "bash",
+            "sh",
+            "shell",
+            "zsh",
+            "cmd",
+            "command prompt",
+            "xterm"
+          ],
+          "desktop_id": "org.kde.konsole.desktop",
+          "exec_name": "konsole",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-krdc",
+          "name": "KRDC",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Network",
+            "RemoteAccess"
+          ],
+          "generic_name": "Remote Desktop Client",
+          "desktop_id": "org.kde.krdc.desktop",
+          "exec_name": "krdc",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-krfb",
+          "name": "Krfb",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Network",
+            "RemoteAccess"
+          ],
+          "generic_name": "Desktop Sharing (VNC)",
+          "desktop_id": "org.kde.krfb.desktop",
+          "exec_name": "krfb",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-kwalletmanager",
+          "name": "KWalletManager",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "System",
+            "Security"
+          ],
+          "generic_name": "Password Manager",
+          "desktop_id": "org.kde.kwalletmanager.desktop",
+          "exec_name": "kwalletmanager5",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-kwrite",
+          "name": "KWrite",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Utility",
+            "TextEditor"
+          ],
+          "generic_name": "Text Editor",
+          "keywords": [
+            "text",
+            "txt",
+            "editor",
+            "note",
+            "notepad"
+          ],
+          "desktop_id": "org.kde.kwrite.desktop",
+          "exec_name": "kwrite",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-okular",
+          "name": "Okular",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Graphics",
+            "Office",
+            "Viewer"
+          ],
+          "generic_name": "Document Viewer",
+          "desktop_id": "org.kde.okular.desktop",
+          "exec_name": "org.kde.okular",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-plasma-systemmonitor",
+          "name": "System Monitor",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "System"
+          ],
+          "generic_name": "System Monitor",
+          "keywords": [
+            "task",
+            "manager",
+            "process",
+            "cpu",
+            "memory"
+          ],
+          "desktop_id": "org.kde.plasma-systemmonitor.desktop",
+          "exec_name": "plasma-systemmonitor",
+          "terminal": false
+        },
+        {
+          "id": "org-kde-spectacle",
+          "name": "Spectacle",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Qt",
+            "KDE",
+            "Utility"
+          ],
+          "generic_name": "Screenshot Capture Utility",
+          "keywords": [
+            "snapshot",
+            "capture",
+            "print",
+            "screenshot",
+            "snipping",
+            "snipping tool",
+            "snip"
+          ],
+          "desktop_id": "org.kde.spectacle.desktop",
+          "exec_name": "spectacle",
+          "terminal": false
+        },
+        {
+          "id": "org-mozilla-firefox",
+          "name": "Firefox",
+          "available": true,
+          "reason": null,
+          "source": "flatpak-system",
+          "categories": [
+            "GNOME",
+            "GTK",
+            "Network",
+            "WebBrowser"
+          ],
+          "generic_name": "Web Browser",
+          "keywords": [
+            "Internet",
+            "WWW",
+            "Browser",
+            "Web",
+            "Explorer"
+          ],
+          "desktop_id": "org.mozilla.firefox.desktop",
+          "exec_name": "org.mozilla.firefox",
+          "terminal": false
+        },
+        {
+          "id": "steam",
+          "name": "Steam",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Network",
+            "FileTransfer",
+            "Game"
+          ],
+          "desktop_id": "steam.desktop",
+          "exec_name": "bazzite-steam",
+          "terminal": false
+        },
+        {
+          "id": "waydroid",
+          "name": "Waydroid",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "X-WayDroid-App",
+            "Utility"
+          ],
+          "generic_name": "Android Container",
+          "desktop_id": "Waydroid.desktop",
+          "exec_name": "waydroid",
+          "terminal": false
+        },
+        {
+          "id": "waydroid-container-restart",
+          "name": "Force Restart Waydroid",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "X-WayDroid-App"
+          ],
+          "desktop_id": "waydroid-container-restart.desktop",
+          "exec_name": "pkexec",
+          "terminal": false
+        },
+        {
+          "id": "webapp-manager",
+          "name": "Web Apps",
+          "available": true,
+          "reason": null,
+          "source": "system",
+          "categories": [
+            "Application",
+            "Network"
+          ],
+          "desktop_id": "webapp-manager.desktop",
+          "exec_name": "webapp-manager",
+          "terminal": false
+        }
+      ]
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "open-check-kcalc",
+      "ok": true,
+      "request_id": "open-check-kcalc",
+      "launch_id": "449687ad4dbc3dad",
+      "app_id": "check-kcalc",
+      "state": "starting"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-1",
+      "event": "app_state",
+      "request_id": "open-check-kcalc",
+      "launch_id": "449687ad4dbc3dad",
+      "app_id": "check-kcalc",
+      "state": "focused"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-2",
+      "event": "shell_focus",
+      "focus": "background",
+      "reason": "app_activated",
+      "app_id": "check-kcalc"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-3",
+      "event": "apps_changed",
+      "revision": "c66eafe687f79c16"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-4",
+      "event": "apps_changed",
+      "revision": "a2f8035893dfb658"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-5",
+      "event": "shell_focus",
+      "focus": "foreground",
+      "reason": "desktop_activated"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-6",
+      "event": "app_state",
+      "request_id": "open-check-kcalc",
+      "launch_id": "449687ad4dbc3dad",
+      "app_id": "check-kcalc",
+      "state": "closed"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "open-check-btop",
+      "ok": true,
+      "request_id": "open-check-btop",
+      "launch_id": "69956cf08ceabc9c",
+      "app_id": "check-btop",
+      "state": "starting"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-7",
+      "event": "app_state",
+      "request_id": "open-check-btop",
+      "launch_id": "69956cf08ceabc9c",
+      "app_id": "check-btop",
+      "state": "focused"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-8",
+      "event": "shell_focus",
+      "focus": "background",
+      "reason": "app_activated",
+      "app_id": "check-btop"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-9",
+      "event": "shell_focus",
+      "focus": "foreground",
+      "reason": "desktop_activated"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-10",
+      "event": "app_state",
+      "request_id": "open-check-btop",
+      "launch_id": "69956cf08ceabc9c",
+      "app_id": "check-btop",
+      "state": "closed"
+    }
+  ]
+}
