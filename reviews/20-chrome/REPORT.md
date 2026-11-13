@@ -156,7 +156,17 @@ sweep. Push `43270186321`'s external job hit the 240-minute container limit duri
 it is **not green**. Repeat `43270268166` passed both installs, external in 3h56m3s.
 [Retained partial audit](records/recheck2c/browser-audit-partial.json),
 [timeout output and metadata](records/recheck2c/timeout-43270186321.json).
-Both normal and qualification-pair batch budgets are now 300 container / 310 job minutes. No assertion or required
+Both normal and qualification-pair batch budgets are now 300 container / 310 job minutes.
+
+**Suite duration, measured by the package lead (run):** the final pair took 204.6 and 242.8 minutes
+(`43319232281`, policy and external) and 221.9 and 243.4 minutes (`43319941241`, external and policy). In the
+longest job, the Python suite took 2,151 s (230 tests; 712 s for 171 tests in `42773249076` on 11-10) and the browser
+cases 206 minutes (84 minutes in `42773249076`). One case is most of it: `GROUP 1 what asks word/label/key matrix`
+took 105.4 minutes for the same 972 cases that took 47.9 minutes on 11-10, at a steady pace (7.5 to 9.8 minutes per
+81 cases, no stall). The next largest, the forms and catalogues case, went from 6.3 to 16.8 minutes. The raise
+therefore covers more time per tool input across the matrix, not a stuck step. Where that time goes per input (the
+hold window's session rule, the post-input observation, the compose-area binding, the clipboard hooks) is not
+measured yet. No assertion or required
 sweep was removed. Superseded own runs were cancelled after the budget/copy-scope corrections; no other owner's run
 was cancelled. The final pair above completes everything on the corrected runtime.
 
