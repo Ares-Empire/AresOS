@@ -112,7 +112,8 @@ and four supervisor functions are deleted. The two programs now share one format
      no report that can be lost, no exit record, and a memory kill is named by systemd (`Result=oom-kill`).
    - The brief's example, reading the *scope's* result and cgroup events, does not get there: systemd keeps no
      exit status for a scope, so quit and crash would still need the wrapper's report. It would add a second
-     witness for memory kills and remove no message. Not added: a SIGKILL already latches without it.
+     witness for memory kills and remove no message. Not added: a SIGKILL already latches without it (what it
+     would still add is known limit 9).
    - Cost of the service: Java is no longer Prism's grandchild, so Prism's Kill button, its log window and the
      "launch" line it writes to Java's stdin must be tried with the real Prism; the desktop lock can no longer be
      inherited; the nonce must reach the service without appearing on a command line (`--setenv=NAME`); the
@@ -146,7 +147,10 @@ a `retry` or one crash in the count.
 8. **A power cut** (not a reboot): the wrapper syncs its record and its folder; the supervisor syncs its state file
    but not the folder (`write_atomic`, unchanged), so a latch written in the last seconds can be lost. The hub
    then starts once at the next boot.
-9. **The model plays the wrapper's order of steps itself.** It calls the wrapper's real functions at each step but
+9. **A memory kill of another process in the game's scope**, after which Java exits by itself with an error, counts
+   as a crash: Java's own status is an ordinary one. systemd would name it in the scope's result, which the
+   supervisor asks for only when it latches. Unchanged; bounded by the three-crash latch.
+10. **The model plays the wrapper's order of steps itself.** It calls the wrapper's real functions at each step but
    does not run `main()`. That the real wrapper takes these steps in this order is shown by the real-wrapper and
    real-loop tests, with hooks at the same points. Each order has at most one supervisor restart, one 40 s
    stretch and one reboot.
