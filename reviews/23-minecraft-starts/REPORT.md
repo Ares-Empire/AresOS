@@ -277,7 +277,8 @@ b627311 from a4dcc3e1…` (the same bytes as the resolve's two builds, on the sa
 `build.sh configure` stopped: `AssertionError: The AresOS mod jar built from this commit is 8f505f26…; desktop.lock.json
 pins 8b04c511…`. So no image check and no VM pass ran. Stopped here: the jar pin is not an expired upstream pin but our
 own build giving other bytes from the same source, which is the integrator's call (see "Found, not changed" above).
-Evidence: `runs/build-43471903820/summary.txt`. Renewing the pin to `8f505f26…` would
+Evidence: `runs/build-43471903820/summary.txt`.
+**Run 43474901419** (`checks_only=true` on `56ea627f`): success, `Ran 1088 tests`, `OK (skipped=136)`. Renewing the pin to `8f505f26…` would
 hold only until the next runner image; the integrator decides (renew, or make that attribute sorted).
 
 ### Checks of this round
