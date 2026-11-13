@@ -24,6 +24,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     removeEventListener(type,fn){this.listeners.set(type,(this.listeners.get(type)||[]).filter(value=>value!==fn));}
     dispatchEvent(event){
       event.target=this;event.eventPhase=1;event.stopped=false;
+      if(event.type==='aresos-relay-guard'&&this.ownerDocument?.fixturePaused){event.eventPhase=0;return !event.defaultPrevented;}
       try {
         const localRoot=this.getRootNode?.();
         event.visibleTarget=localRoot?.mode==='closed'?localRoot.host:null;
@@ -110,7 +111,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,clipboard:clipboardObject,nativeClipboard,clipboardCalls,clipboardOutcome,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,wire(other,key,value,node=other.factory.relay){installed.identify('data-fixture-source',sourceIdentity);assert.equal(other.guard.source(installed.relay,'data-fixture-source',sourceIdentity),true);return installed.link(node,key,value);},Node,SVGElement,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,nativeAttach,nativeAppend,nativeListen,nativeHTMLSetter,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,clipboard:clipboardObject,nativeClipboard,clipboardCalls,clipboardOutcome,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,pause:value=>{document.fixturePaused=value;},wire(other,key,value,node=other.factory.relay){installed.identify('data-fixture-source',sourceIdentity);assert.equal(other.guard.source(installed.relay,'data-fixture-source',sourceIdentity),true);return installed.link(node,key,value);},Node,SVGElement,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,nativeAttach,nativeAppend,nativeListen,nativeHTMLSetter,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
 
 test('private factory creation changes no prototype before its cleanup handle can be retained',()=>{
@@ -952,4 +953,28 @@ test('recheck3 retired peer metadata can only preserve password protection and c
   initial.factory.identify('data-initial','initial');initial.guard.reader({document:'old',protected:element=>element===node});
   assert.equal(recipient.guard.source(initial.factory.relay,'data-initial','initial'),true);recipient.guard.control('epoch');
   assert.equal(recipient.guard.protectedPeer(node),true);initial.guard.dispose();assert.equal(recipient.guard.protectedPeer(node),true);assert.equal(recipient.guard.privateHold(),null);recipient.guard.dispose();
+});
+
+test('recheck3 peer setup survives suppressed DOM callbacks during the debugger startup pause',()=>{
+  const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});caller.pause(true);owner.pause(true);
+  owner.factory.identify('data-private-test','nonce');assert.equal(caller.wire(owner,'data-private-test','nonce'),true);
+  caller.pause(false);owner.pause(false);owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
+  const button=new owner.HTMLElement();button.root=button;button.tagName='BUTTON';button.textContent='Delete';let handlers=0;
+  caller.EventTarget.prototype.addEventListener.call(button,'click',()=>handlers++);owner.nativeAppend.call(owner.nativeAttach.call(new owner.HTMLElement(),{mode:'closed'}),button);owner.advance(5000);
+  owner.originalDispatch.call(button,new owner.Event('click',{composed:false}));assert.equal(handlers,0);assert.equal(owner.reports.length,1);caller.guard.dispose();owner.guard.dispose();
+});
+
+test('recheck3 an unavailable recipient private guard holds as unknown and retries when it becomes live',()=>{
+  const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});owner.factory.identify('data-owner','owner');caller.wire(owner,'data-owner','owner');assert.equal(caller.guard.source(owner.factory.relay,'data-owner','owner'),true);owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
+  const button=new caller.HTMLElement();button.root=button;button.tagName='BUTTON';button.textContent='Delete';let handlers=0;button.addEventListener('click',()=>handlers++);
+  owner.nativeAppend.call(owner.nativeAttach.call(new owner.HTMLElement(),{mode:'closed'}),button);owner.pause(true);
+  caller.originalDispatch.call(button,new caller.Event('click',{composed:false}));assert.equal(handlers,0);assert.equal(caller.reports[0].kind,'activation_unknown');
+  owner.pause(false);caller.originalDispatch.call(button,new caller.Event('click',{composed:false}));assert.equal(handlers,0);assert.equal(owner.reports[0].kind,'activation');caller.guard.dispose();owner.guard.dispose();
+});
+
+test('recheck3 adopted capture preserves its conservative recipient against a less restrictive source',()=>{
+  const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});owner.factory.identify('data-owner','owner');caller.wire(owner,'data-owner','owner');caller.guard.source(owner.factory.relay,'data-owner','owner');
+  const button=new caller.HTMLElement();button.root=button;button.tagName='BUTTON';button.textContent='Ordinary control';let handlers=0;button.addEventListener('click',()=>handlers++);owner.nativeAppend.call(owner.nativeAttach.call(new owner.HTMLElement(),{mode:'closed'}),button);
+  caller.arm(new caller.HTMLElement(),null);owner.arm(button,null,null,true);caller.originalDispatch.call(button,new caller.Event('click',{composed:false}));
+  assert.equal(handlers,0);assert.equal(owner.reports[0].kind,'activation');assert.equal(caller.reports.length,0);caller.guard.dispose();owner.guard.dispose();
 });

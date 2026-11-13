@@ -219,4 +219,7 @@ recheck3-peer-password MUTATION REJECTED
 recheck3-retired-peer-password MUTATION REJECTED
 recheck3-adopted-password-marker MUTATION REJECTED
 recheck3-main-data-clone MUTATION REJECTED
-221 mutations rejected; every baseline passed
+recheck3-paused-peer-setup MUTATION REJECTED
+recheck3-unavailable-private-peer MUTATION REJECTED
+recheck3-conservative-adopted-recipient MUTATION REJECTED
+224 mutations rejected; every baseline passed

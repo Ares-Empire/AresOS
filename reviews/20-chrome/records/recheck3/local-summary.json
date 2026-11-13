@@ -4,18 +4,18 @@
       "command": "node --test control/chrome_tests/*.test.mjs",
       "exit_code": 0,
       "output": "local-node.txt",
-      "sha256": "2e49d4421b840826c3b9fe9e527c44534c88a2ee9dd64c820ae39691826d020d",
+      "sha256": "9714ffe6355fdce4968c3dc526e1855621f6c8ad0dbdae1109d0884978cfd88d",
       "tail": [
-        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.297042ms)",
-        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.829208ms)",
-        "\u2139 tests 314",
+        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.190625ms)",
+        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.660375ms)",
+        "\u2139 tests 317",
         "\u2139 suites 0",
-        "\u2139 pass 314",
+        "\u2139 pass 317",
         "\u2139 fail 0",
         "\u2139 cancelled 0",
         "\u2139 skipped 0",
         "\u2139 todo 0",
-        "\u2139 duration_ms 7287.924916"
+        "\u2139 duration_ms 7274.846583"
       ]
     },
     {
@@ -40,18 +40,18 @@
       "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck3/mutations.json",
       "exit_code": 0,
       "output": "local-mutations.txt",
-      "sha256": "3db2d755f5558c39247cadb41111388866e69d471b31f45fbe624441bc5e6010",
+      "sha256": "9f6dd8b5ba0dea8502ee967224ea6becb9cfc99848b62587f1e32a01de55a5d2",
       "tail": [
-        "recheck3-private-native-context MUTATION REJECTED",
-        "recheck3-passive-carrier-retirement MUTATION REJECTED",
-        "recheck3-conservative-recipient MUTATION REJECTED",
         "recheck3-adopted-element-brand MUTATION REJECTED",
         "recheck3-adopted-field-brand MUTATION REJECTED",
         "recheck3-peer-password MUTATION REJECTED",
         "recheck3-retired-peer-password MUTATION REJECTED",
         "recheck3-adopted-password-marker MUTATION REJECTED",
         "recheck3-main-data-clone MUTATION REJECTED",
-        "221 mutations rejected; every baseline passed"
+        "recheck3-paused-peer-setup MUTATION REJECTED",
+        "recheck3-unavailable-private-peer MUTATION REJECTED",
+        "recheck3-conservative-adopted-recipient MUTATION REJECTED",
+        "224 mutations rejected; every baseline passed"
       ]
     },
     {
@@ -301,6 +301,41 @@
         "\u2139 todo 0",
         "\u2139 duration_ms 235.921958"
       ]
+    },
+    {
+      "command": "git show bc90cdbd guard + paused DOM callback fixture; node --test --test-name-pattern 'peer setup survives suppressed DOM callbacks' control/chrome_tests/page.test.mjs",
+      "exit_code": 1,
+      "output": "paused-peer-before.txt",
+      "sha256": "b016f15e7d181bd4ea5b7f988fe7fcce1488537d829d11ad29b42c3a9a6044de",
+      "tail": [
+        "      at Test.run (node:internal/test_runner/test:1382:25)",
+        "      at Test.start (node:internal/test_runner/test:1242:17)",
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: true,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: false,",
+        "    expected: true,",
+        "    operator: 'strictEqual',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'peer setup survives suppressed DOM callbacks' control/chrome_tests/page.test.mjs",
+      "exit_code": 0,
+      "output": "paused-peer-after.txt",
+      "sha256": "fff3dfa4029ad46ee7480a532e875a1e33e44c51888d71cbd6b098dab2955d4d",
+      "tail": [
+        "\u2714 recheck3 peer setup survives suppressed DOM callbacks during the debugger startup pause (4.039ms)",
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 38.453375"
+      ]
     }
   ],
   "probe": {
@@ -340,7 +375,9 @@
     "9433b2be depended on non-cloneable MAIN function/event data. Chromium primary source confirmed cross-world cloning. The corrected platform double fails the unchanged old foreign matrix (private-data-clone-before.txt) and passes the new matrix (private-data-clone-after.txt). Only the own 9433b2be Chrome pair was cancelled.",
     "Private guard exports now stay entirely inside this extension isolated world. MAIN sends only cloneable primitive source identifiers to authenticated detached relays. Native markers reject renderer aliases and stop routing after release; stale source documents are pruned without retaining active holds.",
     "All 128 masks are also generated for native adoption into a third controlled document, making 384 probes. Native DOM brands and private sticky node metadata preserve password exclusion across realm changes, release and retake. Four extra Linux adoption rows extend receiver acceptance to 107 exact sequences.",
-    "Added removals for adoption brands, private password provenance and cloneable MAIN data. P17 reset now removes both persistent stores because the new private node marker independently preserved the old assertion. Removed duplicate watchCreated branches so the existing native-creation removal targets its actual interception path. All 221 removals now fail; every baseline passes."
+    "Added removals for adoption brands, private password provenance and cloneable MAIN data. P17 reset now removes both persistent stores because the new private node marker independently preserved the old assertion. Removed duplicate watchCreated branches so the existing native-creation removal targets its actual interception path. All 221 removals now fail; every baseline passes.",
+    "Both bc90cdbd Chrome runs failed the first foreign root-wrapper case. Native protocol evidence shows marked private roots, but both peer exports returned false during the debugger startup pause. Chromium listener runnability and a strict paused-callback fixture explain the failure.",
+    "Register native peer roots during startup and exchange private isolated references lazily after execution resumes. Expired source documents are pruned by native document identity even before a reference is available. An unavailable recipient holds as unknown and retries later; an inherited hold cannot relax a conservative recipient. All 317 Node tests and 224 removals pass."
   ],
   "historical_corrections": "Earlier notes describe intermediate candidates, not current acceptance."
 }

@@ -93,16 +93,27 @@
   const currentPhase = event => phase ? phase.call(event) : event.eventPhase;
   const type = event => eventType ? eventType.call(event) : event.type;
   const peers=new Map(),peerDocuments=new WeakMap();let queryingSources=false,inheritedCapture=null;
-  const alive=peer=>{const node=peer.node.deref();return node&&getAttribute.call(node,peer.key)===peer.value;};
+  const alive=peer=>{const node=peer.node.deref();if(!node||getAttribute.call(node,peer.key)!==peer.value)return false;if(!defaultView)return true;try{const doc=node.ownerDocument,view=defaultView.call(doc);return !!view&&view.document===doc;}catch{return false;}};
+  function peerAPI(peer){
+    if(peer.api)return peer.api;
+    const node=peer.node.deref();if(!node||!alive(peer))return null;
+    // Native wiring happens while Debugger pauses the document. DOM listeners
+    // cannot run then; exchange private ISOLATED references on first live use.
+    const detail={};native.dispatch.call(node.firstElementChild,new CustomEvent('aresos-relay-guard',{detail}));
+    return peer.api=detail.api||null;
+  }
   function holdConfig(){
     if(generation===null)return null;
-    let combined=inheritedCapture?.config||(inFlight||performance.now()<until?config:null);
+    let combined=inFlight||performance.now()<until?config:null;
+    if(inheritedCapture?.config)combined={...inheritedCapture.config,conservative:inheritedCapture.config.conservative||combined?.conservative};
     if(queryingSources)return combined;
     queryingSources=true;
     try{for(const peer of peers.values()){
-      if(!alive(peer)||!peer.api.privateCurrent()){reader?.protectPeers?.();peers.delete(peer.value);continue;}
+      if(!alive(peer)){reader?.protectPeers?.();peers.delete(peer.value);continue;}
+      const source=peerAPI(peer);
+      if(source&&!source.privateCurrent()){reader?.protectPeers?.();peers.delete(peer.value);continue;}
       if(!peer.enabled)continue;
-      const candidate=peer.api.privateHold();
+      const candidate=source?source.privateHold():{...config,conservative:true,holdMs:config?.holdMs||500,defaultBlock:config?.defaultBlock||'https://aresos-hold.invalid/'};
       if(candidate)combined={...candidate,conservative:candidate.conservative||combined?.conservative};
     }}finally{queryingSources=false;}
     if(combined)config=combined;return combined;
@@ -216,7 +227,7 @@
     let element=eventElement(event.composedPath()[0]);
     if(element&&nativeRoot&&nativeRoot.call(element,{composed:true})!==ownDocument){
       const peer=peerDocuments.get(element.ownerDocument);
-      if(peer&&alive(peer))peer.api.capture(event,root,active()?{config}:null);
+      if(peer&&alive(peer)){const other=peerAPI(peer),hold=active()?{config}:null;if(other)other.capture(event,root,hold);else if(hold){if(event.cancelable)event.preventDefault();event.stopImmediatePropagation();report('activation_unknown',element,null,event.cancelable);}}
       return;
     }
     if (!active()) return;
@@ -406,13 +417,11 @@
     },
     source(node,key,value){
       if(getAttribute.call(node,key)!==value||!node.firstElementChild)return false;
-      const detail={};native.dispatch.call(node.firstElementChild,new CustomEvent('aresos-relay-guard',{detail}));
-      if(!detail.api)return false;
-      const peer={node:new WeakRef(node),key,value,api:detail.api,enabled:false};
+      const peer={node:new WeakRef(node),key,value,api:null,enabled:false};
       peers.set(value,peer);peerDocuments.set(node.ownerDocument,peer);return true;
     },
     privatePassword(node){return privacyCheck?.(node)===true;},
-    protectedPeer(node){return [...peers.values()].some(peer=>peer.api.privatePassword(node));},
+    protectedPeer(node){return [...peers.values()].some(peer=>peerAPI(peer)?.privatePassword(node));},
     privateCurrent(){if(!defaultView)return true;const view=defaultView.call(ownDocument);return !!view&&view.document===ownDocument;},
     privateHold(){return this.privateCurrent()?holdConfig():null;},
     capture(event,root,hold){const previous=inheritedCapture;inheritedCapture=hold;try{return capture(event,root);}finally{inheritedCapture=previous;}},

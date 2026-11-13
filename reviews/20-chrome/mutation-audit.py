@@ -247,7 +247,7 @@ case('recheck3-compose-extension',B,"compose:!adapter&&['send','confirmation','f
 
 case('recheck3-private-carrier-brand',M,'invoke(getAttribute,node,[key])!==value','false',node('page','private foreign links reject'))
 case('recheck3-private-carrier-retirement',M,'if(relayKey&&privateRelay)invoke(removeAttribute,privateRelay,[relayKey]);','',node('page','private foreign links reject'))
-case('recheck3-private-source-hold',G,'const candidate=peer.api.privateHold();','const candidate=null;',node('page','wrapped detached listener from another'))
+case('recheck3-private-source-hold',G,"const candidate=source?source.privateHold():{...config,conservative:true,holdMs:config?.holdMs||500,defaultBlock:config?.defaultBlock||'https://aresos-hold.invalid/'};",'const candidate=null;',node('page','wrapped detached listener from another'))
 case('recheck3-private-native-context',B,'state.factoryContexts.set(params.executionContextAuxData.frameId,params.executionContextId)','void 0',node('background','native MAIN context observed'))
 case('recheck3-passive-carrier-retirement',G,'if(relayNode&&relayMarker)removeAttribute.call(relayNode,relayMarker);','',node('page','passive controlled recipient'))
 case('recheck3-conservative-recipient',G,'candidate.conservative||combined?.conservative','candidate.conservative',node('page','already conservative recipient'))
@@ -260,6 +260,12 @@ case('recheck3-retired-peer-password',G,'return privacyCheck?.(node)===true;','r
 case('recheck3-adopted-password-marker',R,'Object.defineProperty(node,protectedKey,{value:true});','void 0;',node('reader','adopted peer password provenance'))
 
 case('recheck3-main-data-clone',M,"property(detail,'source_id',relayValue,true)","property(detail,'source_id',()=>relayValue,true)",node('page','wrapped detached listener from another'))
+
+case('recheck3-paused-peer-setup',G,'api:null,enabled:false',"api:(()=>{const detail={};native.dispatch.call(node.firstElementChild,new CustomEvent('aresos-relay-guard',{detail}));if(!detail.api)throw Error('peer unavailable while paused');return detail.api;})(),enabled:false",node('page','peer setup survives suppressed DOM callbacks'))
+
+case('recheck3-unavailable-private-peer',G,"else if(hold){if(event.cancelable)event.preventDefault();event.stopImmediatePropagation();report('activation_unknown',element,null,event.cancelable);}",'',node('page','unavailable recipient private guard'))
+
+case('recheck3-conservative-adopted-recipient',G,'inheritedCapture.config.conservative||combined?.conservative','inheritedCapture.config.conservative',node('page','adopted capture preserves its conservative recipient'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

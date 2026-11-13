@@ -5,7 +5,7 @@ Fetched `origin/main` and read its `AGENTS.md` and `briefs/20-chrome.md` with `g
 also read SECURITY-RECHECK-3, the prior report/known limits and briefs 2/2b/2c.
 The first code push included all three classes. Additional local whitespace/visibility probes and the Linux SVG/trailing-newline cases required further corrections. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
 stays draft and unmerged; its existing conflict with main is not resolved in this brief.
-Installed runtime hash: `2e113bf4d025e95459525bdff063c301d56dd94999f1e01be45d8b46e95b008d`.
+Installed runtime hash: `5f2cd7f551d014e55cb304bbb5ea4abe60b416908c4018b8368e81b365782ba2`.
 Linux acceptance on the new source is pending; historical green sections below do not establish it.
 
 ## Done (read)
@@ -26,6 +26,9 @@ Linux acceptance on the new source is pending; historical green sections below d
   MAIN metadata contains primitive source IDs; private guard references stay in our own isolated world.
   [Chromium clones object values between worlds](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/bindings/core/v8/world_safe_v8_reference.cc), while its
   [isolated-world registry reuses a given world ID](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/platform/bindings/dom_wrapper_world.cc).
+  Native roots are registered while startup is paused; the isolated reference exchange waits until live page
+  execution because [paused DOM callbacks are suppressed](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/bindings/core/v8/js_event_listener.cc).
+  Unavailable recipient guards hold as unknown and retry; inherited configuration preserves a stricter recipient.
   DOM branding accepts adopted native objects; private node metadata preserves sticky password exclusion across
   adoption, source release and retake. No password value enters that metadata.
 - `guard.js`: native `a`, `area` and SVG `a` lose hyperlink authority synchronously, including both SVG `href`
@@ -52,7 +55,7 @@ Linux acceptance on the new source is pending; historical green sections below d
 
 ## Verified (run)
 
-Local-only verification so far: **314 Node tests pass**, **221 removal mutations rejected, every baseline passing**,
+Local-only verification so far: **317 Node tests pass**, **224 removal mutations rejected, every baseline passing**,
 384 generated production-code mixes pass, generated artifacts match definitions and `git diff --check` passes.
 [Exact commands, output tails/hashes and corrected local attempts](records/recheck3/local-summary.json) retain the results.
 The full plain-Python suite passes **231 tests in 580.856 s, OK**; Linux CI is still pending. Five artifact-stream tests pass. No local browser,
@@ -98,7 +101,11 @@ cross-frame case: WindowProxy did not expose the other isolated guard, leaving o
 cross-frame case, although both MAIN-absence checks passed. That candidate is superseded by the private carrier
 registry; these failures are not acceptance. The own `9433b2be` pair (`43379684072`, `43379749705`) was then cancelled after the corrected clone model
 proved its MAIN-function transport invalid. Its before/after local receipts are retained; no partial CI pass is
-acceptance. The replacement pair brings the ledger to **227 IDs / 228 executions**,
+acceptance. The `bc90cdbd` pair (`43384844084`, `43384908890`) then failed the first foreign root-wrapper row: both private
+peer exports returned false while startup was paused. [Raw-derived receipts](records/recheck3/paused-browser-failure.json)
+and a strict before/after paused-listener regression retain this failure. Native peer registration now precedes
+resume, and private isolated reference exchange waits until live use. The next pair brings the ledger to
+**229 IDs / 230 executions**,
 within the approximate
 235-run budget and below the 245 notice threshold. Each CI run uses one blocking `gh run watch`, without
 turn-by-turn status polling. Report-only pushes use `[skip ci]`. Closing run IDs, exact logs and `.work/` inventory
