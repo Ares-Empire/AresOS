@@ -13,15 +13,15 @@ export async function destinationMatrix({check,nav,call,target,approval,fixture,
       assert.equal(new URL(address).pathname,'/first/receive',row.id);
       assert.equal(original.form?.browsing_target||original.target.browsing_target,'sink-first');
       await fixture.mutate(row.id,'review-change');
-      if(row.change==='animation')await new Promise(resolve=>setTimeout(resolve,150));
+      if(row.change.startsWith('animation'))await new Promise(resolve=>setTimeout(resolve,150));
       const reasked=await call('submit',prepared.approval);
       assert.equal(receiverEvidence(row.id,'changed destination held').count,0);
       assert.equal(reasked.operation.state,'failed');assert.ok(reasked.approval,JSON.stringify(reasked));
       assert.notEqual(reasked.approval.operation_id,prepared.approval.operation_id);
       await call('submit',prepared.approval);assert.equal(receiverEvidence(row.id,'stale destination approval stays retired').count,0);
       const fresh=reasked.approval.description.untrusted_content.page_state;
-      assert.equal(new URL(fresh.form?.action||fresh.target.href).pathname,row.change==='target'?'/first/receive':'/second/receive');
-      if(row.change==='target')assert.equal(fresh.form?.browsing_target||fresh.target.browsing_target,'sink-second');
+      assert.equal(new URL(fresh.form?.action||fresh.target.href).pathname,row.change.endsWith('target')?'/first/receive':'/second/receive');
+      if(row.change.endsWith('target'))assert.equal(fresh.form?.browsing_target||fresh.target.browsing_target,'sink-second');
       await approval(reasked,row.id);evidence.push({...row,prepared,reasked});
     }
   });

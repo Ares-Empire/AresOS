@@ -27,6 +27,11 @@ function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false,wat
     contains(node){for(let ancestor=node;ancestor;ancestor=ancestor.parentElement)if(ancestor===this)return true;return false;}
     dispatchEvent(){}
   }
+  class SVGAnimatedString {constructor(value){this.synthetic=value;}get animVal(){return this.synthetic;}}
+  class SVGAElement extends Element {
+    get href(){return new SVGAnimatedString(this.currentHref??this.getAttribute('href')??this.getAttributeNS('http://www.w3.org/1999/xlink','href')??'');}
+    get target(){return new SVGAnimatedString(this.currentTarget??this.getAttribute('target')??'');}
+  }
   class HTMLInputElement extends Element{}
   class HTMLTextAreaElement extends Element{}
   class HTMLSelectElement extends Element{}
@@ -38,7 +43,7 @@ function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false,wat
   const chrome={dom:{openOrClosedShadowRoot:element=>element.fixtureShadow||null},runtime:{id:'fixture',sendMessage:async()=>({}),onMessage:{addListener(fn){listener=fn;},removeListener(){}}}};
   class MutationObserver {constructor(fn){this.fn=fn;this.records=[];observer=this;}observe(root,options){observationOptions.push(options);}takeRecords(){return this.records.splice(0);}disconnect(){}}
   const context=vm.createContext({document,chrome,Blob:NativeBlob,crypto:{subtle:subtle?webcrypto.subtle:undefined,getRandomValues:array=>array.fill(++fileSequence)},MutationObserver,
-    Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,HTMLAnchorElement:Element,HTMLAreaElement:Element,Node:NativeNode,CustomEvent:class{},
+    Element,SVGAElement,SVGAnimatedString,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,HTMLAnchorElement:Element,HTMLAreaElement:Element,Node:NativeNode,CustomEvent:class{},
     atob:value=>Buffer.from(value,'base64').toString('binary'),setTimeout:fn=>timers.push(fn),
     URL,getComputedStyle:element=>({display:['DIV','P','PRE'].includes(element.tagName)?'block':'inline',visibility:element.visibility||'visible',webkitTextSecurity:element.mask || 'none',whiteSpace:element.whiteSpace||(element.tagName==='PRE'?'pre':undefined)}),
     [Symbol.for('aresos.chrome.document-start.v1')]:watched,
@@ -471,4 +476,18 @@ test('post18d combined associated credential labels stay excluded from every rea
     const expected=f.command({command:'typed_fields'}).data;assert.equal(expected.fields.length,0);
     const approved=f.command({command:'read_typed_fields',approved:true,operation:'combined',expected});assert.equal(approved.ok,true);assert.equal(approved.data.fields.length,0);assert.equal(f.calls(),0);
   }
+});
+
+for(const source of ['href','xlink:href'])test('post18d SVG animated '+source+' is the native destination before every action',()=>{
+  const f=fixture([]),node=new f.Element({tagName:'a',localName:'a',namespaceURI:'http://www.w3.org/2000/svg',attrs:{[source]:'delete'}});f.nodes.push(node);
+  f.setBase('https://fixture.test/first/');assert.equal(f.read().data.rows.find(row=>row.role==='link').href,'https://fixture.test/first/delete');
+  node.currentHref='/second/delete';Object.defineProperty(node,'href',{get(){throw Error('Page href property must not be used');}});
+  assert.equal(f.read().data.rows.find(row=>row.role==='link').href,'https://fixture.test/second/delete');assert.equal(node.attrs[source],'delete');
+  f.setBase('https://fixture.test/third/');node.currentHref='delete';assert.equal(f.read().data.rows.find(row=>row.role==='link').href,'https://fixture.test/third/delete');
+  delete node.attrs[source];assert.equal(f.read().data.rows.find(row=>row.role==='link').href,'https://fixture.test/third/delete','native animated links remain visible without a base attribute');
+});
+test('post18d SVG animated target uses the native current window before every action',()=>{
+  const f=fixture([]),node=new f.Element({tagName:'a',localName:'a',namespaceURI:'http://www.w3.org/2000/svg',attrs:{href:'delete',target:'first'}});f.nodes.push(node);
+  assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'first');node.currentTarget='second';
+  assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'second');assert.equal(node.attrs.target,'first');
 });

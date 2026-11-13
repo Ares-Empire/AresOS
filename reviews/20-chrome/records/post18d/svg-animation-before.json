@@ -1,0 +1,188 @@
+{
+  "run": "43469631725",
+  "source": "2c4b719d",
+  "mode": "policy",
+  "chrome": "Google Chrome 157.0.8103.78",
+  "prepared": {
+    "question": "On http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=top&change=animation&id=post18d-destination-svg-href-top-animation, page 'Synthetic fixture', as the page shows it, delete 'Delete' to http://fixture.test:8765/first/receive?case=post18d-destination-svg-href-top-animation in target 'sink-first'?",
+    "operation_id": "b9ae9a34951243b3a2a6aff2a8a5793a:2a1395c1bee64a89b1d8e0c87bcdaefb",
+    "description": {
+      "action": "chrome_submit",
+      "untrusted_content": {
+        "page_state": {
+          "session": "e346e4fe-dfec-4933-bc69-5dd4fde63c03",
+          "tab": 1999181892,
+          "control": "1ffbf15d-d319-4773-85e8-b80dc555acf7",
+          "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=top&change=animation&id=post18d-destination-svg-href-top-animation",
+          "title": "Synthetic fixture",
+          "document": "fe09b709941de3c9d882688029a7d724",
+          "frame": 0,
+          "frame_url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=top&change=animation&id=post18d-destination-svg-href-top-animation",
+          "frame_title": "Synthetic fixture",
+          "effective_url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=top&change=animation&id=post18d-destination-svg-href-top-animation",
+          "target": {
+            "element": "e8",
+            "role": "link",
+            "name": "Delete",
+            "label": "Delete",
+            "title": "",
+            "href": "http://fixture.test:8765/first/receive?case=post18d-destination-svg-href-top-animation",
+            "browsing_target": "sink-first",
+            "states": {
+              "checked": false,
+              "selected": false,
+              "disabled": false,
+              "required": false,
+              "invalid": false,
+              "expanded": null
+            },
+            "editable": false,
+            "search": false,
+            "submit": false,
+            "page_dialog": null
+          },
+          "form": null,
+          "compose": null,
+          "selected_files": [
+            {
+              "frame": 0,
+              "document": "fe09b709941de3c9d882688029a7d724",
+              "fields": []
+            },
+            {
+              "frame": 185,
+              "document": "d6e7943fe5a1f796b550a6174bb03b89",
+              "fields": []
+            },
+            {
+              "frame": 186,
+              "document": "60759b4131e27c3be72dcf218eb0a6e5",
+              "fields": []
+            }
+          ],
+          "editable": null,
+          "item": "Delete",
+          "item_fields": [],
+          "adapter": null,
+          "dialog": null
+        },
+        "input": {
+          "verb": "click"
+        },
+        "kind": "delete",
+        "resume_kind": null,
+        "file": null,
+        "confirmation": null
+      },
+      "adapter_action": null,
+      "expires_at": 1794590828.8392837
+    }
+  },
+  "submitted": {
+    "operation": {
+      "action": "chrome_submit",
+      "app": "chrome",
+      "approval": {
+        "question": "On http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=top&change=animation&id=post18d-destination-svg-href-top-animation, page 'Synthetic fixture', as the page shows it, delete 'Delete' to http://fixture.test:8765/first/receive?case=post18d-destination-svg-href-top-animation in target 'sink-first'?",
+        "operation_id": "b9ae9a34951243b3a2a6aff2a8a5793a:2a1395c1bee64a89b1d8e0c87bcdaefb",
+        "description": {
+          "action": "chrome_submit",
+          "adapter_action": null,
+          "expires_at": 1794590828.8392837,
+          "untrusted_content": {
+            "confirmation": null,
+            "file": null,
+            "input": {
+              "verb": "click"
+            },
+            "kind": "delete",
+            "page_state": {
+              "adapter": null,
+              "compose": null,
+              "control": "1ffbf15d-d319-4773-85e8-b80dc555acf7",
+              "dialog": null,
+              "document": "fe09b709941de3c9d882688029a7d724",
+              "editable": null,
+              "effective_url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=top&change=animation&id=post18d-destination-svg-href-top-animation",
+              "form": null,
+              "frame": 0,
+              "frame_title": "Synthetic fixture",
+              "frame_url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=top&change=animation&id=post18d-destination-svg-href-top-animation",
+              "item": "Delete",
+              "item_fields": [],
+              "selected_files": [
+                {
+                  "document": "fe09b709941de3c9d882688029a7d724",
+                  "fields": [],
+                  "frame": 0
+                },
+                {
+                  "document": "d6e7943fe5a1f796b550a6174bb03b89",
+                  "fields": [],
+                  "frame": 185
+                },
+                {
+                  "document": "60759b4131e27c3be72dcf218eb0a6e5",
+                  "fields": [],
+                  "frame": 186
+                }
+              ],
+              "session": "e346e4fe-dfec-4933-bc69-5dd4fde63c03",
+              "tab": 1999181892,
+              "target": {
+                "browsing_target": "sink-first",
+                "editable": false,
+                "element": "e8",
+                "href": "http://fixture.test:8765/first/receive?case=post18d-destination-svg-href-top-animation",
+                "label": "Delete",
+                "name": "Delete",
+                "page_dialog": null,
+                "role": "link",
+                "search": false,
+                "states": {
+                  "checked": false,
+                  "disabled": false,
+                  "expanded": null,
+                  "invalid": false,
+                  "required": false,
+                  "selected": false
+                },
+                "submit": false,
+                "title": ""
+              },
+              "title": "Synthetic fixture",
+              "url": "http://fixture.test:8765/?case=review-page&mode=destination&source=svg-href&frame=top&change=animation&id=post18d-destination-svg-href-top-animation"
+            },
+            "resume_kind": null
+          }
+        }
+      },
+      "expires": 1794590828.8392837,
+      "generation": "b9ae9a34951243b3a2a6aff2a8a5793a",
+      "id": "b9ae9a34951243b3a2a6aff2a8a5793a:2a1395c1bee64a89b1d8e0c87bcdaefb",
+      "reason": "Dispatched once, as the page shows it; this does not prove what the site did.",
+      "stages": {
+        "checked": {
+          "untrusted_content": "Page matched the bound approval immediately before input."
+        },
+        "dispatched": {
+          "untrusted_content": "Input or same-kind submission dispatched once; delivery is not proven."
+        },
+        "page": {
+          "untrusted_content": "{\"checked\":true,\"confirmations\":[],\"dialog\":null,\"dispatched\":true,\"no_change\":false,\"page\":{\"available\":true,\"change\":{\"element_present\":false},\"notices\":[],\"title\":\"Synthetic fixture\",\"url\":\"http://fixture.test:8765/second/receive?case=post18d-destination-svg-href-top-animation\"},\"steps\":[],\"uncertain_finish\":false}"
+        }
+      },
+      "state": "done"
+    }
+  },
+  "independent_arrivals": [
+    {
+      "time": 1794589929352,
+      "url": "/second/receive?case=post18d-destination-svg-href-top-animation",
+      "method": "GET",
+      "body": "",
+      "host": "fixture.test:8765"
+    }
+  ],
+  "receiver_sha256": "271d57fd86d0a0b915d1828807ae925ddf71a2919769659daa14c5bfcc10c3e5"
+}

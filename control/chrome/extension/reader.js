@@ -24,9 +24,13 @@
   const formProperty=(form,key)=>formGetters[key]?formGetters[key].call(form):form[key];
   const nativeGetter=(Constructor,key)=>Constructor?.prototype&&Object.getOwnPropertyDescriptor(Constructor.prototype,key)?.get;
   const anchorHref=nativeGetter(globalThis.HTMLAnchorElement,'href'),areaHref=nativeGetter(globalThis.HTMLAreaElement,'href');
+  const svgHref=nativeGetter(globalThis.SVGAElement,'href'),svgTarget=nativeGetter(globalThis.SVGAElement,'target');
+  const animatedValue=nativeGetter(globalThis.SVGAnimatedString,'animVal');
+  const svgLink=element=>element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a';
   const nodeBase=nativeGetter(globalThis.Node,'baseURI');
   const baseURI=node=>nodeBase?nodeBase.call(node):node.baseURI;
   function browsingTarget(element,attribute,explicit=element.getAttribute(attribute)) {
+    if(attribute==='target'&&svgLink(element)&&svgTarget&&animatedValue)explicit=animatedValue.call(svgTarget.call(element));
     if(explicit!==null&&explicit!=='')return explicit;
     const base=document.querySelector?.('base[target]');
     const fallback=base?.getAttribute('target')||'_self';
@@ -332,12 +336,12 @@
     if(!hyperlink(element))return null;
     if(element.tagName==='A'&&anchorHref)return anchorHref.call(element);
     if(element.tagName==='AREA'&&areaHref)return areaHref.call(element);
-    const address=element.getAttribute('href')??element.getAttributeNS?.('http://www.w3.org/1999/xlink','href');
+    const address=svgHref&&animatedValue?animatedValue.call(svgHref.call(element)):element.getAttribute('href')??element.getAttributeNS?.('http://www.w3.org/1999/xlink','href');
     try{return new URL(address,baseURI(element)).href;}catch{return address;}
   }
   function hyperlink(element){
-    return (['A','AREA'].includes(element.tagName)||element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a')&&
-      (element.hasAttribute('href')||element.hasAttributeNS?.('http://www.w3.org/1999/xlink','href'));
+    return (['A','AREA'].includes(element.tagName)||svgLink(element))&&
+      (element.hasAttribute('href')||element.hasAttributeNS?.('http://www.w3.org/1999/xlink','href')||svgLink(element)&&svgHref&&animatedValue&&animatedValue.call(svgHref.call(element))!=='');
   }
   function renderedCompose(area){
     // innerText/textContent on an ancestor could read protected descendants.

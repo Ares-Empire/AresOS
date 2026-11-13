@@ -323,6 +323,10 @@ case('post18d-credential-aria-labelledby',R,"signals.push(referenced.map(labelTe
 
 case('post18d-credential-combined-labels',R,"signals.push([...element.labels||[]].map(labelText).join(' '));","signals.push(...[...element.labels||[]].map(labelText));",node('reader','post18d combined associated credential labels'))
 
+for source in ['href','xlink:href']:
+    case('post18d-svg-animated-'+source,R,"svgHref&&animatedValue?animatedValue.call(svgHref.call(element)):",'',node('reader','post18d SVG animated '+source+' is the native destination'))
+case('post18d-svg-animated-target',R,"if(attribute==='target'&&svgLink(element)&&svgTarget&&animatedValue)explicit=animatedValue.call(svgTarget.call(element));",'',node('reader','post18d SVG animated target uses the native'))
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']

@@ -175,6 +175,23 @@ The probe is intentionally run before any production change; a failure will be
 fixed before further latency work. It brings the ledger to **240**. Existing
 60 base/attribute/owner/target sequences remain required.
 
+**SVG animated destination FIX:** focused run `43469631725` (**240**) confirms
+an unapproved destination in both installs. An SVG animation changed the native
+href while leaving its underlying attribute unchanged; approval for `/first/receive`
+reached `/second/receive`. The [raw before receipt](records/post18d/svg-animation-before.json)
+retains the original question, done response, independent GET arrival and receiver
+hash. This is a FIX, not an accepted last-instant race: the changed destination
+was already present before revalidation.
+
+The resolver now uses captured native `SVGAElement.href` / `SVGAnimatedString.animVal`
+and the native effective base URI. The browsing target uses its corresponding
+native animated value too. Animated links remain visible without a base attribute;
+page shadow properties cannot replace the captured getters. There are **64**
+destination sequences now: the original 60 plus animated href/xlink and targets.
+**355 Node/artifact tests pass** and **273 removal probes** reject their mutation
+with all baselines passing. The replacement safety probe brings the count to
+**241**. Linux evidence and scoped re-checks are pending; latency changes wait.
+
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
 blank-frame base case. The new fixture had duplicate blank-frame addresses, so
