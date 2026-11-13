@@ -204,8 +204,5 @@ public final class MyAppsGame {
             if (news == null) return;
             host.sendSystemMessage(Component.literal(news));
         }
-        int more = 0;
-        while (NEWS.poll() != null) more++;
-        if (more > 0) host.sendSystemMessage(Component.literal("And " + more + " more new programs joined My apps."));
     }
 }

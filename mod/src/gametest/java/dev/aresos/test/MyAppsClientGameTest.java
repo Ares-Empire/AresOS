@@ -441,14 +441,20 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
         var later = new ArrayList<>(programs);
         later.add(program(icons, 150, "spotify", "Spotify", "flatpak-user", "Music Streaming", List.of("music"), List.of("AudioVideo"), true));
         later.add(program(icons, 151, "print-queue", "Print Queue", "system", null, List.of(), List.of("System"), true));
+        for (int i = 1; i <= 6; i++) later.add(program(icons, 151 + i, "new-tool-" + i, "New Tool " + i,
+                "user", null, List.of(), List.of("Utility"), false));
         helper.entries = List.copyOf(later);
         helper.revision = "later";
         helper.event("apps_changed", Map.of("revision", "later"));
         waitForChat(context, "Spotify is new and joined My apps.");
+        for (int i = 1; i <= 6; i++) waitForChat(context, "New Tool " + i + " is new and joined My apps.");
         context.waitFor(client -> items(client).containsKey("spotify"));
-        check(AresOs.apps().size() == 152 && !AresOs.app("print-queue").mine(), "The program that came with the system joined My apps");
-        context.runOnClient(client -> check(chat(client).stream().filter(line -> line.contains("joined My apps")).count() == 1,
-                "More than one program was announced: " + chat(client)));
+        check(AresOs.apps().size() == 158 && !AresOs.app("print-queue").mine(), "The program that came with the system joined My apps");
+        context.runOnClient(client -> {
+            check(chat(client).stream().filter(line -> line.contains("joined My apps")).count() == 7,
+                    "Every new app must be named once: " + chat(client));
+            check(chat(client).stream().noneMatch(line -> line.contains("more new programs")), "New app names were truncated");
+        });
         // The picture's way from the helper's path to the hotbar ends here: the pack is made again, the game
         // loads it, and the item that was already in the inventory gets the new look.
         context.waitFor(client -> AresOs.id("apps/spotify").equals(stack(client, "spotify").get(DataComponents.ITEM_MODEL))
