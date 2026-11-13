@@ -103,6 +103,10 @@ def main():
             time.sleep(.05)
         else:
             raise AssertionError('stub readiness timeout')
+        if os.environ.get('PRECEDENCE_ONLY')=='true':
+            from precedence import precedence_checks
+            precedence_checks(run,put)
+            return
         # Positive controls: every listener receives a connection before attacks.
         for name, address in FIXTURES['sockets'].items():
             code = ('import socket; s=socket.socket(socket.AF_UNIX); '

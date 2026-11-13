@@ -1,3 +1,4 @@
+import {precedenceVerdict} from './precedence-evidence.mjs';
 // Complete named-suite evidence only; missing or failed cases never qualify.
 export const REQUIRED={
     1:['GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names','GROUP 1 Unicode word matching agrees across service and guard','GROUP 1 what asks word/label/key matrix','GROUP 1 submit compose deletion and free-input matrix'],
@@ -31,14 +32,13 @@ export const SUPPORT=['FEATURE tools forms options find wait fill_form scroll an
 const adapterNames=new Set(Object.values(ADAPTER_REQUIRED).flat());
 const sharedAdapterNames=Object.values(REQUIRED).flat().filter(name=>/^GROUP (?:4|10|11) ADAPTER /.test(name)&&!adapterNames.has(name));
 
-export function verdicts(results,baseline,adapters){
+export function verdicts(results,baseline,adapters,precedence=null){
   const passed=name=>{const matches=results.filter(item=>item?.name===name);return matches.length===1&&matches[0].passed===true;};
   const groups=Object.fromEntries(Object.entries(REQUIRED).map(([group,names])=>[group,names.every(passed)]));
   groups[2] &&= baseline.owner===true;
   groups[7] &&= baseline.forgery===true && baseline.isolation===true;
   groups[13] &&= baseline.residual===true;
-  // Only 18d's actual precedence harness can supply group 12. Now cannot qualify.
-  groups[12]=false;
+  groups[12]=precedenceVerdict(precedence);
   const known=new Set([...Object.values(REQUIRED).flat(),...SUPPORT]);
   const support=SUPPORT.every(passed)&&results.every(item=>known.has(item?.name));
   const sharedGroup=group=>REQUIRED[group].filter(name=>!name.includes(' ADAPTER ')).every(passed);
@@ -54,5 +54,5 @@ export function assertComplete(results,qualified){
   const expected=[...Object.values(REQUIRED).flat(),...SUPPORT].sort(),actual=results.map(row=>row?.name).sort();
   if(JSON.stringify(expected)!==JSON.stringify(actual)||results.some(row=>row.passed!==true))throw Error('Incomplete or failing named browser inventory');
   for(const [section,names]of Object.entries({groups:[...Object.keys(REQUIRED),'12'],core:['classification','page_script','binding','password_exclusion'],adapters:Object.keys(ADAPTER_REQUIRED)})){if(JSON.stringify(Object.keys(qualified[section]).sort())!==JSON.stringify(names.sort()))throw Error('Incomplete verdict inventory: '+section);}
-  if(qualified.groups[12]!==false||Object.entries(qualified.groups).some(([group,value])=>group!=='12'&&value!==true)||Object.values(qualified.core).some(value=>value!==true)||Object.values(qualified.adapters).some(value=>value!==true))throw Error('A core, adapter or group verdict failed');
+  if(qualified.groups[12]!==true||Object.entries(qualified.groups).some(([group,value])=>group!=='12'&&value!==true)||Object.values(qualified.core).some(value=>value!==true)||Object.values(qualified.adapters).some(value=>value!==true))throw Error('A core, adapter or group verdict failed');
 }
