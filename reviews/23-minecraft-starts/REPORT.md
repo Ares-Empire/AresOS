@@ -5,6 +5,40 @@ Branch `pkg/23-minecraft-starts`, PR #36. Review: Codex gpt-6-astra (high), fres
 
 Nothing was pushed to a registry, signed or published. The release pin is unchanged.
 
+## Review fixes 5 (REVIEW-5, 2026-11-13): WORK IN PROGRESS
+
+Builder: a Claude agent (Fable 5.2), natively on AresOS (Linux, Python 3.14), not in WSL. Brief:
+`briefs/23-review-fixes-5.md`. This section is a hand-over note until the round is finished; a fresh agent can pick
+up from it.
+
+**The rule (the brief's):** only an end that is certain to be an ordinary crash restarts by itself. Everything
+uncertain latches recovery and waits for `retry`.
+
+**How it is built (state at this commit):**
+
+- **Fix 1, done in code, tests written:** the wrapper's `send()` notes a signal only as a confirmed send (one look
+  at Java without reaping it, then `kill`; never noted when skipped or failed). And no decision hangs on who sent a
+  signal any more: the supervisor's `conclude()` decides from Java's real status alone. A SIGKILL latches whoever
+  sent it (also the wrapper's own, of a Java that ignored SIGTERM: the status cannot tell whose SIGKILL landed
+  first). `stopped_by_wrapper` is gone from both programs. This is the updated JUDGMENT-CALL 10 (to be written).
+- **Fix 2, done in code, tests written:** exit 0 is his quit whenever it comes (before the PID, after a refusal,
+  during a lost hand-off).
+- **Fix 3, done in code, tests written:** the exit record lives in `~/.local/state/aresos/desktop-exit.json` (the
+  supervisor names the file and the session in its `jvm_start` reply; the wrapper writes it with fsync). After a
+  reboot an unresolved latch is reconciled from it exactly once; the old session's quit or restart is not carried
+  into the new session (`End.session`, `new_session()`).
+- **Fix 4, half done:** the model (`HandOffRun`, `HandOffModelTest`) is rewritten: the wrapper's steps are
+  separate events (look and SIGTERM, the stop window and SIGKILL, record write, report), a SIGKILL from outside can
+  land right after each look, a reboot (`Z`) clears the whole runtime folder after every order, and the expected
+  outcome comes from the model's own ledger. **Its first run fails** (`restarted more than once`): not yet known
+  whether the model or the code is wrong. Next: find that, then tune the run count and time.
+- **Item 5:** no smaller protocol built. Proposal to write: Java as a transient systemd service whose result the
+  supervisor reads (cost: Prism's process model, the lock, a VM check and CI; much bigger than fixes 1 to 4).
+
+**Not done yet:** the targeted tests have not all been run after the last edits; the revert proof per fix; the
+merge of `origin/main` (the integrator's addition: merge commit, then both full-suite runs on the merged head);
+the final form of this section with JUDGMENT-CALL 10 and the known limits.
+
 ## Review fixes 4 (REVIEW-4, 2026-11-11)
 
 REVIEW-4 (Codex gpt-6.1-sol, high, on `8420eba2`): 1 blocking, 2 should-fix, all at the hand-off between the

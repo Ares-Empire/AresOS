@@ -38,6 +38,12 @@ desktop = load('aresos_desktop', CONFIG / 'usr/libexec/aresos-desktop')
 wrapper = load('aresos_desktop_java', CONFIG / 'usr/libexec/aresos-desktop-java')
 desktop.LOG.disabled = True
 LINUX = sys.platform.startswith('linux')
+TERM, KILL = int(signal.SIGTERM), 9
+
+
+def end(status=None, reason=None, sent=(), session=None):
+    """How Java ended, as the wrapper reports it (desktop.End)."""
+    return desktop.End(status, reason, tuple(sent), session)
 
 
 def fake_share(folder, lock=LOCK):
@@ -237,6 +243,11 @@ class Base(unittest.TestCase):
 
     def stored(self):
         return json.loads(pathlib.Path(self.paths.state_file).read_text())
+
+    def write_record(self, **record):
+        """The wrapper's exit record, where the supervisor keeps it (its state folder)."""
+        os.makedirs(os.path.dirname(self.paths.exit_file), exist_ok=True)
+        pathlib.Path(self.paths.exit_file).write_text(json.dumps(record))
 
 
 # ---------------------------------------------------------------- pinned inputs
@@ -1056,9 +1067,8 @@ class RestartPolicyTest(Base):
         sup = self.supervisor()
         sup.start()
         pid, _ = self.in_world(sup)
-        os.makedirs(self.paths.run_dir, exist_ok=True)
-        record = {'launch': sup.launch.id, 'pid': pid, 'ticks': pid * 7, 'status': 0}
-        pathlib.Path(self.paths.exit_file).write_text(json.dumps(record))
+        self.write_record(launch=sup.launch.id, pid=pid, ticks=pid * 7, status=0)
+        self.assertNotIn(self.paths.runtime, self.paths.exit_file, 'the record is kept where a reboot leaves it')
         self.runner.processes.pop(pid)
         sup.on_jvm_gone()
         self.advance(desktop.EXIT_REPORT_WAIT)
@@ -1075,9 +1085,7 @@ class RestartPolicyTest(Base):
                 sup = self.supervisor()
                 sup.start()
                 pid, _ = self.in_world(sup)
-                full = {'launch': sup.launch.id, 'pid': pid, 'ticks': pid * 7, **record}
-                os.makedirs(self.paths.run_dir, exist_ok=True)
-                pathlib.Path(self.paths.exit_file).write_text(json.dumps(full))
+                self.write_record(**{'launch': sup.launch.id, 'pid': pid, 'ticks': pid * 7, **record})
                 self.runner.processes.pop(pid)
                 sup.on_jvm_gone()
                 self.advance(desktop.EXIT_REPORT_WAIT)
@@ -1242,21 +1250,20 @@ class RestartPolicyTest(Base):
         self.assertTrue(ok)
         return sup, reply['launch']
 
-    def write_start_record(self, launch, status=None, stopped=False, reason='Java could not be started'):
-        pathlib.Path(self.paths.exit_file).write_text(json.dumps(
-            {'launch': launch, 'pid': 77, 'ticks': None, 'status': status, 'stopped': stopped, 'reason': reason}))
+    def write_start_record(self, launch, status=None, sent=(), reason='Java could not be started'):
+        self.write_record(launch=launch, pid=77, ticks=None, status=status, sent=list(sent), reason=reason)
 
     def test_a_death_before_the_hand_off_latches_like_a_kill(self):
         # Review 2, finding 1: a SIGKILL, or an end nobody explains, between authorization and the accepted PID is
         # treated exactly as after the hand-off: latched `killed`, not counted, never restarted by itself.
         self.runner.scope = 'oom-kill'
-        for end in ('java killed', 'wrapper gone', 'hand-off timeout', 'killed, from the exit record'):
-            with self.subTest(end):
+        for case in ('java killed', 'wrapper gone', 'hand-off timeout', 'killed, from the exit record'):
+            with self.subTest(case):
                 sup, launch = self.authorized()
                 self.runner.scope = 'oom-kill'
-                if end == 'java killed':
-                    sup.on_jvm_failed(launch, 'Java ended before it was handed to AresOS', -9)
-                elif end == 'wrapper gone':
+                if case == 'java killed':
+                    sup.on_jvm_failed(launch, end(-9, 'Java ended before it was handed to AresOS'))
+                elif case == 'wrapper gone':
                     sup.on_wrapper_gone(launch)
                     sup.tick()
                     self.advance(desktop.LOST_HANDOFF_WAIT - 1)
@@ -1264,7 +1271,7 @@ class RestartPolicyTest(Base):
                     self.assertEqual(sup.state, 'STARTING', 'it waits for the wrapper\'s own report')
                     self.advance(1)
                     sup.tick()
-                elif end == 'hand-off timeout':
+                elif case == 'hand-off timeout':
                     self.advance(desktop.HANDOFF_TIMEOUT)
                     sup.tick()
                 else:
@@ -1284,27 +1291,27 @@ class RestartPolicyTest(Base):
     def test_a_failed_start_is_reported_and_counted_never_left_open(self):
         # Review 1, finding 7, with review 2 finding 1: a start that failed for a stated reason is counted like a
         # crash. That includes a report on a new connection after the first broke, and the wrapper's exit record.
-        for end in ('jvm_failed', 'java ended by itself', 'report after the connection broke',
-                    'exit record after a timeout', 'stopped by the wrapper, status ignored'):
-            with self.subTest(end):
+        for case in ('jvm_failed', 'java ended by itself', 'report after the connection broke',
+                     'exit record after a timeout', 'stopped by the wrapper\'s SIGTERM'):
+            with self.subTest(case):
                 sup, launch = self.authorized()
-                if end == 'jvm_failed':
-                    sup.on_jvm_failed(launch, 'Java could not be started: no such file')
-                elif end == 'java ended by itself':
-                    sup.on_jvm_failed(launch, 'Java ended before it was handed to AresOS', 1)
+                if case == 'jvm_failed':
+                    sup.on_jvm_failed(launch, end(reason='Java could not be started: no such file'))
+                elif case == 'java ended by itself':
+                    sup.on_jvm_failed(launch, end(1, 'Java ended before it was handed to AresOS'))
                     self.assertIn('Java ended with exit code 1', sup.detail)
-                elif end == 'report after the connection broke':
+                elif case == 'report after the connection broke':
                     sup.on_wrapper_gone(launch)
                     self.advance(desktop.EXIT_REPORT_WAIT / 2)
                     sup.tick()
-                    sup.on_jvm_failed(launch, 'lost the supervisor during the hand-off; Java was stopped')
-                elif end == 'exit record after a timeout':
+                    sup.on_jvm_failed(launch, end(143, 'lost the supervisor during the hand-off', [TERM]))
+                elif case == 'exit record after a timeout':
                     self.write_start_record(launch)
                     self.advance(desktop.HANDOFF_TIMEOUT)
                     sup.tick()
                 else:
                     sup.on_wrapper_gone(launch)
-                    self.write_start_record(launch, -9, stopped=True, reason='lost the supervisor; Java was stopped')
+                    self.write_start_record(launch, -15, [TERM], 'lost the supervisor during the hand-off')
                     self.advance(desktop.LOST_HANDOFF_WAIT)
                     sup.tick()
                 self.assertEqual((sup.state, sup.reason), ('STARTING', 'restarting'))
@@ -1322,7 +1329,7 @@ class RestartPolicyTest(Base):
         sup = self.supervisor()
         sup.start()
         pid, _ = self.run_game(sup)
-        sup.on_jvm_failed(sup.launch.id, 'lost the supervisor during the hand-off; Java was stopped', -15, True)
+        sup.on_jvm_failed(sup.launch.id, end(-15, 'lost the supervisor during the hand-off', [TERM]))
         self.runner.processes.pop(pid)
         sup.on_jvm_gone()
         self.advance(desktop.EXIT_REPORT_WAIT)
@@ -1333,8 +1340,8 @@ class RestartPolicyTest(Base):
 
     def test_a_sigkill_after_acceptance_with_a_lost_answer_latches(self):
         # Review 3, finding 1: the supervisor accepted the PID, its answer was lost, and Java was SIGKILLed before
-        # the wrapper acted on the loss. The wrapper reports Java's own end (stopped=False): a kill, latched,
-        # nothing counted, never restarted. The record the wrapper writes says the same.
+        # the wrapper acted on the loss. The wrapper reports Java's own end: a kill, latched, nothing counted,
+        # never restarted. The record the wrapper writes says the same.
         self.runner.scope = 'oom-kill'
         for path in ('report', 'exit record'):
             with self.subTest(path):
@@ -1345,11 +1352,10 @@ class RestartPolicyTest(Base):
                 sup.start()
                 pid, _ = self.run_game(sup)
                 if path == 'report':
-                    sup.on_jvm_failed(sup.launch.id, 'lost the supervisor during the hand-off', -9, False)
+                    sup.on_jvm_failed(sup.launch.id, end(-9, 'lost the supervisor during the hand-off'))
                 else:
-                    pathlib.Path(self.paths.exit_file).write_text(json.dumps(
-                        {'launch': sup.launch.id, 'pid': pid, 'ticks': pid * 7, 'status': -9, 'stopped': False,
-                         'reason': 'lost the supervisor during the hand-off'}))
+                    self.write_record(launch=sup.launch.id, pid=pid, ticks=pid * 7, status=-9, sent=[],
+                                      reason='lost the supervisor during the hand-off')
                 self.runner.processes.pop(pid)
                 sup.on_jvm_gone()
                 self.advance(desktop.EXIT_REPORT_WAIT)
@@ -1362,66 +1368,189 @@ class RestartPolicyTest(Base):
 
     def test_a_late_report_still_explains_an_unexplained_start(self):
         # Review 3, finding 2: a report that arrives after the start was latched as unexplained still counts. An
-        # explained end replaces the latch with one failed start; a kill stays latched.
-        for stopped, status, expected, counted in ((True, -9, ('STARTING', 'restarting', False), 1),
-                                                    (False, 1, ('STARTING', 'restarting', False), 1),
-                                                    (False, -9, ('RECOVERY', 'killed', True), 0)):
-            with self.subTest(stopped=stopped, status=status):
+        # explained end replaces the latch with one failed start; a kill stays latched, also when the wrapper itself
+        # sent a SIGKILL (review 5, finding 1); an exit 0 is his quit (finding 2).
+        for sent, status, expected, counted in (([TERM], 143, ('STARTING', 'restarting', False), 1),
+                                                ([], 1, ('STARTING', 'restarting', False), 1),
+                                                ([], 0, ('RECOVERY', 'quit', False), 0),
+                                                ([], -9, ('RECOVERY', 'killed', True), 0),
+                                                ([TERM, KILL], -9, ('RECOVERY', 'killed', True), 0)):
+            with self.subTest(sent=sent, status=status):
                 sup, launch = self.authorized()
                 sup.on_wrapper_gone(launch)
                 self.advance(desktop.LOST_HANDOFF_WAIT)
                 sup.tick()
                 self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'killed', True))
-                sup.on_jvm_failed(launch, 'lost the supervisor during the hand-off; Java was stopped', status, stopped)
+                sup.on_jvm_failed(launch, end(status, 'lost the supervisor during the hand-off', sent))
                 self.assertEqual((sup.state, sup.reason, sup.persisted.latched), expected)
                 self.assertEqual(self.stored()['consecutive'], counted)
-                sup.on_jvm_failed(launch, 'the same report again', status, stopped)
+                sup.on_jvm_failed(launch, end(status, 'the same report again', sent))
                 self.assertEqual(self.stored()['consecutive'], counted, 'counted once')
 
-    def test_a_kill_after_the_wrappers_check_is_not_its_stop(self):
-        # Review 4, finding 1: Java ends right after the wrapper's stop() saw it running, before or after its SIGTERM
-        # went out. The wrapper's real stop() records only what it sent; the classification uses the real status.
-        for status, expected in ((-9, False), (0, False), (1, False), (143, True), (-15, True)):
-            with self.subTest(status=status):
-                sent = []
+    def accept(self, sup, launch, pid=4001):
+        """The supervisor accepts the JVM of an authorized launch."""
+        self.runner.processes[pid] = (pid - 1, pid * 7, '')
+        self.assertEqual(sup.on_jvm_started(pid - 1, pid, launch), (True, ''))
+        return pid
 
-                class Racing:
-                    alive, code = True, None
-
-                    def poll(self):
-                        if self.alive:
-                            self.alive, self.code = False, status  # ends right after this check
-                            return None
-                        return self.code
-
-                    def send_signal(self, sig):
-                        pass  # Java has already ended: the signal reaches nothing
-
-                    def wait(self, timeout=None):
-                        return self.code
-                wrapper.stop(Racing(), sent)
-                self.assertEqual(sent, [signal.SIGTERM])
-                self.assertIs(wrapper.stopped_by_wrapper(status, sent), expected)
-        # Accepted JVM, lost answer, a SIGKILL in that gap: latched, nothing counted, never restarted.
-        sup = self.supervisor()
-        sup.start()
-        pid, _ = self.run_game(sup)
-        sup.on_jvm_failed(sup.launch.id, 'lost the supervisor', -9,
-                          desktop.stopped_by_wrapper(-9, [int(signal.SIGTERM)]))
+    def jvm_gone(self, sup, pid):
         self.runner.processes.pop(pid)
         sup.on_jvm_gone()
+        self.advance(desktop.EXIT_REPORT_WAIT)
         sup.tick()
-        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'killed', True))
-        self.assertEqual(self.stored()['consecutive'], 0)
-        self.advance(3600)
-        sup.tick()
-        self.assertEqual(len(self.runner.prisms), 1)
 
-    def test_both_programs_decide_stopped_by_the_same_rule(self):
-        for status in (None, 0, 1, 2, 137, 143, -9, -15, -6):
-            for sent in ([], [15], [9], [15, 9]):
+    def test_a_sigkilled_java_never_restarts_whoever_sent_the_signal(self):
+        # Review 5, finding 1: Java ignored the wrapper's SIGTERM and died of a SIGKILL. The wrapper's own SIGKILL may
+        # have been delivered (sent 15, 9), or skipped because a kill from outside came first (sent 15), or nothing
+        # was sent at all. The status is the same, and a SIGKILL from outside can land a moment before the wrapper's
+        # own, so the outcome is the same too: latched, nothing counted, never restarted. By the report and by the
+        # exit record, before and after the PID was accepted.
+        for sent in ([], [TERM], [TERM, KILL]):
+            for accepted in (False, True):
+                for path in ('report', 'record'):
+                    with self.subTest(sent=sent, accepted=accepted, path=path):
+                        sup, launch = self.authorized()
+                        pid = self.accept(sup, launch) if accepted else None
+                        if path == 'report':
+                            sup.on_jvm_failed(launch, end(-9, 'lost the supervisor during the hand-off', sent))
+                        else:
+                            self.write_record(launch=launch, pid=pid, ticks=pid and pid * 7, status=-9, sent=sent,
+                                              reason='lost the supervisor during the hand-off')
+                            sup.on_wrapper_gone(launch)
+                        if accepted:
+                            self.jvm_gone(sup, pid)
+                        else:
+                            self.advance(desktop.LOST_HANDOFF_WAIT)
+                            sup.tick()
+                        self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'killed', True))
+                        self.assertEqual((self.stored()['consecutive'], self.stored()['failures']), (0, []))
+                        self.assertEqual('the cause is not certain' in sup.persisted.detail, KILL in sent)
+                        self.advance(3600)
+                        sup.tick()
+                        self.assertEqual(len(self.runner.prisms), 1, 'never restarted by itself')
+
+    def test_no_decision_hangs_on_the_signals_the_wrapper_sent(self):
+        # Review 5, finding 1, by construction: Java's status alone decides. Whatever the wrapper sent (or says it
+        # sent), a SIGKILL latches, an exit 0 is his quit, and anything else counts once and restarts.
+        restarts, quit_, killed = ('STARTING', 'restarting', False, 1), ('RECOVERY', 'quit', False, 0), (
+            'RECOVERY', 'killed', True, 0)
+        expected = {None: restarts, 0: quit_, 1: restarts, 2: restarts, 143: restarts, -15: restarts, -6: restarts,
+                    137: killed, -9: killed}
+        for status, outcome in expected.items():
+            for sent in ([], [TERM], [KILL], [TERM, KILL]):
                 with self.subTest(status=status, sent=sent):
-                    self.assertEqual(desktop.stopped_by_wrapper(status, sent), wrapper.stopped_by_wrapper(status, sent))
+                    sup, launch = self.authorized()
+                    sup.on_jvm_failed(launch, end(status, 'the supervisor refused the game', sent))
+                    self.assertEqual((sup.state, sup.reason, sup.persisted.latched, sup.persisted.consecutive),
+                                     outcome)
+
+    def test_exit_zero_is_his_quit_whenever_it_comes(self):
+        # Review 5, finding 2: Java exits 0 before its PID was delivered, after the supervisor refused it, or while a
+        # lost hand-off is being recovered (also when the wrapper's SIGTERM went out a moment before). It is his
+        # quit every time: nothing counted, never restarted.
+        for case in ('before the PID was delivered', 'after a refusal', 'lost hand-off, reported',
+                     'lost hand-off, from the exit record', 'lost answer after acceptance'):
+            with self.subTest(case):
+                sup, launch = self.authorized()
+                if case == 'before the PID was delivered':
+                    sup.on_jvm_failed(launch, end(0, 'Java ended before it was handed to AresOS'))
+                elif case == 'after a refusal':
+                    self.assertFalse(sup.on_jvm_started(4000, 4001, launch)[0], 'Java has already ended')
+                    sup.on_jvm_failed(launch, end(0, 'the supervisor refused the game: the JVM is not the '
+                                                     'wrapper\'s child'))
+                elif case == 'lost hand-off, reported':
+                    sup.on_wrapper_gone(launch)
+                    self.advance(3)
+                    sup.tick()
+                    sup.on_jvm_failed(launch, end(0, 'lost the supervisor during the hand-off', [TERM]))
+                elif case == 'lost hand-off, from the exit record':
+                    sup.on_wrapper_gone(launch)
+                    self.write_start_record(launch, 0, reason='lost the supervisor during the hand-off')
+                    self.advance(desktop.LOST_HANDOFF_WAIT)
+                    sup.tick()
+                else:
+                    pid = self.accept(sup, launch)
+                    sup.on_jvm_failed(launch, end(0, 'lost the supervisor during the hand-off'))
+                    self.jvm_gone(sup, pid)
+                self.assertEqual((sup.state, sup.reason, sup.persisted.latched), ('RECOVERY', 'quit', False))
+                self.assertEqual((self.stored()['consecutive'], self.stored()['failures']), (0, []))
+                self.advance(3600)
+                sup.tick()
+                self.assertEqual(len(self.runner.prisms), 1, 'his quit never restarts')
+
+    def reboot(self):
+        """A reboot: the runtime folder, and with it the session, is gone; the state folder stays."""
+        shutil.rmtree(self.paths.runtime)
+        os.makedirs(self.paths.runtime)
+        self.runner = FakeRunner()
+        sup = self.supervisor()
+        sup.start()
+        return sup
+
+    def unresolved(self):
+        """A start latched as unexplained: (supervisor, launch)."""
+        sup, launch = self.authorized()
+        sup.on_wrapper_gone(launch)
+        self.advance(desktop.LOST_HANDOFF_WAIT)
+        sup.tick()
+        self.assertEqual((sup.state, sup.reason, self.stored()['unresolved']['launch']),
+                         ('RECOVERY', 'killed', launch))
+        return sup, launch
+
+    def test_an_explanation_written_before_a_reboot_is_applied_after_it(self):
+        # Review 5, finding 3: an end is latched as unexplained, the supervisor stops, the wrapper writes its
+        # explanation and cannot deliver it, and the machine reboots. The explanation is kept where a reboot
+        # leaves it, so the next session reconciles it exactly once: a crash is counted, a kill stays latched, and
+        # his quit of the old session does not keep the new session's hub closed.
+        for status, sent, latched, counted in ((1, [], False, 1), (143, [TERM], False, 1), (0, [], False, 0),
+                                               (-9, [], True, 0), (-9, [TERM, KILL], True, 0)):
+            with self.subTest(status=status, sent=sent):
+                sup, launch = self.unresolved()
+                self.write_record(launch=launch, session=sup.instance, pid=77, ticks=None, status=status, sent=sent,
+                                  reason='lost the supervisor during the hand-off')
+                again = self.reboot()
+                self.assertNotEqual(again.instance, sup.instance, 'a new session')
+                if latched:
+                    self.assertEqual((again.state, again.reason, again.persisted.latched),
+                                     ('RECOVERY', 'killed', True))
+                    self.assertEqual(self.runner.prisms, [])
+                else:
+                    self.assertEqual((again.state, again.reason, again.persisted.latched), ('STARTING', None, False))
+                    self.assertEqual(len(self.runner.prisms), 1, 'the new session starts its hub')
+                self.assertEqual((self.stored()['consecutive'], len(self.stored()['failures'])), (counted, counted))
+                self.assertIsNone(self.stored()['unresolved'])
+                # Exactly once: another supervisor start reads the same record and counts nothing again.
+                third = self.supervisor()
+                third.start()
+                self.assertEqual(self.stored()['consecutive'], counted)
+                self.assertEqual(third.persisted.latched, latched)
+
+    def test_a_reboot_keeps_a_latch_nothing_explains(self):
+        # The other side of finding 3: without an explanation the latch survives the reboot (JUDGMENT-CALL 12), and
+        # a record of another launch explains nothing.
+        for record in (None, 'another launch'):
+            with self.subTest(record=record):
+                sup, launch = self.unresolved()
+                if record:
+                    self.write_record(launch='0123456789ab', session=sup.instance, pid=77, status=1, sent=[],
+                                      reason='lost the supervisor during the hand-off')
+                again = self.reboot()
+                self.assertEqual((again.state, again.reason, again.persisted.latched), ('RECOVERY', 'killed', True))
+                self.assertEqual(self.runner.prisms, [])
+                self.assertEqual(self.stored()['unresolved']['launch'], launch)
+                self.assertEqual(self.stored()['consecutive'], 0)
+
+    def test_his_quit_holds_in_its_own_session_only(self):
+        # Finding 3's other half: the same explanation (exit 0) read by a restarted supervisor of the same session
+        # keeps the hub closed until his retry; read after a reboot it does not (the test above).
+        sup, launch = self.unresolved()
+        self.write_record(launch=launch, session=sup.instance, pid=77, ticks=None, status=0, sent=[],
+                          reason='lost the supervisor during the hand-off')
+        again = self.supervisor()
+        again.start()
+        self.assertEqual(again.instance, sup.instance)
+        self.assertEqual((again.state, again.reason, again.persisted.latched), ('RECOVERY', 'quit', False))
+        self.assertEqual(len(self.runner.prisms), 1, 'nothing starts after his quit')
 
     def test_an_unresolved_end_survives_a_supervisor_restart(self):
         # Review 4, finding 2: the supervisor latched an unexplained end, then restarted before the explanation came.
@@ -1435,18 +1564,18 @@ class RestartPolicyTest(Base):
                 sup.tick()
                 self.assertEqual(self.stored()['unresolved']['launch'], launch)
                 if explanation == 'record':
-                    self.write_start_record(launch, -15, stopped=True, reason='lost the supervisor')
+                    self.write_start_record(launch, -15, [TERM], 'lost the supervisor')
                 again = self.supervisor()
                 again.start()
                 if explanation == 'report':
-                    again.on_jvm_failed(launch, 'lost the supervisor', -15, True)
+                    again.on_jvm_failed(launch, end(-15, 'lost the supervisor', [TERM]))
                 elif explanation == 'kill report':
-                    again.on_jvm_failed(launch, 'lost the supervisor', -9, False)
+                    again.on_jvm_failed(launch, end(-9, 'lost the supervisor'))
                 self.assertEqual((again.state, again.reason, again.persisted.latched), expected)
                 self.assertEqual(self.stored()['consecutive'], counted)
                 self.assertIsNone(self.stored()['unresolved'])
                 # Exactly once: the same explanation again, or a third supervisor, changes nothing.
-                again.on_jvm_failed(launch, 'lost the supervisor', -15, True)
+                again.on_jvm_failed(launch, end(-15, 'lost the supervisor', [TERM]))
                 third = self.supervisor()
                 third.start()
                 self.assertEqual(self.stored()['consecutive'], counted)
@@ -1464,7 +1593,7 @@ class RestartPolicyTest(Base):
         self.advance(desktop.LOST_HANDOFF_WAIT - (desktop.HANDOFF_TIMEOUT - 25 + 1) - 1)
         sup.tick()
         self.assertFalse(sup.persisted.latched)
-        sup.on_jvm_failed(launch, 'lost the supervisor', -15, True)
+        sup.on_jvm_failed(launch, end(-15, 'lost the supervisor', [TERM]))
         self.assertEqual((sup.state, sup.reason, self.stored()['consecutive']), ('STARTING', 'restarting', 1))
 
     def test_the_wait_for_a_lost_hand_off_covers_the_wrappers_stop(self):
@@ -1552,232 +1681,352 @@ class RestartPolicyTest(Base):
         self.assertIn(pid, self.runner.processes)
 
 
-class FakeJava:
-    """The JVM as the wrapper's real stop() sees it (poll, send_signal, wait), played by a HandOffRun."""
+class ModelOS:
+    """The wrapper module's `os` while the model runs: the wrapper's real send() looks at the model's Java (waitid)
+    and signals it (kill) through this; everything else is the real os."""
 
-    def __init__(self, run):
-        self.run = run
+    def __init__(self):
+        self.run = None
 
-    def poll(self):
-        run = self.run
-        status = None if run.java_alive else run.java_status
-        if status is None and run.race and not run.raced:
-            # REVIEW-4 finding 1's race: Java ends by itself right after the wrapper saw it running.
-            run.raced = True
-            run.java_end(run.self_end)
-        return status
+    def __getattr__(self, name):
+        return getattr(os, name)
 
-    def send_signal(self, sig):
-        run = self.run
-        if not run.java_alive:
-            return  # like Popen.send_signal: nothing reaches a process that has ended
-        if sig == signal.SIGKILL:
-            run.java_end(-9)
-            run.ended_by_wrapper = True
-        elif sig == signal.SIGTERM and run.term == 'exits':
-            run.java_end(128 + signal.SIGTERM)  # the JVM's exit status after SIGTERM
-            run.ended_by_wrapper = True
+    def waitid(self, idtype, pid, options):
+        assert (idtype, pid) == (os.P_PID, HandOffRun.PID), 'the wrapper looks at its own child only'
+        assert options == os.WEXITED | os.WNOHANG | os.WNOWAIT, 'looking at Java never reaps it and never blocks'
+        return self.run.wrapper_looks()
 
-    def wait(self, timeout=None):
-        if self.run.java_alive:
-            raise subprocess.TimeoutExpired('java', timeout)
-        return self.run.java_status
+    def kill(self, pid, signum):
+        assert pid == HandOffRun.PID
+        self.run.wrapper_signals(signum)
 
 
 class HandOffRun:
-    """One order of events at the hand-off, through the real supervisor (fake clock and runner), the wrapper's
-    real stop() and stopped_by_wrapper(), and the model playing Java, the connection and the wrapper's steps.
+    """One order of events around a launch's hand-off and end. The real supervisor (fake clock and runner) is
+    talked to through the real Loop.handle, in JSON lines as the wrapper sends them. The wrapper's steps are its
+    real send(), end_report() and write_exit(). The model plays Java, the connection, the clock and the order, and
+    keeps its own ledger of what really happened: how Java ended, who ended it, and what the wrapper wrote down.
 
-    P  the supervisor handles jvm_started          A  the wrapper gets the answer
-    B  the first connection breaks                 D  Java ends by itself (self_end)
-    R  the supervisor restarts                     W  the wrapper's next step (stop and report, or report the end)
-    X  the wrapper dies (Java dies with it)        T  40 s pass in 5 s steps (every deadline)
-
-    `delay` lets time pass right after the authorization, so a loss can come late in the 30 s window.
+    The supervisor
+      P  handles jvm_started, and the wrapper gets the answer     H  handles jvm_started; the answer never arrives
+      B  its end of the connection drops (it sees the wrapper go)  R  restarts
+      T  40 s pass in 5 s steps (every deadline)                   Z  the machine reboots: every process is gone,
+                                                                      the runtime folder is cleared, a new session
+    Java
+      q  exits 0 (his quit)        c  exits 1 (a crash)        k  is SIGKILLed from outside
+    The wrapper, one step at a time (review 5, finding 4)
+      O  its wait for the answer times out after 10 s; the supervisor sees nothing
+      S  it stops Java: one look, SIGTERM, and Java exits 143     s  the same, and Java ignores the SIGTERM
+      r  the same, and a SIGKILL from outside lands right after the look
+      E  the stop window (10 s) has passed: one look, SIGKILL     e  the same, and a SIGKILL from outside lands
+                                                                      right after the look
+      F  it has waited for Java and writes its exit record        N  it reports to the supervisor running now, and
+      X  it dies (Java dies with it)                                 exits
     """
     PID, WRAPPER, TICKS = 5001, 5000, 35007
+    ASK_TIMEOUT = 10.0  # the wrapper's socket timeout (aresos-desktop-java, class Supervisor)
+    BEFORE_RECORD = ('waiting', 'stopping', 'window', 'ending')
+    LOST, REFUSED, EARLY = ('lost the supervisor during the hand-off', 'the supervisor refused the game',
+                            'Java ended before it was handed to AresOS')
 
-    def __init__(self, test, self_end, term, race, delay=0):
-        self.test, self.self_end, self.term, self.race = test, self_end, term, race
+    def __init__(self, test, delay=0):
+        self.test = test
         test.reset_run()
+        test.model_os.run = self
         self.runner = test.runner
         self.sup = test.supervisor()
         self.sup.start()
-        ok, reply = self.sup.on_jvm_start(test.jvm_request())
-        assert ok, reply
-        self.launch = reply['launch']
+        self.peer, self.peer_sup = desktop.Peer(None, self.WRAPPER, os.getuid()), self.sup
+        reply = self.ask(self.peer, dict(test.jvm_request(), op='jvm_start', pid=self.WRAPPER))
+        assert reply['ok'], reply
+        self.launch, self.session, self.record_path = reply['launch'], reply['session'], reply['record']
         self.runner.processes[self.PID] = (self.WRAPPER, self.TICKS,
                                            f'0::/user.slice/user@1001.service/aresos.slice/{reply["unit"]}\n')
-        self.java_alive, self.java_status = True, None
-        self.conn, self.conn_sup = 'open', self.sup
-        self.processed = self.answer = self.loss_at = None
-        self.latched_before_loss = self.ended_by_wrapper = False
-        self.wrapper, self.sent, self.accepted, self.raced, self.wrapper_died = 'waiting', [], False, False, False
+        self.java = types.SimpleNamespace(pid=self.PID, returncode=None)  # as the wrapper's send() sees its child
+        # The ledger: Java, its wrapper, and the connection, as they really are.
+        self.java_alive, self.java_status, self.java_cause = True, None, None
+        self.wrapper, self.reason, self.sent, self.variant = 'waiting', None, [], None
+        self.conn, self.handled = 'open', False
+        self.facts = self.message = None  # what the wrapper wrote into its exit record, and its report
+        self.rebooted = None  # the supervisor's state right before a reboot
+        # What the supervisor did, looked at only to know which of its own deadline rules applies.
+        self.accepted, self.loss_at, self.latched_before_loss = False, None, False
         self.lock()
         if delay:
             test.advance(delay)
             self.sup.tick()
 
+    # -- talking to the supervisor as the wrapper does
+
+    def ask(self, peer, message):
+        return desktop.Loop.handle(types.SimpleNamespace(supervisor=self.sup), peer, json.dumps(message).encode())
+
+    def handle_started(self):
+        self.handled = True
+        answer = self.ask(self.peer, {'op': 'jvm_started', 'pid': self.PID})
+        self.accepted = self.accepted or answer['ok']
+        return answer
+
+    def lock(self):
+        # The wrapper holds the desktop lock, and Java inherits it.
+        self.runner.lock_held = self.wrapper not in ('done', 'dead') or self.java_alive
+
+    # -- Java
+
+    def java_ends(self, status, cause):
+        self.java_alive, self.java_status, self.java_cause = False, status, cause
+        self.runner.processes.pop(self.PID, None)
+        if self.sup.launch is not None and self.sup.launch.jvm_pid == self.PID:
+            self.sup.on_jvm_gone()  # the pidfd of a JVM this supervisor watches
+        self.lock()
+
+    def wrapper_looks(self):
+        """The wrapper's look at Java in send() (waitid without reaping): None while Java runs."""
+        if not self.java_alive:
+            return types.SimpleNamespace(si_pid=self.PID)
+        if self.variant in ('r', 'e'):
+            self.java_ends(-9, 'outside')  # right after the look: the wrapper saw Java running
+        return None
+
+    def wrapper_signals(self, signum):
+        """The wrapper's kill(): the kernel takes a signal for a Java that has ended too (a zombie)."""
+        if not self.java_alive:
+            return
+        if signum == signal.SIGKILL:
+            self.java_ends(-9, 'wrapper')
+        elif signum == signal.SIGTERM and self.variant == 'S':
+            self.java_ends(128 + TERM, 'wrapper')  # the JVM's exit status after SIGTERM
+
+    # -- the events
+
+    def P(self):
+        answer = self.handle_started()
+        if answer['ok']:
+            self.wrapper = 'game'
+        else:
+            self.wrapper, self.reason = 'stopping', self.REFUSED + ': ' + answer['message']
+
+    def H(self):
+        self.handle_started()
+
     def lost(self):
-        """The wrapper, still waiting for its answer to a JVM no supervisor accepted, has lost its connection: from
-        now on it may take the whole stop-and-report window, and no supervisor may latch its start as unexplained
-        before that window ends (one deadline rule). After an acceptance, a JVM's end waits EXIT_REPORT_WAIT and a
-        later explanation is reconciled."""
-        if self.wrapper == 'waiting' and self.loss_at is None and not self.accepted:
+        """A supervisor learns that the hand-off of a start it has not accepted is lost, while the wrapper is alive
+        and has not written its record: from now on the wrapper has the whole stop-and-report window, and no
+        supervisor may latch the start as unexplained before it ends (one deadline rule, review 4)."""
+        if self.loss_at is None and not self.accepted and self.wrapper in self.BEFORE_RECORD:
             self.loss_at = self.test.now[0]
             # A latch from before the loss (30 s without any report) is the authorization limit, not this rule.
             self.latched_before_loss = self.sup.persisted.latched
 
-    def check_no_early_latch(self):
-        persisted = self.sup.persisted
-        if (self.wrapper == 'waiting' and self.loss_at is not None and not self.latched_before_loss
-                and self.test.now[0] - self.loss_at < desktop.LOST_HANDOFF_WAIT):
-            assert not (persisted.latched and persisted.reason == 'killed'), (
-                'latched while the wrapper may still be stopping Java', self.test.now[0] - self.loss_at)
-
-    def lock(self):
-        # The wrapper holds the desktop lock, and Java inherits it.
-        self.runner.lock_held = self.wrapper != 'done' or self.java_alive
-
-    def java_end(self, status):
-        self.java_alive, self.java_status = False, status
-        self.runner.processes.pop(self.PID, None)
-        if self.sup.launch is not None and self.sup.launch.jvm_pid == self.PID:
-            self.sup.on_jvm_gone()
-        self.lock()
-
-    def record(self, data):
-        pathlib.Path(self.test.paths.exit_file).write_text(json.dumps(dict(data, launch=self.launch)))
-
-    def P(self):
-        ok, _ = self.sup.on_jvm_started(self.WRAPPER, self.PID, self.launch)
-        self.processed, self.accepted = ok, self.accepted or ok
-
-    def A(self):
-        self.answer = self.processed
-        if self.processed:
-            self.wrapper = 'game'
+    def give_up(self):
+        if self.wrapper == 'waiting':
+            self.wrapper, self.reason = 'stopping', self.LOST
 
     def B(self):
-        self.conn = 'broken'
         self.lost()
-        if self.conn_sup is self.sup:
-            self.sup.on_wrapper_gone(self.launch)
+        self.conn = 'broken'
+        if self.peer_sup is self.sup:
+            self.sup.on_wrapper_gone(self.peer.launch)
+        self.give_up()
 
-    def D(self):
-        self.java_end(self.self_end)
+    def O(self):
+        self.pass_time(self.ASK_TIMEOUT)
+        self.conn = 'abandoned'
+        self.give_up()
 
     def R(self):
-        self.conn = 'broken'
         self.lost()
+        self.conn = 'broken'
+        self.give_up()
         self.sup = self.test.supervisor()
         self.sup.start()
 
-    def W(self):
-        if self.wrapper == 'waiting':
-            wrapper.stop(FakeJava(self), self.sent)
-            status = self.java_status
-            reason = 'the supervisor refused the game' if self.answer is False else 'lost the supervisor'
-            self.record({'pid': self.PID, 'ticks': self.TICKS, 'status': status, 'sent': self.sent,
-                         'stopped': wrapper.stopped_by_wrapper(status, self.sent), 'reason': reason})
-            self.wrapper = 'done'
-            self.lock()
-            # On its first connection if open, else a new one: either way to the supervisor running now.
-            self.sup.on_jvm_failed(self.launch, reason, status, desktop.stopped_by_wrapper(status, self.sent))
-        else:
-            self.record({'pid': self.PID, 'ticks': self.TICKS, 'status': self.java_status})
-            self.wrapper = 'done'
-            self.lock()
-            # On its first connection, or (it broke) a new one: to the supervisor running now.
-            self.sup.on_jvm_report(self.PID, self.java_status, self.launch)
+    def q(self):
+        self.java_ends(0, 'itself')
+
+    def c(self):
+        self.java_ends(1, 'itself')
+
+    def k(self):
+        self.java_ends(-9, 'outside')
 
     def X(self):
-        self.wrapper, self.wrapper_died = 'done', True
+        self.wrapper = 'dead'
         if self.java_alive:
-            self.java_end(-9)  # PR_SET_PDEATHSIG
-        if self.conn == 'open':
-            self.B()
+            self.java_ends(-9, 'orphaned')  # PR_SET_PDEATHSIG
+        if self.conn != 'broken':
+            self.conn = 'broken'
+            if self.peer_sup is self.sup:
+                self.sup.on_wrapper_gone(self.peer.launch)
+        self.lock()
+
+    def stop_term(self):
+        before = list(self.sent)
+        delivered = wrapper.send(self.java, signal.SIGTERM, self.sent)
+        assert self.sent == before + ([TERM] if delivered else []), self.sent
+        self.wrapper = 'window' if self.java_alive else 'ending'
+
+    def stop_kill(self):
+        self.pass_time(wrapper.STOP_WAIT)
+        wrapper.send(self.java, signal.SIGKILL, self.sent)
+        assert not self.java_alive
+        self.wrapper = 'ending'
+
+    S = s = r = stop_term
+    E = e = stop_kill
+
+    def F(self):
+        early = self.wrapper == 'waiting'
+        reason = self.EARLY if early else self.reason
+        self.facts, self.message = wrapper.end_report(self.launch, self.session, reason, self.java_status, self.PID,
+                                                      None if early else self.TICKS, self.sent)
+        wrapper.write_exit(self.record_path, self.facts)
+        self.wrapper = 'recorded'
+
+    def N(self):
+        if self.conn != 'broken' and self.peer_sup is self.sup:
+            if not self.handled:
+                self.handle_started()  # on that connection its jvm_started comes first
+            self.ask(self.peer, self.message)
+            self.sup.on_wrapper_gone(self.peer.launch)  # the connection closes as the wrapper exits
+        else:
+            self.ask(desktop.Peer(None, self.WRAPPER, os.getuid()), self.message)  # a new connection
+        self.conn, self.wrapper = 'broken', 'done'
         self.lock()
 
     def T(self):
-        for _ in range(8):
+        self.pass_time(40)
+
+    def Z(self):
+        persisted = self.sup.persisted
+        self.rebooted = dict(latched=persisted.latched, counted=persisted.consecutive, truth=self.truth())
+        if self.java_alive:
+            self.java_alive, self.java_cause = False, 'reboot'
+        self.wrapper, self.conn = 'dead', 'broken'
+        shutil.rmtree(self.test.paths.runtime)
+        os.makedirs(self.test.paths.runtime)
+        self.runner = self.test.runner = FakeRunner()
+        self.sup = self.test.supervisor()
+        self.sup.start()
+
+    def enabled(self):
+        """The events that can happen next, by the model's own state."""
+        events = []
+        if self.wrapper == 'waiting' and self.conn == 'open':
+            events += ['B', 'O'] + ([] if self.handled else ['P'])
+        if not self.handled and (self.wrapper == 'waiting' or self.conn == 'abandoned') and self.wrapper not in (
+                'done', 'dead'):
+            events.append('H')
+        if self.java_alive:
+            events += ['q', 'c', 'k']
+        if self.wrapper == 'stopping':
+            events += ['S', 's', 'r'] if self.java_alive else ['S']
+        if self.wrapper == 'window' and self.java_alive:
+            events += ['E', 'e']
+        if not self.java_alive and (self.wrapper in ('game', 'window', 'ending')
+                                    or (self.wrapper == 'waiting' and not self.handled)):
+            events.append('F')
+        if self.wrapper == 'recorded':
+            events.append('N')
+        if self.wrapper not in ('done', 'dead'):
+            events.append('X')
+        return events
+
+    # -- time and the invariants that hold at every moment
+
+    def pass_time(self, seconds):
+        for _ in range(int(seconds // 5)):
             self.test.advance(5)
             self.sup.tick()
-            self.check_no_early_latch()
+            self.check()
 
     def play(self, order):
+        self.check()
         for event in order:
+            self.variant = event
             getattr(self, event)()
-            persisted = self.sup.persisted
-            assert persisted.consecutive <= 1 and len(persisted.failures) <= 1, ('counted twice', order, event)
-            self.check_no_early_latch()
-        for _ in range(3):
-            self.T()
+            self.check()
+
+    def settle(self):
+        self.pass_time(120)
 
     def truth(self):
-        """How Java really ended, from the model's own facts (not the code under test): who ended it, and how."""
+        """How the launch really ended, from the ledger alone: what ended Java, and whether its wrapper wrote that
+        down. Only `crash` may ever be counted or restarted (JUDGMENT-CALL 10): Java ended by itself or by the
+        wrapper's SIGTERM, with a status that is neither 0 nor a SIGKILL, and the wrapper recorded it."""
         if self.java_alive:
             return 'running'
-        if self.wrapper_died:
-            return 'killed'
-        if self.ended_by_wrapper:
-            return 'counted'
+        if self.facts is None:
+            return 'unwitnessed'  # an uncertain end: nobody wrote down how Java ended
+        assert self.facts['status'] == self.java_status
         if self.java_status == -9:
-            return 'killed'
-        if self.java_status == 0 and self.accepted:
+            assert self.java_cause in ('outside', 'wrapper'), self.java_cause
+            return 'killed'  # from outside, or the wrapper's own: the status cannot tell which
+        if self.java_cause == 'itself' and self.java_status == 0:
             return 'quit'
-        return 'counted'
+        assert (self.java_cause, self.java_status) in (('itself', 1), ('wrapper', 128 + TERM))
+        return 'crash'
 
+    def check(self):
+        persisted = self.sup.persisted
+        counted = (persisted.consecutive, len(persisted.failures))
+        assert counted in ((0, 0), (1, 1)), ('counted twice', counted)
+        starts = len(self.runner.prisms)
+        if self.rebooted is None:
+            # An end that is not certain to be an ordinary crash is never counted and never restarts.
+            assert starts in (1, 2), ('restarted more than once', starts)
+            if counted != (0, 0) or starts > 1:
+                assert self.truth() == 'crash', ('counted or restarted an end that is not a certain crash',
+                                                 self.truth(), counted, starts)
+            if (self.loss_at is not None and not self.latched_before_loss and self.wrapper in self.BEFORE_RECORD
+                    and self.test.now[0] - self.loss_at < desktop.LOST_HANDOFF_WAIT):
+                assert not (persisted.latched and persisted.reason == 'killed'), (
+                    'latched while the wrapper may still be stopping Java', self.test.now[0] - self.loss_at)
+        else:
+            assert starts in (0, 1), ('the new session started the hub more than once', starts)
+            if counted != (0, 0):
+                assert self.rebooted['truth'] == 'crash', ('counted after a reboot', self.rebooted)
 
-def enabled(order, self_end, race):
-    """Whether every event of `order` can happen at its place (the protocol's own preconditions)."""
-    processed = answer = None
-    conn, wrapper_state, alive = 'open', 'waiting', True
-    for event in order:
-        if event == 'P':
-            if processed is not None or conn != 'open' or wrapper_state != 'waiting':
-                return False
-            processed = alive
-        elif event == 'A':
-            if processed is None or conn != 'open' or answer is not None:
-                return False
-            answer = processed
-            wrapper_state = 'game' if processed else wrapper_state
-        elif event == 'B':
-            if conn != 'open':
-                return False
-            conn = 'broken'
-        elif event == 'D':
-            if not alive:
-                return False
-            alive = False
-        elif event == 'R':
-            conn = 'broken'
-        elif event == 'W':
-            if wrapper_state == 'waiting' and (conn == 'broken' or answer is False):
-                wrapper_state, alive = 'done', False
-            elif wrapper_state == 'game' and not alive:
-                wrapper_state = 'done'
-            else:
-                return False
-        elif event == 'X':
-            if wrapper_state == 'done':
-                return False
-            wrapper_state, alive = 'done', False
-            conn = 'broken'
-    return True
+    def check_settled(self):
+        """After every deadline has passed, in the session of the launch."""
+        truth, persisted = self.truth(), self.sup.persisted
+        outcome = dict(latched=persisted.reason if persisted.latched else None, counted=persisted.consecutive,
+                       restarts=len(self.runner.prisms) - 1)
+        if truth == 'crash':
+            # Counted exactly once, and nothing stays latched when a full explanation exists. (The restart itself
+            # waits while a wrapper that has not exited holds the desktop lock.)
+            expected = dict(latched=None, counted=1, restarts=outcome['restarts'])
+        elif truth == 'quit':
+            expected = dict(latched=None, counted=0, restarts=0)
+        elif truth in ('killed', 'unwitnessed'):
+            expected = dict(latched='killed', counted=0, restarts=0)
+        else:
+            expected = dict(latched=outcome['latched'], counted=0, restarts=0)
+        assert outcome == expected, (truth, outcome, expected)
+
+    def check_rebooted(self):
+        """After a reboot and every deadline of the new session. A latch outlives the reboot unless the wrapper
+        wrote down an end that explains it (then it is reconciled exactly once); a crash the old session's
+        supervisor knew of or had latched is counted once; and the new session starts its hub unless latched: his
+        quit of the old session never keeps it closed."""
+        before, persisted = self.rebooted, self.sup.persisted
+        explained = before['truth'] in ('crash', 'quit')
+        latched = before['latched'] and not explained
+        counted = 1 if before['truth'] == 'crash' and (before['counted'] or before['latched']) else 0
+        outcome = (persisted.latched, persisted.consecutive, len(self.runner.prisms))
+        assert outcome == (latched, counted, 0 if latched else 1), (before, outcome)
 
 
 class HandOffModelTest(Base):
-    """Review 4: the hand-off settled by construction, checked over every order of events at the race points
-    (every subset of P, A, B, D, R, W or X, and one T, in every order), for every way Java can end."""
+    """Reviews 4 and 5: the hand-off and the end of a launch, checked over every order of events (HandOffRun), each
+    with and without a reboot right after it. The expected outcome comes from the model's own ledger."""
 
     def setUp(self):
         super().setUp()
         desktop.provision(self.paths, self.lock)
         make_world(self.paths, self.lock)
         # The model is about the hand-off: the image's inputs, the instance and the world are taken as valid here
-        # (other tests cover them), which keeps the thousands of runs fast.
+        # (other tests cover them), which keeps the many runs fast.
         for name, value in (('validate', lambda sup, inputs=True: (None, 'hub')),
                             ('preflight', lambda sup: (None, 'hub'))):
             patch = mock.patch.object(desktop.Supervisor, name, value)
@@ -1787,6 +2036,10 @@ class HandOffModelTest(Base):
         patch = mock.patch.object(desktop.os, 'fsync', lambda fd: None)
         patch.start()
         self.addCleanup(patch.stop)
+        self.model_os = ModelOS()
+        patch = mock.patch.object(wrapper, 'os', self.model_os)
+        patch.start()
+        self.addCleanup(patch.stop)
 
     def reset_run(self):
         for name in (self.paths.state_file, self.paths.runtime_file, self.paths.exit_file):
@@ -1794,69 +2047,39 @@ class HandOffModelTest(Base):
                 os.unlink(name)
         self.runner = FakeRunner()
 
-    def scenarios(self):
-        for self_end in (None, 0, 1, -9):
-            for race in (False, True):
-                for dies in (False, True):
-                    if (race and (self_end is None or dies)):
-                        continue
-                    for term in (('exits',) if dies else ('exits', 'ignores')):
-                        for delay in ((0,) if dies else (0, 25)):
-                            events = ['P', 'A', 'B', 'R', 'T', 'X' if dies else 'W']
-                            if self_end is not None and not race:
-                                events.append('D')
-                            yield self_end, race, term, delay, events
+    def orders(self, delay):
+        """Every order of events that can happen, each played from the start: (order, the run after it)."""
+        todo = ['']
+        while todo:
+            order = todo.pop()
+            run = HandOffRun(self, delay)
+            run.play(order)
+            events = run.enabled()
+            if 'R' not in order:
+                events.append('R')
+            if 'T' not in order:
+                events.append('T')
+            todo.extend(order + event for event in events)
+            yield order, run
 
     def test_every_order_keeps_the_invariants(self):
-        runs = 0
-        for self_end, race, term, delay, events in self.scenarios():
-            for size in range(1, len(events) + 1):
-                for subset in itertools.combinations(events, size):
-                    if 'W' not in subset and 'X' not in subset:
-                        continue
-                    for order in itertools.permutations(subset):
-                        if not enabled(order, self_end, race):
-                            continue
-                        runs += 1
-                        with self.subTest(self_end=self_end, race=race, term=term, delay=delay,
-                                          order=''.join(order)):
-                            self.check(HandOffRun(self, self_end, term, race, delay), order)
-        self.assertGreater(runs, 6000)
-
-    def check(self, run, order):
-        run.play(order)
-        truth = run.truth()
-        persisted = run.sup.persisted
-        prisms = len(self.runner.prisms)
-        if truth == 'killed':
-            # A kill the wrapper did not send never restarts and counts nothing.
-            self.assertEqual((persisted.latched, persisted.reason), (True, 'killed'))
-            self.assertEqual((persisted.consecutive, persisted.failures), (0, []))
-            self.assertEqual(prisms, 1)
-        elif truth == 'quit':
-            # His quit never restarts.
-            self.assertFalse(persisted.latched)
-            self.assertEqual((persisted.consecutive, prisms), (0, 1))
-        elif truth == 'counted':
-            # A crash (or a failed start) counts exactly once, and a full explanation never leaves a latch.
-            self.assertEqual((persisted.consecutive, len(persisted.failures)), (1, 1))
-            self.assertFalse(persisted.latched, persisted.detail)
-        else:
-            self.assertEqual(persisted.consecutive, 0)
-        self.assertIn(persisted.accounted, (run.launch, None))
-        # After a normal reboot (a new session) the hub starts, unless a latch holds.
-        if os.path.exists(self.paths.runtime_file):
-            os.unlink(self.paths.runtime_file)
-        if not run.java_alive:
-            self.runner.lock_held = False
-        before = len(self.runner.prisms)
-        rebooted = self.supervisor()
-        rebooted.start()
-        if persisted.latched or truth == 'running':
-            self.assertEqual(len(self.runner.prisms), before)
-        else:
-            self.assertEqual(len(self.runner.prisms), before + 1, 'the hub starts after a reboot')
-
+        runs, failures = 0, []
+        for delay in (0, 25):
+            for order, run in self.orders(delay):
+                runs += 1
+                try:
+                    run.settle()
+                    run.check_settled()
+                    run = HandOffRun(self, delay)
+                    run.play(order + 'Z')
+                    run.settle()
+                    run.check_rebooted()
+                except AssertionError as error:
+                    failures.append((delay, order + ('Z' if run.rebooted else ''), error))
+        print(runs)
+        if failures:
+            self.fail(f'{len(failures)} of {runs} orders fail, for example:\n' + '\n'.join(
+                f'  after {delay} s, {order}: {error}' for delay, order, error in failures[:12]))
 
 
 class RecoveryReasonsTest(Base):
@@ -1954,8 +2177,7 @@ class AdoptionTest(Base):
         pathlib.Path(self.paths.runtime_file).write_text(json.dumps(
             {'instance': 'desk-old', 'nonce': 'n' * 32, 'launch': 'a', 'mode': 'hub', 'jvm_pid': 99, 'jvm_ticks': 1}))
         if record:
-            pathlib.Path(self.paths.exit_file).write_text(json.dumps(
-                {'launch': 'a', 'pid': 99, 'ticks': 1, 'status': status}))
+            self.write_record(launch='a', pid=99, ticks=1, status=status)
         sup = self.supervisor()
         sup.start()
         return sup
@@ -2066,7 +2288,7 @@ class AdoptionTest(Base):
                     {'instance': 'desk-old', 'nonce': 'n' * 32, 'launch': 'b', 'mode': 'hub', 'accepted': True,
                      'jvm_pid': None, 'jvm_ticks': None}))
                 if record:
-                    pathlib.Path(self.paths.exit_file).write_text(json.dumps(dict(record, launch='b', pid=5)))
+                    self.write_record(**dict(record, launch='b', pid=5))
                 sup = self.supervisor()
                 sup.start()
                 self.assertEqual((sup.state, sup.reason, sup.persisted.latched), expected)
@@ -2075,7 +2297,7 @@ class AdoptionTest(Base):
                 self.assertEqual(self.runner.prisms, [])
                 if held:
                     # The wrapper reports on a new connection, naming the launch.
-                    sup.on_jvm_failed('b', 'lost the supervisor during the hand-off; Java was stopped')
+                    sup.on_jvm_failed('b', end(143, 'lost the supervisor during the hand-off', [TERM]))
                     self.assertEqual((sup.state, sup.reason), ('STARTING', 'restarting'))
 
     def test_an_adopted_game_that_never_becomes_ready_shows_after_the_timeout(self):
@@ -2389,21 +2611,32 @@ class SessionFilesTest(unittest.TestCase):
 # ---------------------------------------------------------------- Linux: the real wrapper and the real loop
 
 
-def kill_after_the_check(real_stop):
-    """A stop() for the real wrapper whose child is SIGKILLed (and reaped) right after the wrapper's own check found
-    it running: the deterministic form of REVIEW-4 finding 1's race."""
-    def racing_stop(child, sent):
-        real_poll = child.poll
+def kill_unreaped(child):
+    """SIGKILL the wrapper's child from outside and wait until it has ended, without reaping it."""
+    os.kill(child.pid, signal.SIGKILL)
+    os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOWAIT)
 
-        def poll():
-            result = real_poll()
-            if result is None and not sent:
-                os.kill(child.pid, signal.SIGKILL)
-                child.wait()
-            return result
-        child.poll = poll
-        return real_stop(child, sent)
-    return racing_stop
+
+def killed_from_outside(look, when):
+    """An ended() for the real wrapper that lets a SIGKILL from outside land at an exact point, without sleeps.
+    While the wrapper stops Java it looks at it once before each signal: look 1 before its SIGTERM, look 2 before its
+    SIGKILL (after the stop window). The kill lands right `before` that look (the wrapper then sees that Java has
+    ended and sends nothing), or right `after` it (the wrapper saw Java running, and its signal reaches a Java that
+    has just been killed: reviews 4 and 5, finding 1)."""
+    real_ended, looks = wrapper.ended, [0]
+
+    def ended(child):
+        looks[0] += 1
+        if looks[0] != look:
+            return real_ended(child)
+        if when == 'before':
+            kill_unreaped(child)
+            return real_ended(child)
+        result = real_ended(child)
+        if not result:
+            kill_unreaped(child)
+        return result
+    return ended
 
 
 def run_wrapper_here(java, environ, cwd):
@@ -2455,10 +2688,12 @@ class WrapperTest(unittest.TestCase):
         self.java.write_text(FAKE_JAVA)
         self.java.chmod(0o755)
         self.requests = []
+        # The exit record goes where the supervisor says: its state folder, outside the runtime folder.
+        self.record = self.root / 'state/aresos/desktop-exit.json'
         self.reply = {'ok': True, 'launch': 'L1', 'env': {'ARESOS_LAUNCH_NONCE': 'n' * 32,
                                                           'ARESOS_DESKTOP_INSTANCE': 'desk-1',
                                                           'PATH': desktop.SYSTEM_PATH},
-                      'scope': [], 'unit': None}
+                      'scope': [], 'unit': None, 'session': 'desk-1', 'record': str(self.record)}
         self.started_reply = {'ok': True}
         self.drop_started = False
         self.drop_delay = 0.0
@@ -2525,9 +2760,15 @@ class WrapperTest(unittest.TestCase):
         self.assertEqual((start['instance_dir'], start['cwd']), (str(self.root / 'instance'), str(self.root)))
         self.assertEqual(started['pid'], exited['pid'])
         self.assertEqual((exited['status'], exited['launch']), (3, 'L1'))
-        record = json.loads((self.run_dir / 'desktop-exit.json').read_text())
-        self.assertEqual((record['launch'], record['pid'], record['status']), ('L1', started['pid'], 3))
+        # The same facts are in the exit record, bound to the launch, the session and the process. It is not in
+        # the runtime folder, which a reboot clears (review 5, finding 3).
+        record = json.loads(self.record.read_text())
+        self.assertEqual({key: exited[key] for key in record}, record)
+        self.assertEqual((record['launch'], record['session'], record['pid'], record['status'], record['sent'],
+                          record['reason']), ('L1', 'desk-1', started['pid'], 3, [], None))
         self.assertIsInstance(record['ticks'], int)
+        self.assertEqual(oct(self.record.stat().st_mode & 0o777), '0o600')
+        self.assertFalse((self.run_dir / 'desktop-exit.json').exists())
 
     def test_a_start_that_fails_is_reported(self):
         # Review 1, finding 7: Java that cannot start, and a JVM the supervisor refuses, end as jvm_failed.
@@ -2557,9 +2798,9 @@ class WrapperTest(unittest.TestCase):
         self.assertEqual(result.returncode, wrapper.REFUSED, result.stderr)
         self.assertEqual([r['op'] for r in self.requests], ['jvm_start', 'jvm_failed'])
         self.assertEqual((self.requests[-1]['status'], self.requests[-1]['launch']), (-9, 'L1'))
-        self.assertIs(self.requests[-1]['stopped'], False, 'Java ended by itself')
-        record = json.loads((self.run_dir / 'desktop-exit.json').read_text())
-        self.assertEqual((record['launch'], record['status'], record['stopped']), ('L1', -9, False))
+        self.assertEqual(self.requests[-1]['sent'], [], 'this wrapper sent Java nothing')
+        record = json.loads(self.record.read_text())
+        self.assertEqual((record['launch'], record['status'], record['sent']), ('L1', -9, []))
 
     def test_a_lost_hand_off_stops_java_and_reports_on_a_new_connection(self):
         # Review 2, finding 3: the connection breaks during jvm_started while Java runs. Java must not be left
@@ -2574,13 +2815,13 @@ class WrapperTest(unittest.TestCase):
         self.assertNotEqual(failed['connection'], self.requests[0]['connection'])
         self.assertEqual(failed['launch'], 'L1')
         self.assertIn('lost the supervisor during the hand-off', failed['reason'])
-        self.assertIs(failed['stopped'], True, 'the wrapper says it stopped Java itself')
+        self.assertEqual((failed['status'], failed['sent']), (-15, [TERM]), 'Java ended by the wrapper\'s SIGTERM')
         game = self.requests[1]['pid']
         self.assertFalse(os.path.exists(f'/proc/{game}') and
                          pathlib.Path(f'/proc/{game}/stat').read_text().split(')')[1].split()[0] != 'Z')
-        record = json.loads((self.run_dir / 'desktop-exit.json').read_text())
-        self.assertEqual((record['launch'], record['pid'], record['stopped'], record['sent']),
-                         ('L1', game, True, [signal.SIGTERM]))
+        record = json.loads(self.record.read_text())
+        self.assertEqual((record['launch'], record['pid'], record['status'], record['sent']),
+                         ('L1', game, -15, [TERM]))
         import fcntl
         lock = os.open(self.run_dir / 'desktop.lock', os.O_RDWR)
         self.addCleanup(os.close, lock)
@@ -2592,11 +2833,11 @@ class WrapperTest(unittest.TestCase):
         result = self.wrap(env={'FAKE_JAVA_SLEEP': '30', 'FAKE_JAVA_KILL_AFTER': '0.3'})
         self.assertEqual(result.returncode, wrapper.REFUSED, result.stderr)
         failed = self.requests[-1]
-        self.assertEqual((failed['op'], failed['status'], failed['stopped']), ('jvm_failed', -9, False))
-        record = json.loads((self.run_dir / 'desktop-exit.json').read_text())
-        self.assertEqual((record['status'], record['stopped']), (-9, False))
+        self.assertEqual((failed['op'], failed['status'], failed['sent']), ('jvm_failed', -9, []))
+        record = json.loads(self.record.read_text())
+        self.assertEqual((record['status'], record['sent']), (-9, []))
 
-    def test_java_that_ignores_sigterm_is_killed_and_reported_as_stopped(self):
+    def test_java_that_ignores_sigterm_is_killed_and_reported_with_both_signals(self):
         # Review 3, finding 2: the wrapper's stop window (SIGTERM, SIGKILL after STOP_WAIT), then its report. The
         # answer is lost a moment after jvm_started, once the stand-in has set its SIGTERM handling.
         self.drop_started, self.drop_delay = True, 1.0
@@ -2607,25 +2848,84 @@ class WrapperTest(unittest.TestCase):
         self.assertGreaterEqual(took, wrapper.STOP_WAIT)
         self.assertLess(took, desktop.LOST_HANDOFF_WAIT, 'the report comes within the supervisor\'s wait')
         failed = self.requests[-1]
-        self.assertEqual((failed['op'], failed['status'], failed['stopped']), ('jvm_failed', -9, True))
+        self.assertEqual((failed['op'], failed['status'], failed['sent']), ('jvm_failed', -9, [TERM, KILL]))
         game = self.requests[1]['pid']
         self.assertFalse(os.path.exists(f'/proc/{game}') and
                          pathlib.Path(f'/proc/{game}/stat').read_text().split(')')[1].split()[0] != 'Z')
 
-    def test_a_kill_between_the_wrappers_check_and_its_signal_is_reported_as_a_kill(self):
-        # Review 4, finding 1, with the real wrapper: the answer to jvm_started is lost, stop() sees Java running,
-        # and Java is SIGKILLed before the SIGTERM goes out (a hook at exactly that point, no sleeps).
-        self.drop_started = True
+    def test_a_kill_from_outside_at_each_point_of_the_wrappers_stop(self):
+        # Reviews 4 and 5, finding 1, with the real wrapper (run in this process, a hook at the exact point, no
+        # sleeps): the answer to jvm_started is lost, the wrapper stops Java, and a SIGKILL from outside lands
+        #   before the wrapper's SIGTERM, or right after the wrapper saw Java running and before the SIGTERM went out;
+        #   or, with a Java that ignores SIGTERM, after the stop window and before the wrapper's SIGKILL (review 5),
+        #   or right after the wrapper's last look, so its SIGKILL reaches a Java that is already dead.
+        # A signal counts as sent only when a Java that had not ended took it. Java's real status is -9 every time;
+        # the report and the record say the same.
         environ = {'XDG_RUNTIME_DIR': str(self.root), 'INST_ID': 'AresDesktop', 'HOME': str(self.root),
                    'INST_DIR': str(self.root / 'instance'), 'PATH': '/usr/bin:/bin', 'FAKE_JAVA_SLEEP': '60'}
-        with mock.patch.object(wrapper, 'stop', kill_after_the_check(wrapper.stop)):
-            code = run_wrapper_here(self.java, environ, self.root)
-        self.assertEqual(code, wrapper.REFUSED)
-        failed = self.requests[-1]
-        self.assertEqual((failed['op'], failed['status'], failed['sent'], failed['stopped']),
-                         ('jvm_failed', -9, [signal.SIGTERM], False))
-        record = json.loads((self.run_dir / 'desktop-exit.json').read_text())
-        self.assertEqual((record['status'], record['sent'], record['stopped']), (-9, [signal.SIGTERM], False))
+        for look, when, ignores, sent in ((1, 'before', False, []), (1, 'after', False, [TERM]),
+                                          (2, 'before', True, [TERM]), (2, 'after', True, [TERM, KILL])):
+            with self.subTest(look=look, when=when):
+                self.requests.clear()
+                # A Java that ignores SIGTERM gets a moment to say so before the hand-off breaks.
+                self.drop_started, self.drop_delay = True, 1.0 if ignores else 0.0
+                env = dict(environ, FAKE_JAVA_TERM='ignore') if ignores else environ
+                with mock.patch.object(wrapper, 'ended', killed_from_outside(look, when)), \
+                        mock.patch.object(wrapper, 'STOP_WAIT', 0.3):
+                    code = run_wrapper_here(self.java, env, self.root)
+                self.assertEqual(code, wrapper.REFUSED)
+                failed = self.requests[-1]
+                self.assertEqual((failed['op'], failed['status'], failed['sent']), ('jvm_failed', -9, sent))
+                record = json.loads(self.record.read_text())
+                self.assertEqual((record['status'], record['sent']), (-9, sent))
+                self.assertEqual({key: failed[key] for key in record}, record)
+
+    def test_a_signal_counts_as_sent_only_when_a_running_java_took_it(self):
+        # Review 5, finding 1: send() never notes a signal for a Java that has ended, reaped or not, and never reaps.
+        running = subprocess.Popen(['/usr/bin/sleep', '60'])
+        self.addCleanup(running.wait)
+        self.addCleanup(running.kill)
+        sent = []
+        self.assertFalse(wrapper.ended(running))
+        self.assertTrue(wrapper.send(running, signal.SIGTERM, sent))
+        self.assertEqual(sent, [TERM])
+        self.assertEqual(running.wait(10), -TERM)
+        self.assertFalse(wrapper.send(running, signal.SIGKILL, sent), 'reaped: nothing is sent')
+        self.assertEqual(sent, [TERM])
+        zombie = subprocess.Popen(['/usr/bin/true'])
+        os.waitid(os.P_PID, zombie.pid, os.WEXITED | os.WNOWAIT)  # it has ended and is not reaped
+        self.assertTrue(wrapper.ended(zombie))
+        self.assertFalse(wrapper.send(zombie, signal.SIGKILL, sent), 'ended: the kernel would take it, it does not count')
+        self.assertEqual(sent, [TERM])
+        self.assertIsNone(zombie.returncode, 'looking at Java never reaps it')
+        self.assertEqual(zombie.wait(10), 0, 'its real status is still there for the wrapper')
+
+    def test_the_exit_record_is_written_durably(self):
+        # Review 5, finding 3: the record is synced (the file, then its folder after the rename) before the report.
+        synced = []
+        real_fsync = os.fsync
+
+        def fsync(fd):
+            synced.append(os.path.basename(os.readlink(f'/proc/self/fd/{fd}')))
+            return real_fsync(fd)
+        with mock.patch.object(wrapper.os, 'fsync', fsync):
+            wrapper.write_exit(str(self.record), {'launch': 'L1', 'status': 1})
+        self.assertEqual(json.loads(self.record.read_text()), {'launch': 'L1', 'status': 1})
+        self.assertEqual(len(synced), 2)
+        self.assertTrue(synced[0].startswith('.desktop-exit.'), synced)
+        self.assertEqual(synced[1], 'aresos')
+        self.assertEqual(os.listdir(self.record.parent), ['desktop-exit.json'])
+
+    def test_without_a_place_for_the_exit_record_java_never_runs(self):
+        for record in (None, 'relative/desktop-exit.json', 7):
+            with self.subTest(record=record):
+                self.requests.clear()
+                self.reply = dict(self.reply, record=record)
+                result = self.wrap()
+                self.assertEqual(result.returncode, wrapper.REFUSED)
+                self.assertFalse((self.root / 'record.json').exists())
+                self.assertEqual(self.requests[-1]['op'], 'jvm_failed')
+                self.assertIn('no file for the exit record', self.requests[-1]['reason'])
 
     def test_a_scope_that_is_not_usable_is_refused_before_java_runs(self):
         for scope, unit in (('systemd-run', None), (['relative/systemd-run', '--'], 'u.scope'), ([], 'u.scope'),
@@ -2826,9 +3126,15 @@ class LoopTest(Base):
             self.addCleanup(patch.stop)
         desktop.provision(self.paths, self.lock)
         make_world(self.paths, self.lock)
-        self.loop = desktop.Loop(self.paths, self.lock, environ=env, nvidia=False)
-        self.loop.runner.real = False
+        self.environ = env
         self.prisms = []
+        self.new_loop()
+        self.addCleanup(self.stop)
+
+    def new_loop(self):
+        """A supervisor loop (not running yet) and its thread; every Prism stand-in it starts is reaped at the end."""
+        self.loop = desktop.Loop(self.paths, self.lock, environ=self.environ, nvidia=False)
+        self.loop.runner.real = False
         start_prism = self.loop.runner.start_prism
 
         def recorded(command, env):
@@ -2837,7 +3143,10 @@ class LoopTest(Base):
             return process
         self.loop.runner.start_prism = recorded
         self.thread = threading.Thread(target=self.loop.run, daemon=True)
-        self.addCleanup(self.stop)
+        return self.loop
+
+    def launches(self):
+        return [line for line in self.log.read_text().splitlines() if line.startswith('--launch')]
 
     def end_jvm(self, status):
         pid = self.loop.supervisor.launch.jvm_pid
@@ -2951,8 +3260,14 @@ class LoopTest(Base):
 
     def test_a_lost_hand_off_with_a_java_that_ignores_sigterm(self):
         # Review 3, finding 2: Java ignores SIGTERM; the wrapper kills it after its stop window and still reports.
+        # Review 5, finding 1: Java died of a SIGKILL, and the status cannot tell whose, so this latches and never
+        # restarts by itself (JUDGMENT-CALL 10).
         pathlib.Path(f'{self.exit_file}.term-ignore').touch()
-        self.lost_hand_off()
+        sup = self.lost_hand_off(('RECOVERY', 'killed'))
+        self.assertEqual((sup.persisted.consecutive, sup.persisted.latched), (0, True))
+        self.assertIn('its launcher wrapper sent a SIGKILL too', sup.persisted.detail)
+        time.sleep(1.5)
+        self.assertEqual(len(self.launches()), 1, 'nothing restarts by itself')
 
     def test_a_kill_after_acceptance_with_a_lost_answer_latches(self):
         # Review 3, finding 1, through the real loop: the supervisor accepts the PID, its answer is lost (the loop
@@ -2975,16 +3290,17 @@ class LoopTest(Base):
         self.assertEqual(len([l for l in self.log.read_text().splitlines() if l.startswith('--launch')]), 1)
         self.assertEqual(desktop.request(self.paths, {'op': 'status'})['consecutive'], 0)
 
-    def wrapper_here(self, stop):
-        """The real wrapper in this process (Prism idles), with `stop` in place of its stop()."""
+    def wrapper_here(self, **patches):
+        """The real wrapper in this process (Prism idles), with stand-ins for some of its functions."""
         environ = dict(self.loop.environ, INST_ID='AresDesktop', INST_DIR=self.paths.instance('AresDesktop'))
-        with mock.patch.object(wrapper, 'stop', stop):
+        with mock.patch.multiple(wrapper, **patches):
             return run_wrapper_here(pathlib.Path(self.lock['java']['path']), environ,
                                     os.path.join(self.paths.instance('AresDesktop'), 'minecraft'))
 
     def test_a_kill_between_the_wrappers_check_and_its_signal_latches(self):
         # Review 4, finding 1, through the real loop and the real wrapper: the supervisor accepts the PID, the answer
-        # is lost, and Java is SIGKILLed right after the wrapper's stop() found it running (a hook, no sleeps).
+        # is lost, and Java is SIGKILLed right after the wrapper saw it running, before its SIGTERM (a hook, no
+        # sleeps).
         self.mode.write_text('idle')
         handle = desktop.Loop.handle
 
@@ -2997,10 +3313,110 @@ class LoopTest(Base):
         with mock.patch.object(desktop.Loop, 'handle', losing):
             self.thread.start()
             self.wait(lambda: sup.launch is not None and sup.launch.prism is not None)
-            self.assertEqual(self.wrapper_here(kill_after_the_check(wrapper.stop)), wrapper.REFUSED)
+            self.assertEqual(self.wrapper_here(ended=killed_from_outside(1, 'after')), wrapper.REFUSED)
             self.wait(lambda: (sup.state, sup.reason) == ('RECOVERY', 'killed'))
             self.assertTrue(sup.persisted.latched)
             self.assertEqual(desktop.request(self.paths, {'op': 'status'})['consecutive'], 0)
+
+    def outside_kill_during_the_stop(self, when, record_only=False):
+        """Review 5, finding 1, through the real loop and the real wrapper: the hand-off breaks, Java ignores the
+        wrapper's SIGTERM, and after the stop window a SIGKILL from outside lands right before or right after the
+        wrapper's last look at Java (a hook at that exact point). By the wrapper's report, or by its exit record
+        alone. Whatever the wrapper then counts as sent, the kill latches and nothing restarts."""
+        self.mode.write_text('idle')
+        pathlib.Path(f'{self.exit_file}.term-ignore').touch()
+        patches = dict(ended=killed_from_outside(2, when), STOP_WAIT=0.3)
+        if record_only:
+            patches['report_again'] = lambda path, message: None  # no report reaches the supervisor
+        sup = self.loop.supervisor
+        with mock.patch.object(desktop.Loop, 'handle', self.breaking), \
+                mock.patch.object(desktop, 'LOST_HANDOFF_WAIT', 3.0):
+            self.thread.start()
+            self.wait(lambda: sup.launch is not None and sup.launch.prism is not None)
+            self.assertEqual(self.wrapper_here(**patches), wrapper.REFUSED)
+            record = json.loads(pathlib.Path(self.paths.exit_file).read_text())
+            self.assertEqual((record['launch'], record['status'], record['sent']),
+                             (sup.launch.id, -9, [TERM] if when == 'before' else [TERM, KILL]))
+            self.wait(lambda: (sup.state, sup.reason) == ('RECOVERY', 'killed'))
+            self.assertTrue(sup.persisted.latched)
+            # Decided from the wrapper's facts (a SIGKILL), not left as an end nobody explained.
+            self.assertIn('killed by SIGKILL while it started', sup.persisted.detail)
+            self.assertIsNone(sup.persisted.unresolved)
+            self.assertEqual('the cause is not certain' in sup.persisted.detail, when == 'after')
+            time.sleep(1.5)  # far beyond the patched 0.2 s backoff
+        self.assertEqual(len(self.launches()), 1)
+        self.assertEqual(desktop.request(self.paths, {'op': 'status'})['consecutive'], 0)
+
+    def test_a_kill_from_outside_before_the_wrappers_sigkill_latches(self):
+        self.outside_kill_during_the_stop('before')
+
+    def test_a_kill_from_outside_before_the_wrappers_sigkill_latches_by_the_record_alone(self):
+        self.outside_kill_during_the_stop('before', record_only=True)
+
+    def test_a_kill_from_outside_right_after_the_wrappers_last_look_latches(self):
+        self.outside_kill_during_the_stop('after')
+
+    def test_a_java_that_exits_zero_before_the_hand_off_is_his_quit(self):
+        # Review 5, finding 2, through the real loop and wrapper: Java exits 0 right after authorization, before its
+        # PID is delivered (a stand-in for systemd-run does it). His quit: nothing counted, nothing restarts.
+        quitter = self.root / 'quitter'
+        quitter.write_text('#!/bin/sh\nexit 0\n')
+        quitter.chmod(0o755)
+        sup = self.loop.supervisor
+        with mock.patch.object(desktop, 'game_scope', lambda launch_id: [str(quitter)]):
+            self.thread.start()
+            self.wait(lambda: (sup.state, sup.reason) == ('RECOVERY', 'quit'))
+            self.assertFalse(sup.persisted.latched)
+            time.sleep(1.5)  # far beyond the patched 0.2 s backoff
+        self.assertEqual(len(self.launches()), 1)
+        status = desktop.request(self.paths, {'op': 'status'})
+        self.assertEqual((status['consecutive'], status['failures']), (0, 0))
+
+    def test_an_explanation_the_wrapper_could_not_deliver_survives_a_reboot(self):
+        # Review 5, finding 3, through the real loop and wrapper: the hand-off breaks, the supervisor's wait runs out
+        # (latched as unexplained), the supervisor stops, the wrapper then stops Java and writes its explanation but
+        # finds no supervisor to tell, and the machine reboots: the runtime folder is gone. The next session's
+        # supervisor reads the explanation from the state folder: one failed start, no latch, and its hub starts.
+        self.mode.write_text('idle')
+        latched, stopped = threading.Event(), threading.Event()
+        real_stop = wrapper.stop
+
+        def slow_stop(child, sent):
+            latched.wait(30)
+            stopped.wait(30)
+            return real_stop(child, sent)
+        first = self.loop
+        with mock.patch.object(desktop.Loop, 'handle', self.breaking), \
+                mock.patch.object(desktop, 'LOST_HANDOFF_WAIT', 0.5), mock.patch.object(desktop, 'BACKOFF', 60):
+            self.thread.start()
+            self.wait(lambda: first.supervisor.launch is not None and first.supervisor.launch.prism is not None)
+            launch = first.supervisor.launch.id
+
+            def stop_supervisor():
+                self.wait(lambda: first.supervisor.persisted.unresolved is not None)
+                latched.set()
+                first.stopping = True
+                self.thread.join(10)
+                stopped.set()
+            helper = threading.Thread(target=stop_supervisor, daemon=True)
+            helper.start()
+            self.assertEqual(self.wrapper_here(stop=slow_stop), wrapper.REFUSED)
+            helper.join(30)
+            record = json.loads(pathlib.Path(self.paths.exit_file).read_text())
+            self.assertEqual((record['launch'], record['session'], record['status'], record['sent']),
+                             (launch, first.supervisor.instance, -TERM, [TERM]))
+            self.assertTrue(json.loads(pathlib.Path(self.paths.state_file).read_text())['latched'])
+            # The reboot: the session's processes are gone and the runtime folder is a new, empty one.
+            for process in self.prisms:
+                os.killpg(process.pid, 9)
+            shutil.rmtree(self.paths.runtime)
+            os.makedirs(self.paths.runtime)
+            sup = self.new_loop().supervisor
+            self.thread.start()
+            self.wait(lambda: sup.state is not None and len(self.launches()) == 2)
+            self.assertNotEqual(sup.instance, first.supervisor.instance)
+            self.assertEqual((sup.state, sup.persisted.latched, sup.persisted.consecutive, sup.persisted.unresolved),
+                             ('STARTING', False, 1, None))
 
     def test_an_unexplained_end_is_settled_after_a_supervisor_restart(self):
         # Review 4, finding 2, through the real loop and wrapper: the hand-off breaks, the supervisor's wait runs out
@@ -3033,37 +3449,37 @@ class LoopTest(Base):
                 latched.set()
                 first.stopping = True
                 self.thread.join(10)
-                self.loop = desktop.Loop(self.paths, self.lock, environ=first.environ, nvidia=False)
-                self.loop.runner.real = False
-                self.thread = threading.Thread(target=self.loop.run, daemon=True)
+                self.new_loop()
                 self.thread.start()
                 self.wait(lambda: os.path.exists(self.paths.socket) and self.loop.supervisor.state is not None)
                 restarted.set()
             helper = threading.Thread(target=restart, daemon=True)
             helper.start()
-            self.assertEqual(self.wrapper_here(slow_stop), wrapper.REFUSED)
+            self.assertEqual(self.wrapper_here(stop=slow_stop), wrapper.REFUSED)
             helper.join(30)
             sup = self.loop.supervisor
             self.wait(lambda: not sup.persisted.latched)
             self.assertEqual((sup.state, sup.reason, sup.persisted.consecutive), ('STARTING', 'restarting', 1))
             self.assertIsNone(sup.persisted.unresolved)
 
-    def lost_hand_off(self):
-        handle = desktop.Loop.handle
+    @staticmethod
+    def breaking(loop, peer, line, handle=desktop.Loop.handle):
+        """Loop.handle with a hand-off that breaks: the connection closes while jvm_started is handled."""
+        if json.loads(line).get('op') == 'jvm_started':
+            time.sleep(0.5)  # the stand-in Java has recorded its PID and set its SIGTERM handling by now
+            loop.drop(peer)
+            return {'ok': True}
+        return handle(loop, peer, line)
 
-        def breaking(loop, peer, line):
-            if json.loads(line).get('op') == 'jvm_started':
-                time.sleep(0.5)  # the stand-in Java has recorded its PID and set its SIGTERM handling by now
-                loop.drop(peer)
-                return {'ok': True}
-            return handle(loop, peer, line)
+    def lost_hand_off(self, expected=('STARTING', 'restarting')):
         sup = self.loop.supervisor
         # A long backoff keeps the counted failure in view (no automatic restart during the test).
-        with mock.patch.object(desktop.Loop, 'handle', breaking), mock.patch.object(desktop, 'BACKOFF', 60):
+        with mock.patch.object(desktop.Loop, 'handle', self.breaking), mock.patch.object(desktop, 'BACKOFF', 60):
             self.thread.start()
-            self.wait(lambda: (sup.state, sup.reason) == ('STARTING', 'restarting'), timeout=40)
+            self.wait(lambda: (sup.state, sup.reason) == expected, timeout=40)
             self.assertIn('lost the supervisor during the hand-off', sup.detail)
-            self.assertEqual((sup.persisted.consecutive, sup.persisted.latched), (1, False))
+            if expected == ('STARTING', 'restarting'):
+                self.assertEqual((sup.persisted.consecutive, sup.persisted.latched), (1, False))
             java = int(pathlib.Path(f'{self.exit_file}.pids').read_text().split()[0])
 
             def gone():
@@ -3073,6 +3489,7 @@ class LoopTest(Base):
                     return True
             self.wait(gone)
             self.wait(lambda: not self.loop.runner.jvm_lock_held())
+        return sup
 
     def test_prism_without_a_game_waits_in_auth_required(self):
         self.mode.write_text('no-game')

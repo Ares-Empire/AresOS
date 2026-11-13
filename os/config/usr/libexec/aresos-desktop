@@ -29,10 +29,17 @@ minutes in the world (valid heartbeats) or the owner's `retry` reset them.
 Auth states, deliberate quits and kills (memory pressure) never restart by
 themselves, and nothing here ever kills a running game or repairs a world.
 
+Only a certain ordinary crash restarts by itself (JUDGMENT-CALL 10): Java's own
+exit status, as its wrapper saw it, other than 0 (his quit) and SIGKILL. An
+end by SIGKILL, whoever sent it, and an end nobody explains latch RECOVERY and
+wait for the owner's `retry`.
+
 Socket: $XDG_RUNTIME_DIR/aresos/desktop.sock, one JSON object per line, same
-user only. The wrapper sends jvm_start, jvm_started and jvm_exited; the
-owner's commands (`aresos-desktop status|retry|forget-hub|reset-instance`) use
-status, retry and forget_hub.
+user only. The wrapper sends jvm_start, jvm_started, and how Java ended
+(jvm_exited, or jvm_failed for a start that did not become a game); it writes
+the same facts to ~/.local/state/aresos/desktop-exit.json first. The owner's
+commands (`aresos-desktop status|retry|forget-hub|reset-instance`) use status,
+retry and forget_hub.
 """
 import argparse
 import dataclasses
@@ -195,7 +202,9 @@ class Paths:
 
     @property
     def exit_file(self):
-        return os.path.join(self.run_dir, 'desktop-exit.json')
+        # In the state folder, not the runtime folder: how a launch ended must survive a reboot until the
+        # reconciliation that uses it is saved (review 5, finding 3).
+        return os.path.join(self.state_dir, 'desktop-exit.json')
 
     @property
     def jvm_lock(self):
@@ -788,7 +797,7 @@ class Persisted:
     disposition: dict = None
     # A launch whose end was latched as unexplained (no report, no record), saved with the accounting: a restarted
     # supervisor restores it and still applies a matching late report or exit record, exactly once (review 4,
-    # finding 2). {launch, pid, ticks, accepted, mode, nonce}
+    # finding 2), also after a reboot (review 5, finding 3). {launch, pid, ticks, accepted, mode, nonce}
     unresolved: dict = None
 
     @classmethod
@@ -857,19 +866,40 @@ class Launch:
     reported: bool = False  # the wrapper reported this launch's JVM (it may have ended since)
     failed: bool = False
     wrapper_gone: float = None  # the wrapper's connection closed before its JVM was reported
-    # (status, stopped, reason) from the wrapper's jvm_failed report after this supervisor accepted the JVM.
-    end_facts: tuple = None
+    # The wrapper's jvm_failed report (an End) after this supervisor accepted the JVM.
+    end_facts: object = None
 
 
-def stopped_by_wrapper(status, sent):
-    """Whether Java's end is its wrapper's own doing, from the facts only: Java died of a signal the wrapper sent,
-    or exited with Java's SIGTERM status (143) after the wrapper's SIGTERM. aresos-desktop-java applies the same
-    rule (a test keeps the two equal); anything else, a SIGKILL the wrapper did not send included, is Java's own."""
-    if not isinstance(status, int) or isinstance(status, bool) or not sent:
-        return False
-    if status < 0:
-        return -status in sent
-    return status == 128 + signal.SIGTERM and signal.SIGTERM in sent
+@dataclasses.dataclass(frozen=True)
+class End:
+    """How a launch's Java ended, as its wrapper saw it. Facts only: what they mean is decided in one place
+    (Supervisor.conclude), and nothing is decided from who sent which signal."""
+    status: int = None  # Java's exit status as its wrapper waited for it (negative: the signal); None: Java never ran
+    reason: str = None  # why the start did not become a game; None for a game that ran and ended
+    sent: tuple = ()    # the signals the wrapper itself delivered to Java (in messages and the log only)
+    session: str = None  # the desktop session (instance ID) the launch belonged to; None: this one
+
+
+def failed_start(request):
+    """The End in a jvm_failed report: a failed start always has a reason, the wrapper's or this one."""
+    reason = request.get('reason')
+    return end_facts(dict(request, reason=reason if isinstance(reason, str) and reason
+                          else 'the launcher wrapper reported a failed start'))
+
+
+def end_facts(data):
+    """The End in a wrapper's report or exit record (one format for both), or None when it explains nothing."""
+    status = data.get('status')
+    if not isinstance(status, int) or isinstance(status, bool):
+        status = None
+    reason = data.get('reason')
+    reason = reason[:500] if isinstance(reason, str) and reason else None
+    if status is None and reason is None:
+        return None
+    sent = data.get('sent')
+    sent = tuple(s for s in sent if isinstance(s, int) and not isinstance(s, bool)) if isinstance(sent, list) else ()
+    session = data.get('session')
+    return End(status, reason, sent, session if isinstance(session, str) else None)
 
 
 def describe_status(status):
@@ -1158,7 +1188,8 @@ class Supervisor:
 
     def restore_unresolved(self):
         """A launch latched as unexplained before this supervisor started: restored so that a matching late report
-        or exit record still settles it, exactly once (review 4, finding 2)."""
+        or exit record still settles it, exactly once (review 4, finding 2). The record is durable, so this also
+        holds after a reboot (review 5, finding 3)."""
         unresolved = self.persisted.unresolved
         if not isinstance(unresolved, dict) or not isinstance(unresolved.get('launch'), str):
             return
@@ -1168,9 +1199,7 @@ class Supervisor:
         self.launch = Launch(id=unresolved['launch'], nonce=unresolved.get('nonce') or new_token(), mode=mode,
                              started=self.clock(), accepted=True, reported=unresolved.get('accepted') is True,
                              failed=True)
-        facts = self.record_facts(self.launch.id, unresolved.get('pid'), unresolved.get('ticks'))
-        if facts is not None:
-            self.reconcile(*facts)
+        self.reconcile(self.record_facts(self.launch.id, unresolved.get('pid'), unresolved.get('ticks')))
 
     def validate(self, inputs=True):
         """The one gate before any game starts: (problem reason, detail) or (None, mode). Changes nothing."""
@@ -1386,7 +1415,9 @@ class Supervisor:
                  ' on the default GPU (no NVIDIA driver found)')
         scope = game_scope(launch.id)
         return True, {'launch': launch.id, 'env': game_environment(self.instance, launch.nonce, self.nvidia),
-                      'scope': scope, 'unit': game_unit(launch.id) if scope else None}
+                      'scope': scope, 'unit': game_unit(launch.id) if scope else None,
+                      # Where the wrapper writes how Java ended, and the session that end belongs to.
+                      'session': self.instance, 'record': self.paths.exit_file}
 
     def on_jvm_started(self, wrapper_pid, pid, launch_id=None):
         """The wrapper reports the JVM's PID: (ok, message)."""
@@ -1406,25 +1437,23 @@ class Supervisor:
         LOG.info('launch %s: the game runs as pid %d', launch.id, pid)
         return True, ''
 
-    def on_jvm_failed(self, launch_id, reason, status=None, stopped=False):
-        """The wrapper's report of how a hand-off ended (Java could not start, was refused, the hand-off broke, or
-        Java ended first), with the facts: Java's real status and whether the wrapper's own signals ended it
-        (`stopped`, derived from the signals it sent; Loop.handle applies stopped_by_wrapper)."""
+    def on_jvm_failed(self, launch_id, end):
+        """The wrapper's report of a start that did not become a game (Java could not start, was refused, the
+        hand-off broke, or Java ended first), with the facts of how it ended (an End)."""
         launch = self.launch
-        if launch is None or launch.id != launch_id or not launch.accepted:
+        if launch is None or launch.id != launch_id or not launch.accepted or end is None:
             return
-        reason = reason or 'the launcher wrapper reported a failed start'
         if launch.failed:
-            self.reconcile(status, stopped, reason)
+            self.reconcile(end)
             return
         if launch.reported:
             # This supervisor accepted the JVM, but the wrapper never got the answer: these are the facts of its end,
             # decided once the JVM is gone (finish_jvm).
-            launch.end_facts = (status, stopped, reason)
-            if status is not None and launch.jvm_status is None:
-                launch.jvm_status = status
+            launch.end_facts = end
+            if end.status is not None and launch.jvm_status is None:
+                launch.jvm_status = end.status
             return
-        self.conclude(status, stopped, reason)
+        self.conclude(end)
 
     def on_wrapper_gone(self, launch_id):
         """The wrapper's connection closed before a JVM was reported. It still reports how the start ended (on a new
@@ -1442,13 +1471,11 @@ class Supervisor:
 
     def unreported_start(self, why):
         """An authorized start ended without a report over the connection: its exit record decides, else unexplained."""
-        facts = self.record_facts(self.launch.id)
-        self.conclude(*(facts or (None, False, None)), unexplained=why)
+        self.conclude(self.record_facts(self.launch.id), unexplained=why)
 
     def record_facts(self, launch_id, pid=None, ticks=None):
-        """(status, stopped, reason) from the wrapper's exit record of this launch, or None. Bound to the launch, and
-        to the JVM's PID and start time when they are known. `stopped` comes from the facts in it (the signals the
-        wrapper sent and Java's status), like a report's."""
+        """The End in the wrapper's exit record of this launch, or None. Bound to the launch, and to the JVM's PID
+        and start time when they are known."""
         try:
             with open(self.paths.exit_file, encoding='utf-8') as source:
                 data = json.load(source)
@@ -1460,41 +1487,28 @@ class Supervisor:
             return None
         if pid is not None and ticks is not None and data.get('ticks') not in (None, ticks):
             return None
-        status = data.get('status')
-        if not isinstance(status, int) or isinstance(status, bool):
-            status = None
-        sent = data.get('sent')
-        if isinstance(sent, list):
-            stopped = stopped_by_wrapper(status, [s for s in sent if isinstance(s, int) and not isinstance(s, bool)])
-        else:
-            stopped = data.get('stopped') is True
-        reason = data.get('reason') if isinstance(data.get('reason'), str) else None
-        if status is None and reason is None:
-            return None
-        return status, stopped, reason
+        return end_facts(data)
 
-    def reconcile(self, status, stopped, reason):
+    def reconcile(self, end):
         """A report or record for a launch whose end was latched as unexplained: applied exactly once (review 3
         finding 2, review 4 finding 2). A kill confirms the latch; any other explained end replaces it."""
         launch = self.launch
         unresolved = self.persisted.unresolved
-        if not (isinstance(unresolved, dict) and unresolved.get('launch') == launch.id):
+        if not (isinstance(unresolved, dict) and unresolved.get('launch') == launch.id) or end is None:
             return
-        if not stopped and status is None and not reason:
-            return  # it explains nothing
         self.persisted.unresolved = None
-        if (not stopped and status in SIGKILL_STATUSES) or not (
-                self.persisted.latched and self.persisted.reason == 'killed'):
+        if end.status in SIGKILL_STATUSES or not (self.persisted.latched and self.persisted.reason == 'killed'):
             self.save()  # a kill, as latched; or the owner has decided since (retry)
             return
-        LOG.info('launch %s: the wrapper explained its end after all: %s', launch.id, reason)
+        LOG.info('launch %s: the wrapper explained its end after all', launch.id)
         self.persisted.latched, self.persisted.reason, self.persisted.detail = False, None, ''
         launch.failed = False
-        self.conclude(status, stopped, reason)
+        self.conclude(end)
 
     def on_jvm_report(self, pid, status, launch_id=None):
         launch = self.launch
-        if launch is None or not isinstance(status, int) or launch_id not in (None, launch.id):
+        if (launch is None or not isinstance(status, int) or isinstance(status, bool)
+                or launch_id not in (None, launch.id)):
             return
         if launch.jvm_pid == pid:
             launch.jvm_status = status
@@ -1502,7 +1516,7 @@ class Supervisor:
         unresolved = self.persisted.unresolved
         if (launch.failed and isinstance(unresolved, dict) and unresolved.get('launch') == launch.id
                 and unresolved.get('pid') == pid):
-            self.reconcile(status, False, None)  # the game's own exit status, after its end was latched as unknown
+            self.reconcile(End(status))  # the game's own exit status, after its end was latched as unknown
 
     def check_unresolved(self):
         """Look at the wrapper's exit record for an unresolved end (it may be written after any report could still
@@ -1514,9 +1528,7 @@ class Supervisor:
         if self.launch is None or self.launch.id != unresolved.get('launch'):
             self.restore_unresolved()
             return
-        facts = self.record_facts(unresolved['launch'], unresolved.get('pid'), unresolved.get('ticks'))
-        if facts is not None:
-            self.reconcile(*facts)
+        self.reconcile(self.record_facts(unresolved['launch'], unresolved.get('pid'), unresolved.get('ticks')))
 
     def on_jvm_gone(self):
         """The JVM's pidfd fired. Give the wrapper a moment to report how it ended."""
@@ -1527,21 +1539,24 @@ class Supervisor:
         """The accepted JVM is gone: its end's facts are the wrapper's report, or its exit record."""
         launch = self.launch
         if launch.end_facts is not None:
-            facts = launch.end_facts
+            end = launch.end_facts
         elif launch.jvm_status is not None:
-            facts = (launch.jvm_status, False, None)
+            end = End(launch.jvm_status)
         else:
-            facts = self.record_facts(launch.id, launch.jvm_pid, launch.jvm_ticks)
-        self.conclude(*(facts or (None, False, None)), unexplained='Minecraft and its launcher ended together')
+            end = self.record_facts(launch.id, launch.jvm_pid, launch.jvm_ticks)
+        self.conclude(end, unexplained='Minecraft and its launcher ended together')
 
-    def conclude(self, status, stopped, reason, unexplained=None):
-        """The one place a launch's end is decided, from facts only (review 4, finding 1), before or after the
-        hand-off alike (JUDGMENT-CALL 10):
-          - the wrapper's own signals ended Java: a failed start, counted once;
-          - Java was SIGKILLed by anything else: `killed`, latched, never counted or restarted;
-          - nothing explains the end (no status, no reason): `killed` too, and saved as unresolved;
-          - exit 0 after the hand-off: his quit;
-          - anything else: a crash (or a failed start before the hand-off), counted once."""
+    def conclude(self, end, unexplained=None):
+        """The one place a launch's end is decided, before or after the hand-off alike, from its wrapper's facts
+        (an End, or None when there are none). Only an end that is certain to be an ordinary one restarts by itself
+        (JUDGMENT-CALL 10, review 5):
+          - Java never ran (a stated reason, no status): a failed start, counted once;
+          - exit 0: his quit, whenever it came (review 5, finding 2); never counted, never restarted;
+          - SIGKILL: `killed`, latched, never counted or restarted, whoever sent it. The status cannot tell the
+            system's kill from the wrapper's own SIGKILL of a Java that ignored SIGTERM (one can land a moment
+            before the other), so no restart is ever decided from who sent a signal (review 5, finding 1);
+          - no facts at all: `killed` too, and saved as unresolved until a late report or the record explains it;
+          - any other status: a crash (or a failed start), counted once."""
         launch = self.launch
         accepted = launch.reported
         pid, ticks = launch.jvm_pid, launch.jvm_ticks
@@ -1551,18 +1566,23 @@ class Supervisor:
         self.healthy_since = None
         self.persisted.accounted = launch.id
         self.persisted.unresolved = None
-        if stopped:
-            kind = 'stopped'
+        status, reason = (end.status, end.reason) if end is not None else (None, None)
+        if end is None:
+            kind = 'unexplained'
         elif status is None:
-            kind = 'failed' if reason else 'unexplained'
+            kind = 'failed'
         elif status in SIGKILL_STATUSES:
             kind = 'killed'
-        elif status == 0 and accepted:
+        elif status == 0:
             kind = 'quit'
         else:
-            kind = 'crash' if accepted else 'failed'
-        LOG.info('launch %s ended: %s (%s%s)', launch.id, kind, describe_status(status),
-                 f'; {reason}' if reason else '')
+            kind = 'crash'
+        # The facts of a launch of an earlier session (from its exit record, after a reboot): the launch is accounted
+        # for, but what that session would have done next, a quit that waits for him or a restart, is not this
+        # session's (review 5, finding 3). Only a latch outlives a session (JUDGMENT-CALL 12).
+        earlier = end is not None and end.session is not None and end.session != self.instance
+        LOG.info('launch %s%s ended: %s (%s%s)', launch.id, ' of an earlier session' if earlier else '', kind,
+                 describe_status(status), f'; {reason}' if reason else '')
         if kind in ('killed', 'unexplained'):
             scope = self.runner.scope_result(game_unit(launch.id))
             if kind == 'unexplained':
@@ -1571,32 +1591,46 @@ class Supervisor:
                                                  mode=launch.mode, nonce=launch.nonce)
             else:
                 why = 'killed by SIGKILL' if accepted else 'Minecraft was killed by SIGKILL while it started'
+                if SIGKILL in end.sent:
+                    why += '; its launcher wrapper sent a SIGKILL too, so the cause is not certain'
             self.latch('killed', why + (f'; its scope ended with {scope}' if scope else ''))
             self.save_runtime()
             return kind
         if kind == 'quit':
             # The decision is saved with the accounting (one write), so a supervisor restart keeps it.
-            if launch.mode == 'setup' and not self.persisted.hub_seen:
+            if earlier:
+                self.new_session()
+            elif launch.mode == 'setup' and not self.persisted.hub_seen:
                 self.settle(SETUP, 'setup_closed')
             else:
                 self.settle(RECOVERY, 'quit')
             self.save_runtime()
             return kind
-        if kind == 'crash':
-            detail = describe_status(status)
-        else:
-            detail = f'the launcher wrapper reported: {reason}' if reason else 'the launcher wrapper reported a failure'
-            if status is not None and not stopped:
+        if reason:
+            detail = f'the launcher wrapper reported: {reason}'
+            if status is not None:
                 detail += f'; Java ended with {describe_status(status)}'
+        else:
+            detail = describe_status(status)
         latch, delay = self.persisted.record_failure(self.wall())
         if latch:
             self.latch('crashes', detail)
+        elif earlier:
+            self.new_session()
         elif launch.mode == 'setup':
             self.settle(SETUP, 'setup_crashed', detail)
         else:
             self.schedule_restart(delay, detail)
         self.save_runtime()
         return kind
+
+    def new_session(self):
+        """The launch just accounted for ended in an earlier session and left no latch: this session goes on as a
+        new one does. start() begins by itself; later (a record found after start-up) the hub is started here."""
+        self.persisted.disposition = None
+        self.save()
+        if self.state is not None:
+            self.begin()
 
     # -- time
 
@@ -2069,16 +2103,7 @@ class Loop:
         if op == 'jvm_failed' and (peer.wrapper or isinstance(request.get('launch'), str)):
             # The wrapper reports on its own connection, or on a new one after the first broke (it names the
             # launch). Like jvm_exited, it can only describe the launch this supervisor is waiting for.
-            status = request.get('status')
-            status = status if isinstance(status, int) and not isinstance(status, bool) else None
-            sent = request.get('sent')
-            if isinstance(sent, list):
-                sent = [s for s in sent if isinstance(s, int) and not isinstance(s, bool)]
-                stopped = stopped_by_wrapper(status, sent)
-            else:
-                stopped = request.get('stopped') is True
-            supervisor.on_jvm_failed(peer.launch if peer.wrapper else request['launch'],
-                                     str(request.get('reason', ''))[:500], status, stopped)
+            supervisor.on_jvm_failed(peer.launch if peer.wrapper else request['launch'], failed_start(request))
             return {'ok': True}
         if op == 'jvm_exited' and isinstance(request.get('pid'), int):
             # Only the game this supervisor watches can be reported, so any same-user peer may report it.
