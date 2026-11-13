@@ -1058,10 +1058,10 @@ Added cases, each with group 7's known password and a label that says nothing ("
 - F4, a form of 25 fields: text, a date, checkboxes, radios, a list of 200 options, a required field with an error
   text, three hidden fields, each kind of password field from group 7;
 - F5, a page that changes part of itself on a click (5 rows replaced, a status line, one element renamed, one
-  removed: at most 13 changed lines of at most 80 characters) and a page that loads a new document on a click.
-  Its three result pages are short: each one's outline, the link to the next page included, fits the 4,000
-  characters a step returns;
+  removed: at most 13 changed lines of at most 80 characters) and a page that loads a new document on a click;
 - F6, a page with frames from a second fixture site and open and closed shadow roots;
+- F7, three result pages, each with a title of its own and a link to the next. Each page's outline, that link
+  included, fits the 4,000 characters a step returns for a new page;
 - H1, hostile text: names and paragraphs shaped like outline lines, references (`kqtvm5`), folds (`… 40 more`),
   instructions to Claude, quotes, line breaks and direction-changing characters; a page of 100,000 elements; a name
   of 100,000 characters.
@@ -1239,7 +1239,7 @@ is worse than the baseline.
 | F3: find the one link with the unique name: `chrome_read` with `find` and `role` | 1 call, at most 800 characters |
 | Open a fixture page and return one fact from it: `chrome_open` with `url` | 1 call |
 | F4: fill 6 fields and send the form: `chrome_open` of the form's page, `chrome_do` with six fills and the click, `chrome_submit` | 2 calls and `chrome_submit`; one question; the receiver has it once |
-| Three result pages, one click each, the titles collected: from an outline in hand, three `chrome_do` calls of one click, each returning the next page | 3 calls |
+| F7: three result pages, one click each, the titles collected: from an outline in hand, three `chrome_do` calls of one click, each returning the next page | 3 calls |
 | Compare three open tabs: `chrome_read` with `tabs` | 1 call |
 | List 25 open tabs (titles of about 30 characters): `chrome_tabs` | 1 call, at most 3,500 characters |
 | F5: a free click that changes part of the page: from an outline in hand, one `chrome_do` | 1 call, at most 2,500 characters, every changed line named (`more_changes` is 0) |
