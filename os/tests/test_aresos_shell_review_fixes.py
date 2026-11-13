@@ -160,3 +160,277 @@ class LegacyDiscoveredIdTest(Base):
                          self.old_answer('o-1', 'lunarclient'))
         self.assertEqual(helper.journal.entries['o-1']['state'], 'starting')  # the real launch is untouched
         self.assertEqual(self.popen.call_count, 1)
+
+
+class HintTest(DiscoveryBase):
+    """Finding 1: reviewed hints, validated as strictly as registry entries."""
+
+    def hint(self, name, data):
+        folder = self.registry / 'hints'
+        folder.mkdir(exist_ok=True)
+        (folder / name).write_text(data if isinstance(data, str) else json.dumps(data))
+
+    def test_the_image_ships_exactly_the_lunar_and_steam_hints(self):
+        hints = shell.load_hints(str(REGISTRY / 'hints'))
+        self.assertEqual(hints, {
+            'lunarclient.desktop': shell.Hint('lunarclient.desktop', ('com.mojang.minecraft',), ()),
+            'steam.desktop': shell.Hint('steam.desktop', (), ('steam_app_',))})
+
+    def test_broken_hints_are_refused_with_a_log_line_each(self):
+        good = {'schema': 1, 'desktop_id': 'good.desktop', 'app_ids': ['org.good.Game']}
+        broken = {
+            'typo': dict(good, app_idz=['x']), 'schema': dict(good, schema=2), 'noid': {'schema': 1, 'app_ids': ['x']},
+            'badid': dict(good, desktop_id='../x.desktop'), 'none': {'schema': 1, 'desktop_id': 'none.desktop'},
+            'empty': dict(good, app_ids=[]), 'bad-identity': dict(good, app_ids=['has space']),
+            'desktop': dict(good, app_ids=['aresos-desktop']), 'desktop-prefix': dict(good, app_ids=[],
+                                                                                        app_id_prefixes=['aresos-']),
+            'short-prefix': dict(good, app_ids=[], app_id_prefixes=['st_']),
+            'no-separator': dict(good, app_ids=[], app_id_prefixes=['steam']),
+            'twice': dict(good, app_ids=['a.b', 'a.b']), 'nine': dict(good, app_ids=[f'id{n}' for n in range(9)]),
+            'string': dict(good, app_ids='org.good.Game'), 'nan': '{"schema": NaN}', 'garbage': '{not json',
+        }
+        for name, data in broken.items():
+            self.hint(name + '.json', data)
+        with self.assertLogs(shell.LOG, level='ERROR') as logs:
+            self.assertEqual(shell.load_hints(str(self.registry / 'hints')), {})
+        self.assertEqual(len(logs.output), len(broken))
+
+    def test_hints_that_name_one_program_twice_or_could_claim_one_window_are_all_refused(self):
+        self.hint('a.json', {'schema': 1, 'desktop_id': 'a.desktop', 'app_ids': ['shared']})
+        self.hint('b.json', {'schema': 1, 'desktop_id': 'b.desktop', 'app_ids': ['shared']})
+        self.hint('c1.json', {'schema': 1, 'desktop_id': 'c.desktop', 'app_ids': ['c.one']})
+        self.hint('c2.json', {'schema': 1, 'desktop_id': 'c.desktop', 'app_ids': ['c.two']})
+        self.hint('d.json', {'schema': 1, 'desktop_id': 'd.desktop', 'app_id_prefixes': ['game_']})
+        self.hint('e.json', {'schema': 1, 'desktop_id': 'e.desktop', 'app_id_prefixes': ['game_app_']})
+        self.hint('f.json', {'schema': 1, 'desktop_id': 'f.desktop', 'app_ids': ['game_f']})
+        self.hint('ok.json', {'schema': 1, 'desktop_id': 'ok.desktop', 'app_ids': ['ok.window']})
+        with self.assertLogs(shell.LOG, level='ERROR'):
+            self.assertEqual(set(shell.load_hints(str(self.registry / 'hints'))), {'ok.desktop'})
+
+    def test_a_hint_beats_discovered_guesses_but_never_a_registry_identity_or_the_desktop(self):
+        self.write('lunarclient.desktop', StartupWMClass='lunarclient')
+        self.write('mc.desktop', folder=1, StartupWMClass='com.mojang.minecraft')
+        self.write('google-chrome.desktop', folder=1)
+        for name in ('browser.json', 'notepad.json', 'terminal.json'):
+            (self.registry / name).write_text((REGISTRY / name).read_text())
+        self.hint('lunar.json', {'schema': 1, 'desktop_id': 'lunarclient.desktop',
+                                 'app_ids': ['com.mojang.minecraft', 'aresos.terminal'],
+                                 'app_id_prefixes': ['org.kde.']})
+        self.hint('chrome.json', {'schema': 1, 'desktop_id': 'google-chrome.desktop', 'app_ids': ['chrome.extra']})
+        apps, _ = self.catalogue()
+        self.assertEqual(apps['lunarclient'].app_ids, ('lunarclient', 'tool', 'com.mojang.minecraft'))
+        self.assertEqual(apps['mc'].app_ids, ('mc',))  # its guess loses to the reviewed hint
+        self.assertNotIn('chrome.extra', apps['browser'].app_ids)  # registry entries keep their reviewed identities
+        windows = shell.Windows()
+        windows.set_registry(apps)
+        for handle, (identity, owner) in enumerate((('com.mojang.minecraft', 'lunarclient'),
+                                                    ('aresos.terminal', 'terminal'),
+                                                    ('org.kde.kwrite', 'notepad'),  # exact beats the prefix
+                                                    ('org.kde.dolphin', 'lunarclient'),
+                                                    ('aresos-desktop', shell.Windows.SHELL)), 1):
+            windows.new(handle)
+            windows.app_id(handle, identity)
+            windows.done(handle)
+            self.assertEqual(windows.toplevels[handle].owner, owner, identity)
+
+    def test_a_hint_for_a_program_that_is_not_installed_changes_nothing(self):
+        self.write('other.desktop', StartupWMClass='com.mojang.minecraft')
+        self.hint('lunar.json', {'schema': 1, 'desktop_id': 'lunarclient.desktop', 'app_ids': ['com.mojang.minecraft']})
+        self.assertEqual(self.catalogue()[0]['other'].app_ids, ('com.mojang.minecraft', 'other', 'tool'))
+
+    def test_a_changed_hint_changes_the_catalogue_and_its_revision(self):
+        self.write('lunarclient.desktop')
+        catalogue = shell.Catalogue(str(self.registry), entry_dirs=self.folders,
+                                    executable=self.executables.__contains__, deployments=[self.deployment])
+        catalogue.refresh(0.0)
+        before = catalogue.revision
+        self.hint('lunar.json', {'schema': 1, 'desktop_id': 'lunarclient.desktop', 'app_ids': ['com.mojang.minecraft']})
+        self.assertTrue(catalogue.refresh(shell.CATALOGUE_CHECK))
+        self.assertIn('com.mojang.minecraft', catalogue.apps['lunarclient'].app_ids)
+        self.assertNotEqual(catalogue.revision, before)
+
+
+from test_aresos_shell_windows import DiscoveredBase  # noqa: E402  (after the Base-only classes above)
+
+
+class OwnershipBase(DiscoveredBase):
+    """The windows tests' programs, plus Steam, with the image's hints; Chrome is the reviewed browser."""
+
+    def start(self, tracked=True, journal=None, windows=None):
+        apps, revision = shell.load_registry(REGISTRY)
+        apps.update({app_id: self.app(app_id) for app_id in ('lunarclient', 'discord', 'steam')})
+        apps = shell.apply_hints(apps, shell.load_hints(str(REGISTRY / 'hints')))
+        self.windows = windows or shell.Windows(clock=self.clock)
+        self.helper_ = shell.Helper(str(REGISTRY), INSTANCE, NONCE, journal or self.journal,
+                                    registry=(apps, revision), launcher=self.launcher(), windows=self.windows,
+                                    activate=self.activate, clock=self.clock, executable=lambda path: True)
+        self.addCleanup(self.helper_.watcher.stop)
+        self.conn = self.connect(self.helper_)
+        return self.helper_
+
+    def setUp(self):
+        super().setUp()
+        self.start()
+        self.window(1, 'aresos-desktop', active=True)
+
+    def later(self, seconds):
+        self.now[0] += seconds
+        self.helper_.tick()
+
+    def focus_events(self, since=0):
+        return [(e['focus'], e['reason'], e.get('app_id')) for e in self.conn.events('shell_focus')[since:]]
+
+
+class HintedOwnershipTest(OwnershipBase):
+    """Finding 1's scenarios, each with time moving and its closing consequences."""
+
+    def test_lunar_with_chrome_open(self):
+        self.open('browser', 'o-c')
+        self.window(2, 'google-chrome', active=True)
+        self.later(5)
+        self.open('lunarclient', 'o-l')
+        self.window(3, 'lunarclient', active=True)
+        self.later(4)
+        self.window(4, 'com.mojang.minecraft', active=True)
+        self.assertEqual(self.windows.toplevels[4].owner, 'lunarclient')
+        self.later(2)
+        self.close(3)  # the launcher goes away while the game runs
+        self.later(shell.HANDOFF * 4)
+        self.assertEqual(self.activations, [])
+        self.assertEqual((self.state('o-l'), self.state('o-c')), ('focused', 'background'))
+        self.later(60)
+        self.close(4)
+        self.assertEqual(self.activations, [])  # the close waits out the hand-over interval
+        self.later(shell.HANDOFF + 0.01)
+        self.assertEqual(self.activations, [1])
+        self.assertEqual((self.state('o-l'), self.state('o-c')), ('closed', 'background'))
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'app_closed', 'lunarclient'))
+
+    def lunar_started(self):
+        self.open('lunarclient', 'o-l')
+        self.window(3, 'lunarclient', active=True)
+        self.later(3)
+
+    def game_closes_and_the_hub_returns(self, activations):
+        self.later(30)
+        self.close(4)
+        self.later(shell.HANDOFF + 0.01)
+        self.assertEqual(self.activations, activations)
+        self.assertEqual(self.state('o-l'), 'closed')
+        self.assertEqual(self.helper_.shell, 'foreground')
+
+    def test_launcher_closed_shortly_before_the_game_appears(self):
+        self.lunar_started()
+        self.close(3)
+        self.later(shell.HANDOFF / 2)
+        self.window(4, 'com.mojang.minecraft', active=True)
+        self.later(shell.HANDOFF * 4)
+        self.assertEqual((self.activations, self.state('o-l')), ([], 'focused'))
+        self.game_closes_and_the_hub_returns([1])
+
+    def test_launcher_closed_long_before_the_game_appears(self):
+        self.lunar_started()
+        self.close(3)
+        self.later(shell.HANDOFF + 0.01)  # nothing of Lunar's is open: an honest return
+        self.assertEqual((self.activations, self.state('o-l')), ([1], 'closed'))
+        self.focus(1)
+        self.later(5)
+        self.window(4, 'com.mojang.minecraft', active=True)  # the compositor gives the game the focus
+        self.assertEqual(self.focus_events()[-1], ('background', 'app_activated', 'lunarclient'))
+        self.assertEqual(self.state('o-l'), 'closed')  # a final launch stays final
+        self.game_closes_and_the_hub_returns([1, 1])
+
+    def test_launcher_closed_in_the_same_compositor_batch_as_the_game_appears(self):
+        self.lunar_started()
+        self.windows.gone(3)
+        self.windows.new(4)
+        self.windows.app_id(4, 'com.mojang.minecraft')
+        self.windows.state(4, True)
+        self.windows.done(4)
+        self.helper_.windows_changed()
+        self.later(shell.HANDOFF * 4)
+        self.assertEqual((self.activations, self.state('o-l')), ([], 'focused'))
+        self.assertEqual(self.helper_.handles['o-l'], {4})
+        self.game_closes_and_the_hub_returns([1])
+
+    def test_launcher_closed_after_the_game_appears(self):
+        self.lunar_started()
+        self.window(4, 'com.mojang.minecraft', active=True)
+        self.later(10)
+        self.close(3)
+        self.later(shell.HANDOFF * 4)
+        self.assertEqual((self.activations, self.state('o-l')), ([], 'focused'))
+        self.game_closes_and_the_hub_returns([1])
+
+    def test_discord_resident_without_a_window_while_an_unrelated_window_opens(self):
+        self.open('discord', 'o-d')
+        unit = self.helper_.journal.entries['o-d']['unit']
+        self.active_units.add(unit)  # Discord stays resident in its scope
+        self.window(2, 'discord', active=True)
+        self.later(5)
+        self.close(2)
+        self.later(shell.HANDOFF + 0.01)
+        self.assertEqual((self.state('o-d'), self.activations), ('closed', [1]))
+        self.focus(1)
+        self.scope_pass(self.helper_)
+        self.later(5)
+        states = len(self.conn.events('app_state'))
+        self.window(5, 'org.example.Unrelated', active=True)
+        self.assertIsNone(self.windows.toplevels[5].owner)
+        self.assertEqual(self.focus_events()[-1], ('background', 'other_window', None))
+        # A second click hands over to the resident Discord; the unrelated window must not confirm it.
+        self.open('discord', 'o-d2')
+        self.helper_.processes['o-d2'].code = 0
+        self.later(shell.WINDOW_TIMEOUT + 1)
+        self.scope_pass(self.helper_)
+        self.assertEqual(self.state('o-d2'), 'starting')
+        self.close(5)
+        self.later(shell.HANDOFF + 0.01)
+        self.assertEqual(self.activations, [1])  # closing a window nobody owns returns nobody
+        self.assertEqual(self.conn.events('app_state')[states:], [])  # it changed no launch
+        self.window(6, 'discord', active=True)
+        self.assertEqual(self.state('o-d2'), 'focused')
+        self.later(5)
+        self.close(6)
+        self.later(shell.HANDOFF + 0.01)
+        self.assertEqual((self.state('o-d2'), self.activations), ('closed', [1, 1]))
+
+    def test_steam_with_a_game_window(self):
+        self.open('steam', 'o-s')
+        self.window(2, 'steam', active=True)
+        self.later(20)
+        self.window(3, 'steam_app_1086940', active=True)
+        self.window(7, 'steam_app_')  # the bare prefix is no game's identity
+        self.assertEqual(self.windows.toplevels[3].owner, 'steam')
+        self.assertIsNone(self.windows.toplevels[7].owner)
+        self.close(7)
+        self.later(5)
+        self.close(2)  # Steam's own window closes; its game keeps it open
+        self.later(shell.HANDOFF * 4)
+        self.assertEqual((self.activations, self.state('o-s')), ([], 'focused'))
+        self.later(600)
+        self.close(3)
+        self.later(shell.HANDOFF + 0.01)
+        self.assertEqual((self.activations, self.state('o-s')), ([1], 'closed'))
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'app_closed', 'steam'))
+
+    def test_an_unowned_window_in_front_keeps_the_hub_away_until_the_compositor_gives_it(self):
+        self.open('lunarclient', 'o-l')
+        self.window(3, 'lunarclient', active=True)
+        self.window(5, 'java-unknown')
+        self.later(5)
+        self.close(3)
+        self.focus(5)  # the compositor's pick: the window nobody owns
+        self.later(shell.HANDOFF * 4)
+        self.assertEqual((self.activations, self.state('o-l'), self.helper_.shell), ([], 'closed', 'background'))
+        self.focus(1)  # the compositor gives the hub the focus itself
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'desktop_activated', None))
+
+    def test_registry_apps_still_return_when_their_last_window_closes_beside_an_unowned_window(self):
+        # Nothing changes for the three reviewed apps: their own return rule does not look at other windows.
+        self.window(5, 'java-unknown')
+        self.open('notepad', 'o-n')
+        self.window(2, 'org.kde.kwrite', active=True)
+        self.later(5)
+        self.close(2)
+        self.assertEqual((self.activations, self.state('o-n')), ([1], 'closed'))

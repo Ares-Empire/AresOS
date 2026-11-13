@@ -210,6 +210,7 @@ class App:
     keywords: tuple = ()
     desktop_id: str = None
     exec_name: str = None
+    app_id_prefixes: tuple = ()
 
 
 ENTRY_KEYS = {'schema', 'id', 'name', 'argv', 'desktop_entry', 'working_directory', 'window', 'replaces', 'gpu'}
@@ -312,6 +313,86 @@ def load_registry(directory):
 
 def _reject_constant(value):
     raise ValueError('invalid JSON constant ' + value)
+
+
+# ---------------------------------------------------------------- window hints
+
+@dataclasses.dataclass(frozen=True)
+class Hint:
+    """Reviewed extra window identities for one discovered program (review 1, finding 1)."""
+    desktop_id: str
+    app_ids: tuple = ()
+    app_id_prefixes: tuple = ()
+
+
+HINTS = 'hints'
+HINT_KEYS = {'schema', 'desktop_id', 'app_ids', 'app_id_prefixes'}
+# A prefix is deliberate: 4 to 64 characters that end at a separator, so `steam_app_` but never `s` or `steam`.
+HINT_PREFIX = re.compile(r'[A-Za-z0-9._-]{3,63}[._-]\Z')
+
+
+def parse_hint(data):
+    """Validate one hint file as strictly as a registry entry: it decides which program a window belongs to."""
+    if not isinstance(data, dict):
+        raise ValueError('hint is not an object')
+    unknown = set(data) - HINT_KEYS
+    if unknown:
+        raise ValueError('unknown keys: ' + ', '.join(sorted(unknown)))
+    if data.get('schema') != 1:
+        raise ValueError('schema must be 1')
+    desktop_id = data.get('desktop_id')
+    if not isinstance(desktop_id, str) or not DESKTOP_FILE.match(desktop_id):
+        raise ValueError('desktop_id must be a desktop file ID')
+    app_ids, prefixes = data.get('app_ids', []), data.get('app_id_prefixes', [])
+    if (not isinstance(app_ids, list) or len(app_ids) > 8 or len(set(map(str, app_ids))) != len(app_ids)
+            or not all(isinstance(value, str) and WINDOW_ID.match(value) for value in app_ids)):
+        raise ValueError('app_ids must list at most 8 different Wayland app IDs')
+    if (not isinstance(prefixes, list) or len(prefixes) > 8 or len(set(map(str, prefixes))) != len(prefixes)
+            or not all(isinstance(value, str) and HINT_PREFIX.match(value) for value in prefixes)):
+        raise ValueError('app_id_prefixes must list at most 8 different prefixes of 4-64 characters ending in . _ or -')
+    if not app_ids and not prefixes:
+        raise ValueError('a hint must name at least one window identity')
+    if DESKTOP_APP_IDS & set(app_ids) or any(desktop.startswith(prefix) for desktop in DESKTOP_APP_IDS
+                                             for prefix in prefixes):
+        raise ValueError('a hint must not claim the desktop window')
+    return Hint(desktop_id, tuple(app_ids), tuple(prefixes))
+
+
+def _hints_clash(one, two):
+    prefixes = [(a, b) for a in one.app_id_prefixes for b in two.app_id_prefixes]
+    return bool(set(one.app_ids) & set(two.app_ids)
+                or any(a.startswith(b) or b.startswith(a) for a, b in prefixes)
+                or any(value.startswith(prefix) for value in one.app_ids for prefix in two.app_id_prefixes)
+                or any(value.startswith(prefix) for value in two.app_ids for prefix in one.app_id_prefixes))
+
+
+def load_hints(folder):
+    """Hints by desktop file ID. A broken hint is skipped; hints that name the same program or could claim the same
+    window are all refused, since one window identity must lead to exactly one program."""
+    found = {}
+    for path in sorted(glob.glob(os.path.join(glob.escape(folder), '*.json')))[:MAX_APPS]:
+        try:
+            with open(path, 'rb') as handle:
+                raw = handle.read(MAX_MESSAGE + 1)
+            if len(raw) > MAX_MESSAGE:
+                raise ValueError('hint is too large')
+            hint = parse_hint(json.loads(raw.decode('utf-8'), parse_constant=_reject_constant))
+        except (OSError, ValueError, RecursionError) as error:
+            LOG.error('window hint %s is invalid: %s', path, error)
+            continue
+        found.setdefault(hint.desktop_id, []).append(hint)
+    hints = {}
+    for desktop_id, candidates in found.items():
+        if len(candidates) > 1:
+            LOG.error('window hints for %s are defined twice; both are refused', desktop_id)
+        else:
+            hints[desktop_id] = candidates[0]
+    clashing = {hint.desktop_id for hint in hints.values() for other in hints.values()
+                if other is not hint and _hints_clash(hint, other)}
+    for desktop_id in sorted(clashing):
+        LOG.error('window hints for %s could claim another hinted program\'s windows; refused', desktop_id)
+        del hints[desktop_id]
+    return hints
 
 
 def resolve(app, executable=None, entry_dirs=DESKTOP_ENTRY_DIRS):
@@ -788,6 +869,28 @@ def discovered_app(desktop_id, path, values, executable):
                **desktop_details(desktop_id, values))
 
 
+def apply_hints(apps, hints):
+    """Reviewed hints give an installed discovered program more window identities (review 1, finding 1).
+
+    They beat discovered guesses, never a registry entry's identity (valid or not) or the desktop's. A hint for a
+    program that is not installed, or that a registry entry replaces, changes nothing.
+    """
+    apps = dict(apps)
+    reviewed = {identity for app in apps.values() if not app.discovered for identity in app.app_ids} | DESKTOP_APP_IDS
+    for key in sorted(apps):
+        hint = hints.get(apps[key].desktop_entry) if apps[key].discovered else None
+        if hint is None:
+            continue
+        extra = tuple(identity for identity in hint.app_ids if identity not in reviewed)
+        for other_key, other in list(apps.items()):
+            if other.discovered and other_key != key and set(other.app_ids) & set(extra):
+                apps[other_key] = dataclasses.replace(
+                    other, app_ids=tuple(identity for identity in other.app_ids if identity not in extra))
+        apps[key] = dataclasses.replace(apps[key], app_ids=tuple(dict.fromkeys((*apps[key].app_ids, *extra))),
+                                        app_id_prefixes=hint.app_id_prefixes)
+    return apps
+
+
 def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None, dependencies=None,
                    entries=None, budget=None, deployments=None):
     """Keep reviewed launch policies; desktop replacements contribute presentation only.
@@ -851,6 +954,7 @@ def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None,
                                   app_ids=tuple(identity for identity in app.app_ids if identity not in owners))
         owners.update(app.app_ids)
         apps[app.id] = app
+    apps = apply_hints(apps, load_hints(os.path.join(registry_dir, HINTS)))
     digest = hashlib.sha256(revision.encode())
     for app in sorted(apps.values(), key=lambda app: app.id):
         digest.update(json.dumps(dataclasses.asdict(app), sort_keys=True,
@@ -1777,6 +1881,7 @@ class Toplevel:
     activated: bool = False
     ready: bool = False
     owner: str = None
+    # The owner a dialog took from a discovered parent; it keeps it after the parent closes.
     launch_owner: str = None
     pending: dict = dataclasses.field(default_factory=dict)
 
@@ -1795,11 +1900,15 @@ class Windows:
         self.opened = []
         self.closed = []
         self.owners = {}
+        self.prefixes = ()
         self.reserved_ids = set(DESKTOP_APP_IDS)
 
     def set_registry(self, apps):
+        """The programs whose windows can be told apart: an exact identity or a reviewed hint's prefix, no guess."""
         self.reserved_ids = {identity for app in apps.values() for identity in app.app_ids} | DESKTOP_APP_IDS
         self.owners = {window_id: app.id for app in apps.values() if not app.invalid for window_id in app.app_ids}
+        self.prefixes = tuple((prefix, app.id) for app in apps.values() if not app.invalid
+                              for prefix in app.app_id_prefixes)
         # Windows listed before the registry was known get their owners now (twice, so dialogs follow parents).
         for _ in range(2):
             for toplevel in self.toplevels.values():
@@ -1856,8 +1965,15 @@ class Windows:
             return self.SHELL
         if toplevel.app_id in self.owners:
             return self.owners[toplevel.app_id]
-        if toplevel.app_id in self.reserved_ids and toplevel.launch_owner is not None:
-            return None
+        if toplevel.app_id in self.reserved_ids:
+            if toplevel.launch_owner is not None:
+                return None
+        else:
+            # A reviewed hint's prefix (Steam's games, steam_app_<n>); exact and reserved identities come first.
+            owner = next((app for prefix, app in self.prefixes
+                          if toplevel.app_id.startswith(prefix) and len(toplevel.app_id) > len(prefix)), None)
+            if owner is not None:
+                return owner
         # Dialogs belong to their parent's app, so closing one never looks like the app closing.
         parent = self.toplevels.get(toplevel.parent)
         if parent is not None and parent.handle not in seen:
@@ -2551,7 +2667,8 @@ class Helper:
 
         Without window tracking that is every unresolved launch, focused and background included. With tracking,
         windows decide reviewed apps, except for a launch still starting that this helper did not start itself.
-        Discovered scopes are also watched after their windows close: unknown child windows need a live scope.
+        Discovered scopes are also watched after their windows close: a live scope keeps a launch waiting for a
+        resident instance's window.
         """
         units = {}
         for request_id, entry in self.journal.entries.items():
@@ -2651,23 +2768,10 @@ class Helper:
         if (self.keep_foreground and self.desktop_appeared is not None
                 and now - self.desktop_appeared > KEEP_WINDOW):
             self.keep_foreground = False
-        # Foreign-toplevel has no PID/cgroup. Infer only a newly appearing, identified, unclaimed window when
-        # exactly one launched program could own it. Keep that decision for the window's lifetime; a later
-        # explicit identity (especially the desktop or a reviewed app) always overrides it in Windows._owner.
-        scopes = [scope for scope in self.discovered_scopes.values()
-                  if self.journal.entries.get(scope['request_id'], {}).get('state') != 'failed']
-        possible = {scope['app_id'] for scope in self.discovered_scopes.values()}
-        other_launch = any(not self.is_discovered(entry) and entry['state'] not in FINAL and not entry.get('settled')
-                           for entry in self.journal.entries.values())
-        if len(possible) == 1 and not other_launch:
-            app_id = next(iter(possible))
-            live = [scope for scope in scopes if scope['app_id'] == app_id
-                    and (scope['state'] == ACTIVE
-                         or (scope.get('process') is not None and scope['process'].poll() is None))]
-            for toplevel in opened:
-                if (toplevel.owner is None and toplevel.app_id and toplevel.app_id not in self.windows.reserved_ids
-                        and any(scope['started'] <= toplevel.seen for scope in live)):
-                    toplevel.launch_owner = toplevel.owner = app_id
+        # Foreign-toplevel has no PID or cgroup, so a window belongs to a program only by a reviewed identity (its
+        # own, a registry entry's or a hint's), never by which programs happen to run (review 1, finding 1). A
+        # window nobody owns is nobody's: it confirms no launch, keeps no program open and forces no return.
+        # Dialogs follow their parent, and keep a discovered parent's owner after it closes.
         for toplevel in self.windows.toplevels.values():
             parent = self.windows.toplevels.get(toplevel.parent)
             if toplevel.ready and parent is not None and self.apps.get(parent.owner) is not None:
@@ -2744,7 +2848,9 @@ class Helper:
             for request_id, entry in self.journal.entries.items():
                 if entry['app_id'] == app and entry['state'] not in FINAL:
                     self.set_state(request_id, 'closed')
-            if should_return and not returned and self.shell == 'background':
+            # A window nobody owns may be this program's own (an identity no hint knows yet): the hub is not
+            # pulled in front of it, and comes back only when the compositor gives it the focus.
+            if should_return and not returned and self.shell == 'background' and not self.unowned_windows():
                 returned = True
                 self.return_to_desktop(app)
         active = self.windows.active()
@@ -2795,6 +2901,9 @@ class Helper:
             if active.owner:
                 fields['app_id'] = active.owner
             self.emit('shell_focus', **fields)
+
+    def unowned_windows(self):
+        return [toplevel for toplevel in self.windows.toplevels.values() if toplevel.ready and toplevel.owner is None]
 
     def return_to_desktop(self, app):
         """The foreground app's last relevant window closed: give the hub its focus back."""

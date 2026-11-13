@@ -101,6 +101,8 @@ class DiscoveredBase(Base):
         apps, revision = shell.load_registry(REGISTRY)
         apps.update({app_id: self.app(app_id) for app_id in ('lunarclient', 'discord')})
         apps['btop'] = self.app('btop', Terminal='true')
+        # The image's reviewed hints, as load_catalogue applies them (review 1, finding 1): Lunar's game window.
+        apps = shell.apply_hints(apps, shell.load_hints(str(REGISTRY / 'hints')))
         self.windows = (windows or shell.Windows(clock=self.clock)) if tracked else None
         self.helper_ = shell.Helper(str(REGISTRY), INSTANCE, NONCE, journal or self.journal,
                                     registry=(apps, revision), launcher=self.launcher(), windows=self.windows,
@@ -286,31 +288,34 @@ class DiscoveredLifecycleTest(DiscoveredBase):
 
 
 class UnclaimedWindowTest(DiscoveredBase):
+    """Review 1, finding 1 removed the rule that the only live program owns unclaimed windows: windows belong to a
+    program by a reviewed identity (here the image's Lunar hint), and a window nobody owns stays nobody's."""
+
     def setUp(self):
         super().setUp()
         self.start()
         self.window(1, 'aresos-desktop', active=True)
 
-    def test_new_unclaimed_windows_belong_to_the_only_live_program_and_keep_their_owner(self):
+    def test_a_window_nobody_owns_stays_nobodys_even_with_one_live_program(self):
         self.open()
         self.window(2, 'lunarclient', active=True)
         self.window(3, 'java-lunar', active=True)
-        self.assertEqual(self.windows.toplevels[3].owner, 'lunarclient')
+        self.assertIsNone(self.windows.toplevels[3].owner)
         self.close(2)
         self.expire_close()
-        self.assertEqual(self.activations, [])
-        self.assertEqual(self.state(), 'focused')
+        self.assertEqual(self.activations, [])  # the hub is not pulled in front of the unowned window
+        self.assertEqual(self.state(), 'closed')
         self.open('discord', 'o-2')
         self.focus(3)
-        self.assertEqual(self.windows.toplevels[3].owner, 'lunarclient')
+        self.assertIsNone(self.windows.toplevels[3].owner)
         self.close(3)
         self.expire_close()
-        self.assertEqual(self.activations, [1])
+        self.assertEqual(self.activations, [])
 
-    def test_multiple_scopes_of_the_same_program_are_one_candidate(self):
+    def test_multiple_launches_of_the_same_program_share_its_hinted_window(self):
         self.open()
         self.open(request_id='o-2')
-        self.window(2, 'java-lunar', active=True)
+        self.window(2, 'com.mojang.minecraft', active=True)
         self.assertEqual(self.windows.toplevels[2].owner, 'lunarclient')
         self.assertEqual(self.state(), 'focused')
         self.assertEqual(self.state('o-2'), 'focused')
@@ -328,7 +333,7 @@ class UnclaimedWindowTest(DiscoveredBase):
         self.open()
         self.window(2, '', active=True)
         self.assertIsNone(self.windows.toplevels[2].owner)
-        self.windows.app_id(2, 'java-lunar')
+        self.windows.app_id(2, 'com.mojang.minecraft')
         self.windows.done(2)
         self.helper_.windows_changed()
         self.assertEqual(self.windows.toplevels[2].owner, 'lunarclient')
@@ -357,7 +362,7 @@ class UnclaimedWindowTest(DiscoveredBase):
         self.now[0] += shell.HANDOFF / 2
         self.helper_.tick()
         self.assertEqual(self.activations, [])
-        self.window(3, 'java-lunar', active=True)
+        self.window(3, 'com.mojang.minecraft', active=True)
         self.expire_close()
         self.assertEqual(self.state(), 'focused')
         self.assertEqual(self.activations, [])
@@ -399,32 +404,35 @@ class UnclaimedWindowTest(DiscoveredBase):
         self.window(3, 'another-java')
         self.assertIsNone(self.windows.toplevels[3].owner)
 
-    def test_a_confirmed_scope_can_claim_after_the_proxy_exits_and_stops_after_scope_death(self):
+    def test_scopes_decide_no_owner_and_scope_death_never_closes_a_real_window(self):
         self.open()
         self.helper_.processes['o-1'].code = 0
         self.helper_.tick()
         unit = self.helper_.journal.entries['o-1']['unit']
         self.active_units.add(unit)
         self.scope_pass(self.helper_)
-        self.window(2, 'java-lunar', active=True)
+        self.window(2, 'com.mojang.minecraft', active=True)
         self.assertEqual(self.windows.toplevels[2].owner, 'lunarclient')
+        self.window(4, 'java-lunar')
+        self.assertIsNone(self.windows.toplevels[4].owner)  # a live scope claims nothing
         self.active_units.clear()
         self.scope_pass(self.helper_)
         self.window(3, 'another-java')
         self.assertIsNone(self.windows.toplevels[3].owner)
         self.assertEqual(self.state(), 'focused')  # scope death never closes a real window
+        self.close(4)
         self.close(2)
         self.expire_close()
         self.assertEqual(self.state(), 'closed')
 
-    def test_restart_recovers_an_unclaimed_game_window_from_the_live_scope(self):
+    def test_restart_recovers_the_hinted_game_window(self):
         self.open()
         unit = self.helper_.journal.entries['o-1']['unit']
         self.window(2, 'lunarclient', active=True)
         self.active_units.add(unit)
         windows = shell.Windows(clock=self.clock)
         windows.new(9)
-        windows.app_id(9, 'java-lunar')
+        windows.app_id(9, 'com.mojang.minecraft')
         windows.state(9, True)
         windows.done(9)
         helper = self.start(windows=windows)
@@ -451,7 +459,7 @@ class DiscoveredSplitReadTest(DiscoveredBase):
             wayland.feed(wire_state(self.DESKTOP, False) + wire_toplevel(self.LAUNCHER, 'lunarclient', True))
             helper.windows_changed()
             if with_game:
-                wayland.feed(wire_state(self.LAUNCHER, False) + wire_toplevel(self.GAME, 'java-lunar', True))
+                wayland.feed(wire_state(self.LAUNCHER, False) + wire_toplevel(self.GAME, 'com.mojang.minecraft', True))
                 helper.windows_changed()
             before = len(self.conn.events('shell_focus'))
             for chunk in (stream[:split], stream[split:]):
@@ -471,7 +479,7 @@ class DiscoveredSplitReadTest(DiscoveredBase):
 
     def test_lunar_launcher_to_java_handover_in_both_orders_at_every_byte_split(self):
         closed = FakeCompositor.message(self.LAUNCHER, 6)
-        game = wire_toplevel(self.GAME, 'java-lunar', True)
+        game = wire_toplevel(self.GAME, 'com.mojang.minecraft', True)
         orders = {'game first': wire_state(self.LAUNCHER, False) + game + closed,
                   'launcher closes first': closed + game}
         for order, stream in orders.items():
