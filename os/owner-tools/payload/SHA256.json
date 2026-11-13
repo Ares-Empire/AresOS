@@ -4,7 +4,7 @@
     "path": "at"
   },
   {
-    "sha256": "7e81ba50333191eceec69749216ddeae3c9d234c4ca8ccc3d7de652bc1d2d5fd",
+    "sha256": "a292ea185f361753e19236397a148fa050f14b15b63f64ee69bec38f9d40f4f3",
     "path": "history.json"
   },
   {
@@ -12,7 +12,7 @@
     "path": "media.py"
   },
   {
-    "sha256": "0100b73d3cdeef52f4d125e673569a3beb79b843e121e3ce4b0211855015b17f",
+    "sha256": "f090fd0eef782fc2493efe56fc26df2e5eae513b618a4d3067df39993605e0d0",
     "path": "owner.py"
   },
   {
@@ -38,6 +38,10 @@
   {
     "sha256": "74d6c5a9476d83c569ecbc15ba0ce8a342c5679db87947dab5cd28e2ae28edc8",
     "path": "release/rollback.sh"
+  },
+  {
+    "sha256": "e4b460feb5a6074a3f0edf1146df85c1cec8113b29c584b535d5acfa895eb78f",
+    "path": "release/start-next.sh"
   },
   {
     "sha256": "630ce503e72b71011fe885d3bc2616aa6b84b31579faa94d879ef34f20a5da7a",

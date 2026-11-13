@@ -205,8 +205,10 @@ class Machine(owner.Host):
         self.trace.append(dict(command=list(command), mutation=True))
         self.changes.append(command)
         if command == ('rpm-ostree', 'cleanup', '--pending'):
-            # As rpm-ostree does: the staged deployment goes, everything else stays.
-            self.state = machine([r for r in self.state['rpm']['deployments'] if not r.get('staged')])
+            # rpm-ostree: the staged deployment goes, and so does every unpinned row before the booted one.
+            rows = self.state['rpm']['deployments']
+            booted = next(i for i, r in enumerate(rows) if r['booted'])
+            self.state = machine([r for i, r in enumerate(rows) if not r.get('staged') and (i >= booted or r['pinned'])])
 
     def start(self, text, name):
         return ModelStep(self, text, name)
@@ -227,11 +229,35 @@ class Machine(owner.Host):
         body = text.split("<<'" + marker + "'\n", 1)[1].split('\n' + marker + '\n', 1)[0]
         tail = text.split('\n' + marker + '\n', 1)[1].strip()
         answer = lambda argv, **kw: json.dumps(self.state['bootc' if argv[0] == 'bootc' else 'rpm'])
-        with patch('subprocess.check_output', side_effect=answer), contextlib.redirect_stdout(io.StringIO()):
+
+        def run(argv, **kw):
+            # ostree 2026.4, as the probe run 43470161858 showed it: set-default removes the row and
+            # inserts it first; a list write drops a staged row that is not first.
+            assert kw == {'check': True}, kw
+            if argv == ['sync']:
+                self.changes.append('sync')
+                return
+            assert argv[:3] == ['ostree', 'admin', 'set-default'] and len(argv) == 4, argv
+            if self.interrupt == (name, 'before'):
+                self.interrupt = None
+                raise owner.Stop('Shared step failed: ' + name + '; injected before the change')
+            rows = self.state['rpm']['deployments']
+            index = int(argv[3])
+            self.state = machine([rows[index], *[r for i, r in enumerate(rows) if i != index and not r.get('staged')]])
+            self.changes.append(' '.join(argv))
+            if self.interrupt == (name, 'after'):
+                self.interrupt = None
+                raise owner.Stop('Shared step failed: ' + name + '; injected after the change')
+        with patch('subprocess.check_output', side_effect=answer), patch('subprocess.run', side_effect=run), \
+                contextlib.redirect_stdout(io.StringIO()):
             try:
                 exec(compile(body, name, 'exec'), {'__name__': 'owner_shared_step'})
             except AssertionError:
                 raise owner.Stop('Shared step failed: ' + name + '; preserve diagnostics and do not reboot') from None
+        if name == 'start-next':
+            if self.interrupt == (name, 'observe'):
+                self.interrupt = 'reading'
+            return ''
         if self.interrupt == (name, 'before'):
             self.interrupt = None
             raise owner.Stop('Shared step failed: ' + name + '; injected before the change')
@@ -311,6 +337,8 @@ def route(state, bundle_history=H21, target=None, wheel=False, signed=None, logi
         stack.enter_context(patch.object(owner, 'disk_record', return_value=dict(target=dict(path='/dev/FIXTURE', serial='TARGET'), esp_guid='fixture')))
         stack.enter_context(patch.object(owner, 'resolved_bls', side_effect=lambda: bls_for(host.state)))
         stack.enter_context(patch.object(owner, 'runtime_state', return_value={}))
+        # Bazzite's updaters are paused unless a test says otherwise (rule 10 reads them on running stock).
+        tools.paused = stack.enter_context(patch.object(owner, 'paused_state', return_value={}))
         stack.enter_context(patch.object(owner, 'media_module', return_value=Mock(find=Mock(return_value=None))))
         real_which = shutil.which
         stack.enter_context(patch.object(owner.shutil, 'which',
