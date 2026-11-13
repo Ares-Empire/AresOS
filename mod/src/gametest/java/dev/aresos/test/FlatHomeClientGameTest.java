@@ -510,7 +510,10 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
                 rules.set(GameRules.SPAWN_PHANTOMS, true, server);
                 rules.set(GameRules.MOB_GRIEFING, true, server);
                 server.setDifficulty(Difficulty.HARD, true);
-                server.overworld().setBlockAndUpdate(new BlockPos(2, 63, 2), Blocks.EMERALD_BLOCK.defaultBlockState());
+                // Gold was already relinquished above. Keep the record stable while making a rebuild visible.
+                check(HubData.get(server).fixed().blocks().stream().noneMatch(block -> block.pos().equals(HOME.below())),
+                        "Fixture: gold is still owned before the missing-data edit");
+                server.overworld().setBlockAndUpdate(HOME.below(), Blocks.EMERALD_BLOCK.defaultBlockState());
                 return ground(server.overworld());
             });
         }
