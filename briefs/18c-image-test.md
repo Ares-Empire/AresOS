@@ -103,8 +103,8 @@ the owner's OK.
    - `/usr/lib/aresos-control/vendor/` from `python3 -m pip install --no-cache-dir --require-hashes
      --only-binary=:all: --target` with `control/requirements.lock` (pip refuses any wheel whose SHA-256 isn't pinned);
    - `/etc/aresos-control/service.json` and `proxy.json` from `control/settings/`, 0644, with the AresOS values
-     `owner_uid: 1001` and home `/var/home/ares` (folders Documents, Downloads, Desktop); the build checks them against
-     `ares` in `aresos.conf`;
+     `owner_uid: 1001` and home `/var/home/ares` (folders `Downloads` and `Documents`, item 8); the build checks them
+     against `ares` in `aresos.conf`;
    - `/usr/bin/aresos`, `/usr/bin/aresos-mcp`, `/usr/bin/aresos-toold` from `control/packaging/`, 0755;
    - `/usr/lib/systemd/system/aresos-toold.service`, `/usr/lib/sysusers.d/aresos-tools.conf` and
      `/usr/lib/tmpfiles.d/aresos-tools.conf` from `control/packaging/`, 0644, with the unit **enabled**
