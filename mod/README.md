@@ -54,15 +54,16 @@ no system install and change no shell setup:
   `--registry`.
 
 Extra arguments go to Gradle; its daemon switches `--daemon`, `--foreground`,
-`--stop` and `--status` are refused (exit code 2). Only one client test runs at a time on the laptop: `client-test.sh`
-waits for `~/.cache/aresos-dev/client-test.lock` and says so. All three refuse
+`--stop` and `--status` are refused (exit code 2). Only one client test runs at
+a time on the laptop: `client-test.sh` waits for
+`~/.cache/aresos-dev/client-test.lock` and says so. All three refuse
 (exit code 75) while the Lunar Client game (Lunar's own Java) runs or less than
 6 GB of memory is available, and `client-test.sh` and `run-hub.sh` check again
 right before Gradle starts; `--force` skips those checks. Everything a script
 starts (Gradle without a lasting daemon, the game, a compositor, a GPU probe, the
-app helper) runs in a systemd user scope of that script's own, named
-`aresos-dev-…`, and every exit, Ctrl+C included, stops those scopes with
-everything in them.
+app helper, the wait for the lock) runs in a systemd user scope of that script's
+own, named `aresos-dev-…`, and every exit, Ctrl+C included, stops those scopes
+with everything in them.
 
 Click **AresOS** above Singleplayer on the title screen to reopen **AresHub**,
 or choose a seed on the create screen if it does not exist. Seed **49** is
