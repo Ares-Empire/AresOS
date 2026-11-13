@@ -142,8 +142,8 @@ Earlier runs [43510212242](https://github.com/Ares-Empire/AresOS/actions/runs/43
 
 ## Known limits
 
-- A background resident program or unresolved reviewed launch can block unknown-child association; unrelated new windows cannot be proven to belong to a scope. A late Lunar window beyond the grace can follow a hub return. Known explicit identities still work.
-- Discovered programs with no usable identities remain available; they need conservative inference and may never gain a matched window in an ambiguous session. A clean gone-scope handover gets the existing bounded no-window wait; live/unknown scopes keep waiting. Nonzero early exits still fail.
+- *(Superseded by "Review fixes 1": there is no inference any more.)* A background resident program or unresolved reviewed launch can block unknown-child association; unrelated new windows cannot be proven to belong to a scope. A late Lunar window beyond the grace can follow a hub return. Known explicit identities still work.
+- *(Superseded by "Review fixes 1": there is no inference any more.)* Discovered programs with no usable identities remain available; they need conservative inference and may never gain a matched window in an ambiguous session. A clean gone-scope handover gets the existing bounded no-window wait; live/unknown scopes keep waiting. Nonzero early exits still fail.
 - Directory symlinks are not traversed, file symlinks are; malformed desktop files, missing executables/TryExec/terminal, unsupported forwarding syntax and unsupported icons are omitted rather than guessed. Locale-specific names/actions are out of scope. Relative Path means HOME for discovery. `%i`, `%c`, `%k`, `%%` retain the existing parser's expansions; file/URL codes are dropped.
 - Only `foot.desktop` is replaced by the Terminal starter; the distinct Foot client/server entry can still appear. A starter borrows only presentation from replacement entries, never their command/window policy.
 - Catalogue cap is 256. Polling gives changes up to roughly three seconds of discovery latency, then sequential icon work. Stat walking/parsing occurs on the helper loop only when due; untrusted huge directory trees are not a bounded-latency guarantee. This package does not add inotify or an icon-cache eviction policy.
@@ -161,3 +161,197 @@ Closing housekeeping: all owned headless processes/scopes and converter/test chi
 1. From this worktree on your desktop: `mod/dev/run-hub.sh --helper "$PWD/os/config/usr/libexec/aresos-shell" --registry "$PWD/os/config/usr/share/aresos/apps"` (wait if it refuses for game/memory; do not force).
 2. With the package-34 mod, find your programs/pictures in My apps; open Lunar, close its launcher after the game appears, then close the game and check that you return to the hub once.
 3. Open Steam, close its last window while it stays running, reopen it from the hub, and check return, picture updates and the NVIDIA choice during real gameplay.
+
+## Review fixes 1
+
+Brief: `briefs/30-review-fixes-1.md`. Two fresh reviews of `08753aeb`, both CHANGES-NEEDED: `SECURITY-1.md` (five FIX
+findings) and `REVIEW-1.md` (one blocking, six should-fix). All twelve fixed by two Claude builder steps (Opus 5.5),
+2026-11-13/14: step A the security review's five, step B the package review's. Every new test was also run with its
+own fix taken out (a scratch script that patches the helper in memory, one fix at a time); each one failed then.
+
+`os/` files touched: `config/usr/libexec/aresos-shell`; `config/usr/share/aresos/apps/hints/` (new: `lunarclient.json`,
+`steam.json`); `ci/image-checks.sh` (two added checks: `/usr/bin/prlimit`; the hints load and are root's); tests
+`test_aresos_shell.py`, `test_aresos_shell_discovery.py`, `test_aresos_shell_windows.py` (see "Existing tests changed"),
+new `test_aresos_shell_hardening.py` (step A), new `test_aresos_shell_review_fixes.py` (step B), new
+`check_aresos_shell_launch.py`, changed `check_aresos_shell_icons.py`. Docs: `docs/design/OS-BASE.md` B1. Nothing
+under `mod/`; the examples under `mod/src/test/resources/shell-1.1/` are unchanged; the three registry entries are
+unchanged.
+
+### Step A: the security review (SECURITY-1.md)
+
+- **FIX 1, discovery can't stall or exhaust the helper.** `Catalogue.scan()` is one bounded pass; `ScanBudget` counts
+  every folder entry looked at, accepted or not: 4096 entries, 256 folders, nesting 8, 32 MiB of desktop entries,
+  2 s. The byte bound is checked from stat sizes before reading (hard links cost no disk space) and again while
+  reading. A pass that hits a bound, raises or blocks changes nothing (the last good catalogue stays) and is logged
+  once. Folders are walked through descriptors; a linked subfolder is never entered, not even one swapped in after
+  listing. `Discovery` runs scans on its own thread (`aresos-discovery`), at most one at a time and at most every 3 s;
+  the serving loop only takes finished catalogues; a scan blocked over 4 s is logged once. Before the first scan the
+  registry alone is in force; `build()` waits up to 3 s for it. Tests (`test_aresos_shell_hardening.py`): ten thousand
+  hidden entries (no file read, one log line, recovery), 40 hard links to one 1 MiB malformed entry (none read),
+  bytes counted while read, folder/depth/time bounds, a swapped-in linked subfolder, a blocked scan through `build()`
+  (five ticks and lists each under 0.2 s), a folder a writer keeps changing for 2.5 s (no overlap, every tick under
+  0.25 s), a failing scan, the registry-only start.
+- **FIX 2, the converter has a real memory ceiling.** It starts under util-linux `prlimit --as=268435456 --`
+  (256 MiB address space), set before `bwrap` and inherited by everything it starts; measured on the laptop, every
+  icon that converts at all needs under 128 MiB. Chosen over a memory-limited systemd scope per conversion (a D-Bus
+  round trip per icon for a two-process tree) and `preexec_fn` (unsafe in this threaded helper). `drawn_svg()`
+  refuses before conversion an SVG with `image`, `feImage`, `foreignObject`, XInclude, any `href`/`url()` not to
+  `#id` (`data:` included), CSS escapes or `@import`, processing instructions, a DTD or entity, or XML that is not
+  well formed. Tests: a stand-in converter and its forked child both carry the limit and cannot map 512 MiB; a 41 KB
+  SVG whose embedded PNG decodes to 16000x16000 is refused; 16 refused constructs, one subtest each; drawn shapes
+  with local references still convert. Real converter (`check_aresos_shell_icons.py`): with the refusal bypassed, the
+  bomb fails under the ceiling within the timeout.
+- **FIX 3, the icon cache has a budget:** 512 files and 32 MiB, checked before converting and with the real size
+  before writing; over it, the picture is not cached (fallback look, "budget used up" logged once, not remembered as a
+  failure). A changed source's older picture is removed at once; after each complete pass, pictures no listed
+  program uses and leftovers of interrupted writes are removed. Tests: one icon's time changed a thousand times
+  leaves one picture; removed programs and leftovers pruned; a full cache keeps the fallback and says so once; the
+  real size is checked before writing.
+- **FIX 4, systemd changes no argument:** `systemd-run ... --expand-environment=no --` on every launch (the three
+  registry apps' arguments contain no `$`, so nothing changes for them). Real route (`check_aresos_shell_launch.py`,
+  laptop only: hosted Ubuntu has no user manager): a stand-in in a real `systemd-run --user --scope` receives
+  `${HOME}` unchanged from `Exec`, `%c` and `%i`; a control without the flag shows systemd 259.9 expanding all three.
+- **FIX 5, links are checked before anything is read:** `open_confined()` pins a file with `O_PATH`, checks its real
+  location in `/proc/self/fd` and reopens it through the pin, so the file read is the file checked. A desktop file
+  must resolve inside the five application folders or a Flatpak deployment (`~/.local/share/flatpak/app`,
+  `/var/lib/flatpak/app`: exports only ever link into `app/<id>/...`); anything else is skipped with one log line.
+  Icon theme and size folders are listed only after the same check; a Flatpak export's icon link into its deployment
+  is accepted, so **Flatpak programs get their pictures (this settles the package review's finding 5)**. An explicit
+  absolute `Icon` path is read as written, as before. Tests: a link to a file outside, links inside, the realistic
+  layout `flatpak install` leaves (`exports/...` to `../../../app/<id>/current/active/export/...`), a link changed
+  after the check, a link to a FIFO or device, a theme folder linking out, a Flatpak export icon found and converted.
+- **Real-world smoke run** (no window, no launch; private runtime folder and icon cache, his real application
+  folders): the old (`5fbe6d20`) and new helper both listed the same 56 programs from all five sources; pictures 33
+  (old) and 45 (new): none lost, 12 gained (the Flatpak icons).
+
+### Step B: the package review (REVIEW-1.md)
+
+New tests are in `os/tests/test_aresos_shell_review_fixes.py` unless named otherwise.
+
+- **Finding 1 (blocking), windows belong to a program by a reviewed identity, never by a guess.** The rule that the
+  only live discovered program owns windows nobody claims is removed. Instead, reviewed image-shipped **hints** give
+  an installed discovered program extra window identities, exact or by prefix (format below). They are validated as
+  strictly as registry entries (`parse_hint`, `load_hints`), beat discovered programs' guessed identities, and never
+  a registry entry's identity (valid or not) or the desktop's; hints that name one program twice or could claim the
+  same window are all refused, with a log line. Exact identities always beat prefixes. Two ship: Lunar Client
+  (`lunarclient.desktop`, game window `com.mojang.minecraft`; seen on the laptop on 2026-11-13: the launcher's window
+  is `lunarclient`, which its own `StartupWMClass` already names, the game's is `com.mojang.minecraft`) and Steam
+  (`steam.desktop`, prefix `steam_app_`, the identity Steam gives its games; **not seen on the laptop**). A window
+  nobody owns is nobody's: it confirms no launch, keeps no program open and forces no return; when a discovered
+  program's last window closes while such a window is open, the hub is not pulled in front of it and comes back only
+  when the compositor gives it the focus. Tests (`HintTest`, `HintedOwnershipTest`), each with time moving and its
+  closing consequences: Lunar with Chrome open (launcher closes while the game runs: no return; game closes: one
+  return, Lunar closed, Chrome still background); Lunar's launcher closed shortly before, in the same compositor batch
+  as, and after the game window appears (no return until the game closes, then one), and long before it (an honest
+  return, then the game takes the focus and its close returns again); Discord resident without a window while an
+  unrelated window opens (nobody's; it confirms no second launch, changes no launch state, forces no return; Discord's
+  own window then confirms it); Steam with a game window (`steam_app_1086940` is Steam's, the bare prefix is nobody's,
+  Steam's own window closing keeps it open, the game's close returns once); an unowned window in front keeps the hub
+  away until the compositor gives it; a registry app still returns at once beside an unowned window; the shipped
+  hints are exactly the two; 16 broken hints refused with one log line each; clashing hints refused; precedence
+  (registry, desktop, exact over prefix, hint over guess); a hint for a program that is not installed changes
+  nothing; a changed hint changes the catalogue and its revision. Mutations: without hints 8 of these fail; with the
+  old guess back 5 fail; without the unowned-window rule 2 fail; without prefix matching 2 fail.
+- **Finding 2, a 1.0 client sees today's behaviour, windows included.** Window ownership follows the last desktop's
+  negotiated minor: with a 1.0 desktop only the registry's identities own windows and trigger returns, also while it
+  is disconnected and after it reconnects. Before any hello, a journal that still holds an unfinished discovered
+  launch (only a 1.1 client can start one) means 1.1, so a helper restart keeps its windows. A change applies at the
+  next tick, after the hello reply. Tests (`LegacyWindowsTest`, through `build()` over real desktop folders, as
+  production builds the catalogue): with a 1.0 desktop, Firefox started by hand over the terminal opens and closes
+  three times (connected, disconnected, reconnected): never a return, the terminal stays focused, and the terminal's
+  own close still returns; a 1.1 desktop owns Firefox's window, a 1.0 reconnect gives it up, and a 1.1 reconnect gets
+  the discovered return back.
+- **Finding 3, a 1.0 client asking for a discovered ID gets exactly the old failed-launch answer.** For a 1.0 client
+  a discovered ID is an unknown one: answered and journaled exactly as the pre-package-30 helper answers any unknown
+  ID, and a repeated request ID replays it (also after a restart) or answers `request_id_reused`. A 1.0 client
+  resending a request ID a 1.1 client used for a discovered launch gets the same unknown answer, not journaled; the
+  real launch is untouched. Tests (`LegacyDiscoveredIdTest`) compare whole answers and journal entries with the ones
+  `origin/main`'s helper gives (checked once against that helper: `{"protocol": "aresos-shell/1.0", "id": "o-1",
+  "ok": false, "request_id": "o-1", "launch_id": null, "app_id": "lunarclient", "state": "failed", "error":
+  "unknown_app", "message": "no reviewed launch definition"}`, journal entry with the same fields and `updated`).
+- **Finding 4, a return that is no longer wanted is dropped.** A discovered program's pending return remembers the
+  compositor's pick after the close (the first window activated, also when that activation arrives before the close).
+  A later switch to another window, or a launch, drops the return; the close still ends the launch. Without a choice
+  the compositor's pick still gets the return. Tests (`DroppedReturnTest`): A closes, B takes focus, C is chosen
+  without the hub in between, in both arrival orders; A closes, B takes focus, a launch; the control where nothing is
+  chosen still returns once.
+- **Finding 5, Flatpak export icons:** settled in step A (FIX 5 above).
+- **Finding 6, Flatpak's markers only for Flatpak.** `@@`/`@@u` groups are removed only from a recognised
+  `flatpak run [options] --file-forwarding APP` command (`--file-forwarding` before the app ID); in any other command
+  `@@` is an ordinary argument. Tests (`FlatpakMarkerTest`): `tool @@`, `tool @@ %f @@`, `tool @@u %u @@ --flag` keep
+  their markers; Flatpak without forwarding, or with it after the app ID, keeps them; recognised commands lose them.
+- **Finding 7, a Flatpak's app ID from its command.** Without `X-Flatpak`, the app ID is the first word after
+  `flatpak run`'s options, only when every option before it is understood (`--name=value` or one of flatpak 1.16's
+  value-less flags) and it is a valid Flatpak ID; it is used for `exec_name` and as a window identity. Otherwise the
+  detail is left out, not invented. `flatpak` itself is no longer an identity candidate. Tests (`FlatpakAppIdTest`):
+  `my-firefox.desktop` running `org.mozilla.firefox` reports and matches `org.mozilla.firefox`; `X-Flatpak` still
+  wins; a separate option value, `--command firefox`, a non-ID word and no app leave `exec_name` out.
+
+### Hints file format
+
+`/usr/share/aresos/apps/hints/<name>.json`, one program per file, image-shipped and owned by root:
+
+```json
+{"schema": 1, "desktop_id": "steam.desktop", "app_ids": [], "app_id_prefixes": ["steam_app_"]}
+```
+
+`schema` must be 1; `desktop_id` a desktop file ID (`[A-Za-z0-9._-]{1,128}.desktop`); `app_ids` at most 8 different
+Wayland app IDs (`[A-Za-z0-9._-]{1,128}`); `app_id_prefixes` at most 8 different prefixes of 4 to 64 characters that
+end in `.`, `_` or `-` (a window matches only when its identity is longer than the prefix). At least one identity;
+no other keys; nothing that names or could match `aresos-desktop`. A broken file is skipped with a log line; files
+that name the same desktop ID, or could claim the same window, are all refused.
+
+### Existing tests changed in step B (all others unchanged)
+
+- `test_aresos_shell_discovery.py` `test_flatpak_file_and_url_forwarding_markers_are_dropped_as_groups`: its
+  commands gain `--file-forwarding` before the app ID. Real Flatpak exports always carry it, and finding 6 asks that
+  markers count only then; the assertions (groups dropped, malformed groups refused with one log line each) keep their
+  meaning.
+- `test_aresos_shell_windows.py`: `DiscoveredBase.start` applies the image's hints, as `load_catalogue` does. In
+  `UnclaimedWindowTest`, the tests that asserted the removed guess now assert what finding 1 asks:
+  `test_new_unclaimed_windows_belong_to_the_only_live_program_and_keep_their_owner` became
+  `test_a_window_nobody_owns_stays_nobodys_even_with_one_live_program` (owner None, the launch closes, no return);
+  `..._multiple_scopes_of_the_same_program_are_one_candidate` became
+  `test_multiple_launches_of_the_same_program_share_its_hinted_window`; `..._a_confirmed_scope_can_claim_...` became
+  `test_scopes_decide_no_owner_and_scope_death_never_closes_a_real_window`; `..._restart_recovers_an_unclaimed_game_window_from_the_live_scope`
+  became `test_restart_recovers_the_hinted_game_window`. Where Lunar's game window was the invented `java-lunar`
+  (claimed by the guess), it is now `com.mojang.minecraft`, claimed by the shipped hint:
+  `test_unclaimed_window_waits_for_an_identity_...`, `test_a_delayed_game_inside_the_existing_handoff_interval_...`
+  and the three byte-split tests of `DiscoveredSplitReadTest` (their focus and return assertions unchanged).
+- No assertion about the three registry apps was touched. The registry apps' tests (`test_aresos_shell.py`) connect
+  as 1.0 clients and pass unchanged.
+
+### JUDGMENT-CALL (review fixes 1)
+
+- **Unowned windows stop only discovered programs' returns.** A registry app (Terminal, KWrite, Chrome) closing its
+  last window still returns at once even if a window nobody owns is open, as before (the lead's rule: nothing changes
+  for the three registry apps). Applying the rule to them too would change how today's apps feel; it is one condition
+  in `windows_changed` if wanted later.
+- **"A window nobody owns is open" means any such window, not only the one in front** (the brief's words). A window
+  nobody owns that stays open all the time (a tray helper, a program with no identity) means discovered programs'
+  closes leave the focus to the compositor; the hub comes when the compositor gives it. Narrowing it to the active
+  window later is a one-line change.
+- **Window rules follow the last hello's minor**; before any hello, 1.0 unless the journal holds an unfinished
+  discovered launch. Rejected: deciding per connection (no desktop connected would have no rule) and always 1.1
+  (finding 2's regression for an old mod).
+- **Hints:** prefixes must end at a separator and be at least 4 characters; exact identities beat prefixes; hints
+  beat discovered guesses; clashing hints are all refused, like registry entries with a shared window identity; a
+  hint applies only to a discovered program (a starter that replaces the desktop file keeps its reviewed identities).
+- **Lunar's hint names every Minecraft game window `com.mojang.minecraft`**, whichever launcher started it, as Lunar's
+  while Lunar Client is installed (the desktop's own window is `aresos-desktop`, which no hint can claim).
+- **A deliberate launch drops pending returns** too (finding 4 says "a deliberate switch or launch"), as soon as the
+  launch starts; a launch that fails at once does not.
+- **Flatpak options:** only `--name=value` and flatpak 1.16's value-less flags are understood; anything else before
+  the app ID leaves the ID out.
+
+### Known limits (review fixes 1)
+
+- **Windows nobody owns:** a program whose windows carry none of its identities (no hint yet, an Xwayland window
+  without a class) gets no confirmed launch (`no_window` after 30 s, or it keeps waiting while its scope lives), no
+  "open" state and no forced return; the hub comes back only when the compositor gives it the focus. The fix is a
+  reviewed hint for that program.
+- **Steam's prefix was not seen on the laptop.** `steam_app_<appid>` is the identity Steam is known to give its games;
+  Proton or native games that set their own identity would be nobody's until hinted.
+- A permanently open window nobody owns stops discovered programs' forced returns (see the JUDGMENT-CALL).
+- A mod that reconnects with a lower minor while discovered programs are open makes their windows nobody's; their
+  launches close after the hand-over interval.

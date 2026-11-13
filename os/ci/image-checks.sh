@@ -400,6 +400,19 @@ PY
 test ! -s "$shadow/ran"
 rm -rf "$shadow"
 pass 'the app helper resolves browser, notepad and terminal and launches by absolute paths under the system PATH with shadows first'
+# Package 30 review fixes: the reviewed window hints ship in the image and pass the helper's own strict check.
+runuser -u ares -- env -i HOME=/var/home/ares PATH=/usr/bin /usr/bin/python3 - <<'PY'
+import importlib.machinery, importlib.util
+loader = importlib.machinery.SourceFileLoader('aresos_shell', '/usr/libexec/aresos-shell')
+spec = importlib.util.spec_from_loader('aresos_shell', loader)
+shell = importlib.util.module_from_spec(spec)
+loader.exec_module(shell)
+hints = shell.load_hints('/usr/share/aresos/apps/hints')
+assert hints == {'lunarclient.desktop': shell.Hint('lunarclient.desktop', ('com.mojang.minecraft',), ()),
+                 'steam.desktop': shell.Hint('steam.desktop', (), ('steam_app_',))}, hints
+PY
+test "$(stat -c %U /usr/share/aresos/apps/hints /usr/share/aresos/apps/hints/*.json | sort -u)" = root
+pass 'the app helper loads the two reviewed window hints (Lunar Client, Steam), owned by root'
 test "$(runuser -l ares -c 'command -v brew')" = /usr/bin/brew
 test "$(runuser -l ares -c 'brew --version')" = FIXTURE_BREW
 grep -qx -- '--version' /tmp/brew-calls
