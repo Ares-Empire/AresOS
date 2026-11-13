@@ -268,7 +268,16 @@ that index answers at Mojang with its SHA-1). The file's size stays 24493, so th
 said Prism's files are versioned and stay; this one is not: the 10-27, 11-03 and 11-10 updates each gave other
 bytes, because Mojang keeps updating the asset index a released version points to. So this pin will expire about
 weekly, like a Fedora pin. How the build should live with that (renew it with each build, or pin only the parts
-Prism must not change) is the integrator's call; not changed here. Renewing the pin to `8f505f26…` would
+Prism must not change) is the integrator's call; not changed here.
+
+**Run 43471903820** (`check_build=build` on `a4dcc3e1`): failed, as foreseen above, on the mod jar pin. The whole
+`build.sh packages` stage passed (`Complete!`, then `Prism 11.1.1, Fabric Loader 0.19.5 and 2 mods installed from
+their pins`), and so did the source stage (`MOD_SOURCE a4dcc3e1…`). The mod stage built `MOD_JAR_BUILT 8f505f26…
+b627311 from a4dcc3e1…` (the same bytes as the resolve's two builds, on the same runner image `20261111.370.1`), and
+`build.sh configure` stopped: `AssertionError: The AresOS mod jar built from this commit is 8f505f26…; desktop.lock.json
+pins 8b04c511…`. So no image check and no VM pass ran. Stopped here: the jar pin is not an expired upstream pin but our
+own build giving other bytes from the same source, which is the integrator's call (see "Found, not changed" above).
+Evidence: `runs/build-43471903820/summary.txt`. Renewing the pin to `8f505f26…` would
 hold only until the next runner image; the integrator decides (renew, or make that attribute sorted).
 
 ### Checks of this round
