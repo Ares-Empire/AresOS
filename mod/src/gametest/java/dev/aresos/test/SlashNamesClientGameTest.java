@@ -94,6 +94,7 @@ public final class SlashNamesClientGameTest implements FabricClientGameTest {
                 // Type the command through the real chat, with cheats disabled.
                 context.getInput().pressKey(options -> options.keyChat);
                 context.waitForScreen(ChatScreen.class);
+                context.runOnClient(client -> ((SlashChatTestAccess)client.gui.screen()).aresos$input().setValue(""));
                 context.getInput().typeChars("/dc");
                 context.getInput().pressKey(InputConstants.KEY_RETURN);
                 context.waitFor(client -> calls.size() == 1);
@@ -171,9 +172,9 @@ public final class SlashNamesClientGameTest implements FabricClientGameTest {
                 });
                 world.getServer().runOnServer(server -> {
                     var player = world.getConnection().getServerPlayer();
-                    player.teleportTo(player.level(), 0, 100, 26, Set.of(), 180, -17, false);
+                    player.teleportTo(player.level(), 0, 100, -8, Set.of(), 0, -23, false);
                 });
-                context.waitFor(client -> client.player.getZ() > 25); context.waitTicks(8);
+                context.waitFor(client -> client.player.getZ() < -7); context.waitTicks(8);
                 context.runOnClient(client -> { client.gui.hud.getChat().clearMessages(true); client.gui.toastManager().clear(); });
                 shot(context, "35-gate-sign");
 
