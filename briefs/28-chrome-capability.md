@@ -246,9 +246,10 @@ It never polls with full reads.
 
 `background.js` gets these three read-only commands (`outline`, `options`, `page_state`), a `show` command for
 `chrome_show`, a `tabs` reply that holds every tab at once with the fields item 6 needs, the check of `seen` in
-`take` (item 6), and one addition to `input` (item 5, "on screen first"). **Nothing else in `background.js` changes
-in this package:** not the rest of `input`, not `resume`, `dialog`, `prepare_control`, `release`, the debugger
-methods or the session rules.
+`take` (item 6), two additions to `input` (item 5: "on screen first", and the check of the command's time right
+before the dispatch), and the time checks of its queue and its waits (item 5, "Time"). **Nothing else in
+`background.js` changes in this package:** not the rest of `input`, not `resume`, `dialog`, `prepare_control`,
+`release`, the debugger methods or the session rules.
 
 ### 2. The outline, and `chrome_read` (service)
 
@@ -686,13 +687,49 @@ change (`READ_TIMEOUT` and `CHANGE_TIMEOUT` in `protocol.py`), and the CI harnes
 doesn't know what ran, while the service would go on. So every tool has one deadline, measured in the service from
 the start of the call, and no timeout is raised:
 
-- **`chrome_read`: 8 seconds in all.** `until` waits at most 6. With `tabs`, a tab whose turn hasn't come by second
-  6 gets the error `not_read`, "time ran out; read this tab by itself", and the others are returned.
-- **`chrome_open`, `chrome_go`, `chrome_take`: 18 seconds in all,** with `timeout_ms` at most 15,000.
-- **`chrome_do`: 18 seconds in all.** No step starts after second 12. A `wait` ends at second 12 at the latest. The
-  report's waiting ends at second 16 at the latest, also for a new page, which is then returned as far as it has
-  loaded (`loaded: false`). Steps that weren't started are counted in `not_run`, and the result says
-  `"deadline": true`. Their references stay good, so Claude sends them in the next call.
+- **`chrome_read`: 8 seconds in all.** `until` waits at most 6, and every command of a read has to answer by
+  second 7. A read that didn't gets the error `not_read`, "time ran out; read this tab by itself". With `tabs`,
+  each tab gets an equal share of the time left to second 7 when its turn comes: with five tabs 1.4 seconds each
+  at first, and time a tab doesn't use passes on. A tab that hasn't answered within its share gets `not_read`,
+  and the others are returned.
+- **`chrome_open`, `chrome_go`, `chrome_take`: 18 seconds in all,** with `timeout_ms` at most 15,000. The outline
+  read that ends the call has to answer by second 17.
+- **`chrome_do`: 18 seconds in all. No input is dispatched after second 12:** the service starts no step after
+  it, and every input command carries the time left to it. A `wait` ends at second 12 at the latest; one that is
+  cut off there has the outcome `timeout`. The reply to the last input is in by second 14. The report's waiting
+  ends at second 16 at the latest, also for a new page, which is then returned as far as it has loaded
+  (`loaded: false`), and its outline read has to answer by second 17. Steps that weren't dispatched are counted
+  in `not_run`, and the result says `"deadline": true`. Their references stay good, so Claude sends them in the
+  next call.
+- **The deadline reaches the bridge and the extension, and nothing more changes for it** (package re-check 2,
+  N2). In PR #27 `Bridge.call` blocks until the reply comes, bounded only by the socket's 15 seconds (`bridge.py`,
+  `daemon.py`). The extension runs its commands one after another and waits for frames and for an input's setup
+  without a bound (`serial` and `dispatch` in `background.js`). A deadline kept in the service alone would answer
+  Claude while the extension still held work that runs later. So, exactly this:
+  - **Every command of these tools carries the time it has left,** in milliseconds, set by the service from the
+    points above. A command without it runs as PR #27 runs it.
+  - **The extension checks the time at three points.** When a command reaches the front of its queue: one whose
+    time is up isn't started. Inside a command: every wait for a frame, for the reader or for an input's setup
+    is bounded by the time left. And once more as the last thing before an input is dispatched, after the
+    arming, the reveal and the last comparison. In each case the answer is `expired`, and **`expired` always
+    means that nothing was dispatched**; a hold that was armed is released as after a refusal.
+  - **After the dispatch nothing is cut short.** The hold, the collection of page steps and the cleanup run as
+    in brief 20, a little over half a second with their own bounds. So the cut-off governs the dispatch, not the
+    start of a step and not its end.
+  - **The bridge waits for a reply until the command's time is up, plus half a second for a read-only command
+    and 2 seconds for an input,** and no longer. Without a reply a read-only command is given up (`not_read`,
+    or `loaded: false` with what is there). An input's outcome is then `unknown`, as after a cut connection, and
+    it is never retried.
+  - **Draining.** A reply that arrives for a command the bridge gave up on is read and dropped by its id. It is
+    never taken for the next command's reply (PR #27 treats an unexpected id as a transport error). The next
+    command is sent as usual, and given-up work can't run later, because the extension checks every queued
+    command's time when it reaches the front. If the reply still hasn't come when the socket's own 15 seconds
+    pass, the connection is closed as PR #27 closes it today.
+  - A step whose input was answered `expired` counts in `not_run` like a step that never started, and its
+    committed operation is closed as not dispatched.
+  This touches `Bridge.call`, the queue and the waits of `dispatch`, and one check in `input` right before the
+  dispatch. Nothing else: no cancelling of an input that is running, no second queue, no commands side by side,
+  and no change to what `input` compares or in what order.
 - **Why 20 steps and not 32:** brief 20 waits out its hold after every input (`collectSteps`, a little over half a
   second), and reads the page's facts before it. About a dozen input steps fit in one call.
 - **A caller that goes away** changes nothing about this: the list ends at its deadline at the latest, each step
@@ -885,11 +922,12 @@ Restructure in steps that keep everything working:
   (`sites.py`); `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`, `chrome_operation_status` and the notices; the
   15-minute deadline; one approval, one run. Brief 20's asking read belongs to it too: `chrome_read_typed_fields` with
   its question, its binding to the prepared read, its one approval for one call, its refusal of credential-like
-  fields and its new question when a field was added, replaced or relabelled. **Three narrow exceptions, each named where it is specified, and nothing beyond them:** `prepare`,
-  `question`, `free` and `stage` write addresses in the public form while the payload and every comparison keep the full
-  address (item 2); `input` brings its target on screen inside the armed hold before brief 20's own hit test (item 5);
-  the password rule gets its two additions (item 1). What asks, what is bound, and what is compared before an approved
-  input don't change.
+  fields and its new question when a field was added, replaced or relabelled. **Four narrow exceptions, each named
+  where it is specified, and nothing beyond them:** `prepare`, `question`, `free` and `stage` write addresses in the
+  public form while the payload and every comparison keep the full address (item 2); `input` brings its target on
+  screen inside the armed hold before brief 20's own hit test (item 5); `input` checks its command's time once,
+  right before the dispatch, and dispatches nothing when it is up (item 5, "Time"); the password rule gets its two
+  additions (item 1). What asks, what is bound, and what is compared before an approved input don't change.
 - **The four places where this design touches the asking path stay as security re-check 2 judged them**
   (`reviews/28-chrome-capability/BRIEF-SECURITY-2.md`). Build each exactly so, and show its lines in the report:
   1. *Public addresses in a question.* Only the description changes. The payload and the last comparison keep the
@@ -949,6 +987,12 @@ Every new rule gets a test that fails without it.
 - the `chrome_do` loop with a fake bridge: the check before the first step; the check before each step on fresh
   facts, with the value compared whole; a queued page step, a dialog and a new document found between two steps
   and after a `wait`; every stop, `not_run`, the deadline, nothing twice after an interruption at each point;
+- the deadline below the service ("Time"). The bridge with a fake socket: a reply that comes after the bridge
+  gave up is dropped and the next command gets its own reply; no reply at all closes the connection at the
+  socket's bound; an input without a reply is `unknown` and a read-only command `not_read`. The extension's queue
+  in the Node doubles: a command whose time is up at the front isn't started; a frame that never answers ends a
+  read at its time with `expired`; an input whose time runs out during its setup dispatches nothing and releases
+  its hold; a command without a time runs as before;
 - the change report;
 - the reader's `outline` command and its fingerprint function in the Node VM doubles that `reader.test.mjs` uses,
   with the password fixtures: `outline`, `facts` and `observe` give the same digest for the same element, and the
@@ -1201,7 +1245,8 @@ The base's, 18d's and Mail's suites still pass, and the generated artifacts are 
 ## Paths
 
 **May change:** `control/aresos_control/chrome/adapter.py`, `definitions.py` and new modules beside them (the view
-module, the credential words); `control/chrome/extension/reader.js` and `background.js` (only as items 1, 3, 5
+module, the credential words); `control/aresos_control/chrome/bridge.py` (only the reply wait and the draining
+of item 5, "Time"); `control/chrome/extension/reader.js` and `background.js` (only as items 1, 3, 5
 and 6 say); `control/aresos_control/proxy.py` (the Chrome upload branch's field names); the generated files;
 `control/chrome_tests/`, `control/chrome/ci/`; `.github/workflows/control-chrome.yml` (not the qualification
 workflow); `docs/control/TOOLS.md`, `docs/control/FEATURES.md` (item 9), `control/README.md`;

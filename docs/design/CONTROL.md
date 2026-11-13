@@ -846,9 +846,11 @@ needed.
 - **Every call ends before its caller gives up.** The caller's side waits 10 seconds for a read and 30 for a
   change (read in brief 20's `protocol.py`), and a caller that times out doesn't know what ran. So each tool
   has one deadline of its own, inside those: 8 seconds for a read, 18 for opening, going, taking and for a list of
-  steps. In a list no step starts after second 12, and the steps that weren't started are reported as not run;
-  Claude sends them again. About a dozen input steps fit in one call, because the tool waits out its hold of half
-  a second after each input.
+  steps. In a list no input is dispatched after second 12, and the steps that weren't dispatched are reported as
+  not run; Claude sends them again. About a dozen input steps fit in one call, because the tool waits out its
+  hold of half a second after each input. The deadline travels with every command to the extension: it starts no
+  command and dispatches no input whose time is up, the service stops waiting for an answer shortly after that
+  time, and a late answer is dropped. So nothing a call left behind runs later.
 - **What a result carries.** What happened per step. Then, once the page has gone quiet (at most 1.5 seconds),
   **what changed**: the outline lines that are new, different or gone since before the call, in at most 2,000
   characters, with a count of the rest. When a new page loaded, its outline instead. A dialog that opened, a
