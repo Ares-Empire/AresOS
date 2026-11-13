@@ -105,6 +105,7 @@ tasks.named('runClientGameTest') {
     systemProperty 'aresos.logoReviewDir', file('../reviews/08-walk-in-logos/screenshots').absolutePath
     systemProperty 'aresos.gateReviewDir', file('../reviews/33-gate-logo/screenshots').absolutePath
     systemProperty 'aresos.modeReviewDir', file('../reviews/09-mode-inventories/screenshots').absolutePath
+    systemProperty 'aresos.slashNamesReviewDir', file('../reviews/35-slash-names/screenshots').absolutePath
     systemProperty 'aresos.myAppsReviewDir', file('../reviews/34-my-apps/screenshots').absolutePath
     systemProperty 'aresos.reviewDir', file('build/review/01-first-app').absolutePath
     systemProperty 'aresos.homeReviewDir', file('../reviews/04-nether-home/screenshots').absolutePath

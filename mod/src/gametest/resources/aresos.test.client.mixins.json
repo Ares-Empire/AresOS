@@ -2,6 +2,20 @@
   "required": true,
   "package": "dev.aresos.test.mixin",
   "compatibilityLevel": "JAVA_25",
-  "client": ["MinecraftTestAccess", "WindowTestAccess", "HudTestAccess", "MouseTestAccess", "KeyboardTestAccess", "AppsTestAccess", "ProvisioningAuditMixin", "BlockWriteAuditMixin", "ModeAckLossMixin", "ChatMessagesTestAccess"],
-  "injectors": {"defaultRequire": 1}
+  "client": [
+    "MinecraftTestAccess",
+    "WindowTestAccess",
+    "HudTestAccess",
+    "MouseTestAccess",
+    "KeyboardTestAccess",
+    "AppsTestAccess",
+    "ProvisioningAuditMixin",
+    "BlockWriteAuditMixin",
+    "ModeAckLossMixin",
+    "ChatMessagesTestAccess",
+    "SlashChatTestAccess"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
 }
