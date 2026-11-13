@@ -173,13 +173,14 @@ aresos_scoped() {
 }
 
 # aresos_lock <file> <what holds it>: holds an exclusive lock on <file> until this script and everything it
-# started have exited, waiting for it (and saying so) while another run holds it. It polls instead of leaving a
-# blocked `flock` behind, so a signal still ends this script within half a second.
+# started have exited, waiting for it (and saying so) while another run holds it. The wait is one blocking `flock`
+# on that file in a scope of this script: it keeps its place in line with the other waiting runs (looking every
+# half second instead, a run lost the lock to every run that blocked), and a signal ends it at once.
 aresos_lock() {
     exec {ARESOS_LOCK_FD}>>"$1"
     /usr/bin/flock -n "$ARESOS_LOCK_FD" && return 0
     aresos_say "Waiting for $2 to finish ($1)..."
-    until /usr/bin/flock -n "$ARESOS_LOCK_FD"; do /usr/bin/sleep 0.5; done
+    aresos_scoped lock-wait -- /usr/bin/flock "$ARESOS_LOCK_FD"
 }
 
 # Every exit (success, failure, Ctrl+C, a closed terminal) first stops this script's scopes with everything in
