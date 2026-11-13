@@ -58,6 +58,7 @@ tasks.named('runClientGameTest') {
     systemProperty 'aresos.appsReviewDir', file('../reviews/07-real-apps/screenshots').absolutePath
     systemProperty 'aresos.logoReviewDir', file('../reviews/08-walk-in-logos/screenshots').absolutePath
     systemProperty 'aresos.modeReviewDir', file('../reviews/09-mode-inventories/screenshots').absolutePath
+    systemProperty 'aresos.myAppsReviewDir', file('../reviews/34-my-apps/screenshots').absolutePath
     systemProperty 'aresos.reviewDir', file('build/review/01-first-app').absolutePath
     systemProperty 'aresos.homeReviewDir', file('../reviews/04-nether-home/screenshots').absolutePath
     systemProperty 'aresos.seedReviewDir', file('../reviews/04-nether-home/seeds').absolutePath
@@ -76,6 +77,9 @@ tasks.register('searchNetherSeeds', JavaExec) {
 tasks.named('runGameTest') { systemProperty 'aresos.disableDiscovery', 'true' }
 
 sourceSets.gametest.resources.srcDir 'src/test/resources'
+// The fake app helper serves the unit tests and the client game tests alike.
+sourceSets.test.java.srcDir 'src/testShared/java'
+sourceSets.gametest.java.srcDir 'src/testShared/java'
 sourceSets.test.compileClasspath += sourceSets.client.output
 sourceSets.test.runtimeClasspath += sourceSets.client.output
 

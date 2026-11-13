@@ -19,33 +19,35 @@ import java.util.function.Function;
  * A scripted aresos-shell helper on a real Unix socket. It never starts anything; it counts launches. It speaks 1.0
  * by default, like the helper on the laptop today; with {@link #minor} 1 it speaks 1.1 (docs/design/HUB.md 3.8) to a
  * client that offers minor 1: pages, what the system knows about each program, and apps_changed.
+ *
+ * It lives in its own source folder because the unit tests and the client game tests both use it (build.gradle).
  */
-final class FakeHelper implements AutoCloseable {
-    static final String INSTANCE = "desk-test";
-    static final String NONCE = "nonce-for-tests-0123456789";
-    final Path path;
-    final List<JsonObject> received = new CopyOnWriteArrayList<>();
-    final AtomicInteger launches = new AtomicInteger();
-    final AtomicInteger connections = new AtomicInteger();
-    final Map<String, JsonObject> journal = new ConcurrentHashMap<>();
-    volatile List<String> capabilities = List.of("list_apps", "open_app", "app_state", "shell_focus", "world_ready",
+public final class FakeHelper implements AutoCloseable {
+    public static final String INSTANCE = "desk-test";
+    public static final String NONCE = "nonce-for-tests-0123456789";
+    public final Path path;
+    public final List<JsonObject> received = new CopyOnWriteArrayList<>();
+    public final AtomicInteger launches = new AtomicInteger();
+    public final AtomicInteger connections = new AtomicInteger();
+    public final Map<String, JsonObject> journal = new ConcurrentHashMap<>();
+    public volatile List<String> capabilities = List.of("list_apps", "open_app", "app_state", "shell_focus", "world_ready",
             "heartbeat", "windows");
-    static final List<String> DETAIL_CAPABILITIES = List.of("app_details", "apps_changed", "list_paging");
+    public static final List<String> DETAIL_CAPABILITIES = List.of("app_details", "apps_changed", "list_paging");
     /** The helper's own minor version. The reply to hello names the lower of this and the client's. */
-    volatile int minor;
+    public volatile int minor;
     /** What the helper lists, in this order. Entries may carry the 1.1 fields. */
-    volatile List<JsonObject> entries = List.of(entry("terminal", "Terminal", null),
+    public volatile List<JsonObject> entries = List.of(entry("terminal", "Terminal", null),
             entry("notepad", "Notepad", null), entry("browser", "Chrome", "not_installed"));
-    volatile String revision = "fixture";
+    public volatile String revision = "fixture";
     /** Entries per page for a 1.1 client; 0 puts everything on one page. */
-    volatile int pageSize;
+    public volatile int pageSize;
     /** Overrides the reply to an operation; returning null sends nothing. */
-    volatile Function<JsonObject, JsonObject> override = message -> null;
+    public volatile Function<JsonObject, JsonObject> override = message -> null;
     /** What a new launch reports first. */
-    volatile String launchState = "starting";
-    volatile boolean dropOnFirstOpen;
+    public volatile String launchState = "starting";
+    public volatile boolean dropOnFirstOpen;
     /** The first connection stops reading right after list_apps, like a hung helper. */
-    volatile boolean stallFirstConnection;
+    public volatile boolean stallFirstConnection;
     private final CountDownLatch released = new CountDownLatch(1);
     private final ServerSocketChannel server;
     private final Thread acceptor;
@@ -55,7 +57,7 @@ final class FakeHelper implements AutoCloseable {
     private final Map<SocketChannel, Integer> negotiated = new ConcurrentHashMap<>();
 
     /** A starter as 1.0 lists it: {@code reason} null means available. */
-    static JsonObject entry(String id, String name, String reason) {
+    public static JsonObject entry(String id, String name, String reason) {
         var row = new JsonObject();
         row.addProperty("id", id);
         row.addProperty("name", name);
@@ -66,7 +68,7 @@ final class FakeHelper implements AutoCloseable {
     }
 
     /** A program as 1.1 lists it; more optional fields can be added to the result. */
-    static JsonObject entry(String id, String name, String reason, String source) {
+    public static JsonObject entry(String id, String name, String reason, String source) {
         var row = entry(id, name, reason);
         row.addProperty("source", source);
         return row;
@@ -76,23 +78,23 @@ final class FakeHelper implements AutoCloseable {
         return entries.stream().filter(row -> id != null && id.equals(string(row, "id"))).findFirst().orElse(null);
     }
 
-    FakeHelper(Path folder) throws IOException {
+    public FakeHelper(Path folder) throws IOException {
         path = folder.resolve("s.sock");
         server = ServerSocketChannel.open(StandardProtocolFamily.UNIX);
         server.bind(UnixDomainSocketAddress.of(path));
         acceptor = Thread.ofPlatform().daemon().name("fake-helper").start(this::accept);
     }
 
-    ShellClient client(ShellClient.Settings settings) {
+    public ShellClient client(ShellClient.Settings settings) {
         return new ShellClient(path, INSTANCE, NONCE, settings);
     }
 
-    static ShellClient.Settings fast() {
+    public static ShellClient.Settings fast() {
         return new ShellClient.Settings(java.time.Duration.ofSeconds(2), java.time.Duration.ofSeconds(3),
                 java.time.Duration.ofMillis(200), java.time.Duration.ofMillis(50), java.time.Duration.ofMillis(200));
     }
 
-    List<JsonObject> received(String op) {
+    public List<JsonObject> received(String op) {
         return received.stream().filter(message -> op.equals(string(message, "op"))).toList();
     }
 
@@ -209,7 +211,7 @@ final class FakeHelper implements AutoCloseable {
         return reply;
     }
 
-    void event(String event, Map<String, Object> fields) throws IOException {
+    public void event(String event, Map<String, Object> fields) throws IOException {
         var message = new JsonObject();
         message.addProperty("id", "e-" + UUID.randomUUID());
         message.addProperty("event", event);
@@ -220,14 +222,14 @@ final class FakeHelper implements AutoCloseable {
         send(current, message);
     }
 
-    void raw(String line) throws IOException {
+    public void raw(String line) throws IOException {
         synchronized (writeLock) {
             var buffer = ByteBuffer.wrap((line + "\n").getBytes(StandardCharsets.UTF_8));
             while (buffer.hasRemaining()) current.write(buffer);
         }
     }
 
-    void drop() throws IOException {
+    public void drop() throws IOException {
         current.close();
     }
 
@@ -245,12 +247,12 @@ final class FakeHelper implements AutoCloseable {
         }
     }
 
-    static String string(JsonObject object, String key) {
+    public static String string(JsonObject object, String key) {
         var value = object.get(key);
         return value == null || value.isJsonNull() ? null : value.getAsString();
     }
 
-    static void await(java.util.function.BooleanSupplier condition, String what) throws InterruptedException {
+    public static void await(java.util.function.BooleanSupplier condition, String what) throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         while (!condition.getAsBoolean()) {
             if (System.nanoTime() > deadline) throw new AssertionError("Timed out waiting for " + what);
