@@ -25,13 +25,12 @@ concurrency:
   group: control-chrome-${{ github.ref }}-${{ github.run_id }}
   cancel-in-progress: false
 jobs:
-  fixtures:
+  package:
     runs-on: ubuntu-24.04
-    timeout-minutes: 360
-    strategy:
-      fail-fast: false
-      matrix:
-        install: [external, policy]
+    outputs:
+      version: ${{ steps.package.outputs.version }}
+      package_url: ${{ steps.package.outputs.package_url }}
+      package_sha256: ${{ steps.package.outputs.package_sha256 }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -56,24 +55,178 @@ jobs:
               for name in ['version','package_url','package_sha256']:
                   output.write(name+'='+package[name]+'\n')
           PY
+  fixtures:
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 130
+    strategy:
+      fail-fast: false
+      matrix:
+        install: [external, policy]
+        shard: ${{ (inputs.destination_probe || inputs.injection_probe) && fromJSON('[""]') || fromJSON('["core","review","recheck2","recheck3","adapters","word-0","word-1","word-2","word-3"]') }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
       - name: Build disposable branded-Chrome container
         env:
-          PACKAGE_URL: ${{ steps.package.outputs.package_url }}
-          PACKAGE_SHA256: ${{ steps.package.outputs.package_sha256 }}
+          PACKAGE_URL: ${{ needs.package.outputs.package_url }}
+          PACKAGE_SHA256: ${{ needs.package.outputs.package_sha256 }}
         run: git archive HEAD control docs/control/TOOLS.md .github/workflows/control-chrome-qualification.yml .github/workflows/control-chrome.yml | docker build --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t aresos-chrome-fixture -f control/chrome/ci/Dockerfile -
       - name: Browser fixtures only inside Linux container, sandbox on
         env:
           INSTALL_MODE: ${{ matrix.install }}
-          QUALIFICATION_VERSION: ${{ steps.package.outputs.version }}
+          BROWSER_SHARD: ${{ matrix.shard }}
+          QUALIFICATION_VERSION: ${{ needs.package.outputs.version }}
           DESTINATION_PROBE: ${{ inputs.destination_probe && 'true' || 'false' }}
           INJECTION_PROBE: ${{ inputs.injection_probe && 'true' || 'false' }}
         run: |
           set -euo pipefail
           mkdir -p .work/20-chrome/ci
-          timeout --signal=TERM --kill-after=30s 350m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e INJECTION_PROBE -e DESTINATION_PROBE -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture
+          timeout --signal=TERM --kill-after=30s 120m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e BROWSER_SHARD -e QUALIFICATION_VERSION -e INJECTION_PROBE -e DESTINATION_PROBE -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" aresos-chrome-fixture
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: control-chrome-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.install }}-${{ matrix.shard || 'probe' }}
+          path: .work/20-chrome/ci/
+          retention-days: 14
+
+  python-shards:
+    if: ${{ !inputs.destination_probe && !inputs.injection_probe }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Complete plain-Python suite, disjoint file shard
+        env:
+          PYTHON_SHARD: ${{ matrix.shard }}
+          TEST_OUT: .work/20-chrome-python
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          mkdir -p .work/20-chrome-python
+          python3 control/chrome/ci/python-shard.py 2>&1 | tee .work/20-chrome-python/python.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: control-chrome-python-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.shard }}
+          path: .work/20-chrome-python/
+          retention-days: 14
+  native-precedence:
+    if: ${{ !inputs.destination_probe && !inputs.injection_probe }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Build 18d's real native precedence environment
+        run: docker build -f control/boundary/Dockerfile -t aresos-chrome-precedence .
+      - name: Native managed asks in normal and skip-permissions modes
+        run: |
+          set -euo pipefail
+          mkdir -p .work/chrome-precedence
+          timeout --signal=TERM --kill-after=30s 25m docker run --rm --network none --cap-add SYS_PTRACE --security-opt seccomp=unconfined --security-opt apparmor=unconfined --security-opt systempaths=unconfined -e PRECEDENCE_ONLY=true -e GITHUB_SHA -e GITHUB_RUN_ID -v "$PWD/.work/chrome-precedence:/evidence" aresos-chrome-precedence 2>&1 | tee .work/chrome-precedence/console.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: chrome-precedence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .work/chrome-precedence/
+          retention-days: 14
+  aggregate:
+    if: ${{ always() && !inputs.destination_probe && !inputs.injection_probe }}
+    needs: [fixtures, python-shards, native-precedence]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        install: [external, policy]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: control-chrome-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.install }}-*
+          path: .work/browser-shards
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: chrome-precedence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .work/native-precedence
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: control-chrome-python-${{ github.run_id }}-${{ github.run_attempt }}-*
+          path: .work/python-shards
+      - name: Require every shard, the complete word inventory and real group 12
+        env:
+          INSTALL_MODE: ${{ matrix.install }}
+        run: |
+          node control/chrome/ci/merge-shards.mjs .work/browser-shards .work/aggregate .work/native-precedence/chrome-precedence.json
+          python3 control/chrome/ci/merge-python.py .work/python-shards .work/aggregate
+          node reviews/20-chrome/audit-review-evidence.mjs .work/aggregate > .work/aggregate/independent-audit.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: control-chrome-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.install }}
-          path: .work/20-chrome/ci/
+          path: .work/aggregate/
+          retention-days: 14
+
+  latency:
+    if: ${{ !inputs.destination_probe && !inputs.injection_probe }}
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        revision: [current, ab7aba92]
+        privacy: [plain, audit]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Rebuild the historical runtime with the same measurement driver
+        env:
+          LATENCY_REVISION: ${{ matrix.revision }}
+        run: |
+          set -euo pipefail
+          mkdir -p .work/latency-runtime
+          if test "$LATENCY_REVISION" = current; then
+            git archive HEAD control docs/control/TOOLS.md .github/workflows/control-chrome.yml .github/workflows/control-chrome-qualification.yml | tar -x -C .work/latency-runtime
+          else
+            git archive ab7aba92 control docs/control/TOOLS.md .github/workflows/control-chrome.yml .github/workflows/control-chrome-qualification.yml | tar -x -C .work/latency-runtime
+            cp -R control/chrome/ci/. .work/latency-runtime/control/chrome/ci/
+            cp -R control/chrome_tests/. .work/latency-runtime/control/chrome_tests/
+            cp .github/workflows/control-chrome.yml .github/workflows/control-chrome-qualification.yml .work/latency-runtime/.github/workflows/
+          fi
+          python3 .work/latency-runtime/control/chrome/build.py > .work/latency-runtime/runtime-build.txt
+      - name: Build the same exact Chrome package
+        env:
+          PACKAGE_URL: ${{ needs.package.outputs.package_url }}
+          PACKAGE_SHA256: ${{ needs.package.outputs.package_sha256 }}
+        run: tar -C .work/latency-runtime -cf - control docs/control/TOOLS.md .github/workflows/control-chrome-qualification.yml .github/workflows/control-chrome.yml | docker build --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t aresos-latency -f .work/latency-runtime/control/chrome/ci/Dockerfile -
+      - name: Measure six call types and internal stages without owner think time
+        env:
+          QUALIFICATION_VERSION: ${{ needs.package.outputs.version }}
+          LATENCY_PRIVACY: ${{ matrix.privacy }}
+          LATENCY_BASELINE: ${{ matrix.revision }}
+        run: |
+          set -euo pipefail
+          mkdir -p .work/latency-out
+          cp .work/latency-runtime/runtime-build.txt .work/latency-out/
+          timeout --signal=TERM --kill-after=30s 110m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE=policy -e LATENCY_PROBE=true -e LATENCY_PRIVACY -e LATENCY_BASELINE -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/latency-out:/out" aresos-latency
+          python3 control/chrome/ci/latency-summary.py .work/latency-out
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: chrome-latency-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.revision }}-${{ matrix.privacy }}
+          path: .work/latency-out/
           retention-days: 14

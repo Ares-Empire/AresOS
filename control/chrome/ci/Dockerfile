@@ -15,7 +15,8 @@ COPY .github/workflows/control-chrome-qualification.yml .github/workflows/contro
 COPY .github/workflows/control-chrome.yml .github/workflows/control-chrome.yml
 RUN mkdir -p /etc/claude-code /etc/aresos-control /var/lib/aresos-tools /var/lib/aresos-operation-evidence /run/aresos-tools /usr/libexec/aresos-control/chrome \
  && cp control/settings/managed-settings.draft.json /etc/claude-code/managed-settings.json \
- && cp control/settings/CLAUDE.md /etc/claude-code/CLAUDE.md \
+ && if test -f control/settings/CLAUDE.md; then cp control/settings/CLAUDE.md /etc/claude-code/CLAUDE.md; fi \
+ && if test -f control/settings/managed-mcp.json; then cp control/settings/managed-mcp.json /etc/claude-code/managed-mcp.json; fi \
  && cp control/chrome/native_host.py /usr/libexec/aresos-control/chrome/native_host.py \
  && printf '#!/bin/sh\nexec /usr/bin/python3 -I -S /usr/libexec/aresos-control/chrome/native_host.py\n' > /usr/libexec/aresos-control/chrome/host \
  && chmod 755 /usr/libexec/aresos-control/chrome/host \

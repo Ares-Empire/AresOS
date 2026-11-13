@@ -81,7 +81,7 @@ original_event=bridge.on_event
 original_accept=bridge.accept
 def accept(connection):
     original_accept(connection)
-    bridge.call('audit',enabled=True)
+    bridge.call('audit',enabled=os.environ.get('LATENCY_PROBE')!='true' or os.environ.get('LATENCY_PRIVACY')=='audit')
 bridge.accept=accept
 boundary=open('/out/browser-boundary.jsonl','a',buffering=1)
 bridge.audit_sink=lambda data:boundary.write(json.dumps(data)+'\n')
@@ -103,6 +103,9 @@ def event(value):
 bridge.on_event=event
 daemon.engine.adapters['chrome'].hosts={name:[name+'.test'] for name in HOSTS}
 from sites.qualification import install; install(daemon)
+if os.environ.get('LATENCY_PROBE')=='true':
+    import importlib.util
+    spec=importlib.util.spec_from_file_location('latency_profile',Path(__file__).with_name('latency-profile.py'));module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);module.install(daemon)
 try:
     daemon.serve()
 finally:

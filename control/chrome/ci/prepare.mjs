@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import {instrumentLatencyBackground,instrumentLatencyReader} from './latency-instrument.mjs';
 import {instrumentOwnerGuard} from './owner-evidence.mjs';
 import {generateKeyPairSync} from 'node:crypto';
 import {packageExtension} from '../packaging/pack.mjs';
@@ -14,8 +15,10 @@ if(process.env.INJECTION_PROBE==='true'){
 }
 if(process.env.INJECTION_PROBE!=='true'){
   const instrumented='/workspace/.work/20-instrumented-extension';fs.cpSync(extension,instrumented,{recursive:true});extension=instrumented;
-  fs.writeFileSync(extension+'/guard.js',fs.readFileSync('/workspace/control/chrome/ci/password-ingress.js','utf8')+'\n'+instrumentOwnerGuard(fs.readFileSync(extension+'/guard.js','utf8')));
-  const background=fs.readFileSync(extension+'/background.js','utf8').replace("const defaultBlock='https://aresos-hold.invalid/';","const defaultBlock='http://fixture.test:8765/receive?case=recheck2-network-fence';").replace("chrome.runtime.onMessage.addListener((message,sender,reply)=>{", "chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(sender.id===chrome.runtime.id&&['reader_ingress','owner_trace'].includes(message?.event)){audit({[message.event]:message});reply({received:true});return;}");
+  if(process.env.LATENCY_PROBE!=='true'||process.env.LATENCY_PRIVACY==='audit')fs.writeFileSync(extension+'/guard.js',fs.readFileSync('/workspace/control/chrome/ci/password-ingress.js','utf8')+'\n'+instrumentOwnerGuard(fs.readFileSync(extension+'/guard.js','utf8')));
+  if(process.env.LATENCY_PROBE==='true')fs.writeFileSync(extension+'/reader.js',instrumentLatencyReader(fs.readFileSync(extension+'/reader.js','utf8')));
+  let background=fs.readFileSync(extension+'/background.js','utf8').replace("const defaultBlock='https://aresos-hold.invalid/';","const defaultBlock='http://fixture.test:8765/receive?case=recheck2-network-fence';").replace("chrome.runtime.onMessage.addListener((message,sender,reply)=>{", "chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(sender.id===chrome.runtime.id&&['reader_ingress','owner_trace'].includes(message?.event)){audit({[message.event]:message});reply({received:true});return;}");
+  if(process.env.LATENCY_PROBE==='true')background=instrumentLatencyBackground(background).replace("chrome.runtime.onMessage.addListener((message,sender,reply)=>{","chrome.runtime.onMessage.addListener((message,sender,reply)=>{if(sender.id===chrome.runtime.id&&message?.event==='latency_reader'){port?.postMessage(message);reply({received:true});return;}");
   fs.writeFileSync(extension+'/background.js',background.replace('async function dispatch(command) {', `async function dispatch(command) {
     if(command.name==='fixture_network_restart'){
       const tab=command.tab;await stop();

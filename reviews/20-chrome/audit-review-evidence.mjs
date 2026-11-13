@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {assertComplete} from '../../control/chrome/ci/verdicts.mjs';
 import {assertOwnerOverlap} from '../../control/chrome/ci/owner-evidence.mjs';
+import {assertDestinations} from '../../control/chrome/ci/destination-evidence.mjs';
+import {precedenceVerdict} from '../../control/chrome/ci/precedence-evidence.mjs';
 import {assertRecheck3} from '../../control/chrome/ci/recheck3-evidence.mjs';
 import {assertNativeLimit} from '../../control/chrome/ci/activation-evidence.mjs';
 import {jsonLines,completeIngressStream,containsText,digestFile} from './audit-streams.mjs';
@@ -13,13 +15,13 @@ const read=file=>fs.readFileSync(file,'utf8');
 const json=file=>JSON.parse(read(file));
 const caseId=row=>new URL(row.url,'http://fixture.test').searchParams.get('case');
 const results=[];
-for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(file=>path.basename(file)==='matrices.json')){
+for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(file=>path.basename(file)==='matrices.json'&&!fs.existsSync(path.join(path.dirname(file),'shard-complete.json')))){
   const folder=path.dirname(matrix),rows=json(matrix),verdict=json(path.join(folder,'qualification-result.json'));
   assertComplete(rows,verdict);
   const browser=read(path.join(folder,'browser.txt')).split('\n');
   const testIndex=rows.map(row=>{
     const matches=browser.flatMap((line,index)=>line===row.name+' PASS'?[index+1]:[]);
-    assert.equal(matches.length,1,row.name);
+    assert.equal(matches.length,row.name==='GROUP 1 what asks word/label/key matrix'&&fs.existsSync(path.join(folder,'aggregate-complete.json'))?4:1,row.name);
     return {name:row.name,line:matches[0]};
   });
   const rawIdentities=new Set(),counts=new Map(),ownerRows=[],ownerTraces=[],queryRows=[],bindingRows=[],limitRows=[],clipboardRows=[],recheck3Rows=[],recheck3Snapshots=[];
@@ -85,13 +87,24 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
   const ownerOverlap=assertOwnerOverlap('recheck-owner-overlap',ownerRows,ownerTraces);
   assert.deepEqual(ownerOverlap,json(path.join(folder,'owner-overlap.json')),'owner overlap must match raw private observations and independent receiver');
   for(const name of ['tool.jsonl','service.txt'])assert(!await containsText(path.join(folder,name),'SENTINEL_PRIVATE_PASSWORD_20'),`Password sentinel reached ${name}`);
-  const python=read(path.join(folder,'python.txt')),py=/^Ran (\d+) tests in ([0-9.]+)s$/m.exec(python);
-  assert(py&&/^OK$/m.test(python),'Full Python suite missing or failed');
-  assert.equal(Number(py[1]),231);
+  const pyProof=json(path.join(folder,'python-shards.json'));
+  assert.equal(pyProof.shards.length,4);assert(pyProof.shards.every(row=>row.successful===true));
+  const py=[null,pyProof.tests,0];
+  assert.equal(new Set(pyProof.modules).size,pyProof.modules.length);
+  assert.deepEqual([...pyProof.modules].sort(),fs.readdirSync('control/chrome_tests').filter(name=>/^test_.*\.py$/.test(name)).map(name=>name.slice(0,-3)).sort());
+  const aggregate=json(path.join(folder,'aggregate-complete.json'));
+  assert(precedenceVerdict(json(path.join(folder,'chrome-precedence.json')),read('control/generated/chrome-instructions.txt').replace(/\n$/,''),{head:aggregate.head,run:aggregate.run}));
+  const rawDestinations=[],destinationSnapshots=[];
+  for await(const row of jsonLines(path.join(folder,'receiver.jsonl')))if(caseId(row)?.startsWith('post18d-destination-'))rawDestinations.push(row);
+  for await(const row of jsonLines(path.join(folder,'page-receiver.jsonl')))if(row.id.startsWith('post18d-destination-'))destinationSnapshots.push(row);
+  const destinations=assertDestinations(json(path.join(folder,'destinations.json')),destinationSnapshots,rawDestinations);
+  const late=json(path.join(folder,'late-reader.json'));assert.equal(late.length,3);assert(!JSON.stringify(late).includes('SENTINEL_PRIVATE_PASSWORD_20'));
+  assert(late[2].approved.untrusted_content);assert(!late[2].repeat.untrusted_content);assert(late[2].reasked.approval);
+
   const node=Object.fromEntries([...read(path.join(folder,'node.txt')).matchAll(/^(?:# |ℹ )?(tests|pass|fail|cancelled|skipped)\s+(\d+)/gm)].map(match=>[match[1],Number(match[2])]));
-  assert.deepEqual(node,{tests:317,pass:317,fail:0,cancelled:0,skipped:0});
-  const hashes={};for(const name of ['browser.txt','matrices.json','receiver.jsonl','page-receiver.jsonl','adapters-receiver.jsonl','browser-boundary.jsonl','tool.jsonl','service.txt','python.txt','node.txt','owner-overlap.json','all-native-limit.json','all-native-limit-audit.json','clipboard-report.json','network-restart-audit.json','recheck3.json'])hashes[name]=await digestFile(path.join(folder,name));
-  results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,native_limit:nativeLimit,recheck3,clipboard:{cases:clipboard.length,contents_returned:false,borrowed_native_undetected:true},ordinary_get_queries:queryRows,owner_overlap:ownerOverlap,password_audit:{rows:ingress,null_rows:nullRows,protocol_events:events,forbidden_runtime_value_events:0,sensitive_getters:getters,getter_kinds:Object.fromEntries(getterKinds),password_sentinel_absent:true},python:{tests:Number(py[1]),seconds:Number(py[2])},node,sha256:hashes});
+  assert(node.tests>=340);assert.deepEqual(node,{tests:node.tests,pass:node.tests,fail:0,cancelled:0,skipped:0});
+  const hashes={};for(const name of ['browser.txt','matrices.json','receiver.jsonl','page-receiver.jsonl','adapters-receiver.jsonl','browser-boundary.jsonl','tool.jsonl','service.txt','python-shards.json','node.txt','owner-overlap.json','all-native-limit.json','all-native-limit-audit.json','clipboard-report.json','network-restart-audit.json','recheck3.json'])hashes[name]=await digestFile(path.join(folder,name));
+  results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,native_limit:nativeLimit,recheck3,destinations,group12:true,late_reader:{cases:late.length},clipboard:{cases:clipboard.length,contents_returned:false,borrowed_native_undetected:true},ordinary_get_queries:queryRows,owner_overlap:ownerOverlap,password_audit:{rows:ingress,null_rows:nullRows,protocol_events:events,forbidden_runtime_value_events:0,sensitive_getters:getters,getter_kinds:Object.fromEntries(getterKinds),password_sentinel_absent:true},python:{tests:Number(py[1]),seconds:Number(py[2])},node,sha256:hashes});
 }
 assert(results.length>0,'No artifacts found');
 console.log(JSON.stringify(results,null,2));

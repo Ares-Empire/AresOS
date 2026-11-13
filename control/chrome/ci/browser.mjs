@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {spawn,execFileSync} from 'node:child_process';
 import {setTimeout as delay} from 'node:timers/promises';
 import {fixtures} from './fixture.mjs';
+import {latencyProbe} from './latency-probe.mjs';
 import {matrices} from './matrices.mjs';
 import {measureCompatibility,nativeNavigate,nativeCompatibilityClick,compareCompatibility} from './compatibility.mjs';
 import {ownerUI} from './owner-ui.mjs';
@@ -32,6 +33,7 @@ async function read(){let tree='',cursor;do{const result=await call('read',{tab,
 async function target(label){const row=await eventually(async()=>{const rows=(await read()).filter(row=>row.expected.name===label);return rows.find(row=>['button','link','textbox','searchbox','combobox','checkbox','radio','option'].includes(row.expected.role))||rows[0];},label);return {reference:row.reference,expected:row.expected};}
 async function nav(kind,host='fixture'){const url=(host==='localhost'?'http://localhost':'http://'+host+'.test')+':8765/?case='+kind;await call('navigate',{tab,url});await eventually(async()=>{const page=await call('read',{tab});return page.untrusted_content.url===url&&page.characters>0;},'fixture document committed');await delay(250);}
 const counts=kind=>fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===kind).length;
+async function run(){
 try {
   baseline.native=JSON.parse(fs.readFileSync('/out/native-baseline.json','utf8'));
   chrome=spawn('qualification-chrome',args,{stdio:['ignore',descriptor,descriptor]});
@@ -55,6 +57,7 @@ try {
   const send=await target('Send');const prepared=await call('click',send);assert.ok(prepared.approval);assert.equal(counts('compose'),0);
   const sent=await call('submit',prepared.approval);assert.equal(sent.operation.state,'done');await eventually(()=>counts('compose')===1,'receiver compose');
   await call('submit',prepared.approval);assert.equal(counts('compose'),1);console.log('GROUP 1 what asks PASS: zero before approval, one after, no replay');
+  if(process.env.LATENCY_PROBE==='true'){await latencyProbe({call,target,nav,eventually,getTab:()=>tab});return;}
   for(const kind of ['native','event']) {
     await nav(kind);const item=await target('Continue');await call('click',item);assert.equal(counts(kind),0);
     const pending=await new Promise((resolve,reject)=>{const socket=net.createConnection('/run/aresos-tools/act.sock');let b='';socket.on('connect',()=>socket.write(JSON.stringify({v:1,method:'call',action:'control_pending',arguments:{}})+'\n'));socket.on('data',d=>{b+=d;if(b.includes('\n')){socket.end();resolve(JSON.parse(b));}});socket.on('error',reject);});
@@ -180,3 +183,6 @@ try {
 } finally {
   chrome?.kill('SIGTERM');await delay(500);if(chrome&&chrome.exitCode===null)chrome.kill('SIGKILL');fixture.close();fs.rmSync(profile,{recursive:true,force:true,maxRetries:10,retryDelay:100});
 }
+
+}
+await run();

@@ -37,6 +37,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
+      shard_matrix: ${{ steps.plan.outputs.shard_matrix }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -49,6 +50,7 @@ jobs:
           set -euo pipefail
           python3 control/chrome/qualify.py plan > qualification-plan.json
           echo "matrix=$(cat qualification-plan.json)" >> "$GITHUB_OUTPUT"
+          echo "shard_matrix=$(python3 control/chrome/ci/qualification-shards.py qualification-plan.json)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: qualification-plan
@@ -57,7 +59,77 @@ jobs:
     needs: qualification-plan
     if: needs.qualification-plan.result == 'success' && needs.qualification-plan.outputs.matrix != '' && fromJSON(needs.qualification-plan.outputs.matrix).include[0] != null
     runs-on: ubuntu-24.04
-    timeout-minutes: 310
+    timeout-minutes: 130
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.qualification-plan.outputs.shard_matrix) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          path: driver
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ matrix.commit }}
+          path: runtime
+          persist-credentials: false
+      - name: Check exact installed runtime and add only the common test driver
+        env:
+          EXPECTED_BUILD: ${{ matrix.build }}
+        run: |
+          set -euo pipefail
+          test "$(python3 runtime/control/chrome/build.py)" = "$EXPECTED_BUILD"
+          cp -R driver/control/chrome/ci/. runtime/control/chrome/ci/
+          cp -R driver/control/chrome_tests/. runtime/control/chrome_tests/
+          cp -R driver/control/boundary/. runtime/control/boundary/
+          mkdir -p runtime/.github/workflows
+          cp driver/.github/workflows/control-chrome-qualification.yml driver/.github/workflows/control-chrome.yml runtime/.github/workflows/
+      - name: Build the requested channel in a disposable container
+        if: ${{ !startsWith(matrix.shard, 'python-') && matrix.shard != 'precedence' }}
+        env:
+          CHANNEL: ${{ matrix.channel }}
+          PACKAGE_URL: ${{ matrix.package_url }}
+          PACKAGE_SHA256: ${{ matrix.package_sha256 }}
+        run: tar -C runtime -cf - control docs/control/TOOLS.md .github/workflows/control-chrome-qualification.yml .github/workflows/control-chrome.yml | docker build --build-arg CHANNEL="$CHANNEL" --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t qualification -f runtime/control/chrome/ci/Dockerfile -
+      - name: Browser shard in a Linux container; repeat is an independent pair
+        if: ${{ !startsWith(matrix.shard, 'python-') && matrix.shard != 'precedence' }}
+        env:
+          INSTALL_MODE: policy
+          BROWSER_SHARD: ${{ matrix.shard }}
+          QUALIFICATION_VERSION: ${{ matrix.version }}
+          RUNTIME_COMMIT: ${{ matrix.commit }}
+        run: |
+          mkdir -p .work/20-chrome/ci
+          timeout --signal=TERM --kill-after=30s 120m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e BROWSER_SHARD -e QUALIFICATION_VERSION -e RUNTIME_COMMIT -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" qualification
+      - name: Full Python file partition
+        if: ${{ startsWith(matrix.shard, 'python-') }}
+        env:
+          PAIR_SHARD: ${{ matrix.shard }}
+          RUNTIME_COMMIT: ${{ matrix.commit }}
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: |
+          set -euo pipefail
+          mkdir -p .work/20-chrome/ci
+          PYTHON_SHARD="${PAIR_SHARD#python-}" TEST_OUT="$PWD/.work/20-chrome/ci" python3 runtime/control/chrome/ci/python-shard.py 2>&1 | tee .work/20-chrome/ci/python.txt
+      - name: Real native precedence for this runtime
+        if: matrix.shard == 'precedence'
+        env:
+          RUNTIME_COMMIT: ${{ matrix.commit }}
+        run: |
+          set -euo pipefail
+          mkdir -p .work/20-chrome/ci
+          docker build -f runtime/control/boundary/Dockerfile -t qualification-precedence runtime
+          timeout --signal=TERM --kill-after=30s 25m docker run --rm --network none --cap-add SYS_PTRACE --security-opt seccomp=unconfined --security-opt apparmor=unconfined --security-opt systempaths=unconfined -e PRECEDENCE_ONLY=true -e RUNTIME_COMMIT -e GITHUB_SHA -e GITHUB_RUN_ID -v "$PWD/.work/20-chrome/ci:/evidence" qualification-precedence 2>&1 | tee .work/20-chrome/ci/console.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: qualification-shard-${{ matrix.build }}-${{ matrix.channel }}-${{ matrix.repeat }}-${{ matrix.shard }}
+          path: .work/20-chrome/ci/
+  qualification-combine:
+    needs: [qualification-plan, qualification-pairs]
+    if: always() && needs.qualification-plan.result == 'success' && needs.qualification-plan.outputs.matrix != '' && fromJSON(needs.qualification-plan.outputs.matrix).include[0] != null
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.qualification-plan.outputs.matrix) }}
@@ -71,44 +143,38 @@ jobs:
           ref: ${{ matrix.commit }}
           path: runtime
           persist-credentials: false
-      - name: Check exact installed runtime identity
-        env:
-          EXPECTED_BUILD: ${{ matrix.build }}
-        run: test "$(python3 runtime/control/chrome/build.py)" = "$EXPECTED_BUILD"
-      - name: Build the requested channel in a disposable container
-        env:
-          CHANNEL: ${{ matrix.channel }}
-          PACKAGE_URL: ${{ matrix.package_url }}
-          PACKAGE_SHA256: ${{ matrix.package_sha256 }}
-        run: |
-          cp -R driver/control/chrome/ci/. runtime/control/chrome/ci/
-          cp -R driver/control/chrome_tests/. runtime/control/chrome_tests/
-          mkdir -p runtime/.github/workflows
-          cp driver/.github/workflows/control-chrome-qualification.yml driver/.github/workflows/control-chrome.yml runtime/.github/workflows/
-          tar -C runtime -cf - control docs/control/TOOLS.md .github/workflows/control-chrome-qualification.yml .github/workflows/control-chrome.yml | docker build --build-arg CHANNEL="$CHANNEL" --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t qualification -f runtime/control/chrome/ci/Dockerfile -
-      - name: Run full receiver suite; repeat is a separate matrix job
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: qualification-shard-${{ matrix.build }}-${{ matrix.channel }}-${{ matrix.repeat }}-*
+          path: runtime/.work/shards
+      - name: Require complete browser Python and native evidence
         id: suite
+        working-directory: runtime
         env:
           INSTALL_MODE: policy
-          QUALIFICATION_VERSION: ${{ matrix.version }}
+          RUNTIME_COMMIT: ${{ matrix.commit }}
           QUALIFICATION_PAIR: ${{ toJSON(matrix) }}
-          NODE_OPTIONS: --import=/workspace/control/chrome_tests/qualification-completion.mjs
         run: |
+          set -euo pipefail
+          cp -R ../driver/control/chrome/ci/. control/chrome/ci/
           mkdir -p .work/20-chrome/ci
-          timeout --signal=TERM --kill-after=30s 300m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE -e QUALIFICATION_VERSION -e QUALIFICATION_PAIR -e NODE_OPTIONS -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/20-chrome/ci:/out" qualification
+          node control/chrome/ci/merge-shards.mjs .work/shards .work/20-chrome/ci ".work/shards/qualification-shard-${{ matrix.build }}-${{ matrix.channel }}-${{ matrix.repeat }}-precedence/chrome-precedence.json"
+          python3 control/chrome/ci/merge-python.py .work/shards .work/20-chrome/ci
+          node ../driver/reviews/20-chrome/audit-review-evidence.mjs .work/20-chrome/ci > .work/20-chrome/ci/independent-audit.json
+          node --input-type=module -e "import {recordCompletion} from '../driver/control/chrome_tests/qualification-completion.mjs';recordCompletion('.work/20-chrome/ci',JSON.parse(process.env.QUALIFICATION_PAIR),'success');"
       - name: Retain pair identity even when the test failed
         if: always()
         env:
           QUALIFICATION_PAIR: ${{ toJSON(matrix) }}
           QUALIFICATION_OUTCOME: ${{ steps.suite.outcome }}
-        run: python3 driver/control/chrome/qualify.py pair --artifacts .work/20-chrome/ci --runtime-root runtime
+        run: python3 driver/control/chrome/qualify.py pair --artifacts runtime/.work/20-chrome/ci --runtime-root runtime
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: qualification-${{ matrix.build }}-${{ matrix.channel }}-${{ matrix.repeat }}
-          path: .work/20-chrome/ci/
+          path: runtime/.work/20-chrome/ci/
   qualification-publish:
-    needs: [qualification-plan, qualification-pairs, qualification-tests, delivery-attestation]
+    needs: [qualification-plan, qualification-pairs, qualification-combine, qualification-tests, delivery-attestation]
     if: always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && (needs.qualification-plan.result == 'failure' || needs.qualification-pairs.result != 'skipped')
     runs-on: ubuntu-24.04
     concurrency:

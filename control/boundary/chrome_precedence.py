@@ -51,7 +51,7 @@ def chrome_precedence(run,put,model_contract):
                     summary.append({'case':case,'mode':init[0]['permissionMode'],'owner_entry':mode,'arrivals':counts,
                         'receiver_delta_sha256':hashlib.sha256(delta.encode()).hexdigest()})
                     print('CHROME_PRECEDENCE '+json.dumps(summary[-1],sort_keys=True),flush=True)
-                (OUT/'chrome-precedence.json').write_text(json.dumps({'head':os.environ.get('GITHUB_SHA'),'run':os.environ.get('GITHUB_RUN_ID'),'cases':summary,'instructions':hashes},indent=2))
+                (OUT/'chrome-precedence.json').write_text(json.dumps({'head':os.environ.get('RUNTIME_COMMIT',os.environ.get('GITHUB_SHA')),'run':os.environ.get('GITHUB_RUN_ID'),'cases':summary,'instructions':hashes},indent=2))
     finally:
         POLICY.write_bytes(original);OWNER.unlink(missing_ok=True)
         for path,data in settings_original.items():path.write_bytes(data)

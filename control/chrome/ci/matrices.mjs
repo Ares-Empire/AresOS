@@ -1,6 +1,7 @@
 // Synthetic browser cases, imported only by the Linux-container entry point.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import {selected,wordShard,wordInventory} from './shards.mjs';
 import {verdicts,assertComplete} from './verdicts.mjs';
 import {setTimeout as delay} from 'node:timers/promises';
 import {measureCompatibility,compareCompatibility} from './compatibility.mjs';
@@ -17,9 +18,13 @@ import {allTabs} from './tabs.mjs';
 import {failBrowserCase} from './failure.mjs';
 
 export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
-  const results=[];let trustOperation;
+  const results=[];let trustOperation;const shard=process.env.BROWSER_SHARD||null;
+  const runs=block=>selected(shard,block);
+  const inBlock=block=>(name,fn)=>check(name,fn,block);
   const receiverEvidence=(id,phase)=>{const row=receiverSnapshot(fixture.arrivals,id,phase);fs.appendFileSync('/out/page-receiver.jsonl',JSON.stringify(row)+'\n');return row;};
-  async function check(name,fn) {
+  async function check(name,fn,block='core') {
+    if(name==='GROUP 1 what asks word/label/key matrix')block='word';
+    if(!runs(block))return;
     try {await fn();results.push({name,passed:true});console.log(name,'PASS');}
     catch(error){results.push({name,passed:false,error:String(error.stack)});console.error(name,'FAIL',error.stack);
       // A failed/incomplete inventory cannot qualify. Retain the first failure
@@ -54,13 +59,13 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       await approval(await call('click',await target('Continue')),id);
     }
   });
-  await destinationMatrix({check,nav,call,target,approval,fixture,receiverEvidence});
-  await lateReaderMatrix({check,nav,call,rpc,read,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
+  if(runs('core'))await destinationMatrix({check:inBlock('core'),nav,call,target,approval,fixture,receiverEvidence});
+  if(runs('core'))await lateReaderMatrix({check:inBlock('core'),nav,call,rpc,read,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
   if(process.env.DESTINATION_PROBE==='true'){console.log('Post-18d destination and late-reader probes; not full acceptance');return [];}
-  await recheck3Matrices({check,nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor});
-  await recheck2Matrices({check,nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl});
-  await reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab:value=>{tab=value},ownerKey,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
-  await popupMatrices({check,call,rpc,nav,counts,eventually,getTab:()=>tab,setTab:value=>{tab=value},fixture,ownerOpenPopup,popupEvidence,popupControl,approval});
+  if(runs('recheck3'))await recheck3Matrices({check:inBlock('recheck3'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor});
+  if(runs('recheck2'))await recheck2Matrices({check:inBlock('recheck2'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl});
+  if(runs('review'))await reviewMatrices({check:inBlock('review'),nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab:value=>{tab=value},ownerKey,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
+  if(runs('recheck2'))await popupMatrices({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,getTab:()=>tab,setTab:value=>{tab=value},fixture,ownerOpenPopup,popupEvidence,popupControl,approval});
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
     const controlled=await measureCompatibility({id:'controlled',fixture,eventually,start:async()=>call('click',await target('Continue'))});
@@ -92,7 +97,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     await eventually(()=>counts('taken-post')===1,'one native POST loaded the document');await call('take_tab',{tab});const denied=await rpc('click',await target('Continue'));assert.equal(denied.ok,false);assert.match(denied.error.message,/form submission|request method/);await delay(150);assert.equal(counts('taken-post'),1,'refusal must not resubmit POST');
     await call('navigate',{tab,url:'http://fixture.test:8765/?case=features&id=post-history'});await eventually(async()=>String((await call('read',{tab})).untrusted_content.url).includes('id=post-history'),'GET after POST');assert.equal((await rpc('navigate',{tab,direction:'back'})).ok,false);assert.equal(counts('taken-post'),1,'history must not resubmit POST');
   });
-  results.push(...await collectSiteResults(()=>(import('./sites/matrices.mjs').then(({siteMatrices})=>siteMatrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,lifecycle})))));
+  if(runs('adapters'))results.push(...await collectSiteResults(()=>(import('./sites/matrices.mjs').then(({siteMatrices})=>siteMatrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,lifecycle})))));
   await check('GROUP 1 submit compose deletion and free-input matrix',async()=>{
     for(const tag of ['default','submit','override','external','empty','invalid','clobbered'])for(const key of ['click','Enter','Space','field']){
       const id='submit-'+tag+'-'+key;await nav('action-matrix&mode=submit&id='+id+'&tag='+tag);
@@ -113,17 +118,20 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     const link=await call('click',await target('Read more'));assert.ok(!link.approval);await eventually(()=>counts('free')===2,'ordinary link stays free');
   });
   await check('GROUP 1 what asks word/label/key matrix',async()=>{
-    let cases=0;
+    let cases=0;const wordCases=[];
     for(const word of words)for(const label of ['name','aria','title','value','labelledby','hidden_labelledby','label','role','formaction']){
+      if(shard&&wordShard(words.indexOf(word),['name','aria','title','value','labelledby','hidden_labelledby','label','role','formaction'].indexOf(label))!==shard)continue;
       const id='word-'+word+'-'+label;await setup({id,mode:'word',word,label});
       for(const route of ['click','Enter','Space']){
         const row=(await read()).find(row=>row.expected.role==='button'||row.expected.name==='Continue');assert.ok(row);
         const args={reference:row.reference,expected:row.expected};
         const result=route==='click'?await call('click',args):await call('press',{...args,key:route});
-        await approval(result,id+'-'+route);cases++;
+        await approval(result,id+'-'+route);wordCases.push(id+'-'+route);cases++;
       }
       if(cases%81===0)console.log('GROUP 1 WORD_PROGRESS',cases,'strict receiver cases passed');
     }
+    assert.deepEqual(wordCases,wordInventory(words,shard));
+    fs.writeFileSync('/out/word-cases.json',JSON.stringify(wordCases));
   });
   await check('GROUP 1 Unicode word matching agrees across service and guard',async()=>{
     for(const [index,word]of ['ſend','veröﬀentlichen','beﬅellen'].entries()){
@@ -497,9 +505,12 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     }
   });
   await check('GROUP 7 no listening port after tool suite',async()=>isolationAfter());
-  const qualified=verdicts(results,baseline,adapters);
+  const precedence=fs.existsSync('/out/chrome-precedence.json')?JSON.parse(fs.readFileSync('/out/chrome-precedence.json')):null;
+  const qualified=verdicts(results,baseline,adapters,precedence);
   fs.writeFileSync('/out/qualification-result.json',JSON.stringify(qualified,null,2));
   fs.writeFileSync('/out/matrices.json',JSON.stringify(results,null,2));
-  assertComplete(results,qualified);
+  if(shard){
+    fs.writeFileSync('/out/shard-complete.json',JSON.stringify({shard,baseline,adapters,head:process.env.RUNTIME_COMMIT||process.env.GITHUB_SHA,run:process.env.GITHUB_RUN_ID,install:process.env.INSTALL_MODE}));
+  }else assertComplete(results,qualified);
   return results.filter(item=>!item.passed);
 }

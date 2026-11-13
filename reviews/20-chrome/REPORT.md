@@ -66,7 +66,9 @@ The fix imports the native control into an inert document and checks only its
 required/missing constraint state; it never extracts a value, alters the live
 field, runs custom-element code or collects protected credentials. Hidden fields
 in a late document disclose presence only. Strict filled/empty assertions stay.
-The replacement probe will be run **237**; final acceptance remains pending.
+Replacement probe **43458099291** (**237** total) passes both installation modes,
+including credentials, preserved input types, approval/denial/replay and list-change
+re-asking. Final acceptance remains pending.
 
 **Main/slim integration (in progress):** `origin/main` is merged into this branch.
 Mail's action scopes, contexts, recovery semantics and slim policy are retained.
@@ -86,6 +88,37 @@ owner's typed-field instruction there once. Descriptions keep their own purpose.
 An explicit `asking_read` declaration extends the generator to cover the new read
 without pretending it sends. Generated managed-MCP is removed, and all artifacts
 are regenerated. Group 12 and final merged acceptance are still pending.
+
+**Group 12 / CI measurement work (awaiting Linux evidence):** the native precedence
+harness now installs Chrome at user scope and checks its complete instructions and
+tools in actual CLI requests. Both permission modes deny managed submit and typed
+reads despite user allows. Positive controls remove those asks; trusted submit
+reaches the independent receiver only under its current matching owner entry,
+using `Chrome.require_trusted_send`/`Chrome.trusted`. Missing, revoked and other-account
+entries refuse. The qualification verdict derives from those receipts, not a constant.
+
+The full workflow partitions the long browser modules, four word slices and four
+Python file shards, within one workflow run. Aggregation requires every named case,
+each word cell exactly once, every Python module and native group 12, then repeats
+the independent receiver/password audit. Stable/beta qualification uses the same
+partition per build/channel/repetition. The 350-minute stopgap is removed: browser
+containers are limited to 120 minutes in 130-minute jobs; other jobs are shorter.
+The original push and pull_request triggers remain unchanged.
+
+**PLAN-GAP:** the current versioned word list has 37 words, hence **999** cells
+(37 × 9 labels × 3 keys), rather than the historical 972 mentioned in the latency
+brief. All current cells stay required. A separate four-job latency matrix compares
+current and `ab7aba92`, plain versus privacy-instrumented, on one exact Chrome
+package. It measures 20 calls of each of six types, service/bridge time and browser
+stages (including the fixed 525 ms post-input wait). Historical absent stages stay
+absent. No owner think time is included. Medians, p95, proposed owner targets and
+the regression check await those measurements; **not ready** until that is done.
+
+**Verified locally after the merge:** full plain-Python Chrome discovery passed
+**234 tests in 672.944 s, OK**; Node plus artifact-stream tests passed **350 tests**;
+**268 removal probes** rejected their mutation with each baseline passing. Shared
+base CI, native CLI and all final workflow repetitions remain pending. The next
+manual full Chrome dispatch will bring the ledger to **238**.
 
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
