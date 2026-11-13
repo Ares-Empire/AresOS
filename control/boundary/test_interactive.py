@@ -1,7 +1,10 @@
 """Quick tests of evidence-critical parsing and the model's turn boundary."""
 import json
+from pathlib import Path
+import tempfile
 import unittest
-from interactive_driver import answer_option, selected_option
+from unittest.mock import patch
+from interactive_driver import Terminal, answer_option, selected_option
 from interactive_model import Script
 
 
@@ -21,6 +24,19 @@ class Answers(unittest.TestCase):
         self.assertEqual(answer_option(screen, 'warning'), ('2', 'Yes, I accept'))
         with self.assertRaises(AssertionError):
             answer_option(screen, 'Yes')
+
+    def test_numeric_submit_and_selection_only_both_complete(self):
+        root = Path(__file__).resolve().parents[2] / '.work'
+        root.mkdir(exist_ok=True)
+        before = '❯ 1. Yes\n  3. No\n'
+        for after, confirms in [('Interrupted · What should Claude do instead?', False),
+                                ('  1. Yes\n❯ 3. No\n', True)]:
+            with self.subTest(confirms=confirms), tempfile.TemporaryDirectory(dir=root) as folder:
+                terminal = Terminal(None, folder, 'unused', '.', [], {})
+                with patch.object(terminal, 'tmux') as command, patch.object(terminal, 'wait', return_value=after):
+                    terminal.choose(before, 'No')
+                sent = [call.args[-1] for call in command.call_args_list]
+                self.assertEqual(sent, ['3', 'Enter'] if confirms else ['3'])
 
 
 class Turns(unittest.TestCase):

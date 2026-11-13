@@ -61,7 +61,7 @@ class Terminal:
         assert result.returncode == 0, 'Terminal exited before expected text'
         return result.stdout
 
-    def wait(self, label, predicate, timeout=60, warning=False):
+    def wait(self, label, predicate, timeout=60, warning=False, expected_options=()):
         deadline = time.monotonic() + timeout
         previous = None
         while time.monotonic() < deadline:
@@ -76,7 +76,8 @@ class Terminal:
             elif predicate(screen):
                 self.save(label, screen)
                 return screen
-            elif options(screen) and not any(t == 'Yes' or t == 'No' for _, t in options(screen)):
+            elif options(screen) and options(screen) != expected_options and not any(
+                    t == 'Yes' or t == 'No' for _, t in options(screen)):
                 raise AssertionError('Unexpected dialog: ' + screen)
             time.sleep(.1)  # Poll cadence only; named rendered text is the proof.
         self.save('TIMEOUT-' + label, self.screen())
@@ -88,10 +89,14 @@ class Terminal:
         with (self.evidence / 'actions.jsonl').open('a') as log:
             log.write(json.dumps({'screen': shot, 'option': text, 'key': number}) + '\n')
         self.tmux('send-keys', '-t', 'case:0.0', number)
-        # Ink updates selection after the number key. Wait for that rendered
-        # state before Enter, including on a second prompt in the same session.
-        self.wait('selected-' + answer, lambda s: selected_option(s, number, text))
-        self.tmux('send-keys', '-t', 'case:0.0', 'Enter')
+        # Numeric shortcuts can submit immediately, or only move the selection.
+        # Observe which happened before sending a confirming Enter.
+        choices = options(screen)
+        after = self.wait('selected-or-submitted-' + answer,
+            lambda s: selected_option(s, number, text) or options(s) != choices,
+            expected_options=choices)
+        if selected_option(after, number, text):
+            self.tmux('send-keys', '-t', 'case:0.0', 'Enter')
 
     def prompt(self, marker):
         self.save('owner-prompt', self.screen())
