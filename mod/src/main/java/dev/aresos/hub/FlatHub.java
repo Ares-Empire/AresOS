@@ -78,6 +78,8 @@ public final class FlatHub {
         tag.store(Display.TAG_BILLBOARD, Display.BillboardConstraints.CODEC, Display.BillboardConstraints.VERTICAL);
         tag.store(Display.TAG_BRIGHTNESS, Brightness.CODEC, Brightness.FULL_BRIGHT);
         tag.putFloat(Display.TAG_VIEW_RANGE, HubLayout.NAME_VIEW_RANGE);
+        // The game keeps this tag's name private; "background" is the saved form's own word for it.
+        tag.putInt("background", HubLayout.NAME_BACKGROUND);
         tag.store(Display.TAG_TRANSFORMATION, Transformation.EXTENDED_CODEC,
                 new Transformation(null, null, new Vector3f(HubLayout.NAME_SCALE), null));
         var display = EntityType.create(EntityTypes.TEXT_DISPLAY, TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), tag),

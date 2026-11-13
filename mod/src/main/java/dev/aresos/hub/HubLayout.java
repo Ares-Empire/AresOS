@@ -45,6 +45,11 @@ public final class HubLayout {
     public static final float NAME_SCALE = 3;
     /** Text displays are seen from 64 blocks times this: 160 blocks. */
     public static final float NAME_VIEW_RANGE = 2.5f;
+    /**
+     * The plate behind a name, as ARGB: black at three quarters. On the game's default plate (black at one quarter)
+     * the names hung over a noon sky at a contrast of 1.4 to 2.5 to 1; light blue on sky blue was the worst.
+     */
+    public static final int NAME_BACKGROUND = 0xC0000000;
 
     /** The table of HUB.md 3.1, as it is saved with a hub. */
     public static Map<String, Integer> numbers() {
@@ -72,9 +77,11 @@ public final class HubLayout {
     /** One avenue and its apps. Outward and right are seen from home; yaw looks outward. */
     public enum Group {
         N("Internet", 0, -1, 1, 0, 180, "minecraft:light_blue_concrete", 0x3AB3DA),
-        E("Games", 1, 0, 0, 1, -90, "minecraft:red_concrete", 0xB02E26),
+        // Text colours are the concretes' dye colours, except red and purple: those two dyes are too dark to read
+        // on the dark plate (2 to 1), so their names use a lighter tint of the same hue (above 4 to 1).
+        E("Games", 1, 0, 0, 1, -90, "minecraft:red_concrete", 0xFF6257),
         S("System & Tools", 0, 1, -1, 0, 0, "minecraft:yellow_concrete", 0xFED83D),
-        W("Work & Media", -1, 0, 0, -1, 90, "minecraft:purple_concrete", 0x8932B8);
+        W("Work & Media", -1, 0, 0, -1, 90, "minecraft:purple_concrete", 0xC774F2);
 
         private final String title;
         private final int outwardX, outwardZ, rightX, rightZ;

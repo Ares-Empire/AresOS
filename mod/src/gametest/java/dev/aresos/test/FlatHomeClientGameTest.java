@@ -66,7 +66,8 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
     private static final Vec3 PICKED = new Vec3(30.25, 64, 30.75);
     /** A paving block of the north road, far enough ahead to be seen from home. */
     private static final BlockPos EDITED = new BlockPos(1, 63, -6);
-    private static final int ABOVE = 88;
+    /** High enough for the whole cross at a field of view of 110, low enough for it to fill the picture. */
+    private static final int ABOVE = 84;
 
     @Override
     public void runTest(ClientGameTestContext context) {

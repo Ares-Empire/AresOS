@@ -60,8 +60,14 @@ import java.util.UUID;
  */
 public final class FlatHomeGameTests {
     private static final int TEN_MINUTES = 12000;
-    /** The control of the no-mob test must see a mob within this many ticks: six of the game's 400-tick animal rounds. */
+    /**
+     * The control of the no-mob test must see a mob within this many ticks, counted from the moment the ground around
+     * home is loaded. A slime came after 44 to 83 ticks on a quiet laptop and after 819 with other builds running,
+     * when most of those ticks passed before the chunks were there.
+     */
     private static final int CONTROL_LIMIT = 2400;
+    /** The test server runs ticks as fast as it can; chunks load at the disk's and the other builds' pace. */
+    private static final int LOAD_LIMIT = 6000;
     private static final List<GameRule<Boolean>> SWITCHES = List.of(GameRules.SPAWN_MOBS, GameRules.MOB_GRIEFING, GameRules.KEEP_INVENTORY,
             GameRules.SPAWN_PHANTOMS, GameRules.SPAWN_PATROLS, GameRules.SPAWN_WANDERING_TRADERS, GameRules.ADVANCE_TIME, GameRules.ADVANCE_WEATHER);
 
@@ -143,7 +149,7 @@ public final class FlatHomeGameTests {
 
         String[] words = {"INTERNET", "GAMES", "SYSTEM & TOOLS", "WORK & MEDIA"};
         Vec3[] places = {new Vec3(0.5, 9, -19.5), new Vec3(20.5, 9, 0.5), new Vec3(0.5, 9, 20.5), new Vec3(-19.5, 9, 0.5)};
-        String[] colours = {"#3AB3DA", "#B02E26", "#FED83D", "#8932B8"};
+        String[] colours = {"#3AB3DA", "#FF6257", "#FED83D", "#C774F2"};
         check(fixed.names().size() == 4 && new HashSet<>(fixed.names()).size() == 4, "Expected four different group names");
         for (int i = 0; i < 4; i++) {
             Entity name = level.getEntity(fixed.names().get(i));
@@ -156,6 +162,7 @@ public final class FlatHomeGameTests {
             check(text.getStringOr("color", "").equalsIgnoreCase(colours[i]), "Wrong colour for " + words[i] + ": " + text.get("color"));
             check(tag.getStringOr("billboard", "").equals("vertical"), words[i] + " does not turn around the upright axis");
             check(tag.getFloatOr("view_range", 0) == 2.5f, words[i] + " is not seen from 160 blocks");
+            check(tag.getIntOr("background", 0) == 0xC0000000, words[i] + " does not hang on the dark plate");
             var brightness = tag.getCompoundOrEmpty("brightness");
             check(brightness.getIntOr("sky", -1) == 15 && brightness.getIntOr("block", -1) == 15, words[i] + " is not at full brightness");
             var scale = tag.getCompoundOrEmpty("transformation").getListOrEmpty("scale");
@@ -324,7 +331,7 @@ public final class FlatHomeGameTests {
      * slimes in any light). So the empty ten minutes are the rules' doing and not a world that could never spawn
      * anything. Alone in its test environment, because it changes the server's rules, and far from the test plots.
      */
-    @GameTest(environment = "aresos-test:flat_home", maxTicks = CONTROL_LIMIT + TEN_MINUTES + 40)
+    @GameTest(environment = "aresos-test:flat_home", maxTicks = LOAD_LIMIT + CONTROL_LIMIT + TEN_MINUTES + 40)
     public void noMobAppearsInTenMinutes(GameTestHelper helper) {
         var level = helper.getLevel();
         var server = level.getServer();
@@ -362,6 +369,7 @@ public final class FlatHomeGameTests {
             restore.run();
             throw error;
         }
+        long[] loadedAt = {-1};
         long[] quietSince = {-1};
         helper.onEachTick(() -> {
             try {
@@ -369,8 +377,11 @@ public final class FlatHomeGameTests {
                 if (quietSince[0] < 0) {
                     var appeared = mobs(level, area[0]);
                     if (appeared.isEmpty()) {
-                        if (tick >= CONTROL_LIMIT) throw new AssertionError("Control: no mob appears here even with mob spawning on, so"
-                                + " ten quiet minutes would prove nothing. " + spawningState(level, home, player));
+                        if (loadedAt[0] < 0 && loaded(level, home)) loadedAt[0] = tick;
+                        if (loadedAt[0] < 0 && tick >= LOAD_LIMIT) throw new AssertionError("Fixture: the ground around home did not load within "
+                                + LOAD_LIMIT + " ticks. " + spawningState(level, home, player));
+                        if (loadedAt[0] >= 0 && tick - loadedAt[0] >= CONTROL_LIMIT) throw new AssertionError("Control: no mob appears here even"
+                                + " with mob spawning on, so ten quiet minutes would prove nothing. " + spawningState(level, home, player));
                         return;
                     }
                     AresOs.LOGGER.info("32 no-mob control: with mob spawning on, {} appeared within {} ticks", describe(appeared), tick);
@@ -396,6 +407,14 @@ public final class FlatHomeGameTests {
                 helper.fail(error.getMessage());
             }
         });
+    }
+
+    /** True once mobs can live in every direction from home, six chunks out: the spawner has its ground. */
+    private static boolean loaded(ServerLevel level, BlockPos home) {
+        for (int x = -96; x <= 96; x += 96) for (int z = -96; z <= 96; z += 96) {
+            if (!level.isPositionEntityTicking(home.offset(x, 0, z))) return false;
+        }
+        return true;
     }
 
     /** Why the control saw nothing: what the game's spawner looks at, and whether it can place an animal here at all. */
