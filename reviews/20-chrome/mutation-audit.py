@@ -358,6 +358,14 @@ case('post18df-withheld-compose',R,"if(!safe.password&&typeof safe.value==='stri
 
 case('post18d-latency-recovery-space','control/aresos_control/storage.py','self.ledger.admit(cost,history_cost=cost)','pass','test_latency.OperationHeaders.test_optional_header_migration_preserves_real_reserved_cancellation_space',True)
 
+case('post18d-retained-terminal-pins','control/aresos_control/retention.py','current.update(store.operation_hashes())','pass','test_latency.OperationHeaders.test_completed_operation_keeps_both_old_blob_stores_and_archival_releases_them',True)
+case('post18d-active-retention-pins','control/aresos_control/retention.py',"operations = [op for _, op in store.iter_operations(states=OPEN) if op['state'] in OPEN]",'operations = []','test_latency.OperationHeaders.test_active_operation_protects_old_composition_and_import_metadata',True)
+case('post18d-pin-root-hash','control/aresos_control/storage.py',"tree.key='sha256'",'0','test_latency.OperationHeaders.test_completed_operation_keeps_both_old_blob_stores_and_archival_releases_them',True)
+case('post18d-pin-suffix-hash','control/aresos_control/storage.py',"substr(tree.key,-7)='_sha256'",'0','test_latency.OperationHeaders.test_completed_operation_keeps_both_old_blob_stores_and_archival_releases_them',True)
+case('post18d-blob-pin-boundary','control/aresos_control/blobs.py','pins=pinned() if callable(pinned) else pinned','pins=set()','test_latency.OperationHeaders.test_completed_operation_keeps_both_old_blob_stores_and_archival_releases_them',True)
+case('post18d-pin-read-failure','control/aresos_control/blobs.py','            pins=pinned() if callable(pinned) else pinned','            try:pins=pinned() if callable(pinned) else pinned\n            except OSError:pins=set()','test_latency.OperationHeaders.test_reference_enumeration_failure_precedes_every_blob_unlink',True)
+case('post18d-malformed-state-expiry','control/aresos_control/storage.py'," OR substr(json_extract(v,'$.state'),1,1) IN ('[','{')",'','test_latency.OperationHeaders.test_malformed_state_still_refuses_expiry_before_deleting_old_files',True)
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']

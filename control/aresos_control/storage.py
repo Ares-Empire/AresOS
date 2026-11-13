@@ -782,10 +782,27 @@ class Store:
         return json.loads(row[0]) if row else default
 
     def iter_items(self, prefix):
-        for k, v in self.db.execute("SELECT k,v FROM kv WHERE substr(k,1,?)=? ORDER BY k", (len(prefix), prefix)):
-            yield k, json.loads(v)
+        # Use the primary-key range: maintenance of an empty namespace must
+        # not scan every completed operation. Preserve literal Unicode prefixes
+        # (including the old SQLite substr behavior for a NUL-containing one).
+        if not isinstance(prefix,str):raise TypeError('Namespace prefix must be a string')
+        if '\0' in prefix:
+            rows=self.db.execute("SELECT k,v FROM kv WHERE substr(k,1,?)=? ORDER BY k",(len(prefix),prefix))
+        elif not prefix:
+            rows=self.db.execute("SELECT k,v FROM kv WHERE typeof(k)='text' ORDER BY k")
+        else:
+            position=len(prefix)-1
+            while position>=0 and ord(prefix[position])==0x10ffff:position-=1
+            if position<0:
+                rows=self.db.execute("SELECT k,v FROM kv WHERE typeof(k)='text' AND k>=? ORDER BY k",(prefix,))
+            else:
+                successor=ord(prefix[position])+1
+                if successor==0xd800:successor=0xe000
+                limit=prefix[:position]+chr(successor)
+                rows=self.db.execute('SELECT k,v FROM kv WHERE k>=? AND k<? ORDER BY k',(prefix,limit))
+        for k,v in rows:yield k,json.loads(v)
 
-    def iter_operations(self, app=None, exclude_app=None, legacy_open=False):
+    def iter_operations(self, app=None, exclude_app=None, legacy_open=False, states=None):
         # Inspect small headers in SQLite before decoding retained payloads.
         # This is a fresh query of the same working rows, not a cached verdict;
         # Chrome's independent committed projection remains its read authority.
@@ -797,6 +814,12 @@ class Store:
         if exclude_app is not None:
             clauses.append("json_extract(v,'$.app') IS NOT ?")
             parameters.append(exclude_app)
+        if states is not None:
+            # Keep malformed headers in the candidate set so the caller's
+            # original predicate still fails closed before cleanup.
+            states=sorted(states)
+            clauses.append("(json_extract(v,'$.state') IN ("+','.join('?' for _ in states)+") OR typeof(json_extract(v,'$.state'))!='text' OR substr(json_extract(v,'$.state'),1,1) IN ('[','{'))")
+            parameters.extend(states)
         if legacy_open:
             # Only unfinished false-like version headers can be legacy notices.
             # Any extra SQLite coercion
@@ -806,6 +829,16 @@ class Store:
         table='kv INDEXED BY operation_headers' if self.operation_headers else 'kv'
         for key, value in self.db.execute('SELECT k,v FROM '+table+' WHERE '+ ' AND '.join(clauses)+' ORDER BY k', parameters):
             yield key, json.loads(value)
+
+    def operation_hashes(self):
+        # Enumerate the same nested string references as retention.hashes in
+        # SQLite, without decoding every completed operation into Python.
+        # No side cache: callers finish this fresh enumeration before deleting.
+        query="""SELECT tree.atom FROM kv AS source, json_tree(source.v) AS tree
+            WHERE substr(source.k,1,3)='op:' AND tree.type='text'
+            AND typeof(tree.key)='text'
+            AND (tree.key='sha256' OR substr(tree.key,-7)='_sha256')"""
+        for row in self.db.execute(query):yield row[0]
 
     def items(self, prefix):
         return list(self.iter_items(prefix))

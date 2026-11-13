@@ -63,6 +63,18 @@ def install(daemon):
                 emit({'sample':active['sample'],'call':active['call'],'stage':'service_without_bridge','milliseconds':max(0,elapsed-active['bridge_ms'])})
             active=previous
     daemon.engine.request=request
+    original_expire=daemon.engine.expire
+    def marker():
+        try:return json.loads(MARKER.read_text())
+        except FileNotFoundError:return None
+    def expire():
+        before=marker();start=time.perf_counter()
+        try:return original_expire()
+        finally:
+            after=marker()
+            if before and before==after:
+                emit({**before,'stage':'daemon_expiry_inside_sample','milliseconds':(time.perf_counter()-start)*1000})
+    daemon.engine.expire=expire
     event=bridge.on_event
     def on_event(value):
         if value.get('event') in {'latency_stage','latency_reader'}:

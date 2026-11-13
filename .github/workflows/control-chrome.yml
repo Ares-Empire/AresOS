@@ -8,6 +8,10 @@ on:
     paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/20-chrome/**', '.github/workflows/control-chrome.yml']
   workflow_dispatch:
     inputs:
+      latency_probe:
+        description: 'Measure paired call histories only; not acceptance'
+        type: boolean
+        default: false
       destination_probe:
         description: 'Run post-18d destination and late-reader probes (not acceptance)'
         type: boolean
@@ -56,6 +60,7 @@ jobs:
                   output.write(name+'='+package[name]+'\n')
           PY
   fixtures:
+    if: ${{ !inputs.latency_probe }}
     needs: package
     runs-on: ubuntu-24.04
     timeout-minutes: 130
@@ -92,7 +97,7 @@ jobs:
           retention-days: 14
 
   python-shards:
-    if: ${{ !inputs.destination_probe && !inputs.injection_probe }}
+    if: ${{ !inputs.destination_probe && !inputs.injection_probe && !inputs.latency_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     strategy:
@@ -119,7 +124,7 @@ jobs:
           path: .work/20-chrome-python/
           retention-days: 14
   native-precedence:
-    if: ${{ !inputs.destination_probe && !inputs.injection_probe }}
+    if: ${{ !inputs.destination_probe && !inputs.injection_probe && !inputs.latency_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -140,7 +145,7 @@ jobs:
           path: .work/chrome-precedence/
           retention-days: 14
   aggregate:
-    if: ${{ always() && !inputs.destination_probe && !inputs.injection_probe }}
+    if: ${{ always() && !inputs.destination_probe && !inputs.injection_probe && !inputs.latency_probe }}
     needs: [fixtures, python-shards, native-precedence]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -199,6 +204,14 @@ jobs:
           QUALIFICATION_VERSION: ${{ needs.package.outputs.version }}
           LATENCY_PRIVACY: ${{ matrix.privacy }}
         run: bash control/chrome/ci/latency-pair.sh
+      - name: Require lead ceilings and reject paired latency regressions
+        if: ${{ !inputs.latency_probe }}
+        run: |
+          python3 control/chrome/ci/latency-check.py \
+            .work/latency-out/current/latency-summary.json \
+            .work/latency-out/ab7aba92/latency-summary.json \
+            control/chrome/ci/latency-reference.json \
+            control/chrome/ci/latency-targets.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

@@ -93,7 +93,7 @@ def expire(engine):
         return
     retire_chrome(store)
     now = time.time()
-    operations = [op for _, op in store.items('op:')]
+    operations = [op for _, op in store.iter_operations(states=OPEN) if op['state'] in OPEN]
     pinned_comps = {op.get('payload', {}).get('composition', {}).get('id')
                     for op in operations if op['state'] in OPEN}
     changes = {}
@@ -133,12 +133,17 @@ def expire(engine):
                     changes.update({k: None for k, _ in store.items('mail:filing-locations:' + value['id'] + ':')})
     if changes:
         store.write(changes, 'control_expire', 'expired unused working data; operation evidence and unresolved warnings retained')
-    pinned = set()
-    for _, comp in store.items('mail:composition:'):
-        pinned.update(hashes(comp))
-    # Keep wires and attachment bytes referenced by any retained operation: even
-    # completed operations can be inspected/repaired. They are bounded by caps.
-    for op in operations:
-        pinned.update(hashes(op))
+    pinned = None
+    def retained_hashes():
+        nonlocal pinned
+        if pinned is None:
+            current=set()
+            for _, comp in store.items('mail:composition:'):
+                current.update(hashes(comp))
+            # Completed operations still pin every wire/attachment. Finish the
+            # whole fresh enumeration before any candidate can be unlinked.
+            current.update(store.operation_hashes())
+            pinned=current
+        return pinned
     for blob_store in (engine.blobs, engine.adapters['mail'].wires):
-        blob_store.expire(pinned, now, TTL)
+        blob_store.expire(retained_hashes, now, TTL)

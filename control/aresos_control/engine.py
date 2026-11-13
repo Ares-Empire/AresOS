@@ -228,7 +228,7 @@ class Engine:
         if self.store.locked or self.store.write_failed:
             return
         self.store.flush_notices()
-        for key, op in self.store.iter_items("op:"):
+        for key, op in self.store.iter_operations(states={'reserved'}):
             if op["state"] == "reserved" and time.time() >= op["expires"]:
                 op.update(state="failed", reason="expired: nothing submitted", notice=True)
                 self.store.write({key: op}, op["action"], "approval expired without submission", op["id"], recovery=True)

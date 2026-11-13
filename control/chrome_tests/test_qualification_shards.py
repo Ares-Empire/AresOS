@@ -29,7 +29,9 @@ class QualificationShards(unittest.TestCase):
                 (folder/f'python-shard-{index}.json').write_text(json.dumps({'index':index,'count':4,'head':'a'*40,'run':'123','modules':[name],'tests':1,'successful':True}))
                 (folder/'python.txt').write_text('Ran 1 test\nOK\n')
             command=[sys.executable,'-B',str(ROOT/'control/chrome/ci/merge-python.py'),str(proofs),str(out)]
-            env={**os.environ,'GITHUB_SHA':'a'*40,'GITHUB_RUN_ID':'123'}
+            # Both workflow identities belong to this synthetic proof; an
+            # outer qualification/local run may set a different runtime head.
+            env={**os.environ,'GITHUB_SHA':'a'*40,'RUNTIME_COMMIT':'a'*40,'GITHUB_RUN_ID':'123'}
             before=subprocess.run(command,cwd=runtime,env=env,capture_output=True,text=True)
             self.assertNotEqual(before.returncode,0)
             self.assertIn('AssertionError',before.stderr)

@@ -121,6 +121,96 @@ class OperationHeaders(unittest.TestCase):
         finally:reopened.close()
 
 
+    def test_namespace_range_matches_literal_substr_with_unicode_wildcards_and_nuls(self):
+        import json
+        prefixes=['','op:','mail:','%','_','ä','🙂','\ud7ff','a\0','\U0010ffff','z\U0010ffff']
+        for prefix in prefixes:
+            for suffix in ['','x','%_','ä','🙂','\0after','\U0010ffff']:
+                key=prefix+suffix
+                self.store.db.execute('INSERT OR REPLACE INTO kv VALUES (?,?)',(key,json.dumps({'marker':key})))
+        for key in [None,b'op:binary-key']:
+            self.store.db.execute('INSERT INTO kv VALUES (?,?)',(key,json.dumps({'marker':'non-text-key'})))
+        for prefix in prefixes:
+            expected=[(k,json.loads(v)) for k,v in self.store.db.execute('SELECT k,v FROM kv WHERE substr(k,1,?)=? ORDER BY k',(len(prefix),prefix))]
+            self.assertEqual(list(self.store.iter_items(prefix)),expected,repr(prefix))
+
+    def test_native_hash_enumeration_matches_nested_references_and_current_updates(self):
+        from aresos_control.retention import hashes,OPEN
+        key,op=self.add('references','chrome',1,'done')
+        op['context']={'sha256':'top','list':[{'wire_sha256':'wire','notsha256':'ignored'},['plain',{'sha256':{'sha256':'nested'}}]],'number_sha256':42,'bool_sha256':True,'ü_sha256':'unicode'}
+        self.store.write({key:op},'chrome_latency_fixture','Synthetic nested reference test')
+        expected={value for _,item in self.store.iter_items('op:') for value in hashes(item)}
+        self.assertEqual(set(self.store.operation_hashes()),expected)
+        op['state']='unknown';self.store.write({key:op},'chrome_latency_fixture','Synthetic fresh state')
+        self.assertIn(key,dict(self.store.iter_operations(states=OPEN)))
+        self.store.db.execute("UPDATE kv SET v=json_set(v,'$.state','done') WHERE k=?",(key,))
+        self.assertNotIn(key,dict(self.store.iter_operations(states=OPEN)))
+        self.store.db.rollback();self.assertIn(key,dict(self.store.iter_operations(states=OPEN)))
+        self.store.write({key:None},'chrome_latency_fixture','Synthetic retired reference')
+        self.assertEqual(set(self.store.operation_hashes()),set())
+
+    def test_empty_blob_stores_do_not_decode_completed_history_during_daemon_expiry(self):
+        for index in range(10):self.add('completed-expiry-'+str(index))
+        original=self.store.iter_items
+        def iter_items(prefix):
+            self.assertNotEqual(prefix,'op:','Completed payloads decoded during expiry')
+            yield from original(prefix)
+        with patch.object(self.store,'iter_items',iter_items),patch.object(self.store,'operation_hashes',side_effect=AssertionError('No old file needs pins')):
+            self.fixture.engine.expire()
+
+    def old_blob(self,blob_store,data):
+        import os,time
+        key=blob_store.put(data,origin='caller_import');path=blob_store.directory/key
+        os.utime(path,(time.time()-172800,)*2)
+        return key,path
+
+    def test_completed_operation_keeps_both_old_blob_stores_and_archival_releases_them(self):
+        from aresos_control import retention
+        engine=self.fixture.engine
+        blob,path=self.old_blob(engine.blobs,b'Fixture import retained by a completed operation')
+        wire,wire_path=self.old_blob(engine.adapters['mail'].wires,b'Fixture wire retained by a completed operation')
+        key,op=self.add('completed-files','chrome',1,'done')
+        op['payload']['nested']=[{'sha256':blob},[{'wire_sha256':wire}]]
+        self.store.write({key:op},'chrome_latency_fixture','Synthetic retained completed references')
+        engine.expire();self.assertTrue(path.exists());self.assertTrue(wire_path.exists())
+        self.store.write({key:None},'chrome_latency_fixture','Synthetic archive removes only current reference')
+        engine.expire();self.assertFalse(path.exists());self.assertFalse(wire_path.exists())
+
+    def test_active_operation_protects_old_composition_and_import_metadata(self):
+        import time
+        engine=self.fixture.engine
+        key,op=self.add('active-files','chrome',1,'unknown')
+        blob,path=self.old_blob(engine.blobs,b'Fixture active import')
+        op['payload'].update(composition={'id':'pinned-composition'},file={'sha256':blob})
+        comp={'id':'pinned-composition','created_at':time.time()-172800,'sha256':blob}
+        meta={'sha256':blob}
+        self.store.write({key:op,'mail:composition:pinned-composition':comp,'blob:fixture-active':meta},'chrome_latency_fixture','Synthetic active composition/reference')
+        self.store.db.execute("UPDATE retained SET created=? WHERE k='blob:fixture-active'",(time.time()-172800,));self.store.db.commit()
+        engine.expire()
+        self.assertEqual(self.store.get('mail:composition:pinned-composition'),comp)
+        self.assertEqual(self.store.get('blob:fixture-active'),meta);self.assertTrue(path.exists())
+
+    def test_malformed_state_still_refuses_expiry_before_deleting_old_files(self):
+        engine=self.fixture.engine
+        key,op=self.add('bad-state','chrome',1,'done')
+        _,path=self.old_blob(engine.blobs,b'Fixture candidate beside malformed operation')
+        self.store.db.execute("UPDATE kv SET v=json_set(v,'$.state',json('{}')) WHERE k=?",(key,))
+        with self.assertRaises(TypeError):engine.expire()
+        self.assertTrue(path.exists())
+
+    def test_reference_enumeration_failure_precedes_every_blob_unlink(self):
+        import errno
+        engine=self.fixture.engine
+        key,first=self.old_blob(engine.blobs,b'Fixture first candidate')
+        _,second=self.old_blob(engine.blobs,b'Fixture second candidate')
+        def broken():
+            yield key
+            raise OSError(errno.EIO,'Synthetic reference read fault')
+        with patch.object(self.store,'operation_hashes',broken):
+            with self.assertRaises(OSError):engine.expire()
+        self.assertTrue(first.exists());self.assertTrue(second.exists())
+
+
 class LatencySummary(unittest.TestCase):
     def test_summary_requires_all_calls_and_history_phases_without_duplicate_samples(self):
         import importlib.util

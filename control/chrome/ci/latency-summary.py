@@ -35,6 +35,10 @@ def summarize(root):
         assert (row['sample'],row['call']) in identities
         internal[(row['sample'],row['call'],row['stage'])]+=row['milliseconds']
     for (sample,call,stage),duration in internal.items():stages[(phases[sample],call,stage)].append(duration)
+    for row in rows:
+        service=internal.get((row['sample'],row['call'],'service_total'))
+        if service is not None:
+            stages[(row['phase'],row['call'],'client_outside_service')].append(max(0,row['milliseconds']-service))
     pairs=[]
     for row in rows:
         if row['call'] not in INPUTS:continue
@@ -52,6 +56,7 @@ def summarize(root):
             'Retained history is disposable synthetic timing input shaped from a real completed free input, not receiver or qualification evidence.',
             'Page handlers are no-op/local receiver; browser dispatch is not pure tool CPU.',
             'Nested stages overlap. Missing historical stages are absent, never fabricated zeros.',
+            'Client outside service includes daemon expiry/queueing, IPC and framing; only complete expiry sweeps wholly inside a sample receive the daemon stage.',
             'The unchanged fixed post-input wait is holdMs + 25 ms (525 ms at holdMs=500).']}
 
 
