@@ -375,6 +375,18 @@ intermediate dispatch brings the Chrome ledger to **248**. The noise-robust
 regression gate will be set from that evidence and the lead's target decision;
 final acceptance and ready remain pending.
 
+**Latency migration FIX:** the [package review](BUILD-POST18D-LATENCY-REVIEW-1.md)
+found optional index allocation before reservation reconstruction. It could spend
+recovery space on upgrade. Creation now follows prepared replay, final reservation
+loading and recovery. Admission covers both physical bytes and compacted-history
+capacity. A real reserved-approval restart test gives the cache one byte less
+than its unheld budget and requires refusal, identical cancellation holds and the
+committed reserved operation. The new removal probe fails if admission is removed.
+All seven focused latency/selection tests pass. The
+[security review](BUILD-POST18D-LATENCY-SECURITY-1.md) found no other FIX; its SAFE
+does not supersede the package finding. Run `43490400410` (**248**) predates this
+fix and remains intermediate timing/diagnostic evidence only.
+
 **Latency proposal — lead decision pending:** intermediate Linux run
 `43466571812` measured 20 calls per category, without owner think time, against
 `ab7aba92` rebuilt with the same driver and exact Chrome package. Times below are

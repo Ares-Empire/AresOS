@@ -172,23 +172,7 @@ class Store:
                               "INSERT OR IGNORE INTO head VALUES (1,0,'');"
                               "CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY, value TEXT NOT NULL);"
                               "CREATE TABLE IF NOT EXISTS operation_versions (id TEXT PRIMARY KEY, seq INTEGER NOT NULL);")
-        # Optional working-row headers avoid decoding completed Chrome payloads
-        # for every other app's pending/recovery catalogue. SQLite maintains the
-        # expressions in the same transaction as kv; no values or verdicts are
-        # cached in Python. Reads still work when storage cannot add the index.
         self.operation_headers = bool(self.db.execute("SELECT 1 FROM sqlite_master WHERE name='operation_headers'").fetchone())
-        if not self.operation_headers:
-            try:
-                count=self.db.execute("SELECT count(*) FROM kv WHERE substr(k,1,3)='op:'").fetchone()[0]
-                self.ledger.admit(max(128*1024,count*256))
-                self.db.execute("CREATE INDEX operation_headers ON kv(json_extract(v,'$.app'),json_extract(v,'$.context_version'),json_extract(v,'$.state')) WHERE substr(k,1,3)='op:'")
-                self.operation_headers = True
-            except (OSError, sqlite3.Error) as exc:
-                if storage_refusal(exc) is None:raise
-                self.observations.storage(exc)
-            except Refused as exc:
-                if exc.code not in {'storage_limit','storage_unavailable'}:raise
-                self.observations.storage(exc)
         sync_directory(self.state_dir)
         # Derived, disposable index outside the backed-up state. Never trust it
         # across restarts: rebuild solely from the verified permanent journal.
@@ -272,10 +256,30 @@ class Store:
                             # cancellation available if this annotation cannot fit.
             from .recovery import recover_intents
             recover_intents(self)
+            # Optional speed indexes may spend only unheld space, after every
+            # prepared recovery and reservation has been reconstructed.
+            self._index_operation_headers()
         except BaseException as exc:
             with cleanup('index rebuild', exc):
                 self.close()
             raise
+
+    def _index_operation_headers(self):
+        # SQLite maintains headers atomically with kv. If storage cannot add
+        # them, fresh unindexed queries retain identical warning semantics.
+        if self.operation_headers:return
+        try:
+            count=self.db.execute("SELECT count(*) FROM kv WHERE substr(k,1,3)='op:'").fetchone()[0]
+            cost=max(128*1024,count*256)
+            self.ledger.admit(cost,history_cost=cost)
+            self.db.execute("CREATE INDEX operation_headers ON kv(json_extract(v,'$.app'),json_extract(v,'$.context_version'),json_extract(v,'$.state')) WHERE substr(k,1,3)='op:'")
+            self.operation_headers = True
+        except (OSError, sqlite3.Error) as exc:
+            if storage_refusal(exc) is None:raise
+            self.observations.storage(exc)
+        except Refused as exc:
+            if exc.code!='storage_limit':raise
+            self.observations.storage(exc)
 
     def _index_record(self, record, offset):
         if self.index is not None:

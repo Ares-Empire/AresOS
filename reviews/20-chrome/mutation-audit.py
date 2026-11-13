@@ -356,6 +356,8 @@ case('post18df-withheld-form-final',B,"if((command.kind||command.name==='resume'
 
 case('post18df-withheld-compose',R,"if(!safe.password&&typeof safe.value==='string')append(safe.value,'pre-wrap')","if(!safe.password)append(safe.value,'pre-wrap')",node('reader','post18df facts beside late textareas'))
 
+case('post18d-latency-recovery-space','control/aresos_control/storage.py','self.ledger.admit(cost,history_cost=cost)','pass','test_latency.OperationHeaders.test_optional_header_migration_preserves_real_reserved_cancellation_space',True)
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']

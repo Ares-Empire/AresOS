@@ -99,6 +99,28 @@ class OperationHeaders(unittest.TestCase):
         finally:reopened.close()
 
 
+    def test_optional_header_migration_preserves_real_reserved_cancellation_space(self):
+        import shutil
+        from aresos_control.space import SAFETY_FLOOR
+        target=self.fixture.browser.facts['frames'][0]['target']
+        target['name']=target['label']='Send'
+        approval=self.fixture.prepare()
+        held=self.store.ledger.held;self.assertGreater(held,0)
+        state,evidence=self.store.state_dir,self.store.evidence_dir
+        self.store.db.execute('DROP INDEX operation_headers')
+        self.fixture.engine.close()
+        free=held+SAFETY_FLOOR+128*1024-1
+        usage=shutil._ntuple_diskusage(1024**3,1024**3-free,free)
+        with patch('aresos_control.space.shutil.disk_usage',return_value=usage):
+            reopened=storage.Store(state,evidence)
+        try:
+            self.assertEqual(reopened.ledger.held,held)
+            self.assertFalse(reopened.operation_headers,'Optional index spent space reserved for cancellation')
+            operation=reopened.chrome_state.get('op:'+approval['operation_id'])
+            self.assertEqual(operation['state'],'reserved')
+        finally:reopened.close()
+
+
 class LatencySummary(unittest.TestCase):
     def test_summary_requires_all_calls_and_history_phases_without_duplicate_samples(self):
         import importlib.util
