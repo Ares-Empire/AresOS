@@ -10,6 +10,7 @@
   // This passive ISOLATED tracker has document lifetime, including release/retake.
   const privacyKey=Symbol.for('aresos.chrome.passwords.v1');
   const privacy=globalThis[privacyKey]??={protectedFields:new WeakSet(),observed:new WeakSet(),fileIdentities:new WeakMap()};
+  const watched=privacy.watched??=globalThis[Symbol.for('aresos.chrome.document-start.v1')]===true;
   const {protectedFields,fileIdentities}=privacy;
   const protectedKey=Symbol.for('aresos.chrome.password-node.v1');
   const protectNode=node=>{protectedFields.add(node);if(!Object.getOwnPropertyDescriptor(node,protectedKey))Object.defineProperty(node,protectedKey,{value:true});};
@@ -18,7 +19,7 @@
   const randomToken=()=>[...crypto.getRandomValues(new Uint8Array(16))].map(value=>value.toString(16).padStart(2,'0')).join('');
   const documentId = privacy.documentId??=randomToken();
   let sequence = 0, revision = 0, controlGeneration = null;
-  const traces = [], files = new Map(), watchedRoots = new WeakSet();
+  const traces = [], files = new Map(), watchedRoots = new WeakSet(), typedReads = new Set();
   const formGetters=globalThis.HTMLFormElement?Object.fromEntries(['elements','action','method','enctype','target'].map(key=>[key,Object.getOwnPropertyDescriptor(HTMLFormElement.prototype,key)?.get])):{};
   const formProperty=(form,key)=>formGetters[key]?formGetters[key].call(form):form[key];
   const nativeGetter=(Constructor,key)=>Constructor?.prototype&&Object.getOwnPropertyDescriptor(Constructor.prototype,key)?.get;
@@ -64,11 +65,24 @@
     if (!(html(element,HTMLInputElement,'input') || html(element,HTMLTextAreaElement,'textarea') || html(element,HTMLSelectElement,'select') || html(element,HTMLButtonElement,'button') || element.isContentEditable)) return false;
     let unsafe = protectedFields.has(element);
     try {
-      unsafe ||= element.type === 'password' || /(?:^|\s)(current-password|new-password|one-time-code)(?:\s|$)/i.test(element.getAttribute('autocomplete') || '') ||
+      unsafe ||= credentialLike(element) || element.type === 'password' || /(?:^|\s)(current-password|new-password|one-time-code)(?:\s|$)/i.test(element.getAttribute('autocomplete') || '') ||
         getComputedStyle(element).webkitTextSecurity !== 'none';
     } catch { unsafe = true; }
     if (unsafe) protectNode(element);
     return unsafe;
+  }
+  function credentialLike(element) {
+    const labelText=node=>{
+      if(node.nodeType===Node.TEXT_NODE)return node.textContent;
+      if(!isElement(node)||['INPUT','TEXTAREA','SELECT'].includes(node.tagName)||node.isContentEditable)return '';
+      return [...node.childNodes].map(labelText).join(' ');
+    };
+    const signals=['name','id','autocomplete','aria-label','placeholder'].map(key=>element.getAttribute(key)||'');
+    signals.push(...[...element.labels||[]].map(labelText));
+    return signals.some(value=>{
+      const words=value.replace(/([a-z])([A-Z])/g,'$1 $2').normalize('NFKC').toLowerCase();
+      return /pass[\s_-]*(?:word|wort|code)|kennwort|sicherheits[\s_-]*code|einmal[\s_-]*(?:code|kennwort|passwort)|bestätigungs[\s_-]*code|zugangs[\s_-]*code|one[\s_-]*time[\s_-]*(?:code|password)|security[\s_-]*code|(?:^|[^\p{L}\p{N}])(?:pin|otp)(?:$|[^\p{L}\p{N}])/u.test(words);
+    });
   }
   function password(element) {
     if(observer?.takeRecords)protect(observer.takeRecords());
@@ -191,6 +205,7 @@
   function safeValue(element) {
     // The exclusion is repeated immediately before EACH value/text read.
     if (password(element)) return {password: true};
+    if(!watched&&(typedField(element)||html(element,HTMLInputElement,'input')&&element.type==='hidden'))return {typed_text:typedField(element),value_status:element.textLength?'filled':'empty'};
     let value;
     if (html(element,HTMLInputElement,'input')) {
       if (element.type === 'file') value = [...element.files].map(selectedFile);
@@ -200,6 +215,23 @@
     else return {};
     traces.push({element: id(element), value});
     return {value,...(element.isContentEditable?{rich:richIdentity(element)}:{})};
+  }
+  function typedField(element) {
+    return html(element,HTMLInputElement,'input')&&!['hidden','password','checkbox','radio','date','datetime-local','month','week','time','email','url','search','range','color','file','button','submit','reset','image'].includes(element.type);
+  }
+  function typedFields() {
+    return {document:documentId,fields:watched?[]:all().filter(element=>typedField(element)&&!password(element)).map((element,index)=>({element:id(element),label:name(element)||'single-line field '+(index+1),type:element.type}))};
+  }
+  function readTypedFields(message) {
+    if(message.approved!==true||!message.operation||typedReads.has(message.operation))throw Error('refused: typed fields require a fresh one-call approval');
+    typedReads.add(message.operation);
+    const current=typedFields(),expected=message.expected;
+    if(expected?.document!==documentId||expected.fields.length!==current.fields.length||current.fields.some((field,index)=>['element','label','type'].some(key=>field[key]!==expected.fields[index][key])))throw Error('stale_approval: typed field list changed; ask again');
+    return {document:documentId,fields:current.fields.map(field=>{
+      const element=elements.get(field.element);
+      if(password(element)||!typedField(element))throw Error('stale_approval: typed field became a credential; ask again');
+      return {...field,value:element.value};
+    })};
   }
   function role(element) {
     if (element.getAttribute('role')) return element.getAttribute('role');
@@ -399,7 +431,7 @@
     const editable = nodes.filter(node => node.matches('input,textarea,select,[contenteditable]') && !['hidden','button','submit','reset','image','file'].includes(node.type)).map(field);
     return {document: documentId, revision, url: location.href, origin:globalThis.origin, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
       target: element ? targetFacts(element) : null, form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), implicitSubmitter(element) || element) : null,
-      editable, compose:element?composeText(element,nodes):null, selected_files:nodes.filter(node=>html(node,HTMLInputElement,'input')&&node.type==='file').map(field), embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', item_fields:element?itemFields(element,nodes):[], adapter: adapterRead(nodes, element), trace: traces.splice(0)};
+      editable, typed_fields:typedFields(), compose:element?composeText(element,nodes):null, selected_files:nodes.filter(node=>html(node,HTMLInputElement,'input')&&node.type==='file').map(field), embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', item_fields:element?itemFields(element,nodes):[], adapter: adapterRead(nodes, element), trace: traces.splice(0)};
   }
   function adapterRead(nodes, target) {
     const scope=target?.closest('form,[role=dialog],[role=region][aria-label],main,[role=main]');
@@ -428,6 +460,7 @@
     for(const element of all()){
       if(element.matches('input,textarea,select,[contenteditable]')){
         if(password(element)){unsaved=true;continue;}
+        if(!watched&&typedField(element)){unsaved=true;continue;}
         // There is no native defaultValue for rich text. A late reader cannot
         // prove it unchanged, including an editor the owner emptied.
         if(element.isContentEditable){unsaved=true;continue;}
@@ -488,6 +521,8 @@
       }
       else if (message.command === 'reload_state') value=reloadState();
       else if (message.command === 'ready') value = {preload:true,document:documentId,...(message.element?{element_present:!!elements.get(message.element)?.isConnected}:{})};
+      else if (message.command === 'typed_fields') value=typedFields();
+      else if (message.command === 'read_typed_fields') value=readTypedFields(message);
       else if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
       else if (message.command === 'steps') { value = guard.steps(); }
       else if (message.command === 'focus') {

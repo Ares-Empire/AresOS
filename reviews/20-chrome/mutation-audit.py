@@ -291,6 +291,34 @@ case('post18d-destination-final',A,"if destination(fresh)!=destination(payload['
 case('post18d-target-service-binding',A,"'href','browsing_target','value'","'href','value'",'test_questions.Questions.test_post18d_destination_changes_reask_before_input_and_on_final_refusal',True)
 case('post18d-target-extension-binding',B,"'href','browsing_target','value'","'href','value'",node('background','post18d final destination binding'))
 
+
+for signal in ['name','id','autocomplete','aria-label','placeholder']:
+    before="['name','id','autocomplete','aria-label','placeholder']"
+    after=repr([key for key in ['name','id','autocomplete','aria-label','placeholder'] if key!=signal])
+    case('post18d-credential-'+signal,R,before,after,node('reader','post18d credential signal '+signal+' excludes'))
+case('post18d-credential-label',R,"signals.push(...[...element.labels||[]].map(labelText));",'',node('reader','post18d credential signal label excludes'))
+case('post18d-late-mask',R,"if(!watched&&(typedField(element)","if(false&&(typedField(element)",node('reader','post18d late single-line values'))
+for kind in ['text','tel','number','unknown']:
+    case('post18d-late-type-'+kind,R,"return html(element,HTMLInputElement,'input')&&!['hidden'",f"return html(element,HTMLInputElement,'input')&&element.type!={kind!r}&&!['hidden'",node('reader','post18d late single-line values'))
+case('post18d-watch-provenance',B,'globalThis[Symbol.for("aresos.chrome.document-start.v1")]=true;','',node('background','startup evaluates only fixed bundles'))
+case('post18d-read-approval',R,'message.approved!==true||','',node('reader','post18d typed read approval is one call'))
+case('post18d-read-replay',R,'||typedReads.has(message.operation)','',node('reader','post18d typed read approval is one call'))
+case('post18d-read-credential-scope',R,'typedField(element)&&!password(element)','typedField(element)',node('reader','post18d typed read approval is one call'))
+case('post18d-read-unlabelled',R,"name(element)||'single-line field '+(index+1)","name(element)",node('reader','post18d typed read approval is one call'))
+case('post18d-read-list',R,"current.fields.some((field,index)=>['element','label','type'].some(key=>field[key]!==expected.fields[index][key]))",'false',node('reader','post18d typed field additions relabelling'))
+case('post18d-read-service',A,"if self.typed_binding(operation['payload']['binding']['tab'])!=operation['payload']['binding']:",'if False:','test_questions.Questions.test_post18d_typed_field_list_change_reasks_at_service_and_final_extension',True)
+case('post18d-read-final',B,'if(stable(current)!==stable(command.binding))','if(false)',node('background','post18d typed reads require approval'))
+case('post18d-read-once-background',B,"||used.has(command.operation))throw Error('refused: typed fields", ")throw Error('refused: typed fields",node('background','post18d typed reads require approval'))
+
+
+for kind in ['checkbox','radio','date','email','url','search']:
+    before=next(line.strip() for line in (ROOT/R).read_text().splitlines() if line.strip().startswith("return html(element,HTMLInputElement,'input')&&!['hidden'"))
+    case('post18d-readable-type-'+kind,R,before,before.replace(repr(kind)+',',''),node('reader','post18d watched input types and late choices'))
+case('post18d-readable-textarea',R,"html(element,HTMLTextAreaElement,'textarea') || html(element,HTMLSelectElement,'select') || html(element,HTMLButtonElement,'button')) value", "html(element,HTMLSelectElement,'select') || html(element,HTMLButtonElement,'button')) value",node('reader','post18d watched input types and late choices'))
+case('post18d-readable-editor',R,"else if (element.isContentEditable) value = editableText(element)","else if (false) value = editableText(element)",node('reader','post18d watched input types and late choices'))
+case('post18d-credential-mask',R,"getComputedStyle(element).webkitTextSecurity !== 'none'",'false',node('reader','group7 protected values never reach'))
+case('post18d-late-reload-privacy',R,'if(!watched&&typedField(element)){unsaved=true;continue;}','',node('reader','post18d late reload warning never extracts'))
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']

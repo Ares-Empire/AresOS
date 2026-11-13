@@ -183,7 +183,7 @@ async function preloadEvent(source,method,params){
     if(state.documents.has(main.uniqueId))return;
     const [guard,reader,page]=await bundle();
     assertTarget(state);
-    const isolated=await documentCommand('Runtime.evaluate',{contextId:context.id,expression:'if(chrome.runtime.id!=='+JSON.stringify(chrome.runtime.id)+')throw Error("Unrelated isolated world");\n'+guard+'\n'+reader+'\n;globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',returnByValue:true,disableBreaks:true});
+    const isolated=await documentCommand('Runtime.evaluate',{contextId:context.id,expression:'if(chrome.runtime.id!=='+JSON.stringify(chrome.runtime.id)+')throw Error("Unrelated isolated world");\n'+guard+'\nglobalThis[Symbol.for("aresos.chrome.document-start.v1")]=true;\n'+reader+'\n;globalThis[Symbol.for("aresos.chrome.guard.v2")].identity()',returnByValue:true,disableBreaks:true});
     if(isolated.exceptionDetails||typeof isolated.result?.value!=='string')throw Error('refused: isolated guard did not initialize before page scripts');
     // DOM.resolveNode without an executionContextId resolves in this node's MAIN
     // world. No Runtime subscription, page global or console payload is needed.
@@ -700,6 +700,15 @@ async function facts(tab, reference) {
   if(dialogs.has(tab))return facts(tab,reference);
   return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,needs_reload:controlled.get(tab).popupNeedsReload||result.some(frame=>!isPreloaded(tab,frame.document)),frames:result,uncovered,frame_tree:frames.map(frame=>({frame:frame.frameId,parent:frame.parentFrameId,url:frame.url})),dialog:null};
 }
+async function typedFacts(tab) {
+  const snapshot=await facts(tab);
+  if(snapshot.uncovered?.some(frame=>frame.eligible!==false))throw Error('refused: a complete typed-field list needs every eligible frame');
+  return {session,tab,control:snapshot.control,url:snapshot.url,title:snapshot.title,
+    frames:snapshot.frames.map(frame=>{
+      if(!frame.typed_fields||frame.typed_fields.document!==frame.document)throw Error('refused: typed-field provenance is unavailable');
+      return {frame:frame.frame,document:frame.document,browser_document:frame.browser_document,url:frame.url,effective_url:frame.effective_url||frame.url,fields:frame.typed_fields.fields};
+    })};
+}
 function binding(facts, reference, kind, adapter) {
   const frame = facts.frames.find(frame=>frame.frame === reference.frame);
   if (!frame?.target) throw Error('stale_reference: target not found');
@@ -842,6 +851,21 @@ async function dispatch(command) {
     return {checked:true,dispatched:true,page:await observation(tab),steps,dialog:await readyDialog(tab),uncertain_finish};
   }
   if(command.name==='tab_context'){const current=await chrome.tabs.get(tab);safeURL(current.url);return {session,tab,url:current.url,title:current.title,control:controlled.get(tab)?.epoch||null,frames:(await chrome.webNavigation.getAllFrames({tabId:tab})||[]).map(frame=>({frame:frame.frameId,url:frame.url,document:frame.documentId}))};}
+  if(command.name==='typed_fields')return typedFacts(tab);
+  if(command.name==='read_typed_fields'){
+    if(command.approved!==true||!command.operation||used.has(command.operation))throw Error('refused: typed fields require a fresh one-call approval');
+    used.add(command.operation);
+    let current=await typedFacts(tab);
+    const same=()=>{if(stable(current)!==stable(command.binding))throw Error('stale_approval: typed-field list or document changed; ask again');};
+    same();const values=[];
+    for(const frame of current.frames){
+      if(!frame.fields.length)continue;
+      current=await typedFacts(tab);same();
+      const result=await content(tab,frame.frame,'read_typed_fields',{approved:true,operation:command.operation,expected:{document:frame.document,fields:frame.fields},expected_document:frame.document},frame.browser_document);
+      assertControl(tab,current.control);values.push({frame:frame.frame,...result});
+    }
+    current=await typedFacts(tab);same();return {frames:values};
+  }
   if (command.name === 'validity') {
     await requireTab(tab);const frame={...await chrome.webNavigation.getFrame({tabId:tab,frameId:reference.frame}),frameId:reference.frame};
     const inherited=inlineFrame(frame.url)&&frame.parentFrameId>=0;

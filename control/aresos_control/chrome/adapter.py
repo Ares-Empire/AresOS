@@ -146,10 +146,14 @@ class Chrome:
                 self.read_owner_hosts()
                 mode=switches(self.committed.get('chrome:qualification',self.qualification.shipped),self.qualification.build,self.bridge.version)
                 if not all(mode['core'].values()):raise Refused('qualification_failed','Chrome core qualification currently refuses this operation.')
-                self.check_readonly(payload,self.committed.get)
+                if not payload.get('typed_read'):self.check_readonly(payload,self.committed.get)
             else:
                 mode=self.mode(acting=True)
-                self.check_readonly(payload)
+                if not payload.get('typed_read'):self.check_readonly(payload)
+            if payload.get('typed_read'):
+                current=self.typed_binding(payload['binding']['tab'])
+                if current!=payload['binding']:raise Refused('stale_approval','The typed-field list changed; prepare a fresh question.')
+                return {'validity':'current'}
             site_adapter=payload.get('adapter')
             if site_adapter and not mode['adapters'].get(site_adapter['site']):
                 raise Refused('stale_approval','The site adapter is no longer qualified; prepare again under the generic rules.')
@@ -273,6 +277,12 @@ class Chrome:
                 'view':token,'characters':len(tree),'offset':offset,'cursor':cursor,'version_notice':mode['notice'],**({'condition_met':condition_met} if verb=='wait' else {})}
 
     def prepare(self, verb, payload):
+        if verb=='read_typed_fields':
+            state=self.typed_binding(payload['tab'])
+            labels=[f"frame {frame['frame']}: {field['label']}" for frame in state['frames'] for field in frame['fields']]
+            if not labels:raise Refused('refused','No single-line text fields in unwatched documents need approval; use the normal read.')
+            question=f"On {state['url']}, tab '{state['title']}', read the typed text once from these fields, as the page shows them: "+'; '.join(labels)+'?'
+            return question,{'action':'chrome_read_typed_fields','untrusted_content':{'fields':state}},{'typed_read':True,'process_session':self.process_session,'binding':state}
         state = payload['binding']
         if payload.get('adapter', {}).get('confirmation') if payload.get('adapter') else False:
             payload = copy.deepcopy(payload)
@@ -291,6 +301,19 @@ class Chrome:
         }.get(semantic.get('kind'))
         question = self.question(verb, description)
         return question, description, copy.deepcopy(payload)
+
+    def typed_binding(self,tab):
+        self.mode()
+        state=self.bridge.call('typed_fields',tab=tab)
+        if state.get('session')!=self.bridge.session:raise Refused('stale_reference','The browser session changed; prepare again.')
+        self.allowed_url(state['url'])
+        for frame in state['frames']:self.allowed_url(frame.get('effective_url',frame['url']))
+        return state
+
+    def changed_typed_fields(self,operation):
+        operation.update(state='failed',reason='The typed-field list changed; the previous approval was stopped before reading.',notice=True)
+        self.store.write({'op:'+operation['id']:operation},'chrome_typed_fields_changed',operation['reason'],operation['id'])
+        return {'operation':self.engine.public_operation(operation)}|self.engine.reserve('chrome','read_typed_fields',{'tab':operation['payload']['binding']['tab']})
 
     def question(self, verb, description):
         data = description['untrusted_content']
@@ -376,6 +399,10 @@ class Chrome:
         mode = self.mode(acting=True)
         if operation['payload'].get('process_session') != self.process_session:
             raise Refused('stale_approval', 'Chrome service restarted; drop this preparation, read and prepare again.')
+        if operation['payload'].get('typed_read'):
+            if self.typed_binding(operation['payload']['binding']['tab'])!=operation['payload']['binding']:
+                return self.changed_typed_fields(operation)
+            return
         site_adapter = operation['payload'].get('adapter')
         if site_adapter and not mode['adapters'].get(site_adapter['site']):
             raise Refused('stale_approval', 'The site adapter is no longer qualified; prepare again under the generic rules.')
@@ -456,6 +483,18 @@ class Chrome:
     def execute(self, operation, stage):
         payload = operation['payload']
         self.mode(acting=True)
+        if payload.get('typed_read'):
+            try:
+                values=self.bridge.call('read_typed_fields',tab=payload['binding']['tab'],binding=payload['binding'],approved=True,operation=operation['id'])
+            except Refused as exc:
+                if exc.code=='stale_approval':
+                    stopped=NothingLeft('The typed-field list changed before reading; ask again.')
+                    stopped.replacement=self.changed_typed_fields(operation)
+                    raise stopped from exc
+                raise NothingLeft(str(exc)) from exc
+            stage('checked','The approved field list matched immediately before the one-call read.')
+            self.typed_result=values
+            return 'done','Approved fields read once; ordinary reads remain filled/empty.'
         self.check_readonly(payload)
         command = self.command(payload, operation['id'], approved=True)
         path = None
@@ -732,6 +771,16 @@ class Chrome:
         return {'id':key}
 
     def call(self, verb, args):
+        if verb=='read_typed_fields':
+            require_question(args)
+            # Values belong only to this response, never the replayable operation.
+            self.typed_result=None
+            try:
+                result=self.engine.submit(BY_NAME['chrome_read_typed_fields'],args)
+                if self.typed_result is not None and result.get('operation',{}).get('state')=='done':
+                    result['untrusted_content']={'typed_fields':visible(self.typed_result)}
+                return result
+            finally:self.typed_result=None
         if verb == 'sites': return self.sites(args)
         if verb == 'submit_trusted':
             require_question(args)

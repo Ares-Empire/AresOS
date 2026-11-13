@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {webcrypto,createHash} from 'node:crypto';
 
-function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false}={}) {
+function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false,watched=true}={}) {
   let calls=0,fileSequence=0,clipboardInfo=null;const timers=[];
   let base='https://fixture.test/';
   class NativeNode {get baseURI(){return base;}}
@@ -13,6 +13,7 @@ function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false}={}
   class Element extends NativeNode {
     isConnected=true;nodeType=1;tagName='INPUT';textContent='';childNodes=[];hidden=false;type='text';isContentEditable=false;labels=[];files=[];name='';
     constructor(config={}){super();Object.assign(this,config);}
+    get textLength(){return this.empty?0:17;}
     get value(){calls++;if(this.forbidden)throw Error('PASSWORD VALUE WAS READ');return 'safe visible text';}
     getAttribute(name){if(name==='value' && this.forbidden)throw Error('PASSWORD SOURCE ATTRIBUTE WAS READ');return this.attrs?.[name] ?? null;}
     hasAttribute(name){return this.getAttribute(name)!==null;}
@@ -40,6 +41,7 @@ function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false}={}
     Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,HTMLAnchorElement:Element,HTMLAreaElement:Element,Node:NativeNode,CustomEvent:class{},
     atob:value=>Buffer.from(value,'base64').toString('binary'),setTimeout:fn=>timers.push(fn),
     URL,getComputedStyle:element=>({display:['DIV','P','PRE'].includes(element.tagName)?'block':'inline',visibility:element.visibility||'visible',webkitTextSecurity:element.mask || 'none',whiteSpace:element.whiteSpace||(element.tagName==='PRE'?'pre':undefined)}),
+    [Symbol.for('aresos.chrome.document-start.v1')]:watched,
     [Symbol.for('aresos.chrome.guard.v2')]:{protectedPeer,clipboard(take){const value=clipboardInfo;if(take)clipboardInfo=null;return value;},watch(){},reader(value){readerAPI=value;},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];}},
     origin:'https://fixture.test',location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
@@ -386,4 +388,61 @@ for(const source of ['form-action','button-formaction','input-formaction'])test(
   const path=source==='form-action'?'delete':'override';assert.equal(f.form(form,submitter).action,'https://fixture.test/first/'+path);
   base='https://fixture.test/second/';assert.equal(f.form(form,submitter).action,'https://fixture.test/second/'+path);
   const other={...form,action:'https://fixture.test/other'};submitter.form=other;assert.notEqual(f.form(other,submitter).element,f.form(form,submitter).element);
+});
+
+for(const signal of ['name','id','autocomplete','aria-label','placeholder','label'])test('post18d credential signal '+signal+' excludes values before extraction in watched and late documents',()=>{
+  for(const watched of [false,true])for(const term of ['Password','PIN','Passcode','one-time code','security code','Passwort','Kennwort','Einmalcode','Sicherheitscode','Bestätigungscode','userPassword','oneTimeCode']){
+    const f=fixture([{type:'text',forbidden:true,attrs:signal==='label'?{}:{[signal]:term}}],{watched});
+    if(signal==='label')f.nodes[0].labels=[new f.Element({tagName:'LABEL',childNodes:[{nodeType:3,textContent:term}]})];
+    const row=f.read().data.rows[0];assert.equal(row.password,true,signal+' '+term);assert.equal(f.calls(),0);
+    f.nodes[0].attrs={};f.nodes[0].labels=[];assert.equal(f.read().data.rows[0].password,true,'credential exclusion is sticky');
+  }
+});
+
+test('post18d late single-line values show filled or empty without reading their value getter',()=>{
+  for(const type of ['text','tel','number','unknown','hidden'])for(const empty of [false,true]){
+    const f=fixture([{type,empty}],{watched:false});f.read();const row=f.command({command:'facts',element:'e1'}).data.target;
+    assert.equal(row.value_status,empty?'empty':'filled');assert.equal(row.value,undefined);assert.equal(f.calls(),0);
+    assert.doesNotMatch(JSON.stringify(f.read()),/safe visible text/);
+    f.command({command:'set_control',generation:'epoch'});f.reinject();f.read();assert.equal(f.command({command:'facts',element:'e1'}).data.target.value,undefined,'late history never upgrades on control or reinjection');
+  }
+});
+test('post18d watched input types and late choices formatted values textarea and editors stay readable',()=>{
+  for(const watched of [false,true])for(const type of ['text','tel','number','unknown','checkbox','radio','date','email','url','search']){
+    const f=fixture([{type}],{watched}),row=f.read().data.rows[0];
+    assert.equal(typeof row.value==='string',watched||!['text','tel','number','unknown'].includes(type),type+' '+watched);
+  }
+  const f=fixture([{tagName:'TEXTAREA'},{tagName:'DIV',isContentEditable:true,childNodes:[{nodeType:3,textContent:'Editable draft'}]}],{watched:false});
+  f.textarea(f.nodes[0]);f.generic(f.nodes[1]);const rows=f.read().data.rows;assert.equal(rows[0].value,'safe visible text');assert.equal(rows[1].value,'Editable draft');
+});
+test('post18d credential checks precede late filled-state and preserve ordinary shipping labels',()=>{
+  const f=fixture([{attrs:{name:'PIN'}}],{watched:false});Object.defineProperty(f.nodes[0],'textLength',{get(){assert.fail('credential filled state was read');}});
+  assert.equal(f.read().data.rows[0].password,true);assert.equal(f.calls(),0);
+  const ordinary=fixture([{attrs:{name:'shipping',placeholder:'Spin count'}}]);assert.equal(ordinary.read().data.rows[0].password,undefined);
+});
+
+test('post18d typed read approval is one call credential-free and never changes ordinary reads',()=>{
+  const f=fixture([{attrs:{'aria-label':'Draft'}},{attrs:{}},{attrs:{name:'password'},forbidden:true}],{watched:false});
+  const before=f.read();assert.doesNotMatch(JSON.stringify(before),/safe visible text/);assert.equal(f.calls(),0);
+  const expected=f.command({command:'typed_fields'}).data;assert.equal(expected.fields.length,2);assert.equal(expected.fields[1].label,'single-line field 2');
+  assert.equal(f.command({command:'read_typed_fields',operation:'first',expected}).ok,false);assert.equal(f.calls(),0);
+  const approved=f.command({command:'read_typed_fields',approved:true,operation:'first',expected});assert.equal(approved.ok,true,JSON.stringify(approved));
+  assert.equal(approved.data.fields.length,2);assert.equal(f.calls(),2);assert.equal(approved.data.fields[0].value,'safe visible text');
+  assert.equal(f.command({command:'read_typed_fields',approved:true,operation:'first',expected}).ok,false);assert.equal(f.calls(),2);
+  assert.doesNotMatch(JSON.stringify(f.read()),/safe visible text/);assert.equal(f.calls(),2);
+});
+test('post18d typed field additions relabelling credential changes and document replacement refuse before values',()=>{
+  for(const change of ['added','relabelled','credential','document']){
+    const f=fixture([{attrs:{'aria-label':'Draft'}}],{watched:false}),expected=f.command({command:'typed_fields'}).data;
+    if(change==='added')f.nodes.push(new f.Element({tagName:'INPUT',namespaceURI:'http://www.w3.org/1999/xhtml',localName:'input'}));
+    if(change==='relabelled')f.nodes[0].attrs['aria-label']='Changed draft';
+    if(change==='credential')f.nodes[0].attrs.name='Passwort';
+    if(change==='document')expected.document+='changed';
+    const result=f.command({command:'read_typed_fields',approved:true,operation:'changed',expected});assert.equal(result.ok,false,change);assert.match(result.error,/field|document/);assert.equal(f.calls(),0);
+  }
+});
+
+test('post18d late reload warning never extracts unapproved typed text to compare defaults',()=>{
+  const f=fixture([{type:'text',forbidden:true}],{watched:false});
+  const state=f.command({command:'reload_state'});assert.equal(state.ok,true,JSON.stringify(state));assert.equal(state.data.unsaved,true);assert.equal(f.calls(),0);
 });

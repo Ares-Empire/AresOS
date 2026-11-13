@@ -25,6 +25,40 @@ Python tests**, **238 removal mutations rejected with every baseline passing**.
 `python3 control/generate.py --check` prints `Generated artifacts match definitions`;
 `git diff --check` prints nothing. The expanded final full suites remain pending.
 
+**Late-reader work (local):** the production-code before probe confirms that a
+credential-labelled text field was returned without history
+([receipt](records/post18d/revealed-code-before.json)). Previously the reader
+checked native password type, password/one-time autocomplete, computed masking
+and sticky history. It now additionally excludes credential names in `name`,
+`id`, `autocomplete`, `aria-label`, associated labels and `placeholder`, in English
+and German, before value or filled-state access. Exclusion stays sticky.
+
+A private document-start marker distinguishes watched from late readers. Late
+text/tel/number/unknown inputs show filled/empty from native text length; choices,
+formatted inputs, textareas and editable areas remain readable. Normal reads
+never inherit a previous read approval. The new preparation lists only labels
+(including a stable ordinal for unlabelled fields); `chrome_read_typed_fields`
+is an explicitly asking read. Exact engine approvals and extension-local list
+checks allow one response only. Approved values are transient and never stored
+in replayable operation stages. Changed lists re-ask. The tool declarations are
+ready for the slim-generator merge; app-wide instructions move in that step.
+
+**JUDGMENT-CALL:** checking a late single-line field against its default would
+extract unapproved text. The first-input reload check conservatively reports
+possible unsaved typing for those fields, without reading values. This preserves
+the page until the existing explicit reload acknowledgement. Replacing that
+warning with an equality check would violate the owner's ask-first decision;
+a future browser-native dirty-state signal could avoid the warning. Tab-group
+handling is unchanged.
+
+**Local verification:** **340 Node tests pass**, **77 focused Python tests pass**,
+and **268 removal mutations are rejected with every baseline passing**. Tests
+cover every credential signal and mask, watched/late input types, preserved
+choices/textareas/editors, approval, denial, replay, unlabelled descriptions and
+field-list changes. Linux late-reader and one-call-read cases are added to the
+required inventory; their browser evidence and the slim-generator artifacts
+are still pending. `KNOWN-LIMITS.md` remains current.
+
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
 blank-frame base case. The new fixture had duplicate blank-frame addresses, so

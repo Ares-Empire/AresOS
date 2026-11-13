@@ -217,7 +217,7 @@ test('startup evaluates only fixed bundles in authenticated private contexts bef
   assert.ok(commands.some(value=>value.method==='Runtime.callFunctionOn'&&value.parameters.functionDeclaration.includes('wrapper fixture')));
   assert.ok(commands.some(value=>value.method==='DOM.resolveNode'&&!('executionContextId' in value.parameters)));
   assert.ok(evaluated.every(value=>value.parameters.disableBreaks===true));
-  assert.match(evaluated[0].parameters.expression,/guard fixture/);assert.match(evaluated[0].parameters.expression,/reader fixture/);
+  assert.match(evaluated[0].parameters.expression,/globalThis\[Symbol.for\("aresos.chrome.document-start.v1"\)\]=true/);assert.match(evaluated[0].parameters.expression,/guard fixture/);assert.match(evaluated[0].parameters.expression,/reader fixture/);
   assert.equal(commands.at(-1).method,'Debugger.resume');assert.equal(f.run("isPreloaded(7,'private-document')"),true);
   await f.run("preloadEvent({tabId:7},'Runtime.executionContextsCleared',{})");assert.equal(f.run("isPreloaded(7,'private-document')"),false);
 });
@@ -1111,4 +1111,13 @@ test('post18d final destination binding refuses href targets actions and form ow
     f.run(`snapshot.frames[0][${JSON.stringify(object)}][${JSON.stringify(key)}]=${JSON.stringify(value)}`);
     await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'delete',binding:approved})"),/page changed/);assert.equal(f.run('effects.length'),0);
   }
+});
+
+test('post18d typed reads require approval consume once and check the complete list before extracting',async()=>{
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});globalThis.list={session,tab:7,control:'epoch',url:'http://fixture.test/',title:'Fixture',frames:[{frame:0,document:'doc',browser_document:'native-doc',fields:[{element:'e1',label:'Draft',type:'text'}]}]};typedFacts=async()=>JSON.parse(JSON.stringify(list));globalThis.reads=0;content=async()=>{reads++;return {document:'doc',fields:[{element:'e1',value:'Public typed text'}]}};globalThis.command={name:'read_typed_fields',tab:7,operation:'first',binding:JSON.parse(JSON.stringify(list))};");
+  await assert.rejects(f.run('dispatch(command)'),/fresh one-call approval/);assert.equal(f.run('reads'),0);
+  const value=await f.run('dispatch({...command,approved:true})');assert.equal(value.frames[0].fields[0].value,'Public typed text');assert.equal(f.run('reads'),1);
+  await assert.rejects(f.run('dispatch({...command,approved:true})'),/fresh one-call approval/);assert.equal(f.run('reads'),1);
+  f.run("list.frames[0].fields[0].label='Changed';command.operation='second';");
+  await assert.rejects(f.run('dispatch({...command,approved:true})'),/list or document changed/);assert.equal(f.run('reads'),1);
 });

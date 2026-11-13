@@ -28,6 +28,10 @@ CLIPBOARD_NOTICE = ('If a click result says the page wrote to the clipboard, tel
 
 def actions(Action):
     result = []
+    result.append(Action('chrome','prepare_read_typed_fields','change',obj({'tab':TAB}),
+        'Prepare a one-call read of single-line text fields in unwatched documents. Returns the exact field-label question without values; pass its approval to read_typed_fields. '+SHARED,result=PREPARED_RESULT))
+    result.append(Action('chrome','read_typed_fields','read',APPROVAL,
+        'Read the listed single-line text fields once after the exact prepared question is approved. Credentials always remain unreadable. A changed field list refuses and re-asks; ordinary reads retain filled/empty. '+SHARED,result={'type':'object'},asking_read=True))
     def add(verb, effect, schema, purpose, owner=False, output=None):
         if verb in {'click','fill','select','check','press','upload','fill_form','dialog','submit','submit_trusted'}:
             purpose += ' ' + CLIPBOARD_NOTICE

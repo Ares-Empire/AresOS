@@ -354,3 +354,53 @@ class Questions(unittest.TestCase):
                     self.call('submit',approval);self.assertEqual(self.browser.dispatched,[])
                     self.assertEqual(self.call('submit',replacement)['data']['operation']['state'],'done')
                     self.call('submit',replacement);self.assertEqual(len(self.browser.dispatched),1)
+
+    def typed_browser(self):
+        original=self.browser.call
+        state={'session':self.browser.session,'tab':1,'control':'control-1','url':'https://fixture.test/','title':'Fixture',
+            'frames':[{'frame':0,'document':'document-1','url':'https://fixture.test/','fields':[{'element':'typed1','label':'Draft','type':'text'},{'element':'typed2','label':'single-line field 2','type':'tel'}]}]}
+        reads=[]
+        def request(name,**args):
+            if name=='typed_fields':return copy.deepcopy(state)
+            if name=='read_typed_fields':
+                self.assertTrue(args['approved']);self.assertEqual(args['binding'],state);reads.append(args['operation'])
+                return {'frames':[{'frame':0,'fields':[{'element':'typed1','value':'APPROVED_PRIVATE_TYPED_20'}]}]}
+            return original(name,**args)
+        self.browser.call=request
+        return state,reads
+
+    def test_post18d_typed_read_exact_question_one_call_no_values_in_storage_or_denial(self):
+        state,reads=self.typed_browser()
+        prepared=self.call('prepare_read_typed_fields',{'tab':1});self.assertTrue(prepared['ok'],prepared)
+        approval=prepared['data']['approval']
+        for term in ['https://fixture.test/','Fixture','Draft','single-line field 2']:self.assertIn(term,approval['question'])
+        self.assertNotIn('APPROVED_PRIVATE_TYPED_20',str(approval))
+        self.assertFalse(self.call('read_typed_fields',{**approval,'question':'Changed'})['ok']);self.assertEqual(reads,[])
+        result=self.call('read_typed_fields',approval);self.assertTrue(result['ok'],result)
+        self.assertIn('APPROVED_PRIVATE_TYPED_20',str(result['data']['untrusted_content']))
+        self.assertNotIn('APPROVED_PRIVATE_TYPED_20',str(self.engine.store.get('op:'+approval['operation_id'])))
+        self.assertNotIn('untrusted_content',self.call('read_typed_fields',approval)['data']);self.assertEqual(len(reads),1)
+        denied=self.call('prepare_read_typed_fields',{'tab':1})['data']['approval']
+        self.assertTrue(self.call('drop',{'operation_id':denied['operation_id']})['ok'])
+        self.call('read_typed_fields',denied);self.assertEqual(len(reads),1)
+
+    def test_post18d_typed_field_list_change_reasks_at_service_and_final_extension(self):
+        from aresos_control.common import Refused
+        for boundary in [False,True]:
+            state,reads=self.typed_browser();approval=self.call('prepare_read_typed_fields',{'tab':1})['data']['approval']
+            original=self.browser.call
+            def change():state['frames'][0]['fields'][0]['label']='Relabelled draft'
+            if boundary:
+                def late(name,**args):
+                    if name=='read_typed_fields':
+                        change();raise Refused('stale_approval','typed-field list changed')
+                    return original(name,**args)
+                self.browser.call=late
+            else:change()
+            try:result=self.call('read_typed_fields',approval)
+            finally:self.browser.call=original
+            self.assertTrue(result['ok'],result);self.assertIn('approval',result['data'],result)
+            replacement=result['data']['approval'];self.assertIn('Relabelled draft',replacement['question'])
+            self.assertNotEqual(approval['operation_id'],replacement['operation_id']);self.assertEqual(reads,[])
+            self.call('read_typed_fields',approval);self.assertEqual(reads,[])
+            self.assertTrue(self.call('read_typed_fields',replacement)['ok']);self.assertEqual(len(reads),1)

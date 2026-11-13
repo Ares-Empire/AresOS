@@ -54,6 +54,8 @@ Actions (input is the definition's JSON object; --help on any action shows its s
   aresos admin mail account_settings [change]
   aresos admin mail onboarding_folder_probe [delete]
   aresos admin mail account_add [change]
+  aresos chrome prepare_read_typed_fields [change]
+  aresos chrome read_typed_fields [read]
   aresos chrome tabs [read]
   aresos chrome downloads [read]
   aresos chrome bookmarks [read]
