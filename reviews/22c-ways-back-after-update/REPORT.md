@@ -839,3 +839,65 @@ above. Temporary logs, the comparison script and interrupted-run files under `.w
 removed. No temporary directory outside this worktree was created; all test-store contexts are closed.
 The final `.work/` size check found **no file over 500 MB**; no large download was made. No builder-started
 test or watch process remains. PR #46 stays open and draft; no merge or push to main occurred.
+
+## Stage 1a, step 3: the old expectations and the compatibility tests
+
+Work in progress, part (a). Builder model: GPT-6 (Codex). No VM dispatched and no owner entry executed on
+this laptop. `test_owner_update` remains import-only here; its complete results come from hosted checks.
+
+### B9: changed expectations
+
+No test is deleted or skipped. Renamed methods below keep the old scenarios and assert their replacement
+rule; the unchanged invalid-shape, identity, signature, interruption and no-write checks remain. The earlier
+handoff's “51” means 50 failure/error headers (including subtests), not 51 separate methods.
+
+| Test (in `test_owner_update` unless qualified) | Old expectation | New expectation | Rule |
+|---|---|---|---|
+| `ShapeTest.test_wrong_shapes_are_refused`, stock-not-last / stock-running subcases | Refuse these orders | Accept both; retain every invalid flag/slot/set refusal | A1–A2, B9 |
+| `ShapeTest.test_recovery_and_layout_pair_accepts_any_known_release_but_only_the_pair` → `test_recovery_and_layout_accept_known_pairs_and_triples_but_refuse_staging` | Pair-only helper decides recovery | Handler reorders pair/triple to stock, preserves all rows; staged/unknown refuse; obsolete helper is never called | A3, A7 |
+| `HistoryTest.test_reviewed_history_ends_with_the_pinned_release_and_r13_is_not_wheel` | Tools 2 | Tools 3, same release history and account rules | A9 |
+| `UpdateCommandTest.test_update_verifies_then_stages_keeping_running_release_and_pinned_stock` | `kind`, `booted`, `pending`, `expected` journal fields | `schema=change1`, `mode=staging`, `word`, explicit `running`, `target`, `staged`, `intended` | A5.1 |
+| `UpdateCommandTest.test_refusals_before_any_change`, queued stock rollback | Refuse queued rollback | Select installed R13 without network, name newer absent bundle | A2, A4(c) |
+| same, queued previous | Refuse queued rollback | Select installed R21 without network, name newer absent bundle | A2, A4(c) |
+| same, nothing newer | Refuse already running | No-op, no journal, say it runs | A4 |
+| same, booted stock | Refuse staging from stock | Reorder to installed R13, no staging, name restart/update next step | A4(c) |
+| same, target already deployed | Refuse installed target | Reorder to installed R21, no login/signature check | A4(a) |
+| same, bundle older than running release | Old final-pair diagnostic | Unknown-deployment refusal, state and records unchanged | A1 |
+| `UpdateCommandTest.test_old_direction_refusals_now_select_the_destination_without_network` | Five subcases above refused | Separate positive test retains all five, checks exact destination, row conservation and absent network/journal on no-op | A2, A4 |
+| `PreviousTest.test_previous_queues_the_older_release_and_keeps_every_deployment` | `bootc rollback` | One `ostree admin set-default 1`, then `sync`, same rows | A3 |
+| `PreviousTest.test_previous_refuses_without_an_older_release_or_with_pending_work`, pair/staged | Pair/pending wording | Only-one-release/staged wording; unchanged state and records | A3–A4 |
+| same, other-is-newer / already-queued | Direction/pending refusal | Older release already first: no-op, distinguish running from waiting, no journal | A4 |
+| `LoginTest.test_login_on_aresos_needs_a_newer_target_and_otherwise_keeps_the_stock_rules` | Already-running diagnostic | Installed target needs no login; staged and real-prompt checks retained | A4 |
+| `OutcomeTest.test_failed_finalization_stops_every_confirmation_until_help_retries_the_update` → `test_lost_finalization_is_archived_and_commands_continue_without_help` | Every command refuses lost stage | Each read/reboot/change resolves and archives not-applied before own checks; previous/keep-stock refuse only their own preconditions; update retries | A5.2 |
+| `OutcomeTest.test_an_unsuccessful_previous_stops_and_a_successful_one_is_confirmed` → `test_previous_elsewhere_stays_open_and_lost_selection_can_be_repeated` | Another running row blocks; before-list requires Help | Same boot waits; later boot elsewhere passes with open record and no confirmation; before-list archives not-applied; later target boot confirms | A5.2–A5.4 |
+| `IntentTest.interrupted` / `test_the_intent_is_written_before_the_change` | Interrupt script `previous`; read `kind` | Interrupt shared `start-next`; inspect `word`; intent still precedes the primitive at all four cuts | A3, A5.1 |
+| `IntentTest.test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse` → `test_every_interruption_resolves_by_list_except_same_boot_staging` | Every cut blocks every read forever | Same-boot staging names update; reorder before-list archives, intended-list records without another primitive; after restart lost change archives | A5.2, staging exception |
+| `IntentTest.test_the_same_command_redoes_an_unmade_change_or_records_a_made_one` | Old retry text and one mutation for previous | Exact primitive counts (separate sync); retries only unmade/undone changes, applied reorder no-ops, later target boot confirms | A3, A5 |
+| `IntentTest.test_after_a_restart_the_same_command_records_a_finished_change_or_redoes_a_lost_one` → `test_after_a_restart_reads_resolve_finished_or_lost_intents_before_the_command` | Reads refuse until same command continues | Reads resolve and confirm/archive first; applied target needs no second primitive; lost change can be repeated | A5.2–A5.4 |
+| `IntentTest.test_other_commands_never_continue_an_intent_and_a_wrong_change_is_not_recorded` | Same-boot staging intent refuses | Retained unchanged: names update and refuses different running identity | A5.2 exception |
+| `LockTest.test_changes_during_verification_are_caught_immediately_before_staging`, queued rollback | Queue flag diagnostic | Running system must start next; no stage, mutation or intent | A6 |
+| `ToolsUpdateTest.test_older_installed_tools_are_replaced_and_kept_and_records_survive` | Version 1→2 | Version 1→3; same retirement, receipt and surviving records | A9 |
+| `ToolsUpdateTest.test_downgrade_same_version_foreign_history_and_unknown_legacy_refuse_without_writes` | Installed 3→bundle 2 downgrade; installed 2 same-version | Installed 4→bundle 3 downgrade; installed 3 same-version; retain no-write/history/unknown-legacy checks | A9 |
+| `test_owner_commands.CommandTest.pair` (eight inherited errors, also used by six abandon tests and owner-path) | Pair helper loses `kargs` and updater state | Explicit AresOS boot arguments, finished keyboard and paused updater fixture observations | A3 read-only BLS preflight, A10 |
+| `test_owner_retained.RetainedTest.test_title_switch_and_recovery_real_pairs_and_bls` | No updater read modeled | Explicit paused-system/global-user unit listings and inactive units; retained captures remain unchanged | A10 |
+
+### Verified / not verified so far
+
+- AST parsing of the three edited Python modules: OK.
+- Baseline hosted [43513299977](https://github.com/Ares-Empire/AresOS/actions/runs/43513299977): 1037 tests,
+  40 failures, 23 errors, 0 skipped; downloaded its failure log for the individual rewrites.
+- Memory gate during editing: 4379 MB available, below 4500; no local test run yet.
+- Correction to the earlier handoff: eight “older updater fake” errors are actually missing `kargs` in the
+  pair fixture, newly read by A3's BLS preflight. The ninth is the retained stock host's missing updater reads.
+- Part (b), its B11 proofs and final hosted totals remain pending. No production defect found in part (a) yet.
+
+- Local `cd os/tests && nice -n 10 python3 -m unittest test_ways_back`: **34 tests in 14.047s, OK**, after 5087 MB available. This imports the edited older module without running it.
+
+### For stage 1b (provisional)
+
+Keep the four fingerprint/guide pins for your stage. No bundle refresh or contents change in part (a).
+Preserve A5's three outcomes, the absent-bundle exception, and `finish_proof` beside `proof: null`.
+
+- Local `cd os/tests && nice -n 10 python3 -B -m unittest test_ways_back`: **34 tests in 11.876s, OK**,
+  after 5013 MB available. An initial invocation from the repo root failed import (`ModuleNotFoundError`,
+  one loader error); corrected the working directory and ran the command above.

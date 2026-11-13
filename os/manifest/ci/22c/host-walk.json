@@ -887,7 +887,7 @@
       "path": "os/tests/test_owner_capabilities.py"
     },
     {
-      "sha256": "0a08886200065318894415207575d8cf2b3ff7e9cf9aa858b69e1a3f117d18ef",
+      "sha256": "81cd461a923a591870c40862aeac5438b78055373b70823bc614c7a7fe6bfd37",
       "path": "os/tests/test_owner_commands.py"
     },
     {
@@ -991,7 +991,7 @@
       "path": "os/tests/test_owner_reset.py"
     },
     {
-      "sha256": "9117293c2a4db4d92326c9660cf5cf9455a71b83ea20f5e3f2669387c7cd77ba",
+      "sha256": "7a9629335508f0bbec000da3f1a26f61c75fd87342664d61565bc4c66f986401",
       "path": "os/tests/test_owner_retained.py"
     },
     {

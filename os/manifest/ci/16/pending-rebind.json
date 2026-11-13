@@ -14,7 +14,8 @@
     "22c step 2b part a: narrowed destination invariant and confirmed boot-menu path",
     "22c step 2b part b: close 486627 model states and 12176910 steps; preserve all live layouts and journal outcomes",
     "22c step 2b part c: executable per-rule revert proofs; finalize mutant fails model retention",
-    "22c step 2b audit: assert complete layout records and preserved finish authority before reconstructing each model state"
+    "22c step 2b audit: assert complete layout records and preserved finish authority before reconstructing each model state",
+    "22c stage 1a step 3(a): replace v2 expectations by A2-A5/A9 and repair older BLS/updater fakes"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -95,6 +96,10 @@
       "path": "os/tests/test_owner_capabilities.py"
     },
     {
+      "sha256": "81cd461a923a591870c40862aeac5438b78055373b70823bc614c7a7fe6bfd37",
+      "path": "os/tests/test_owner_commands.py"
+    },
+    {
       "sha256": "1878da535d481636f91306dd492fdb0c34a6fc3e957cea509fa263f205a50357",
       "path": "os/tests/test_owner_devices_native.py"
     },
@@ -105,6 +110,10 @@
     {
       "sha256": "f7d82304d3c1df773d68510e0bd8d05079590eef516881992ce7aab964dfb646",
       "path": "os/tests/test_owner_path.py"
+    },
+    {
+      "sha256": "7a9629335508f0bbec000da3f1a26f61c75fd87342664d61565bc4c66f986401",
+      "path": "os/tests/test_owner_retained.py"
     },
     {
       "sha256": "21d51d8d7aea49af0ecd0c83891a2faff4f97b78263b3077d94014422c2c070d",

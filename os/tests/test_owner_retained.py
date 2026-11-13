@@ -33,7 +33,15 @@ class ReadHost:
         if args[0]=='bootc':return VALUES[self.stage+' bootc-status']
         if args[0]=='busctl':return VALUES[self.stage+' keyboard']['localed']
         raise AssertionError(args)
-    def read(self,*args,**kw):raise AssertionError(args)
+    def read(self,*args,**kw):
+        self.trace.append(dict(command=args,mutation=False))
+        if args == ('systemctl','--no-pager','--no-legend','list-unit-files'):
+            return 'uupd.service masked -\nuupd.timer disabled enabled\n'
+        if args == ('systemctl','--global','--no-pager','--no-legend','list-unit-files'):
+            return ''
+        if args[:3] == ('systemctl','--no-pager','show') and args[3] in ('uupd.service','uupd.timer'):
+            return 'LoadState=loaded\nActiveState=inactive\nSubState=dead\n'
+        raise AssertionError(args)
     def mutate(self,*args):raise AssertionError('Forbidden mutation: '+repr(args))
 
 

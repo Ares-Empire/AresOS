@@ -381,6 +381,11 @@ class ShapeTest(unittest.TestCase):
                 self.accept(state, known)
 
     def test_wrong_shapes_are_refused(self):
+        # A2 replaces these former refusals; invalid flags/slots below still refuse.
+        for state in (machine([release_row(R21, booted=True), stock_row(), release_row(R13)]),
+                      machine([release_row(R21), release_row(R13), stock_row(True)])):
+            with self.subTest(accepted_order=state['rpm']['deployments']):
+                self.accept(state, H21)
         def rows(state):
             return copy.deepcopy(state['rpm']['deployments'])
         cases = {
@@ -388,8 +393,6 @@ class ShapeTest(unittest.TestCase):
             'staged not the target': (staged_update(), H30),
             'unknown running release': (machine([release_row(R99, booted=True), release_row(R13), stock_row()]), H21),
             'unknown pair release': (pair(R99), H21),
-            'stock not last': (machine([release_row(R21, booted=True), stock_row(), release_row(R13)]), H21),
-            'stock booted beside two releases': (machine([release_row(R21), release_row(R13), stock_row(True)]), H21),
             'four deployments': (machine([release_row(R30, booted=True), release_row(R21), release_row(R13), stock_row()]), H30),
             'two staged rows': (machine([release_row(R30, staged=True), release_row(R21, staged=True), release_row(R13, booted=True), stock_row()]), H30),
             'same release twice': (machine([release_row(R21, booted=True), release_row(R21, checksum='d2' * 32), stock_row()]), H21),
@@ -418,22 +421,26 @@ class ShapeTest(unittest.TestCase):
             with self.subTest(name=name):
                 self.refuse(state, known)
 
-    def test_recovery_and_layout_pair_accepts_any_known_release_but_only_the_pair(self):
-        saved = prepared()
-        refs = [row['reference'] for row in H21]
-        self.assertEqual(owner.key(owner.preflight_recovery(pair(), [], saved, R21, history=refs)), tuple(saved['stock_identity']))
-        for state in (updated(), staged_update(), pair(R99)):
-            with self.subTest(state=state['bootc']['status']['booted']['image']['imageDigest'][:16]):
-                with self.assertRaises(owner.Stop):
-                    owner.preflight_recovery(state, [], saved, R21, history=refs)
-        with self.assertRaisesRegex(owner.Stop, 'Wrong AresOS target'):
-            owner.preflight_recovery(pair(), [], saved, R21)
+    def test_recovery_and_layout_accept_known_pairs_and_triples_but_refuse_staging(self):
+        for state in (pair(), updated(), returned()):
+            with self.subTest(state=state), route(state) as (tools, host, store):
+                tools.recover()
+                self.assertEqual(host.state['rpm']['deployments'][0], stock_row())
+                self.assertEqual(len(host.state['rpm']['deployments']), len(state['rpm']['deployments']))
+        for state in (staged_update(), pair(R99)):
+            with self.subTest(refused=state), route(state) as (tools, host, store):
+                UpdateCommandTest.unchanged(self, tools, host, store, tools.recover,
+                    'staged deployment' if state == staged_update() else 'Unknown deployment')
+        # The old pair helper is no longer a command's acceptance rule (A3/A7).
+        for state in (pair(), updated()):
+            with route(state) as (tools, host, store), patch.object(owner, 'preflight_recovery', side_effect=AssertionError('obsolete pair gate')):
+                tools.recover()
 
 
 class HistoryTest(unittest.TestCase):
     def test_reviewed_history_ends_with_the_pinned_release_and_r13_is_not_wheel(self):
         value = owner.lineage(PAYLOAD)
-        self.assertEqual(value['tools_version'], 2)
+        self.assertEqual(value['tools_version'], 3)
         # Package 27 appended release 27, whose daily account is an administrator.
         self.assertEqual(value['releases'][:1], H13)
         self.assertEqual(value['releases'][-1], dict(reference=PINNED['reference'], identity=PINNED['signature']['identity'],
@@ -519,10 +526,12 @@ class UpdateCommandTest(unittest.TestCase):
             self.assertFalse(any('older AresOS' in line.lower() for line in lines))
             outcome = tools.load(owner.OUTCOME)
             staged = [list(owner.key(d)) for d in host.state['rpm']['deployments']]
-            self.assertEqual((outcome['kind'], outcome['boot'], outcome['reference'], outcome['booted']),
+            self.assertEqual((outcome['word'], outcome['boot'], outcome['reference'], outcome['target']),
                              ('update', 'boot-1', R21, staged[0]))
-            self.assertEqual(outcome['pending'], staged)
-            self.assertEqual(outcome['expected'], [list(owner.key(d)) for d in updated()['rpm']['deployments']])
+            self.assertEqual((outcome['schema'], outcome['mode'], outcome['running']),
+                             ('change1', 'staging', list(owner.key(release_row(R13)))))
+            self.assertEqual(outcome['staged'], staged)
+            self.assertEqual(outcome['intended'], [list(owner.key(d)) for d in updated()['rpm']['deployments']])
             self.assertEqual(outcome['before'], [list(owner.key(d)) for d in pair()['rpm']['deployments']])
 
     def test_later_update_names_the_older_release_ostree_removes_at_shutdown(self):
@@ -534,12 +543,7 @@ class UpdateCommandTest(unittest.TestCase):
     def test_refusals_before_any_change(self):
         cases = [
             ('staged deployment', staged_update(), H21, {}, 'staged deployment already exists'),
-            ('queued stock rollback', machine([stock_row(), release_row(R13, booted=True)]), H21, {}, 'rollback is queued'),
-            ('queued previous', queued_previous(), H30, {}, 'rollback is queued'),
-            ('nothing newer', pair(), H13, {}, 'already running; nothing to update'),
-            ('booted stock', machine([stock_row(True), release_row(R13)]), H21, {}, 'running AresOS release'),
-            ('target already deployed', returned(), H21, {}, 'already deployed'),
-            ('running release unknown (bundle older)', updated(), H13, {}, 'Final pair has extra/missing deployments'),
+            ('running release unknown (bundle older)', updated(), H13, {}, 'Unknown deployment beside AresOS'),
             ('layered packages', machine([dict(release_row(R13, booted=True), **{'requested-packages': ['x']}), stock_row()]), H21, {}, 'Modified AresOS'),
             ('unlocked', machine([dict(release_row(R13, booted=True), unlocked='development'), stock_row()]), H21, {}, 'Modified AresOS'),
             ('missing login', pair(), H21, dict(login=False), owner.LOGIN_REFUSAL),
@@ -549,6 +553,28 @@ class UpdateCommandTest(unittest.TestCase):
         for name, state, known, options, message in cases:
             with self.subTest(name=name), route(state, known, **options) as (tools, host, store):
                 self.unchanged(tools, host, store, tools.update, message)
+
+    def test_old_direction_refusals_now_select_the_destination_without_network(self):
+        cases = (
+            ('queued stock rollback', machine([stock_row(), release_row(R13, booted=True)]), H21, R13),
+            ('queued previous', queued_previous(), H30, R21),
+            ('nothing newer', pair(), H13, R13),
+            ('booted stock', machine([stock_row(True), release_row(R13)]), H21, R13),
+            ('target already deployed', returned(), H21, R21),
+        )
+        for name, state, known, target in cases:
+            with self.subTest(name=name), route(state, known, login=False, signed={}) as (tools, host, store):
+                before = copy.deepcopy(host.state)
+                lines = tools.update()
+                self.assertEqual(owner.image_reference(host.state['rpm']['deployments'][0]), target)
+                self.assertCountEqual(host.state['rpm']['deployments'], before['rpm']['deployments'])
+                self.assertFalse(any(t.get('script') in ('verify', 'update') for t in host.trace))
+                tools.validated.assert_not_called()
+                if state['rpm']['deployments'][0] == host.state['rpm']['deployments'][0]:
+                    self.assertIn('already starts next; nothing changed', lines[0])
+                    self.assertFalse((store / (owner.OUTCOME + '.json')).exists())
+                if target != known[-1]['reference']:
+                    self.assertIn('newer still', ' '.join(lines))
 
     def test_expired_login_points_to_login_and_never_records_the_secret(self):
         with route(pair()) as (tools, host, store):
@@ -613,19 +639,26 @@ class PreviousTest(unittest.TestCase):
     def test_previous_queues_the_older_release_and_keeps_every_deployment(self):
         with route(updated()) as (tools, host, store):
             lines = tools.previous()
-            self.assertEqual(host.changes, ['bootc rollback'])
+            self.assertEqual(host.changes, ['ostree admin set-default 1', 'sync'])
             self.assertEqual(host.state['rpm']['deployments'], queued_previous()['rpm']['deployments'])
             self.assertEqual(lines[0], 'Previous AresOS queued for the next start ' + R13)
             self.assertEqual(tools.load('title')['state'], host.state)
             tools.reboot()
 
     def test_previous_refuses_without_an_older_release_or_with_pending_work(self):
-        for name, state, message in (('pair', pair(), 'nothing to return to'),
-                                     ('other is newer', returned(), 'previous only returns from an update'),
-                                     ('staged', staged_update(), 'Pending deployment'),
-                                     ('already queued', queued_previous(), 'Pending deployment')):
+        for name, state, message in (('pair', pair(), 'Only one AresOS is installed'),
+                                     ('staged', staged_update(), 'Only one AresOS is installed')):
             with self.subTest(name=name), route(state) as (tools, host, store):
                 UpdateCommandTest.unchanged(self, tools, host, store, tools.previous, message)
+        # A4: previous names the older release even if it runs or starts next already.
+        for state in (returned(), queued_previous()):
+            with self.subTest(noop=state), route(state) as (tools, host, store):
+                lines = tools.previous()
+                self.assertIn('already starts next; nothing changed', lines[0])
+                self.assertEqual(lines[1], 'It runs now' if state == returned() else
+                                 'It does not run yet: it starts at the next restart')
+                self.assertEqual(host.changes, [])
+                self.assertFalse((store / (owner.OUTCOME + '.json')).exists())
 
 
 class LoginTest(unittest.TestCase):
@@ -634,7 +667,7 @@ class LoginTest(unittest.TestCase):
             with self.assertRaisesRegex(owner.Stop, 'Login requires a real hidden terminal prompt'):
                 tools.login()
         with route(pair(), H13) as (tools, host, store):
-            with self.assertRaisesRegex(owner.Stop, 'already running; nothing to update'):
+            with self.assertRaisesRegex(owner.Stop, 'needs no login'):
                 tools.login()
         with route(staged_update()) as (tools, host, store):
             with self.assertRaisesRegex(owner.Stop, 'staged deployment already exists'):
@@ -642,7 +675,7 @@ class LoginTest(unittest.TestCase):
 
 
 class OutcomeTest(unittest.TestCase):
-    """check/title/records PASS only for the exact start that update/previous recorded."""
+    """A5 resolves from the list; only another boot running the target confirms."""
 
     def stopped(self, tools, host, store, method, message):
         return UpdateCommandTest.unchanged(self, tools, host, store, method, message)
@@ -658,26 +691,32 @@ class OutcomeTest(unittest.TestCase):
             self.assertEqual(json.loads(receipt.read_text())['confirmed_state'], host.state)
             self.assertNotIn('confirmed', ' '.join(tools.check()))
 
-    def test_failed_finalization_stops_every_confirmation_until_help_retries_the_update(self):
-        with route(pair()) as (tools, host, store):
-            tools.update()
-            # The staged update was lost at the restart: the old list is back.
-            host.state, tools.boot[0] = pair(), 'boot-2'
-            for name, method in (('check', tools.check), ('title', tools.title), ('reboot', tools.reboot),
-                                 ('rollback', tools.recover), ('layout', lambda: tools.layout('begin', 'us')),
-                                 ('previous', tools.previous)):
-                with self.subTest(command=name):
-                    self.stopped(tools, host, store, method, 'did not finish at the restart')
-            # keep-stock needs booted stock and refuses earlier, also unchanged.
-            self.stopped(tools, host, store, lambda: tools.recover(True), 'keep-stock requires booted saved stock')
-            with self.assertRaisesRegex(owner.Stop, 'did not finish at the restart'):
-                tools.records()
-            # After Help, the same update may run once more from the unchanged list.
-            tools.update()
-            self.assertEqual(host.changes, ['bootc switch --retain ' + R21] * 2)
-            self.assertEqual(len(list(store.glob('*-outcome-retried.json'))), 1)
-            host.state, host.wheel, tools.boot[0] = updated(), True, 'boot-3'
-            self.assertIn('Update to ' + R21 + ' confirmed after the restart', tools.check())
+    def test_lost_finalization_is_archived_and_commands_continue_without_help(self):
+        for command in ('check', 'title', 'records', 'reboot', 'layout', 'rollback', 'previous', 'keep-stock', 'update'):
+            with self.subTest(command=command), route(pair()) as (tools, host, store):
+                tools.update()
+                host.state, tools.boot[0] = pair(), 'boot-2'
+                if command in ('previous', 'keep-stock'):
+                    with self.assertRaisesRegex(owner.Stop, 'Only one AresOS' if command == 'previous' else 'use sudo /var/lib/ares/at rollback'):
+                        (tools.previous if command == 'previous' else lambda: tools.recover(True))()
+                elif command == 'reboot':
+                    with self.assertRaisesRegex(owner.Stop, 'Title is stale'):
+                        tools.reboot()
+                    tools.title()
+                    tools.reboot()
+                elif command == 'layout':
+                    with patch.object(tools, 'session', return_value=dict(tty='tty3', session='fresh', boot='boot-2', started_us=1)), \
+                            patch.object(tools, 'trial_keyboard'):
+                        tools.layout('begin', 'us')
+                    self.assertTrue((store / 'layout-pending.json').exists())
+                else:
+                    method = tools.recover if command == 'rollback' else getattr(tools, command)
+                    method()
+                archived, = store.glob('*-outcome-not-applied.json')
+                self.assertEqual(json.loads(archived.read_text())['found_state'], pair())
+                self.assertTrue(any('was not applied' in line for line in tools.notes))
+                self.assertEqual(sum(c == 'bootc switch --retain ' + R21 for c in host.changes),
+                                 2 if command == 'update' else 1)
 
     def test_still_staged_after_the_restart_or_changed_before_it_stops(self):
         with route(pair()) as (tools, host, store):
@@ -689,17 +728,21 @@ class OutcomeTest(unittest.TestCase):
             for method in (tools.check, tools.title, tools.update):
                 self.stopped(tools, host, store, method, 'it is still pending')
 
-    def test_an_unsuccessful_previous_stops_and_a_successful_one_is_confirmed(self):
+    def test_previous_elsewhere_stays_open_and_lost_selection_can_be_repeated(self):
         with route(updated(), wheel=True) as (tools, host, store):
             tools.previous()
-            self.assertEqual(tools.load(owner.OUTCOME)['booted'], list(owner.key(release_row(R13))))
+            self.assertEqual(tools.load(owner.OUTCOME)['target'], list(owner.key(release_row(R13))))
+            self.assertIn('not finished until the restart', ' '.join(tools.check()))
             host.state, tools.boot[0] = queued_previous(), 'boot-2'
-            self.stopped(tools, host, store, tools.check, 'it is still pending')
+            self.assertIn('in place and has not started yet', ' '.join(tools.check()))
+            self.assertTrue((store / (owner.OUTCOME + '.json')).exists())
+            self.assertNotIn('confirmed', ' '.join(tools.check()))
+            # A5: the list returning to before is not-applied, regardless of the running row.
             host.state = updated()
-            for method in (tools.check, tools.title, tools.update):
-                self.stopped(tools, host, store, method, 'return to ' + R13 + ' did not finish at the restart')
+            tools.check()
+            self.assertEqual(len(list(store.glob('*-outcome-not-applied.json'))), 1)
             tools.previous()
-            self.assertEqual(host.changes, ['bootc rollback'] * 2)
+            self.assertEqual(host.changes, ['ostree admin set-default 1', 'sync'] * 2)
             host.state, host.wheel, tools.boot[0] = returned(), False, 'boot-3'
             self.assertIn('Return to ' + R13 + ' confirmed after the restart', tools.check())
 
@@ -720,11 +763,11 @@ class IntentTest(unittest.TestCase):
                     raise OSError('injected failure writing the record')
                 return real_save(obj, name, value)
             if point != 'record':
-                host.interrupt = (kind, point)
+                host.interrupt = ('update' if kind == 'update' else 'start-next', point)
             with patch.object(owner.Tools, 'save', new=save), self.assertRaises((owner.Stop, OSError)):
                 command()
             intent = tools.load(owner.OUTCOME)
-            self.assertEqual((intent['status'], intent['kind'], intent['boot']), ('intent', kind, 'boot-1'))
+            self.assertEqual((intent['status'], intent['word'], intent['boot']), ('intent', kind, 'boot-1'))
             self.assertEqual(intent['before'], [list(owner.key(d)) for d in start['rpm']['deployments']])
             yield tools, host, store, command, start
 
@@ -734,7 +777,7 @@ class IntentTest(unittest.TestCase):
                 seen = []
                 original = host.script
                 def script(text, name, mutation=True):
-                    if name == kind:
+                    if name == ('update' if kind == 'update' else 'start-next'):
                         seen.append(tools.load(owner.OUTCOME)['status'])
                     return original(text, name, mutation)
                 host.script = script
@@ -742,61 +785,71 @@ class IntentTest(unittest.TestCase):
                 self.assertEqual(seen, ['intent'])
                 self.assertEqual(tools.load(owner.OUTCOME)['status'], 'recorded')
 
-    def test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse(self):
+    def test_every_interruption_resolves_by_list_except_same_boot_staging(self):
         for kind in ('update', 'previous'):
             for point in self.POINTS:
                 with self.subTest(kind=kind, point=point), self.interrupted(kind, point) as (tools, host, store, command, start):
-                    for method in (tools.check, tools.title, tools.reboot):
-                        UpdateCommandTest.unchanged(self, tools, host, store, method, 'interrupted before its result was recorded')
-                    # Stock rollback refuses too (on a staged/queued list with its own message).
-                    UpdateCommandTest.unchanged(self, tools, host, store, tools.recover, '')
-                    with self.assertRaisesRegex(owner.Stop, 'interrupted before its result was recorded'):
-                        tools.records()
-                    # Nothing passes on the old release after a restart either.
-                    tools.boot[0] = 'boot-2'
-                    host.state = copy.deepcopy(start)
-                    UpdateCommandTest.unchanged(self, tools, host, store, tools.check, 'interrupted before its result was recorded')
+                    before = copy.deepcopy(host.state)
+                    changes = list(host.changes)
+                    for method in (tools.check, tools.title, tools.records):
+                        if kind == 'update':
+                            UpdateCommandTest.unchanged(self, tools, host, store, method,
+                                'run sudo /var/lib/ares/at update')
+                        else:
+                            method()
+                    self.assertEqual(host.state, before)
+                    self.assertEqual(host.changes, changes)
+                    if kind == 'previous':
+                        if point == 'before':
+                            self.assertFalse((store / (owner.OUTCOME + '.json')).exists())
+                            self.assertEqual(len(list(store.glob('*-outcome-not-applied.json'))), 1)
+                        else:
+                            self.assertEqual(tools.load(owner.OUTCOME)['status'], 'recorded')
+                            UpdateCommandTest.unchanged(self, tools, host, store, tools.recover, 'restart first')
+                    # After power loss returning the old list, every read resolves not-applied.
+                    tools.boot[0], host.state = 'boot-2', copy.deepcopy(start)
+                    tools.check()
+                    self.assertFalse((store / (owner.OUTCOME + '.json')).exists())
+                    self.assertEqual(len(list(store.glob('*-outcome-not-applied.json'))), 1)
 
     def test_the_same_command_redoes_an_unmade_change_or_records_a_made_one(self):
         for kind in ('update', 'previous'):
             for point in self.POINTS:
                 with self.subTest(kind=kind, point=point), self.interrupted(kind, point) as (tools, host, store, command, start):
-                    made = bool(host.changes)
-                    self.assertEqual(made, point != 'before')
-                    # A failed update step is undone before the STOP (review 1): its staging is removed.
                     undone = kind == 'update' and point == 'after'
                     if undone:
                         self.assertEqual(host.changes[-1], ('rpm-ostree', 'cleanup', '--pending'))
                         self.assertEqual(host.state, start)
                     lines = command()
-                    if made and not undone:
-                        self.assertEqual(len(host.changes), 1)
-                        self.assertTrue(lines[0].startswith('Interrupted '))
-                    else:
-                        self.assertEqual(len(host.changes), 3 if undone else 1)
-                        self.assertEqual(len(list(store.glob('*-outcome-retried.json'))), 1)
+                    primitive = 'bootc switch --retain ' + R21 if kind == 'update' else 'ostree admin set-default 1'
+                    self.assertEqual(host.changes.count(primitive), 2 if undone else 1)
+                    if kind == 'previous' and point != 'before':
+                        self.assertIn('already starts next; nothing changed', lines[0])
                     self.assertEqual(tools.load(owner.OUTCOME)['status'], 'recorded')
                     self.assertTrue(any('not finished until the restart' in line for line in tools.check()))
                     host.state = updated() if kind == 'update' else returned()
                     host.wheel, tools.boot[0] = kind == 'update', 'boot-2'
                     self.assertTrue(any(line.endswith('confirmed after the restart') for line in tools.check()))
 
-    def test_after_a_restart_the_same_command_records_a_finished_change_or_redoes_a_lost_one(self):
+    def test_after_a_restart_reads_resolve_finished_or_lost_intents_before_the_command(self):
         for kind in ('update', 'previous'):
-            # A failed update step is undone at once (review 1); a lost read after it leaves the staging.
             point = 'observe' if kind == 'update' else 'after'
             with self.subTest(kind=kind, restart='finished'), self.interrupted(kind, point) as (tools, host, store, command, start):
                 host.state = updated() if kind == 'update' else returned()
                 host.wheel, tools.boot[0] = kind == 'update', 'boot-2'
-                UpdateCommandTest.unchanged(self, tools, host, store, tools.check, 'interrupted before its result was recorded')
-                lines = command()
-                self.assertTrue(lines[0].startswith('Interrupted '))
+                lines = tools.check()
                 self.assertTrue(any(line.endswith('confirmed after the restart') for line in lines))
-                self.assertEqual(len(host.changes), 1)
+                changes = list(host.changes)
+                self.assertIn('already starts next; nothing changed', command()[0])
+                self.assertEqual(host.changes, changes)
+                self.assertEqual(len(list(store.glob('*-outcome-confirmed.json'))), 1)
             with self.subTest(kind=kind, restart='lost'), self.interrupted(kind, point) as (tools, host, store, command, start):
                 host.state, tools.boot[0] = copy.deepcopy(start), 'boot-2'
+                tools.check()
+                self.assertEqual(len(list(store.glob('*-outcome-not-applied.json'))), 1)
                 command()
-                self.assertEqual(len(host.changes), 2)
+                primitive = 'bootc switch --retain ' + R21 if kind == 'update' else 'ostree admin set-default 1'
+                self.assertEqual(host.changes.count(primitive), 2)
                 self.assertEqual(tools.load(owner.OUTCOME)['status'], 'recorded')
 
     def test_other_commands_never_continue_an_intent_and_a_wrong_change_is_not_recorded(self):
@@ -871,7 +924,7 @@ class LockTest(unittest.TestCase):
             'layout trial': (lambda tools, host: tools.save('layout-pending', {}), 'Layout trial is unfinished'),
             'transaction': (lambda tools, host: host.state['rpm'].update(transaction=['upgrade', 'uupd', 'socket']), 'transaction active'),
             'staged elsewhere': (lambda tools, host: setattr(host, 'state', staged_update()), 'staged deployment already exists'),
-            'queued rollback': (lambda tools, host: setattr(host, 'state', machine([stock_row(), release_row(R13, booted=True)])), 'rollback is queued'),
+            'queued rollback': (lambda tools, host: setattr(host, 'state', machine([stock_row(), release_row(R13, booted=True)])), 'starts next'),
             'list changed': (lambda tools, host: setattr(host, 'state', machine([release_row(R13, booted=True, checksum='d4' * 32), stock_row()])),
                              'changed during verification'),
         }
@@ -1023,7 +1076,7 @@ class ToolsUpdateTest(unittest.TestCase):
             records = {p.name: p.read_bytes() for p in (home / 'records').iterdir()}
             lines = run()
             self.updated(home, fingerprint, old)
-            self.assertEqual(lines[:2], ['Tools updated from version 1 to 2', 'manifest SHA256 ' + fingerprint])
+            self.assertEqual(lines[:2], ['Tools updated from version 1 to 3', 'manifest SHA256 ' + fingerprint])
             self.assertEqual({k: v for k, v in records.items()}, {p.name: p.read_bytes() for p in (home / 'records').iterdir()
                                                                 if not p.name.endswith('-tools-update.json')})
             receipt = json.loads(next((home / 'records').glob('*-tools-update.json')).read_text())
@@ -1045,13 +1098,13 @@ class ToolsUpdateTest(unittest.TestCase):
 
     def test_downgrade_same_version_foreign_history_and_unknown_legacy_refuse_without_writes(self):
         cases = {
-            'downgrade': dict(installed=(history(H21, 3), H21[-1])),
-            'same version, other bytes': dict(installed=(history(H13, 2), H13[-1], (), {'media.py': b'# other\n'})),
+            'downgrade': dict(installed=(history(H21, 4), H21[-1])),
+            'same version, other bytes': dict(installed=(history(H13, 3), H13[-1], (), {'media.py': b'# other\n'})),
             'history rewritten': dict(installed=(history(H13, 2), H13[-1]), stick=(history([record(R13, True), record(R21, True)], 3), H21[-1])),
             'history dropped a release': dict(installed=(history(H21, 2), H21[-1]), stick=(history([record(R13, False), record(R30, True)], 3), record(R30, True))),
         }
         cases['15f rule rewritten'] = dict(stick=(history([record(R13, True), record(R21, True)], 3), H21[-1]))
-        messages = {'downgrade': 'refusing version 2', 'same version, other bytes': 'same version',
+        messages = {'downgrade': 'refusing version 3', 'same version, other bytes': 'same version',
                     'history rewritten': 'does not extend', 'history dropped a release': 'does not extend',
                     '15f rule rewritten': 'does not extend'}
         for name, options in cases.items():
