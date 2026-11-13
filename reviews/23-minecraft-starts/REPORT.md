@@ -155,6 +155,15 @@ a `retry` or one crash in the count.
    real-loop tests, with hooks at the same points. Each order has at most one supervisor restart, one 40 s
    stretch and one reboot.
 
+### Reviews 6 and 7, and two more known limits (integrator, 2026-11-13)
+
+- **REVIEW-6** (gpt-6-astra high, on `bab298fc`): SAFE. No blocking finding under the owner's bar; two limits needed clearer reporting, added here as limits 11 and 12.
+- **REVIEW-7** (gpt-6-astra high, on `b17f93dc`): SAFE, no findings. It covers everything after review 6: the release diff's reasons, the renewed pins, the resolve change and the mod jar's pin binding release builds only (only the read-only `check-build` job can build a throwaway image; every default is strict).
+- **Known limit 11: a SIGKILL record nobody consumed is ignored after a reboot.** Java is killed, the wrapper records it durably, and the laptop restarts before the supervisor has counted or latched that end. The runtime state is gone, no unresolved launch was persisted, so the next start goes to the hub once instead of to recovery. Harm: one automatic start after a reboot. It is not a restart loop, and recovery stays reachable.
+- **Known limit 12: a delayed wrapper can use up the automatic restart.** After an ordinary crash the supervisor waits five seconds and restarts; if the old wrapper still holds the desktop lock at that moment, the restart ends in `RECOVERY locked` and nothing restarts afterwards. Harm: one `retry` from the owner; no second Java starts. The model asserts safety here, not that a restart eventually happens.
+- Not done, for a later round: a regression test that documents limit 11 as accepted behaviour (REVIEW-6's suggestion).
+- One local run of `test_aresos_desktop` out of three had a single failure that the builder did not capture (the laptop was busy with other builds); the hosted run passed all 1095 tests. Watch for a timing-sensitive test there.
+
 ### Regression proof (each fix reverted alone)
 
 Each fix was put back alone on a copy of the tree at `2a658f5b` (interfaces kept), then the model and that fix's
