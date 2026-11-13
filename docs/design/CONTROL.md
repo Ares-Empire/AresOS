@@ -535,7 +535,9 @@ the front when he should look at it or sign in there.
 - **Looking needs no take.** `chrome_read` works on every listed tab that isn't marked `no`. One of his tabs is read
   in place: nothing moves, nothing reloads, no debugger attaches and nothing runs in the page's own world. His
   typing, his scroll position and playing media stay as they are. The reader is the same content script with the
-  same password rule (above). Because it arrives late in his tab, it reads the page's text and what he wrote in
+  same password rule (above). Nothing of ours watches a tab of his before the first read. From then on the idle
+  reader stays there with observers that only see changes: they can't hold or change anything, and the page
+  can't see them. Because the reader arrives late in his tab, it reads the page's text and what he wrote in
   an editor, but of a form field he can type into only whether it is filled, until he has agreed to more.
   - A tab that Chrome put to sleep to save memory is loaded by reading it, as his own click would load it; the
     result says so. That is a visit to the site, not a silent look ("Known limits").

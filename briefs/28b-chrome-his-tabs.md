@@ -139,7 +139,7 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
 - **In one of his tabs it reads in place.** No debugger attach, no move, no reload. Nothing is injected into the
   page's own (main) world. Nothing of ours in that tab can cancel, hold or change an event. The tab isn't selected
   or focused, and its scroll position isn't touched. After the read, only the reader's idle content script remains
-  in the tab.
+  in the tab, with its passive observers (item 3).
 - **How** the reader runs there without the page guard's listeners is yours to choose (a passive mode of
   `guard.js`'s isolated part, or the reader running without it). `page.js` and the main-world wrappers are never
   installed in a tab that isn't Claude's or taken.
@@ -198,9 +198,18 @@ past. So the reader doesn't guess.
   (password, PIN, OTP, TAN, a verification, security or recovery code, a card security code, a secret, a token, a
   private key, a recovery phrase) is never read, whatever its element or type: a `textarea` and an editable area
   too. A field that is masked right now is never read either.
-- **No marker, no content script from the manifest, no observer in his tabs.** An earlier draft of this brief
-  watched his tabs for "show password" switches. It couldn't cover a field inside a shadow root, a mask taken off
-  by a style, or a page loaded before the extension, and a password is never a known limit (owner, 2026-11-11).
+- **Nothing watches a tab Claude hasn't read.** An earlier draft of this brief installed a marker in every tab to
+  watch for "show password" switches. It couldn't cover a field inside a shadow root, a mask taken off by a style,
+  or a page loaded before the extension, and a password is never a known limit (owner, 2026-11-11). That marker is
+  gone: no content script from the manifest, none registered for his tabs beyond brief 20's empty `context.js`,
+  and nothing that observes a tab before a read.
+- **The reader that a read installs keeps its passive observers** (package re-check 2, N5). The in-place reader
+  is brief 20's `reader.js`, installed on demand, and it brings its two `MutationObserver`s. One counts DOM
+  changes; the state token, `until` and every cursor need that count (brief 28, item 1). The other remembers a
+  field that it sees turn from a password field into a plain one. Both only see changes. They can't cancel, hold
+  or change anything, and they run in the isolated world, where the page can't observe them. They stay with the
+  idle reader after the read. What they remember begins when the reader arrives: a field switched to plain
+  after that stays protected, and nothing about the history rule for the time before changes.
 - **What it costs, said plainly in the report and in the instructions:** in his own tab Claude sees that a form field
   is filled, and learns what it holds only after he was asked, also for a message he drafted in a multi-line field.
   After a take with its reload, or in a copy of the page in a Claude tab, the reader has watched the document from
@@ -466,6 +475,9 @@ password cases under `password_exclusion`):
   document is the same; text he typed, his scroll position and a playing video are as they were; no debugger target is
   attached; the tab didn't move, wasn't selected and its window wasn't focused. Then his own Enter in that tab submits
   natively (the receiver has it, with no question), and the comparison with an untouched Chrome still passes.
+  The reader's passive observers are at work all the same: after the read, a text the page changes moves the
+  state token, so a cursor from before is refused and `until` sees the new text; and a field he switches from
+  password to plain after the read stays unread.
 - **The page Claude chose:** a read, a take, a close and a `chrome_open` with `tab` are refused without `seen`.
   Between the list and the call the owner navigates the listed tab to a private fixture page, once as a new
   document and once as a new address inside the same document: a read, a take and a close are each refused with
