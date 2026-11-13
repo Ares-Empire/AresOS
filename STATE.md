@@ -138,6 +138,8 @@ Updated 2026-11-13. The live truth is `git log`, `gh pr list` and `git worktree 
     - Control's files and `gh` 2.102 or newer (brief 18c, `linux-tools`; the image has no `gh` of its own yet).
     - Konsole as the everyday terminal (owner, 2026-11-13, board #190 and #191: "a normal terminal with easy tabs"; noted, not to be built yet). Konsole for the hub's Terminal app and any login terminal, foot stays for recovery. Mind package 23's "no login terminal" call and the checks built on foot (`image-checks.sh`, `keyboard_vm.py`, `owner_vm.py`).
     - Stop masking the two finalize units (package 27's PLAN-GAP).
+    - A short command for the owner tools (owner, 2026-11-13, board #195: "Can we just make it 'update' or like 'AresOS update' in the terminal? Instead of going /var/lib etc"): `aresos update` and the other words, a root-owned command in the image that runs the same tools and asks for his password. The guides keep the full path as the way that always works.
+  - The repaired tools from 22c reach the laptop with the next release (owner, 2026-11-13, board #196). He asked whether Claude can install them if he approves the password prompt: yes, under hard rule 1 Claude runs the steps and he types his password into the desktop's prompt (`sudo -A`; `SUDO_ASKPASS` is set in his session). Not tried yet.
   - P2's remaining packages: 25 (guardian: clean save and shutdown) and 26 (backups).
   - Desktop shortcuts and the app wheel (owner, board #163): they open the apps from the hub and his own programs (`~/.local/bin`, Homebrew, Flatpak exports), each found by its full path.
 
