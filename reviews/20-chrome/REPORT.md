@@ -7,13 +7,14 @@
   owner's board #216 acceptance. No binding/refusal change is open.
 - **Post-18d:** base-URL/SVG class, main/slim integration, group 12, measured
   expiry optimization and sharding are done. Main is merged through `b2b51107`.
-  Candidate **`0ca3f6d7`** has a final-pair fixture failure; it is not accepted.
+  Candidate `0ca3f6d7` is superseded after its fixture failure; the reviewed
+  correction is the new candidate, with full local preflight required before push.
   Runtime remains `e0cc9846` / `b9de9a97…` and is unchanged by the proposed fixture fix.
   On that head, **268 Python, 370 Node/artifact and 315 removal probes pass**, every
   mutation baseline passing. Generator, diff and exact-unit checks pass.
 - **Mail diagnostic:** `43513676712` passed all four suites and eight complete
   fault shards; longest job **54m53s**, within the 60-minute job budget.
-- **Green twice on the final code head:** base `43521486682` (309 tests each),
+- **Green twice on the superseded candidate:** base `43521486682` (309 tests each),
   boundary `43521486793` (17 interactive
   cases and 20 boundary unit tests each attempt), qualification `43521486667`
   (47 Python and 365 Node tests each). Their blockers are closed.
@@ -23,16 +24,18 @@
   once. All original receiver assertions remain; new zero-extra-arrival checks
   are added. Three plain-Node regressions pass and removing the settling wait is
   killed with a passing baseline. Production runtime/bindings/refusals are unchanged.
-- **Existing runs:** Chrome push `43521476596` failed both review shards (revision
-  3→4 race) and aggregate required-shard checks; PR `43521486785` is still watched
-  in session `56197`. Own superseded Mail `43521486798` was cancelled before its
-  second attempt to avoid obsolete work. None is final acceptance after this fix.
+- **Previous pair handled:** push `43521476596` failed the reload-view race;
+  PR `43521486785` passed. The pair is not accepted. Both watches are finished.
+  Own superseded Mail `43521486798` was cancelled before attempt 2. No CI runs are
+  currently in flight; previous base/boundary/qualification passes are intermediate.
 - **Budget:** **251 / about 280** Chrome workflow runs, including this final pair.
-- **Exact next step:** freeze a new candidate and run full local checks (expected
-  268 Python, 373 Node/artifact, 316 mutations). Push normally for a new full
-  Chrome pair and run every named Control workflow twice on that head. Finish
-  and record the existing PR watcher. Batch browser evidence in that new pair;
-  keep runtime `b9de9a97…`, the 525 ms wait, and both credential/asking protections.
+- **Exact next step:** run `.work/post18d/final-local.py` on this new candidate
+  before its normal push (expected 268 Python, 373 Node/artifact, 316 mutations).
+  After green local checks, push to start a fresh full Chrome pair and the four
+  named Control workflows, then repeat the four workflows on that exact head.
+  Batch browser evidence in the new pair. Independently audit both installs from
+  both Chrome runs, all 92 original round-3 names and both latency profiles. Update
+  this Handover/receipts with `[skip ci]` at finished steps. Keep PR #27 draft.
 
 # Post-18d integration — fixture correction and final repetitions pending
 
@@ -143,6 +146,10 @@ independent case failure. [Trace proof](records/post18d/review-reload-failure-43
 [jobs](records/post18d/chrome-failed-43521476596-jobs.json). This candidate is not
 accepted; final-head repetitions restart after the fixture correction.
 
+**Previous PR companion `43521486785`:** workflow success; its pair failed and
+remains intermediate ([jobs](records/post18d/chrome-intermediate-43521486785-jobs.json)).
+Both watches finished. No old run is silently counted as new-head acceptance.
+
 **Fixture-only correction:** `guardedHandoffClick` waits for a changed document
 and two identical fresh reference views before one input. It requires the specific
 guarded-reload refusal, rechecks that the old reference refuses, and retains all
@@ -151,7 +158,7 @@ parser revisions, no retry after an uncertain dispatch, and an unrelated stale
 error refusing. [Output](records/post18d/review-reload-local.txt). Removing the
 settling condition is killed with a passing baseline
 ([mutation](records/post18d/review-reload-mutation.json)). Both scoped [package](BUILD-POST18D-RELOAD-REVIEW.md) and
-[security](BUILD-POST18D-RELOAD-SECURITY.md) reviews are SAFE. A new final head is pending. No production runtime or asking/form protection changed.
+[security](BUILD-POST18D-RELOAD-SECURITY.md) reviews are SAFE. A new final head is in local preflight. No production runtime or asking/form protection changed.
 Own superseded Mail `43521486798` was cancelled; its watch exited 1 with
 `conclusion=cancelled` and did not request attempt 2.
 
