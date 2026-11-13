@@ -191,8 +191,10 @@ class Pending25(unittest.TestCase):
                 raise failure
             return items(prefix)
         with patch.object(self.engine.store, 'iter_items', side_effect=unreadable), \
+             patch.object(self.engine.store, 'iter_operations', side_effect=failure) as failed_operations, \
              patch.object(self.engine.store, 'flush_notices', side_effect=failure):
             result = self.engine.request({'v': 1, 'method': 'call', 'action': 'control_pending', 'arguments': {}})
+        self.assertGreater(failed_operations.call_count, 0)
         self.assertFalse(result['ok'], result)
         self.assertIn('Disk full', result['error']['message'])
         self.assertIn('snapshot', result['pending']['unavailable'])

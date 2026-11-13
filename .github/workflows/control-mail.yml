@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [0, 1, 2, 3]
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
@@ -47,7 +47,7 @@ jobs:
       - name: OS and SQLite fault sweep in isolated mail containers
         env:
           MAIL_SWEEP_SHARD: ${{ matrix.shard }}
-          MAIL_SWEEP_SHARDS: 4
+          MAIL_SWEEP_SHARDS: 8
         run: bash control/ci/mail/run.sh sweep
       - name: Upload sweep output and fixture isolation
         if: always()

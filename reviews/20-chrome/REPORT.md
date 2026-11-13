@@ -596,6 +596,21 @@ All25 focused tests pass. The next Linux probe is diagnostic249; no target has
 been adopted, and full local267-test discovery plus the314-removal audit and
 final workflow repetitions are still required.
 
+**Shared diagnostics:** base43493689270, boundary43493699510 and qualification
+43493705313 pass on64313f7b. Mail43493694237 found one fixture error: its operation
+read-fault injector patched only the old iterator, so the new filtered entry did
+not receive the intended SQLITE_FULL. It now patches both entries, asserts the
+new fault actually fired, and retains every snapshot/old+fresh warning assertion.
+An independent plain-Python production-engine probe passes those same observable
+assertions; the exact schema-checked Mail test remains for Linux CI.
+[Probe](records/post18d/mail-read-fault-probe.json).
+
+Three Mail fault jobs stopped at the configured35-minute boundary (logs report
+cancellation); the fourth passes. The unchanged discovered-write/cleanup sweeps
+are now split into8 flow shards, keeping that35-minute deadline and all23 flows
+exactly once. The four suite shards remain. [Inventory proof](records/post18d/mail-eight-shard-inventory.json).
+No assertion or fault site was removed. Replacement shared diagnostics follow.
+
 **Latency proposal — lead decision pending:** intermediate Linux run
 `43466571812` measured 20 calls per category, without owner think time, against
 `ab7aba92` rebuilt with the same driver and exact Chrome package. Times below are

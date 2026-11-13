@@ -1,0 +1,47 @@
+{
+  "meaning": "Same unchanged discovered-write sweep; each existing flow assigned once by its unchanged modulo rule",
+  "flows": 23,
+  "shards": {
+    "0": [
+      "send",
+      "cancel",
+      "expiry"
+    ],
+    "1": [
+      "repair",
+      "restore",
+      "maintenance"
+    ],
+    "2": [
+      "delete_trash",
+      "attachment_export",
+      "restart_index"
+    ],
+    "3": [
+      "delete_permanent",
+      "testapp_export",
+      "restart_tail"
+    ],
+    "4": [
+      "unsubscribe_mailto",
+      "password",
+      "export_rollback"
+    ],
+    "5": [
+      "unsubscribe_https",
+      "filing_move",
+      "archive"
+    ],
+    "6": [
+      "status",
+      "filing_copy",
+      "send_duplicate"
+    ],
+    "7": [
+      "settlement",
+      "filing_rename"
+    ]
+  },
+  "job_timeout_minutes": 35,
+  "suite_shards_unchanged": 4
+}
