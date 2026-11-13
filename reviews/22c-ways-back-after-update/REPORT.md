@@ -1248,3 +1248,54 @@ No brief rule changed. The review's three findings stand; the extra `check`
 next-step case belongs to interrupted restoration, and prepare was explicitly
 part of the requested audit. All three fixes have separate pushed commits;
 final verification and any follow-up corrections will be recorded below.
+
+### Verification continuation and model cost
+
+The first final-focused attempt ran 42 tests in 24.763s with one fixture failure:
+the new prepared-state boundary test reached an unmodelled account read. Its
+account boundary is now explicitly replaced; no production account check changed.
+The next run (10329 MB available at its start) printed `Ran 42 tests in 24.221s`
+/ `OK`, including both finding-2 and finding-3 executable revert proofs.
+
+The initial unrestricted restoration-history exploration was stopped explicitly
+with SIGINT on its own Python PID (not another builder's process). It had not
+closed and is not passing evidence. It exposed an avoidable multiplication of
+historical restoration snapshots. The model now quotients that provenance:
+for a reachable persistent pair, an existing restoration intent and a newly
+published one have identical future actions. Restoration republishes the same
+intent on every retry before writes, so both have an intent cut, console cut,
+X11 cut and the same eventual old setting. Reverse partial settings remain
+reachable only with durable intent. No setting, deployment, trial ownership or
+journal outcome is merged. Full literal intent records remain in each
+representative and are checked against actual Tools execution. Memoized
+executions still depend on the actual intent value, never oracle predictions.
+`steps()` also supplies the once-computed candidate transition to the exploration
+instead of calculating every interruption twice; no event was removed.
+
+`EquivalenceTest.test_saved_restoration_intent_has_identical_future_commands`
+checks every successor and actual command for pending trials and repair notes,
+all six directed profile pairs, and old/forward-partial/new settings, with and
+without already-saved intent (48 pairs). The additional
+`RevertTest.test_restoration_intent_must_be_saved_before_either_write` removes
+the save in memory for both owners: the pre-write assertion then fails with
+`restoration intent missing before write`. The existing reverse-partial
+acceptance mutant continues to fail the driver's `accept/refuse` assertion.
+The targeted local command was
+`cd os/tests && TMPDIR=/var/home/ares/pkg22c-work nice -n 10 python3 -B -m unittest test_ways_back_model.EquivalenceTest test_ways_back_model.RevertTest`:
+**11 tests in 1.131s, OK**, after a 10646 MB available gate.
+
+Reference-only queue exhaustion is used to generate the new exact state/edge
+pins, then the full model is run against actual Tools. Generating those pins
+is not Tools verification. The final local/hosted totals follow below.
+
+The reference-only catalogue exhausted **879291 states / 23108154 edges** in
+237.974s; those exact counts replace the old pins for the expanded event set.
+The catalogue imports only the independent ledger and is not reported as a
+passing test. Invariant checks now reuse the same per-state reference
+predictions used for command comparisons; every invariant and event is retained.
+The full actual-Tools model must reach those exact pins with its queue empty.
+
+Final-source focused verification (7303 MB available at start):
+`cd os/tests && TMPDIR=/var/home/ares/pkg22c-work nice -n 10 python3 -B -m unittest test_ways_back`
+printed **`Ran 42 tests in 22.456s` / `OK`**. Full model and hosted verification
+are the remaining checkpoint work.

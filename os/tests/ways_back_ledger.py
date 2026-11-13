@@ -171,8 +171,8 @@ def transition(s, event):
                 return state, False
             if not any(n[0] == role for n in state.restoring):
                 state = replace(state, restoring=tuple(sorted((*state.restoring, (role, *state.keyboard(role))))))
-                if phase == 'intent':
-                    return state, True
+            if phase == 'intent':
+                return state, True
             state = state.setting(role, old, state.keyboard(role)[1])
             if phase == 'console':
                 return state, True
@@ -274,29 +274,43 @@ def transition(s, event):
     return result(s, cut=phase == 'record', announce=removed)
 
 
-def events(s):
+def steps(s):
+    """Compute each candidate once; events and the exploration share these predictions."""
     for word in ('check', 'title', 'records', 'reboot', 'update', 'previous', 'rollback', 'keep-stock', 'abandon'):
-        yield word, 'full'
+        event = word, 'full'
+        yield event, transition(s, event)
     for word in ('update', 'previous', 'rollback', 'keep-stock', 'abandon'):
         for phase in (('intent', 'console', 'persistent') if word == 'abandon' else ('intent', 'primitive', 'record')):
             # A refused/no-op command never reaches a phase to cut. Its full event
             # above still runs; omit only these physically nonexistent cut points.
-            if transition(s, (word, phase)).cut:
-                yield word, phase
+            event = word, phase
+            result = transition(s, event)
+            if result.cut:
+                yield event, result
     for profile in PROFILES:
-        yield 'begin', profile
+        event = 'begin', profile
+        yield event, transition(s, event)
     if s.trial:
         if not s.trial.fresh:
-            yield 'fresh-login', 'full'
-        yield 'proof', 'full'
-        yield 'revert', 'full'
+            event = 'fresh-login', 'full'
+            yield event, transition(s, event)
+        for word in ('proof', 'revert'):
+            event = word, 'full'
+            yield event, transition(s, event)
         for phase in ('intent', 'console', 'persistent', 'full'):
-            if phase == 'full' or transition(s, ('finish', phase)).cut:
-                yield 'finish', phase
+            event = 'finish', phase
+            result = transition(s, event)
+            if phase == 'full' or result.cut:
+                yield event, result
     for kind in ('restart', 'power-off'):
         rows = (s.stage, s.running, 'S') if s.stage and kind == 'restart' else s.rows[1:] if s.stage else s.rows
         for choice in ('default', *rows):
-            yield kind, choice
+            event = kind, choice
+            yield event, transition(s, event)
+
+
+def events(s):
+    return (event for event, result in steps(s))
 
 
 def destination_paths(s):
@@ -319,61 +333,66 @@ def destination_paths(s):
         yield row, menu_only, tuple(path)
 
 
-def invariants(s):
+def invariants(s, predicted=None):
     """Assert the reference rules, including the narrowed destination invariant."""
+    def step(state, event):
+        if state is s and predicted is not None and event in predicted:
+            return predicted[event]
+        return transition(state, event)
+
     for role, console, x11 in s.settings:
         if console != x11:
             assert (s.trial and s.trial.row == role and s.trial.finishing) or any(n[0] == role for n in s.repairs), 'half-written layout lost its owner'
             old = s.trial.old if s.trial and s.trial.row == role else next(n[1] for n in s.repairs if n[0] == role)
-            booted = transition(s, ('power-off' if s.stage else 'restart', role)).state
-            repaired = transition(booted, ('abandon', 'full'))
+            booted = step(s, ('power-off' if s.stage else 'restart', role)).state
+            repaired = step(booted, ('abandon', 'full'))
             assert not repaired.stop and repaired.state.keyboard(role) == (old, old), 'abandon did not restore the owning /etc'
             assert all(p in repaired.state.settings for p in s.settings if p[0] != role), 'abandon wrote another /etc'
             if role == s.running:
-                attempt = transition(s, ('update', 'full'))
+                attempt = step(s, ('update', 'full'))
                 assert attempt.state.stage == s.stage, 'staged from a half-written /etc'
-    checked = transition(s, ('check', 'full'))
+    checked = step(s, ('check', 'full'))
     if checked.stop:
         if checked.stop == 'update':
-            repaired = transition(checked.state, ('update', 'full'))
+            repaired = step(checked.state, ('update', 'full'))
         else:
             assert checked.stop == 'layout', checked
-            fresh = transition(checked.state, ('fresh-login', 'full'))
-            repaired = transition(fresh.state, ('abandon', 'full'))
+            fresh = step(checked.state, ('fresh-login', 'full'))
+            repaired = step(fresh.state, ('abandon', 'full'))
         assert not repaired.stop, ('check next step refuses', s, repaired)
-        assert not transition(repaired.state, ('check', 'full')).stop, 'check recovery did not recover'
+        assert not step(repaired.state, ('check', 'full')).stop, 'check recovery did not recover'
         assert set(s.rows) <= set(repaired.state.rows), 'check recovery deleted a row'
     if s.stage or s.outcome() == 'waiting':
         for kind in ('restart', 'power-off'):
             available = (s.stage, s.running, 'S') if s.stage and kind == 'restart' else s.rows[1:] if s.stage else s.rows
             for row in available:
-                restarted = transition(s, (kind, row)).state
+                restarted = step(s, (kind, row)).state
                 assert not restarted.stage and restarted.outcome() != 'waiting'
     if s.trial:
         # Every trial, including interrupted finishes, can end by fresh-login abandon.
-        fresh = transition(s, ('fresh-login', 'full')).state
-        abandoned = transition(fresh, ('abandon', 'full'))
+        fresh = step(s, ('fresh-login', 'full')).state
+        abandoned = step(fresh, ('abandon', 'full'))
         assert not abandoned.stop and abandoned.state.trial is None, 'abandon cannot end trial'
         if s.trial.same_boot and not s.trial.fresh and not s.trial.finishing:
             for revert in (False, True):
-                attempt = transition(s, ('revert', 'full')).state if revert else s
-                proof = transition(attempt, ('proof', 'full'))
+                attempt = step(s, ('revert', 'full')).state if revert else s
+                proof = step(attempt, ('proof', 'full'))
                 assert not proof.stop
-                finished = transition(proof.state, ('finish', 'full'))
+                finished = step(proof.state, ('finish', 'full'))
                 assert not finished.stop and not finished.state.trial, 'proof/finish cannot end trial'
     for row, menu_only, path in destination_paths(s):
         selected = s
         for event in path:
-            result = transition(selected, event)
+            result = step(selected, event)
             assert not result.stop, ('destination refuses', row, s, result)
             selected = result.state
         assert selected.rows[0] == row and not selected.stage, ('destination missing', row, s)
         if menu_only:
             assert selected.outcome() == 'selection-applied'
-            restarted = transition(selected, ('restart', 'default')).state
-            confirmed = transition(restarted, ('title', 'full'))
+            restarted = step(selected, ('restart', 'default')).state
+            confirmed = step(restarted, ('title', 'full'))
             assert confirmed.confirmation and confirmed.state.journal is None, 'menu path not confirmed'
-            update = transition(s, ('update', 'full'))
+            update = step(s, ('update', 'full'))
             if any(n[0] == s.running for n in s.repairs):
                 assert update.stop == 'layout abandon'  # A6's repair lock still applies.
             else:
@@ -393,10 +412,15 @@ def reduced(s):
     Notes for removed releases can never apply again: the fixed bundle only
     stages its own target, and that target can never be removed by these events.
     All live notes and every installed /etc pair remain literal, not shared.
+    For reachable settings, an already-saved restoration intent is provenance:
+    abandon publishes it again before writes, and a retry only restores old.
+    Without an intent the original old/forward/new pairs authorize that same
+    first restoration. Reverse partial pairs are reachable only with intent.
+    Retain full intent evidence in representatives and actual execution checks;
+    quotient only the history of which authorized pair began the restoration.
     """
     j, t = s.journal, s.trial
     journal = None if j is None else (j.mode, j.word, j.phase, j.target, j.same_boot, s.outcome())
     trial = t if t is None or t.same_boot else (t.row, t.old, t.new, t.finishing)
     repairs = tuple(n for n in s.repairs if n[0] in s.rows)
-    restoring = tuple(n for n in s.restoring if n[0] in s.rows)
-    return s.bundle, s.rows, s.running, s.stage, journal, trial, repairs, s.settings, s.loaded, restoring
+    return s.bundle, s.rows, s.running, s.stage, journal, trial, repairs, s.settings, s.loaded

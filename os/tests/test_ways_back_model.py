@@ -24,7 +24,7 @@ import test_owner_update as base  # library only; never runs that module's tests
 from ways_back_keyboard import PowerCut, PROFILES, identity
 from ways_back_host import Host, status, compact
 from ways_back_memo import Executions
-from ways_back_ledger import Ledger, Journal, Trial, Result, starts, transition, events, invariants, destination_paths, reduced
+from ways_back_ledger import Ledger, Journal, Trial, Result, starts, transition, events, steps, invariants, destination_paths, reduced
 
 owner = base.owner
 ROOT = base.ROOT
@@ -85,6 +85,10 @@ class Driver:
                 self.observe('loaded')
             elif command[0] == 'localectl':
                 self.observe('keyboard-' + self.by_id[identity(host.running())])
+                if self.word == 'abandon' and self.phase == 'intent':
+                    records = ([self.files['layout-pending']] if 'layout-pending' in self.files else []) + self.files.get('layout-repair', {}).get('notes', [])
+                    assert any(n.get('restoring') and n['deployment_identity'] == list(identity(host.running())) for n in records), 'restoration intent missing before write'
+                    raise PowerCut('after restoration intent, before first persistent write')
             return mutate(*command, **kwargs)
         host.mutate = observed_mutate
         tools.save = self.save
@@ -116,17 +120,10 @@ class Driver:
 
     def save(self, name, value):
         self.observe('load:' + name)
-        previous = self.files.get(name, {})
         self.files[name] = copy.deepcopy(value)
-        running = list(identity(self.host.running()))
-        if self.phase == 'intent' and (name == 'layout-pending' and value.get('restoring') and not previous.get('restoring')
-                or name == 'layout-repair' and any(n.get('restoring') and n['deployment_identity'] == running
-                    and not any(p.get('restoring') and p['deployment_identity'] == running for p in previous.get('notes', []))
-                    for n in value['notes'])):
-            raise PowerCut('after layout restoration intent')
         if name == 'outcome-pending' and self.phase == ('intent' if value['status'] == 'intent' else 'record'):
             raise PowerCut('after journal ' + value['status'])
-        if name == 'layout-pending' and value.get('finishing') and self.phase == 'intent':
+        if name == 'layout-pending' and value.get('finishing') and self.phase == 'intent' and self.word == 'finish':
             raise PowerCut('after layout finishing intent')
 
     def journal_record(self, j):
@@ -212,6 +209,7 @@ class Driver:
         self.install(s)
         tools, host = self.tools, self.host
         word, self.phase = event
+        self.word = word
         host.cut = self.phase
         host.cut_keyboard = word in ('finish', 'abandon') and self.phase == 'console'
         before_entries, before_rows = copy.deepcopy(host.entries()), copy.deepcopy(host.state['rpm']['deployments'])
@@ -501,7 +499,7 @@ class RevertTest(unittest.TestCase):
 
     def test_restoration_intent_must_be_saved_before_either_write(self):
         source = textwrap.dedent(inspect.getsource(owner.Tools.layout))
-        needle = "value['restoring'] = finished\n                    persist()"
+        needle = 'persist()'
         self.assertEqual(source.count(needle), 1)
         namespace = {}
         exec(compile(source.replace(needle, 'pass'), '<restoration intent removed>', 'exec'), owner.__dict__, namespace)
@@ -511,7 +509,7 @@ class RevertTest(unittest.TestCase):
                 if repair:
                     sequence += [('restart', 'S'), ('abandon', 'full'), ('restart', '27')]
                 s = self.path(d, starts()[2], sequence)
-                with patch.object(owner.Tools, 'layout', namespace['layout']), self.assertRaisesRegex(AssertionError, 'cut'):
+                with patch.object(owner.Tools, 'layout', namespace['layout']), self.assertRaisesRegex(AssertionError, 'restoration intent missing'):
                     d.step(s, ('abandon', 'intent'), transition(s, ('abandon', 'intent')))
 
     def test_finalize_that_keeps_bootcs_rollback_fails_retention(self):
@@ -563,6 +561,32 @@ class RevertTest(unittest.TestCase):
 
 
 class EquivalenceTest(unittest.TestCase):
+    def test_saved_restoration_intent_has_identical_future_commands(self):
+        with driver() as d:
+            variants = []
+            for old in PROFILES:
+                for new in PROFILES:
+                    if old == new:
+                        continue
+                    for trial in (True, False):
+                        for current in ((old, old), (new, old), (new, new)):
+                            s = starts()[2].setting('27', *current)
+                            s = replace(s, trial=Trial('27', old, new, same_boot=False, fresh=True, proof=True, finishing=True) if trial else None,
+                                        repairs=() if trial else (('27', old, new),))
+                            for c, x in ((new, old), (new, new)):
+                                if current != (old, old) and current != (c, x):
+                                    continue
+                                variants.append((s, replace(s, restoring=(('27', c, x),))))
+            for left, right in variants:
+                self.assertEqual(reduced(left), reduced(right))
+                self.assertEqual(list(events(left)), list(events(right)))
+                for event in events(left):
+                    a, b = transition(left, event), transition(right, event)
+                    self.assertEqual(reduced(a.state), reduced(b.state), event)
+                    self.assertEqual((a.stop, a.cut, a.archives, a.confirmation), (b.stop, b.cut, b.archives, b.confirmation), event)
+                    d.step(left, event, a)
+                    d.step(right, event, b)
+
     def test_provenance_quotient_preserves_every_successor_and_actual_command(self):
         applied = Journal('previous', 'reorder', 'recorded', '13', '27', ('27', '13', 'S'), False)
         s = replace(starts()[2], rows=('13', '27', 'S'), journal=applied)
@@ -647,13 +671,13 @@ class ModelTest(unittest.TestCase):
                 s = queue.popleft()
                 event = ('invariants', 'all')
                 try:
-                    invariants(s)
+                    predictions = dict(steps(s))
+                    invariants(s, predictions)
                     outcomes[s.outcome()] += 1
                     for row, is_menu, path in destination_paths(s):
                         if is_menu:
                             menu_only.add((s.bundle, s.rows, s.running, row))
-                    for event in events(s):
-                        expected = transition(s, event)
+                    for event, expected in predictions.items():
                         executions.step(s, event, expected)
                         edges += 1
                         commands[event[0], 'cut' if expected.cut else 'STOP' if expected.stop else 'PASS'] += 1
@@ -678,8 +702,8 @@ class ModelTest(unittest.TestCase):
         print('22c outcomes: ' + repr(dict(sorted(outcomes.items()))), flush=True)
         print('22c command edges: ' + repr(dict(sorted(commands.items()))), flush=True)
         print('22c menu-only destinations: ' + repr(sorted(menu_only)), flush=True)
-        self.assertEqual(len(parents), 486627)
-        self.assertEqual(edges, 12176910)
+        self.assertEqual(len(parents), 879291)
+        self.assertEqual(edges, 23108154)
         self.assertEqual(set(outcomes), {'none', 'retry', 'complete', 'waiting', 'not-applied',
                                         'selection-applied', 'target-boot-confirmed', 'in-place-not-started'})
 

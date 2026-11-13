@@ -200,7 +200,7 @@ class ShapeTest(Unchanged, unittest.TestCase):
         stock = saved['state']['rpm']['deployments']
         foreign = dict(copy.deepcopy(stock[0]), checksum='f0' * 32, booted=False, pinned=False, staged=True)
         for state in (saved['state'], machine([row(R21, staged=True), *stock]), machine([foreign, *stock])):
-            with self.subTest(state=state), laptop(state) as (tools, host, store):
+            with self.subTest(state=state), laptop(state) as (tools, host, store), patch.object(owner, 'account'):
                 prepared = dict(saved, bls=menu(saved['state']))
                 tools.save('prepared', prepared)
                 with patch.object(tools, 'qualified', side_effect=AssertionError('Installed survey reached a pre-install state')):

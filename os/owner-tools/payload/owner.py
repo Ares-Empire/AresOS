@@ -2027,7 +2027,9 @@ class Tools:
                 if finished != value['old']:
                     if 'restoring' not in value:
                         value['restoring'] = finished
-                        persist()
+                    # Re-publish the same intent on retry: every persistent
+                    # restoration has the same durable checkpoint before writes.
+                    persist()
                     self.set_keyboard(value['old'])
 
             pending = (self.store / 'layout-pending.json').exists()
