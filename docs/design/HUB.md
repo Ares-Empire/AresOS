@@ -4,9 +4,17 @@ Design, 2026-11-13, by a Fable design agent. Nothing here is built yet.
 
 **Status (2026-11-13).** Accepted by the orchestrator as the plan for the hub packages (briefs 32 to 37). What the owner has said so far and what was decided for him:
 - His pointers of 2026-11-13 are the base (flat Overworld first, logos built from blocks with an opening at the front and not too tall, the hotbar as the taskbar, `/name` in chat; "This is not set, neither the logos nor the walk in etc. You can find better solutions but in minecraft as a homescreen").
-- Logo height (section 7, question 1) is asked on board #207 with the picture of the four sizes; the packages build with 12 until he answers. It is one number (`SIZE`).
+- Logo height (section 7, question 1): he chose **12** on 2026-11-13 (board #207, with the picture of the four sizes). It stays one number (`SIZE`).
 - Questions 2 and 3 of section 7 were not put to him as questions: a program he installs gets a logo by itself, and the four groups stand as designed. Both were shown to him with the design and are cheap to change (a rule and a table).
 - Section 3.8 (the interface additions) was added by the orchestrator so the mod and the helper are built to one description.
+
+**Corrections from building it (2026-11-13).** Where the packages found the text wrong or silent, the text follows the build:
+- **3.6, step 2 (the plate test):** a pixel counts as visible from half opacity, not from the 12% of step 1. With 12% the glow around Lunar Client's tile counts as figure and the moon is not enlarged, against 2.3; with half, the 24 test icons give exactly the four named there (package 33).
+- **Signs and group names** stand on a dark plate (three quarters black); the default plate was too pale against the noon sky. GAMES is written in a lighter red (`0xFF6257`) and WORK & MEDIA in a lighter purple (`0xC774F2`) for the same reason (packages 32 and 33).
+- **The group names are the mod's.** In Build mode he can change every block, but a name cannot be removed or edited by hand in version 1; names change with the look (package 36).
+- **The ground under a logo:** grass under a solid block turns to dirt after a while. A gate records the grass it stands on and puts it back when it is removed, so a freed place is "untouched grass" again for 3.3 (package 33).
+- **Hand-built gates and an older mod:** a gate built with `/aresos logo` is recorded in the zones file. If an older mod (after going back to an older AresOS) saves that file, the record is lost and `logo remove` leaves the blocks. The town's logos are recorded in `hub.dat`, which an older mod never rewrites.
+- **App items and chests:** an app's item is not unique. If he puts one into a chest, the mod may put a fresh one into his inventory (package 34).
 
 It follows the owner's pointers of 2026-11-13: a flat Overworld first, app logos built from blocks that he walks into, the hotbar as the taskbar, `/name` in chat, logos that are not too tall and have an opening at the front. It replaces the Nether home of [DESIGN.md](DESIGN.md) as the first home. The Nether can come back later as a second look that uses the same rules.
 

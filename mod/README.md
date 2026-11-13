@@ -4,6 +4,20 @@ Minecraft Java 26.2, Java 25, Fabric Loader 0.19.5, Fabric API 0.161.0+26.2.
 Based on the official [Fabric example mod, 26.2 branch](https://github.com/FabricMC/fabric-example-mod/tree/26.2).
 Loom 1.19.2 requires the included Gradle 9.8.0 wrapper.
 
+## The same jar everywhere
+
+Build with **Temurin 25.0.5+8** and the SHA-256-checked **Gradle 9.8.0** wrapper;
+Loom **1.19.2**, Minecraft **26.2**, Loader **0.19.5** and Fabric API
+**0.161.0+26.2** are pinned in `gradle.properties`. Archives use fixed order,
+timestamps and permissions, compilation/resource filtering use UTF-8, and the
+Gradle JVM uses English/US and UTC. A small final jar action sorts Loom's
+client-entry manifest list and manifest attributes, preserving their values.
+Run `dev/build.sh` on the laptop, then `sha256sum build/libs/aresos-0.1.0.jar`
+(PowerShell: `Get-FileHash build/libs/aresos-0.1.0.jar -Algorithm SHA256`).
+Compare with the **Mod** workflow's summary for the same commit. That workflow
+uses the image's exact digest-pinned Temurin container, builds/tests two clean
+checkouts in different paths, checks equal bytes and uploads the jar and hashes.
+
 From this directory in PowerShell:
 
 ```powershell
@@ -18,6 +32,65 @@ Minecraft window. They use a fake app launcher, close the world and client on
 completion, and save regression screenshots in `build/review/01-first-app/`.
 Nether-home and seed screenshots go in `../reviews/04-nether-home/`.
 The client test task has a ten-minute timeout for a stuck game startup.
+
+## On Linux (AresOS)
+
+On the AresOS laptop, use the scripts in `dev/` (from any directory). They need
+no system install and change no shell setup:
+
+- **Java:** Eclipse Temurin JDK 25.0.5+8 in the home folder:
+  `~/.local/opt/jdk-25.0.5+8`, linked as `~/.local/opt/jdk-25`, unpacked from
+  [OpenJDK25U-jdk_x64_linux_hotspot_25.0.5_8.tar.gz](https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jdk_x64_linux_hotspot_25.0.5_8.tar.gz)
+  (SHA-256 `68982529869257d0ee6b824ec5aa270ff8b118bb438670da0b97ebdab178d7fb`,
+  as Adoptium publishes it). The scripts use `JAVA_HOME` if it is a Java 25 JDK,
+  otherwise that link (`dev/env.sh`).
+- **`dev/build.sh`** runs `./gradlew build` (unit tests and server game tests).
+  Six Windows catalogue unit tests (PowerShell discovery, Windows paths) skip on
+  Linux and say why.
+- **`dev/client-test.sh`** runs `./gradlew runClientGameTest` in its own headless
+  compositor (`cage`, `WLR_BACKENDS=headless`) and that compositor's Xwayland, so
+  no window appears on the screen and the game cannot reach the real display.
+  It renders on the RTX 4060 (PRIME offload) when that works headless, else on
+  the Intel GPU, else in software (`--gpu` picks one), and says which at the end.
+  Sound goes to OpenAL's null device. `--keep-screenshots <dir>` copies the
+  screenshots the run wrote (the folder is created and checked before the run,
+  and a failed copy makes an otherwise green run exit 1); then
+  `git checkout -- ../reviews/` undoes the rewritten tracked ones.
+- **`dev/run-hub.sh`** (a development aid; package 23's session supervisor replaces
+  it) starts an app helper of its own (`/usr/libexec/aresos-shell`) with a fresh
+  desktop instance and launch nonce on a private socket in
+  `$XDG_RUNTIME_DIR/aresos-dev/run-hub-<pid>/`, then `./gradlew runClient` on the
+  real screen on the RTX 4060 with that socket, so walking into a logo opens the
+  app. It never uses the session's `$XDG_RUNTIME_DIR/aresos/shell.sock` and never
+  reuses a helper; when the game exits, its helper stops and the folder is
+  removed. `--helper <path>` starts another helper (for example one from a
+  worktree) and `--registry <dir>` passes its app folder to the helper's
+  `--registry`.
+
+Extra arguments go to Gradle; its daemon switches `--daemon`, `--foreground`,
+`--stop` and `--status`, including their single-dash forms, are refused (exit
+code 2). Only one client test runs at a time on the laptop: `client-test.sh` waits for
+`~/.cache/aresos-dev/client-test.lock` and says so. All three refuse
+(exit code 75) while the Lunar Client game (Lunar's own Java) runs or less than
+6 GB of memory is available, and `client-test.sh` and `run-hub.sh` check again
+right before Gradle starts; `--force` skips those checks. Everything a script
+starts (Gradle without a lasting daemon, the game, a compositor, a GPU probe, the
+app helper, the wait for the lock) runs in a systemd user scope of that script's
+own, named `aresos-dev-…`, and every exit, Ctrl+C included, stops those scopes
+with everything in them.
+
+Scope startup has a 15-second deadline, including deferred signals. Cleanup
+retries stops and state queries for up to 30 seconds; if absence cannot be
+confirmed, it names the units, exits non-zero and keeps private run folders.
+Existing scope names are avoided, and a failed creation is never stopped.
+
+**Known limits of the dev scripts:**
+
+- A real Ctrl+C and a really closed terminal were tested as signals only.
+- A hanging GPU probe was tested with a stand-in, rather than a wedged compositor.
+- The user systemd manager must respond to commands. A broken manager that hangs
+  a query, or another process deliberately taking a just-checked random scope
+  name, is outside these scripts' guarantees.
 
 Click **AresOS** above Singleplayer on the title screen to reopen **AresHub**,
 or choose a seed on the create screen if it does not exist. Seed **49** is
