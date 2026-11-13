@@ -3,6 +3,7 @@
   "id": "terminal",
   "name": "Terminal",
   "argv": ["/usr/bin/foot", "--app-id=aresos.terminal", "/usr/bin/bash", "--rcfile", "/usr/share/aresos/bashrc", "-i"],
+  "replaces": ["foot.desktop"],
   "working_directory": "~",
   "window": {"app_ids": ["aresos.terminal"], "instance": "multi"}
 }

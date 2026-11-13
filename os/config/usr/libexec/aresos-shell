@@ -93,6 +93,13 @@ REPLAY_HORIZON = 600.0
 REGISTRY = '/usr/share/aresos/apps'
 DESKTOP_ENTRY_DIRS = ('/usr/share/applications', '/usr/local/share/applications')
 EXEC_PATH = '/usr/local/bin:/usr/bin'
+MAX_DESKTOP_ENTRY = 1024 * 1024
+# Arguments used for Terminal=true entries; changing the everyday terminal stays in one place.
+TERMINAL_COMMAND = ('/usr/bin/foot', '--app-id={app_id}')
+NVIDIA_OFFLOAD = {'__NV_PRIME_RENDER_OFFLOAD': '1', '__GLX_VENDOR_LIBRARY_NAME': 'nvidia',
+                  '__VK_LAYER_NV_optimus': 'NVIDIA_only'}
+GPU_KEYS = ('__NV_PRIME_RENDER_OFFLOAD', '__NV_PRIME_RENDER_OFFLOAD_PROVIDER', '__GLX_VENDOR_LIBRARY_NAME',
+            '__VK_LAYER_NV_optimus', '__EGL_VENDOR_LIBRARY_FILENAMES', 'DRI_PRIME')
 SYSTEMD_RUN = '/usr/bin/systemd-run'
 SYSTEMCTL = '/usr/bin/systemctl'
 # The desktop mod sets this Wayland app_id (and X11 class) on its own window.
@@ -163,7 +170,7 @@ class Failure(Exception):
 
 @dataclasses.dataclass(frozen=True)
 class App:
-    """One reviewed launch definition. The mod only ever sees id/name/availability."""
+    """A reviewed or discovered launch definition, kept entirely inside the helper."""
     id: str
     name: str
     argv: tuple = ()
@@ -172,9 +179,13 @@ class App:
     app_ids: frozenset = frozenset()
     instance: str = 'multi'
     invalid: str = None
+    replaces: tuple = ()
+    gpu: str = None
+    discovered: bool = False
+    terminal: bool = False
 
 
-ENTRY_KEYS = {'schema', 'id', 'name', 'argv', 'desktop_entry', 'working_directory', 'window'}
+ENTRY_KEYS = {'schema', 'id', 'name', 'argv', 'desktop_entry', 'working_directory', 'window', 'replaces', 'gpu'}
 WINDOW_KEYS = {'app_ids', 'instance'}
 
 
@@ -217,14 +228,25 @@ def parse_entry(data):
         raise ValueError('window.app_ids must not claim the desktop window')
     if instance not in ('single', 'multi'):
         raise ValueError('window.instance must be single or multi')
-    return App(app_id, name, tuple(argv or ()), entry, directory, frozenset(app_ids), instance)
+    replaces = data.get('replaces', [])
+    if (not isinstance(replaces, list) or len(replaces) > MAX_LIST
+            or not all(isinstance(value, str) and DESKTOP_FILE.match(value) for value in replaces)):
+        raise ValueError('replaces must list desktop file IDs')
+    gpu = data.get('gpu')
+    if 'gpu' in data and gpu != 'discrete':
+        raise ValueError('gpu must be discrete')
+    return App(app_id, name, tuple(argv or ()), entry, directory, frozenset(app_ids), instance,
+               replaces=tuple(replaces), gpu=gpu)
 
 
 def load_registry(directory):
     """Return (apps by ID, revision). Broken entries stay visible as unavailable."""
     apps, owners = {}, {}
     digest = hashlib.sha256()
-    for path in sorted(glob.glob(os.path.join(glob.escape(directory), '*.json')))[:MAX_APPS]:
+    paths = sorted(glob.glob(os.path.join(glob.escape(directory), '*.json')))
+    if len(paths) > MAX_APPS:
+        LOG.warning('registry cut at MAX_APPS=%d', MAX_APPS)
+    for path in paths[:MAX_APPS]:
         digest.update(os.path.basename(path).encode() + b'\0')
         try:
             with open(path, 'rb') as handle:
@@ -270,6 +292,17 @@ def resolve(app, executable=None, entry_dirs=DESKTOP_ENTRY_DIRS):
     executable = executable or (lambda path: os.path.isfile(path) and os.access(path, os.X_OK))
     if app.invalid:
         return None, None, app.invalid
+    if app.discovered:
+        # Discovery resolved the first word once. Never search PATH again at launch time.
+        if not app.argv or not executable(app.argv[0]):
+            return None, None, 'not_installed'
+        argv = list(app.argv)
+        if app.terminal:
+            terminal = [part.format(app_id=terminal_app_id(app)) for part in TERMINAL_COMMAND]
+            if not executable(terminal[0]):
+                return None, None, 'not_installed'
+            argv = terminal + argv
+        return argv, app.working_directory, None
     if app.desktop_entry:
         path = next((os.path.join(folder, app.desktop_entry) for folder in entry_dirs
                      if os.path.isfile(os.path.join(folder, app.desktop_entry))), None)
@@ -309,6 +342,15 @@ def desktop_exec(path):
                 values.setdefault(key.strip(), value.strip())
     if values.get('Type') != 'Application' or not values.get('Exec'):
         raise ValueError('not an application entry with Exec')
+    argv = _desktop_argv(values, path)
+    directory = values.get('Path') or None
+    if directory is not None and not posixpath.isabs(directory):
+        raise ValueError('Path must be absolute')
+    return argv, directory
+
+
+def _desktop_argv(values, path, forwarding=False):
+    """The existing Exec grammar, shared by reviewed and discovered entries."""
     exec_value = _unescape_string(values['Exec'])
     args, current, quoted, escaped, started = [], [], False, False, False
     for char in exec_value:
@@ -339,6 +381,19 @@ def desktop_exec(path):
         raise ValueError('unterminated quote in Exec')
     if started:
         args.append(''.join(current))
+    if forwarding:
+        clean, index = [], 0
+        while index < len(args):
+            arg = args[index]
+            if arg in ('@@', '@@u'):
+                codes = ('%u', '%U') if arg == '@@u' else ('%f', '%F')
+                if index + 2 >= len(args) or args[index + 1] not in codes or args[index + 2] != '@@':
+                    raise ValueError('invalid Flatpak forwarding markers')
+                index += 3
+            else:
+                clean.append(arg)
+                index += 1
+        args = clean
     argv = []
     for arg in args:
         if arg in ('%f', '%F', '%u', '%U', '%d', '%D', '%n', '%N', '%v', '%m'):
@@ -358,10 +413,7 @@ def desktop_exec(path):
         argv.append(arg.replace('%%', '%'))
     if not argv:
         raise ValueError('empty Exec')
-    directory = values.get('Path') or None
-    if directory is not None and not posixpath.isabs(directory):
-        raise ValueError('Path must be absolute')
-    return argv, directory
+    return argv
 
 
 def _unescape_string(value):
@@ -375,6 +427,173 @@ def _unescape_string(value):
         result.append(char)
         index += 1
     return ''.join(result)
+
+
+# ---------------------------------------------------------------- desktop discovery (wired to 1.1 in package 30 step 4)
+
+def desktop_directories(environ=None):
+    environ = os.environ if environ is None else environ
+    home = environ.get('HOME') or os.path.expanduser('~')
+    data_home = environ.get('XDG_DATA_HOME')
+    if not data_home or not os.path.isabs(data_home):
+        data_home = os.path.join(home, '.local/share')
+    return (os.path.join(data_home, 'applications'),
+            os.path.join(home, '.local/share/flatpak/exports/share/applications'),
+            '/var/lib/flatpak/exports/share/applications',
+            '/usr/local/share/applications', '/usr/share/applications')
+
+
+def desktop_files(directories):
+    """Yield the first file for each desktop ID, including hidden or broken overrides.
+
+    Nested paths form IDs by replacing / with -. Sort within each folder so sanitisation collisions are stable.
+    Directory symlinks are not traversed; Flatpak's exported desktop-file symlinks are regular-file inputs.
+    """
+    seen = set()
+    for folder in directories:
+        for root, dirs, files in os.walk(folder, followlinks=False):
+            dirs.sort()
+            for name in sorted(files):
+                if not name.endswith('.desktop'):
+                    continue
+                path = os.path.join(root, name)
+                desktop_id = os.path.relpath(path, folder).replace(os.sep, '-')
+                if desktop_id not in seen:
+                    seen.add(desktop_id)
+                    yield desktop_id, path
+
+
+def read_desktop_entry(path):
+    """Bounded untrusted text, with no interpolation, includes or action-group parsing."""
+    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
+    with os.fdopen(fd, 'rb') as handle:
+        info = os.fstat(handle.fileno())
+        if not stat.S_ISREG(info.st_mode):
+            raise ValueError('not a regular desktop file')
+        if info.st_size > MAX_DESKTOP_ENTRY:
+            raise ValueError('desktop file exceeds 1 MiB')
+        raw = handle.read(MAX_DESKTOP_ENTRY)
+        if os.fstat(handle.fileno()).st_size > MAX_DESKTOP_ENTRY:
+            raise ValueError('desktop file exceeds 1 MiB')
+    if b'\0' in raw:
+        raise ValueError('NUL in desktop file')
+    group, found, values = None, False, {}
+    for line in raw.decode('utf-8', 'replace').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        if line.startswith('['):
+            if not line.endswith(']'):
+                raise ValueError('invalid group header')
+            group = line
+            if group == '[Desktop Entry]':
+                if found:
+                    raise ValueError('duplicate Desktop Entry group')
+                found = True
+            continue
+        if group != '[Desktop Entry]':
+            continue
+        if '=' not in line:
+            raise ValueError('invalid Desktop Entry line')
+        key, value = line.split('=', 1)
+        key = key.strip()
+        if not re.fullmatch(r'[A-Za-z0-9-]+(?:\[[^\[\]\x00-\x1f]+\])?', key) or key in values:
+            raise ValueError('invalid or duplicate desktop key')
+        values[key] = value.strip()
+    if not found:
+        raise ValueError('missing Desktop Entry group')
+    return values
+
+
+def desktop_bool(values, key):
+    value = values.get(key, 'false')
+    if value not in ('true', 'false'):
+        raise ValueError('invalid boolean ' + key)
+    return value == 'true'
+
+
+def executable_file(path):
+    return os.path.isfile(path) and os.access(path, os.X_OK)
+
+
+def find_executable(word, executable):
+    if not word or '\0' in word or '=' in word:
+        return None
+    if os.path.isabs(word):
+        return word if executable(word) else None
+    if '/' in word:
+        return None
+    return next((path for folder in EXEC_PATH.split(':')
+                 if executable(path := os.path.join(folder, word))), None)
+
+
+def terminal_app_id(app):
+    return 'aresos.app.' + app.id
+
+
+def discovered_app(desktop_id, path, values, executable):
+    if (desktop_bool(values, 'Hidden') or desktop_bool(values, 'NoDisplay')
+            or values.get('Type') != 'Application'):
+        return None
+    # This catalogue belongs to AresOS even when inspected from another desktop or a headless test.
+    if ('OnlyShowIn' in values and 'AresOS' not in values['OnlyShowIn'].split(';')
+            or 'AresOS' in values.get('NotShowIn', '').split(';')):
+        return None
+    if 'TryExec' in values and not find_executable(_unescape_string(values['TryExec']), executable):
+        return None
+    if not values.get('Exec'):
+        return None
+    argv = _desktop_argv(values, path, forwarding=True)
+    program = find_executable(argv[0], executable)
+    if program is None:
+        return None
+    argv[0] = program
+    name = ''.join(c for c in _unescape_string(values.get('Name', '')).strip() if c.isprintable())[:64]
+    if not name:
+        raise ValueError('missing printable Name')
+    app_id = re.sub('[^a-z0-9_-]', '-', desktop_id[:-len('.desktop')].lower())[:64]
+    if not app_id:
+        raise ValueError('empty app ID')
+    directory = _unescape_string(values.get('Path', ''))
+    if '\0' in directory:
+        raise ValueError('NUL in Path')
+    terminal = desktop_bool(values, 'Terminal')
+    if terminal and not executable(TERMINAL_COMMAND[0]):
+        return None
+    discrete = (desktop_bool(values, 'PrefersNonDefaultGPU') or desktop_bool(values, 'X-KDE-RunOnDiscreteGpu')
+                or 'Game' in values.get('Categories', '').split(';'))
+    return App(app_id, name, tuple(argv), desktop_entry=desktop_id,
+               working_directory=directory if os.path.isabs(directory) else '~',
+               discovered=True, terminal=terminal, gpu='discrete' if discrete else None)
+
+
+def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None):
+    """A1-A4 catalogue plumbing. The 1.0 server deliberately still uses load_registry()."""
+    apps, revision = load_registry(registry_dir)
+    executable = executable or executable_file
+    replaced = {desktop_id for app in apps.values() for desktop_id in app.replaces}
+    replaced.update(app.desktop_entry for app in apps.values() if app.desktop_entry)
+    digest = hashlib.sha256(revision.encode())
+    for desktop_id, path in desktop_files(desktop_directories(environ) if entry_dirs is None else entry_dirs):
+        if desktop_id in replaced:
+            continue
+        try:
+            app = discovered_app(desktop_id, path, read_desktop_entry(path), executable)
+        except (OSError, ValueError) as error:
+            LOG.warning('desktop entry %r skipped: %r', path, error)
+            continue
+        if app is None:
+            continue
+        if app.id in apps:
+            LOG.warning('desktop entry %r loses app ID %s to an earlier or registry entry', path, app.id)
+            continue
+        if len(apps) >= MAX_APPS:
+            LOG.warning('catalogue cut at MAX_APPS=%d', MAX_APPS)
+            break
+        apps[app.id] = app
+        digest.update(json.dumps([app.id, app.name, app.argv, app.desktop_entry, app.working_directory,
+                                  app.terminal, app.gpu], ensure_ascii=True).encode())
+    return apps, digest.hexdigest()[:16]
 
 
 # ---------------------------------------------------------------- journal
@@ -463,13 +682,22 @@ def unit_escape(value):
     return value.replace('-', '\\x2d')
 
 
+def nvidia_present(root='/'):
+    """The NVIDIA kernel driver lists at least one GPU (same rule as aresos-desktop)."""
+    try:
+        return bool(os.listdir(os.path.join(root, 'proc/driver/nvidia/gpus')))
+    except OSError:
+        return False
+
+
 class ScopeLauncher:
     """Start apps in their own user scope, outside the game's and the helper's cgroups."""
 
-    def __init__(self, popen=subprocess.Popen, run=subprocess.run, environ=None):
+    def __init__(self, popen=subprocess.Popen, run=subprocess.run, environ=None, nvidia=None):
         self.popen = popen
         self.run = run
         self.environ = os.environ if environ is None else environ
+        self.nvidia = nvidia or nvidia_present
 
     @staticmethod
     def unit(app, launch_id):
@@ -480,14 +708,17 @@ class ScopeLauncher:
         return [SYSTEMD_RUN, '--user', '--scope', '--quiet', '--collect', '--slice=app.slice',
                 f'--unit={self.unit(app, launch_id)}', f'--description=AresOS app: {app.name}', '--', *argv]
 
-    def environment(self):
-        return {key: value for key, value in self.environ.items() if key not in PRIVATE_ENVIRONMENT}
+    def environment(self, app=None):
+        env = {key: value for key, value in self.environ.items() if key not in PRIVATE_ENVIRONMENT and key not in GPU_KEYS}
+        if app is not None and app.gpu == 'discrete' and self.nvidia():
+            env.update(NVIDIA_OFFLOAD)
+        return env
 
     def spawn(self, app, argv, directory, launch_id):
         home = self.environ.get('HOME') or os.path.expanduser('~')
         cwd = home if directory == '~' else directory
         # --scope execs the app in this child, so poll() reports the app's own exit.
-        return self.popen(self.command(app, argv, launch_id), cwd=cwd, env=self.environment(),
+        return self.popen(self.command(app, argv, launch_id), cwd=cwd, env=self.environment(app),
                           stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                           start_new_session=True, close_fds=True)
 
