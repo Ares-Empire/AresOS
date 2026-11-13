@@ -94,12 +94,13 @@ aresos_check_room() {
 ARESOS_GRADLE=("$ARESOS_MOD_DIR/gradlew" --no-daemon)
 
 # Refuses Gradle's own daemon switches among the forwarded arguments: --daemon would win over --no-daemon (Gradle
-# takes the last of the two), and --stop and --status act on every daemon of this Gradle version on the laptop.
+# takes the last of the two), --foreground starts a daemon that other sessions' builds could use, and --stop and
+# --status act on every daemon of this Gradle version on the laptop. Single-dash long options do the same.
 aresos_check_gradle_args() {
     local arg
     for arg; do
         case $arg in
-            --daemon | --stop | --status)
+            --daemon | -daemon | --foreground | -foreground | --stop | -stop | --status | -status)
                 aresos_fail 2 "Gradle's $arg is refused: these scripts run Gradle without a lasting daemon and leave other sessions' daemons alone." ;;
         esac
     done
@@ -121,22 +122,68 @@ aresos_job_running() {
 
 # aresos_scope_start <name> [systemd-run options...] -- <command...>: starts the command in the background in a
 # new scope of this script and returns once that scope exists (or the command has already ended). Sets
-# ARESOS_UNIT to the scope and ARESOS_JOB to the job, which is only ever waited for. A stop sends TERM to
-# everything in the scope and KILL 20 s later (TimeoutStopSec; an option may set another).
+# ARESOS_UNIT to the scope and ARESOS_JOB to the job. A launcher still awaiting activation is killed and reaped
+# after 15 s, before it can launch late. A stop sends TERM to
+# everything in the scope and KILL to what is left 20 s later (TimeoutStopSec; an option may set another).
 aresos_scope_start() {
-    ARESOS_UNIT="aresos-dev-$1-$$-$SRANDOM.scope"
+    local deadline=$((SECONDS + 15)) units status=0
+    while :; do
+        ARESOS_UNIT="aresos-dev-$1-$$-$SRANDOM.scope"
+        units=$(systemctl --user list-units --all --no-legend --plain "$ARESOS_UNIT") \
+            || aresos_fail 1 "Could not check whether $ARESOS_UNIT already exists; not starting it."
+        [[ -n $units ]] || break
+    done
     shift
     # systemd-run creates the scope before it starts the command in it, so a stop by name before then would miss
     # a command that is about to start. A signal until the scope exists is held, then acted on below.
     ARESOS_DEFER=1
     ARESOS_SCOPES+=("$ARESOS_UNIT")
-    /usr/bin/systemd-run --user --scope --quiet --collect --unit="$ARESOS_UNIT" --property=TimeoutStopSec=20 "$@" &
+    systemd-run --user --scope --quiet --collect --unit="$ARESOS_UNIT" --property=TimeoutStopSec=20 "$@" &
     ARESOS_JOB=$!
-    while aresos_job_running "$ARESOS_JOB" && ! /usr/bin/systemctl --user --quiet is-active "$ARESOS_UNIT"; do
+    while ! systemctl --user --quiet is-active "$ARESOS_UNIT"; do
+        if ! aresos_job_running "$ARESOS_JOB"; then
+            wait "$ARESOS_JOB" || { status=$?; unset 'ARESOS_SCOPES[-1]'; }
+            break
+        fi
+        if ((SECONDS >= deadline)); then
+            # This is still our live launcher job. Reap it before cleanup so it cannot launch a command later.
+            kill -KILL "$ARESOS_JOB" 2>/dev/null || true
+            wait "$ARESOS_JOB" 2>/dev/null || true
+            ARESOS_DEFER=0
+            aresos_say "Scope $ARESOS_UNIT did not activate within 15 s; cancelled its launcher."
+            exit "$((ARESOS_PENDING == 0 ? 1 : ARESOS_PENDING))"
+        fi
         /usr/bin/sleep 0.02
     done
     ARESOS_DEFER=0
     ((ARESOS_PENDING == 0)) || exit "$ARESOS_PENDING"
+    return "$status"
+}
+
+# aresos_stop_scopes <unit...>: stops these scopes of this script and returns once they are gone. systemd sends
+# TERM once to what is in a scope at that moment, so a process started just after it (cage starting its client
+# while it had the TERM held for its event loop, Gradle forking a JVM) would run on until the KILL; everything
+# still in a scope therefore gets TERM again every half second.
+aresos_stop_scopes() {
+    local unit state live deadline=$((SECONDS + 30))
+    while :; do
+        systemctl --user stop --no-block -- "$@" 2>/dev/null || true
+        live=()
+        for unit; do
+            if state=$(systemctl --user show --property=ActiveState --value -- "$unit" 2>/dev/null); then
+                case $state in inactive | failed) continue ;; esac
+            fi
+            live+=("$unit")
+        done
+        ((${#live[@]})) || return 0
+        if ((SECONDS >= deadline)); then
+            # Absence is unknown: leave private folders intact, and do not repeat cleanup on EXIT.
+            trap - EXIT
+            aresos_fail 1 "FAILED: scopes not confirmed gone after 30 s: ${live[*]}."
+        fi
+        /usr/bin/sleep 0.5
+        systemctl --user kill --signal=TERM -- "${live[@]}" 2>/dev/null || true
+    done
 }
 
 # aresos_scoped <name> [systemd-run options...] -- <command...>: aresos_scope_start, then waits for the command and
@@ -145,20 +192,21 @@ aresos_scope_start() {
 # the command. Background commands ignore SIGINT; Ctrl+C reaches them through the trap too.
 aresos_scoped() {
     local status=0
-    aresos_scope_start "$@"
+    aresos_scope_start "$@" || return $?
     wait "$ARESOS_JOB" || status=$?
-    /usr/bin/systemctl --user stop -- "$ARESOS_UNIT" 2>/dev/null || true
+    aresos_stop_scopes "$ARESOS_UNIT"
     return "$status"
 }
 
 # aresos_lock <file> <what holds it>: holds an exclusive lock on <file> until this script and everything it
-# started have exited, waiting for it (and saying so) while another run holds it. It polls instead of leaving a
-# blocked `flock` behind, so a signal still ends this script within half a second.
+# started have exited, waiting for it (and saying so) while another run holds it. The wait is one blocking `flock`
+# on that file in a scope of this script: it keeps its place in line with the other waiting runs (looking every
+# half second instead, a run lost the lock to every run that blocked), and a signal ends it at once.
 aresos_lock() {
     exec {ARESOS_LOCK_FD}>>"$1"
     /usr/bin/flock -n "$ARESOS_LOCK_FD" && return 0
     aresos_say "Waiting for $2 to finish ($1)..."
-    until /usr/bin/flock -n "$ARESOS_LOCK_FD"; do /usr/bin/sleep 0.5; done
+    aresos_scoped lock-wait -- /usr/bin/flock "$ARESOS_LOCK_FD"
 }
 
 # Every exit (success, failure, Ctrl+C, a closed terminal) first stops this script's scopes with everything in
@@ -168,7 +216,7 @@ aresos_exit() {
     local status=$?
     trap - EXIT
     trap '' INT TERM HUP
-    ((${#ARESOS_SCOPES[@]} == 0)) || /usr/bin/systemctl --user stop -- "${ARESOS_SCOPES[@]}" 2>/dev/null || true
+    ((${#ARESOS_SCOPES[@]} == 0)) || aresos_stop_scopes "${ARESOS_SCOPES[@]}"
     if declare -F aresos_cleanup >/dev/null; then aresos_cleanup "$status" || ((status)) || status=1; fi
     exit "$status"
 }

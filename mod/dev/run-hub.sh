@@ -15,7 +15,7 @@
 #   --force           skip the Lunar Client and 6 GB memory checks (otherwise exit 75); they run at the start and
 #                     again right before Gradle starts
 #
-# Gradle's --daemon, --stop and --status are refused (exit 2).
+# Gradle's --daemon, --foreground, --stop and --status are refused (exit 2).
 #
 # Every run has a helper and a socket of its own: the private folder $XDG_RUNTIME_DIR/aresos-dev/run-hub-<pid>/
 # (mode 0700) holds the socket and the helper's launch journal, and the game gets that socket in
@@ -86,7 +86,12 @@ exec {lock_fd}>>"$ARESOS_DEV_CACHE/run-hub.lock"
 for old in "${PRIVATE%/*}"/run-hub-*; do
     pid=${old##*-}
     [[ -d $old && $pid =~ ^[0-9]+$ ]] || continue
-    if [[ -z $(/usr/bin/systemctl --user list-units --all --no-legend --plain "aresos-dev-*-$pid-*") ]]; then
+    deadline=$((SECONDS + 30))
+    while ! units=$(systemctl --user list-units --all --no-legend --plain "aresos-dev-*-$pid-*"); do
+        ((SECONDS < deadline)) || aresos_fail 1 "FAILED: scopes not confirmed gone after 30 s: aresos-dev-*-$pid-*; keeping $old."
+        /usr/bin/sleep 0.5
+    done
+    if [[ -z $units ]]; then
         /usr/bin/rm -rf -- "$old"
     fi
 done
@@ -115,11 +120,11 @@ helper_unit=$ARESOS_UNIT
 # Only this run's helper can serve a socket in this run's private folder.
 tries=0
 until [[ -n $(/usr/bin/ss -xlH src "$SOCKET" 2>/dev/null) ]]; do
-    /usr/bin/systemctl --user --quiet is-active "$helper_unit" && ((tries++ < 100)) \
+    systemctl --user --quiet is-active "$helper_unit" && ((tries++ < 100)) \
         || aresos_fail 1 "The app helper did not start serving $SOCKET; see $HELPER_LOG."
     /usr/bin/sleep 0.1
 done
-/usr/bin/systemctl --user --quiet is-active "$helper_unit" || aresos_fail 1 "The app helper stopped; see $HELPER_LOG."
+systemctl --user --quiet is-active "$helper_unit" || aresos_fail 1 "The app helper stopped; see $HELPER_LOG."
 aresos_say "App helper running (desktop instance $instance, socket $SOCKET, log $HELPER_LOG)."
 
 # Waiting for the helper took a moment: check again right before the game.

@@ -286,32 +286,312 @@ Notepad literal in a test. Observations, not defects:
 - Should the old Linux paragraph of `mod/README.md` be rewritten (see the findings)? That belongs to whoever next
   touches the Linux launcher docs.
 
-## Review fixes 1: progress
+## Review fixes 1
 
-Work in progress (brief `briefs/29-review-fixes-1.md`). Done (code committed): all seven fixes, as planned below.
-Verified so far: `bash -n`; a stand-in harness (exit codes 0/3, TERM 143, HUP 129, INT to the process group 130,
-TERM at 19 points during scope start: no unit left); refusals of `--daemon/--stop/--status` (exit 2, all three
-scripts) and of unwritable `--keep-screenshots` destinations (exit 2); Lunar detection with a jlinked runtime in a
-fake HOME under `.work/lunar-test/` (Java: exit 75 in all three; non-Java program: not counted).
-Left: `build.sh`, one full `client-test.sh`, the four signal cases, the copy-failure exit code, `run-hub.sh` in a
-headless cage of my own, README, the final report section. The plan:
-- `env.sh`: `aresos_say` writes to a copy of stderr saved at load time (today a signal while a scoped run's
-  call is redirected sends the cleanup messages into that redirect, e.g. the compositor log).
-- `env.sh`: a list `ARESOS_SCOPES` of this script's units, named `aresos-dev-<name>-<pid>-<random>.scope`.
-  `aresos_scope_start <name> [systemd-run options] -- <command>` registers the unit, starts
-  `systemd-run --user --scope --collect` in the background with signals deferred (the traps set a pending
-  code instead of exiting), waits until the unit is active or the job has ended (`jobs -rp`, never a PID kill),
-  then acts on a pending signal. `aresos_scoped` = start + `wait` + stop. Every exit stops all registered
-  units (`systemctl --user stop`, TERM then KILL after `TimeoutStopSec`).
-- `aresos_lock` polls `flock -n` every 0.5 s instead of a background `flock` with a PID to kill.
-- GPU probes: `aresos_scoped probe-<mode> --property=RuntimeMaxSec=30 --property=TimeoutStopSec=5`, output to
-  `~/.cache/aresos-dev/client-test-probe.log`, no command substitution around them.
-- Check again (Lunar, memory) right before Gradle in `client-test.sh` and `run-hub.sh`.
-- Lunar: only `/proc/*/exe` matching `~/.lunarclient/*/bin/java`. Positive test: a jlinked runtime in a fake
-  HOME under `.work/` running a sleeping Java program.
-- `--daemon`, `--stop`, `--status` refused in all three scripts (one shared function in `env.sh`).
-- `--keep-screenshots`: mkdir and writability check before the run; copy result checked, failure turns exit 0
-  into 1.
-- `run-hub.sh`: private `$XDG_RUNTIME_DIR/aresos-dev/run-hub-<pid>/` (0700), helper with `--socket` there in its
-  own scope (`setpriv --pdeathsig TERM` kept as a SIGKILL safety net), no record file/reuse/PID kill; leftover
-  folders removed only when no `aresos-dev-*-<pid>-*` unit exists; the folder is removed at exit.
+Brief `briefs/29-review-fixes-1.md`, for `REVIEW.md` (gpt-6.1-sol on `8ee4aefa`: CHANGES-NEEDED, 3 blocking and 5
+should-fix, all accepted). A Claude agent (Opus 5.5) wrote the fixes and was stopped by a usage limit before it
+could run them. A fresh Claude agent (Opus 5.5) ran the checks below, fixed the three things they showed, and
+wrote this section. What "Done" and "Verified" above say about `run-hub.sh`'s record file, helper reuse and
+PID-based stop, about `timeout 30` around the GPU probes, about the lock wait and about Lunar detection no
+longer holds; this section replaces it.
+
+### What changed, per finding
+
+The idea behind all of them: every process a script starts runs in a systemd user scope that the script created
+and named, `aresos-dev-<name>-<pid>-<random>.scope`, and the script stops things only by stopping its own scopes.
+`env.sh` holds that once (`ARESOS_SCOPES`, `aresos_scope_start`, `aresos_scoped`, `aresos_stop_scopes`). No
+script remembers a PID to kill, and none reuses what an earlier run left.
+
+1. **Helper cleanup could kill an unrelated process (blocking).** `run-hub.sh` starts its helper in a scope of
+   its own (`aresos-dev-run-hub-helper-…`, `TimeoutStopSec=5`), and every exit stops that scope. The record
+   file, `own_helper`, the reuse branch and the PID-based `kill` are gone. `setpriv --pdeathsig TERM` stays, as
+   a safety net for a script killed with SIGKILL.
+2. **GPU probes escaped cleanup (blocking).** Each probe runs through `aresos_scoped` in
+   `aresos-dev-client-test-probe-<mode>-…`, with `RuntimeMaxSec=30` and `TimeoutStopSec=5`: systemd stops it
+   after 30 s (TERM, then KILL 5 s later), and every exit of the script stops it too. Its output goes to
+   `~/.cache/aresos-dev/client-test-probe.log`. No command substitution wraps it, so the script waits with
+   `wait` and a signal acts at once.
+3. **Signals during startup (blocking).** `aresos_scope_start` adds the unit's name to `ARESOS_SCOPES` before
+   `systemd-run` starts. It holds any INT, TERM or HUP (the trap only records it) until the scope is active or
+   the command has ended, and then acts on it. Every exit stops all registered scopes, with signals ignored
+   meanwhile. Two more changes came from this pass's runs:
+   - **A TERM that cage held back.** systemd's stop sends TERM once, to what is in the scope at that moment. A
+     TERM right at the start of the main run reached cage while it was still starting. cage handles TERM in its
+     event loop, so it first started its client (Gradle), which that TERM had missed. Gradle ran on and
+     launched the game, which crashed for lack of a display; the script exited 12 s after the signal (the KILL
+     would have come at 20 s). `aresos_stop_scopes` now queues the stop and sends TERM again, every half
+     second, to whatever is still in the scopes, until they are gone. systemd still sends KILL after
+     `TimeoutStopSec`.
+   - **The lock wait.** The previous builder had replaced the background `flock` (and its PID) with a check
+     every 0.5 s. In this pass a run checking like that waited 16 minutes, while two client tests of other
+     worktrees that had started waiting later went first: a run that only checks loses to every run blocked in
+     `flock`. `aresos_lock` now waits in one blocking `flock` on the lock's descriptor, in a scope of the script
+     (`aresos-dev-lock-wait-…`, through `aresos_scoped`), so it keeps its place in line and a signal ends the
+     wait at once.
+4. **Readiness and reuse did not identify the socket's server.** Each run makes a private folder
+   `$XDG_RUNTIME_DIR/aresos-dev/run-hub-<pid>/` (mode 0700; `mkdir` fails if it exists), starts the helper with
+   `--socket` there, and gives the game `ARESOS_SHELL_SOCKET` with that path. The game starts only once the
+   helper's scope is active and the socket in that folder is listening. No other helper uses that path, and
+   only this run created the folder. It never uses `$XDG_RUNTIME_DIR/aresos/shell.sock`. At the start, a
+   folder of a dead run is removed only when no `aresos-dev-*-<its pid>-*` unit exists; at exit, this run's
+   folder is removed. The header says that, once package 23's own helper runs, both helpers watch the same
+   windows while this script runs. Peer credentials are not checked and the script sends no hello of its own:
+   only processes of the same user can create a socket in that folder, and the helper refuses a hello whose
+   desktop instance or launch nonce does not match (`not_authorized`).
+5. **Stale refusal checks.** `client-test.sh` checks Lunar and memory again after the lock and the probes,
+   right before Gradle; `run-hub.sh` does it again once the helper is serving, right before Gradle. `--force`
+   skips both.
+6. **Lunar detection.** Only an executable matching `~/.lunarclient/*/bin/java` (also through the home folder's
+   real path) counts, not any program under `~/.lunarclient`.
+7. **Gradle daemon switches.** `--daemon`, `--stop` and `--status` among the forwarded arguments stop all three
+   scripts with one sentence, exit 2 (`aresos_check_gradle_args`). **New in this pass:** `--foreground` as
+   well. It starts a Gradle daemon (Gradle's help: "Starts the Gradle daemon in the foreground.") that other
+   sessions' builds could connect to until the scope is stopped.
+8. **`--keep-screenshots` reported success after a failure.** The folder is created and checked (a directory,
+   writable) before the lock; otherwise exit 2. The copy's result is checked (`find … -exec cp … +` fails when
+   a copy fails). A failure prints `FAILED to copy this run's screenshots to <dir> (see above); save them
+   before undoing the rewritten ones.` and turns exit code 0 into 1.
+
+Size: the four scripts went from 477 to 539 lines, mostly comments in `env.sh`. The brief hoped for no net
+growth.
+
+### What I ran and what it printed
+
+All on the laptop on 2026-11-13. No Lunar game was running (its launcher was open, which no longer counts), and
+`free -m` showed 6.3–10 GB available before each Gradle run. Three other builders (packages 32, 33 and 34) ran
+`build.sh` and `client-test.sh` from their worktrees with the round-1 scripts meanwhile, so
+`systemctl --user list-units 'aresos-dev-*'` sometimes listed their `aresos-dev-build-<pid>.scope` or
+`aresos-dev-client-test-<pid>.scope` (the old names, without the random part). None of those were mine; below,
+"no unit" means no unit of my run, and where the whole listing was empty I say so. Several times the lock was
+taken within milliseconds of my run's exit by another worktree's waiting run (its scope is in the next
+listing). No process of my run held it then: only the script and the processes in its scopes hold the lock's
+descriptor, and all of them were gone.
+
+- `bash -n` on the four files: no errors. The laptop has no `shellcheck`.
+- **`mod/dev/build.sh`:** exit 0 after 25 s, `BUILD SUCCESSFUL in 24s`, `All 38 required tests passed :)` (the
+  unit tests were up to date; no mod source changed). No unit of mine was left.
+- **`mod/dev/client-test.sh`, full:**
+
+  | Run | Scripts | Result |
+  |---|---|---|
+  | 1 | as handed over (`c1f3bf48`), `--keep-screenshots <dir>` | exit 0 after 6 min 52 s: `BUILD SUCCESSFUL in 6m 51s`, the same 35 pass lines as before, `Rendering headless on nvidia`, the game logged the RTX 4060, `Copied this run's screenshots to <dir>` (33 files, paths kept). No unit left, lock free. |
+  | 2 | final (`0e3d7a93`), `--keep-screenshots <dir>` | waited for the lock behind another worktree's run (`Waiting for another client test run on this laptop to finish (…/client-test.lock)...`), then exit 0 after 6 min 46 s: `BUILD SUCCESSFUL in 6m 45s`, the same 35 pass lines, NVIDIA, 33 files copied. The listing at its exit was empty. |
+  | 3 | final, `--keep-screenshots <dir>`, the folder made read-only once the game was up | waited for the lock, then `BUILD SUCCESSFUL in 6m 46s` with the same 35 pass lines; the copy failed (below) and the script exited 1. The listing at its exit was empty. |
+
+- **Signals,** final scripts (`0e3d7a93`). Each case was a run of its own; a driver that held the script's PID
+  sent the signal and then ran `systemctl --user list-units 'aresos-dev-*' --all --no-legend`, checked the
+  lock, and listed the processes in the run's scopes (none in every case).
+
+  | Signal | Exit | Script ended | Listing afterwards |
+  |---|---|---|---|
+  | TERM during the NVIDIA probe (2 ms after its scope appeared; the script had printed no probe result) | 143 | 0.57 s after it | empty |
+  | TERM right at the start of the main run (the moment its start stamp appeared) | 143 | 1.13 s after it; Gradle printed nothing | empty |
+  | TERM in the middle (40 s after the game was up, 3 tests passed) | 143 | 1.58 s after it | only package 32's next run |
+  | HUP in the middle (same point) | 129 | 15.1 s after it | empty |
+
+  What was in the run's scopes, sampled every 0.5 s after the mid-run signals: at the signal cage, Xwayland and
+  three JVMs; 0.5 s later only Gradle's daemon and the game's JVM. After the TERM both were gone at 1.0 s.
+  After the HUP the game's JVM took 14.6 s to end (it had just logged `Close the menu and finish moving or
+  crafting items before switching AresOS mode`), inside the 20 s before systemd's KILL.
+
+  Earlier runs of the same cases, none of which left a unit:
+  - with the scripts as handed over: TERM during the probe 0.18 s; TERM at the start 12.0 s (the cage case under
+    finding 3, which led to the stop fix);
+  - with the stop fix, before the lock change: TERM during the probe 0.56 s (the probe log ended with `Error:
+    unable to open display :1`: `glxinfo` started after cage had gone), TERM at the start 1.11 s, TERM in the
+    middle 5.8 s and 1.6 s, HUP in the middle 17.4 s and 1.6 s.
+
+- **`--keep-screenshots`, copy failure:** in run 3 the folder passed the check before the run, and my driver
+  made it read-only (mode 555) once the game was up. At the end `cp` printed `cannot make directory
+  '<dir>/reviews': Permission denied` (33 times, once per file). Then the script printed `FAILED to copy this
+  run's screenshots to <dir> (see above); save them before undoing the rewritten ones.` and `Client tests ended
+  with exit code 0 after 6 min 48 s (…)` (the tests' own result), and exited **1**.
+- **`run-hub.sh` in a headless cage of my own.** My driver started `cage` with `WLR_BACKENDS=headless` on the
+  NVIDIA render node, without the session's `DISPLAY` and `WAYLAND_DISPLAY`, in a scope of its own, and ran
+  `run-hub.sh` as cage's client (cage gave it `WAYLAND_DISPLAY=wayland-2 DISPLAY=:2`). An inotify watch on
+  `$XDG_RUNTIME_DIR/aresos/` (every event) and on the name `aresos` in `$XDG_RUNTIME_DIR` ran throughout.
+  - While it ran: `aresos-dev-run-hub-helper-<pid>-…` and `aresos-dev-run-hub-game-<pid>-…` active; the private
+    folder `drwx------ run-hub-<pid>` holding `srw------- shell.sock`, listening (`ss -xl`); the helper
+    `python3 /usr/libexec/aresos-shell --socket /run/user/1001/aresos-dev/run-hub-<pid>/shell.sock`; all three
+    JVMs of the game's scope with `ARESOS_SHELL_SOCKET` set to that socket, `DISPLAY=:2` and
+    `WAYLAND_DISPLAY=wayland-2`.
+  - **The hello:** helper log `serving aresos-shell/1.0 on /run/user/1001/aresos-dev/run-hub-<pid>/shell.sock (3
+    apps)`, then `desktop connected (minor 0)`; the game printed `AresOS app helper: CONNECTED (tracking
+    windows)`. A `grim` of my cage showed the game's first-start screen.
+  - **The game ends:** I asked its window to close the way a close button does (a `WM_DELETE_WINDOW` client
+    message on my cage's Xwayland; `xdotool windowquit` did nothing there, as cage handles no
+    `_NET_CLOSE_WINDOW`, so that first try ended through my own cage's stop instead). The game logged
+    `Stopping!`, Gradle `BUILD SUCCESSFUL in 17s`, and `run-hub.sh` printed `Stopped the app helper` and exited
+    0, 1.5 s after the close.
+  - **TERM** to `run-hub.sh` after the hello: exit 143 after 1.5 s, `Stopped the app helper`.
+  - After each of the three runs: no unit of the run, `$XDG_RUNTIME_DIR/aresos-dev/` empty (the private folder
+    gone), `$XDG_RUNTIME_DIR/aresos/` the same as before (the empty folder an earlier round-1 run made at
+    15:18: same inode, mode, mtime and ctime), and 0 inotify events on it.
+- **Refusals:**
+  - `build.sh --daemon`, `--stop`, `--status`, `--foreground`; `client-test.sh -- tasks --daemon` and
+    `client-test.sh -- --foreground`; `run-hub.sh --stop` and `run-hub.sh --foreground`: each printed
+    `<script>: Gradle's <switch> is refused: these scripts run Gradle without a lasting daemon and leave other
+    sessions' daemons alone.` and exited 2.
+  - `--keep-screenshots` with a read-only folder, a folder under it, and `/etc/passwd`: `client-test.sh:
+    --keep-screenshots: <path> is not a directory this run can write to.`, exit 2.
+  - **Lunar,** tested with a fake home folder in `.work/lunar-test/home/` (ignored by git), never touching
+    `~/.lunarclient`. Its `.lunarclient/jre/fake-zulu/bin/java` is a `jlink` runtime (`java.base` only) of the
+    Temurin 25 JDK, running a class that sleeps; `.lunarclient/launcher/lunarclient` is a copy of
+    `/usr/bin/sleep`. With `HOME` set to that folder:
+    - with nothing running, and with the copy of `sleep` running there, `aresos_lunar_game_pids` printed
+      nothing;
+    - with that `java` running, it printed the process's PID, and `build.sh`, `client-test.sh` and
+      `run-hub.sh` each printed `The owner's Minecraft (Lunar Client, PID 433519) is running; try again once it
+      has closed, or pass --force.` and exited 75. (`run-hub.sh` ran with `--helper /usr/bin/false`, `DISPLAY`
+      unset and a made-up `WAYLAND_DISPLAY`, so it could not have reached the screen had it not refused.)
+    - With the real home folder and the Lunar launcher open, it printed nothing.
+- **Stand-in checks of `env.sh`** (scratch scripts outside the repo that source it):
+  - A scoped command that starts a child just after its TERM: the stop took 20.1 s with the handed-over
+    `env.sh` (the child ran until the KILL) and 0.54 s now. No unit was left either way.
+  - A scope with the probe's options (`TimeoutStopSec=20`, then `RuntimeMaxSec=3` and `TimeoutStopSec=5`)
+    around a command that ignores TERM: `systemctl show` gave `TimeoutStopUSec=5s` (the later option wins),
+    and systemd killed it after 8.4 s (3 s, then 5 s).
+  - The lock, against a blocking `flock` that started waiting 0.3 s later: the old wait got the lock first in 0
+    of 6 rounds, the new one in 6 of 6. TERM while waiting: exit 143 after 0.014 s, no unit left.
+
+### Not verified
+
+- A real Ctrl+C in a terminal and a really closed terminal: the runs above used TERM and HUP to the script.
+  INT to the process group was only checked by the previous builder's stand-in (exit 130).
+- A probe that really hangs: the 30 s limit was checked with the stand-in scope above, not with a wedged cage.
+- `run-hub.sh` on the real screen was not run in this round, as the brief says, so neither was walking into a
+  logo.
+- Two helpers at once: package 23's own helper is not on the laptop yet.
+
+## Review fixes 2
+
+Brief `briefs/29-review-fixes-2.md`, addressing `REVIEW-2.md` on `5e53ca2f`.
+Builder: Codex, gpt-6.1-sol. This section supersedes round 1's claims about
+Gradle option spellings, unbounded startup and unchecked systemd query results.
+No mod source or tests changed.
+
+### Done
+
+1. **Gradle options (`db29de28`).** The shared guard rejects `--daemon`,
+   `--stop`, `--status`, `--foreground` and all four single-dash forms in all
+   three scripts.
+2. **Unknown systemd state (`ad135550`).** Cleanup retries stop requests and
+   checks each query's status separately from its output. Only a successful
+   inactive/failed result confirms absence. After 30 seconds without
+   confirmation it prints one error naming the units, exits 1 and skips folder
+   cleanup. Stale-folder checks in `run-hub.sh` retry failed listings for the
+   same deadline and preserve the folder on failure. `systemctl` uses `PATH`
+   so the checks can be exercised with a private wrapper.
+3. **Startup deadline (`70ade912`).** Startup waits at most 15 seconds for
+   activation. If its launcher is still running, it kills and reaps that live
+   child before exiting, preventing a late command launch. Exit cleanup stops
+   the unit by name; a deferred signal supplies the exit status (TERM: 143),
+   otherwise the timeout exits 1. `systemd-run` also uses `PATH` for stand-ins.
+4. **Scope ownership (`cbff956d`).** Each candidate name is checked before
+   launch; existing names get another random suffix. A launcher that ends
+   unsuccessfully before activation is reaped and unregistered, and the caller
+   propagates its failure without stopping that name. An already active scope
+   remains owned if its command subsequently fails, so its children still get
+   cleaned up.
+
+`mod/README.md` describes the deadlines, single-dash options and known limits.
+Each fix has its own commit with a `Model: gpt-6.1-sol` trailer.
+
+### Verified
+
+All checks ran in this worktree on the owner's Linux laptop, without sudo or
+`--force`. The real session's display variables were removed before launching
+the full client checks; the client script created its own headless cage and
+Xwayland. The `run-hub.sh` stale-folder stand-in used a private runtime folder
+inside `.work/`, a nonexistent display name and `/usr/bin/false` as helper;
+it never started a helper or game.
+
+- `bash -n mod/dev/{env,build,client-test,run-hub}.sh`: exit 0, no output.
+  `git diff --check`: exit 0, no output. `shellcheck` is not installed.
+- One loop over the eight Gradle spellings, invoking each of `build.sh`,
+  `client-test.sh` and `run-hub.sh` with `-- <spelling>`: all 24 exited 2 and
+  printed `Gradle's <spelling> is refused: these scripts run Gradle without a
+  lasting daemon and leave other sessions' daemons alone.`
+- `python3 .work/review-fixes-2/query-checks.py` on the final scripts, using a
+  private `PATH` wrapper that fails the first stop and selected state queries:
+  - Persistent failed state queries: exit 1 after 29.40 s; stop retried; real
+    scope inactive; stand-in lock free. Printed `FAILED: scopes not confirmed
+    gone after 30 s: <unit>.` once.
+  - Three transient failed state queries: exit 0 after 1.66 s; stop retried;
+    real scope inactive; lock free.
+  - Failed stale-folder listings: exit 1 after 29.32 s, one error naming
+    `aresos-dev-*-777777777-*` and the retained folder. Its marker survived;
+    no helper/game started and no run folder was deleted.
+- `python3 .work/review-fixes-2/private-cleanup-check.py`: exit 1 after 30.50 s;
+  one error naming the unconfirmed scope, this run's private folder retained,
+  cleanup callback skipped, lock free.
+- `python3 .work/review-fixes-2/startup-checks.py` on the final scripts, with
+  a launcher that never activates: exit 1 after 14.74 s; with TERM sent after
+  one second, exit 143 after 14.98 s. Each printed `Scope <unit> did not
+  activate within 15 s; cancelled its launcher.` once. Launchers were reaped,
+  no late command ran, scopes were inactive and both stand-in locks were free.
+- `python3 .work/review-fixes-2/ownership-checks.py`: forced suffix 111 to name
+  an existing real scope, then provided suffix 222. Printed `PASS collision:
+  suffix 111 existed; suffix 222 used; existing scope still active afterwards;
+  new scope gone; lock free.` The driver then stopped only its own fixture
+  scope. Failed creation exited 42, or 143 with TERM pending; both printed
+  `PASS failed creation`, made no stop/kill request and left the lock free.
+- `mod/dev/build.sh`: exit 0, `All 38 required tests passed :)`,
+  `BUILD SUCCESSFUL in 20s`, `17 actionable tasks: 3 executed, 14 up-to-date`.
+- `python3 .work/review-fixes-2/old-standins.py`: the round-1 stand-ins also
+  passed: a child launched during TERM was cleaned up in 0.59 s (exit 0);
+  `RuntimeMaxSec=3` plus `TimeoutStopSec=5` killed a TERM-ignoring command in
+  8.33 s (exit 137); TERM while waiting for a lock exited 143 in 0.02 s, with
+  the lock free after the holder ended. An initial scratch harness had broken
+  shell quoting and timed out after 30 s; these are the corrected harness's
+  results. No process from the failed harness remained afterwards.
+- `python3 .work/review-fixes-2/lock-order-check.py`: `PASS lock order` in
+  all six rounds; the earlier scoped waiter acquired the lock before a later
+  blocking `flock` each time.
+- A created scope whose command starts a child and exits 42: printed `PASS
+  failed command in created scope: exit 42; child stopped; lock free.`
+
+- `python3 .work/review-fixes-2/full-checks.py` launches
+  `mod/dev/client-test.sh --keep-screenshots <absolute .work path> build`
+  twice, with `DISPLAY`, `WAYLAND_DISPLAY` and `WAYLAND_SOCKET` removed from
+  its environment. Each invokes `./gradlew --no-daemon runClientGameTest build`,
+  covering the full build and client tests twice as required by `AGENTS.md`.
+
+  | Run | Result |
+  |---|---|
+  | 1 | Exit 0 after 426.15 s; `BUILD SUCCESSFUL in 7m 5s`; all 35 client pass lines, `All 38 required tests passed :)`; RTX 4060 headless; 33 PNG screenshots copied. |
+  | 2 | Exit 0 after 424.22 s; `BUILD SUCCESSFUL in 7m 3s`; all 35 client pass lines, `All 38 required tests passed :)`; RTX 4060 headless; 33 PNG screenshots copied. |
+
+`free -g` showed 10 GiB available before the standalone build and each combined
+run. No run returned 75 or required a retry. Both full runs printed that their
+single-use Gradle daemon would stop at the end of the build.
+
+Afterwards, `systemctl --user list-units 'aresos-dev-*' --all --no-legend --plain`
+printed nothing and a nonblocking `flock` confirmed the shared client-test lock
+was free. No scope, game, compositor or Gradle daemon from these runs remained.
+The final syntax and whitespace checks again exited 0 with no output.
+
+Each run's 33 PNG screenshots and logs are preserved in the ignored
+`.work/review-fixes-2/` (the `client-1-screenshots/` and
+`client-2-screenshots/` folders). Restored the two tracked PNGs rewritten by the
+tests and removed 25 generated untracked PNGs after saving the copies; no
+screenshot changes are committed. **Files left in `.work/` over 500 MB: none.**
+
+### Not verified
+
+- A physical Ctrl+C or an actually closed terminal; these remain signal-only
+  checks as in round 1. A truly wedged GPU probe remains represented by a
+  stand-in.
+- `run-hub.sh` on the owner's screen, walking into a logo, or two helpers
+  watching windows at once. No real-session window was opened.
+- A systemd manager that hangs calls, or a process racing to take a name
+  between its successful absence check and creation. These are the brief's
+  accepted limits, now documented in `mod/README.md`.
+
+**JUDGMENT-CALL:** none beyond the limits explicitly accepted by the brief.
+
+**PLAN-GAP:** none new. As recorded above, stopping all Gradle daemons with
+`./gradlew --stop` would affect other builders. These scripts use single-use
+Gradle daemons and clean up their own scopes instead.
+
+**Open questions:** none.
