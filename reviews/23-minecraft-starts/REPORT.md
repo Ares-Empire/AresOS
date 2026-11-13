@@ -5,42 +5,239 @@ Branch `pkg/23-minecraft-starts`, PR #36. Review: Codex gpt-6-astra (high), fres
 
 Nothing was pushed to a registry, signed or published. The release pin is unchanged.
 
-## Review fixes 5 (REVIEW-5, 2026-11-13): WORK IN PROGRESS
+## Review fixes 5 (REVIEW-5, 2026-11-13)
 
-Builder: a Claude agent (Fable 5.2), natively on AresOS (Linux, Python 3.14), not in WSL. Brief:
-`briefs/23-review-fixes-5.md`. This section is a hand-over note until the round is finished; a fresh agent can pick
-up from it.
+REVIEW-5 (Codex gpt-6-astra, high, on `d6aab7ab`): 1 blocking, 3 should-fix, all again at the hand-off between
+the supervisor and the Java wrapper. Builder of this round: a Claude agent on Fable 5.2 (brief 5 chose it because
+five reviews in a row found hand-off races), working natively on AresOS (Fedora-based, Python 3.14, systemd 259),
+not in WSL. Brief: `briefs/23-review-fixes-5.md`. Only the supervisor, the wrapper and their tests changed: no
+image build input and no VM check, so no CI run was started (the merge of main below changes `os/build.sh`).
 
-**The rule (the brief's):** only an end that is certain to be an ordinary crash restarts by itself. Everything
-uncertain latches recovery and waits for `retry`.
+**The rule this round is built on** (brief 5): restart by itself only when the end is *certain* to be an ordinary
+crash. Everything uncertain latches recovery and waits for `retry`.
 
-**How it is built (state at this commit):**
+**What made the earlier rounds race, and what is gone now.** Rounds 2 to 4 asked "did the wrapper stop Java, or did
+something else?" and answered it from where the wrapper's code was, then from the signals it had noted. That
+question has no safe answer: a SIGKILL from outside can land a moment before the wrapper's own, and the exit status
+is the same. So the question is no longer asked. The wrapper reports facts only (Java's real exit status, the
+signals it delivered, a reason), and the supervisor decides every end in one place, `conclude()`, from the status
+alone:
 
-- **Fix 1, done in code, tests written:** the wrapper's `send()` notes a signal only as a confirmed send (one look
-  at Java without reaping it, then `kill`; never noted when skipped or failed). And no decision hangs on who sent a
-  signal any more: the supervisor's `conclude()` decides from Java's real status alone. A SIGKILL latches whoever
-  sent it (also the wrapper's own, of a Java that ignored SIGTERM: the status cannot tell whose SIGKILL landed
-  first). `stopped_by_wrapper` is gone from both programs. This is the updated JUDGMENT-CALL 10 (to be written).
-- **Fix 2, done in code, tests written:** exit 0 is his quit whenever it comes (before the PID, after a refusal,
-  during a lost hand-off).
-- **Fix 3, done in code, tests written:** the exit record lives in `~/.local/state/aresos/desktop-exit.json` (the
-  supervisor names the file and the session in its `jvm_start` reply; the wrapper writes it with fsync). After a
-  reboot an unresolved latch is reconciled from it exactly once; the old session's quit or restart is not carried
-  into the new session (`End.session`, `new_session()`).
-- **Fix 4, done in code:** the model (`HandOffRun`, `HandOffModelTest`) is rewritten: the wrapper's steps are
-  separate events (look and SIGTERM, the stop window and SIGKILL, record write, report), a SIGKILL from outside can
-  land right after each look, a reboot (`Z`) clears the whole runtime folder after every order, and the expected
-  outcome comes from the model's own ledger. It passes: 41,984 orders, each with and without a reboot, about 80 s.
-  (Its first run failed on the model's own bound "restarted at most once": a restarted supervisor begins an
-  unstarted launch again, which is not a restart after a crash. The bound now says so.)
-- **Targeted tests:** `test_aresos_desktop` passes natively (144 tests at the last full run of the module, before
-  the last harness fixes; the real-loop, wrapper, policy, adoption and model classes pass after them).
-- **Item 5:** no smaller protocol built. Proposal to write: Java as a transient systemd service whose result the
-  supervisor reads (cost: Prism's process model, the lock, a VM check and CI; much bigger than fixes 1 to 4).
+| Java's end, as its wrapper saw it | Outcome |
+|---|---|
+| any status but 0 and SIGKILL (also 143 after the wrapper's own SIGTERM) | a crash or failed start: counted once, restarted after its backoff |
+| Java never ran (the wrapper says why) | a failed start: counted once, restarted |
+| exit 0 | his quit: never counted, never restarted |
+| SIGKILL, whoever sent it | `killed`: latched, never counted, never restarted |
+| no report and no record | `killed`, saved as unresolved until a late report or the record explains it |
 
-**Not done yet:** the revert proof per fix; the merge of `origin/main` (the integrator's addition: merge commit,
-then both full-suite runs on the merged head, natively, from a fresh clone); the final form of this section with
-the updated JUDGMENT-CALL 10 and the known limits.
+`stopped_by_wrapper` (one copy in each program, kept equal by a test) and the `stopped` flag in reports, records
+and four supervisor functions are deleted. The two programs now share one format for "how Java ended"
+(`end_report()` in the wrapper, `End` and `end_facts()` in the supervisor) and nothing they have to agree on.
+
+1. **Confirmed sends only (blocking finding 1).**
+   - The wrapper's `send()` looks at Java without reaping it (`waitid` with `WNOWAIT`), sends with `kill`, and
+     notes the signal only when Java had not ended and the kernel took it. A skipped or failed send is never
+     noted; `stop()` has no early return. The forwarded signals (SIGTERM from Prism) go the same way.
+   - The supervisor never restarts a SIGKILLed Java, whoever sent the signal (the table). So REVIEW-5's case, an
+     outside SIGKILL after the stop window and before the wrapper's own, latches: by the report and by the record.
+     So does the one case no bookkeeping can settle: the outside SIGKILL lands between the wrapper's look and its
+     `kill`, and the wrapper truthfully notes a SIGKILL that reached a Java already dead.
+   - Tests: `WrapperTest.test_a_kill_from_outside_at_each_point_of_the_wrappers_stop` (the real wrapper, hooks at
+     four exact points, no sleeps: before its SIGTERM, between its look and its SIGTERM, after the stop window and
+     before its SIGKILL, between its last look and its SIGKILL; report and record say the same),
+     `test_a_signal_counts_as_sent_only_when_a_running_java_took_it` (running, ended but not reaped, reaped);
+     `RestartPolicyTest.test_a_sigkilled_java_never_restarts_whoever_sent_the_signal` (12 cases) and
+     `test_no_decision_hangs_on_the_signals_the_wrapper_sent` (9 statuses by 4 signal sets); through the real loop
+     and wrapper `LoopTest.test_a_kill_from_outside_before_the_wrappers_sigkill_latches`,
+     `..._latches_by_the_record_alone`, `test_a_kill_from_outside_right_after_the_wrappers_last_look_latches`, and
+     `test_a_lost_hand_off_with_a_java_that_ignores_sigterm` (now latched, see JUDGMENT-CALL 10).
+2. **Exit 0 is his quit whenever it comes (finding 2).** `conclude()` no longer asks whether the PID had been
+   accepted. Tests: `RestartPolicyTest.test_exit_zero_is_his_quit_whenever_it_comes` (before the PID was delivered,
+   after a refusal, during a lost hand-off by report and by record, with a lost answer after acceptance: no failure
+   counted, no restart after an hour), `LoopTest.test_a_java_that_exits_zero_before_the_hand_off_is_his_quit` (real
+   loop and wrapper).
+3. **Facts survive a reboot (finding 3).**
+   - The exit record moved from `$XDG_RUNTIME_DIR/aresos/` to `~/.local/state/aresos/desktop-exit.json`. The
+     supervisor names the file and the session in its `jvm_start` reply; the wrapper writes it (temporary file,
+     fsync, rename, fsync of the folder) before it reports. It carries the launch, the session, the PID and start
+     time, the status, the confirmed signals and the reason. Without a usable file name the wrapper refuses to
+     start Java.
+   - After a reboot the supervisor restores the unresolved launch as before and now finds its record: a kill stays
+     latched, a crash is counted once and the latch lifted, his quit lifts the latch. What the old session would
+     have done next is not carried over: the record's session differs from the new one, so the new session starts
+     its hub (`new_session()`), and only a latch holds it back (call 12).
+   - Tests: `RestartPolicyTest.test_an_explanation_written_before_a_reboot_is_applied_after_it` (crash, the
+     wrapper's SIGTERM, quit, kill, kill with the wrapper's SIGKILL; exactly once over a third supervisor),
+     `test_a_reboot_keeps_a_latch_nothing_explains`, `test_his_quit_holds_in_its_own_session_only`;
+     `WrapperTest.test_the_exit_record_is_written_durably`, `test_without_a_place_for_the_exit_record_java_never_
+     runs`; `LoopTest.test_an_explanation_the_wrapper_could_not_deliver_survives_a_reboot` (REVIEW-5's own order
+     through the real loop and wrapper: latched as unexplained, the supervisor stops, the wrapper writes and finds
+     nobody to tell, the runtime folder is cleared, the next supervisor counts one failed start and starts the hub).
+4. **A model that cannot agree with the code by accident (finding 4).** `HandOffRun` and `HandOffModelTest` are
+   rewritten.
+   - **Separate events.** The wrapper's steps are single events: its wait for the answer times out; one look and
+     SIGTERM (Java exits 143, or ignores it, or is SIGKILLed from outside right after the look); the stop window
+     and SIGKILL (again with the outside kill right after the look); the record write; the report; its death.
+     Between any two of them the supervisor can handle `jvm_started` (answered or not), lose the connection,
+     restart, let 40 s pass, and Java can quit, crash or be killed.
+   - **The real code at each step.** The model talks to the real supervisor through the real `Loop.handle`, in the
+     JSON lines the wrapper sends. The wrapper's steps are its real `send()` (the module's `os` is replaced, so
+     `waitid` and `kill` act on the model's Java), `end_report()` and `write_exit()`.
+   - **A reboot** after every order: every process is gone, the whole runtime folder is cleared, a new session
+     starts.
+   - **Its own ledger.** The model writes down what ended Java (itself, the wrapper's SIGTERM or SIGKILL, a kill
+     from outside, the wrapper's death, the reboot) and whether the wrapper wrote that down. The expected outcome
+     comes from this ledger alone (`truth()`); no return value of the supervisor and no rule of the wrapper is in
+     it. The supervisor's answers are used only as the wrapper uses them (to go on or to stop Java), and its
+     latch right before a reboot is compared with the one after it.
+   - **Invariants.** At every step: nothing is counted twice; **an end that is not a certain crash is never
+     counted and never restarts** (new; it contains round 4's "a kill never restarts" and "his quit never
+     restarts"); a signal is noted exactly when Java had not ended at the wrapper's look; no supervisor latches a
+     start while its wrapper is inside the stop-and-report window after a seen loss. Settled: a certain crash is
+     counted exactly once and nothing stays latched; his quit leaves nothing; a kill or an end nobody wrote down
+     is latched. After a reboot: a latch survives unless the record explains it; a crash is counted exactly once
+     if a supervisor knew of it or had latched it; the new session starts its hub exactly once unless latched, so
+     his old quit never keeps it closed.
+   - **Size.** 41,984 orders (every order that can happen, with one supervisor restart, one 40 s stretch,
+     and a loss early or 25 s into the authorization window), each run twice, without and with a reboot: about
+     80 s natively. The test also asserts that the orders reach every kind of end, the restart and both
+     sides of a reboot, so it cannot pass by losing its orders.
+5. **Simplify (item 5).** Done inside the current protocol: the question the two programs raced on is removed
+   (above), and both report channels carry one format. **A smaller protocol, proposed and not built:**
+   - Run Java as a transient systemd *service* of the user manager instead of as the wrapper's child
+     (`systemd-run --user --wait --pipe --service-type=exec --unit=aresos-game-<launch>.service
+     -p MemoryHigh=5G … java`). systemd is then the one witness of Java's end. The supervisor reads `Result`,
+     `ExecMainCode` and `ExecMainStatus` whenever it wants, also after its own restart. There is no PID hand-off,
+     no report that can be lost, no exit record, and a memory kill is named by systemd (`Result=oom-kill`).
+   - The brief's example, reading the *scope's* result and cgroup events, does not get there: systemd keeps no
+     exit status for a scope, so quit and crash would still need the wrapper's report. It would add a second
+     witness for memory kills and remove no message. Not added: a SIGKILL already latches without it.
+   - Cost of the service: Java is no longer Prism's grandchild, so Prism's Kill button, its log window and the
+     "launch" line it writes to Java's stdin must be tried with the real Prism; the desktop lock can no longer be
+     inherited; the nonce must reach the service without appearing on a command line (`--setenv=NAME`); the
+     hand-off's tests would need a real user manager, which the hosted runner lacks, so the proof moves into the
+     VM; `desktop_jvm` in the VM changes, with a check build. About a rewrite of the wrapper, of the supervisor's
+     JVM tracking and of their tests: several times this round, and it cannot be proven without CI and a real
+     game.
+   - Advice: not now. Take it up if a further review still finds hand-off defects that matter under the owner's
+     bar, or with package 25 (clean shutdown), which has to change how the game is stopped anyway.
+
+### Known limits (under the owner's review bar of 2026-11-11)
+
+None of these can loop under memory pressure, touch the world, or make recovery unreachable. Each costs at most
+a `retry` or one crash in the count.
+
+1. **A start the wrapper had to SIGKILL latches.** The message says so (JUDGMENT-CALL 10). Costs a `retry`.
+2. **A crash recorded right before a reboot** that no supervisor had counted or latched before the reboot is not
+   counted (one too few). The new session starts the hub once, as after any boot.
+3. **A start whose Java never ran** (it could not be executed, for example for lack of memory) still counts as a
+   failed start and restarts, at most twice before the latch. Unchanged, and not a kill of a running game.
+4. **A SIGTERM from outside** (exit 143 or signal 15 without the wrapper's stop) counts as a crash and restarts.
+   Unchanged. At the end of a session this can count one crash, if the supervisor still runs when Java is stopped;
+   the next session ignores the pending restart, and 30 healthy minutes clear the count. Package 25 (clean
+   shutdown) is the place for it.
+5. **The noted signals can include one that reached a Java already dead** (between the wrapper's look and its
+   `kill`). That gap cannot be closed from outside the kernel, which is why nothing is decided from them.
+6. **No record and no report** (a full disk and a dead supervisor at once): the end is unexplained and latches.
+7. **A supervisor that stalls for more than 10 s** without closing the connection: the wrapper gives up, stops
+   Java and reports. If that passes 30 s after the authorization, the start is latched first and the report then
+   replaces the latch with one failed start (the recovery window opens and closes again).
+8. **A power cut** (not a reboot): the wrapper syncs its record and its folder; the supervisor syncs its state file
+   but not the folder (`write_atomic`, unchanged), so a latch written in the last seconds can be lost. The hub
+   then starts once at the next boot.
+9. **The model plays the wrapper's order of steps itself.** It calls the wrapper's real functions at each step but
+   does not run `main()`. That the real wrapper takes these steps in this order is shown by the real-wrapper and
+   real-loop tests, with hooks at the same points. Each order has at most one supervisor restart, one 40 s
+   stretch and one reboot.
+
+### Regression proof (each fix reverted alone)
+
+Each fix was put back alone on a copy of the tree at `2a658f5b` (interfaces kept), then the model and that fix's
+tests ran. The model names its shortest failing orders (letters: `HandOffRun`'s docstring).
+
+| Fix reverted | Model | Its own tests |
+|---|---|---|
+| 1, wrapper: a signal is noted before it is sent, sent or not (round 4) | 1,188 failing orders, e.g. `RkS` (the supervisor restarts, Java is killed from outside, then the wrapper's SIGTERM step): `a signal was noted that no running Java took` | The real wrapper at REVIEW-5's point: `('jvm_failed', -9, [15, 9]) != ('jvm_failed', -9, [15])`; the record through the real loop the same; `send()` to a reaped Java: `True is not false`. The two outcome tests still pass: no decision hangs on the notes. |
+| 1, supervisor: a SIGKILL the wrapper sent is its own stop, counted and restarted (round 4) | 2,832 failing orders, e.g. `RseF` (restart, Java ignores SIGTERM, a SIGKILL from outside right after the wrapper's last look, the record): `counted or restarted an end that is not a certain crash` | `('STARTING', 'restarting', False) != ('RECOVERY', 'killed', True)` in four policy tests; the real loop restarts in both real-loop tests |
+| 2: exit 0 is his quit only after the PID was accepted (round 4) | 2,989 failing orders, e.g. `qF` (Java exits 0 before the hand-off, the wrapper records it): counted and restarted | `('STARTING', 'restarting', False) != ('RECOVERY', 'quit', False)`; the real loop runs into `RECOVERY crashes` |
+| 3: the exit record in the runtime folder again (round 4) | 3,974 failing orders, e.g. `TcFZ` (latched after 30 s, Java crashes, the record is written, reboot): still latched | `('RECOVERY', 'killed', True) != ('STARTING', None, False)`; the real loop stays in `RECOVERY killed` after the reboot |
+| 3: the old session's decision is carried into the new one | 1,828 failing orders, e.g. `TqFZ`: his old quit keeps the new session's hub closed | `('RECOVERY', 'quit', False) != ('STARTING', None, False)`; a crash waits for a backoff of the old session |
+| round 4's fix 2 put back (an unresolved end is not restored) | 7,619 failing orders, e.g. `TRSF` | both round 4 tests, and this round's reboot tests |
+| round 4's fix 3 put back (two deadlines, the earliest wins) | 52 failing orders, all with the loss 25 s into the window, e.g. `B`: `latched while the wrapper may still be stopping Java` | `('RECOVERY', True) != ('STARTING', False)` |
+
+No fix's tests passed with that fix reverted. Output: `runs/native-review-fixes-5/revert-proof.txt` (the script is
+not committed).
+
+### Merge of main
+
+The integrator asked for the head that will merge: `origin/main` (`1b39db6b`: packages 27 and 27b and the state
+commits since `bbe167e5`) is merged into the branch as `3fd0bc1c`, a merge commit, no rebase.
+
+- **Conflicts: none.** Both sides had changed four files, and git merged each by itself: `os/build.sh` (main adds
+  four lines: owner and mode of `/etc/sudoers.d`), `os/ci/image-checks.sh` (one line), `os/tests/test_aresos_shell.py`
+  (three lines) and `os/tests/test_everyday_account.py` (15 lines). Their tests pass on the merged tree
+  (`test_aresos_shell` 74, `test_everyday_account` 34, `test_build_tools` 3).
+- **Image build inputs changed through the merge: yes.** `os/build.sh` and `os/ci/image-checks.sh` as above, and
+  `.github/workflows/os-image.yml` (175 lines). `os/Containerfile`, `os/minecraft/` (the pins, the mod jar pin
+  included) and `mod/` did not change through the merge. So a check build is the integrator's to start.
+- **Package 27's bound files:** none of this branch's 71 changed files is among the 250 paths in
+  `os/manifest/ci/27/source-bindings.json`; `test_checkout_sources` passes (5 tests). `os/manifest/ci/16/pending-
+  rebind.json` was not touched.
+
+### Checks of this round
+
+Natively on AresOS itself (Fedora-based, Linux 7.2, Python 3.14.8, systemd 259), the owner's running laptop, not
+WSL. Never two suites at once; temporary files in a work folder outside the repo, removed afterwards.
+
+- **Targeted, from the worktree:** `test_aresos_desktop` 144 tests OK, 1 skipped, 194 s, with
+  `-W error::ResourceWarning` (before this round, same machine: 132 OK, 1 skipped, 142 s; the model is about 80 s of
+  the difference). The skip is the real-scope test (PLAN-GAP below). After the merge: `test_aresos_shell` 74 OK,
+  `test_everyday_account` 34 OK, `test_build_tools` 3 OK, `test_checkout_sources` 5 OK.
+- **Full suite: FULL_SUITE_PENDING**
+- **How the full suite ran here.** From a fresh `git clone --depth 1` of the pushed branch, `python3 -m unittest
+  discover -s os/tests -v`, plain and then `-B`, one at a time, under `nice -n 10`, detached (`setsid`, stdin from
+  `/dev/null`), with at least 4.5 GB available before each. Because this is a live machine, the suite also ran under
+  `setpriv --no-new-privs` (no test can become root: `sudo` and `pkexec` cannot elevate) and in a clean environment
+  (`env -i`): a scratch `HOME` and `XDG_RUNTIME_DIR`, no display, no session bus, and a system bus address that
+  leads nowhere. Tests that need root or a user manager therefore fail or skip here by design.
+- CI: none started by this round.
+
+### Not proven
+
+- A real Prism and Minecraft, and a real systemd-oomd kill: as before, tests kill by hand.
+- The VM's `desktop_jvm` check has not run against this round's wrapper (no CI run; the check itself is unchanged).
+- `WrapperTest.test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target` is skipped natively (see the
+  checks): the changed wrapper was not run against a real user manager in this round.
+
+### PLAN-GAP and judgment calls of this round
+
+- **JUDGMENT-CALL 10 is widened** (its text below, in the JUDGMENT-CALL section): a SIGKILL latches whoever sent
+  it; exit 0 is his quit also before the hand-off; a reboot does not carry the old session's quit or restart.
+  Owner-facing in one rare case (known limit 1). The integrator decides whether it goes back to the owner.
+- **PLAN-GAP: the real-scope test cannot run on AresOS itself.** With systemd 259, `systemd-run --user` finds the
+  user manager through `$XDG_RUNTIME_DIR` only; the test gives the wrapper a temporary runtime folder and the real
+  bus address, which was enough for WSL's systemd 255. So it skips here, as on the hosted runner. Putting
+  `/usr/bin/env XDG_RUNTIME_DIR=/run/user/<uid>` in front of the scope command in that test would make it run. Not
+  done in this round: it then creates a real scope in the owner's running session, which this round's rules for
+  the live machine rule out. The image's own session is not affected (there the wrapper has the real folder, and
+  the VM check passed on it).
+- **PLAN-GAP: "no CI" and the merge.** This round's own changes need no CI by the brief's rule, but the merge of
+  main changes build inputs (above), and the VM's `desktop_jvm` has not seen this round's wrapper.
+- **Seen, not changed (outside the brief):** known limits 3 and 4 (a start whose Java never ran, and a SIGTERM
+  from outside, still restart); the message text `failed_start` in `message()` is not used by any state.
+- **Tests removed with what they tested:** `test_both_programs_decide_stopped_by_the_same_rule` and
+  `test_a_kill_after_the_wrappers_check_is_not_its_stop` tested `stopped_by_wrapper`, which no longer exists.
+  Their cases live on in `test_no_decision_hangs_on_the_signals_the_wrapper_sent` (every status with every set of
+  signals) and the outside-kill tests. Two expectations changed with JUDGMENT-CALL 10: a Java the wrapper had to
+  SIGKILL now latches (`test_a_lost_hand_off_with_a_java_that_ignores_sigterm`, one case each in two policy tests).
+
+**What a reviewer should look at hardest:** `Supervisor.conclude()` (the table above is all of it), and in it the
+one new path, `earlier` and `new_session()`: a new session that settles an old launch and then starts its hub;
+`reconcile()` (it lifts a latch only for the unresolved launch and only a `killed` one); the wrapper's `ended()`
+and `send()` with the signal handler that now calls them (nothing reaps Java except the wrapper's own `wait`);
+and the model's `truth()` and `enabled()`: whether an order that matters cannot be played (two supervisor
+restarts, or a stalled supervisor with several queued messages, are not in it).
 
 ## Review fixes 4 (REVIEW-4, 2026-11-11)
 
