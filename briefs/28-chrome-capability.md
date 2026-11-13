@@ -11,8 +11,8 @@ that's more efficient with readings, navigation, free tab navigation etc."
 
 **This is the first of two packages.** Brief 28 builds the efficient surface inside the control model brief 20 built
 (Claude's tab group; one of his tabs only after a take). Brief 28b (`briefs/28b-chrome-his-tabs.md`) then lets Claude
-look at his open tabs in place. 28 comes first because it needs no owner decision; 28b waits on 28 and on three
-judgment calls.
+look at his open tabs in place. 28 comes first, and 28b builds on it. The owner has answered every question of
+both ("JUDGMENT-CALLs" at the end).
 
 **Building starts only after PR #27 (brief 20) is merged.** Branch from `main` after that merge and work on top of
 it. Paths and line numbers in this brief come from PR #27 at `8b7e799c`; read them again on merged `main`.
@@ -320,11 +320,11 @@ ref     = three letters and a number, for example kqt5 (item 3)
 
 **`chrome_read`** (effect read).
 
-Input: `tab` (integer), or `tabs` (2 to 5 integers; then only `max` and `request` may accompany it); `ref`; `full`
+Input: `tab` (integer), or `tabs` (2 to 5 integers; then only `max` may accompany it); `ref`; `full`
 (boolean); `find` (1 to 200 characters); `role` (with `find`); `until` (an object with `text` or `gone`, each up to
 200 characters);
 `timeout_ms` (0 to 6,000, default 3,000, with `until`); `max` (1,000 to 40,000; default 6,000, or 3,000 per tab with
-`tabs`); `cursor`; `request` (up to 200 characters; unused until brief 28b, accepted and ignored now).
+`tabs`); `cursor`.
 
 Result:
 
@@ -647,11 +647,11 @@ the start of the call, and no timeout is raised:
   - Claude's own tabs and a taken tab need no `seen`.
 - **`chrome_show`** (change; input: `tab`). Makes the tab the one showing in its window and brings that window to
   the front. For him: to look, to sign in, to answer a dialog. Refused for nothing but an unknown tab.
-- **`chrome_close`** (change; input: `tabs`, 1 to 20; `request`, accepted and ignored now). Closes tabs that are
+- **`chrome_close`** (change; input: `tabs`, 1 to 20). Closes tabs that are
   `claude`. In this package every other tab is refused, **a taken tab included** ("this is the owner's tab;
   release it"). Brief 20's `chrome_close_tab` closes any tab in the group, a taken one too, without looking at
   what it holds: that ends here. The result lists `closed` and, with the reason, `kept`.
-- **`chrome_take`** (change; input: `tab`, `seen`, `reload`, `request` accepted and ignored now) and **`chrome_release`**
+- **`chrome_take`** (change; input: `tab`, `seen`, `reload`) and **`chrome_release`**
   (change; input: `tab`). In this package they are brief 20's `take_tab` and `release_tab`, with one difference:
   the explicit reload has one home. `chrome_take` without `reload` takes the tab and keeps its page, and its result
   says whether a reload is still due and what it would lose. `chrome_take` with `reload: true` also does that
@@ -936,7 +936,8 @@ The base's, 18d's and Mail's suites still pass, and the generated artifacts are 
 
 - His open tabs in place, the **READ** sign, the popup list, incognito, tabs in the background: brief 28b.
 - Anything in the asking path or the hold ("What must not change").
-- Screenshots, coordinates, hover, drag, console or network reading, running script text, a search that needs a
+- Screenshots (owner, 2026-11-13, board #202: "Text only first"), coordinates, hover, drag, console or network
+  reading, running script text, a search that needs a
   model, loops or conditions in a step list, steps across tabs, a richer result for `chrome_submit` (section 6,
   "Left out on purpose").
 - Any real site or account. The image (`os/`). Running Claude Code with a model.
@@ -984,15 +985,32 @@ loss, his normal use broken) is never a limit: fix it or stop.
 
 ## JUDGMENT-CALLs
 
-None is open for the owner before this package starts. Decided here, and the lead's to defend:
+No open JUDGMENT-CALL.
+
+**Already decided** (the owner's words; `docs/control/PLAN.md` and the board):
+
+- 2026-11-11: capability before more hardening. "I don't just wanna rebuild Claude in Chrome. I wanna make a
+  better tool for AresOS that's more efficient with readings, navigation, free tab navigation etc."
+- 2026-11-11: the bar. Safe the way a good MCP or CLI is; a flaw with real harm is fixed, and a known limit is for
+  low harm. A password or a sign-in code reaching Claude is never a limit.
+- 2026-11-13 (board #202): "Text only first." Pages are read as text; no screenshots in this package.
+
+**Decided here, and the lead's to defend:**
 
 - A reference is checked on its own element, by a fingerprint the service keeps, not on the whole view (item 3;
   section 6 gives the reasons and names what is no longer checked).
 - The tool list is replaced, not kept beside the new one: one surface to describe, test and review.
+- Claude doesn't see what follows `?` or `#` in an address (item 2). It costs something: Claude can't quote a
+  video's link. It opens such an address by reference instead.
+- A text field in a document the reader didn't watch from its start is `(not read)` (item 1).
+- `request` isn't an input in this package. An input that is accepted and ignored is dead weight, and it suggests
+  a check that doesn't exist. Brief 28b adds it where it means something, and the size pins move then.
+- A list holds at most 20 steps and ends at its deadline (item 5, "Time").
 
 Anything you meet that changes how Chrome feels for the owner goes into the report as a JUDGMENT-CALL with what you
 chose, what you rejected, why, and what changing it later costs. Likely candidates: a fold that hides something
-Claude nearly always needs; a wait that is too short or too long on real-looking pages.
+Claude nearly always needs; a wait that is too short or too long on real-looking pages; an address whose hidden
+part Claude turns out to need.
 
 ## If unsure
 

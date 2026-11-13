@@ -465,9 +465,14 @@ sites and synthetic profiles).
 - **Pages that could approve Claude's actions or change its limits are never read or acted on:** claude.ai with its
   Remote Control pages, the Anthropic console, Aresus, and Chrome's own settings, password and extension pages. The
   Anthropic sites are a fixed list in the tool. Chrome's own pages are out because they aren't web addresses. Aresus
-  and any site he adds himself are in an owner-only setting in the image
-  (`/etc/aresos/control/chrome-excluded-sites.json`): his never-list. Brief 20 ships that setting empty; the image
-  has to put Aresus's host into it (brief 18c). This keeps the approval his alone (section 7, requirement 3). The
+  and any site he adds himself are in an owner-only setting on his laptop
+  (`/etc/aresos/control/chrome-excluded-sites.json`, root-owned and changed with `sudo`): his never-list.
+  **It ships empty, and nothing in this public repo names a host of his.** His own hosts, his dashboard first, are
+  put into it during the live setup with him, before Claude's first session in his Chrome. No gate holds the tool
+  back until then: an empty list is a valid setting, and a gate would need the host's name in the image or the
+  repo. Until the host is in the list, his dashboard is an ordinary site to the tool, so that step comes first in
+  the live setup. `chrome_sites` doesn't manage this list; it manages his read-only sites and his "don't ask
+  again" entries. This keeps the approval his alone (section 7, requirement 3). The
   check runs before every read and every action, on the tab's top document and on the frame that holds the target,
   so it covers every way of getting there:
   - **his tabs:** `chrome_read` never reads such a page in place, and `chrome_take` refuses a tab showing one;
@@ -581,9 +586,10 @@ the front when he should look at it or sign in there.
   because input didn't land otherwise; brief 28b measures whether it lands in a background tab, and if it doesn't,
   the question of a window of Claude's own goes to him.
 
-Three points here are his to decide, and the text above states the recommended answer to each (the judgment calls
-of brief 28b, section 10): whether Claude looks at his tabs without asking first; what happens to a tab with
-unsaved typing or playing media; and whether Claude may close his tabs.
+His decisions behind this (brief 28b lists them with his words): Claude looks at the tab his request needs without
+a separate question, and the take rules stay (2026-11-11); Claude closes a tab of his when he asks (2026-11-13,
+"Yes, when I ask"). Possible later, after his live test, and not built now: a list of sites where Claude asks him
+before it looks; working in a tab with unsaved typing without a reload; reading what he typed in his own tabs.
 
 **Until brief 28b merges** the tool does what brief 20 built: Claude reads and acts only inside the group. Looking at
 one of his tabs needs `chrome_take` first, which moves the tab and keeps its page; the first input then reloads it,
@@ -722,11 +728,17 @@ is the rest of the page: a free step now runs although something next to its ele
 ("Known limits"). What stays is the check that a click lands on that element, the classification on fresh facts
 right before the input, and for an asking step the binding of everything the question names.
 
-**No screenshots.** A picture costs more than a whole outline, shows whatever is on the screen (a password he made
-visible included), and can't be checked for a password field. Pages the outline can't represent (a canvas text
-editor, a map) need a site adapter or are listed as not supported yet in
-[`FEATURES.md`](../control/FEATURES.md). A picture stays the last resort a site adapter may ask for later; the
-tool-user rounds (section 8) decide whether one is ever built.
+**Text only first** (owner, 2026-11-13, board #202: "Text only first"). The first version reads pages as text and
+takes no pictures. A picture costs more than a whole outline, shows whatever is on the screen (a password he made
+visible included), and can't leave a value out. Pages the outline can't represent (a canvas text editor, a map)
+need a site adapter or are listed as not supported yet in [`FEATURES.md`](../control/FEATURES.md).
+
+A picture of a page region stays a possible later package. It would be taken only on request, of one element
+Claude names by reference, never of a whole window. It would have to refuse a region that holds or overlaps a
+password field, a field named like a credential, or any text field in a document the reader hasn't watched from
+its start, so in his own tabs it could show no form at all. And it would have to honour the fixed list and his
+never-list frame by frame, because a picture of a tab shows every frame in it, and get its pixels without
+bringing his tab to the front or attaching to it.
 
 ### Going to pages and acting
 
@@ -1057,8 +1069,8 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 
 - **Running script text, reading the console or the network.** Script text never runs (above). A project's own
   debugging uses its own browser from the terminal ("Project work in Chrome").
-- **Screenshots, coordinates, hover and drag.** See "Reading a page"; hover and drag stay *later* in
-  [`FEATURES.md`](../control/FEATURES.md).
+- **Screenshots, coordinates, hover and drag.** Text only first (owner, 2026-11-13); see "Reading a page". Hover
+  and drag stay *later* in [`FEATURES.md`](../control/FEATURES.md).
 - **A search that needs a model** ("find the login button" in free words). `find` is literal, free and testable.
 - **A "current tab", loops or conditions in a step list, steps across several tabs.** Every call names one tab, and
   Claude decides between calls.
@@ -1606,9 +1618,9 @@ improvement if he asks for it.
 
 ## 10. Open questions
 
-**Open:** three judgment calls on his open tabs (section 6, "Which tabs Claude works in"; brief 28b). Whether
-Claude looks at his open tabs without asking first; what happens to a tab of his with unsaved typing or playing
-media; and whether Claude may close his tabs. Section 6 states the recommended answer to each.
+**Open:** none for Chrome. His answers on his open tabs (2026-11-11), on closing them (2026-11-13, "Yes, when I
+ask") and on screenshots (2026-11-13, "Text only first") are built into section 6 ("Which tabs Claude works in",
+"Reading a page"); brief 28b lists them with what stays possible later.
 
 **Answered on 2026-11-07 and built into this draft** (his words in quotes; `PLAN.md` decisions):
 
