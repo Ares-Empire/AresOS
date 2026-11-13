@@ -24,7 +24,10 @@ def attempt(name, operation):
                'classification': 'hidden' if error.errno == errno.ENOENT else 'refused'}
     else:
         row = {'name': name, 'blocked': False}
-    if name == 'connect:vsock' and 'errno' in row and row.get('errno') in (None, errno.ETIMEDOUT) and not row['blocked']:
+    # A VSOCK timeout or transport reset means no established connection; the
+    # route remains unqualified. The receiver has no VSOCK listener, so its
+    # arrival count provides no evidence about VSOCK isolation.
+    if name == 'connect:vsock' and 'errno' in row and row.get('errno') in (None, errno.ETIMEDOUT, errno.ECONNRESET) and not row['blocked']:
         row['unqualified'] = True
         row['classification'] = 'no-qualified-host-endpoint'
     results.append(row)

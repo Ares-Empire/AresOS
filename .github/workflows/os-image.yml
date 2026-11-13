@@ -50,7 +50,7 @@ jobs:
     name: Regression checks only (no image build or VM)
     if: github.event_name == 'workflow_dispatch' && inputs.checks_only && !inputs.rehearsal && github.ref_name != 'pkg/16-staged-release'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     permissions:
       contents: read
       packages: read
@@ -70,6 +70,14 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y --no-install-recommends python3-pil python3-yaml
+      # test_owner_update.ToolsUpdateTest runs the tools' update as root in an
+      # unprivileged user and mount namespace (unshare -Urm). Ubuntu 24.04's
+      # AppArmor refuses that by default (uid_map: Operation not permitted) and
+      # the tests skip; this is the only place they can run (27c).
+      - name: Allow unprivileged user namespaces on disposable runner
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          unshare -Urm true
       - name: Run regression and syntax checks
         run: |
           set -euo pipefail

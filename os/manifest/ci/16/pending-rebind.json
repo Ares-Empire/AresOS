@@ -5,12 +5,15 @@
   "changes": [
     "Package 27b (laptop update record): os/tests/test_owner_path.py pins the laptop's step 8 update in INSTALL-STATUS; os/tests/test_checkout_sources.py and os/tests/test_owner_step_limits.py check this list by rules that hold at any time instead of requiring it empty while package 27's bindings exist",
     "27b: the checks-only job fetches full history (the suite reads earlier commits)",
-    "Package 22c stage 0 (reorder probe): os-image.yml, the dispatch guard and its ledger, the owner harness lists and owner_vm.py know package 22c and its mode reorder-probe; owner_vm.py shares package 27's route up to release 27 confirmed (laptop_update, confirmed_update) and owner_media.py can copy a bundle from history; the tests that pin the workflow's expressions and the local walk follow"
+    "27c: the checks-only job lets the disposable runner create unprivileged user namespaces (kernel.apparmor_restrict_unprivileged_userns=0), so test_owner_update.ToolsUpdateTest runs instead of skipping",
+    "27c: the checks-only job's time limit goes from 15 to 25 minutes, since the namespace tests now run",
+    "Package 22c stage 0 (reorder probe): os-image.yml, the dispatch guard and its ledger, the owner harness lists and owner_vm.py know package 22c and its mode reorder-probe; owner_vm.py shares package 27's route up to release 27 confirmed (laptop_update, confirmed_update) and owner_media.py can copy a bundle from history; the tests that pin the workflow's expressions and the local walk follow",
+    "22c stage 1a: main merged in (27c's checks-only step and time limit beside 22c's probe mode in os-image.yml)"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "5048257b422e2b10f30a101f5d6a9fe509bd85e36333329fd7b7283a4154792d",
+      "sha256": "4f3a5e4bbea1f40d209a0c67bd69f19282978ed6847f72dcb09ff61dfe75643f",
       "path": ".github/workflows/os-image.yml"
     },
     {

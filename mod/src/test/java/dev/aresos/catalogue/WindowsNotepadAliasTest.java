@@ -2,6 +2,8 @@ package dev.aresos.catalogue;
 
 import com.google.gson.*;
 import dev.aresos.config.*;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.*;
@@ -41,7 +43,8 @@ class WindowsNotepadAliasTest {
         }
     }
 
-    @Test void knownWindowsPathsResolveVariablesCaseAndDotSegments() throws Exception {
+    @Test @EnabledOnOs(value = OS.WINDOWS, disabledReason = WindowsOnly.WINDOWS_PATHS)
+    void knownWindowsPathsResolveVariablesCaseAndDotSegments() throws Exception {
         Path config = directory.resolve("apps.json"), cache = directory.resolve("cache");
         String windows = System.getenv().getOrDefault("WINDIR", "C:\\Windows");
         for (String target : List.of(windows + "\\notepad.exe", windows + "\\System32\\NOTEPAD.EXE",
