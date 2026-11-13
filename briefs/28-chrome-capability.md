@@ -48,27 +48,51 @@ Opus. This package doesn't touch the asking path, so it needs no Fable reviewer.
 - A read returns one JSON line per element with a six-field reference, everything the element holds (`expected`,
   with its box) and its text. A container's text repeats the text of everything inside it. The long fixture (120
   paragraphs, 80 fields, about 57,000 characters of content) comes back as 221,477 characters in 14 calls.
-- Every action must send `reference` and `expected` back. A reference is bound to the whole view, so any change on
-  the page makes every reference stale, and a full read is needed between any two actions.
-- `chrome_open` and `chrome_navigate` return before the page has loaded. Claude then waits and reads.
+- Every action must send `reference` and `expected` back. A reference is bound to the whole view. After an action
+  that changes the page, and most do, every reference from before is stale, and the next action needs a new read
+  or `chrome_find` first. `chrome_fill_form` is the exception: it fills up to 32 fields in one call and refreshes
+  the view between them itself.
+- `chrome_open` and `chrome_navigate` return before the page has loaded. Claude then calls `chrome_wait`, which
+  waits and returns the read: two calls where one would do.
 - A result says what happened to the one element acted on, not what changed on the page.
 - `chrome_tabs` returns 5 tabs per call, 10 at most.
 - 28 tools, with nine separate tools for the kinds of input.
+
+These are the costs of brief 20's tools **used well**, and the baseline measures them that way.
 
 ## Before anything else: record the baseline
 
 Do this first, on merged `main`, before any change to the tools.
 
 1. Add the fixture pages of "Tests, group 16" to the fixture server.
-2. Write the scripted tasks of group 16 against **brief 20's tools as they are** and run them in CI.
+2. Write the scripted tasks of group 16 against **brief 20's tools as they are, used as well as they allow:**
+   `chrome_wait` where a wait and a read are wanted, `chrome_fill_form` for several fields, `chrome_find` where one
+   element is wanted, the largest `limit` for a list. A baseline made by using the old tools badly proves nothing.
+   Run them in CI.
 3. Commit the counts as `control/chrome/ci/efficiency-baseline.json`: calls and returned characters per task; the
-   characters of all tool descriptions plus the server instructions; the characters of all tool names plus input
-   schemas (compact JSON); the run id. This file is the baseline for every budget. It isn't edited afterwards.
+   wall time of each task, from its first call to its last result, as the median of 5 runs after one warm-up run,
+   with the runner's type; the characters of all tool descriptions plus the server instructions; the characters of
+   all tool names plus input schemas (compact JSON); the run id. This file is the baseline for every budget. It
+   isn't edited afterwards, except to add the timings of the side-by-side run below.
 
-PR #27 adds a latency harness and a CI latency check under `control/chrome/ci/`. Read their exact paths and the
-targets from the merged tree and from the latency section of `reviews/20-chrome/REPORT.md`. **Build group 16 into
-that harness: one harness, not two.** If the merged tree has none, say so as a PLAN-GAP and put group 16 into a short
-job of its own in `control-chrome.yml`.
+**Latency.** PR #27 at `8b7e799c` has no latency harness, no CI latency check and no latency section in its
+report. The Chrome lead says they come with the part of PR #27 that follows brief 18d, under `control/chrome/ci/`.
+Read the merged tree.
+
+- **If they are there:** build group 16's timing into that harness (one harness, not two), keep its targets green,
+  and add the comparison below to it.
+- **If they aren't:** group 16 times its tasks itself, as step 3 says, in a short job of its own in
+  `control-chrome.yml`. Say so in the report (PLAN-GAP). The latency acceptance is then the comparison below and
+  nothing else.
+- **The comparison, the same in both cases.** Runners differ, so old and new tools are timed in **one run**. At
+  step 2 of "The order of the change", while both tool sets exist, one job runs each timed task with brief 20's
+  tools and with the new ones, five times each after a warm-up, and compares the medians: the first read of F1; a
+  free click with its change report, against brief 20's click and the read or find after it; filling 6 fields
+  and sending the form. The new tools pass at no more than 1.10 times the old median plus 50 ms. That run's id and
+  numbers go into the report and into the baseline file. After brief 20's tools are removed, the check that stays
+  compares each task with the new tools' own median of that run and fails above 1.5 times.
+- Fewer calls don't prove a faster tool: a step of `chrome_do` still makes brief 20's full facts read. The
+  timings are what shows it, and the report gives them beside the call counts.
 
 ## What to build
 
@@ -674,8 +698,14 @@ the start of the call, and no timeout is raised:
 Restructure in steps that keep everything working:
 
 1. The baseline (above).
-2. Add the new commands, the view module and the new tools **next to** brief 20's tools. Unit tests and groups 14
-   to 16 pass. Brief 20's groups pass unchanged through the old names.
+2. Add the new commands, the view module and the new tools. Four names exist in both tool sets with different
+   inputs (`chrome_tabs`, `chrome_read`, `chrome_open`, `chrome_upload`), so the two can't simply stand side by
+   side. **From this step on the catalogue is the new one:** the definitions, every generated file and the size
+   pins. Brief 20's tools stay callable under their names with the prefix `chrome_old_`, only when the service is
+   started with a test-only switch: an environment variable that the CI container sets and the image never does
+   (a test pins that the packaged unit doesn't set it). Unit tests and groups 14 to 16 pass, group 16's size rows
+   included, because they measure the generated catalogue. Brief 20's groups pass unchanged through the old
+   tools. The side-by-side latency run happens here.
 3. Move the CI harness to the new tools **in its helper functions only**. Before you start, list in
    `reviews/28-chrome-capability/HARNESS-MAP.md` every helper you change, and every test that builds a `reference`,
    an `expected` or a `view` by hand (the staleness and mismatch cases), with its new form. A test may change how
@@ -686,8 +716,9 @@ Restructure in steps that keep everything working:
 4. Remove brief 20's replaced tools (`chrome_find`, `chrome_read_form`, `chrome_wait`, `chrome_click`,
    `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll`,
    `chrome_dialog`, `chrome_navigate`, `chrome_take_tab`, `chrome_release_tab`, `chrome_close_tab`,
-   `chrome_downloads`, `chrome_bookmarks`, `chrome_history`), the reader's `read` rows that nothing uses any more,
-   and the old paging of `chrome_tabs`. Regenerate. Pin the sizes.
+   `chrome_downloads`, `chrome_bookmarks`, `chrome_history`), the test-only switch with its `chrome_old_` names,
+   the reader's `read` rows that nothing uses any more, and the old paging of `chrome_tabs`. Regenerate. Pin the
+   sizes.
 5. The full Chrome suite twice on the final head, with the base, Mail, boundary and qualification workflows.
 
 ### 9. The documents that list tools
@@ -891,7 +922,7 @@ baseline.
 | F5: a free click that changes part of the page | 1 call, at most 2,500 characters, the change named |
 | Descriptions plus instructions | at most 10,000 characters, and not above the baseline |
 | Names plus input schemas | at most 6,000 characters |
-| Latency | PR #27's latency check stays within its targets; an outline read of F1 is no slower than one page of the old read at the baseline; a single click with its change report is faster than the baseline's click plus read |
+| Latency ("Before anything else", the comparison in one run) | the first read of F1, a free click with its report, and the 6-field form are each at most 1.10 times brief 20's median plus 50 ms; a latency check PR #27 brings stays within its targets |
 
 **Brief 20's groups 1 to 13** pass twice on the final head, through the new tools, in both install modes. Register
 the new browser cases in the named inventory (`ci/verdicts.mjs`) the way brief 20's FEATURE and VIEW cases are

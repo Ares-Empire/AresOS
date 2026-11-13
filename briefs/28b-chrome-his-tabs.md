@@ -156,7 +156,15 @@ and report.
 
 ### 4. Taking a tab, in one step
 
-`chrome_take` (input `tab`, `reload`, `request`) becomes the one step before acting in one of his tabs:
+`chrome_take` (input `tab`, `seen`, `reload`, `request`) becomes the one step before acting in one of his tabs.
+
+**Why the reload moves into the take.** Brief 20 takes a tab without reloading it and reloads at the first input,
+because there a take was also the way to look. Here looking needs no take, so a take is only ever followed by an
+input. Reloading at the take is better for him in three ways. He learns what a reload would cost **before** his
+tab is attached or marked, not after. The tab changes once, in one visible step, instead of being marked now and
+reloaded at some later input. And Claude's first input isn't spent on a refusal ("the tab reloaded, read again"):
+the take returns the fresh page's outline. If the build shows a reason why the reload can't be part of the take,
+keep brief 20's rule and say so (PLAN-GAP).
 
 1. **Check first, in place:** the tab still shows the page of the list (`seen`, item 2); not a page of the fixed
    list or his never-list; `request` given; loaded by a plain GET (otherwise refused: "open its address fresh in a
@@ -368,7 +376,22 @@ password cases under `password_exclusion`):
 
 The round's report counts the tabs read per task; the lead decides from it whether the instructions hold.
 
-**Everything brief 28 and brief 20 test** still passes: groups 1 to 16, twice on the final head, both install
+**Brief 20 assertions this package changes, and those it never may.** Brief 20's `matrices.mjs` (the `take-state`
+cases) asserts "taking and reading never reload" and "only first input reloads". Item 4 changes that on purpose.
+List every changed assertion in `reviews/28b-chrome-his-tabs/HARNESS-MAP.md`, old and new side by side.
+
+- **Changed, and only these:** "taking never reloads" becomes two assertions: reading one of his tabs in place
+  never reloads it, and a take of a known clean tab reloads it exactly once. "Only the first input reloads"
+  becomes: the first input after a take doesn't reload again. For a tab that isn't known clean, `reload_required`
+  comes from the take instead of the first input, and the tab isn't attached or grouped. The explicit repeat is
+  `chrome_take` with `reload: true`. The tab's group after a take, where brief 20's tests compare it with one
+  group id.
+- **Never changed:** the receiver's counts (a page loaded by a form submission is never loaded again, so the
+  fixture counts one POST); every old reference stale after the reload; the refusal of a form-loaded page and of
+  Back to one; and every assertion about a question, a binding, an approval or what the receiver got before and
+  after it.
+
+**Everything brief 28 and brief 20 test** still passes, with the changes just listed: groups 1 to 16, twice on the final head, both install
 modes; the base, Mail, boundary and qualification workflows; the generated artifacts in sync; the Chrome ask rules
 byte-identical to `main`'s.
 

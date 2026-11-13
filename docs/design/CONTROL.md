@@ -1064,8 +1064,8 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 
 *brief 28.* "Better" is a number here. A test group runs fixed scripts against fixture pages, with no model and no
 real site, counts the calls and the characters returned, and fails the build when a budget is exceeded. The baseline
-is brief 20's tool list on the same fixtures, recorded once before it is replaced. No test compares against Claude
-in Chrome.
+is brief 20's tool list on the same fixtures, recorded once before it is replaced, and used as well as it allows
+(its wait that returns a read, its form fill, its find). No test compares against Claude in Chrome.
 
 | What | Brief 20 | Budget |
 |---|---|---|
@@ -1074,12 +1074,12 @@ in Chrome.
 | Its 80 fields with their values (the form by `ref`, after the first read) | inside the 14 pages | 1 further call, at most 6,000 characters |
 | A table of 200 rows (by `ref`, after the first read) | recorded by brief 28 | 1 further call, at most 1.3 times the cells' own text |
 | Finding one link among 300 | recorded by brief 28 | 1 call, at most 800 characters |
-| Open a page and read a fact from it | open, wait, read | 1 call |
-| Fill 6 fields and send the form | read, fill, read, click, submit, read | 2 calls and `chrome_submit`, one question |
-| Three result pages, one click each | a click and a read per page | 3 calls |
+| Open a page and read a fact from it | open, then wait (which returns the read): 2 calls | 1 call |
+| Fill 6 fields and send the form | read, `chrome_fill_form`, find the button, click: 4 calls and `chrome_submit` | 2 calls and `chrome_submit`, one question |
+| Three result pages, one click each | a click and a wait per page: 6 calls | 3 calls |
 | Compare three open tabs | a read per tab, each paged | 1 call |
 | List 25 open tabs | 3 calls | 1 call, at most 3,500 characters |
-| A free click that changes part of the page | a click, then a full read | 1 call, at most 2,500 characters |
+| A free click that changes part of the page | a click, then a read or a find: 2 calls | 1 call, at most 2,500 characters |
 | Read a fact from one of his tabs (*brief 28b*) | list, take, read; the tab moves | list, read; the tab untouched |
 | What a session loads: descriptions and instructions | 28 tools; recorded on main after PR #27 | 17 tools, at most 10,000 characters, and not above the baseline |
 | What a session loads: names and input schemas | 28 tools, about 10,600 characters (PR #27 at `8b7e799c`) | at most 6,000 characters |
@@ -1092,9 +1092,11 @@ in Chrome.
   and the budget must also beat that number.
 - Mail's 28 tools take 21,055 characters after brief 18d. A test pins Chrome's totals, so a later change can't grow
   them unnoticed.
-- **Latency:** brief 20's latency check stays green. An outline read is no slower than one page of the old read
-  was, and a click with its change report is faster than the old click plus read (the targets are in brief 20's
-  report).
+- **Latency:** fewer calls don't prove a faster tool, because a step still reads the page's facts as brief 20 does.
+  So brief 28 times brief 20's tools and the new ones in the same CI run, where the runner is the same: the first
+  read of the long page, a free click with its report, and the 6-field form must each take at most 1.10 times
+  brief 20's median plus 50 ms. PR #27 has no latency check at `8b7e799c`; one that its later part brings stays
+  green.
 - The efficiency group is a CI check only. It never turns anything off on the laptop: the qualification record
   ("Tests") counts the safety groups, not the budgets.
 
