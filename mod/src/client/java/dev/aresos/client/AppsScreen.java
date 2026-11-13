@@ -354,7 +354,7 @@ public final class AppsScreen extends Screen {
             String kind = app.system() == null ? null : app.system().genericName();
             int kindX = textX + font.width(name) + 8;
             if (!command.isEmpty()) {
-                graphics.text(font, command, kindX, textY, ChatFormatting.GOLD.getColor() | 0xFF000000);
+                graphics.text(font, Component.literal(command).withStyle(ChatFormatting.GOLD), kindX, textY, CommonColors.WHITE);
                 kindX += font.width(command) + 8;
             }
             // Only when there is room for a few words: half a word says nothing.
