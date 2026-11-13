@@ -361,10 +361,15 @@ case('post18d-latency-recovery-space','control/aresos_control/storage.py','self.
 case('post18d-retained-terminal-pins','control/aresos_control/retention.py','current.update(store.operation_hashes())','pass','test_latency.OperationHeaders.test_completed_operation_keeps_both_old_blob_stores_and_archival_releases_them',True)
 case('post18d-active-retention-pins','control/aresos_control/retention.py',"operations = [op for _, op in store.iter_operations(states=OPEN) if op['state'] in OPEN]",'operations = []','test_latency.OperationHeaders.test_active_operation_protects_old_composition_and_import_metadata',True)
 case('post18d-pin-root-hash','control/aresos_control/storage.py',"tree.key='sha256'",'0','test_latency.OperationHeaders.test_completed_operation_keeps_both_old_blob_stores_and_archival_releases_them',True)
-case('post18d-pin-suffix-hash','control/aresos_control/storage.py',"substr(tree.key,-7)='_sha256'",'0','test_latency.OperationHeaders.test_completed_operation_keeps_both_old_blob_stores_and_archival_releases_them',True)
+case('post18d-pin-suffix-hash','control/aresos_control/storage.py',"substr(CAST(tree.key AS BLOB),-length(CAST('_sha256' AS BLOB)))=CAST('_sha256' AS BLOB)",'0','test_latency.OperationHeaders.test_completed_operation_keeps_both_old_blob_stores_and_archival_releases_them',True)
 case('post18d-blob-pin-boundary','control/aresos_control/blobs.py','pins=pinned() if callable(pinned) else pinned','pins=set()','test_latency.OperationHeaders.test_completed_operation_keeps_both_old_blob_stores_and_archival_releases_them',True)
 case('post18d-pin-read-failure','control/aresos_control/blobs.py','            pins=pinned() if callable(pinned) else pinned','            try:pins=pinned() if callable(pinned) else pinned\n            except OSError:pins=set()','test_latency.OperationHeaders.test_reference_enumeration_failure_precedes_every_blob_unlink',True)
 case('post18d-malformed-state-expiry','control/aresos_control/storage.py'," OR substr(json_extract(v,'$.state'),1,1) IN ('[','{')",'','test_latency.OperationHeaders.test_malformed_state_still_refuses_expiry_before_deleting_old_files',True)
+
+case('post18d-pin-nul-suffix','control/aresos_control/storage.py',"substr(CAST(tree.key AS BLOB),-length(CAST('_sha256' AS BLOB)))=CAST('_sha256' AS BLOB)","substr(tree.key,-7)='_sha256'",'test_latency.OperationHeaders.test_completed_operation_nul_suffix_reference_preserves_old_blob',True)
+
+case('post18d-namespace-encoding','control/aresos_control/storage.py',"if encoding!='UTF-8' or '\\0' in prefix:","if '\\0' in prefix:",'test_latency.OperationHeaders.test_namespace_prefixes_keep_legacy_sqlite_encoding_behavior',True)
+case('post18d-sparse-expiry-diagnostic','control/chrome/ci/latency-check.py','validate_metric(block,allow_sparse=sparse)','validate_metric(block)','test_latency.LatencyGate.test_sparse_expiry_and_navigation_diagnostics_keep_required_samples_strict',True)
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

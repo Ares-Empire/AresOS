@@ -137,7 +137,7 @@ class OperationHeaders(unittest.TestCase):
     def test_native_hash_enumeration_matches_nested_references_and_current_updates(self):
         from aresos_control.retention import hashes,OPEN
         key,op=self.add('references','chrome',1,'done')
-        op['context']={'sha256':'top','list':[{'wire_sha256':'wire','notsha256':'ignored'},['plain',{'sha256':{'sha256':'nested'}}]],'number_sha256':42,'bool_sha256':True,'ü_sha256':'unicode'}
+        op['context']={'sha256':'top','list':[{'wire_sha256':'wire','notsha256':'ignored'},['plain',{'sha256':{'sha256':'nested'}}]],'number_sha256':42,'bool_sha256':True,'ü_sha256':'unicode','nul\0wire_sha256':'nul-reference','sha256\0not-a-suffix':'ignored-nul','unicode🙂\0_sha256':'unicode-nul-reference'}
         self.store.write({key:op},'chrome_latency_fixture','Synthetic nested reference test')
         expected={value for _,item in self.store.iter_items('op:') for value in hashes(item)}
         self.assertEqual(set(self.store.operation_hashes()),expected)
@@ -148,6 +148,39 @@ class OperationHeaders(unittest.TestCase):
         self.store.db.rollback();self.assertIn(key,dict(self.store.iter_operations(states=OPEN)))
         self.store.write({key:None},'chrome_latency_fixture','Synthetic retired reference')
         self.assertEqual(set(self.store.operation_hashes()),set())
+
+    def test_namespace_prefixes_keep_legacy_sqlite_encoding_behavior(self):
+        import json,sqlite3
+        from types import SimpleNamespace
+        prefixes=['','op:','ä','🙂','\ud7ff','\U0010ffff','z\U0010ffff','a\0']
+        for encoding in ['UTF-8','UTF-16le','UTF-16be']:
+            database=sqlite3.connect(':memory:')
+            try:
+                database.execute("PRAGMA encoding='"+encoding+"'")
+                database.execute('CREATE TABLE kv(k TEXT PRIMARY KEY,v TEXT NOT NULL)')
+                for prefix in prefixes:
+                    for suffix in ['','x','\0','🙂','\U0010ffff']:
+                        key=prefix+suffix
+                        database.execute('INSERT OR REPLACE INTO kv VALUES (?,?)',(key,json.dumps(key)))
+                store=SimpleNamespace(db=database)
+                for prefix in prefixes:
+                    expected=[(k,json.loads(v)) for k,v in database.execute('SELECT k,v FROM kv WHERE substr(k,1,?)=? ORDER BY k',(len(prefix),prefix))]
+                    self.assertEqual(list(storage.Store.iter_items(store,prefix)),expected,(encoding,repr(prefix)))
+            finally:database.close()
+
+    def test_native_hash_keys_match_python_with_nuls_in_each_sqlite_encoding(self):
+        import json,sqlite3
+        from types import SimpleNamespace
+        from aresos_control.retention import hashes
+        operation={'nested':[{'wire\0_sha256':'nul','sha256\0ignored':'ignore','ü🙂_sha256':'unicode','sha256':'root','normal_sha256':'normal','container_sha256':[{'wire_sha256':'nested'}]}]}
+        for encoding in ['UTF-8','UTF-16le','UTF-16be']:
+            database=sqlite3.connect(':memory:')
+            try:
+                database.execute("PRAGMA encoding='"+encoding+"'")
+                database.execute('CREATE TABLE kv(k TEXT PRIMARY KEY,v TEXT NOT NULL)')
+                database.execute('INSERT INTO kv VALUES (?,?)',('op:encoding-probe',json.dumps(operation,ensure_ascii=False)))
+                self.assertEqual(set(storage.Store.operation_hashes(SimpleNamespace(db=database))),set(hashes(operation)),encoding)
+            finally:database.close()
 
     def test_empty_blob_stores_do_not_decode_completed_history_during_daemon_expiry(self):
         for index in range(10):self.add('completed-expiry-'+str(index))
@@ -175,6 +208,15 @@ class OperationHeaders(unittest.TestCase):
         engine.expire();self.assertTrue(path.exists());self.assertTrue(wire_path.exists())
         self.store.write({key:None},'chrome_latency_fixture','Synthetic archive removes only current reference')
         engine.expire();self.assertFalse(path.exists());self.assertFalse(wire_path.exists())
+
+    def test_completed_operation_nul_suffix_reference_preserves_old_blob(self):
+        engine=self.fixture.engine
+        blob,path=self.old_blob(engine.blobs,b'Fixture retained by a nested NUL-key reference')
+        key,op=self.add('completed-nul-reference','chrome',1,'done')
+        op['payload']['nested']=[{'evidence\0wire_sha256':blob}]
+        self.store.write({key:op},'chrome_latency_fixture','Synthetic retained NUL-key reference')
+        self.assertIn(blob,set(self.store.operation_hashes()))
+        engine.expire();self.assertTrue(path.exists())
 
     def test_active_operation_protects_old_composition_and_import_metadata(self):
         import time
@@ -339,6 +381,19 @@ class LatencyGate(unittest.TestCase):
             else:self.targets['status']='awaiting-lead'
             with self.assertRaises((AssertionError,KeyError)):self.check()
             self.current=original
+
+    def test_sparse_expiry_and_navigation_diagnostics_keep_required_samples_strict(self):
+        self.current['phases']['fresh']['read']['daemon_expiry_inside_sample']={'samples':1,'median_ms':2,'p95_ms':2}
+        self.current['phases']['fresh']['navigate']['clipboard_hooks']={'samples':18,'median_ms':1,'p95_ms':2}
+        self.assertTrue(self.check()['passed'])
+        original=copy.deepcopy(self.current)
+        for call,stage in [('read','service_total'),('free_click','clipboard_hooks')]:
+            self.current=copy.deepcopy(original)
+            self.current['phases']['fresh'][call][stage]['samples']=19
+            with self.assertRaises(AssertionError):self.check()
+        self.current=copy.deepcopy(original)
+        self.current['phases']['fresh']['read']['daemon_expiry_inside_sample']['samples']=0
+        with self.assertRaises(AssertionError):self.check()
 
     def test_corrupt_percentiles_missing_timings_and_impossible_totals_refuse(self):
         original=copy.deepcopy(self.current)

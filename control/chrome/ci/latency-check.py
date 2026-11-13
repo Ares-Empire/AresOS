@@ -10,8 +10,8 @@ INPUTS={'free_click','fill','approval_to_done'}
 PHASES={'fresh','history-1000','history-4000'}
 
 
-def validate_metric(row):
-    assert type(row['samples']) is int and row['samples']==20
+def validate_metric(row, allow_sparse=False):
+    assert type(row['samples']) is int and (1<=row['samples']<=20 if allow_sparse else row['samples']==20)
     for stat in ['median_ms','p95_ms']:
         value=row[stat];assert type(value) in {int,float} and math.isfinite(value) and value>=0
     assert row['median_ms']<=row['p95_ms'],'Percentiles are out of order'
@@ -65,7 +65,9 @@ def check(current,baseline,reference,targets):
         for phase,group in value['phases'].items():
             assert set(group)==CALLS
             for call in CALLS:
-                for block in group[call].values():validate_metric(block)
+                for stage,block in group[call].items():
+                    sparse=stage=='daemon_expiry_inside_sample' or call=='navigate' and stage=='clipboard_hooks'
+                    validate_metric(block,allow_sparse=sparse)
                 if call in INPUTS:
                     wait=group[call]['post_input_observation_wait']
                     assert wait['samples']==20 and 520<=wait['median_ms']<=wait['p95_ms']<=750,'Missing or changed 525 ms safety wait'

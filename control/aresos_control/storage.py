@@ -162,6 +162,7 @@ class Store:
         fcntl.flock(self.journal, fcntl.LOCK_EX | fcntl.LOCK_NB)
         sync_directory(self.evidence_dir)
         self.db = sqlite3.connect(self.state_dir / "control.sqlite")
+        self.text_encoding=self.db.execute('PRAGMA encoding').fetchone()[0]
         self.db.execute("PRAGMA journal_mode=DELETE")
         self.db.execute("PRAGMA synchronous=FULL")
         if not self.db.execute("SELECT 1 FROM sqlite_master WHERE name='operation_versions'").fetchone():
@@ -784,9 +785,10 @@ class Store:
     def iter_items(self, prefix):
         # Use the primary-key range: maintenance of an empty namespace must
         # not scan every completed operation. Preserve literal Unicode prefixes
-        # (including the old SQLite substr behavior for a NUL-containing one).
+        # (including old substr behavior for NULs and legacy UTF-16 databases).
         if not isinstance(prefix,str):raise TypeError('Namespace prefix must be a string')
-        if '\0' in prefix:
+        encoding=getattr(self,'text_encoding',None) or self.db.execute('PRAGMA encoding').fetchone()[0]
+        if encoding!='UTF-8' or '\0' in prefix:
             rows=self.db.execute("SELECT k,v FROM kv WHERE substr(k,1,?)=? ORDER BY k",(len(prefix),prefix))
         elif not prefix:
             rows=self.db.execute("SELECT k,v FROM kv WHERE typeof(k)='text' ORDER BY k")
@@ -834,10 +836,11 @@ class Store:
         # Enumerate the same nested string references as retention.hashes in
         # SQLite, without decoding every completed operation into Python.
         # No side cache: callers finish this fresh enumeration before deleting.
+        # Byte suffixing preserves embedded NULs; its length follows DB encoding.
         query="""SELECT tree.atom FROM kv AS source, json_tree(source.v) AS tree
             WHERE substr(source.k,1,3)='op:' AND tree.type='text'
             AND typeof(tree.key)='text'
-            AND (tree.key='sha256' OR substr(tree.key,-7)='_sha256')"""
+            AND (tree.key='sha256' OR substr(CAST(tree.key AS BLOB),-length(CAST('_sha256' AS BLOB)))=CAST('_sha256' AS BLOB))"""
         for row in self.db.execute(query):yield row[0]
 
     def items(self, prefix):
