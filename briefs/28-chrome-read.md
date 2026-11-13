@@ -263,12 +263,12 @@ own (for example `control/aresos_control/chrome/view.py`), tested without a brow
 package it is reachable only as the internal action `chrome_outline` (item 6). What Claude is offered under the
 name `chrome_read` stays brief 20's tool until brief 28a switches the list.
 
-**Addresses: a public form, and a short form for lists and records** (section 6, "Reading a page"). One function
-in the service, `public_address`, writes every address that leaves the service. No other code does. **The owner
-decided this on 2026-11-13 (board #213, "Show link addresses"):** on a page Claude reads, it sees link addresses
-with their query, as in any browser tool, and only what looks like a sign-in is hidden by the rule below. He chose
-this knowing that a short sign-in code in a link can slip through; that is a known limit (section 6), not a
-finding to reopen.
+**Addresses: a public form, and a short form for lists and records** (section 6, "Reading a page"). One function in
+the service, `public_address`, writes an address that leaves the service; once brief 28a is merged, no other code
+does. **The owner decided this on 2026-11-13 (board #213, "Show link addresses"):** on a page Claude reads, it sees
+link addresses with their query, as in any browser tool, and only what looks like a sign-in is hidden by the rule
+below. He chose this knowing that a short sign-in code in a link can slip through; that is a known limit (section 6),
+not a finding to reopen.
 
 **The public form** holds:
 
