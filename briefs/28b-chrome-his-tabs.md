@@ -336,7 +336,11 @@ Three things documentation doesn't settle. Measure each in CI and write the resu
   content, keeps nothing else, and puts nothing into the page's world. A tab with that record counts as used. A
   document this script didn't watch from its start (a tab older than the extension's install or update) is not
   known clean. If that can't be built as written, stop and report: until the lead decides, no tab of his counts as
-  known clean, so a take always answers `reload_required` and a close keeps every tab of his;
+  known clean, so a take always answers `reload_required` and a close keeps every tab of his. Building it (final
+  security confirmation, `BRIEF-SECURITY-4.md`): the listeners are passive and listen in the capture phase from
+  the document's start, so a page's own handlers can't hide a drop or a paste from them; they run in every frame;
+  the tab's "used" result is sticky in the extension and doesn't go away when a child frame is removed or
+  replaced; and a frame the record doesn't cover leaves the tab unknown, never clean. Test each;
 - that nothing of ours sets it. An in-place read, the check itself and a message from the extension must leave
   it false, or every tab Claude looked at would count as used.
 
