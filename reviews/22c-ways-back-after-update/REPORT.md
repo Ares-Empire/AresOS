@@ -2,7 +2,7 @@
 
 Brief: `briefs/22c-ways-back-after-update.md`. Branch `pkg/22c-ways-back-after-update`, cut from main `6cca14b6`.
 PR #46 (draft). Stage 0 is captured; step 2b closed the model under the destination follow-up.
-Stage 1a step 3 is in progress below. Stages 1b and 2 are not started. Shorthand: R27 the newer AresOS, R13 the older one, S the pinned stock.
+Stage 1a is complete at the checkpoint below: only four stage-1b fingerprint pins fail. Stages 1b and 2 are not started. Shorthand: R27 the newer AresOS, R13 the older one, S the pinned stock.
 
 ## Stage 0 (P): the reorder probe
 
@@ -842,8 +842,9 @@ test or watch process remains. PR #46 stays open and draft; no merge or push to 
 
 ## Stage 1a, step 3: the old expectations and the compatibility tests
 
-Work in progress, part (a). Builder model: GPT-6 (Codex). No VM dispatched and no owner entry executed on
-this laptop. `test_owner_update` remains import-only here; its complete results come from hosted checks.
+Done: B9, B8 and their B11 proofs, including two narrow production fixes. Builder model: GPT-6 (Codex).
+Final implementation `8d236619` has 1059 hosted tests, four stage-1b failures, zero errors and zero skipped.
+No VM dispatched and no owner entry executed on this laptop. `test_owner_update` remains import-only here; its complete results come from hosted checks.
 
 ### B9: changed expectations
 
@@ -881,7 +882,7 @@ handoff's “51” means 50 failure/error headers (including subtests), not 51 s
 | `test_owner_commands.CommandTest.pair` (eight inherited errors, also used by six abandon tests and owner-path) | Pair helper loses `kargs` and updater state | Explicit AresOS boot arguments, finished keyboard and paused updater fixture observations | A3 read-only BLS preflight, A10 |
 | `test_owner_retained.RetainedTest.test_title_switch_and_recovery_real_pairs_and_bls` | No updater read modeled | Explicit paused-system/global-user unit listings and inactive units; retained captures remain unchanged | A10 |
 
-### Verified / not verified so far
+### Initial verification (before the first hosted round)
 
 - AST parsing of the three edited Python modules: OK.
 - Baseline hosted [43513299977](https://github.com/Ares-Empire/AresOS/actions/runs/43513299977): 1037 tests,
@@ -889,14 +890,10 @@ handoff's “51” means 50 failure/error headers (including subtests), not 51 s
 - Memory gate during editing: 4379 MB available, below 4500; no local test run yet.
 - Correction to the earlier handoff: eight “older updater fake” errors are actually missing `kargs` in the
   pair fixture, newly read by A3's BLS preflight. The ninth is the retained stock host's missing updater reads.
-- Part (b), its B11 proofs and final hosted totals remain pending. No production defect found in part (a) yet.
+- At that initial checkpoint, part (b), its B11 proofs and hosted totals were pending; no production defect
+  had yet been found. The two defects and final results are recorded below.
 
 - Local `cd os/tests && nice -n 10 python3 -m unittest test_ways_back`: **34 tests in 14.047s, OK**, after 5087 MB available. This imports the edited older module without running it.
-
-### For stage 1b (provisional)
-
-Keep the four fingerprint/guide pins for your stage. No bundle refresh or contents change in part (a).
-Preserve A5's three outcomes, the absent-bundle exception, and `finish_proof` beside `proof: null`.
 
 - Local `cd os/tests && nice -n 10 python3 -B -m unittest test_ways_back`: **34 tests in 11.876s, OK**,
   after 5013 MB available. An initial invocation from the repo root failed import (`ModuleNotFoundError`,
@@ -927,7 +924,7 @@ The older fake failures exposed additional missing observations only after the f
 those tests reach their later assertions. The route test's new diagnostic follows A7's repair-note support;
 no guide, route sequence or binding assertion is changed.
 
-### B8 and the publication boundary (implementation pending hosted verification)
+### B8 and the publication boundary (verified in hosted run 43521572800)
 
 `test_ways_back_compatibility.py` loads the exact version-2 `owner.py` and manifest-listed payload bytes from
 `41b06513` with `git show`, checks fingerprint `851eb742…`, and executes that code as an imported module.
@@ -999,7 +996,7 @@ Additional local verification (one test module at a time, `nice -n 10`, memory �
   **34 tests in 11.972s, OK**; `nice -n 10 python3 -B -m unittest test_ways_back`: **34 in 11.869s, OK**.
 - `nice -n 10 python3 -m unittest test_ways_back_model`: **15 in 378.339s, OK**; **486627 states,
   12176910 edges, 249475 executions, 11927435 reuses, queue exhausted** (377.541s exploration). This process
-  started before the `records` ordering fix; the final source's `-B` rerun is in progress.
+  started before the `records` ordering fix; the final source's completed `-B` rerun is recorded below.
 - Import-only audit of B8: the historical acceptance predicate accepts **13** candidates; 15 manifest-listed
   version-2 payload files verified. No compatibility test method or `test_owner_update` suite ran locally.
 - AST parsing of the new compatibility module and changed owner source: OK. The B8 module has **21** tests,
@@ -1007,3 +1004,145 @@ Additional local verification (one test module at a time, `nice -n 10`, memory �
 
 **B11 records proof:** removing `records`' first `survey()` reruns the real four-cut interruption test and
 must fail its unchanged-private-records assertion, with no unrelated test error.
+
+
+The old wrong-shape subcase named “running not default” also forces a contradictory `rollbackQueued=false`;
+its refusal remains an agreement check under A2/B3. Valid non-default starts are accepted by all pair/triple
+shape cases and the historical queued-pair tests.
+
+### Final verification and B11 assertion map
+
+Both rounds used `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`
+and exactly **one** blocking `gh run watch <id> --exit-status` each (exit 1 for the red suite). The second
+run spent about nine minutes queued before its regression step; neither dispatched a VM.
+
+| Hosted run | Tested implementation | Result |
+|---|---|---|
+| [43517900883](https://github.com/Ares-Empire/AresOS/actions/runs/43517900883) | `85c037b1` | 1038 tests in 974.729s; 11 failures, 1 error, 0 skipped |
+| [43521572800](https://github.com/Ares-Empire/AresOS/actions/runs/43521572800) | `8d2366197413074b97ef3dbf80de09ae310059fc` | **1059 tests in 1163.247s; 4 failures, 0 errors, 0 skipped** |
+
+Final hosted focused counts, taken from the log's individual test entries:
+
+| Module | Passed / run |
+|---|---|
+| `test_owner_update` | **73 / 73** (including its namespace cases; none skipped) |
+| `test_ways_back` | **34 / 34** |
+| `test_ways_back_compatibility` | **21 / 21** |
+| `test_ways_back_model` | **15 / 15** |
+| `test_ways_back_reverts` | **15 / 15** |
+| `test_ways_back_probe` | **40 / 40** |
+
+B8 printed **13/13 historical shapes accepted**, identical before-first-switch title text, and tools update
+over all 13 shapes without deployment mutation. Its additional prepared-single-stock and staged-single-stock
+variants passed too. Its actual version-2 recovery passed **98** pre-publication cuts: 25 with `tools/` and
+24 with `tools-<fingerprint>/`, each repeated with and without an old open previous intent. Every case resumed
+successfully with the new tools. The five executable revert proofs passed:
+
+| Rule / removal | Guarding assertion that fails |
+|---|---|
+| A5.2: remove `records`' first `survey()` | `IntentTest.test_every_interruption_resolves_by_list_except_same_boot_staging`: the private-record bytes must equal their before-snapshot at all four staging cuts |
+| A9: reject schema-less version-2 change records | `CompatibilityTest.test_old_intents_and_records_obey_the_explicit_journal_outcome_table`: `result == expected` |
+| A9/A2: restore version 2's shape gate | `CompatibilityTest.test_tools_update_on_both_named_stuck_states_with_each_old_previous_form`: install must succeed, with version 2→3 result |
+| A9: persist readiness before publication | `PublicationTest.test_readiness_does_not_migrate_legacy_intents_before_publication`: restored version 2's original intent must remain equal; its own retry result must be `complete` |
+| A9: replace `tools-update1` with `tools-update3` | `PublicationTest.test_version2_settles_every_v3_cut_before_publication_and_v3_resumes`: journal schema must be `tools-update1` and old `settle_tools()` must accept it; the schema mutant proves actual version 2 rejects it with `Invalid tools update journal` and changes nothing |
+
+The model again exhausted **486627 states / 12176910 edges**, **249475 executions / 11927435 reuses**,
+426.169s in this hosted run. All eight journal outcome counts match step 2b. The two named menu-only paths
+remain the absent-R28 cases from default/running R13 with installed R27; the follow-up's exception stands.
+
+Final-source local `cd os/tests && nice -n 10 python3 -B -m unittest test_ways_back_model` passed **15 tests in
+376.573s**, exploration 375.417s, with exactly those same states, edges, executions, reuses and outcome counts.
+Its start gate was 4581 MB available. A further final-source plain model/direct-suite rerun was **not run**:
+available memory stayed below 4500 MB after that run (4476, 4448, down to 4044 MB). Earlier local plain/`-B`
+counts above are identified as before the `records` fix; the final-source truth comes from this `-B` run and
+hosted full execution. `test_owner_update` and the compatibility module's test methods were never run locally.
+This is a verification limit, not a skipped or weakened hosted test.
+
+Small committed evidence: [checks-43521572800.json](runs/checks-43521572800.json), with both rounds' totals,
+focused counts, remaining test names, publication-cut counts and the model's outcome counts. The 22c host walk
+printed `PASS package 22c host walks (reorder-probe): 257 sources; no VM started`; the waiting-list generator
+printed `pending: 28 bound files differ from the active bindings`. `git diff --check` passed. The bundle
+source-consistency refresh printed intermediate fingerprint `621d59e3…`; it is not a published pin.
+
+### What still fails, why, and open questions
+
+Only these four failures remain; **nothing else** remains red:
+
+1. `test_owner_bootstrap.BootstrapTest.test_documented_command_is_generated_from_complete_system_manifest`:
+   `commands.json` still pins the old bundle fingerprint.
+2. `test_owner_equality.EqualityTest.test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests`:
+   the guide's bootstrap blocks and command pin still contain the old fingerprint.
+3. `test_owner_equality.EqualityTest.test_reviewed_windows_payload_is_exact_generated_ci_payload`:
+   generated payload/source equality passes; the subsequent guide-fingerprint assertion fails on its old pin.
+4. `test_owner_path.OwnerPathTest.test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns`:
+   the guide's `PASS tools manifest SHA256 …` line still has the old fingerprint.
+
+Those pins, guides, inventory changes and routes belong to stage 1b. No state-machine, compatibility, fixture,
+model or revert-proof failure remains. No new rule is needed. Open questions for this checkpoint: **none**;
+the historical council/laptop limits below remain limits, not new claims of physical verification.
+
+### For stage 1b
+
+1. Start from the final hosted receipt below and the two defect regressions above. Preserve the three
+   journal states, the absent-bundle destination exception, and `finish_proof` beside `proof: null`.
+   Keep readiness read-only until tools publication; keep `records` resolution ahead of disk writes.
+2. Finish C/D/F, B12 and B9's payload test. The bundle still has `rollback.sh`, `default-stock.sh` and
+   `previous.sh`; its inventory was deliberately unchanged here. Their repository copies stay byte-identical.
+   Remove the three payload entries, then generate the final fingerprint and update every pin together.
+3. The four remaining test failures are the fingerprint/bootstrap/guide pins named below. The guide still
+   quotes the old missing-trial diagnostic and its route helper models that quote. Update both to A7's
+   no-trial-and-no-repair-note wording; do not weaken the route assertion. All other guide/route changes
+   (including forward update after previous) remain yours, as do the refusal invariant and binding tests.
+4. Regenerate the 22c host walk before `rebind.py pending` after bound edits. This step's walk still covers
+   only the probe route. Add E's route, then refresh bindings as D/B12 require. Do not rewrite package 27's walk.
+5. Dispatch no rehearsal until the integrator supplies the tools review's verdict. No VM was dispatched here.
+   The next release still needs real staging/finalize captures over three installed rows; this model is not
+   that capture. A first install with version 3 remains tests only.
+
+## Stage 1a: summary
+
+The installed set is the saved pinned stock plus one or two known AresOS releases, in any order and with
+any member running. Before the first switch, version 2's prepared and staged-switch rules and title text
+remain unchanged. All four destination words share one identity-bound `set-default` reorder with `sync`;
+it preserves the rows, pins and boot entries. `update` reorders to an installed newest release without
+network access, or stages a missing bundle only from a default/running AresOS with whole settings. Staging
+announces the removed release before the primitive and keeps the running system's settings, even when it
+is the older one (owner decisions 1 and 5 remain judgment calls for merge).
+
+The journal resolves from the deployment list before command-specific checks. Selection applied on the
+same boot, restart waiting, and target boot confirmed are distinct. A later start elsewhere stays usable;
+a lost change archives not-applied; same-boot staging intents still name update. Layout trials and repair
+notes belong to their deployment; abandoning elsewhere writes no other system's settings, and interrupted
+finish authorization survives revert. Stock updater findings warn on reads, refuse keep-stock, and never
+block the return to AresOS; staging on stock beside installed AresOS gets its dedicated danger refusal.
+Tools 3 reads version 2's records and accepts its shapes. Tools publication retains `tools-update1` and
+preserves old-readable journals until the new tools become current.
+
+Differences/clarifications from the brief: modified AresOS remains readable/rebootable as version 2 allowed,
+while changes refuse it (step 1 PLAN-GAP 5); stock-stage wording names one installed release when only one
+exists; a no-op does not refresh title; bootc slots/flags must agree with the list but never supply a cause.
+Same-boot staged-record loss still refuses until another boot; stale repair notes for removed deployments
+block nothing. The B2 follow-up keeps strict staging from default/running older AresOS with an absent
+newer bundle: the installed newer release is then reached through its boot-menu path. This step changes
+no rule or schema; its new clarification is deferring tools-update journal resolution writes to publication.
+
+Known limits remain the council's: the small set-default index race; early finalize prune near a full
+`/boot`; modified deployments refusing changes; no inference of why a non-default row runs; identical menu
+titles; separate settings per system; an owner-started Bazzite update outside the tools; no cancellation
+before restart; and no staging from stock. Accepted shape/model results do not prove the laptop's cleanup
+implementation, menu link-swap path, desktop updater triggers or pin storage. Stage 0 proves only its
+captured VM reorders/menu choice and pair staging; triple finalize and settings inheritance are synthetic.
+No first install with tools 3, real keyboard typing, shutdown durability, stage-2 rehearsal or laptop change
+was performed in this step.
+
+For the next update release: rehearse staging from **both** `[R27*, S, R13]` and `[R27*, R13, S]`, retain
+`[new, R27, S]` by identity with stock pinned, start stock from the menu and reorder back. Commit raw staging
+and triple-finalize captures and hold the fake to them; this is that release's acceptance and laptop gate,
+not proved here. Its bundle must pass A9 against whichever tools are then installed, and use tools version 4.
+
+
+The closing commit changes this report and its receipt only; the tested implementation remains `8d236619`.
+Temporary logs, scripts and model outputs under `.work/22c-step3/` are removed before the closing push. No
+outside-worktree temporary directory was created. The closing `.work/` inventory has **no file over 500 MB**;
+no large download was made. No builder-started test/watch process remains, and no Gradle daemon was started.
+PR #46 stays open and draft; nothing was merged and nothing was pushed to main.
