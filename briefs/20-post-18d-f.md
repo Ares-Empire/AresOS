@@ -16,7 +16,10 @@ In a document the reader didn't watch from its start:
   `chrome_read_typed_fields`. A type can have been switched from password, and this package's own password-kind rule
   covers masked textareas;
 - **editable areas (`contenteditable`) stay read.** Add a known-limit line: a secret masked inside an editable area
-  can be read;
+  can be read. This point isn't final: the owner decides on board #216 between reading editors without asking and
+  asking first for editors too. Build it as written, but keep editable areas easy to move into
+  `chrome_read_typed_fields`' scope and its binding. If he picks "ask first", one small addendum follows, with a test
+  of a masked, unlabelled secret revealed in an editable area before the take and read only after approval;
 - checkboxes, radios, selects, ranges and date kinds keep their values;
 - credential-like fields are never read.
 
