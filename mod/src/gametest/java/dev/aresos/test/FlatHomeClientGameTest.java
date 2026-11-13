@@ -72,6 +72,7 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
     private static final Vec3 PICKED = new Vec3(30.25, 64, 30.75);
     /** A paving block of the north road, far enough ahead to be seen from home. */
     private static final BlockPos EDITED = new BlockPos(1, 63, -6);
+    private static final BlockPos CHANGED_BACK = new BlockPos(0, 63, -8);
     /** High enough for the whole cross at a field of view of 110, low enough for it to fill the picture. */
     private static final int ABOVE = 84;
 
@@ -99,7 +100,7 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
         try (TestSingleplayerContext world = adopt(context, save)) {
             world.getConnection().waitForChunksRender();
             assertArrival(context, world, dimensions);
-            built = assertNewWorld(world, directory);
+            assertNewWorld(world, directory);
             photographViews(context, world);
             assertHomeCommands(context, world, messages);
             assertRespawn(context, world);
@@ -112,12 +113,19 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
                 // His edit, made the way a mined block is, and a rule he changes: both must still be there after a restart.
                 check(player.gameMode.destroyBlock(EDITED) && level.getBlockState(EDITED).isAir(), "Build mode could not break a road block");
                 level.setBlockAndUpdate(EDITED, Blocks.DIAMOND_BLOCK.defaultBlockState());
+                check(player.gameMode.destroyBlock(HOME.below()), "Build mode could not mine gold");
+                check(HubData.get(server).fixed().blocks().stream().noneMatch(block -> block.pos().equals(HOME.below())),
+                        "Gold remained recorded after mining");
+                level.setBlockAndUpdate(HOME.below(), Blocks.GOLD_BLOCK.defaultBlockState());
+                level.setBlockAndUpdate(CHANGED_BACK, Blocks.DIAMOND_BLOCK.defaultBlockState());
+                level.setBlockAndUpdate(CHANGED_BACK, Blocks.CONCRETE.lightBlue().defaultBlockState());
                 server.getGameRules().set(GameRules.KEEP_INVENTORY, false, server);
                 server.getGameRules().set(GameRules.ADVANCE_WEATHER, true, server);
                 check(level.getOverworldClockTime() == 6000, "Time moved while he was there: " + level.getOverworldClockTime());
                 assertEmptyOfMobs(level);
                 return ground(level);
             });
+            built = world.getServer().computeOnServer(server -> HubData.get(server).fixed());
         }
 
         // The second start, as he does it: the AresOS button on the title screen.
@@ -138,7 +146,11 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
                 level.setBlockAndUpdate(EDITED, Blocks.DIAMOND_BLOCK.defaultBlockState());
                 // Live mode, as the real host: the mod's own blocks stay.
                 check(HubData.protectsFromExplosions(server), "Live mode does not shield the hub from explosions");
-                check(!player.gameMode.destroyBlock(HOME.below()) && level.getBlockState(HOME.below()).is(Blocks.GOLD_BLOCK), "Live mode broke the gold block");
+                check(!HubData.protectsFrom(player, HOME.below()) && player.gameMode.destroyBlock(HOME.below()), "His gold regained protection after restart");
+                level.setBlockAndUpdate(HOME.below(), Blocks.GOLD_BLOCK.defaultBlockState());
+                check(!HubData.protectsFrom(player, CHANGED_BACK) && player.gameMode.destroyBlock(CHANGED_BACK), "Changed-back road regained protection after restart");
+                level.setBlockAndUpdate(CHANGED_BACK, Blocks.CONCRETE.lightBlue().defaultBlockState());
+                check(!player.gameMode.destroyBlock(HOME.offset(2, -1, 0)), "Live mode broke an untouched pad block");
                 check(!player.gameMode.destroyBlock(new BlockPos(0, 63, -10)) && level.getBlockState(new BlockPos(0, 63, -10)).is(Blocks.CONCRETE.lightBlue()),
                         "Live mode broke the road's centre line");
                 var hub = HubData.get(server);

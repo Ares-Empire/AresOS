@@ -22,8 +22,7 @@ import java.util.UUID;
 
 /**
  * What the mod built in a flat home, saved with the world as {@code data/aresos/hub.dat} (docs/design/HUB.md 3.5).
- * A block is the mod's only while the world still holds the recorded block at that position: one he changed in
- * Build mode is his, so nothing here is rewritten when he edits.
+ * A changed block permanently leaves the record, even if he later puts the original material back.
  */
 public final class HubData extends SavedData {
     /** One block the mod placed; the block as its ID, for example "minecraft:gold_block". */
@@ -54,7 +53,7 @@ public final class HubData extends SavedData {
     private final String look;
     private final Map<String, Integer> numbers;
     private final GlobalPos home;
-    private final Fixed fixed;
+    private Fixed fixed;
     private final Map<BlockPos, String> placed = new HashMap<>();
 
     public HubData(String look, Map<String, Integer> numbers, GlobalPos home, Fixed fixed) {
@@ -84,9 +83,24 @@ public final class HubData extends SavedData {
 
     /** True while the block at this position is still the one the mod placed there. */
     public boolean holds(ServerLevel level, BlockPos pos) {
+        if (!level.dimension().equals(home.dimension())) return false;
         String block = placed.get(pos);
-        return block != null && level.dimension().equals(home.dimension())
-                && block.equals(BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).toString());
+        if (block == null) return false;
+        if (block.equals(BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).toString())) return true;
+        forget(pos);
+        return false;
+    }
+
+    /** Called after an actual block-kind change, including mining, explosions and pistons. */
+    public static void blockChanged(ServerLevel level, BlockPos pos) {
+        HubData hub = get(level.getServer());
+        if (hub != null && level.dimension().equals(hub.home.dimension())) hub.forget(pos);
+    }
+
+    private void forget(BlockPos pos) {
+        if (placed.remove(pos) == null) return;
+        fixed = new Fixed(fixed.blocks().stream().filter(block -> !block.pos().equals(pos)).toList(), fixed.names());
+        setDirty();
     }
 
     /** In Live mode he cannot break the hub's own blocks by hand. */

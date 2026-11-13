@@ -238,9 +238,27 @@ public final class FlatHomeGameTests {
 
             mode(player, GameType.CREATIVE);
             check(!HubData.protectsFromExplosions(server), "Build mode still shields the hub from explosions");
+            check(player.gameMode.destroyBlock(gold), "Build mode could not break gold");
+            check(HubData.get(server).fixed().blocks().stream().noneMatch(block -> block.pos().equals(gold)),
+                    "Mining did not immediately remove gold from the record");
+            level.setBlockAndUpdate(gold, Blocks.GOLD_BLOCK.defaultBlockState());
             check(player.gameMode.destroyBlock(road) && level.getBlockState(road).isAir(), "Build mode could not break the road");
-            // What he puts there is his: back in Live it is not protected, and the record is unchanged.
+            // A replacement changed back to the original concrete is still his.
             level.setBlockAndUpdate(road, Blocks.DIAMOND_BLOCK.defaultBlockState());
+            level.setBlockAndUpdate(road, Blocks.CONCRETE.lightBlue().defaultBlockState());
+            BlockPos replaced = Group.W.block(home, 10, 0, -1);
+            level.setBlockAndUpdate(replaced, Blocks.DIAMOND_BLOCK.defaultBlockState());
+            level.setBlockAndUpdate(replaced, Blocks.CONCRETE.purple().defaultBlockState());
+            check(HubData.get(server).fixed().blocks().stream().noneMatch(block -> block.pos().equals(replaced)),
+                    "Replacing a block did not immediately remove its record");
+            // An observed mismatch must also be forgotten, even when it predates this in-memory record.
+            BlockPos stale = home.offset(3, -1, 3);
+            var observed = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home),
+                    new HubData.Fixed(List.of(new HubData.Placed(stale, "minecraft:gold_block")), List.of()));
+            check(!observed.holds(level, stale) && observed.fixed().blocks().isEmpty() && observed.isDirty(),
+                    "An observed mismatch was not persistently forgotten");
+            level.setBlockAndUpdate(stale, Blocks.GOLD_BLOCK.defaultBlockState());
+            check(!observed.holds(level, stale), "An observed mismatch regained ownership");
             explode(level, player, Vec3.atCenterOf(Group.S.block(home, 10, 0, 0)));
             check(level.getBlockState(Group.S.block(home, 10, 0, -1)).isAir(), "An explosion in Build mode left the road intact");
             check(level.getEntity(fixed.names().get(2)).isAlive(), "An explosion in Build mode removed a group name");
@@ -248,8 +266,12 @@ public final class FlatHomeGameTests {
             mode(player, GameType.SURVIVAL);
             check(HubData.protectsFromExplosions(server), "Live mode does not shield the hub from explosions");
             check(!HubData.protectsFrom(player, road), "A block he changed in Build mode is still treated as the mod's");
+            check(!HubData.protectsFrom(player, gold) && player.gameMode.destroyBlock(gold), "His gold regained protection in Live");
+            check(!HubData.protectsFrom(player, replaced) && player.gameMode.destroyBlock(replaced), "Changed-back concrete regained protection");
             check(player.gameMode.destroyBlock(road) && level.getBlockState(road).isAir(), "Live mode could not break his own block");
-            check(HubData.get(server).fixed().equals(fixed), "The record changed");
+            var remaining = HubData.get(server).fixed();
+            check(remaining.names().equals(fixed.names()) && remaining.blocks().size() < fixed.blocks().size(), "The record did not relinquish edits");
+            check(remaining.blocks().stream().allMatch(block -> HubData.get(server).holds(level, block.pos())), "An exploded block stayed recorded");
 
             DesktopWorld.setEnabled(server, false);
             check(!HubData.protectsFrom(player, gold), "Protection outlives the desktop marker");
