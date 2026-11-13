@@ -21,6 +21,14 @@ public final class ZoneData extends SavedData {
     public static ZoneData get(MinecraftServer server) { return server.getDataStorage().computeIfAbsent(TYPE); }
     public List<AppZone> zones() { return List.copyOf(zones); }
 
+    /** Ownership is a saved coordinate and block ID, never membership of the colour palette. */
+    public java.util.Map<net.minecraft.core.BlockPos, String> gateBlocks(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension) {
+        var blocks = new java.util.HashMap<net.minecraft.core.BlockPos, String>();
+        for (var zone : zones) if (zone.dimension().equals(dimension))
+            zone.gate().ifPresent(gate -> gate.placed().forEach(placed -> blocks.put(placed.pos(), placed.block())));
+        return blocks;
+    }
+
     /** The entity IDs of every gate's sign. */
     public java.util.Set<java.util.UUID> signs() {
         return zones.stream().flatMap(zone -> zone.gate().flatMap(AppZone.Gate::sign).stream())

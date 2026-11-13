@@ -10,6 +10,8 @@ import net.minecraft.world.entity.decoration.BlockAttachedEntity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Fallable;
+import net.minecraft.world.level.block.AmethystBlock;
+import net.minecraft.world.level.block.HalfTransparentBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 
@@ -18,7 +20,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * What a logo may be built next to. Placing a block updates its neighbours, and an update can travel on through
@@ -26,11 +27,6 @@ import java.util.stream.Collectors;
  * and rolling back would already have fired ticks, drops and redstone.
  */
 final class Neighbors {
-    /** Blocks the mod itself places that are not plain: three of the gate's palette, and the hidden light. */
-    private static final Set<Block> OWN = java.util.stream.Stream.concat(
-            GatePalette.BLOCKS.stream().map(color -> block(color.block())), java.util.stream.Stream.of(Blocks.LIGHT))
-            .collect(Collectors.toUnmodifiableSet());
-
     private Neighbors() { }
 
     static Block block(String name) { return BuiltInRegistries.BLOCK.getValue(Identifier.withDefaultNamespace(name)); }
@@ -41,6 +37,7 @@ final class Neighbors {
      */
     static void check(ServerLevel level, Set<BlockPos> changing, Collection<BlockPos> around, int reach) throws IOException {
         var signs = ZoneData.get(level.getServer()).signs();
+        var owned = ZoneData.get(level.getServer()).gateBlocks(level.dimension());
         for (var cell : around) {
             var entities = level.getEntities((Entity)null, new AABB(cell).inflate(1), entity -> !signs.contains(entity.getUUID())
                     && (entity instanceof BlockAttachedEntity || standsOn(entity, cell)));
@@ -56,7 +53,8 @@ final class Neighbors {
             var pos = cell.offset(x, y, z);
             if (changing.contains(pos) || !checked.add(pos)) continue;
             var state = level.getBlockState(pos);
-            if (inert(level, pos, state)) continue;
+            boolean ours = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString().equals(owned.get(pos));
+            if (inert(level, pos, state, ours)) continue;
             throw new IOException("Logo could disturb neighboring " + BuiltInRegistries.BLOCK.getKey(state.getBlock()) + " at " + pos.toShortString()
                     + ". No blocks changed. Leave two cells clear of plants, circuits, fluids and blocks with special behavior, then retry.");
         }
@@ -69,15 +67,17 @@ final class Neighbors {
     }
 
     /** Air, a plain full block, a block the mod itself builds with, or untouched ground. Anything unknown is refused. */
-    static boolean inert(ServerLevel level, BlockPos pos, BlockState state) {
+    static boolean inert(ServerLevel level, BlockPos pos, BlockState state, boolean ours) {
         if (state.isAir()) return true;
         // A kept light retains its fluid and has no support to lose when an adjacent logo block disappears.
-        if (state.is(Blocks.LIGHT)) return true;
+        if (ours && state.is(Blocks.LIGHT)) return true;
         if (!state.getFluidState().isEmpty() || state.hasBlockEntity() || state.isSignalSource()) return false;
-        if (OWN.contains(state.getBlock())) return true;
+        if (ours) return true;
         if (!state.isCollisionShapeFullBlock(level, pos) || state.getBlock() instanceof Fallable) return false;
         // Plain full blocks have no survival, support or neighbour callbacks.
-        if (state.getBlock().getClass() == Block.class && !state.isRandomlyTicking()) return true;
+        var type = state.getBlock().getClass();
+        // Checked against 26.2's classes: these two subclasses add sound/rendering, not neighbour behaviour.
+        if ((type == Block.class || type == AmethystBlock.class || type == HalfTransparentBlock.class) && !state.isRandomlyTicking()) return true;
         return ground(level, pos, state);
     }
 

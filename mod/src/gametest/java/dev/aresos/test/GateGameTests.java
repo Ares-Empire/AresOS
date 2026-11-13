@@ -166,10 +166,16 @@ public final class GateGameTests {
     @GameTest
     public void paletteBlocksAreFullAndStill(GameTestHelper helper) {
         var notPlain = new TreeSet<String>();
+        var neighborCallbacks = new TreeSet<String>();
         for (int i = 0; i < GatePalette.BLOCKS.size(); i++) {
             String name = GatePalette.BLOCKS.get(i).block();
             var block = block(name);
             var state = block.defaultBlockState();
+            // Inspect all sixty classes, including inherited overrides, rather than assuming the palette is inert.
+            for (Class<?> type = block.getClass(); type != Block.class; type = type.getSuperclass())
+                for (var method : type.getDeclaredMethods())
+                    if (Set.of("updateShape", "neighborChanged", "updateIndirectNeighbourShapes", "onPlace", "affectNeighborsAfterRemoval").contains(method.getName()))
+                        neighborCallbacks.add(name + ":" + method.getName());
             check(block != Blocks.AIR, name + " is not a block in this game version");
             check(state.isCollisionShapeFullBlock(EmptyBlockGetter.INSTANCE, BlockPos.ZERO) && state.getFluidState().isEmpty(), name + " is not a full block");
             check(!(block instanceof Fallable), name + " falls");
@@ -185,6 +191,7 @@ public final class GateGameTests {
         // chimes when hit, blue ice is slippery to walk on. None of that moves or changes a standing logo.
         check(notPlain.equals(Set.of("red_mushroom_block:HugeMushroomBlock", "amethyst_block:AmethystBlock", "blue_ice:HalfTransparentBlock")),
                 "blocks with their own class: " + notPlain);
+        check(neighborCallbacks.equals(Set.of("red_mushroom_block:updateShape")), "palette neighbour callbacks: " + neighborCallbacks);
         helper.succeed();
     }
 
@@ -484,6 +491,8 @@ public final class GateGameTests {
             refused(site, "a chest two cells above the logo", "minecraft:chest", plan -> level.setBlock(plan.at(1, 6, 13), Blocks.CHEST.defaultBlockState(), 2));
             refused(site, "sand under the logo", "minecraft:sand", plan -> level.setBlock(plan.at(1, 0, -1), Blocks.SAND.defaultBlockState(), 2));
             refused(site, "ice four cells from a light block, where it would melt", "minecraft:ice", plan -> level.setBlock(plan.lights().getFirst().relative(Direction.SOUTH, 4), Blocks.ICE.defaultBlockState(), 2));
+            refused(site, "an external mushroom behind a planned mushroom pixel", "minecraft:red_mushroom_block",
+                    plan -> level.setBlock(plan.at(3, 0, 5), Blocks.RED_MUSHROOM_BLOCK.defaultBlockState(), 2));
             check(Blocks.ICE.defaultBlockState().getLightDampening() == 1, "ice dims light by " + Blocks.ICE.defaultBlockState().getLightDampening() + ": check how far a light block melts it");
             refused(site, "a zone across the doorway", "overlaps", plan -> ZoneData.get(level.getServer()).add(new AppZone("blocker", BLOCKER, level.dimension(),
                     plan.nicheMin(), plan.nicheMin(), AppZone.exit(level.dimension(), Vec3.atBottomCenterOf(plan.at(-4, 0, 0)), new AABB(plan.nicheMin())), List.of())));
@@ -508,10 +517,9 @@ public final class GateGameTests {
             var first = site.build(site.plan(stripes(10)));
             check(first.gate().orElseThrow().ground().stream().allMatch(ground -> ground.block().equals("minecraft:grass_block")) && first.gate().orElseThrow().ground().size() == 8,
                     "doormat on grass: " + first.gate().orElseThrow().ground());
-            // A second gate right beside the first, and beside loose blocks of the kinds a gate is made of that
-            // are not plain: the old check refused all of them.
+            // A second gate right beside the first. Only recorded positions establish ownership.
             var beside = GatePlan.of(stripes(10), level.dimension(), site.base().offset(10, 0, 10), Direction.NORTH, "Beside", "bs", "red_concrete");
-            var loose = Map.of(beside.at(4, 3, 3), Blocks.LIGHT, beside.at(4, 5, 3), Blocks.RED_MUSHROOM_BLOCK, beside.at(4, 7, 3), Blocks.AMETHYST_BLOCK,
+            var loose = Map.of(beside.at(4, 7, 3), Blocks.AMETHYST_BLOCK,
                     beside.at(4, 9, 3), Blocks.BLUE_ICE);
             loose.forEach((pos, block) -> level.setBlock(pos, block.defaultBlockState(), 2));
             var second = site.build(beside);
