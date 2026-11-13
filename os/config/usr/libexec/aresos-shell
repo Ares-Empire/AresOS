@@ -2565,11 +2565,11 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description='AresOS app helper (aresos-shell/1.1)')
     parser.add_argument('--registry', default=REGISTRY, help='folder of reviewed app entries')
     parser.add_argument('--socket', help='socket path (default $XDG_RUNTIME_DIR/aresos/shell.sock)')
-    parser.add_argument('--list', action='store_true', help='print the 1.1 catalogue with availability and exit')
+    parser.add_argument('--list', action='store_true', help='print the reviewed registry with availability and exit')
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format='aresos-shell: %(levelname)s %(message)s')
     if args.list:
-        apps, revision = load_catalogue(args.registry)
+        apps, revision = load_registry(args.registry)
         rows = []
         for app in sorted(apps.values(), key=lambda app: app.id):
             _, _, reason = resolve(app)

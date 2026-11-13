@@ -356,3 +356,13 @@ class Protocol11Test(Base):
         self.start()
         row = next(row for row in self.listing()['apps'] if row['id'] == 'org-example-app')
         self.assertEqual(row['exec_name'], 'org.example.App')
+
+    def test_list_diagnostic_retains_its_reviewed_registry_contract(self):
+        self.desktop('extra.desktop')
+        output = subprocess.check_output([sys.executable, str(ROOT / 'os/config/usr/libexec/aresos-shell'),
+                                          '--registry', str(self.registry), '--list'],
+                                         env=dict(os.environ, HOME=str(self.root), XDG_DATA_HOME=str(self.root / '0')))
+        listing = json.loads(output)
+        self.assertEqual({row['id'] for row in listing['apps']}, {'browser', 'terminal', 'notepad'})
+        self.assertTrue(all(set(row) == {'id', 'name', 'available', 'reason'} for row in listing['apps']))
+        self.assertEqual(listing['revision'], shell.load_registry(str(self.registry))[1])
