@@ -359,14 +359,16 @@ class DiscoveredLaunchTest(DiscoveryBase):
         self.assertEqual(apps['absolute'].argv[0], '/opt/my app/program')
 
     def test_flatpak_file_and_url_forwarding_markers_are_dropped_as_groups(self):
+        # Flatpak writes these markers only with --file-forwarding (review 1, finding 6: only then are they markers).
         for n, codes in enumerate(('@@u %u @@', '@@u %U @@', '@@ %f @@', '@@ %F @@')):
-            self.write(f'forward{n}.desktop', Exec=f'/usr/bin/flatpak run org.example.App {codes} --flag')
+            self.write(f'forward{n}.desktop',
+                       Exec=f'/usr/bin/flatpak run --file-forwarding org.example.App {codes} --flag')
         apps, _ = self.catalogue()
         self.assertEqual(len(apps), 4)
         for app in apps.values():
-            self.assertEqual(app.argv, ('/usr/bin/flatpak', 'run', 'org.example.App', '--flag'))
+            self.assertEqual(app.argv, ('/usr/bin/flatpak', 'run', '--file-forwarding', 'org.example.App', '--flag'))
         for n, codes in enumerate(('@@u %u', '@@u %f @@', '@@ something @@')):
-            self.write(f'bad{n}.desktop', Exec=f'/usr/bin/flatpak run org.example.App {codes}')
+            self.write(f'bad{n}.desktop', Exec=f'/usr/bin/flatpak run --file-forwarding org.example.App {codes}')
         with self.assertLogs(shell.LOG, level='WARNING') as logs:
             self.assertEqual(set(self.catalogue()[0]), set(apps))
         self.assertEqual(len(logs.output), 3)

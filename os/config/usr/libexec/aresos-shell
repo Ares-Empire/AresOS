@@ -376,8 +376,42 @@ def desktop_exec(path):
     return argv, directory
 
 
-def _desktop_argv(values, path, forwarding=False):
-    """The existing Exec grammar, shared by reviewed and discovered entries."""
+# flatpak run's options that take no value (flatpak 1.16, `flatpak run --help`). Any other option must carry its value
+# after '=': a value in the next word would make the app ID a guess.
+FLATPAK_FLAGS = frozenset({'-u', '--user', '--system', '-d', '--devel', '--log-session-bus', '--log-system-bus',
+                           '--log-a11y-bus', '--no-a11y-bus', '--a11y-bus', '--no-session-bus', '--session-bus',
+                           '--no-documents-portal', '--file-forwarding', '--sandbox', '-p', '--die-with-parent',
+                           '--parent-expose-pids', '--parent-share-pids', '--clear-env', '-v', '--verbose',
+                           '--ostree-verbose'})
+# A Flatpak application ID: three or more dot-separated parts, none starting with a digit.
+FLATPAK_APP = re.compile(r'(?=.{1,255}\Z)[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*){2,}\Z')
+
+
+def flatpak_run(words):
+    """For a `flatpak run [options] APP ...` command: (its app ID or None, whether it forwards files). Else None.
+
+    The app ID is the first word after the options, and only when every option before it is understood; otherwise
+    it is left unknown rather than invented (review 1, finding 7). File forwarding counts only before the app ID.
+    """
+    if len(words) < 2 or posixpath.basename(words[0]) != 'flatpak' or words[1] != 'run':
+        return None
+    forwarding = False
+    for word in words[2:]:
+        if not word.startswith('-'):
+            return (word if FLATPAK_APP.match(word) else None), forwarding
+        if word == '--file-forwarding':
+            forwarding = True
+        elif not (word.startswith('--') and '=' in word) and word not in FLATPAK_FLAGS:
+            return None, False
+    return None, False
+
+
+def _desktop_argv(values, path, flatpak=False):
+    """The existing Exec grammar, shared by reviewed and discovered entries.
+
+    With flatpak (discovered entries), Flatpak's file-forwarding markers are removed, but only from a recognised
+    `flatpak run ... --file-forwarding` command; anywhere else `@@` is an ordinary argument (review 1, finding 6).
+    """
     exec_value = _unescape_string(values['Exec'])
     args, current, quoted, escaped, started = [], [], False, False, False
     for char in exec_value:
@@ -408,7 +442,7 @@ def _desktop_argv(values, path, forwarding=False):
         raise ValueError('unterminated quote in Exec')
     if started:
         args.append(''.join(current))
-    if forwarding:
+    if flatpak and (flatpak_run(args) or (None, False))[1]:
         clean, index = [], 0
         while index < len(args):
             arg = args[index]
@@ -713,7 +747,7 @@ def discovered_app(desktop_id, path, values, executable):
         return None
     if not values.get('Exec'):
         return None
-    argv = _desktop_argv(values, path, forwarding=True)
+    argv = _desktop_argv(values, path, flatpak=True)
     program = find_executable(argv[0], executable)
     if program is None:
         return None
@@ -732,21 +766,25 @@ def discovered_app(desktop_id, path, values, executable):
         return None
     discrete = (desktop_bool(values, 'PrefersNonDefaultGPU') or desktop_bool(values, 'X-KDE-RunOnDiscreteGpu')
                 or 'Game' in values.get('Categories', '').split(';'))
-    identities = [_unescape_string(values.get('StartupWMClass', '')), desktop_id[:-len('.desktop')],
-                  _unescape_string(values.get('X-Flatpak', '')), os.path.basename(program)]
+    # A Flatpak's program is its app ID: from X-Flatpak, else from its own `flatpak run` command, else unknown. The
+    # launcher's file name (flatpak) and the desktop file's name are never taken for it (review 1, finding 7).
+    flatpak_id = _unescape_string(values.get('X-Flatpak', ''))
+    run = flatpak_run(argv)
+    if run is not None:
+        flatpak_id = flatpak_id or run[0] or ''
+    program_name = flatpak_id if run is not None else (flatpak_id or os.path.basename(program))
+    identities = [_unescape_string(values.get('StartupWMClass', '')), desktop_id[:-len('.desktop')], flatpak_id,
+                  *(() if run is not None else (os.path.basename(program),))]
     # The terminal wrapper supplies the identity, rather than the command running inside it.
     if terminal:
         identities = [terminal_app_id(App(app_id, name))]
     identities = tuple(dict.fromkeys(value for value in identities if WINDOW_ID.fullmatch(value)))
-    exec_name = values.get('X-Flatpak') or (desktop_id[:-len('.desktop')]
-                                           if os.path.basename(program) == 'flatpak' and 'run' in argv[1:]
-                                           else os.path.basename(program))
-    exec_name = detail_text(exec_name, 128)
+    exec_name = detail_text(program_name, 128)
     return App(app_id, name, tuple(argv), desktop_entry=desktop_id,
                working_directory=directory if os.path.isabs(directory) else '~',
                app_ids=identities, instance=None, discovered=True, terminal=terminal,
                gpu='discrete' if discrete else None,
-               exec_name=exec_name if '/' not in exec_name else None,
+               exec_name=exec_name if exec_name and '/' not in exec_name else None,
                **desktop_details(desktop_id, values))
 
 
@@ -788,7 +826,7 @@ def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None,
             if dependencies is not None:
                 words = [_unescape_string(values.get('TryExec', ''))]
                 if values.get('Exec'):
-                    words.append(_desktop_argv(values, path, forwarding=True)[0])
+                    words.append(_desktop_argv(values, path, flatpak=True)[0])
                 for word in words:
                     if os.path.isabs(word):
                         dependencies.add(word)
