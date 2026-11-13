@@ -247,7 +247,7 @@ public final class GateGameTests {
             helper.startSequence().thenWaitUntil(() -> helper.assertTrue(site.loaded(), "The site's chunks are not loaded yet")).thenExecute(() -> {
                 try {
                     site.clear();
-                    site.floor(Blocks.STONE);
+                    site.floor(Blocks.GRASS_BLOCK);
                     body.run(site);
                 } catch (IOException error) { throw new AssertionError(error.getMessage(), error); }
                 finally { site.clear(); site.hold(false); }
@@ -351,7 +351,7 @@ public final class GateGameTests {
             plan.blocks().forEach((pos, name) -> check(("minecraft:" + name).equals(recorded.get(pos)), "record at " + pos + ": " + recorded.get(pos)));
             check(plan.lights().stream().allMatch(pos -> "minecraft:light".equals(recorded.get(pos)))
                     && plan.doormat().stream().allMatch(pos -> "minecraft:light_blue_concrete".equals(recorded.get(pos))), "lights or doormat not recorded");
-            check(gate.ground().size() == 8 && gate.ground().stream().allMatch(ground -> ground.block().equals("minecraft:stone") && plan.doormat().contains(ground.pos())),
+            check(gate.ground().size() == 8 && gate.ground().stream().allMatch(ground -> ground.block().equals("minecraft:grass_block") && plan.doormat().contains(ground.pos())),
                     "replaced ground: " + gate.ground());
             // The sign: one text display where the plan says, which nothing can hit.
             check(site.signs().size() == 1, "signs: " + site.signs().size());
@@ -547,6 +547,22 @@ public final class GateGameTests {
             site.clear();
             site.floor(Blocks.STONE_BRICKS);
             check(site.build(site.plan(stripes(12))).gate().orElseThrow().ground().isEmpty(), "doormat laid in a paved floor");
+            for (var floor : List.of(Blocks.STONE, Blocks.DIRT)) {
+                site.clear();
+                site.floor(floor);
+                var onFloor = site.build(site.plan(stripes(12)));
+                check(onFloor.gate().orElseThrow().ground().size() == (floor == Blocks.DIRT ? 8 : 0), "doormat on " + floor);
+                GateBuilder.remove(level.getServer(), onFloor);
+            }
+            site.clear();
+            site.floor(Blocks.GRASS_BLOCK);
+            var rear = plan.at(2, 5, -1);
+            check(plan.doormatSurround().contains(rear), "doormat ring misses its rear row");
+            level.setBlock(rear, Blocks.POLISHED_ANDESITE.defaultBlockState(), 2);
+            var noRear = site.build(plan);
+            check(noRear.gate().orElseThrow().ground().isEmpty() && plan.doormat().stream().noneMatch(noRear.blocks()::contains), "doormat ignored a changed rear row");
+            GateBuilder.remove(level.getServer(), noRear);
+            check(level.getBlockState(rear).is(Blocks.POLISHED_ANDESITE), "rear paving changed");
         });
     }
 }

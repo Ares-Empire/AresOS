@@ -137,15 +137,13 @@ public final class GateBuilder {
     }
 
     /**
-     * The doormat's block, when the floor at the door is untouched ground of the kind around it: one kind of
-     * natural ground under the doormat and around it. Anything else may be his paving, and the gate does without.
+     * Grass or dirt under the doormat and its whole ring. These blocks cannot establish provenance, but stone
+     * and other landscaping are never paved over. The original kind of every replaced block is recorded.
      */
     private static Optional<BlockState> doormat(ServerLevel level, GatePlan plan) {
-        Block kind = null;
         for (var pos : plan.doormatSurround()) {
             var state = level.getBlockState(pos);
-            if (!Neighbors.ground(level, pos, state) || kind != null && !state.is(kind)) return Optional.empty();
-            kind = state.getBlock();
+            if (!state.is(Blocks.GRASS_BLOCK) && !state.is(Blocks.DIRT)) return Optional.empty();
         }
         return Optional.of(Neighbors.block(plan.doormatBlock()).defaultBlockState());
     }

@@ -106,11 +106,11 @@ public record GatePlan(ResourceKey<Level> dimension, BlockPos origin, Direction 
         return floor;
     }
 
-    /** The floor around the doormat and under it: all of it must be the same untouched ground for a doormat. */
+    /** The floor under the doormat and its complete one-block ring, including the row behind the niche. */
     public List<BlockPos> doormatSurround() {
         var floor = new ArrayList<BlockPos>();
         int door = GateNumbers.doorLeft(size);
-        for (int along = -GateNumbers.DOORMAT_FRONT - 1; along < GateNumbers.NICHE_DEPTH; along++)
+        for (int along = -GateNumbers.DOORMAT_FRONT - 1; along <= GateNumbers.NICHE_DEPTH; along++)
             for (int u = door - 1; u <= door + GateNumbers.DOOR_WIDTH; u++) floor.add(at(along, u, -1));
         return floor;
     }
