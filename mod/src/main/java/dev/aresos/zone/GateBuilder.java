@@ -47,6 +47,12 @@ public final class GateBuilder {
     /** How many recorded blocks a removal took away, and how many it left because they had been changed. */
     public record Removal(int removed, int kept) { }
 
+    /**
+     * How far a light block melts: ice goes at block light 11 and snow at 12, and a level-15 light block still
+     * gives 11 four cells away.
+     */
+    private static final int LIGHT_MELTS = 4;
+
     private GateBuilder() { }
 
     /**
@@ -107,8 +113,7 @@ public final class GateBuilder {
             throw new IOException("An entity occupies the gate's place. Move it away, then retry.");
         Neighbors.check(level, placed.keySet(), solid.keySet(), 2);
         if (doormat.isPresent()) Neighbors.check(level, placed.keySet(), plan.doormat(), 2);
-        // Light of 12 and more melts ice and snow; a light block's reaches three cells.
-        Neighbors.check(level, placed.keySet(), plan.lights(), 3);
+        Neighbors.check(level, placed.keySet(), plan.lights(), LIGHT_MELTS);
         var sign = sign(level, plan.sign());
 
         // The ground the doormat replaces, to put back when the gate is removed.

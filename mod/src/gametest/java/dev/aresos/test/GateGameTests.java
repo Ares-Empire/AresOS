@@ -19,7 +19,9 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.TicketType;
 import net.minecraft.world.entity.Display;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.Level;
@@ -44,6 +46,11 @@ import java.util.function.Consumer;
 /** The gate: its plan against HUB.md 3.2, and building and removing it in a world. */
 public final class GateGameTests {
     private static final int[] SIZES = {10, 12, 14, 16};
+    /**
+     * The longest wait for a site's chunks. The test server ticks as fast as it can, about 70,000 times a second
+     * when nothing else runs, so this is a few seconds of real time for the disk, not five hours of game time.
+     */
+    private static final int SITE_TICKS = 400_000;
     /** The app of zones a test puts in a gate's way. */
     private static final String BLOCKER = "gate-blocker";
 
@@ -216,8 +223,8 @@ public final class GateGameTests {
     }
 
     /**
-     * A place for one gate high above the test's own structure, where no other test builds. The test world is
-     * kept between runs, so a site is emptied before use and after.
+     * A place for one gate high above the test's own structure, where no other test builds. Each test has its
+     * own height, so the sites of tests that stand side by side do not meet.
      */
     private record Site(ServerLevel level, BlockPos base, String app) {
         interface Body { void run(Site site) throws IOException; }
@@ -229,30 +236,37 @@ public final class GateGameTests {
         static void run(GameTestHelper helper, int lift, Body body) {
             DesktopWorld.setEnabled(helper.getLevel().getServer(), true);
             var site = new Site(helper.getLevel(), helper.absolutePos(BlockPos.ZERO).above(lift), "gate-fixture-" + lift);
-            site.force(true);
+            site.hold(true);
             helper.startSequence().thenWaitUntil(() -> helper.assertTrue(site.loaded(), "The site's chunks are not loaded yet")).thenExecute(() -> {
                 try {
                     site.clear();
                     site.floor(Blocks.STONE);
                     body.run(site);
                 } catch (IOException error) { throw new AssertionError(error.getMessage(), error); }
-                finally { site.clear(); site.force(false); }
+                finally { site.clear(); site.hold(false); }
             }).thenSucceed();
         }
 
         private Set<Long> chunks() {
             var chunks = new java.util.HashSet<Long>();
-            for (var pos : region()) chunks.add(net.minecraft.world.level.ChunkPos.pack(pos));
+            for (var pos : region()) chunks.add(ChunkPos.pack(pos));
             return chunks;
         }
 
-        void force(boolean forced) {
-            for (long chunk : chunks()) level.setChunkForced(net.minecraft.world.level.ChunkPos.getX(chunk), net.minecraft.world.level.ChunkPos.getZ(chunk), forced);
+        /**
+         * Keeps the site's chunks loaded with a ticket of the test's own. The test framework forces the chunks of
+         * every test structure and releases them when that test ends, so forcing and releasing them here would
+         * take a neighbouring test's chunks away before it has started.
+         */
+        void hold(boolean held) {
+            for (long chunk : chunks()) {
+                if (held) level.getChunkSource().addTicketWithRadius(TicketType.DRAGON, ChunkPos.unpack(chunk), 2);
+                else level.getChunkSource().removeTicketWithRadius(TicketType.DRAGON, ChunkPos.unpack(chunk), 2);
+            }
         }
 
         boolean loaded() {
-            return chunks().stream().allMatch(chunk -> level.hasChunk(net.minecraft.world.level.ChunkPos.getX(chunk), net.minecraft.world.level.ChunkPos.getZ(chunk))
-                    && level.areEntitiesLoaded(chunk));
+            return chunks().stream().allMatch(chunk -> level.hasChunk(ChunkPos.getX(chunk), ChunkPos.getZ(chunk)) && level.areEntitiesLoaded(chunk));
         }
 
         Iterable<BlockPos> region() { return BlockPos.betweenClosed(base.offset(-4, -3, 3), base.offset(24, 20, 20)); }
@@ -298,7 +312,7 @@ public final class GateGameTests {
         return GatePicture.of(icon, size);
     }
 
-    @GameTest(environment = "aresos-test:desktop")
+    @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
     public void buildMatchesThePlanAndRemovalLeavesTheWorldAsItWas(GameTestHelper helper) {
         Site.run(helper, 40, site -> {
             var level = site.level();
@@ -358,7 +372,7 @@ public final class GateGameTests {
         });
     }
 
-    @GameTest(environment = "aresos-test:desktop")
+    @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
     public void blocksHeChangedSurviveTheRemoval(GameTestHelper helper) {
         Site.run(helper, 70, site -> {
             var level = site.level();
@@ -399,7 +413,7 @@ public final class GateGameTests {
         check(site.zones().isEmpty() && site.signs().size() == signs, what + ": refusal saved a zone or left a sign");
     }
 
-    @GameTest(environment = "aresos-test:desktop")
+    @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
     public void everyRefusalChangesNothing(GameTestHelper helper) {
         Site.run(helper, 100, site -> {
             var level = site.level();
@@ -415,7 +429,8 @@ public final class GateGameTests {
             refused(site, "water behind the logo", "minecraft:water", plan -> level.setBlock(plan.at(4, 3, 0), Blocks.WATER.defaultBlockState(), 2));
             refused(site, "a chest two cells above the logo", "minecraft:chest", plan -> level.setBlock(plan.at(1, 6, 13), Blocks.CHEST.defaultBlockState(), 2));
             refused(site, "sand under the logo", "minecraft:sand", plan -> level.setBlock(plan.at(1, 0, -1), Blocks.SAND.defaultBlockState(), 2));
-            refused(site, "ice three cells from a light block", "minecraft:ice", plan -> level.setBlock(plan.lights().getFirst().relative(Direction.SOUTH, 3), Blocks.ICE.defaultBlockState(), 2));
+            refused(site, "ice four cells from a light block, where it would melt", "minecraft:ice", plan -> level.setBlock(plan.lights().getFirst().relative(Direction.SOUTH, 4), Blocks.ICE.defaultBlockState(), 2));
+            check(Blocks.ICE.defaultBlockState().getLightDampening() == 1, "ice dims light by " + Blocks.ICE.defaultBlockState().getLightDampening() + ": check how far a light block melts it");
             refused(site, "a zone across the doorway", "overlaps", plan -> ZoneData.get(level.getServer()).add(new AppZone("blocker", BLOCKER, level.dimension(),
                     plan.nicheMin(), plan.nicheMin(), AppZone.exit(level.dimension(), Vec3.atBottomCenterOf(plan.at(-4, 0, 0)), new AABB(plan.nicheMin())), List.of())));
             ZoneData.get(level.getServer()).remove(zone -> zone.id().equals("blocker"));
@@ -430,7 +445,7 @@ public final class GateGameTests {
         });
     }
 
-    @GameTest(environment = "aresos-test:desktop")
+    @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
     public void gatesStandOnGrassSideBySideAndTheDoormatNeedsUntouchedGround(GameTestHelper helper) {
         Site.run(helper, 130, site -> {
             var level = site.level();
