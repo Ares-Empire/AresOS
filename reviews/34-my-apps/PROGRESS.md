@@ -16,11 +16,11 @@ Working notes for the next builder. Deleted in the last commit before the PR is 
 | B3 | The Apps screen and the client game tests with screenshots | Not started |
 | Last | README, REPORT, build once, client tests twice, fetch and merge, delete this file, PR | Not started |
 
-**Verification so far.** `mod/dev/build.sh` passed once on commit `e7148941` (everything up to and including the apps file): 78 unit tests, 72 passed and 6 skipped (the Windows-only ones), and "All 38 required tests passed" for the server game tests. The commit after it (`AppGroup`, A5) was checked with plain `javac` and JUnit only; see "Build result" at the end of this file, and if that section is missing run `mod/dev/build.sh` first. The client game tests have not run on this branch yet: nothing visible has changed so far, and the inventory still holds every app as before (`AppInventory` is untouched).
+**Verification so far.** See "Build result" at the end. The client game tests have not run on this branch yet: nothing visible has changed so far, and the inventory still holds every app as before (`AppInventory` is untouched).
 
 ## What is left, in order
 
-1. **Run `mod/dev/build.sh`** if "Build result" below is missing.
+1. (The build is green at builder 1's last code commit; nothing to fix first.)
 2. **A4 icons.** `SystemInfo.icon` is the helper's path. Keep `AppDefinition.icon` as the owner's (or Windows discovery's) own path, which wins; otherwise use `system.icon`. Read the helper's file only if it is a regular file, at most 1 MiB, and decodes as a PNG of at most 512 x 512; anything else is "no icon". Put that reader in one public place in `icon/` so package 36 can use it for logos (`zone/LogoBuilder.readIcon` still reads `icon()` only, and `zone/` is off limits here: say so in the report). `IconPack.generate` already stamps by content hash; it needs to say whether anything changed. Client side: after each complete list regenerate off the render thread, then `client.reloadResourcePacks()` only if something changed, at most once every few seconds, changes in between sharing one reload. `AresOs.generatedIcons` is a plain static read from two threads: make the swap safe. Items already in the inventory keep their old `ITEM_MODEL` until `AppInventory.populate` refreshes them, so refresh after the pack changed.
 3. (A5 is done. `AppGroup.of(app)` is there for packages 35 and 36 too.)
 4. **B2 game part.**
@@ -60,3 +60,7 @@ Working notes for the next builder. Deleted in the last commit before the PR is 
 - The Lunar Client launcher (an AppImage) may run all day; the dev scripts refuse only for the game itself.
 - Other sessions run client tests often. `pgrep -af 'cage|gradlew'` shows them; wait for them before `build.sh` (one heavy step at a time).
 - A quick check without Gradle is possible for classes that need only Gson: compile with `~/.local/opt/jdk-25/bin/javac` against the Gson and JUnit jars in `~/.gradle/caches/modules-2` and run JUnit's launcher. It is no substitute for `build.sh` and must not be reported as verification.
+
+## Build result
+
+`mod/dev/build.sh` on `42f71234` (the last code commit of builder 1, with A1 to A3, A5, B1 and the file part of B2), 2026-11-13: exit 0, `BUILD SUCCESSFUL in 39s`. 80 unit tests: 74 passed, 6 skipped (the Windows-only catalogue tests). Server game tests: "All 38 required tests passed". An earlier run on `e7148941` (without `AppGroup`) was green too (72 passed, 6 skipped, 38 game tests); the first run of all failed in two Windows catalogue tests that pinned `aresos-shell/1.0` and the schema-2 entry, fixed in `e7148941`. `mod/dev/client-test.sh` has not run.
