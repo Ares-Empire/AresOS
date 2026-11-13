@@ -176,3 +176,31 @@ All commands ran in this worktree, without sudo, through the approved scripts. `
 - No real helper, real app launch, Windows startup, owner's session/window, trackpad feel, narrated/Tab-driven Apps interaction, or older-mod downgrade was run. The helper and icons are test fixtures. The screenshots use the headless client.
 - No additional product decision beyond the follow-up brief. No new plan gap or open question was found in these fixes.
 - `.work/` contains no files over 500 MB; no large downloads were made.
+
+## Review fixes 2
+
+Built by Codex (GPT-6.1 Sol) for `briefs/34-review-fixes-2.md` and the new finding in `REVIEW-2.md`. Final production and test code: `7cba0e8e`; the following report commit changes documentation only.
+
+**Done:**
+
+- **Existing-item `/aresos give`:** `item/AppInventory.java` finds the existing stack and a destination in slots 0–35 before changing anything. It places the same stack directly, then clears its old slot. An existing main-inventory slot is itself a valid destination, preserving vanilla's slot order. With no destination, it returns 0, says `Inventory is full`, and preserves both inventories, components, counts and selection.
+- **Missing-item `/aresos give`:** uses the same destination check and direct placement. A full Build inventory no longer discards a newly supplied stack while reporting success. Ownership is saved only after room is found, so a failed command leaves My apps unchanged too.
+- **Apps picker `take`:** the other existing-item transfer in `AppInventory.java` now assigns the stack to the already-checked empty cursor before clearing its inventory slot. The full client suite exercises the real pickup payload and subsequent pinning.
+- **Other transfer paths checked:** `AppItems.placePinned` already chooses a free hotbar destination before its direct move; `giveBack` and `reconcile` check an empty destination before placement. `sweep` and `MyAppsGame`'s inactive-inventory mapping deliberately remove apps that are no longer his, without reinsertion. No additional unsafe transfer was found; these paths are unchanged.
+- **Server regressions:** three tests in `MyAppsGameTests.java` cover the full Build/offhand failure with exact active and saved inventory comparisons and a failure message; ten successful move/repeat scenarios across Build and Live, including a full main inventory and customized stacks; and missing-item failure followed by success once a slot is free. No existing assertion was weakened.
+
+**Verified:**
+
+- Before changing production, `mod/dev/build.sh` reproduced the bugs: exit 1, `BUILD FAILED in 24s`, `2 required tests failed :(`. The offhand regression printed `slot 40; actual=0 minecraft:air` instead of the customized app; the missing-item regression printed `Give claimed to supply a missing item with no room`. The ordinary-move regression passed on the old code.
+- On final code, `mod/dev/build.sh --rerun-tasks` twice, sequentially: exit 0 both times, `BUILD SUCCESSFUL in 49s` and `BUILD SUCCESSFUL in 49s`. Each printed `All 49 required tests passed :)` and reran all 101 unit tests: 95 passed, 6 Windows-only skipped, 0 failures/errors (JUnit XML and logs).
+- On the same final code, `mod/dev/client-test.sh` once: exit 0, `BUILD SUCCESSFUL in 7m 6s`; script summary `Client tests ended with exit code 0 after 7 min 7 s`, headless NVIDIA RTX 4060. The complete suite passed, including `01c client checks passed` with the registered give command and `34 client checks passed` with pickup, pinning, repeated give, busy crafting and full-inventory checks.
+- `free -g` was checked before every heavy step (6 GB available before each build and 10 GB before the client); no exit-75 retry was needed. Only the approved scripts ran builds/tests, with no force option. Their single-use Gradle daemons and scoped client/compositor processes were stopped by script cleanup; no direct Gradle command ran.
+- After the client run, `git checkout -- reviews/` restored tracked screenshots, and all 25 generated untracked pictures outside this package were removed. There is no visual change or new screenshot claim. `git diff --check` is clean; `mod/dev/` and `mod/src/test/resources/shell-1.1/` are unchanged from the start of this round. The fix was committed with the model trailer and pushed with ordinary `git push` (hooks enabled).
+
+**Not verified:** manual play in the owner's session, real app/helper launches, or Windows execution. The full-offhand regression calls the production command handler on a real server-test player; registered-command wiring and picker behavior are also covered by the headless client suite. The six Windows-only unit tests remain skipped on Linux.
+
+**JUDGMENT-CALL:** none beyond the brief. Failure before a destination exists also leaves ownership unchanged; successful give retains the established main-inventory slot order.
+
+**PLAN-GAP:** none. **Open questions:** none.
+
+**Large files:** `.work/` contains only local verification logs (668 KiB total), with no file over 500 MB and no downloads.
