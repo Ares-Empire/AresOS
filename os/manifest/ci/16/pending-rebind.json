@@ -12,7 +12,7 @@
       "path": "os/tests/test_checkout_sources.py"
     },
     {
-      "sha256": "febc54d546b94e017b686b2bccaed638d7100184fdf9111cacfc5f051bd7bee2",
+      "sha256": "f7d82304d3c1df773d68510e0bd8d05079590eef516881992ce7aab964dfb646",
       "path": "os/tests/test_owner_path.py"
     },
     {
