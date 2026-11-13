@@ -115,6 +115,13 @@ DESKTOP_APP_IDS = frozenset({'aresos-desktop'})
 BASE_CAPABILITIES = frozenset({'list_apps', 'open_app', 'app_state', 'world_ready', 'heartbeat'})
 DETAIL_CAPABILITIES = frozenset({'app_details', 'apps_changed', 'list_paging'})
 CATALOGUE_CHECK = 3.0
+# One discovery scan's bounds (security review 1, FIX 1). The laptop's five folders hold about 250 entries and
+# 1.6 MB, read in well under a second; a scan over any bound changes nothing and is logged once.
+SCAN_ENTRIES = 4096
+SCAN_FOLDERS = 256
+SCAN_DEPTH = 8
+SCAN_BYTES = 32 * 1024 * 1024
+SCAN_SECONDS = 2.0
 WINDOW_CAPABILITIES = frozenset({'shell_focus', 'windows'})
 # The launch secrets stay with the desktop; launched apps never inherit them,
 # nor the helper's own service plumbing.
@@ -461,36 +468,165 @@ def desktop_directories(environ=None):
             '/usr/local/share/applications', '/usr/share/applications')
 
 
-def desktop_files(directories):
+def flatpak_deployments(environ=None):
+    """Where Flatpak deploys apps. Its exported desktop files and icons are links into these folders."""
+    environ = os.environ if environ is None else environ
+    home = environ.get('HOME') or os.path.expanduser('~')
+    return (os.path.join(home, '.local/share/flatpak/app'), '/var/lib/flatpak/app')
+
+
+class ScanLimit(Exception):
+    """A discovery scan looked at more than its budget allows; the last good catalogue stays in force."""
+
+
+class ScanBudget:
+    """One scan's bounds. Every folder entry looked at counts, accepted or not, and so does every byte read."""
+
+    def __init__(self, clock=time.monotonic):
+        self.clock = clock
+        self.deadline = clock() + SCAN_SECONDS
+        self.entries = self.folders = self.bytes = 0
+
+    def entry(self):
+        self.entries += 1
+        if self.entries > SCAN_ENTRIES:
+            raise ScanLimit(f'more than {SCAN_ENTRIES} folder entries')
+        self.time()
+
+    def time(self):
+        if self.clock() > self.deadline:
+            raise ScanLimit(f'longer than {SCAN_SECONDS:g} seconds')
+
+    def folder(self, depth):
+        self.folders += 1
+        if self.folders > SCAN_FOLDERS or depth > SCAN_DEPTH:
+            raise ScanLimit(f'more than {SCAN_FOLDERS} folders or nesting deeper than {SCAN_DEPTH}')
+
+    def read(self, size):
+        self.bytes += size
+        if self.bytes > SCAN_BYTES:
+            raise ScanLimit(f'more than {SCAN_BYTES} bytes of desktop entries')
+
+
+def within(path, roots):
+    return any(path == root or path.startswith(root.rstrip('/') + '/') for root in roots)
+
+
+def open_confined(path, roots, directory=False):
+    """A readable descriptor for path, opened only after what path resolves to was found inside roots.
+
+    The O_PATH descriptor pins the resolved file without reading it (or opening a device or FIFO); the readable
+    descriptor is reopened through that pin, so the file read is the file checked even if a link changes meanwhile.
+    roots are real paths.
+    """
+    pinned = os.open(path, os.O_PATH | os.O_CLOEXEC | (os.O_DIRECTORY if directory else 0))
+    try:
+        if not within(os.readlink(f'/proc/self/fd/{pinned}'), roots):
+            raise ValueError('resolves outside its folders')
+        if not directory and not stat.S_ISREG(os.fstat(pinned).st_mode):
+            raise ValueError('not a regular file')
+        return os.open(f'/proc/self/fd/{pinned}', os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC
+                       | (os.O_DIRECTORY if directory else 0))
+    finally:
+        os.close(pinned)
+
+
+def confined_listing(path, roots):
+    """(name, is a real folder) for each entry of a folder whose real location was checked before listing."""
+    descriptor = open_confined(path, roots, directory=True)
+    try:
+        with os.scandir(descriptor) as entries:
+            return [(entry.name, entry.is_dir(follow_symlinks=False)) for entry in entries]
+    finally:
+        os.close(descriptor)
+
+
+def walk_folder(folder, budget):
+    """(relative path, is a folder) for everything under folder, in os.walk's sorted top-down order.
+
+    A linked subfolder is never entered: each one is opened relative to its parent with O_NOFOLLOW. Every entry
+    looked at counts against the scan budget before it is kept, so a huge folder cannot exhaust the helper.
+    """
+    try:
+        descriptor = os.open(folder, os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+    except OSError:
+        return
+    yield from _walk(descriptor, '', 0, budget)
+
+
+def _walk(descriptor, prefix, depth, budget):
+    try:
+        budget.folder(depth)
+        names = []
+        with os.scandir(descriptor) as entries:
+            for entry in entries:
+                budget.entry()
+                try:
+                    # Like os.walk, a link to a folder counts as a folder; O_NOFOLLOW below keeps it unentered.
+                    names.append((entry.name, entry.is_dir()))
+                except OSError:
+                    continue
+        names.sort()
+        for name, folder in names:
+            if not folder:
+                yield prefix + name, False
+        for name, folder in names:
+            if not folder:
+                continue
+            yield prefix + name, True
+            try:
+                child = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=descriptor)
+            except OSError:
+                continue
+            yield from _walk(child, prefix + name + '/', depth + 1, budget)
+    finally:
+        os.close(descriptor)
+
+
+def desktop_files(directories, budget=None, visited=None):
     """Yield the first file for each desktop ID, including hidden or broken overrides.
 
     Nested paths form IDs by replacing / with -. Sort within each folder so sanitisation collisions are stable.
-    Directory symlinks are not traversed; Flatpak's exported desktop-file symlinks are regular-file inputs.
+    Directory symlinks are not traversed; desktop-file links are checked when they are read. visited, if given,
+    collects every folder and desktop file seen (the change signature).
     """
+    budget = budget or ScanBudget()
     seen = set()
     for folder in directories:
-        for root, dirs, files in os.walk(folder, followlinks=False):
-            dirs.sort()
-            for name in sorted(files):
-                if not name.endswith('.desktop'):
-                    continue
-                path = os.path.join(root, name)
-                desktop_id = os.path.relpath(path, folder).replace(os.sep, '-')
-                if desktop_id not in seen:
-                    seen.add(desktop_id)
-                    yield desktop_id, path
+        for relative, is_folder in walk_folder(folder, budget):
+            if not is_folder and not relative.endswith('.desktop'):
+                continue
+            path = os.path.join(folder, relative)
+            if visited is not None:
+                visited.add(path)
+            if is_folder:
+                continue
+            desktop_id = relative.replace('/', '-')
+            if desktop_id not in seen:
+                seen.add(desktop_id)
+                yield desktop_id, path
 
 
-def read_desktop_entry(path):
-    """Bounded untrusted text, with no interpolation, includes or action-group parsing."""
-    fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
+def read_desktop_entry(path, budget=None, roots=None):
+    """Bounded untrusted text, with no interpolation, includes or action-group parsing.
+
+    With roots, the file must resolve inside them (a link out is refused before anything is read).
+    """
+    if roots is None:
+        fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK | os.O_CLOEXEC)
+    else:
+        fd = open_confined(path, roots)
     with os.fdopen(fd, 'rb') as handle:
         info = os.fstat(handle.fileno())
         if not stat.S_ISREG(info.st_mode):
             raise ValueError('not a regular desktop file')
         if info.st_size > MAX_DESKTOP_ENTRY:
             raise ValueError('desktop file exceeds 1 MiB')
+        if budget is not None:
+            budget.read(info.st_size)
         raw = handle.read(MAX_DESKTOP_ENTRY)
+        if budget is not None and len(raw) > info.st_size:
+            budget.read(len(raw) - info.st_size)
         if os.fstat(handle.fileno()).st_size > MAX_DESKTOP_ENTRY:
             raise ValueError('desktop file exceeds 1 MiB')
     if b'\0' in raw:
@@ -612,8 +748,14 @@ def discovered_app(desktop_id, path, values, executable):
                **desktop_details(desktop_id, values))
 
 
-def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None, dependencies=None):
-    """Keep reviewed launch policies; desktop replacements contribute presentation only."""
+def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None, dependencies=None,
+                   entries=None, budget=None, deployments=None):
+    """Keep reviewed launch policies; desktop replacements contribute presentation only.
+
+    entries are (desktop ID, path) pairs a bounded walk already found; budget bounds the bytes read. A desktop file
+    that is a link must resolve inside the application folders or a Flatpak deployment, or it is skipped.
+    """
+    budget = budget or ScanBudget()
     apps, revision = load_registry(registry_dir)
     apps = {key: dataclasses.replace(app, source='image') for key, app in apps.items()}
     owners = {identity for app in apps.values() for identity in app.app_ids} | DESKTOP_APP_IDS
@@ -621,13 +763,15 @@ def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None,
     replaced = {desktop_id for app in apps.values() for desktop_id in app.replaces}
     replaced.update(app.desktop_entry for app in apps.values() if app.desktop_entry)
     directories = tuple(desktop_directories(environ) if entry_dirs is None else entry_dirs)
-    entries = dict((desktop_id, path) for desktop_id, path in desktop_files(directories))
+    deployments = tuple(flatpak_deployments(environ) if deployments is None else deployments)
+    roots = tuple(os.path.realpath(folder) for folder in (*directories, *deployments))
+    entries = dict(desktop_files(directories) if entries is None else entries)
     for key, app in list(apps.items()):
         for desktop_id in dict.fromkeys((*app.replaces, *((app.desktop_entry,) if app.desktop_entry else ()))):
             if desktop_id not in entries:
                 continue
             try:
-                values = read_desktop_entry(entries[desktop_id])
+                values = read_desktop_entry(entries[desktop_id], budget, roots)
                 if desktop_bool(values, 'Hidden') or values.get('Type') != 'Application':
                     continue
                 apps[key] = dataclasses.replace(app, **desktop_details(desktop_id, values))
@@ -638,7 +782,7 @@ def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None,
         if desktop_id in replaced:
             continue
         try:
-            values = read_desktop_entry(path)
+            values = read_desktop_entry(path, budget, roots)
             if dependencies is not None:
                 words = [_unescape_string(values.get('TryExec', ''))]
                 if values.get('Exec'):
@@ -676,12 +820,18 @@ def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None,
 
 
 class Catalogue:
-    """Stat before parsing; even repeated list requests do at most one pass every three seconds."""
+    """Stat before parsing; even repeated list requests do at most one pass every three seconds.
 
-    def __init__(self, registry_dir, environ=None, entry_dirs=None, executable=None):
+    Each pass is bounded (ScanBudget). A pass that hits a bound changes nothing: the last good catalogue stays, and
+    the bound is logged once until a pass completes again. Production runs passes on Discovery's thread; tests call
+    refresh() directly.
+    """
+
+    def __init__(self, registry_dir, environ=None, entry_dirs=None, executable=None, deployments=None):
         self.registry_dir = registry_dir
         self.environ = environ
         self.directories = tuple(desktop_directories(environ) if entry_dirs is None else entry_dirs)
+        self.deployments = tuple(flatpak_deployments(environ) if deployments is None else deployments)
         self.executable = executable
         self.signature = None
         self.apps = {}
@@ -689,40 +839,146 @@ class Catalogue:
         self.legacy = None
         self.checked = float('-inf')
         self.dependencies = set(EXEC_PATH.split(':')) | {TERMINAL_COMMAND[0]}
+        self.limited = False
 
     def refresh(self, now):
         if now - self.checked < CATALOGUE_CHECK:
             return False
         self.checked = now
+        return self.scan()
+
+    def scan(self):
+        """One bounded pass. True when it installed a changed catalogue."""
+        budget = ScanBudget()
+        try:
+            changed = self._scan(budget)
+        except ScanLimit as limit:
+            if not self.limited:
+                LOG.warning('discovery scan stopped after %s; the last good catalogue stays', limit)
+            self.limited = True
+            return False
+        self.limited = False
+        return changed
+
+    def _scan(self, budget):
         paths = set(self.dependencies)
-        for folder in (self.registry_dir, *self.directories):
-            paths.add(str(folder))
-            for root, dirs, files in os.walk(folder, followlinks=False):
-                paths.add(root)
-                paths.update(os.path.join(root, name) for name in dirs)
-                paths.update(os.path.join(root, name) for name in files if name.endswith(('.json', '.desktop')))
+        paths.add(str(self.registry_dir))
+        for relative, is_folder in walk_folder(self.registry_dir, budget):
+            if is_folder or relative.endswith('.json'):
+                paths.add(os.path.join(self.registry_dir, relative))
+        paths.update(str(folder) for folder in self.directories)
+        entries = list(desktop_files(self.directories, budget, visited=paths))
         # Executable changes can change visibility or availability without changing an entry.
         for app in self.apps.values():
             if app.argv:
                 paths.add(app.argv[0])
             if app.terminal:
                 paths.add(TERMINAL_COMMAND[0])
-        signature = []
+        signature, sizes = [], {}
         for path in sorted(paths):
+            budget.time()
             try:
                 info = os.stat(path)
                 signature.append((path, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns))
+                sizes[path] = info.st_size
             except OSError:
                 signature.append((path, None))
         if signature == self.signature:
             return False
+        # Refuse before reading when the entries alone are over the byte budget (hard links cost no disk space).
+        # Files over 1 MiB are rejected unread, so they cost nothing here.
+        planned = sum(size for _, path in entries if (size := sizes.get(path, 0)) <= MAX_DESKTOP_ENTRY)
+        if planned > SCAN_BYTES:
+            raise ScanLimit(f'more than {SCAN_BYTES} bytes of desktop entries')
         dependencies = set(EXEC_PATH.split(':')) | {TERMINAL_COMMAND[0]}
-        self.apps, self.revision = load_catalogue(self.registry_dir, self.environ, self.directories, self.executable,
-                                                  dependencies=dependencies)
+        apps, revision = load_catalogue(self.registry_dir, self.environ, self.directories, self.executable,
+                                        dependencies=dependencies, entries=entries, budget=budget,
+                                        deployments=self.deployments)
+        legacy = load_registry(self.registry_dir)
+        self.apps, self.revision, self.legacy = apps, revision, legacy
         self.dependencies = dependencies
-        self.legacy = load_registry(self.registry_dir)
         self.signature = signature
         return True
+
+    def stop(self):
+        pass
+
+
+class Discovery:
+    """Production discovery: every scan runs on its own thread, never on the serving loop (review 1, FIX 1).
+
+    The loop only takes a finished catalogue and asks for the next scan once one is due. While a scan runs, fails or
+    hits a bound, the last good catalogue stays in force, and the helper keeps answering. Before the first scan
+    finishes, the last good catalogue is the reviewed registry alone.
+    """
+
+    def __init__(self, catalogue):
+        self.catalogue = catalogue
+        self.apps, self.revision = load_catalogue(catalogue.registry_dir, catalogue.environ, entry_dirs=(),
+                                                  executable=catalogue.executable, deployments=())
+        self.legacy = load_registry(catalogue.registry_dir)
+        self.lock = threading.Lock()
+        self.wanted = threading.Event()
+        self.scanned = threading.Event()
+        self.stopping = threading.Event()
+        self.finished = None
+        self.started = None
+        self.requested = float('-inf')
+        self.blocked_logged = False
+        self.thread = None
+
+    def start(self, now, wait=SCAN_SECONDS + 1):
+        """Start the worker with a first scan, and wait briefly so the first list normally has every program."""
+        self.requested = now
+        self.wanted.set()
+        self.thread = threading.Thread(target=self.loop, name='aresos-discovery', daemon=True)
+        self.thread.start()
+        self.scanned.wait(wait)
+        self.refresh(now)
+
+    def refresh(self, now):
+        """Never touches the folders: take a finished scan, and request the next one when it is due."""
+        with self.lock:
+            finished, self.finished = self.finished, None
+            started = self.started
+        if finished is not None:
+            self.apps, self.revision, self.legacy = finished
+        if started is None:
+            self.blocked_logged = False
+            if now - self.requested >= CATALOGUE_CHECK:
+                self.requested = now
+                self.wanted.set()
+        elif time.monotonic() - started > 2 * SCAN_SECONDS and not self.blocked_logged:
+            # A read can block (a stalled mount) where the budget cannot interrupt it; only discovery waits.
+            self.blocked_logged = True
+            LOG.warning('a discovery scan has been blocked for %.0f seconds; the last good catalogue stays',
+                        time.monotonic() - started)
+        return finished is not None
+
+    def loop(self):
+        while True:
+            self.wanted.wait()
+            if self.stopping.is_set():
+                return
+            with self.lock:
+                self.wanted.clear()
+                self.started = time.monotonic()
+            try:
+                changed = self.catalogue.scan()
+            except Exception:
+                LOG.exception('discovery scan failed; the last good catalogue stays')
+                changed = False
+            with self.lock:
+                self.started = None
+                if changed:
+                    self.finished = (self.catalogue.apps, self.catalogue.revision, self.catalogue.legacy)
+            self.scanned.set()
+
+    def stop(self):
+        self.stopping.set()
+        self.wanted.set()
+        if self.thread is not None:
+            self.thread.join(SCAN_SECONDS + 1)
 
 
 # ---------------------------------------------------------------- icons
@@ -2534,6 +2790,8 @@ class Server:
         self.selector.close()
         self.listener.close()
         self.helper.watcher.stop()
+        if self.helper.catalogue is not None:
+            self.helper.catalogue.stop()
         if self.helper.icons is not None:
             self.helper.icons.stop()
         try:
@@ -2545,8 +2803,8 @@ class Server:
 def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=None, clock=time.monotonic,
           connect=None, status=no_status, keep_foreground=False):
     """Start-up in the order that matters: owners from the registry first, then the compositor's window list."""
-    catalogue = Catalogue(registry_dir, environ=environ)
-    catalogue.refresh(clock())
+    catalogue = Discovery(Catalogue(registry_dir, environ=environ))
+    catalogue.start(clock())
     registry = catalogue.apps, catalogue.revision
     windows = Windows(clock=clock)
     windows.set_registry(registry[0])

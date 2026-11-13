@@ -23,6 +23,8 @@ class DiscoveryBase(unittest.TestCase):
         self.folders = [self.root / str(n) for n in range(5)]
         for folder in self.folders:
             folder.mkdir()
+        # A Flatpak deployment, where exported desktop-file links may point (security review 1, FIX 5).
+        self.deployment = self.root / 'flatpak/app'
         self.executables = {'/usr/bin/tool', '/usr/bin/foot', '/usr/bin/btop', '/usr/bin/flatpak',
                             '/usr/bin/bazzite-steam', '/usr/bin/other', '/usr/bin/kwrite'}
         self.logging = mock.patch.object(shell.LOG, 'disabled', False)
@@ -41,7 +43,8 @@ class DiscoveryBase(unittest.TestCase):
 
     def catalogue(self, registry=None, executable=None):
         return shell.load_catalogue(str(registry or self.registry), entry_dirs=self.folders,
-                                    executable=executable or self.executables.__contains__)
+                                    executable=executable or self.executables.__contains__,
+                                    deployments=[self.deployment])
 
     def fixture(self, name, folder=0):
         text = (FIXTURES / name).read_text().replace('@HOME@', str(self.root))
@@ -108,7 +111,8 @@ class DiscoveryTest(DiscoveryBase):
     def test_nested_desktop_ids_and_flatpak_file_symlinks(self):
         self.write('nested/program.desktop', Name='Nested')
         self.write('nested-program.desktop', folder=4, Name='Shadowed')
-        target = self.root / 'exported.desktop'
+        target = self.deployment / 'org.example.App/current/active/export/share/applications/exported.desktop'
+        target.parent.mkdir(parents=True)
         self.write('temporary.desktop').rename(target)
         (self.folders[1] / 'flatpak.desktop').symlink_to(target)
         # A directory symlink is not an include mechanism, even if it loops back.
