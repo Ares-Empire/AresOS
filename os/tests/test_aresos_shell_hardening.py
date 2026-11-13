@@ -1,13 +1,66 @@
 """Package 30, security review 1 (step A): each fix with a test that fails without it."""
+import base64
+import json
 import os
 import pathlib
+import struct
+import sys
 import tempfile
 import threading
 import time
 import unittest
+import zlib
 from unittest import mock
 
 from test_aresos_shell import shell, Base, Conn, REGISTRY, INSTANCE, NONCE, ALL
+from test_aresos_shell_icons import IconBase, PNG, SVG, NORMAL
+
+
+def picture_bomb(side=16000):
+    """A small SVG whose embedded 1-bit PNG decodes to side x side pixels (16000: about 1 GB as RGBA)."""
+    def chunk(tag, data):
+        return struct.pack('>I', len(data)) + tag + data + struct.pack('>I', zlib.crc32(tag + data))
+    rows = zlib.compress(bytes(side * (1 + (side + 7) // 8)), 9)
+    png = (shell.PNG_SIGNATURE + chunk(b'IHDR', struct.pack('>IIBBBBB', side, side, 1, 0, 0, 0, 0))
+           + chunk(b'IDAT', rows) + chunk(b'IEND', b''))
+    return ('<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><image width="8" height="8" '
+            f'href="data:image/png;base64,{base64.b64encode(png).decode()}"/></svg>').encode()
+
+
+def svg(body, extra=''):
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"{extra} '
+            f'width="8" height="8">{body}</svg>').encode()
+
+
+REFUSED = {
+    'local image': svg('<image href="#shape" width="8" height="8"/>'),
+    'data image': svg('<image xlink:href="data:image/png;base64,iVBORw0KGgo=" width="8" height="8"/>'),
+    'file image': svg('<image href="file:///etc/hostname" width="8" height="8"/>'),
+    'feImage': svg('<filter id="f"><feImage href="picture.png"/></filter><rect filter="url(#f)"/>'),
+    'foreignObject': svg('<foreignObject><div xmlns="http://www.w3.org/1999/xhtml">x</div></foreignObject>'),
+    'external use': svg('<use href="other.svg#shape"/>'),
+    'data use': svg('<use xlink:href="data:image/svg+xml;base64,PHN2Zy8+#a"/>'),
+    'external paint': svg('<rect width="8" height="8" fill="url(other.svg#gradient)"/>'),
+    'data paint in style': svg('<rect width="8" height="8" style="fill:url(\'data:image/png;base64,AAAA\')"/>'),
+    'css escape': svg('<rect width="8" height="8" fill="u\\72l(picture.png)"/>'),
+    'css import': svg('<style>@import url(theme.css);</style><rect width="8" height="8"/>'),
+    'css url in style': svg('<style>rect { fill: url(picture.png) }</style><rect width="8" height="8"/>'),
+    'stylesheet instruction': b'<?xml-stylesheet href="theme.css"?>' + svg('<rect width="8" height="8"/>'),
+    'xinclude': svg('<xi:include href="other.svg" parse="xml"/>', ' xmlns:xi="http://www.w3.org/2001/XInclude"'),
+    'external link': svg('<a href="https://example.invalid/"><rect width="8" height="8"/></a>'),
+    'unbound prefix': b'<svg xmlns="http://www.w3.org/2000/svg"><x:image/></svg>',
+}
+
+ALLOWED = {
+    'fixture': SVG,
+    'local paint and reuse': svg('<defs><linearGradient id="g"><stop offset="0" stop-color="red"/></linearGradient>'
+                                 '<rect id="r" width="4" height="4"/></defs><rect fill="url(#g)" width="8" '
+                                 'height="8"/><use href="#r"/><use xlink:href="#r" x="4"/>'),
+    'local style': svg('<style>rect { fill: url( "#g" ) }</style><rect width="8" height="8" style="fill:url(#g)"/>'),
+    'editor metadata': svg('<metadata><x:path xmlns:x="urn:example">C:\\Users\\icon.svg</x:path></metadata>'
+                           '<rect width="8" height="8" x:export-filename="C:\\icons\\app.png"/>',
+                           ' xmlns:x="urn:example"'),
+}
 
 
 class HardeningBase(unittest.TestCase):
@@ -344,6 +397,196 @@ class DesktopLinkTest(HardeningBase):
                 shell.open_confined(str(self.folders[0] / name), (str(self.folders[0]),))
         with self.assertRaisesRegex(ValueError, 'regular'):
             shell.open_confined(str(fifo), (str(self.root),))
+
+
+class ConverterMemoryTest(IconBase):
+    """FIX 2: an operating-system memory ceiling for the converter and everything it starts."""
+
+    def test_the_converter_and_everything_it_starts_run_under_an_address_space_limit(self):
+        script = ('import json, mmap, os, resource, sys\n'
+                  'def probe(who):\n'
+                  '    try:\n'
+                  f'        mmap.mmap(-1, {2 * shell.ICON_ADDRESS_SPACE})\n'
+                  '        mapped = True\n'
+                  '    except OSError:\n'
+                  '        mapped = False\n'
+                  '    limit = resource.getrlimit(resource.RLIMIT_AS)[0]\n'
+                  '    os.write(1, (json.dumps([who, limit, mapped]) + "\\n").encode())\n'
+                  'pid = os.fork()\n'
+                  'if pid == 0:\n'
+                  '    probe("child")\n'
+                  '    os._exit(0)\n'
+                  'os.waitpid(pid, 0)\n'
+                  'probe("converter")\n')
+        output = self.cache.run([sys.executable, '-c', script])
+        rows = sorted(json.loads(line) for line in output.decode().splitlines())
+        self.assertEqual(rows, [['child', shell.ICON_ADDRESS_SPACE, False],
+                                ['converter', shell.ICON_ADDRESS_SPACE, False]])
+
+    def test_the_limit_is_set_by_prlimit_before_the_sandboxed_converter_starts(self):
+        self.cache.bwrap = sys.executable  # any executable: hosted Ubuntu may lack bubblewrap
+        sandboxed = self.cache.command('/work', 'png:/input/icon', 'PNG32:-')
+        with mock.patch.object(shell.subprocess, 'Popen', side_effect=OSError('stop here')) as popen:
+            with self.assertRaises(OSError):
+                self.cache.run(sandboxed)
+        self.assertEqual(popen.call_args.args[0],
+                         ['/usr/bin/prlimit', f'--as={shell.ICON_ADDRESS_SPACE}', '--', *sandboxed])
+        self.assertIn('--unshare-all', sandboxed)
+
+    def test_a_small_svg_embedding_a_large_compressed_picture_is_refused_before_conversion(self):
+        bomb = picture_bomb()
+        self.assertLess(len(bomb), 64 * 1024)
+        self.assertEqual(shell.sniff_icon(bomb), 'svg')
+        source = self.write(self.root / 'bomb.svg', bomb)
+        with mock.patch.object(self.cache, 'run') as run:
+            with self.assertRaisesRegex(ValueError, 'image'):
+                self.cache.convert(str(source))
+            # The refusal is remembered for this version of the file: it is not parsed again every pass.
+            self.assertIsNone(self.cache.convert(str(source)))
+            run.assert_not_called()
+
+    def test_each_construct_that_refers_to_a_picture_is_refused_before_conversion(self):
+        for name, raw in REFUSED.items():
+            with self.subTest(name=name):
+                with self.assertRaises(ValueError):
+                    shell.drawn_svg(raw)
+                source = self.write(self.root / (name.replace(' ', '-') + '.svg'), raw)
+                with mock.patch.object(self.cache, 'run') as run:
+                    with self.assertRaises(ValueError):
+                        self.cache.convert(str(source))
+                    run.assert_not_called()
+
+    def test_drawn_shapes_with_local_references_still_convert(self):
+        for name, raw in ALLOWED.items():
+            with self.subTest(name=name):
+                shell.drawn_svg(raw)
+                source = self.write(self.root / (name.replace(' ', '-') + '.svg'), raw)
+                self.cache.svg_checked = True
+                with mock.patch.object(self.cache, 'run', return_value=NORMAL) as run:
+                    self.assertIsNotNone(self.cache.convert(str(source)))
+                    run.assert_called_once()
+
+
+class IconBudgetTest(IconBase):
+    """FIX 3: a total budget in files and bytes; unused and older pictures are removed."""
+
+    def files(self):
+        return sorted(os.listdir(self.cache.directory))
+
+    def test_changing_one_icons_time_a_thousand_times_leaves_one_picture(self):
+        source = self.write(self.root / 'source')
+        info = source.stat()
+        with mock.patch.object(self.cache, 'run', return_value=NORMAL) as run, mock.patch.object(shell.os, 'fsync'):
+            for n in range(1000):
+                os.utime(source, ns=(info.st_atime_ns, info.st_mtime_ns + n + 1))
+                path = self.cache.convert(str(source))
+        self.assertEqual(run.call_count, 1000)
+        self.assertEqual(self.files(), [os.path.basename(path)])
+
+    def test_pictures_of_programs_no_longer_listed_and_leftovers_are_removed_after_a_complete_pass(self):
+        sources = {key: self.write(self.root / key, PNG + key.encode()) for key in ('one', 'two', 'three')}
+        apps = {key: shell.App(key, key.title(), icon_name=str(path)) for key, path in sources.items()}
+        self.cache.prepare()
+        stray = pathlib.Path(self.cache.directory)
+        (stray / ('0' * 64 + '.png')).write_bytes(NORMAL)
+        (stray / '.icon-interrupted').write_bytes(b'partial')
+        (stray / '.convert-interrupted').mkdir()
+        (stray / '.convert-interrupted/input').write_bytes(b'copy')
+        (stray / 'unrelated.txt').write_bytes(b'not ours')
+
+        def settle(predicate):
+            deadline = time.monotonic() + 5
+            while not predicate(self.files()) and time.monotonic() < deadline:
+                time.sleep(0.01)
+            return self.files()
+
+        with mock.patch.object(self.cache, 'run', return_value=NORMAL):
+            self.cache.request(apps, 'first')
+            # Three pictures made, and the leftovers of an earlier run removed once the pass completed.
+            first = settle(lambda names: len(names) == 4 and '.icon-interrupted' not in names
+                           and '0' * 64 + '.png' not in names and '.convert-interrupted' not in names)
+            current, _ = self.cache.take(apps, 'first')
+            self.assertEqual(sorted([os.path.basename(app.icon) for app in current.values()] + ['unrelated.txt']),
+                             first)
+            self.cache.request({'one': apps['one']}, 'second')
+            remaining = settle(lambda names: len(names) == 2)
+        self.assertEqual(remaining, sorted([os.path.basename(current['one'].icon), 'unrelated.txt']))
+
+    def test_a_full_cache_keeps_the_fallback_look_and_says_so_once(self):
+        sources = [self.write(self.root / f'source{n}', PNG + bytes([n])) for n in range(4)]
+        with mock.patch.object(shell, 'ICON_CACHE_FILES', 2), mock.patch.object(shell.LOG, 'disabled', False), \
+                mock.patch.object(self.cache, 'run', return_value=NORMAL) as run, \
+                self.assertLogs(shell.LOG, level='WARNING') as logs:
+            self.assertIsNotNone(self.cache.convert(str(sources[0])))
+            self.assertIsNotNone(self.cache.convert(str(sources[1])))
+            self.assertIsNone(self.cache.convert(str(sources[2])))
+            self.assertIsNone(self.cache.convert(str(sources[3])))
+            self.assertEqual(run.call_count, 2)
+        self.assertEqual(len(self.files()), 2)
+        self.assertEqual(len(logs.output), 1)
+        self.assertIn('budget', logs.output[0])
+        # Not remembered as a failure: once there is room again, the picture is made.
+        os.unlink(os.path.join(self.cache.directory, self.files()[0]))
+        with mock.patch.object(shell, 'ICON_CACHE_FILES', 2), mock.patch.object(self.cache, 'run', return_value=NORMAL):
+            self.assertIsNotNone(self.cache.convert(str(sources[2])))
+
+    def test_the_byte_budget_is_checked_with_the_real_picture_size_before_writing(self):
+        source = self.write(self.root / 'source')
+        with mock.patch.object(shell, 'ICON_CACHE_BYTES', len(NORMAL) - 1), \
+                mock.patch.object(self.cache, 'run', return_value=NORMAL) as run:
+            self.assertIsNone(self.cache.convert(str(source)))
+            run.assert_called_once()
+        self.assertEqual(self.files(), [])
+
+
+class IconFolderLinkTest(IconBase):
+    """FIX 5: icon theme folders are checked before they are listed; Flatpak icons link into deployments."""
+
+    def test_a_theme_folder_that_links_out_is_never_listed(self):
+        outside = self.root.resolve() / 'outside-theme'
+        self.write(outside / '256x256/apps/app.png')
+        (self.folders[0] / 'hicolor').symlink_to(outside, target_is_directory=True)
+        (self.folders[1] / 'breeze').mkdir()
+        (self.folders[1] / 'breeze/48x48').symlink_to(outside / '256x256', target_is_directory=True)
+        listed, original = [], os.scandir
+
+        def scandir(path='.'):
+            listed.append(os.readlink(f'/proc/self/fd/{path}') if isinstance(path, int) else os.path.realpath(path))
+            return original(path)
+
+        with mock.patch.object(shell.os, 'scandir', side_effect=scandir):
+            self.assertIsNone(self.resolve())
+        self.assertTrue(listed)
+        self.assertEqual([path for path in listed if path.startswith(str(outside))], [])
+
+    def test_a_flatpak_export_icon_is_found_in_its_deployment_and_converted(self):
+        exports = flatpak_layout(self.root / '.local/share/flatpak', 'org.example.App', icon=PNG)
+        cache = shell.IconCache(environ={'HOME': str(self.root), 'XDG_CACHE_HOME': str(self.root / 'cache')},
+                                directories=[self.folders[0], exports / 'icons'])
+        self.addCleanup(cache.stop)
+        deployed = (self.root / '.local/share/flatpak/app/org.example.App/current/active/export/share'
+                    '/icons/hicolor/128x128/apps/org.example.App.png')
+        self.assertEqual(shell.resolve_icon('org.example.App', cache.directories, cache.deployments),
+                         os.path.realpath(deployed))
+        app = shell.App('example', 'Example', icon_name='org.example.App')
+        with mock.patch.object(cache, 'run', return_value=NORMAL):
+            cache.request({'example': app}, 'base')
+            deadline = time.monotonic() + 5
+            while cache.results.empty() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            current, _ = cache.take({'example': app}, 'base')
+        self.assertTrue(os.path.isfile(current['example'].icon))
+
+    def test_a_named_icon_is_read_only_inside_its_folders_but_an_absolute_icon_path_as_written(self):
+        outside = self.write(self.root / 'outside.png')
+        link = self.folders[0] / 'app.png'
+        link.symlink_to(outside)
+        with mock.patch.object(self.cache, 'run') as run:
+            with self.assertRaisesRegex(ValueError, 'outside'):
+                self.cache.convert(str(link), (str(self.folders[0].resolve()),))
+            run.assert_not_called()
+        with mock.patch.object(self.cache, 'run', return_value=NORMAL):
+            self.assertIsNotNone(self.cache.convert(str(link)))
 
 
 def flatpak_layout(flatpak, app_id, icon=None):

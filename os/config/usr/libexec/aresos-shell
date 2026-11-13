@@ -75,6 +75,7 @@ import tempfile
 import threading
 import time
 import queue
+from xml.parsers import expat
 
 LOG = logging.getLogger('aresos-shell')
 
@@ -989,6 +990,15 @@ ICON_TIMEOUT = 3.0
 ICON_SIDE = 4096  # A hard 16-Mpixel ceiling; ImageMagick's area limit alone only spills to disk.
 MAGICK = '/usr/bin/magick'
 BWRAP = '/usr/bin/bwrap'
+PRLIMIT = '/usr/bin/prlimit'
+# The converter's address space (review 1, FIX 2). librsvg and its own picture decoders ignore ImageMagick's
+# -limit memory; every icon that converts at all needs under 128 MiB here (measured with 1024-pixel SVG and PNG).
+ICON_ADDRESS_SPACE = 256 * 1024 * 1024
+# The icon cache's budget (review 1, FIX 3): two generations for every listed program fit; 128x128 pictures are
+# at most about 66 KB each.
+ICON_CACHE_FILES = 2 * MAX_APPS
+ICON_CACHE_BYTES = 32 * 1024 * 1024
+ICON_FILE = re.compile(r'[0-9a-f]{64}\.png\Z')
 PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
 ICON_LIMITS = ('-limit', 'memory', '64MiB', '-limit', 'map', '0', '-limit', 'disk', '0',
                '-limit', 'time', '2', '-limit', 'thread', '1', '-limit', 'width', str(ICON_SIDE),
@@ -1020,8 +1030,12 @@ def icon_cache_directory(environ=None):
     return os.path.join(cache, 'aresos/icons')
 
 
-def resolve_icon(name, directories):
-    """Lookup at fixed theme/size/context depths; reject named escapes after resolving symlinks."""
+def resolve_icon(name, directories, deployments=None):
+    """Lookup at fixed theme/size/context depths.
+
+    A folder is listed, and a file chosen, only where it really lies inside its own icon root or inside a Flatpak
+    deployment: a Flatpak export's icons are links into its deployment (review 1, FIX 5).
+    """
     if not name or '\0' in name:
         return None
     if os.path.isabs(name):
@@ -1029,12 +1043,22 @@ def resolve_icon(name, directories):
     if '/' in name or '..' in name or len(name) > 255:
         return None
     names = (name,) if name.endswith(('.png', '.svg')) else (name + '.png', name + '.svg', name)
+    deployments = tuple(os.path.realpath(path)
+                        for path in (flatpak_deployments() if deployments is None else deployments))
+    roots = {folder: (os.path.realpath(folder), *deployments) for folder in directories}
+
+    def listing(folder, *parts):
+        try:
+            return confined_listing(os.path.join(folder, *parts), roots[folder])
+        except ValueError as error:
+            LOG.debug('icon folder %s skipped: %s', os.path.join(folder, *parts), error)
+        except OSError:
+            pass
+        return []
 
     def candidate(folder, *parts):
-        path = os.path.join(folder, *parts)
-        real = os.path.realpath(path)
-        root = os.path.realpath(folder)
-        if os.path.commonpath((root, real)) == root and os.path.isfile(real):
+        real = os.path.realpath(os.path.join(folder, *parts))
+        if within(real, roots[folder]) and os.path.isfile(real):
             return real
         return None
 
@@ -1042,21 +1066,13 @@ def resolve_icon(name, directories):
     for theme in ('hicolor', 'breeze'):
         sizes = set()
         for folder in directories:
-            try:
-                for size in os.scandir(os.path.join(folder, theme)):
-                    match = re.fullmatch(r'(\d{1,3})x\1', size.name)
-                    if match and 0 < int(match[1]) <= 256 and size.is_dir(follow_symlinks=False):
-                        sizes.add(int(match[1]))
-            except OSError:
-                pass
+            for size, is_folder in listing(folder, theme):
+                match = re.fullmatch(r'(\d{1,3})x\1', size)
+                if match and 0 < int(match[1]) <= 256 and is_folder:
+                    sizes.add(int(match[1]))
         for size in [f'{n}x{n}' for n in sorted(sizes, reverse=True)] + ['scalable']:
             for folder in directories:
-                base = os.path.join(folder, theme, size)
-                try:
-                    contexts = sorted(entry.name for entry in os.scandir(base)
-                                      if entry.is_dir(follow_symlinks=False))
-                except OSError:
-                    continue
+                contexts = sorted(context for context, is_folder in listing(folder, theme, size) if is_folder)
                 for context in contexts:
                     for filename in names:
                         if size != 'scalable' and filename.endswith('.svg'):
@@ -1092,6 +1108,68 @@ def librsvg_coder(formats):
     return bool(re.search(rb'^\s*SVG\s+SVG\s+r[-w+]+\s+[^\n]*\bRSVG\b', formats, re.MULTILINE))
 
 
+SVG_PICTURES = frozenset({'image', 'feImage', 'foreignObject'})
+XINCLUDE = 'http://www.w3.org/2001/XInclude'
+CSS_URL = re.compile(r'url\s*\(\s*[\'"]?\s*([^)\'"\s]*)', re.IGNORECASE)
+
+
+def drawn_svg(raw):
+    """Refuse an SVG that refers to any picture or file, inside or outside itself (review 1, FIX 2).
+
+    App icons are drawn shapes. librsvg decodes embedded and referenced pictures with decoders of its own, outside
+    the converter's coder policy and pixel checks, so only references to the SVG's own elements (#id) pass: no
+    image, feImage or foreignObject element, no XInclude, no href or url() to anything else (data: included), no
+    CSS @import or CSS escapes, no processing instruction (xml-stylesheet), no DTD.
+    """
+    parser = expat.ParserCreate(namespace_separator=' ')
+    parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
+    style = [0]
+
+    def refuse(what):
+        raise ValueError('SVG ' + what)
+
+    def css(text, where):
+        # librsvg reads attributes and <style> as CSS, where u\72l( is url(.
+        if '\\' in text or '@import' in text.lower():
+            refuse(f'{where} has a CSS escape or @import')
+        for match in CSS_URL.finditer(text):
+            if not match[1].startswith('#'):
+                refuse(f'{where} refers to {match[1][:40]!r}')
+
+    def start(name, attributes):
+        namespace, _, local = name.rpartition(' ')
+        if local in SVG_PICTURES or namespace == XINCLUDE:
+            refuse(f'contains <{local}>')
+        if local == 'style':
+            style[0] += 1
+        for key, value in attributes.items():
+            attribute_namespace, _, attribute = key.rpartition(' ')
+            if attribute == 'href':
+                if not value.strip().startswith('#'):
+                    refuse(f'refers to {value.strip()[:40]!r}')
+            elif not attribute_namespace:
+                css(value, attribute)
+
+    def end(name):
+        if name.rpartition(' ')[2] == 'style':
+            style[0] -= 1
+
+    def data(text):
+        if style[0]:
+            css(text, '<style>')
+
+    parser.StartElementHandler = start
+    parser.EndElementHandler = end
+    parser.CharacterDataHandler = data
+    parser.ProcessingInstructionHandler = lambda target, data: refuse(f'has a <?{target}?> instruction')
+    parser.StartDoctypeDeclHandler = lambda *args: refuse('has a DTD')
+    parser.EntityDeclHandler = lambda *args: refuse('declares entities')
+    try:
+        parser.Parse(raw, True)
+    except expat.ExpatError as error:
+        raise ValueError(f'SVG is not well-formed XML: {error}') from None
+
+
 def icons_revision(apps, base_revision):
     pictures = [(app.id, app.icon) for app in sorted(apps.values(), key=lambda app: app.id) if app.icon]
     if not pictures:
@@ -1106,10 +1184,15 @@ class IconCache:
     and revision, and announces a changed revision only to 1.1 clients. No lookup/probe/conversion is on that path.
     """
 
-    def __init__(self, environ=None, directories=None, timeout=ICON_TIMEOUT, magick=MAGICK, bwrap=BWRAP):
+    def __init__(self, environ=None, directories=None, timeout=ICON_TIMEOUT, magick=MAGICK, bwrap=BWRAP,
+                 prlimit=PRLIMIT):
         self.directory = icon_cache_directory(environ)
         self.directories = icon_directories(environ) if directories is None else tuple(directories)
-        self.timeout, self.magick, self.bwrap = timeout, magick, bwrap
+        self.deployments = flatpak_deployments(environ)
+        self.timeout, self.magick, self.bwrap, self.prlimit = timeout, magick, bwrap, prlimit
+        # Each source's current picture, so a changed source's older generation is removed (review 1, FIX 3).
+        self.generations = {}
+        self.full_logged = False
         self.pending = queue.Queue(maxsize=1)
         self.results = queue.Queue(maxsize=MAX_APPS * 2)
         self.stopping = threading.Event()
@@ -1150,19 +1233,28 @@ class IconCache:
                 apps, revision = self.pending.get(timeout=0.1)
             except queue.Empty:
                 continue
+            roots = tuple(os.path.realpath(folder) for folder in (*self.directories, *self.deployments))
+            pictures, complete = set(), True
             for app in apps.values():
                 if self.stopping.is_set() or not self.pending.empty():
+                    complete = False
                     break  # the latest rescan supersedes queued work
                 path = None
                 try:
-                    if source := resolve_icon(app.icon_name, self.directories):
-                        path = self.convert(source)
+                    if source := resolve_icon(app.icon_name, self.directories, self.deployments):
+                        # A named icon is read only from inside its folders; an absolute Icon path as written.
+                        path = self.convert(source) if os.path.isabs(app.icon_name) else self.convert(source, roots)
                 except (OSError, ValueError, subprocess.SubprocessError) as error:
                     LOG.debug('icon for %s skipped: %s', app.id, error)
+                if path:
+                    pictures.add(os.path.basename(path))
                 try:
                     self.results.put_nowait((revision, app.id, app.icon_name, path))
                 except queue.Full:
+                    complete = False
                     break  # bounded even if the event loop stops taking answers
+            if complete:
+                self.prune(pictures)
 
     def prepare(self):
         # Never follow either private cache component to another location.
@@ -1191,6 +1283,11 @@ class IconCache:
                 '--', '/usr/bin/magick', *(['identify'] if identify else []), *ICON_LIMITS, *arguments]
 
     def run(self, command):
+        # prlimit sets the address-space limit before the converter starts; everything it starts inherits it.
+        # A missing sandbox stays an OSError, as when it was started directly, not a failed conversion.
+        if not os.access(command[0], os.X_OK):
+            raise FileNotFoundError(f'converter not found: {command[0]}')
+        command = [self.prlimit, f'--as={ICON_ADDRESS_SPACE}', '--', *command]
         with self.lock:
             if self.stopping.is_set():
                 raise ValueError('icon worker stopped')
@@ -1228,10 +1325,14 @@ class IconCache:
             with self.lock:
                 self.process = None
 
-    def convert(self, source):
+    def convert(self, source, roots=None):
+        """The cached picture for source, or None when the cache budget is used up.
+
+        With roots (real paths), source must still resolve inside them when it is opened (review 1, FIX 5).
+        """
         if not os.path.isabs(source) or '\0' in source:
             raise ValueError('icon source must be an absolute path')
-        descriptor = os.open(source, os.O_RDONLY | os.O_NONBLOCK)
+        descriptor = os.open(source, os.O_RDONLY | os.O_NONBLOCK) if roots is None else open_confined(source, roots)
         with os.fdopen(descriptor, 'rb') as handle:
             info = os.fstat(handle.fileno())
             if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= MAX_ICON_BYTES:
@@ -1245,6 +1346,12 @@ class IconCache:
             if len(raw) != info.st_size or (after.st_size, after.st_mtime_ns) != (info.st_size, info.st_mtime_ns):
                 raise ValueError('icon changed while reading')
         coder = sniff_icon(raw)
+        if coder == 'svg':
+            try:
+                drawn_svg(raw)
+            except ValueError:
+                self.remember_failure(key)
+                raise
         self.prepare()
         target = os.path.join(self.directory, key + '.png')
         try:
@@ -1253,9 +1360,14 @@ class IconCache:
                 if (stat.S_ISREG(cached.st_mode) and cached.st_uid == os.getuid()
                         and stat.S_IMODE(cached.st_mode) == 0o600 and cached.st_size <= MAX_ICON_OUTPUT
                         and self.normalized(handle.read(33))):
+                    self.current(source, target)
                     return target
         except OSError:
             pass
+        # The source changed: its older picture is stale whether or not the new one can be made.
+        self.current(source, None)
+        if not self.room(0):
+            return None
         try:
             with tempfile.TemporaryDirectory(prefix='.convert-', dir=self.directory) as work:
                 for name, content in (('input', raw), ('policy.xml', ICON_POLICY.encode())):
@@ -1271,6 +1383,8 @@ class IconCache:
                                                 '-depth', '8', 'PNG32:-'))
                 if not self.normalized(output):
                     raise ValueError('converter did not produce a normalized PNG')
+                if not self.room(len(output)):
+                    return None
                 descriptor, temporary = tempfile.mkstemp(prefix='.icon-', dir=self.directory)
                 try:
                     with os.fdopen(descriptor, 'wb') as handle:
@@ -1281,12 +1395,73 @@ class IconCache:
                 finally:
                     if os.path.exists(temporary):
                         os.unlink(temporary)
+            self.current(source, target)
             return target
         except (OSError, ValueError, subprocess.SubprocessError):
-            if len(self.failed) >= MAX_APPS * 2:
-                self.failed.clear()
-            self.failed.add(key)
+            self.remember_failure(key)
             raise
+
+    def remember_failure(self, key):
+        if len(self.failed) >= MAX_APPS * 2:
+            self.failed.clear()
+        self.failed.add(key)
+
+    def current(self, source, target):
+        """Record target as source's picture; an older generation of the same source is removed."""
+        old = self.generations.pop(source, None)
+        if old is not None and old != target:
+            try:
+                os.unlink(old)
+            except FileNotFoundError:
+                pass
+        if target is not None:
+            if len(self.generations) >= ICON_CACHE_FILES:
+                self.generations.clear()
+            self.generations[source] = target
+
+    def room(self, size):
+        """Whether one more picture of size bytes fits the cache's budget; a full cache is logged once."""
+        files = total = 0
+        with os.scandir(self.directory) as entries:
+            for entry in entries:
+                # The running conversion's work folder is not a picture; prune removes stale ones.
+                if entry.is_dir(follow_symlinks=False):
+                    continue
+                files += 1
+                if files >= ICON_CACHE_FILES:
+                    break
+                try:
+                    total += entry.stat(follow_symlinks=False).st_size
+                except OSError:
+                    pass
+        if files < ICON_CACHE_FILES and total + size <= ICON_CACHE_BYTES:
+            self.full_logged = False
+            return True
+        if not self.full_logged:
+            self.full_logged = True
+            LOG.warning('icon cache budget (%d files, %d bytes) is used up; new pictures keep the fallback look',
+                        ICON_CACHE_FILES, ICON_CACHE_BYTES)
+        return False
+
+    def prune(self, keep):
+        """After a complete pass: remove pictures no listed program uses (removed programs, older generations,
+        earlier runs) and leftovers of interrupted writes."""
+        try:
+            with os.scandir(self.directory) as listing:
+                entries = [(entry.name, entry.is_dir(follow_symlinks=False)) for entry in listing]
+        except OSError:
+            return
+        for name, is_folder in entries:
+            path = os.path.join(self.directory, name)
+            try:
+                if is_folder and name.startswith('.convert-'):
+                    shutil.rmtree(path)
+                elif not is_folder and name not in keep and (ICON_FILE.match(name) or name.startswith('.icon-')):
+                    os.unlink(path)
+            except OSError:
+                pass
+        self.generations = {source: target for source, target in self.generations.items()
+                            if os.path.basename(target) in keep}
 
     @staticmethod
     def normalized(raw):

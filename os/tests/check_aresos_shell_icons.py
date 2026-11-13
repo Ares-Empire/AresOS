@@ -7,6 +7,7 @@ import os
 import pathlib
 import socket
 import stat
+import time
 import unittest
 from unittest import mock
 
@@ -67,10 +68,29 @@ class IconRealRouteTest(IconBase):
                        'width="8" height="4"><image width="8" height="4" '
                        f'xlink:href="{location}"/></svg>').encode()
                 source = self.write(self.root / 'external.svg', raw)
-                path = self.cache.convert(str(source))
+                # Security review 1, FIX 2: refused before any converter runs.
+                with self.assertRaisesRegex(ValueError, 'image'):
+                    self.cache.convert(str(source))
+                # The sandbox below still holds should that refusal ever be bypassed.
+                self.cache.failed.clear()
+                with mock.patch.object(shell, 'drawn_svg'):
+                    path = self.cache.convert(str(source))
                 self.assertTrue(all(p[3] == 0 for row in pixels(pathlib.Path(path).read_bytes()) for p in row))
             with self.assertRaises(TimeoutError):
                 listener.accept()
+
+    def test_embedded_picture_bomb_is_refused_and_capped_even_if_it_got_through(self):
+        from test_aresos_shell_hardening import picture_bomb
+        source = self.write(self.root / 'bomb.svg', picture_bomb())
+        with self.assertRaisesRegex(ValueError, 'image'):
+            self.cache.convert(str(source))
+        # Bypass the refusal: librsvg would decode about 1 GB; the address-space ceiling stops it.
+        self.cache.failed.clear()
+        start = time.monotonic()
+        with mock.patch.object(shell, 'drawn_svg'), self.assertRaises(ValueError):
+            self.cache.convert(str(source))
+        self.assertLess(time.monotonic() - start, shell.ICON_TIMEOUT + 1)
+        self.assertEqual(list(pathlib.Path(self.cache.directory).iterdir()), [])
 
     def test_missing_bwrap_never_uses_an_unsandboxed_converter(self):
         self.cache.bwrap = str(self.root / 'missing-bwrap')
