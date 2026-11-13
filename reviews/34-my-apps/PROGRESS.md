@@ -2,33 +2,29 @@
 
 Working notes for the next builder. Deleted in the last commit before the PR is ready.
 
-## State (after builder 2)
+## State (builder 3 at work)
 
 | Step | What | State |
 |---|---|---|
-| A1, A2 | `ShellClient` speaks 1.1; `FakeHelper` speaks 1.0 and 1.1; example messages; `ShellListTest` | **Done** |
-| A3 | What the system said is kept on the app (`AppDefinition.system`, `SystemInfo`) and saved (`AppsConfig.merge`) | **Done** |
-| A4 | The helper's icon path feeds the pixel icon (`icon/AppIcons`); the pack is regenerated and reloaded, throttled (`icon/IconRefresh`, `client/IconReload`) | **Done**, unit tests; no client test yet (see B3) |
-| A5 | Vanilla look by group for an app without a picture | **Done** |
-| B1 | apps.json schema 3 (`mine`, `baseline`), the move from schema 2 and 1 | **Done** |
-| B2 | Day one, baseline, "joins later" in the file; in the game: the inventory holds My apps only, removal from Live and saved Build, Q, the three commands, the chat line (`item/MyAppsGame`, `item/AppInventory`, `item/AppCommands`, `mixin/AppDropMixin`) | **Done**; server game tests for the inventory rules; the commands and the chat line need a host, so they wait for the client tests (B3) |
-| B3 | The Apps screen and the client game tests with screenshots | Not started |
-| Last | README, REPORT, build once, client tests twice, fetch and merge, delete this file, PR | Not started |
+| A1 to A5, B1, B2 | Protocol 1.1, the apps file, icons, the game part of My apps | **Done** (builders 1 and 2) |
+| B3 | The Apps screen (`client/AppsScreen.java`), its server side (`item/MyAppPayload`, `MyAppsGame.asked`), the search (`config/AppSearch`, unit tests) | **Built**, `build.sh` green on `8c641ab0`; look at it in the screenshots before calling it done |
+| B3 | `MyAppsClientGameTest` (fake helper, 150 programs, seven screenshots) | **Written**; first client run pending |
+| Last | README (Apps screen paragraph, two stale sentences), REPORT, build once, client tests twice, fetch and merge, delete this file, PR | Not started |
 
 ## What is left, in order
 
-1. **B3, the Apps screen** (`client/AppsScreen.java`, brief B5, HUB.md 2.4). Search box on top (name, `system.genericName`, `system.keywords`), "My apps", then "All programs" by name, each row icon and name. Left-click on a program that is not his adds it and keeps the screen open; left-click on one of his picks up its item as today (`TakeAppPayload`); right-click on one of his removes it. Typing goes to the search box, Enter acts on the only match, Escape closes. 200 programs: scroll or page, say which in the report.
-   - The server side is there: `MyAppsGame.add(player, id)` and `MyAppsGame.remove(player, id)` return the line for the chat and throw `IOException` with the reason. The screen needs one serverbound payload (say `MyAppPayload(id, mine)`), registered beside `TakeAppPayload` in `AppInventory.register()`; its receiver must check the host and the AresOS world the way `AppCommands.host` does, call add or remove, and send the line (`sendSystemMessage`, or the overlay). `take` now refuses a program that is not his.
-   - The screen reads `AresOs.apps()`; an add or remove replaces that list (integrated server, same JVM), so rebuild the rows when the list object changes, not once in `init`.
-   - `AppsScreen.active` is true in Live only, as before.
-2. **B3, the client game tests** (brief, Acceptance): with the fake helper and icons the tests draw themselves: the inventory on day one (five items); the Apps screen with 150 programs, with a search typed, after an add and after a remove; an item's pixel icon in the hotbar. Screenshots under `reviews/34-my-apps/screenshots/` (add `systemProperty 'aresos.myAppsReviewDir', ...` in `build.gradle` like the others). They must also cover what the server game tests cannot, because it needs the singleplayer host:
-   - `/aresos app add`, `remove`, `list` and their completion (add: programs that are not his; remove: his);
-   - the chat line of a program that joins after the baseline ("Spotify is new and joined My apps."), none on day one;
-   - "No free inventory slot: X has no item for now." if cheap;
-   - Q on an app's item in the hotbar (the client refuses it in Live through `ModeSwitchDropMixin`, the server refuses it in any mode);
-   - the icon path end to end: a list with `icon` paths arrives, `MyAppsGame.pictures` regenerates, `IconReload` reloads (only when `client.gui.overlay()` is null), `AresOs.generatedIcons` gets the ID, the next tick's tidy-up gives the item in the inventory the model `aresos:apps/<id>`. Wait for the model on the client's stack, then screenshot.
-3. **The last step** of the table. `mod/README.md` already has schema 3, the move, the `icon` limits and reload, and a "My apps" section (day one, the three commands, `/aresos give`, when the inventories change, Q). Still to write there: the Apps screen. The sentence "**E → Apps…** opens a paged catalogue ... Pick an app to put its item on the inventory cursor" near the end of "App configuration" describes the old screen; and the line "On Linux, `aresos-shell/1.0` is a stub until the OS helper arrives" is older than this package and no longer true (the helper exists; this package speaks 1.1). `REPORT.md` with the lists below.
-4. Until B3 is done the old Apps screen is in between: it still lists every app, and a click on a program that is not his does nothing (the server refuses to hand out its item).
+1. Run `mod/dev/client-test.sh --keep-screenshots <dir>`, look at the seven `34-*` screenshots, fix what they show.
+2. `mod/README.md`: the Apps screen paragraph replaces "**E → Apps…** opens a paged catalogue ..."; the line "On Linux, `aresos-shell/1.0` is a stub until the OS helper arrives" is no longer true.
+3. `REPORT.md` (lists under "For the report"), `build.sh` once, `client-test.sh` twice on the final code, `git fetch origin` and merge `origin/main` if PR #44 has merged, delete this file, push, `gh pr create`.
+
+## The Apps screen (builder 3)
+
+- One scrolling list (the game's `ObjectSelectionList`): heading "My apps", his apps by name, heading "All programs", every program by name; his have a check mark under "All programs". Scrolling, not pages; the wheel moves three rows a notch.
+- The server's answer is the chat line the commands give (`MyAppsGame.asked` sends it with `sendSystemMessage`). The chat is blurred behind the screen, so the screen shows any system line that arrives while it is open in the line above Done (Fabric's `ClientReceiveMessageEvents.GAME`), for five seconds.
+- `isPauseScreen` is false on purpose: a pause screen stops the integrated server and an add would not be answered while the screen is open.
+- When the list changes under him (an add, a remove, a new program) the row under the pointer keeps its place (`ProgramList.show`, `keepPlace`); a new search starts at the top.
+- Package 07's client test used the old pages; it now types the app's name and presses Enter. Its screenshot keeps the name `07-apps-page-2` so the tracked files of `reviews/07-real-apps` keep their numbering (they are put back after a run anyway).
+- `FakeHelper` moved to `mod/src/testShared/java` (public), a source folder of both the unit tests and the client game tests. `AppsTestAccess` got `aresos$setShell` and `aresos$mergeHelperApps`; the client test wires its own `ShellClient` the way `AresOs.onInitialize` wires the game's.
 
 ## How the game part works (read before changing it)
 
