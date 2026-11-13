@@ -10,14 +10,14 @@ export async function recheck3Matrices({check,nav,call,target,approval,receiverE
   const evidence={mixed:[],defaults:[],whitespace:[]};
   await check('GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order',async()=>{
     for(const row of browserMixes()){
-      setTab(await nativeDonor(getTab()));const id=`recheck3-mix-${row.mask}-${row.mode}-${row.composed}-${row.order}${row.foreign?'-foreign':''}`;
+      const boundaries=[];setTab(await nativeDonor(getTab()));const id=`recheck3-mix-${row.mask}-${row.mode}-${row.composed}-${row.order}${row.foreign?'-foreign':''}`;
       await nav('review-page&mode=mixed&'+new URLSearchParams({id,mask:row.mask,root:row.mode,composed:row.composed,order:row.order,foreign:row.foreign?1:0}));
-      if(row.foreign)await eventually(()=>fixture.compatibility.some(item=>item.id===id&&item.phase==='mixed-child-ready'),'controlled child ready');
+      if(row.foreign)for(const phase of ['mixed-child-ready','mixed-parent-ready']){const ready=await eventually(()=>fixture.compatibility.find(item=>item.id===id&&item.phase===phase),'private document boundary ready');assert.equal(ready.exposed,false,'MAIN must not see the isolated document guard');boundaries.push({phase,exposed:ready.exposed});}
       const stopped=await call('click',await target('Continue'));assert.equal(receiverEvidence(id,'mixed handler held').count,0);
       assert.equal(stopped.untrusted_content.steps.length,1);assert.equal(stopped.untrusted_content.steps[0].kind,'activation');if(row.foreign)assert.ok(stopped.untrusted_content.steps[0].frame>0);
       assert.ok(stopped.followups.some(row=>row.stopped));await approval(await call('click',await target('Delete')),id);
       assert.equal(receiverEvidence(id,'only the approved handler ran').arrivals[0].body,'mixed handler');
-      evidence.mixed.push({id,...row,stopped});await closeNativeDonor();
+      evidence.mixed.push({id,...row,stopped,boundaries});await closeNativeDonor();
     }
   });
   await check('GROUP 2 RECHECK3 every hyperlink and form submitter default is neutralised',async()=>{

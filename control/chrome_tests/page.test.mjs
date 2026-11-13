@@ -552,7 +552,7 @@ test('P26 wrappers have native nonconstructible method shapes',()=>{
 test('P4 borrowed wrappers route to another controlled document guard',()=>{
   const source=fixture({relay:true}),target=fixture({relay:true}),form=new target.HTMLFormElement();source.arm(new source.HTMLElement(),null);target.guard.control('target-epoch');
   source.HTMLFormElement.prototype.submit.call(form);assert.equal(source.arrivals.length,0);assert.equal(target.arrivals.length,0);assert.equal(target.reports.length,1);
-  const outside=fixture({relay:true}),ordinary=new outside.HTMLFormElement();outside.cleanup();delete outside.document.defaultView[Symbol.for('aresos.chrome.guard.v2')];
+  const outside=fixture({relay:true}),ordinary=new outside.HTMLFormElement();outside.cleanup();outside.guard.dispose();delete outside.document.defaultView[Symbol.for('aresos.chrome.guard.v2')];
   source.HTMLFormElement.prototype.submit.call(ordinary);assert.equal(source.arrivals.length,1,'the saved source native is used for an uncontrolled document');
 });
 test('P5 composed root keeps asking controls inside shadow DOM held',()=>{
@@ -865,7 +865,7 @@ test('recheck3 detached listener branding uses a saved native after the page rep
 test('recheck3 a wrapped detached listener from another controlled document installs capture in its owner',()=>{
   for(const mode of ['open','closed']){
     const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});
-    owner.document.root=owner.document;owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
+    owner.document.root=owner.document;owner.document.defaultView={};owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
     const host=new owner.HTMLElement(),button=new owner.HTMLElement();button.root=button;button.tagName='BUTTON';button.textContent='Delete';let handlers=0;
     caller.EventTarget.prototype.addEventListener.call(button,'click',()=>handlers++);
     const root=owner.nativeAttach.call(host,{mode});owner.nativeAppend.call(root,button);

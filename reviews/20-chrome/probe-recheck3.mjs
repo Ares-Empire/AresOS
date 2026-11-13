@@ -21,7 +21,7 @@ for(const row of mixedRows()){
 }
 for(const mode of ['open','closed']){
   const caller=factory({relay:true,nativeShadows:true}),owner=factory({relay:true,nativeShadows:true});
-  owner.document.root=owner.document;owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
+  owner.document.root=owner.document;owner.document.defaultView={};owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
   const host=new owner.HTMLElement(),button=new owner.HTMLElement();button.root=button;button.tagName='BUTTON';button.textContent='Delete';let handlers=0;
   caller.EventTarget.prototype.addEventListener.call(button,'click',()=>handlers++);
   const root=owner.nativeAttach.call(host,{mode});owner.nativeAppend.call(root,button);owner.originalDispatch.call(button,new owner.Event('click',{composed:false,cancelable:true}));

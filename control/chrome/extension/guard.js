@@ -234,7 +234,7 @@
     if(doc===ownDocument)return null;
     let view;try{view=defaultView?defaultView.call(doc):doc.defaultView;}catch{return {unknown:true};}
     if(!view)return null;
-    try{return view[Symbol.for('aresos.chrome.guard.v2')]||(view.top&&view.top===window.top?{unknown:true}:{outside:true});}catch{return {unknown:true};}
+    try{return doc[Symbol.for('aresos.chrome.guard.v2')]||view[Symbol.for('aresos.chrome.guard.v2')]||(view.top&&view.top===window.top?{unknown:true}:{outside:true});}catch{return {unknown:true};}
   }
   function outsideCall(event,stage){const {target,detail}=stage;if(detail.kind==='native_submit')native.submit.call(target);else if(detail.kind==='request_submit')requestNative(detail.with_submitter?target.form:target,detail.with_submitter?target:null);else event.preventDefault();}
   function onCall(event,request=null) {
@@ -319,7 +319,7 @@
   }
   watch(window);
   // This object exists only in the extension's isolated world. MAIN has no API or capability.
-  globalThis[Symbol.for('aresos.chrome.guard.v2')] = {
+  const api=globalThis[Symbol.for('aresos.chrome.guard.v2')] = {
     get ready(){return !!reader;},
     clipboard:clipboardObservation,
     control(epoch){if(generation!==epoch)clipboardRoutes.clear();generation=epoch;},
@@ -392,7 +392,7 @@
       if (generation===epoch && dispatchNonce===nonce) { until=Math.max(until,performance.now()+config.holdMs);inFlight=false;mark=null; }
     },
     clear() { clipboardRoutes.clear();generation=null;until=0;inFlight=false;mark=null;owner=null;held.clear(); },
-    dispose() { let restored=true;if(relayControl){restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
+    dispose() { let restored=true;if(relayControl){restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete ownDocument[Symbol.for('aresos.chrome.guard.v2')];delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
     steps() { const result=[...held.values()].filter(step=>!step.reported).map(step=>{step.reported=true;return {id:step.id,kind:step.kind,document:step.document,label:step.label,element:step.element,submitter:step.submitter,cancellable:step.cancellable};});return result; },
     resume(id,operation,element,form) {
       const step=held.get(id);
@@ -405,4 +405,7 @@
       return {resumed:step.kind};
     },
   };
+  // DOM wrapper expandos stay in this extension's isolated world. Unlike a
+  // WindowProxy global lookup, this reaches the owning frame's private guard.
+  Object.defineProperty(ownDocument,Symbol.for('aresos.chrome.guard.v2'),{value:api,configurable:true});
 })();

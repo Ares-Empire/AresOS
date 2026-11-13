@@ -16,6 +16,7 @@ export function assertRecheck3(evidence,snapshots,arrivals){
   for(const row of mixes){
     const id=`recheck3-mix-${row.mask}-${row.mode}-${row.composed}-${row.order}${row.foreign?'-foreign':''}`,found=evidence.mixed.filter(item=>item.id===id);assert.equal(found.length,1,id);const saved=found[0];
     for(const key of Object.keys(row))assert.equal(saved[key],row[key],id+' '+key);
+    if(row.foreign)assert.deepEqual(saved.boundaries,[{phase:'mixed-child-ready',exposed:false},{phase:'mixed-parent-ready',exposed:false}],id+' private document boundary');
     assert.equal(saved.stopped.untrusted_content.steps.length,1);assert.equal(saved.stopped.untrusted_content.steps[0].kind,'activation');
     assert.equal(once(id).body,'mixed handler');
   }
