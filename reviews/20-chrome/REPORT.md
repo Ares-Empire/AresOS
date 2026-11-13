@@ -110,9 +110,15 @@ modes, but fails the existing taken-tab cleanup test after 38 named cases. [Inde
 retain both the new-case passes and the full-workflow failure. Passive disposal now skips the nonexistent MAIN
 acknowledgement; the strict before/after local assertion and removal cover that correction. Mail's main job and
 three shards passed on this source, but shard 0 reached its 45-minute timeout; the cancelled workflow is not a pass.
-The next pair brings the ledger to **231 IDs / 232 executions**,
-within the approximate
-235-run budget and below the 245 notice threshold. Each CI run uses one blocking `gh run watch`, without
+The `8b7e799c` pair (`43395458551`, `43395775465`) then outgrew the 300-minute container deadline.
+[Strict raw-artifact audits](records/recheck3/timeout-browser-failure.json) pass all **107 new receiver sequences**
+in all four datasets; the repeat’s external job also passes the complete **92-case** browser/privacy/owner audit
+and **231 Python + 317 Node** checks. Both workflows nevertheless fail because their policy jobs time out;
+these are superseded evidence, not final acceptance. [All ten completed receipts](records/recheck3/timeout-head-runs.json)
+retain eight successful shared runs on that source. Only the workflow time allowance changes: **350 minutes**
+for the container, **360 minutes** for the job. No assertion, case, sweep or runtime byte changes; the installed
+runtime hash above is unchanged. The next pair brings the ledger to **233 IDs / 234 executions**, within the
+approximate 235-run budget and below the 245 notice threshold. Each CI run uses one blocking `gh run watch`, without
 turn-by-turn status polling. Report-only pushes use `[skip ci]`. Closing run IDs, exact logs and `.work/` inventory
 will replace this pending section after verification. No main/PR merge, force-push or qualification-data publishing
 is authorized in this round.

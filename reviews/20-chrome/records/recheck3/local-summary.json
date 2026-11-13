@@ -415,5 +415,15 @@
     "Register native peer roots during startup and exchange private isolated references lazily after execution resumes. Expired source documents are pruned by native document identity even before a reference is available. An unavailable recipient holds as unknown and retries later; an inherited hold cannot relax a conservative recipient. All 317 Node tests and 224 removals pass.",
     "613f2c96 passes all 107 new receiver sequences in both install modes, independently audited from the completed second-run artifacts. Its full workflow fails an existing taken-tab test: a passive guard awaited a MAIN cleanup acknowledgement despite having no MAIN wrappers. Passive disposal now confirms isolated teardown directly; MAIN restoration remains required for MAIN-installed documents. A new removal rejects reintroducing the missing-ack wait; all 225 removals fail with passing baselines."
   ],
-  "historical_corrections": "Earlier notes describe intermediate candidates, not current acceptance."
+  "historical_corrections": "Earlier notes describe intermediate candidates, not current acceptance.",
+  "ci_time_allowance": {
+    "change": "container 300 -> 350 minutes; job 310 -> 360 minutes; no test case or assertion changed",
+    "runtime_command": "python3 -B control/chrome/build.py",
+    "runtime_stdout": "66cdb07105b163cecf8e82c1c6293a3459fda2da556533552305dd5e41e737c0",
+    "runtime_unchanged": true,
+    "generator_stdout": "Generated artifacts match definitions",
+    "diff_exit": 0,
+    "local_test_source": "8b7e799cd0d27238b3725c1f749e8f430c1b187d",
+    "note": "All runtime, tests and audit sources are byte-identical after the workflow-only deadline change; earlier local suites are retained without an unnecessary repeat."
+  }
 }
