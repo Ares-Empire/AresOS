@@ -7,13 +7,19 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.decoration.BlockAttachedEntity;
+import net.minecraft.world.level.block.AmethystBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Fallable;
-import net.minecraft.world.level.block.AmethystBlock;
+import net.minecraft.world.level.block.FenceBlock;
 import net.minecraft.world.level.block.HalfTransparentBlock;
-import net.minecraft.world.level.block.TransparentBlock;
+import net.minecraft.world.level.block.IronBarsBlock;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.TintedGlassBlock;
+import net.minecraft.world.level.block.TransparentBlock;
+import net.minecraft.world.level.block.WallBlock;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 
@@ -30,6 +36,26 @@ import java.util.UUID;
  * and rolling back would already have fired ticks, drops and redstone.
  */
 final class Neighbors {
+    private static final Set<String> REMOVAL_CALLBACKS = Set.of("canSurvive", "updateShape", "neighborChanged",
+            "updateIndirectNeighbourShapes", "onPlace", "affectNeighborsAfterRemoval", "tick", "randomTick");
+
+    private static final ClassValue<Boolean> STABLE_ON_REMOVAL = new ClassValue<>() {
+        @Override protected Boolean computeValue(Class<?> type) {
+            // BlockBehaviour's defaults are no-ops (canSurvive returns true). Inspect every subclass so an
+            // unfamiliar override cannot inherit permission just because it extends an ordinary slab or pillar.
+            for (Class<?> owner = type; owner != BlockBehaviour.class; owner = owner.getSuperclass())
+                for (var method : owner.getDeclaredMethods()) {
+                    if (!REMOVAL_CALLBACKS.contains(method.getName())) continue;
+                    // Verified in 26.2: these updateShape implementations only schedule water when wet and
+                    // recompute connections/corners. The fluid guard below excludes the scheduling branch.
+                    if (method.getName().equals("updateShape") && (owner == SlabBlock.class || owner == StairBlock.class
+                            || owner == WallBlock.class || owner == FenceBlock.class || owner == IronBarsBlock.class)) continue;
+                    return false;
+                }
+            return true;
+        }
+    };
+
     private Neighbors() { }
 
     static Block block(String name) { return BuiltInRegistries.BLOCK.getValue(Identifier.withDefaultNamespace(name)); }
@@ -48,6 +74,15 @@ final class Neighbors {
      * Cells in {@code changing} are the build's own and are not looked at.
      */
     static void check(ServerLevel level, Set<BlockPos> changing, Collection<BlockPos> around, int reach) throws IOException {
+        check(level, changing, around, reach, false);
+    }
+
+    /** Retained blocks need no full-cube shape, but must survive neighbour updates without side effects. */
+    static void checkRemoval(ServerLevel level, Set<BlockPos> changing) throws IOException {
+        check(level, changing, changing, 2, true);
+    }
+
+    private static void check(ServerLevel level, Set<BlockPos> changing, Collection<BlockPos> around, int reach, boolean removal) throws IOException {
         var signs = ZoneData.get(level.getServer()).signs();
         var owned = ZoneData.get(level.getServer()).gateBlocks(level.dimension());
         for (var cell : around) {
@@ -66,10 +101,16 @@ final class Neighbors {
             if (changing.contains(pos) || !checked.add(pos)) continue;
             var state = level.getBlockState(pos);
             boolean ours = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString().equals(owned.get(pos));
-            if (inert(level, pos, state, ours)) continue;
+            if (inert(level, pos, state, ours) || removal && stableOnRemoval(state)) continue;
             throw new IOException("Logo could disturb neighboring " + BuiltInRegistries.BLOCK.getKey(state.getBlock()) + " at " + pos.toShortString()
                     + ". No blocks changed. Leave two cells clear of plants, circuits, fluids and blocks with special behavior, then retry.");
         }
+    }
+
+    private static boolean stableOnRemoval(BlockState state) {
+        return state.getFluidState().isEmpty() && !state.hasBlockEntity() && !state.isSignalSource()
+                && !state.isRandomlyTicking() && !(state.getBlock() instanceof Fallable)
+                && STABLE_ON_REMOVAL.get(state.getBlock().getClass());
     }
 
     private static boolean standsOn(Entity entity, BlockPos cell) {

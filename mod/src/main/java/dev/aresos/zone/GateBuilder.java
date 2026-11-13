@@ -238,7 +238,7 @@ public final class GateBuilder {
         }
         for (var pos : gate.grass()) if (level.getBlockState(pos).is(Blocks.DIRT)) removing.put(pos, Blocks.GRASS_BLOCK.defaultBlockState());
         // Refuse the whole operation before touching the sign, the record or any block.
-        Neighbors.check(level, removing.keySet(), removing.keySet(), 2);
+        Neighbors.checkRemoval(level, removing.keySet());
         removing.forEach(level::setBlockAndUpdate);
         gate.sign().map(level::getEntity).ifPresent(Entity::discard);
         ZoneData.get(server).remove(saved -> saved.id().equals(zone.id()));

@@ -30,7 +30,12 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Fallable;
 import net.minecraft.world.level.block.LightBlock;
+import net.minecraft.world.level.block.RotatedPillarBlock;
+import net.minecraft.world.level.block.SlabBlock;
+import net.minecraft.world.level.block.StairBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.Half;
+import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -421,15 +426,48 @@ public final class GateGameTests {
             level.setBlockAndUpdate(mined, Blocks.AIR.defaultBlockState());
             level.setBlockAndUpdate(mat, Blocks.GOLD_BLOCK.defaultBlockState());
             level.setBlockAndUpdate(light, Blocks.GLASS.defaultBlockState());
+            var edits = Map.of(
+                    plan.at(1, 4, 6), Blocks.STONE_SLAB.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.TOP),
+                    plan.at(1, 7, 8), Blocks.QUARTZ_PILLAR.defaultBlockState().setValue(RotatedPillarBlock.AXIS, Direction.Axis.X),
+                    plan.at(1, 6, 4), Blocks.STONE_STAIRS.defaultBlockState().setValue(StairBlock.FACING, Direction.EAST).setValue(StairBlock.HALF, Half.TOP));
+            edits.forEach(level::setBlockAndUpdate);
             var removal = GateBuilder.remove(level.getServer(), zone);
-            check(removal.kept() == 4 && removal.removed() == zone.blocks().size() - 4, "removal: " + removal);
+            check(removal.kept() == 7 && removal.removed() == zone.blocks().size() - 7, "removal: " + removal);
             var expected = new HashMap<>(before);
             expected.put(swapped, Blocks.DIAMOND_BLOCK.defaultBlockState());
             expected.put(mat, Blocks.GOLD_BLOCK.defaultBlockState());
             expected.put(light, Blocks.GLASS.defaultBlockState());
+            expected.putAll(edits);
             for (var cell : expected.entrySet()) check(level.getBlockState(cell.getKey()).equals(cell.getValue()),
                     "After removal " + cell.getKey() + " is " + level.getBlockState(cell.getKey()) + ", expected " + cell.getValue());
             check(site.signs().isEmpty() && site.zones().isEmpty(), "sign or zone left behind");
+        });
+    }
+
+    @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
+    public void retainedConnectionsCanChangeTheirShapeDuringRemoval(GameTestHelper helper) {
+        Site.run(helper, 280, site -> {
+            var level = site.level();
+            var plan = site.plan(GatePicture.plain("iron_block", 12));
+            var zone = site.build(plan);
+            var edits = Map.of(plan.at(1, 2, 5), Blocks.COBBLESTONE_WALL.defaultBlockState(),
+                    plan.at(1, 5, 7), Blocks.OAK_FENCE.defaultBlockState(),
+                    plan.at(1, 8, 5), Blocks.GLASS_PANE.defaultBlockState());
+            var connected = new HashMap<BlockPos, BlockState>();
+            edits.forEach((pos, state) -> {
+                var attached = Block.updateFromNeighbourShapes(state, level, pos);
+                level.setBlockAndUpdate(pos, attached);
+                connected.put(pos, attached);
+            });
+            var removal = GateBuilder.remove(level.getServer(), zone);
+            check(removal.kept() == 3 && removal.removed() == zone.blocks().size() - 3, "connection removal: " + removal);
+            edits.forEach((pos, state) -> {
+                var actual = level.getBlockState(pos);
+                check(actual.is(state.getBlock()) && actual.getFluidState().isEmpty(), "removed a retained connection at " + pos);
+                check(!actual.equals(connected.get(pos)), "connection did not follow the removed neighbours at " + pos);
+                check(actual.equals(Block.updateFromNeighbourShapes(state, level, pos)), "connection did not settle at " + pos + ": " + actual);
+            });
+            check(site.signs().isEmpty() && site.zones().isEmpty(), "connection removal left a sign or zone");
         });
     }
 
@@ -480,6 +518,15 @@ public final class GateGameTests {
             var sand = plan.at(1, 3, 7);
             level.setBlockAndUpdate(sand, Blocks.SAND.defaultBlockState());
             removalRefused(site, zone, "minecraft:sand", sand);
+            level.setBlockAndUpdate(sand, Blocks.IRON_BLOCK.defaultBlockState());
+            // The same slab callback is harmless dry, but schedules flowing water when waterlogged.
+            var wet = Blocks.STONE_SLAB.defaultBlockState().setValue(SlabBlock.WATERLOGGED, true);
+            level.setBlock(sand, wet, 2);
+            removalRefused(site, zone, "minecraft:stone_slab", sand);
+            level.setBlockAndUpdate(sand, Blocks.IRON_BLOCK.defaultBlockState());
+            // Unknown/reactive callbacks remain a reason to refuse even on a full block.
+            level.setBlockAndUpdate(sand, block("waxed_copper_bulb").defaultBlockState());
+            removalRefused(site, zone, "minecraft:waxed_copper_bulb", sand);
             level.setBlockAndUpdate(sand, Blocks.IRON_BLOCK.defaultBlockState());
             var frame = new net.minecraft.world.entity.decoration.ItemFrame(level, plan.at(-1, 2, 5), Direction.SOUTH);
             check(frame.survives() && level.addFreshEntity(frame), "item frame fixture is not attached");
@@ -564,6 +611,7 @@ public final class GateGameTests {
             refused(site, "a hole on the way to the door", "isn't solid", plan -> level.setBlock(plan.at(-3, 6, -1), Blocks.AIR.defaultBlockState(), 2));
             refused(site, "a hole under the niche", "isn't solid", plan -> level.setBlock(plan.at(1, 5, -1), Blocks.AIR.defaultBlockState(), 2));
             refused(site, "a torch beside the logo", "minecraft:torch", plan -> level.setBlock(plan.at(1, -2, 0), Blocks.TORCH.defaultBlockState(), 2));
+            refused(site, "a dry slab beside the planned logo", "minecraft:stone_slab", plan -> level.setBlock(plan.at(3, 2, 5), Blocks.STONE_SLAB.defaultBlockState(), 2));
             refused(site, "water behind the logo", "minecraft:water", plan -> level.setBlock(plan.at(4, 3, 0), Blocks.WATER.defaultBlockState(), 2));
             refused(site, "a chest two cells behind the upper edge", "minecraft:chest", plan -> level.setBlock(plan.at(4, 6, 11), Blocks.CHEST.defaultBlockState(), 2));
             refused(site, "sand under the logo", "minecraft:sand", plan -> level.setBlock(plan.at(1, 0, -1), Blocks.SAND.defaultBlockState(), 2));
