@@ -302,6 +302,14 @@ For the singleplayer host in an AresOS world (Tab completes the ID):
 
 `/aresos give <app>` also makes the program yours. Pinning (moving an item into
 the hotbar) makes an app yours too; unpinning changes nothing else.
+`give` moves an existing item in your active inventory instead of making a copy.
+Finish moving cursor and crafting-grid items before picking up an app through Apps or `give`.
+
+**Known limit: containers.** Chests and other containers, including nested storage,
+are yours to use. The mod searches only your player inventory when supplying a
+missing app item. Storing one elsewhere can therefore leave another copy in your
+inventory, and breaking its container can drop the stored copy into the world.
+App items are not globally unique; the Q rule covers player drops only.
 
 Your inventories are never edited at a risky moment. A change is done at once
 when that is safe, and otherwise on the first tick on which no mode switch is

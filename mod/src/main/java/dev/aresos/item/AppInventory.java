@@ -16,7 +16,8 @@ import java.util.*;
 
 /**
  * The app items in a player's inventory. The inventory holds My apps and nothing else (docs/design/HUB.md 2.4):
- * an app that is his has one item, an app that is not his has none. When this runs is {@link MyAppsGame}'s job.
+ * missing items are supplied and unwanted ones removed here. Containers outside the player inventory are not
+ * searched, so storing an app there can leave another copy. When this runs is {@link MyAppsGame}'s job.
  */
 public final class AppInventory {
     private AppInventory() { }
@@ -94,7 +95,7 @@ public final class AppInventory {
         return false;
     }
 
-    /** An app's item in an AresOS world never lies on the ground: dropping it (Q) must not remove the app. */
+    /** Player drops are refused in an AresOS world: Q must not remove an app. Container drops are outside this rule. */
     public static boolean keeps(ServerPlayer player, ItemStack stack) {
         return stack.is(AppItems.APP) && DesktopWorld.isEnabled(player.level().getServer());
     }
@@ -155,10 +156,34 @@ public final class AppInventory {
             player.sendSystemMessage(Component.literal("Could not save app pins: " + error.getMessage()));
         }
     }
+    /** The command reuses an item in the active inventory before supplying a missing one. */
+    public static int give(net.minecraft.commands.CommandSourceStack source, AppDefinition app) {
+        var player = source.getPlayer();
+        if (player == null || ModeInventories.of(player).pending() || ModeInventories.of(player).changingMode()
+                || player.containerMenu != player.inventoryMenu || !player.inventoryMenu.getCarried().isEmpty()
+                || !player.inventoryMenu.getCraftSlots().isEmpty()) {
+            source.sendFailure(Component.literal("Finish moving inventory items first"));
+            return 0;
+        }
+        if (!MyAppsGame.own(source, app)) return 0;
+        var inventory = player.getInventory();
+        for (int slot = 0; slot < inventory.getContainerSize(); slot++) {
+            var stack = inventory.getItem(slot);
+            if (!stack.is(AppItems.APP) || !app.id().equals(stack.get(AppItems.APP_ID))) continue;
+            inventory.setItem(slot, ItemStack.EMPTY);
+            if (!inventory.add(stack)) inventory.setItem(slot, stack);
+            return 1;
+        }
+        if (inventory.add(AppItems.create(app))) return 1;
+        source.sendFailure(Component.literal("Inventory is full"));
+        return 0;
+    }
+
     private static void take(ServerPlayer player, String id) {
         if (ModeInventories.of(player).pending()
                 || !LiveMode.isLive(player) || !DesktopWorld.isHost(player.level().getServer(), player)
-                || player.containerMenu != player.inventoryMenu || !player.inventoryMenu.getCarried().isEmpty()) return;
+                || player.containerMenu != player.inventoryMenu || !player.inventoryMenu.getCarried().isEmpty()
+                || !player.inventoryMenu.getCraftSlots().isEmpty()) return;
         var app = AresOs.app(id);
         // Only one of his apps has an item to pick up; a program that is not his is added first.
         if (app == null || !app.mine()) return;

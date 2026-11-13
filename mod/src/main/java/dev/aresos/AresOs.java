@@ -190,13 +190,7 @@ public final class AresOs implements ModInitializer {
                                         context.getSource().sendFailure(Component.literal("Unknown AresOS app"));
                                         return 0;
                                     }
-                                    // What is in his inventory is his: giving a program that is not makes it his.
-                                    if (!dev.aresos.item.MyAppsGame.own(source, app)) return 0;
-                                    if (!player.getInventory().add(AppItems.create(app))) {
-                                        context.getSource().sendFailure(Component.literal("Inventory is full"));
-                                        return 0;
-                                    }
-                                    return 1;
+                                    return AppInventory.give(source, app);
                                 }))));
         });
     }

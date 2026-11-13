@@ -314,6 +314,30 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
     private static void commands(ClientGameTestContext context, TestSingleplayerContext world, Path config) throws IOException {
         var his = Set.of("browser", "terminal", "notepad", "lunar-client", "discord", "ark");
         check(mine().equals(his), "Before the commands My apps is " + mine());
+        // Picking through Apps must not manufacture a second item while the first is in the 2x2 grid.
+        world.getServer().runOnServer(server -> {
+            var player = world.getConnection().getServerPlayer();
+            var inventory = player.getInventory();
+            player.inventoryMenu.getCraftSlots().setItem(0, inventory.getItem(0));
+            inventory.setItem(0, ItemStack.EMPTY);
+        });
+        context.runOnClient(client -> net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking.send(
+                new dev.aresos.item.TakeAppPayload("notepad")));
+        world.getConnection().waitForServerboundPackets();
+        world.getServer().runOnServer(server -> {
+            var player = world.getConnection().getServerPlayer();
+            check(player.inventoryMenu.getCarried().isEmpty(), "Apps picked up a copy while crafting was occupied");
+            check("notepad".equals(player.inventoryMenu.getCraftSlots().getItem(0).get(AppItems.APP_ID)), "Apps touched crafting");
+            player.getInventory().setItem(0, player.inventoryMenu.getCraftSlots().removeItemNoUpdate(0));
+        });
+        command(context, "aresos give notepad");
+        command(context, "aresos give notepad");
+        world.getConnection().waitForServerboundPackets();
+        world.getServer().runOnServer(server -> {
+            var player = world.getConnection().getServerPlayer();
+            check(ModeInventoryFixtures.totalItems(player, AppItems.create(AresOs.app("notepad"))) == 1,
+                    "Repeated /aresos give copied the existing item");
+        });
         world.getServer().runOnServer(server -> {
             var player = world.getConnection().getServerPlayer();
             var add = completions(player, "aresos app add ");

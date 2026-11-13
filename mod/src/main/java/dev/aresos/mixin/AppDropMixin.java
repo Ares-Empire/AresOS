@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Dropping an app's item never removes the app (docs/design/HUB.md 2.4): the drop is refused, so nothing can double. */
+/** Player drops of app items are refused (docs/design/HUB.md 2.4). Block-container drops are outside this rule. */
 @Mixin(ServerPlayer.class)
 public abstract class AppDropMixin {
     @Inject(method = "drop(Z)V", at = @At("HEAD"), cancellable = true)
