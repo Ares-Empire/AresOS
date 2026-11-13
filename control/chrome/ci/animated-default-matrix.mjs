@@ -4,7 +4,7 @@ import {allTabs} from './tabs.mjs';
 export async function animatedDefaultMatrix({check,nav,call,target,approval,receiverEvidence,eventually,getTab,setTab,nativeDonor,closeNativeDonor}){
   const evidence=[];
   await check('GROUP 2 POST18D animated SVG native defaults stay held',async()=>{
-    for(const kind of ['svg-animated-href','svg-animated-xlink'])for(const route of ['blank','frame','self']){
+    for(const kind of ['svg-animated-href','svg-animated-xlink','svg-animated-external','svg-animated-target','svg-animated-both','svg-animated-loop'])for(const route of ['blank','frame','self']){
       const id='post18d-animated-default-'+kind+'-'+route;
       setTab(await nativeDonor(getTab()));await nav('review-page&mode=activation-default&'+new URLSearchParams({kind,route,id}));
       const before=await allTabs(call),stopped=await call('click',await target('Continue'));

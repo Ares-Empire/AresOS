@@ -27,8 +27,8 @@ function fixture(){
   }
   return {evidence,snapshots,arrivals};
 }
-test('recheck3 independent evidence audit accepts the complete 113 exact receiver sequences',()=>{
-  const f=fixture();assert.deepEqual(assertRecheck3(f.evidence,f.snapshots,f.arrivals),{mixed:60,defaults:39,whitespace:14,complete_0_1_1:113,independent_arrivals_match:true});
+test('recheck3 independent evidence audit accepts the complete 125 exact receiver sequences',()=>{
+  const f=fixture();assert.deepEqual(assertRecheck3(f.evidence,f.snapshots,f.arrivals),{mixed:60,defaults:51,whitespace:14,complete_0_1_1:125,independent_arrivals_match:true});
 });
 test('recheck3 independent evidence audit rejects omitted rows early arrivals whitespace loss and wrong final bytes',()=>{
   for(const mutate of [f=>f.evidence.mixed.pop(),f=>{f.evidence.mixed.find(row=>row.foreign).boundaries[0].exposed=true;},f=>{f.snapshots.find(row=>row.phase==='native default held').count=1;},f=>{f.evidence.whitespace[0].prepared.approval.description.untrusted_content.page_state.compose.text='collapsed';},f=>{f.arrivals.find(row=>row.url.includes('space-')).body=whitespaceText.line;}]){

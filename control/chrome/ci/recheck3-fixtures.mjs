@@ -2,7 +2,7 @@
 export const whitespaceKinds=['pre','pre-wrap','pre-line','break-spaces','PRE','TEXTAREA','CODE'];
 export const whitespaceText={before:'if approved:\n    send()\naudit()',indent:'if approved:\n    send()\n    audit()',line:'if approved:\n    send() audit()',leading:'\nif approved:\n    send()\naudit()'};
 export const whitespaceChanges=kind=>kind==='pre-line'?['line','leading']:['indent','line'];
-export const defaultKinds=['a','area','svg-href','svg-xlink','svg-both','svg-animated-href','svg-animated-xlink','button','input-submit','input-image','external-button','button-reset','input-reset'];
+export const defaultKinds=['a','area','svg-href','svg-xlink','svg-both','svg-animated-href','svg-animated-xlink','svg-animated-external','svg-animated-target','svg-animated-both','svg-animated-loop','button','input-submit','input-image','external-button','button-reset','input-reset'];
 export function defaultRows(){
   return defaultKinds.flatMap(kind=>(kind.endsWith('reset')?['frame']:['self','blank','frame',...(['a','area'].includes(kind)?['ping','download']:[])]).map(route=>({kind,route,id:'recheck3-default-'+kind+'-'+route})));
 }
@@ -29,7 +29,7 @@ export function recheck3Page(url){
       ${mask&8?'EventTarget.prototype.dispatchEvent':'donor.EventTarget.prototype.dispatchEvent'}.call(button,new donor.MouseEvent('click',{bubbles:true,composed:${composed},cancelable:true}));
     };`;
   }else if(mode==='activation-default'){
-    const kind=url.searchParams.get('kind'),svgKind=kind.replace('svg-animated-','svg-'),route=url.searchParams.get('route'),target=route==='blank'?'_blank':route==='self'?'_self':'sink';
+    const kind=url.searchParams.get('kind'),svgKind=kind==='svg-animated-xlink'?'svg-xlink':kind.startsWith('svg-animated-')?'svg-href':kind,route=url.searchParams.get('route'),target=route==='blank'?'_blank':route==='self'?'_self':'sink';
     const attrs=` id="asking" aria-label="Delete" href="${receive}" target="${target}"`+(route==='ping'?` ping="/receive?case=ping-${id}"`:'')+(route==='download'?' download="proof.txt"':'');
     let asking;
     if(kind==='a')asking='<a'+attrs+'>Delete</a>';
@@ -41,8 +41,8 @@ export function recheck3Page(url){
       asking='<form id="deletions" method="post" action="'+receive+'" target="'+target+'"><input name="draft" value="Native default">'+(kind==='external-button'?'':control)+'</form>'+(kind==='external-button'?control.replace('id="asking"','id="asking" form="deletions"'):'');
     }
     body='<button type="button" id="continue">Continue</button>'+asking+sink;
-    script=`document.querySelector('#continue').onclick=()=>opener.EventTarget.prototype.dispatchEvent.call(document.querySelector('#asking'),new MouseEvent('click',{bubbles:true,cancelable:false}));`;
-    if(kind.startsWith('svg-animated-'))script+=`const animation=document.createElementNS('http://www.w3.org/2000/svg','set');animation.setAttribute('attributeName',${JSON.stringify(svgKind==='svg-xlink'?'xlink:href':'href')});animation.setAttribute('to',${JSON.stringify(receive)});animation.setAttribute('dur','indefinite');document.querySelector('#asking').append(animation);animation.beginElement();`;
+    script=`document.querySelector('#continue').onclick=()=>{const node=document.querySelector('#asking');opener.EventTarget.prototype.dispatchEvent.call(node,new MouseEvent('click',{bubbles:true,cancelable:false}));${kind==='svg-animated-loop'?`node.setAttribute('href',${JSON.stringify(receive)});node.querySelector('set').setAttribute('attributeName','href');opener.EventTarget.prototype.dispatchEvent.call(node,new MouseEvent('click',{bubbles:true,cancelable:false}));`:''}};`;
+    if(kind.startsWith('svg-animated-'))script+=`const animation=document.createElementNS('http://www.w3.org/2000/svg','set');animation.setAttribute('attributeName',${JSON.stringify(svgKind==='svg-xlink'?'xlink:href':'href')});animation.setAttribute('to',${JSON.stringify(receive)});animation.setAttribute('dur','indefinite');const link=document.querySelector('#asking'),outside=${kind==='svg-animated-external'};if(outside)animation.setAttribute('href','#asking');(outside?document.querySelector('svg'):link).append(animation);animation.beginElement();${['svg-animated-target','svg-animated-both'].includes(kind)?`link.setAttribute('target','_self');const targetAnimation=document.createElementNS('http://www.w3.org/2000/svg','set');targetAnimation.setAttribute('attributeName','target');targetAnimation.setAttribute('to',${JSON.stringify(target)});targetAnimation.setAttribute('dur','indefinite');link.append(targetAnimation);targetAnimation.beginElement();`:''}${kind==='svg-animated-both'?`const legacyAnimation=document.createElementNS('http://www.w3.org/2000/svg','set');legacyAnimation.setAttribute('attributeName','xlink:href');legacyAnimation.setAttribute('to',${JSON.stringify(receive)});legacyAnimation.setAttribute('dur','indefinite');link.append(legacyAnimation);legacyAnimation.beginElement();`:''}`;
     if(kind.endsWith('reset'))script+=`document.querySelector('input[name=draft]').value='Changed';document.querySelector('form').addEventListener('reset',()=>fetch(${JSON.stringify(receive)},{method:'POST',body:'reset'}));`;
   }else if(mode==='compose-whitespace'){
     const kind=url.searchParams.get('kind'),tag=['PRE','TEXTAREA','CODE'].includes(kind)?kind.toLowerCase():'div';

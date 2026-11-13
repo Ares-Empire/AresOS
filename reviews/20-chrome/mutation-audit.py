@@ -329,6 +329,12 @@ case('post18d-svg-animated-target',R,"if(attribute==='target'&&svgLink(element))
 
 case('post18d-svg-empty-target',R,"if(attribute==='target'&&svgLink(element))return svgTarget&&animatedValue?animatedValue.call(svgTarget.call(element))||'_self':explicit||'_self';",'',node('reader','post18d SVG empty native target stays self'))
 
+for source in ['href','xlink:href']:
+    case('post18d-svg-native-default-'+source,G,"const animations=hyperlink?stopSVGAnimations(node):[];","const animations=[];",node('page','post18d uncancellable SVG '+source+' animation loses native authority'))
+case('post18d-svg-native-target-default',G,"if(target!==node)continue;","if(target!==node||getAttribute.call(animation,'attributeName')==='target')continue;",node('page','post18d SVG quarantine covers external target animations'))
+
+case('post18d-native-default-reentry',G,"const earlier=quarantined.get(node),blockedAddress=config.defaultBlock;","if(quarantined.has(node))return true;const earlier=quarantined.get(node),blockedAddress=config.defaultBlock;",node('page','post18d repeated native activation rechecks authority'))
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']

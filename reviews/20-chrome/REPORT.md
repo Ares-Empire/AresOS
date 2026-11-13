@@ -217,6 +217,35 @@ the helper is now included. The complete suite passes **356 Node/artifact tests*
 zero failures/skips. Replacement dispatch brings the count to **243**. The
 cancelled run is not acceptance evidence.
 
+**Animated native-default FIX:** `43472898643` (**243**) passes all **66**
+absolute destination/context sequences, then exposes an unasked `_blank` arrival
+in both installs. The [before receipt](records/post18d/svg-native-before.json)
+shows an ordinary Continue click, a claimed stopped non-cancellable SVG activation,
+and the independent GET before any question. [Context evidence](records/post18d/svg-contexts-before-default-fix.json)
+confirms both native SVG `_self` cases and all named-frame destinations.
+
+`guard.js` now temporarily disables only native SVG animations targeting the
+held link, including external animations. It changes their animated property
+names without moving/adopting elements or invoking custom-element disconnection
+callbacks, samples the same SVG time, strips the href authorities, and restores
+unchanged properties on the next task. Repeated activation rechecks authority
+if the page restores it in the same task; stale restoration tasks cannot undo a
+new hold. The existing form/submitter paths retain their disabled/fenced defaults.
+
+**Verified locally:** **360 Node/artifact tests pass**; **278 removal probes**
+reject their mutation with every baseline passing. The replacement Linux probe
+covers href, xlink, external animations, animated targets, both href authorities
+and same-task reactivation through self/frame/new-tab routes (**18** cases).
+The original round-3 native defaults remain, with **125** receiver sequences
+in its expanded independent audit. This dispatch brings the count to **244**.
+The security scoped re-check and Linux result remain pending.
+
+**JUDGMENT-CALL:** pausing an animated link's affected properties for one task is
+the reversible cost of stopping a non-cancellable programmatic activation. Normal
+owner input and unrelated animations remain unchanged. Restoring a property the
+page changed while held is avoided. Removing this protection would restore the
+measured unasked new-tab default. No new DevTools method or tab-group change.
+
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
 blank-frame base case. The new fixture had duplicate blank-frame addresses, so

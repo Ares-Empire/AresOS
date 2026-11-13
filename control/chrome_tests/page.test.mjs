@@ -7,7 +7,7 @@ import {mixedRows} from '../chrome/ci/guard-matrix.mjs';
 
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
-function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeShadows=false,retarget=false,dialogs=false,nativeNodeKinds=false,clipboard=false,onDialogBoundary=()=>{}}={}) {
+function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeShadows=false,retarget=false,dialogs=false,nativeNodeKinds=false,clipboard=false,svgAnimations=false,onDialogBoundary=()=>{}}={}) {
   const sourceIdentity="source-"+(fixture.sequence=(fixture.sequence||0)+1);
   const sharedDOM=fixture.sharedDOM??={shadowHosts:new WeakMap(),hostShadows:new WeakMap(),parents:new WeakMap(),children:new WeakMap(),elements:new WeakSet()};
   const windowListeners=new Map(),reports=[],arrivals=[],nodes=[],bridgeDetails=[];let now=0;
@@ -54,9 +54,9 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     constructor(){super();this.ownerDocument=document;sharedDOM.elements.add(this);nodes.push(this);}
     get childNodes(){return [{nodeType:3,textContent:this.textContent}];}
     closest(){return this;}
-    getAttribute(name){if(!sharedDOM.elements.has(this))throw TypeError('Invalid Element brand');return this[name]??null;}
-    setAttribute(name,value){this[name]=String(value);}
-    removeAttribute(name){delete this[name];}
+    getAttribute(name){if(!sharedDOM.elements.has(this))throw TypeError('Invalid Element brand');return this.fixtureAttributes?this.fixtureAttributes[name]??null:this[name]??null;}
+    setAttribute(name,value){if(this.fixtureAttributes)this.fixtureAttributes[name]=String(value);else this[name]=String(value);}
+    removeAttribute(name){if(this.fixtureAttributes)delete this.fixtureAttributes[name];else delete this[name];}
     getAttributeNS(ns,name){return this.namespaceAttrs?.[ns+' '+name]??null;}
     setAttributeNS(ns,name,value){(this.namespaceAttrs??={})[ns+' '+name.split(':').at(-1)]=String(value);}
     removeAttributeNS(ns,name){delete this.namespaceAttrs?.[ns+' '+name];}
@@ -67,6 +67,14 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   }
   class HTMLElement extends Element {click(){originalDispatch.call(this,new Event('click'));}get onclick(){return this.fixtureClick;}set onclick(handler){this.fixtureClick=handler;if(!this.fixtureClickListener){this.fixtureClickListener=event=>this.fixtureClick?.call(this,event);nativeListen.call(this,'click',this.fixtureClickListener);}}}
   class SVGElement extends Element {}
+  class SVGAnimatedString {constructor(read){this.read=read;}get animVal(){return this.read();}}
+  class SVGAnimationElement extends SVGElement {get targetElement(){return this.animatedTarget;}}
+  class SVGSVGElement extends SVGElement {getCurrentTime(){return this.currentTime??0;}setCurrentTime(value){this.currentTime=value;}}
+  class SVGAElement extends SVGElement {
+    constructor(){super();this.fixtureAttributes={};this.namespaceURI='http://www.w3.org/2000/svg';this.localName='a';this.tagName='a';}
+    get href(){return new SVGAnimatedString(()=>nodes.findLast(node=>node instanceof SVGAnimationElement&&node.animatedTarget===this&&['href','xlink:href'].includes(node.attributeName))?.to??this.fixtureAttributes.href??this.getAttributeNS('http://www.w3.org/1999/xlink','href')??'');}
+  }
+  if(svgAnimations)Object.defineProperty(SVGElement.prototype,'ownerSVGElement',{get(){return this.svgOwner??null;}});
   class HTMLInputElement extends HTMLElement {}
   class HTMLFormElement extends HTMLElement {
     tagName='FORM'; method='post';action='/receive';valid=true;
@@ -77,6 +85,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   class Document extends EventTarget {createElement(){const node=new HTMLElement();node.root=node;node.isConnected=false;node.parentNode=null;return node;}}
   if(nativeNodeKinds){Object.defineProperty(Node.prototype,'nodeType',{get(){return this.fixtureKind??1;}});Node.prototype.cloneNode=function(){const clone=new Node();clone.fixtureKind=this.fixtureKind??1;clone.ownerDocument=document;clone.root=clone;return clone;};}
   const document=new Document();document.root=document;document.fixtureWindowListeners=windowListeners;document.getElementById=key=>document.labels?.[key];
+  if(svgAnimations)document.querySelectorAll=()=>nodes.filter(node=>node instanceof SVGAnimationElement);
   if(!relay)document.createElement=undefined;
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);},removeEventListener(type,fn){windowListeners.set(type,(windowListeners.get(type)||[]).filter(value=>value!==fn));}};
   class MessageChannel {port1={close(){}};port2={postMessage:token=>setImmediate(()=>this.port1.onmessage?.({data:token})),close(){}};}
@@ -90,7 +99,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     read(){throw Error('Clipboard read is forbidden');}readText(){throw Error('Clipboard read is forbidden');}
   }
   const clipboardObject=new Clipboard(),nativeClipboard={write:Clipboard.prototype.write,writeText:Clipboard.prototype.writeText};
-  const globals={window,document,...(clipboard?{Clipboard,navigator:{clipboard:clipboardObject}}:{}),performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,DocumentFragment:Node,Element,HTMLElement,SVGElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document,ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>{if(!(host instanceof HTMLElement))throw TypeError('chrome.dom requires an HTMLElement');return hostShadows.get(host);}}}}:browserDOM?{Document}:{})};
+  const globals={window,document,...(svgAnimations?{SVGAElement,SVGAnimatedString,SVGAnimationElement,SVGSVGElement}:{}),...(clipboard?{Clipboard,navigator:{clipboard:clipboardObject}}:{}),performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,DocumentFragment:Node,Element,HTMLElement,SVGElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document,ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>{if(!(host instanceof HTMLElement))throw TypeError('chrome.dom requires an HTMLElement');return hostShadows.get(host);}}}}:browserDOM?{Document}:{})};
   const dialogCalls=[],dialogReports=[],dialogValues=[],dialogValue=value=>value===undefined?'':`${value}`;if(dialogs)Object.assign(globals,{alert:({alert(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogValues.push([dialogValue(value),dialogValue(initial)]);dialogCalls.push('prompt');return 'native response';}}).prompt});const nativeDialogs=dialogs?{alert:globals.alert,confirm:globals.confirm,prompt:globals.prompt}:{};
   let guard;const isolated=vm.createContext({...globals,fixtureDialogPause:()=>onDialogBoundary(guard)});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();'),isolated);
@@ -111,7 +120,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,clipboard:clipboardObject,nativeClipboard,clipboardCalls,clipboardOutcome,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,pause:value=>{document.fixturePaused=value;},wire(other,key,value,node=other.factory.relay){installed.identify('data-fixture-source',sourceIdentity);assert.equal(other.guard.source(installed.relay,'data-fixture-source',sourceIdentity),true);return installed.link(node,key,value);},Node,SVGElement,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,nativeAttach,nativeAppend,nativeListen,nativeHTMLSetter,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,clipboard:clipboardObject,nativeClipboard,clipboardCalls,clipboardOutcome,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,pause:value=>{document.fixturePaused=value;},wire(other,key,value,node=other.factory.relay){installed.identify('data-fixture-source',sourceIdentity);assert.equal(other.guard.source(installed.relay,'data-fixture-source',sourceIdentity),true);return installed.link(node,key,value);},Node,SVGElement,SVGAElement,SVGAnimationElement,SVGSVGElement,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,nativeAttach,nativeAppend,nativeListen,nativeHTMLSetter,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
 
 test('private factory creation changes no prototype before its cleanup handle can be retained',()=>{
@@ -977,4 +986,41 @@ test('recheck3 adopted capture preserves its conservative recipient against a le
   const button=new caller.HTMLElement();button.root=button;button.tagName='BUTTON';button.textContent='Ordinary control';let handlers=0;button.addEventListener('click',()=>handlers++);owner.nativeAppend.call(owner.nativeAttach.call(new owner.HTMLElement(),{mode:'closed'}),button);
   caller.arm(new caller.HTMLElement(),null);owner.arm(button,null,null,true);caller.originalDispatch.call(button,new caller.Event('click',{composed:false}));
   assert.equal(handlers,0);assert.equal(owner.reports[0].kind,'activation');assert.equal(caller.reports.length,0);caller.guard.dispose();owner.guard.dispose();
+});
+
+for(const attribute of ['href','xlink:href'])test('post18d uncancellable SVG '+attribute+' animation loses native authority through dispatch and restores afterwards',async()=>{
+  const f=fixture({svgAnimations:true}),link=new f.SVGAElement(),animation=new f.SVGAnimationElement(),svg=new f.SVGSVGElement();
+  link.textContent='Delete';link.setAttribute('href','https://fixture.test/first');link.setAttribute('target','_blank');link.svgOwner=svg;
+  animation.animatedTarget=link;animation.attributeName=attribute;animation.to='https://fixture.test/second';animation.svgOwner=svg;
+  assert.equal(link.href.animVal,'https://fixture.test/second');
+  f.guard.arm({generation:'epoch',config:{...policy,defaultBlock:'https://aresos-hold.invalid/'},target:f.id(link)});
+  f.originalDispatch.call(link,new f.Event('click',{cancelable:false}));
+  assert.equal(link.getAttribute('href'),null);assert.equal(link.href.animVal,'');assert.equal(f.reports[0].kind,'activation');
+  await new Promise(resolve=>setTimeout(resolve,5));assert.equal(animation.attributeName,attribute);assert.equal(link.href.animVal,'https://fixture.test/second');
+  f.cleanup();f.guard.dispose();
+});
+
+test('post18d SVG quarantine covers external target animations and preserves page changes on restoration',async()=>{
+  const f=fixture({svgAnimations:true}),link=new f.SVGAElement(),other=new f.SVGAElement(),animation=new f.SVGAnimationElement(),unrelated=new f.SVGAnimationElement();
+  link.textContent='Delete';link.setAttribute('href','https://fixture.test/delete');animation.animatedTarget=link;animation.attributeName='target';animation.to='_blank';
+  unrelated.animatedTarget=other;unrelated.attributeName='target';unrelated.to='_blank';
+  f.guard.arm({generation:'epoch',config:{...policy,defaultBlock:'https://aresos-hold.invalid/'},target:f.id(link)});
+  f.originalDispatch.call(link,new f.Event('click',{cancelable:false}));
+  assert.equal(animation.attributeName,'aresos-held-attribute');assert.equal(unrelated.attributeName,'target');
+  animation.attributeName='fill';await new Promise(resolve=>setTimeout(resolve,5));assert.equal(animation.attributeName,'fill');
+  f.cleanup();f.guard.dispose();
+});
+
+test('post18d repeated native activation rechecks authority restored by the page within the same task',async()=>{
+  for(const svg of [false,true]){
+    const f=fixture({svgAnimations:svg}),link=svg?new f.SVGAElement():new f.HTMLElement(),animation=svg?new f.SVGAnimationElement():null;
+    if(!svg)link.tagName='A';link.textContent='Delete';link.setAttribute('href','https://fixture.test/original');
+    if(svg){animation.animatedTarget=link;animation.attributeName='href';animation.to='https://fixture.test/animated';}
+    f.guard.arm({generation:'epoch',config:{...policy,defaultBlock:'https://aresos-hold.invalid/'},target:f.id(link)});
+    f.originalDispatch.call(link,new f.Event('click',{cancelable:false}));assert.equal(link.getAttribute('href'),null);
+    link.setAttribute('href','https://fixture.test/page-change');if(svg)animation.attributeName='href';
+    f.originalDispatch.call(link,new f.Event('click',{cancelable:false}));assert.equal(link.getAttribute('href'),null);if(svg)assert.equal(link.href.animVal,'');
+    await new Promise(resolve=>setTimeout(resolve,5));assert.equal(link.getAttribute('href'),'https://fixture.test/page-change');if(svg)assert.equal(animation.attributeName,'href');
+    f.cleanup();f.guard.dispose();
+  }
 });

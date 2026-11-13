@@ -12,6 +12,31 @@
   };
   const getAttribute=Element.prototype.getAttribute,setAttribute=Element.prototype.setAttribute,removeAttribute=Element.prototype.removeAttribute;
   const getAttributeNS=Element.prototype.getAttributeNS,setAttributeNS=Element.prototype.setAttributeNS,removeAttributeNS=Element.prototype.removeAttributeNS;
+  const svgGetter=(Constructor,key)=>Constructor?.prototype&&Object.getOwnPropertyDescriptor(Constructor.prototype,key)?.get;
+  const animationTarget=svgGetter(globalThis.SVGAnimationElement,'targetElement');
+  const svgHref=svgGetter(globalThis.SVGAElement,'href'),animatedValue=svgGetter(globalThis.SVGAnimatedString,'animVal');
+  const svgOwner=svgGetter(globalThis.SVGElement,'ownerSVGElement');
+  const svgTime=globalThis.SVGSVGElement?.prototype.getCurrentTime,svgSeek=globalThis.SVGSVGElement?.prototype.setCurrentTime;
+  function sampleAnimations(animations){
+    if(!svgOwner||!svgTime||!svgSeek)return;
+    const owners=new Set(animations.map(([node])=>svgOwner.call(node)).filter(Boolean));
+    for(const owner of owners)svgSeek.call(owner,svgTime.call(owner));
+  }
+  function stopSVGAnimations(node){
+    if(node.namespaceURI!=='http://www.w3.org/2000/svg'||!animationTarget)return [];
+    const animations=[],seen=new Set();
+    for(const root of [ownDocument,...[...watchedRoots()].map(([root])=>root)])for(const animation of root.querySelectorAll?.('animate,set,animateTransform,animateMotion')||[]){
+      if(seen.has(animation))continue;seen.add(animation);
+      let target;try{target=animationTarget.call(animation);}catch{continue;}
+      if(target!==node)continue;
+      animations.push([animation,getAttribute.call(animation,'attributeName')]);
+      // SVG animation elements cannot be custom elements. Changing only the
+      // animated property avoids adoption/disconnection callbacks on the link.
+      setAttribute.call(animation,'attributeName','aresos-held-attribute');
+    }
+    sampleAnimations(animations);
+    return animations;
+  }
   const quarantined=new WeakMap();
   const captured=new WeakMap();
   function capturedBefore(event,root){
@@ -32,21 +57,26 @@
     // New browsing contexts cannot escape the source tab's network fence.
     if(!config?.defaultBlock)return false;
     if(element.form&&['BUTTON','INPUT'].includes(element.tagName)&&['submit','image','reset'].includes(element.type)){
-      if(quarantined.has(element))return true;
+      if(quarantined.has(element)&&getAttribute.call(element,'disabled')!==null)return true;
       const previous=getAttribute.call(element,'disabled');setAttribute.call(element,'disabled','');
-      quarantined.set(element,previous);
-      setTimeout(()=>{quarantined.delete(element);if(getAttribute.call(element,'disabled')===''){if(previous===null)removeAttribute.call(element,'disabled');else setAttribute.call(element,'disabled',previous);}},0);
+      const hold={previous};quarantined.set(element,hold);
+      setTimeout(()=>{if(quarantined.get(element)!==hold)return;quarantined.delete(element);if(getAttribute.call(element,'disabled')===''){if(previous===null)removeAttribute.call(element,'disabled');else setAttribute.call(element,'disabled',previous);}},0);
       return true;
     }
     const hyperlink=['A','AREA'].includes(element.tagName)||element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a';
     const node=element;
     // Stopping handlers alone cannot establish that an unknown default stopped.
     if(!hyperlink&&node.tagName!=='FORM')return false;
-    if(quarantined.has(node))return true;
+    const earlier=quarantined.get(node),blockedAddress=config.defaultBlock;
+    const heldValue=name=>name==='target'?'_self':name==='href'?null:blockedAddress;
     const names=hyperlink?['href','ping']:['action','target'];
-    const previous=names.map(name=>[name,getAttribute.call(node,name)]);
+    const previous=names.map(name=>{const current=getAttribute.call(node,name),saved=earlier?.find(([key])=>key===name);return [name,saved&&current===heldValue(name)?saved[1]:current];});
     const xlink='http://www.w3.org/1999/xlink';
-    const legacy=hyperlink&&getAttributeNS?getAttributeNS.call(node,xlink,'href'):null;
+    const currentLegacy=hyperlink&&getAttributeNS?getAttributeNS.call(node,xlink,'href'):null;
+    const legacy=earlier&&currentLegacy===null?earlier.legacy:currentLegacy;
+    const animations=hyperlink?stopSVGAnimations(node):[];
+    for(const item of animations){const saved=earlier?.animations.find(([node])=>node===item[0]);if(saved&&item[1]==='aresos-held-attribute')item[1]=saved[1];}
+    previous.animations=animations;previous.legacy=legacy;
     quarantined.set(node,previous);
     if(hyperlink){
       // No hyperlink remains for the uncancellable default to follow. In
@@ -55,13 +85,17 @@
       if(legacy!==null)removeAttributeNS.call(node,xlink,'href');
       if(getAttribute.call(node,'ping'))setAttribute.call(node,'ping',config.defaultBlock);
     }else{setAttribute.call(node,'action',config.defaultBlock);setAttribute.call(node,'target','_self');}
-    const blockedAddress=config.defaultBlock;
     setTimeout(()=>{if(quarantined.get(node)!==previous)return;quarantined.delete(node);for(const [name,value]of previous){
-      const held=name==='target'?'_self':name==='href'?null:blockedAddress;
+      const held=heldValue(name);
       if(getAttribute.call(node,name)!==held)continue;
       if(value===null)removeAttribute.call(node,name);else setAttribute.call(node,name,value);
-    }if(legacy!==null&&getAttributeNS.call(node,xlink,'href')===null)setAttributeNS.call(node,xlink,'xlink:href',legacy);},0);
-    return true;
+    }if(legacy!==null&&getAttributeNS.call(node,xlink,'href')===null)setAttributeNS.call(node,xlink,'xlink:href',legacy);
+      for(const [animation,value]of animations)if(getAttribute.call(animation,'attributeName')==='aresos-held-attribute'){
+        if(value===null)removeAttribute.call(animation,'attributeName');else setAttribute.call(animation,'attributeName',value);
+      }
+      sampleAnimations(animations);
+    },0);
+    return !(node.namespaceURI==='http://www.w3.org/2000/svg'&&svgHref&&animatedValue&&animatedValue.call(svgHref.call(node))!=='');
   }
   const phase = Object.getOwnPropertyDescriptor(Event.prototype, 'eventPhase')?.get;
   const eventType = Object.getOwnPropertyDescriptor(Event.prototype, 'type')?.get;
