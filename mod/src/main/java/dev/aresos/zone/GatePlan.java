@@ -97,6 +97,24 @@ public record GatePlan(ResourceKey<Level> dimension, BlockPos origin, Direction 
         return space;
     }
 
+    /**
+     * Air for the rotating name, including its background. Text displays use 0.025 blocks per text pixel.
+     * Reserve the full configured line width in every horizontal direction, since the billboard can turn.
+     * A line per code point is a conservative height bound even for wrapping and explicit newlines, without
+     * importing the client's font machinery into the server plan.
+     */
+    public List<BlockPos> signSpace() {
+        double pixel = 0.025 * GateNumbers.SIGN_SCALE;
+        double radius = (GateNumbers.SIGN_LINE_WIDTH + 2) * pixel / 2;
+        int lines = Math.max(1, sign.name().codePointCount(0, sign.name().length()));
+        if (sign.shortName() != null && !sign.shortName().isBlank()) lines += 1 + sign.shortName().codePointCount(0, sign.shortName().length());
+        var min = BlockPos.containing(sign.position().add(-radius, -pixel, -radius));
+        var max = BlockPos.containing(sign.position().add(radius, (lines * 10 + 1) * pixel, radius));
+        var space = new ArrayList<BlockPos>();
+        for (var pos : BlockPos.betweenClosed(min, max)) space.add(pos.immutable());
+        return space;
+    }
+
     /** The floor he walks on from the exit block into the niche. */
     public List<BlockPos> walkway() {
         var floor = new ArrayList<BlockPos>();

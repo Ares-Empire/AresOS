@@ -88,7 +88,8 @@ public final class GateBuilder {
         var data = ZoneData.get(level.getServer());
         var solid = new LinkedHashMap<BlockPos, BlockState>();
         for (var block : plan.blocks().entrySet()) solid.put(block.getKey(), Neighbors.block(block.getValue()).defaultBlockState());
-        var space = plan.space();
+        var space = new ArrayList<>(plan.space());
+        space.addAll(plan.signSpace());
         var inspection = new HashSet<>(space);
         inspection.addAll(plan.walkway());
         inspection.addAll(plan.doormatSurround());

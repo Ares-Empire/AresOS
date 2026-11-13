@@ -555,6 +555,8 @@ public final class GateGameTests {
             var level = site.level();
             var glass = Blocks.GLASS.defaultBlockState();
             refused(site, "a block in the logo's box", "Area isn't clear", plan -> level.setBlock(plan.at(2, 11, 11), glass, 2));
+            refused(site, "an overhang through the name above the gate", "Area isn't clear",
+                    plan -> level.setBlock(BlockPos.containing(plan.sign().position()).above(), Blocks.STONE.defaultBlockState(), 2));
             refused(site, "a block in a see-through part of the box", "Area isn't clear", plan -> level.setBlock(plan.at(0, 5, 1), glass, 2));
             refused(site, "a block in the layer in front", "Area isn't clear", plan -> level.setBlock(plan.at(-1, 0, 9), glass, 2));
             refused(site, "a block on the way in", "Area isn't clear", plan -> level.setBlock(plan.at(-4, 7, 2), glass, 2));
