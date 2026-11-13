@@ -255,3 +255,13 @@ cleanup and the inventory of `.work/` files over 500 MB will be recorded before 
 - The check build with VM on `fe6db50f` passed (run 43501555136).
 - The hosted regressions on `fe6db50f` failed in one test, `test_checkout_sources`: "Checkout source binding mismatch: .gitattributes". The builder had added a line to the root `.gitattributes` to keep the font licence's CRLF line ends, and that file is bound by the rehearsal records. The line is taken out again and the licence is stored with LF line ends like every other text file; its words are unchanged, and nothing checks its bytes (the image check reads its copyright line and its title). The font file itself is untouched and still matches its checksum. "FONT_AND_LICENCE_BYTES_UNCHANGED_IN_GIT" above therefore holds for the font only.
 - `main` is merged in; the hosted regressions and the check build are run again on the new head, and their results are in the pull request.
+
+## Review 1 and its fixes (orchestrator, 2026-11-13)
+
+Review 1 (`REVIEW-1.md`, gpt-6.1-sol, high, on `a07a3852`): CHANGES-NEEDED, four points.
+
+1. **The two picture scripts are gone from the repo** (`capture.py`, `wayland_input.py`). The reviewer showed that, started by hand with a crafted environment, their inner entry points could reach the owner's real session, and that one of them could delete a folder outside the worktree. They were tooling for the pictures in this folder, not part of AresOS; the pictures stay, and the method is described above. This settles findings 1 and 2.
+2. **The image check pins the theme** (finding 3): `os/ci/image-checks.sh` now compares the theme folder, file for file, with the reviewed one through one checksum over all 37 files, so an empty `themerc` or an invisible button fails the image.
+3. **Hosted runs on the final head** (finding 4): both are run again on the head that carries these fixes; their results are in the pull request.
+
+Changing a file of the theme from now on means changing that checksum in the same commit (the check prints the new value).
