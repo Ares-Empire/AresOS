@@ -545,24 +545,44 @@ class OwnerPathTest(unittest.TestCase):
         status = documents()['INSTALL-STATUS.md']
         stage = next(line for line in status.splitlines() if line.startswith('| Stage C —'))
         # Steps 5-7 are recorded as they happened (package 22), step 7 with
-        # its two open items; no update has run.
+        # its two open items. Step 8 is recorded as it happened (27b): the
+        # first update passed on the laptop, and `at previous` was not used.
         for value in ('RELEASED 2026-11-07', 'Step 4 PASSED 2026-11-08', 'Step 5 COMPLETE 2026-11-09',
                       'Step 6 PASSED 2026-11-09', 'Step 7 PASSED 2026-11-09 with two items OPEN',
-                      'board #139', 'board #140', 'No step 8 update has run'):
+                      'board #139', 'board #140', '**Step 8 PASSED 2026-11-13** (board #189,',
+                      'the tools updated themselves from version 1 to 2',
+                      '`at update`, `at title`, `at export` and `at reboot` passed',
+                      'records, typing and password sudo passed', '`sudo -v` passed', '`at previous` was not used'):
             self.assertIn(value, stage)
-        hardware = next(line for line in status.splitlines() if line.startswith('| Early hardware / P1a |'))
+        self.assertNotIn('No step 8 update has run', stage)
+        physical = next(line for line in status.splitlines() if line.startswith('| **Physical installation** |'))
+        self.assertEqual([cell.strip() for cell in physical.strip('|').split('|')][2],
+                         '**R13 installed; steps 4–7 passed 2026-11-08/09, step 7 with two items OPEN; '
+                         'step 8 update to R27 passed 2026-11-13**')
+        hardware =next(line for line in status.splitlines() if line.startswith('| Early hardware / P1a |'))
         for value in ('**Brightness FAIL** (board #139)', '**Power-button gate OPEN** (board #140)', 'stay OPEN'):
             self.assertIn(value, hardware)
         update = next(line for line in status.splitlines() if line.startswith('| Update route (packages 22 and 27) |'))
-        # Package 27: the rehearsal's own bindings exist only once it passed;
-        # until then the row must forbid step 8 on the laptop.
-        if (ROOT/'os/manifest/ci/27/source-bindings.json').exists():
-            expected = ('VM REHEARSAL PASSED', 'actions/runs/', 'step 8 is the owner\'s own step')
-        else:
-            expected = ('VM REHEARSAL PENDING', 'do not run step 8 on the laptop until this row says PASSED')
-        for value in (*expected, 'NOT USED', 'R13 on the laptop', '27 report', '`daily_wheel: true`',
-                      'one-time password box', 'published privately'):
+        # Package 27's rehearsal passed and recorded its bindings before the
+        # laptop's first update (27b); the route has run once on the laptop,
+        # and its way back has run only in the VM.
+        self.assertTrue((ROOT/'os/manifest/ci/27/source-bindings.json').exists())
+        cells = [cell.strip() for cell in update.strip('|').split('|')]
+        self.assertEqual(cells[1], '**R27 PUBLISHED; VM REHEARSAL PASSED; USED ONCE ON THE LAPTOP 2026-11-13**')
+        self.assertEqual(cells[2], '**R27 on the laptop since 2026-11-13, R13 its rollback; R27 published privately**')
+        for value in ('VM REHEARSAL PASSED', 'actions/runs/', 'step 8 is the owner\'s own step',
+                      'ran it once on 2026-11-13', 'the booted deployment is R27, the second R13',
+                      'the pinned stock', 'the transaction state is idle', '`at previous` has run only in the VM rehearsal, never on the laptop',
+                      'the stock rollback, keep-stock, recovery-menu and layout-trial procedures refuse',
+                      'until package 22c', '27 report', '`daily_wheel: true`', 'one-time password box'):
             self.assertIn(value, update)
+        for value in ('NOT USED', 'R13 on the laptop', 'not installed', 'still to come'):
+            self.assertNotIn(value, update)
+        previous = next(line for line in status.splitlines() if line.startswith('- **R13 (previous):**'))
+        current = next(line for line in status.splitlines() if line.startswith('- **R27 (current):**'))
+        self.assertIn('since then it is the laptop\'s rollback', previous)
+        self.assertNotIn('running there until', previous)
+        self.assertIn('The laptop runs it since 2026-11-13', current)
         tools = next(line for line in status.splitlines() if line.startswith('| Post-release tools change |'))
         for value in ('PR #22', '3ef85c4a', 'unit-tested and reviewed', 'without a new VM rehearsal',
                       'pending-rebind.json', 'no new image or stage'):

@@ -1,20 +1,44 @@
 {
-  "status": "rebound by package 27's update rehearsal",
+  "status": "waiting for the next VM rehearsal",
   "walk": "os/manifest/ci/27/source-bindings.json",
-  "approved": "Owner, 2026-11-08: continue the install with the reviewed tools fix (PR #22, package 15f) without rerunning the rehearsal first.",
+  "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Only test files wait now, no tool, guide or image file.",
   "changes": [
-    "PR #13 (f5bc2d4d): Stage B checked, Stage C released (docs/INSTALL.md, os/tests/test_owner_path.py)",
-    "PR #22 (15f): Lenovo's own Fedora firmware entry accepted beside Bazzite; new tools fingerprint",
-    "Package 15g: install-night owner-page corrections and route tests; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
-    "Package 15gb: reviewed return routes, idle live-session shutdown exception and layout-proof wording; current checkout bytes retained without rebinding historical tables",
-    "Package 21 (everyday account and Chrome): os-image.yml gains the throwaway check_build job, which builds and checks a branch image without pushing, signing or publishing it; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
-    "Package 21 review fixes 3 and 4: vm.py's journal readiness wait accepts only a complete follower record whose message is exactly ARESOS_JOURNAL_READY (os/ci/journal_ready.py); serial_search strips those lines as kernel records since package 14. Checkout bytes recorded for the next rehearsal (no walk tables rebound)",
-    "Package 22: update route (at update, at previous, tools updating themselves), step 8 guide route, steps 4-7 in INSTALL-STATUS; new tools fingerprint",
-    "Package 27 (first update release): release 27 pinned in release.json and the tools bundle, the update rehearsal harness (laptop tools, step 8 route, passwd and sudo proofs), package 27 dispatch wiring"
+    "Package 27b (laptop update record): os/tests/test_owner_path.py pins the laptop's step 8 update in INSTALL-STATUS; os/tests/test_checkout_sources.py and os/tests/test_owner_step_limits.py check this list by rules that hold at any time instead of requiring it empty while package 27's bindings exist"
   ],
-  "rule": "The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
-  "files": [],
+  "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
+  "files": [
+    {
+      "sha256": "042737ea1f9c190e6686e40044b4d04a5169ae5d9aa82b6853366f149baab775",
+      "path": "os/tests/test_checkout_sources.py"
+    },
+    {
+      "sha256": "febc54d546b94e017b686b2bccaed638d7100184fdf9111cacfc5f051bd7bee2",
+      "path": "os/tests/test_owner_path.py"
+    },
+    {
+      "sha256": "21d51d8d7aea49af0ecd0c83891a2faff4f97b78263b3077d94014422c2c070d",
+      "path": "os/tests/test_owner_step_limits.py"
+    }
+  ],
   "unwalked_commands": [],
   "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update); none is waiting.",
-  "rebound_by": "https://github.com/Ares-Empire/AresOS/actions/runs/43302603386"
+  "rebound": [
+    {
+      "status": "rebound by package 27's update rehearsal",
+      "waited_for": "os/manifest/ci/16/source-bindings.json",
+      "walk": "os/manifest/ci/27/source-bindings.json",
+      "approved": "Owner, 2026-11-08: continue the install with the reviewed tools fix (PR #22, package 15f) without rerunning the rehearsal first.",
+      "changes": [
+        "PR #13 (f5bc2d4d): Stage B checked, Stage C released (docs/INSTALL.md, os/tests/test_owner_path.py)",
+        "PR #22 (15f): Lenovo's own Fedora firmware entry accepted beside Bazzite; new tools fingerprint",
+        "Package 15g: install-night owner-page corrections and route tests; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
+        "Package 15gb: reviewed return routes, idle live-session shutdown exception and layout-proof wording; current checkout bytes retained without rebinding historical tables",
+        "Package 21 (everyday account and Chrome): os-image.yml gains the throwaway check_build job, which builds and checks a branch image without pushing, signing or publishing it; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
+        "Package 21 review fixes 3 and 4: vm.py's journal readiness wait accepts only a complete follower record whose message is exactly ARESOS_JOURNAL_READY (os/ci/journal_ready.py); serial_search strips those lines as kernel records since package 14. Checkout bytes recorded for the next rehearsal (no walk tables rebound)",
+        "Package 22: update route (at update, at previous, tools updating themselves), step 8 guide route, steps 4-7 in INSTALL-STATUS; new tools fingerprint",
+        "Package 27 (first update release): release 27 pinned in release.json and the tools bundle, the update rehearsal harness (laptop tools, step 8 route, passwd and sudo proofs), package 27 dispatch wiring"
+      ],
+      "rebound_by": "https://github.com/Ares-Empire/AresOS/actions/runs/43302603386"
+    }
+  ]
 }
