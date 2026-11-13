@@ -4,8 +4,9 @@ Board #137 and #150. A frozen task for one builder. Part C (the browser side of 
 
 **Order.** B1 (the interactive driver in the container) and the unit's network lines start at once, on `main` as it
 is. Part A and B2 are built on a `main` that has the Chrome tool (PR #27, planned for 2026-11-16), because from that
-merge on the service doesn't start without Chrome's startup files (see Part A). If PR #27 hasn't merged when B1 is
-green and `linux-aresos` has answered, stop and report; the lead decides whether to wait or to build without it.
+merge on the service doesn't start without Chrome's startup files (see Part A), and that has package 23 (PR #36),
+which changes the same image files first. If either hasn't merged when B1 is green, stop and report; the lead
+decides whether to wait or to build without it.
 
 **Builder:** a Claude agent (Opus 5.5); move it to Fable 5.2 if the interactive Claude Code driver resists normal
 attempts. **Reviews:** the package review and a security review at the same time (`docs/REVIEW.md`, "Tools for
@@ -154,6 +155,62 @@ under the real unit.
 
 **Later, with 18c-b:** Chrome's extension policy, its native host manifest and launcher, and the excluded-sites file
 (Part C). Until then the service starts with Chrome's adapter and no browser connected.
+
+### Agreed with `linux-aresos` on 2026-11-13 (these win over the proposal text above)
+
+`linux-aresos` agreed the proposal with these changes. Build Part A as amended here.
+
+1. **Sources:** through package 23's `source` stage: one fetch of the build commit, keeping `mod/` and `control/`.
+2. **Base:** cut Part A from a `main` that has package 23 (PR #36) and the Chrome tool (PR #27). Package 23 also
+   changes `os/ci/overlay/checks.py` and `os/ci/image-checks.sh`.
+3. **`build.sh control` before `configure`:** yes. Update, in the same PR, whatever list pins the enabled units, so
+   the updater audit, the unit policy and the polkit checks see the new unit and user.
+4. **`gh`:** as proposed, with the one extra step in `check-resolve.sh`.
+5. **The service user gets fixed numbers.** `aresos-tools` is still created at boot by sysusers, but with a fixed
+   UID and GID in its sysusers line. Each deployment has its own `/etc` while `/var` is shared: after `at previous`
+   and a later update, a user created anew with a dynamic number could stop matching the owner of the state folders,
+   or another system user could get the old number and read the stored passwords. Pick one number for both, below
+   1000, that Fedora's static list (`/usr/share/doc/setup/uidgid`) and the image's own sysusers and passwd files don't
+   use, and record the evidence. This is the one allowed change to `control/packaging/aresos-tools.sysusers`, with a
+   pin test; the CI containers keep working with it.
+6. **The unit is enabled, and a broken service never costs him his session.** No session or boot unit may depend
+   on `aresos-toold.service` (nothing orders after it or requires it; a failed service never delays login). Check 6
+   of B2 also runs with the service **failed** (for example a config file made unreadable for that case, then
+   restored with its hash checked), not only stopped: the desktop session comes up as usual, Claude Code starts
+   and does ordinary work, and our tools refuse clearly. Claude Code on the laptop is his help channel.
+7. **The config follows the image.** `owner_uid` and the home are derived at build from `aresos.conf`, not written
+   as a second literal. `service.json` and `proxy.json` move from `/etc/aresos-control/` to
+   `/usr/share/aresos/control/`: `/etc` is merged per deployment, and a file changed there once silently stops
+   following the image, while the image owns these values. That means changing the two path constants (`CONFIG` in
+   `control/launch.py`, the `--config` default in `aresos_control/daemon.py`) with their tests, `control/ci/setup.sh`
+   and the README, and nothing else of the launch chain; its root-owned, no-symlink rule applies to the new folder
+   unchanged. `/etc/claude-code/` stays, since Claude Code fixes that path: add an image check, and a check action in
+   the booted guest, that its two files equal the image's.
+8. **`checks.py`:** prefer one small generic hook that loads the Control layer's own actions file from
+   `os/ci/control/`, so later Control changes stay in that folder. If the hook costs more than a few lines, fixed
+   `control-*` actions are acceptable. `vm.py`'s sequence stays untouched.
+9. **Fixture servers on the runner:** acceptable, with a negative check in `image-checks.sh`: the image without the
+   CI layer has no fixture CA in its trust store and no fixture names in `/etc/hosts`.
+10. **One image, no build switch, but his yes first.** Part A merges to `main` only after the owner has said yes to
+    "the next release carries the Control tools: a background service, and two managed hooks in every Claude Code
+    session on the laptop". The lead asks him with check 6's numbers; the report states them for that.
+11. **The folders:** tmpfiles, two lines, fixed names, 0700 `ares`. No `xdg-user-dirs-update`.
+12. **The update from release 27** is covered by the next release's rehearsal. For it, provide check actions that
+    need no Claude Code binary: the service user exists with the fixed numbers, the unit is active, the
+    `/etc/claude-code` files equal the image's, the two folders exist, and the state folders belong to the service
+    user. Put them where the rehearsal can call them and say where in the report.
+13. **The command name `aresos` is shared.** The owner asked (board #195) for `aresos update` instead of the long
+    owner-tools command, so a later OS package puts a small dispatcher of its own at `/usr/bin/aresos`, in front of
+    Control's command. These words are reserved for the owner tools and never become an app name or a top-level word
+    of Control's CLI: `update`, `previous`, `rollback`, `keep-stock`, `check`, `title`, `records`, `export`, `login`,
+    `verify`, `switch`, `install`, `prepare`, `layout`, `reboot`, `logs`. Add a test under `control/tests/` that
+    fails if a served app or top-level word of the CLI (today `admin`, `log` and the app names) equals one of them.
+    18c still installs Control's command as `/usr/bin/aresos`.
+14. **The idle footprint** goes in the report: the service's memory and wake-ups while nothing uses it, measured in
+    the guest. He plays on this laptop.
+15. **`.github/workflows/os-image.yml`** is also changed by package 22c and the next release. Keep the `control`
+    choice purely additive, and tell the lead before the first change to that file so `linux-aresos` hears it first.
+16. **Before merge:** when the reviews say SAFE, `linux-aresos` reads the `os/` diff.
 
 ### Details for the builder
 
@@ -394,11 +451,12 @@ harness. 18c-b will add:
 `mod/`; `docs/INSTALL*.md`, `docs/EMERGENCY.md`, `docs/design/`, `docs/control/`, `STATE.md`, `HANDOFF.md`,
 `README.md`; `os/release/`, `os/owner-tools/`, `os/manifest/base.json`, `os/manifest/release.json`,
 `os/manifest/releases/`, `os/keys/bazzite.pub`, `os/policy/`, the existing files under `os/config/`, and the `FROM`
-digest; in `os-image.yml` every job except `check-build`, and no new permission anywhere; `control/aresos_control/`,
-`control/generated/`, `control/settings/`, `control/requirements.lock`, `control/mail_tests/`, `control/ci/mail/`,
+digest; in `os-image.yml` every job except `check-build`, and no new permission anywhere; `control/aresos_control/`
+(but for the one constant named below), `control/generated/`, `control/settings/`, `control/requirements.lock`, `control/mail_tests/`, `control/ci/mail/`,
 the existing files under `control/tests/`, and 18d's `precedence.py`, `native.py`'s behavior and
-`permission-request-expected.json`; in `control/packaging/` everything except the unit's two network lines; other
-worktrees. Anything under `os/` beyond the agreed proposal needs `linux-aresos`'s OK through the lead first: stop
+`permission-request-expected.json`; in `control/packaging/` everything except the unit's two network lines and the
+sysusers line's fixed numbers; in `control/launch.py` and `control/aresos_control/daemon.py` everything except the
+two config path constants (agreed change 7); other worktrees. Anything under `os/` beyond the agreed proposal needs `linux-aresos`'s OK through the lead first: stop
 and report instead.
 
 ## Acceptance
