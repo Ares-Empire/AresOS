@@ -8,7 +8,12 @@ import java.util.List;
  */
 public record AppDefinition(String id, String name, List<String> command, String look, boolean pinned,
                             String type, String url, String icon, WindowsLaunchIdentity launchIdentity,
-                            boolean mine, SystemInfo system) {
+                            boolean mine, SystemInfo system, List<String> names) {
+    public AppDefinition(String id, String name, List<String> command, String look, boolean pinned,
+                         String type, String url, String icon, WindowsLaunchIdentity launchIdentity,
+                         boolean mine, SystemInfo system) {
+        this(id, name, command, look, pinned, type, url, icon, launchIdentity, mine, system, List.of());
+    }
     /** Without the My-apps fields: his if it is pinned. */
     public AppDefinition(String id, String name, List<String> command, String look, boolean pinned,
                          String type, String url, String icon, WindowsLaunchIdentity launchIdentity) {
@@ -33,6 +38,10 @@ public record AppDefinition(String id, String name, List<String> command, String
             throw new IllegalArgumentException("Invalid app definition");
         }
         command = List.copyOf(command);
+        names = names == null ? List.of() : List.copyOf(names);
+        if (names.stream().anyMatch(nameValue -> !dev.aresos.names.NameRules.valid(nameValue))
+                || new java.util.HashSet<>(names).size() != names.size())
+            throw new IllegalArgumentException("Invalid or duplicate short name");
         // The hotbar holds his apps: a pinned app is always one of them.
         mine = mine || pinned;
     }
@@ -47,15 +56,19 @@ public record AppDefinition(String id, String name, List<String> command, String
 
     /** Pinning makes an app his; unpinning changes nothing else. */
     public AppDefinition withPinned(boolean value) {
-        return new AppDefinition(id, name, command, look, value, type, url, icon, launchIdentity, mine || value, system);
+        return new AppDefinition(id, name, command, look, value, type, url, icon, launchIdentity, mine || value, system, names);
     }
 
     /** Taking an app out of My apps also unpins it: its item leaves the hotbar. */
     public AppDefinition withMine(boolean value) {
-        return new AppDefinition(id, name, command, look, pinned && value, type, url, icon, launchIdentity, value, system);
+        return new AppDefinition(id, name, command, look, pinned && value, type, url, icon, launchIdentity, value, system, names);
+    }
+
+    public AppDefinition withNames(List<String> value) {
+        return new AppDefinition(id, name, command, look, pinned, type, url, icon, launchIdentity, mine, system, value);
     }
 
     public AppDefinition withSystem(SystemInfo value) {
-        return new AppDefinition(id, name, command, look, pinned, type, url, icon, launchIdentity, mine, value);
+        return new AppDefinition(id, name, command, look, pinned, type, url, icon, launchIdentity, mine, value, names);
     }
 }

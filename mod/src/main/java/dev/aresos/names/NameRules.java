@@ -33,6 +33,9 @@ public final class NameRules {
 
     private NameRules() { }
 
+    /** Saved main name, shared by the Apps screen, gate signs and the future hub builder. */
+    public static String mainName(AppDefinition app) { return app.names().isEmpty() ? "" : app.names().getFirst(); }
+
     public static Program of(AppDefinition app) {
         var system = app.system();
         return new Program(app.id(), app.name(), system != null && system.execName() != null ? system.execName()
