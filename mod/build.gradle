@@ -73,6 +73,14 @@ tasks.register('searchNetherSeeds', JavaExec) {
     maxHeapSize = '2G'
 }
 
+// Development only: prints each gate palette block's average colour, measured from the game's own textures,
+// next to the number in GatePalette. Nothing is written; no texture leaves the game's files.
+tasks.register('measureBlockColours', JavaExec) {
+    dependsOn tasks.named('gametestClasses')
+    classpath = sourceSets.gametest.runtimeClasspath
+    mainClass = 'dev.aresos.test.BlockColourSurvey'
+}
+
 tasks.named('runGameTest') { systemProperty 'aresos.disableDiscovery', 'true' }
 
 sourceSets.gametest.resources.srcDir 'src/test/resources'
