@@ -22,7 +22,7 @@ On the laptop, in the AresOS world:
 
 **The protocol (A1 to A3).** `shell/ShellClient.java` offers `aresos-shell/1.1`: it pages `list_apps` with `cursor` and `next`, starts again when the revision changes (three times, then the old list stays), reads the optional entry fields into `config/SystemInfo`, ignores unknown ones, and lists again on `apps_changed`, at most once every two seconds. With a 1.0 helper nothing changes. The example messages are in `mod/src/test/resources/shell-1.1/` with a README; they are the contract for package 30 and have not changed since they were first committed. The fake helper (`mod/src/testShared/java/dev/aresos/shell/FakeHelper.java`) speaks both versions and serves the unit tests and the client game tests.
 
-**Icons (A4, A5).** `icon/AppIcons` is the one reader of an app's picture: the owner's own `icon` as before, otherwise the system's path if it is a regular file of at most 1 MiB that is a PNG of at most 512 x 512. `icon/IconRefresh` makes the pack again after every complete list, on one background thread, and asks the game (`client/IconReload`) for one resource reload when a file changed, at most every five seconds. Items already in the inventory get the new look on the next tick. An app without a picture looks like its group (`catalogue/AppGroup`, one table; `minecraft:paper` when the system said nothing).
+**Icons (A4, A5).** `icon/AppIcons` is the one reader of an app's picture: the owner's own `icon` as before, otherwise the system's path if it is a regular file of at most 1 MiB that is a PNG of at most 512 x 512. Startup and later lists use `icon/IconRefresh` in the background; each file read has a three-second deadline and its own disposable worker. The game (`client/IconReload`) reloads changed resources at most every five seconds. Items already in the inventory get the new look on the next tick. An app without a picture looks like its group (`catalogue/AppGroup`, one table; `minecraft:paper` when the system said nothing).
 
 **The apps file (B1 to B3).** `config/AppsConfig` writes schema 3: `mine` per app, `system` per app, `baseline` for the file. A schema-2 or schema-1 file is moved with a backup beside it (`apps.json.schema-<version>-<id>.bak`); pinned apps and the starters start as his. Schema-2 fields, including Windows commands, are preserved. A schema-1 file migrated on Linux drops Windows commands from the working file: they survive only in the untouched backup, as OS-BASE.md B1 specifies. `AppsConfig.merge` takes one complete list: the first one with origins is day one (`config/MyApps`), later a new program joins unless it came with the image or the system. An incomplete list never reaches it.
 
@@ -33,7 +33,7 @@ On the laptop, in the AresOS world:
 - Typing always goes to the search box. The search (`config/AppSearch`) looks in the name, the generic name and the keywords; every word typed must be found. Enter is a click on the program if exactly one is found; the text is then selected so the next letters start a new search. Up, Down, Page Up and Page Down scroll. Escape and Done go back to the inventory.
 - **200 programs: scrolling, not pages.** The wheel moves three rows a notch (the game's default is half a row), the scroll bar can be dragged, and a search starts at the top.
 - The line above Done explains the clicks and shows for five seconds any chat line that arrives while the screen is open ("Added Okular to My apps.", "No free inventory slot: …", "Spotify is new and joined My apps."), because the chat itself is blurred behind the screen.
-- When the list changes under him, the row under the pointer stays where it is if the list can scroll that far, so the next click does not land on a neighbour.
+- When the list changes under him, the row under the pointer stays where it is if the list can scroll that far. The second action of a double-click is ignored, including when reflow puts a neighbour under the pointer in a short list.
 - The item of one of his apps is picked up when the mouse button is let go, not when it goes down. The inventory screen places what is on the cursor on a release; the old screen closed on the press, so the release could put the item straight into the slot under the pointer.
 - The screen does not pause the game: a pause would stop the integrated server and an add would get no answer while the screen is open.
 
@@ -91,7 +91,7 @@ All on the laptop (AresOS, Java 25, RTX 4060), 2026-11-13, through `mod/dev/buil
 3. **Q is refused instead of "drop and put back".** The item stays in its slot or on the cursor, preserving its pin. This covers player drops only; app items in external containers can produce copies and world drops (see Review fixes 1). The cost: a click outside the inventory window with an app's item on the cursor does nothing; he puts it in a slot or closes the inventory. Rejected: letting it fall and making a new item, which loses its hotbar place.
 4. **"All programs" lists every program, his included, with a check mark.** HUB.md 2.4 calls it "the full list", and a removed app "stays in All programs". The cost: a search that finds one of his shows it twice. Rejected: listing only the programs that are not his, which makes a row vanish under the pointer on every add. Changing it is one filter in `AppsScreen.ProgramList.show`.
 5. **One list that scrolls, in one column, instead of pages or a grid.** A row has room for the generic name now and for package 35's short name. Rejected: the old three-column pages (names cut after about 15 letters) and pages in general (a search result should not have a page 2). At the laptop's scale about nine rows show at once, so 200 programs without a search are over 20 screens; the search and the scroll bar are the way through.
-6. **A double click on a program that is not his adds it and picks up its item**, because the second click finds it already his. He lands in the inventory holding the new item. Rejected: ignoring a second click for a moment, which would also swallow a deliberate one.
+6. **Superseded by Review fixes 1:** a double-click adds the first program and ignores its second action. The old implementation could act on a neighbour after reflow. A subsequent deliberate click can still pick the item up.
 7. **Escape and Done go back to the inventory, not to the world**, as the old screen did: the new items are there to be pinned. A second Escape closes the inventory.
 8. **The chat line of a program that joins** reads "<name> is new and joined My apps." HUB.md 2.4 also wants its place and its command; those come with packages 36 and 35.
 
@@ -100,11 +100,11 @@ All on the laptop (AresOS, Java 25, RTX 4060), 2026-11-13, through `mod/dev/buil
 1. **The baseline is written only by a list with origins (a 1.1 helper).** The brief says "when the first complete program list arrives". With the 1.0 helper on the laptop today that list has three starters; setting the baseline then would make the 1.1 helper's first list add the Flatpaks Bazzite ships as "newly appeared".
 2. **The chat line cannot name the place and the command yet** (HUB.md 2.4): places are package 36, short names package 35.
 3. **Logos cannot use the helper's picture yet.** `zone/LogoBuilder.readIcon` reads the owner's `icon` only, and `zone/` is off limits here. Package 36 should call `AppIcons.read(app).image()`.
-4. **One `apps_changed` can be missed at startup**, in the moment between the first list and `shell.addListener` in `AresOs.onInitialize`. Older than this package; the next change or a restart heals it.
+4. **Fixed in Review fixes 1:** startup subscribes before connecting and applies all lists through that callback. The startup readiness wait never reapplies an old snapshot.
 5. **The chat is unreadable behind any screen** (the game blurs it), and HUB.md 2.4 only says "the chat says where". The Apps screen repeats the lines itself; the brief did not ask for that.
 6. **HUB.md 2.4 gives each row a short name.** That is package 35; the row keeps room for it on the right.
 7. **Package 07's client test clicked through the old pages.** It now finds its app with the search and Enter and asserts the same pick-up and pin; its screenshot is now called `07-apps-search`. The tracked `reviews/07-real-apps/screenshots/0001_07-apps-page-2.png` still shows the old screen, as package 07's record.
-8. **The "Apps…" button under the inventory overlaps the hearts of the HUD** at the laptop's scale (see the day-one screenshot). Its place is older than this package and was not in the brief.
+8. **Fixed in Review fixes 1:** the "Apps…" button is above the inventory, with four pixels between its bottom and the panel's top.
 
 ## Open questions
 
@@ -117,3 +117,44 @@ Nothing: this package downloads nothing and has no `.work/` folder.
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
 
 https://claude.ai/code/session_015ffFyQnMDXVxFaVyNCKSXH
+
+## Review fixes 1
+
+Built by Codex, GPT-6.1 Sol, on `pkg/34-my-apps` for PR #52, following `briefs/34-review-fixes-1.md` and `REVIEW-1.md`. This section supersedes the original report where the behavior or verification differs.
+
+### Done, per finding
+
+| Finding | Change and regression coverage |
+|---|---|
+| 1 | Every JOIN starts with removal and Live addition work pending. `everyLoginRemovesStaleAppsFromBothInventories` saves a deferred removal, explicitly loads the saved player, and exercises the real JOIN callbacks for both ordinary Live login and Build-to-Live restoration; ordinary items survive. The server fixture has no home, so it calls production's pre-login `enterLiveBeforeLogin` itself. |
+| 2 | Apps pickup refuses a nonempty crafting grid; `/aresos give` moves an existing active-inventory item, and refuses busy inventory state. The client test sends an actual pickup payload with Notepad in the crafting grid, then executes `give` twice and asserts one item. Containers are an accepted limit, below. |
+| 3 | Startup queues cached pictures before starting helper callbacks; it does no icon-file I/O itself. Reads use disposable daemon workers with a three-second deadline, retain the byte/PNG/dimension limits, and open the final component with `NOFOLLOW_LINKS` where supported. Tests cover a file replaced by a symlink, a file replaced by a FIFO, an interruption-resistant blocked read, and a succeeding later read while the blocked worker remains stuck. |
+| 4 | A newly discovered starter ID becomes mine with a 1.0 helper too, without a baseline. Existing removed starters stay removed through repeated 1.0 discovery and the first detailed list. The test starts with no apps file and a real fake-helper socket negotiating 1.0. |
+| 5 | Initial population still places pins at the previous population moments. Later reconciliation only removes unwanted stacks, refreshes presentation in place, and fills slots 9–35. A server test leaves a configured pin outside a now-free hotbar and verifies add, remove and icon refresh never move it. |
+| 6 | Missing items leave addition work pending. Safe ticks check for room and retry as soon as there is a free slot, keeping warning suppression. The full-inventory test frees a slot without calling `MyAppsGame.changed()` for recovery. Another test covers a returned cursor item over a full inventory and during an unacknowledged mode switch, including return to Live. |
+| 7 | The second action of a double-click is ignored. The client test adds Xournal++ from three PDF matches in a list too short to scroll, confirms Okular moved under the same pointer, sends the second click there, and checks that neither neighbour became mine. |
+| 8 | Every 1.1 page requires a nonempty string revision. Missing, null, numeric, object and empty revisions are tested both at startup and on either page of a refresh; no partial list is published, no baseline is set at startup, and the prior apps file remains byte-for-byte unchanged. |
+| 9 | Production subscribes before `start()`. Immutable `AppList` snapshots carry their own details flag; the startup wait only waits, and never merges its old result. The client test invokes production's start method, checks the first list before any repair event, applies a second startup list, then confirms returning to the old readiness result cannot replace the saved list. A unit test retains a 1.0 snapshot across reconnect to 1.1. |
+| 10 | Documentation corrected; migration code stays as designed in OS-BASE.md B1. For schema 1 on Linux, Windows commands survive only in the original backup, not the working file. The existing migration test still asserts this. |
+| 11 | A pending open remembers the last connection it was sent on. Normal sends and both replay paths use one writer-owned send-once method. The deterministic callback/latch test forces the normal send before startup replay, uses the later `world_ready` as a writer barrier, and asserts one received request for the ID on that connection. Existing reconnect tests still require replay on a new connection. |
+| 12 | Announcements retain names beyond the five-per-tick limit. The client fixture installs seven programs at once and checks one named line per program, with no anonymous remainder. |
+| 13 | Add/remove and give completion apply the same host/world restriction as execution. Client checks cover the owner in an ordinary world, a guest and console in an AresOS world, and positive host completion. |
+| Button | The 70×20 Apps button is centred above the inventory, four pixels clear of its top edge. The client asserts its bounds and saves the inventory screenshot. |
+
+Changed production files in this round under the requested core directories: `shell/ShellClient.java`; `config/AppsConfig.java`; `item/AppInventory.java`, `item/AppCommands.java`, `item/MyAppsGame.java`. Also changed the helper/startup/command registration in `AresOs.java`, `icon/AppIcons.java`, the description in `icon/IconRefresh.java`, `client/AppsScreen.java`, and the drop mixin's overly broad comment. No mode-switch implementation change, no protocol fixture change, and no `mod/dev/` change.
+
+### Verified
+
+All commands ran in this worktree, without sudo, through the approved scripts. `free -g` was checked before each heavy step; they ran sequentially. Java 25 comes from the scripts. Their systemd scope cleanup stops their game/compositor/Gradle processes; no separate Gradle command was run.
+
+- Preliminary `mod/dev/build.sh` attempts: `BUILD FAILED in 7s` (test used a removed Fabric `getButtons` method), `BUILD FAILED in 24s` (new reconnect fixture had not loaded saved player data), `BUILD FAILED in 48s` (protocol round-trip fixture waited for focus rather than returning a focused launch), then `BUILD SUCCESSFUL in 45s`. These were fixture corrections; assertions and production requirements were retained.
+- Final code `3dcb2f62`: `mod/dev/build.sh --rerun-tasks` twice in succession, exit 0 both times: `BUILD SUCCESSFUL in 53s` and `BUILD SUCCESSFUL in 49s`. Both printed `All 45 required tests passed :)`. Both reran all 100 unit tests: 94 passed, 6 Windows-only tests skipped, 0 failures/errors (JUnit XML totals).
+- Headless client verification and screenshot inspection: pending at this report checkpoint; results will be added before the final push.
+
+### Known limits and not verified
+
+- **Containers are not policed.** A chest, another container or nested storage may hold an app item. Reconciliation searches only the player's inventory and may supply a fresh item while that stored copy remains; breaking the container may drop the stored copy into the world. There is no global item uniqueness guarantee. The player-drop/Q rule remains, and `mod/README.md` documents the limit explicitly.
+- **Icon threat model:** broken or stuck files, not a hostile program running as the owner's own user. Pre/post path attributes, final-component no-follow, handle size and bounded reads help with ordinary replacements. They do not constitute a security boundary against an adversary rewriting directories or files. A filesystem call that ignores interruption may leave a daemon worker blocked; later reads use a fresh worker and never wait for it.
+- No real helper, real app launch, Windows startup, owner's session/window, trackpad feel, narrated/Tab-driven Apps interaction, or older-mod downgrade was run. The helper and icons are test fixtures. The screenshots use the headless client.
+- No additional product decision beyond the follow-up brief. No new plan gap or open question was found in these fixes.
+- `.work/` contains no files over 500 MB; no large downloads were made.
