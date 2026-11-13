@@ -4,7 +4,11 @@ import dev.aresos.config.AppDefinition;
 import dev.aresos.config.AppSearch;
 import java.util.*;
 
-/** /open resolution, including programs outside My apps. Exact names take precedence over prefixes. */
+/**
+ * /open resolution (HUB.md 4.4), including programs outside My apps: by a saved name or the name the rules would
+ * give, by the squeezed full name, or by the unique start of either. Exact names take precedence over prefixes.
+ * An app ID is no key here; clicks use {@code /aresos app open <id>} instead.
+ */
 public final class OpenPrograms {
     private OpenPrograms() { }
 
@@ -18,9 +22,6 @@ public final class OpenPrograms {
     }
 
     public static List<AppDefinition> find(List<AppDefinition> apps, String query, Set<String> commands) {
-        // Stable IDs make every clickable choice unambiguous even for two identical displayed names.
-        var byId = apps.stream().filter(app -> app.id().equals(query)).toList();
-        if (!byId.isEmpty()) return byId;
         String squeezed = NameRules.squeeze(query);
         if (squeezed.isEmpty()) return List.of();
         var exact = apps.stream().filter(app -> keys(app, apps, commands).contains(squeezed)).sorted(AppSearch.BY_NAME).toList();

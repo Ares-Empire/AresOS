@@ -29,6 +29,10 @@ public final class AppCommands {
                 .then(Commands.literal("add").then(argument(false).executes(c -> change(c.getSource(), getString(c, "app"), MyAppsGame::add))))
                 .then(Commands.literal("remove").then(argument(true).executes(c -> change(c.getSource(), getString(c, "app"), MyAppsGame::remove))))
                 .then(Commands.literal("list").executes(c -> list(c.getSource())))
+                // The click target of /apps and /open rows: the stable ID, through AresOS's own command, so a
+                // foreign /open can never receive it and two programs with one name stay apart.
+                .then(Commands.literal("open").requires(AppCommands::allowed).then(Commands.argument("app", word())
+                        .executes(c -> dev.aresos.names.SlashCommands.launch(c.getSource(), getString(c, "app")))))
                 // Brigadier checks a requirement while parsing, against the source that typed the command, so
                 // "execute as <host> run ..." from a command block or another operator cannot rename his apps.
                 .then(Commands.literal("name").requires(AppCommands::allowed).then(argument(true).then(Commands.argument("name", greedyString())

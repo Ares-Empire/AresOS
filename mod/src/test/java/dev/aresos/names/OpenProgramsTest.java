@@ -17,8 +17,18 @@ class OpenProgramsTest {
         assertEquals(List.of(chrome), OpenPrograms.find(apps, "chrome", Set.of()));
         assertEquals(List.of(chromium, chrome), OpenPrograms.find(apps, "ch", Set.of()));
         assertEquals(List.of(chrome, twin), OpenPrograms.find(apps, "Google Chrome", Set.of()));
-        assertEquals(List.of(twin), OpenPrograms.find(apps, "second-browser", Set.of()));
         assertEquals(List.of(), OpenPrograms.find(apps, "unknown", Set.of()));
         assertEquals(List.of(), OpenPrograms.find(apps, "!!!", Set.of()));
+    }
+
+    /** Review 1, finding 3: an ID gets no precedence over names; HUB.md 4.4 alone decides. */
+    @Test void idsAreNoKeys() {
+        var editor = app("editor", "Editor");
+        var other = app("texteditor", "Editor");
+        assertEquals(List.of(editor, other), OpenPrograms.find(List.of(editor, other), "editor", Set.of()));
+        var talk = app("chat", "Talk");
+        var discord = app("discord", "Discord").withMine(true).withNames(List.of("chat", "discord", "dc"));
+        assertEquals(List.of(discord), OpenPrograms.find(List.of(talk, discord), "chat", Set.of()));
+        assertEquals(List.of(), OpenPrograms.find(List.of(app("second-browser", "Google Chrome")), "second-browser", Set.of()));
     }
 }

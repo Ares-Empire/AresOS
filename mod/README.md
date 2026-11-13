@@ -589,8 +589,9 @@ the program is already open. Remote servers cannot launch local programs.
 `/open <name>` searches every listed program, including ones outside My apps, by
 its short name, squeezed full name (letters and digits without spaces), or a unique
 prefix. Tab completes program names. An exact name wins over longer prefixes;
-several matches give clickable choices. `/open <app id>` also works, so those
-choices stay unambiguous even when two programs have identical names.
+several matches give clickable choices. An app ID is not a search key. Clicked
+lines run `/aresos app open <app id>` (host only), so two programs with identical
+names stay apart and another mod's `/open` never receives a click.
 
 `/aresos app name <app id> <new name>` adds a name and makes it the main name.
 `/aresos app unname <name>` removes one; add another first to remove the last name.

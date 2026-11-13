@@ -17,6 +17,8 @@ import static com.mojang.brigadier.arguments.StringArgumentType.*;
 
 /** /open for every listed program, /apps for My apps. Clicks use a stable ID, never a shell command. */
 public final class ProgramCommands {
+    /** What a clicked row runs (item/AppCommands): AresOS's own command, whoever owns /open. */
+    public static final String CLICK = "/aresos app open ";
     private ProgramCommands() { }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -56,7 +58,7 @@ public final class ProgramCommands {
         String commands = app.mine() ? app.names().stream().map(name -> "/" + name).collect(java.util.stream.Collectors.joining(", ")) : "";
         return Component.literal(app.name()).withStyle(ChatFormatting.AQUA)
                 .append(Component.literal("  " + commands + "  · " + AppGroup.of(app).title()).withStyle(ChatFormatting.GRAY))
-                .withStyle(style -> style.withClickEvent(new ClickEvent.RunCommand("/open " + app.id()))
+                .withStyle(style -> style.withClickEvent(new ClickEvent.RunCommand(CLICK + app.id()))
                         .withHoverEvent(new HoverEvent.ShowText(Component.literal("Open " + app.name() + " (" + app.id() + ")"))));
     }
 }

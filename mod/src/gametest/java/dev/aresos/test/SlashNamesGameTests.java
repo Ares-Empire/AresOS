@@ -5,6 +5,7 @@ import dev.aresos.AresOs;
 import dev.aresos.config.*;
 import dev.aresos.item.AppCommands;
 import dev.aresos.item.MyAppsGame;
+import dev.aresos.names.ProgramCommands;
 import dev.aresos.names.SlashCommands;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.zone.ZoneLaunchPayload;
@@ -40,14 +41,16 @@ public final class SlashNamesGameTests {
         final String config;
         final GameProfile profile;
         final boolean desktop;
-        Fixture(GameTestHelper helper) throws Exception {
+        Fixture(GameTestHelper helper, AppDefinition... extra) throws Exception {
             server = helper.getLevel().getServer();
             config = System.getProperty("aresos.appsConfig"); profile = server.getSingleplayerProfile();
             desktop = DesktopWorld.isEnabled(server);
             Path file = Files.createTempDirectory(Path.of("."), "slash-names-").resolve("apps.json");
-            AppsConfig.save(file, List.of(app("discord", "Discord", true), app("other", "Other", false), app("lunar", "Lunar Client", false),
+            var apps = new ArrayList<>(List.of(app("discord", "Discord", true), app("other", "Other", false), app("lunar", "Lunar Client", false),
                     app("helpapp", "Help", true).withNames(List.of("help")), app("timeapp", "Time", true).withNames(List.of("time")),
                     app("listapp", "List", true).withNames(List.of("list"))));
+            apps.addAll(List.of(extra));
+            AppsConfig.save(file, apps);
             System.setProperty("aresos.appsConfig", file.toString()); AresOs.saveMine(Map.of());
             var cookie = CommonListenerCookie.createInitial(new GameProfile(UUID.randomUUID(), "SlashNamesTest"), false);
             server.setSingleplayerProfile(cookie.gameProfile());
@@ -100,6 +103,20 @@ public final class SlashNamesGameTests {
                     && chat.content().getString().contains(text));
         }
         long commandPackets() { return channel.outboundMessages().stream().filter(ClientboundCommandsPacket.class::isInstance).count(); }
+        /** The app IDs of every launch request sent so far, in order. */
+        List<String> launches() {
+            return channel.outboundMessages().stream().filter(packet -> packet instanceof ClientboundCustomPayloadPacket p
+                    && p.payload() instanceof ZoneLaunchPayload).map(packet -> ((ZoneLaunchPayload)((ClientboundCustomPayloadPacket)packet).payload()).app()).toList();
+        }
+        /** Every chat line with a click, oldest first. */
+        List<net.minecraft.network.chat.Component> clickable() {
+            return channel.outboundMessages().stream().filter(ClientboundSystemChatPacket.class::isInstance)
+                    .map(ClientboundSystemChatPacket.class::cast).map(ClientboundSystemChatPacket::content)
+                    .filter(line -> line.getStyle().getClickEvent() instanceof net.minecraft.network.chat.ClickEvent.RunCommand).toList();
+        }
+        static String click(net.minecraft.network.chat.Component line) {
+            return ((net.minecraft.network.chat.ClickEvent.RunCommand)line.getStyle().getClickEvent()).command();
+        }
         @Override public void close() throws Exception {
             server.getPlayerList().remove(player);
             server.setSingleplayerProfile(profile);
@@ -199,6 +216,38 @@ public final class SlashNamesGameTests {
             f.server.setSingleplayerProfile(f.player.getGameProfile());
             check(AresOs.app("discord").names().equals(before), "Names changed: " + AresOs.app("discord").names());
             check(f.run("aresos app name discord changed") == 1, "The host could not name his app");
+        }
+        helper.succeed();
+    }
+
+    /** Review 1, finding 3: rows open by ID through /aresos app open; typed /open follows HUB.md 4.4 only. */
+    @GameTest(environment = BATCH)
+    public void clicksOpenByIdAndTypedOpenIgnoresIds(GameTestHelper helper) throws Exception {
+        try (var f = new Fixture(helper, app("editor", "Editor", false), app("texteditor", "Editor", false), app("chat", "Talk", false))) {
+            check(f.run("open editor") == 2 && f.said("Several programs match"), "An ID took precedence over a shared name");
+            check(f.launches().isEmpty(), "Typed /open launched by ID");
+            var rows = f.clickable().stream().map(Fixture::click).toList();
+            check(rows.equals(List.of(ProgramCommands.CLICK + "editor", ProgramCommands.CLICK + "texteditor")), "Rows: " + rows);
+            check(f.run("aresos app name discord chat") == 1, "Fixture: could not name Discord chat");
+            check(f.run("open chat") == 1 && f.launches().equals(List.of("discord")), "An ID beat another app's saved name: " + f.launches());
+
+            // A foreign /open that was there before AresOS: ours is never installed, the rows still open the right apps.
+            var dispatcher = new com.mojang.brigadier.CommandDispatcher<net.minecraft.commands.CommandSourceStack>();
+            var foreign = new java.util.concurrent.atomic.AtomicInteger();
+            dispatcher.register(Commands.literal("open").then(Commands.argument("what", com.mojang.brigadier.arguments.StringArgumentType.greedyString())
+                    .executes(c -> foreign.incrementAndGet())));
+            ProgramCommands.register(dispatcher);
+            dispatcher.register(Commands.literal("aresos").then(AppCommands.app()));
+            int before = f.clickable().size();
+            int mine = dispatcher.execute("apps", f.player.createCommandSourceStack());
+            var appRows = f.clickable().subList(before, f.clickable().size());
+            check(mine == 4 && appRows.size() == mine, "/apps rows: " + appRows.size() + " of " + mine);
+            int launched = f.launches().size();
+            for (var line : appRows) dispatcher.execute(Fixture.click(line).substring(1), f.player.createCommandSourceStack());
+            check(foreign.get() == 0, "A row ran the foreign /open");
+            var opened = f.launches().subList(launched, f.launches().size());
+            var expected = AresOs.apps().stream().filter(AppDefinition::mine).sorted(AppSearch.BY_NAME).map(AppDefinition::id).toList();
+            check(opened.equals(expected), "Rows opened " + opened + " instead of " + expected);
         }
         helper.succeed();
     }
