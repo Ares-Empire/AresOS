@@ -26,7 +26,13 @@ Python tests**, **238 removal mutations rejected with every baseline passing**.
 `git diff --check` prints nothing. The expanded final full suites remain pending.
 
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
-One destination-only dispatch is planned next: **234**. Its explicit probe output
+Destination-only dispatch `43451063290` used **234** and failed at the first
+blank-frame base case. The new fixture had duplicate blank-frame addresses, so
+pointer routing correctly refused; an inherited about:blank base is also a
+creator snapshot. The correction gives receiver sinks distinct addresses and
+changes the inline document’s effective base itself while keeping its initial
+inherited base. Zero-arrival assertions remain strict. One replacement dispatch
+is next: **235**. Its explicit probe output
 is not full acceptance. Intermediate and report-only pushes use `[skip ci]`;
 a normal final code push starts **two runs** through push and pull_request.
 The approximate limit is **260**; report here before passing it. Shards within a

@@ -20,13 +20,13 @@ export function destinationPage(url){
     content=`<form id="first" method="post" action="${relative}"><input name="draft" value="Destination fixture"></form><form id="second" method="post" action="/second/${relative}"></form>${control} id="asking" form="first"${source==='form-action'?'':` formaction="${relative}"`}${ending}`;
   }
   if(frame!=='top')content=content.replaceAll('id="asking"','id="asking" target="sink-first"').replaceAll('<form id=','<form target="sink-first" id=');
-  const sinks='<iframe name="sink-first" hidden></iframe><iframe name="sink-second" hidden></iframe>';
+  const sinks='<iframe name="sink-first" src="/?case=destination-sink&name=first" hidden></iframe><iframe name="sink-second" src="/?case=destination-sink&name=second" hidden></iframe>';
   const body=base+(frame==='top'?content+sinks:'<iframe id="inline" width="700" height="350"></iframe>'+sinks);
   const script=`const child=${frame==='top'?'null':"document.querySelector('#inline')"};
     ${frame==='srcdoc'?`child.srcdoc=${JSON.stringify(content)};`:frame==='blank'?`child.contentDocument.body.innerHTML=${JSON.stringify(content)};`:''}
     globalThis.reviewChange=()=>{
       const doc=child?child.contentDocument:document,node=doc.querySelector('#asking');
-      ${change==='base'?"document.querySelector('#destination-base').href='/second/';":change==='target'?(frame==='top'?"document.querySelector('#destination-base').target='sink-second';":source==='a'?"node.setAttribute('target','sink-second');":source==='form-action'?"doc.querySelector('#first').setAttribute('target','sink-second');":"node.setAttribute('formtarget','sink-second');"):change==='owner'?"node.setAttribute('form','second');node.removeAttribute('formaction');":source==='form-action'?`doc.querySelector('#first').setAttribute('action','/second/${relative}');`:source.includes('formaction')?`node.setAttribute('formaction','/second/${relative}');`:source==='svg-xlink'?`node.setAttributeNS('http://www.w3.org/1999/xlink','xlink:href','/second/${relative}');`:`node.setAttribute('href','/second/${relative}');`}
+      ${change==='base'?(frame==='top'?"document.querySelector('#destination-base').href='/second/';":"const base=doc.createElement('base');base.href='http://fixture.test:8765/second/';doc.head.prepend(base);"):change==='target'?(frame==='top'?"document.querySelector('#destination-base').target='sink-second';":source==='a'?"node.setAttribute('target','sink-second');":source==='form-action'?"doc.querySelector('#first').setAttribute('target','sink-second');":"node.setAttribute('formtarget','sink-second');"):change==='owner'?"node.setAttribute('form','second');node.removeAttribute('formaction');":source==='form-action'?`doc.querySelector('#first').setAttribute('action','/second/${relative}');`:source.includes('formaction')?`node.setAttribute('formaction','/second/${relative}');`:source==='svg-xlink'?`node.setAttributeNS('http://www.w3.org/1999/xlink','xlink:href','/second/${relative}');`:`node.setAttribute('href','/second/${relative}');`}
     };`;
   return {body,script};
 }

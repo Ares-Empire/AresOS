@@ -42,6 +42,7 @@ export async function fixtures(options={}) {
     // not exhaust Chrome's six HTTP/1.1 connections and hide later receivers.
     if(!['draft-inner','password-inner'].includes(kind))for(const [id,stream]of streams){stream.end();streams.delete(id);}
     let body,script='';
+    if(kind==='destination-sink'){res.end(page('<p>Destination sink</p>'));return;}
     if(kind==='review-page'){const review=reviewPage(url);if(!review)throw Error('Unknown review fixture');({body,script}=review);}
     else if(['popup-opener','popup-child'].includes(kind)){const popup=popupPage(url);res.end(page(popup.body,popup.script));return;}
     else if(kind==='adapter-sites'){const site=(await import('./sites/fixture.mjs')).sitePage(url,req.headers.host);res.end(page(site.body,site.script));return;}
