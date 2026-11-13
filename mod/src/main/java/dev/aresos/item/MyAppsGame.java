@@ -74,12 +74,16 @@ public final class MyAppsGame {
     /** Any thread: what is his, or what an item looks like, changed. The inventories follow on a tick. */
     public static void changed() { CHANGES.incrementAndGet(); }
 
+    static long version() { return CHANGES.get(); }
+
     /** Initial population can finish additions, but never the pending sweep of the saved inventory. */
-    static void populated(ServerPlayer player, List<AppDefinition> without) {
+    static void populated(ServerPlayer player, List<AppDefinition> without, long version) {
         var modes = ModeInventories.of(player);
         var seen = SEEN.get(player.getUUID());
         if (seen == null || !LiveMode.isLive(player) || modes.pending() || modes.changingMode()) return;
-        seen.added = without.isEmpty() ? CHANGES.get() : 0;
+        // A helper callback may change the list while initial population runs; that newer work stays due.
+        seen.added = without.isEmpty() ? version : 0;
+        if (without.isEmpty()) seen.without = Set.of();
     }
 
     /** Any thread: a complete program list went into the apps file. */

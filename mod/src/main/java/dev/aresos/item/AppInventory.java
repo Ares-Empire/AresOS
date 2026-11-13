@@ -30,8 +30,9 @@ public final class AppInventory {
         MyAppsGame.register();
     }
     public static List<AppDefinition> populate(ServerPlayer player) {
+        long version = MyAppsGame.version();
         var without = populate(player, AresOs.apps());
-        MyAppsGame.populated(player, without);
+        MyAppsGame.populated(player, without, version);
         return without;
     }
     /**
