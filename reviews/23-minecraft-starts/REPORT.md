@@ -185,6 +185,15 @@ commits since `bbe167e5`) is merged into the branch as `3fd0bc1c`, a merge commi
 - **Image build inputs changed through the merge: yes.** `os/build.sh` and `os/ci/image-checks.sh` as above, and
   `.github/workflows/os-image.yml` (175 lines). `os/Containerfile`, `os/minecraft/` (the pins, the mod jar pin
   included) and `mod/` did not change through the merge. So a check build is the integrator's to start.
+- **One test of main fails on the merged head, on any full clone (WSL and the hosted job, which checks out with
+  `fetch-depth: 0`, included): `test_release27.PackageDiffTest.test_the_real_lock_change_is_exactly_packages_21s_
+  and_the_renewed_pin`**, with `STOP: unexplained package change: java-25-openjdk-crypto-adapter-…`. Package 27's
+  release diff (`os/ci/release_diff.py`, `PACKAGE_REASONS`) explains every package change since `775be05b` and knows
+  only package 21's; this branch adds four packages to `os/packages.lock.json` (`java-25-openjdk-headless`,
+  `java-25-openjdk-crypto-adapter`, `javapackages-filesystem`, `tzdata-java`). Not a text conflict, so git merged
+  it silently. **Not fixed here:** it means giving package 23's packages a reason in package 27's release rules
+  and changing that test's "exactly package 21's" (17 added), which says what the next release contains: the
+  integrator's call. Neither file is among package 27's bound paths.
 - **Package 27's bound files:** none of this branch's 71 changed files is among the 250 paths in
   `os/manifest/ci/27/source-bindings.json`; `test_checkout_sources` passes (5 tests). `os/manifest/ci/16/pending-
   rebind.json` was not touched.
@@ -198,16 +207,33 @@ WSL. Never two suites at once; temporary files in a work folder outside the repo
   `-W error::ResourceWarning` (before this round, same machine: 132 OK, 1 skipped, 142 s; the model is about 80 s of
   the difference). The skip is the real-scope test (PLAN-GAP below). After the merge: `test_aresos_shell` 74 OK,
   `test_everyday_account` 34 OK, `test_build_tools` 3 OK, `test_checkout_sources` 5 OK.
-- **Full suite: RUNNING when this was written (hand-over note, replaced by the numbers when both runs are done).**
-  A detached driver (`/var/home/ares/pkg23-work/suite.sh`, logs in `/var/home/ares/pkg23-work/suite/`) runs plain and
-  then `-B` from a full clone of `88ac79fd`; it writes `suite/DONE` and removes its clone at the end. Left to do:
-  classify both logs (`classify.py` next to it), put the numbers here, remove the work folder.
-  A first plain run from a shallow clone of `3fd0bc1c` gave `Ran 1087 tests`, `FAILED (failures=101, errors=32,
-  skipped=1)`, none of it in package 23's tests: `test_owner_update` 99 (its real entry expects a host without
-  `rpm-ostree`; on AresOS it goes one step further and stops at `Read failed: rpm-ostree status --json`),
-  `test_inherited_homebrew` 8 and `test_sysusers` 2 (need root; the known WSL failures), 12 from Python 3.14
-  (`glob()` stand-ins without `case_sensitive`), 3 owner-tool checks that want a root-owned folder, and 9 only
-  because the clone was shallow (hence the full clone now). `test_greeter` (3 known WSL failures) passes here.
+- **Full suite, natively, from a fresh full clone of the pushed branch at `88ac79fd`** (the merged head with all of
+  this round's code and tests; later commits change only this report).
+  - Plain: `Ran 1088 tests in 833 s`, `FAILED (failures=102, errors=23, skipped=1)`.
+  - `-B`: BSUITE_PENDING (the detached driver `/var/home/ares/pkg23-work/suite.sh` started it at 15:59; its log is
+    `/var/home/ares/pkg23-work/suite/B.log`, and `suite/DONE` appears when it has finished and removed its clone).
+  - All of package 23's tests pass (`test_aresos_desktop` 145 with 1 skipped, `test_aresos_shell` 74). What does not
+    pass, by module (a subtest counts as one result):
+
+    | Module | Results | One of WSL's 13 known failures? | Why here |
+    |---|---|---|---|
+    | `test_release27` | 1 failure | no: **new, and caused by this merge** | see "Merge of main" |
+    | `test_inherited_homebrew` | 1 failure, 7 errors (8 tests) | yes, all 8 | need root (`sudo -n`) |
+    | `test_sysusers` | 2 errors | yes, both | need root (`sudo -n`) |
+    | `test_greeter` | none | its 3 known failures pass here | (WSL only) |
+    | `test_owner_update` | 99 failures (5 tests) | no, new here | its real entry expects a host without `rpm-ostree` |
+    | `test_owner_commands`, `test_owner_setup_resume`, `test_owner_retained` | 5 + 6 + 1 errors | no, new here | Python 3.14: `Path.rglob()` calls `glob(case_sensitive=…)`, which the tests' stand-in for `Path.glob` does not take |
+    | `test_owner_diagnostics`, `test_owner_export` | 1 error; 1 error and 1 failure | no, new here | Python 3.14: `Path.lstat()` no longer goes through `Path.stat`, which `private_metadata()` replaces to make a fixture look root-owned |
+    | `test_aresos_desktop` | 1 skipped | no (it ran in WSL) | the real-scope test, PLAN-GAP below |
+
+  - `test_owner_update` on a real AresOS: its tests run the real owner entry in a private user and mount namespace
+    (`unshare -Urm`) and expect it to stop at `Required tool missing: rpm-ostree`. Here `rpm-ostree` exists, so the
+    entry goes one step further and stops at `Read failed: rpm-ostree status --json` (the namespace hides the system
+    bus). It has no privileges there and I saw nothing changed, but nobody had run these tests on AresOS itself
+    before; packages 22 and 27 should know.
+  - A first attempt with `--depth 1`, as in earlier rounds, gave 9 more errors: tests of package 27 read older
+    commits (`775be05b`, and `3fd79165` on `pkg/14-owner-tools`). Hence the full clone. Two stand-ins of that run
+    outlived it (a `sleep 3600` and a `python-adapter.py` poller); the driver now ends what a run leaves behind.
 - **How the full suite ran here.** From a fresh `git clone --depth 1` of the pushed branch, `python3 -m unittest
   discover -s os/tests -v`, plain and then `-B`, one at a time, under `nice -n 10`, detached (`setsid`, stdin from
   `/dev/null`), with at least 4.5 GB available before each. Because this is a live machine, the suite also ran under
