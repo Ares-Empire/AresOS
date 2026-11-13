@@ -890,6 +890,18 @@ Restructure in steps that keep everything working:
   address (item 2); `input` brings its target on screen inside the armed hold before brief 20's own hit test (item 5);
   the password rule gets its two additions (item 1). What asks, what is bound, and what is compared before an approved
   input don't change.
+- **The four places where this design touches the asking path stay as security re-check 2 judged them**
+  (`reviews/28-chrome-capability/BRIEF-SECURITY-2.md`). Build each exactly so, and show its lines in the report:
+  1. *Public addresses in a question.* Only the description changes. The payload and the last comparison keep the
+     whole destination. He can't inspect a hidden part in the question, and it can't change after his approval;
+     that reduced visibility is a known limit (section 6).
+  2. *The reveal inside `input`.* It runs after the frames are armed and before the last facts read, the binding
+     comparison and the hit test, so brief 20's last comparison stays the deciding one, and a scroll alone uses up
+     no approved submission.
+  3. *The password additions.* Stricter secrecy takes content out of a send's question and comparison. That is
+     why a form holding a field withheld for unknown history is refused, not asked (item 1).
+  4. *The asking read in the new tool list.* It keeps its own managed ask rule, which opens no way around a
+     send's question. Its own strength is the binding of item 6, which PR #27 builds.
 - **The hold:** `guard.js`, `page.js`, the 500 ms window, the default block, the owner's own Enter, the three kinds
   of dialog.
 - **The reader's password rule only gets stricter** (item 1's two additions); nothing in it is relaxed. The

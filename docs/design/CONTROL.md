@@ -1316,11 +1316,12 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
 - **A harmless long value is hidden too.** A document's id or a playlist's id looks as random as a token. *Harm:*
   Claude can't quote such a link whole; it opens the link by reference, or shows him the tab. *Accepted:* the
   tool can't tell the two apart, and hiding is the safe side.
-- **A question may show a destination with a value hidden.** Where a form's address carries a value that looks
-  like a sign-in, the question shows `…` for it. *Harm:* he approves a destination with a part he can't read.
-  *Accepted:* what the form itself sends is shown in full, hidden fields included; the tool compares the whole
-  destination right before the input and refuses a changed one; and showing that value would put a sign-in token
-  into Claude's context.
+- **A question may show a destination with a part hidden: he sees less there than the tool binds.** Where a
+  form's or a link's address carries a value that looks like a sign-in, the question shows `…` for it, because a
+  question reaches Claude too. *Harm:* he approves a destination with a part he can't inspect in the question.
+  *Accepted:* the hidden part can't change after his approval: the operation keeps the whole destination, and the
+  tool compares it right before the input and refuses a changed one. What the form itself sends is shown in
+  full, hidden fields included. Showing that value would put a sign-in token into Claude's context.
 - **A reload on take loses what isn't work:** an open menu, a place in an endless list, a selection. *Harm:* he
   finds his tab reset. *Accepted:* the take rule (owner, 2026-11-11); looking needs no take, and Claude can work on
   a copy of the page in its own tab.
