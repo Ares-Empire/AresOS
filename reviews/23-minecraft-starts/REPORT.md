@@ -193,10 +193,29 @@ commits since `bbe167e5`) is merged into the branch as `3fd0bc1c`, a merge commi
   `java-25-openjdk-crypto-adapter`, `javapackages-filesystem`, `tzdata-java`). Not a text conflict, so git merged
   it silently. **Not fixed here:** it means giving package 23's packages a reason in package 27's release rules
   and changing that test's "exactly package 21's" (17 added), which says what the next release contains: the
-  integrator's call. Neither file is among package 27's bound paths.
+  integrator's call. Neither file is among package 27's bound paths. (The integrator decided it; fixed in the
+  next section.)
 - **Package 27's bound files:** none of this branch's 71 changed files is among the 250 paths in
   `os/manifest/ci/27/source-bindings.json`; `test_checkout_sources` passes (5 tests). `os/manifest/ci/16/pending-
   rebind.json` was not touched.
+
+### After the merge: the release diff knows package 23's packages
+
+The integrator's decision: the package that adds packages to the lock explains them. `PACKAGE_REASONS` in
+`os/ci/release_diff.py` gains one reason for each of the four packages this branch adds: `java-25-openjdk-headless`
+(Java 25, which Prism runs Minecraft 26.2 with) and the three dependencies dnf resolved with it in run 42803572026
+(`java-25-openjdk-crypto-adapter`: Java's NSS crypto adapter; `javapackages-filesystem`: Java's shared directories;
+`tzdata-java`: Java's time zone data). Nothing else in the classifier changed. The test's expectation is now the
+truth, so it is renamed `test_the_real_lock_change_is_exactly_packages_21s_and_23s_and_the_renewed_pin`: 21 added
+(package 21's 17, package 23's exact four NEVRAs), 12 removed (all package 21's: the util-linux upgrade and the
+renewed pin), and every reason must name package 21 or 23. Missing, extra and unexplained packages still stop
+(`package_diff` is unchanged; its neighbouring test passes). Results, natively from the worktree: `test_release27`
+41 OK, `test_checkout_sources` 5 OK, `test_owner_step_limits` 4 OK. Revert proof: with the `tzdata-java` reason
+removed the test fails with `STOP: unexplained package change: tzdata-java-2026f-1.fc44.noarch`. Neither
+`os/ci/release_diff.py` nor `os/tests/test_release27.py` is among package 27's bound paths, so no row was added to
+`os/manifest/ci/16/pending-rebind.json`. Not in this fix: the diff's file rules still know only packages 21 and
+24, so a release diff of an image with package 23 would still stop on its build-time files (for example
+`/usr/lib/prismlauncher`, `/usr/share/aresos/minecraft`).
 
 ### Checks of this round
 
