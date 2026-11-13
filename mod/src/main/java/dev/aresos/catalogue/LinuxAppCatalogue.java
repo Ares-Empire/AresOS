@@ -26,10 +26,13 @@ public final class LinuxAppCatalogue implements AppCatalogue {
         return definitions(shell.awaitApps(wait));
     }
 
-    /** Names come from the helper only as a fallback: merging keeps the owner's names, looks and pins. */
+    /**
+     * Names come from the helper only as a fallback: merging keeps the owner's names, looks and pins. What the
+     * system said about each program travels with it, to be saved.
+     */
     public static List<AppDefinition> definitions(List<ShellClient.App> apps) {
         return apps.stream().map(app -> new AppDefinition(app.id(), app.name(), List.of(), look(app.id()), false,
-                "helper", null, null)).toList();
+                "helper", null, null).withSystem(app.system())).toList();
     }
 
     static String look(String id) {
