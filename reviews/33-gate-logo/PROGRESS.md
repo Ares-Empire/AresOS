@@ -12,16 +12,21 @@ Read `briefs/33-gate-logo.md` first. This file holds only what the code and the 
 
 - Palette, picture rules, plan, build, record, removal, commands, neighbour check, group colours (all in `mod/src/main/java/dev/aresos/zone/`).
 - Unit tests (`GatePaletteTest`, `GatePictureTest`) and server game tests (`GateGameTests`, 9 tests). `mod/dev/build.sh` passed four times on 2026-11-13: 47 game tests, all unit tests.
-- Client game test `GateLogoClientGameTest` with nine screenshots under `reviews/33-gate-logo/screenshots/`. First full `mod/dev/client-test.sh` run: exit 0 after 7 min 15 s (the gate test itself takes about 27 s). I looked at all nine pictures against `reviews/hub-design-v1/gate.png`: shape, door, black niche back, doormat colours, the enlarged sun on its plate, the round pinwheel, the plain front, the mirrored back and the lit fronts at night are as designed.
+- Client game test `GateLogoClientGameTest` with nine screenshots under `reviews/33-gate-logo/screenshots/` (0033 to 0041). Two full `mod/dev/client-test.sh` runs, both exit 0: 7 min 15 s (before the sign's dark plate and before the test moved to the end of the list) and 7 min 34 s on the final code, with the real-icon look switched on. The gate test itself takes about 27 s. I looked at all nine pictures against `reviews/hub-design-v1/gate.png`: shape, door, black niche back, doormat colours, the enlarged sun on its plate, the round pinwheel, the plain front, the mirrored back, the sign on its dark plate and the lit fronts at night are as designed.
+- `mod/dev/build.sh` passed five times, the last on the final code: 47 game tests, all unit tests.
+- The three real icons, looked at in scratch (contact sheets `…/scratchpad/pkg33/look/sheet-12.png` and `sheet-sizes.png`; nothing committed). In words, for the report:
+  - **Chrome at 12:** clearly Chrome: a round build, red on top, green left, yellow right, a blue disc with a light ring in the middle. The red is red mushroom block, whose cap texture has white spots; from 20 blocks the red reads as red with a few light dots.
+  - **Discord at 12:** a dark blue (lapis) front with a big light face, two blue eyes and a light blue edge: recognisable by the face, as the design says.
+  - **Lunar Client at 12:** a black front with a grey ring and a white crescent shape. The weakest of the three: readable as "the moon logo" if you know it. A few of its dark grey cells came out olive green (green terracotta): with lightness counted half, a dark grey with almost no colour can land on a dull green block.
+  - **10, 14, 16:** at 10 Chrome still reads, Discord's eyes run together and Lunar is a grey smudge. At 14 and 16 all three are clearer, Lunar most of all (at 16 the moon is plain). 12 is the smallest size at which all three can be told apart from other apps; this agrees with HUB.md 2.3 and does not change my view of 12.
+  - PLAN-GAP to add: near-grey colours can pick a dull coloured block (Lunar's olive cells). Proposal, not built: when a cell's colour has almost no chroma, match it among the neutral blocks only. And: the red mushroom block's white spots.
 - `mod/README.md`: the gate, the doormat, `logo remove`.
 
 ## Left, in order
 
-1. **Check the second client run** (started 18:15 with the sign's dark plate, the test moved to the end of the client test list, and `ARESOS_GATE_LOOK` set): log `…/scratchpad/pkg33-client2.log`, kept screenshots `…/scratchpad/pkg33/run2/`, real-icon pictures `…/scratchpad/pkg33/look/screenshots/` (scratch folder: `/tmp/claude-1001/-var-home-ares/500f3f9b-4339-4371-a04c-ee0f7b10c35d/scratchpad/`). After a run: from the repo root `git checkout -- reviews/` and remove untracked pictures in the other packages' review folders; commit only `reviews/33-gate-logo/screenshots/`.
-2. **Look at the real-icon pictures** (Chrome, Discord, Lunar Client at 12, and at 10, 14, 16) and write in words how recognisable each is. Never commit them.
-3. **`mod/dev/client-test.sh` must pass twice on the final code,** and `mod/dev/build.sh` once more after the last code change (the sign's plate changed after the last `build.sh`).
-4. **`reviews/33-gate-logo/REPORT.md`:** the draft is at the end of this file. The Write tool refused to create a file named REPORT.md from a subagent ("return findings as text"); the coordinator has to create it or say how.
-5. Merge `origin/main` if PR #44 is in, delete this file, push, `gh pr create` against `main`.
+1. **One more full `mod/dev/client-test.sh` pass on the final code** (it must pass twice; one pass on the final code is done). After a run: from the repo root `git checkout -- reviews/` and `git clean -fdq -- reviews/04-nether-home reviews/07-real-apps reviews/08-walk-in-logos reviews/09-mode-inventories`; the gate's pictures should come out byte-identical or be committed again.
+2. **`reviews/33-gate-logo/REPORT.md`:** the draft is at the end of this file; add the "Verified" section from "Done" above and the real-icon words. The Write tool refused to create a file named REPORT.md from a subagent ("return findings as text"); the coordinator has to create it or say how.
+3. `git fetch origin`; merge `origin/main` if PR #44 is in (still open at 18:35 on 2026-11-13); delete this file; push; `gh pr create` against `main`.
 
 ## Things a fresh builder must know
 
