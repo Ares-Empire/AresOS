@@ -2,7 +2,7 @@
   "format": 1,
   "source_run": "43490400410",
   "source_head": "1628be4b",
-  "meaning": "Measured retained-history cost before expiry/header optimizations; reintroduces round 3 history-scan cost into the optimized gate input, without altering the 525 ms safety wait. Only history-4000 client latency is replayed; no browser runs locally.",
+  "meaning": "Measured retained-history cost before expiry optimizations, with the earlier operation-header optimization already present; reintroduces the surviving round-3 history-scan cost into the optimized gate input without altering the 525 ms safety wait. Only history-4000 client latency is replayed; no browser runs locally.",
   "profiles": {
     "plain": {
       "chrome": "Google Chrome 157.0.8103.78",

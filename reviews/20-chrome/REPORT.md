@@ -2,9 +2,9 @@
 # Handover
 
 - **Addenda:** -c credential exclusion, -d/-e asking reads and -f exact prepared
-  binding/withheld-form refusal are done and SAFE. -g ceilings and editor decision
-  are applied; its measured-cost removal probe passes locally. Scoped review of
-  that probe and final acceptance remain open. No asking-read binding or
+  binding/withheld-form refusal are done and SAFE. -g ceilings, editor decision
+  and measured-cost removal probe are done and SAFE in both scoped reviews.
+  Final acceptance remains open. No asking-read binding or
   withheld-form refusal is reopened.
 - **Post-18d:** base-URL/SVG class, main/slim merge, group 12, latency measurement,
   expiry optimization and sharding are done. Main is merged through `b2b51107`.
@@ -13,8 +13,7 @@
   (session `11711`, `.work/post18d/43513676712-watch-resumed.log`). It tests the
   complete eight fault shards with a 60-minute budget. No Chrome run is in flight.
 - **Budget:** 249 / about 280 Chrome workflow runs; final pair is still required.
-- **Exact next step:** finish the scoped -g probe review, commit/push that finished
-  step with `[skip ci]`, then freeze the final candidate, run full local checks,
+- **Exact next step:** freeze the final candidate, run full local checks,
   and run the final sharded Chrome pair plus base/Mail/boundary/qualification twice
   on that head. Handle the Mail diagnostic outcome when its blocking watch ends.
 
@@ -90,7 +89,9 @@ all six history-4000 calls when the measured pre-optimization cost is restored
 in memory from run `43490400410`. This retains the safety wait and executes the
 actual CI command. Disabling rejection is killed by the same test.
 [Four CLI results](records/post18d/latency-round3-removal.json),
-[removal mutation](records/post18d/g-latency-mutation.json).
+[removal mutation](records/post18d/g-latency-mutation.json). Both scoped
+[package](BUILD-POST18D-G-REVIEW.md) and
+[security](BUILD-POST18D-G-SECURITY.md) reviews are SAFE.
 
 | Call | Lead-set median / p95 ceiling (ms) |
 | --- | ---: |
