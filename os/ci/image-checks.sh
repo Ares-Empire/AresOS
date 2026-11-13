@@ -653,5 +653,48 @@ print('ICON_CONVERTER /usr/bin/magick; SVG coder: librsvg (RSVG); bubblewrap pre
 PY
 pass 'package 30: ImageMagick PNG and librsvg SVG coders, bubblewrap and prlimit exist'
 
+# --- Package 31: the Ares-Crown frame and the defaults for apps' own bars.
+python3 - <<'PY'
+import hashlib, pathlib, xml.etree.ElementTree as ET
+share = pathlib.Path('/usr/share')
+theme = share / 'themes/Ares-Crown/labwc'
+assert (theme / 'themerc').is_file(), 'Ares-Crown themerc is missing'
+# labwc's nine glyphs, including the toggled states, in both focus and hover states.
+for button in ('menu', 'iconify', 'max', 'max_toggled', 'close', 'shade', 'shade_toggled', 'desk', 'desk_toggled'):
+    for hover in ('', '_hover'):
+        for state in ('active', 'inactive'):
+            path = theme / f'{button}{hover}-{state}.svg'
+            svg = ET.parse(path).getroot()
+            assert svg.tag == '{http://www.w3.org/2000/svg}svg', path
+            assert (svg.get('width'), svg.get('height')) == ('44', '36'), path
+# The reviewed theme, file for file: an empty themerc or an invisible button would pass the shape checks above.
+files = sorted(theme.iterdir(), key=lambda p: p.name)
+assert len(files) == 37, f'Ares-Crown has {len(files)} files, expected themerc and 36 buttons'
+crown = hashlib.sha256('\n'.join(f'{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}' for p in files).encode()).hexdigest()
+assert crown == 'cf01b9b105fc38847e6bf6382056862f3c460d8fc6864cc6d0932794fbd2153e', f'Ares-Crown differs from the reviewed theme: {crown}'
+assert not any((share / 'themes' / name).exists() for name in ('Ares-Plain', 'Ares-Block'))
+font = share / 'fonts/aresos/SpaceGrotesk-Variable.ttf'
+assert hashlib.sha256(font.read_bytes()).hexdigest() == 'acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72'
+license = (font.parent / 'OFL-SpaceGrotesk.txt').read_text()
+assert 'Copyright 2020 The Space Grotesk Project Authors' in license
+assert 'SIL OPEN FONT LICENSE Version 1.1' in license
+rc = ET.parse(share / 'aresos/labwc/rc.xml').getroot()
+assert rc.findtext('theme/name') == 'Ares-Crown'
+assert rc.findtext('theme/titlebar/layout') == 'menu:iconify,max,close'
+assert rc.find('windowSwitcher/osd').get('style') == 'thumbnail'
+override = share / 'glib-2.0/schemas/zz-aresos.gschema.override'
+assert '[org.gnome.desktop.wm.preferences:AresOS]' in override.read_text()
+assert (override.parent / 'gschemas.compiled').is_file()
+print('CROWN_FILES_PASSED: the reviewed themerc and 36 button images (pinned), pinned font, licence, rc.xml and schema override')
+PY
+# A fresh user/home cannot hide a broken compiled default behind a saved setting.
+install -d -o ares -g ares -m 0700 /tmp/pkg31-home
+layout=$(runuser -u ares -- env -i HOME=/tmp/pkg31-home PATH=/usr/bin:/usr/sbin \
+    XDG_CURRENT_DESKTOP=AresOS GSETTINGS_BACKEND=memory \
+    /usr/bin/gsettings get org.gnome.desktop.wm.preferences button-layout)
+printf '%s\n' "$layout"
+test "$layout" = "'appmenu:minimize,maximize,close'"
+pass 'Ares-Crown files installed; compiled AresOS default gives apps all three buttons'
+
 set +x
 echo IMAGE_CHECKS_PASSED

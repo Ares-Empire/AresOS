@@ -21,7 +21,9 @@ class WindowsNotepadAliasTest {
                   {"id":"notepad","name":"Owner notes","command":["notepad.exe"],
                    "look":"minecraft:diamond","pinned":true,"icon":"owner-art.png","ownerExtra":{"keep":42}}]}
                 """;
-        var ownerJson = JsonParser.parseString(document).getAsJsonObject().getAsJsonArray("apps").get(0);
+        // Loading moves the file to schema 3, which adds "mine" (true: pinned, and a starter) and nothing else.
+        var ownerJson = JsonParser.parseString(document).getAsJsonObject().getAsJsonArray("apps").get(0).getAsJsonObject();
+        ownerJson.addProperty("mine", true);
         var unrelated = shortcut("Tools Notepad.lnk", "C:\\Tools\\notepad.exe", List.of(), "");
         for (var records : List.of(rows(store(), unrelated), rows(unrelated, store()))) {
             Files.writeString(config, document);

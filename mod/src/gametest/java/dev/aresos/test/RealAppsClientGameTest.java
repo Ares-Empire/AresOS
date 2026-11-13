@@ -33,11 +33,12 @@ public final class RealAppsClientGameTest implements FabricClientGameTest {
             }
             var fixtures=new ArrayList<AppDefinition>();
             fixtures.add(new AppDefinition("fixture-notes","Fixture Notes",List.of("fixture-notes.exe"),"minecraft:book",true,"command",null,root.resolve("compass.png").toString()));
-            fixtures.add(new AppDefinition("fixture-site","Fixture Moodle",List.of(),"minecraft:paper",false,"url","https://example.test/moodle",null));
-            for(int i=0;i<40;i++) fixtures.add(new AppDefinition("fixture-"+i,"Fixture "+(i+1),List.of("fixture-"+i+".exe"),"minecraft:paper",false,"command",null,root.resolve((i%2==0?"sunset":"compass")+".png").toString()));
+            // The inventory holds My apps and nothing else: every fixture this test expects an item for is his.
+            fixtures.add(new AppDefinition("fixture-site","Fixture Moodle",List.of(),"minecraft:paper",false,"url","https://example.test/moodle",null).withMine(true));
+            for(int i=0;i<40;i++) fixtures.add(new AppDefinition("fixture-"+i,"Fixture "+(i+1),List.of("fixture-"+i+".exe"),"minecraft:paper",false,"command",null,root.resolve((i%2==0?"sunset":"compass")+".png").toString()).withMine(true));
             Path config=root.resolve("apps.json");AppsConfig.save(config,fixtures);System.setProperty("aresos.appsConfig",config.toString());
             context.runOnClient(client->AppsTestAccess.aresos$setApps(List.copyOf(fixtures)));
-            AresOs.generatedIcons=IconPack.generate(AresOs.iconPackPath(),fixtures,new PixelIconConverter());
+            AresOs.generatedIcons=IconPack.generate(AresOs.iconPackPath(),fixtures,new PixelIconConverter()).generated();
             var reload=context.computeOnClient(client->client.reloadResourcePacks());
             context.waitFor(client->reload.isDone());reload.join();
             TestWorldSave save;
@@ -66,14 +67,16 @@ public final class RealAppsClientGameTest implements FabricClientGameTest {
                 world.getConnection().waitForServerboundPackets();
                 context.waitFor(client->AresOs.app("fixture-site").pinned());
                 check(AppsConfig.load(config).apps().get(1).pinned(),"URL pin was not persisted");
-                // Move the original pinned app out of the hotbar as well.
-                clickSlot(context,36);clickSlot(context,9);
+                // Pending overflow fills the slot freed by pinning. Finish the resulting swap when unpinning Notes.
+                context.waitFor(client->client.player.getInventory().getItem(9).is(AppItems.APP));
+                clickSlot(context,36);clickSlot(context,9);clickSlot(context,36);
                 world.getConnection().waitForServerboundPackets();
                 context.waitFor(client->!AresOs.app("fixture-notes").pinned());
                 check(!AppsConfig.load(config).apps().getFirst().pinned(),"Unpin was not persisted");
                 context.clickScreenButton("Apps…");context.waitForScreen(AppsScreen.class);
-                context.clickScreenButton("›");screenshot(context,"07-apps-page-2");
-                context.clickScreenButton("    Fixture 40");context.waitForScreen(InventoryScreen.class);
+                // Package 34 replaced the pages by a search box: the name finds the one app, Enter picks up its item.
+                context.getInput().typeChars("fixture 40");context.waitTicks(2);screenshot(context,"07-apps-search");
+                context.getInput().pressKey(InputConstants.KEY_RETURN);context.waitForScreen(InventoryScreen.class);
                 context.waitFor(client->"fixture-39".equals(client.player.inventoryMenu.getCarried().get(AppItems.APP_ID)));
                 clickSlot(context,38);world.getConnection().waitForServerboundPackets();
                 context.waitFor(client->AresOs.app("fixture-39").pinned());

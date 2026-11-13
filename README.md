@@ -110,6 +110,8 @@ CC0; copies taken before then keep that licence.
 The licence covers the code. It does not cover the Ares names or the screenshots. Parts from others keep their own
 licences:
 
+- Space Grotesk (`os/config/usr/share/fonts/aresos/`): © 2020 The Space Grotesk Project Authors,
+  SIL Open Font License 1.1; the unchanged font and its licence are bundled together.
 - The Gradle wrapper (`mod/gradlew`, `mod/gradlew.bat`, `mod/gradle/wrapper/`): Apache-2.0.
 - Everything kept as test evidence under `os/manifest/ci/`: files and source archives copied from other projects,
   including the Bazzite and Fedora installers, the Linux kernel, QEMU, systemd, util-linux, coreutils, glibc, OSTree,

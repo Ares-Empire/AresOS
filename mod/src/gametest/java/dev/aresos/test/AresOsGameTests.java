@@ -184,8 +184,12 @@ public final class AresOsGameTests {
         inventory.setItem(9, new ItemStack(Items.STONE, 12));
         var apps = new java.util.ArrayList<AppDefinition>();
         for (int i = 0; i < 42; i++) apps.add(new AppDefinition("fixture-" + i, "Fixture " + i,
-                List.of("fixture.exe"), "minecraft:paper", i == 0));
-        inventory.setItem(10, AppItems.create(apps.get(1)));
+                List.of("fixture.exe"), "minecraft:paper", i == 0).withMine(true));
+        // A program that is not one of his: it gets no item, and one it still has from before is taken out.
+        var notHis = new AppDefinition("not-his", "Not his", List.of("fixture.exe"), "minecraft:paper", false);
+        apps.add(1, notHis);
+        inventory.setItem(11, AppItems.create(notHis));
+        inventory.setItem(10, AppItems.create(apps.get(2)));
         inventory.getItem(10).set(net.minecraft.core.component.DataComponents.ITEM_MODEL,
                 net.minecraft.resources.Identifier.withDefaultNamespace("writable_book"));
         dev.aresos.item.AppInventory.populate(player, apps);
@@ -202,6 +206,7 @@ public final class AresOsGameTests {
             helper.assertTrue(ids.add(inventory.getItem(slot).get(AppItems.APP_ID)), "Catalogue duplicated an item");
         }
         helper.assertTrue(ids.size() == 27, "Catalogue did not fill exactly the available 26 inventory slots plus pin");
+        helper.assertTrue(!ids.contains("not-his"), "A program that is not his has an item");
         player.setGameMode(net.minecraft.world.level.GameType.CREATIVE);
         inventory.clearContent();
         dev.aresos.item.AppInventory.populate(player, apps);

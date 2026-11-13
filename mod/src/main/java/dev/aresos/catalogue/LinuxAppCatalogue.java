@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 
-/** list_apps over aresos-shell/1.0: the OS helper's registry becomes helper-type entries without any command. */
+/** list_apps over aresos-shell: what the OS helper lists becomes helper-type entries without any command. */
 public final class LinuxAppCatalogue implements AppCatalogue {
     public static final String PROTOCOL = ShellClient.PROTOCOL;
     public static final String UNAVAILABLE = "AresOS app helper is unavailable (" + PROTOCOL + ")";
@@ -26,18 +26,26 @@ public final class LinuxAppCatalogue implements AppCatalogue {
         return definitions(shell.awaitApps(wait));
     }
 
-    /** Names come from the helper only as a fallback: merging keeps the owner's names, looks and pins. */
+    /**
+     * Names come from the helper only as a fallback: merging keeps the owner's names, looks and pins. What the
+     * system said about each program travels with it, to be saved.
+     */
     public static List<AppDefinition> definitions(List<ShellClient.App> apps) {
-        return apps.stream().map(app -> new AppDefinition(app.id(), app.name(), List.of(), look(app.id()), false,
-                "helper", null, null)).toList();
+        return apps.stream().map(app -> new AppDefinition(app.id(), app.name(), List.of(),
+                look(app.id(), app.system() == null ? null : app.system().categories()), false,
+                "helper", null, null).withSystem(app.system())).toList();
     }
 
-    static String look(String id) {
+    /**
+     * What a new app's item looks like until it has a picture: the starters as always, the others by their group
+     * ({@link AppGroup}), and plain paper when the system said nothing to tell the group by.
+     */
+    static String look(String id, List<String> categories) {
         return switch (id) {
             case "terminal" -> "minecraft:command_block";
             case "notepad" -> "minecraft:writable_book";
             case "browser" -> "minecraft:compass";
-            default -> "minecraft:paper";
+            default -> categories == null || categories.isEmpty() ? "minecraft:paper" : AppGroup.of(id, categories).look();
         };
     }
 }

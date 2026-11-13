@@ -134,10 +134,23 @@ public final class AresOsClientGameTest implements FabricClientGameTest {
                 context.waitFor(client -> overlay(client).equals("Couldn't open Notepad"));
                 context.runOnClient(client -> AresOsClient.replaceLauncher(fake));
 
+                world.getServer().runOnServer(server -> {
+                    var inventory = world.getConnection().getServerPlayer().getInventory();
+                    inventory.setItem(15, inventory.removeItemNoUpdate(0));
+                });
                 context.runOnClient(client -> client.player.connection.sendCommand("aresos give notepad"));
-                context.waitFor(client -> client.player.getInventory().getItem(1).is(AppItems.APP));
-                context.runOnClient(client -> check("notepad".equals(client.player.getInventory().getItem(1)
-                        .get(AppItems.APP_ID)), "Give command did not create the configured app"));
+                world.getConnection().waitForServerboundPackets();
+                context.waitFor(client -> client.player.getInventory().getItem(0).is(AppItems.APP)
+                        && client.player.getInventory().getItem(15).isEmpty());
+                context.runOnClient(client -> check("notepad".equals(client.player.getInventory().getItem(0)
+                        .get(AppItems.APP_ID)), "Give command did not move the configured app"));
+                world.getServer().runOnServer(server -> {
+                    var inventory = world.getConnection().getServerPlayer().getInventory();
+                    int count = 0;
+                    for (int slot = 0; slot < inventory.getContainerSize(); slot++)
+                        if ("notepad".equals(inventory.getItem(slot).get(AppItems.APP_ID))) count++;
+                    check(count == 1 && inventory.getItem(15).isEmpty(), "Give copied the existing app item");
+                });
                 world.getServer().runOnServer(server -> world.getConnection().getServerPlayer().getInventory().clearContent());
             }
             try (TestSingleplayerContext reopened = save.open()) {
