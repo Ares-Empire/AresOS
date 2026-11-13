@@ -252,7 +252,23 @@ changed is the hosted runner image (`20261101.360.1` then, `20261111.370.1` now)
 jar is gone): Loom's manifest attribute `Fabric-Loom-Client-Only-Entries` lists the client classes in the order the
 file system returns them, not sorted (`runs/resolve-43466199049/mod-jar-manifest.txt`); `reproducibleFileOrder` sorts
 only the jar's entries. A new runner image can then give other bytes, while two builds on one runner agree. So the
-next image build of this branch should stop in `build.sh configure` on the jar pin (the check build below). Renewing the pin to `8f505f26…` would
+next image build of this branch should stop in `build.sh configure` on the jar pin (the check builds below).
+
+**Run 43469744106** (`check_build=build` on `ec0148d5`): failed in `build.sh packages`, after the lock's part
+passed: the 29 locked RPMs resolved to exactly the lock, installed with the pinned Chrome (`Complete!`, Java
+1:25.0.5.0.8-3.1.fc44 among them), and Prism, the Fabric libraries and the mods matched their pins. Then
+`AssertionError: net.minecraft.json differs from its pin`. Prism's metadata for Minecraft 26.2
+(`meta.prismlauncher.org/v1/net.minecraft/26.2.json`, a component pin in `os/minecraft/desktop.lock.json`) had
+changed. Prism's meta repository (`PrismLauncher/meta-launcher`) regenerates it weekly; the pinned bytes were its
+2026-11-03 update (`0a4c3e6b`), and its 2026-11-10 update (`b8e2a3e1`, the live file on 2026-11-13) changed only
+`assetIndex`, the index of Mojang's asset version 32 (SHA-1 `56a546ca…` to `941b1ea6…`, size 586366 to 586566;
+that index answers at Mojang with its SHA-1). The file's size stays 24493, so the pin moves only its SHA-256, to
+`9c23199a…`. LWJGL's meta still matches its pin. `test_aresos_desktop` (reads that lock): 145 tests OK, 1 skipped
+(the real-scope test, as before), from the worktree. Evidence: `runs/build-43469744106/summary.txt`. PLAN-GAP 2
+said Prism's files are versioned and stay; this one is not: the 10-27, 11-03 and 11-10 updates each gave other
+bytes, because Mojang keeps updating the asset index a released version points to. So this pin will expire about
+weekly, like a Fedora pin. How the build should live with that (renew it with each build, or pin only the parts
+Prism must not change) is the integrator's call; not changed here. Renewing the pin to `8f505f26…` would
 hold only until the next runner image; the integrator decides (renew, or make that attribute sorted).
 
 ### Checks of this round
