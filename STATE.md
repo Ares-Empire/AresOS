@@ -218,12 +218,28 @@ Updated 2026-11-13. The live truth is `git log`, `gh pr list` and `git worktree 
      his account installs software normally. Chrome (decision 25, "B is good"): a light tool of our own in his normal
      Chrome, with no proxy and no certificate; it asks before anything that clearly sends, and a page that sends on
      its own after an ordinary click isn't held, as with Claude in Chrome.
-   - **In progress:** the Chrome tool (brief 20, PR #27): a fix round for four findings of its re-check, then main
-     merged in, Chrome moved onto the slim generator, test group 12 in 18d's harness, and reviews of the combined
-     head. `laptop-aresos` owns `os/` and the accounts;
-     for Chrome the image needs the extension policy, the native host's manifest and `gh` 2.102 or newer.
-   - **Next:** after Mail, 18d and Chrome merge, an AresOS-side session takes over (`docs/control/TOOLS-HANDOFF.md`):
-     the Chrome decisions and known limits into CONTROL.md section 6, the Chrome capability brief, brief 18c, and
-     live tests with the owner (Mail onboarding first).
+   - **In progress:** the Chrome tool (brief 20, PR #27, led by `mac-aresos-control` until it merges, planned
+     2026-11-16): a fix round for four findings of its re-check, then main merged in, Chrome moved onto the slim
+     generator, test group 12 in 18d's harness, and reviews of the combined head. `linux-aresos` owns `os/` and the
+     accounts.
+   - **Since 2026-11-13 the AresOS-side session `linux-tools` leads the tools** (`docs/control/TOOLS-HANDOFF.md`):
+     - **Brief 18c, the image test with the tools inside** (`briefs/18c-image-test.md`, PR #42, `25c0df62`), with
+       the `os/` change agreed with `linux-aresos` (sixteen changes, in the brief). Its container part is on main
+       (PR #43, `1108fc30`): the service's unit may reach the network (Mail couldn't under the real unit before), and
+       17 cases prove in interactive Claude Code that the send question holds with allow rules, a `PreToolUse` allow
+       hook, "don't ask again" and skip-permissions; a `PermissionRequest` allow hook approves, the accepted residual,
+       now pinned for the interactive case. The image part (Part A and B2) waits for package 23 and PR #27 on main.
+       Part A merges only after the owner's yes to a release carrying Control (a background service, two managed
+       hooks in every Claude Code session). Owner answer: the tools use `Downloads` and `Documents` (board #203).
+     - **The Chrome capability briefs** (branch `briefs/28-chrome-capability`, not merged): 28 (reading: outline,
+       short references, folds, paging), 28a (acting: open, go, batched steps, the smaller tool list) and 28b (his
+       own open tabs), with section 6 of `CONTROL.md` rewritten to match. Two Codex review rounds are worked in; the
+       final checks are `BRIEF-REVIEW-3.md` and `BRIEF-SECURITY-3.md` in `reviews/28-chrome-capability/`. Building
+       starts after PR #27 merges; none of the three reaches the laptop before all three are merged. Owner answers
+       (2026-11-13): Claude may close his tabs when he asks (#201); text only first, no screenshots (#202); typed
+       text in form fields is read only after asking (#210, "Ask first"); link addresses are shown (#213).
+     - **Then:** brief 18c-b (Chrome's browser side in the image; where the extension is served from and where its
+       key lives are open, board #194), and the live tests with the owner once a release carries the tools (Mail
+       onboarding first; his own hosts go on Chrome's never-list in that sitting, board #200).
 
 Codex Pro runs until 2026-11-21.
