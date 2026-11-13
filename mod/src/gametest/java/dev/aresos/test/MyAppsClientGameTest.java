@@ -91,6 +91,8 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
             });
             var initial = shell.awaitCatalogue(Duration.ofSeconds(5));
             check(initial.detailed() && initial.apps().size() == 149, "Startup lost the initial listing's details");
+            check(AresOs.apps().size() == 149 && AppsConfig.load(config).baseline() != null,
+                    "The first listing was missed before any later event could repair it");
             helper.entries = List.copyOf(programs);
             helper.revision = "startup-refresh";
             helper.event("apps_changed", Map.of("revision", "startup-refresh"));

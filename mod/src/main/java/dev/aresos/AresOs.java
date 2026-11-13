@@ -109,6 +109,7 @@ public final class AresOs implements ModInitializer {
             boolean windows = System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("windows");
             var loaded = AppsConfig.load(configPath(), !windows);
             apps = loaded.apps();
+            dev.aresos.item.MyAppsGame.pictures(apps);
             if (loaded.migrationBackup() != null) {
                 LOGGER.info("Moved apps.json to schema {}; original saved at {}", AppsConfig.SCHEMA, loaded.migrationBackup());
             }
@@ -131,7 +132,7 @@ public final class AresOs implements ModInitializer {
                     LOGGER.error("App discovery failed; existing catalogue kept intact", error);
                 }
             }
-            dev.aresos.item.MyAppsGame.pictures(apps);
+            if (windows) dev.aresos.item.MyAppsGame.pictures(apps);
         } catch (IOException error) {
             configError = error.getMessage();
             LOGGER.error("Cannot load app catalogue; apps disabled and original file left intact", error);
