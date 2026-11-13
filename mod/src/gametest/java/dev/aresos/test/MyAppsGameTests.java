@@ -118,6 +118,12 @@ public final class MyAppsGameTests {
         server.getPlayerList().remove(player);
         var cookie = CommonListenerCookie.createInitial(player.getGameProfile(), false);
         var returning = new ServerPlayer(server, player.level(), cookie.gameProfile(), cookie.clientInformation());
+        var saved = server.getPlayerList().loadPlayerData(player.nameAndId()).orElseThrow();
+        returning.load(net.minecraft.world.level.storage.TagValueInput.create(
+                net.minecraft.util.ProblemReporter.DISCARDING, returning.registryAccess(), saved));
+        check(items(returning, "mine") == 2, "Fixture: the saved inventories did not load before login");
+        // This environment has no home. Run the same pre-login restore that NetherHome.arrive calls in a home world.
+        check(ModeInventories.of(returning).enterLiveBeforeLogin(returning), "Pre-login Live restore failed");
         var connection = new Connection(PacketFlow.SERVERBOUND);
         new EmbeddedChannel(connection);
         server.getPlayerList().placeNewPlayer(connection, returning, cookie);

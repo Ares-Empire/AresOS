@@ -139,7 +139,7 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
                 context.waitTicks(5);
                 context.runOnClient(client -> {
                     var screen = client.gui.screen();
-                    var button = net.fabricmc.fabric.api.client.screen.v1.Screens.getButtons(screen).stream()
+                    var button = net.fabricmc.fabric.api.client.screen.v1.Screens.getWidgets(screen).stream()
                             .filter(widget -> widget.getMessage().getString().equals("Apps…")).findFirst().orElseThrow();
                     check(button.getWidth() == 70 && button.getHeight() == 20 && button.getX() == screen.width / 2 - 35
                             && button.getY() + button.getHeight() == (screen.height - 166) / 2 - 4,
