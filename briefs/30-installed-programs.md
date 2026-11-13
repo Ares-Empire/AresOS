@@ -2,7 +2,7 @@
 
 Empire board brief 277 (board #163, the owner's "his own programs in the hub"). The OS app helper's side (`aresos-shell`). The mod's side is package 34 ("My apps"), built first; both follow one description, `docs/design/HUB.md` section 3.8.
 
-**Builder:** a Claude agent (Fable 5.2): it changes what the helper starts, so mistakes cost more than usual. **Review:** a package review and a security review at the tools bar (`docs/REVIEW.md`, "Tools for Claude"), both fresh; then `linux-aresos` reads the `os/` diff before merge.
+**Builder:** Codex (gpt-6.1-sol, xhigh), in steps (one fresh run per step, each ending with a commit and an updated `reviews/30-installed-programs/PROGRESS.md`): plumbing, not looks. It changes what the helper starts, so the reviews are where the extra care goes. **Review:** a package review and a security review at the tools bar (`docs/REVIEW.md`, "Tools for Claude"), both fresh; then `linux-aresos` reads the `os/` diff before merge.
 
 ## Why
 
@@ -91,7 +91,7 @@ Implement the helper's side of `docs/design/HUB.md` section 3.8 exactly: minor v
 
 - `os/tests` (the helper's tests and the whole suite), `os/ci/image-checks.sh` and the VM checks. After pushing, run one check build on the PR's branch: `gh workflow run "OS image" --ref pkg/30-installed-programs -f check_build=build`, and wait for it with one blocking `gh run watch`, not by polling. GitHub's runners are free for this repo.
 - Files you may touch under `os/`: `config/usr/libexec/aresos-shell`, `config/usr/share/aresos/apps/*.json`, `tests/test_aresos_shell.py` and new test files and fixtures beside it, and `ci/image-checks.sh` only to add checks. Nothing else under `os/`. None of these is bound by a rehearsal today (the active bindings are `os/manifest/ci/27/source-bindings.json`); if a test tells you a bound file changed, stop and report it, the OS lead decides. List every `os/` file you touched at the top of the report.
-- **Starting point:** package 23 (PR #36) changes `aresos-shell`, `test_aresos_shell.py` and `image-checks.sh` too. This package is cut from a `main` that contains package 23 and package 34, and you read the helper as it is then; check "scope, unchanged" in A4 against that version.
+- **Starting point:** package 23 (PR #36) changes `aresos-shell`, `test_aresos_shell.py` and `image-checks.sh` too. This package is cut from a `main` that contains package 23 (merged 2026-11-13 as `3bff81b6`), and you read the helper as it is now; check "scope, unchanged" in A4 against that version. Package 34 (PR #52) is still in review: its example messages are copied into this branch as one commit (`mod/src/test/resources/shell-1.1/`, from `origin/pkg/34-my-apps`), unchanged; they arrive on `main` with #52. Package 31 (the window frame) is built at the same time in another worktree and also adds checks to `os/ci/image-checks.sh`: add yours in one block of their own.
 
 ## B. Verification
 
@@ -116,5 +116,7 @@ Leave a program out of the list rather than start something in a way the entry d
 - The repo is public: no personal data in fixtures (replace the home path), no third-party icons committed (draw two tiny test images yourself).
 - Don't touch other worktrees, `~/AresOS` itself, `~/.minecraft`, `~/.lunarclient`, or PR #36's branch. No sudo, no system installs.
 - 16 GB of memory is shared with other sessions: never two heavy steps at once.
-- Commits end with `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>`.
+- Commit messages end with a trailer naming the model.
+- Before a heavy step (the full `os/tests` suite, a headless compositor with programs in it) check that the owner's own game is not running (a Java process whose `/proc/<pid>/exe` is under `~/.lunarclient/`) and that `free -g` shows at least 4 GB available; otherwise wait with a blocking sleep of several minutes. Other builders share the laptop.
+- If `test_aresos_desktop` fails once on the busy laptop and passes on a rerun, name the test in the report (the OS lead has seen one such failure) and go on.
 - `reviews/30-installed-programs/REPORT.md` in the AGENTS.md format, with JUDGMENT-CALLs and PLAN-GAPs marked.
