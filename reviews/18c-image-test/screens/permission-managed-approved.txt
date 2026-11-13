@@ -1,0 +1,40 @@
+
+  ▐█▛█▜    Claude Code v2.1.319
+  ▐████    Opus 5.5 · API Usage Billing
+  ▝▝ ▝▝    ~/work
+
+
+❯ INTERACTIVE_OWNER_TURN_1
+
+  Called testapp
+  ⎿  Allowed by PermissionRequest hook
+
+● INTERACTIVE_DONE_1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+* Unfurling… (running Stop hook · 0s · ↓ 34 tokens)
+                     tmux detected · scroll with PgUp/PgDn · or add 'set -g mouse on' to ~/.tmux.conf for wheel scroll
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ⏸ manual mode on · esc to interrupt · ← for agents
