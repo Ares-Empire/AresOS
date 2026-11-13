@@ -792,6 +792,12 @@ The base's, 18d's and Mail's suites still pass, and the generated artifacts are 
 
 - His open tabs in place, the **READ** sign, the popup list, incognito, tabs in the background: brief 28b.
 - Anything in the asking path or the hold beyond the three exceptions named in "What must not change".
+- **A shorter hold after each input: possible later, not now.** Most of a click or a fill is brief 20's fixed
+  hold of about half a second after the input, in which a submission the page starts is stopped (measured on PR
+  #27, run 43502970342: a free click 587 ms at the median, a plain read 21 ms). Ending that window when the page's
+  queued tasks are done, instead of after a fixed time, would about halve a click and a fill and so a step list.
+  It changes the safety window itself, so it is a package of its own with its own security review, weighed after
+  his live test shows whether the speed matters. Record in the report what a list of 20 steps costs today.
 - A change to brief 28's read, its field rules or its reference table, beyond the fields this brief adds to
   them.
 - Screenshots (owner, 2026-11-13, board #202: "Text only first"), coordinates, hover, drag, console or network
