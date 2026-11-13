@@ -11,7 +11,6 @@ sys.path.insert(0, '/opt/aresos-control')
 
 from interactive_driver import Terminal, options
 from interactive_model import Model
-from aresos_control.boundary_policy import managed_settings
 
 ROOT = Path('/opt/aresos-control')
 OUT = Path('/evidence/interactive')
@@ -87,19 +86,105 @@ def step(index):
                          'description': {'text': 'Synthetic fixed payload'}}}
 
 
+def check_send_turn(script, index, requests, results, before, after, allowed):
+    """Bind one receiver delta and native result to the scripted tool use."""
+    identifier = 'send-' + str(index)
+    uses = [block for request in requests for message in request['messages']
+            if isinstance(message.get('content'), list) for block in message['content']
+            if block.get('type') == 'tool_use' and block.get('id') == identifier]
+    assert uses and all(use['name'] == SEND and use['input'] == script['approval'] for use in uses), uses
+    result = results[identifier]
+    assert result['type'] == 'tool_result' and result['tool_use_id'] == identifier, result
+    assert after - before == int(allowed), (script['prompt'], before, after, allowed)
+    if allowed:
+        assert not result.get('is_error'), result
+        assert result['content'] == [{'type': 'text', 'text': 'FIXTURE_SEND_RAN'}], result
+    else:
+        assert result.get('is_error') is True, result
+        assert isinstance(result['content'], str) and result['content'].startswith(
+            "The user doesn't want to proceed with this tool use. The tool use was rejected"), result
+
+
+def check_case_evidence(case_out, row, expected_permission):
+    """Run the artifact checks before this case can claim PASS in CI."""
+    case = row['case']
+    daa = case.endswith('-daa')
+    permission = '-permission-' in case
+    expected_sessions = {'session-1', 'session-3'} if daa else {'session-1'}
+    assert {p.name for p in case_out.glob('session-*')} == expected_sessions
+    previous = 0
+    grant = None
+    for session in sorted(expected_sessions):
+        evidence = case_out / session
+        load = lambda name: json.loads((evidence / (name + '.json')).read_text())
+        turns, results, requests = load('turns'), load('results'), load('requests')
+        numbers = [3] if session == 'session-3' else ([1, 2] if daa else [1])
+        assert len(turns) == len(numbers)
+        assert set(results) == {'send-' + str(i) for i in range(len(numbers))}, results
+        assert load('error') is None
+        current = row['new_session'] if session == 'session-3' else row
+        assert len(current['prompt_shown']) == len(numbers)
+        if not permission:
+            assert all(current['prompt_shown']), row
+        actions = evidence / 'actions.jsonl'
+        actions = [json.loads(line) for line in actions.read_text().splitlines()] if actions.exists() else []
+        answers = []
+        for action in actions:
+            screen = (evidence / action['screen']).read_text()
+            assert (action['key'], action['option']) in options(screen), action
+            if action['option'] in ('Yes', 'No') or action['option'].startswith("Yes, and don't ask again"):
+                assert screen.index('question:') < screen.index('operation_id:') < screen.index('description:'), screen
+                assert 'Send this fixture message?' in screen, screen
+                answers.append(action)
+        expected_answers = [] if permission else [
+            'DAA' if daa and number == 1 else ('Yes' if case == 'normal-yes' else 'No') for number in numbers]
+        assert len(answers) == current['owner_answers'] == len(expected_answers)
+        for answer, expected_answer in zip(answers, expected_answers):
+            assert (answer['option'].startswith("Yes, and don't ask again") if expected_answer == 'DAA'
+                    else answer['option'] == expected_answer), answer
+        if daa:
+            if session == 'session-1':
+                assert current['daa_offered'][0], 'DAA not offered: ' + case
+                grant = load('settings-after-turn-1')[str(SCOPES['local'])]
+                assert SEND in (grant or {}).get('permissions', {}).get('allow', []), grant
+                assert load('settings-after-turn-2')[str(SCOPES['local'])] == grant
+            else:
+                # The second snapshot is taken at send 3's rendered prompt,
+                # after the new native process has loaded its settings.
+                for name in ('settings-before', 'settings-after-start', 'settings-after-turn-1'):
+                    assert load(name)[str(SCOPES['local'])] == grant, (case, name)
+        for index, (number, turn) in enumerate(zip(numbers, turns)):
+            script = step(number)
+            assert turn['prompt'] == script['prompt'] and turn['tool_use_id'] == 'send-' + str(index), turn
+            assert turn['operation_id'] == script['approval']['operation_id'], turn
+            assert turn['arrivals_before'] == previous, turn
+            allowed = permission or (number == 1 and (daa or case == 'normal-yes'))
+            check_send_turn(script, index, requests, results, previous, turn['arrivals_after'], allowed)
+            previous = turn['arrivals_after']
+    assert row['send_arrivals'] == previous
+    hooks = case_out / 'hook-events.jsonl'
+    events = [json.loads(line) for line in hooks.read_text().splitlines()] if hooks.exists() else []
+    assert len(events) == row['hook_calls'] == int(permission or case.endswith('pre-allow'))
+    assert all(event['tool_name'] == SEND for event in events), events
+    if permission:
+        assert {key: row[key] for key in ('send_arrivals', 'hook_calls', 'owner_answers')} == expected_permission[case]
+
+
 def exercise(case, skip, steps, answers, permission=False):
     evidence = OUT / case / ('session-' + str(steps[0]['prompt'][-1]))
     evidence.mkdir(parents=True, exist_ok=True)
     env = dict(ENV, ARESOS_BOUNDARY_CASE=case)
     flags = ['--dangerously-skip-permissions'] if skip else ['--permission-mode', 'default']
-    shown, daa, warnings = [], [], []
+    shown, daa, warnings, turns = [], [], [], []
     resumed = 0
     before = snapshot()
     (evidence / 'settings-before.json').write_text(json.dumps(before, indent=2))
+    initial_arrivals = arrivals(case)
     with Model(steps, evidence) as model:
         with Terminal(run, evidence, '/tmp/claude/interactive.sock', str(WORK),
                       ['/usr/local/bin/claude', *flags, steps[0]['prompt']], env) as terminal:
             for index, (script, answer) in enumerate(zip(steps, answers)):
+                before_arrivals = arrivals(case) if index else initial_arrivals
                 if index:
                     terminal.prompt(script['prompt'])
                 done = 'INTERACTIVE_DONE_' + str(index + 1)
@@ -122,6 +207,8 @@ def exercise(case, skip, steps, answers, permission=False):
                         lambda s: any(t == 'Yes' for _, t in options(s)) or done in s, warning=skip)
                     prompt_shown = any(t == 'Yes' for _, t in options(screen))
                 shown.append(prompt_shown)
+                if index == 0:
+                    (evidence / 'settings-after-start.json').write_text(json.dumps(snapshot(), indent=2))
                 if not permission:
                     assert prompt_shown, 'STOP: managed ask did not ask interactively: ' + case
                 if prompt_shown and not permission:
@@ -130,7 +217,10 @@ def exercise(case, skip, steps, answers, permission=False):
                     assert all(question < screen.index(key) for key in ('operation_id', 'description') if key in screen), screen
                     offered = any(t.startswith("Yes, and don't ask again") for _, t in options(screen))
                     daa.append(offered)
-                    terminal.choose(screen, 'DAA' if answer == 'DAA' and offered else ('Yes' if answer == 'DAA' else (answer or 'No')))
+                    if answer == 'DAA' and not offered:
+                        (evidence / 'daa-not-offered.json').write_text(json.dumps({'daa_offered': False}))
+                        raise AssertionError('DAA not offered: ' + case)
+                    terminal.choose(screen, answer or 'No')
                 completed = terminal.wait('completed-or-interrupted-' + str(index + 1),
                     lambda s: done in s or 'Interrupted · What should Claude do instead?' in s)
                 if done not in completed:
@@ -142,6 +232,13 @@ def exercise(case, skip, steps, answers, permission=False):
                     terminal.wait('completed-' + str(index + 1), lambda s: done in s)
                 assert model.error is None, model.error
                 assert len(model.script.results) == index + 1, model.script.results
+                after_arrivals = arrivals(case)
+                turns.append({'prompt': script['prompt'], 'tool_use_id': 'send-' + str(index),
+                              'operation_id': script['approval']['operation_id'],
+                              'arrivals_before': before_arrivals, 'arrivals_after': after_arrivals})
+                (evidence / 'turns.json').write_text(json.dumps(turns, indent=2))
+                check_send_turn(script, index, model.requests, model.script.results,
+                                before_arrivals, after_arrivals, permission or answer in ('Yes', 'DAA'))
                 warnings.append(terminal.warning)
                 (evidence / ('settings-after-turn-' + str(index + 1) + '.json')).write_text(json.dumps(snapshot(), indent=2))
     # Native transcript, not a reconstruction of model requests.
@@ -161,11 +258,16 @@ def exercise(case, skip, steps, answers, permission=False):
 
 
 def main():
+    from aresos_control.boundary_policy import managed_settings
+
     assert os.getuid() == 0 and ROOT.is_dir() and HOME.is_dir(), 'Disposable container only'
     assert json.loads((ROOT / 'package-lock.json').read_text())['packages'][
         'node_modules/@anthropic-ai/claude-code-linux-x64']['version'] == '2.1.319'
     OUT.mkdir(parents=True, exist_ok=True)
-    print('INTERACTIVE_VERSION ' + run(['/usr/local/bin/claude', '--version']).stdout.strip(), flush=True)
+    version = run(['/usr/local/bin/claude', '--version']).stdout.strip()
+    assert version == '2.1.319 (Claude Code)', version
+    print('INTERACTIVE_VERSION ' + version, flush=True)
+    expected = json.loads((ROOT / 'interactive-permission-request-expected.json').read_text())
     original = POLICY.read_bytes()
     stub_log = Path('/evidence/stub.txt').open('w')
     stub = subprocess.Popen(['/usr/bin/python3', '-I', str(ROOT / 'stub.py')], stdout=stub_log, stderr=stub_log)
@@ -217,7 +319,6 @@ def main():
                              ['DAA', 'No'] if answer == 'DAA' else [answer], event == 'PermissionRequest')
             row.update(first)
             if answer == 'DAA':
-                assert arrivals(case) == 1, 'STOP: DAA send 2 escaped the ask'
                 third = exercise(case, skip, [step(3)], ['No'])
                 row['new_session'] = third
             count = arrivals(case)
@@ -231,6 +332,7 @@ def main():
             if marker and marker.exists():
                 shutil.copyfile(marker, case_out / 'hook-events.jsonl')
             row.update(send_arrivals=count, hook_calls=hook_calls)
+            check_case_evidence(case_out, row, expected)
             summary.append(row)
             (OUT / 'summary.json').write_text(json.dumps(summary, indent=2))
             print('INTERACTIVE_CASE_PASS ' + json.dumps(row, sort_keys=True), flush=True)
@@ -239,10 +341,13 @@ def main():
                     for r in summary if '-permission-' in r['case']}
         (OUT / 'permission-request.json').write_text(json.dumps(observed, indent=2))
         print('CONTROL_PERMISSION_REQUEST_RECORDED ' + json.dumps(observed, sort_keys=True), flush=True)
-        expected = json.loads((ROOT / 'interactive-permission-request-expected.json').read_text())
         pinned = {case: {key: row[key] for key in ('send_arrivals', 'hook_calls', 'owner_answers')}
                   for case, row in observed.items()}
         assert pinned == expected, 'Interactive PermissionRequest pin changed: ' + json.dumps(observed)
+        assert len(summary) == len({row['case'] for row in summary}) == 17
+        assert sum(row['send_arrivals'] for row in summary) == 7
+        assert sum(len(json.loads(path.read_text())) for path in OUT.glob('*/session-*/results.json')) == 21
+        assert sum(path.stat().st_size for path in OUT.parent.rglob('*') if path.is_file()) < 180_000_000
         print('CONTROL_INTERACTIVE_ASK_PASS cases=' + str(len(summary)), flush=True)
     finally:
         POLICY.write_bytes(original)
