@@ -91,6 +91,9 @@ class Terminal:
         self.tmux('send-keys', '-t', 'case:0.0', 'Enter')
 
     def __enter__(self):
+        self.evidence.mkdir(parents=True, exist_ok=True)
+        (self.evidence / 'launch.json').write_text(json.dumps({
+            'argv': self.argv, 'cwd': self.cwd, 'width': 120, 'height': 40}, indent=2))
         self.tmux('new-session', '-d', '-s', 'case', '-x', '120', '-y', '40',
                   '-c', self.cwd, shlex.join(self.argv))
         return self

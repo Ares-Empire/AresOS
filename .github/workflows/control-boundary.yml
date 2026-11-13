@@ -57,6 +57,7 @@ jobs:
           done
           exit "$result"
       - name: Interactive managed asks (native terminal, no model)
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: |
           set -euo pipefail
           mkdir -p evidence/terminal
