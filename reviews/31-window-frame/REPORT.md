@@ -163,15 +163,13 @@ which the OS lead writes. `os/ci/release_diff.py` was not edited. STATE, HANDOFF
 - Python comparisons against the supplied files printed
   `UNCHANGED_BINDINGS_AND_RULES; EVERYDAY_TEST_UNCHANGED; 36_CROWN_BUTTONS_REPRODUCED`.
   Comparing both committed font files with their upstream bytes printed `FONT_AND_LICENCE_BYTES_UNCHANGED_IN_GIT`.
-- `git diff --check`: exit 0, no output.
+- `git diff --check`: exit 0, no output. The screenshot harness's two internal entry points also refused the real runtime before issuing any display command (`OWNER_DISPLAY_REFUSAL_PASSED`).
 - `python3 -m unittest discover -s os/tests -v`: **1,096 tests in 828.365 s; FAILED
   (failures=101, errors=23, skipped=1)**. This is not a green local suite. Existing failures include unavailable
   passwordless sudo for Homebrew fixtures, Python 3.14 `Path.glob` monkeypatch incompatibilities (`case_sensitive`),
   and owner-update fixtures expecting the Ubuntu runner's missing `rpm-ostree` rather than this AresOS installation.
   The suite's `sudo -n` attempts were refused; no admin action succeeded. Tests were not modified or skipped to pass.
-- The required full `python3 -B -m unittest discover -s os/tests -v` run is in progress. A deny-only `sudo` shim
-  at the front of PATH prevents further calls to the host's sudo; it exits 1 and cannot grant any privileges.
-  This deliberately preserves the failing outcome of tests that require admin rights. Final counts will be recorded here.
+- The `-B` run of the full suite was **stopped by the orchestrator** part-way (2026-11-13 21:35) and is not counted. The OS lead's rule, which reached this package after its brief was written: the full `os/tests` suite is never run natively on the laptop, because `test_owner_update` starts the real owner tools' entry on the owner's running system and leaves stand-in processes behind. The plain run above did that once; its numbers are exactly the known native baseline (failures in `test_owner_update`, in tests written against Python 3.12's pathlib, and in tests that need root; nothing from this package). One stand-in it left (`sleep 3600`) was ended by its PID. The full count comes from the hosted runs below.
 - Mod regression results and hosted check results will be recorded after completion.
 
 ### Headless windows and recovery
@@ -194,7 +192,7 @@ Lunar Java; no such game was running. The full suites received the same prefligh
 Inside each session, as user `ares`, `XDG_CURRENT_DESKTOP=AresOS gsettings get
 org.gnome.desktop.wm.preferences button-layout` printed `'appmenu:minimize,maximize,close'` from the scratch compiled
 schemas, using the memory backend to query the default without saved dconf values. `fc-match` printed
-`Space Grotesk,Space Grotesk Light` in normal/no-theme cases and a different installed sans font in no-font.
+`Space Grotesk,Space Grotesk Light` in normal/no-theme cases and `Adwaita Mono` in no-font.
 
 | Picture (all 1920x1080) | Inspected result |
 |---|---|
