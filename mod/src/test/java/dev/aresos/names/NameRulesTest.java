@@ -99,6 +99,16 @@ class NameRulesTest {
         assertEquals("abcdefghijklmno2", NameRules.main(app("test", "abcdefghijklmnop", null, null),
                 Set.of("abcdefghijklmnop"), VANILLA));
         assertEquals("app2", NameRules.main(app("test", "42", null, null), Set.of(), VANILLA));
+        assertEquals("app3", NameRules.main(app("test", "42", null, null), Set.of("app2"), VANILLA));
+    }
+
+    @Test void aOneLetterNameGetsItsNumber() {
+        var a = app("test", "A", null, null);
+        assertEquals(List.of("a2"), NameRules.assign(a, Set.of(), VANILLA));
+        assertEquals("a3", NameRules.main(a, Set.of("a2"), VANILLA));
+        assertEquals("a4", NameRules.main(a, Set.of("a2", "a3", "app2"), VANILLA));
+        // The first candidate takes the number even when a later one is valid but taken.
+        assertEquals("x2", NameRules.main(app("test", "X", null, "steam"), Set.of("steam"), VANILLA));
     }
 
     @Test void startersFirstAndJoiningOrderNotAlphabetic() {

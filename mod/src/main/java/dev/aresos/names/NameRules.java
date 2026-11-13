@@ -112,7 +112,9 @@ public final class NameRules {
     public static String main(Program app, Set<String> held, Set<String> commands) {
         var candidates = candidates(app);
         for (String candidate : candidates) if (free(candidate, held, commands)) return candidate;
-        String base = candidates.stream().map(candidate -> cut(candidate, 16)).filter(NameRules::valid).findFirst().orElse("app");
+        // 4.2's last rule numbers the first candidate. Judge it with its number: "a" alone is too short, "a2" is
+        // valid. "app" only when no candidate can take a number (it starts with a digit).
+        String base = candidates.stream().filter(candidate -> valid(cut(candidate, 15) + "2")).findFirst().orElse("app");
         for (long number = 2; ; number++) {
             String suffix = Long.toString(number), candidate = cut(base, 16 - suffix.length()) + suffix;
             if (free(candidate, held, commands)) return candidate;
