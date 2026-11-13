@@ -175,6 +175,48 @@ class ShellListTest {
         assertEquals(1, lists.size(), "only the complete list reaches the game");
     }
 
+    @Test void malformedRevisionsNeverPublishOrChangeTheAppsFile() throws Exception {
+        connect();
+        var file = folder.resolve("apps.json");
+        dev.aresos.config.AppsConfig.load(file, true);
+        dev.aresos.config.AppsConfig.merge(file, dev.aresos.catalogue.LinuxAppCatalogue.definitions(client.apps()),
+                true, java.time.LocalDate.now());
+        String before = Files.readString(file);
+        var published = client.apps();
+        client.addListener(new ShellClient.Listener() {
+            @Override public void apps(List<ShellClient.App> apps) {
+                try { dev.aresos.config.AppsConfig.merge(file, dev.aresos.catalogue.LinuxAppCatalogue.definitions(apps),
+                        true, java.time.LocalDate.now()); }
+                catch (IOException error) { throw new java.io.UncheckedIOException(error); }
+            }
+        });
+        var invalid = Arrays.asList(null, JsonNull.INSTANCE, new JsonPrimitive(7), new JsonObject(), new JsonPrimitive(""));
+        for (var revision : invalid) for (boolean onSecondPage : List.of(false, true)) {
+            var requests = new AtomicInteger();
+            helper.override = message -> {
+                if (!isList(message)) return null;
+                boolean first = requests.incrementAndGet() == 1;
+                var reply = new JsonObject();
+                reply.addProperty("id", FakeHelper.string(message, "id"));
+                reply.addProperty("ok", true);
+                if (onSecondPage && first) reply.addProperty("revision", "new-list");
+                else if (revision != null) reply.add("revision", revision);
+                var rows = new JsonArray();
+                rows.add(FakeHelper.entry(first ? "new-a" : "new-b", "New", null, "user"));
+                reply.add("apps", rows);
+                if (first) reply.addProperty("next", "p1");
+                return reply;
+            };
+            helper.event("apps_changed", Map.of("revision", "new-list"));
+            FakeHelper.await(() -> requests.get() == (onSecondPage ? 2 : 1), "the malformed revision");
+            // A later round trip lets the reader finish processing the invalid page before these assertions.
+            client.open("notepad").get(5, TimeUnit.SECONDS);
+            assertSame(published, client.apps(), "A malformed revision replaced the published list");
+            assertEquals(1, lists.size(), "An incomplete list reached a listener");
+            assertEquals(before, Files.readString(file), "A malformed revision changed the apps file or baseline");
+        }
+    }
+
     @Test void aListThatNeverHoldsStillIsGivenUpAndTriedAgainAtTheNextChange() throws Exception {
         helper.entries = programs(100, "Program");
         helper.pageSize = 40;

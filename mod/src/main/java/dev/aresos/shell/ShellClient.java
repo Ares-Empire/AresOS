@@ -697,6 +697,7 @@ public final class ShellClient implements AutoCloseable {
             if (!bool(reply, "ok") || !(reply.get("apps") instanceof JsonArray page))
                 throw new ShellException(String.valueOf(text(reply, "error")), "the app helper could not list apps");
             String now = text(reply, "revision");
+            if (details && (now == null || now.isEmpty())) return giveUp("it sent no valid app-list revision");
             if (pages == 0) revision = now;
             else if (!Objects.equals(revision, now)) {
                 // The list changed between two pages, so what was collected mixes two lists. Start over.
