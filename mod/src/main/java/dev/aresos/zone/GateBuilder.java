@@ -78,7 +78,7 @@ public final class GateBuilder {
     public static GatePlan planInFrontOf(ServerPlayer player, AppDefinition app) {
         var facing = player.getDirection();
         return GatePlan.of(picture(app, GateNumbers.SIZE), player.level().dimension(),
-                GatePlan.originInFrontOf(player.position(), facing, GateNumbers.SIZE), facing, app.name(), null,
+                GatePlan.originInFrontOf(player.position(), facing, GateNumbers.SIZE), facing, app.name(), dev.aresos.names.NameRules.mainName(app),
                 GateGroup.concreteFor(app.id()));
     }
 

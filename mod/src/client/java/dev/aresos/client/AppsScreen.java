@@ -346,10 +346,17 @@ public final class AppsScreen extends Screen {
                 right -= 6;
             }
             int textX = x + 16 + 6, textY = y + 4;
-            String name = clip(app.name(), right - textX);
+            String main = app.mine() ? dev.aresos.names.NameRules.mainName(app) : "";
+            String command = main.isEmpty() ? "" : "/" + main;
+            int commandRoom = command.isEmpty() ? 0 : font.width(command) + 8;
+            String name = clip(app.name(), right - textX - commandRoom);
             graphics.text(font, name, textX, textY, CommonColors.WHITE);
             String kind = app.system() == null ? null : app.system().genericName();
             int kindX = textX + font.width(name) + 8;
+            if (!command.isEmpty()) {
+                graphics.text(font, command, kindX, textY, ChatFormatting.GOLD.getColor() | 0xFF000000);
+                kindX += font.width(command) + 8;
+            }
             // Only when there is room for a few words: half a word says nothing.
             if (kind != null && !kind.isBlank() && !kind.equalsIgnoreCase(app.name()) && right - kindX >= 48)
                 graphics.text(font, clip(kind, right - kindX), kindX, textY, CommonColors.LIGHT_GRAY);
@@ -362,7 +369,7 @@ public final class AppsScreen extends Screen {
         }
 
         @Override public Component getNarration() {
-            return Component.literal(app.name() + (app.mine() ? ", one of your apps" : ""));
+            return Component.literal(app.name() + (app.mine() ? ", one of your apps, /" + dev.aresos.names.NameRules.mainName(app) : ""));
         }
     }
 }

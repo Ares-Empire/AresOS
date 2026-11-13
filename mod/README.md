@@ -575,3 +575,34 @@ and save gate pictures under `../reviews/33-gate-logo/screenshots/` and wall/flo
 evidence under `../reviews/08-walk-in-logos/screenshots/`.
 The lime glass frames in those screenshots are test fixtures around the saved
 trigger boxes; they are not placed by the logo command.
+
+
+## Short app commands
+
+In a marked AresOS world, the singleplayer host can type `/chrome`, `/browser`,
+`/discord`, `/dc` or `/lunar` to open those apps from My apps. Tab completes every
+saved name. Commands work in Live and Build mode; closing the program leaves you
+where you stood. The request is the same as using its hotbar item, including when
+the program is already open. Remote servers cannot launch local programs.
+
+`/apps` lists My apps with their commands and group; click any line to open it.
+`/open <name>` searches every listed program, including ones outside My apps, by
+its short name, squeezed full name (letters and digits without spaces), or a unique
+prefix. Tab completes program names. An exact name wins over longer prefixes;
+several matches give clickable choices. `/open <app id>` also works, so those
+choices stay unambiguous even when two programs have identical names.
+
+`/aresos app name <app id> <new name>` adds a name and makes it the main name.
+`/aresos app unname <name>` removes one; add another first to remove the last name.
+Use 2–16 lower-case letters or digits, starting with a letter. A refusal explains
+invalid or reserved names and says which app holds a conflicting name. Minecraft's
+commands and `aresos`, `home`, `go`, `open`, `apps` are always reserved (`home` and
+`go` are reserved for later packages). Other mods' existing commands win too.
+
+Names are saved in schema 4 of `config/aresos/apps.json`, in `names`, main first.
+The migration keeps an untouched sibling backup of older schemas. Names survive
+program renames and removal from My apps; an app outside My apps has no short
+command, and keeps its names for its return. A newly reserved real command forces
+an alternative app name. Apps… shows the main name beside each of My apps and
+searches all saved names. Newly built gates show `/mainname` on the second sign
+line; standing gates keep the text they were built with.

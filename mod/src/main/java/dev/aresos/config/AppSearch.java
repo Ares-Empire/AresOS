@@ -30,6 +30,7 @@ public final class AppSearch {
 
     private static String text(AppDefinition app) {
         var text = new StringBuilder(app.name());
+        for (String name : app.names()) text.append('\n').append(name);
         var system = app.system();
         if (system != null) {
             if (system.genericName() != null) text.append('\n').append(system.genericName());
