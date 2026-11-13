@@ -39,22 +39,30 @@ no system install and change no shell setup:
   It renders on the RTX 4060 (PRIME offload) when that works headless, else on
   the Intel GPU, else in software (`--gpu` picks one), and says which at the end.
   Sound goes to OpenAL's null device. `--keep-screenshots <dir>` copies the
-  screenshots the run wrote; then `git checkout -- ../reviews/` undoes the
-  rewritten tracked ones.
+  screenshots the run wrote (the folder is created and checked before the run,
+  and a failed copy makes an otherwise green run exit 1); then
+  `git checkout -- ../reviews/` undoes the rewritten tracked ones.
 - **`dev/run-hub.sh`** (a development aid; package 23's session supervisor replaces
-  it) starts the app helper `/usr/libexec/aresos-shell` with a fresh desktop
-  instance and launch nonce, then `./gradlew runClient` on the real screen on the
-  RTX 4060, so walking into a logo opens the app. The helper stops when the game
-  exits. It refuses a helper it did not start that already serves the socket.
-  `--helper <path>` starts another helper (for example one from a worktree) and
-  `--registry <dir>` passes its app folder to the helper's `--registry`.
+  it) starts an app helper of its own (`/usr/libexec/aresos-shell`) with a fresh
+  desktop instance and launch nonce on a private socket in
+  `$XDG_RUNTIME_DIR/aresos-dev/run-hub-<pid>/`, then `./gradlew runClient` on the
+  real screen on the RTX 4060 with that socket, so walking into a logo opens the
+  app. It never uses the session's `$XDG_RUNTIME_DIR/aresos/shell.sock` and never
+  reuses a helper; when the game exits, its helper stops and the folder is
+  removed. `--helper <path>` starts another helper (for example one from a
+  worktree) and `--registry <dir>` passes its app folder to the helper's
+  `--registry`.
 
-Extra arguments go to Gradle. Only one client test runs at a time on the laptop:
-`client-test.sh` waits for `~/.cache/aresos-dev/client-test.lock` and says so.
-All three refuse (exit code 75) while the Lunar Client game runs or less than
-6 GB of memory is available; `--force` skips those two checks. Gradle runs
-without a lasting daemon (`--no-daemon`) inside its own systemd user scope, which
-every exit, Ctrl+C included, stops with everything in it.
+Extra arguments go to Gradle; its `--daemon`, `--stop` and `--status` are refused
+(exit code 2). Only one client test runs at a time on the laptop: `client-test.sh`
+waits for `~/.cache/aresos-dev/client-test.lock` and says so. All three refuse
+(exit code 75) while the Lunar Client game (Lunar's own Java) runs or less than
+6 GB of memory is available, and `client-test.sh` and `run-hub.sh` check again
+right before Gradle starts; `--force` skips those checks. Everything a script
+starts (Gradle without a lasting daemon, the game, a compositor, a GPU probe, the
+app helper) runs in a systemd user scope of that script's own, named
+`aresos-dev-…`, and every exit, Ctrl+C included, stops those scopes with
+everything in them.
 
 Click **AresOS** above Singleplayer on the title screen to reopen **AresHub**,
 or choose a seed on the create screen if it does not exist. Seed **49** is
