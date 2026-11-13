@@ -188,6 +188,26 @@ Interactive Claude Code needs a terminal and a scripted answer. Build one driver
   cases beside them, and run them in `control-boundary.yml` on every pull request touching `control/`.
 - Use the same pinned Claude Code 2.1.319 as 18d, so the print and interactive results compare on one version.
 
+**The whole table runs here, in the container.** Which rule or hook wins is Claude Code's own behavior and doesn't
+depend on the image, so the cheap harness carries all of it and the VM (B2, check 8) repeats only four cases against
+the installed files and the real service. Each case is a fresh `claude`, the generated managed settings unless the
+case says otherwise, and a user allow rule for `mcp__testapp__prepare_send` in every case. Count arrivals at the
+`stub.py` receiver, as 18d does.
+
+| Case | Normal | Skip-permissions | Expected |
+|---|---|---|---|
+| No extra rule, answer "Yes" | yes | no | prompt with the `question` first; one arrival |
+| No extra rule, answer "No" | yes | yes | prompt; no arrival |
+| User, project, local allow rule for `mcp__testapp__send` | yes | yes | prompt; no arrival |
+| User `PreToolUse` hook returning allow | yes | yes | prompt; no arrival; the hook ran once |
+| "Yes, and don't ask again" (DAA), then sends 2 and 3 | yes | yes | prompts 2 and 3 shown; arrivals only for "Yes" |
+| `PermissionRequest` allow hook, user level | yes | yes | **record**: prompt shown or not, hook calls, arrivals |
+| `PermissionRequest` allow hook, managed level | yes | yes | **record**, as above |
+
+In the DAA case, send 2 runs in the same session and send 3 in a new one; record whether Claude Code offers the
+option at all and what it wrote to which settings file. Pin the four `PermissionRequest` outcomes in an
+`interactive-permission-request-expected.json` beside 18d's, so a later change fails.
+
 ### B2. The VM test (`check_build=control`)
 
 On the runner: generate the per-run fixture certificate and a random synthetic Dovecot password; start the pinned
@@ -237,28 +257,20 @@ stands in for his `sudo` (`ares` has no password in CI):
    the password folder is 0700 and its file 0600, both `aresos-tools`; the synthetic password occurs in exactly that
    one file, and not in the journal, `~ares` (including Claude Code's transcripts), `/tmp`, the evidence folder or
    `operations.jsonl`. Evidence records its hash and the counts, never the password.
-8. **The ask, interactive** (B1's driver against the real service and testapp's real receiver). Each case is a fresh
-   `claude` as `ares`, managed settings as shipped unless the case says otherwise, a user allow rule for
-   `mcp__testapp__prepare_send` in every case. Count arrivals from `aresos testapp operation_status` and from the
-   receiver's SQLite, read by root; cancel every unanswered operation before the next case.
+8. **The ask, interactive, against the installed files** (B1's driver against the real service and testapp's real
+   receiver). Four cases, each a fresh `claude` as `ares` with the managed files exactly as the image shipped them
+   and a user allow rule for `mcp__testapp__prepare_send`. Count arrivals from `aresos testapp operation_status` and
+   from the receiver's SQLite, read by root; cancel every unanswered operation before the next case.
 
-   | Case | Normal | Skip-permissions | Expected |
-   |---|---|---|---|
-   | No extra rule, answer "Yes" | yes | no | prompt with the service's `question`; one arrival |
-   | No extra rule, answer "No" | yes | yes | prompt; no arrival |
-   | User, project, local allow rule for `mcp__testapp__send` | yes | yes | prompt; no arrival |
-   | User `PreToolUse` hook returning allow | yes | yes | prompt; no arrival; the hook ran once |
-   | "Yes, and don't ask again" (DAA), then sends 2 and 3 | yes | yes | prompts 2 and 3 shown; arrivals only for "Yes" |
-   | `PermissionRequest` allow hook, user level | yes | yes | **record**: prompt shown or not, hook calls, arrivals |
-   | `PermissionRequest` allow hook, managed level | yes | yes | **record**, as above |
+   | Case | Mode | Expected |
+   |---|---|---|
+   | No extra rule, answer "Yes" | normal | prompt with the service's `question` first; one arrival |
+   | No extra rule, answer "No" | skip-permissions | prompt; no arrival; the `Stop` hook's reminder reaches the model's next request |
+   | User allow rule for `mcp__testapp__send`, answer "No" | skip-permissions | prompt; no arrival |
+   | `PermissionRequest` allow hook, user level | normal | the same outcome as the container's pin for this case |
 
-   In the DAA case, send 2 runs in the same session and send 3 in a new one; record whether Claude Code offers the
-   option at all and what it wrote to which settings file. For the managed-level hook, root edits the managed file
-   for that case and restores it, with the hash checked.
-
-   Also show that the managed `Stop` hook ran: in a "No" case its reminder about the reserved operation reaches the
-   model's next request. Pin the four `PermissionRequest` outcomes in an `interactive-permission-request-expected.json`
-   beside 18d's, so a later change fails, and compare them with the container's.
+   The managed files aren't edited in the VM; the managed-level hook cases stay in the container. If a VM case
+   differs from the same case in the container, that is a finding: stop and report it.
 9. **`gh`.** `/usr/bin/gh --version` is at least 2.102.0, also when run as `aresos-tools` under the unit's sandbox
    (`systemd-run` with the unit's properties).
 
