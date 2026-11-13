@@ -140,3 +140,16 @@ Built by Codex, gpt-6.1-sol, for `briefs/33-review-fixes-2.md`; finding 11 is co
 ### PLAN-GAP and open questions
 
 - No new blocker. The conservative sign-clearance bound and the two accepted ownership/downgrade limits are documented above.
+
+## Review 3 and the orchestrator's decision
+
+Review 3 (`REVIEW-3.md`, gpt-6-astra, on `ce43d863`) closes finding 11 and raises finding 12: when a gate is removed, a wall of his that touched it changes its shape (accepted, cosmetic); a second wall stacked under it can change with it; and a redstone observer he placed to watch that second wall, three blocks from the gate, then gives one pulse. The reviewer derived this from the game's classes and did not run it.
+
+**Decision (orchestrator, 2026-11-13): a known limit, not another fix round.** The owner's bar for AresOS tools (2026-11-11, recorded in `HANDOFF.md` and `docs/REVIEW.md`): safe the way a normal tool is, and edge cases that need him to build against himself come back as known limits. This one needs a redstone circuit of his that watches a wall leaning on a logo, and it costs one observer pulse in his own circuit when he, or an uninstall, takes that logo down. No block of his is destroyed or replaced. Chasing chains of connecting blocks to any length is the kind of round that does not end.
+
+### Known limits (all rounds)
+
+- **Observers watching his connecting blocks:** removing a gate can change the shape of walls, fences, panes or stairs of his that touched it, and those changes can travel along a row or stack of them. A redstone observer watching one of them sees a change and pulses once.
+- **Hand-built gates and an older mod:** after going back to an older AresOS and forward again, `logo remove` may leave a hand-built gate's blocks (review 1, finding 8).
+- **Grass he laid himself** cannot be told from the world's grass, for the doormat and for the ground under a gate; the removal puts the same block back.
+- **A block he swapped for the same kind of block** is still treated as the mod's.
