@@ -12,6 +12,8 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Fallable;
 import net.minecraft.world.level.block.AmethystBlock;
 import net.minecraft.world.level.block.HalfTransparentBlock;
+import net.minecraft.world.level.block.TransparentBlock;
+import net.minecraft.world.level.block.TintedGlassBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 
@@ -87,7 +89,8 @@ final class Neighbors {
         // Plain full blocks have no survival, support or neighbour callbacks.
         var type = state.getBlock().getClass();
         // Checked against 26.2's classes: these two subclasses add sound/rendering, not neighbour behaviour.
-        if ((type == Block.class || type == AmethystBlock.class || type == HalfTransparentBlock.class) && !state.isRandomlyTicking()) return true;
+        if ((type == Block.class || type == AmethystBlock.class || type == HalfTransparentBlock.class
+                || type == TransparentBlock.class || type == TintedGlassBlock.class) && !state.isRandomlyTicking()) return true;
         return ground(level, pos, state);
     }
 

@@ -398,7 +398,7 @@ public final class GateGameTests {
             for (var pos : saved.gate().orElseThrow().grass()) if (!plan.doormat().contains(pos)) {
                 // Exercise vanilla's decay, rather than accepting dirt as a restoration success.
                 var state = level.getBlockState(pos);
-                state.randomTick(level, pos, level.random);
+                state.randomTick(level, pos, level.getRandom());
                 check(level.getBlockState(pos).is(Blocks.DIRT), "covered grass did not decay at " + pos);
             }
             level.setBlockAndUpdate(changed, Blocks.DIAMOND_BLOCK.defaultBlockState());
@@ -565,7 +565,7 @@ public final class GateGameTests {
             refused(site, "a hole under the niche", "isn't solid", plan -> level.setBlock(plan.at(1, 5, -1), Blocks.AIR.defaultBlockState(), 2));
             refused(site, "a torch beside the logo", "minecraft:torch", plan -> level.setBlock(plan.at(1, -2, 0), Blocks.TORCH.defaultBlockState(), 2));
             refused(site, "water behind the logo", "minecraft:water", plan -> level.setBlock(plan.at(4, 3, 0), Blocks.WATER.defaultBlockState(), 2));
-            refused(site, "a chest two cells above the logo", "minecraft:chest", plan -> level.setBlock(plan.at(1, 6, 13), Blocks.CHEST.defaultBlockState(), 2));
+            refused(site, "a chest two cells behind the upper edge", "minecraft:chest", plan -> level.setBlock(plan.at(4, 6, 11), Blocks.CHEST.defaultBlockState(), 2));
             refused(site, "sand under the logo", "minecraft:sand", plan -> level.setBlock(plan.at(1, 0, -1), Blocks.SAND.defaultBlockState(), 2));
             refused(site, "ice four cells from a light block, where it would melt", "minecraft:ice", plan -> level.setBlock(plan.lights().getFirst().relative(Direction.SOUTH, 4), Blocks.ICE.defaultBlockState(), 2));
             refused(site, "an external mushroom behind a planned mushroom pixel", "minecraft:red_mushroom_block",
