@@ -285,3 +285,28 @@ Notepad literal in a test. Observations, not defects:
 
 - Should the old Linux paragraph of `mod/README.md` be rewritten (see the findings)? That belongs to whoever next
   touches the Linux launcher docs.
+
+## Review fixes 1: progress
+
+Work in progress (brief `briefs/29-review-fixes-1.md`). Done: none of the seven fixes yet. Verified: nothing yet.
+Left: all seven, then the verification the brief lists. The plan, so a restarted builder can continue:
+- `env.sh`: `aresos_say` writes to a copy of stderr saved at load time (today a signal while a scoped run's
+  call is redirected sends the cleanup messages into that redirect, e.g. the compositor log).
+- `env.sh`: a list `ARESOS_SCOPES` of this script's units, named `aresos-dev-<name>-<pid>-<random>.scope`.
+  `aresos_scope_start <name> [systemd-run options] -- <command>` registers the unit, starts
+  `systemd-run --user --scope --collect` in the background with signals deferred (the traps set a pending
+  code instead of exiting), waits until the unit is active or the job has ended (`jobs -rp`, never a PID kill),
+  then acts on a pending signal. `aresos_scoped` = start + `wait` + stop. Every exit stops all registered
+  units (`systemctl --user stop`, TERM then KILL after `TimeoutStopSec`).
+- `aresos_lock` polls `flock -n` every 0.5 s instead of a background `flock` with a PID to kill.
+- GPU probes: `aresos_scoped probe-<mode> --property=RuntimeMaxSec=30 --property=TimeoutStopSec=5`, output to
+  `~/.cache/aresos-dev/client-test-probe.log`, no command substitution around them.
+- Check again (Lunar, memory) right before Gradle in `client-test.sh` and `run-hub.sh`.
+- Lunar: only `/proc/*/exe` matching `~/.lunarclient/*/bin/java`. Positive test: a jlinked runtime in a fake
+  HOME under `.work/` running a sleeping Java program.
+- `--daemon`, `--stop`, `--status` refused in all three scripts (one shared function in `env.sh`).
+- `--keep-screenshots`: mkdir and writability check before the run; copy result checked, failure turns exit 0
+  into 1.
+- `run-hub.sh`: private `$XDG_RUNTIME_DIR/aresos-dev/run-hub-<pid>/` (0700), helper with `--socket` there in its
+  own scope (`setpriv --pdeathsig TERM` kept as a SIGKILL safety net), no record file/reuse/PID kill; leftover
+  folders removed only when no `aresos-dev-*-<pid>-*` unit exists; the folder is removed at exit.
