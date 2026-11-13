@@ -627,8 +627,8 @@ main
   200 characters is cut. Of more than 8 neighbours of the same kind (paragraphs, list items, rows, cards) the first
   5 are shown. A table shows its size. A list of more than 12 options shows the chosen one and the count. A form
   shows its first 40 fields.
-- Left out: boxes and coordinates (Claude acts by reference; the tool finds the place and checks that the click
-  lands on the element), elements behind an open dialog, hidden elements, and frames of the fixed list. Frames from
+- Left out: boxes and coordinates (Claude acts by reference; the tool scrolls the element into view, inside the
+  same hold as the input itself, and checks that the click lands on the element), elements behind an open dialog, hidden elements, and frames of the fixed list. Frames from
   other sites and shadow DOM, closed roots too, are part of the outline.
 - A password field is the line `password "Label" (not read)`. A text field whose history the reader doesn't know
   is `textbox "Label" (not read)`.
@@ -1383,6 +1383,10 @@ harness's helper functions change, never an assertion.
       long value changed; a fill and then Enter on the same field passes;
     - the look between steps: a held submission that arrives after a step's reply or during a wait, a dialog and
       a new page each stop the list before the next step, with the held submission prepared;
+    - an element far below the fold is brought on screen and the input lands; what the page does on that scroll
+      is held like after any input; a list of options is chosen by value or by label, and a label two options
+      share is refused; every outcome a step can have appears with its defined shape, and a list that fails after
+      some inputs still returns them with their operation ids;
     - a form filled and sent in one call and `chrome_submit`: the receiver has nothing before approval, one
       submission after, none on a repeat, and the question shows every field as filled;
     - the change report names exactly the added, changed and removed lines on the fixture, within its bound;

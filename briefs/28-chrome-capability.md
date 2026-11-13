@@ -167,9 +167,11 @@ It never polls with full reads.
   `until_met` and `loaded` are reported separately; `loaded` says whether the page was also ready and quiet then.
 - At the timeout the call returns what is there, with `loaded: false` or `until_met: false`.
 
-`background.js` gets these two commands, a `show` command for `chrome_show`, and a `tabs` reply that holds every
-tab at once with the fields item 6 needs. **Nothing else in `background.js` changes in this package:** not `input`,
-`resume`, `dialog`, `prepare_control`, `take`, `release`, the debugger methods or the session rules.
+`background.js` gets these three read-only commands (`outline`, `options`, `page_state`), a `show` command for
+`chrome_show`, a `tabs` reply that holds every tab at once with the fields item 6 needs, the check of `seen` in
+`take` (item 6), and one addition to `input` (item 5, "on screen first"). **Nothing else in `background.js` changes
+in this package:** not the rest of `input`, not `resume`, `dialog`, `prepare_control`, `release`, the debugger
+methods or the session rules.
 
 ### 2. The outline, and `chrome_read` (service)
 
@@ -440,19 +442,46 @@ the bound of the change report).
 |---|---|---|
 | `click` | `ref` | `chrome_click` |
 | `fill` | `ref`, `text` (up to 20,000 characters; line breaks go in as text) | `chrome_fill` |
-| `select` | `ref`, `value` (an option's label or value) | `chrome_select` |
+| `select` | `ref`, `value` (an option's value, or its label) | `chrome_select` |
 | `check` | `ref`, `checked` | `chrome_check` |
 | `press` | `ref`, `key` | `chrome_press` |
-| `scroll` | `ref` (optional: the page), `y` (pixels, negative is up) | `chrome_scroll` |
+| `scroll` | `ref`, `y` (pixels, negative is up) | `chrome_scroll` |
 | `dialog` | `accept`, `text` (optional, for a prompt) | `chrome_dialog` |
 | `wait` | `until`, `timeout_ms` (0 to 8,000) | `chrome_wait` |
+
+What each step is, exactly:
+
+- **`click`, `fill`, `check`, `press`, `scroll`:** brief 20's verb through `payload`, with the reference resolved by
+  item 3.
+- **On screen first.** Brief 20's click needs its target on screen: `pointer` in `background.js` refuses when the
+  element's centre isn't hit, and brief 20's reads gave Claude the boxes to scroll by. The outline has no boxes.
+  So `input` gets one addition. After the frames are armed and before its last facts read, a target that isn't on
+  screen is scrolled into view by the reader (a new content command, `reveal`: to the centre, at once). This
+  happens inside the armed hold, so what the page does on that scroll is held like after any input, and the hit
+  test that follows is brief 20's. It applies to an approved input too, because a prepared click may wait off
+  screen. Nothing else in `input` changes.
+- **`select`:** the service matches `value` against the options in the fresh facts. First as an option's value,
+  exactly. If no option has that value, as an option's label, exactly after trimming and joining runs of spaces.
+  No match, a disabled option, or a label that several options carry: the step is `refused` ("no such option",
+  "that option is disabled", "several options carry this label; pass the value"). The extension always gets brief
+  20's exact value.
+- **`scroll`:** `ref` is required. The element is brought on screen and the wheel then turns by `y` pixels at it,
+  as brief 20 scrolls. To scroll the page, Claude names any element of it. There is no scroll without an element:
+  brief 20's dispatcher hit-tests its target before every input, and that stays.
+- **`wait`:** not an input, and not through `payload`. The service waits as item 1 defines, for `until`, at most
+  `timeout_ms`. Its outcome is `done` when the condition was met and `timeout` when not; a `timeout` stops the
+  list.
+- **`dialog`:** brief 20's `dialog` branch of `call` (its own facts, classification and payload), not `payload`.
+  What brief 20's caller sent as `expected` is now the dialog the service last showed Claude for that tab (its
+  kind, its text, the frame's site); another dialog is `stale`.
 
 Result:
 
 ```
 {"tab": 431,
- "steps": [{"do": "fill", "ref": "kqt8", "outcome": "done"}, {"do": "click", "ref": "kqt10", "outcome": "prepared"}],
- "not_run": 0,
+ "steps": [{"do": "fill", "ref": "kqt8", "outcome": "done", "operation_id": "…"},
+           {"do": "click", "ref": "kqt10", "outcome": "prepared"}],
+ "not_run": 0, "deadline": false,
  "prepared": [{"approval": {"question": "…", "operation_id": "…", "description": {}}, "state": "reserved"}],
  "unknown": [],
  "loaded": null,
@@ -461,10 +490,34 @@ Result:
  "version_notice": null}
 ```
 
+**Each entry of `steps`** holds `do`, the step's `ref` if it has one, an `outcome`, and where they apply
+`operation_id`, `code` and `message` (the tool's own words, never page text):
+
+| `outcome` | Meaning | Was anything dispatched? |
+|---|---|---|
+| `done` | the input ran once, or the wait was met | yes (a wait: no) |
+| `unchanged` | the element was already as asked, for example a box already ticked | no |
+| `prepared` | the step asks; its approval is in `prepared` | no |
+| `stale` | item 3 refused the reference; the element's present line is in `untrusted_content.now` | no |
+| `refused` | a rule refused it: a read-only site, a password field, an option that doesn't exist, an address that isn't allowed; `code` and `message` say which | no |
+| `timeout` | a `wait` wasn't met | no |
+| `unknown` | it may have run; its `operation_id` is also in `unknown` | maybe |
+
+- Every step that was dispatched, and every `unknown` one, carries the `operation_id` of brief 20's committed
+  operation, for `chrome_operation_status`.
+- **`unknown` is brief 20's uncertainty, one to one:** an activation that may have happened
+  (`activation_unknown`), a dialog that opened while the page was handling the input, a handler whose end couldn't
+  be confirmed (`uncertain_finish`), a cleanup still pending, and a connection cut after the input was sent. It is
+  never retried.
+- **A list never ends in a bare error once a step was dispatched.** The call returns its normal result, with the
+  entries so far and the failing step's entry. A bare error comes only when nothing ran: invalid input, a tab
+  that isn't Claude's (`take_first`), Chrome not connected, a core group that failed qualification.
+- `not_run` counts the steps after the last entry. `deadline` says whether the time ran out ("Time" below).
+
 How it runs:
 
 1. **Check first.** Resolve every reference and apply item 3's rule before the first step. If one fails, nothing has
-   run, and the result names the step.
+   run: the result holds one entry, for that step, and `not_run` counts all the others.
 2. **Run in order, and check each step again right before it runs.** Each step goes through brief 20's path for
    that verb: `payload` (fresh facts, classification, binding), then `free` (dispatch once) or `engine.reserve`
    (prepare). Every free step is still committed as its own operation before its input, as today. On the fresh
@@ -787,6 +840,15 @@ actions, in a frame's address, in a redirect's target, and in history, bookmark 
   evidence: nothing before approval, one arrival after, none on a repeat;
 - a list whose third step asks: the fixture counts the first two inputs, no input from steps three to five, and
   after `chrome_submit` exactly the third;
+- **on screen first:** a click, a fill and a tick on elements 10,000 pixels below the fold, and on one inside a
+  scrolled inner box, each land (the fixture counts them). A page that submits a form from its `scroll` handler
+  when that scroll comes: the submission is held and asked, with group 2's evidence. An approved click on a Send
+  button that sits off screen when `chrome_submit` runs is dispatched once;
+- **the steps as defined:** `select` by an option's value, by its label, by a label two options share (refused),
+  by a disabled and by a missing option (refused); `scroll` without `ref` is invalid input; a `wait` that isn't
+  met stops the list as `timeout`; a `dialog` step on another dialog than the one last shown is `stale`. Every
+  outcome of the table appears once with its shape. A list that fails at its third step after two inputs returns
+  a normal result with two operation ids, which `chrome_operation_status` knows;
 - **nothing unseen is overwritten:** a list whose first step makes the page put a draft into another field, and
   whose second step fills that field: the second step is `stale`, the field still holds the draft, and the result
   shows the field's present line. The same when the owner types into that field with real keys while the first
