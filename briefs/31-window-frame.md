@@ -2,7 +2,7 @@
 
 Empire board brief 279. Image package: it switches on the window frame the owner chose.
 
-**Builder:** a Claude agent (Opus 5.5). **Review:** a fresh package review; then `linux-aresos` reads the `os/` diff before merge.
+**Builder:** Codex (gpt-6.1-sol, xhigh): the look is designed and chosen; what is left is image plumbing and checks. **Review:** a fresh package review; then `linux-aresos` reads the `os/` diff before merge.
 
 ## Why
 
@@ -12,7 +12,7 @@ Every program's window on AresOS wears labwc's grey default frame. A Fable desig
 
 ## Starting point
 
-This branch is cut from a `main` that contains package 23, and carries the design commit from `design/windows-v1` (the three themes, `WINDOWS.md`, the pictures) and this brief. Read `docs/design/WINDOWS.md` fully first: it has the exact `rc.xml` lines, the font file and its checksum, and what was and wasn't tried.
+This branch is cut from a `main` that contains package 23, and carries the design commit from `design/windows-v1` (the three themes, `WINDOWS.md`, the pictures) and this brief. Package 23 changed `rc.xml`, `autostart`, `os/build.sh` and `os/ci/image-checks.sh`; read them as they are now. Package 30 (the helper lists his programs) is built at the same time in another worktree and also adds checks to `os/ci/image-checks.sh`: add yours in one block of their own. Read `docs/design/WINDOWS.md` fully first: it has the exact `rc.xml` lines, the font file and its checksum, and what was and wasn't tried.
 
 ## Build
 
@@ -55,4 +55,5 @@ Leave the frame at labwc's default rather than ship something that can stop the 
 - The real session is `WAYLAND_DISPLAY=wayland-0` in `/run/user/1001`: never open a window there, never reconfigure the running labwc, never inject input. Stop every process you started; never stop a process by name alone (match your own PIDs).
 - No sudo, no system installs, nothing written outside the worktree and your scratch folder. Don't touch other worktrees, `~/AresOS` itself, `~/.minecraft` or `~/.lunarclient`.
 - The repo is public: no personal data, no screenshots of his screen or his programs' content.
-- Commits end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- Commit messages end with a trailer naming the model.
+- Before a heavy step (the full `os/tests` suite, a headless compositor with programs in it) check that the owner's own game is not running (a Java process whose `/proc/<pid>/exe` is under `~/.lunarclient/`) and that `free -g` shows at least 4 GB available; otherwise wait with a blocking sleep of several minutes. Other builders share the laptop.
