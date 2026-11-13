@@ -24,7 +24,10 @@ def attempt(name, operation):
                'classification': 'hidden' if error.errno == errno.ENOENT else 'refused'}
     else:
         row = {'name': name, 'blocked': False}
-    if name == 'connect:vsock' and 'errno' in row and row.get('errno') in (None, errno.ETIMEDOUT) and not row['blocked']:
+    # With no filter in the way, a VSOCK connect to the host ends one of two ways when nothing listens there:
+    # it times out, or the host's transport resets it at once (seen on some GitHub runners, errno 104). Both
+    # mean "no endpoint", and the receiver's arrival count stays the proof that nothing got through.
+    if name == 'connect:vsock' and 'errno' in row and row.get('errno') in (None, errno.ETIMEDOUT, errno.ECONNRESET) and not row['blocked']:
         row['unqualified'] = True
         row['classification'] = 'no-qualified-host-endpoint'
     results.append(row)
