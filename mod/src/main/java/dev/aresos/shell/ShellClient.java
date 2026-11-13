@@ -3,6 +3,7 @@ package dev.aresos.shell;
 import com.google.gson.*;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonToken;
+import dev.aresos.config.SystemInfo;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.StandardProtocolFamily;
@@ -18,38 +19,60 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * The mod side of aresos-shell/1.0 (docs/design/OS-BASE.md Appendix B1): a client of the AresOS app helper on a
- * private Unix socket. It only ever names app IDs; the helper owns every launch definition, so the Linux mod never
- * runs a command itself. One background thread connects, says hello, lists apps and then reads replies and events,
- * reconnecting with backoff when the helper is missing or restarts.
+ * The mod side of aresos-shell (docs/design/OS-BASE.md Appendix B1, and docs/design/HUB.md 3.8 for 1.1): a client
+ * of the AresOS app helper on a private Unix socket. It only ever names app IDs; the helper owns every launch
+ * definition, so the Linux mod never runs a command itself. One background thread connects, says hello, lists apps
+ * and then reads replies and events, reconnecting with backoff when the helper is missing or restarts.
+ *
+ * The client offers minor 1 and works with a 1.0 helper as before. When the helper answers with minor 1, the list
+ * comes in pages with what the system knows about each program, and an apps_changed event makes the client list
+ * again. Listeners only ever get a complete list.
  */
 public final class ShellClient implements AutoCloseable {
-    public static final String PROTOCOL = "aresos-shell/1.0";
     public static final int MAJOR = 1;
-    public static final int MINOR = 0;
+    public static final int MINOR = 1;
+    /** The client's own version. hello carries it; later messages carry the minor the helper agreed to. */
+    public static final String PROTOCOL = protocol(MINOR);
     public static final int MAX_MESSAGE = 64 * 1024;
+    /** A list the helper changes between two pages is started over this often; then the old list is kept. */
+    public static final int LIST_RESTARTS = 3;
+    /** Bounds of one list, far above the about 200 programs of a real system: a helper that pages forever is cut off. */
+    public static final int MAX_PAGES = 64;
+    public static final int MAX_APPS = 1024;
     /** Wayland app_id and X11 class of the desktop window, so the helper can hand focus back to it. */
     public static final String DESKTOP_APP_ID = "aresos-desktop";
+    // The last three are 1.1's. The helper sends an event only to a client that offered its name, so apps_changed
+    // must be offered; none of the three is required, which keeps a 1.0 helper compatible.
     static final List<String> CAPABILITIES = List.of("list_apps", "open_app", "app_state", "shell_focus",
-            "world_ready", "heartbeat", "windows");
+            "world_ready", "heartbeat", "windows", "app_details", "apps_changed", "list_paging");
     static final List<String> REQUIRES = List.of("list_apps", "open_app");
     private static final Gson JSON = new Gson();
     private static final System.Logger LOG = System.getLogger("aresos");
 
-    public record App(String id, String name, boolean available, String reason) { }
+    /** One listed program. {@code system} is null when the helper speaks 1.0, which says nothing more about it. */
+    public record App(String id, String name, boolean available, String reason, SystemInfo system) {
+        public App(String id, String name, boolean available, String reason) { this(id, name, available, reason, null); }
+    }
     public record Focus(boolean foreground, String reason, String appId, boolean activated) { }
     public record Launch(String requestId, String launchId, String state) { }
     public enum State { STARTING, CONNECTED, UNAVAILABLE, INCOMPATIBLE, CLOSED }
     public record Status(State state, String detail) { }
     public record Settings(Duration replyTimeout, Duration openTimeout, Duration heartbeat, Duration firstRetry,
-                           Duration maxRetry) {
+                           Duration maxRetry, Duration relistInterval) {
         /** The open timeout outlasts the helper's 30-second window wait, so a launch never hangs. */
         public static final Settings DEFAULT = new Settings(Duration.ofSeconds(5), Duration.ofSeconds(45),
                 Duration.ofSeconds(5), Duration.ofMillis(500), Duration.ofSeconds(10));
+
+        /** After apps_changed the client lists again at most once every two seconds (HUB.md 3.8). */
+        public Settings(Duration replyTimeout, Duration openTimeout, Duration heartbeat, Duration firstRetry,
+                        Duration maxRetry) {
+            this(replyTimeout, openTimeout, heartbeat, firstRetry, maxRetry, Duration.ofSeconds(2));
+        }
     }
 
     /** Callbacks run on the client's background thread. */
     public interface Listener {
+        /** A complete list: after connecting and after every apps_changed. Never a part of one. */
         default void apps(List<App> apps) { }
         default void focus(Focus focus) { }
         default void status(Status status) { }
@@ -90,6 +113,7 @@ public final class ShellClient implements AutoCloseable {
             task -> Thread.ofPlatform().daemon().name("aresos-shell-watchdog").unstarted(task));
     private volatile Status status = new Status(State.STARTING, "connecting to the app helper");
     private volatile List<App> apps = List.of();
+    private volatile boolean detailed;
     private volatile Connection connection;
     private volatile Connection attempt;
     private volatile boolean windows;
@@ -128,7 +152,12 @@ public final class ShellClient implements AutoCloseable {
 
     public void addListener(Listener listener) { listeners.add(Objects.requireNonNull(listener)); }
     public Status status() { return status; }
+    /** The last complete list; it is kept while the helper is away or its list will not hold still. */
     public List<App> apps() { return apps; }
+    /** True when the last complete list said where each program came from (a 1.1 helper). */
+    public boolean detailed() { return detailed; }
+
+    static String protocol(int minor) { return "aresos-shell/" + MAJOR + "." + minor; }
     /** True when the helper confirms windows; otherwise a started process counts as opened, as on Windows. */
     public boolean tracksWindows() { return windows; }
 
@@ -298,39 +327,36 @@ public final class ShellClient implements AutoCloseable {
         attempt = current;
         try {
             current.channel.connect(UnixDomainSocketAddress.of(socket));
-            var watchdog = timer.schedule(current::expire, settings.replyTimeout().toMillis(), TimeUnit.MILLISECONDS);
-            List<App> listed;
-            try {
-                var hello = request("h", "hello");
-                hello.addProperty("major", MAJOR);
-                hello.addProperty("minor", MINOR);
-                hello.add("capabilities", JSON.toJsonTree(CAPABILITIES));
-                hello.add("requires", JSON.toJsonTree(REQUIRES));
-                hello.addProperty("instance", instance);
-                hello.addProperty("nonce", nonce);
-                var reply = call(current, hello);
-                if (!bool(reply, "ok")) {
-                    String code = text(reply, "error");
-                    throw new ShellException(code, "the app helper refused this desktop (" + clip(String.valueOf(code)) + ")");
-                }
-                var offered = new HashSet<String>();
-                if (reply.get("capabilities") instanceof JsonArray array)
-                    for (var value : array) if (value.isJsonPrimitive()) offered.add(value.getAsString());
-                if (number(reply, "major") != MAJOR || !offered.containsAll(REQUIRES))
-                    throw new ShellException("incompatible_version", "the app helper lacks " + PROTOCOL + " list/open");
-                windows = offered.contains("windows") && offered.contains("app_state");
-                listed = parseApps(call(current, request("l", "list_apps")));
-            } finally {
-                watchdog.cancel(false);
+            var hello = request("h", "hello");
+            hello.addProperty("major", MAJOR);
+            hello.addProperty("minor", MINOR);
+            hello.add("capabilities", JSON.toJsonTree(CAPABILITIES));
+            hello.add("requires", JSON.toJsonTree(REQUIRES));
+            hello.addProperty("instance", instance);
+            hello.addProperty("nonce", nonce);
+            var reply = timedCall(current, hello);
+            if (!bool(reply, "ok")) {
+                String code = text(reply, "error");
+                throw new ShellException(code, "the app helper refused this desktop (" + clip(String.valueOf(code)) + ")");
             }
-            apps = listed;
+            var offered = new HashSet<String>();
+            if (reply.get("capabilities") instanceof JsonArray array)
+                for (var value : array) if (value.isJsonPrimitive()) offered.add(value.getAsString());
+            if (number(reply, "major") != MAJOR || !offered.containsAll(REQUIRES))
+                throw new ShellException("incompatible_version", "the app helper lacks " + protocol(0) + " list/open");
+            // The reply names the lower minor of the two sides. A helper that claims more than ours is held to ours.
+            current.minor = Math.clamp(number(reply, "minor"), 0, MINOR);
+            windows = offered.contains("windows") && offered.contains("app_state");
+            var listed = firstList(current);
+            if (listed != null) keep(current, listed);
             connection = current;
             setStatus(new Status(State.CONNECTED, windows ? "tracking windows" : "without window tracking"));
-            for (var listener : listeners) {
-                try { listener.apps(listed); }
-                catch (RuntimeException error) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", error); }
-            }
-            firstAttempt.complete(listed);
+            if (listed != null) announce(listed);
+            // Without a complete list nothing is known yet; whoever waits must not take an empty list for one.
+            else firstAttempt.completeExceptionally(new ShellException("list_incomplete",
+                    "the app helper's app list did not hold still"));
+            synchronized (current) { current.listing = false; }
+            scheduleRefresh(current);
             // Requests the old connection may have carried: the helper answers a known ID without launching again.
             // The writer sends them, so this thread starts reading at once and can never block both directions.
             for (var open : opens.values()) later(() -> {
@@ -346,7 +372,7 @@ public final class ShellClient implements AutoCloseable {
             });
             later(() -> sendWorld(current));
             try {
-                while (!closed) dispatch(current.read());
+                while (!closed) dispatch(current, current.read());
             } catch (IOException lost) {
                 if (!closed) LOG.log(System.Logger.Level.WARNING, "AresOS app helper connection lost: " + lost.getMessage());
             }
@@ -360,6 +386,7 @@ public final class ShellClient implements AutoCloseable {
         }
     }
 
+    /** The protocol field is a placeholder here: {@link Connection#send} writes the connection's own version. */
     private JsonObject request(String prefix, String operation) {
         var message = new JsonObject();
         message.addProperty("protocol", PROTOCOL);
@@ -384,8 +411,140 @@ public final class ShellClient implements AutoCloseable {
         while (true) {
             var reply = current.read();
             if (id.equals(text(reply, "id")) && reply.has("ok") && !reply.has("event")) return reply;
-            dispatch(reply);
+            dispatch(current, reply);
         }
+    }
+
+    /** {@link #call} with the reply timeout: a helper that stops answering drops the connection. */
+    private JsonObject timedCall(Connection current, JsonObject message) throws IOException {
+        var watchdog = timer.schedule(current::expire, settings.replyTimeout().toMillis(), TimeUnit.MILLISECONDS);
+        try { return call(current, message); }
+        finally { watchdog.cancel(false); }
+    }
+
+    // ------------------------------------------------------------ the app list
+
+    private JsonObject listRequest(Listing listing) {
+        var message = request("l", "list_apps");
+        if (listing.cursor() != null) message.addProperty("cursor", listing.cursor());
+        return message;
+    }
+
+    /** The session's first list, page by page. Null when it did not hold still: the list from before is kept. */
+    private List<App> firstList(Connection current) throws IOException {
+        var listing = new Listing(current.minor >= 1);
+        synchronized (current) { current.listStarted = System.nanoTime(); }
+        while (true) {
+            switch (listing.accept(timedCall(current, listRequest(listing)))) {
+                case DONE -> { return listing.apps(); }
+                case GIVE_UP -> {
+                    LOG.log(System.Logger.Level.WARNING, "AresOS app helper: " + listing.problem() + "; app list kept as it was");
+                    return null;
+                }
+                case NEXT -> { }
+            }
+        }
+    }
+
+    private void keep(Connection current, List<App> listed) {
+        apps = listed;
+        detailed = current.minor >= 1;
+    }
+
+    private void announce(List<App> listed) {
+        for (var listener : listeners) {
+            try { listener.apps(listed); }
+            catch (RuntimeException error) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", error); }
+        }
+        firstAttempt.complete(listed);
+    }
+
+    /** The helper said its list or a picture changed. Only a helper that agreed to 1.1 may say so. */
+    private void appsChanged(Connection current) {
+        if (current.minor < 1) return;
+        synchronized (current) { current.changed = true; }
+        scheduleRefresh(current);
+    }
+
+    /**
+     * Lists again if a change is waiting, no list is running and none is planned, and no sooner than the interval
+     * after the last list began. Changes that arrive meanwhile share that one list.
+     */
+    private void scheduleRefresh(Connection current) {
+        long wait;
+        synchronized (current) {
+            if (!current.changed || current.listing || current.scheduled) return;
+            current.scheduled = true;
+            wait = settings.relistInterval().toNanos() - (System.nanoTime() - current.listStarted);
+        }
+        try { timer.schedule(() -> startRefresh(current), Math.max(0, wait), TimeUnit.NANOSECONDS); }
+        catch (RejectedExecutionException closedAlready) { }
+    }
+
+    private void startRefresh(Connection current) {
+        synchronized (current) {
+            current.scheduled = false;
+            current.changed = false;
+            current.listing = true;
+            current.listStarted = System.nanoTime();
+            current.refresh = new Listing(true);
+        }
+        requestPage(current);
+    }
+
+    /** Asks for the refresh's next page. The reply comes back through {@link #dispatch}; the watchdog never writes. */
+    private void requestPage(Connection current) {
+        var message = listRequest(current.refresh);
+        String id = text(message, "id");
+        synchronized (current) { current.refreshId = id; }
+        try {
+            // A page that never comes must not block every later refresh.
+            timer.schedule(() -> { if (claim(current, id)) endRefresh(current, null, "a page of the app list never came"); },
+                    settings.replyTimeout().toMillis(), TimeUnit.MILLISECONDS);
+        } catch (RejectedExecutionException closedAlready) {
+            return;
+        }
+        later(() -> {
+            try { current.send(message); }
+            catch (IOException lost) { current.close(); }
+        });
+    }
+
+    /** True for exactly one caller per page request: its reply, or its timeout. */
+    private static boolean claim(Connection current, String id) {
+        synchronized (current) {
+            if (!id.equals(current.refreshId)) return false;
+            current.refreshId = null;
+            return true;
+        }
+    }
+
+    private void refreshPage(Connection current, JsonObject reply) {
+        var listing = current.refresh;
+        Listing.Step step;
+        try { step = listing.accept(reply); }
+        catch (ShellException refused) {
+            endRefresh(current, null, refused.getMessage());
+            return;
+        }
+        switch (step) {
+            case NEXT -> requestPage(current);
+            case DONE -> endRefresh(current, listing.apps(), null);
+            case GIVE_UP -> endRefresh(current, null, listing.problem());
+        }
+    }
+
+    private void endRefresh(Connection current, List<App> listed, String problem) {
+        synchronized (current) {
+            current.listing = false;
+            current.refresh = null;
+        }
+        if (listed == null) LOG.log(System.Logger.Level.WARNING, "AresOS app helper: " + problem + "; app list kept as it was");
+        else if (connection == current) {
+            keep(current, listed);
+            announce(listed);
+        }
+        scheduleRefresh(current);
     }
 
     /** Runs on the writer only, so reports on one connection never race; each change is reported once. */
@@ -449,9 +608,10 @@ public final class ShellClient implements AutoCloseable {
         return object;
     }
 
-    private void dispatch(JsonObject message) {
+    private void dispatch(Connection current, JsonObject message) {
         if (message.has("event")) {
             switch (String.valueOf(text(message, "event"))) {
+                case "apps_changed" -> appsChanged(current);
                 case "app_state" -> {
                     String id = String.valueOf(text(message, "request_id"));
                     var open = opens.get(id);
@@ -471,6 +631,10 @@ public final class ShellClient implements AutoCloseable {
             return;
         }
         String id = String.valueOf(text(message, "id"));
+        if (claim(current, id)) {
+            refreshPage(current, message);
+            return;
+        }
         var open = opens.get(id);
         if (open != null) update(open, message);
         else if (watching.containsKey(id)) lateUpdate(id, message);
@@ -510,18 +674,100 @@ public final class ShellClient implements AutoCloseable {
         }
     }
 
-    private static List<App> parseApps(JsonObject reply) throws IOException {
-        if (!bool(reply, "ok") || !(reply.get("apps") instanceof JsonArray rows))
-            throw new ShellException(String.valueOf(text(reply, "error")), "the app helper could not list apps");
-        var result = new ArrayList<App>();
-        var seen = new HashSet<String>();
-        for (var row : rows) {
-            if (!(row instanceof JsonObject app)) continue;
-            String id = text(app, "id"), name = text(app, "name");
-            // Same rules as apps.json; a bad row is skipped rather than breaking the whole catalogue.
-            if (id == null || !id.matches("[a-z0-9_-]{1,64}") || name == null || name.isBlank() || !seen.add(id)) continue;
-            result.add(new App(id, name.length() > 64 ? name.substring(0, 64) : name, bool(app, "available"),
-                    text(app, "reason")));
+    /** One list_apps in progress, fed page by page: the session's first list and every later refresh. */
+    private static final class Listing {
+        enum Step { NEXT, DONE, GIVE_UP }
+
+        private final boolean details;
+        private final List<App> rows = new ArrayList<>();
+        private final Set<String> seen = new HashSet<>();
+        private String revision, cursor, problem;
+        private int pages, restarts;
+
+        /** @param details the helper agreed to 1.1: follow {@code next} and read what the system knows */
+        Listing(boolean details) { this.details = details; }
+
+        /** The cursor of the page to ask for; null asks for the first page. */
+        String cursor() { return cursor; }
+        String problem() { return problem; }
+        List<App> apps() { return List.copyOf(rows); }
+
+        /** Takes one reply. NEXT: ask for {@link #cursor}. DONE: {@link #apps} is the complete list. */
+        Step accept(JsonObject reply) throws ShellException {
+            if (!bool(reply, "ok") || !(reply.get("apps") instanceof JsonArray page))
+                throw new ShellException(String.valueOf(text(reply, "error")), "the app helper could not list apps");
+            String now = text(reply, "revision");
+            if (pages == 0) revision = now;
+            else if (!Objects.equals(revision, now)) {
+                // The list changed between two pages, so what was collected mixes two lists. Start over.
+                if (restarts++ == LIST_RESTARTS) return giveUp("its app list changed during every try");
+                rows.clear();
+                seen.clear();
+                pages = 0;
+                cursor = null;
+                return Step.NEXT;
+            }
+            pages++;
+            for (var row : page) {
+                // Same rules as apps.json; a bad row is skipped rather than breaking the whole catalogue.
+                var app = row instanceof JsonObject object ? entry(object, details) : null;
+                if (app == null || !seen.add(app.id())) continue;
+                if (rows.size() == MAX_APPS) return giveUp("its app list has more than " + MAX_APPS + " programs");
+                rows.add(app);
+            }
+            var next = details ? reply.get("next") : null;
+            if (next == null || next.isJsonNull()) return Step.DONE;
+            String value = text(reply, "next");
+            if (value == null || value.isEmpty() || value.length() > 64) return giveUp("it sent a cursor that is not one");
+            if (pages == MAX_PAGES) return giveUp("its app list does not end");
+            cursor = value;
+            return Step.NEXT;
+        }
+
+        private Step giveUp(String why) {
+            problem = why;
+            return Step.GIVE_UP;
+        }
+    }
+
+    private static App entry(JsonObject app, boolean details) {
+        String id = text(app, "id"), name = text(app, "name");
+        if (id == null || !id.matches("[a-z0-9_-]{1,64}") || name == null || name.isBlank()) return null;
+        return new App(id, name.length() > 64 ? name.substring(0, 64) : name, bool(app, "available"),
+                text(app, "reason"), details ? system(app) : null);
+    }
+
+    /**
+     * The optional fields of a 1.1 entry (HUB.md 3.8). A field that is missing or breaks its rule is "not known";
+     * in a list, a bad word is skipped and words past the sixteenth are ignored. Nothing here is ever run or opened
+     * except the icon, which the icon pack reads under its own limits.
+     */
+    private static SystemInfo system(JsonObject app) {
+        String source = text(app, "source"), icon = line(app, "icon", 4096), exec = line(app, "exec_name", 128);
+        var terminal = app.get("terminal");
+        return new SystemInfo(source != null && SystemInfo.SOURCES.contains(source) ? source : null,
+                icon != null && icon.startsWith("/") ? icon : null,
+                words(app.get("categories"), "[A-Za-z0-9-]{1,32}"), line(app, "generic_name", 64),
+                words(app.get("keywords"), "[^\\p{Cntrl}]{1,32}"), line(app, "desktop_id", 128),
+                exec != null && exec.indexOf('/') < 0 ? exec : null,
+                terminal instanceof JsonPrimitive flag && flag.isBoolean() ? flag.getAsBoolean() : null);
+    }
+
+    /** A text of at most {@code limit} characters on one line, or null. */
+    private static String line(JsonObject object, String key, int limit) {
+        String value = text(object, key);
+        return value == null || value.isBlank() || value.length() > limit
+                || value.chars().anyMatch(Character::isISOControl) ? null : value;
+    }
+
+    private static List<String> words(JsonElement value, String rule) {
+        if (!(value instanceof JsonArray array)) return null;
+        var result = new ArrayList<String>();
+        for (var element : array) {
+            if (result.size() == 16) break;
+            if (element instanceof JsonPrimitive word && word.isString() && word.getAsString().matches(rule)
+                    && !word.getAsString().isBlank())
+                result.add(word.getAsString());
         }
         return List.copyOf(result);
     }
@@ -553,10 +799,19 @@ public final class ShellClient implements AutoCloseable {
         volatile long writeStarted;
         volatile String reportedWorld;
         volatile boolean expired;
+        /** Our own minor until the helper's hello reply, then the one both sides speak. */
+        volatile int minor = MINOR;
+        // The app list on this connection, guarded by the connection: a list is running (the first one starts with
+        // the session), an apps_changed is waiting for a list, and that list is planned.
+        boolean listing = true, changed, scheduled;
+        long listStarted = System.nanoTime();
+        String refreshId;
+        volatile Listing refresh;
 
         Connection(SocketChannel channel) { this.channel = channel; }
 
         void send(JsonObject message) throws IOException {
+            message.addProperty("protocol", protocol(minor));
             byte[] bytes = (JSON.toJson(message) + "\n").getBytes(StandardCharsets.UTF_8);
             if (bytes.length > MAX_MESSAGE) throw new IOException("outgoing message too large");
             synchronized (writeLock) {

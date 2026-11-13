@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 
-/** list_apps over aresos-shell/1.0: the OS helper's registry becomes helper-type entries without any command. */
+/** list_apps over aresos-shell: what the OS helper lists becomes helper-type entries without any command. */
 public final class LinuxAppCatalogue implements AppCatalogue {
     public static final String PROTOCOL = ShellClient.PROTOCOL;
     public static final String UNAVAILABLE = "AresOS app helper is unavailable (" + PROTOCOL + ")";
