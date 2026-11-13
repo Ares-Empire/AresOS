@@ -645,17 +645,17 @@ untrusted content (rule 4.8): a page can never instruct Claude.
 ```
 main
   h1 "Week 46"
-  p "Rooms change in " [link "week 47" kqt4] "."
-  button "Next week" kqt5
-  form "Filter" → GET uni.example/timetable kqt7
-    combobox "Semester" = "Winter 2026" kqt8
-    checkbox "Only my courses" checked kqt9
-    button "Apply" kqt10
-  table "Timetable" kqt6
+  p "Rooms change in " [link "week 47" kqtvm4] "."
+  button "Next week" kqtvm5
+  form "Filter" → GET uni.example/timetable kqtvm7
+    combobox "Semester" = "Winter 2026" kqtvm8
+    checkbox "Only my courses" checked kqtvm9
+    button "Apply" kqtvm10
+  table "Timetable" kqtvm6
     … 12 rows, 5 columns (1,840 characters)
-  list kqt11
-    link "Lecture 1: Graphs" kqt12
-    … 47 more (2,900 characters) kqt17
+  list kqtvm11
+    link "Lecture 1: Graphs" kqtvm12
+    … 47 more (2,900 characters) kqtvm17
 ```
 
 - A line holds the role, the name in quotes, a field's value after `=`, the states that are set (checked, selected,
@@ -771,11 +771,13 @@ extension, where navigation and the binding need it: an approved input is still 
 destination. Claude opens a link, a library entry or the address of one of his tabs by reference with
 `chrome_open`, so a `…` never blocks a navigation.
 
-**References.** A reference is a short name the service issues: three letters and a number, such as `kqt5`. No
-reference is ever issued for two things. The letters name one run of the service and change every time it starts.
-The number comes from one counter for all tabs, only counts up, and isn't reset when Chrome restarts or when old
-entries are dropped. So a reference from another tab, from before a restart of Chrome or of the service, or one
-the service has dropped, never comes to mean another element: it is unknown, and refused. An element keeps its
+**References.** A reference is a short name the service issues: five letters and a number, such as `kqtvm5`. The
+letters name one run of the service: five random consonants, drawn anew at every start. The number comes from one
+counter for all tabs, only counts up, and isn't reset when Chrome restarts or when old entries are dropped. So
+within one run no reference is ever issued for two things, and a reference from another tab, from before a
+restart of Chrome, or one the service has dropped never comes to mean another element: it is unknown, and
+refused. A reference from before a restart of the service is unknown too, in practice and not by proof: two runs
+draw the same letters once in about four million ("Known limits"). An element keeps its
 reference for as long as it lives, across reads and results, so Claude can act on what it read earlier. For every
 reference the service remembers the connection to Chrome, the tab, the frame and document, the reader that issued
 the element's id, the element, and the line it last showed Claude. An action on a reference is refused with
@@ -1347,11 +1349,13 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   picture of what stands next to the control. *Accepted:* a step the tool recognises as a send, a delete or a
   payment still asks, and its question shows and binds the item, the form and the draft as they are then; the
   result of every step says what changed during the call, not what changed before it.
-- **A reference's letters could repeat after the service lost its record of them.** The service never draws the
-  letters of its last 100 runs again, from a record in its store. If the store was restored to an older state or
-  couldn't be written, a new run draws at random, and one draw in about 9,000 repeats an old run's letters.
-  *Harm:* a reference Claude kept from that old run could then name another element. *Accepted:* it needs a lost
-  store, that draw, and Claude using a reference from before the restart instead of reading again.
+- **Two runs of the service could draw the same letters.** A reference's five letters are random for each run,
+  and nothing remembers earlier runs. Two given runs share their letters once in about four million. *Harm:* a
+  reference Claude kept from the earlier run could then name another element, where the new run issued the same
+  number for the same tab. *Accepted:* it needs a restart of the service while Claude still holds old
+  references, that draw, and that number. An action on it still has to match what the service last showed for
+  the new element, and a send still asks. A stored record of old letters would only move the gap to a lost or
+  restored store, and a short record lets a prefix come back by itself.
 - **The outline folds long content.** A control inside a folded part isn't in the first read. *Harm:* an extra
   call (`find`, or a read by `ref`). *Accepted:* it is the point of the budget; what asks is decided when Claude
   acts, on the element itself, never from the outline.

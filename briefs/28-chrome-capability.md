@@ -329,7 +329,7 @@ value   = a field's value in double quotes; (not read) instead for "password"; (
           instead for a typed field whose history the reader doesn't know (item 1)
 state   = checked | selected | disabled | required | invalid | expanded | collapsed | current | readonly
 target  = for a link that leaves the page's site: its site; for a form: its method, site and path
-ref     = three letters and a number, for example kqt5 (item 3)
+ref     = five letters and a number, for example kqtvm5 (item 3)
 ```
 
 - **The role list.** Landmarks: `main`, `navigation`, `banner`, `contentinfo`, `complementary`, `region`, `search`,
@@ -368,7 +368,7 @@ ref     = three letters and a number, for example kqt5 (item 3)
   its own. An element without a role, a name or own text gets no line, and its children move up a level.
 - **Text keeps its order.** A line's quoted runs and its inline children alternate as they stand in the page. A
   child stands inline, in square brackets, when it is a link or a control with nothing below it and its parent has
-  text of its own: `p "See the " [link "timetable" kqt12] " for week 46."`. Every other child gets its own line,
+  text of its own: `p "See the " [link "timetable" kqtvm12] " for week 46."`. Every other child gets its own line,
   one level deeper, in document order; where the parent's own text runs between such children, each run is a
   `text` line in its place. Brackets outside quotes are always the tool's: a page's text is only ever inside
   quotes.
@@ -376,7 +376,7 @@ ref     = three letters and a number, for example kqt5 (item 3)
 - **Folds** (each says what it hides):
   - a name, a text or a value longer than 200 characters is cut and ends in `…+N`, N being the characters left
     out; the element's reference reads it whole;
-  - of more than 8 neighbours with the same role, the first 5 are shown, then `… N more (C characters) kqt17`; that
+  - of more than 8 neighbours with the same role, the first 5 are shown, then `… N more (C characters) kqtvm17`; that
     reference reads exactly the neighbours left out, and nothing can act on it;
   - a table is its line and `… R rows, C columns (N characters)`; the table's reference reads it;
   - a list of more than 12 options is `(N options)` on the field's line, with the chosen one as the value;
@@ -420,7 +420,7 @@ Result:
 - `ref`: that element with **one level unfolded**, in the form that fits its role: its own name, text and value whole,
   and its direct content complete (every row, item, field or hidden neighbour). Below that level the fold rules apply
   again. A table: a first line `columns: A | B | C`, then one line per row with the cells separated by ` | `, and
-  controls inside a cell as `[link "Open" kqt31]`. A list: its items. A form: every field as an outline line with its
+  controls inside a cell as `[link "Open" kqtvm31]`. A list: its items. A form: every field as an outline line with its
   options (up to 50 per field, more by the field's own `ref`), `required`, the field's error text, the hidden fields by
   name, the buttons, and the form's target. A text: in full. A single link or control: everything known about it (its
   address in the public form, the title, all options).
@@ -462,16 +462,23 @@ Result:
 
 ### 3. References (service)
 
-- **A reference is three letters and a number, for example `kqt5`.** The service issues it, and no string is ever
-  issued for two things:
-  - **The letters name this run of the service.** The service draws them at random when its process starts (three
-    consonants, so they spell nothing). It writes the letters of its last 100 runs to its store and never draws one
-    of those again. If the store can't be read or written it still draws at random, and reading goes on.
+- **A reference is five letters and a number, for example `kqtvm5`.** The service issues it:
+  - **The letters name this run of the service.** The service draws them from the system's random source when its
+    process starts: five consonants, so they spell nothing, one of about four million combinations (21 to the
+    fifth). Nothing about earlier runs is stored or remembered, so the rule doesn't depend on the store.
   - **The number comes from one counter for the whole process, across all tabs.** It only counts up. It isn't reset
     when Chrome restarts or reconnects, when a tab closes or when entries are dropped. Tab A and tab B can never
-    both hold `kqt5`.
+    both hold `kqtvm5`.
   - The same live element (same connection, tab, frame, document, reader instance and reader id) gets the same
     reference in every read and result.
+  - **What this guarantees, said honestly** (package re-check 2, N1, and the security re-check's residual). Within
+    one run no string is ever issued for two things: the counter sees to that. Between two runs the letters
+    differ by chance, not by proof: two given runs share them once in about four million. So a reference from an
+    earlier run is unknown to the new one in practice. If the letters did repeat, the old reference would resolve
+    only where the new run issued that same number for that same tab; an action on it would still have to match
+    the fingerprint the service holds for the new element, and a send would still ask. Section 6 lists this
+    under known limits. An earlier draft drew three letters and remembered the last 100 runs; after the 101st
+    run a prefix could come back with the store intact, so that record is gone.
 - **Per reference the service keeps** the extension connection it was issued under (the `session` of the
   extension's hello), the tab, the frame, the document, the reader instance, the reader's element id, and **the
   line it last showed Claude** for that element. It keeps the newest 5,000 per tab, in memory only. A dropped
@@ -590,8 +597,8 @@ Result:
 
 ```
 {"tab": 431,
- "steps": [{"do": "fill", "ref": "kqt8", "outcome": "done", "operation_id": "…"},
-           {"do": "click", "ref": "kqt10", "outcome": "prepared"}],
+ "steps": [{"do": "fill", "ref": "kqtvm8", "outcome": "done", "operation_id": "…"},
+           {"do": "click", "ref": "kqtvm10", "outcome": "prepared"}],
  "not_run": 0, "deadline": false,
  "prepared": [{"approval": {"question": "…", "operation_id": "…", "description": {}}, "state": "reserved"}],
  "unknown": [],
@@ -912,8 +919,13 @@ Every new rule gets a test that fails without it.
   `ref` forms, `find`, the cut at `max` and at 48 KiB with non-ASCII text;
 - the reference table: same element same reference; one counter for all tabs; no string issued twice, also after
   entries were dropped at the 5,000 bound and after the table was emptied; every stale case of item 3; a new
-  reader instance in the same document; the letters differ from those of the last 100 runs, and are still drawn
-  when the store fails;
+  reader instance in the same document. The letters: five consonants from the system's random source, drawn
+  once per process, with nothing read from or written to the store. **Beyond the old window:** 300 runs in a
+  row, more than the 100 an earlier draft remembered, each issue references for the same tabs, and no reference
+  of any earlier run resolves in any later one. The test puts a seeded generator in place of the random source,
+  with a seed under which no two runs draw the same letters, so it is deterministic. **The rest, shown
+  honestly:** two runs forced to draw the same letters; an old reference then resolves only where the new run
+  issued that number for that tab, and the report lists the case under known limits;
 - `public_address` against a table, in both forms: a user name and password, ports, a non-ASCII host, `http`; each
   sign-in word in a path; each credential name as a parameter, alone, as a part (`access_token`, `apiKey`) and
   written as one word (`sessionid`); values that look random (a UUID, 40 hex digits, a 43-character token, a JWT,
@@ -990,11 +1002,11 @@ Added cases, each with group 7's known password and a label that says nothing ("
 - F5, a page that changes part of itself on a click (rows replaced, a status line, one element renamed, one removed)
   and a page that loads a new document on a click;
 - F6, a page with frames from a second fixture site and open and closed shadow roots;
-- H1, hostile text: names and paragraphs shaped like outline lines, references (`kqt5`), folds (`… 40 more`),
+- H1, hostile text: names and paragraphs shaped like outline lines, references (`kqtvm5`), folds (`… 40 more`),
   instructions to Claude, quotes, line breaks and direction-changing characters; a page of 100,000 elements; a name
   of 100,000 characters.
   - **Hostile roles:** a `role` attribute that holds a line break and a whole outline line with a reference; one
-    that holds `button" kqt5`; one of 10,000 characters; one in capitals with spaces around it. Each line shows a
+    that holds `button" kqtvm5`; one of 10,000 characters; one in capitals with spaces around it. Each line shows a
     role from the list or the tag's role, and nothing else of the attribute.
   - **Hostile text everywhere:** the same strings as a name, a value, an option label, a cell, a column header, a
     title, an error text and an ancestor's name come back quoted and escaped in the outline, in a table, a list
