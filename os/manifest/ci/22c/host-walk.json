@@ -187,7 +187,7 @@
       "path": "os/ci/rehearsal_guard.py"
     },
     {
-      "sha256": "c012cd8dd55d1130b9c8d4149a3984a3c4f95e8fb76a5cf9ef680743d33c8e1f",
+      "sha256": "1eccdf3c10828d8f2123e3a7d4fa20a4402ba0044caa1f34beea8c21d2392dc8",
       "path": "os/ci/reorder_probe.py"
     },
     {
@@ -1023,7 +1023,7 @@
       "path": "os/tests/test_owner_transport.py"
     },
     {
-      "sha256": "8c4f4a91f5aa0bdff3af573b15b5570701312ee7ca0eee13a486bceac5a684cb",
+      "sha256": "68257a10fc920e3813813d12462b2829cfdd30554c305e5184e3426707833061",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -1055,7 +1055,7 @@
       "path": "os/tests/test_serial_staging.py"
     },
     {
-      "sha256": "0fe53b423add66bdd9b75ef0d5498737e02b5a046e59bb2452579c0f4aa47f9e",
+      "sha256": "04c1abacf56b9ca4e91f2cd5ea14f6016fbfaed5beb5b63b626c900445c2637b",
       "path": "os/tests/test_ways_back_probe.py"
     },
     {

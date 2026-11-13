@@ -427,13 +427,13 @@ class GuestProgramsTest(unittest.TestCase):
 
     def tree(self, root, disk):
         boot, ostree = root / 'boot', root / 'sysroot/ostree'
-        (boot / 'loader.1/entries').mkdir(parents=True)
-        (boot / 'loader').symlink_to('loader.1')
+        (boot / 'loader.0/entries').mkdir(parents=True)
+        (boot / 'loader').symlink_to('loader.0')
         for entry in disk.entries():
-            (boot / 'loader.1/entries' / pathlib.PurePosixPath(entry['file']).name).write_text(entry['content'])
-        links = ostree / 'boot.1.1/default' / ('b' * 64)
+            (boot / 'loader.0/entries' / pathlib.PurePosixPath(entry['file']).name).write_text(entry['content'])
+        links = ostree / f'boot.0.{disk.links}/default' / ('b' * 64)
         links.mkdir(parents=True)
-        (ostree / 'boot.1').symlink_to('boot.1.1')
+        (ostree / 'boot.0').symlink_to(f'boot.0.{disk.links}')
         for place, role in enumerate(disk.order):
             target = pathlib.Path(str(root) + disk.path(role))
             target.mkdir(parents=True)
@@ -459,16 +459,20 @@ class GuestProgramsTest(unittest.TestCase):
             source = rp.LAYOUT.replace("root=pathlib.Path('/')", 'root=pathlib.Path(' + repr(str(root)) + ')')
             self.assertNotEqual(source, rp.LAYOUT)
             layout = run_program(source, environment)
-        self.assertEqual(layout['running'], disk.path('R27'))
-        self.assertEqual((layout['loader_link'], layout['ostree_boot_links']), ('loader.1', {'boot.1': 'boot.1.1'}))
-        self.assertEqual(layout['loader_directories']['loader.1'], ['ostree-1.conf', 'ostree-2.conf', 'ostree-3.conf'])
+        # As in the VM: release 27 started from place 0, and after the move that place holds the stock.
+        self.assertEqual(layout['running'], disk.path('S'))
+        self.assertEqual(layout, dict(disk.layout(), boot_id=layout['boot_id'], cmdline=layout['cmdline'], admin_status=layout['admin_status'],
+                                      grubenv=layout['grubenv'], packages=layout['packages'], origins=layout['origins'],
+                                      loader_directories=layout['loader_directories'], ostree_boot_targets=layout['ostree_boot_targets']))
+        self.assertEqual((layout['loader_link'], layout['ostree_boot_links']), ('loader.0', {'boot.0': 'boot.0.0'}))
+        self.assertEqual(layout['loader_directories']['loader.0'], ['ostree-1.conf', 'ostree-2.conf', 'ostree-3.conf'])
         self.assertEqual(layout['admin_status']['argv'], ['ostree', 'admin', 'status'])
         self.assertEqual(layout['grubenv']['stdout'], 'boot_success=1\n')
         self.assertEqual(len(layout['origins']), 3)
-        self.assertEqual(len(layout['ostree_boot_targets']), 6)  # through boot.1 and through boot.1.1
+        self.assertEqual(len(layout['ostree_boot_targets']), 6)  # through boot.0 and through boot.0.0
         roles = {walk.vm.ke.key(row): role for role, row in disk.rows.items()}
         facts = rp.observe(roles, disk.snapshot(), layout)
-        self.assertEqual((facts['order'], facts['running'], facts['running_by_kernel_argument']), (['S', 'R27', 'R13'], 'R27', 'R27'))
+        self.assertEqual((facts['order'], facts['running'], facts['running_by_kernel_argument']), (['S', 'R27', 'R13'], 'R27', 'S'))
         self.assertEqual(facts['origin_pins'], dict(R27=False, R13=False, S=True))
         self.assertEqual((facts['pinned'], facts['bootc']['rollback'], facts['bootc']['rollback_queued']), (['S'], 'S', True))
         self.assertEqual((facts['menu_order'], facts['titles_name_the_place']), (['S', 'R27', 'R13'], True))
@@ -572,7 +576,11 @@ class ExpectationsTest(unittest.TestCase):
         result = probe.result(commit='a' * 40)
         self.assertEqual((result['status'], len(result['stages']), len(result['swaps'])), ('passed', 13, 6))
         self.assertEqual(result['orders_seen'], [list(order) for order in rp.ORDERS])
-        self.assertEqual([row['bootconfig_swap'] for row in result['stages'] if row['stage'].endswith('-moved')], ['yes'] * 6)
+        self.assertEqual([row['bootconfig_swap'] for row in result['stages'] if row['stage'].endswith('-moved')], ['no'] * 6)
+        # After a move the kernel's link names the row that took the running row's place: reported, not judged.
+        self.assertEqual([row['kernel_argument_resolves_to'] for row in result['stages'] if row['stage'].endswith('-moved')], list(rp.MOVES))
+        self.assertTrue(all(row['kernel_argument_resolves_to'] == row['running'] for row in result['stages']
+                            if not row['stage'].endswith('-moved')))
         first = result['stages'][1]
         self.assertEqual((first['order'], first['running'], first['bootc_rollback'], first['rollback_queued'], first['pinned']),
                          (['S', 'R27', 'R13'], 'R27', 'S', True, ['S']))
@@ -628,6 +636,13 @@ class ExpectationsTest(unittest.TestCase):
             self.order.reverse()
         found = points(probe_walk(self.disk(restart=reorder)))
         self.assertIn('a restart leaves the order as it was', found)
+
+    def test_a_start_whose_kernel_argument_names_another_row_is_contradicted(self):
+        def elsewhere(self, choice=None):
+            walk.LaptopDisk.restart(self, choice)
+            self.started_at = 2
+        self.assertEqual(points(probe_walk(self.disk(restart=elsewhere))),
+                         ['at a start, rpm-ostree, bootc and the kernel argument name the same running row'])
 
     def test_wrong_bootc_slots_are_contradicted(self):
         def inverted(self):
@@ -692,6 +707,97 @@ class ExpectationsTest(unittest.TestCase):
         self.assertEqual(result['status'], 'contradicted')
         self.assertEqual({row['point'] for row in result['expectations']['contradicted']}, {'the expected row runs'})
         self.assertEqual(len(result['stages']), 13)  # the walk went on and recorded every stage
+
+
+RUN = ROOT / 'reviews/22c-ways-back-after-update/runs/reorder-probe-43470161858'
+# What a capture says about the disk, by role; boot ids and timestamps are no part of it.
+COMPARED = ('order', 'running', 'pinned', 'staged', 'transaction', 'bootc', 'menu_order', 'title_indexes', 'titles_name_the_place',
+            'origin_pins', 'running_by_kernel_argument', 'loader_link', 'ostree_boot_links')
+
+
+class CapturesTest(unittest.TestCase):
+    """The modelled disk of the local walk reproduces every committed capture of the VM probe (run 43470161858).
+
+    Stage 1a's fake host gets its own fixture test (brief B10); this one keeps the walk's model honest.
+    """
+
+    def captured(self, stage, suffix='-observed.json'):
+        return json.loads((RUN / (stage + suffix)).read_text())
+
+    def reproduce(self, disk):
+        """Take the disk through the run's steps; return the stages where it differs from the capture."""
+        result = json.loads((RUN / 'reorder-probe-result.json').read_text())
+        roles = {walk.vm.ke.key(row): role for role, row in disk.rows.items()}
+        differing = []
+
+        def compare(stage):
+            facts, capture = rp.observe(roles, disk.snapshot(), disk.layout()), self.captured(stage)
+            fields = [name for name in COMPARED if facts[name] != capture[name]]
+            entries = lambda value: [(e['file'], e['title'], e['title_index'], e['version'], e['role']) for e in value['entries']]
+            if entries(facts) != entries(capture):
+                fields.append('entries')
+            if fields:
+                differing.append((stage, fields))
+        stages = [row['stage'] for row in result['stages']]
+        self.assertEqual(stages, ['walk-0-start'] + [f'walk-{n}-{kind}' for n in range(1, 7) for kind in ('moved', 'booted')]
+                         + ['menu-stock', 'after-menu-booted'])
+        compare('walk-0-start')
+        for number in range(1, 7):
+            done, capture = None, self.captured(f'walk-{number}-moved', '-set-default.json')
+            done = disk.set_default(int(capture['argv'][-1]))
+            if (done['argv'], done['returncode'], done['stdout'].strip()) != (capture['argv'], capture['returncode'], capture['stdout'].strip()):
+                differing.append((f'walk-{number}-moved', ['set-default output']))
+            journal = self.captured(f'walk-{number}-moved', '-journal-after.json')
+            if [row['MESSAGE'] for row in disk.journal] != [row['MESSAGE'] for row in journal]:
+                differing.append((f'walk-{number}-moved', ['journal']))
+            compare(f'walk-{number}-moved')
+            disk.restart()
+            compare(f'walk-{number}-booted')
+        disk.grubenv['menu_show_once'] = '1'
+        self.assertEqual(result['menu']['choice']['lines'], [line.strip() for line in disk.screen().splitlines() if 'ostree' in line])
+        for keys in result['menu']['choice']['keys']:
+            disk.key([keys])
+        compare('menu-stock')
+        disk.restart()
+        compare('after-menu-booted')
+        return differing
+
+    def test_the_modelled_disk_reproduces_every_capture(self):
+        self.assertEqual(self.reproduce(walk.LaptopDisk(walk.retained('aresos'))), [])
+
+    def test_a_disk_that_appends_or_names_other_slots_does_not(self):
+        def append(self, index):
+            self.order.append(self.order.pop(index))
+            return self.wrote(index)
+        differing = self.reproduce(type('Disk', (walk.LaptopDisk,), dict(set_default=append))(walk.retained('aresos')))
+        self.assertEqual(differing[0][0], 'walk-1-moved')
+        self.assertIn('order', differing[0][1])
+
+        def last_other(self):
+            state = walk.LaptopDisk.snapshot(self)
+            rows = [row for row in state['rpm']['deployments'] if not row['booted']]
+            state['bootc']['status']['rollback']['ostree'].update(checksum=rows[-1]['checksum'], deploySerial=rows[-1]['serial'])
+            return state
+        differing = self.reproduce(type('Disk', (walk.LaptopDisk,), dict(snapshot=last_other))(walk.retained('aresos')))
+        self.assertTrue(differing and all('bootc' in fields for stage, fields in differing if fields != ['set-default output']))
+
+    def test_the_captures_are_complete_and_hold_no_identifier_or_token(self):
+        index = json.loads((RUN / 'index.json').read_text())
+        self.assertEqual(sorted(index['files'] + ['index.json']), sorted(path.name for path in RUN.iterdir()))
+        self.assertEqual((index['status'], len(index['audits'])), ('contradicted', 21))
+        self.assertTrue(all(row['protected_disk_equals_baseline'] for row in index['audits']))
+        uuid = re.compile(r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}')
+        secret = re.compile(r'gh[pousr]_[A-Za-z0-9]{20,}|github_pat_|\$(?:6|5|y)\$|x-access-token')
+        for path in RUN.iterdir():
+            text = path.read_text(encoding='utf-8')
+            with self.subTest(file=path.name):
+                self.assertIsNone(uuid.search(text))
+                # index.json lists the patterns the captures were checked for.
+                self.assertIsNone(secret.search(text) if path.name != 'index.json' else None)
+        # The run's only contradictions are the probe's own first reading of the kernel argument, corrected since.
+        result = json.loads((RUN / 'reorder-probe-result.json').read_text())
+        self.assertEqual({(row['stage'].split('-')[-1], row['point']) for row in result['expectations']['contradicted']},
+                         {('moved', 'rpm-ostree, bootc and the kernel argument name the same running row')})
 
 
 class MenuTest(unittest.TestCase):

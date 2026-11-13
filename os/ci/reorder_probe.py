@@ -189,9 +189,16 @@ class Probe:
         self.expect(stage, 'one boot entry per deployment', sorted(facts['menu_order']) == sorted(START), facts['menu_order'])
         self.expect(stage, "the stock's boot options stay the same", facts['options'].get('S') == first['options'].get('S'),
                     dict(now=facts['options'].get('S'), first=first['options'].get('S')))
-        self.expect(stage, 'rpm-ostree, bootc and the kernel argument name the same running row',
-                    facts['running'] == facts['bootc']['booted'] == facts['running_by_kernel_argument'],
-                    dict(rpm=facts['running'], bootc=facts['bootc']['booted'], kernel=facts['running_by_kernel_argument']))
+        # The kernel's `ostree=` argument is a link named by the row's place in the list. It names the
+        # running row only until the first reorder of that boot: afterwards the place holds another row
+        # (run 43470161858). So it is judged at a start and only reported after a move.
+        if self.last is None or facts['boot_id'] != self.last['boot_id']:
+            self.expect(stage, 'at a start, rpm-ostree, bootc and the kernel argument name the same running row',
+                        facts['running'] == facts['bootc']['booted'] == facts['running_by_kernel_argument'],
+                        dict(rpm=facts['running'], bootc=facts['bootc']['booted'], kernel=facts['running_by_kernel_argument']))
+        else:
+            self.expect(stage, 'rpm-ostree and bootc name the same running row', facts['running'] == facts['bootc']['booted'],
+                        dict(rpm=facts['running'], bootc=facts['bootc']['booted']))
         others = [role for role in facts['order'] if role != facts['running']]
         self.expect(stage, "bootc's rollback slot is the first other deployment", facts['bootc']['rollback'] == others[0],
                     dict(rollback=facts['bootc']['rollback'], order=facts['order'], running=facts['running']))
@@ -265,7 +272,7 @@ class Probe:
         table = [dict(stage=row['stage'], reached=row['reached'], order=row['order'], running=row['running'],
                       bootc_booted=row['bootc']['booted'], bootc_rollback=row['bootc']['rollback'],
                       rollback_queued=row['bootc']['rollback_queued'], boot_order=row['bootc']['boot_order'],
-                      pinned=row['pinned'], origin_pins=row['origin_pins'],
+                      pinned=row['pinned'], origin_pins=row['origin_pins'], kernel_argument_resolves_to=row['running_by_kernel_argument'],
                       titles=[dict(file=entry['file'], title=entry['title'], role=entry['role']) for entry in row['entries']],
                       titles_name_the_place=row['titles_name_the_place'], menu_order_is_list_order=row['menu_order_is_list_order'],
                       other_options_unchanged=row['other_options_unchanged'],

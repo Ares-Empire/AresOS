@@ -74,7 +74,7 @@
       "path": "os/tests/test_owner_step_limits.py"
     },
     {
-      "sha256": "8c4f4a91f5aa0bdff3af573b15b5570701312ee7ca0eee13a486bceac5a684cb",
+      "sha256": "68257a10fc920e3813813d12462b2829cfdd30554c305e5184e3426707833061",
       "path": "os/tests/test_owner_walk.py"
     },
     {

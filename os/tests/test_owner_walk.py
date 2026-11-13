@@ -83,10 +83,13 @@ class LaptopDisk:
 
     Written from what the brief expects of ostree 2026.4 and bootc 1.16.13 (set-default removes the
     row and inserts it first; the rollback slot is the first other row, queued when it comes before
-    the running one; the first row starts; entry files count down from the first row). It lets the
-    real probe control flow run here. Whether it is right is what the VM probe's captures decide.
+    the running one; the first row starts; entry files count down from the first row), and then held
+    to the VM probe's captures (run 43470161858; test_ways_back_probe.CapturesTest): the three rows
+    share one boot checksum, so a reorder swaps only the links under /ostree/boot.0 ("bootconfig
+    swap: no"), the entry files stay, and the kernel's `ostree=` link, named by the place the running
+    row had at its start, resolves to whichever row holds that place now.
     """
-    ENTRY = ('title Bazzite (ostree:{place})\nversion {number}\noptions ostree=/ostree/boot.1/default/{boot}/{place} '
+    ENTRY = ('title Bazzite (ostree:{place})\nversion {number}\noptions ostree=/ostree/boot.0/default/{boot}/{place} '
              'console=tty0 console=ttyS0,115200n8 root=UUID=00000000-0000-4000-8000-000000000000 rootflags=subvol=root rw\n'
              'linux /ostree/default-{boot}/vmlinuz\ninitrd /ostree/default-{boot}/initramfs.img\n')
 
@@ -95,6 +98,7 @@ class LaptopDisk:
         self.rows = dict(R27=new, R13=old, S=stock)
         self.order, self.running, self.boot_number = ['R27', 'R13', 'S'], 'R27', 1
         self.journal, self.grubenv, self.cursor, self.sets = [], {}, None, []
+        self.started_at, self.links = 0, 1  # the running row's place at its start; /ostree/boot.0 -> boot.0.<links>
 
     def path(self, role):
         row = self.rows[role]
@@ -110,6 +114,8 @@ class LaptopDisk:
         state = self.machine(*[dict(copy.deepcopy(self.rows[role]), booted=role == self.running, staged=False)
                                for role in self.order])
         state['bls'] = self.entries()
+        # bootc 1.16.13: the order reads "rollback" whenever the running row is not first.
+        state['bootc']['spec']['bootOrder'] = 'default' if self.order[0] == self.running else 'rollback'
         return state
 
     def inventory(self):
@@ -118,11 +124,10 @@ class LaptopDisk:
                      deployment=e['deployment'], content=e['content']) for e in self.entries()]
 
     def layout(self):
-        place = self.order.index(self.running)
-        link = f"/ostree/boot.1/default/{'b' * 64}/{place}"
+        link = f"/ostree/boot.0/default/{'b' * 64}/{self.started_at}"
         return dict(boot_id=f'boot-{self.boot_number}', cmdline='ostree=' + link + ' rw', running_link=link,
-                    running=self.path(self.running), loader_link='loader.1',
-                    loader_directories={'loader': [], 'loader.1': []}, ostree_boot_links={'boot.1': 'boot.1.1'},
+                    running=self.path(self.order[self.started_at]), loader_link='loader.0',
+                    loader_directories={'loader': [], 'loader.0': []}, ostree_boot_links={'boot.0': f'boot.0.{self.links}'},
                     ostree_boot_targets={}, grubenv=dict(argv=[], returncode=0, stdout='', stderr=''),
                     origins={f"{row['checksum']}.{row['serial']}.origin": '[origin]\ncontainer-image-reference=' + row['container-image-reference']
                              + ('\n\n[libostree-transient]\npinned=true\n' if row['pinned'] else '\n') for row in self.rows.values()},
@@ -137,7 +142,8 @@ class LaptopDisk:
     def wrote(self, index):
         """ostree's report of a list write, printed and logged."""
         self.sets.append(index)
-        message = 'Bootloader updated; bootconfig swap: yes; bootversion: boot.1.1, deployment count change: 0'
+        self.links = 1 - self.links
+        message = f'Transaction complete; bootconfig swap: no; bootversion: boot.0.{self.links}, deployment count change: 0'
         self.journal.append(dict(MESSAGE=message, SYSLOG_IDENTIFIER='ostree', _COMM='ostree'))
         return dict(argv=['ostree', 'admin', 'set-default', str(index)], returncode=0, stdout=message + '\n', stderr='')
 
@@ -161,6 +167,7 @@ class LaptopDisk:
         ids = [pathlib.PurePosixPath(e['file']).stem for e in self.entries()]
         place = choice if choice is not None else ids.index(once) if once else 0
         self.running, self.boot_number, self.journal, self.cursor = self.order[place], self.boot_number + 1, [], None
+        self.started_at = place
 
 
 def walk(ps2=False, route='qualification'):
