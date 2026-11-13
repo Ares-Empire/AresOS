@@ -1,49 +1,41 @@
 <!-- POST18D CURRENT START -->
 # Handover
 
-- **Addenda c–g:** done. Credential exclusion, service-prepared asking-read binding,
-  withheld-form refusal, approved latency ceilings and measured-cost removal
-  probe are implemented and SAFE in scoped reviews. Editors stay read under the
-  owner's board #216 acceptance. No binding/refusal change is open.
-- **Post-18d:** base-URL/SVG class, main/slim integration, group 12, measured
-  expiry optimization and sharding are done. Main is merged through `b2b51107`.
-  Candidate `0ca3f6d7` is superseded after its fixture failure; the reviewed
-  correction is the new candidate, with full local preflight required before push.
-  Runtime remains `e0cc9846` / `b9de9a97…` and is unchanged by the proposed fixture fix.
-  On that head, **268 Python, 370 Node/artifact and 315 removal probes pass**, every
-  mutation baseline passing. Generator, diff and exact-unit checks pass.
-- **Mail diagnostic:** `43513676712` passed all four suites and eight complete
-  fault shards; longest job **54m53s**, within the 60-minute job budget.
-- **Green twice on the superseded candidate:** base `43521486682` (309 tests each),
-  boundary `43521486793` (17 interactive
-  cases and 20 boundary unit tests each attempt), qualification `43521486667`
-  (47 Python and 365 Node tests each). Their blockers are closed.
-- **Fixture correction, both scoped reviews SAFE:** the preexisting-dialog case
-  now requires the intended reload refusal, waits for a new document and two
-  agreeing reference views, checks the old reference still refuses, then clicks
-  once. All original receiver assertions remain; new zero-extra-arrival checks
-  are added. Three plain-Node regressions pass and removing the settling wait is
-  killed with a passing baseline. Production runtime/bindings/refusals are unchanged.
-- **Previous pair handled:** push `43521476596` failed the reload-view race;
-  PR `43521486785` passed. The pair is not accepted. Both watches are finished.
-  Own superseded Mail `43521486798` was cancelled before attempt 2. No CI runs are
-  currently in flight; previous base/boundary/qualification passes are intermediate.
-- **Budget:** **251 / about 280** Chrome workflow runs, including this final pair.
-- **Exact next step:** run `.work/post18d/final-local.py` on this new candidate
-  before its normal push (expected 268 Python, 373 Node/artifact, 316 mutations).
-  After green local checks, push to start a fresh full Chrome pair and the four
-  named Control workflows, then repeat the four workflows on that exact head.
-  Batch browser evidence in the new pair. Independently audit both installs from
-  both Chrome runs, all 92 original round-3 names and both latency profiles. Update
-  this Handover/receipts with `[skip ci]` at finished steps. Keep PR #27 draft.
+- **Addenda c–g / implementation:** done and SAFE. Base-URL/SVG, credentials,
+  prepared asking reads, withheld-form refusal, slim integration/group 12,
+  measured latency/approved ceilings and sharding are complete. Editors stay read
+  under the owner's board #216 acceptance. No binding/refusal change is open.
+- **Final code head:** **`7d9c0b95`**; later commits are evidence/report only.
+  Full local preflight passes **268 Python, 373 Node/artifact, 316 mutations**,
+  every mutation baseline passing, plus generator/diff/exact-unit checks.
+  Runtime stays `e0cc9846`, hash `b9de9a97…`; main is merged through `b2b51107`.
+- **Fixture correction closed:** old pair `43521476596`/`43521486785` failed/passed
+  a post-reload revision-3→4 race. The corrected fixture waits for a changed
+  document and stable view, retains strict stale/receiver checks and inputs once.
+  Both scoped reviews are SAFE. Old Mail was cancelled before obsolete attempt 2.
+  Old base/boundary/qualification greens are intermediate, not this head's evidence.
+- **In flight on this head:** Chrome push **`43530057774`** (watch `36280`), PR
+  **`43530063897`** (`24021`); base **`43530063893`** (`85505`), Mail
+  **`43530064032`** (`65418`), boundary **`43530063854`** (`37034`), qualification
+  **`43530064053`** (`98323`). One blocking watcher each. Four shared watchers
+  request attempt 2 only after attempt 1 succeeds; Chrome runs once each.
+- **Budget:** **253 / about 280** Chrome runs, including both final attempts.
+- **Exact next step:** resume these watchers; if stopped, start one blocking watch
+  per run. Inspect `.work/post18d/acceptance/` receipts before requesting a rerun.
+  Require two green executions of each named Control workflow and the whole Chrome
+  pair. Then run `.work/post18d/fetch-final-chrome.py RUN` on each Chrome result:
+  metadata only, both independent receiver audits, all 92 original round-3 names,
+  matching frozen runtime and both latency gates. Commit receipts/update this
+  Handover with `[skip ci]` at each finished step. Keep PR #27 draft; never merge it.
 
-# Post-18d integration — fixture correction and final repetitions pending
+# Post-18d integration — final repetitions pending
 
 **Current status:** the base-URL/SVG class, credential/late-reader work, slim
 integration and reported review FIXes are closed. The runtime is frozen at
 `e0cc9846` (`b9de9a97d18c56090421614364239471ef82b8c1002ee1696f86ba39d2afb3b4`).
 The measured regression reference and CI gate use the ceilings set by the lead
-(mac-aresos-control, 2026-11-13, addendum-g). Final acceptance is blocked by the reload-view fixture correction below; PR #27
+(mac-aresos-control, 2026-11-13, addendum-g). The fixture correction is closed in scoped reviews; final acceptance on the new
+head is pending. PR #27
 remains draft.
 
 **Done:**
@@ -78,9 +70,9 @@ remains draft.
   observation wait is unchanged. The gate validates paired samples and rejects
   missing/invalid required metrics; only named sparse diagnostics are optional.
 
-**Verified on final code head `0ca3f6d7`:** all 268 Chrome Python tests,
-370 Node/artifact tests and 315 removal probes pass, with every mutation baseline
-passing. [Commands/results](records/post18d/final-local-0ca3f6d7.json). All scoped runtime
+**Verified on final code head `7d9c0b95`:** all 268 Chrome Python tests,
+373 Node/artifact tests and 316 removal probes pass, with every mutation baseline
+passing. [Commands/results](records/post18d/final-local-7d9c0b95.json). All scoped runtime
 FIXes have SAFE package/security re-checks; the small Mail fixture/shard change
 has a SAFE package review. Focused Linux247 (`43488005234`) passes both installs,
 including 66 destination/context sequences, 27 animated defaults and addendum-f.
@@ -129,7 +121,7 @@ sharded pair. All 92 original named cases and their required current shards are
 listed in [round3-required-cases.json](records/post18d/round3-required-cases.json).
 The stopgap cause is per-input slowdown plus the larger unsplit matrices.
 
-**Final CI progress:** [base](records/post18d/final-base-43521486682.json),
+**Superseded candidate CI progress (not final acceptance):** [base](records/post18d/final-base-43521486682.json),
 [boundary](records/post18d/final-boundary-43521486793.json)
 and [qualification](records/post18d/final-qualification-43521486667.json) pass
 both attempts on `0ca3f6d7`. Base reports 309 tests each. Boundary reports `CONTROL_INTERACTIVE_ASK_PASS cases=17`
@@ -158,19 +150,20 @@ parser revisions, no retry after an uncertain dispatch, and an unrelated stale
 error refusing. [Output](records/post18d/review-reload-local.txt). Removing the
 settling condition is killed with a passing baseline
 ([mutation](records/post18d/review-reload-mutation.json)). Both scoped [package](BUILD-POST18D-RELOAD-REVIEW.md) and
-[security](BUILD-POST18D-RELOAD-SECURITY.md) reviews are SAFE. A new final head is in local preflight. No production runtime or asking/form protection changed.
+[security](BUILD-POST18D-RELOAD-SECURITY.md) reviews are SAFE. The corrected final head is `7d9c0b95`, with full local preflight green and CI running. No production runtime or asking/form protection changed.
 Own superseded Mail `43521486798` was cancelled; its watch exited 1 with
 `conclusion=cancelled` and did not request attempt 2.
 
-**Still required:** Mail twice and the Chrome pair on final code head
-`0ca3f6d7`, with both Chrome installs and independent receiver audits. The pair
-and four other runs are listed in the Handover and
-[run inventory](records/post18d/final-0ca3f6d7-runs.json). Replacement diagnostics
-base/boundary/qualification pass; the complete
-[Mail diagnostic passes](records/post18d/mail-43513676712.json) (12/12 jobs,
-54m53s longest). No final green or ready claim. Chrome ledger: **251 / about 280**.
-The normal final code push started two runs (push and PR), with triggers unchanged.
-Report before exceeding 280. No local browser/profile/container has been accessed.
+**Still required on `7d9c0b95`:** base, Mail, boundary and qualification twice,
+plus the full Chrome pair in both installs with independent receiver audits.
+[Run inventory](records/post18d/final-7d9c0b95-runs.json); all six current watchers
+are listed in the Handover. Earlier shared passes and the successful old Chrome
+companion remain intermediate evidence. Complete Mail diagnostic `43513676712`
+passed 12/12 jobs, longest 54m53s, within the 60-minute budget
+([receipt](records/post18d/mail-43513676712.json)). No final green or ready claim.
+Chrome ledger **253 / about 280**. This normal push started two runs (push and PR),
+with triggers unchanged; report before exceeding 280. No local browser/profile
+or container has been accessed.
 
 The latest main merge changes no Control source, generated tools or Control
 workflow. Generator and full-unit checks pass after the merge;
