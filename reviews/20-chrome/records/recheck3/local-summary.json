@@ -4,10 +4,10 @@
       "command": "node --test control/chrome_tests/*.test.mjs",
       "exit_code": 0,
       "output": "local-node.txt",
-      "sha256": "2f3a748f84d72ae8e4c11ebd8fde96e9ba21e178ec647aedcb9cbcb43d5d7e1a",
+      "sha256": "88a6d16a2cda10efd6881ef66f54b3630c0710b4350ce54fe0591a137077c8dd",
       "tail": [
-        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.213875ms)",
-        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.798084ms)",
+        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.205375ms)",
+        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.90425ms)",
         "\u2139 tests 302",
         "\u2139 suites 0",
         "\u2139 pass 302",
@@ -15,7 +15,7 @@
         "\u2139 cancelled 0",
         "\u2139 skipped 0",
         "\u2139 todo 0",
-        "\u2139 duration_ms 7291.397042"
+        "\u2139 duration_ms 7282.467042"
       ]
     },
     {
@@ -40,7 +40,7 @@
       "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck3/mutations.json",
       "exit_code": 0,
       "output": "local-mutations.txt",
-      "sha256": "6b64676e0d829e0f48c2c6287c957b98d1c9a3d516f3a82b01e17f23b65fd532",
+      "sha256": "7e15ebdaa64e6119a01fdb36b629aa5dfe74680455ee908577cd417d736ab570",
       "tail": [
         "recheck3-unknown-default MUTATION REJECTED",
         "recheck3-rendered-compose MUTATION REJECTED",
@@ -51,7 +51,7 @@
         "recheck3-visible-descendant MUTATION REJECTED",
         "recheck3-compose-question MUTATION REJECTED",
         "recheck3-compose-extension MUTATION REJECTED",
-        "202 mutations rejected; every baseline passed"
+        "203 mutations rejected; every baseline passed"
       ]
     },
     {
@@ -106,6 +106,38 @@
         "\u2139 todo 0",
         "\u2139 duration_ms 37.877167"
       ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'recheck3 every hyperlink' control/chrome_tests/page.test.mjs",
+      "exit_code": 1,
+      "output": "svg-capture-before.txt",
+      "sha256": "efd20ce707c7f16bf912123dbc3560e53d80cf64f92ca49b96cd80c0caa9e039",
+      "tail": [
+        "      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: 'https://fixture.test/delete',",
+        "    expected: null,",
+        "    operator: 'strictEqual',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'recheck3 every hyperlink' control/chrome_tests/page.test.mjs",
+      "exit_code": 0,
+      "output": "svg-capture-after.txt",
+      "sha256": "0f9e202b68dbe3528d007ffc80a0bae97110867c7b8be6c2fff3dee4c1e55ddb",
+      "tail": [
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 133.689792"
+      ]
     }
   ],
   "probe": {
@@ -128,6 +160,7 @@
     "First fixture compile check failed because its test generator overwrote the fixture mode; corrected the test parameter ordering.",
     "First complete Node run failed the required-inventory scan; added the new matrix module to the exact inventory scanner.",
     "First mutation audit stopped at its old addEventListener-list edit selector; updated that removal to remove the whole dedicated listener wrapper. No original assertion was removed.",
-    "A further strict class probe failed on a leading pre-line newline after a block. Preserve the block separator separately from the significant newline; block-leading br is covered too. Source 939f9d5b and its two own cancelled Chrome runs are superseded. The original class assertions stay strict."
+    "A further strict class probe failed on a leading pre-line newline after a block. Preserve the block separator separately from the significant newline; block-leading br is covered too. Source 939f9d5b and its two own cancelled Chrome runs are superseded. The original class assertions stay strict.",
+    "Both 93148a91 Linux runs passed the 40 mixed-step rows, then failed SVG href-self at one unapproved receiver arrival. The chrome.dom shadow lookup requires HTMLElement and threw for SVGElement before stopDefault. A strict SVG class/API double reproduces the failure; guarding that lookup fixes it without changing any receiver assertion."
   ]
 }

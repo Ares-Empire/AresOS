@@ -203,7 +203,7 @@
       // Native-created roots may have bypassed the MAIN attachShadow wrapper.
       // Install capture while this composed event is still above the root.
       if(nodeRoot!==document){watch(nodeRoot);return;}
-      const shadow=globalThis.chrome?.dom?.openOrClosedShadowRoot(element);
+      const shadow=element instanceof HTMLElement&&globalThis.chrome?.dom?.openOrClosedShadowRoot(element);
       if(shadow)watch(shadow);
     }else if(nodeRoot!==root&&root!==element)return;
     if(capturedBefore(event,root))return;

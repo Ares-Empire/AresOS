@@ -63,6 +63,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     appendChild(node){node.parentNode=this;this.firstElementChild??=node;return node;}
   }
   class HTMLElement extends Element {click(){originalDispatch.call(this,new Event('click'));}get onclick(){return this.fixtureClick;}set onclick(handler){this.fixtureClick=handler;if(!this.fixtureClickListener){this.fixtureClickListener=event=>this.fixtureClick?.call(this,event);nativeListen.call(this,'click',this.fixtureClickListener);}}}
+  class SVGElement extends Element {}
   class HTMLInputElement extends HTMLElement {}
   class HTMLFormElement extends HTMLElement {
     tagName='FORM'; method='post';action='/receive';valid=true;
@@ -86,7 +87,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     read(){throw Error('Clipboard read is forbidden');}readText(){throw Error('Clipboard read is forbidden');}
   }
   const clipboardObject=new Clipboard(),nativeClipboard={write:Clipboard.prototype.write,writeText:Clipboard.prototype.writeText};
-  const globals={window,document,...(clipboard?{Clipboard,navigator:{clipboard:clipboardObject}}:{}),performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,DocumentFragment:Node,Element,HTMLElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document,ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>hostShadows.get(host)}}}:browserDOM?{Document}:{})};
+  const globals={window,document,...(clipboard?{Clipboard,navigator:{clipboard:clipboardObject}}:{}),performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,DocumentFragment:Node,Element,HTMLElement,SVGElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document,ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>{if(!(host instanceof HTMLElement))throw TypeError('chrome.dom requires an HTMLElement');return hostShadows.get(host);}}}}:browserDOM?{Document}:{})};
   const dialogCalls=[],dialogReports=[],dialogValues=[],dialogValue=value=>value===undefined?'':`${value}`;if(dialogs)Object.assign(globals,{alert:({alert(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogValues.push([dialogValue(value),dialogValue(initial)]);dialogCalls.push('prompt');return 'native response';}}).prompt});const nativeDialogs=dialogs?{alert:globals.alert,confirm:globals.confirm,prompt:globals.prompt}:{};
   let guard;const isolated=vm.createContext({...globals,fixtureDialogPause:()=>onDialogBoundary(guard)});
   vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();'),isolated);
@@ -106,7 +107,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,clipboard:clipboardObject,nativeClipboard,clipboardCalls,clipboardOutcome,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,Node,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,nativeAttach,nativeAppend,nativeListen,nativeHTMLSetter,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,clipboard:clipboardObject,nativeClipboard,clipboardCalls,clipboardOutcome,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,Node,SVGElement,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,nativeAttach,nativeAppend,nativeListen,nativeHTMLSetter,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
 
 test('private factory creation changes no prototype before its cleanup handle can be retained',()=>{
@@ -816,7 +817,7 @@ test('recheck3 every wrapped native mix captures both listener insertion orderin
 test('recheck3 every hyperlink type loses both href authorities and restores only unchanged attributes',async()=>{
   const xlink='http://www.w3.org/1999/xlink';
   for(const type of ['A','AREA','svg-href','svg-xlink','svg-both'])for(const target of ['_self','_blank','sink']){
-    const f=fixture({relay:true,nativeShadows:true}),link=new f.HTMLElement();link.tagName=type.startsWith('svg')?'a':type;link.textContent='Delete';link.target=target;link.ping='https://fixture.test/ping';
+    const f=fixture({relay:true,nativeShadows:true}),link=type.startsWith('svg')?new f.SVGElement():new f.HTMLElement();link.tagName=type.startsWith('svg')?'a':type;link.textContent='Delete';link.target=target;link.ping='https://fixture.test/ping';
     if(type.startsWith('svg')){link.namespaceURI='http://www.w3.org/2000/svg';link.localName='a';}
     if(type!=='svg-xlink')link.href='https://fixture.test/delete';
     if(['svg-xlink','svg-both'].includes(type))link.setAttributeNS(xlink,'xlink:href','https://fixture.test/legacy');

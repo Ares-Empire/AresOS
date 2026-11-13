@@ -3,9 +3,9 @@
 **Read:** briefs `20-recheck-fixes-3.md` and `-3b.md` govern this round on `pkg/20-chrome`.
 Fetched `origin/main` and read its `AGENTS.md` and `briefs/20-chrome.md` with `git show`;
 also read SECURITY-RECHECK-3, the prior report/known limits and briefs 2/2b/2c.
-All three classes are in one code push. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
+The first code push included all three classes. A leading-newline probe and then the Linux SVG case required two follow-up corrections. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
 stays draft and unmerged; its existing conflict with main is not resolved in this brief.
-Installed runtime hash: `ab2ba5691408fc1aeef0fb6dd6e5691f85319fa37548c5cd191c46ecd8d9c9e6`.
+Installed runtime hash: `d791eaa8686ee0f2b84efdfe1b5cdd167bee4360c2f607ce8b692d13e50d5a69`.
 Linux acceptance on the new source is pending; historical green sections below do not establish it.
 
 ## Done (read)
@@ -19,7 +19,8 @@ Linux acceptance on the new source is pending; historical green sections below d
 - `guard.js`: native `a`, `area` and SVG `a` lose hyperlink authority synchronously, including both SVG `href`
   and namespaced `xlink:href` when both exist. Ping is quarantined. Native submit/reset controls (including image
   submitters and external `form=` buttons) are disabled through activation. Repeated interceptions restore their
-  original state once. Destinations restore only if still carrying the guard's change. Unknown defaults, including
+  original state once. Destinations restore only if still carrying the guard's change. Shadow-root lookup accepts only HTMLElements,
+  as the [Chrome API requires](https://developer.chrome.com/docs/extensions/reference/api/dom); SVG capture now reaches neutralisation rather than throwing. Unknown defaults, including
   checkbox/radio preactivation, never receive a false stopped result. The existing narrow DNR rule is unchanged.
 - `reader.js`: exposes area/SVG link destinations as strings, names and input targets so the approved action can
   run normally. Image-map bounds and hit checking respect preceding map regions. Compose text walks only safe
@@ -38,7 +39,7 @@ Linux acceptance on the new source is pending; historical green sections below d
 
 ## Verified (run)
 
-Local-only verification so far: **302 Node tests pass**, **202 removal mutations rejected, every baseline passing**,
+Local-only verification so far: **302 Node tests pass**, **203 removal mutations rejected, every baseline passing**,
 128 generated production-code mixes pass, generated artifacts match definitions and `git diff --check` passes.
 [Exact commands, output tails/hashes and corrected local attempts](records/recheck3/local-summary.json) retain the results.
 The full plain-Python suite passes **231 tests in 580.628 s, OK**; Linux CI is still pending. Five artifact-stream tests pass. No local browser,
@@ -66,7 +67,11 @@ was introduced.
 Opening ledger: **209 distinct control-chrome IDs / 210 executions**. The first own pair
 (`43357353936`, `43357386934`, source `939f9d5b`) was cancelled after the new leading-newline probe exposed an alias;
 [completed receipts](records/recheck3/superseded-runs.json) retain the history. They are not acceptance evidence.
-The replacement pair brings this to **213 IDs / 214 executions**, within the approximate
+The replacement pair (`43358222546`, `43358273763`, source `93148a91`) failed strictly at SVG href-self: one
+receiver arrival before approval. Both had passed all 40 mixed-step rows and the HTML a/area default cases.
+[Raw-derived failure evidence](records/recheck3/svg-browser-failure.json) and the before/after local API-brand probe
+retain the cause and fix; no failure is counted as acceptance. The next pair brings this to
+**215 IDs / 216 executions**, within the approximate
 235-run budget and below the 245 notice threshold. Each CI run uses one blocking `gh run watch`, without
 turn-by-turn status polling. Report-only pushes use `[skip ci]`. Closing run IDs, exact logs and `.work/` inventory
 will replace this pending section after verification. No main/PR merge, force-push or qualification-data publishing

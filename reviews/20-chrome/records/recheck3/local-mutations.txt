@@ -187,6 +187,7 @@ recheck2c-owner-exact-url MUTATION REJECTED
 recheck2b-transport-reset MUTATION REJECTED
 recheck3-detached-listener MUTATION REJECTED
 recheck3-node-brand MUTATION REJECTED
+recheck3-svg-capture MUTATION REJECTED
 recheck3-area-default MUTATION REJECTED
 recheck3-svg-default MUTATION REJECTED
 recheck3-svg-legacy-default MUTATION REJECTED
@@ -200,4 +201,4 @@ recheck3-leading-br MUTATION REJECTED
 recheck3-visible-descendant MUTATION REJECTED
 recheck3-compose-question MUTATION REJECTED
 recheck3-compose-extension MUTATION REJECTED
-202 mutations rejected; every baseline passed
+203 mutations rejected; every baseline passed

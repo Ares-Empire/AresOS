@@ -224,6 +224,7 @@ case('recheck2b-transport-reset','control/boundary/hostile.py',', errno.ECONNRES
 
 case('recheck3-detached-listener',M,'if(node)watchCreated(this);','',node('page','recheck3 every wrapped native mix'))
 case('recheck3-node-brand',M,'let node=false;try{invoke(root,this,[]);node=true;}catch{}','let node=this instanceof Node;',node('page','recheck3 detached listener branding'))
+case('recheck3-svg-capture',G,'const shadow=element instanceof HTMLElement&&globalThis.chrome?.dom?.openOrClosedShadowRoot(element);','const shadow=globalThis.chrome?.dom?.openOrClosedShadowRoot(element);',node('page','recheck3 every hyperlink'))
 case('recheck3-area-default',G,"['A','AREA'].includes(element.tagName)","['A'].includes(element.tagName)",node('page','recheck3 every hyperlink'))
 case('recheck3-svg-default',G,"element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a'","false",node('page','recheck3 every hyperlink'))
 case('recheck3-svg-legacy-default',G,"if(legacy!==null)removeAttributeNS.call(node,xlink,'href');",'',node('page','recheck3 every hyperlink'))

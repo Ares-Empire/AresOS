@@ -1,0 +1,310 @@
+[
+  {
+    "run": 43358222546,
+    "artifact": "control-chrome-43358222546-1-external",
+    "failure": {
+      "id": "recheck3-default-svg-href-self",
+      "phase": "native default held",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794540240138,
+          "url": "/receive?case=recheck3-default-svg-href-self",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    "result": {
+      "operation_id": "a10a2f96a4b4483c9322f519d4fd0659:0a3bf94ab4c3408396a62475912e85fa",
+      "untrusted_content": {
+        "checked": true,
+        "dispatched": true,
+        "no_change": false,
+        "steps": [
+          {
+            "id": "h1",
+            "kind": "activation_unknown",
+            "document": "7f4816dbb5158f8ea1466921f039dd36",
+            "label": "Delete",
+            "element": "e8",
+            "submitter": null,
+            "cancellable": false,
+            "frame": 0
+          }
+        ],
+        "dialog": null,
+        "uncertain_finish": false,
+        "confirmations": [],
+        "page": {
+          "available": true,
+          "url": "http://fixture.test:8765/receive?case=recheck3-default-svg-href-self",
+          "title": "Synthetic fixture",
+          "notices": [],
+          "change": {
+            "element_present": false
+          }
+        }
+      },
+      "followups": [
+        {
+          "dropped": true,
+          "reason": "The stopped step document changed; no resumption is possible."
+        }
+      ]
+    },
+    "matrix": [
+      {
+        "name": "GROUP 2 first-script natives are guarded in pages and frames",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every hyperlink and form submitter default is neutralised",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 0\n\n    at file:///workspace/control/chrome/ci/recheck3-matrices.mjs:26:14\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async recheck3Matrices (file:///workspace/control/chrome/ci/recheck3-matrices.mjs:22:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:55:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+      }
+    ],
+    "sha256": {
+      "browser.txt": "3f5a888706a230da35500e65f272f6a4969097625d3b89471c6365e66875a96d",
+      "receiver.jsonl": "9c7c7b2020030245d68d1cc480ef2d4394cfe0bb828d00d30aa67d50da320f4b",
+      "page-receiver.jsonl": "3d9a65cf14335d911840210dd990b305f12a454b88eff64a532067c18c51b314",
+      "tool.jsonl": "f77d37390b68d86f98c75806a6e509d77e74e180edcf015576c5ba1ed7e0e313"
+    }
+  },
+  {
+    "run": 43358222546,
+    "artifact": "control-chrome-43358222546-1-policy",
+    "failure": {
+      "id": "recheck3-default-svg-href-self",
+      "phase": "native default held",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794540246860,
+          "url": "/receive?case=recheck3-default-svg-href-self",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    "result": {
+      "operation_id": "8079b42210ca4ff99995b3eec7abcf45:8509455b5a4a48eeaf4d481b7c6d13e1",
+      "untrusted_content": {
+        "checked": true,
+        "dispatched": true,
+        "no_change": false,
+        "steps": [
+          {
+            "id": "h1",
+            "kind": "activation_unknown",
+            "document": "c8d7635847de9d45dc09d32e8b07ca63",
+            "label": "Delete",
+            "element": "e8",
+            "submitter": null,
+            "cancellable": false,
+            "frame": 0
+          }
+        ],
+        "dialog": null,
+        "uncertain_finish": false,
+        "confirmations": [],
+        "page": {
+          "available": true,
+          "url": "http://fixture.test:8765/receive?case=recheck3-default-svg-href-self",
+          "title": "Synthetic fixture",
+          "notices": [],
+          "change": {
+            "element_present": false
+          }
+        }
+      },
+      "followups": [
+        {
+          "dropped": true,
+          "reason": "The stopped step document changed; no resumption is possible."
+        }
+      ]
+    },
+    "matrix": [
+      {
+        "name": "GROUP 2 first-script natives are guarded in pages and frames",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every hyperlink and form submitter default is neutralised",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 0\n\n    at file:///workspace/control/chrome/ci/recheck3-matrices.mjs:26:14\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async recheck3Matrices (file:///workspace/control/chrome/ci/recheck3-matrices.mjs:22:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:55:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+      }
+    ],
+    "sha256": {
+      "browser.txt": "1fc5378ffdf2b148da973c9b4524990008818ebc39800ae8dcc5eeca6beb7679",
+      "receiver.jsonl": "73ff3529bf286642d2e2484e2e686432beb308636dc1299ec937c980e8ca7eb0",
+      "page-receiver.jsonl": "73171ca109fcb97e5b8653883e56cf0cf9ffde2aaca7504183fd747489d7529c",
+      "tool.jsonl": "c506e1a188b23e6a8f058036c142e3614cd5d6c0517964f54fad60d73af0ec8c"
+    }
+  },
+  {
+    "run": 43358273763,
+    "artifact": "control-chrome-43358273763-1-external",
+    "failure": {
+      "id": "recheck3-default-svg-href-self",
+      "phase": "native default held",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794540306945,
+          "url": "/receive?case=recheck3-default-svg-href-self",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    "result": {
+      "operation_id": "a12e995b58fb40b891bd962d95420cb3:f63e64cf879b4be28b2a58e8d15a394f",
+      "untrusted_content": {
+        "checked": true,
+        "dispatched": true,
+        "no_change": false,
+        "steps": [
+          {
+            "id": "h1",
+            "kind": "activation_unknown",
+            "document": "d0efe2049d36a8d6d8bcf73618abb8f6",
+            "label": "Delete",
+            "element": "e8",
+            "submitter": null,
+            "cancellable": false,
+            "frame": 0
+          }
+        ],
+        "dialog": null,
+        "uncertain_finish": false,
+        "confirmations": [],
+        "page": {
+          "available": true,
+          "url": "http://fixture.test:8765/receive?case=recheck3-default-svg-href-self",
+          "title": "Synthetic fixture",
+          "notices": [],
+          "change": {
+            "element_present": false
+          }
+        }
+      },
+      "followups": [
+        {
+          "dropped": true,
+          "reason": "The stopped step document changed; no resumption is possible."
+        }
+      ]
+    },
+    "matrix": [
+      {
+        "name": "GROUP 2 first-script natives are guarded in pages and frames",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every hyperlink and form submitter default is neutralised",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 0\n\n    at file:///workspace/control/chrome/ci/recheck3-matrices.mjs:26:14\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async recheck3Matrices (file:///workspace/control/chrome/ci/recheck3-matrices.mjs:22:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:55:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+      }
+    ],
+    "sha256": {
+      "browser.txt": "0f6969d75208445ff97ca012c8f67a785388f5756abdf76f655cb5a22c092993",
+      "receiver.jsonl": "cd9a463813393ed65d044d38e959a7ffaf2fd6d36d9d163a26e1f2820bd45fb8",
+      "page-receiver.jsonl": "a2bfdeab38ebf8c3383e1db2e5894a7124411fcd2ebfe665b3251055ec68dd7e",
+      "tool.jsonl": "dc1c4a87234f8e568159f2858e6550dfda19ca05dc9eabc5ae25c3dc4117a7c4"
+    }
+  },
+  {
+    "run": 43358273763,
+    "artifact": "control-chrome-43358273763-1-policy",
+    "failure": {
+      "id": "recheck3-default-svg-href-self",
+      "phase": "native default held",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794540309272,
+          "url": "/receive?case=recheck3-default-svg-href-self",
+          "method": "GET",
+          "body": "",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    "result": {
+      "operation_id": "b3db645400834d269eadffb0d2d588ac:0fd48a2bffec471cb314bf438a9e60c4",
+      "untrusted_content": {
+        "checked": true,
+        "dispatched": true,
+        "no_change": false,
+        "steps": [
+          {
+            "id": "h1",
+            "kind": "activation_unknown",
+            "document": "dff35cc5c02fe5f3122eb739a64292c4",
+            "label": "Delete",
+            "element": "e8",
+            "submitter": null,
+            "cancellable": false,
+            "frame": 0
+          }
+        ],
+        "dialog": null,
+        "uncertain_finish": false,
+        "confirmations": [],
+        "page": {
+          "available": true,
+          "url": "http://fixture.test:8765/receive?case=recheck3-default-svg-href-self",
+          "title": "Synthetic fixture",
+          "notices": [],
+          "change": {
+            "element_present": false
+          }
+        }
+      },
+      "followups": [
+        {
+          "dropped": true,
+          "reason": "The stopped step document changed; no resumption is possible."
+        }
+      ]
+    },
+    "matrix": [
+      {
+        "name": "GROUP 2 first-script natives are guarded in pages and frames",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every hyperlink and form submitter default is neutralised",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 0\n\n    at file:///workspace/control/chrome/ci/recheck3-matrices.mjs:26:14\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async recheck3Matrices (file:///workspace/control/chrome/ci/recheck3-matrices.mjs:22:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:55:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+      }
+    ],
+    "sha256": {
+      "browser.txt": "498c7b4c87272319221fa06816d0508b13dbd4bd1b5e6a4cc57b3788675b35e5",
+      "receiver.jsonl": "cd4ec0cbd156da750f3877c7c02a2fec26736f5cead5b156287f921b16feef22",
+      "page-receiver.jsonl": "ef39db0c095b73fc7f7ae3f5dd07e234df06e765c799db98822764bdbc2e581e",
+      "tool.jsonl": "f17c742f4f29225ee41c97e70919ddf6ab8ba7bfb0e346b5b65c75149c5ef9b0"
+    }
+  }
+]
