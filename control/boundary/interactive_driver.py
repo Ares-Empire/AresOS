@@ -33,6 +33,11 @@ def answer_option(screen, answer):
     return matches[0]
 
 
+def selected_option(screen, number, text):
+    return re.search(r'^\s*❯\s*' + re.escape(number) + r'\.\s+' + re.escape(text) + r'\s*$',
+                     screen, re.MULTILINE) is not None
+
+
 class Terminal:
     def __init__(self, run, evidence, socket, cwd, argv, env):
         self.run, self.evidence = run, Path(evidence)
@@ -83,6 +88,9 @@ class Terminal:
         with (self.evidence / 'actions.jsonl').open('a') as log:
             log.write(json.dumps({'screen': shot, 'option': text, 'key': number}) + '\n')
         self.tmux('send-keys', '-t', 'case:0.0', number)
+        # Ink updates selection after the number key. Wait for that rendered
+        # state before Enter, including on a second prompt in the same session.
+        self.wait('selected-' + answer, lambda s: selected_option(s, number, text))
         self.tmux('send-keys', '-t', 'case:0.0', 'Enter')
 
     def prompt(self, marker):

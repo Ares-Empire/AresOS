@@ -1,7 +1,7 @@
 """Quick tests of evidence-critical parsing and the model's turn boundary."""
 import json
 import unittest
-from interactive_driver import answer_option
+from interactive_driver import answer_option, selected_option
 from interactive_model import Script
 
 
@@ -11,6 +11,8 @@ class Answers(unittest.TestCase):
         self.assertEqual(answer_option(screen, 'No'), ('3', 'No'))
         self.assertEqual(answer_option(screen, 'Yes'), ('1', 'Yes'))
         self.assertEqual(answer_option(screen, 'DAA')[0], '2')
+        self.assertTrue(selected_option(screen, '1', 'Yes'))
+        self.assertFalse(selected_option(screen, '3', 'No'))
         with self.assertRaises(AssertionError):
             answer_option('1. Yes, and do something else\n2. No', 'Yes')
 
