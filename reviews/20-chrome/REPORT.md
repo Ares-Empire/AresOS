@@ -1,3 +1,89 @@
+<!-- POST18D CURRENT START -->
+# Post-18d integration — not ready yet
+
+**Current status:** the base-URL/SVG class, credential protection, addendum-f
+asking reads, slim integration and their reported review FIXes are closed.
+Latency targets still need the lead's answer; the measured warm reference,
+populated CI gate and final-head repetitions remain outstanding.
+PR #27 stays draft. Browser tests run only in GitHub Linux containers; no local
+Chrome, Chromium, browser profile or container has been accessed.
+
+**Done:**
+
+- Every supported destination source resolves against the effective native base
+  at action time. Questions bind the absolute destination and actual target;
+  changes re-ask. Native SVG animation/default, restoration and clobbering fixes
+  retain the original receiver checks.
+- Credential-like fields are excluded before any value/status access in every
+  read path. In unwatched documents, text-capable inputs and textareas show
+  filled/empty and require `chrome_read_typed_fields` for one value response.
+  The service prepares the connection, tab, native/private frame documents,
+  reader instance, exact elements and shown labels. Changed eligibility or
+  identities refuse; exact questions and one-call consumption are verified.
+  Values are transient. A form holding withheld content refuses submission,
+  including after an approved read. Editable areas remain readable as addendum-f
+  requires; board #216 and its accepted secret-masking limit are in KNOWN-LIMITS.
+  Tab-group handling is unchanged.
+- Merged only `origin/main`, through `5065ff9c`, preserving Mail/19b/18d and
+  PR #43/#47. Chrome keeps its native socket and hash-verified committed owner
+  projection because 19b has no generic replacement yet. The complete service
+  unit is byte-identical to `8b7e799c`; both pin tests remain.
+- Chrome actions, user MCP installation and asking rules use the slim generator.
+  Shared instructions remain unshortened, including the clipboard sentence and
+  typed-field instruction once. Trusted send checks the current matching owner
+  entry. Native group 12 derives its verdict from actual normal/skip CLI cases.
+- Browser and Python matrices are sharded without adding workflow runs; the
+  350-minute stopgap is removed. Browser containers use 120 minutes with
+  130-minute jobs. Stage measurements retain the 525 ms safety observation wait
+  and every durable write. Optional SQLite headers avoid repeatedly decoding
+  completed operations; creation follows recovery and reserves both physical and
+  history capacity. Low-space fallback preserves the same warning predicates.
+
+**Verified:** focused Linux run **43488005234** (`6133468e`, run **247**) passes
+both installs: 66 destination/context sequences, 27 animated defaults, credential
+and late-reader checks, exact asking-read changes and withheld-form refusal.
+All completed scoped runtime and gate FIXes have SAFE package/security re-checks, linked in
+the chronological record below. Intermediate full run **43466571812** passes
+95 named suites, all 999 word cells, native group 12 and independent audits in
+both installs; its longest job is 30m46s. Later changes require final acceptance.
+Local **370 Node/artifact tests** and **311 removal probes** (before the expanded314-case replacement) pass; each mutation
+baseline passes. The first Python file-shard pass was incomplete: shard3 ran56 tests with one
+fixture-identity failure; the other shards pass95/54/48. The isolated fixture now
+sets its own runtime commit alongside its synthetic GitHub SHA, preserving the
+strict inventory assertion. The replacement shard now passes all56 tests. The original failure and replacement
+are retained in [local-python-1c6cfff2.json](records/post18d/local-python-1c6cfff2.json).
+The changed gate
+module has **25 focused
+latency/selection/gate tests** passing on the latest code. Final-head full discovery
+remains required. Commands, raw outputs and
+mutation records are retained below and under `records/post18d/`.
+
+**Latency / open lead decision:** the proposed median/p95 millisecond ceilings
+are read 35/60, navigate 100/150, free click 650/750, fill 650/750, asking click 60/100,
+approval-to-done 700/850. They are proposals; `latency-targets.json` remains
+`awaiting-lead`. Run **43490400410** (run **248**) measures fresh/1,000/4,000-operation
+histories against rebuilt `ab7aba92` on paired runners, plain/instrumented. It
+predates the cache reservation-order fix and is timing/diagnostic evidence only.
+The prepared gate validates matched samples before percentiles, required stages,
+the independent safety wait and clear regressions with common runner noise.
+It will apply the lead's ceilings to all measured histories. Its normal CI step is wired and will refuse without lead-approved targets; a diagnostic-only measurement input emits no acceptance verdict.
+
+**Round 3:** `43437906776` on `63c81414` passes (322m32s longest job). Per section 0,
+it is round-3 evidence under the 350-minute stopgap, caused by per-input slowdown
+plus larger unsplit matrices. Companion `43437786144` hit the 350-minute container timeout (exit124), with no
+assertion failure found. No limit is raised. Per section0, round-3 acceptance
+moves to the final sharded pair. All92 original named cases are retained in
+`records/post18d/round3-required-cases.json` with their required shard mapping.
+
+**Still required:** the lead's target decision, measured warm reference and approved targets; final-source local checks and every Control workflow twice with both
+Chrome installs and independent receiver audits; the final independent receiver audits.
+No final green or ready claim. The Chrome ledger is **248 / about 260**. A normal
+final code push starts two runs (push and PR); report before exceeding 260.
+
+The sections below preserve historical commands, findings and corrections. Their
+pending statements and older totals are superseded by this current status.
+<!-- POST18D CURRENT END -->
+
 # Post-18d integration — in progress
 
 **Order:** `20-post-18d.md` and addenda b–f govern this run. The base-URL class is
@@ -434,6 +520,81 @@ The full local Python file shards are finishing. The shared runtime is frozen
 since the reservation-order fix. Base/Mail/boundary/qualification diagnostics on
 this runtime follow while the intermediate Chrome measurements finish; final
 head repetitions are still required.
+
+**Local fixture correction:** the first final Python shard3 failed its older-runtime
+inventory fixture because the outer `RUNTIME_COMMIT=1c6cfff2` overrode the fixture's
+synthetic `GITHUB_SHA`. The fixture now supplies both identities explicitly;
+its strict before/after inventory and production-hash assertions are unchanged.
+Replacement shard3 passes56 tests with the conflicting outer marker still set.
+Other shards pass95/54/48 tests; the subsequently changed latency module passes14.
+The original failure and replacement output are retained. This corrects the earlier
+premature statement that all253 had passed. Final-head full discovery remains.
+
+**Round-3 pair handled:** companion [43437786144](https://github.com/Ares-Empire/AresOS/actions/runs/43437786144)
+hit the external container's350-minute limit (exit124) during Python fault sweeps;
+policy passed. No assertion failure appears in the retained failed-job log.
+[Receipt](records/post18d/round3-43437786144.json). No further raise: acceptance
+moves to the final sharded pair. The92 original browser cases, taken from the
+completed old policy artifact, each map to a required current shard in
+[round3-required-cases.json](records/post18d/round3-required-cases.json).
+
+**Intermediate full run248:** [43490400410](https://github.com/Ares-Empire/AresOS/actions/runs/43490400410)
+passes both installs:98 named cases,999 word cells, native group12, and both
+locally repeated independent audits. The longest job is28m08s. Artifact hashes,
+job timings and complete auditor outputs are retained under `records/post18d/`.
+This source predates the index-allocation FIX and the further expiry change below;
+it remains diagnostic evidence, not final acceptance.
+
+**Warm-history latency finding and FIX:** plain mode on run248 measured read
+14.3/17.9 ms fresh,110.6/117.4 at1,000 synthetic completed operations and
+426.8/442.4 at4,000. Free click was577.7/590.0,755.5/768.8 and1,282.4/1,305.3 ms.
+At4,000, read's engine request was only29.8 ms and bridge4.8 ms; about397 ms
+occurred before/around that region. The daemon runs expiry between selector
+batches, and expiry decoded and traversed all retained operations repeatedly.
+The proposed nominal targets are not met in that intermediate warm run.
+
+Expiry now selects live/reserved headers before decoding. Unrelated namespace
+queries use the existing primary-key range, with exact Unicode/NUL behavior.
+Old-file reference enumeration is deferred until an expiry candidate exists;
+when needed, SQLite enumerates all nested string hash references from the fresh
+working rows, including completed operations. Both blob stores receive the full
+set before any unlink. No deadline, physical/history admission, reference or
+journal write is removed. Malformed state and reference-read failures still stop
+cleanup before deletion. Tests cover active compositions/import metadata,
+completed attachments/wires, archival release, nested/suffixed references,
+rollback and literal namespace matching. **21 focused tests pass**, and all
+**311 removal probes** reject with passing baselines. A plain-Python 4,000-operation
+probe including an actual expiry sweep improves read105.3→5.7 ms and click service
+work183.3→8.0 ms locally; it includes no browser/hold and is not CI acceptance.
+
+The replacement timing driver also measures completed daemon-expiry sweeps inside
+a sample and reports client time outside Engine.request as queue/framing time.
+The next diagnostic-only latency dispatch brings the Chrome ledger to**249**.
+It skips acceptance aggregation and the unapproved target gate explicitly; normal
+push/PR runs retain every fixture and the gate. Runtime scoped reviews, Linux
+replacement measurements and final-head repetitions remain pending.
+
+**Expiry review FIXes:** [package](BUILD-POST18D-EXPIRY-REVIEW-1.md) and
+[security](BUILD-POST18D-EXPIRY-SECURITY-1.md) independently found that SQLite text
+suffix matching stops at embedded NUL, dropping a retained file reference.
+The query now compares byte suffixes with the marker length in the database's
+encoding. Nested-NUL keys preserve an actual old blob, and native enumeration
+matches Python in UTF-8/UTF-16LE/UTF-16BE. A related namespace check found UTF-16
+binary ordering differs at a Unicode boundary: those legacy databases retain the
+original literal query; normal UTF-8 uses the fast range. No owner-state rewrite.
+
+The new expiry diagnostic is intentionally sparse; navigation clipboard timing
+also had18/19 samples in run248. The gate now accepts only those explicitly named
+sparse diagnostics, with finite/ordered data and1–20 samples. Every required
+stage remains exactly20; a sparse service or free-click clipboard block refuses.
+**25 focused tests pass**. New removal probes cover NUL-safe pins, legacy encoding
+and sparse diagnostics. The expanded314-case audit and scoped re-checks follow.
+
+**Expiry FIXes closed locally:** [package](BUILD-POST18D-EXPIRY-RECHECK-2.md) and
+[security](BUILD-POST18D-EXPIRY-SECURITY-RECHECK-2.md) are SAFE on `e0cc9846`.
+All25 focused tests pass. The next Linux probe is diagnostic249; no target has
+been adopted, and full local267-test discovery plus the314-removal audit and
+final workflow repetitions are still required.
 
 **Latency proposal — lead decision pending:** intermediate Linux run
 `43466571812` measured 20 calls per category, without owner think time, against

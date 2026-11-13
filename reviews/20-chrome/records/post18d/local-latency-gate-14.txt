@@ -1,0 +1,19 @@
+test_accepts_nominal_and_common_runner_noise (test_latency.LatencyGate.test_accepts_nominal_and_common_runner_noise) ... ok
+test_clear_regression_in_each_call_and_history_phase_fails (test_latency.LatencyGate.test_clear_regression_in_each_call_and_history_phase_fails) ... ok
+test_correlated_wait_tail_cannot_hide_fivefold_warm_work_regression (test_latency.LatencyGate.test_correlated_wait_tail_cannot_hide_fivefold_warm_work_regression) ... ok
+test_corrupt_percentiles_missing_timings_and_impossible_totals_refuse (test_latency.LatencyGate.test_corrupt_percentiles_missing_timings_and_impossible_totals_refuse) ... ok
+test_missing_stage_phase_or_unset_lead_targets_cannot_pass (test_latency.LatencyGate.test_missing_stage_phase_or_unset_lead_targets_cannot_pass) ... ok
+test_nominal_ceilings_apply_to_warm_histories_even_without_relative_regression (test_latency.LatencyGate.test_nominal_ceilings_apply_to_warm_histories_even_without_relative_regression) ... ok
+test_tail_spike_alone_does_not_fail_but_shortened_safety_wait_does (test_latency.LatencyGate.test_tail_spike_alone_does_not_fail_but_shortened_safety_wait_does) ... ok
+test_summary_requires_all_calls_and_history_phases_without_duplicate_samples (test_latency.LatencySummary.test_summary_requires_all_calls_and_history_phases_without_duplicate_samples) ... ok
+test_finished_chrome_payloads_are_not_decoded_for_mail_or_legacy_catalogues (test_latency.OperationHeaders.test_finished_chrome_payloads_are_not_decoded_for_mail_or_legacy_catalogues) ... ok
+test_header_filter_keeps_legacy_and_other_app_rows_and_fresh_changes (test_latency.OperationHeaders.test_header_filter_keeps_legacy_and_other_app_rows_and_fresh_changes) ... ok
+test_header_index_fallback_and_rollback_keep_the_same_rows (test_latency.OperationHeaders.test_header_index_fallback_and_rollback_keep_the_same_rows) ... ok
+test_low_space_can_decline_optional_index_without_losing_committed_reads (test_latency.OperationHeaders.test_low_space_can_decline_optional_index_without_losing_committed_reads) ... ok
+test_optional_header_migration_preserves_real_reserved_cancellation_space (test_latency.OperationHeaders.test_optional_header_migration_preserves_real_reserved_cancellation_space) ... ok
+test_pending_response_equals_unfiltered_queries_with_mixed_live_history (test_latency.OperationHeaders.test_pending_response_equals_unfiltered_queries_with_mixed_live_history) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 0.173s
+
+OK
