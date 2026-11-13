@@ -103,6 +103,7 @@ tasks.named('runClientGameTest') {
     systemProperty 'aresos.disableDiscovery', 'true'
     systemProperty 'aresos.appsReviewDir', file('../reviews/07-real-apps/screenshots').absolutePath
     systemProperty 'aresos.logoReviewDir', file('../reviews/08-walk-in-logos/screenshots').absolutePath
+    systemProperty 'aresos.gateReviewDir', file('../reviews/33-gate-logo/screenshots').absolutePath
     systemProperty 'aresos.modeReviewDir', file('../reviews/09-mode-inventories/screenshots').absolutePath
     systemProperty 'aresos.reviewDir', file('build/review/01-first-app').absolutePath
     systemProperty 'aresos.homeReviewDir', file('../reviews/04-nether-home/screenshots').absolutePath
@@ -118,6 +119,14 @@ tasks.register('searchNetherSeeds', JavaExec) {
     workingDir = file('run')
     doFirst { workingDir.mkdirs() }
     maxHeapSize = '2G'
+}
+
+// Development only: prints each gate palette block's average colour, measured from the game's own textures,
+// next to the number in GatePalette. Nothing is written; no texture leaves the game's files.
+tasks.register('measureBlockColours', JavaExec) {
+    dependsOn tasks.named('gametestClasses')
+    classpath = sourceSets.gametest.runtimeClasspath
+    mainClass = 'dev.aresos.test.BlockColourSurvey'
 }
 
 tasks.named('runGameTest') { systemProperty 'aresos.disableDiscovery', 'true' }

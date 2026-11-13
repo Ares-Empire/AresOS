@@ -366,8 +366,60 @@ Removing a zone leaves its logo blocks in place and removes their protection.
 Zones cannot overlap or cover each other's return exits. Multiple separate zones
 can launch the same app.
 
-For automatic pixel art, stand on safe ground, face the intended logo, and run
-`/aresos logo <app id> [wall|floor]` (default: `wall`). The nearest horizontal
+### The gate: `/aresos logo <app id>`
+
+Stand on solid ground, look where the logo should stand, and run
+`/aresos logo <app id>`. The mod builds the app's icon as a **gate**: 12 blocks
+wide, 12 tall and 3 thick, standing on the ground you stand on, its front six
+blocks ahead and facing you, with a doorway (2 wide, 3 high, 2 deep) at the
+bottom middle and the app's name floating above it. The doorway's middle is on
+the block edge nearest to you. Stepping into the doorway opens the app; walking
+past the gate or along its front does nothing. Closing the app puts you back
+where you stood when you built it, 5.5 blocks in front of the door, looking at it.
+
+How the icon becomes blocks (`docs/design/HUB.md`, section 3.6):
+- The icon is cut to what is visible and scaled to 12 × 12 cells; a cell is
+  built when at least half of it is covered. A round icon gives a round gate. A
+  picture that is not square stands in the middle, on the ground.
+- A small figure on a plain plate (a face on a disc, a moon on a tile) is
+  enlarged, and the plate's colour fills the whole 12 × 12.
+- Each cell is one kind of block, three blocks deep, picked from 60 blocks: the
+  wall's 48 plus red mushroom block, emerald, lapis, amethyst, snow, iron,
+  polished diorite, smooth stone, smooth sandstone, honeycomb, prismarine bricks
+  and blue ice. The nearest block is found in the Oklab colour space with
+  lightness counted half, so a bright red stays red. The colours are averages
+  measured from the game's own textures (`./gradlew measureBlockColours` prints
+  them); only the numbers are in this repo.
+- The doorway is cut out. Its back is black concrete, and so are the posts
+  beside it and the bar above it wherever the icon has no block there.
+- An app without a readable icon gets a plain front in its group's colour.
+
+With the gate come a **doormat** (the two floor blocks under the doorway and
+the two rows in front, in concrete), two invisible `light` blocks in front of
+the face, and the **sign** (a text display, readable from 160 blocks, as bright
+at night as by day). The doormat is light blue, red, yellow or purple by the
+app's group (`browser` is Internet; `terminal` and `notepad` are System & Tools)
+and light grey for any other app until the mod is told an app's categories. It
+is only laid where the floor at the door is one kind of untouched natural
+ground (grass, dirt, stone and the like); a paved floor is yours and stays.
+
+A gate needs free air: its own 12 × 12 × 3 blocks, one layer in front of the
+face, and a way in four blocks wide and three high out to where you stand. The
+ground from you to the door must be solid. Everything is checked before the
+first block changes; a refusal names the reason and changes nothing. The place
+must be loaded, so build where you are.
+
+`/aresos logo remove <app id>` takes down every gate of that app;
+`/aresos logo remove here` the one you stand at (anywhere between its door and
+its exit point). A removal takes each block the gate placed **only if it is
+still that block**, puts the ground under the doormat back, and removes the
+sign and the zone. A block you changed, replaced or mined stays as you left it.
+For an older wall or floor logo the command only removes the zone and says that
+the blocks stay. `/aresos zone remove` leaves gates alone.
+
+### The older forms: `/aresos logo <app id> wall|floor`
+
+`/aresos logo <app id> wall` and `floor` build flat pixel art as before. The nearest horizontal
 direction determines the orientation. The near edge starts four blocks ahead;
 the wall rises from your feet, while the floor is one block below your feet.
 The original source icon is fitted within 32×32 without upscaling, and visible
@@ -381,18 +433,22 @@ Occupied space, entities in placement cells, out-of-bounds placement and overlap
 are refused before building. Logo blocks must also clear every saved exit's full
 standing body. The builder conservatively refuses plants, circuits, fluids and
 blocks with special behavior within two face-adjacent steps of a pixel, including
-through a solid neighbor. Only air and plain inert full blocks are accepted in
-that margin; this avoids firing support updates, drops or redstone before a build
-can be refused. The error names the neighboring block and its position.
+through a solid neighbor. Only air, plain inert full blocks, natural ground (grass,
+dirt, stone and the like) and the blocks the mod itself builds logos from are
+accepted in that margin; this avoids firing support updates, drops or redstone before a build
+can be refused. The error names the neighboring block and its position. A gate's
+light blocks are checked four steps around, because their light would melt ice and snow.
 **There is no overwrite command:** clear the required
 space yourself in Build mode and retry. A floor logo usually needs its footprint
 excavated one block deep first. The builder saves a matching zone: two blocks in
 front of a wall, or two blocks of feet space above a floor. It saves your standing
-position as the exit. Auto-built blocks resist player breaking in Live mode and
-explosions in both modes; press **G** for Build mode to mine and edit them.
+position as the exit. Auto-built blocks, a gate's doormat included, resist player
+breaking in Live mode and explosions in both modes; press **G** for Build mode to
+mine and edit them. A gate's sign cannot be hit in any mode.
 
 Only the singleplayer host in Live mode launches on entering from outside, once
-per entry, with portal particles and a short teleport sound. Entry uses the
+per entry, with portal particles and a short teleport sound. A gate's zone is
+exactly its doorway; a wall's is the two blocks in front of its whole face. Entry uses the
 player's body touching the box, including over transparent floor pixels. Entry
 membership is tracked independently for each zone, so touching a
 neighboring zone cannot rearm one you still occupy. Simultaneous entry into two
@@ -406,8 +462,11 @@ before the app took focus. An already-open screen stays open. A failed launch do
 retry while you stand inside. If an exit has since become unsafe, AresOS reports
 the obstruction and leaves you in place. Clear that exit in Build mode.
 
-Zones and exact auto-built block positions persist in `data/aresos/zones.dat`.
-Keep the whole world save with backups. Client tests use original geometric icons
-and save wall/floor evidence under `../reviews/08-walk-in-logos/screenshots/`.
+Zones and exact auto-built block positions persist in `data/aresos/zones.dat`;
+a gate's zone also holds every block it placed with the block's ID, the ground
+its doormat replaced and its sign's ID. Zones files written before gates existed
+load unchanged. Keep the whole world save with backups. Client tests use original geometric icons
+and save gate pictures under `../reviews/33-gate-logo/screenshots/` and wall/floor
+evidence under `../reviews/08-walk-in-logos/screenshots/`.
 The lime glass frames in those screenshots are test fixtures around the saved
 trigger boxes; they are not placed by the logo command.
