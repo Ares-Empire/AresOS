@@ -17,7 +17,7 @@
   boundary `43521486793` (17 interactive
   cases and 20 boundary unit tests each attempt), qualification `43521486667`
   (47 Python and 365 Node tests each). Their blockers are closed.
-- **Fixture correction, scoped review pending:** the preexisting-dialog case
+- **Fixture correction, both scoped reviews SAFE:** the preexisting-dialog case
   now requires the intended reload refusal, waits for a new document and two
   agreeing reference views, checks the old reference still refuses, then clicks
   once. All original receiver assertions remain; new zero-extra-arrival checks
@@ -28,8 +28,7 @@
   in session `56197`. Own superseded Mail `43521486798` was cancelled before its
   second attempt to avoid obsolete work. None is final acceptance after this fix.
 - **Budget:** **251 / about 280** Chrome workflow runs, including this final pair.
-- **Exact next step:** finish the two scoped fixture reviews, checkpoint them
-  with `[skip ci]`, then freeze a new candidate and run full local checks (expected
+- **Exact next step:** freeze a new candidate and run full local checks (expected
   268 Python, 373 Node/artifact, 316 mutations). Push normally for a new full
   Chrome pair and run every named Control workflow twice on that head. Finish
   and record the existing PR watcher. Batch browser evidence in that new pair;
@@ -151,8 +150,8 @@ original exact receiver assertions. Three plain-Node regressions cover deferred
 parser revisions, no retry after an uncertain dispatch, and an unrelated stale
 error refusing. [Output](records/post18d/review-reload-local.txt). Removing the
 settling condition is killed with a passing baseline
-([mutation](records/post18d/review-reload-mutation.json)). Scoped reviews and a new
-final head are pending. No production runtime or asking/form protection changed.
+([mutation](records/post18d/review-reload-mutation.json)). Both scoped [package](BUILD-POST18D-RELOAD-REVIEW.md) and
+[security](BUILD-POST18D-RELOAD-SECURITY.md) reviews are SAFE. A new final head is pending. No production runtime or asking/form protection changed.
 Own superseded Mail `43521486798` was cancelled; its watch exited 1 with
 `conclusion=cancelled` and did not request attempt 2.
 
