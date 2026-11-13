@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       destination_probe:
-        description: 'Run only destination mutation regressions (not acceptance)'
+        description: 'Run post-18d destination and late-reader probes (not acceptance)'
         type: boolean
         default: false
       injection_probe:

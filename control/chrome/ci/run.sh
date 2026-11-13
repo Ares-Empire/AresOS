@@ -44,7 +44,7 @@ runuser -u owner -- env GITHUB_ACTIONS=true dbus-run-session -- xvfb-run -a -s '
 ' 2>&1 | tee /out/browser.txt
 
 if test "${DESTINATION_PROBE:-}" = true; then
-  echo 'Destination-only probe complete; not full acceptance'
+  echo 'Post-18d safety probes complete; not full acceptance'
   exit
 fi
 
