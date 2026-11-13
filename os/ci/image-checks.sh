@@ -624,5 +624,19 @@ if grep -rlE 'aresos-desktop|prismlauncher' /usr/lib/systemd/system /etc/systemd
 fi
 pass 'no system service runs the desktop: it starts inside the everyday session only'
 
+# --- Package 30: the icon conversion route must survive base-image updates.
+test -x /usr/bin/magick
+test -x /usr/bin/bwrap
+python3 - <<'PY'
+import re, subprocess
+formats = subprocess.run(['/usr/bin/magick', '-list', 'format'], check=True, capture_output=True,
+                         timeout=3, env={'PATH': '/usr/bin', 'LC_ALL': 'C', 'HOME': '/nonexistent'}).stdout
+assert re.search(rb'^\s*SVG\s+SVG\s+r[-w+]+\s+[^\n]*\bRSVG\b', formats, re.MULTILINE), \
+    'ImageMagick svg: must use librsvg, never MSVG or an external delegate'
+assert re.search(rb'^\s*PNG\*?\s+PNG\s+rw', formats, re.MULTILINE), 'PNG coder missing'
+print('ICON_CONVERTER /usr/bin/magick; SVG coder: librsvg (RSVG); bubblewrap present')
+PY
+pass 'package 30: ImageMagick PNG and librsvg SVG coders and bubblewrap exist'
+
 set +x
 echo IMAGE_CHECKS_PASSED

@@ -64,6 +64,7 @@ import stat
 import struct
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import queue
@@ -183,6 +184,8 @@ class App:
     gpu: str = None
     discovered: bool = False
     terminal: bool = False
+    icon_name: str = ''
+    icon: str = None
 
 
 ENTRY_KEYS = {'schema', 'id', 'name', 'argv', 'desktop_entry', 'working_directory', 'window', 'replaces', 'gpu'}
@@ -571,7 +574,7 @@ def discovered_app(desktop_id, path, values, executable):
     return App(app_id, name, tuple(argv), desktop_entry=desktop_id,
                working_directory=directory if os.path.isabs(directory) else '~',
                app_ids=identities, instance=None, discovered=True, terminal=terminal,
-               gpu='discrete' if discrete else None)
+               gpu='discrete' if discrete else None, icon_name=_unescape_string(values.get('Icon', '')))
 
 
 def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None):
@@ -603,8 +606,332 @@ def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None)
         owners.update(app.app_ids)
         apps[app.id] = app
         digest.update(json.dumps([app.id, app.name, app.argv, app.desktop_entry, app.working_directory,
-                                  app.terminal, app.gpu, app.app_ids], ensure_ascii=True).encode())
+                                  app.terminal, app.gpu, app.app_ids, app.icon_name], ensure_ascii=True).encode())
     return apps, digest.hexdigest()[:16]
+
+
+# ---------------------------------------------------------------- icons (wired to 1.1 in package 30 step 4)
+
+MAX_ICON_BYTES = 8 * 1024 * 1024
+MAX_ICON_OUTPUT = 1024 * 1024
+ICON_TIMEOUT = 3.0
+ICON_SIDE = 4096  # A hard 16-Mpixel ceiling; ImageMagick's area limit alone only spills to disk.
+MAGICK = '/usr/bin/magick'
+BWRAP = '/usr/bin/bwrap'
+PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
+ICON_LIMITS = ('-limit', 'memory', '64MiB', '-limit', 'map', '0', '-limit', 'disk', '0',
+               '-limit', 'time', '2', '-limit', 'thread', '1', '-limit', 'width', str(ICON_SIDE),
+               '-limit', 'height', str(ICON_SIDE), '-limit', 'area', '16MP', '-limit', 'list-length', '2')
+ICON_POLICY = '''<policymap>
+  <policy domain="delegate" rights="none" pattern="*"/>
+  <policy domain="filter" rights="none" pattern="*"/>
+  <policy domain="coder" rights="none" pattern="*"/>
+  <policy domain="coder" rights="read" pattern="SVG"/>
+  <policy domain="coder" rights="read|write" pattern="{PNG,PNG32}"/>
+  <policy domain="path" rights="none" pattern="@*"/>
+</policymap>'''
+
+
+def icon_directories(environ=None):
+    environ = os.environ if environ is None else environ
+    home = environ.get('HOME') or os.path.expanduser('~')
+    return (os.path.join(home, '.local/share/icons'),
+            os.path.join(home, '.local/share/flatpak/exports/share/icons'),
+            '/var/lib/flatpak/exports/share/icons', '/usr/local/share/icons',
+            '/usr/share/icons', '/usr/share/pixmaps')
+
+
+def icon_cache_directory(environ=None):
+    environ = os.environ if environ is None else environ
+    cache = environ.get('XDG_CACHE_HOME', '')
+    if not os.path.isabs(cache):
+        cache = os.path.join(environ.get('HOME') or os.path.expanduser('~'), '.cache')
+    return os.path.join(cache, 'aresos/icons')
+
+
+def resolve_icon(name, directories):
+    """Lookup at fixed theme/size/context depths; reject named escapes after resolving symlinks."""
+    if not name or '\0' in name:
+        return None
+    if os.path.isabs(name):
+        return name
+    if '/' in name or '..' in name or len(name) > 255:
+        return None
+    names = (name,) if name.endswith(('.png', '.svg')) else (name + '.png', name + '.svg', name)
+
+    def candidate(folder, *parts):
+        path = os.path.join(folder, *parts)
+        real = os.path.realpath(path)
+        root = os.path.realpath(folder)
+        if os.path.commonpath((root, real)) == root and os.path.isfile(real):
+            return real
+        return None
+
+    # Theme precedence applies across roots, then size, then folder precedence. Fixed depths avoid walking trees.
+    for theme in ('hicolor', 'breeze'):
+        sizes = set()
+        for folder in directories:
+            try:
+                for size in os.scandir(os.path.join(folder, theme)):
+                    match = re.fullmatch(r'(\d{1,3})x\1', size.name)
+                    if match and 0 < int(match[1]) <= 256 and size.is_dir(follow_symlinks=False):
+                        sizes.add(int(match[1]))
+            except OSError:
+                pass
+        for size in [f'{n}x{n}' for n in sorted(sizes, reverse=True)] + ['scalable']:
+            for folder in directories:
+                base = os.path.join(folder, theme, size)
+                try:
+                    contexts = sorted(entry.name for entry in os.scandir(base)
+                                      if entry.is_dir(follow_symlinks=False))
+                except OSError:
+                    continue
+                for context in contexts:
+                    for filename in names:
+                        if size != 'scalable' and filename.endswith('.svg'):
+                            continue
+                        if path := candidate(folder, theme, size, context, filename):
+                            return path
+    for folder in directories:
+        for filename in names:
+            if path := candidate(folder, filename):
+                return path
+    return None
+
+
+def sniff_icon(raw):
+    if raw.startswith(PNG_SIGNATURE):
+        if len(raw) < 33 or raw[8:16] != b'\0\0\0\rIHDR':
+            raise ValueError('invalid PNG header')
+        width, height = struct.unpack('>II', raw[16:24])
+        if not (0 < width <= ICON_SIDE and 0 < height <= ICON_SIDE):
+            raise ValueError('icon exceeds pixel cap')
+        return 'png'
+    # SVG must announce its root in the first 4 KiB. Never admit DTDs/entities (including internal ones).
+    head = raw[:4096].removeprefix(b'\xef\xbb\xbf').lstrip()
+    if b'<!DOCTYPE' in raw.upper() or b'<!ENTITY' in raw.upper():
+        raise ValueError('XML declarations are not supported')
+    head = re.sub(rb'^(?:<\?xml[^?]*\?>\s*|<!--.*?-->\s*)+', b'', head, flags=re.DOTALL)
+    if re.match(rb'<svg(?:\s|/?>)', head):
+        return 'svg'
+    raise ValueError('not a PNG or SVG')
+
+
+def librsvg_coder(formats):
+    return bool(re.search(rb'^\s*SVG\s+SVG\s+r[-w+]+\s+[^\n]*\bRSVG\b', formats, re.MULTILINE))
+
+
+def icons_revision(apps, base_revision):
+    pictures = [(app.id, app.icon) for app in sorted(apps.values(), key=lambda app: app.id) if app.icon]
+    if not pictures:
+        return base_revision
+    return hashlib.sha256(json.dumps([base_revision, pictures]).encode()).hexdigest()[:16]
+
+
+class IconCache:
+    """One background worker, one bounded converter at a time; requests and results never do file IO.
+
+    Step 4 calls request() after a catalogue rescan and take() on its normal tick. It lists the returned Apps
+    and revision, and announces a changed revision only to 1.1 clients. No lookup/probe/conversion is on that path.
+    """
+
+    def __init__(self, environ=None, directories=None, timeout=ICON_TIMEOUT, magick=MAGICK, bwrap=BWRAP):
+        self.directory = icon_cache_directory(environ)
+        self.directories = icon_directories(environ) if directories is None else tuple(directories)
+        self.timeout, self.magick, self.bwrap = timeout, magick, bwrap
+        self.pending = queue.Queue(maxsize=1)
+        self.results = queue.Queue(maxsize=MAX_APPS * 2)
+        self.stopping = threading.Event()
+        self.lock = threading.Lock()
+        self.process = None
+        self.thread = None
+        self.svg_checked = False
+        self.failed = set()
+
+    def request(self, apps, revision):
+        if self.stopping.is_set():
+            return
+        if len(apps) > MAX_APPS:
+            raise ValueError('too many apps')
+        try:
+            self.pending.get_nowait()
+        except queue.Empty:
+            pass
+        self.pending.put_nowait((dict(apps), revision))
+        if self.thread is None:
+            self.thread = threading.Thread(target=self.loop, name='aresos-icons', daemon=True)
+            self.thread.start()
+
+    def take(self, apps, base_revision):
+        apps = dict(apps)
+        while True:
+            try:
+                revision, app_id, name, path = self.results.get_nowait()
+            except queue.Empty:
+                return apps, icons_revision(apps, base_revision)
+            app = apps.get(app_id)
+            if revision == base_revision and app is not None and app.icon_name == name:
+                apps[app_id] = dataclasses.replace(app, icon=path)
+
+    def loop(self):
+        while not self.stopping.is_set():
+            try:
+                apps, revision = self.pending.get(timeout=0.1)
+            except queue.Empty:
+                continue
+            for app in apps.values():
+                if self.stopping.is_set() or not self.pending.empty():
+                    break  # the latest rescan supersedes queued work
+                path = None
+                try:
+                    if source := resolve_icon(app.icon_name, self.directories):
+                        path = self.convert(source)
+                except (OSError, ValueError, subprocess.SubprocessError) as error:
+                    LOG.debug('icon for %s skipped: %s', app.id, error)
+                try:
+                    self.results.put_nowait((revision, app.id, app.icon_name, path))
+                except queue.Full:
+                    break  # bounded even if the event loop stops taking answers
+
+    def prepare(self):
+        # Never follow either private cache component to another location.
+        base = os.path.dirname(os.path.dirname(self.directory))
+        os.makedirs(base, mode=0o700, exist_ok=True)
+        for path in (os.path.dirname(self.directory), self.directory):
+            try:
+                os.mkdir(path, 0o700)
+            except FileExistsError:
+                pass
+            info = os.lstat(path)
+            if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
+                raise ValueError('unsafe icon cache directory')
+            os.chmod(path, 0o700, follow_symlinks=False)
+
+    def command(self, work, *arguments, identify=False):
+        # Mount runtime libraries, not /usr or the home tree. The only input image is a bounded snapshot.
+        return [self.bwrap, '--unshare-all', '--die-with-parent', '--new-session', '--cap-drop', 'ALL',
+                '--ro-bind', '/usr/lib64', '/usr/lib64', '--symlink', 'usr/lib64', '/lib64',
+                '--ro-bind', self.magick, '/usr/bin/magick', '--dev', '/dev', '--dir', '/tmp',
+                '--ro-bind', os.path.join(work, 'policy.xml'), '/etc/ImageMagick-7/policy.xml',
+                '--ro-bind', os.path.join(work, 'input'), '/input/icon', '--chdir', '/', '--clearenv',
+                '--setenv', 'HOME', '/nonexistent', '--setenv', 'PATH', '/usr/bin',
+                '--setenv', 'MAGICK_CONFIGURE_PATH', '/etc/ImageMagick-7',
+                '--setenv', 'MAGICK_THREAD_LIMIT', '1', '--setenv', 'OMP_NUM_THREADS', '1',
+                '--', '/usr/bin/magick', *(['identify'] if identify else []), *ICON_LIMITS, *arguments]
+
+    def run(self, command):
+        with self.lock:
+            if self.stopping.is_set():
+                raise ValueError('icon worker stopped')
+            proc = self.process = subprocess.Popen(command, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                                    stderr=subprocess.DEVNULL, start_new_session=True,
+                                                    close_fds=True, env={'PATH': '/usr/bin', 'LC_ALL': 'C'})
+        data = bytearray()
+        deadline = time.monotonic() + self.timeout
+        try:
+            with selectors.DefaultSelector() as selector:
+                selector.register(proc.stdout, selectors.EVENT_READ)
+                while True:
+                    remaining = deadline - time.monotonic()
+                    if remaining <= 0 or self.stopping.is_set():
+                        raise subprocess.TimeoutExpired(command, self.timeout)
+                    if not selector.select(min(remaining, 0.1)):
+                        continue
+                    chunk = os.read(proc.stdout.fileno(), 65536)
+                    if not chunk:
+                        break
+                    data.extend(chunk)
+                    if len(data) > MAX_ICON_OUTPUT:
+                        raise ValueError('converter output too large')
+            if proc.wait(timeout=max(0.001, deadline - time.monotonic())):
+                raise ValueError('icon converter failed')
+            return bytes(data)
+        finally:
+            # Kill the held process group even if a failed converter left a child holding stdout open.
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            proc.wait()
+            proc.stdout.close()
+            with self.lock:
+                self.process = None
+
+    def convert(self, source):
+        if not os.path.isabs(source) or '\0' in source:
+            raise ValueError('icon source must be an absolute path')
+        descriptor = os.open(source, os.O_RDONLY | os.O_NONBLOCK)
+        with os.fdopen(descriptor, 'rb') as handle:
+            info = os.fstat(handle.fileno())
+            if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= MAX_ICON_BYTES:
+                raise ValueError('icon is not a bounded regular file')
+            key = hashlib.sha256(os.fsencode(source) + b'\0' + str(info.st_size).encode()
+                                 + b'\0' + str(info.st_mtime_ns).encode()).hexdigest()
+            if key in self.failed:
+                return None
+            raw = handle.read(MAX_ICON_BYTES + 1)
+            after = os.fstat(handle.fileno())
+            if len(raw) != info.st_size or (after.st_size, after.st_mtime_ns) != (info.st_size, info.st_mtime_ns):
+                raise ValueError('icon changed while reading')
+        coder = sniff_icon(raw)
+        self.prepare()
+        target = os.path.join(self.directory, key + '.png')
+        try:
+            with open(target, 'rb', opener=lambda p, f: os.open(p, f | os.O_NOFOLLOW | os.O_NONBLOCK)) as handle:
+                cached = os.fstat(handle.fileno())
+                if (stat.S_ISREG(cached.st_mode) and cached.st_uid == os.getuid()
+                        and stat.S_IMODE(cached.st_mode) == 0o600 and cached.st_size <= MAX_ICON_OUTPUT
+                        and self.normalized(handle.read(33))):
+                    return target
+        except OSError:
+            pass
+        try:
+            with tempfile.TemporaryDirectory(prefix='.convert-', dir=self.directory) as work:
+                for name, content in (('input', raw), ('policy.xml', ICON_POLICY.encode())):
+                    with open(os.path.join(work, name), 'xb') as handle:
+                        handle.write(content)
+                if coder == 'svg' and not self.svg_checked:
+                    if not librsvg_coder(self.run(self.command(work, '-list', 'format', identify=True))):
+                        raise ValueError('SVG coder is not librsvg')
+                    self.svg_checked = True
+                output = self.run(self.command(work, '-background', 'none', f'{coder}:/input/icon',
+                                                '-resize', '128x128', '-alpha', 'on', '-colorspace', 'sRGB',
+                                                '-gravity', 'center', '-extent', '128x128', '-strip',
+                                                '-depth', '8', 'PNG32:-'))
+                if not self.normalized(output):
+                    raise ValueError('converter did not produce a normalized PNG')
+                descriptor, temporary = tempfile.mkstemp(prefix='.icon-', dir=self.directory)
+                try:
+                    with os.fdopen(descriptor, 'wb') as handle:
+                        handle.write(output)
+                        handle.flush()
+                        os.fsync(handle.fileno())
+                    os.replace(temporary, target)
+                finally:
+                    if os.path.exists(temporary):
+                        os.unlink(temporary)
+            return target
+        except (OSError, ValueError, subprocess.SubprocessError):
+            if len(self.failed) >= MAX_APPS * 2:
+                self.failed.clear()
+            self.failed.add(key)
+            raise
+
+    @staticmethod
+    def normalized(raw):
+        return (len(raw) >= 33 and raw[:16] == PNG_SIGNATURE + b'\0\0\0\rIHDR'
+                and raw[16:29] == struct.pack('>IIBBBBB', 128, 128, 8, 6, 0, 0, 0))
+
+    def stop(self):
+        self.stopping.set()
+        with self.lock:
+            if self.process is not None:
+                try:
+                    os.killpg(self.process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+        if self.thread is not None:
+            self.thread.join(self.timeout + 1)
 
 
 # ---------------------------------------------------------------- journal
