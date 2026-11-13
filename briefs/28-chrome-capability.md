@@ -20,8 +20,11 @@ it. Paths and line numbers in this brief come from PR #27 at `8b7e799c`; read th
 **Builder (recommended, the lead confirms at launch):** a Claude agent on Fable 5.2. The work changes a dense,
 security-reviewed code base, needs judgment about what a reader should show, and must not be cut off halfway; Codex
 is away from about 2026-11-14 to 11-17 and ends on 11-21. **Review** (`docs/REVIEW.md`, "Tools for Claude"): two
-fresh reviewers at once, a package review and a security review, Codex while it is available, otherwise Claude on
-Opus. This package doesn't touch the asking path, so it needs no Fable reviewer.
+fresh reviewers at once, a package review and a security review, Codex while it is available, otherwise Claude.
+The asking path keeps its rules, but this package reaches into it in three narrow places: the public form of
+addresses in a question (item 2), the reveal before an input (item 5), and two additions to the password rule
+(item 1). So its security review is one of the high-stakes ones: Fable 5.2, or Codex's frontier model while it is
+available. The package review runs on Opus or Codex's workhorse.
 
 ## Background (read first)
 
@@ -31,7 +34,8 @@ Opus. This package doesn't touch the asking path, so it needs no Fable reviewer.
   report (PLAN-GAP); don't pick one silently.
 - `docs/control/PLAN.md`: decisions 24 and 25 and the entries of 2026-11-11 (the owner's bar and his words).
 - `docs/REVIEW.md`, "Tools for Claude": the bar the reviewers use.
-- `reviews/20-chrome/REPORT.md` (the newest sections first, "Measured views", and the latency section),
+- `reviews/20-chrome/REPORT.md` (the newest sections first, "Measured views", and a latency section if the merged
+  tree has one),
   `reviews/20-chrome/KNOWN-LIMITS.md` and `reviews/20-chrome/TOOL-DESCRIPTIONS.md`.
 - `reviews/18d-base-slim/REPORT.md`: how shared rules go once into the server's MCP instructions, and how the
   description sizes are measured.
@@ -277,7 +281,7 @@ ref     = three letters and a number, for example kqt5 (item 3)
   titles appear only inside double quotes, and only after one function, `quoted`: the base's `visible()` (control
   and direction-changing characters, line breaks, backslash), then `"` as `\"`. Outside quotes a line holds only
   what the tool wrote: indentation, a role word, state words, numbers, references, public-form addresses and the
-  marks `=`, `→`, `·`, `|`, `[`, `]`, `(`, `)` and `…`. This holds for the outline, for every `ref` form (tables
+  marks `=`, `→`, `·`, `›`, `|`, `[`, `]`, `(`, `)` and `…`. This holds for the outline, for every `ref` form (tables
   and forms included), for `find`, for the change report and for the present line of a stale reference.
 - **A refusal never carries page text in its message.** The message is the tool's own fixed sentence. Where the
   element's present line is given (a stale reference), it sits in `untrusted_content`, rendered and escaped like
@@ -320,11 +324,10 @@ ref     = three letters and a number, for example kqt5 (item 3)
 
 **`chrome_read`** (effect read).
 
-Input: `tab` (integer), or `tabs` (2 to 5 integers; then only `max` may accompany it); `ref`; `full`
-(boolean); `find` (1 to 200 characters); `role` (with `find`); `until` (an object with `text` or `gone`, each up to
-200 characters);
-`timeout_ms` (0 to 6,000, default 3,000, with `until`); `max` (1,000 to 40,000; default 6,000, or 3,000 per tab with
-`tabs`); `cursor`.
+Input: `tab` (integer), or `tabs` (2 to 5 integers; then only `max` may accompany it); `ref`; `full` (boolean);
+`find` (1 to 200 characters); `role` (with `find`); `until` (an object with `text` or `gone`, each up to 200
+characters); `timeout_ms` (0 to 6,000, default 3,000, with `until`); `max` (1,000 to 40,000; default 6,000, or
+3,000 per tab with `tabs`); `cursor`.
 
 Result:
 
@@ -337,23 +340,22 @@ Result:
 ```
 
 - No `ref`, no `find`: the outline with its folds.
-- `ref`: that element with **one level unfolded**, in the form that fits its role: its own name, text and value
-  whole, and its direct content complete (every row, item, field or hidden neighbour). Below that level the fold
-  rules apply again. A table: a first line `columns: A | B | C`, then one
-  line per row with the cells separated by ` | `, and controls inside a cell as `[link "Open" kqt31]`. A list: its
-  items. A form: every field as an outline line with its options (up to 50 per field, more by the field's own
-  `ref`), `required`, the field's error text, the hidden fields by name, the buttons, and the form's target. A text:
-  in full. A single link or control: everything known about it (its address in the public form, the title, all
-  options).
+- `ref`: that element with **one level unfolded**, in the form that fits its role: its own name, text and value whole,
+  and its direct content complete (every row, item, field or hidden neighbour). Below that level the fold rules apply
+  again. A table: a first line `columns: A | B | C`, then one line per row with the cells separated by ` | `, and
+  controls inside a cell as `[link "Open" kqt31]`. A list: its items. A form: every field as an outline line with its
+  options (up to 50 per field, more by the field's own `ref`), `required`, the field's error text, the hidden fields by
+  name, the buttons, and the form's target. A text: in full. A single link or control: everything known about it (its
+  address in the public form, the title, all options).
 - `full`: **no fold and no cut** below the starting point: the whole page without `ref`, the element and
   everything under it with `ref`. This is how Claude reads all of something in a few calls, paged by `max` and
   `cursor`.
 - Everything a read returns from the page sits in `untrusted_content`, also what `ref`, `find` and `until` bring.
   Outside it are only the tool's own numbers and flags.
-- `find`: up to 20 hits per page. Each hit is the element's outline line, then ` · in ` and the path of named
-  ancestors (at most 80 characters); a hit inside a longer text adds 60 characters either side of it. Literal, no
-  regard to case, over names, labels, values that may be read, and text; folded parts and frames included; inside
-  `ref` when both are given. `role` keeps only that role.
+- `find`: up to 20 hits per page. Each hit is the element's outline line, then ` · in ` and the path of named ancestors,
+  outermost first, each as its role and quoted name, joined by ` › ` (at most 80 characters); a hit inside a longer text
+  adds 60 characters either side of it. Literal, no regard to case, over names, labels, values that may be read, and
+  text; folded parts and frames included; inside `ref` when both are given. `role` keeps only that role.
 - `until`: as item 1 defines waiting; the result carries `until_met`.
 - `tabs`: each tab is read by itself. A tab that can't be read (not in Claude's group, the fixed list, a dialog)
   gets its `error`; the others are returned.
@@ -410,14 +412,17 @@ Result:
 - **The fingerprint.** Brief 20 made the caller send back everything the element had shown (`expected`) and
   compared all of it, its place on the screen included. The service now keeps that comparison itself, per
   reference, as a digest of what the element means:
-  - it is brief 20's element facts (`targetFacts`) without the `box`, without `onscreen`, and without the states
-    `disabled`, `required` and `invalid`;
-  - so it holds the role, the name, the label and the title; a link's destination, resolved and in full; whether
-    the element submits a form, is editable or is a search field; the page dialog it belongs to; whether it is
-    ticked, selected or expanded; a list's options; and the whole value (for a password-kind or unread field only
-    that it is one);
-  - it is taken from the full facts, not from the line. A name or value the outline showed cut, and a link's
-    address that the line doesn't show at all, are compared whole;
+  - it covers what brief 20's `expected` covered, without the `box`, without `onscreen`, and without the states
+    `disabled`, `required` and `invalid`: the role, the name, the label and the title; a link's destination,
+    resolved and in full; whether the element submits a form, is editable or is a search field; the page dialog
+    it sits in; whether it is ticked, selected or expanded; a list's options (label, value, chosen); and the whole
+    value (for a password-kind or unread field only that it is one);
+  - **one function of the reader computes it,** and three commands return its short digest: `outline` for every
+    node, `facts` for the target, and `observe` (the reader's report after an input) for the element acted on.
+    The read and the check before an action can't drift apart that way, and the service only stores and compares
+    digests. The function reads nothing the password rule keeps out;
+  - it is taken from the element, not from the line. A name or value the outline showed cut, and a link's address
+    that the line doesn't show at all, are compared whole;
   - it moves only when a result shows Claude that element again (a read, a `find` hit, a `~` line of a change
     report, the present line of a refusal), or when a step of Claude's own has acted on that element (item 5).
   Left out on purpose: where the element sits, and three states that don't change what it means. A control that
@@ -427,16 +432,18 @@ Result:
   neighbouring field changed. An asking step still shows and binds the form, the draft and the affected item. The
   change report covers the call itself, not the time between Claude's last read and the call.
 - This replaces two things in `adapter.py`: the comparison of the caller's `expected` in `payload` (now against
-  the stored fingerprint), and the comparison of `view` in `facts` (gone). The extension's own checks stay (session, tab, document, element, the hit test
-  before a click), and so does everything that follows in `payload`.
+  the stored fingerprint), and the comparison of `view` in `facts` (gone). The extension's own checks stay
+  (session, tab, document, element, the hit test before a click), and so does everything that follows in
+  `payload`.
 - No tool input carries `reference`, `expected` or `view` objects any more.
 
 ### 4. `chrome_open` and `chrome_go` (effect change)
 
 **`chrome_open`** input: exactly one of `url`; `tab` (open the address that tab shows; with `seen` when the tab is
 his, item 6); `ref` (open the address behind a link's or a library entry's reference; `tab` may accompany a link's
-reference and must then be its tab).
-Also `until`, `timeout_ms` (0 to 15,000, default 8,000) and `max` (default 4,000).
+reference and must then be its tab). Also `until`, `timeout_ms` (0 to 15,000, default 8,000) and `max` (default
+4,000).
+
 **`chrome_go`** input: `tab`, and exactly one of `url` or `to` (`back`, `forward`, `reload`); `until`, `timeout_ms`,
 `max` as above.
 
@@ -548,8 +555,8 @@ How it runs:
    facts `payload` has just read, item 3's rule is applied again **in full, the value included**: what the element
    shows must be what Claude last saw.
    - One thing only moves "last saw" inside a list: after a step of this list has itself acted on an element (a
-     fill, a select, a check, a key in a field), the service records that element as the extension reports it right
-     after the step. So `fill` and then Enter on the same field passes.
+     fill, a select, a check, a key in a field), the service takes that element's fingerprint from the step's own
+     reply (`observe`). So `fill` and then Enter on the same field passes.
    - A step on any other element whose name, value, tick or options changed since Claude saw it ends `stale`,
      whatever changed it: the page's reaction to an earlier step, a draft the page loaded, his own typing. Nothing
      is dispatched for that step, the list stops, and the result carries the element's present line. A list never
@@ -647,12 +654,12 @@ the start of the call, and no timeout is raised:
   - Claude's own tabs and a taken tab need no `seen`.
 - **`chrome_show`** (change; input: `tab`). Makes the tab the one showing in its window and brings that window to
   the front. For him: to look, to sign in, to answer a dialog. Refused for nothing but an unknown tab.
-- **`chrome_close`** (change; input: `tabs`, 1 to 20). Closes tabs that are
-  `claude`. In this package every other tab is refused, **a taken tab included** ("this is the owner's tab;
-  release it"). Brief 20's `chrome_close_tab` closes any tab in the group, a taken one too, without looking at
-  what it holds: that ends here. The result lists `closed` and, with the reason, `kept`.
-- **`chrome_take`** (change; input: `tab`, `seen`, `reload`) and **`chrome_release`**
-  (change; input: `tab`). In this package they are brief 20's `take_tab` and `release_tab`, with one difference:
+- **`chrome_close`** (change; input: `tabs`, 1 to 20). Closes tabs that are `claude`. In this package every other tab is
+  refused, **a taken tab included** ("this is the owner's tab; release it"). Brief 20's `chrome_close_tab` closes any
+  tab in the group, a taken one too, without looking at what it holds: that ends here. The result lists `closed` and,
+  with the reason, `kept`.
+- **`chrome_take`** (change; input: `tab`, `seen`, `reload`) and **`chrome_release`** (change; input: `tab`). In
+  this package they are brief 20's `take_tab` and `release_tab`, with one difference:
   the explicit reload has one home. `chrome_take` without `reload` takes the tab and keeps its page, and its result
   says whether a reload is still due and what it would lose. `chrome_take` with `reload: true` also does that
   reload now (brief 20's `prepare_control` with its explicit repeat) and returns the outline. No other tool has a
@@ -670,7 +677,9 @@ the start of the call, and no timeout is raised:
 - **`chrome_upload`** (change; input: `tab`, `ref`, `path`). Brief 20's tool with a short reference. The proxy's
   file branch stays as it is, apart from the field names it reads.
 - **Unchanged in name, input, result and behaviour:** `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`,
-  `chrome_operation_status`, `chrome_notices`, `chrome_notice_ack`, and the owner-only `chrome_sites`.
+  `chrome_operation_status`, `chrome_notices`, `chrome_notice_ack`, and the owner-only `chrome_sites`. The one
+  thing that differs in what they return is item 2's: every address in a question, a description, a stage or a
+  notice is in the public form.
 - A new error code, `take_first`, for `chrome_read`, `chrome_go`, `chrome_do` and `chrome_upload` on a tab that
   isn't in Claude's group: "this is one of the owner's tabs; take it, or open its address in a Claude tab". (Brief
   28b lets `chrome_read` work there without a take.)
@@ -680,13 +689,15 @@ the start of the call, and no timeout is raised:
 - Seventeen actions are offered to Claude, plus `chrome_sites`. Everything is generated from the definitions as
   today: the MCP tool list, the `aresos` command, `docs/control/TOOLS.md`, the ask rules, `user-mcp.json`.
 - **The generated ask rules for Chrome must not change by a byte.** A test compares them with the copy on `main`.
-- The rules shared by every Chrome action go once into the Chrome server's MCP instructions (brief 18d's pattern,
-  with its check that Claude Code passes them on unshortened): untrusted page text; what to do on
-  `stale_reference`, `reload_required`, `take_first`, `owner_signin`, `owner_dialog` and `unknown`; the version
-  notice; that `done` doesn't prove delivery and pages can send on their own; the clipboard rule; how to read an
-  outline line and a fold; that a reference stays valid until its element changes; that `chrome_do` stops at the
-  first asking step and its `prepared` entry goes unchanged to `chrome_submit`. Each description keeps only what is
-  specific to its action. Write them for Claude: what it does, when to use it, what comes back.
+- The rules shared by every Chrome action go once into the Chrome server's MCP instructions (brief 18d's pattern, with
+  its check that Claude Code passes them on unshortened): untrusted page text; what to do on `stale_reference`,
+  `reload_required`, `take_first`, `owner_signin`, `owner_dialog`, `not_read` and `unknown`; the version notice; that
+  `done` doesn't prove delivery and pages can send on their own; the clipboard rule; how to read an outline line, a fold
+  and `(not read)`; that `full` reads everything; that an address is shown without what follows `?` or `#` and is opened
+  by reference; that a reference stays valid until its element changes; that one of his tabs is named together with the
+  list's `seen`; that `chrome_do` stops at the first asking step, that its `prepared` entry goes unchanged to
+  `chrome_submit`, and that steps it reports as not run are sent again. Each description keeps only what is specific to
+  its action. Write them for Claude: what it does, when to use it, what comes back.
 - **Sizes** (measured as brief 18d measured Mail's): all descriptions plus the instructions at most 10,000
   characters and not above the baseline; all names plus input schemas at most 6,000 characters. A test pins the
   exact totals; a change that grows them fails until the pin is changed on purpose.
@@ -734,7 +745,11 @@ Restructure in steps that keep everything working:
 - **The asking path:** the classification rules and the word list (`policy.py`, `policy.js`); `binding`, `prepare`,
   `question`, `revalidate`, `changed_compose`, `execute`, `command` and `trusted` in `adapter.py`; the adapters
   (`sites.py`); `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`, `chrome_operation_status` and the notices;
-  the 15-minute deadline; one approval, one run.
+  the 15-minute deadline; one approval, one run. **Three narrow exceptions, each named where it is specified, and
+  nothing beyond them:** `prepare`, `question`, `free` and `stage` write addresses in the public form while the
+  payload and every comparison keep the full address (item 2); `input` brings its target on screen inside the
+  armed hold before brief 20's own hit test (item 5); the password rule gets its two additions (item 1). What
+  asks, what is bound, and what is compared before an approved input don't change.
 - **The hold:** `guard.js`, `page.js`, the 500 ms window, the default block, the owner's own Enter, the three kinds
   of dialog.
 - **The reader's password rule only gets stricter** (item 1's two additions); nothing in it is relaxed. The
@@ -757,20 +772,28 @@ profile on the machine you run on; locally run only plain Python and Node tests 
 
 Every new rule gets a test that fails without it.
 
-**Without a browser** (Python and Node): the outline renderer against recorded node lists (every fold, the order of folding, each fold's count against a `full` read of it, text with
-inline links in its order, every role of the tag table, every
-escape, depth, the `ref` forms, `find`, the cut at `max` and at 48 KiB with non-ASCII text); the reference table
-(same element same reference; one counter for all tabs; no string issued twice, also after entries were dropped at
-the 5,000 bound and after the table was emptied; every stale case of item 3; a new reader instance in the same
-document; the letters differ from those of the last 100 runs, and are still drawn when the store fails); the
-`public_address` against a table (a user name and password, ports, a non-ASCII host, `http`, queries, fragments,
-each sign-in word, random-looking segments such as a UUID, 40 hex digits, a 43-character token and a JWT, segments
-that stay such as a slug with digits, a numeric id and an 11-character id, and characters such as `|`, `[`, quotes,
-spaces and line breaks); the `chrome_do` loop with a fake bridge (the check before the first step; the check before each step on fresh facts,
-with the value compared whole; a queued page step, a dialog and a new document found between two steps and after
-a `wait`; every stop, `not_run`, nothing twice after an interruption at each point); the change report; the reader's `outline` command in the Node VM doubles that
-`reader.test.mjs` uses, with the password fixtures; the credential words (each word, as a whole word and as a name
-part, in each of the six places; `shipping`, `postal code` and `pinned` don't match).
+**Without a browser** (Python and Node):
+
+- the outline renderer against recorded node lists: every fold, the order of folding, each fold's count against a
+  `full` read of it, text with inline links in its order, every role of the tag table, every escape, depth, the
+  `ref` forms, `find`, the cut at `max` and at 48 KiB with non-ASCII text;
+- the reference table: same element same reference; one counter for all tabs; no string issued twice, also after
+  entries were dropped at the 5,000 bound and after the table was emptied; every stale case of item 3; a new
+  reader instance in the same document; the letters differ from those of the last 100 runs, and are still drawn
+  when the store fails;
+- `public_address` against a table: a user name and password, ports, a non-ASCII host, `http`, queries, fragments,
+  each sign-in word, random-looking segments such as a UUID, 40 hex digits, a 43-character token and a JWT,
+  segments that stay such as a slug with digits, a numeric id and an 11-character id, and characters such as `|`,
+  `[`, quotes, spaces and line breaks;
+- the `chrome_do` loop with a fake bridge: the check before the first step; the check before each step on fresh
+  facts, with the value compared whole; a queued page step, a dialog and a new document found between two steps
+  and after a `wait`; every stop, `not_run`, the deadline, nothing twice after an interruption at each point;
+- the change report;
+- the reader's `outline` command and its fingerprint function in the Node VM doubles that `reader.test.mjs` uses,
+  with the password fixtures: `outline`, `facts` and `observe` give the same digest for the same element, and the
+  digest of an unread field doesn't change with its value;
+- the credential words: each word, as a whole word and as a name part, in each of the six places; `shipping`,
+  `postal code` and `pinned` don't match.
 
 **Passwords, in group 14 and in `password_exclusion`.** Group 7's fixtures and recording run over every new output.
 Added cases, each with group 7's known password and a label that says nothing ("Code"):
@@ -812,13 +835,13 @@ Added cases, each with group 7's known password and a label that says nothing ("
 
 Small fixtures are compared with stored expected outlines, character for character.
 
-**Paging, in group 14 and without a browser.** A text of 100,000 characters read by `ref` with `max` 1,000 comes
-back whole over its pages, each page longer than nothing and marked `mid_line` until the last; the pages joined
-equal the text. The same for a table row wider than `max` and for a value of 20,000 characters read in full. A
-page of text outside ASCII (6 bytes a character) and one made of quotes stay inside 48 KiB as sent, measured on the
-real result with a pending operation and the version notice present, and still advance. Five tabs of such text:
-each gets its share, each has its cursor, and the whole result fits. A cursor used with another `ref`, `find` or
-`full` is refused. `full` on F1 returns every paragraph whole and every field, with no fold and no `…+N`.
+**Paging, in group 14 and without a browser.** A text of 100,000 characters read by `ref` with `max` 1,000 comes back
+whole over its pages, each page holding at least one character and marked `mid_line` until the last; the pages joined
+equal the text. The same for a table row wider than `max` and for a value of 20,000 characters read in full. A page of
+text outside ASCII (6 bytes a character) and one made of quotes stay inside 48 KiB as sent, measured on the real result
+with a pending operation and the version notice present, and still advance. Five tabs of such text: each gets its share,
+each has its cursor, and the whole result fits. A cursor used with another `ref`, `find` or `full` is refused. `full` on
+F1 returns every paragraph whole and every field, with no fold and no `…+N`.
 
 **The state token and waiting, in group 14.** Typing into a field, which changes no DOM node, moves the token. A
 change inside a frame moves it. An unchanged page keeps it over 100 polls. `until` is met by a text that appears
@@ -897,15 +920,18 @@ actions, in a frame's address, in a redirect's target, and in history, bookmark 
   the tab isn't attached, moved or reloaded. `chrome_open` with `tab` still opens the address the list showed. With
   the tab unchanged both work without any further question. A `seen` older than 8 lists, and one from before a
   restart of Chrome or the service, are refused;
+- **a taken tab stays his:** `chrome_close` on a taken tab is refused and the tab stays open; `chrome_go` in a
+  taken tab that holds typing answers `reload_required` and the page isn't replaced; in a taken tab without typing
+  it reloads under brief 20's guard and then navigates;
 - the conservative mode (an unqualified Chrome major) asks for the same inputs through `chrome_do` as brief 20's
   tools did.
 
 **Group 16, efficiency** (browser, in the latency harness): the scripted tasks below, each run against the baseline
 file. **Each row names the exact calls it allows; the test makes those calls and no others.** If a budget can't
 be met with them, the budget or the tool changes, in the brief, before the build goes on (stop rule): the test
-is never bent to fit. Characters are counted on the whole result as Claude receives it (the JSON text of the tool result), for the
-baseline and for the new tools alike. The build fails when a budget is exceeded or when a number is worse than the
-baseline.
+is never bent to fit. Characters are counted on the whole result as Claude receives it (the JSON text of the tool
+result), for the baseline and for the new tools alike. The build fails when a budget is exceeded or when a number
+is worse than the baseline.
 
 | Task | Budget |
 |---|---|
@@ -914,12 +940,12 @@ baseline.
 | F1: the 80 fields with their values: after the first read, `chrome_read` with the form's `ref` | 1 further call, at most 6,000 characters |
 | F2: the whole table: after the first read, `chrome_read` with the table's `ref` and `max` 20,000 | 1 further call, at most 1.3 times the cells' own text |
 | F3: find one named link: `chrome_read` with `find` and `role` | 1 call, at most 800 characters |
-| Open a fixture page and return one fact from it | 1 call |
-| F4: fill 6 fields and send the form | 2 calls and `chrome_submit`; one question; the receiver has it once |
-| Three result pages, one click each, the titles collected | 3 calls |
-| Compare three open tabs | 1 call |
-| List 25 open tabs (titles of about 30 characters) | 1 call, at most 3,500 characters |
-| F5: a free click that changes part of the page | 1 call, at most 2,500 characters, the change named |
+| Open a fixture page and return one fact from it: `chrome_open` with `url` | 1 call |
+| F4: fill 6 fields and send the form: `chrome_open` of the form's page, `chrome_do` with six fills and the click, `chrome_submit` | 2 calls and `chrome_submit`; one question; the receiver has it once |
+| Three result pages, one click each, the titles collected: from an outline in hand, three `chrome_do` calls of one click, each returning the next page | 3 calls |
+| Compare three open tabs: `chrome_read` with `tabs` | 1 call |
+| List 25 open tabs (titles of about 30 characters): `chrome_tabs` | 1 call, at most 3,500 characters |
+| F5: a free click that changes part of the page: from an outline in hand, one `chrome_do` | 1 call, at most 2,500 characters, the change named |
 | Descriptions plus instructions | at most 10,000 characters, and not above the baseline |
 | Names plus input schemas | at most 6,000 characters |
 | Latency ("Before anything else", the comparison in one run) | the first read of F1, a free click with its report, and the 6-field form are each at most 1.10 times brief 20's median plus 50 ms; a latency check PR #27 brings stays within its targets |
@@ -935,21 +961,20 @@ The base's, 18d's and Mail's suites still pass, and the generated artifacts are 
 ## Out of scope
 
 - His open tabs in place, the **READ** sign, the popup list, incognito, tabs in the background: brief 28b.
-- Anything in the asking path or the hold ("What must not change").
+- Anything in the asking path or the hold beyond the three exceptions named in "What must not change".
 - Screenshots (owner, 2026-11-13, board #202: "Text only first"), coordinates, hover, drag, console or network
-  reading, running script text, a search that needs a
-  model, loops or conditions in a step list, steps across tabs, a richer result for `chrome_submit` (section 6,
-  "Left out on purpose").
+  reading, running script text, a search that needs a model, loops or conditions in a step list, steps across
+  tabs, a richer result for `chrome_submit` (section 6, "Left out on purpose").
 - Any real site or account. The image (`os/`). Running Claude Code with a model.
 
 ## Paths
 
-**May change:** `control/aresos_control/chrome/adapter.py`, `definitions.py` and new modules beside them;
-`control/chrome/extension/reader.js` and `background.js` (only as item 1 says); `control/aresos_control/proxy.py`
-(the Chrome upload branch's field names); the generated files; `control/chrome_tests/`, `control/chrome/ci/`;
-`.github/workflows/control-chrome.yml` (not the qualification workflow); `docs/control/TOOLS.md`,
-`docs/control/FEATURES.md` (item 9),
-`control/README.md`; `reviews/28-chrome-capability/`.
+**May change:** `control/aresos_control/chrome/adapter.py`, `definitions.py` and new modules beside them (the view
+module, the credential words); `control/chrome/extension/reader.js` and `background.js` (only as items 1, 3, 5
+and 6 say); `control/aresos_control/proxy.py` (the Chrome upload branch's field names); the generated files;
+`control/chrome_tests/`, `control/chrome/ci/`; `.github/workflows/control-chrome.yml` (not the qualification
+workflow); `docs/control/TOOLS.md`, `docs/control/FEATURES.md` (item 9), `control/README.md`;
+`reviews/28-chrome-capability/`.
 
 **Must not touch:** `os/`, `mod/`, `docs/design/`, `docs/control/PLAN.md`, `docs/control/TOOLS-HANDOFF.md`,
 `STATE.md`, `HANDOFF.md`, `docs/INSTALL*`, `docs/EMERGENCY.md`, `briefs/`; `control/aresos_control/mail/`,
@@ -973,15 +998,17 @@ AGENTS.md's format (Done, Verified, Not verified, JUDGMENT-CALL, PLAN-GAP, Open 
 - the baseline and the measured numbers side by side, per task, with run ids;
 - the outline of each fixture as returned (short ones in full, long ones by their first 40 lines);
 - the tool descriptions and instructions as Claude will read them, with anything you are unsure reads well;
-- what changed in `adapter.py`'s `payload` and `facts`, line by line, and a statement that nothing else in the
-  asking path changed, with the diff command that shows it;
+- what changed in `adapter.py`'s `payload` and `facts`, line by line; the lines of the three exceptions (the
+  public form in `prepare`, `question`, `free` and `stage`; the reveal in `input`; the two password additions in
+  `reader.js`); and a statement that nothing else in the asking path changed, with the diff command that shows
+  it;
 - the harness map and the inventory mapping;
 - every claim marked **run** (workflow run id and log line), **read** (file and line) or **assumed**.
 
 **Known limits.** Keep `reviews/28-chrome-capability/KNOWN-LIMITS.md`: start from section 6's "Known limits", and
 for every line you add, change or find untrue give what it is, the harm and why it is acceptable or not. The lead
-moves the result into section 6. A flaw with real harm (an action without its question, a password read, data
-loss, his normal use broken) is never a limit: fix it or stop.
+moves the result into section 6. A flaw with real harm (an action without its question, a password or sign-in
+code read, data loss, his normal use broken) is never a limit: fix it or stop.
 
 ## JUDGMENT-CALLs
 
@@ -1021,7 +1048,8 @@ fewer characters. Say what you chose in the report.
 ## Stop rules
 
 - Stop and report, rather than weaken a rule, if a budget can only be met by leaving out something Claude needs to
-  act safely, or if the asking path would have to change.
+  act safely, if a budget can't be met with the calls its row names, or if the asking path would have to change
+  beyond the three exceptions named in "What must not change".
 - Stop if any test would need a real site or a real account.
 - The full `control-chrome.yml` suite takes three to four hours a run. Develop against the browser-free tests and
   the short job. Plan about 10 full runs; tell the lead in the report before passing 14. Wait on each run with one

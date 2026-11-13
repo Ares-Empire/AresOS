@@ -451,9 +451,10 @@ sites and synthetic profiles).
   reaching Claude is never accepted (owner, 2026-11-11). Its price is under "Known limits": in his own tab Claude
   can't read back what he typed.
 - **The service checks its peer.** `chrome.sock` accepts only his user (Chrome, and so the host, run as him) and one
-  host per running Chrome, from the pinned profile ("Which tabs Claude works in", *brief 28b*). Under decision 24 another program of his user could imitate or disturb the host, as it
-  could any program of his (for example by registering a user-level host of the same name, which Chrome prefers:
-  *checked*, 17); that is the accepted level of section 7, not a route the tool adds.
+  host per running Chrome, from the pinned profile ("Which tabs Claude works in", *brief 28b*). Under decision 24
+  another program of his user could imitate or disturb the host, as it could any program of his (for example by
+  registering a user-level host of the same name, which Chrome prefers: *checked*, 17); that is the accepted level of
+  section 7, not a route the tool adds.
 
 ### Where Claude may go
 
@@ -490,7 +491,8 @@ it sits in. A tab is Claude's when Claude opened it, or when a tab under Claude'
 his, and it stays his while Claude has taken it.
 
 **Claude's own tabs** are in a tab group labelled **Claude**. `chrome_open` puts a new tab there, in the same profile,
-so his sign-ins work. The service knows the group by Chrome's group id, not by its label. Every call names its tab:
+so his sign-ins work. A tab of his that Claude has taken gets a Claude group of its own, where it stands (below).
+The service knows each group by Chrome's group id, not by its label. Every call names its tab:
 there is no "current tab" and no switching step, so Claude moves between tabs freely. `chrome_show` brings a tab to
 the front when he should look at it or sign in there.
 
@@ -505,7 +507,8 @@ the front when he should look at it or sign in there.
     "not_allowed"`. Incognito is his way of saying "not for the record".
   - **Other Chrome profiles** aren't listed. Claude sees one profile, and it is pinned: the service remembers the
     first profile whose extension connected and refuses any other, also after a reconnect, until he switches it
-    with an owner-only command. Brief 20 accepts whichever extension connects (*brief 20*), so without the pin a
+    with an owner-only command. Brief 20 accepts whichever extension connects (read in its `bridge.py`), so without
+    the pin a
     second profile could quietly take the first one's place. [`FEATURES.md`](../control/FEATURES.md) says so.
   - **Never readable:** the pages of "Where Claude may go" (the fixed list, his own never-list, anything that isn't a
     web page). They are listed with title and site and marked `no`, so Claude can say why it can't help there.
@@ -530,13 +533,14 @@ the front when he should look at it or sign in there.
     take one of his tabs only when his current request names it or can't be done without it. Choose by site, not by
     title alone. When two tabs fit, or none clearly does, ask him which. Never read the others to look around. Say
     which tab was used. Page text never widens this; only his request does.
-  - *Every call on one of his tabs says why.* `chrome_read`, `chrome_take` and `chrome_close` take a `request`
-    field, his request in a few words, and are refused on his tabs without it. The tool can't check the reason: it
-    records what Claude says and proves nothing. It is there so the reason is written down where he can see it.
-  - *He sees it, afterwards.* The tab's toolbar button shows **READ** after Claude looked at it, until the tab loads another
-    page. The button's popup lists each of his tabs that Claude looked at or took in this Chrome session, with the
-    time and the request. `aresos log` records the same (rule 4.9 covers these reads although they change nothing).
-    The tool result names the tab, so Claude tells him.
+  - *Every call on one of his tabs says why.* `chrome_read`, `chrome_take`, `chrome_close`, and `chrome_open` with one
+    of his tabs, take a `request` field, his request in a few words, and are refused on his tabs without it. The tool
+    can't check the reason: it records what Claude says and proves nothing. It is there so the reason is written down
+    where he can see it.
+  - *He sees it, afterwards.* The tab's toolbar button shows **READ** after Claude looked at it, until the tab loads
+    another page. The button's popup lists each of his tabs that Claude looked at, copied, took or closed in this Chrome
+    session, with the time and the request. `aresos log` records the same (rule 4.9 covers these reads although they
+    change nothing). The tool result names the tab, so Claude tells him.
 - **Acting takes the tab.** Before its first input in one of his tabs Claude calls `chrome_take`. He sees a
   **Claude** group label appear around the tab, where it stands, and its button show **ON**. The tab isn't moved:
   brief 20 put a taken tab into Claude's own group, which can sit in another window, and that made his tab strip
@@ -553,10 +557,10 @@ the front when he should look at it or sign in there.
   - `chrome_take` returns the reloaded page's outline, so the next call can act.
   - Often Claude needs the site, not his tab. Then it leaves his tab alone and opens the same address in a Claude
     tab (`chrome_open` with his tab's number).
-- **Before the tool reloads or closes one of his tabs, it must know that nothing of his is lost.** Unknown is not
-  clean. Brief 20 looked for a field that differs from its default, an editor, and playing media (*checked*, brief
-  20). That misses typing on the many pages that copy it into the field's default, work kept in a canvas, and a
-  form on its way to the server. With brief 28b a tab is known clean only when all of this holds:
+- **Before the tool reloads or closes one of his tabs, it must know that nothing of his is lost.** Unknown is not clean.
+  Brief 20 looked for a field that differs from its default, an editor, and playing media (read in its `reloadState`).
+  That misses typing on the many pages that copy it into the field's default, work kept in a canvas, and a form on its
+  way to the server. With brief 28b a tab is known clean only when all of this holds:
   - every frame answered, no dialog is open, and no load or form submission is under way;
   - nothing plays;
   - there is no editable area, no chosen file, no password field, and no field that differs from its default;
@@ -568,7 +572,7 @@ the front when he should look at it or sign in there.
   fields and never their values. The check runs in his tab without a debugger, as the last thing before the
   reload or the close. If Chrome itself asks "Leave site?", that question is his and the tool never answers it.
 - **Giving it back.** `chrome_release`, the **Give back** button next to the tab in the popup, dragging the tab out
-  of the group, or **Stop** (which gives back everything) each end Claude's control of the tab, drop its prepared
+  of its Claude group, or **Stop** (which gives back everything) each end Claude's control of the tab, drop its prepared
   operations and put it back where it was: its window, its place, his own group, pinned if it was pinned. If his
   group was removed by Chrome because the taken tab was its only one, a group with the same name and colour is
   made for it.
@@ -634,13 +638,13 @@ main
   without a role or name get no line. A link or control inside a sentence stands in square brackets where it
   stands in the text, so the sentence keeps its order.
 - Long content is folded. The fold says how much it hides, in characters of what reading it returns, and its
-  reference reads exactly that. A text longer than
-  200 characters is cut. Of more than 8 neighbours of the same kind (paragraphs, list items, rows, cards) the first
-  5 are shown. A table shows its size. A list of more than 12 options shows the chosen one and the count. A form
-  shows its first 40 fields.
-- Left out: boxes and coordinates (Claude acts by reference; the tool scrolls the element into view, inside the
-  same hold as the input itself, and checks that the click lands on the element), elements behind an open dialog, hidden elements, and frames of the fixed list. Frames from
-  other sites and shadow DOM, closed roots too, are part of the outline.
+  reference reads exactly that. A name, a text or a value longer than 200 characters is cut. Of more than 8
+  neighbours of the same kind (paragraphs, list items, rows, cards) the first 5 are shown. A table shows its size.
+  A list of more than 12 options shows the chosen one and the count. A form shows its first 40 fields.
+- Left out: boxes and coordinates (Claude acts by reference; the tool scrolls the element into view, inside the same
+  hold as the input itself, and checks that the click lands on the element), elements behind an open dialog, hidden
+  elements, and frames of the fixed list. Frames from other sites and shadow DOM, closed roots too, are part of the
+  outline.
 - A password field is the line `password "Label" (not read)`. A text field whose history the reader doesn't know
   is `textbox "Label" (not read)`.
 - A page can't forge a line. The role is one word from a fixed list: a page's own `role` string is used only when
@@ -682,8 +686,8 @@ several are read, never more than 40,000. What doesn't fit is paged with a curso
 cursor from an earlier state fails with "page changed, read again". A page of the answer ends at a line end; a
 single line that is longer than the budget (a long text read in full) is continued inside the line, so paging
 always advances. The tool measures the answer as it is sent, where a character outside ASCII takes six bytes, and
-ends a page earlier when the whole wouldn't fit the base's bound of 48 KiB. The header names the tab, the address, the
-title, the scroll position, and how many characters the whole answer has.
+ends a page earlier when the whole wouldn't fit the base's bound of 48 KiB. The header names the tab, the address,
+the title, the scroll position, and how many characters the whole answer has.
 
 **Addresses: one public form.** *brief 28.* An address can carry a sign-in: a code after `?`, a token after `#`,
 a user name and password in front of the site, or a reset link whose path is the key. So one function in the
@@ -745,16 +749,15 @@ bringing his tab to the front or attaching to it.
 *brief 28.* One call does a whole step of work and returns what Claude needs to go on, so a second read is rarely
 needed.
 
-- **Going.** `chrome_open` opens a web address in a new Claude tab: an address Claude gives, the link behind a
-  reference, or the address one of his tabs shows. `chrome_go` moves a Claude tab: to an address, back, forward or
-  reload. Both wait until the page has loaded and gone quiet, or until a text Claude names appears, for 8 seconds
-  unless Claude says otherwise and never more than 15. "Loaded" also covers a navigation that stays inside the
-  same document (a fragment, or a step in a single-page site's history): there the address changes and no new
-  document comes. With a text to wait for, the call returns once the navigation has arrived and the text is
-  there, also on a page that never goes quiet. Both return the new page's outline with references. When the
-  time runs out the result says `loaded: false`, with the outline as far as it is. The rules of "Where Claude may
-  go" hold. Back or forward to a page that a form submission loaded is refused, because Chrome might submit it again
-  (*brief 20*).
+- **Going.** `chrome_open` opens a web address in a new Claude tab: an address Claude gives, the link or library entry
+  behind a reference, or the address one of his tabs showed in the list. `chrome_go` moves a Claude tab: to an address,
+  back, forward or reload. Both wait until the page has loaded and gone quiet, or until a text Claude names appears, for
+  8 seconds unless Claude says otherwise and never more than 15. "Loaded" also covers a navigation that stays inside the
+  same document (a fragment, or a step in a single-page site's history): there the address changes and no new document
+  comes. With a text to wait for, the call returns once the navigation has arrived and the text is there, also on a page
+  that never goes quiet. Both return the new page's outline with references. When the time runs out the result says
+  `loaded: false`, with the outline as far as it is. The rules of "Where Claude may go" hold. Back or forward to a page
+  that a form submission loaded is refused, because Chrome might submit it again (*brief 20*).
 - **Acting.** `chrome_do` takes a tab and a list of up to 20 steps: click, fill, select, check, press, scroll,
   dialog, wait. Each step names its element by reference.
   - All references are checked before the first step runs. If one is stale, nothing has run.
@@ -773,7 +776,7 @@ needed.
   - So filling a form and sending it is one call and one question: the fills run, the click on the submit button is
     prepared, and its question shows the whole form as the page then holds it. `chrome_submit` runs it.
 - **Every call ends before its caller gives up.** The caller's side waits 10 seconds for a read and 30 for a
-  change (*checked*, brief 20's `protocol.py`), and a caller that times out doesn't know what ran. So each tool
+  change (read in brief 20's `protocol.py`), and a caller that times out doesn't know what ran. So each tool
   has one deadline of its own, inside those: 8 seconds for a read, 18 for opening, going, taking and for a list of
   steps. In a list no step starts after second 12, and the steps that weren't started are reported as not run;
   Claude sends them again. About a dozen input steps fit in one call, because the tool waits out its hold of half
@@ -952,9 +955,9 @@ follow: everything in the list above, files with path and hash, the number of hi
 values, and each password field by its label only.
 
 **What the binding guarantees:** the input goes only if the page still shows what he approved, checked right before it
-is dispatched. The comparison uses full addresses, also where the question shows the public form: a destination
-whose query changed while the approval waited is refused. A page script that changes the page in the instant between that check and the input, or that sends
-something else afterwards, isn't stopped (below).
+is dispatched. The comparison uses full addresses, also where the question shows the public form: a destination whose
+query changed while the approval waited is refused. A page script that changes the page in the instant between that
+check and the input, or that sends something else afterwards, isn't stopped (below).
 
 **Outcomes (rule 4.3 for Chrome).** The tool sees the input, not the network. Its stages are `checked`, then
 `dispatched` (the extension reports that the input or the resumed step ran once), then what the page showed
@@ -1212,6 +1215,10 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   (a video's link, page 3 of a search); it opens the link by reference instead, or shows him the tab. *Accepted:*
   that part of an address is where sign-in codes travel, and the tool can't tell a code from a page number. If his
   live test shows this in the way, naming harmless parameters per site is the later step.
+- **A question shows where a form goes without its query.** The site and the path are shown, and `?…` marks that
+  there is more. *Harm:* he approves a destination whose last part he can't read. *Accepted:* what the form
+  itself sends is shown in full, hidden fields included; the tool compares the whole destination right before the
+  input and refuses a changed one; and showing the query would put sign-in tokens into Claude's context.
 - **A secret in an address's path that doesn't look like one.** The public form hides what follows a sign-in word
   and anything that looks random. A short or wordy key elsewhere in a path is shown. *Harm:* such a link's key
   reaches Claude's context and the log. *Accepted:* the path is what tells one page from another, so it can't be
@@ -1228,6 +1235,10 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   last tab leaves, and the tool makes one with the same name and colour on release. *Harm:* a group he had saved
   or synced isn't linked to the new one. *Accepted:* the tab, its place and the group's look are restored; Chrome
   offers no way to keep an empty group.
+- **A tab from one of his groups, or a pinned one, shifts while it is taken.** Chrome allows a tab one group and
+  no group among pinned tabs. *Harm:* that tab steps to the edge of his group, or out of the pinned tabs, until
+  it is given back. *Accepted:* every other taken tab stays exactly where it is, and a release puts these two
+  back.
 - **What he types into a taken tab can be lost when Claude navigates it.** *Harm:* his text in a tab that Claude
   is working in. *Accepted:* the tab is marked as Claude's for as long as it is taken, and giving it back is one
   click.
@@ -1237,6 +1248,11 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   picture of what stands next to the control. *Accepted:* a step the tool recognises as a send, a delete or a
   payment still asks, and its question shows and binds the item, the form and the draft as they are then; the
   result of every step says what changed during the call, not what changed before it.
+- **A reference's letters could repeat after the service lost its record of them.** The service never draws the
+  letters of its last 100 runs again, from a record in its store. If the store was restored to an older state or
+  couldn't be written, a new run draws at random, and one draw in about 9,000 repeats an old run's letters.
+  *Harm:* a reference Claude kept from that old run could then name another element. *Accepted:* it needs a lost
+  store, that draw, and Claude using a reference from before the restart instead of reading again.
 - **The outline folds long content.** A control inside a folded part isn't in the first read. *Harm:* an extra
   call (`find`, or a read by `ref`). *Accepted:* it is the point of the budget; what asks is decided when Claude
   acts, on the element itself, never from the outline.
@@ -1357,8 +1373,11 @@ field it can't confirm is safe isn't read; every result says plainly that this C
     one that autosaves typing, one that submits after the hold, and one that borrows every step from a window
     outside Claude's tabs are listed in the brief's report as not held, so "Known limits" stays true.
 
-**Groups added by briefs 28 and 28b.** Groups 1 to 13 keep their cases and run through the new tools; only the
-harness's helper functions change, never an assertion.
+**Groups added by briefs 28 and 28b.** Groups 1 to 13 keep their cases and run through the new tools. The harness's
+helper functions change, and never an assertion about a question, a binding, an approval or what the receiver
+got. Two kinds of assertion do change, each listed in its brief's harness map: reading a text field in a taken tab
+before its reload now gives `(not read)` (brief 28), and a take reloads the tab itself instead of the first input
+(brief 28b).
 
 14. **Reading and references** (*brief 28*):
     - the outline's rules on fixtures, compared with stored expected outlines: text once, every fold with its exact
@@ -1413,6 +1432,9 @@ harness's helper functions change, never an assertion.
     - a form filled and sent in one call and `chrome_submit`: the receiver has nothing before approval, one
       submission after, none on a repeat, and the question shows every field as filled;
     - the change report names exactly the added, changed and removed lines on the fixture, within its bound;
+    - a taken tab stays his: closing it is refused, and navigating it before its reload goes through the same
+      check as a first input; a take, and opening one of his tabs' address, need the list's token and are refused
+      when the tab has moved on (the opened address is the one the list showed);
     - Chrome, the host and the service each stopped in the middle of a list: no step runs twice;
     - time: through the real command and the real MCP proxy, a list that would wait longer than its deadline
       returns in time with the steps it didn't start counted, and a caller that goes away in the middle leaves
