@@ -111,7 +111,11 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
             check(helper.received("list_apps").size() == 8, "The startup lists did not each come in four pages: "
                     + helper.received("list_apps").size());
             // The helper's pictures become the icon pack, and the game loads it without being asked.
-            context.waitFor(client -> AresOs.generatedIcons.contains("discord") && client.gui.overlay() == null, 600);
+            String lastPicture = FakeHelper.string(programs.getLast(), "id");
+            check(programs.getLast().has("icon"), "The startup refresh needs a picture absent from the first list");
+            // The first 149 pictures can reload before the refresh's last picture. Finish both before UI input.
+            context.waitFor(client -> AresOs.generatedIcons.contains("discord") && AresOs.generatedIcons.contains(lastPicture)
+                    && client.gui.overlay() == null, 600);
             check(!AresOs.generatedIcons.contains("kcalc"), "A program without a picture got a pixel icon");
 
             // The laptop's screen with the game's own scale: 1920 x 1080 at scale 4 is this window at scale 2.
