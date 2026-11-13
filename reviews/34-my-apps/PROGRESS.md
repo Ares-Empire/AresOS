@@ -11,18 +11,18 @@ Working notes for the next builder. Deleted in the last commit before the PR is 
 | B1 | apps.json schema 3 (`mine`, `baseline`), the move from schema 2 and 1, `restoreLegacy` for both backups | **Done**, committed |
 | B2 (file part) | Day one, the baseline and "joins later" inside `AppsConfig.merge(file, list, detailed, today)`; `AppsConfig.mine`; `pins` makes it his; `MyApps` holds the rules | **Done**, committed |
 | A4 | The helper's icon path feeds the pixel icon; pack regenerated and reloaded, throttled | Not started |
-| A5 | Vanilla look by group for an app without a picture | Not started |
+| A5 | Vanilla look by group for an app without a picture (`catalogue/AppGroup`, `LinuxAppCatalogue.look`, `AppGroupTest`) | **Done**, committed |
 | B2 (game part) | Wiring in `AresOs`, the inventory, removal from Live and saved Build, Q, commands, chat line | Not started |
 | B3 | The Apps screen and the client game tests with screenshots | Not started |
 | Last | README, REPORT, build once, client tests twice, fetch and merge, delete this file, PR | Not started |
 
-**Verification so far.** The unit tests of `shell/` and `config/` (`ShellListTest` 11, `ShellClientTest` 17, `AppsConfigTest` 16) pass when run with plain `javac` and JUnit from the Gradle cache (no Gradle, because another session's client test held the laptop). **`mod/dev/build.sh` has not run on these commits**: see "Build result" at the end of this file; if that section is missing, run it first and fix what it shows. The rest of the mod (the game tests under `src/gametest`, `AresOs`, `WindowsAppCatalogue`) was only checked by reading.
+**Verification so far.** `mod/dev/build.sh` passed once on commit `e7148941` (everything up to and including the apps file): 78 unit tests, 72 passed and 6 skipped (the Windows-only ones), and "All 38 required tests passed" for the server game tests. The commit after it (`AppGroup`, A5) was checked with plain `javac` and JUnit only; see "Build result" at the end of this file, and if that section is missing run `mod/dev/build.sh` first. The client game tests have not run on this branch yet: nothing visible has changed so far, and the inventory still holds every app as before (`AppInventory` is untouched).
 
 ## What is left, in order
 
-1. **Run `mod/dev/build.sh`** and fix what breaks.
+1. **Run `mod/dev/build.sh`** if "Build result" below is missing.
 2. **A4 icons.** `SystemInfo.icon` is the helper's path. Keep `AppDefinition.icon` as the owner's (or Windows discovery's) own path, which wins; otherwise use `system.icon`. Read the helper's file only if it is a regular file, at most 1 MiB, and decodes as a PNG of at most 512 x 512; anything else is "no icon". Put that reader in one public place in `icon/` so package 36 can use it for logos (`zone/LogoBuilder.readIcon` still reads `icon()` only, and `zone/` is off limits here: say so in the report). `IconPack.generate` already stamps by content hash; it needs to say whether anything changed. Client side: after each complete list regenerate off the render thread, then `client.reloadResourcePacks()` only if something changed, at most once every few seconds, changes in between sharing one reload. `AresOs.generatedIcons` is a plain static read from two threads: make the swap safe. Items already in the inventory keep their old `ITEM_MODEL` until `AppInventory.populate` refreshes them, so refresh after the pack changed.
-3. **A5 looks.** `LinuxAppCatalogue.look(id)` holds the three starters' looks. Add the group table in one place (HUB.md 2.2: first match of `Game`, then `Network`, then the Work & Media list, then the rest; `minecraft:paper` when no categories are known). Packages 35 and 36 need the same grouping, so make it a small public enum.
+3. (A5 is done. `AppGroup.of(app)` is there for packages 35 and 36 too.)
 4. **B2 game part.**
    - `AresOs.mergeHelperApps` and the startup merge must call `AppsConfig.merge(file, definitions, shell.detailed(), LocalDate.now())` and act on `Merged`: one chat line per ID in `joined` when `dayOne` is false ("Spotify is new. ..."), none on day one. The log line in `onInitialize` still says "Migrated apps.json to schema 2". Keep `AresOs.java` to registration lines: put the logic in its own class.
    - `AppInventory.populate` must place only apps with `mine` (first free slot 9 to 35, never the hotbar except pinned ones as today), and take out items of apps that are not his.
