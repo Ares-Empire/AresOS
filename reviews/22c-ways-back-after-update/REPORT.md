@@ -1299,3 +1299,13 @@ Final-source focused verification (7303 MB available at start):
 `cd os/tests && TMPDIR=/var/home/ares/pkg22c-work nice -n 10 python3 -B -m unittest test_ways_back`
 printed **`Ran 42 tests in 22.456s` / `OK`**. Full model and hosted verification
 are the remaining checkpoint work.
+
+Hosted checks-only run dispatched on implementation
+`05fb2a927dc9bc5776b92733c6ac246022c87dad`:
+[43530837211](https://github.com/Ares-Empire/AresOS/actions/runs/43530837211).
+Command: `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`,
+then exactly one blocking `gh run watch 43530837211 --exit-status` (in progress).
+The final local full model command is
+`cd os/tests && TMPDIR=/var/home/ares/pkg22c-work nice -n 10 python3 -B -m unittest test_ways_back_model`,
+started with **6990 MB available**; its result is still pending. The report-only
+checkpoint does not change the implementation being tested.
