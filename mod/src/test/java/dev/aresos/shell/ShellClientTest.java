@@ -199,6 +199,38 @@ class ShellClientTest {
         assertEquals(2, helper.launches.get());
     }
 
+    @Test void anOpenSentInsideTheStartupCallbackIsNotSentAgainByReplay() throws Exception {
+        var received = new CountDownLatch(1);
+        var resume = new CountDownLatch(1);
+        var opened = new CompletableFuture<CompletableFuture<ShellClient.Launch>>();
+        helper.launchState = "focused";
+        helper.override = message -> {
+            if ("open_app".equals(FakeHelper.string(message, "op"))) received.countDown();
+            return null;
+        };
+        client = helper.client(FakeHelper.fast());
+        client.world("startup-barrier");
+        client.addListener(new ShellClient.Listener() {
+            @Override public void apps(List<ShellClient.App> apps) {
+                opened.complete(client.open("notepad"));
+                try {
+                    if (!received.await(5, TimeUnit.SECONDS) || !resume.await(5, TimeUnit.SECONDS))
+                        throw new AssertionError("Startup send barrier timed out");
+                } catch (InterruptedException error) { throw new AssertionError(error); }
+            }
+        });
+        client.start();
+        try { assertTrue(received.await(5, TimeUnit.SECONDS), "The normal send never reached the helper"); }
+        finally { resume.countDown(); }
+        client.awaitApps(Duration.ofSeconds(5));
+        // Startup queues world_ready after replay on the same writer, so receiving it is a writer barrier.
+        FakeHelper.await(() -> !helper.received("world_ready").isEmpty(), "the startup replay writer barrier");
+        var launch = join(join(opened));
+        assertEquals(1, helper.connections.get());
+        assertEquals(List.of(launch.requestId()), helper.received("open_app").stream()
+                .map(message -> FakeHelper.string(message, "id")).toList(), "An ID was sent twice on one connection");
+    }
+
     @Test void aRestartingHelperIsReconnectedAndAnUncertainOpenIsNeverLaunchedTwice() throws Exception {
         helper.launchState = "focused";
         helper.dropOnFirstOpen = true;

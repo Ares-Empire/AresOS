@@ -97,7 +97,21 @@ public final class ShellClient implements AutoCloseable {
         public String code() { return code; }
     }
 
-    private record PendingOpen(String id, String appId, CompletableFuture<Launch> future) { }
+    private static final class PendingOpen {
+        private final String id, appId;
+        private final CompletableFuture<Launch> future;
+        // Writer-owned: publication callbacks can queue a normal send before startup queues its replay.
+        private Connection lastSent;
+
+        PendingOpen(String id, String appId, CompletableFuture<Launch> future) {
+            this.id = id;
+            this.appId = appId;
+            this.future = future;
+        }
+        String id() { return id; }
+        String appId() { return appId; }
+        CompletableFuture<Launch> future() { return future; }
+    }
 
     private final Path socket;
     private final String instance;
@@ -212,8 +226,7 @@ public final class ShellClient implements AutoCloseable {
         boolean queued = later(() -> {
             var current = connection;
             if (current == null || future.isDone()) return;
-            try { current.send(openRequest(open)); }
-            catch (IOException lost) { current.close(); }
+            sendOnce(current, open);
         });
         if (!queued) future.completeExceptionally(notConnected());
         return future;
@@ -370,14 +383,12 @@ public final class ShellClient implements AutoCloseable {
             // The writer sends them, so this thread starts reading at once and can never block both directions.
             for (var open : opens.values()) later(() -> {
                 if (open.future().isDone()) return;
-                try { current.send(openRequest(open)); }
-                catch (IOException lost) { current.close(); }
+                sendOnce(current, open);
             });
             // Watched launches too: a failure the helper recorded while we were away comes back as their answer.
             for (var open : watching.values()) later(() -> {
                 if (!watching.containsKey(open.id())) return;
-                try { current.send(openRequest(open)); }
-                catch (IOException lost) { current.close(); }
+                sendOnce(current, open);
             });
             later(() -> sendWorld(current));
             try {
@@ -411,6 +422,14 @@ public final class ShellClient implements AutoCloseable {
         message.addProperty("op", "open_app");
         message.addProperty("app_id", open.appId());
         return message;
+    }
+
+    /** Writer only. A failed/partial write waits for a new connection before it can be replayed. */
+    private void sendOnce(Connection current, PendingOpen open) {
+        if (connection != current || open.lastSent == current) return;
+        open.lastSent = current;
+        try { current.send(openRequest(open)); }
+        catch (IOException lost) { current.close(); }
     }
 
     /** Sends a request and reads until its reply; anything else that arrives meanwhile is dispatched normally. */
