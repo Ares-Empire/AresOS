@@ -29,6 +29,7 @@ import owner_key_counter
 import owner_counter_kernel
 import owner_login
 import owner_xhci
+import reorder_probe as rp
 from owner_keys import maps, physical_keys, at_keycodes
 from owner_media import Media, bundle_module
 from prepare_two_disks import wait_loop_partitions
@@ -1284,6 +1285,11 @@ LAPTOP_TOOLS = '3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc
 LAPTOP_RELEASE = 'os/manifest/releases/13.json'
 # Qualification 21's head: the policy scripts that last passed on release 13.
 RELEASE_13_SCRIPTS = '3fd79165fa96406948c17ea90f94f943cd9bc201'
+# The tools the laptop runs since its update on 2026-11-13 (package 27, merged as 41b06513:
+# version 2, fingerprint 851eb742...). Package 22c's runs install them from history, so their
+# route stays the laptop's when this checkout's bundle moves on to version 3.
+TOOLS_V2_COMMIT = '41b06513c1972ac4ccf395c169fdf261381243b0'
+TOOLS_V2 = '851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33'
 ARES_SUDO_PROMPT = '[sudo] password for ares:'
 ARES_LETTERS = 'abcdefghijklmnopqrstuvwx0123456789'
 DAILY_PATH = '/var/home/ares/.local/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin'
@@ -1296,17 +1302,17 @@ def git_blob(commit, path):
     return subprocess.check_output(['git', '-c', 'safe.directory=' + os.getcwd(), 'show', commit + ':' + path])
 
 
-def laptop_payload(destination):
-    """The laptop's installed tools bundle, byte-exact from main's history."""
+def laptop_payload(destination, commit=LAPTOP_TOOLS_COMMIT, fingerprint=LAPTOP_TOOLS):
+    """A tools bundle the laptop ran, byte-exact from main's history (by default the 15f one)."""
     destination = pathlib.Path(destination)
     names = subprocess.check_output(['git', '-c', 'safe.directory=' + os.getcwd(), 'ls-tree', '-r', '--name-only',
-        LAPTOP_TOOLS_COMMIT, 'os/owner-tools/payload'], text=True).split()
+        commit, 'os/owner-tools/payload'], text=True).split()
     assert names, 'STOP: the laptop tools are not in this checkout'
     for name in names:
         target = destination / name[len('os/owner-tools/payload/'):]
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(git_blob(LAPTOP_TOOLS_COMMIT, name))
-    assert hashlib.sha256((destination / 'SHA256SUMS').read_bytes()).hexdigest() == LAPTOP_TOOLS, 'STOP: laptop tools fingerprint'
+        target.write_bytes(git_blob(commit, name))
+    assert hashlib.sha256((destination / 'SHA256SUMS').read_bytes()).hexdigest() == fingerprint, 'STOP: laptop tools fingerprint'
     return destination
 
 
@@ -1487,7 +1493,14 @@ def owner_scripts(guest, stage, commit=None, homebrew_stage='aresos'):
     return policy, hashes[0]
 
 
-def update_rehearsal(audit, media, password, hashed, ares_password):
+def laptop_update(audit, media, password, hashed, bundle=None):
+    """The laptop's history up to the restart into the new release (package 27's route, unchanged).
+
+    Steps 4 to 6 with the laptop's 15f tools, then step 8 on release 13: the newer tools through the
+    bootstrap, `update`, and the restart. bundle: (folder, fingerprint) of the step 8 tools when they
+    are not this checkout's payload (package 22c installs version 2 from history). Returns the
+    references, digests, stock record, Homebrew hash and first identities the later boots compare.
+    """
     old = json.loads(pathlib.Path(LAPTOP_RELEASE).read_text())['reference']
     new = json.loads(pathlib.Path('os/manifest/release.json').read_text())['reference']
     old_digest, new_digest = old.split('@')[1], new.split('@')[1]
@@ -1497,8 +1510,15 @@ def update_rehearsal(audit, media, password, hashed, ares_password):
     # Steps 4 to 6 as on 2026-11-08/09, with the laptop's own tools.
     stock, brew = prepare_and_switch(audit, media, password, hashed, old, laptop_commands())
     stock_digest = stock['container-image-reference-digest']
-    media.replace('update-windows-copy')
-    assert media.fingerprint == bundle_module('bundle').check(pathlib.Path('os/owner-tools/payload'))
+    if bundle is None:
+        media.replace('update-windows-copy')
+        assert media.fingerprint == bundle_module('bundle').check(pathlib.Path('os/owner-tools/payload'))
+        commands = COMMANDS
+    else:
+        media.replace('update-windows-copy', source=bundle[0])
+        assert media.fingerprint == bundle[1]
+        # As laptop_commands(): only the fingerprint line of the bootstrap differs between bundles.
+        commands = dict(COMMANDS, install=bundle_module('bootstrap').command(bundle[1]))
     guest = td.start_installed(password, hashed, 'release-13')
     try:
         snapshot = kb.deployment_snapshot(guest, 'release-13')
@@ -1517,7 +1537,7 @@ def update_rehearsal(audit, media, password, hashed, ares_password):
         assert observed == brew
         # Step 8: the new tools first, through the same 13-line bootstrap.
         media.attach(guest, 'update-tools')
-        console.commands = COMMANDS
+        console.commands = commands
         installed = console.run('install', 'update-tools-install', record='tools-update')
         assert installed['manifest'] == media.fingerprint and installed['previous_manifest'] == LAPTOP_TOOLS
         assert (installed['previous_version'], installed['tools_version']) == (1, 2)
@@ -1533,19 +1553,37 @@ def update_rehearsal(audit, media, password, hashed, ares_password):
         console.run('reboot', 'owner-update-reboot')
     finally:
         finish(guest, audit, 'release-13')
+    return dict(old=old, new=new, old_digest=old_digest, new_digest=new_digest, stock=stock, stock_digest=stock_digest,
+                brew=brew, first=first)
+
+
+def confirmed_update(guest, password, route):
+    """The new release's first start: the reviewed list, then `check` and `title` confirm the update.
+
+    Returns the root console on tty3 and the three deployments' identities by digest.
+    """
+    identities, booted = deployment_shape(kb.deployment_snapshot(guest, 'release-27'), route['stock'],
+                                          [route['new_digest'], route['old_digest'], route['stock_digest']])
+    assert booted == route['new_digest'] and identities[route['old_digest']] == route['first'][route['old_digest']], \
+        'STOP: the update did not boot the new release'
+    keyboard(guest, 'release-27', 'de')
+    console = Console(guest)
+    console.login(password, 'release-27')
+    console.become_root(password, 'release-27')
+    checked = console.run('check', 'release-27-check')
+    titled = console.run('title', 'release-27-title')
+    assert 'Update to ' + route['new'] + ' confirmed after the restart' in result_lines(checked, titled), 'STOP: update not confirmed'
+    return console, identities
+
+
+def update_rehearsal(audit, media, password, hashed, ares_password):
+    route = laptop_update(audit, media, password, hashed)
+    old, new, old_digest, new_digest = (route[name] for name in ('old', 'new', 'old_digest', 'new_digest'))
+    stock, stock_digest, brew, first = (route[name] for name in ('stock', 'stock_digest', 'brew', 'first'))
     guest = td.start_installed(password, hashed, 'release-27')
     try:
-        identities, booted = deployment_shape(kb.deployment_snapshot(guest, 'release-27'), stock,
-                                              [new_digest, old_digest, stock_digest])
-        assert booted == new_digest and identities[old_digest] == first[old_digest], 'STOP: the update did not boot the new release'
+        console, identities = confirmed_update(guest, password, route)
         updated = identities[new_digest]
-        keyboard(guest, 'release-27', 'de')
-        console = Console(guest)
-        console.login(password, 'release-27')
-        console.become_root(password, 'release-27')
-        checked = console.run('check', 'release-27-check')
-        titled = console.run('title', 'release-27-title')
-        assert 'Update to ' + new + ' confirmed after the restart' in result_lines(checked, titled), 'STOP: update not confirmed'
         console.run('records', 'release-27-records')
         public_typing(guest, 'release-27', 'de', console, foot=True)
         terminal = terminal_path(guest, 'release-27')
@@ -1606,6 +1644,124 @@ def update_rehearsal(audit, media, password, hashed, ares_password):
         owner_commands_physically_typed=True, protected_disk_audits=True, nvram_rule_unchanged=True, bootnext_audits=True))
 
 
+# Package 22c, stage 0 (brief P): plain `ostree admin set-default` over the laptop's three
+# deployments. The owner tools are used only on the way there (package 27's route); from release 27
+# confirmed on, every command is plain and runs in the harness's root shell on the serial console.
+def reorder_boot(audit, password, hashed, probe, stage, running, reached, stock_starts, step, guest=None):
+    """One start of the walk: capture and prove the row; then `step(guest, snapshot)` and a restart, or the end."""
+    if guest is None:
+        guest = td.start_installed(password, hashed, stage)
+    try:
+        guest.owner_layout = 'de'
+        facts, snapshot = probe.restarted(guest, stage, reached, running)
+        if facts['running'] == 'S':
+            # P6: a start of the stock takes the German login (the password is typed with German
+            # key positions on tty3) and shows its greeter, as package 14's stock stages prove it.
+            keyboard(guest, stage, 'de')
+            console = Console(guest)
+            console.login(password, stage)
+            console.logout(stage + '-logout')
+            kb.capture_stock_greeter(guest, td.EVIDENCE, stage + '-greeter')
+            stock_starts.append(stage)
+        if step is not None:
+            step(guest, snapshot)
+            guest.reboot(stage)
+        return facts
+    finally:
+        finish(guest, audit, stage)
+
+
+def reorder_probe(audit, media, password, hashed, version_2):
+    """version_2: the folder with the laptop's current tools bundle (laptop_payload at TOOLS_V2_COMMIT)."""
+    route = laptop_update(audit, media, password, hashed, bundle=(version_2, TOOLS_V2))
+    stock = route['stock']
+    stock_starts, menu = [], dict(backup=None, entry_rule=None, choice=None, path=None, stock_entry=None)
+    guest = td.start_installed(password, hashed, 'release-27')
+    try:
+        console, identities = confirmed_update(guest, password, route)
+        # The owner tools are not used again in this run.
+        console.logout('release-27-logout')
+        probe = rp.Probe(dict(R27=identities[route['new_digest']], R13=identities[route['old_digest']], S=ke.key(stock)))
+        _, snapshot = probe.capture(guest, 'walk-0-start', "package 27's route: release 27 confirmed", running='R27', order=rp.START)
+        probe.move(guest, 'walk-1-moved', rp.MOVES[0], snapshot)
+        guest.reboot('release-27')
+    finally:
+        finish(guest, audit, 'release-27')
+    # Nothing in the walk needs the network; without it nothing else can stage a deployment.
+    Guest.network_up = False
+
+    def prepare_menu(guest, snapshot):
+        # The start order again. Find the stock row through its boot entry and show the menu once.
+        menu['stock_entry'], = [e['file'].removesuffix('.conf') for e in probe.last['entries'] if e['role'] == 'S']
+        menu['backup'], menu['entry_rule'], _ = rp.recorded_stock_entry(guest, 'menu', snapshot, stock['checksum'])
+        if menu['backup'] is not None:
+            rp.show_menu_once(guest, 'menu')
+        else:
+            rp.one_time_entry(guest, 'menu', menu['stock_entry'])
+
+    for number, order in enumerate(rp.ORDERS, 1):
+        step = prepare_menu if number == len(rp.MOVES) else \
+            (lambda guest, snapshot, number=number: probe.move(guest, f'walk-{number + 1}-moved', rp.MOVES[number], snapshot))
+        reorder_boot(audit, password, hashed, probe, f'walk-{number}-booted', order[0], 'restart with no choice', stock_starts, step)
+
+    # One choice in the boot menu, from the start order: the stock row (package 11's selection).
+    stage, guest = 'menu-stock', None
+    if menu['backup'] is not None:
+        guest = rp.start_at_menu(password, hashed, stage)
+        try:
+            menu['choice'] = rp.menu_choice(guest, menu['backup'], stage)
+            guest.login()
+        except BaseException:
+            finish(guest, audit, stage)
+            raise
+    selected = bool(menu['choice'] and menu['choice']['selected'])
+    menu['path'] = ('boot menu: Home, Down x' + str(menu['backup']['menu_index']) + ', Enter, after the rows read as recorded' if selected
+                    else 'one-time start of the stock entry by its id (the boot entries do not follow the recorded rule)'
+                    if menu['backup'] is None else None)
+
+    def without_the_menu(guest, snapshot):
+        if probe.last['running'] != 'S':
+            # Package 11's fallback: nothing is guessed in a menu that was not read or took no keys.
+            rp.one_time_entry(guest, 'menu-fallback', menu['stock_entry'])
+    facts = reorder_boot(audit, password, hashed, probe, stage, 'S' if menu['path'] else None,
+                         'the stock row taken in the boot menu' if selected else
+                         'the stock entry started once by its id' if menu['backup'] is None else
+                         'restart with the boot menu shown; no row could be taken',
+                         stock_starts, without_the_menu, guest=guest)
+    probe.expect(stage, 'the stock row could be taken in the boot menu', selected and facts['running'] == 'S',
+                 dict(entry_rule=menu['entry_rule'], choice=menu['choice'], running=facts['running']))
+    if facts['running'] != 'S':
+        stage = 'menu-stock-one-time'
+        menu['path'] = 'one-time start of the stock entry by its id, after the boot menu could not be driven'
+        facts = reorder_boot(audit, password, hashed, probe, stage, 'S', 'the stock entry started once by its id',
+                             stock_starts, lambda guest, snapshot: None)
+    probe.expect(stage, 'a row that is not first runs while the order stays', facts['running'] == 'S' and facts['order'] == list(rp.START),
+                 dict(running=facts['running'], order=facts['order']))
+    last = 'after-menu-booted'
+    final = reorder_boot(audit, password, hashed, probe, last, 'R27', 'restart with no choice', stock_starts, None)
+    probe.expect(last, 'the run ends on the start order with nothing else changed',
+                 final['order'] == list(rp.START) and final['stable'] == probe.reference['stable']
+                 and final['options'] == probe.reference['options'], dict(order=final['order']))
+    probe.expect(last, 'the six moves visited all six orders', [row['after'] for row in probe.swaps] == [list(o) for o in rp.ORDERS],
+                 [row['after'] for row in probe.swaps])
+    probe.expect(last, 'every start of the stock showed its greeter and took the German login', len(stock_starts) == 3, stock_starts)
+    td.marker(audit, 'final-unattended-windows')
+    td.marker(audit, 'final-detached-windows', detached=True)
+    result = probe.result(commit=os.environ['GITHUB_SHA'], order='protected-second',
+        starting_state="package 27's route: corrected pinned stock, release 13 by the laptop tools (15f), release 27 by tools version 2",
+        laptop_tools=LAPTOP_TOOLS, tools_version_2=TOOLS_V2, tools_version_2_commit=TOOLS_V2_COMMIT,
+        previous_release=route['old'], release=route['new'], owner_tools_used_after_confirmation=False,
+        commands='plain, as root, in the serial root shell', network_during_walk=False,
+        deployments={role: list(identity) for identity, role in probe.roles.items()}, stock_starts=stock_starts,
+        menu=dict(path=menu['path'], entry_rule=menu['entry_rule'], choice=menu['choice'], stock_entry=menu['stock_entry'],
+                  rows=menu['backup'] and dict(titles=menu['backup']['menu_titles'], ids=menu['backup']['menu_ids'],
+                                               stock_position=menu['backup']['menu_index'])),
+        protected_disk_audits=True, nvram_rule_unchanged=True, bootnext_audits=True)
+    td.save('reorder-probe-result', result)
+    assert result['status'] == 'passed', 'STOP: the probe contradicts the brief: ' + '; '.join(
+        row['stage'] + ': ' + row['point'] for row in result['expectations']['contradicted'])
+
+
 def bound_sources(walk_sources):
     """Package 16's binding tables with this checkout's bytes, plus this walk's own sources."""
     def current(rows):
@@ -1621,12 +1777,13 @@ def bound_sources(walk_sources):
 def main():
     global PROBE_MEDIA
     mode, = sys.argv[1:]
-    assert mode in ('probe', 'owner-tools', 'update')
+    assert mode in ('probe', 'owner-tools', 'update', 'reorder-probe')
     from owner_media import require_runner
     require_runner()
     package=os.environ['REHEARSAL_PACKAGE']
     assert package!='16' or mode=='probe', 'STOP: package16 permits only the owner-tools probe'
     assert (package=='27') == (mode=='update'), 'STOP: the update rehearsal is package 27 only'
+    assert (package=='22c') == (mode in ('reorder-probe',)), 'STOP: the reorder probe is package 22c only'
     authorization = json.loads(pathlib.Path('evidence/'+package+'-dispatch-authorization.json').read_text())
     assert authorization['allowance'] == package and authorization['native']['status'] == 'passed'
     assert authorization['native']['sha'] == os.environ['GITHUB_SHA']
@@ -1637,8 +1794,8 @@ def main():
     if mode == 'owner-tools':
         # Package 27's update rehearsal proves its native step in its own run instead.
         assert authorization['probe']['status'] == 'passed' and authorization['probe']['commit'] == os.environ['GITHUB_SHA']
-    walk_path={'16':'os/manifest/ci/16/host-walk.json','27':'os/manifest/ci/27/host-walk.json'}.get(
-        package,'os/manifest/ci/14/host-walk/result.json')
+    walk_path={'16':'os/manifest/ci/16/host-walk.json','27':'os/manifest/ci/27/host-walk.json',
+               '22c':'os/manifest/ci/22c/host-walk.json'}.get(package,'os/manifest/ci/14/host-walk/result.json')
     walk = json.loads(pathlib.Path(walk_path).read_text())
     assert walk['status'] == 'passed' and walk['stick_across_reboot'] is False
     assert isinstance(walk['sources'], list) and walk['sources']
@@ -1658,7 +1815,7 @@ def main():
         with (td.WORK / name).open('wb') as output:
             subprocess.run(['bsdtar', '-xOf', str(td.WORK / td.LIVE['filename']), 'images/pxeboot/' + name], stdout=output, check=True)
     media = Media()
-    if mode == 'update':
+    if mode in ('update', 'reorder-probe'):
         media.create(source=laptop_payload(td.WORK / 'laptop-tools'))
     else:
         media.create()
@@ -1694,6 +1851,9 @@ def main():
                 update_rehearsal(audit, media, password, hashed, ares_password)
             finally:
                 del ares_password
+        elif mode == 'reorder-probe':
+            reorder_probe(audit, media, password, hashed,
+                          laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2))
         else:
             qualification(audit, media, password, hashed)
     finally:
