@@ -3,6 +3,8 @@ package dev.aresos.catalogue;
 import com.google.gson.*;
 import dev.aresos.config.AppDefinition;
 import dev.aresos.config.AppsConfig;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.*;
@@ -12,7 +14,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class WindowsCatalogueTest {
     @TempDir Path directory;
-    @Test void fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() throws Exception {
+    @Test @EnabledOnOs(value = OS.WINDOWS, disabledReason = WindowsOnly.POWERSHELL)
+    void fixtureStartMenusAndUwpProduceStableUnpinnedAppsAndRealIcons() throws Exception {
         Path user=directory.resolve("user"),common=directory.resolve("common");
         Files.createDirectories(user);Files.createDirectories(common);
         Path icon=directory.resolve("compass.ico");Files.copy(getClass().getResourceAsStream("/icons/compass.ico"),icon);
@@ -41,7 +44,8 @@ class WindowsCatalogueTest {
         var error = assertThrows(java.io.IOException.class, () -> new LinuxAppCatalogue().listApps());
         assertTrue(error.getMessage().contains("aresos-shell/1.0")); assertEquals("aresos-shell/1.0",LinuxAppCatalogue.PROTOCOL);
     }
-    @Test void nativeShortcutIdentityIncludesArgvAndWorkingDirectory() throws Exception {
+    @Test @EnabledOnOs(value = OS.WINDOWS, disabledReason = WindowsOnly.POWERSHELL)
+    void nativeShortcutIdentityIncludesArgvAndWorkingDirectory() throws Exception {
         Path root = directory.resolve("menu"), a = directory.resolve("project-a"), b = directory.resolve("project-b");
         Files.createDirectories(root); Files.createDirectories(a); Files.createDirectories(b);
         Path target = directory.resolve("python.exe"); Files.writeString(target, "fixture only, never executed");
@@ -64,7 +68,8 @@ class WindowsCatalogueTest {
                 discovered.stream().map(app -> app.launchIdentity().workingDirectory()).collect(java.util.stream.Collectors.toSet()));
         assertTrue(discovered.stream().allMatch(app -> app.launchIdentity().arguments().equals(owner.command().subList(1, 4))));
     }
-    @Test void nativeMissingIconSourceClearsPreviousExtraction() throws Exception {
+    @Test @EnabledOnOs(value = OS.WINDOWS, disabledReason = WindowsOnly.POWERSHELL)
+    void nativeMissingIconSourceClearsPreviousExtraction() throws Exception {
         Path source = directory.resolve("fixture.ico"), root = directory.resolve("empty-menu"), cache = directory.resolve("aresos-runtime/discovery");
         Files.copy(getClass().getResourceAsStream("/icons/compass.ico"), source); Files.createDirectories(root);
         var owner = new AppDefinition("icon-fixture", "Icon fixture", List.of(source.toString()), "minecraft:book", false);
