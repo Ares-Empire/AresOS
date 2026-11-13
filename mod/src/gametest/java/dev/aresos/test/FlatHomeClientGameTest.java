@@ -416,7 +416,8 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
                         "Missing home data still moved him or changed his mode: " + player.position());
             });
             context.waitFor(client -> messages.stream().anyMatch(message -> message.contains("AresOS home data") && message.contains("unchanged")));
-            photograph(context, "missing-home-data");
+            // Not photograph(): that clears the chat, and the message is what this picture is for.
+            screenshot(context, "missing-home-data");
             world.getServer().runOnServer(server -> DesktopWorld.setEnabled(server, true));
         }
         check(!Files.exists(directory.resolve("data/aresos/nether_home.dat")), "Missing home data was rewritten on shutdown");
