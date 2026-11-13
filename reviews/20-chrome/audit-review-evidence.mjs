@@ -89,7 +89,6 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
   for(const name of ['tool.jsonl','service.txt'])assert(!await containsText(path.join(folder,name),'SENTINEL_PRIVATE_PASSWORD_20'),`Password sentinel reached ${name}`);
   const pyProof=json(path.join(folder,'python-shards.json'));
   assert.equal(pyProof.shards.length,4);assert(pyProof.shards.every(row=>row.successful===true));
-  const py=[null,pyProof.tests,0];
   assert.equal(new Set(pyProof.modules).size,pyProof.modules.length);
   assert.deepEqual([...pyProof.modules].sort(),fs.readdirSync('control/chrome_tests').filter(name=>/^test_.*\.py$/.test(name)).map(name=>name.slice(0,-3)).sort());
   const aggregate=json(path.join(folder,'aggregate-complete.json'));
@@ -104,7 +103,7 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
   const node=Object.fromEntries([...read(path.join(folder,'node.txt')).matchAll(/^(?:# |ℹ )?(tests|pass|fail|cancelled|skipped)\s+(\d+)/gm)].map(match=>[match[1],Number(match[2])]));
   assert(node.tests>=340);assert.deepEqual(node,{tests:node.tests,pass:node.tests,fail:0,cancelled:0,skipped:0});
   const hashes={};for(const name of ['browser.txt','matrices.json','receiver.jsonl','page-receiver.jsonl','adapters-receiver.jsonl','browser-boundary.jsonl','tool.jsonl','service.txt','python-shards.json','node.txt','owner-overlap.json','all-native-limit.json','all-native-limit-audit.json','clipboard-report.json','network-restart-audit.json','recheck3.json'])hashes[name]=await digestFile(path.join(folder,name));
-  results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,native_limit:nativeLimit,recheck3,destinations,group12:true,late_reader:{cases:late.length},clipboard:{cases:clipboard.length,contents_returned:false,borrowed_native_undetected:true},ordinary_get_queries:queryRows,owner_overlap:ownerOverlap,password_audit:{rows:ingress,null_rows:nullRows,protocol_events:events,forbidden_runtime_value_events:0,sensitive_getters:getters,getter_kinds:Object.fromEntries(getterKinds),password_sentinel_absent:true},python:{tests:Number(py[1]),seconds:Number(py[2])},node,sha256:hashes});
+  results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,native_limit:nativeLimit,recheck3,destinations,group12:true,late_reader:{cases:late.length},clipboard:{cases:clipboard.length,contents_returned:false,borrowed_native_undetected:true},ordinary_get_queries:queryRows,owner_overlap:ownerOverlap,password_audit:{rows:ingress,null_rows:nullRows,protocol_events:events,forbidden_runtime_value_events:0,sensitive_getters:getters,getter_kinds:Object.fromEntries(getterKinds),password_sentinel_absent:true},python:{tests:pyProof.tests,shards:pyProof.shards.length},node,sha256:hashes});
 }
 assert(results.length>0,'No artifacts found');
 console.log(JSON.stringify(results,null,2));

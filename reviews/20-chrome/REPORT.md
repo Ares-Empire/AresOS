@@ -151,6 +151,14 @@ references. Dirty/media, receiver, window/opener and replay assertions remain.
 The aggregate correctly refused incomplete shards. Replacement dispatch brings
 the count to **239**; no final acceptance is claimed.
 
+**Audit driver:** the raw native-getter recorder also covers the new late-reader
+pages, before any filtering, so the final independent audit checks credential
+sentinel absence at ingress as well as in results. Its existing raw-value
+regression now exercises both fixture routes. The qualification archive uses
+the same corrected Dockerfile path as latency; local tar inspection confirms
+both paths exist within their context. The independent report no longer emits
+an invented zero Python duration for file shards; it records their actual counts.
+
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
 blank-frame base case. The new fixture had duplicate blank-frame addresses, so
