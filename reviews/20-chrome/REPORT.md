@@ -1,87 +1,78 @@
 <!-- POST18D CURRENT START -->
-# Post-18d integration — not ready yet
+# Post-18d integration — lead targets and final repetitions pending
 
-**Current status:** the base-URL/SVG class, credential protection, addendum-f
-asking reads, slim integration and their reported review FIXes are closed.
-Latency targets still need the lead's answer; the measured warm reference,
-populated CI gate and final-head repetitions remain outstanding.
-PR #27 stays draft. Browser tests run only in GitHub Linux containers; no local
-Chrome, Chromium, browser profile or container has been accessed.
+**Current status:** the base-URL/SVG class, credential/late-reader work, slim
+integration and reported review FIXes are closed. The runtime is frozen at
+`e0cc9846` (`b9de9a97d18c56090421614364239471ef82b8c1002ee1696f86ba39d2afb3b4`).
+The measured regression reference and CI gate are ready; the lead must set the
+latency ceilings before final acceptance. PR #27 remains draft.
 
 **Done:**
 
-- Every supported destination source resolves against the effective native base
-  at action time. Questions bind the absolute destination and actual target;
-  changes re-ask. Native SVG animation/default, restoration and clobbering fixes
-  retain the original receiver checks.
-- Credential-like fields are excluded before any value/status access in every
-  read path. In unwatched documents, text-capable inputs and textareas show
-  filled/empty and require `chrome_read_typed_fields` for one value response.
-  The service prepares the connection, tab, native/private frame documents,
-  reader instance, exact elements and shown labels. Changed eligibility or
-  identities refuse; exact questions and one-call consumption are verified.
-  Values are transient. A form holding withheld content refuses submission,
-  including after an approved read. Editable areas remain readable as addendum-f
-  requires; board #216 and its accepted secret-masking limit are in KNOWN-LIMITS.
-  Tab-group handling is unchanged.
+- All supported destination sources use their native effective base at action
+  time. Questions bind absolute destinations and native browsing targets;
+  changes re-ask. Native SVG animation/default, clobbering and restoration fixes
+  retain the original strict receiver checks.
+- Credential-like fields are excluded before value/status access everywhere.
+  Unwatched text-capable inputs and textareas show filled/empty; the separately
+  asking `chrome_read_typed_fields` reads once. Service preparation binds the
+  connection, tab, native/private frame documents, reader instances, exact
+  elements and shown labels. Changed eligibility/identity refuses. Values stay
+  transient. Recognised forms holding withheld content cannot submit, even after
+  a read approval. Editable areas remain readable per addendum-f; board #216's
+  accepted secret-masking limit is in KNOWN-LIMITS. Tab-group handling is unchanged.
 - Merged only `origin/main`, through `5065ff9c`, preserving Mail/19b/18d and
-  PR #43/#47. Chrome keeps its native socket and hash-verified committed owner
-  projection because 19b has no generic replacement yet. The complete service
-  unit is byte-identical to `8b7e799c`; both pin tests remain.
-- Chrome actions, user MCP installation and asking rules use the slim generator.
-  Shared instructions remain unshortened, including the clipboard sentence and
-  typed-field instruction once. Trusted send checks the current matching owner
-  entry. Native group 12 derives its verdict from actual normal/skip CLI cases.
-- Browser and Python matrices are sharded without adding workflow runs; the
-  350-minute stopgap is removed. Browser containers use 120 minutes with
-  130-minute jobs. Stage measurements retain the 525 ms safety observation wait
-  and every durable write. Optional SQLite headers avoid repeatedly decoding
-  completed operations; creation follows recovery and reserves both physical and
-  history capacity. Low-space fallback preserves the same warning predicates.
+  PR #43/#47. Chrome retains its native socket and hash-verified committed owner
+  projection because 19b has no generic replacement yet. The full service unit
+  remains byte-identical to `8b7e799c`; both pin tests remain.
+- Actions, normal user MCP installation and asking rules use the slim generator.
+  Shared instructions remain unshortened, with clipboard/typed-field guidance
+  once. Trusted send checks the live matching owner entry. Group 12 derives its
+  verdict from actual normal/skip native CLI cases.
+- Browser/Python matrices are sharded within each workflow run. The 350-minute
+  stopgap is removed: browser containers use 120 minutes with 130-minute jobs.
+  Expiry now avoids repeated completed-history decoding, while preserving
+  deadlines, journal writes and every retained file reference before unlink.
+  Optional header creation follows recovery and checks reserved physical/history
+  space; fallback and literal legacy-encoding behavior remain. The 525 ms input
+  observation wait is unchanged. The gate validates paired samples and rejects
+  missing/invalid required metrics; only named sparse diagnostics are optional.
 
-**Verified:** focused Linux run **43488005234** (`6133468e`, run **247**) passes
-both installs: 66 destination/context sequences, 27 animated defaults, credential
-and late-reader checks, exact asking-read changes and withheld-form refusal.
-All completed scoped runtime and gate FIXes have SAFE package/security re-checks, linked in
-the chronological record below. Intermediate full run **43466571812** passes
-95 named suites, all 999 word cells, native group 12 and independent audits in
-both installs; its longest job is 30m46s. Later changes require final acceptance.
-Local **370 Node/artifact tests** and **311 removal probes** (before the expanded314-case replacement) pass; each mutation
-baseline passes. The first Python file-shard pass was incomplete: shard3 ran56 tests with one
-fixture-identity failure; the other shards pass95/54/48. The isolated fixture now
-sets its own runtime commit alongside its synthetic GitHub SHA, preserving the
-strict inventory assertion. The replacement shard now passes all56 tests. The original failure and replacement
-are retained in [local-python-1c6cfff2.json](records/post18d/local-python-1c6cfff2.json).
-The changed gate
-module has **25 focused
-latency/selection/gate tests** passing on the latest code. Final-head full discovery
-remains required. Commands, raw outputs and
-mutation records are retained below and under `records/post18d/`.
+**Verified:** all 267 Chrome Python tests, 370 Node/artifact tests and 314 removal
+probes pass on the candidate, with every mutation baseline passing.
+[Commands/results](records/post18d/local-expiry-final.json). All scoped runtime
+FIXes have SAFE package/security re-checks; the small Mail fixture/shard change
+has a SAFE package review. Focused Linux247 (`43488005234`) passes both installs,
+including 66 destination/context sequences, 27 animated defaults and addendum-f.
+Intermediate full248 (`43490400410`) passes 98 named cases, 999 word cells, native
+group 12 and both independent audits; its longest job is 28m08s. Later runtime
+changes require final acceptance.
 
-**Latency / open lead decision:** the proposed median/p95 millisecond ceilings
-are read 35/60, navigate 100/150, free click 650/750, fill 650/750, asking click 60/100,
-approval-to-done 700/850. They are proposals; `latency-targets.json` remains
-`awaiting-lead`. Run **43490400410** (run **248**) measures fresh/1,000/4,000-operation
-histories against rebuilt `ab7aba92` on paired runners, plain/instrumented. It
-predates the cache reservation-order fix and is timing/diagnostic evidence only.
-The prepared gate validates matched samples before percentiles, required stages,
-the independent safety wait and clear regressions with common runner noise.
-It will apply the lead's ceilings to all measured histories. Its normal CI step is wired and will refuse without lead-approved targets; a diagnostic-only measurement input emits no acceptance verdict.
+**Latency:** diagnostic249 (`43502970342`) matches the current installed runtime
+hash in both profiles. At 4,000 retained inputs, plain read is 20.6/21.2 ms and
+free click 586.9/594.3 ms median/p95, versus rebuilt `ab7aba92` 585.6/595.9 and
+1,337.2/1,405.0 ms. All proposed ceilings are met in every measured history and
+both plain/instrumented profiles. [Sample/metric preflight](records/post18d/latency-43502970342-preflight.json).
+Proposed ceilings remain read 35/60, navigate 100/150, click 650/750, fill 650/750,
+asking click 60/100 and approval-to-done 700/850 ms. `latency-targets.json` is still
+`awaiting-lead`: section 4 says the lead sets them. No target was silently adopted.
 
-**Round 3:** `43437906776` on `63c81414` passes (322m32s longest job). Per section 0,
-it is round-3 evidence under the 350-minute stopgap, caused by per-input slowdown
-plus larger unsplit matrices. Companion `43437786144` hit the 350-minute container timeout (exit124), with no
-assertion failure found. No limit is raised. Per section0, round-3 acceptance
-moves to the final sharded pair. All92 original named cases are retained in
-`records/post18d/round3-required-cases.json` with their required shard mapping.
+**Round 3 handled:** `43437906776` on `63c81414` passes (322m32s longest job).
+Companion `43437786144` hit the 350-minute container limit (exit124), with no
+assertion failure found. No limit is raised. Acceptance moves to the final
+sharded pair. All 92 original named cases and their required current shards are
+listed in [round3-required-cases.json](records/post18d/round3-required-cases.json).
+The stopgap cause is per-input slowdown plus the larger unsplit matrices.
 
-**Still required:** the lead's target decision, measured warm reference and approved targets; final-source local checks and every Control workflow twice with both
-Chrome installs and independent receiver audits; the final independent receiver audits.
-No final green or ready claim. The Chrome ledger is **248 / about 260**. A normal
-final code push starts two runs (push and PR); report before exceeding 260.
+**Still required:** the lead's ceiling decision and final-head local checks and
+every Control workflow twice, with both Chrome installs and independent receiver
+audits. Replacement base/boundary/qualification diagnostics pass on the current
+runtime; replacement Mail is running. No final green or ready claim. Chrome
+ledger: **249 / about 260**. A normal final code push starts two runs (push and PR);
+report before exceeding 260. No local browser/profile/container has been accessed.
 
-The sections below preserve historical commands, findings and corrections. Their
-pending statements and older totals are superseded by this current status.
+The chronological sections below retain historical commands and corrections;
+their old pending statements/totals are superseded by this current status.
 <!-- POST18D CURRENT END -->
 
 # Post-18d integration — in progress
@@ -610,6 +601,35 @@ cancellation); the fourth passes. The unchanged discovered-write/cleanup sweeps
 are now split into8 flow shards, keeping that35-minute deadline and all23 flows
 exactly once. The four suite shards remain. [Inventory proof](records/post18d/mail-eight-shard-inventory.json).
 No assertion or fault site was removed. Replacement shared diagnostics follow.
+
+**Optimized Linux measurement — diagnostic249 passed:**
+[43502970342](https://github.com/Ares-Empire/AresOS/actions/runs/43502970342)
+on760903b5 measures both runtimes on paired runners. All proposed median and p95
+ceilings are met in all three histories, plain and instrumented. The matched
+samples and metric structures validate independently; [preflight](records/post18d/latency-43502970342-preflight.json).
+These are measurements, not adoption of the pending targets or final acceptance.
+The frozen CI reference now uses this optimized diagnostic run.
+
+| Call | Current fresh | Current4,000 history | ab7aba92 4,000 history |
+| --- | ---: | ---: | ---: |
+| read | 7.1 / 10.6 | 20.6 / 21.2 | 585.6 / 595.8 |
+| navigate | 34.9 / 49.8 | 52.8 / 54.8 | 808.5 / 836.4 |
+| free_click | 562.9 / 578.2 | 586.9 / 594.3 | 1337.2 / 1405.0 |
+| fill | 560.3 / 564.5 | 578.6 / 580.1 | 1338.8 / 1469.4 |
+| asking_click | 14.5 / 15.8 | 30.0 / 31.2 | 783.8 / 819.5 |
+| approval_to_done | 576.2 / 716.4 | 596.5 / 599.2 | 1350.3 / 1384.9 |
+
+Times are median/p95 milliseconds in plain mode. Instrumented4,000-history read
+is20.8/21.9 ms, free click583.2/590.0 ms; the complete four summaries are retained.
+DNR, compose and clipboard timings remain small; the unchanged525 ms observation
+wait again dominates free actions. No safety trade-off was used to remove the
+old linear expiry scans.
+
+**Complete local candidate verification:** all267 Chrome Python tests pass across
+all22 modules (95/54/62/56), all370 Node/artifact tests pass, and all314 mutations
+reject with passing baselines. [Commands/results](records/post18d/local-expiry-final.json).
+The exact schema-checked Mail replacement and final-head workflow repetitions
+remain pending. The shared installed runtime has not changed since e0cc9846.
 
 **Latency proposal — lead decision pending:** intermediate Linux run
 `43466571812` measured 20 calls per category, without owner think time, against

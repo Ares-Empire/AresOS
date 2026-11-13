@@ -1,0 +1,88 @@
+{
+  "browser_free": true,
+  "head": "760903b5",
+  "runtime_hash": "b9de9a97d18c56090421614364239471ef82b8c1002ee1696f86ba39d2afb3b4",
+  "python": {
+    "tests": 267,
+    "successful": true,
+    "shards": [
+      {
+        "index": 0,
+        "count": 4,
+        "head": "760903b5",
+        "run": null,
+        "modules": [
+          "test_bridge",
+          "test_exclusions",
+          "test_publisher",
+          "test_questions",
+          "test_state_fixes",
+          "test_storage"
+        ],
+        "tests": 95,
+        "successful": true,
+        "output": "local-expiry-python-0.txt"
+      },
+      {
+        "index": 1,
+        "count": 4,
+        "head": "760903b5",
+        "run": null,
+        "modules": [
+          "test_build",
+          "test_fault_surface",
+          "test_qualification",
+          "test_sites",
+          "test_state_mutations",
+          "test_unit"
+        ],
+        "tests": 54,
+        "successful": true,
+        "output": "local-expiry-python-1.txt"
+      },
+      {
+        "index": 2,
+        "count": 4,
+        "head": "760903b5",
+        "run": null,
+        "modules": [
+          "test_committed",
+          "test_latency",
+          "test_qualification_service",
+          "test_state_crashes",
+          "test_state_oracle"
+        ],
+        "tests": 62,
+        "successful": true,
+        "output": "local-expiry-python-2.txt"
+      },
+      {
+        "index": 3,
+        "count": 4,
+        "head": "760903b5",
+        "run": null,
+        "modules": [
+          "test_engine",
+          "test_policy",
+          "test_qualification_shards",
+          "test_state_exhaustion",
+          "test_state_sweeps"
+        ],
+        "tests": 56,
+        "successful": true,
+        "output": "local-expiry-python-3.txt"
+      }
+    ],
+    "command": "PYTHON_SHARD=N TEST_OUT=.work/post18d/expiry-final-python-N RUNTIME_COMMIT=760903b5 PYTHONDONTWRITEBYTECODE=1 python3 control/chrome/ci/python-shard.py"
+  },
+  "node": {
+    "tests": 370,
+    "failed": 0,
+    "command": "node --test control/chrome_tests/*.test.mjs reviews/20-chrome/audit-streams.test.mjs"
+  },
+  "mutations": {
+    "count": 314,
+    "every_baseline": "pass",
+    "record": "expiry-fix-mutations.json"
+  }
+}
