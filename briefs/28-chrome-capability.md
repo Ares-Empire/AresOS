@@ -116,10 +116,39 @@ chosen option, and the element's **own** text (not its descendants').
   page (the latency budget below).
 - At most 20,000 nodes per tab. Beyond that the reply says how many were left out.
 
-A second read-only command, `page_state`, returns the top document's id, its revision and `readyState`, and from
-the background script whether a native dialog is open in the tab and whether page steps are queued for it (brief
-20's `queued_steps`). The service uses it to wait and to look at the tab between the steps of a list (item 5); it
-never polls with full reads.
+A second read-only command, `page_state`, is the one cheap question the service asks about a tab. The background
+script answers it from every readable frame's reader and from what it knows itself:
+
+- `token`: one opaque string that changes whenever what a read returns could have changed. Per readable frame the
+  reader gives its document and instance, its count of DOM changes (brief 20's `revision`), a digest of its
+  address, and a digest of the live state of its fields: for each `input`, `textarea` and `select` the tick, the
+  chosen option and the value, and for a password-kind or unread field only that it is there. The background
+  script joins these with each frame's id and Chrome document id. Brief 20's `revision` alone isn't enough: typing
+  into a field changes no DOM node, and a change in a frame doesn't move the top document's count;
+- `document`, the top frame's Chrome document id, and `address`, a digest of the tab's full address;
+- `ready`: whether the top document's `readyState` is `complete`;
+- `dialog`: whether a native dialog is open, and `queued`: whether page steps are queued (brief 20's
+  `queued_steps`). While a dialog is open the readers can't answer; the reply then holds `dialog: true` and no
+  token.
+
+The service uses it to wait, to bind a cursor (item 2) and to look at the tab between the steps of a list (item 5).
+It never polls with full reads.
+
+**Waiting, defined once** (for `until`, for a cursor, for "loaded" and for the change report):
+
+- **Quiet:** the token hasn't changed for 150 ms.
+- **`until`:** the service asks `page_state` every 100 ms and reads the outline again only when the token moved.
+  `text` is met when the text is in the page as `find` would find it (literal, without regard to case, folded
+  parts and frames included); `gone` is met when it isn't.
+- **Loaded,** for `chrome_open`, `chrome_go`, `chrome_take` and a step that navigates: the navigation has arrived,
+  and the page is `ready` and quiet. **Arrived** means one of two things. The tab shows a new top document (another
+  Chrome document id than before the call). Or, for a navigation inside the same document (a fragment, or a
+  history entry of a single-page site), the tab's address has changed while the document stayed. A reload, and a
+  `url` equal to the present address, need a new document.
+- **`until` together with a navigation** replaces "ready and quiet", never "arrived". The call returns as soon as
+  the navigation has arrived and the text condition holds, which is what helps on pages that never go quiet.
+  `until_met` and `loaded` are reported separately; `loaded` says whether the page was also ready and quiet then.
+- At the timeout the call returns what is there, with `loaded: false` or `until_met: false`.
 
 `background.js` gets these two commands, a `show` command for `chrome_show`, and a `tabs` reply that holds every
 tab at once with the fields item 6 needs. **Nothing else in `background.js` changes in this package:** not `input`,
@@ -255,8 +284,7 @@ Result:
   ancestors (at most 80 characters); a hit inside a longer text adds 60 characters either side of it. Literal, no
   regard to case, over names, labels, values that may be read, and text; folded parts and frames included; inside
   `ref` when both are given. `role` keeps only that role.
-- `until`: poll `page_state` and re-read only when the revision moved; return when the text is there (`text`) or no
-  longer there (`gone`), or at the timeout, with `until_met`.
+- `until`: as item 1 defines waiting; the result carries `until_met`.
 - `tabs`: each tab is read by itself. A tab that can't be read (not in Claude's group, the fixed list, a dialog)
   gets its `error`; the others are returned.
 - `max` counts the characters of `outline`. The service cuts at a line end and returns a `cursor` bound to the
@@ -338,9 +366,9 @@ Result of both:
 ```
 
 - Both use brief 20's `open` and `navigate` commands and rules unchanged (web addresses only, the fixed list, the
-  refusal of form-loaded history entries, the guarded reload). Then the service waits: until the top document has
-  changed and `readyState` is `complete`, and the revision has been still for 150 ms; or until `until` is met; or
-  until the timeout. `loaded` says which.
+  refusal of form-loaded history entries, the guarded reload). Then the service waits until the page is loaded as
+  item 1 defines it (a new document, or a new address in the same document; ready; quiet), or until `until` is
+  met, or until the timeout. `loaded` and `until_met` say which.
 - `chrome_open` with `tab` or `ref`: the service takes the full address from its own record (the list Claude named
   with `seen`, the tab's present address for a Claude tab, or the reference table). Claude only ever saw the
   public form. The rules of "Where Claude may go" apply to it.
@@ -411,8 +439,8 @@ How it runs:
    `not_run` counts the steps after it. Nothing is retried, and no step runs twice, also when Chrome, the host or
    the service stops in the middle.
 5. **Report.** Take the outline nodes before the first step and again after the last one that ran, once the page has
-   gone quiet (the revision still for 150 ms, at most 1,500 ms; after a new top document: loaded, within the
-   call's deadline, see "Time" below).
+   gone quiet (item 1; at most 1,500 ms), or, after a navigation, once it is loaded (within the call's deadline,
+   see "Time" below).
    `changed` lists what differs by element: a line starting `+ ` for a new element, `~ ` for one whose line changed
    (the new line), `- ` for one that is gone; new elements are shown under their new parent. At most `max`
    characters; `more_changes` counts the rest. After a new top document, `outline` holds the new page's outline
@@ -641,6 +669,13 @@ Added cases, each with group 7's known password and a label that says nothing ("
     stale reference. A stale reference's message holds nothing from the page.
 
 Small fixtures are compared with stored expected outlines, character for character.
+
+**The state token and waiting, in group 14.** Typing into a field, which changes no DOM node, moves the token. A
+change inside a frame moves it. An unchanged page keeps it over 100 polls. `until` is met by a text that appears
+only as a field's value, and by one that appears inside a frame. A cursor is refused after a field's value
+changed. `chrome_go` to a fragment of the same page, and Back inside a single-page fixture, return `loaded: true`
+without a new document; a reload doesn't count as loaded before the new document is there. `until` on a page that
+never goes quiet returns when the text is there, with `loaded: false`.
 
 **The fingerprint, in group 14.** Each of these is refused with `stale_reference` and the element's present line:
 a link that keeps its name while its destination changes (once the path, once only the query); a list whose

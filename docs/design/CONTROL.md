@@ -655,11 +655,13 @@ The match is literal and ignores case.
 call. A tab that can't be read gets its reason, and the others are still returned.
 
 **Waiting.** With `until` (a text that must appear, or one that must be gone), the read waits up to 6 seconds and
-says whether it happened.
+says whether it happened. The tool waits without reading the page over and over: it asks the extension for one
+small token that changes whenever the page's text, a field's content, a frame or the address changes, and reads
+again only then. The same token tells when a page has gone quiet, and it is what a paging cursor is bound to.
 
 **Size.** Every read has a budget, `max`, in characters: 6,000 unless Claude says otherwise, 3,000 per tab when
-several are read, never more than 40,000. What doesn't fit is paged with a cursor bound to the page's revision; a
-cursor from an older revision fails with "page changed, read again". The header names the tab, the address, the
+several are read, never more than 40,000. What doesn't fit is paged with a cursor bound to the page's state; a
+cursor from an earlier state fails with "page changed, read again". The header names the tab, the address, the
 title, the scroll position, and how many characters the whole answer has.
 
 **Addresses: one public form.** *brief 28.* An address can carry a sign-in: a code after `?`, a token after `#`,
@@ -719,7 +721,10 @@ needed.
 - **Going.** `chrome_open` opens a web address in a new Claude tab: an address Claude gives, the link behind a
   reference, or the address one of his tabs shows. `chrome_go` moves a Claude tab: to an address, back, forward or
   reload. Both wait until the page has loaded and gone quiet, or until a text Claude names appears, for 8 seconds
-  unless Claude says otherwise and never more than 15. Both return the new page's outline with references. When the
+  unless Claude says otherwise and never more than 15. "Loaded" also covers a navigation that stays inside the
+  same document (a fragment, or a step in a single-page site's history): there the address changes and no new
+  document comes. With a text to wait for, the call returns once the navigation has arrived and the text is
+  there, also on a page that never goes quiet. Both return the new page's outline with references. When the
   time runs out the result says `loaded: false`, with the outline as far as it is. The rules of "Where Claude may
   go" hold. Back or forward to a page that a form submission loaded is refused, because Chrome might submit it again
   (*brief 20*).
@@ -1325,7 +1330,8 @@ harness's helper functions change, never an assertion.
       count, frames and open and closed shadow roots in place, an open dialog hiding the rest;
     - a table, a list, a form, a long text and a single control read by `ref`; `find` across folded parts and
       frames, literal and without regard to case; five tabs in one call, one of them unreadable; `until` met and
-      not met; paging, and a cursor refused after the page changed;
+      not met, also by a field's value and inside a frame; paging, and a cursor refused after the page changed,
+      also when only a field's content changed;
     - references: the same element keeps its reference across reads; an action still works after an unrelated
       change on the page; a removed element, a renamed one, a field whose value changed, a link whose destination
       changed under the same name, a list whose options changed, a new document and an invented reference are each
@@ -1352,7 +1358,8 @@ harness's helper functions change, never an assertion.
       read at all, and the recording shows that the content script touched none of those values.
 15. **Going and acting in one call** (*brief 28*):
     - `chrome_open` and `chrome_go` return the outline after the load, say `loaded: false` on a timeout, and refuse
-      what group 6 refuses;
+      what group 6 refuses; a navigation inside the same document counts as loaded without a new document, and a
+      reload doesn't before the new document is there;
     - `chrome_do`: one stale reference means nothing ran; the list stops at the first asking step, a failure, a
       dialog, a new page, a stopped page step and an `unknown`, and the fixture counts no input from the steps
       after it;
