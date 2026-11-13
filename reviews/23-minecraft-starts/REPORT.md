@@ -194,7 +194,16 @@ WSL. Never two suites at once; temporary files in a work folder outside the repo
   `-W error::ResourceWarning` (before this round, same machine: 132 OK, 1 skipped, 142 s; the model is about 80 s of
   the difference). The skip is the real-scope test (PLAN-GAP below). After the merge: `test_aresos_shell` 74 OK,
   `test_everyday_account` 34 OK, `test_build_tools` 3 OK, `test_checkout_sources` 5 OK.
-- **Full suite: FULL_SUITE_PENDING**
+- **Full suite: RUNNING when this was written (hand-over note, replaced by the numbers when both runs are done).**
+  A detached driver (`/var/home/ares/pkg23-work/suite.sh`, logs in `/var/home/ares/pkg23-work/suite/`) runs plain and
+  then `-B` from a full clone of `88ac79fd`; it writes `suite/DONE` and removes its clone at the end. Left to do:
+  classify both logs (`classify.py` next to it), put the numbers here, remove the work folder.
+  A first plain run from a shallow clone of `3fd0bc1c` gave `Ran 1087 tests`, `FAILED (failures=101, errors=32,
+  skipped=1)`, none of it in package 23's tests: `test_owner_update` 99 (its real entry expects a host without
+  `rpm-ostree`; on AresOS it goes one step further and stops at `Read failed: rpm-ostree status --json`),
+  `test_inherited_homebrew` 8 and `test_sysusers` 2 (need root; the known WSL failures), 12 from Python 3.14
+  (`glob()` stand-ins without `case_sensitive`), 3 owner-tool checks that want a root-owned folder, and 9 only
+  because the clone was shallow (hence the full clone now). `test_greeter` (3 known WSL failures) passes here.
 - **How the full suite ran here.** From a fresh `git clone --depth 1` of the pushed branch, `python3 -m unittest
   discover -s os/tests -v`, plain and then `-B`, one at a time, under `nice -n 10`, detached (`setsid`, stdin from
   `/dev/null`), with at least 4.5 GB available before each. Because this is a live machine, the suite also ran under
