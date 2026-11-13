@@ -2,7 +2,7 @@
 
 Empire board brief 283. Mod package. `docs/design/HUB.md`, section 6, row 4. It starts from a `main` that contains package 34 (My apps).
 
-**Builder:** a Claude agent (Opus 5.5): the rules are written out in full in the design, with a worked list to test against. **Review:** a fresh reviewer that isn't the builder.
+**Builder:** Codex (model picked at launch, xhigh): the rules are written out in full in the design, with a worked list to test against, and nothing here is about looks. **Review:** a fresh reviewer that isn't the builder.
 
 ## Why
 
@@ -55,4 +55,4 @@ Give an app a longer, duller name rather than one that could shadow anything.
 - Build and test with `mod/dev/build.sh` and `mod/dev/client-test.sh` only (`mod/README.md`, "On Linux"). Never pass `--force`. Never run `./gradlew` directly.
 - The repo is public: no personal data, no Mojang assets, no real app icons.
 - Don't touch other worktrees, `~/AresOS` itself, `~/.minecraft` or `~/.lunarclient`. No sudo.
-- Commits end with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- Commit messages name the model that built them in a trailer.
