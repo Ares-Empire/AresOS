@@ -52,10 +52,11 @@ public record GatePlan(ResourceKey<Level> dimension, BlockPos origin, Direction 
         var ahead = Vec3.atLowerCornerOf(outward.getUnitVec3i());
         var exit = new NetherHome.Home(dimension, line.subtract(ahead.scale(GateNumbers.EXIT)), yaw(outward), GateNumbers.EXIT_PITCH);
         var sign = new Sign(line.add(0, size + GateNumbers.SIGN_GAP, 0), name, shortName);
+        // The niche's two opposite corners; which one is the lower depends on the facing.
+        BlockPos near = at(origin, outward, 0, door, 0),
+                far = at(origin, outward, GateNumbers.NICHE_DEPTH - 1, door + GateNumbers.DOOR_WIDTH - 1, GateNumbers.DOOR_HEIGHT - 1);
         return new GatePlan(dimension, origin, outward, size, java.util.Collections.unmodifiableMap(blocks), lights,
-                List.copyOf(doormat), doormatBlock, at(origin, outward, 0, door, 0),
-                at(origin, outward, GateNumbers.NICHE_DEPTH - 1, door + GateNumbers.DOOR_WIDTH - 1, GateNumbers.DOOR_HEIGHT - 1),
-                exit, sign);
+                List.copyOf(doormat), doormatBlock, BlockPos.min(near, far), BlockPos.max(near, far), exit, sign);
     }
 
     /**

@@ -83,6 +83,7 @@ public final class GateBuilder {
         var solid = new LinkedHashMap<BlockPos, BlockState>();
         for (var block : plan.blocks().entrySet()) solid.put(block.getKey(), Neighbors.block(block.getValue()).defaultBlockState());
         var space = plan.space();
+        if (!loaded(level, space)) throw new IOException("The place for the gate isn't loaded. Go nearer, then retry. No blocks changed.");
         for (var pos : space) {
             if (pos.getY() < level.getMinY() || pos.getY() >= level.getMaxY() || !level.getWorldBorder().isWithinBounds(pos))
                 throw new IOException("Gate would be outside the build limits or world border.");
@@ -173,6 +174,18 @@ public final class GateBuilder {
         return entity;
     }
 
+    /**
+     * Whether the world around these blocks is loaded with its entities. Where it is not, entities in the way
+     * and a gate's own sign cannot be seen, so nothing is built or removed there.
+     */
+    private static boolean loaded(ServerLevel level, Iterable<BlockPos> cells) {
+        var chunks = new HashSet<Long>();
+        for (var pos : cells) chunks.add(ChunkPos.pack(pos));
+        for (long chunk : chunks)
+            if (!level.hasChunk(ChunkPos.getX(chunk), ChunkPos.getZ(chunk)) || !level.areEntitiesLoaded(chunk)) return false;
+        return true;
+    }
+
     private static ListTag floats(float... values) {
         var list = new ListTag();
         for (float value : values) list.add(FloatTag.valueOf(value));
@@ -190,11 +203,7 @@ public final class GateBuilder {
         var gate = zone.gate().orElseThrow(() -> new IOException("Not a gate."));
         var level = server.getLevel(zone.dimension());
         if (level == null) throw new IOException("The gate's dimension does not exist.");
-        var chunks = new HashSet<Long>();
-        for (var placed : gate.placed()) chunks.add(ChunkPos.pack(placed.pos()));
-        for (var placed : gate.placed()) if (!level.isLoaded(placed.pos()))
-            throw new IOException("The gate of " + zone.app() + " isn't loaded. Go to it and use /aresos logo remove here. Nothing changed.");
-        for (long chunk : chunks) if (!level.areEntitiesLoaded(chunk))
+        if (!loaded(level, gate.placed().stream().map(AppZone.Placed::pos).toList()))
             throw new IOException("The gate of " + zone.app() + " isn't loaded. Go to it and use /aresos logo remove here. Nothing changed.");
         var ground = new HashMap<BlockPos, String>();
         for (var replaced : gate.ground()) ground.put(replaced.pos(), replaced.block());

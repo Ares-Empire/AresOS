@@ -68,7 +68,7 @@ final class Neighbors {
      */
     static boolean ground(ServerLevel level, BlockPos pos, BlockState state) {
         return state.isCollisionShapeFullBlock(level, pos) && state.getFluidState().isEmpty() && !state.hasBlockEntity()
-                && (state.is(BlockTags.DIRT) || state.is(BlockTags.BASE_STONE_OVERWORLD)
+                && (state.is(BlockTags.SUBSTRATE_OVERWORLD) || state.is(BlockTags.BASE_STONE_OVERWORLD)
                 || state.is(BlockTags.BASE_STONE_NETHER) || state.is(BlockTags.NYLIUM));
     }
 
