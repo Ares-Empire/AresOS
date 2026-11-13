@@ -451,3 +451,24 @@ test('post18d hidden late fields disclose presence without extracting a value or
   const f=fixture([{type:'hidden',forbidden:true}],{watched:false});f.read();
   const row=f.command({command:'facts',element:'e1'}).data.target;assert.equal(row.value,undefined);assert.equal(row.value_status,'not_read');assert.equal(f.calls(),0);
 });
+
+test('post18d credential aria-labelledby labels never expose values in watched late or approved reads',()=>{
+  for(const watched of [false,true])for(const labels of [['Password'],['Passwort'],['Security','code'],['one-time','code'],['Sicherheitscode']]){
+    const f=fixture([{attrs:{'aria-labelledby':labels.map((_,i)=>'credential-'+i).join(' ')},forbidden:true}],{watched});
+    const references=Object.fromEntries(labels.map((label,index)=>['credential-'+index,new f.Element({tagName:'SPAN',childNodes:[{nodeType:3,textContent:label}]})]));
+    f.nodes[0].getRootNode().getElementById=key=>references[key]||null;
+    const row=f.read().data.rows[0];assert.equal(row.password,true,labels.join(' '));assert.equal(row.value,undefined);assert.equal(f.calls(),0);
+    const expected=f.command({command:'typed_fields'}).data;assert.equal(expected.fields.length,0);
+    const approved=f.command({command:'read_typed_fields',approved:true,operation:'labelled',expected});assert.equal(approved.ok,true);assert.equal(approved.data.fields.length,0);assert.equal(f.calls(),0);
+  }
+});
+
+test('post18d combined associated credential labels stay excluded from every read',()=>{
+  for(const watched of [false,true])for(const labels of [['Security','code'],['one-time','code']]){
+    const f=fixture([{attrs:{id:'credential'},forbidden:true}],{watched});
+    f.nodes[0].labels=labels.map(label=>new f.Element({tagName:'LABEL',childNodes:[{nodeType:3,textContent:label}]}));
+    assert.equal(f.read().data.rows[0].password,true);assert.equal(f.calls(),0);
+    const expected=f.command({command:'typed_fields'}).data;assert.equal(expected.fields.length,0);
+    const approved=f.command({command:'read_typed_fields',approved:true,operation:'combined',expected});assert.equal(approved.ok,true);assert.equal(approved.data.fields.length,0);assert.equal(f.calls(),0);
+  }
+});

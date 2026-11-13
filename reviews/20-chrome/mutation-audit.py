@@ -296,7 +296,7 @@ for signal in ['name','id','autocomplete','aria-label','placeholder']:
     before="['name','id','autocomplete','aria-label','placeholder']"
     after=repr([key for key in ['name','id','autocomplete','aria-label','placeholder'] if key!=signal])
     case('post18d-credential-'+signal,R,before,after,node('reader','post18d credential signal '+signal+' excludes'))
-case('post18d-credential-label',R,"signals.push(...[...element.labels||[]].map(labelText));",'',node('reader','post18d credential signal label excludes'))
+case('post18d-credential-label',R,"signals.push([...element.labels||[]].map(labelText).join(' '));",'',node('reader','post18d credential signal label excludes'))
 case('post18d-late-mask',R,"if(!watched&&typedField(element))","if(false&&typedField(element))",node('reader','post18d late single-line values'))
 for kind in ['text','tel','number','unknown']:
     case('post18d-late-type-'+kind,R,"return html(element,HTMLInputElement,'input')&&!['hidden'",f"return html(element,HTMLInputElement,'input')&&element.type!={kind!r}&&!['hidden'",node('reader','post18d late single-line values'))
@@ -318,6 +318,10 @@ case('post18d-readable-textarea',R,"html(element,HTMLTextAreaElement,'textarea')
 case('post18d-readable-editor',R,"else if (element.isContentEditable) value = editableText(element)","else if (false) value = editableText(element)",node('reader','post18d watched input types and late choices'))
 case('post18d-credential-mask',R,"getComputedStyle(element).webkitTextSecurity !== 'none'",'false',node('reader','group7 protected values never reach'))
 case('post18d-late-reload-privacy',R,'if(!watched&&typedField(element)){unsaved=true;continue;}','',node('reader','post18d late reload warning never extracts'))
+
+case('post18d-credential-aria-labelledby',R,"signals.push(referenced.map(labelText).join(' '));",'',node('reader','post18d credential aria-labelledby labels'))
+
+case('post18d-credential-combined-labels',R,"signals.push([...element.labels||[]].map(labelText).join(' '));","signals.push(...[...element.labels||[]].map(labelText));",node('reader','post18d combined associated credential labels'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

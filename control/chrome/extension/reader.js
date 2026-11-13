@@ -78,7 +78,10 @@
       return [...node.childNodes].map(labelText).join(' ');
     };
     const signals=['name','id','autocomplete','aria-label','placeholder'].map(key=>element.getAttribute(key)||'');
-    signals.push(...[...element.labels||[]].map(labelText));
+    const root=element.getRootNode();
+    const referenced=(element.getAttribute('aria-labelledby')||'').split(/\s+/).map(key=>root.getElementById?.(key)).filter(Boolean);
+    signals.push(referenced.map(labelText).join(' '));
+    signals.push([...element.labels||[]].map(labelText).join(' '));
     return signals.some(value=>{
       const words=value.replace(/([a-z])([A-Z])/g,'$1 $2').normalize('NFKC').toLowerCase();
       return /pass[\s_-]*(?:word|wort|code)|kennwort|sicherheits[\s_-]*code|einmal[\s_-]*(?:code|kennwort|passwort)|bestätigungs[\s_-]*code|zugangs[\s_-]*code|one[\s_-]*time[\s_-]*(?:code|password)|security[\s_-]*code|(?:^|[^\p{L}\p{N}])(?:pin|otp)(?:$|[^\p{L}\p{N}])/u.test(words);

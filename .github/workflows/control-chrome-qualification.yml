@@ -157,6 +157,7 @@ jobs:
         run: |
           set -euo pipefail
           cp -R ../driver/control/chrome/ci/. control/chrome/ci/
+          cp -R ../driver/control/chrome_tests/. control/chrome_tests/
           mkdir -p .work/20-chrome/ci
           node control/chrome/ci/merge-shards.mjs .work/shards .work/20-chrome/ci ".work/shards/qualification-shard-${{ matrix.build }}-${{ matrix.channel }}-${{ matrix.repeat }}-precedence/chrome-precedence.json"
           python3 control/chrome/ci/merge-python.py .work/shards .work/20-chrome/ci

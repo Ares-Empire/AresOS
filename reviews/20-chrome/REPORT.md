@@ -117,8 +117,17 @@ the regression check await those measurements; **not ready** until that is done.
 **Verified locally after the merge:** full plain-Python Chrome discovery passed
 **234 tests in 672.944 s, OK**; Node plus artifact-stream tests passed **350 tests**;
 **268 removal probes** rejected their mutation with each baseline passing. Shared
-base CI, native CLI and all final workflow repetitions remain pending. The next
-manual full Chrome dispatch will bring the ledger to **238**.
+base CI, native CLI and all final workflow repetitions remain pending. The first
+manual full Chrome dispatch brings the ledger to **238**.
+
+**Fresh package review:** [BUILD-POST18D-REVIEW-1.md](BUILD-POST18D-REVIEW-1.md)
+found two FIXes on `cdd1cbcb`: ARIA-referenced password labels were omitted from
+credential exclusion, and qualification combine used an older test inventory
+than its shards. Both are fixed: referenced labels use the same value-free
+traversal (including multi-part labels), and combine copies the identical driver.
+A production-reader removal probe and an older-runtime/current-driver merger
+regression cover the fixes. The independent [security review](BUILD-POST18D-SECURITY-1.md) also found split associated labels bypassing the credential check. Both referenced and associated labels now combine their value-free text before classification. Watched, late and approved reads are covered. **347 Node tests pass**, **15 focused Python tests pass**, and **270 removal probes reject their mutation, with every baseline passing**. Scoped re-checks are pending. The first full sharded/latency run is `43462608845` (**238** total); its
+result will not be final-head acceptance because of these fixes.
 
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first

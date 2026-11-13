@@ -3,9 +3,11 @@ export function lateReaderPage(){
   const credential='SENTINEL_PRIVATE_PASSWORD_20';
   let fields='';
   for(const [signal,term]of [['name','password'],['id','Passwort'],['autocomplete','PIN'],['aria-label','Passcode'],['placeholder','one-time code'],['label','Sicherheitscode']]){
-    const field=`<input type="password" ${signal==='label'?'':signal+'="'+term+'"'} value="${credential}">`;
+    const field=`<input type="${signal==='name'?'password':'text'}" ${signal==='label'?'':signal+'="'+term+'"'} value="${credential}">`;
     fields+=signal==='label'?'<label>'+term+field+'</label>':field;
   }
+  fields+=`<span id="credential-label">Password</span><input type="text" aria-labelledby="credential-label" value="${credential}">`;
+  fields+=`<label for="credential-combined">Security</label><label for="credential-combined">code</label><input id="credential-combined" type="text" value="${credential}">`;
   fields+=`<input style="-webkit-text-security:disc" aria-label="Security code" value="${credential}">`;
   for(const type of lateInputTypes){
     const value=type==='number'?'123':type==='date'?'2026-11-13':type==='email'?'person@fixture.test':type==='url'?'https://fixture.test/typed':'PUBLIC_TYPED_'+type+'_20';
