@@ -288,8 +288,13 @@ Notepad literal in a test. Observations, not defects:
 
 ## Review fixes 1: progress
 
-Work in progress (brief `briefs/29-review-fixes-1.md`). Done: none of the seven fixes yet. Verified: nothing yet.
-Left: all seven, then the verification the brief lists. The plan, so a restarted builder can continue:
+Work in progress (brief `briefs/29-review-fixes-1.md`). Done (code committed): all seven fixes, as planned below.
+Verified so far: `bash -n`; a stand-in harness (exit codes 0/3, TERM 143, HUP 129, INT to the process group 130,
+TERM at 19 points during scope start: no unit left); refusals of `--daemon/--stop/--status` (exit 2, all three
+scripts) and of unwritable `--keep-screenshots` destinations (exit 2); Lunar detection with a jlinked runtime in a
+fake HOME under `.work/lunar-test/` (Java: exit 75 in all three; non-Java program: not counted).
+Left: `build.sh`, one full `client-test.sh`, the four signal cases, the copy-failure exit code, `run-hub.sh` in a
+headless cage of my own, README, the final report section. The plan:
 - `env.sh`: `aresos_say` writes to a copy of stderr saved at load time (today a signal while a scoped run's
   call is redirected sends the cleanup messages into that redirect, e.g. the compositor log).
 - `env.sh`: a list `ARESOS_SCOPES` of this script's units, named `aresos-dev-<name>-<pid>-<random>.scope`.
