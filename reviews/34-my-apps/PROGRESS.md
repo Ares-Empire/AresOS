@@ -7,15 +7,16 @@ Working notes for the next builder. Deleted in the last commit before the PR is 
 | Step | What | State |
 |---|---|---|
 | A1 to A5, B1, B2 | Protocol 1.1, the apps file, icons, the game part of My apps | **Done** (builders 1 and 2) |
-| B3 | The Apps screen (`client/AppsScreen.java`), its server side (`item/MyAppPayload`, `MyAppsGame.asked`), the search (`config/AppSearch`, unit tests) | **Built**, `build.sh` green on `8c641ab0`; look at it in the screenshots before calling it done |
-| B3 | `MyAppsClientGameTest` (fake helper, 150 programs, seven screenshots) | **Written**; first client run pending |
-| Last | README (Apps screen paragraph, two stale sentences), REPORT, build once, client tests twice, fetch and merge, delete this file, PR | Not started |
+| B3 | The Apps screen (`client/AppsScreen.java`), its server side (`item/MyAppPayload`, `MyAppsGame.asked`), the search (`config/AppSearch`, unit tests) | **Done**, looked at in screenshots (`be1a17d9`) |
+| B3 | `MyAppsClientGameTest` (fake helper, 150 programs, seven screenshots) | **Done**; passed once on `8c641ab0` (suite 7 min 1 s, this test 14 s of it) |
+| Last | README | **Done** (`be1a17d9`) |
+| Last | Screenshots committed, REPORT, build once, client tests twice on the final code, fetch and merge, delete this file, PR | Open |
 
 ## What is left, in order
 
-1. Run `mod/dev/client-test.sh --keep-screenshots <dir>`, look at the seven `34-*` screenshots, fix what they show.
-2. `mod/README.md`: the Apps screen paragraph replaces "**E → Apps…** opens a paged catalogue ..."; the line "On Linux, `aresos-shell/1.0` is a stub until the OS helper arrives" is no longer true.
-3. `REPORT.md` (lists under "For the report"), `build.sh` once, `client-test.sh` twice on the final code, `git fetch origin` and merge `origin/main` if PR #44 has merged, delete this file, push, `gh pr create`.
+1. `mod/dev/client-test.sh --keep-screenshots <dir>` twice on the final code; commit the seven `*_34-*.png` under `reviews/34-my-apps/screenshots/` (a run numbers its files across the whole suite, so the names start at about `0033_`); `git checkout -- reviews/` and `git clean -fd reviews/` for the rest.
+2. `REPORT.md` in the AGENTS.md format (lists under "For the report" plus "The Apps screen" below). Builder 3 could not write it: its harness refuses report files from a sub-agent. The text is in the PR description and in builder 3's last message to the orchestrator.
+3. `git fetch origin` and merge `origin/main` if PR #44 has merged (it was open on 2026-11-13 evening), delete this file, push, `gh pr create`.
 
 ## The Apps screen (builder 3)
 
@@ -23,7 +24,9 @@ Working notes for the next builder. Deleted in the last commit before the PR is 
 - The server's answer is the chat line the commands give (`MyAppsGame.asked` sends it with `sendSystemMessage`). The chat is blurred behind the screen, so the screen shows any system line that arrives while it is open in the line above Done (Fabric's `ClientReceiveMessageEvents.GAME`), for five seconds.
 - `isPauseScreen` is false on purpose: a pause screen stops the integrated server and an add would not be answered while the screen is open.
 - When the list changes under him (an add, a remove, a new program) the row under the pointer keeps its place (`ProgramList.show`, `keepPlace`); a new search starts at the top.
-- Package 07's client test used the old pages; it now types the app's name and presses Enter. Its screenshot keeps the name `07-apps-page-2` so the tracked files of `reviews/07-real-apps` keep their numbering (they are put back after a run anyway).
+- Package 07's client test used the old pages; it now types the app's name and presses Enter, and its screenshot is called `07-apps-search`. The tracked `0001_07-apps-page-2.png` stays as package 07's record.
+- One of his apps is picked up when the mouse button is let go (`AppsScreen.mouseReleased`), not on the press: the inventory screen places what is on the cursor on a release, so a release that reached it after the Apps screen closed could put the item into the slot under the pointer. The old screen had that race.
+- The search box shows its hint while it is empty although it has the focus (drawn by the screen), gets the focus back after every click, and the line above Done is placed by hand so the button does not move.
 - `FakeHelper` moved to `mod/src/testShared/java` (public), a source folder of both the unit tests and the client game tests. `AppsTestAccess` got `aresos$setShell` and `aresos$mergeHelperApps`; the client test wires its own `ShellClient` the way `AresOs.onInitialize` wires the game's.
 
 ## How the game part works (read before changing it)
