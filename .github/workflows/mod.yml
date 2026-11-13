@@ -48,15 +48,18 @@ jobs:
           java -version
           ./gradlew --no-daemon --console=plain build
       - name: Clean checkout of the same commit in another path
+        if: ${{ !cancelled() }}
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.SOURCE_REVISION }}
           path: second
           persist-credentials: false
       - name: Build and test the second checkout
+        if: ${{ !cancelled() }}
         working-directory: second/mod
         run: ./gradlew --no-daemon --console=plain build
       - name: Compare hashes and publish summary
+        if: ${{ !cancelled() }}
         id: jar
         run: |
           set -euo pipefail
@@ -74,6 +77,7 @@ jobs:
           cmp "$first" "$second"
           echo "path=$first" >> "$GITHUB_OUTPUT"
       - name: Upload verified jar and hashes
+        if: ${{ !cancelled() && steps.jar.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: aresos-jar-${{ env.SOURCE_REVISION }}
@@ -81,3 +85,12 @@ jobs:
             ${{ steps.jar.outputs.path }}
             reproducibility.sha256
           if-no-files-found: error
+      - name: Upload test results for both checkouts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mod-test-results-${{ env.SOURCE_REVISION }}
+          path: |
+            first/mod/build/test-results/
+            second/mod/build/test-results/
+          if-no-files-found: warn
