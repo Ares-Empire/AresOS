@@ -22,7 +22,8 @@ public final class ProgramCommands {
     private ProgramCommands() { }
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
-        if (dispatcher.getRoot().getChild("open") == null) dispatcher.register(Commands.literal("open").requires(AppCommands::allowed)
+        // Installed only where nothing has the name; a later registration of either takes the name whole (OwnedNodes).
+        OwnedNodes.install(dispatcher, Commands.literal("open").requires(AppCommands::allowed)
                 .then(Commands.argument("name", greedyString()).suggests((c, b) -> {
                     if (!AppCommands.allowed(c.getSource())) return b.buildFuture();
                     var apps = listed();
@@ -32,7 +33,7 @@ public final class ProgramCommands {
                     for (String key : keys) if (key.startsWith(NameRules.squeeze(b.getRemaining()))) b.suggest(key);
                     return b.buildFuture();
                 }).executes(c -> open(c.getSource(), getString(c, "name")))));
-        if (dispatcher.getRoot().getChild("apps") == null) dispatcher.register(Commands.literal("apps").requires(AppCommands::allowed)
+        OwnedNodes.install(dispatcher, Commands.literal("apps").requires(AppCommands::allowed)
                 .executes(c -> apps(c.getSource())));
     }
 

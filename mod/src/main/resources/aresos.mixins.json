@@ -15,7 +15,8 @@
     "ModeSwitchPacketMixin",
     "PendingPickupMixin",
     "PendingInventoryMixin",
-    "CommandNodeAccess"
+    "CommandNodeAccess",
+    "CommandNodeMergeMixin"
   ],
   "injectors": {
     "defaultRequire": 1

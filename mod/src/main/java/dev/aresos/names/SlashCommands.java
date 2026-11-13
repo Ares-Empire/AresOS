@@ -5,7 +5,6 @@ import com.mojang.brigadier.tree.CommandNode;
 import dev.aresos.AresOs;
 import dev.aresos.config.AppDefinition;
 import dev.aresos.item.AppCommands;
-import dev.aresos.mixin.CommandNodeAccess;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.zone.ZoneLaunchPayload;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -21,9 +20,11 @@ import java.util.*;
 
 /** The host's saved names on the real command tree; reconciled on the server thread. */
 public final class SlashCommands {
+    /** One app name on the tree, and the app it opens. Ours only while {@link OwnedNodes#ours} says so. */
+    private record Owned(CommandNode<CommandSourceStack> node, String app) { }
     private static final class State {
         CommandDispatcher<CommandSourceStack> dispatcher;
-        final Map<String, CommandNode<CommandSourceStack>> owned = new HashMap<>();
+        final Map<String, Owned> owned = new HashMap<>();
         List<AppDefinition> apps;
         Set<String> reserved = Set.of();
         boolean enabled;
@@ -36,13 +37,16 @@ public final class SlashCommands {
         ServerLifecycleEvents.SERVER_STOPPED.register(STATES::remove);
     }
 
-    /** Excludes only the exact nodes we registered, so replacement commands from other mods always win. */
+    /** Every command on the tree except our app names as we installed them, and AresOS's own. */
     public static Set<String> reserved(MinecraftServer server) {
         var state = STATES.get(server);
         var root = server.getCommands().getDispatcher().getRoot();
         var names = new HashSet<>(NameRules.OWN);
-        for (var node : root.getChildren())
-            if (state == null || state.owned.get(node.getName()) != node) names.add(node.getName());
+        for (var node : root.getChildren()) {
+            var owned = state == null ? null : state.owned.get(node.getName());
+            // A node of ours that another registration changed is somebody else's command now.
+            if (owned == null || owned.node() != node || !OwnedNodes.ours(node)) names.add(node.getName());
+        }
         return Set.copyOf(names);
     }
 
@@ -50,12 +54,12 @@ public final class SlashCommands {
         var state = STATES.computeIfAbsent(server, ignored -> new State());
         var dispatcher = server.getCommands().getDispatcher();
         if (state.dispatcher != dispatcher) {
+            // A rebuilt tree (/reload) has none of our names; the old nodes went with the old tree.
             state.owned.clear(); state.apps = null; state.dispatcher = dispatcher;
         }
         boolean enabled = server.isSingleplayer() && DesktopWorld.isEnabled(server);
         var reserved = reserved(server);
         if (state.apps == AresOs.apps() && state.enabled == enabled && state.reserved.equals(reserved)) return;
-        var root = dispatcher.getRoot();
         // Failed persistence keeps the previous working commands, which still check current membership.
         if (enabled) try { AresOs.assignNames(reserved); }
         catch (IOException | RuntimeException error) {
@@ -65,28 +69,36 @@ public final class SlashCommands {
                 player.sendSystemMessage(Component.literal("Could not save app names: " + error.getMessage()));
             return;
         }
-        for (var entry : state.owned.entrySet()) if (root.getChild(entry.getKey()) == entry.getValue()) remove(root, entry.getKey());
-        state.owned.clear();
-        if (enabled) for (var app : AresOs.apps()) if (app.mine() && !app.absent()) for (String name : app.names()) {
-            // Check again at the actual registration, without merging into somebody else's literal.
-            if (root.getChild(name) != null || NameRules.OWN.contains(name)) continue;
-            var node = dispatcher.register(Commands.literal(name).requires(AppCommands::allowed)
-                    .executes(c -> {
-                        var current = AresOs.app(app.id());
-                        return current != null && current.mine() && !current.absent() && current.names().contains(name) ? launch(c.getSource(), app.id()) : 0;
-                    }));
-            state.owned.put(name, node);
-        }
+        follow(dispatcher, state, enabled);
         state.apps = AresOs.apps(); state.enabled = enabled; state.reserved = reserved(server);
         for (var player : server.getPlayerList().getPlayers()) server.getCommands().sendCommands(player);
     }
 
-    @SuppressWarnings("unchecked")
-    private static void remove(CommandNode<CommandSourceStack> root, String name) {
-        var access = (CommandNodeAccess<CommandSourceStack>)(Object)root;
-        access.aresos$children().remove(name);
-        access.aresos$literals().remove(name);
-        access.aresos$arguments().remove(name);
+    /** Brings the tree in line with the saved names: names that lost their app go, free saved names come. */
+    private static void follow(CommandDispatcher<CommandSourceStack> dispatcher, State state, boolean enabled) {
+        var wanted = new HashMap<String, String>();
+        if (enabled) for (var app : AresOs.apps()) if (app.mine() && !app.absent())
+            for (String name : app.names()) wanted.putIfAbsent(name, app.id());
+        for (var iterator = state.owned.entrySet().iterator(); iterator.hasNext(); ) {
+            var entry = iterator.next();
+            var owned = entry.getValue();
+            // Changed by another registration: not ours any more, so it is left exactly as it is.
+            if (!OwnedNodes.ours(owned.node())) iterator.remove();
+            else if (!owned.app().equals(wanted.get(entry.getKey()))) { OwnedNodes.remove(owned.node()); iterator.remove(); }
+        }
+        for (var entry : wanted.entrySet()) {
+            String name = entry.getKey(), id = entry.getValue();
+            if (state.owned.containsKey(name) || NameRules.OWN.contains(name)) continue;
+            // Only where the tree has nothing of that name: Minecraft's and other mods' commands always win.
+            var node = OwnedNodes.install(dispatcher, Commands.literal(name).requires(AppCommands::allowed)
+                    .executes(c -> run(c.getSource(), id, name)));
+            if (node != null) state.owned.put(name, new Owned(node, id));
+        }
+    }
+
+    private static int run(CommandSourceStack source, String id, String name) {
+        var current = AresOs.app(id);
+        return current != null && current.mine() && !current.absent() && current.names().contains(name) ? launch(source, id) : 0;
     }
 
     /** Visit zero is the ordinary hotbar launch: no zone visit and no return teleport. */

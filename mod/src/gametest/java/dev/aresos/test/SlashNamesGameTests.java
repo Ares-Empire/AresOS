@@ -5,6 +5,7 @@ import dev.aresos.AresOs;
 import dev.aresos.config.*;
 import dev.aresos.item.AppCommands;
 import dev.aresos.item.MyAppsGame;
+import dev.aresos.names.OwnedNodes;
 import dev.aresos.names.ProgramCommands;
 import dev.aresos.names.SlashCommands;
 import dev.aresos.world.DesktopWorld;
@@ -30,14 +31,16 @@ import static dev.aresos.test.ModeInventoryFixtures.*;
 /** A separate batch: these synchronous tests temporarily own the shared catalogue and host profile. */
 public final class SlashNamesGameTests {
     private static final String BATCH = "aresos-test:slash_names";
+    /** Alone in its batch: it rebuilds the server's command tree and waits for ticks. */
+    private static final String RELOAD = "aresos-test:slash_names_reload";
     private static AppDefinition app(String id, String name, boolean mine) {
         return new AppDefinition(id, name, List.of(id), "minecraft:book", false).withMine(mine);
     }
 
     private static final class Fixture implements AutoCloseable {
         final net.minecraft.server.MinecraftServer server;
-        final ServerPlayer player;
-        final EmbeddedChannel channel;
+        ServerPlayer player;
+        EmbeddedChannel channel;
         final String config;
         final GameProfile profile;
         final boolean desktop;
@@ -68,6 +71,22 @@ public final class SlashNamesGameTests {
         }
         int run(String command) throws Exception {
             return server.getCommands().getDispatcher().execute(command, player.createCommandSourceStack());
+        }
+        /** Leaves and joins again as the same host; returns the commands the new login was sent. */
+        Set<String> rejoin(GameTestHelper helper) {
+            server.getPlayerList().remove(player);
+            channel.finishAndReleaseAll();
+            var cookie = CommonListenerCookie.createInitial(player.getGameProfile(), false);
+            player = new ServerPlayer(server, helper.getLevel(), cookie.gameProfile(), cookie.clientInformation());
+            var connection = new Connection(PacketFlow.SERVERBOUND); channel = new EmbeddedChannel(connection);
+            server.getPlayerList().placeNewPlayer(connection, player, cookie);
+            return visibleNames();
+        }
+        /** Takes a command another "mod" put on the shared test tree off again, so later tests see the usual tree. */
+        @SuppressWarnings("unchecked")
+        void unregister(String name) {
+            var access = (dev.aresos.mixin.CommandNodeAccess<Object>)(Object)server.getCommands().getDispatcher().getRoot();
+            access.aresos$children().remove(name); access.aresos$literals().remove(name); access.aresos$arguments().remove(name);
         }
         /** -1 when the command does not even parse for this source. */
         int attempt(String command, net.minecraft.commands.CommandSourceStack source) throws Exception {
@@ -199,6 +218,117 @@ public final class SlashNamesGameTests {
             check(f.run("aresos app name other valid") == 0 && f.said("not in My apps"), "Named an inactive app");
         }
         helper.succeed();
+    }
+
+    /** Review 1, finding 1: a later command under an app's name takes the name whole, with its own permission. */
+    @GameTest(environment = BATCH)
+    public void aLaterCommandUnderAnAppNameWinsWhole(GameTestHelper helper) throws Exception {
+        try (var f = new Fixture(helper)) {
+            var dispatcher = f.server.getCommands().getDispatcher();
+            var root = dispatcher.getRoot();
+            try {
+                check(root.getChild("discord") != null && f.run("discord") == 1, "Fixture: /discord is not installed");
+                // Another mod registers "discord" after us: anyone may run it, and it has a child.
+                dispatcher.register(Commands.literal("discord").requires(source -> true).executes(c -> 42)
+                        .then(Commands.literal("status").executes(c -> 43)));
+                var foreign = root.getChild("discord");
+                check(!OwnedNodes.ours(foreign), "The later command merged into ours");
+                f.server.setSingleplayerProfile(new GameProfile(UUID.randomUUID(), "DifferentHost"));
+                var guest = f.player.createCommandSourceStack();
+                check(f.attempt("discord", guest) == 42 && f.attempt("discord status", guest) == 43, "The later command lost its own permission");
+                f.server.setSingleplayerProfile(f.player.getGameProfile());
+                SlashCommands.refresh(f.server);
+                var names = AresOs.app("discord").names();
+                check(!names.contains("discord") && names.contains("dc"), "Discord kept a name another command holds: " + names);
+                check(f.run("discord") == 42, "The host does not reach the later command");
+                check(f.run(names.getFirst()) == 1 && f.launches().getLast().equals("discord"), "Discord's next-best name does not open it: " + names);
+                MyAppsGame.remove(f.player, "discord");
+                check(root.getChild("discord") == foreign && f.attempt("discord status", guest) == 43,
+                        "Removing the app took the later command or its child");
+                check(names.stream().allMatch(name -> root.getChild(name) == null || root.getChild(name) == foreign), "Our names stayed after removal");
+            } finally { f.unregister("discord"); }
+        }
+        helper.succeed();
+    }
+
+    /** Review 1, finding 1: the same for /open; and its rows still open the right apps. */
+    @GameTest(environment = BATCH)
+    public void aLaterOpenWinsWhole(GameTestHelper helper) throws Exception {
+        try (var f = new Fixture(helper)) {
+            var dispatcher = f.server.getCommands().getDispatcher();
+            var root = dispatcher.getRoot();
+            var ours = root.getChild("open");
+            check(ours != null && OwnedNodes.ours(ours), "Fixture: our /open is not installed");
+            try {
+                dispatcher.register(Commands.literal("open").requires(source -> true).executes(c -> 42)
+                        .then(Commands.literal("door").executes(c -> 43)));
+                var foreign = root.getChild("open");
+                check(foreign != ours && !OwnedNodes.ours(foreign), "The later /open merged into ours");
+                f.server.setSingleplayerProfile(new GameProfile(UUID.randomUUID(), "DifferentHost"));
+                var guest = f.player.createCommandSourceStack();
+                check(f.attempt("open", guest) == 42 && f.attempt("open door", guest) == 43, "The later /open lost its own permission");
+                f.server.setSingleplayerProfile(f.player.getGameProfile());
+                SlashCommands.refresh(f.server);
+                ProgramCommands.register(dispatcher);
+                check(root.getChild("open") == foreign && f.run("open door") == 43, "AresOS took /open back");
+                int before = f.clickable().size(), launched = f.launches().size();
+                check(f.run("apps") == 4, "/apps does not list My apps");
+                for (var line : f.clickable().subList(before, f.clickable().size())) f.run(Fixture.click(line).substring(1));
+                var expected = AresOs.apps().stream().filter(AppDefinition::mine).sorted(AppSearch.BY_NAME).map(AppDefinition::id).toList();
+                check(f.launches().subList(launched, f.launches().size()).equals(expected), "Rows did not open My apps: " + f.launches());
+            } finally {
+                f.unregister("open");
+                ProgramCommands.register(dispatcher);
+            }
+        }
+        helper.succeed();
+    }
+
+    /** Review 1, finding 1: a rebuilt tree (/reload) and a rejoin. Vanilla's commands are vanilla's; the names come back. */
+    @GameTest(environment = RELOAD, maxTicks = 600)
+    public void reloadAndRejoinBringTheNamesBack(GameTestHelper helper) throws Exception {
+        var f = new Fixture(helper);
+        var old = f.server.getCommands().getDispatcher();
+        try {
+            check(old.getRoot().getChild("dc") != null, "Fixture: no /dc before the reload");
+            f.server.reloadResources(f.server.getPackRepository().getSelectedIds());
+        } catch (Exception | Error error) { f.close(); throw error; }
+        boolean[] done = {false};
+        helper.onEachTick(() -> {
+            if (done[0]) return;
+            try {
+                var dispatcher = f.server.getCommands().getDispatcher();
+                var root = dispatcher.getRoot();
+                if (dispatcher == old || root.getChild("dc") == null) {
+                    if (helper.getTick() > 400) throw new AssertionError("No rebuilt tree with the app names after "
+                            + helper.getTick() + " ticks; tree rebuilt: " + (dispatcher != old));
+                    return;
+                }
+                done[0] = true;
+                var names = AresOs.app("discord").names();
+                for (String name : names) check(OwnedNodes.ours(root.getChild(name)), "Not back after /reload: /" + name);
+                check(f.visibleNames().containsAll(names), "The rebuilt list was not sent without a rejoin");
+                var all = f.player.createCommandSourceStack().withPermission(PermissionSet.ALL_PERMISSIONS);
+                for (String vanilla : List.of("help", "list", "time"))
+                    check(root.getChild(vanilla) != null && !OwnedNodes.ours(root.getChild(vanilla)), "Not vanilla's after /reload: /" + vanilla);
+                check(dispatcher.execute("help", all) > 0 && dispatcher.execute("list", all) > 0, "Vanilla commands do not run after /reload");
+                check(f.run("dc") == 1 && f.launches().getLast().equals("discord"), "/dc does not open Discord after /reload");
+                var seen = f.rejoin(helper);
+                check(seen.containsAll(names) && seen.containsAll(List.of("help", "list", "time")), "The rejoin's command list: " + seen);
+                f.close();
+                helper.succeed();
+            } catch (AssertionError error) {
+                done[0] = true; closeQuietly(f);
+                helper.fail(error.getMessage());
+            } catch (Exception error) {
+                done[0] = true; closeQuietly(f);
+                throw new RuntimeException(error);
+            }
+        });
+    }
+
+    private static void closeQuietly(Fixture f) {
+        try { f.close(); } catch (Exception error) { AresOs.LOGGER.error("Could not restore the slash-names fixture", error); }
     }
 
     /** Review 1, finding 2: the requirement is checked against who typed it, not whom "execute as" picks. */
