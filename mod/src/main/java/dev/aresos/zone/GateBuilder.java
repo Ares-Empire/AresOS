@@ -1,0 +1,212 @@
+package dev.aresos.zone;
+
+import dev.aresos.config.AppDefinition;
+import dev.aresos.world.HomeSites;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.FloatTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.ComponentSerialization;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LightBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.storage.TagValueInput;
+
+import javax.imageio.ImageIO;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+/**
+ * Builds a planned gate into the world and takes it down again. A build is all or nothing: every refusal comes
+ * before the first block changes. A removal touches only what is still as the mod placed it.
+ */
+public final class GateBuilder {
+    /** How many recorded blocks a removal took away, and how many it left because they had been changed. */
+    public record Removal(int removed, int kept) { }
+
+    private GateBuilder() { }
+
+    /**
+     * The picture of an app's gate: its icon by the rules of HUB.md 3.6, or a plain front in its group's colour
+     * when it has no readable icon or nothing of it is visible (HUB.md 2.3).
+     */
+    public static GatePicture picture(AppDefinition app, int size) {
+        if (app.icon() != null) {
+            try {
+                var icon = ImageIO.read(Path.of(app.icon()).toFile());
+                if (icon != null) {
+                    var picture = GatePicture.of(icon, size);
+                    if (!picture.isEmpty()) return picture;
+                }
+            } catch (IOException | RuntimeException unreadable) {
+                // Falls through to the plain front; the sign says which app it is.
+            }
+        }
+        return GatePicture.plain(GateGroup.concreteFor(app.id()), size);
+    }
+
+    /** The gate `/aresos logo <app>` builds: in front of the player, facing him, on the ground he stands on. */
+    public static GatePlan planInFrontOf(ServerPlayer player, AppDefinition app) {
+        var facing = player.getDirection();
+        return GatePlan.of(picture(app, GateNumbers.SIZE), player.level().dimension(),
+                GatePlan.originInFrontOf(player.position(), facing, GateNumbers.SIZE), facing, app.name(), null,
+                GateGroup.concreteFor(app.id()));
+    }
+
+    /** Builds the gate and saves its zone, or throws with the reason and changes nothing. */
+    public static AppZone build(ServerLevel level, String app, GatePlan plan) throws IOException {
+        if (!level.dimension().equals(plan.dimension())) throw new IOException("The gate is planned for another dimension.");
+        var data = ZoneData.get(level.getServer());
+        var solid = new LinkedHashMap<BlockPos, BlockState>();
+        for (var block : plan.blocks().entrySet()) solid.put(block.getKey(), Neighbors.block(block.getValue()).defaultBlockState());
+        var space = plan.space();
+        for (var pos : space) {
+            if (pos.getY() < level.getMinY() || pos.getY() >= level.getMaxY() || !level.getWorldBorder().isWithinBounds(pos))
+                throw new IOException("Gate would be outside the build limits or world border.");
+            if (!level.getBlockState(pos).isAir())
+                throw new IOException("Area isn't clear at " + pos.toShortString() + ". No blocks changed. A gate needs its own "
+                        + plan.size() + " x " + plan.size() + " x " + GateNumbers.DEPTH + " blocks, one layer in front and the way to its door free; clear them in Build mode, then retry.");
+        }
+        for (var pos : plan.walkway()) if (!level.getBlockState(pos).isFaceSturdy(level, pos, Direction.UP))
+            throw new IOException("The ground on the way to the door isn't solid at " + pos.toShortString() + ". No blocks changed.");
+        if (!HomeSites.isSafe(level, plan.exit().position()))
+            throw new IOException("The exit point in front of the door isn't safe solid ground. No blocks changed.");
+        var doormat = doormat(level, plan);
+        var placed = new LinkedHashMap<>(solid);
+        for (var pos : plan.lights()) placed.put(pos, Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, LightBlock.MAX_LEVEL));
+        doormat.ifPresent(mat -> plan.doormat().forEach(pos -> placed.put(pos, mat)));
+        var zone = new AppZone(UUID.randomUUID().toString(), app, plan.dimension(), plan.nicheMin(), plan.nicheMax(), plan.exit(),
+                List.copyOf(placed.keySet()), Optional.empty());
+        String conflict = data.conflict(zone);
+        if (conflict != null) throw new IOException(conflict);
+        if (Neighbors.occupant(level, solid.keySet(), data.signs()) != null)
+            throw new IOException("An entity occupies the gate's place. Move it away, then retry.");
+        Neighbors.check(level, placed.keySet(), solid.keySet(), 2);
+        if (doormat.isPresent()) Neighbors.check(level, placed.keySet(), plan.doormat(), 2);
+        // Light of 12 and more melts ice and snow; a light block's reaches three cells.
+        Neighbors.check(level, placed.keySet(), plan.lights(), 3);
+        var sign = sign(level, plan.sign());
+
+        // The ground the doormat replaces, to put back when the gate is removed.
+        var before = new LinkedHashMap<BlockPos, BlockState>();
+        if (doormat.isPresent()) for (var pos : plan.doormat()) before.put(pos, level.getBlockState(pos));
+        var record = new ArrayList<AppZone.Placed>();
+        for (var block : placed.entrySet()) {
+            level.setBlockAndUpdate(block.getKey(), block.getValue());
+            record.add(new AppZone.Placed(block.getKey(), id(block.getValue())));
+        }
+        if (!level.addFreshEntity(sign)) {
+            // Nothing is known to make this fail after the checks above; if it does, the world goes back as it was.
+            for (var pos : placed.keySet()) level.setBlockAndUpdate(pos, before.getOrDefault(pos, Blocks.AIR.defaultBlockState()));
+            throw new IOException("The gate's sign could not be placed. No blocks changed.");
+        }
+        var ground = before.entrySet().stream().map(block -> new AppZone.Placed(block.getKey(), id(block.getValue()))).toList();
+        var built = new AppZone(zone.id(), app, zone.dimension(), zone.min(), zone.max(), zone.exit(), zone.blocks(),
+                Optional.of(new AppZone.Gate(List.copyOf(record), ground, Optional.of(sign.getUUID()))));
+        data.add(built);
+        return built;
+    }
+
+    /**
+     * The doormat's block, when the floor at the door is untouched ground of the kind around it: one kind of
+     * natural ground under the doormat and around it. Anything else may be his paving, and the gate does without.
+     */
+    private static Optional<BlockState> doormat(ServerLevel level, GatePlan plan) {
+        Block kind = null;
+        for (var pos : plan.doormatSurround()) {
+            var state = level.getBlockState(pos);
+            if (!Neighbors.ground(level, pos, state) || kind != null && !state.is(kind)) return Optional.empty();
+            kind = state.getBlock();
+        }
+        return Optional.of(Neighbors.block(plan.doormatBlock()).defaultBlockState());
+    }
+
+    /**
+     * The sign as HUB.md 3.2 describes it. A display's setters are private, so it is made from the same data a
+     * saved one has. It has no hit box and takes no damage, in any mode.
+     */
+    private static Entity sign(ServerLevel level, GatePlan.Sign sign) throws IOException {
+        var text = Component.literal(sign.name()).withStyle(ChatFormatting.WHITE);
+        if (sign.shortName() != null && !sign.shortName().isBlank())
+            text.append(Component.literal("\n/" + sign.shortName()).withStyle(ChatFormatting.GOLD));
+        var tag = new CompoundTag();
+        tag.put("text", ComponentSerialization.CODEC.encodeStart(level.registryAccess().createSerializationContext(NbtOps.INSTANCE), text).getOrThrow());
+        tag.putInt("line_width", GateNumbers.SIGN_LINE_WIDTH);
+        // Turns around the upright axis only.
+        tag.putString("billboard", "vertical");
+        tag.putFloat("view_range", GateNumbers.SIGN_VIEW_RANGE);
+        var brightness = new CompoundTag();
+        brightness.putInt("sky", 15); brightness.putInt("block", 15);
+        tag.put("brightness", brightness);
+        var transformation = new CompoundTag();
+        transformation.put("translation", floats(0, 0, 0));
+        transformation.put("left_rotation", floats(0, 0, 0, 1));
+        transformation.put("scale", floats(GateNumbers.SIGN_SCALE, GateNumbers.SIGN_SCALE, GateNumbers.SIGN_SCALE));
+        transformation.put("right_rotation", floats(0, 0, 0, 1));
+        tag.put("transformation", transformation);
+        var entity = EntityType.create(EntityTypes.TEXT_DISPLAY, TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), tag),
+                level, EntitySpawnReason.COMMAND).orElseThrow(() -> new IOException("The gate's sign could not be made. No blocks changed."));
+        entity.snapTo(sign.position().x, sign.position().y, sign.position().z, 0, 0);
+        return entity;
+    }
+
+    private static ListTag floats(float... values) {
+        var list = new ListTag();
+        for (float value : values) list.add(FloatTag.valueOf(value));
+        return list;
+    }
+
+    private static String id(BlockState state) { return BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString(); }
+
+    /**
+     * Takes a gate down: each recorded block that is still that block (the doormat goes back to the ground it
+     * replaced), the sign and the zone. A block he changed since is his and stays. Refuses, changing nothing,
+     * while the gate's place is not loaded: its sign could not be found then.
+     */
+    public static Removal remove(MinecraftServer server, AppZone zone) throws IOException {
+        var gate = zone.gate().orElseThrow(() -> new IOException("Not a gate."));
+        var level = server.getLevel(zone.dimension());
+        if (level == null) throw new IOException("The gate's dimension does not exist.");
+        var chunks = new HashSet<Long>();
+        for (var placed : gate.placed()) chunks.add(ChunkPos.pack(placed.pos()));
+        for (var placed : gate.placed()) if (!level.isLoaded(placed.pos()))
+            throw new IOException("The gate of " + zone.app() + " isn't loaded. Go to it and use /aresos logo remove here. Nothing changed.");
+        for (long chunk : chunks) if (!level.areEntitiesLoaded(chunk))
+            throw new IOException("The gate of " + zone.app() + " isn't loaded. Go to it and use /aresos logo remove here. Nothing changed.");
+        var ground = new HashMap<BlockPos, String>();
+        for (var replaced : gate.ground()) ground.put(replaced.pos(), replaced.block());
+        int removed = 0, kept = 0;
+        for (var placed : gate.placed()) {
+            if (!id(level.getBlockState(placed.pos())).equals(placed.block())) { kept++; continue; }
+            var before = Optional.ofNullable(ground.get(placed.pos())).map(Identifier::tryParse).flatMap(BuiltInRegistries.BLOCK::getOptional);
+            level.setBlockAndUpdate(placed.pos(), before.orElse(Blocks.AIR).defaultBlockState());
+            removed++;
+        }
+        gate.sign().map(level::getEntity).ifPresent(Entity::discard);
+        ZoneData.get(server).remove(saved -> saved.id().equals(zone.id()));
+        return new Removal(removed, kept);
+    }
+}

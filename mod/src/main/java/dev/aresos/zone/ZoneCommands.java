@@ -40,8 +40,12 @@ public final class ZoneCommands {
     }
 
     public static LiteralArgumentBuilder<CommandSourceStack> logo() {
-        return Commands.literal("logo").then(appArgument()
-                .executes(c -> build(c.getSource(), getString(c, "app"), false))
+        return Commands.literal("logo")
+                .then(Commands.literal("remove").then(Commands.argument("target", word()).suggests((c, b) -> {
+                    b.suggest("here"); AresOs.apps().forEach(app -> b.suggest(app.id())); return b.buildFuture();
+                }).executes(c -> removeLogo(c.getSource(), getString(c, "target")))))
+                .then(appArgument()
+                .executes(c -> gate(c.getSource(), getString(c, "app")))
                 .then(Commands.literal("wall").executes(c -> build(c.getSource(), getString(c, "app"), false)))
                 .then(Commands.literal("floor").executes(c -> build(c.getSource(), getString(c, "app"), true))));
     }
@@ -86,17 +90,65 @@ public final class ZoneCommands {
                         AppZone.exit(selection.dimension, player.position(), box), List.of()));
                 message = "Zone saved for " + target + ". Your current position is its exit, facing the zone.";
             } else if (action.equals("remove")) {
-                int removed = data.remove(z -> target.equals("here") ? z.dimension().equals(player.level().dimension()) && z.box().intersects(player.getBoundingBox()) : z.app().equals(target));
-                message = "Removed " + removed + " zone(s). Logo blocks remain; removed zones no longer protect them.";
+                java.util.function.Predicate<AppZone> named = z -> target.equals("here") ? z.dimension().equals(player.level().dimension()) && z.box().intersects(player.getBoundingBox()) : z.app().equals(target);
+                // A gate's zone goes with its blocks and its sign, never alone.
+                long gates = data.zones().stream().filter(named).filter(AppZone::isGate).count();
+                int removed = data.remove(z -> named.test(z) && !z.isGate());
+                message = "Removed " + removed + " zone(s). Logo blocks remain; removed zones no longer protect them."
+                        + (gates > 0 ? " " + gates + " gate(s) stay: /aresos logo remove takes a gate down." : "");
             } else {
                 source.sendSuccess(() -> Component.literal("AresOS zones: " + data.zones().size()), false);
                 for (var zone : data.zones()) source.sendSuccess(() -> Component.literal(zone.app() + " | " + zone.dimension().identifier()
                         + " | " + zone.min().toShortString() + " to " + zone.max().toShortString()
-                        + " | exit " + zone.exit().position()), false);
+                        + " | exit " + zone.exit().position() + (zone.isGate() ? " | gate" : "")), false);
                 return 1;
             }
             source.sendSuccess(() -> Component.literal(message), false); return 1;
         } catch (IOException | IllegalArgumentException error) { source.sendFailure(Component.literal(error.getMessage())); return 0; }
+    }
+
+    private static int gate(CommandSourceStack source, String id) throws CommandSyntaxException {
+        var player = host(source); if (player == null) return 0;
+        var app = AresOs.app(id);
+        if (app == null) { source.sendFailure(Component.literal("Unknown AresOS app")); return 0; }
+        try {
+            var built = GateBuilder.build(player.level(), id, GateBuilder.planInFrontOf(player, app));
+            boolean doormat = built.gate().map(gate -> !gate.ground().isEmpty()).orElse(false);
+            source.sendSuccess(() -> Component.literal("Built the gate of " + app.name() + ". Step into its doorway to open it; closing it puts you back here."
+                    + (doormat ? "" : " No doormat: the floor at the door isn't untouched ground.")
+                    + " /aresos logo remove " + id + " takes it down."), false);
+            return 1;
+        } catch (IOException | RuntimeException error) { source.sendFailure(Component.literal("Logo refused: " + error.getMessage())); return 0; }
+    }
+
+    /** Takes down the gates of an app, or the one he stands at. An older wall or floor only loses its zone, as with `zone remove`. */
+    private static int removeLogo(CommandSourceStack source, String target) throws CommandSyntaxException {
+        var player = host(source); if (player == null) return 0;
+        var data = ZoneData.get(source.getServer());
+        boolean here = target.equals("here");
+        var logos = data.zones().stream().filter(zone -> zone.isGate() || !zone.blocks().isEmpty())
+                .filter(zone -> !here ? zone.app().equals(target) : zone.dimension().equals(player.level().dimension())
+                        && (zone.isGate() ? zone.area() : zone.box()).intersects(player.getBoundingBox())).toList();
+        if (logos.isEmpty()) {
+            source.sendFailure(Component.literal(here ? "No logo here. Stand at its door, or name the app." : "No logo of " + target + " stands in this world."));
+            return 0;
+        }
+        int done = 0;
+        for (var zone : logos) {
+            if (!zone.isGate()) {
+                data.remove(saved -> saved.id().equals(zone.id()));
+                source.sendSuccess(() -> Component.literal("Removed the zone of " + zone.app() + "'s older wall or floor logo. Its blocks stay and are no longer protected."), false);
+                done++;
+                continue;
+            }
+            try {
+                var removal = GateBuilder.remove(source.getServer(), zone);
+                source.sendSuccess(() -> Component.literal("Took down the gate of " + zone.app() + ": " + removal.removed() + " blocks removed"
+                        + (removal.kept() > 0 ? ", " + removal.kept() + " that you changed stay." : ".")), false);
+                done++;
+            } catch (IOException | RuntimeException error) { source.sendFailure(Component.literal(error.getMessage())); }
+        }
+        return done;
     }
 
     private static int build(CommandSourceStack source, String id, boolean floor) throws CommandSyntaxException {
