@@ -210,6 +210,12 @@ class ShellClientTest {
         };
         client = helper.client(FakeHelper.fast());
         client.world("startup-barrier");
+        // Drain world()'s pre-start task while disconnected. Only session's post-replay task may send world_ready.
+        var writerField = ShellClient.class.getDeclaredField("writer");
+        writerField.setAccessible(true);
+        var drained = new CountDownLatch(1);
+        ((ExecutorService) writerField.get(client)).execute(drained::countDown);
+        assertTrue(drained.await(5, TimeUnit.SECONDS), "The pre-start writer task did not drain");
         client.addListener(new ShellClient.Listener() {
             @Override public void apps(List<ShellClient.App> apps) {
                 opened.complete(client.open("notepad"));
