@@ -83,7 +83,11 @@ class Supervisor:
     def __init__(self, path, timeout=10.0):
         self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM | socket.SOCK_CLOEXEC)
         self.sock.settimeout(timeout)
-        self.sock.connect(path)
+        try:
+            self.sock.connect(path)
+        except OSError:
+            self.sock.close()
+            raise
         self.buffer = b''
 
     def ask(self, message):

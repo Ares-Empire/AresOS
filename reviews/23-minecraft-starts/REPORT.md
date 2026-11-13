@@ -27,17 +27,20 @@ uncertain latches recovery and waits for `retry`.
   supervisor names the file and the session in its `jvm_start` reply; the wrapper writes it with fsync). After a
   reboot an unresolved latch is reconciled from it exactly once; the old session's quit or restart is not carried
   into the new session (`End.session`, `new_session()`).
-- **Fix 4, half done:** the model (`HandOffRun`, `HandOffModelTest`) is rewritten: the wrapper's steps are
+- **Fix 4, done in code:** the model (`HandOffRun`, `HandOffModelTest`) is rewritten: the wrapper's steps are
   separate events (look and SIGTERM, the stop window and SIGKILL, record write, report), a SIGKILL from outside can
   land right after each look, a reboot (`Z`) clears the whole runtime folder after every order, and the expected
-  outcome comes from the model's own ledger. **Its first run fails** (`restarted more than once`): not yet known
-  whether the model or the code is wrong. Next: find that, then tune the run count and time.
+  outcome comes from the model's own ledger. It passes: 41,984 orders, each with and without a reboot, about 80 s.
+  (Its first run failed on the model's own bound "restarted at most once": a restarted supervisor begins an
+  unstarted launch again, which is not a restart after a crash. The bound now says so.)
+- **Targeted tests:** `test_aresos_desktop` passes natively (144 tests at the last full run of the module, before
+  the last harness fixes; the real-loop, wrapper, policy, adoption and model classes pass after them).
 - **Item 5:** no smaller protocol built. Proposal to write: Java as a transient systemd service whose result the
   supervisor reads (cost: Prism's process model, the lock, a VM check and CI; much bigger than fixes 1 to 4).
 
-**Not done yet:** the targeted tests have not all been run after the last edits; the revert proof per fix; the
-merge of `origin/main` (the integrator's addition: merge commit, then both full-suite runs on the merged head);
-the final form of this section with JUDGMENT-CALL 10 and the known limits.
+**Not done yet:** the revert proof per fix; the merge of `origin/main` (the integrator's addition: merge commit,
+then both full-suite runs on the merged head, natively, from a fresh clone); the final form of this section with
+the updated JUDGMENT-CALL 10 and the known limits.
 
 ## Review fixes 4 (REVIEW-4, 2026-11-11)
 

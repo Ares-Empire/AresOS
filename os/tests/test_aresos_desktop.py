@@ -1,4 +1,5 @@
 """The AresOS desktop supervisor and its Java wrapper (package 23; OS-BASE.md section 5, B1, B2, B5)."""
+import collections
 import gzip
 import hashlib
 import importlib.machinery
@@ -1749,6 +1750,7 @@ class HandOffRun:
         self.conn, self.handled = 'open', False
         self.facts = self.message = None  # what the wrapper wrote into its exit record, and its report
         self.rebooted = None  # the supervisor's state right before a reboot
+        self.restarted = False  # the supervisor was restarted (R)
         # What the supervisor did, looked at only to know which of its own deadline rules applies.
         self.accepted, self.loss_at, self.latched_before_loss = False, None, False
         self.lock()
@@ -1838,6 +1840,7 @@ class HandOffRun:
         self.lost()
         self.conn = 'broken'
         self.give_up()
+        self.restarted = True
         self.sup = self.test.supervisor()
         self.sup.start()
 
@@ -1973,8 +1976,9 @@ class HandOffRun:
         assert counted in ((0, 0), (1, 1)), ('counted twice', counted)
         starts = len(self.runner.prisms)
         if self.rebooted is None:
-            # An end that is not certain to be an ordinary crash is never counted and never restarts.
-            assert starts in (1, 2), ('restarted more than once', starts)
+            # An end that is not certain to be an ordinary crash is never counted and never restarts. A certain
+            # crash restarts once; a restarted supervisor that finds that new start without a game begins it again.
+            assert starts <= (3 if self.restarted else 2), ('restarted more than once', starts)
             if counted != (0, 0) or starts > 1:
                 assert self.truth() == 'crash', ('counted or restarted an end that is not a certain crash',
                                                  self.truth(), counted, starts)
@@ -2047,39 +2051,55 @@ class HandOffModelTest(Base):
                 os.unlink(name)
         self.runner = FakeRunner()
 
-    def orders(self, delay):
-        """Every order of events that can happen, each played from the start: (order, the run after it)."""
+    def explore(self, delay, seen, failures):
+        """Every order of events that can happen, each played from the start on a fresh run and checked: once left
+        to settle in its session, once with a reboot right after it. `seen` counts what the orders reached."""
         todo = ['']
         while todo:
             order = todo.pop()
-            run = HandOffRun(self, delay)
-            run.play(order)
-            events = run.enabled()
-            if 'R' not in order:
-                events.append('R')
-            if 'T' not in order:
-                events.append('T')
-            todo.extend(order + event for event in events)
-            yield order, run
+            seen['orders'] += 1
+            played = order
+            try:
+                run = HandOffRun(self, delay)
+                run.play(order)
+                events = run.enabled()
+                if 'R' not in order:
+                    events.append('R')
+                if 'T' not in order:
+                    events.append('T')
+                todo.extend(order + event for event in events)
+                run.settle()
+                run.check_settled()
+                seen[run.truth()] += 1
+                seen['restarted after a crash'] += len(self.runner.prisms) > 1
+                played = order + 'Z'
+                run = HandOffRun(self, delay)
+                run.play(played)
+                run.settle()
+                run.check_rebooted()
+                before = run.rebooted
+                if before['latched']:
+                    seen['latch kept over a reboot' if run.sup.persisted.latched else
+                         f'{before["truth"]} reconciled after a reboot'] += 1
+            except AssertionError as error:
+                # An order that breaks an invariant is not extended: its longer orders would only repeat it.
+                failures.append(f'after {delay} s, {played}: {error}')
 
     def test_every_order_keeps_the_invariants(self):
-        runs, failures = 0, []
+        seen, failures = collections.Counter(), []
         for delay in (0, 25):
-            for order, run in self.orders(delay):
-                runs += 1
-                try:
-                    run.settle()
-                    run.check_settled()
-                    run = HandOffRun(self, delay)
-                    run.play(order + 'Z')
-                    run.settle()
-                    run.check_rebooted()
-                except AssertionError as error:
-                    failures.append((delay, order + ('Z' if run.rebooted else ''), error))
-        print(runs)
+            self.explore(delay, seen, failures)
+        if os.environ.get('ARESOS_MODEL_REPORT'):
+            print(f'model: {len(failures)} failing; {dict(seen)}', file=sys.stderr)
         if failures:
-            self.fail(f'{len(failures)} of {runs} orders fail, for example:\n' + '\n'.join(
-                f'  after {delay} s, {order}: {error}' for delay, order, error in failures[:12]))
+            self.fail(f'{len(failures)} of {seen["orders"]} orders fail, for example:\n  '
+                      + '\n  '.join(failures[:12]))
+        # The model reaches every kind of end, the restart, and both sides of a reboot (so it cannot pass by
+        # having lost its orders).
+        self.assertGreater(seen['orders'], 40000)
+        for kind in ('running', 'unwitnessed', 'killed', 'quit', 'crash', 'restarted after a crash',
+                     'latch kept over a reboot', 'crash reconciled after a reboot', 'quit reconciled after a reboot'):
+            self.assertGreater(seen[kind], 100, kind)
 
 
 class RecoveryReasonsTest(Base):
@@ -2640,8 +2660,10 @@ def killed_from_outside(look, when):
 
 
 def run_wrapper_here(java, environ, cwd):
-    """The real wrapper's main() in this process (its signal handlers are put back afterwards)."""
+    """The real wrapper's main() in this process. What the end of its own process would undo is undone here: its
+    signal handlers are put back, and the desktop lock it holds until then is released."""
     handlers = {number: signal.getsignal(number) for number in wrapper.FORWARDED}
+    lock = os.path.join(environ['XDG_RUNTIME_DIR'], 'aresos/desktop.lock')
     old = os.getcwd()
     os.chdir(cwd)
     try:
@@ -2650,6 +2672,12 @@ def run_wrapper_here(java, environ, cwd):
         os.chdir(old)
         for number, handler in handlers.items():
             signal.signal(number, handler)
+        for name in os.listdir('/proc/self/fd'):
+            try:
+                if os.readlink(f'/proc/self/fd/{name}') == lock:
+                    os.close(int(name))
+            except OSError:
+                pass
 
 
 FAKE_JAVA = textwrap.dedent('''\
@@ -3158,7 +3186,14 @@ class LoopTest(Base):
         launch = self.loop.supervisor.launch
         if launch is not None and launch.jvm_pid is not None:
             self.end_jvm(0)
+        if self.thread.is_alive():
+            # A loop with nothing due sleeps for up to 30 s: any request wakes it, and it sees that it must stop.
+            try:
+                desktop.request(self.paths, {'op': 'status'}, timeout=5)
+            except (OSError, ValueError):
+                pass
         self.thread.join(10)
+        self.assertFalse(self.thread.is_alive(), 'the supervisor loop did not stop')
         # The supervisor leaves a running game alone when it stops; the test reaps its stand-ins (own sessions).
         for process in self.prisms:
             if process.poll() is None:
@@ -3477,8 +3512,8 @@ class LoopTest(Base):
         with mock.patch.object(desktop.Loop, 'handle', self.breaking), mock.patch.object(desktop, 'BACKOFF', 60):
             self.thread.start()
             self.wait(lambda: (sup.state, sup.reason) == expected, timeout=40)
-            self.assertIn('lost the supervisor during the hand-off', sup.detail)
             if expected == ('STARTING', 'restarting'):
+                self.assertIn('lost the supervisor during the hand-off', sup.detail)
                 self.assertEqual((sup.persisted.consecutive, sup.persisted.latched), (1, False))
             java = int(pathlib.Path(f'{self.exit_file}.pids').read_text().split()[0])
 
