@@ -52,13 +52,9 @@ aresos_find_java
 aresos_check_room "$force"
 
 /usr/bin/mkdir -p -- "$ARESOS_DEV_CACHE"
-exec {lock_fd}>>"$ARESOS_CLIENT_TEST_LOCK"
-if ! /usr/bin/flock -n "$lock_fd"; then
-    aresos_say "Waiting for another client test run on this laptop to finish ($ARESOS_CLIENT_TEST_LOCK)..."
-    /usr/bin/flock "$lock_fd"
-    # The wait can be long: the owner may have started his game meanwhile.
-    aresos_check_room "$force"
-fi
+aresos_lock "$ARESOS_CLIENT_TEST_LOCK" "another client test run on this laptop"
+# The wait can be long: the owner may have started his game meanwhile.
+[[ $ARESOS_LOCK_WAITED == 0 ]] || aresos_check_room "$force"
 
 # The render node (/dev/dri/renderD*) of the first GPU from this PCI vendor (0x10de NVIDIA, 0x8086 Intel).
 render_node() {

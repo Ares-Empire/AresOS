@@ -90,28 +90,54 @@ ARESOS_GRADLE=("$ARESOS_MOD_DIR/gradlew" --no-daemon)
 # aresos_scoped <unit prefix> <command...>: runs the command in its own systemd user scope and stops that scope
 # afterwards, so nothing it started (Gradle's daemon, a game, a compositor) outlives it, also after Ctrl+C.
 ARESOS_SCOPE=
+ARESOS_SCOPE_PID=
 aresos_stop_scope() {
     [[ -n $ARESOS_SCOPE ]] || return 0
+    # The PID first: if systemd-run has not created the scope yet, nothing may start after this.
+    [[ -z $ARESOS_SCOPE_PID ]] || kill -TERM "$ARESOS_SCOPE_PID" 2>/dev/null || true
     /usr/bin/systemctl --user stop "$ARESOS_SCOPE" 2>/dev/null || true
-    ARESOS_SCOPE=
+    ARESOS_SCOPE= ARESOS_SCOPE_PID=
 }
 aresos_scoped() {
     local status=0
     ARESOS_SCOPE="$1-$$.scope"
     shift
+    # In the background with `wait`, so that a signal to this script alone (TERM, HUP) runs its trap at once
+    # rather than after the run. Background commands ignore SIGINT; Ctrl+C reaches them through the trap too.
     /usr/bin/systemd-run --user --scope --quiet --collect --unit="$ARESOS_SCOPE" --property=TimeoutStopSec=20 \
-        -- "$@" || status=$?
+        -- "$@" &
+    ARESOS_SCOPE_PID=$!
+    wait "$ARESOS_SCOPE_PID" || status=$?
+    # Reaped: its PID may belong to another process from now on.
+    ARESOS_SCOPE_PID=
     aresos_stop_scope
     return "$status"
 }
 
-# Every exit (success, failure, Ctrl+C, a closed terminal) stops the scope; a script adds its own steps by
-# defining aresos_cleanup, which runs first and gets the exit code.
+# aresos_lock <file> <what holds it>: holds an exclusive lock on <file> until this script and everything it
+# started have exited, waiting for it (and saying so) while another run holds it. Sets ARESOS_LOCK_WAITED=1 after
+# a wait. The wait runs in the background, so a signal still stops this script at once.
+ARESOS_LOCK_PID=
+ARESOS_LOCK_WAITED=0
+aresos_lock() {
+    exec {ARESOS_LOCK_FD}>>"$1"
+    /usr/bin/flock -n "$ARESOS_LOCK_FD" && return 0
+    aresos_say "Waiting for $2 to finish ($1)..."
+    /usr/bin/flock "$ARESOS_LOCK_FD" &
+    ARESOS_LOCK_PID=$!
+    wait "$ARESOS_LOCK_PID" || aresos_fail 1 "Could not lock $1."
+    ARESOS_LOCK_PID=
+    ARESOS_LOCK_WAITED=1
+}
+
+# Every exit (success, failure, Ctrl+C, a closed terminal) first stops the scope with everything in it; a script
+# adds its own steps by defining aresos_cleanup, which then runs with the exit code.
 aresos_exit() {
     local status=$?
     trap - EXIT INT TERM HUP
-    if declare -F aresos_cleanup >/dev/null; then aresos_cleanup "$status" || true; fi
+    [[ -z $ARESOS_LOCK_PID ]] || kill -TERM "$ARESOS_LOCK_PID" 2>/dev/null || true
     aresos_stop_scope
+    if declare -F aresos_cleanup >/dev/null; then aresos_cleanup "$status" || true; fi
     exit "$status"
 }
 trap aresos_exit EXIT
