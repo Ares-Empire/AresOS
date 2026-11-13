@@ -286,9 +286,9 @@ system says it is. Under All programs a check mark marks the ones that are yours
 
 The line above Done says what a click does and, for five seconds, what just
 happened ("Added Steam to My apps."). The chat gets the same line, but it is
-hidden behind the screen. When the list changes while the screen is open (an
-add, a remove, a program you just installed), the row under the pointer stays
-where it is.
+hidden behind the screen. When the list changes, the row under the pointer stays
+where it is if scrolling permits it. The second click of a double-click is ignored,
+so a row that moves under the pointer cannot add a neighbour.
 
 ### Commands
 
@@ -320,7 +320,7 @@ moved, replaced or lost. An item of an app the file does not know is left alone.
 **Q never removes an app.** Dropping an app's item does nothing: Q and Ctrl+Q in
 the world, Q over it in the inventory, and a click outside the inventory window
 with it on the cursor (put it in a slot, or close the inventory). An app's item
-never lies on the ground.
+is kept out of player drops; stored copies can reach the ground through containers.
 
 A program the system no longer lists keeps its entry and its item; using it says
 that it is unavailable, with the helper's reason.

@@ -236,6 +236,34 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
         context.waitTicks(2);
         check(mine().equals(DAY_ONE), "Enter with three matches changed My apps: " + mine());
 
+        // In a short list, adding its last result inserts My apps above it and puts Okular under the old pointer.
+        var doubleAt = context.computeOnClient(client -> {
+            check(list(client).children().size() * 20 <= list(client).getHeight(), "Fixture: the search list can scroll");
+            var row = rows(client).stream().filter(r -> r.app().id().equals("xournal")).findFirst().orElseThrow();
+            return new double[] {row.getX() + row.getWidth() / 2.0, row.getY() + row.getHeight() / 2.0};
+        });
+        context.runOnClient(client -> {
+            var event = new MouseButtonEvent(doubleAt[0], doubleAt[1], new MouseButtonInfo(LEFT, 0));
+            client.gui.screen().mouseClicked(event, false);
+            client.gui.screen().mouseReleased(event);
+        });
+        context.waitFor(client -> AresOs.app("xournal").mine() && rows(client).stream().anyMatch(r -> r.inMyApps() && r.app().id().equals("xournal")));
+        context.runOnClient(client -> {
+            check(list(client).scrollAmount() == 0 && list(client).children().size() * 20 <= list(client).getHeight(),
+                    "Fixture: the changed list should still be too short to scroll");
+            check(rows(client).stream().anyMatch(r -> r.app().id().equals("okular") && r.isMouseOver(doubleAt[0], doubleAt[1])),
+                    "Fixture: reflow did not put the neighbour under the pointer");
+            var event = new MouseButtonEvent(doubleAt[0], doubleAt[1], new MouseButtonInfo(LEFT, 0));
+            client.gui.screen().mouseClicked(event, true);
+            client.gui.screen().mouseReleased(event);
+        });
+        world.getConnection().waitForServerboundPackets();
+        context.waitTicks(2);
+        check(!AresOs.app("okular").mine() && !AresOs.app("pdf-arranger").mine(), "A double-click added the neighbour");
+        clickRow(context, "xournal", true, RIGHT);
+        context.waitFor(client -> !AresOs.app("xournal").mine() && !items(client).containsKey("xournal"));
+        context.waitTicks(2);
+
         // A left click on a program that is not his adds it; the screen stays open and shows it.
         clickRow(context, "okular", false, LEFT);
         context.waitFor(client -> AresOs.app("okular").mine() && items(client).containsKey("okular"));

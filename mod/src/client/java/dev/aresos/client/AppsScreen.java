@@ -356,6 +356,8 @@ public final class AppsScreen extends Screen {
         }
 
         @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+            // Reflow can put a different row under this same pointer, especially when the list cannot scroll.
+            if (doubleClick) { pressed = null; return true; }
             return (event.button() == 0 || event.button() == 1) && press(app.id(), event.button() == 1);
         }
 
