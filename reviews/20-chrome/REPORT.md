@@ -1,6 +1,6 @@
 # Post-18d integration — in progress
 
-**Order:** `20-post-18d.md` and addenda b–e govern this run. The base-URL class is
+**Order:** `20-post-18d.md` and addenda b–f govern this run. The base-URL class is
 first; late-reader credential protection and the owner's board #210 asking tool
 follow, then the main merge, slim generator, precedence and latency work.
 No local browser, browser profile or container has been accessed. All browser
@@ -327,6 +327,20 @@ Both unit pin tests remain and the complete service unit is still byte-identical
 to `8b7e799c`. Generated artifacts match and all merged Python sources parse.
 Forbidden-area changes in this commit come only from the authorised main merge.
 Full integration CI follows; no local container or browser was run.
+
+**Addendum-f acceptance FIX:** Linux probe [43485498165](https://github.com/Ares-Empire/AresOS/actions/runs/43485498165)
+(**246**) fails both installs before the expected first-input reload warning.
+The [package review](BUILD-POST18D-F-REVIEW-1.md) independently found the cause:
+compose rendering passed an absent withheld textarea value into string rendering.
+The [security review](BUILD-POST18D-F-SECURITY-1.md) found no additional FIX.
+Compose rendering now omits withheld values while retaining unknown-history form
+metadata and refusal. Ordinary Continue and Send regressions require successful
+facts, zero value getters, and unchanged refusal metadata. The new removal probe
+fails without the fix. **370 Node/artifact tests pass; all 303 removal probes
+reject their mutation with passing baselines**, retained in
+[f-compose-mutations.json](records/post18d/f-compose-mutations.json). Main's new
+unit-pin test also passes. A replacement safety probe brings the ledger to **247**;
+no Linux acceptance is claimed yet.
 
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first

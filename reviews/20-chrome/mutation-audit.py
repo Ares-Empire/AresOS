@@ -354,6 +354,8 @@ case('post18df-withheld-form-prepare',A,"if any(field.get('unknown_history') for
 case('post18df-withheld-form-wait',A,'refuse_withheld_form(fresh)','pass','test_questions.Questions.test_post18df_form_added_withheld_field_and_changed_value_cannot_use_waiting_approval',True)
 case('post18df-withheld-form-final',B,"if((command.kind||command.name==='resume'||submitting)&&frame?.form?.fields.some(field=>field.unknown_history))",'if(false)',node('background','post18df final native boundary refuses forms'))
 
+case('post18df-withheld-compose',R,"if(!safe.password&&typeof safe.value==='string')append(safe.value,'pre-wrap')","if(!safe.password)append(safe.value,'pre-wrap')",node('reader','post18df facts beside late textareas'))
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']

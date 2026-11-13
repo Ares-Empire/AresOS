@@ -525,3 +525,15 @@ test('post18df preparation reads metadata only even in a watched document',()=>{
   const f=fixture([{type:'text'},{tagName:'TEXTAREA'}]);f.textarea(f.nodes[1]);
   const prepared=f.command({command:'typed_fields'});assert.equal(prepared.ok,true);assert.equal(prepared.data.fields.length,0);assert.equal(f.calls(),0);
 });
+
+test('post18df facts beside late textareas omit withheld compose values and retain form refusal metadata',()=>{
+  for(const submit of [false,true]){
+    const f=fixture([{tagName:'TEXTAREA',attrs:{'aria-label':'Draft'}},{tagName:'BUTTON',type:submit?'submit':'button',attrs:{'aria-label':submit?'Send':'Continue'}}],{watched:false});
+    const [draft,button]=f.nodes;f.textarea(draft);f.generic(button);let reads=0;Object.defineProperty(draft,'value',{get(){reads++;throw Error('Withheld textarea value was read');}});
+    const area=new f.Element({tagName:submit?'FORM':'SECTION',childNodes:[draft,button],elements:[draft,button],action:'https://fixture.test/receive',method:'post',enctype:'application/x-www-form-urlencoded',target:'',querySelector(){return null;}});
+    draft.parentElement=area;button.parentElement=area;if(submit){draft.form=area;button.form=area;}f.nodes.push(area);
+    const key=f.read().data.rows.find(row=>row.name===(submit?'Send':'Continue')).element;
+    const result=f.command({command:'facts',element:key});assert.equal(result.ok,true,JSON.stringify(result));assert.equal(reads,0);assert.doesNotMatch(JSON.stringify(result),/safe visible text/);
+    if(submit)assert.equal(result.data.form.fields.find(field=>field.element===f.read().data.rows.find(row=>row.name==='Draft').element).unknown_history,true);
+  }
+});

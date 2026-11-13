@@ -373,7 +373,7 @@
       const block=['block','list-item','table-row','flex','grid','table','flow-root'].includes(style.display);
       if(block&&result)pending='\n';
       const whiteSpace=style.whiteSpace|| (node.tagName==='PRE'?'pre':space);
-      if(html(node,HTMLTextAreaElement,'textarea')){if(visible){const safe=safeValue(node);if(!safe.password)append(safe.value,'pre-wrap');}}
+      if(html(node,HTMLTextAreaElement,'textarea')){if(visible){const safe=safeValue(node);if(!safe.password&&typeof safe.value==='string')append(safe.value,'pre-wrap');}}
       else if(node.tagName==='IMG'){if(visible)append(node.getAttribute('alt')||'',whiteSpace);}
       else{
         const assigned=node.tagName==='SLOT'?node.assignedNodes?.():null;
