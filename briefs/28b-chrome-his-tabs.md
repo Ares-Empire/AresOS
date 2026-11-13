@@ -175,8 +175,9 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
   "Leaves no trace" (tests) is a promise for a tab that is already loaded.
 - **A tab that can't answer** (one of Chrome's own dialogs is open, or the page is stuck): the read gives up after
   two seconds with `owner_dialog`, "this tab doesn't answer; a dialog may be open; ask the owner". It never hangs.
-  This is brief 28's deadline at work (its item 4): a read command to one of his tabs carries two seconds at most,
-  or its share of the call's time when that is less.
+  This is brief 28's deadline at work (its item 4): the reader's command to a loaded tab of his carries two
+  seconds at most, or its share of the call's time when that is less. Waking a tab asleep is the one wait that
+  may take longer, up to the read's own time (above).
 - **The result** carries `"whose": "his"` for such a tab, and the page's address in the public form, as every read
   does (brief 28, item 2): the list showed that tab without its query, the read of the tab his request needs shows
   it.
