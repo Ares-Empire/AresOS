@@ -568,6 +568,19 @@ for path, digest in desktop.pinned_files(lock, desktop.SHARE):
     print('PINNED', digest, path)
 PY
 pass 'every provisioning input in /usr/share/aresos/minecraft matches its pin; Java and Prism are present'
+# The mod jar in the image is the one the image records (build.sh configure).
+python3 - /usr/share/aresos <<'PY'
+import hashlib, json, pathlib, re, sys
+share = pathlib.Path(sys.argv[1])
+record = json.loads((share / 'manifest/aresos-mod.json').read_text())
+assert sorted(record) == ['pinned_sha256', 'sha256', 'source_revision'], record
+assert re.fullmatch('[0-9a-f]{40}', record['source_revision']), record
+jar = hashlib.sha256((share / 'minecraft/mods/aresos.jar').read_bytes()).hexdigest()
+assert jar == record['sha256'], f'The mod jar in the image is {jar}; the image records {record["sha256"]}'
+print('MOD_JAR_RECORDED', jar, 'from', record['source_revision'],
+      'its pin' if jar == record['pinned_sha256'] else f'NOT its pin {record["pinned_sha256"]} (throwaway build)')
+PY
+pass 'the mod jar in the image is the one its manifest records (aresos-mod.json: SHA-256 and source commit)'
 lines=$(grep -Ev '^[[:space:]]*(#|$)' /usr/share/aresos/labwc/autostart)
 test "$lines" = '/usr/libexec/kf6/polkit-kde-authentication-agent-1 &
 /usr/libexec/aresos-desktop session &'

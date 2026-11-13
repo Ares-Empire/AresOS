@@ -2430,7 +2430,8 @@ class ImageBuildTest(unittest.TestCase):
         self.assertLess(copy, final.index('build.sh configure'))
         build = (ROOT / 'os/build.sh').read_text()
         configure = build.split('if [[ $1 == packages ]]', 1)[1]
-        self.assertIn("assert digest == mod['sha256']", configure)
+        # The mod jar step that ModJarPinTest runs is the configure step's own.
+        self.assertIn(ModJarPinTest.CONFIGURE, configure.split('\nfi\n', 1)[1])
         self.assertIn("MOD_JAR_PINNED", configure)
         self.assertNotIn('aresos.jar', configure.split('\nfi\n', 1)[0])
 
@@ -2536,6 +2537,232 @@ class ImageBuildTest(unittest.TestCase):
                                              capture_output=True, text=True, timeout=60)
                     self.assertNotEqual(refused.returncode, 0, (mode, bad))
                     self.assertIn('exact commit', refused.stderr)
+
+
+def sha256(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+class ModJarPinTest(unittest.TestCase):
+    """The mod jar's pin binds releases only (integrator, 2026-11-13). A release build, the default everywhere, stops
+    on a jar that is not its pin. A throwaway check build goes on, says so in one line and records the jar it carries.
+    Both record it in the image's manifest, and the image check fails when the jar is not the recorded one. The
+    tests run the real steps: build.sh configure's mod jar step, the checks of image-checks.sh and check-image.sh,
+    and check-build.sh with stand-ins for podman and git."""
+
+    CONFIGURE = "python3 - /tmp/aresos /usr/share/aresos <<'PY'\n"
+    IMAGE_CHECK = "python3 - /usr/share/aresos <<'PY'\n"
+    LOCK_CHECK = 'python3 - "$out/manifest" "$kind" <<\'PY\'\n'
+    PIN = next(mod['sha256'] for mod in LOCK['mods'] if mod['file'] == 'aresos.jar')
+    REVISION = 'ab' * 20
+    UNPINNED = 'MOD_JAR_UNPINNED pin {pin}, built {built} from {revision}: allowed in a throwaway build; ' \
+               'a release build stops here'
+
+    def setUp(self):
+        self.root = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root)
+
+    def heredoc(self, path, start):
+        """The Python of the one heredoc that `start` opens in `path`."""
+        text = (ROOT / path).read_text()
+        self.assertEqual(text.count(start), 1, (path, start))
+        return text.split(start, 1)[1].split('\nPY\n', 1)[0]
+
+    def python(self, code, *args, env=None, cwd=None):
+        env = {'PATH': os.environ.get('PATH', '/usr/bin:/bin'), **(env or {})}
+        return subprocess.run([sys.executable, '-I', '-c', code, *map(str, args)], cwd=cwd, env=env,
+                              capture_output=True, text=True, timeout=60)
+
+    def configure(self, jar, pin=PIN, **env):
+        """build.sh configure's mod jar step on a stand-in /tmp/aresos and /usr/share/aresos (after build.sh
+        packages, which copies the desktop lock into the share). Returns the result, the share and the lock text."""
+        work = pathlib.Path(tempfile.mkdtemp(dir=self.root))
+        source, share = work / 'source', work / 'share'
+        for folder in (source / 'minecraft', share / 'minecraft/mods', share / 'manifest'):
+            folder.mkdir(parents=True)
+        lock = json.loads(json.dumps(LOCK))
+        next(mod for mod in lock['mods'] if mod['file'] == 'aresos.jar')['sha256'] = pin
+        text = json.dumps(lock, indent=2) + '\n'
+        (source / 'minecraft/desktop.lock.json').write_text(text)
+        (share / 'minecraft/desktop.lock.json').write_text(text)
+        (source / 'minecraft/aresos.jar').write_bytes(jar)
+        result = self.python(self.heredoc('os/build.sh', self.CONFIGURE), source, share,
+                             env={'ARESOS_SOURCE_REVISION': self.REVISION, **env})
+        return result, share, text
+
+    def record(self, share):
+        return json.loads((share / 'manifest/aresos-mod.json').read_text())
+
+    def test_a_release_build_stops_on_a_jar_that_is_not_its_pin(self):
+        built = sha256(b'other bytes')
+        # {} is the default (the Containerfile always passes the argument; build.sh treats a missing one alike).
+        for env in ({}, {'ARESOS_BUILD_KIND': 'release'}):
+            result, share, _ = self.configure(b'other bytes', **env)
+            self.assertNotEqual(result.returncode, 0, env)
+            self.assertIn(f'The AresOS mod jar built from this commit is {built}; desktop.lock.json pins {self.PIN}',
+                          result.stderr)
+            self.assertNotIn('MOD_JAR', result.stdout)
+            self.assertEqual(os.listdir(share / 'minecraft/mods'), [])
+            self.assertEqual(os.listdir(share / 'manifest'), [])
+        for kind in ('', 'lenient', 'Throwaway', 'throwaway '):
+            result, share, _ = self.configure(b'other bytes', ARESOS_BUILD_KIND=kind)
+            self.assertNotEqual(result.returncode, 0, kind)
+            self.assertIn('release or throwaway', result.stderr)
+            self.assertEqual(os.listdir(share / 'minecraft/mods'), [])
+        for revision in ('unrecorded', 'ab' * 19, 'AB' * 20):
+            result, share, _ = self.configure(b'jar', pin=sha256(b'jar'), ARESOS_SOURCE_REVISION=revision)
+            self.assertNotEqual(result.returncode, 0, revision)
+            self.assertIn('exact commit', result.stderr)
+
+    def test_a_pinned_jar_is_installed_and_recorded_in_either_build(self):
+        pin = sha256(b'jar bytes')
+        for env in ({}, {'ARESOS_BUILD_KIND': 'release'}, {'ARESOS_BUILD_KIND': 'throwaway'}):
+            result, share, text = self.configure(b'jar bytes', pin=pin, **env)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.splitlines(), [f'MOD_JAR_PINNED {pin}'])
+            jar = share / 'minecraft/mods/aresos.jar'
+            self.assertEqual(jar.read_bytes(), b'jar bytes')
+            self.assertEqual(jar.stat().st_mode & 0o7777, 0o644)
+            self.assertEqual(self.record(share), dict(sha256=pin, source_revision=self.REVISION, pinned_sha256=pin))
+            self.assertEqual((share / 'minecraft/desktop.lock.json').read_text(), text, 'the lock is left as reviewed')
+
+    def test_a_throwaway_build_goes_on_says_so_and_records_its_jar(self):
+        built = sha256(b'other bytes')
+        result, share, _ = self.configure(b'other bytes', ARESOS_BUILD_KIND='throwaway')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.splitlines(),
+                         [self.UNPINNED.format(pin=self.PIN, built=built, revision=self.REVISION)])
+        self.assertEqual((share / 'minecraft/mods/aresos.jar').read_bytes(), b'other bytes')
+        self.assertEqual(self.record(share), dict(sha256=built, source_revision=self.REVISION, pinned_sha256=self.PIN))
+        # The image's lock names the jar it carries and nothing else changes, so the desktop, which checks every
+        # input against that lock before a start, accepts the jar the image really has.
+        image_lock = json.loads((share / 'minecraft/desktop.lock.json').read_text())
+        expected = json.loads(json.dumps(LOCK))
+        next(mod for mod in expected['mods'] if mod['file'] == 'aresos.jar')['sha256'] = built
+        self.assertEqual(image_lock, expected)
+        self.assertIn((str(share / 'minecraft/mods/aresos.jar'), built),
+                      desktop.pinned_files(image_lock, str(share / 'minecraft')))
+
+    def test_the_image_check_fails_when_the_jar_is_not_the_recorded_one(self):
+        check = self.heredoc('os/ci/image-checks.sh', self.IMAGE_CHECK)
+        for jar, pin, kind, says in ((b'jar bytes', sha256(b'jar bytes'), 'release', 'its pin'),
+                                     (b'other bytes', self.PIN, 'throwaway',
+                                      f'NOT its pin {self.PIN} (throwaway build)')):
+            _, share, _ = self.configure(jar, pin=pin, ARESOS_BUILD_KIND=kind)
+            result = self.python(check, share)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.splitlines(),
+                             [f'MOD_JAR_RECORDED {sha256(jar)} from {self.REVISION} {says}'])
+        jar = share / 'minecraft/mods/aresos.jar'
+        jar.write_bytes(b'changed after the record')
+        result = self.python(check, share)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(f'The mod jar in the image is {sha256(b"changed after the record")}; the image records '
+                      f'{sha256(b"other bytes")}', result.stderr)
+        jar.write_bytes(b'other bytes')
+        record = self.record(share)
+        for broken in (dict(record, source_revision='unrecorded'),
+                       {k: record[k] for k in ('sha256', 'source_revision')}, dict(record, sha256=self.PIN)):
+            (share / 'manifest/aresos-mod.json').write_text(json.dumps(broken))
+            self.assertNotEqual(self.python(check, share).returncode, 0, broken)
+        (share / 'manifest/aresos-mod.json').unlink()
+        self.assertNotEqual(self.python(check, share).returncode, 0, 'no record')
+
+    def test_check_image_holds_a_release_image_to_the_reviewed_locks(self):
+        check = self.heredoc('os/ci/check-image.sh', self.LOCK_CHECK)
+
+        def run(share, kind):
+            manifest = pathlib.Path(tempfile.mkdtemp(dir=self.root))
+            shutil.copytree(share / 'manifest', manifest, dirs_exist_ok=True)
+            shutil.copy(share / 'minecraft/desktop.lock.json', manifest / 'desktop.lock.json')
+            for name in ('packages.lock.json', 'google-chrome.lock.json'):
+                shutil.copy(ROOT / 'os' / name, manifest / name)
+            return self.python(check, manifest, kind, cwd=ROOT)
+
+        _, share, _ = self.configure(b'other bytes', ARESOS_BUILD_KIND='throwaway')
+        result = run(share, 'throwaway')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(f'Throwaway image: mod jar {sha256(b"other bytes")}, pin {self.PIN}', result.stdout)
+        result = run(share, 'release')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(f'A release image carries mod jar {sha256(b"other bytes")}, not its pin {self.PIN}',
+                      result.stderr)
+        # Anything else that differs from the reviewed lock still stops, in a throwaway build too.
+        lock = json.loads((share / 'minecraft/desktop.lock.json').read_text())
+        lock['prism']['version'] += '-changed'
+        (share / 'minecraft/desktop.lock.json').write_text(json.dumps(lock))
+        self.assertNotEqual(run(share, 'throwaway').returncode, 0)
+        # A release image with its pin and the reviewed lock passes.
+        shutil.copy(ROOT / 'os/minecraft/desktop.lock.json', share / 'minecraft/desktop.lock.json')
+        (share / 'manifest/aresos-mod.json').write_text(json.dumps(
+            dict(sha256=self.PIN, source_revision=self.REVISION, pinned_sha256=self.PIN)))
+        for kind in ('release', 'throwaway'):
+            result = run(share, kind)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertNotIn('Throwaway image', result.stdout)
+
+    @unittest.skipUnless(LINUX, 'runs check-build.sh with stand-ins for podman and git')
+    def test_only_the_check_build_job_builds_a_throwaway_image(self):
+        built = sha256(b'other bytes')
+        pinned = f'MOD_JAR_PINNED {self.PIN}'
+        unpinned = self.UNPINNED.format(pin=self.PIN, built=built, revision=self.REVISION)
+
+        def run(job, line):
+            work = pathlib.Path(tempfile.mkdtemp(dir=self.root))
+            (work / 'os/ci').mkdir(parents=True)
+            shutil.copy(ROOT / 'os/ci/check-build.sh', work / 'os/ci/check-build.sh')
+            # The image checks are where these stand-ins stop the script.
+            (work / 'os/ci/check-image.sh').write_text('echo "$@" > check-image-args\nexit 3\n')
+            stubs = work / 'bin'
+            stubs.mkdir()
+            for name, body in (('jq', 'echo base'), ('git', f'echo {self.REVISION}'),
+                               ('sudo', 'echo "$@" >> sudo-args\nif [ "$2" = build ]; then\n'
+                                        f'echo "MOD_SOURCE {self.REVISION} {"c" * 64}"\n'
+                                        f'echo "MOD_JAR_BUILT {built} from {self.REVISION}"\necho "$STUB_LINE"\nfi\n')):
+                (stubs / name).write_text('#!/bin/sh\n' + body)
+                (stubs / name).chmod(0o755)
+            env = {'PATH': f'{stubs}:/usr/bin:/bin', 'STUB_LINE': line, **({'GITHUB_JOB': job} if job else {})}
+            result = subprocess.run(['bash', 'os/ci/check-build.sh', 'build'], cwd=work, env=env, capture_output=True,
+                                    text=True, timeout=60)
+            build = (work / 'sudo-args').read_text().splitlines()[0]
+            images = work / 'check-image-args'
+            return result, build, images.read_text().split() if images.exists() else None
+
+        for job in (None, 'release-27', 'regressions'):
+            # Every caller but the check-build job builds a release: with the pin it goes on to the image checks...
+            result, build, images = run(job, pinned)
+            self.assertEqual(result.returncode, 3, (job, result.stderr))
+            self.assertIn('--build-arg ARESOS_BUILD_KIND=release', build)
+            self.assertEqual(images, ['localhost/aresos:check', 'release'])
+            # ...and without it (no MOD_JAR_PINNED line) it stops before them.
+            result, build, images = run(job, unpinned)
+            self.assertNotIn(result.returncode, (0, 3), job)
+            self.assertIn('--build-arg ARESOS_BUILD_KIND=release', build)
+            self.assertIsNone(images)
+            self.assertNotIn('::warning', result.stdout)
+        for line in (pinned, unpinned):
+            result, build, images = run('check-build', line)
+            self.assertEqual(result.returncode, 3, result.stderr)
+            self.assertIn('--build-arg ARESOS_BUILD_KIND=throwaway', build)
+            self.assertEqual(images, ['localhost/aresos:check', 'throwaway'])
+            warnings = [l for l in result.stdout.splitlines() if l.startswith('::warning')]
+            self.assertEqual(warnings,
+                             [f'::warning title=Mod jar is not its pin::{unpinned}'] if line == unpinned else [])
+
+    def test_a_release_is_the_default_and_only_the_job_that_cannot_publish_throws_away(self):
+        import yaml
+        containerfile = (ROOT / 'os/Containerfile').read_text()
+        final = containerfile.split('FROM packages AS aresos\n', 1)[1]
+        self.assertIn('\nARG ARESOS_BUILD_KIND=release\n', final)
+        self.assertEqual(containerfile.count('ARESOS_BUILD_KIND='), 1, 'declared once, in the stage that configures')
+        workflow = (ROOT / '.github/workflows/os-image.yml').read_text()
+        jobs = yaml.load(workflow, Loader=yaml.BaseLoader)['jobs']
+        self.assertEqual(jobs['check-build']['permissions'], {'contents': 'read'})
+        callers = sorted(name for name, job in jobs.items()
+                         if any('os/ci/check-build.sh' in step.get('run', '') for step in job.get('steps', [])))
+        self.assertEqual(callers, ['check-build', 'release-27'])
+        for name in ('ARESOS_BUILD_KIND', 'GITHUB_JOB'):
+            self.assertNotIn(name, workflow, 'no job chooses the build kind by itself')
 
 
 class MemoryProtectionFilesTest(unittest.TestCase):

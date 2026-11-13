@@ -123,9 +123,9 @@ PY
     # Package 23: Prism Launcher's official Linux bundle and the desktop's
     # Fabric inputs, each from its pinned URL and accepted only with its pinned
     # SHA-256 and size (os/minecraft/desktop.lock.json). The AresOS mod jar is
-    # built from this repository by os/ci/build-mod.sh, which already required
-    # its pin; it is checked again here. Minecraft itself is never in the image:
-    # Prism downloads it after the owner signs in.
+    # built by the Containerfile's mod stage and installed by the configure
+    # step below. Minecraft itself is never in the image: Prism downloads it
+    # after the owner signs in.
     python3 - <<'PY'
 import hashlib, json, os, pathlib, shutil, subprocess, tarfile
 lock = json.loads(pathlib.Path('/tmp/aresos/minecraft/desktop.lock.json').read_text())
@@ -188,21 +188,42 @@ PY
     exit 0
 fi
 
-# Package 23: the mod jar the `mod` stage built from this commit, accepted only
-# with its pinned SHA-256 (a build without it, or with other bytes, stops here).
-python3 - <<'PY'
-import hashlib, json, pathlib, shutil
-lock = json.loads(pathlib.Path('/tmp/aresos/minecraft/desktop.lock.json').read_text())
+# Package 23: the mod jar the `mod` stage built from this commit. A release
+# build (ARESOS_BUILD_KIND=release, the Containerfile's default) accepts it only
+# with its pinned SHA-256; without it, or with other bytes, it stops here. A
+# throwaway check build (ARESOS_BUILD_KIND=throwaway: only os/ci/check-build.sh
+# sets it, in the workflow's check-build job, which cannot push, sign or
+# publish) says in one line that the jar is not its pin and goes on; the
+# image's copy of the desktop lock then names the jar it carries, which the
+# desktop checks before every start. Both record the jar the image carries in
+# /usr/share/aresos/manifest/aresos-mod.json (os/ci/image-checks.sh checks it).
+python3 - /tmp/aresos /usr/share/aresos <<'PY'
+import hashlib, json, os, pathlib, re, shutil, sys
+source, share = (pathlib.Path(arg) for arg in sys.argv[1:])
+kind = os.environ.get('ARESOS_BUILD_KIND', 'release')
+assert kind in ('release', 'throwaway'), f'ARESOS_BUILD_KIND is {kind!r}: release or throwaway'
+revision = os.environ.get('ARESOS_SOURCE_REVISION', '')
+assert re.fullmatch('[0-9a-f]{40}', revision), f'The mod jar is recorded with its exact commit (got {revision!r})'
+lock = json.loads((source / 'minecraft/desktop.lock.json').read_text())
 mod = next(mod for mod in lock['mods'] if mod['file'] == 'aresos.jar' and 'url' not in mod)
-jar = pathlib.Path('/tmp/aresos/minecraft/aresos.jar')
+pin = mod['sha256']
+jar = source / 'minecraft/aresos.jar'
 assert jar.is_file(), 'The AresOS mod jar is missing: the Containerfile mod stage builds it'
 digest = hashlib.sha256(jar.read_bytes()).hexdigest()
-assert digest == mod['sha256'], f'The AresOS mod jar built from this commit is {digest}; desktop.lock.json pins {mod["sha256"]}'
-target = pathlib.Path('/usr/share/aresos/minecraft/mods/aresos.jar')
+if digest != pin:
+    assert kind == 'throwaway', f'The AresOS mod jar built from this commit is {digest}; desktop.lock.json pins {pin}'
+    print(f'MOD_JAR_UNPINNED pin {pin}, built {digest} from {revision}: '
+          'allowed in a throwaway build; a release build stops here')
+    mod['sha256'] = digest
+    (share / 'minecraft/desktop.lock.json').write_text(json.dumps(lock, indent=2) + '\n')
+target = share / 'minecraft/mods/aresos.jar'
 assert not target.exists()
 shutil.copyfile(jar, target)
 target.chmod(0o644)
-print(f'MOD_JAR_PINNED {digest}')
+record = dict(sha256=digest, source_revision=revision, pinned_sha256=pin)
+(share / 'manifest/aresos-mod.json').write_text(json.dumps(record, indent=2) + '\n')
+if digest == pin:
+    print(f'MOD_JAR_PINNED {digest}')
 PY
 
 # Use the same declaration at build and boot: local /etc/passwd changes from

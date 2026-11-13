@@ -281,6 +281,76 @@ Evidence: `runs/build-43471903820/summary.txt`.
 **Run 43474901419** (`checks_only=true` on `56ea627f`): success, `Ran 1088 tests`, `OK (skipped=136)`. Renewing the pin to `8f505f26…` would
 hold only until the next runner image; the integrator decides (renew, or make that attribute sorted).
 
+### After the merge: the mod jar's pin binds releases only
+
+By a Claude agent (Opus 5.5), for the integrator. His decision: a pinned jar hash is a release matter. A release
+build still stops on a jar that is not its pin; a throwaway check build says so in one line and goes on; both
+record the jar they carry. The pin stays `8b04c511…`. Nothing in `mod/` changed.
+
+**How a throwaway build is told from a release build.** Today by the workflow's job only: the `check-build` job
+(`permissions: contents: read`, no secrets, so it cannot push, sign or publish) runs `os/ci/check-build.sh
+"$CHECK_BUILD_MODE"`, and the `release-27` job runs the same `os/ci/check-build.sh build` before it publishes.
+Neither `check-build.sh`, the build arguments nor `build.sh` knew the difference, so "`check_build=build` through
+`check-build.sh`" alone would have made the release job lenient too. What was added:
+- `check-build.sh build` builds a release unless `GITHUB_JOB` (set by the runner to the job's key) is
+  `check-build`. Every other caller, the release job and a run by hand included, builds a release. The workflow is
+  unchanged (it is one of package 27's bound files, and test_release27 keeps the check-build job's steps as
+  reviewed).
+- One build argument, `ARESOS_BUILD_KIND`, declared only in the Containerfile's final stage with the default
+  `release`. Only `check-build.sh` passes it, as `release` or `throwaway`. `build.sh configure` treats a missing value
+  as `release` and stops on any value but those two.
+
+**What the two builds do** (`build.sh configure`, the mod jar step):
+- **Release:** as before, `AssertionError: The AresOS mod jar built from this commit is …; desktop.lock.json pins …`
+  stops the build. With the pin it prints `MOD_JAR_PINNED <sha>`, which check-build.sh still requires.
+- **Throwaway, other jar:** one line, `MOD_JAR_UNPINNED pin <pin>, built <sha> from <commit>: allowed in a
+  throwaway build; a release build stops here`, and check-build.sh repeats it as a warning annotation on the run.
+  The image's copy of the desktop lock (`/usr/share/aresos/minecraft/desktop.lock.json`) then names the built jar's
+  SHA-256. JUDGMENT-CALL: without that the image would be useless for testing. The supervisor checks every input
+  against that copy before each start, so it would latch recovery `inputs`, and the image check "every
+  provisioning input matches its pin" would stop the run. The repository's lock and its pin are unchanged.
+- **Both:** `/usr/share/aresos/manifest/aresos-mod.json` (new; there was no mod file under `manifest/`) records
+  `sha256`, `source_revision` (the exact commit, refused otherwise) and `pinned_sha256`.
+- **Image checks:** `image-checks.sh` has a new check, `PASS the mod jar in the image is the one its manifest
+  records`, which also prints `MOD_JAR_RECORDED <sha> from <commit> its pin` (or `NOT its pin … (throwaway
+  build)`). `check-image.sh` now takes the build kind. A release image's locks must still equal the reviewed ones
+  exactly, and its record must be the pin. A throwaway image's desktop lock may differ in the jar's SHA-256 alone,
+  and only to the recorded one.
+
+**Tests** (`test_aresos_desktop.ModJarPinTest`, 7 new tests). They run the real steps on stand-ins: the configure
+step's Python from `build.sh`, the checks' Python from `image-checks.sh` and `check-image.sh`, and the real
+`check-build.sh` with stand-ins for `sudo`/podman, git and jq.
+- A release stops on another jar: with no kind, with `release`, and on unknown kinds and inexact commits. Nothing is
+  installed or recorded.
+- A pinned jar is installed and recorded in either build, and the lock is left as it was.
+- A throwaway build goes on with exactly the one line, records the jar, and its lock differs in that hash alone.
+- The image check fails when the jar is not the recorded one, or when the record is missing, partial or carries no
+  exact commit.
+- `check-image.sh` refuses a release image with another jar or a throwaway image with any other lock change.
+- Only `GITHUB_JOB=check-build` builds a throwaway. Unset, `release-27` or `regressions` passes
+  `ARESOS_BUILD_KIND=release` and stops before the image checks without `MOD_JAR_PINNED`.
+- The Containerfile's default is `release`; only `check-build` and `release-27` call check-build.sh; the former has
+  only `contents: read`; no job sets the kind or `GITHUB_JOB` itself.
+
+`ImageBuildTest` (5) still passes; its one string check now points at the step these tests run.
+
+**Revert proof** (each change flipped alone on a copy of the tree; `ModJarPinTest` and `ImageBuildTest`; the
+unchanged copy passes all 12). Each line gives the flipped change, then the test that fails:
+- The Containerfile's default set to `throwaway`: `…the_job_that_cannot_publish_throws_away` (`'\nARG
+  ARESOS_BUILD_KIND=release\n' not found`).
+- `build.sh` treats a missing kind as `throwaway`: `test_a_release_build_stops_on_a_jar_that_is_not_its_pin`
+  (`0 == 0 : {}`, the default case).
+- `check-build.sh` starts from `kind=throwaway`: `test_only_the_check_build_job_builds_a_throwaway_image`
+  (`'--build-arg ARESOS_BUILD_KIND=release' not found in … ARESOS_BUILD_KIND=throwaway …`).
+- `check-image.sh` lets a release image carry another jar: `test_check_image_holds_a_release_image_to_the_reviewed_
+  locks`.
+- `image-checks.sh` no longer compares the jar with its record: `test_the_image_check_fails_when_the_jar_is_not_the_
+  recorded_one`.
+
+**Bound files:** none of the six changed files (`os/Containerfile`, `os/build.sh`, `os/ci/check-build.sh`,
+`os/ci/check-image.sh`, `os/ci/image-checks.sh`, `os/tests/test_aresos_desktop.py`) is among package 27's 250
+bound paths, so `os/manifest/ci/16/pending-rebind.json` gets no row.
+
 ### Checks of this round
 
 Natively on AresOS itself (Fedora-based, Linux 7.2, Python 3.14.8, systemd 259), the owner's running laptop, not
@@ -354,6 +424,19 @@ WSL. Never two suites at once; temporary files in a work folder outside the repo
   the VM check passed on it).
 - **PLAN-GAP: "no CI" and the merge.** This round's own changes need no CI by the brief's rule, but the merge of
   main changes build inputs (above), and the VM's `desktop_jvm` has not seen this round's wrapper.
+- **PLAN-GAP for the release that carries package 23 (from "the mod jar's pin binds releases only").**
+  - **The jar's pin must be renewed once the jar builds reproducibly.** A release build stops on any jar but
+    `8b04c511…`, and today's runner image builds `8f505f26…` from the same `mod/`. Likely cause, not proven: Loom
+    writes the manifest attribute `Fabric-Loom-Client-Only-Entries` in file system order, unsorted, and
+    `reproducibleFileOrder` sorts only the jar's entries. The release package should make that line sorted (or
+    otherwise stable), show two runner images giving the same bytes, and only then renew the pin with
+    `check_build=resolve`.
+  - **Prism's metadata pin expires about weekly.** `net.minecraft.json`'s SHA-256 changes with each weekly update of
+    Prism's meta repository: the asset index moves although Minecraft 26.2 does not. A release build stops on the
+    first build after such an update. The release must renew it right before building, or pin only the parts Prism
+    must not change.
+  - **The release diff knows none of package 23's build-time files**, now also `/usr/share/aresos/manifest/
+    aresos-mod.json`.
 - **Seen, not changed (outside the brief):** known limits 3 and 4 (a start whose Java never ran, and a SIGTERM
   from outside, still restart); the message text `failed_start` in `message()` is not used by any state.
 - **Tests removed with what they tested:** `test_both_programs_decide_stopped_by_the_same_rule` and
@@ -1245,7 +1328,8 @@ Owner-facing ones first (1 to 6); 7 to 14 are technical.
 
 1. **Every later image build must build the mod jar first.** Resolved in review fixes 1 (finding 3): the
    Containerfile's `mod` stage builds it from the build's own commit in every image build, and `build.sh configure`
-   requires its pin. A build must pass `--build-arg ARESOS_SOURCE_REVISION=<full commit>` (check-build.sh and
+   requires its pin (in a release build; a throwaway check build goes on and records the jar, see "the mod jar's pin
+   binds releases only"). A build must pass `--build-arg ARESOS_SOURCE_REVISION=<full commit>` (check-build.sh and
    `build_tools.py` do); without it the build stops with that message.
 2. **Pins expire.** Fedora `updates` drops superseded builds: `java-25-openjdk-headless` (25.0.5 already waits in
    updates-testing) and especially `tzdata-java` (time-zone updates) will vanish, as `xdg-desktop-portal-wlr` did

@@ -2,6 +2,9 @@
 # Check packages 21 and 23 on a locally built image (never pushed).
 set -euo pipefail
 image=$1
+# release or throwaway, as check-build.sh built it (build.sh configure, the mod jar).
+kind=$2
+[[ $kind == release || $kind == throwaway ]]
 out=evidence/image
 mkdir -p "$out/polkit" "$out/manifest"
 
@@ -47,14 +50,25 @@ rm -rf "$control"
 echo 'The same check fails without the AresOS rule, as expected' | tee -a "$out/polkit.txt"
 sudo podman run --rm --network=none --entrypoint /usr/bin/cat "$image" /usr/share/aresos/minecraft/desktop.lock.json \
     > "$out/manifest/desktop.lock.json"
-# build.sh re-serializes the Fedora lock it verified, so compare content.
-python3 - "$out/manifest" <<'PY'
+# build.sh re-serializes the Fedora lock it verified, so compare content. The
+# image records its mod jar (aresos-mod.json): in a release build it is the
+# pin; a throwaway build may carry another jar, and then its desktop lock
+# differs from the reviewed one in that jar's SHA-256 alone.
+python3 - "$out/manifest" "$kind" <<'PY'
 import json, pathlib, sys
-manifest = pathlib.Path(sys.argv[1])
-for name, reviewed in (('packages.lock.json', 'os/packages.lock.json'),
-                       ('google-chrome.lock.json', 'os/google-chrome.lock.json'),
-                       ('desktop.lock.json', 'os/minecraft/desktop.lock.json')):
-    assert json.loads((manifest / name).read_text()) == json.loads(pathlib.Path(reviewed).read_text()), name
+manifest, kind = pathlib.Path(sys.argv[1]), sys.argv[2]
+desktop = json.loads(pathlib.Path('os/minecraft/desktop.lock.json').read_text())
+mod = next(mod for mod in desktop['mods'] if mod['file'] == 'aresos.jar')
+record = json.loads((manifest / 'aresos-mod.json').read_text())
+assert record['pinned_sha256'] == mod['sha256'], record
+if record['sha256'] != mod['sha256']:
+    assert kind == 'throwaway', f'A release image carries mod jar {record["sha256"]}, not its pin {mod["sha256"]}'
+    print(f'Throwaway image: mod jar {record["sha256"]}, pin {mod["sha256"]}')
+    mod['sha256'] = record['sha256']
+for name, reviewed in (('packages.lock.json', json.loads(pathlib.Path('os/packages.lock.json').read_text())),
+                       ('google-chrome.lock.json', json.loads(pathlib.Path('os/google-chrome.lock.json').read_text())),
+                       ('desktop.lock.json', desktop)):
+    assert json.loads((manifest / name).read_text()) == reviewed, name
 print('Image manifest locks equal the reviewed locks')
 PY
 echo CHECK_BUILD_PASSED

@@ -20,17 +20,30 @@ case $mode in
         df -B1 / > evidence/runner-disk-before.txt
         # No separate mod step: the image build itself (the Containerfile's mod
         # stage, then build.sh configure) builds the AresOS mod jar from this
-        # commit and requires its pin, as every image build does (package 23).
+        # commit, as every image build does (package 23). A release build
+        # requires the jar's pin. Only the workflow's check-build job (read-only,
+        # no secrets: it cannot push, sign or publish) builds a throwaway image,
+        # which goes on with another jar and says so; every other caller, the
+        # release job included, builds a release.
+        kind=release
+        if [[ ${GITHUB_JOB-} == check-build ]]; then kind=throwaway; fi
+        echo "ARESOS_BUILD_KIND $kind"
         test ! -e os/minecraft/aresos.jar
         revision=$(git rev-parse HEAD)
         sudo podman build --format=oci --build-arg "ARESOS_SOURCE_REVISION=$revision" \
+            --build-arg "ARESOS_BUILD_KIND=$kind" \
             --tag localhost/aresos:check --file os/Containerfile os 2>&1 | tee evidence/build.log
         grep -E "^MOD_SOURCE $revision [0-9a-f]{64}\$" evidence/build.log
         grep -E "^MOD_JAR_BUILT [0-9a-f]{64} from $revision\$" evidence/build.log
-        grep -Ex 'MOD_JAR_PINNED [0-9a-f]{64}' evidence/build.log
+        unpinned=$(grep -E '^MOD_JAR_UNPINNED pin [0-9a-f]{64}, built [0-9a-f]{64} ' evidence/build.log || true)
+        if [[ $kind == throwaway && -n $unpinned ]]; then
+            echo "::warning title=Mod jar is not its pin::$unpinned"
+        else
+            grep -Ex 'MOD_JAR_PINNED [0-9a-f]{64}' evidence/build.log
+        fi
         date +%s > evidence/build-end-time.txt
         sudo podman image inspect localhost/aresos:check > evidence/image-inspect.json
-        bash os/ci/check-image.sh localhost/aresos:check
+        bash os/ci/check-image.sh localhost/aresos:check "$kind"
         # Then boot it once as the release job does, still without publishing:
         # the CI-only test layer, a file-backed disk and one fresh VM pass. Its
         # guest policy checks polkit for the daily account's real active

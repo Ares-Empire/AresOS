@@ -7,7 +7,8 @@ RUN test ! -e /tmp/aresos/ci && bash /tmp/aresos/build.sh packages
 # revision. The source stage fetches that commit in the pinned base (which has
 # curl) and keeps only mod/; the mod stage runs only Gradle on it, in the
 # digest-pinned JDK (minecraft/desktop.lock.json, "builder"; it has no curl or
-# wget). The configure step below accepts the jar only with its pinned SHA-256.
+# wget). The configure step below accepts the jar only with its pinned SHA-256,
+# unless os/ci/check-build.sh says this build is thrown away (ARESOS_BUILD_KIND).
 FROM ghcr.io/ublue-os/bazzite-nvidia-open@sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151 AS source
 ARG ARESOS_SOURCE_REVISION=unrecorded
 COPY build.sh /tmp/aresos-mod/build.sh
@@ -21,6 +22,8 @@ RUN bash /tmp/aresos-mod/build.sh mod /tmp/aresos-mod/mod /out "$ARESOS_SOURCE_R
 
 FROM packages AS aresos
 ARG ARESOS_SOURCE_REVISION=unrecorded
+# release: the mod jar must be its pin. Only os/ci/check-build.sh passes throwaway.
+ARG ARESOS_BUILD_KIND=release
 LABEL org.opencontainers.image.source="https://github.com/Ares-Empire/AresOS" \
       org.opencontainers.image.revision="${ARESOS_SOURCE_REVISION}"
 COPY --from=mod /out/aresos.jar /tmp/aresos/minecraft/aresos.jar
