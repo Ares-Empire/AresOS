@@ -8,14 +8,19 @@
   withheld-form refusal is reopened.
 - **Post-18d:** base-URL/SVG class, main/slim merge, group 12, latency measurement,
   expiry optimization and sharding are done. Main is merged through `b2b51107`.
-  Final-head full local checks and every Control workflow twice are open.
+  Final acceptance candidate: the full local suite runs before its normal push;
+  every Control workflow twice and independent audits remain open.
 - **In flight:** Control Mail `43513676712`, resumed with one blocking watcher
   (session `11711`, `.work/post18d/43513676712-watch-resumed.log`). It tests the
   complete eight fault shards with a 60-minute budget. No Chrome run is in flight.
 - **Budget:** 249 / about 280 Chrome workflow runs; final pair is still required.
-- **Exact next step:** freeze the final candidate, run full local checks,
-  and run the final sharded Chrome pair plus base/Mail/boundary/qualification twice
-  on that head. Handle the Mail diagnostic outcome when its blocking watch ends.
+- **Exact next step:** run `.work/post18d/final-local.py` against this candidate
+  and finish the Mail diagnostic watch before pushing. The normal final push
+  starts the two full Chrome runs; identify those and the four named Control
+  workflow runs, then watch each once. Rerun base/Mail/boundary/qualification on
+  the same head for their second executions. Independently audit both Chrome
+  installs from both runs. Commit all receipts and update this Handover with
+  `[skip ci]`; keep PR #27 draft.
 
 # Post-18d integration — final repetitions pending
 
