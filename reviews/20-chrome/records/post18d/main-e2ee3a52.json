@@ -1,0 +1,12 @@
+{
+  "head": "e2ee3a52a97965de2af61bde56168ea9982f1174",
+  "merged_origin_main": "b2b511070025d4972f4b5f5446976362e29547ad",
+  "prior_candidate": "b94c1acf",
+  "control_tree_before": "a0df6f43647a2c2a054e83ab50451399ef0d54da",
+  "control_tree_after": "a0df6f43647a2c2a054e83ab50451399ef0d54da",
+  "control_workflow_diff": "",
+  "generator_check": "Generated artifacts match definitions",
+  "service_unit_sha256": "b14be1ddb0ed31a4ca47e0cb3f85c4a7253a73fe7f751f3fb1ab71feed982fcf",
+  "service_unit_diff_8b7e799c": "",
+  "browser_started_locally": false
+}

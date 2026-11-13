@@ -21,7 +21,7 @@ latency ceilings before final acceptance. PR #27 remains draft.
   transient. Recognised forms holding withheld content cannot submit, even after
   a read approval. Editable areas remain readable per addendum-f; board #216's
   accepted secret-masking limit is in KNOWN-LIMITS. Tab-group handling is unchanged.
-- Merged only `origin/main`, through `5065ff9c`, preserving Mail/19b/18d and
+- Merged only `origin/main`, through `b2b51107` (merge `e2ee3a52`), preserving Mail/19b/18d and
   PR #43/#47. Chrome retains its native socket and hash-verified committed owner
   projection because 19b has no generic replacement yet. The full service unit
   remains byte-identical to `8b7e799c`; both pin tests remain.
@@ -57,6 +57,23 @@ Proposed ceilings remain read 35/60, navigate 100/150, click 650/750, fill 650/7
 asking click 60/100 and approval-to-done 700/850 ms. `latency-targets.json` is still
 `awaiting-lead`: section 4 says the lead sets them. No target was silently adopted.
 
+The decision requested from the lead is to adopt or replace these median/p95
+ceilings. The fixed 525 ms input wait remains; the proposed click/fill ceilings
+allow runner variation without hiding a new history-dependent scan. The relative
+check also compares work after subtracting each sample's own fixed wait and
+scales against the paired old runtime, so the absolute ceilings are not the only
+regression check. The target file refuses acceptance while its status is
+`awaiting-lead`; silence does not approve these numbers.
+
+| Call | Proposed median / p95 ceiling (ms) |
+| --- | ---: |
+| Read | 35 / 60 |
+| Navigate | 100 / 150 |
+| Free click | 650 / 750 |
+| Fill | 650 / 750 |
+| Asking click to question | 60 / 100 |
+| Approval to done | 700 / 850 |
+
 **Round 3 handled:** `43437906776` on `63c81414` passes (322m32s longest job).
 Companion `43437786144` hit the 350-minute container limit (exit124), with no
 assertion failure found. No limit is raised. Acceptance moves to the final
@@ -67,9 +84,14 @@ The stopgap cause is per-input slowdown plus the larger unsplit matrices.
 **Still required:** the lead's ceiling decision and final-head local checks and
 every Control workflow twice, with both Chrome installs and independent receiver
 audits. Replacement base/boundary/qualification diagnostics pass on the current
-runtime; replacement Mail is running. No final green or ready claim. Chrome
+runtime; replacement Mail `43513676712` is running with all eight fault shards
+retained and a 60-minute sweep-job budget. No final green or ready claim. Chrome
 ledger: **249 / about 260**. A normal final code push starts two runs (push and PR);
 report before exceeding 260. No local browser/profile/container has been accessed.
+
+The latest main merge changes no Control source, generated tools or Control
+workflow. Generator and full-unit checks pass after the merge;
+[merge receipt](records/post18d/main-e2ee3a52.json).
 
 The chronological sections below retain historical commands and corrections;
 their old pending statements/totals are superseded by this current status.
