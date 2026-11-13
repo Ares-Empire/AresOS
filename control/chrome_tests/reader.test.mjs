@@ -273,7 +273,7 @@ test('recheck3 compose preserves rendered indentation linebreaks and significant
     const [button,draft]=f.nodes;f.generic(button);f.generic(draft);
     let content='if approved:\n    send()\naudit()';
     const preview=new f.Element({tagName:['PRE','TEXTAREA','CODE'].includes(kind)?kind:'DIV',whiteSpace:kind==='CODE'?'pre-wrap':kind.toLowerCase(),childNodes:[]});
-    const text={nodeType:3,parentElement:preview,get textContent(){return content;}};preview.childNodes=[text];
+    const text={nodeType:3,parentElement:preview,get textContent(){return content;}};preview.childNodes=[text];if(kind==='PRE')preview.hidden=true;
     if(kind==='TEXTAREA'){f.textarea(preview);Object.defineProperty(preview,'value',{get(){return content;}});}
     const secret=new f.Element({tagName:'INPUT',type:'password',forbidden:true,childNodes:[{nodeType:3,get textContent(){throw Error('PASSWORD TEXT READ');}}]});
     Object.setPrototypeOf(secret,Object.getPrototypeOf(draft));secret.isContentEditable=true;

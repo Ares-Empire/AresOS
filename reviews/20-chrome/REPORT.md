@@ -3,9 +3,9 @@
 **Read:** briefs `20-recheck-fixes-3.md` and `-3b.md` govern this round on `pkg/20-chrome`.
 Fetched `origin/main` and read its `AGENTS.md` and `briefs/20-chrome.md` with `git show`;
 also read SECURITY-RECHECK-3, the prior report/known limits and briefs 2/2b/2c.
-The first code push included all three classes. A leading-newline probe and then the Linux SVG case required three follow-up corrections. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
+The first code push included all three classes. Additional local whitespace/visibility probes and the Linux SVG/trailing-newline cases required four follow-up corrections. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
 stays draft and unmerged; its existing conflict with main is not resolved in this brief.
-Installed runtime hash: `85fe8b7ed236c0c58b01b5be62a4e0e77ea1e0fa0ef911a88a6545ba98de9873`.
+Installed runtime hash: `43f46733886d55cf63014084847781a214178ea997dc990dccb4900f8b5f35fd`.
 Linux acceptance on the new source is pending; historical green sections below do not establish it.
 
 ## Done (read)
@@ -27,7 +27,8 @@ Linux acceptance on the new source is pending; historical green sections below d
   visible composed nodes, preserving line breaks, indentation, tabs and significant spaces under `pre`, `pre-wrap`,
   `pre-line` and `break-spaces`, including pre, textarea and code. Ordinary collapsible whitespace stays collapsed;
   pre-line indentation is correctly insignificant. Structural block separators do not consume leading pre-line
-  newlines, trailing preserved newlines or block-leading br blank lines; visible descendants of visibility-hidden containers remain included. Password exclusion is checked before every text/value read.
+  newlines, trailing preserved newlines or block-leading br blank lines; visible descendants of visibility-hidden containers remain included. Computed display takes precedence over a
+  hidden attribute overridden by CSS; the Linux PRE variant exercises hidden with display:block. Password exclusion is checked before every text/value read.
 - Service questions include the original compose representation as well as exact before/after text on the one
   allowed re-ask. Service and extension bindings retain the same text. A second change stops with the decided
   owner-send message; stale approvals cannot send. The original input/whole-question bounds still apply.
@@ -39,7 +40,7 @@ Linux acceptance on the new source is pending; historical green sections below d
 
 ## Verified (run)
 
-Local-only verification so far: **302 Node tests pass**, **204 removal mutations rejected, every baseline passing**,
+Local-only verification so far: **302 Node tests pass**, **205 removal mutations rejected, every baseline passing**,
 128 generated production-code mixes pass, generated artifacts match definitions and `git diff --check` passes.
 [Exact commands, output tails/hashes and corrected local attempts](records/recheck3/local-summary.json) retain the results.
 The full plain-Python suite passes **231 tests in 580.628 s, OK**; Linux CI is still pending. Five artifact-stream tests pass. No local browser,
@@ -75,7 +76,9 @@ retain the cause and fix; no failure is counted as acceptance. The next pair bri
 and 33 native-default scenarios, but failed at the strict second whitespace change: a trailing preserved newline
 aliased the block separator and the changed text was sent. [Raw-derived receipts](records/recheck3/trailing-browser-failure.json)
 and a strict before/after local regression retain this failure and the correction. Source-preserved and structural
-breaks are now distinct on both sides of a block. The new pair brings this to **217 IDs / 218 executions**, within the approximate
+breaks are now distinct on both sides of a block. The next own pair on `7536ebff` (`43360915882`, `43360937420`) was cancelled when the local computed-display
+probe found omitted visible PRE text; no pass from it is claimed. The replacement pair brings this to
+**219 IDs / 220 executions**, within the approximate
 235-run budget and below the 245 notice threshold. Each CI run uses one blocking `gh run watch`, without
 turn-by-turn status polling. Report-only pushes use `[skip ci]`. Closing run IDs, exact logs and `.work/` inventory
 will replace this pending section after verification. No main/PR merge, force-push or qualification-data publishing

@@ -41,7 +41,7 @@ export function recheck3Page(url){
   }else if(mode==='compose-whitespace'){
     const kind=url.searchParams.get('kind'),tag=['PRE','TEXTAREA','CODE'].includes(kind)?kind.toLowerCase():'div';
     const style=kind==='CODE'?'pre-wrap':kind==='PRE'?'pre':kind==='TEXTAREA'?'pre-wrap':kind;
-    body='<main><div contenteditable="true" aria-label="Draft">Existing draft</div><'+tag+' id="preview" style="white-space:'+style+'"></'+tag+'><button type="button">Send</button></main>';
+    body='<main><div contenteditable="true" aria-label="Draft">Existing draft</div><'+tag+' id="preview"'+(kind==='PRE'?' hidden':'')+' style="display:block;white-space:'+style+'"></'+tag+'><button type="button">Send</button></main>';
     script=`const preview=document.querySelector('#preview'),texts=${JSON.stringify(whitespaceText)};let phase=0;
       const set=text=>${kind==='TEXTAREA'?'preview.value=text':'preview.textContent=text'};set(texts.before);
       document.querySelector('button').onclick=()=>fetch(${JSON.stringify(receive)},{method:'POST',body:${kind==='TEXTAREA'?'preview.value':'preview.textContent'}});

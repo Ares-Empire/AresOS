@@ -294,7 +294,7 @@
       if(node.nodeType===Node.TEXT_NODE){if(visible&&(!node.parentElement||!password(node.parentElement)))append(node.textContent,space);return;}
       if(!(node instanceof Element)||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','SELECT'].includes(node.tagName))return;
       const style=getComputedStyle(node);
-      if(node.hidden||style.display==='none')return;
+      if(style.display==='none')return;
       visible=style.visibility!=='hidden'&&style.visibility!=='collapse';
       if(node.tagName==='BR'){if(visible){if(pending==='\n')flush();pending='';result+='\n';}return;}
       const block=['block','list-item','table-row','flex','grid','table','flow-root'].includes(style.display);
@@ -313,7 +313,7 @@
   function composeText(element,nodes){
     const candidates=nodes.filter(node=>node!==element&&
       (node instanceof HTMLTextAreaElement||node.isContentEditable||node instanceof HTMLInputElement&&!['hidden','button','submit','reset','image','file','checkbox','radio'].includes(node.type))&&
-      !password(node)&&!node.hidden&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden');
+      !password(node)&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden');
     // A recipient input beside Send is not the message when a body editor is
     // present farther out (including the generic sibling-editor layout).
     const bodies=candidates.filter(node=>node instanceof HTMLTextAreaElement||node.isContentEditable);
