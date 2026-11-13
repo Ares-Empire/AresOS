@@ -67,8 +67,9 @@ public final class RealAppsClientGameTest implements FabricClientGameTest {
                 world.getConnection().waitForServerboundPackets();
                 context.waitFor(client->AresOs.app("fixture-site").pinned());
                 check(AppsConfig.load(config).apps().get(1).pinned(),"URL pin was not persisted");
-                // Move the original pinned app out of the hotbar as well.
-                clickSlot(context,36);clickSlot(context,9);
+                // Pending overflow fills the slot freed by pinning. Finish the resulting swap when unpinning Notes.
+                context.waitFor(client->client.player.getInventory().getItem(9).is(AppItems.APP));
+                clickSlot(context,36);clickSlot(context,9);clickSlot(context,36);
                 world.getConnection().waitForServerboundPackets();
                 context.waitFor(client->!AresOs.app("fixture-notes").pinned());
                 check(!AppsConfig.load(config).apps().getFirst().pinned(),"Unpin was not persisted");
