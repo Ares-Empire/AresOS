@@ -296,7 +296,7 @@ For the singleplayer host in an AresOS world (Tab completes the ID):
 
 | Command | What it does |
 |---|---|
-| `/aresos app add <app>` | Makes a program yours. Its item lands in the first free inventory slot beside the hotbar. With no free slot the app is yours without an item, and the chat says so; the item comes at the next change or login once a slot is free. |
+| `/aresos app add <app>` | Makes a program yours. Its item lands in the first free inventory slot beside the hotbar. With no free slot the app is yours without an item, and the chat says so; the next safe Live tick with a free slot supplies it. |
 | `/aresos app remove <app>` | Takes it out of My apps and unpins it. Its item leaves your Live inventory and your saved Build inventory. It stays in All programs with everything saved about it. |
 | `/aresos app list` | Your apps, one line each. |
 

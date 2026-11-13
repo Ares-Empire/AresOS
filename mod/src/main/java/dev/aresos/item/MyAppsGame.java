@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 public final class MyAppsGame {
     /** How far one player's inventories are: the counter value his removals and his items were last done for. */
     private static final class Seen {
-        long removed, added;
+        long removed, added, attempted;
         Set<String> without = Set.of();
     }
 
@@ -182,8 +182,16 @@ public final class MyAppsGame {
         }
         // Items are only ever put into the Live inventory, and only while he holds it.
         if (seen.added != now && LiveMode.isLive(player)) {
+            // Keep missing work due. While still full there is nothing to do; the first safe tick with room
+            // retries without needing a catalogue edit or a login (also for a returned cursor item).
+            if (seen.attempted == now && !seen.without.isEmpty()) {
+                boolean room = false;
+                for (int slot = 9; slot < 36; slot++) room |= player.getInventory().getItem(slot).isEmpty();
+                if (!room) return;
+            }
             var without = AppInventory.reconcile(player, apps);
-            seen.added = now;
+            seen.attempted = now;
+            if (without.isEmpty()) seen.added = now;
             var names = without.stream().filter(app -> !seen.without.contains(app.id())).map(AppDefinition::name).toList();
             seen.without = without.stream().map(AppDefinition::id).collect(Collectors.toUnmodifiableSet());
             if (!names.isEmpty()) player.sendSystemMessage(Component.literal("No free inventory slot: "

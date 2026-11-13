@@ -330,12 +330,47 @@ public final class MyAppsGameTests {
             MyAppsGame.tick(server);
             check(fixture.said("No free inventory slot") == 1, "The missing item was announced twice");
             assertExact(player, full, "A later tidy-up of a full inventory");
-            // A slot becomes free: the next tidy-up (any change, or the next login) makes the item.
+            // A slot becomes free: no catalogue change, just the next safe tick.
             player.getInventory().setItem(20, ItemStack.EMPTY);
-            MyAppsGame.changed();
             MyAppsGame.tick(server);
             check("other".equals(id(player.getInventory().getItem(20))) && items(player, "other") == 1,
                     "The item did not arrive once a slot was free");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(environment = BATCH)
+    public void aReturnedCursorItemWaitsForRoomAndForAPendingSwitch(GameTestHelper helper) {
+        try (var fixture = Fixture.open(helper)) {
+            var player = fixture.player();
+            var server = player.level().getServer();
+            var inventory = player.getInventory();
+            var cursor = inventory.removeItemNoUpdate(9);
+            fillFreeSlots(player);
+            var full = capture(player);
+            AppInventory.giveBack(player, cursor);
+            MyAppsGame.tick(server);
+            assertExact(player, full, "Returning a cursor item over a full inventory");
+            inventory.setItem(20, ItemStack.EMPTY);
+            MyAppsGame.tick(server);
+            check("mine".equals(id(inventory.getItem(20))) && items(player, "mine") == 1,
+                    "The returned cursor item did not arrive after a slot was freed");
+
+            cursor = inventory.removeItemNoUpdate(20);
+            var modes = ModeInventories.of(player);
+            check(modes.switchTo(player, GameType.CREATIVE, true) && modes.pending(), "Fixture: switch is not pending");
+            var build = capture(player);
+            AppInventory.giveBack(player, cursor);
+            MyAppsGame.tick(server);
+            assertExact(player, build, "giveBack during a pending switch");
+            check(items(player, "mine") == 0, "giveBack edited an inventory during a pending switch");
+            acknowledge(player);
+            MyAppsGame.tick(server);
+            assertExact(player, build, "giveBack after acknowledgement in Build");
+            check(switchAndAcknowledge(player, GameType.SURVIVAL), "Return to Live failed");
+            MyAppsGame.tick(server);
+            check("mine".equals(id(inventory.getItem(20))) && items(player, "mine") == 1,
+                    "The item returned during a switch was not supplied back in Live");
         }
         helper.succeed();
     }
