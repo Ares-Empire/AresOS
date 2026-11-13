@@ -243,8 +243,8 @@ ref     = three letters and a number, for example kqt5 (item 3)
   its own. An element without a role, a name or own text gets no line, and its children move up a level.
 - A name or value can never start a new line or end its quotes (the escaping rule above).
 - **Folds** (each says what it hides):
-  - a name or text longer than 200 characters is cut and ends in `…+N`, N being the characters left out; the
-    element's reference reads it whole;
+  - a name, a text or a value longer than 200 characters is cut and ends in `…+N`, N being the characters left
+    out; the element's reference reads it whole;
   - of more than 8 neighbours with the same role, the first 5 are shown, then `… N more (C characters) kqt17`; that
     reference reads exactly the neighbours left out, and nothing can act on it;
   - a table is its line and `… R rows, C columns (N characters)`; the table's reference reads it;
@@ -256,8 +256,9 @@ ref     = three letters and a number, for example kqt5 (item 3)
 
 **`chrome_read`** (effect read).
 
-Input: `tab` (integer), or `tabs` (2 to 5 integers; then only `max` and `request` may accompany it); `ref`; `find`
-(1 to 200 characters); `role` (with `find`); `until` (an object with `text` or `gone`, each up to 200 characters);
+Input: `tab` (integer), or `tabs` (2 to 5 integers; then only `max` and `request` may accompany it); `ref`; `full`
+(boolean); `find` (1 to 200 characters); `role` (with `find`); `until` (an object with `text` or `gone`, each up to
+200 characters);
 `timeout_ms` (0 to 6,000, default 3,000, with `until`); `max` (1,000 to 40,000; default 6,000, or 3,000 per tab with
 `tabs`); `cursor`; `request` (up to 200 characters; unused until brief 28b, accepted and ignored now).
 
@@ -265,19 +266,24 @@ Result:
 
 ```
 {"reads": [{"tab": 412, "whose": "claude", "characters": 4211, "total": 18840, "cursor": null,
-            "until_met": true,
+            "mid_line": false, "until_met": true,
             "untrusted_content": {"url": "…", "title": "…", "scroll": "0/3200", "outline": "…", "dialog": null}},
            {"tab": 413, "error": {"code": "refused", "message": "…"}}],
  "version_notice": null}
 ```
 
 - No `ref`, no `find`: the outline with its folds.
-- `ref`: that element unfolded, in the form that fits its role. A table: a first line `columns: A | B | C`, then one
+- `ref`: that element with **one level unfolded**, in the form that fits its role: its own name, text and value
+  whole, and its direct content complete (every row, item, field or hidden neighbour). Below that level the fold
+  rules apply again. A table: a first line `columns: A | B | C`, then one
   line per row with the cells separated by ` | `, and controls inside a cell as `[link "Open" kqt31]`. A list: its
   items. A form: every field as an outline line with its options (up to 50 per field, more by the field's own
   `ref`), `required`, the field's error text, the hidden fields by name, the buttons, and the form's target. A text:
   in full. A single link or control: everything known about it (its address in the public form, the title, all
   options).
+- `full`: **no fold and no cut** below the starting point: the whole page without `ref`, the element and
+  everything under it with `ref`. This is how Claude reads all of something in a few calls, paged by `max` and
+  `cursor`.
 - Everything a read returns from the page sits in `untrusted_content`, also what `ref`, `find` and `until` bring.
   Outside it are only the tool's own numbers and flags.
 - `find`: up to 20 hits per page. Each hit is the element's outline line, then ` · in ` and the path of named
@@ -287,10 +293,23 @@ Result:
 - `until`: as item 1 defines waiting; the result carries `until_met`.
 - `tabs`: each tab is read by itself. A tab that can't be read (not in Claude's group, the fixed list, a dialog)
   gets its `error`; the others are returned.
-- `max` counts the characters of `outline`. The service cuts at a line end and returns a `cursor` bound to the
-  page's revision, as today's paging does: a cursor from an older revision fails with `stale_reference`, "page
-  changed, read again without the cursor". The whole result must also fit the base's 48 KiB bound when the text
-  isn't ASCII: cut earlier when needed.
+- **Paging.** `max` bounds the characters of `outline` in one result; `total` is the length of the whole text of
+  this query, and `characters` what this result holds.
+  - A page ends at the last line end that fits. If not even one whole line fits (a text of 100,000 characters
+    read in full, a long value, a wide table row), the page ends after `max` characters inside that line, never
+    inside an escape, and says `"mid_line": true`; the next page goes on in the same line.
+  - **Every page that isn't the last holds at least one character more than was returned before it,** so paging
+    always advances and always ends.
+  - The `cursor` names the position, the state token (item 1) and the query (`ref`, `find`, `role`, `full`). With
+    another token it fails with `stale_reference`, "page changed, read again without the cursor". With another
+    query it fails with `invalid_input`.
+  - **The envelope.** The base bounds a result at 48 KiB of JSON (`RESULT_LIMIT`), written in ASCII: a character
+    outside ASCII costs 6 bytes, and each quote and line break of the outline costs 2. The service measures the
+    result as it will be sent, with its header fields, the notice of pending operations and the version notice,
+    and ends the page earlier when it wouldn't fit. It never relies on the base's last-step shortening.
+  - **Several tabs.** With `tabs`, each tab gets `max` characters (3,000 unless Claude says otherwise) and an equal
+    share of the bytes the envelope leaves after the fixed parts. A share a tab doesn't use isn't passed on. Each
+    tab's entry has its own `cursor`, to go on with in a call for that tab alone.
 - A native dialog that is open is returned as `dialog` (kind, text), with an empty outline, as today.
 - The checks of today's `read` stay: the fixed list on the top document and on every frame, the qualification
   mode, the queued page steps (`reconcile_checks`, `steps`).
@@ -670,6 +689,14 @@ Added cases, each with group 7's known password and a label that says nothing ("
 
 Small fixtures are compared with stored expected outlines, character for character.
 
+**Paging, in group 14 and without a browser.** A text of 100,000 characters read by `ref` with `max` 1,000 comes
+back whole over its pages, each page longer than nothing and marked `mid_line` until the last; the pages joined
+equal the text. The same for a table row wider than `max` and for a value of 20,000 characters read in full. A
+page of text outside ASCII (6 bytes a character) and one made of quotes stay inside 48 KiB as sent, measured on the
+real result with a pending operation and the version notice present, and still advance. Five tabs of such text:
+each gets its share, each has its cursor, and the whole result fits. A cursor used with another `ref`, `find` or
+`full` is refused. `full` on F1 returns every paragraph whole and every field, with no fold and no `…+N`.
+
 **The state token and waiting, in group 14.** Typing into a field, which changes no DOM node, moves the token. A
 change inside a frame moves it. An unchanged page keeps it over 100 polls. `until` is met by a text that appears
 only as a field's value, and by one that appears inside a frame. A cursor is refused after a field's value
@@ -742,17 +769,19 @@ actions, in a frame's address, in a redirect's target, and in history, bookmark 
   tools did.
 
 **Group 16, efficiency** (browser, in the latency harness): the scripted tasks below, each run against the baseline
-file. Characters are counted on the whole result as Claude receives it (the JSON text of the tool result), for the
+file. **Each row names the exact calls it allows; the test makes those calls and no others.** If a budget can't
+be met with them, the budget or the tool changes, in the brief, before the build goes on (stop rule): the test
+is never bent to fit. Characters are counted on the whole result as Claude receives it (the JSON text of the tool result), for the
 baseline and for the new tools alike. The build fails when a budget is exceeded or when a number is worse than the
 baseline.
 
 | Task | Budget |
 |---|---|
-| F1: the first read | 1 call, the whole outline, at most 6,000 characters |
-| F1: everything (the outline, then each folded part by `ref`) | at most 75,000 characters, at most 4 calls |
-| F1: the 80 fields with their values | 1 call, at most 6,000 characters |
-| F2: the whole table | at most 1.3 times the cells' own text, at most 2 calls |
-| F3: find one named link | 1 call, at most 800 characters |
+| F1: the first read: `chrome_read` with the tab | 1 call, the whole outline, at most 6,000 characters |
+| F1: everything: `chrome_read` with `full` and `max` 40,000, then the same call with each `cursor` it returns | at most 3 calls, at most 75,000 characters in all |
+| F1: the 80 fields with their values: after the first read, `chrome_read` with the form's `ref` | 1 further call, at most 6,000 characters |
+| F2: the whole table: after the first read, `chrome_read` with the table's `ref` and `max` 20,000 | 1 further call, at most 1.3 times the cells' own text |
+| F3: find one named link: `chrome_read` with `find` and `role` | 1 call, at most 800 characters |
 | Open a fixture page and return one fact from it | 1 call |
 | F4: fill 6 fields and send the form | 2 calls and `chrome_submit`; one question; the receiver has it once |
 | Three result pages, one click each, the titles collected | 3 calls |

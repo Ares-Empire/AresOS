@@ -646,6 +646,10 @@ fits its kind:
 - a text in full;
 - a single link or control with everything known about it (its address in the public form, the title).
 
+**All of it.** With `full`, `chrome_read` returns the page, or with `ref` one part of it, with nothing folded and
+nothing cut, paged by the budget below. So reading a long page to its end is two or three calls, not one call per
+fold.
+
 **Finding.** With `find`, and `role` to narrow it, `chrome_read` returns the elements whose name, label, value or
 text contains the words, folded parts and frames included: up to 20 per page, each as its outline line with a
 reference and the path to it (`main › list "Week 46"`), and for a hit inside a long text 60 characters either side.
@@ -661,7 +665,10 @@ again only then. The same token tells when a page has gone quiet, and it is what
 
 **Size.** Every read has a budget, `max`, in characters: 6,000 unless Claude says otherwise, 3,000 per tab when
 several are read, never more than 40,000. What doesn't fit is paged with a cursor bound to the page's state; a
-cursor from an earlier state fails with "page changed, read again". The header names the tab, the address, the
+cursor from an earlier state fails with "page changed, read again". A page of the answer ends at a line end; a
+single line that is longer than the budget (a long text read in full) is continued inside the line, so paging
+always advances. The tool measures the answer as it is sent, where a character outside ASCII takes six bytes, and
+ends a page earlier when the whole wouldn't fit the base's bound of 48 KiB. The header names the tab, the address, the
 title, the scroll position, and how many characters the whole answer has.
 
 **Addresses: one public form.** *brief 28.* An address can carry a sign-in: a code after `?`, a token after `#`,
@@ -1060,9 +1067,9 @@ in Chrome.
 | What | Brief 20 | Budget |
 |---|---|---|
 | Long page (120 paragraphs, 80 fields): the first read | 16,000 characters, page 1 of 14 (*checked*) | the whole outline in 1 call, at most 6,000 characters |
-| The same page read to the end | 221,477 characters, 14 calls (*checked*) | at most 75,000 characters, at most 4 calls |
-| Its 80 fields with their values | inside the 14 pages | 1 call, at most 6,000 characters |
-| A table of 200 rows | recorded by brief 28 | at most 1.3 times the cells' own text, at most 2 calls |
+| The same page read to the end (`full`, then its cursors) | 221,477 characters, 14 calls (*checked*) | at most 75,000 characters, at most 3 calls |
+| Its 80 fields with their values (the form by `ref`, after the first read) | inside the 14 pages | 1 further call, at most 6,000 characters |
+| A table of 200 rows (by `ref`, after the first read) | recorded by brief 28 | 1 further call, at most 1.3 times the cells' own text |
 | Finding one link among 300 | recorded by brief 28 | 1 call, at most 800 characters |
 | Open a page and read a fact from it | open, wait, read | 1 call |
 | Fill 6 fields and send the form | read, fill, read, click, submit, read | 2 calls and `chrome_submit`, one question |
@@ -1074,6 +1081,8 @@ in Chrome.
 | What a session loads: descriptions and instructions | 28 tools; recorded on main after PR #27 | 17 tools, at most 10,000 characters, and not above the baseline |
 | What a session loads: names and input schemas | 28 tools, about 10,600 characters (PR #27 at `8b7e799c`) | at most 6,000 characters |
 
+- Every budget names the exact calls it allows (brief 28's table), and the test makes those calls and no others. A
+  budget nobody can meet is changed in the brief, never in the test.
 - Characters are counted on the whole result as Claude receives it. Brief 20's two *checked* numbers count the page
   text alone, which is a little less.
 - Where the middle column has no number, brief 28 measures brief 20's tools on the fixture before it removes them,
@@ -1328,6 +1337,9 @@ harness's helper functions change, never an assertion.
 14. **Reading and references** (*brief 28*):
     - the outline's rules on fixtures, compared with stored expected outlines: text once, every fold with its exact
       count, frames and open and closed shadow roots in place, an open dialog hiding the rest;
+    - paging: a text of 100,000 characters, a row wider than the budget and a long value each come back whole over
+      their pages, every page advancing; text outside ASCII and five tabs at once stay inside the 48 KiB bound as
+      sent; `full` returns a long page with nothing folded or cut;
     - a table, a list, a form, a long text and a single control read by `ref`; `find` across folded parts and
       frames, literal and without regard to case; five tabs in one call, one of them unreadable; `until` met and
       not met, also by a field's value and inside a frame; paging, and a cursor refused after the page changed,
