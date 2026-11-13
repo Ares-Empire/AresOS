@@ -4,18 +4,18 @@
       "command": "node --test control/chrome_tests/*.test.mjs",
       "exit_code": 0,
       "output": "local-node.txt",
-      "sha256": "39e77ffe99adff33ff2a588f2e4d03b639190911ebbf9ed163c6ead3c2314b7f",
+      "sha256": "2f3a748f84d72ae8e4c11ebd8fde96e9ba21e178ec647aedcb9cbcb43d5d7e1a",
       "tail": [
-        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.289417ms)",
-        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.87025ms)",
-        "\u2139 tests 300",
+        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.213875ms)",
+        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.798084ms)",
+        "\u2139 tests 302",
         "\u2139 suites 0",
-        "\u2139 pass 300",
+        "\u2139 pass 302",
         "\u2139 fail 0",
         "\u2139 cancelled 0",
         "\u2139 skipped 0",
         "\u2139 todo 0",
-        "\u2139 duration_ms 7197.510791"
+        "\u2139 duration_ms 7291.397042"
       ]
     },
     {
@@ -40,18 +40,18 @@
       "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck3/mutations.json",
       "exit_code": 0,
       "output": "local-mutations.txt",
-      "sha256": "beaf1f0255c79455598b541507759461fd196204b24ea44a3b27570fa999d848",
+      "sha256": "6b64676e0d829e0f48c2c6287c957b98d1c9a3d516f3a82b01e17f23b65fd532",
       "tail": [
-        "recheck3-svg-default MUTATION REJECTED",
-        "recheck3-svg-legacy-default MUTATION REJECTED",
-        "recheck3-image-default MUTATION REJECTED",
         "recheck3-unknown-default MUTATION REJECTED",
         "recheck3-rendered-compose MUTATION REJECTED",
         "recheck3-pre-modes MUTATION REJECTED",
         "recheck3-pre-line MUTATION REJECTED",
+        "recheck3-leading-pre-line MUTATION REJECTED",
+        "recheck3-leading-br MUTATION REJECTED",
+        "recheck3-visible-descendant MUTATION REJECTED",
         "recheck3-compose-question MUTATION REJECTED",
         "recheck3-compose-extension MUTATION REJECTED",
-        "199 mutations rejected; every baseline passed"
+        "202 mutations rejected; every baseline passed"
       ]
     },
     {
@@ -70,6 +70,41 @@
         "\u2139 skipped 0",
         "\u2139 todo 0",
         "\u2139 duration_ms 48.81775"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'leading pre-line' control/chrome_tests/reader.test.mjs",
+      "exit_code": 1,
+      "output": "leading-pre-line-before.txt",
+      "sha256": "6caf83ff0fd100b7a4dbbe5ad0f6411483f179ea121384b2533491b752c2393a",
+      "tail": [
+        "      at Test.run (node:internal/test_runner/test:1382:25)",
+        "      at Test.start (node:internal/test_runner/test:1242:17)",
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: 'Draft\\nline',",
+        "    expected: 'Draft\\nline',",
+        "    operator: 'notStrictEqual',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'leading pre-line' control/chrome_tests/reader.test.mjs",
+      "exit_code": 0,
+      "output": "leading-pre-line-after.txt",
+      "sha256": "72e1aeea46f052db83c5f724fa17d18bae776d233d094eb50762a9ca14171dc9",
+      "tail": [
+        "\u2714 recheck3 leading pre-line newlines and block br blank lines cannot alias their absence (2.977375ms)",
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 37.877167"
       ]
     }
   ],
@@ -92,6 +127,7 @@
     "Focused page/reader first failed the inert-target compatibility regression; watch now ignores non-EventTarget roots, preserving native inert/detached behavior.",
     "First fixture compile check failed because its test generator overwrote the fixture mode; corrected the test parameter ordering.",
     "First complete Node run failed the required-inventory scan; added the new matrix module to the exact inventory scanner.",
-    "First mutation audit stopped at its old addEventListener-list edit selector; updated that removal to remove the whole dedicated listener wrapper. No original assertion was removed."
+    "First mutation audit stopped at its old addEventListener-list edit selector; updated that removal to remove the whole dedicated listener wrapper. No original assertion was removed.",
+    "A further strict class probe failed on a leading pre-line newline after a block. Preserve the block separator separately from the significant newline; block-leading br is covered too. Source 939f9d5b and its two own cancelled Chrome runs are superseded. The original class assertions stay strict."
   ]
 }

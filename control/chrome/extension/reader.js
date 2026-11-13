@@ -285,25 +285,26 @@
       for(const part of value.split(/([ \t\n\f]+)/)){
         if(!part)continue;
         if(/^[ \t\n\f]+$/.test(part)){
-          if(space==='pre-line'&&part.includes('\n')){pending='';result+='\n'.repeat((part.match(/\n/g)||[]).length);}
+          if(space==='pre-line'&&part.includes('\n')){if(pending==='\n')flush();pending='';result+='\n'.repeat((part.match(/\n/g)||[]).length);}
           else if(pending!=='\n')pending=' ';
         }else{flush();result+=part;}
       }
     }
-    function visit(node,space='normal'){
-      if(node.nodeType===Node.TEXT_NODE){if(!node.parentElement||!password(node.parentElement))append(node.textContent,space);return;}
+    function visit(node,space='normal',visible=true){
+      if(node.nodeType===Node.TEXT_NODE){if(visible&&(!node.parentElement||!password(node.parentElement)))append(node.textContent,space);return;}
       if(!(node instanceof Element)||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','SELECT'].includes(node.tagName))return;
       const style=getComputedStyle(node);
-      if(node.hidden||style.display==='none'||style.visibility==='hidden'||style.visibility==='collapse')return;
-      if(node.tagName==='BR'){pending='';result+='\n';return;}
+      if(node.hidden||style.display==='none')return;
+      visible=style.visibility!=='hidden'&&style.visibility!=='collapse';
+      if(node.tagName==='BR'){if(visible){if(pending==='\n')flush();pending='';result+='\n';}return;}
       const block=['block','list-item','table-row','flex','grid','table','flow-root'].includes(style.display);
       if(block&&result)pending='\n';
       const whiteSpace=style.whiteSpace|| (node.tagName==='PRE'?'pre':space);
-      if(node instanceof HTMLTextAreaElement){const safe=safeValue(node);if(!safe.password)append(safe.value,'pre-wrap');}
-      else if(node.tagName==='IMG')append(node.getAttribute('alt')||'',whiteSpace);
+      if(node instanceof HTMLTextAreaElement){if(visible){const safe=safeValue(node);if(!safe.password)append(safe.value,'pre-wrap');}}
+      else if(node.tagName==='IMG'){if(visible)append(node.getAttribute('alt')||'',whiteSpace);}
       else{
         const assigned=node.tagName==='SLOT'?node.assignedNodes?.():null;
-        for(const child of assigned?.length?assigned:shadow(node)?.childNodes||node.childNodes)visit(child,whiteSpace);
+        for(const child of assigned?.length?assigned:shadow(node)?.childNodes||node.childNodes)visit(child,whiteSpace,visible);
       }
       if(block&&result)pending='\n';
     }

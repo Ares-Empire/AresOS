@@ -1,7 +1,7 @@
 // Shared by the Linux fixture and the independent, artifact-only reviewer.
 import assert from 'node:assert/strict';
 import {browserMixes} from './guard-matrix.mjs';
-import {defaultRows,whitespaceKinds,whitespaceText} from './recheck3-fixtures.mjs';
+import {defaultRows,whitespaceKinds,whitespaceText,whitespaceChanges} from './recheck3-fixtures.mjs';
 const shown=text=>text.replaceAll('\\','\\\\').replaceAll('\n','\\u000a');
 export function assertRecheck3(evidence,snapshots,arrivals){
   const ids=new Set(),cases=new Map();
@@ -31,7 +31,7 @@ export function assertRecheck3(evidence,snapshots,arrivals){
     const held=snapshots.filter(row=>row.id===ping&&row.phase==='native ping held');assert.equal(held.length,1);assert.equal(held[0].count,0);
     assert.equal(pings.length,route==='ping'?1:0,ping);
   }
-  const spaces=whitespaceKinds.flatMap(kind=>(kind==='pre-line'?['line']:['indent','line']).map(change=>({kind,change,id:'recheck3-space-'+kind+'-'+change})));
+  const spaces=whitespaceKinds.flatMap(kind=>(whitespaceChanges(kind)).map(change=>({kind,change,id:'recheck3-space-'+kind+'-'+change})));
   assert.equal(evidence.whitespace.length,spaces.length);
   for(const {kind,change,id}of spaces){
     const found=evidence.whitespace.filter(item=>item.id===id);assert.equal(found.length,1,id);const row=found[0],render=text=>shown(kind==='pre-line'?text.replace(/^[ \t]+/gm,''):text);

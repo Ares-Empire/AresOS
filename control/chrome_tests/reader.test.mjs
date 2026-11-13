@@ -33,7 +33,7 @@ function fixture(fields,{subtle=true,NativeBlob=Blob}={}) {
   const context=vm.createContext({document,chrome,Blob:NativeBlob,crypto:{subtle:subtle?webcrypto.subtle:undefined,getRandomValues:array=>array.fill(++fileSequence)},MutationObserver,
     Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,Node:{TEXT_NODE:3},CustomEvent:class{},
     atob:value=>Buffer.from(value,'base64').toString('binary'),setTimeout:fn=>timers.push(fn),
-    URL,getComputedStyle:element=>({display:['DIV','P','PRE'].includes(element.tagName)?'block':'inline',visibility:'visible',webkitTextSecurity:element.mask || 'none',whiteSpace:element.whiteSpace||(element.tagName==='PRE'?'pre':undefined)}),
+    URL,getComputedStyle:element=>({display:['DIV','P','PRE'].includes(element.tagName)?'block':'inline',visibility:element.visibility||'visible',webkitTextSecurity:element.mask || 'none',whiteSpace:element.whiteSpace||(element.tagName==='PRE'?'pre':undefined)}),
     [Symbol.for('aresos.chrome.guard.v2')]:{clipboard(take){const value=clipboardInfo;if(take)clipboardInfo=null;return value;},watch(){},reader(value){readerAPI=value;},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];}},
     origin:'https://fixture.test',location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
@@ -312,4 +312,23 @@ test('recheck3 area and SVG links expose native destinations and mapped area inp
     const svg=new f.Element({tagName:'a',namespaceURI:'http://www.w3.org/2000/svg',localName:'a',attrs:{'aria-label':'Delete',href}});f.nodes.push(svg);
     const found=f.read().data.rows.filter(row=>row.role==='link').at(-1);assert.equal(found.name,'Delete');assert.equal(found.href,new URL(href,'https://fixture.test/').href);
   }
+});
+
+test('recheck3 leading pre-line newlines and block br blank lines cannot alias their absence',()=>{
+  const f=fixture([{tagName:'BUTTON',type:'button',attrs:{'aria-label':'Send'}},{tagName:'DIV',isContentEditable:true,childNodes:[{nodeType:3,textContent:'Draft'}]}]);
+  const [button,draft]=f.nodes;f.generic(button);f.generic(draft);
+  const preview=new f.Element({tagName:'DIV',whiteSpace:'pre-line',childNodes:[{nodeType:3,textContent:'line'}]}),area=new f.Element({tagName:'SECTION',childNodes:[draft,preview,button]});
+  for(const node of area.childNodes)node.parentElement=area;f.nodes.push(area,preview);const key=f.read().data.rows.find(row=>row.name==='Send').element;
+  const current=()=>f.command({command:'facts',element:key}).data.compose.text,before=current();
+  preview.childNodes[0].textContent='\nline';assert.notEqual(current(),before,'a leading preserved linebreak adds a blank line');assert.match(current(),/Draft\n\nline/);
+  preview.childNodes=[new f.Element({tagName:'BR'}),{nodeType:3,textContent:'line'}];assert.match(current(),/Draft\n\nline/,'a block-leading br also adds a blank line');
+});
+
+
+test('recheck3 significant visible descendant text survives a visibility hidden ancestor',()=>{
+  const f=fixture([{tagName:'BUTTON',type:'button',attrs:{'aria-label':'Send'}},{tagName:'DIV',isContentEditable:true}]);const [button,draft]=f.nodes;f.generic(button);f.generic(draft);
+  const preview=new f.Element({tagName:'CODE',whiteSpace:'pre-wrap',visibility:'visible',childNodes:[{nodeType:3,textContent:'one\n    two'}]}),hidden=new f.Element({tagName:'DIV',visibility:'hidden',childNodes:[{nodeType:3,textContent:'HIDDEN SOURCE'},preview]}),area=new f.Element({tagName:'SECTION',childNodes:[draft,hidden,button]});
+  for(const node of area.childNodes)node.parentElement=area;preview.parentElement=hidden;f.nodes.push(area,hidden,preview);const key=f.read().data.rows.find(row=>row.name==='Send').element;
+  const current=()=>f.command({command:'facts',element:key}).data.compose.text,before=current();assert.ok(before.includes('one\n    two'));assert.ok(!before.includes('HIDDEN SOURCE'));
+  preview.childNodes[0].textContent='one\ntwo';assert.notEqual(current(),before);
 });

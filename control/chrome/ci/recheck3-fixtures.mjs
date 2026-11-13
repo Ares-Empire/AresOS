@@ -1,6 +1,7 @@
 // Synthetic fixtures only; no account, real site or external asset.
 export const whitespaceKinds=['pre','pre-wrap','pre-line','break-spaces','PRE','TEXTAREA','CODE'];
-export const whitespaceText={before:'if approved:\n    send()\naudit()',indent:'if approved:\n    send()\n    audit()',line:'if approved:\n    send() audit()'};
+export const whitespaceText={before:'if approved:\n    send()\naudit()',indent:'if approved:\n    send()\n    audit()',line:'if approved:\n    send() audit()',leading:'\nif approved:\n    send()\naudit()'};
+export const whitespaceChanges=kind=>kind==='pre-line'?['line','leading']:['indent','line'];
 export const defaultKinds=['a','area','svg-href','svg-xlink','svg-both','button','input-submit','input-image','external-button','button-reset','input-reset'];
 export function defaultRows(){
   return defaultKinds.flatMap(kind=>(kind.endsWith('reset')?['frame']:['self','blank','frame',...(['a','area'].includes(kind)?['ping','download']:[])]).map(route=>({kind,route,id:'recheck3-default-'+kind+'-'+route})));

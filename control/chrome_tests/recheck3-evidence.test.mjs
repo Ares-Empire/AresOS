@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {assertRecheck3} from '../chrome/ci/recheck3-evidence.mjs';
 import {browserMixes} from '../chrome/ci/guard-matrix.mjs';
-import {defaultRows,whitespaceKinds,whitespaceText} from '../chrome/ci/recheck3-fixtures.mjs';
+import {defaultRows,whitespaceKinds,whitespaceText,whitespaceChanges} from '../chrome/ci/recheck3-fixtures.mjs';
 const shown=text=>text.replaceAll('\n','\\u000a');
 function fixture(){
   const evidence={mixed:[],defaults:[],whitespace:[]},snapshots=[],arrivals=[];
@@ -18,7 +18,7 @@ function fixture(){
     snapshots.push({id,phase:'native default held',count:0},{id:'ping-'+id,phase:'native ping held',count:0});
     if(route==='ping')arrivals.push({url:'/receive?case=ping-'+id,method:'POST',body:'PING'});
   }
-  for(const kind of whitespaceKinds)for(const change of kind==='pre-line'?['line']:['indent','line']){
+  for(const kind of whitespaceKinds)for(const change of whitespaceChanges(kind)){
     const id='recheck3-space-'+kind+'-'+change,render=text=>shown(kind==='pre-line'?text.replace(/^[ \t]+/gm,''):text);
     const approval=(text,operation_id)=>({operation_id,question:render(text),description:{untrusted_content:{page_state:{compose:{text:render(text)}}}}});
     const prepared={approval:approval(whitespaceText.before,'old')},reasked={operation:{state:'failed'},approval:approval(whitespaceText[change],'new')};reasked.approval.question+=' from '+render(whitespaceText.before);
@@ -27,8 +27,8 @@ function fixture(){
   }
   return {evidence,snapshots,arrivals};
 }
-test('recheck3 independent evidence audit accepts the complete 86 exact receiver sequences',()=>{
-  const f=fixture();assert.deepEqual(assertRecheck3(f.evidence,f.snapshots,f.arrivals),{mixed:40,defaults:33,whitespace:13,complete_0_1_1:86,independent_arrivals_match:true});
+test('recheck3 independent evidence audit accepts the complete 87 exact receiver sequences',()=>{
+  const f=fixture();assert.deepEqual(assertRecheck3(f.evidence,f.snapshots,f.arrivals),{mixed:40,defaults:33,whitespace:14,complete_0_1_1:87,independent_arrivals_match:true});
 });
 test('recheck3 independent evidence audit rejects omitted rows early arrivals whitespace loss and wrong final bytes',()=>{
   for(const mutate of [f=>f.evidence.mixed.pop(),f=>{f.snapshots.find(row=>row.phase==='native default held').count=1;},f=>{f.evidence.whitespace[0].prepared.approval.description.untrusted_content.page_state.compose.text='collapsed';},f=>{f.arrivals.find(row=>row.url.includes('space-')).body=whitespaceText.line;}]){

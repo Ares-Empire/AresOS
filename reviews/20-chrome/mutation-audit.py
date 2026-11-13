@@ -232,6 +232,9 @@ case('recheck3-unknown-default',G,"if(!hyperlink&&node.tagName!=='FORM')return f
 case('recheck3-rendered-compose',R,'const content=renderedCompose(area);',"const content=text(area,false,true).replace(/\\s+/g,' ').trim();",node('reader','recheck3 compose preserves'))
 case('recheck3-pre-modes',R,"['pre','pre-wrap','break-spaces','preserve'].includes(space)","['pre'].includes(space)",node('reader','recheck3 compose preserves'))
 case('recheck3-pre-line',R,"space==='pre-line'&&part.includes('\\n')","false",node('reader','recheck3 compose preserves'))
+case('recheck3-leading-pre-line',R,"if(pending==='\\n')flush();",'',node('reader','recheck3 leading pre-line'))
+case('recheck3-leading-br',R,"if(node.tagName==='BR'){if(visible){if(pending==='\\n')flush();","if(node.tagName==='BR'){if(visible){",node('reader','recheck3 leading pre-line'))
+case('recheck3-visible-descendant',R,"if(node.hidden||style.display==='none')return;","if(node.hidden||style.display==='none'||style.visibility==='hidden')return;",node('reader','recheck3 significant visible descendant'))
 case('recheck3-compose-question',A,"if state.get('compose') is not None and not changed:","if False:",'test_questions.Questions.test_recheck3_whitespace_only_changes_keep_exact_questions_and_bounded_bindings',True)
 case('recheck3-compose-extension',B,"compose:!adapter&&['send','confirmation','form'].includes(kind)?frame.compose||null:null,",'compose:null,',node('background','recheck3 final extension binding'))
 

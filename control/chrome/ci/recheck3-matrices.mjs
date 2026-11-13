@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {browserMixes} from './guard-matrix.mjs';
-import {defaultRows,whitespaceKinds,whitespaceText} from './recheck3-fixtures.mjs';
+import {defaultRows,whitespaceKinds,whitespaceText,whitespaceChanges} from './recheck3-fixtures.mjs';
 import {allTabs} from './tabs.mjs';
 import {assertRecheck3} from './recheck3-evidence.mjs';
 const shown=text=>text.replaceAll('\\','\\\\').replaceAll('\n','\\u000a');
@@ -35,7 +35,7 @@ export async function recheck3Matrices({check,nav,call,target,approval,receiverE
     }
   });
   await check('GROUP 3 RECHECK3 rendered whitespace survives questions reasking stopping and final dispatch',async()=>{
-    for(const kind of whitespaceKinds)for(const change of kind==='pre-line'?['line']:['indent','line']){
+    for(const kind of whitespaceKinds)for(const change of whitespaceChanges(kind)){
       const id='recheck3-space-'+kind+'-'+change;
       await nav('review-page&mode=compose-whitespace&'+new URLSearchParams({kind,change,id}));
       const prepared=await call('click',await target('Send')),render=text=>kind==='pre-line'?text.replace(/^[ \t]+/gm,''):text;

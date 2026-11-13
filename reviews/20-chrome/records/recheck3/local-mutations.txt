@@ -195,6 +195,9 @@ recheck3-unknown-default MUTATION REJECTED
 recheck3-rendered-compose MUTATION REJECTED
 recheck3-pre-modes MUTATION REJECTED
 recheck3-pre-line MUTATION REJECTED
+recheck3-leading-pre-line MUTATION REJECTED
+recheck3-leading-br MUTATION REJECTED
+recheck3-visible-descendant MUTATION REJECTED
 recheck3-compose-question MUTATION REJECTED
 recheck3-compose-extension MUTATION REJECTED
-199 mutations rejected; every baseline passed
+202 mutations rejected; every baseline passed
