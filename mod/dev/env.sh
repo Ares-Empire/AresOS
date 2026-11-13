@@ -100,7 +100,7 @@ aresos_check_gradle_args() {
     local arg
     for arg; do
         case $arg in
-            --daemon | --foreground | --stop | --status)
+            --daemon | -daemon | --foreground | -foreground | --stop | -stop | --status | -status)
                 aresos_fail 2 "Gradle's $arg is refused: these scripts run Gradle without a lasting daemon and leave other sessions' daemons alone." ;;
         esac
     done
