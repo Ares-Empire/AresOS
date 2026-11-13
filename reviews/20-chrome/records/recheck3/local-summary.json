@@ -4,18 +4,18 @@
       "command": "node --test control/chrome_tests/*.test.mjs",
       "exit_code": 0,
       "output": "local-node.txt",
-      "sha256": "bc702708811f2466cb60ef59b64ef43df4699872061cb53e06313a061b7e0aef",
+      "sha256": "7152f1a36aa81ebea3dc460f05aad8244d12f381978c136d58465b7a870ff057",
       "tail": [
-        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.201209ms)",
-        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.679334ms)",
-        "\u2139 tests 302",
+        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.206333ms)",
+        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.737083ms)",
+        "\u2139 tests 303",
         "\u2139 suites 0",
-        "\u2139 pass 302",
+        "\u2139 pass 303",
         "\u2139 fail 0",
         "\u2139 cancelled 0",
         "\u2139 skipped 0",
         "\u2139 todo 0",
-        "\u2139 duration_ms 7253.884375"
+        "\u2139 duration_ms 7290.307166"
       ]
     },
     {
@@ -40,7 +40,7 @@
       "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck3/mutations.json",
       "exit_code": 0,
       "output": "local-mutations.txt",
-      "sha256": "3642ceca515dce2bfe0259bb16613f5bef09a072caaafa8c8d823e82835cf578",
+      "sha256": "289e953740172e3e72ae95fb8b217e8ea135ccad7a5de4edfaf1bf300617aa76",
       "tail": [
         "recheck3-pre-modes MUTATION REJECTED",
         "recheck3-pre-line MUTATION REJECTED",
@@ -51,7 +51,7 @@
         "recheck3-visible-hidden-attribute MUTATION REJECTED",
         "recheck3-compose-question MUTATION REJECTED",
         "recheck3-compose-extension MUTATION REJECTED",
-        "205 mutations rejected; every baseline passed"
+        "206 mutations rejected; every baseline passed"
       ]
     },
     {
@@ -202,12 +202,44 @@
         "\u2139 todo 0",
         "\u2139 duration_ms 43.821958"
       ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'wrapped detached listener from another' control/chrome_tests/page.test.mjs",
+      "exit_code": 1,
+      "output": "foreign-listener-before.txt",
+      "sha256": "e37103330e94ec42cf33eb1388b189806226a0bf2198e4a1730e5c4fbe2eea1c",
+      "tail": [
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: 1,",
+        "    expected: 0,",
+        "    operator: 'strictEqual',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'wrapped detached listener from another' control/chrome_tests/page.test.mjs",
+      "exit_code": 0,
+      "output": "foreign-listener-after.txt",
+      "sha256": "b1f12a6ee6501b1ce243e127bf8f0f795e95ffb564b17f68bbb6c3b44bb81a2e",
+      "tail": [
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 45.512666"
+      ]
     }
   ],
   "probe": {
     "command": "node reviews/20-chrome/probe-recheck3.mjs reviews/20-chrome/records/recheck3/mixed-probe.json",
     "exit_code": 0,
-    "stdout": "128 generated mixes passed; only 4 all-native non-composed rows run their handler"
+    "stdout": "130 generated mixes passed; only 4 all-native non-composed rows run their handler"
   },
   "generator": {
     "command": "python3 -B control/generate.py --check",
@@ -227,6 +259,7 @@
     "A further strict class probe failed on a leading pre-line newline after a block. Preserve the block separator separately from the significant newline; block-leading br is covered too. Source 939f9d5b and its two own cancelled Chrome runs are superseded. The original class assertions stay strict.",
     "Both 93148a91 Linux runs passed the 40 mixed-step rows, then failed SVG href-self at one unapproved receiver arrival. The chrome.dom shadow lookup requires HTMLElement and threw for SVGElement before stopDefault. A strict SVG class/API double reproduces the failure; guarding that lookup fixes it without changing any receiver assertion.",
     "Both 2dd343ac Linux runs passed all mixed-step and native-default cases, then caught a trailing source newline merged with a block boundary: the second changed send ran. Preserve source and structural breaks separately. The strict local regression also required its synthetic Send button to contain the actual Send text; no assertion changed. The full Node suite and all removals pass after that correction.",
-    "A strict local PRE case with hidden plus computed display:block reproduced omitted visible text. The compose walker/candidate selection now use computed display. The Linux PRE variant includes that exact CSS override. Only this build's superseded 7536ebff pair was cancelled before acceptance."
+    "A strict local PRE case with hidden plus computed display:block reproduced omitted visible text. The compose walker/candidate selection now use computed display. The Linux PRE variant includes that exact CSS override. Only this build's superseded 7536ebff pair was cancelled before acceptance.",
+    "A strict cross-controlled-document detached-listener probe failed: watch_node ignored a node owned by another controlled document. It now forwards capture and the active hold to that document's private guard, like watch_root already does. Open/closed iframe browser cases and two production probes extend the matrix; ordinary documents gain no authority. Only this build's superseded 04eeaa1f Chrome pair was cancelled."
   ]
 }

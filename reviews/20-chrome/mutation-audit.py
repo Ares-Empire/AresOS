@@ -224,6 +224,7 @@ case('recheck2b-transport-reset','control/boundary/hostile.py',', errno.ECONNRES
 
 case('recheck3-detached-listener',M,'if(node)watchCreated(this);','',node('page','recheck3 every wrapped native mix'))
 case('recheck3-node-brand',M,'let node=false;try{invoke(root,this,[]);node=true;}catch{}','let node=this instanceof Node;',node('page','recheck3 detached listener branding'))
+case('recheck3-foreign-node',G,"if(stage.detail.kind==='watch_node'){const other=foreignGuard(stage.target.ownerDocument||stage.target);if(other?.watch)other.watch(stage.target,active()?{config}:null);else if(!other&&stage.target.ownerDocument===ownDocument)watch(stage.target);event.preventDefault();return;}","if(stage.detail.kind==='watch_node'){if(stage.target.ownerDocument===ownDocument)watch(stage.target);event.preventDefault();return;}",node('page','wrapped detached listener from another'))
 case('recheck3-svg-capture',G,'const shadow=element instanceof HTMLElement&&globalThis.chrome?.dom?.openOrClosedShadowRoot(element);','const shadow=globalThis.chrome?.dom?.openOrClosedShadowRoot(element);',node('page','recheck3 every hyperlink'))
 case('recheck3-area-default',G,"['A','AREA'].includes(element.tagName)","['A'].includes(element.tagName)",node('page','recheck3 every hyperlink'))
 case('recheck3-svg-default',G,"element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a'","false",node('page','recheck3 every hyperlink'))

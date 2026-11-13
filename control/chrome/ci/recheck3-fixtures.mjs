@@ -10,13 +10,16 @@ export function recheck3Page(url){
   const mode=url.searchParams.get('mode'),id=url.searchParams.get('id'),receive='/receive?case='+encodeURIComponent(id);
   const sink='<iframe name="sink" hidden></iframe>';
   let body='',script='';
-  if(mode==='mixed'){
+  if(mode==='mixed-child'){
+    body='<div id="host"></div>';script=`fetch('/compat-report',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase:'mixed-child-ready'})});`;
+  }else if(mode==='mixed'){
     const mask=Number(url.searchParams.get('mask')),rootMode=url.searchParams.get('root'),order=url.searchParams.get('order'),composed=url.searchParams.get('composed')==='true';
-    body='<button type="button" id="continue">Continue</button><div id="host"></div>';
+    const foreign=url.searchParams.get('foreign')==='1';
+    body='<button type="button" id="continue">Continue</button>'+(foreign?'<iframe id="child" width="400" height="160" src="/?case=review-page&mode=mixed-child&id='+id+'"></iframe>':'<div id="host"></div>');
     script=`document.querySelector('#continue').onclick=()=>{
-      const donor=opener,host=document.querySelector('#host');
+      const donor=opener,doc=${foreign?"document.querySelector('#child').contentDocument":'document'},host=doc.querySelector('#host');
       const root=${mask&1?'host.attachShadow(':'donor.Element.prototype.attachShadow.call(host,'}{mode:${JSON.stringify(rootMode)}});
-      const button=donor.Document.prototype.createElement.call(document,'button');button.textContent='Delete';button.type='button';
+      const button=donor.Document.prototype.createElement.call(doc,'button');button.textContent='Delete';button.type='button';
       const insert=()=>${mask&2?'root.appendChild(button)':'donor.Node.prototype.appendChild.call(root,button)'};
       const listen=()=>${mask&4?"EventTarget.prototype.addEventListener.call(button,'click',handler)":"donor.EventTarget.prototype.addEventListener.call(button,'click',handler)"};
       const handler=()=>fetch(${JSON.stringify(receive)},{method:'POST',body:'mixed handler'});

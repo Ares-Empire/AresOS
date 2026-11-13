@@ -360,7 +360,7 @@
         // Pop before entering page handlers; nested requests get their own record.
         drop(stage.detail.request);
         if(stage.detail.kind==='clipboard_write'){if(stage.target===ownDocument)noteClipboard(stage.detail.route);return;}
-        if(stage.detail.kind==='watch_node'){if(stage.target.ownerDocument===ownDocument)watch(stage.target);event.preventDefault();return;}
+        if(stage.detail.kind==='watch_node'){const other=foreignGuard(stage.target.ownerDocument||stage.target);if(other?.watch)other.watch(stage.target,active()?{config}:null);else if(!other&&stage.target.ownerDocument===ownDocument)watch(stage.target);event.preventDefault();return;}
         if(stage.detail.kind==='watch_root'){const other=foreignGuard(stage.target.ownerDocument||stage.target);if(other?.watch)other.watch(stage.target,active()?{config}:null);else if(!other)watch(stage.target);event.preventDefault();return;}
         const other=foreignGuard(stage.target);if(other){if(other.outside)outsideCall(event,stage);else if(other.route)other.route(event,stage,active()?{config}:null);return;}
         const element=eventElement(stage.target);

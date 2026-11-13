@@ -861,3 +861,16 @@ test('recheck3 detached listener branding uses a saved native after the page rep
   f.originalDispatch.call(button,new f.Event('click',{composed:false}));assert.equal(handlers,0);assert.equal(f.reports.length,1);
   f.cleanup();f.guard.dispose();
 });
+
+test('recheck3 a wrapped detached listener from another controlled document installs capture in its owner',()=>{
+  for(const mode of ['open','closed']){
+    const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});
+    owner.document.root=owner.document;owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
+    const host=new owner.HTMLElement(),button=new owner.HTMLElement();button.root=button;button.tagName='BUTTON';button.textContent='Delete';let handlers=0;
+    caller.EventTarget.prototype.addEventListener.call(button,'click',()=>handlers++);
+    const root=owner.nativeAttach.call(host,{mode});owner.nativeAppend.call(root,button);
+    owner.originalDispatch.call(button,new owner.Event('click',{composed:false,cancelable:true}));
+    assert.equal(handlers,0,mode);assert.equal(owner.reports.length,1,mode);assert.equal(caller.reports.length,0);
+    caller.cleanup();owner.cleanup();caller.guard.dispose();owner.guard.dispose();
+  }
+});

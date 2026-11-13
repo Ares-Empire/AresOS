@@ -3,9 +3,9 @@
 **Read:** briefs `20-recheck-fixes-3.md` and `-3b.md` govern this round on `pkg/20-chrome`.
 Fetched `origin/main` and read its `AGENTS.md` and `briefs/20-chrome.md` with `git show`;
 also read SECURITY-RECHECK-3, the prior report/known limits and briefs 2/2b/2c.
-The first code push included all three classes. Additional local whitespace/visibility probes and the Linux SVG/trailing-newline cases required four follow-up corrections. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
+The first code push included all three classes. Additional local whitespace/visibility probes and the Linux SVG/trailing-newline cases required five follow-up corrections. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
 stays draft and unmerged; its existing conflict with main is not resolved in this brief.
-Installed runtime hash: `43f46733886d55cf63014084847781a214178ea997dc990dccb4900f8b5f35fd`.
+Installed runtime hash: `52899d4a119ae1471e21f07b7f288423c6e3776f79860175f9002a177ec3510e`.
 Linux acceptance on the new source is pending; historical green sections below do not establish it.
 
 ## Done (read)
@@ -15,7 +15,9 @@ Linux acceptance on the new source is pending; historical green sections below d
   Root/insertion/dispatch hooks remain in place. The generated unit and production-code probe cover all
   **128** combinations: 16 wrapped/native masks × open/closed × composed/non-composed × listener before/after
   insertion. All non-native rows hold; the four all-native non-composed rows alone run unheld. Linux fixtures
-  add all **32** single-wrapped-step rows plus eight all-wrapped rows. No outside donor tab is attached.
+  add all **32** single-wrapped-step rows plus eight all-wrapped rows, and two open/closed iframe rows where the listener wrapper belongs to another
+  controlled document. Detached-node capture forwards to the owning document's private guard with the active hold.
+  The production probe includes these two rows as well (**130** total). No outside donor tab is attached.
 - `guard.js`: native `a`, `area` and SVG `a` lose hyperlink authority synchronously, including both SVG `href`
   and namespaced `xlink:href` when both exist. Ping is quarantined. Native submit/reset controls (including image
   submitters and external `form=` buttons) are disabled through activation. Repeated interceptions restore their
@@ -40,8 +42,8 @@ Linux acceptance on the new source is pending; historical green sections below d
 
 ## Verified (run)
 
-Local-only verification so far: **302 Node tests pass**, **205 removal mutations rejected, every baseline passing**,
-128 generated production-code mixes pass, generated artifacts match definitions and `git diff --check` passes.
+Local-only verification so far: **303 Node tests pass**, **206 removal mutations rejected, every baseline passing**,
+130 generated production-code mixes pass, generated artifacts match definitions and `git diff --check` passes.
 [Exact commands, output tails/hashes and corrected local attempts](records/recheck3/local-summary.json) retain the results.
 The full plain-Python suite passes **231 tests in 580.628 s, OK**; Linux CI is still pending. Five artifact-stream tests pass. No local browser,
 browser profile, container, Java/Gradle process or installed system software was used.
@@ -78,7 +80,9 @@ aliased the block separator and the changed text was sent. [Raw-derived receipts
 and a strict before/after local regression retain this failure and the correction. Source-preserved and structural
 breaks are now distinct on both sides of a block. The next own pair on `7536ebff` (`43360915882`, `43360937420`) was cancelled when the local computed-display
 probe found omitted visible PRE text; no pass from it is claimed. The replacement pair brings this to
-**219 IDs / 220 executions**, within the approximate
+**219 IDs / 220 executions**. This build then cancelled its own `04eeaa1f` pair (`43361636639`, `43361855352`)
+after the cross-controlled-document local probe failed; its partial evidence is not acceptance. The replacement pair
+brings this to **221 IDs / 222 executions**, within the approximate
 235-run budget and below the 245 notice threshold. Each CI run uses one blocking `gh run watch`, without
 turn-by-turn status polling. Report-only pushes use `[skip ci]`. Closing run IDs, exact logs and `.work/` inventory
 will replace this pending section after verification. No main/PR merge, force-push or qualification-data publishing

@@ -1662,5 +1662,25 @@
     "handlers": 0,
     "held": 1,
     "known_limit": false
+  },
+  {
+    "mask": 4,
+    "mode": "open",
+    "composed": false,
+    "order": "before",
+    "foreign": true,
+    "handlers": 0,
+    "held": 1,
+    "known_limit": false
+  },
+  {
+    "mask": 4,
+    "mode": "closed",
+    "composed": false,
+    "order": "before",
+    "foreign": true,
+    "handlers": 0,
+    "held": 1,
+    "known_limit": false
   }
 ]

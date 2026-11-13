@@ -10,10 +10,11 @@ export async function recheck3Matrices({check,nav,call,target,approval,receiverE
   const evidence={mixed:[],defaults:[],whitespace:[]};
   await check('GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order',async()=>{
     for(const row of browserMixes()){
-      setTab(await nativeDonor(getTab()));const id=`recheck3-mix-${row.mask}-${row.mode}-${row.composed}-${row.order}`;
-      await nav('review-page&mode=mixed&'+new URLSearchParams({id,mask:row.mask,root:row.mode,composed:row.composed,order:row.order}));
+      setTab(await nativeDonor(getTab()));const id=`recheck3-mix-${row.mask}-${row.mode}-${row.composed}-${row.order}${row.foreign?'-foreign':''}`;
+      await nav('review-page&mode=mixed&'+new URLSearchParams({id,mask:row.mask,root:row.mode,composed:row.composed,order:row.order,foreign:row.foreign?1:0}));
+      if(row.foreign)await eventually(()=>fixture.compatibility.some(item=>item.id===id&&item.phase==='mixed-child-ready'),'controlled child ready');
       const stopped=await call('click',await target('Continue'));assert.equal(receiverEvidence(id,'mixed handler held').count,0);
-      assert.equal(stopped.untrusted_content.steps.length,1);assert.equal(stopped.untrusted_content.steps[0].kind,'activation');
+      assert.equal(stopped.untrusted_content.steps.length,1);assert.equal(stopped.untrusted_content.steps[0].kind,'activation');if(row.foreign)assert.ok(stopped.untrusted_content.steps[0].frame>0);
       assert.ok(stopped.followups.some(row=>row.stopped));await approval(await call('click',await target('Delete')),id);
       assert.equal(receiverEvidence(id,'only the approved handler ran').arrivals[0].body,'mixed handler');
       evidence.mixed.push({id,...row,stopped});await closeNativeDonor();
