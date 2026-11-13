@@ -490,9 +490,10 @@ the front when he should look at it or sign in there.
 **His open tabs (decision 25 as changed).** *brief 28b*
 
 - **What Claude sees.** `chrome_tabs` lists every tab of every normal window of his Chrome profile in one result:
-  the title, the site and path, the window, and whether the tab is Claude's, his, or his and taken. It also says
-  which tab is in front, pinned, playing sound or asleep. The part of an address after `?` or `#` is never listed,
-  because it can hold tokens. Titles are page text, so they are untrusted content (rule 4.8).
+  the title, the address, the window, and whether the tab is Claude's, his, or his and taken. It also says which
+  tab is in front, pinned, playing sound or asleep. Addresses are in the public form ("Reading a page"): the site
+  and the path, never what follows `?` or `#`, because that can hold sign-in tokens. Titles are page text, so they
+  are untrusted content (rule 4.8).
   - **Incognito windows are never listed, read or taken.** The extension's manifest says `"incognito":
     "not_allowed"`. Incognito is his way of saying "not for the record".
   - **Other Chrome profiles** aren't listed. The service accepts one native host per running Chrome (*brief 20*), so
@@ -610,7 +611,7 @@ fits its kind:
 - a form as every field with its label, value, options, required mark and error text, its hidden fields by name,
   and where it sends;
 - a text in full;
-- a single link or control with everything known about it (the full address, the title).
+- a single link or control with everything known about it (its address in the public form, the title).
 
 **Finding.** With `find`, and `role` to narrow it, `chrome_read` returns the elements whose name, label, value or
 text contains the words, folded parts and frames included: up to 20 per page, each as its outline line with a
@@ -627,6 +628,22 @@ says whether it happened.
 several are read, never more than 40,000. What doesn't fit is paged with a cursor bound to the page's revision; a
 cursor from an older revision fails with "page changed, read again". The header names the tab, the address, the
 title, the scroll position, and how many characters the whole answer has.
+
+**Addresses: one public form.** *brief 28.* An address can carry a sign-in: a code after `?`, a token after `#`,
+a user name and password in front of the site, or a reset link whose path is the key. So one function in the
+service writes every address that leaves it, and it writes:
+
+- the site, with `http://` in front when the page isn't `https`, and never a user name or password;
+- the path, except what follows a sign-in word (`/reset/…`, `/verify/…`) and any part that looks like a random
+  value (`…` stands in for both);
+- `?…` or `#…` when there is a query or a fragment, never a name or value from them.
+
+Every output uses this form and no other: the tab list, a page's address in a read, link and form targets, the
+library's bookmarks and history, every tool result and error, the notices, the question and description of a
+prepared operation, the operation's status and the log. The full address stays inside the service and the
+extension, where navigation and the binding need it: an approved input is still compared with the full
+destination. Claude uses an address it can't see by reference: it opens a link, a library entry or the address of
+one of his tabs with `chrome_open`.
 
 **References.** A reference is a short name the service issues: `e` and a number, counted per tab and never used
 twice in one Chrome session. An element keeps its reference for as long as it lives, across reads and results, so
@@ -841,14 +858,16 @@ Where the page's script decides the destination and the tool can't see it (a con
 adapter), the question says so ("where the page sends this isn't visible to the tool"); it never names a destination
 it didn't read.
 
-**The question** is one plain sentence the tool writes, as the page shows it: the site and address, the signed-in
-account where an adapter reads one, the label of the button or key, and what goes where; for example "Post a comment
+**The question** is one plain sentence the tool writes, as the page shows it: the site and path (addresses in the
+public form of "Reading a page"; `?…` marks a part that isn't shown), the signed-in account where an adapter reads
+one, the label of the button or key, and what goes where; for example "Post a comment
 on github.com/…/issues/12, as the page shows it: 'Thanks, fixed in #13' (button 'Comment')?". The content fields
 follow: everything in the list above, files with path and hash, the number of hidden fields with their names and
 values, and each password field by its label only.
 
 **What the binding guarantees:** the input goes only if the page still shows what he approved, checked right before it
-is dispatched. A page script that changes the page in the instant between that check and the input, or that sends
+is dispatched. The comparison uses full addresses, also where the question shows the public form: a destination
+whose query changed while the approval waited is refused. A page script that changes the page in the instant between that check and the input, or that sends
 something else afterwards, isn't stopped (below).
 
 **Outcomes (rule 4.3 for Chrome).** The tool sees the input, not the network. Its stages are `checked`, then
@@ -933,16 +952,16 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 
 | Action | Effect | What it does | Replaces (brief 20) |
 |---|---|---|---|
-| `chrome_tabs` | read | every tab of every normal window in one result: number, whose, title, site and path, marks | `chrome_tabs` (5 to 10 tabs per call) |
+| `chrome_tabs` | read | every tab of every normal window in one result: number, whose, title, address (public form), marks | `chrome_tabs` (5 to 10 tabs per call) |
 | `chrome_read` | read | the outline of a tab, or of up to five tabs; one part by `ref`; `find`; `until`; paged by `max` and `cursor`. In one of his tabs it reads in place and needs `request` | `chrome_read`, `chrome_read_form`, `chrome_find`, `chrome_wait` |
-| `chrome_open` | change | open a web address in a new Claude tab (an address, a link by reference, or the address of one of his tabs), wait, return the outline | `chrome_open`, then wait and read |
+| `chrome_open` | change | open a web address in a new Claude tab (an address, a link or a library entry by reference, or the address of one of his tabs), wait, return the outline | `chrome_open`, then wait and read |
 | `chrome_go` | change | in a Claude tab: an address, back, forward or reload; wait, return the outline | `chrome_navigate`, then wait and read |
 | `chrome_do` | change | up to 32 steps in one tab (click, fill, select, check, press, scroll, dialog, wait), each by reference. An asking step isn't dispatched and returns a prepared operation, and so does a submission the page starts while handling a step; an activation the page starts is stopped and reported, never resumed. Returns what changed | `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll`, `chrome_dialog` |
 | `chrome_upload` | change | prepare putting a local file into a file field (it asks through `chrome_submit`) | the same |
 | `chrome_show` | change | bring a tab and its window to the front, for him | new |
 | `chrome_close` | change | close Claude tabs; one of his only with `request`, never with unsaved typing or playing media | `chrome_close_tab` |
 | `chrome_take`, `chrome_release` | change | take one of his tabs for acting (it reloads once; `reload: true` when that loses typing or media; never a page of the fixed list); give it back to its place | `chrome_take_tab`, `chrome_release_tab` |
-| `chrome_library` | read | his downloads (and where Chrome saved them), bookmarks or history, to find addresses | `chrome_downloads`, `chrome_bookmarks`, `chrome_history` |
+| `chrome_library` | read | his downloads (and where Chrome saved them), bookmarks or history, to find pages: titles, addresses in the public form, and a reference per entry to open it | `chrome_downloads`, `chrome_bookmarks`, `chrome_history` |
 | `chrome_submit` | **send** | run one prepared operation, by id and hash, after the page-state check | the same |
 | `chrome_submit_trusted` | send, free | as `chrome_submit`, only for a kind he set to "don't ask again" | the same |
 | `chrome_drop` | change | drop a prepared operation; a stopped page step stays stopped and nothing happens on the page | the same |
@@ -1086,6 +1105,14 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   in its own tab, where his unsent typing isn't. *Accepted:* the tool can't tell a password he made visible from
   other text there, and a password is never a limit. A passive marker that proves each field's history could lift
   this later, after his live test.
+- **Claude doesn't see what follows `?` or `#` in an address.** *Harm:* it can't quote or rebuild such an address
+  (a video's link, page 3 of a search); it opens the link by reference instead, or shows him the tab. *Accepted:*
+  that part of an address is where sign-in codes travel, and the tool can't tell a code from a page number. If his
+  live test shows this in the way, naming harmless parameters per site is the later step.
+- **A secret in an address's path that doesn't look like one.** The public form hides what follows a sign-in word
+  and anything that looks random. A short or wordy key elsewhere in a path is shown. *Harm:* such a link's key
+  reaches Claude's context and the log. *Accepted:* the path is what tells one page from another, so it can't be
+  hidden whole; sign-in links of this shape are rare, and most are used up when he opens them.
 - **A reload on take loses what isn't typing or media:** an open menu, a place in an endless list, a game's state.
   *Harm:* he finds his tab reset. *Accepted:* the take rule (owner, 2026-11-11); looking needs no take, and Claude
   can work on a copy of the page in its own tab.
@@ -1176,7 +1203,7 @@ field it can't confirm is safe isn't read; every result says plainly that this C
    carries a listed word asks on its own, also right after an approved action that didn't name it; one without a
    listed word is free, as the rule and `FEATURES.md` say.
 5. **The question matches the page:** every item in the list, files with path and hash, hidden fields, password
-   fields by label only, and "not visible to the tool" where the destination isn't.
+   fields by label only, addresses in the public form, and "not visible to the tool" where the destination isn't.
 6. **Where Claude may go:** every refused scheme in `chrome_open`, `chrome_go` and links; the fixed list
    reached by taking a tab, a redirect, a popup, back and forward, and an embedded frame, each refused before any
    read or action.
@@ -1225,6 +1252,10 @@ harness's helper functions change, never an assertion.
       change on the page; a removed element, a renamed one, a field whose value changed, a new document, a Chrome
       restart, a service restart, another tab's reference and an invented one are each refused, the renamed one
       with its present line;
+    - addresses: a marker in the query, the fragment, the user name and a sign-in path of a page's own address, of
+      link and form targets, of frames, redirects and library entries appears in no result, error, question,
+      status, notice or log line; `chrome_open` by reference still reaches the full address; the binding still
+      refuses a destination whose query changed;
     - hostile content: text and names shaped like outline lines, references, folds or instructions come back
       quoted and escaped inside the untrusted fields; a page of 100,000 elements is cut with a plain notice;
     - passwords: group 7's fixtures and recording run over every new output (the outline, a form read by `ref`,
@@ -1245,7 +1276,7 @@ harness's helper functions change, never an assertion.
     - two similar tabs, and he switches tabs while a list runs (PLAN task 14): every step lands in the named tab.
 16. **Efficiency** (*brief 28*): the budgets of "Efficiency, as a tested property", against the recorded baseline.
 17. **His open tabs** (*brief 28b*):
-    - the list: every normal window, the marks, no address part after `?` or `#`, an incognito window absent, a
+    - the list: every normal window, the marks, every address in the public form, an incognito window absent, a
       hostile title (instructions, forged marks, direction-changing characters) quoted and escaped;
     - looking in place: a fixture page that records every event, mutation, focus, scroll and request it can observe
       sees nothing from a read; the document, his typed text, his scroll position and playing media are unchanged;

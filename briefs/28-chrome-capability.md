@@ -123,6 +123,40 @@ tab at once with the fields item 6 needs. **Nothing else in `background.js` chan
 The service renders the nodes; the reader only collects. Put the rendering and the references in a module of their
 own (for example `control/aresos_control/chrome/view.py`), tested without a browser against recorded node lists.
 
+**Addresses: one public form** (section 6, "Reading a page"). One function in the service, `public_address`, turns
+an address into the only form that may leave the service. It returns:
+
+- the site: the host in lower case and ASCII, with the port when it isn't the scheme's default, and `http://` in
+  front when the address isn't `https`; never a user name or a password;
+- the path as the browser gives it, with two cuts. After a segment that holds a sign-in word (reset, verify,
+  confirm, activate, magic, token, invite, auth, oauth, sso, saml, login, signin, logon, callback, password,
+  passwort, otp; as a whole word or a part of the segment), everything that follows is one `…`. And a segment that
+  looks like a random value is `…`: it holds a run of 20 or more letters and digits with at least one of each, or
+  it is 24 or more hex digits once its hyphens are taken out;
+- `?…` when the address has a query and `#…` when it has a fragment: never a name or a value from either;
+- nothing but letters, digits and `. - _ ~ / % :` besides those marks. Everything else is percent-encoded, so an
+  address can't break an outline line.
+
+Everything that leaves the service toward Claude, toward his question or toward the log carries addresses in this
+form and no other:
+
+- reads: the `url` of a page, a link's and a form's target, detail reads, `find`, change reports;
+- `chrome_tabs` and `chrome_library` (bookmarks, history, and where a download came from);
+- the results and error messages of every tool, the notices;
+- a prepared operation's question and description, and what `chrome_operation_status` returns;
+- what the service writes to its audit log (`aresos log`).
+
+Full addresses stay inside the service and the extension: in the reference table, in an operation's payload
+(`binding`, `reference`) and in the commands to the extension. **Nothing about comparing changes:** the extension
+still compares the full destination right before an approved input. To build this, `prepare`, `question`, `free`
+and `stage` in `adapter.py` take their description, question and stage texts from a copy in which each address
+went through `public_address` (`url`, `frame_url`, `effective_url`, `form.action`, `target.href`,
+`editable[].url`, a dialog's `frame_url`, and the `url` the extension reports after an input). The payload isn't
+touched. This is the one change this package makes inside those functions; show its lines in the report.
+
+Claude uses an address it can't see by reference: a link's `ref`, his tab's number, a library entry's `ref` (items
+4 and 6).
+
 **The outline format** (normative; section 6 shows an example):
 
 ```
@@ -175,7 +209,8 @@ Result:
   line per row with the cells separated by ` | `, and controls inside a cell as `[link "Open" e31]`. A list: its
   items. A form: every field as an outline line with its options (up to 50 per field, more by the field's own
   `ref`), `required`, the field's error text, the hidden fields by name, the buttons, and the form's target. A text:
-  in full. A single link or control: everything known about it (the full address, the title, all options).
+  in full. A single link or control: everything known about it (its address in the public form, the title, all
+  options).
 - `find`: up to 20 hits per page. Each hit is the element's outline line, then ` · in ` and the path of named
   ancestors (at most 80 characters); a hit inside a longer text adds 60 characters either side of it. Literal, no
   regard to case, over names, labels, values that may be read, and text; folded parts and frames included; inside
@@ -213,8 +248,9 @@ Result:
 
 ### 4. `chrome_open` and `chrome_go` (effect change)
 
-**`chrome_open`** input: exactly one of `url`; `tab` (open the address that tab shows); `tab` with `ref` (open that
-link's address). Also `until`, `timeout_ms` (0 to 20,000, default 8,000) and `max` (default 4,000).
+**`chrome_open`** input: exactly one of `url`; `tab` (open the address that tab shows); `ref` (open the address
+behind a link's or a library entry's reference; `tab` may accompany a link's reference and must then be its tab).
+Also `until`, `timeout_ms` (0 to 20,000, default 8,000) and `max` (default 4,000).
 **`chrome_go`** input: `tab`, and exactly one of `url` or `to` (`back`, `forward`, `reload`); `until`, `timeout_ms`,
 `max` as above.
 
@@ -230,8 +266,8 @@ Result of both:
   refusal of form-loaded history entries, the guarded reload). Then the service waits: until the top document has
   changed and `readyState` is `complete`, and the revision has been still for 150 ms; or until `until` is met; or
   until the timeout. `loaded` says which.
-- `chrome_open` with `tab`: the service reads that tab's address itself (Claude never sees the part after `?`), and
-  the rules of "Where Claude may go" apply to it.
+- `chrome_open` with `tab` or `ref`: the service takes the full address from the tab or from its reference table
+  (Claude only ever saw the public form), and the rules of "Where Claude may go" apply to it.
 - The outline is the same as `chrome_read`'s, with references ready for the next call.
 
 ### 5. `chrome_do` (effect change)
@@ -313,8 +349,8 @@ references; brief 20's rules for the three kinds of dialog are unchanged.
 
   Per tab: Chrome's tab number; whose (`claude`, `his`, `taken`); the marks `*` (the tab showing in its window),
   `pinned`, `sound`, `asleep`, `popup`, `no` (never readable: the fixed list, his never-list, not a web page) and
-  `look` (a read-only site); the title, quoted and cut at 80 characters; the site and path, cut at 60 characters,
-  **without the part after `?` or `#`**.
+  `look` (a read-only site); the title, quoted and cut at 80 characters; the address in the public form (item 2),
+  cut at 60 characters.
 - **`chrome_show`** (change; input: `tab`). Makes the tab the one showing in its window and brings that window to
   the front. For him: to look, to sign in, to answer a dialog. Refused for nothing but an unknown tab.
 - **`chrome_close`** (change; input: `tabs`, 1 to 20; `request`, accepted and ignored now). Closes Claude's own
@@ -327,7 +363,9 @@ references; brief 20's rules for the three kinds of dialog are unchanged.
   reload now (brief 20's `prepare_control` with its explicit repeat) and returns the outline. No other tool has a
   `reload` input.
 - **`chrome_library`** (read; input: `kind`, one of `downloads`, `bookmarks`, `history`; `text`; `cursor`; `limit`).
-  The three brief 20 tools merged, unchanged otherwise, with their snapshot paging.
+  The three brief 20 tools merged, with their snapshot paging. Two differences: every address is in the public
+  form, and every entry carries a reference (item 3) that `chrome_open` takes as `ref`. The service keeps the full
+  address under that reference for as long as the snapshot lives.
 - **`chrome_upload`** (change; input: `tab`, `ref`, `path`). Brief 20's tool with a short reference. The proxy's
   file branch stays as it is, apart from the field names it reads.
 - **Unchanged in name, input, result and behaviour:** `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`,
@@ -414,7 +452,10 @@ Every new rule gets a test that fails without it.
 **Without a browser** (Python and Node): the outline renderer against recorded node lists (every fold, every
 escape, depth, the `ref` forms, `find`, the cut at `max` and at 48 KiB with non-ASCII text); the reference table
 (same element same reference, never reused, the four stale cases, the 5,000 bound, another tab's reference); the
-`chrome_do` loop with a fake bridge (the check before the first step, every stop, `not_run`, nothing twice after an
+`public_address` against a table (a user name and password, ports, a non-ASCII host, `http`, queries, fragments,
+each sign-in word, random-looking segments such as a UUID, 40 hex digits, a 43-character token and a JWT, segments
+that stay such as a slug with digits, a numeric id and an 11-character id, and characters such as `|`, `[`, quotes,
+spaces and line breaks); the `chrome_do` loop with a fake bridge (the check before the first step, every stop, `not_run`, nothing twice after an
 interruption at each point); the change report; the reader's `outline` command in the Node VM doubles that
 `reader.test.mjs` uses, with the password fixtures; the credential words (each word, as a whole word and as a name
 part, in each of the six places; `shipping`, `postal code` and `pinned` don't match).
@@ -451,6 +492,16 @@ Added cases, each with group 7's known password and a label that says nothing ("
   of 100,000 characters.
 
 Small fixtures are compared with stored expected outlines, character for character.
+
+**Addresses, in group 14.** Fixture pages carry one marker value in the query, in the fragment, as a user name and
+password, and as a 40-character path segment after `/reset/`: in the page's own address, in link targets, in form
+actions, in a frame's address, in a redirect's target, and in history, bookmark and download entries.
+
+- The marker appears in no result of any tool, in no error message, in no question or description, in nothing
+  `chrome_operation_status` or `chrome_notices` returns and in no line of the audit log.
+- `chrome_open` with `ref` (a link, a library entry) and with `tab` still reaches the full address: the fixture
+  receiver logs the query.
+- Group 3's binding still refuses a destination whose query changed while the approval waited.
 
 **Group 15, going and acting in one call** (browser): as section 6 lists it. In addition:
 

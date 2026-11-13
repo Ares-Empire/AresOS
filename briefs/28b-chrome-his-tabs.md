@@ -75,8 +75,8 @@ catch a page that submits by itself. If you have typed something there, or music
 
 ### 1. What Claude sees
 
-- `chrome_tabs` as brief 28 built it: every tab of every normal window, whose it is, the marks, the title, the site
-  and path without the part after `?` or `#`.
+- `chrome_tabs` as brief 28 built it: every tab of every normal window, whose it is, the marks, the title, and the
+  address in brief 28's public form (no query, no fragment, no sign-in path).
 - **Incognito never.** Add `"incognito": "not_allowed"` to the manifest. An incognito window's tabs are never
   listed, read or taken.
 - **One profile.** The service accepts one native host per running Chrome, so only the profile whose extension
@@ -154,7 +154,8 @@ own group, and **pinned** if it was pinned (brief 20's record of the original pl
 
 `chrome_close` closes one of his tabs only when `request` is given, and never one with unsaved typing or playing
 media (the same check as item 4; such a tab is listed under `kept` with the reason). The result lists each closed
-tab with its title, site and path. A page of the fixed list or his never-list is never closed by Claude.
+tab with its title and its address in the public form. A page of the fixed list or his never-list is never closed
+by Claude.
 
 ### 6. What he sees
 
@@ -166,7 +167,7 @@ tab with its title, site and path. A page of the fixed list or his never-list is
   never as markup. A taken tab has a **Give back** button, which is `release` for that tab. **Stop** still gives
   everything back.
 - **The log.** Every read, take and close of one of his tabs is written to the service's log with the time, the
-  tab's title and site and the request, so `aresos log` shows it (rule 4.9 covers these reads although they change
+  tab's title, its address in the public form and the request, so `aresos log` shows it (rule 4.9 covers these reads although they change
   nothing).
 - **Nothing of ours opens a window or takes the focus.**
 
@@ -220,7 +221,9 @@ owner with real keys and clicks (`owner-ui.mjs`). Every new rule gets a test tha
 password cases under `password_exclusion`):
 
 - **The list:** two normal windows with groups, a pinned tab, a tab playing sound, an asleep tab, a popup; an
-  incognito window whose tab is absent; no address shows anything after `?` or `#`; a title made of instructions,
+  incognito window whose tab is absent; every address is in the public form (brief 28's marker fixture, in his
+  tabs: nothing of the query, the fragment or the sign-in path is in a result, the popup list or the log); a title
+  made of instructions,
   forged marks (`claude`, `taken`, `no`) and direction-changing characters comes back quoted and escaped.
 - **Looking in place leaves no trace.** A fixture page records everything it can observe: every event on window
   and document, focus and visibility, scrolling, DOM mutations, wrapped native functions, requests to the
