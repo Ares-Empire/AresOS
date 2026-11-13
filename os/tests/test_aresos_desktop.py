@@ -1541,6 +1541,26 @@ class RestartPolicyTest(Base):
                 self.assertEqual(self.stored()['unresolved']['launch'], launch)
                 self.assertEqual(self.stored()['consecutive'], 0)
 
+    def test_an_explanation_found_after_the_new_session_started_still_starts_the_hub(self):
+        # Finding 3, the rare order: the new session's supervisor finds no record at its start, so the latch holds
+        # and recovery shows; the record turns up afterwards. The old launch is settled once and the hub starts:
+        # nothing waits for the old session's backoff or quit.
+        for status, counted in ((1, 1), (0, 0)):
+            with self.subTest(status=status):
+                sup, launch = self.unresolved()
+                again = self.reboot()
+                self.assertEqual((again.state, again.reason, again.persisted.latched), ('RECOVERY', 'killed', True))
+                self.write_record(launch=launch, session=sup.instance, pid=77, ticks=None, status=status, sent=[],
+                                  reason='lost the supervisor during the hand-off')
+                self.advance(desktop.UNRESOLVED_CHECK)
+                again.tick()
+                self.assertEqual((again.state, again.reason, again.persisted.latched), ('STARTING', None, False))
+                self.assertEqual(len(self.runner.prisms), 1, 'the new session starts its hub')
+                self.assertEqual((self.stored()['consecutive'], self.stored()['unresolved']), (counted, None))
+                self.advance(3600)
+                again.tick()
+                self.assertEqual(len(self.runner.prisms), 1, 'and starts it once')
+
     def test_his_quit_holds_in_its_own_session_only(self):
         # Finding 3's other half: the same explanation (exit 0) read by a restarted supervisor of the same session
         # keeps the hub closed until his retry; read after a reboot it does not (the test above).
