@@ -121,7 +121,29 @@ The laptop's local full/cold builds above used exactly the same `mod/` tree as t
 
 Started with `~/.local/bin/gh workflow run mod.yml --ref pkg/38-reproducible-jar`, waited with one blocking `gh run watch 43480222519 --exit-status` (exit 1; no polling loop), and read `gh run view 43480222519`, its complete logs and the uploaded hash file. `gh run download 43480222519 -D .work/repro/ci-code` downloaded both artifacts. Independently hashed the uploaded jar and compared its complete bytes with the laptop jar: identical. The summary/hash step and artifact upload passed. Both server test runs passed all 38 required tests. First full build: `BUILD SUCCESSFUL in 1m 14s`, 56 unit tests passed / 6 Windows-only skips. Second full build: `BUILD FAILED in 37s`, 55 unit tests passed / 1 failed / 6 skipped.
 
-**The workflow is red, so the green-CI acceptance is not met.** It detected the pre-existing startup replay race described below. The second checkout's retained XML shows the exact wire-ID mismatch: expected `[first, second]`, received `[first, first, second]`. The independent two-build byte comparison and cross-machine equality both passed. This is not reported as a fully green package and the test has not been weakened or retried automatically.
+**That run was red, so it did not meet the green-CI acceptance.** It detected the pre-existing startup replay race described below. The second checkout's retained XML shows the exact wire-ID mismatch: expected `[first, second]`, received `[first, first, second]`. The independent two-build byte comparison and cross-machine equality both passed. The test has not been weakened or retried automatically. Its underlying race remains a known unresolved issue even though the subsequent PR run below passed.
+
+### Passing PR run and clean-head laptop proof
+
+At **`f96442a6082e54da60309afc5c0ee1b6c55afbf3`**, the worktree was clean (`git status --porcelain=v1`: no output). Deleted its generated `mod/build/`, checked `free -g` (8 GiB available), and ran `mod/dev/build.sh --console=plain`:
+
+```text
+BUILD SUCCESSFUL in 38s
+17 actionable tasks: 14 executed, 3 up-to-date
+All 38 required tests passed :)
+Unit XML totals: 62 tests, 0 failures, 0 errors, 6 Windows-only skips
+Laptop SHA-256: dacae565e4f837faf5323d6cc8fb1efce1acc03577fcb904a2c0fa1a8f5a63be
+```
+
+The automatic **pull-request** workflow at that exact head, [run **43481077335**](https://github.com/Ares-Empire/AresOS/actions/runs/43481077335), passed in **3m30s**. Waited with `gh run watch 43481077335 --exit-status` (exit 0), read `gh run view` and its logs/summary hash output, then downloaded its artifacts with `gh run download 43481077335 -D .work/repro/ci-pr-proof`:
+
+```text
+GitHub first:  dacae565e4f837faf5323d6cc8fb1efce1acc03577fcb904a2c0fa1a8f5a63be
+GitHub second: dacae565e4f837faf5323d6cc8fb1efce1acc03577fcb904a2c0fa1a8f5a63be
+Uploaded jar:  dacae565e4f837faf5323d6cc8fb1efce1acc03577fcb904a2c0fa1a8f5a63be
+```
+
+Compared the uploaded jar's complete bytes with the laptop jar: identical. Independently parsed both uploaded unit-result XML sets: each has 56 passed, 6 Windows-only skips, 0 failures/errors. Both hosted server test runs passed 38/38. The PR check was green; the existing startup race remains reproducible and requires a separate runtime fix, so this passing run is not a claim of test stability. This evidence-only follow-up leaves `mod/` tree `23bef44dd2e8b718e8eee525ecb92b28cfc8c007` unchanged; its exact final head/run are recorded in the PR description.
 
 ### Existing test failure exposed by GitHub
 
