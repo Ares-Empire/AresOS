@@ -52,6 +52,52 @@ java {
     targetCompatibility = JavaVersion.VERSION_25
 }
 jar { from('LICENSE') { rename { "${it}_aresos" } } }
+// The AresOS image pins the jar's SHA-256 (package 23), so the same sources
+// must give the same bytes: no build-time timestamps, a fixed entry order.
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+// The image pins this jar's hash. Keep this block separate from game/test configuration.
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+    filePermissions { unix('0644') }
+    dirPermissions { unix('0755') }
+}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
+tasks.withType(ProcessResources).configureEach { filteringCharset = 'UTF-8' }
+
+// Loom 1.19.2 adds an unsorted client-entry list in a doLast action, with no sorting option.
+// Register after Loom's configuration, retain every attribute, and change only serialization order.
+afterEvaluate {
+    tasks.withType(Jar).configureEach {
+        doLast {
+            net.fabricmc.loom.util.ZipReprocessorUtil.transformZipEntry(
+                archiveFile.get().asFile.toPath(), 'META-INF/MANIFEST.MF', { bytes ->
+                    def original = new java.util.jar.Manifest(new ByteArrayInputStream(bytes))
+                    def attributes = new TreeMap<String, String>()
+                    original.mainAttributes.each { key, value -> attributes[key.toString()] = value.toString() }
+                    def clientEntries = 'Fabric-Loom-Client-Only-Entries'
+                    if (attributes.containsKey(clientEntries)) {
+                        attributes[clientEntries] = attributes[clientEntries].split(';').sort().join(';')
+                    }
+                    def stable = project.extensions.getByType(JavaPluginExtension).manifest()
+                    stable.attributes(attributes)
+                    new TreeMap<>(original.entries).each { name, section ->
+                        stable.attributes(new TreeMap<>(section.collectEntries { key, value ->
+                            [(key.toString()): value.toString()]
+                        }), name)
+                    }
+                    def output = new ByteArrayOutputStream()
+                    stable.writeTo(output)
+                    output.toByteArray()
+                }
+            )
+        }
+    }
+}
 
 tasks.named('runClientGameTest') {
     systemProperty 'aresos.disableDiscovery', 'true'

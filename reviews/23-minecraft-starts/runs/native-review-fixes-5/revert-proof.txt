@@ -1,0 +1,131 @@
+Package 23 review fixes 5: each fix reverted alone (interfaces kept), then the model test and that fix's tests.
+Natively on AresOS (Python 3.14.8), copies of the working tree at 2a658f5b (os/ and mod/ without os/manifest), each
+with one change put back. "the shortest" are the shortest failing orders of the model; a failing order is not
+extended, so "reached" is below 41984 when a revert fails early. The letters are in HandOffRun's docstring.
+The seven runs ran side by side; the fixed code's run is the whole module, alone.
+
+== the fixed code: test_aresos_desktop, all classes, with -W error::ResourceWarning
+  model: 0 failing; 41984 orders, each without and with a reboot (running 324, unwitnessed 14888, killed 12130,
+    crash 8010, quit 6632; restarted after a crash 5176; latch kept over a reboot 23482, crash reconciled after a
+    reboot 2146, quit reconciled after a reboot 1828)
+  Ran 144 tests in 194 s: OK (skipped=1)
+== 1a: fix 1, wrapper: a signal is noted before it is sent, sent or not (round 4)
+  model: 1188 failing orders of 38066 reached
+    after 0 s, RkS: ('a signal was noted that no running Java took', 15, False, [15])
+    after 0 s, RcS: ('a signal was noted that no running Java took', 15, False, [15])
+    after 0 s, RqS: ('a signal was noted that no running Java took', 15, False, [15])
+    after 0 s, kRS: ('a signal was noted that no running Java took', 15, False, [15])
+  FAIL LoopTest.test_a_kill_from_outside_before_the_wrappers_sigkill_latches
+      AssertionError: Tuples differ: ('688776158de4', -9, [15, 9]) != ('688776158de4', -9, [15])
+  FAIL LoopTest.test_a_kill_from_outside_before_the_wrappers_sigkill_latches_by_the_record_alone
+      AssertionError: Tuples differ: ('b8a809e65b75', -9, [15, 9]) != ('b8a809e65b75', -9, [15])
+  FAIL WrapperTest.test_a_kill_from_outside_at_each_point_of_the_wrappers_stop (step=1, when='before')
+      AssertionError: Tuples differ: ('jvm_failed', -9, [15]) != ('jvm_failed', -9, [])
+  FAIL WrapperTest.test_a_kill_from_outside_at_each_point_of_the_wrappers_stop (step=1, when='after')
+      AssertionError: Tuples differ: ('jvm_failed', -15, [15]) != ('jvm_failed', -9, [15])
+  FAIL WrapperTest.test_a_kill_from_outside_at_each_point_of_the_wrappers_stop (step=2, when='before')
+      AssertionError: Tuples differ: ('jvm_failed', -9, [15, 9]) != ('jvm_failed', -9, [15])
+  FAIL WrapperTest.test_a_signal_counts_as_sent_only_when_a_running_java_took_it
+      AssertionError: True is not false : reaped: nothing is sent
+  Ran 8 tests in 152 s: FAILED (failures=7)
+== 1b: fix 1, supervisor: a SIGKILL the wrapper sent is its own stop, counted and restarted (round 4)
+  model: 2832 failing orders of 40696 reached
+    after 0 s, RseF: ('counted or restarted an end that is not a certain crash', 'killed', (1, 1), 1)
+    after 0 s, RsEF: ('counted or restarted an end that is not a certain crash', 'killed', (1, 1), 1)
+    after 0 s, OseF: ('counted or restarted an end that is not a certain crash', 'killed', (1, 1), 1)
+    after 0 s, OsEF: ('counted or restarted an end that is not a certain crash', 'killed', (1, 1), 1)
+  FAIL LoopTest.test_a_kill_from_outside_right_after_the_wrappers_last_look_latches
+      AssertionError: timed out; state STARTING None
+  FAIL LoopTest.test_a_lost_hand_off_with_a_java_that_ignores_sigterm
+      AssertionError: timed out; state STARTING restarting
+  FAIL RestartPolicyTest.test_a_late_report_still_explains_an_unexplained_start (sent=[15, 9], status=-9)
+      AssertionError: Tuples differ: ('STARTING', 'restarting', False) != ('RECOVERY', 'killed', True)
+  FAIL RestartPolicyTest.test_a_sigkilled_java_never_restarts_whoever_sent_the_signal (sent=[15, 9], accepted=False, path='report')
+      AssertionError: Tuples differ: ('STARTING', None, False) != ('RECOVERY', 'killed', True)
+  FAIL RestartPolicyTest.test_a_sigkilled_java_never_restarts_whoever_sent_the_signal (sent=[15, 9], accepted=False, path='record')
+      AssertionError: Tuples differ: ('STARTING', 'restarting', False) != ('RECOVERY', 'killed', True)
+  FAIL RestartPolicyTest.test_an_explanation_written_before_a_reboot_is_applied_after_it (status=-9, sent=[15, 9])
+      AssertionError: Tuples differ: ('STARTING', None, False) != ('RECOVERY', 'killed', True)
+  FAIL RestartPolicyTest.test_no_decision_hangs_on_the_signals_the_wrapper_sent (status=137, sent=[9])
+      AssertionError: Tuples differ: ('STARTING', 'restarting', False, 1) != ('RECOVERY', 'killed', True, 0)
+  Ran 7 tests in 209 s: FAILED (failures=13)
+== 2: fix 2: exit 0 is his quit only after the PID was accepted (round 4)
+  model: 2989 failing orders of 40358 reached
+    after 0 s, qF: ('counted or restarted an end that is not a certain crash', 'quit', (1, 1), 1)
+    after 0 s, TqF: ('counted or restarted an end that is not a certain crash', 'quit', (1, 1), 1)
+    after 0 s, qTF: ('counted or restarted an end that is not a certain crash', 'quit', (1, 1), 1)
+    after 0 s, qFT: ('counted or restarted an end that is not a certain crash', 'quit', (1, 1), 1)
+  FAIL LoopTest.test_a_java_that_exits_zero_before_the_hand_off_is_his_quit
+      AssertionError: timed out; state RECOVERY crashes
+  FAIL RestartPolicyTest.test_a_late_report_still_explains_an_unexplained_start (sent=[], status=0)
+      AssertionError: Tuples differ: ('STARTING', 'restarting', False) != ('RECOVERY', 'quit', False)
+  FAIL RestartPolicyTest.test_an_explanation_written_before_a_reboot_is_applied_after_it (status=0, sent=[])
+      AssertionError: Tuples differ: (1, 1) != (0, 0)
+  FAIL RestartPolicyTest.test_exit_zero_is_his_quit_whenever_it_comes (before the PID was delivered)
+      AssertionError: Tuples differ: ('STARTING', 'restarting', False) != ('RECOVERY', 'quit', False)
+  FAIL RestartPolicyTest.test_no_decision_hangs_on_the_signals_the_wrapper_sent (status=0, sent=[])
+      AssertionError: Tuples differ: ('STARTING', 'restarting', False, 1) != ('RECOVERY', 'quit', False, 0)
+  Ran 6 tests in 164 s: FAILED (failures=12)
+== 3a: fix 3: the exit record is kept in the runtime folder again (round 4)
+  model: 3974 failing orders of 41984 reached
+    after 0 s, TcFZ: ({'latched': True, 'counted': 0, 'truth': 'crash'}, (True, 0, 0))
+    after 0 s, TqFZ: ({'latched': True, 'counted': 0, 'truth': 'quit'}, (True, 0, 0))
+    after 0 s, cTFZ: ({'latched': True, 'counted': 0, 'truth': 'crash'}, (True, 0, 0))
+    after 0 s, qTFZ: ({'latched': True, 'counted': 0, 'truth': 'quit'}, (True, 0, 0))
+  FAIL LoopTest.test_an_explanation_the_wrapper_could_not_deliver_survives_a_reboot
+      AssertionError: timed out; state RECOVERY killed
+  FAIL RestartPolicyTest.test_an_explanation_written_before_a_reboot_is_applied_after_it (status=1, sent=[])
+      AssertionError: Tuples differ: ('RECOVERY', 'killed', True) != ('STARTING', None, False)
+  FAIL RestartPolicyTest.test_an_explanation_written_before_a_reboot_is_applied_after_it (status=-9, sent=[])
+      AssertionError: {'launch': 'bb3ab9b25bad', 'pid': None, 'ticks': None, 'accepted': False, 'mode': 'hub', 'nonce': '<nonce>'} is not None
+  FAIL RestartPolicyTest.test_the_wrappers_exit_file_is_read_when_its_report_was_lost
+      AssertionError: '<tmp>/run' unexpectedly found in '<tmp>/run/aresos/desktop-exit.json' : the record is kept where a reboot leaves it
+  Ran 5 tests in 179 s: FAILED (failures=8)
+== 3b: fix 3: what an earlier session decided is carried into the new one
+  model: 1828 failing orders of 41984 reached
+    after 0 s, TqFZ: ({'latched': True, 'counted': 0, 'truth': 'quit'}, (False, 0, 0))
+    after 0 s, qTFZ: ({'latched': True, 'counted': 0, 'truth': 'quit'}, (False, 0, 0))
+    after 0 s, TqFXZ: ({'latched': True, 'counted': 0, 'truth': 'quit'}, (False, 0, 0))
+    after 0 s, qTFXZ: ({'latched': True, 'counted': 0, 'truth': 'quit'}, (False, 0, 0))
+  FAIL LoopTest.test_an_explanation_the_wrapper_could_not_deliver_survives_a_reboot
+      AssertionError: timed out; state STARTING restarting
+  FAIL RestartPolicyTest.test_an_explanation_written_before_a_reboot_is_applied_after_it (status=1, sent=[])
+      AssertionError: Tuples differ: ('STARTING', 'restarting', False) != ('STARTING', None, False)
+  FAIL RestartPolicyTest.test_an_explanation_written_before_a_reboot_is_applied_after_it (status=0, sent=[])
+      AssertionError: Tuples differ: ('RECOVERY', 'quit', False) != ('STARTING', None, False)
+  Ran 4 tests in 179 s: FAILED (failures=5)
+== r4-2: round 4, fix 2 (kept invariant): an unresolved end is not restored by a new supervisor
+  model: 7619 failing orders of 41984 reached
+    after 0 s, TRSF: ('crash', {'latched': 'killed', 'counted': 0, 'restarts': 0}, {'latched': None, 'counted': 1, 'restarts': 0})
+    after 0 s, TcFZ: ({'latched': True, 'counted': 0, 'truth': 'crash'}, (True, 0, 0))
+    after 0 s, TcFR: ('crash', {'latched': 'killed', 'counted': 0, 'restarts': 0}, {'latched': None, 'counted': 1, 'restarts': 0})
+    after 0 s, TqFZ: ({'latched': True, 'counted': 0, 'truth': 'quit'}, (True, 0, 0))
+  FAIL LoopTest.test_an_explanation_the_wrapper_could_not_deliver_survives_a_reboot
+      AssertionError: timed out; state RECOVERY killed
+  FAIL LoopTest.test_an_unexplained_end_is_settled_after_a_supervisor_restart
+      AssertionError: timed out; state RECOVERY killed
+  FAIL RestartPolicyTest.test_an_explanation_written_before_a_reboot_is_applied_after_it (status=1, sent=[])
+      AssertionError: Tuples differ: ('RECOVERY', 'killed', True) != ('STARTING', None, False)
+  FAIL RestartPolicyTest.test_an_explanation_written_before_a_reboot_is_applied_after_it (status=-9, sent=[])
+      AssertionError: {'launch': '0901f6947f81', 'pid': None, 'ticks': None, 'accepted': False, 'mode': 'hub', 'nonce': '<nonce>'} is not None
+  FAIL RestartPolicyTest.test_an_unresolved_end_survives_a_supervisor_restart (report)
+      AssertionError: Tuples differ: ('RECOVERY', 'killed', True) != ('STARTING', 'restarting', False)
+  FAIL RestartPolicyTest.test_an_unresolved_end_survives_a_supervisor_restart (kill report)
+      AssertionError: {'launch': '03676ae34633', 'pid': None, 'ticks': None, 'accepted': False, 'mode': 'hub', 'nonce': '<nonce>'} is not None
+  Ran 5 tests in 183 s: FAILED (failures=11)
+== r4-3: round 4, fix 3 (kept invariant): both hand-off deadlines, the earliest wins
+  model: 52 failing orders of 41030 reached
+    after 25 s, B: ('latched while the wrapper may still be stopping Java', 5.0)
+    after 25 s, kB: ('latched while the wrapper may still be stopping Java', 5.0)
+    after 25 s, cB: ('latched while the wrapper may still be stopping Java', 5.0)
+    after 25 s, qB: ('latched while the wrapper may still be stopping Java', 5.0)
+  FAIL RestartPolicyTest.test_a_loss_late_in_the_authorization_window_gets_the_whole_wait
+      AssertionError: Tuples differ: ('RECOVERY', True) != ('STARTING', False)
+  Ran 2 tests in 155 s: FAILED (failures=2)
+
+Notes
+- 1a: the outcome tests (test_a_sigkilled_java_never_restarts_whoever_sent_the_signal, test_no_decision_hangs_on_
+  the_signals_the_wrapper_sent) ran and passed with the wrapper's bookkeeping reverted: no decision hangs on it.
+  The step=1/after case fails there because the reverted send() has no look to place the kill after.
+- r4-2 and r4-3 put back what round 4 fixed: the new model still catches both (brief 5: keep round 4's invariants).
+- fixes whose tests all passed when reverted (no proof): none

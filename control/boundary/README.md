@@ -97,3 +97,60 @@ request/response captures, settings snapshots, mount observations, hashes and
 named precedence results. `.github/workflows/control-boundary.yml` runs once per
 matching PR push or manual dispatch; rerun the same run to verify twice on one
 head. See `reviews/18d-base-slim/REPORT.md` for executed results and limitations.
+
+## Interactive managed asks (18c B1)
+
+The workflow also starts a fresh, networkless container with
+`python3 -I /opt/aresos-control/interactive_suite.py`. This uses the same locked
+native 2.1.319 package. It runs independently of the optional sandbox checks;
+a failure in either still fails the job. No optional sandbox is loaded by B1.
+
+`interactive_driver.Terminal` runs Claude in a 120x40 tmux pane. Its caller
+supplies `run(argv, env=..., required=...)`, returning a completed subprocess as
+the fixture owner (the future guest can use `runuser`). `wait(label, predicate)`
+uses deadlines and rendered `capture-pane -p` text. `choose(screen, answer)`
+selects the option by its full text before sending its displayed number; it
+accepts `Yes`, `No`, `DAA`, and the separately named bypass warning. Every screen
+acted on, launch command and choice is saved. A dialog must remain visible
+for one second before input; completion and receiver evidence prove the result. Unknown dialogs fail the case.
+Numeric choices may submit immediately or only select an option; the driver
+observes the rendered result and confirms with Enter only if still selected.
+Normal cases pass `--permission-mode default` explicitly: this pinned binary
+otherwise advertised auto mode as its interactive default during discovery.
+
+`interactive_model.Model(steps, evidence)` is a loopback streaming Messages
+double. Each step names a unique owner `prompt` marker and a `send` tool, with
+either a fixed `approval` (the container fixture), or `prepare={name, input}`.
+For the latter it copies the successful `data.approval` unchanged into the send.
+After each tool result it ends the turn with `INTERACTIVE_DONE_<index>`; a
+further request without a new owner marker is recorded as a Stop continuation
+and answered with text, without another tool call. `Terminal.prompt(marker)`
+starts the next step in the same CLI session. A new Terminal starts a fresh CLI.
+Native No interrupts the turn. The supervisor waits for that named rendered
+interruption and types `INTERACTIVE_RESUME_CURRENT_TURN` so the double can see
+the denied result and finish with text. That marker never selects another send.
+The supervisor owns service baselines, policy setup and independent arrival
+counts; neither reusable module changes the installed service or its policy.
+
+The 17 cases cover Yes, both No modes, user/project/local allows, PreToolUse
+allow, DAA with sends 2 and 3, and all four PermissionRequest combinations.
+PermissionRequest hook counts, arrivals and zero owner answers are compared with
+`interactive-permission-request-expected.json`. Raw `prompt_shown` is recorded
+for each case: a prompt can briefly render while a hook is still running, so
+that timing-dependent frame observation is not pinned; the old print-mode pin remains
+unchanged. Evidence lives under `terminal/interactive/<case>/`: rendered screens,
+choice logs, managed settings, per-turn source snapshots, hook input events,
+complete model requests/results and native JSONL transcripts. The independent
+receiver remains `terminal/stub.txt`; `summary.json` and `permission-request.json`
+record the counts. A denied send must never reach it.
+
+The pinned bypass warning is unnumbered. The driver matches `Yes, I accept`,
+moves from the observed focus with the arrow key and confirms. The binary then
+writes `skipDangerousModePermissionPrompt: true` in user settings; a DAA restart
+retains it. No guessed warning key is pre-seeded.
+
+The supervisor pre-seeds onboarding, synthetic-key approval and workspace trust
+exactly as the print harness does. It accepts the skip-permissions warning by
+its rendered `Yes, I accept` option, without guessing a configuration key.
+The measured warning, DAA and PermissionRequest behavior and runner evidence
+are recorded in `reviews/18c-image-test/REPORT.md`.

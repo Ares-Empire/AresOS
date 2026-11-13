@@ -38,6 +38,12 @@ PACKAGE_REASONS = {
     'xdg-desktop-portal-wlr': 'package 21 JUDGMENT-CALL 10: vanished Fedora pin 0.8.4 renewed to 0.8.5',
     **{name: UTIL_LINUX for name in ('util-linux', 'util-linux-core', 'libblkid', 'libmount',
                                      'libuuid', 'libfdisk', 'libsmartcols', 'liblastlog2')},
+    # Package 23 adds Java 25 to the lock; dnf resolved its three new
+    # dependencies with it (run 42803572026, weak dependencies off).
+    'java-25-openjdk-headless': 'package 23: Java 25, which Prism runs Minecraft 26.2 with',
+    'java-25-openjdk-crypto-adapter': "package 23: Java 25's NSS crypto adapter, a dependency of java-25-openjdk-headless",
+    'javapackages-filesystem': "package 23: Java's shared directories, a dependency of java-25-openjdk-headless",
+    'tzdata-java': "package 23: Java's time zone data, a dependency of java-25-openjdk-headless",
 }
 
 # build.sh changes of packages 21 and 24, as exact effects on files.

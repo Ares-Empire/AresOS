@@ -89,12 +89,12 @@ class Base(unittest.TestCase):
             'HOME': '/var/home/ares', 'PATH': '/usr/bin', 'WAYLAND_DISPLAY': 'wayland-0',
             'ARESOS_LAUNCH_NONCE': NONCE, 'ARESOS_DESKTOP_INSTANCE': INSTANCE, 'NOTIFY_SOCKET': '/run/notify'})
 
-    def helper(self, registry=REGISTRY, missing=('/usr/bin/google-chrome',), tracked=False):
+    def helper(self, registry=REGISTRY, missing=('/usr/bin/google-chrome',), tracked=False, keep_foreground=False):
         if tracked:
             self.windows = shell.Windows(clock=self.clock)
         helper = shell.Helper(str(registry), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
                               windows=self.windows, activate=self.activate if tracked else None, clock=self.clock,
-                              executable=lambda path: path not in missing)
+                              executable=lambda path: path not in missing, keep_foreground=keep_foreground)
         self.addCleanup(helper.watcher.stop)
         return helper
 
@@ -373,6 +373,41 @@ class ProtocolTest(Base):
         reply = self.request(helper, conn, 'heartbeat', 'b-3', instance=INSTANCE, nonce='x' * 20, ready=True)
         self.assertEqual(reply['error'], 'not_authorized')
         self.assertTrue(conn.closing)
+
+    def test_the_supervisor_hears_readiness_only_from_the_authenticated_desktop(self):
+        # Package 23: the desktop supervisor learns readiness from the helper's status pipe.
+        lines = []
+        helper = self.helper()
+        helper.status = lambda **fields: lines.append(fields)
+        conn = self.connect(helper)
+        world = {'id': 'AresHub', 'desktop': True}
+        self.request(helper, conn, 'world_ready', 'w-1', instance=INSTANCE, nonce=NONCE, world=world)
+        self.request(helper, conn, 'heartbeat', 'b-1', instance=INSTANCE, nonce=NONCE, ready=True)
+        self.request(helper, conn, 'heartbeat', 'b-2', instance=INSTANCE, nonce=NONCE, ready=False)
+        self.request(helper, conn, 'world_ready', 'w-2', instance=INSTANCE, nonce='x' * 20, world=world)
+        self.assertEqual(lines, [{'event': 'desktop_connected'}, {'event': 'world_ready', 'world': 'AresHub'},
+                                 {'event': 'heartbeat', 'ready': True, 'world': 'AresHub'},
+                                 {'event': 'heartbeat', 'ready': False, 'world': None}])
+
+    @unittest.skipUnless(hasattr(os, 'set_blocking') and sys.platform.startswith('linux'), 'Linux pipes')
+    def test_the_status_pipe_never_blocks_or_breaks_the_helper(self):
+        read, write = os.pipe()
+        status = shell.StatusPipe(write)
+        status(event='world_ready', world='AresHub')
+        self.assertEqual(json.loads(os.read(read, 4096)), {'event': 'world_ready', 'world': 'AresHub'})
+        for _ in range(20000):  # far more than a pipe holds: the extra lines are dropped, nothing blocks
+            status(event='heartbeat', ready=True, world='AresHub')
+        os.close(read)
+        status(event='heartbeat', ready=True, world='AresHub')
+        self.assertIsNone(status.fd)
+        status(event='heartbeat', ready=True, world='AresHub')
+        os.close(write)
+
+    def test_launched_apps_never_inherit_the_status_pipe(self):
+        self.assertIn('ARESOS_SHELL_STATUS_FD', shell.PRIVATE_ENVIRONMENT)
+        launcher = shell.ScopeLauncher(popen=self.popen, run=self.systemctl,
+                                       environ={'HOME': '/h', 'ARESOS_SHELL_STATUS_FD': '7', 'PATH': '/usr/bin'})
+        self.assertNotIn('ARESOS_SHELL_STATUS_FD', launcher.environment())
 
     def test_a_newer_authenticated_desktop_replaces_the_old_connection(self):
         helper = self.helper()
@@ -1082,6 +1117,103 @@ class WindowTest(Base):
         restarted.windows_changed()
         self.assertEqual(restarted.journal.entries['o-1']['state'], 'focused')
         self.assertEqual(self.popen.call_count, 1)
+
+
+class KeepForegroundTest(Base):
+    """Review 1, finding 11: a desktop the supervisor restarted waits below the window in front, once."""
+
+    window = WindowTest.window
+    focus = WindowTest.focus
+    focus_events = WindowTest.focus_events
+
+    def start(self, keep_foreground, in_front=True):
+        self.helper_ = self.helper(missing=(), tracked=True, keep_foreground=keep_foreground)
+        self.conn = self.connect(self.helper_)
+        if in_front:
+            self.window(2, 'org.kde.kwrite', activated=True)  # the owner is writing when the desktop comes back
+
+    def test_the_restored_desktop_gives_focus_back_to_the_window_in_front(self):
+        self.start(keep_foreground=True)
+        self.now[0] += 0.5
+        self.window(1, 'aresos-desktop', activated=True)
+        self.assertEqual(self.activations, [2])
+        self.assertEqual(self.helper_.active_handle, 2)
+        self.focus(2)  # the compositor applies the activation
+        self.assertEqual(self.focus_events(), [('background', 'app_activated', 'notepad')])
+        # Later the owner switches to the desktop on purpose: it stays in front, no second bounce.
+        self.now[0] += 1
+        self.focus(1)
+        self.assertEqual(self.activations, [2])
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'desktop_activated', None))
+
+    def test_an_ordinary_start_lets_the_desktop_take_focus(self):
+        self.start(keep_foreground=False)
+        self.window(1, 'aresos-desktop', activated=True)
+        self.assertEqual(self.activations, [])
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'desktop_activated', None))
+
+    def test_a_desktop_activated_after_the_window_is_the_owners_choice(self):
+        self.start(keep_foreground=True)
+        self.window(1, 'aresos-desktop')
+        self.now[0] += shell.KEEP_WINDOW + 0.1
+        self.focus(1)
+        self.assertEqual(self.activations, [])
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'desktop_activated', None))
+
+    def test_with_nothing_in_front_the_restored_desktop_keeps_focus_and_the_flag_is_spent(self):
+        self.start(keep_foreground=True, in_front=False)
+        self.window(1, 'aresos-desktop', activated=True)
+        self.assertEqual(self.activations, [])
+        self.window(2, 'org.kde.kwrite', activated=True)
+        self.now[0] += 0.5
+        self.focus(1)
+        self.assertEqual(self.activations, [])
+
+    def test_the_flag_never_reaches_launched_apps(self):
+        self.assertIn('ARESOS_SHELL_KEEP_FOREGROUND', shell.PRIVATE_ENVIRONMENT)
+
+    def test_a_desktop_identified_after_it_took_focus_still_gives_focus_back(self):
+        # Review 2, finding 8: the new window takes focus before it names its app ID; the ID comes later. The
+        # window that was in front still gets focus back, not the new window itself.
+        self.start(keep_foreground=True)
+        self.now[0] += 0.5
+        self.window(1, '', activated=True)
+        self.assertEqual(self.activations, [])
+        self.windows.app_id(1, 'aresos-desktop')
+        self.windows.done(1)
+        self.helper_.windows_changed()
+        self.assertEqual(self.activations, [2])
+        self.assertEqual(self.helper_.active_handle, 2)
+
+    def test_late_identification_gives_the_same_result_at_every_split(self):
+        # The same through the Wayland parser, with the compositor's events split across reads at every byte.
+        editor, desktop = 0xff000003, 0xff000001
+        string = shell.ForeignToplevels.string
+        stream = (wire_toplevel(desktop, '', True) + wire_state(editor, False)
+                  + FakeCompositor.message(desktop, 1, string('aresos-desktop')) + FakeCompositor.message(desktop, 5))
+        for split in range(len(stream) + 1):
+            with self.subTest(split=split):
+                windows = shell.Windows(clock=self.clock)
+                client_end, server_end = socket.socketpair()
+                self.addCleanup(client_end.close)
+                self.addCleanup(server_end.close)
+                wayland = shell.ForeignToplevels(client_end, windows)
+                wayland.kinds.update({50: 'manager', 60: 'seat'})
+                wayland.seat = 60
+                activations = []
+                helper = shell.Helper(str(REGISTRY), INSTANCE, NONCE, os.path.join(self.folder.name, f'k{split}.json'),
+                                      launcher=self.launcher(), windows=windows,
+                                      activate=lambda handle: activations.append(handle) or True,
+                                      clock=self.clock, executable=lambda path: True, keep_foreground=True)
+                self.connect(helper)
+                wayland.feed(wire_toplevel(editor, 'org.kde.kwrite', True))
+                helper.windows_changed()
+                self.now[0] += 0.5
+                wayland.feed(stream[:split])
+                helper.windows_changed()
+                wayland.feed(stream[split:])
+                helper.windows_changed()
+                self.assertEqual(activations, [editor])
 
 
 class FakeCompositor:

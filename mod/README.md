@@ -4,6 +4,20 @@ Minecraft Java 26.2, Java 25, Fabric Loader 0.19.5, Fabric API 0.161.0+26.2.
 Based on the official [Fabric example mod, 26.2 branch](https://github.com/FabricMC/fabric-example-mod/tree/26.2).
 Loom 1.19.2 requires the included Gradle 9.8.0 wrapper.
 
+## The same jar everywhere
+
+Build with **Temurin 25.0.5+8** and the SHA-256-checked **Gradle 9.8.0** wrapper;
+Loom **1.19.2**, Minecraft **26.2**, Loader **0.19.5** and Fabric API
+**0.161.0+26.2** are pinned in `gradle.properties`. Archives use fixed order,
+timestamps and permissions, compilation/resource filtering use UTF-8, and the
+Gradle JVM uses English/US and UTC. A small final jar action sorts Loom's
+client-entry manifest list and manifest attributes, preserving their values.
+Run `dev/build.sh` on the laptop, then `sha256sum build/libs/aresos-0.1.0.jar`
+(PowerShell: `Get-FileHash build/libs/aresos-0.1.0.jar -Algorithm SHA256`).
+Compare with the **Mod** workflow's summary for the same commit. That workflow
+uses the image's exact digest-pinned Temurin container, builds/tests two clean
+checkouts in different paths, checks equal bytes and uploads the jar and hashes.
+
 From this directory in PowerShell:
 
 ```powershell
@@ -39,22 +53,44 @@ no system install and change no shell setup:
   It renders on the RTX 4060 (PRIME offload) when that works headless, else on
   the Intel GPU, else in software (`--gpu` picks one), and says which at the end.
   Sound goes to OpenAL's null device. `--keep-screenshots <dir>` copies the
-  screenshots the run wrote; then `git checkout -- ../reviews/` undoes the
-  rewritten tracked ones.
+  screenshots the run wrote (the folder is created and checked before the run,
+  and a failed copy makes an otherwise green run exit 1); then
+  `git checkout -- ../reviews/` undoes the rewritten tracked ones.
 - **`dev/run-hub.sh`** (a development aid; package 23's session supervisor replaces
-  it) starts the app helper `/usr/libexec/aresos-shell` with a fresh desktop
-  instance and launch nonce, then `./gradlew runClient` on the real screen on the
-  RTX 4060, so walking into a logo opens the app. The helper stops when the game
-  exits. It refuses a helper it did not start that already serves the socket.
-  `--helper <path>` starts another helper (for example one from a worktree) and
-  `--registry <dir>` passes its app folder to the helper's `--registry`.
+  it) starts an app helper of its own (`/usr/libexec/aresos-shell`) with a fresh
+  desktop instance and launch nonce on a private socket in
+  `$XDG_RUNTIME_DIR/aresos-dev/run-hub-<pid>/`, then `./gradlew runClient` on the
+  real screen on the RTX 4060 with that socket, so walking into a logo opens the
+  app. It never uses the session's `$XDG_RUNTIME_DIR/aresos/shell.sock` and never
+  reuses a helper; when the game exits, its helper stops and the folder is
+  removed. `--helper <path>` starts another helper (for example one from a
+  worktree) and `--registry <dir>` passes its app folder to the helper's
+  `--registry`.
 
-Extra arguments go to Gradle. Only one client test runs at a time on the laptop:
-`client-test.sh` waits for `~/.cache/aresos-dev/client-test.lock` and says so.
-All three refuse (exit code 75) while the Lunar Client game runs or less than
-6 GB of memory is available; `--force` skips those two checks. Gradle runs
-without a lasting daemon (`--no-daemon`) inside its own systemd user scope, which
-every exit, Ctrl+C included, stops with everything in it.
+Extra arguments go to Gradle; its daemon switches `--daemon`, `--foreground`,
+`--stop` and `--status`, including their single-dash forms, are refused (exit
+code 2). Only one client test runs at a time on the laptop: `client-test.sh` waits for
+`~/.cache/aresos-dev/client-test.lock` and says so. All three refuse
+(exit code 75) while the Lunar Client game (Lunar's own Java) runs or less than
+6 GB of memory is available, and `client-test.sh` and `run-hub.sh` check again
+right before Gradle starts; `--force` skips those checks. Everything a script
+starts (Gradle without a lasting daemon, the game, a compositor, a GPU probe, the
+app helper, the wait for the lock) runs in a systemd user scope of that script's
+own, named `aresos-dev-…`, and every exit, Ctrl+C included, stops those scopes
+with everything in them.
+
+Scope startup has a 15-second deadline, including deferred signals. Cleanup
+retries stops and state queries for up to 30 seconds; if absence cannot be
+confirmed, it names the units, exits non-zero and keeps private run folders.
+Existing scope names are avoided, and a failed creation is never stopped.
+
+**Known limits of the dev scripts:**
+
+- A real Ctrl+C and a really closed terminal were tested as signals only.
+- A hanging GPU probe was tested with a stand-in, rather than a wedged compositor.
+- The user systemd manager must respond to commands. A broken manager that hangs
+  a query, or another process deliberately taking a just-checked random scope
+  name, is outside these scripts' guarantees.
 
 Click **AresOS** above Singleplayer on the title screen to reopen **AresHub**,
 or to create it if it does not exist. The create screen has one choice,
