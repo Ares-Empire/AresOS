@@ -631,6 +631,19 @@ reject with passing baselines. [Commands/results](records/post18d/local-expiry-f
 The exact schema-checked Mail replacement and final-head workflow repetitions
 remain pending. The shared installed runtime has not changed since e0cc9846.
 
+**Mail replacement43506058350:** all four suite shards pass, including the exact
+schema-checked Pending25 regression. Six of eight fault shards pass; archive and
+duplicate-send shards reach the35-minute job cap with no assertion failure.
+Completed examples include send845 single/845 persistent/11,803 paired faults
+(24m26s), and unsubscribe335/335/4,650 (9m34s). Header-index maintenance adds actual
+SQLite writes and cleanup combinations; no fault site is discarded.
+
+The eight fault jobs now have60 minutes, within the lead's roughly120-minute
+per-job target. Suite jobs stay35 minutes. This is separate from the removed
+Chrome350-minute stopgap: Chrome remains120-minute containers/130-minute jobs.
+No input hold, approval deadline, assertion or fault mode was relaxed. A Mail
+rerun is required. Its complete23-flow partition remains unchanged.
+
 **Latency proposal — lead decision pending:** intermediate Linux run
 `43466571812` measured 20 calls per category, without owner think time, against
 `ab7aba92` rebuilt with the same driver and exact Chrome package. Times below are
