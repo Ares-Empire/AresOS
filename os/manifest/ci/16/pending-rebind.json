@@ -1,12 +1,17 @@
 {
   "status": "waiting for the next VM rehearsal",
   "walk": "os/manifest/ci/27/source-bindings.json",
-  "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Only test files wait now, no tool, guide or image file.",
+  "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Only test files and the CI workflow (its checks-only job) wait now, no tool, guide or image file.",
   "changes": [
-    "Package 27b (laptop update record): os/tests/test_owner_path.py pins the laptop's step 8 update in INSTALL-STATUS; os/tests/test_checkout_sources.py and os/tests/test_owner_step_limits.py check this list by rules that hold at any time instead of requiring it empty while package 27's bindings exist"
+    "Package 27b (laptop update record): os/tests/test_owner_path.py pins the laptop's step 8 update in INSTALL-STATUS; os/tests/test_checkout_sources.py and os/tests/test_owner_step_limits.py check this list by rules that hold at any time instead of requiring it empty while package 27's bindings exist",
+    "27b: the checks-only job fetches full history (the suite reads earlier commits)"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
+    {
+      "sha256": "e85e522b91285c1225c6b967abcd07128badcb32add7d1e358a58f1bdb7088a6",
+      "path": ".github/workflows/os-image.yml"
+    },
     {
       "sha256": "042737ea1f9c190e6686e40044b4d04a5169ae5d9aa82b6853366f149baab775",
       "path": "os/tests/test_checkout_sources.py"

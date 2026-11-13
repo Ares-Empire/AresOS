@@ -14,7 +14,9 @@ Built by a Claude agent (Opus 5.5). Briefs: `briefs/27b-laptop-update-record.md`
 - Status rows: the test fails when main's Stage C row, update row, both rows, the R13/R27 lines or the Physical installation row are put back. It also fails when the Stage C row claims `at previous` passed or drops `sudo -v` or board #189, when the update row claims `at previous` ran on the laptop, when the status cell claims more, or when the 22c refusal is removed. Review 1's five mutations passed the first version of the test and now fail: tools version 2 became 20 (both rows), the post-restart check "not confirmed" (both rows), `ares` "not in `wheel`", the corrected stock "no longer pinned", and the "as of" date back to 2026-11-09.
 - Waiting list, on the real checkout: a waiting file changed again without its row fails (`binding mismatch: os/tests/test_owner_step_limits.py`). A listed file that still equals its walk bytes fails (`still equals its walk bytes: os/tests/test_owner_entry.py`). A listed path that is not bound fails (`not bound: briefs/27b-pending-rebind.md`). A bound file changed without a row fails (`binding mismatch: os/tests/test_owner_entry.py`). Each was restored and the module passed again.
 
-**Not verified.** The full suite and the hosted checks (the integrator runs them on the PR). No VM rehearsal ran; the three test files wait for the next one.
+**Not verified.** The full suite locally. No VM rehearsal ran; the three test files and the workflow wait for the next one.
+
+**Hosted checks (integrator).** The first run (43438101954, on `5802d677`) failed with 9 errors, none from this package: the checks-only job cloned without history, and `test_owner_equality`, `test_owner_walk` and `test_release27` read files of earlier commits (`git show`, `git diff`). The same errors stopped run 43336083190 on package 27's branch. Fixed here by the integrator: `fetch-depth: 0` on that job's checkout (`.github/workflows/os-image.yml`, a bound file, so it has a row in the waiting list).
 
 **JUDGMENT-CALL.** None.
 
