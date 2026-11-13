@@ -24,6 +24,10 @@ import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -42,6 +46,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.portal.TeleportTransition;
+import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -51,6 +56,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.Arrays;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 
@@ -148,6 +154,7 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
             });
         }
         check(dimensions.size() == 2, "Expected two joins: " + dimensions);
+        assertDamagedExactHome(context, save, directory, messages, built);
         assertMissingHomeData(context, save, directory, messages, built);
         AresOs.LOGGER.info("32 client checks passed: create screen choice, flat home by clicking through it, arrival on create, restart, "
                 + "/aresos home and respawn, fixed things at the design's coordinates, Live protection as the real host, his edit and "
@@ -366,6 +373,71 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
         context.waitTicks(70);
         photograph(context, "above-build");
         context.runOnClient(client -> client.options.fov().set(fov));
+    }
+
+    /** Open real saved NBT, including a Vec3 decode with a partial value that SavedDataStorage would accept. */
+    private static void assertDamagedExactHome(ClientGameTestContext context, TestWorldSaveImpl save, Path directory,
+                                                List<String> messages, HubData.Fixed built) {
+        Path file = directory.resolve("data/aresos/nether_home.dat");
+        var respawn = new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(Level.OVERWORLD,
+                BlockPos.containing(AWAY), 73, 0), true);
+        List<BlockState> before;
+        try (var world = save.open()) {
+            before = world.getServer().computeOnServer(server -> {
+                var player = world.getConnection().getServerPlayer();
+                player.teleportTo(server.overworld(), AWAY.x, AWAY.y, AWAY.z, Set.of(), 0, 0, false);
+                player.setRespawnPosition(respawn, false);
+                check(DesktopWorld.isEnabled(server), "Fixture: arrival must be enabled for the damaged-data regression");
+                return ground(server.overworld());
+            });
+        }
+        try {
+            byte[] original = Files.readAllBytes(file);
+            for (String damage : List.of("missing", "malformed", "partial")) {
+                NbtIo.writeCompressed(readDamagedHome(file, original, damage), file);
+                byte[] damaged = Files.readAllBytes(file);
+                messages.clear();
+                try (var world = save.open()) {
+                    context.waitTicks(20);
+                    world.getServer().runOnServer(server -> {
+                        var player = world.getConnection().getServerPlayer();
+                        check(NetherHome.get(server) == null, damage + " exact home was accepted");
+                        check(player.level().dimension() == Level.OVERWORLD && player.position().distanceToSqr(AWAY) < 0.01,
+                                damage + " exact home caused arrival: " + player.level().dimension() + " " + player.position());
+                        check(respawn.equals(player.getRespawnConfig()), damage + " exact home changed respawn");
+                        check(DesktopWorld.isEnabled(server), damage + " exact home changed the desktop marker");
+                        check(ground(server.overworld()).equals(before), damage + " exact home changed blocks");
+                        check(HubData.get(server).fixed().equals(built), damage + " exact home changed the hub record");
+                        assertNames(server.overworld(), built);
+                        check(!server.getGameRules().get(GameRules.KEEP_INVENTORY)
+                                && server.getGameRules().get(GameRules.ADVANCE_WEATHER), damage + " exact home reset rules");
+                    });
+                    context.waitFor(client -> messages.stream().anyMatch(message -> message.contains("AresOS home data")
+                            && message.contains("unchanged")));
+                    context.runOnClient(client -> client.player.connection.sendCommand("aresos home set"));
+                    world.getConnection().waitForServerboundPackets();
+                    world.getServer().runOnServer(server -> check(NetherHome.get(server) == null, "home set repaired damaged data"));
+                }
+                check(Arrays.equals(damaged, Files.readAllBytes(file)), damage + " exact home was rewritten");
+                check(Files.readString(directory.resolve(NetherHome.PROVISIONED)).equals("complete\n"), "Provisioning claim changed");
+                AresOs.LOGGER.info("32 damaged flat home regression passed: {} nested home, no arrival/respawn/rebuild/write", damage);
+            }
+            Files.write(file, original);
+        } catch (IOException error) { throw new AssertionError(error); }
+    }
+
+    private static CompoundTag readDamagedHome(Path file, byte[] original, String damage) throws IOException {
+        Files.write(file, original);
+        CompoundTag root = NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap());
+        var data = root.getCompoundOrEmpty("data");
+        check(data.contains("home"), "Fixture: exact home missing before corruption");
+        switch (damage) {
+            case "missing" -> data.remove("home");
+            case "malformed" -> data.putString("home", "unreadable");
+            case "partial" -> data.getCompoundOrEmpty("home").getListOrEmpty("position").add(StringTag.valueOf("bad fourth coordinate"));
+            default -> throw new AssertionError(damage);
+        }
+        return root;
     }
 
     /**

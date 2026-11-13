@@ -1,6 +1,9 @@
 package dev.aresos.world;
 
 import com.mojang.serialization.Codec;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.aresos.AresOs;
@@ -89,10 +92,23 @@ public final class NetherHome extends SavedData {
     }
 
     // Old saves retain their anchor behavior; an optional exact home adds no migration writes or block edits.
-    private static final Codec<NetherHome> CODEC = RecordCodecBuilder.create(i -> i.group(
+    private static final Codec<NetherHome> CODEC = RecordCodecBuilder.<NetherHome>create(i -> i.group(
             Site.MAP_CODEC.forGetter(home -> home.site),
             Home.CODEC.optionalFieldOf("home").forGetter(home -> Optional.ofNullable(home.home)))
-            .apply(i, (site, home) -> new NetherHome(site, home.orElse(null))));
+            .apply(i, (site, home) -> new NetherHome(site, home.orElse(null))))
+            .mapResult(new Codec.ResultFunction<>() {
+                @Override
+                public <T> DataResult<Pair<NetherHome, T>> apply(DynamicOps<T> ops, T input,
+                                                                 DataResult<Pair<NetherHome, T>> result) {
+                    // SavedDataStorage accepts partial results. A damaged home must never become an arrival.
+                    return result.error().isPresent() ? DataResult.error(() -> result.error().orElseThrow().message()) : result;
+                }
+
+                @Override
+                public <T> DataResult<T> coApply(DynamicOps<T> ops, NetherHome home, DataResult<T> result) {
+                    return result;
+                }
+            });
     private static final SavedDataType<NetherHome> TYPE = new SavedDataType<>(AresOs.id("nether_home"),
             () -> new NetherHome(DEFAULT_SITE, null), CODEC, null);
     private final Site site;
@@ -100,7 +116,18 @@ public final class NetherHome extends SavedData {
 
     private NetherHome(Site site, Home home) { this.site = site; this.home = home; }
 
-    public static NetherHome get(MinecraftServer server) { return server.getDataStorage().get(TYPE); }
+    public static NetherHome get(MinecraftServer server) {
+        var data = server.getDataStorage().get(TYPE);
+        if (data == null || data.hasExactHome()) return data;
+        Path directory = server.getWorldPath(LevelResource.ROOT);
+        try {
+            // Only pre-exact-home Nether saves may use the old anchor arrival.
+            if (Files.exists(directory.resolve(MANIFEST)) && readKind(directory) != Kind.NETHER) return null;
+        } catch (IOException error) {
+            return null;
+        }
+        return data;
+    }
     public Site site() { return site; }
     public Home home() { return home != null ? home : new Home(Level.NETHER, site.arrival(), site.yaw, 20); }
     public boolean hasExactHome() { return home != null; }

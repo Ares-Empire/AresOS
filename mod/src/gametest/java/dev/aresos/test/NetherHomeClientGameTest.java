@@ -18,6 +18,8 @@ import net.minecraft.client.gui.screens.AlertScreen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.EntitySpawnReason;
@@ -93,6 +95,14 @@ public final class NetherHomeClientGameTest implements FabricClientGameTest {
                 player.teleportTo(s.overworld(), 400, 80, 400, Set.of(), 90, 30, false);
             });
         }
+        // The original Nether format has no exact-home field and must keep its anchor arrival on a real reopen.
+        Path homeFile = directory.resolve("data/aresos/nether_home.dat");
+        byte[] legacyHome;
+        try {
+            check(!NbtIo.readCompressed(homeFile, NbtAccounter.unlimitedHeap()).getCompoundOrEmpty("data").contains("home"),
+                    "Fixture: this is not the legacy Nether home format");
+            legacyHome = Files.readAllBytes(homeFile);
+        } catch (IOException error) { throw new AssertionError(error); }
         context.clickScreenButton("aresos.home");
         context.waitFor(client -> client.player != null && client.gui.screen() == null, 2400);
         try (TestSingleplayerContext world = new TestSingleplayerContextImpl(context, save,
@@ -102,9 +112,13 @@ public final class NetherHomeClientGameTest implements FabricClientGameTest {
             world.getServer().runOnServer(s -> {
                 check(s.getLevel(Level.NETHER).getBlockState(NetherHome.DEFAULT_SITE.floor().offset(2, 0, 0)).is(Blocks.DIAMOND_BLOCK), "Hub rebuilt on reopen");
                 check(NetherHome.get(s).site().equals(NetherHome.DEFAULT_SITE), "Saved site changed");
+                check(!NetherHome.get(s).hasExactHome(), "Legacy Nether home gained an exact home");
             });
             context.takeScreenshot(TestScreenshotOptions.of("rejoin").withDestinationDir(homeDir()));
         }
+        try {
+            check(java.util.Arrays.equals(legacyHome, Files.readAllBytes(homeFile)), "Legacy Nether home was rewritten on reopen");
+        } catch (IOException error) { throw new AssertionError(error); }
         check(firstDimensions.size() == 2, "Expected two real home joins: " + firstDimensions);
         check(Files.isRegularFile(directory.resolve("level.dat")), "AresHub/level.dat missing");
         int visible49 = photographCandidate(context, NetherHome.DEFAULT_SITE, "01-seed-49", 209.84458247200067);
