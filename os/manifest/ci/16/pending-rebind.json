@@ -8,7 +8,8 @@
     "27c: the checks-only job lets the disposable runner create unprivileged user namespaces (kernel.apparmor_restrict_unprivileged_userns=0), so test_owner_update.ToolsUpdateTest runs instead of skipping",
     "27c: the checks-only job's time limit goes from 15 to 25 minutes, since the namespace tests now run",
     "Package 22c stage 0 (reorder probe): os-image.yml, the dispatch guard and its ledger, the owner harness lists and owner_vm.py know package 22c and its mode reorder-probe; owner_vm.py shares package 27's route up to release 27 confirmed (laptop_update, confirmed_update) and owner_media.py can copy a bundle from history; the tests that pin the workflow's expressions and the local walk follow",
-    "22c stage 1a: main merged in (27c's checks-only step and time limit beside 22c's probe mode in os-image.yml)"
+    "22c stage 1a: main merged in (27c's checks-only step and time limit beside 22c's probe mode in os-image.yml)",
+    "22c stage 1a, step 1: owner.py holds the state machine of section A (free order, one reorder, the journal by the list, tools version 3); os/release/start-next.sh is new and in the bundle; the payload is refreshed"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -51,6 +52,34 @@
     {
       "sha256": "f5db3954e04786274171995722ce8649244ce0c8416c48aa4a512e83aa0e241e",
       "path": "os/ci/two_disk_vm.py"
+    },
+    {
+      "sha256": "31deaad0dc4a465bc4f9b893faf21b9cac827aa2637a98d201218988d3233a6c",
+      "path": "os/owner-tools/bundle.py"
+    },
+    {
+      "sha256": "a292ea185f361753e19236397a148fa050f14b15b63f64ee69bec38f9d40f4f3",
+      "path": "os/owner-tools/history.json"
+    },
+    {
+      "sha256": "f090fd0eef782fc2493efe56fc26df2e5eae513b618a4d3067df39993605e0d0",
+      "path": "os/owner-tools/owner.py"
+    },
+    {
+      "sha256": "4fab477187fb3069e6e03460e01c772cbc6e9aa92e665f97fcdeee2e098bc6c4",
+      "path": "os/owner-tools/payload/SHA256.json"
+    },
+    {
+      "sha256": "6b6b1269098403d8521f07894537aeec71724e9f66c90b829e6a48933f034e71",
+      "path": "os/owner-tools/payload/SHA256SUMS"
+    },
+    {
+      "sha256": "a292ea185f361753e19236397a148fa050f14b15b63f64ee69bec38f9d40f4f3",
+      "path": "os/owner-tools/payload/history.json"
+    },
+    {
+      "sha256": "f090fd0eef782fc2493efe56fc26df2e5eae513b618a4d3067df39993605e0d0",
+      "path": "os/owner-tools/payload/owner.py"
     },
     {
       "sha256": "042737ea1f9c190e6686e40044b4d04a5169ae5d9aa82b6853366f149baab775",

@@ -551,7 +551,7 @@
       "path": "os/owner-tools/bootstrap.py"
     },
     {
-      "sha256": "499629256f83b8604eab9562cb4fd18684d4634f6e5a47b7b27f044a44588512",
+      "sha256": "31deaad0dc4a465bc4f9b893faf21b9cac827aa2637a98d201218988d3233a6c",
       "path": "os/owner-tools/bundle.py"
     },
     {
@@ -559,7 +559,7 @@
       "path": "os/owner-tools/commands.json"
     },
     {
-      "sha256": "7e81ba50333191eceec69749216ddeae3c9d234c4ca8ccc3d7de652bc1d2d5fd",
+      "sha256": "a292ea185f361753e19236397a148fa050f14b15b63f64ee69bec38f9d40f4f3",
       "path": "os/owner-tools/history.json"
     },
     {
@@ -567,15 +567,15 @@
       "path": "os/owner-tools/media.py"
     },
     {
-      "sha256": "0100b73d3cdeef52f4d125e673569a3beb79b843e121e3ce4b0211855015b17f",
+      "sha256": "f090fd0eef782fc2493efe56fc26df2e5eae513b618a4d3067df39993605e0d0",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "7c78ac68d19f5fb1c0f58c11685acafa8455734d7418e610f8c4b06c205d1835",
+      "sha256": "4fab477187fb3069e6e03460e01c772cbc6e9aa92e665f97fcdeee2e098bc6c4",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "851eb742bfe20bd4b47370b9f2558494edf4b74056d7023cc0d412e32fee6f33",
+      "sha256": "6b6b1269098403d8521f07894537aeec71724e9f66c90b829e6a48933f034e71",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -583,7 +583,7 @@
       "path": "os/owner-tools/payload/at"
     },
     {
-      "sha256": "7e81ba50333191eceec69749216ddeae3c9d234c4ca8ccc3d7de652bc1d2d5fd",
+      "sha256": "a292ea185f361753e19236397a148fa050f14b15b63f64ee69bec38f9d40f4f3",
       "path": "os/owner-tools/payload/history.json"
     },
     {
@@ -591,7 +591,7 @@
       "path": "os/owner-tools/payload/media.py"
     },
     {
-      "sha256": "0100b73d3cdeef52f4d125e673569a3beb79b843e121e3ce4b0211855015b17f",
+      "sha256": "f090fd0eef782fc2493efe56fc26df2e5eae513b618a4d3067df39993605e0d0",
       "path": "os/owner-tools/payload/owner.py"
     },
     {
