@@ -216,7 +216,7 @@ merged without a conflict and holds both sides (27c's namespace step and 25-minu
 - **Rule 10**: the staged-row STOP comes first in `qualified_state`, so every command gives it; `title` prints
   the updater finding as a `WARNING:` line; `keep-stock` STOPs on it; `update` never reads it.
 - **Rule 11** (`typed`): every message that names a command builds it there.
-- `os/owner-tools/bundle.py` lists `start-next`; the payload is refreshed (fingerprint `6b6b1269…`, which changes
+- `os/owner-tools/bundle.py` lists `start-next`; the payload is refreshed (fingerprint `28900bf1…`, which changes
   again in 1b). The three old scripts stay in the payload until 1b.
 
 ### Not built in this step
@@ -230,7 +230,8 @@ merged without a conflict and holds both sides (27c's namespace step and 25-minu
   the script's own checks.
 - **B9, the changed expectations in the older modules.** `test_owner_update.py`'s classes `ShapeTest`,
   `UpdateCommandTest`, `PreviousTest`, `LoginTest`, `OutcomeTest` and `IntentTest` still pin version 2's refusals
-  and its journal fields (`kind`, `pending`, `expected`). The hosted run below lists what fails.
+  and its journal fields (`kind`, `pending`, `expected`). The hosted run under "Verified" lists what fails. None of
+  them was weakened or deleted.
 - `preflight_recovery` is no longer called by the tools. It is still in `owner.py` because tests in six modules
   call it; delete it together with those expectations.
 
@@ -239,7 +240,27 @@ merged without a conflict and holds both sides (27c's namespace step and 25-minu
 - Local, Python 3.14, one module at a time: `test_ways_back` 29 tests OK, plain and with `-B`;
   `test_checkout_sources` 5, `test_owner_step_limits` 4, `test_ways_back_probe` 40, `test_owner_walk` 27, all OK
   on the pushed head.
-- Hosted checks-only: HOSTED_RUN_PLACEHOLDER
+- Hosted checks-only, two runs (about 12 minutes each; 149 of 1200 minutes used so far, still 1 of 4 VM dispatches):
+
+| Run | Head | Result |
+|---|---|---|
+| 43494381106 | `dba353e8` | 1002 tests, 150 failures, 50 errors, 0 skipped. 135 of them were one bug of this step: `main()` has a local named `command`, which hid the helper of that name, so every entry through `main` STOPped. Fixed by naming the helper `typed`. |
+| 43496675626 | `962283c5` | 1002 tests, 40 failures, 23 errors, 0 skipped. `test_ways_back` passed (29). The 136 namespace tests ran. The head after it adds only this report. |
+
+What fails in run 43496675626, and why (counts are failing tests and subtests):
+
+- **Expectations that change on purpose (B9), not yet rewritten:** `test_owner_update` `IntentTest` 22 (it reads
+  the journal's old fields `kind` and interrupts a script named `previous`), `OutcomeTest` 8 and `PreviousTest` 5
+  (they pin "did not finish at the restart", `bootc rollback`, the direction refusal), `UpdateCommandTest` 7 (the
+  old refusals `rollback is queued`, `already deployed`, `Final pair has extra/missing deployments`),
+  `ShapeTest` 2 (`stock not last`, `stock booted beside two releases`, and the pair check), `LoginTest` 1,
+  `LockTest` 1, `HistoryTest` 1 (tools version 3), `ToolsUpdateTest` 4 (its newer test bundle is version 3 too;
+  it needs version 4). These are tests of the state machine and of the tools update: **they must be rewritten to
+  the new rules in the next runs, not left for 1b.**
+- **Fakes that do not answer the updater read on running stock (rule 10's warning in the title):**
+  `test_owner_abandon` 6, `test_owner_commands` 1, `test_owner_path` 1, `test_owner_retained` 1. Their hosts need
+  `systemctl list-unit-files`, or `paused_state` patched as `test_owner_update.route` does.
+- **The fingerprint (1b):** `test_owner_bootstrap` 1, `test_owner_equality` 2, `test_owner_path` 1.
 
 `test_ways_back` by class: `ShapeTest` 8 (all 4 pair and 18 triple combinations, the names and the row map,
 version 2's queued pair, wrong sets, rule 10 in every order, before the first switch, the updater warning, the
