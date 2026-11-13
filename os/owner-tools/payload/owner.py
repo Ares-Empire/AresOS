@@ -1840,7 +1840,8 @@ class Tools:
         profile = settings['VConsoleKeymap']
         require(profile in ('de', 'us', 'us-intl'), 'Unsupported loaded keyboard profile; get help')
         layout_next = ('; from a fresh physical administrator login run ' + typed('layout', 'abandon')
-            + ', then ' + typed('check') + ' again') if (self.store / 'layout-pending.json').exists() else '; get help'
+            + ', then ' + typed('check') + ' again') if ((self.store / 'layout-pending.json').exists()
+                or self.repair_note(agree(state))) else '; get help'
         for code, letter in zip((21, 44), ('z', 'y') if profile == 'de' else ('y', 'z')):
             rows = re.findall(r'^keycode\s+' + str(code) + r'\s*=\s*([^\s]+)', dump, re.M)
             require(len(rows) == 1 and rows[0] in (letter, '+' + letter, 'U+' + format(ord(letter), '04x'), '+U+' + format(ord(letter), '04x')),
@@ -1993,6 +1994,29 @@ class Tools:
             booted, notes, lines = shape['booted'], self.repair_notes(), []
             stock_side = booted is shape['stock']
             mine = [n for n in notes if n['deployment_identity'] == list(key(booted))]
+            def restoration_settings(value):
+                require(value['old'] in profiles.values() and value['new'] in profiles.values(),
+                    'Unsupported recorded layout trial; get help')
+                partial = dict(value['old'], **{k: value['new'][k] for k in ('VConsoleKeymap', 'VConsoleKeymapToggle')})
+                allowed = (value['old'], partial, value['new'])
+                if 'restoring' in value:
+                    require(value['restoring'] in allowed, 'Invalid layout restoration intent; get help')
+                    # Only this restoration's starting pair and its own console-first
+                    # intermediate are authorized, never an arbitrary mixed setting.
+                    allowed = (value['restoring'], dict(value['restoring'],
+                        **{k: value['old'][k] for k in ('VConsoleKeymap', 'VConsoleKeymapToggle')}), value['old'])
+                return allowed
+
+            def restore(value, persist):
+                finished = self.keyboard()
+                require(finished in restoration_settings(value),
+                    'Finished system layout changed during the abandoned trial; get help')
+                if finished != value['old']:
+                    if 'restoring' not in value:
+                        value['restoring'] = finished
+                        persist()
+                    self.set_keyboard(value['old'])
+
             pending = (self.store / 'layout-pending.json').exists()
             require(pending or mine, 'No layout trial and no half-written layout to abandon on this system; nothing changed')
             if pending:
@@ -2005,25 +2029,24 @@ class Tools:
                 # finished setting; the trial's settings are never written into it.
                 # Runtime-only trials have not changed either /etc.
                 if list(key(booted)) == value['deployment_identity']:
-                    require(value['old'] in profiles.values() and value['new'] in profiles.values(),
-                        'Unsupported recorded layout trial; get help')
-                    partial = dict(value['old'], **{k:value['new'][k] for k in ('VConsoleKeymap', 'VConsoleKeymapToggle')})
                     require(finished == value['old'] or value.get('finishing') and (value['proof'] or value.get('finish_proof'))
-                        and finished in (partial, value['new']), 'Finished system layout changed during the abandoned trial')
-                    if finished != value['old']:
-                        self.set_keyboard(value['old'])
-                        finished = value['old']
+                        and finished in restoration_settings(value), 'Finished system layout changed during the abandoned trial')
+                    restore(value, lambda: self.save('layout-pending', value))
+                    finished = value['old']
                 else:
                     # The running deployment may itself have a repair note from an earlier
                     # trial. Its exact recorded partial setting is repaired below; another
                     # deployment's pending trial must not make that repair unreachable.
-                    repairable = any(n['old'] in profiles.values() and finished == dict(n['old'],
-                        **{k: n['new'][k] for k in ('VConsoleKeymap', 'VConsoleKeymapToggle')}) for n in mine)
+                    repairable = any(finished in restoration_settings(n) for n in mine)
                     require(finished in profiles.values() or repairable, 'Unsupported finished system layout; get help')
                     if value.get('finishing'):
                         # Its finish had begun: that deployment's /etc may be half written, and only it
                         # can be repaired from there. The note stays until layout abandon runs on it.
-                        notes.append(dict(deployment_identity=value['deployment_identity'], old=value['old'], new=value['new']))
+                        note = dict(deployment_identity=value['deployment_identity'], old=value['old'], new=value['new'])
+                        if 'restoring' in value:
+                            note['restoring'] = value['restoring']
+                        if note not in notes:
+                            notes.append(note)
                         self.save('layout-repair', dict(schema='layout-repair1', notes=notes))
                         lines.append('The trial began on another system and its finish had started: run '
                             + typed('layout', 'abandon') + ' there too, to restore its settings')
@@ -2035,12 +2058,7 @@ class Tools:
                 lines[:0] = ['Last finished console layout restored; abandoned trial cleared',
                     'Last finished persistent layout verified; stock settings preserved']
             for note in mine:
-                finished = self.keyboard()
-                partial = dict(note['old'], **{k: note['new'][k] for k in ('VConsoleKeymap', 'VConsoleKeymapToggle')})
-                require(note['old'] in profiles.values() and finished in (note['old'], partial, note['new']),
-                    'Finished system layout changed since the abandoned trial; get help')
-                if finished != note['old']:
-                    self.set_keyboard(note['old'])
+                restore(note, lambda: self.save('layout-repair', dict(schema='layout-repair1', notes=notes)))
                 self.trial_keyboard(note['old'])
                 notes = [n for n in notes if n is not note]
                 self.save('layout-repair', dict(schema='layout-repair1', notes=notes))

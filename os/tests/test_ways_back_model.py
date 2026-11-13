@@ -9,9 +9,11 @@ chooses the expected branch or a successor in the exploration queue.
 import contextlib
 import copy
 import io
+import inspect
 import json
 import pathlib
 import time
+import textwrap
 import unittest
 from collections import Counter, deque
 from dataclasses import replace
@@ -114,7 +116,14 @@ class Driver:
 
     def save(self, name, value):
         self.observe('load:' + name)
+        previous = self.files.get(name, {})
         self.files[name] = copy.deepcopy(value)
+        running = list(identity(self.host.running()))
+        if self.phase == 'intent' and (name == 'layout-pending' and value.get('restoring') and not previous.get('restoring')
+                or name == 'layout-repair' and any(n.get('restoring') and n['deployment_identity'] == running
+                    and not any(p.get('restoring') and p['deployment_identity'] == running for p in previous.get('notes', []))
+                    for n in value['notes'])):
+            raise PowerCut('after layout restoration intent')
         if name == 'outcome-pending' and self.phase == ('intent' if value['status'] == 'intent' else 'record'):
             raise PowerCut('after journal ' + value['status'])
         if name == 'layout-pending' and value.get('finishing') and self.phase == 'intent':
@@ -168,6 +177,11 @@ class Driver:
             self.files['layout-pending'] = self.trial_record(s.trial)
         if s.repairs:
             self.files['layout-repair'] = dict(schema='layout-repair1', notes=[dict(deployment_identity=self.ids[r], old=PROFILES[o], new=PROFILES[n]) for r, o, n in s.repairs])
+        for r, c, x in s.restoring:
+            records = [self.files['layout-pending']] if s.trial and s.trial.row == r else self.files['layout-repair']['notes']
+            for record in records:
+                if record['deployment_identity'] == self.ids[r]:
+                    record['restoring'] = dict(PROFILES[x], VConsoleKeymap=PROFILES[c]['VConsoleKeymap'])
         self.session = dict(tty='tty3', session='fresh' if s.trial and s.trial.fresh else 'original', boot='boot-2',
                             started_us=20 if s.trial and s.trial.fresh else 1)
 
@@ -189,14 +203,17 @@ class Driver:
             return 'de' if values['X11Layout'] == 'de' else 'us-intl' if values['X11Variant'] == 'intl' else 'us'
         settings = tuple(sorted((r, h.settings[tuple(self.ids[r])]['VConsoleKeymap'], profile(h.settings[tuple(self.ids[r])]))
                                 for r in roles if r != stage))
-        return Ledger(bundle, roles, running, stage, journal, trial, repairs, settings, h.loaded)
+        records = ([t] if t else []) + self.files.get('layout-repair', {}).get('notes', [])
+        restoring = tuple(sorted((self.by_id[tuple(n['deployment_identity'])], n['restoring']['VConsoleKeymap'], profile(n['restoring']))
+                                 for n in records if n.get('restoring')))
+        return Ledger(bundle, roles, running, stage, journal, trial, repairs, settings, h.loaded, restoring)
 
     def step(self, s, event, expected):
         self.install(s)
         tools, host = self.tools, self.host
         word, self.phase = event
         host.cut = self.phase
-        host.cut_keyboard = word == 'finish' and self.phase == 'console'
+        host.cut_keyboard = word in ('finish', 'abandon') and self.phase == 'console'
         before_entries, before_rows = copy.deepcopy(host.entries()), copy.deepcopy(host.state['rpm']['deployments'])
         cut, error, lines = False, '', []
         output = io.StringIO()
@@ -253,6 +270,9 @@ class Driver:
             # This field is derivable in the reference state, but Tools must
             # actually preserve it before the adapter reconstructs the next step.
             encoded_trial = self.trial_record(expected.state.trial)
+            for role, c, x in expected.state.restoring:
+                if role == expected.state.trial.row:
+                    encoded_trial['restoring'] = dict(PROFILES[x], VConsoleKeymap=PROFILES[c]['VConsoleKeymap'])
             assert bool(trial.get('finish_proof')) == bool(encoded_trial.get('finish_proof')), 'finish authority lost'
             def trial_fields(value):
                 value = copy.deepcopy(value)
@@ -441,6 +461,57 @@ class RevertTest(unittest.TestCase):
             d.step(s, event, expected)
             s = expected.state
         return s
+
+    def restoration_path(self, d, repair=False, transfer=False):
+        sequence = [('begin', 'us'), ('proof', 'full'), ('finish', 'persistent'), ('fresh-login', 'full')]
+        if repair:
+            sequence += [('restart', 'S'), ('abandon', 'full'), ('restart', '27')]
+        sequence += [('abandon', 'intent'), ('abandon', 'console'), ('restart', '27')]
+        if transfer:
+            sequence += [('restart', 'S'), ('abandon', 'full'), ('restart', '27')]
+        return self.path(d, starts()[2], sequence)
+
+    def test_abandon_cuts_resume_pending_notes_and_transferred_restoration(self):
+        with driver() as d:
+            for repair, transfer in ((False, False), (True, False), (False, True)):
+                with self.subTest(repair=repair, transfer=transfer):
+                    s = self.restoration_path(d, repair, transfer)
+                    self.assertEqual(s.keyboard(), ('de', 'us'))
+                    self.assertTrue(s.restoring)
+                    s = self.path(d, s, [('abandon', 'full'), ('previous', 'full')])
+                    self.assertFalse(s.trial or s.repairs or s.restoring)
+                    self.assertEqual(s.keyboard('27'), ('de', 'de'))
+
+    def test_rejecting_reverse_partial_restoration_fails_pending_and_note_regressions(self):
+        source = textwrap.dedent(inspect.getsource(owner.Tools.layout))
+        needle = "if 'restoring' in value:\n                    require"
+        # inspect dedents the method by four spaces.
+        needle = needle.replace('\n                    ', '\n                ')
+        self.assertEqual(source.count(needle), 1)
+        namespace = {}
+        exec(compile(source.replace(needle, needle.replace("if 'restoring' in value:", 'if False:')),
+                     '<restoration acceptance removed>', 'exec'), owner.__dict__, namespace)
+        with driver() as d:
+            for repair in (False, True):
+                s = self.restoration_path(d, repair)
+                expected = transition(s, ('abandon', 'full'))
+                with patch.object(owner.Tools, 'layout', namespace['layout']), self.assertRaisesRegex(AssertionError, 'accept/refuse'):
+                    d.step(s, ('abandon', 'full'), expected)
+
+    def test_restoration_intent_must_be_saved_before_either_write(self):
+        source = textwrap.dedent(inspect.getsource(owner.Tools.layout))
+        needle = "value['restoring'] = finished\n                    persist()"
+        self.assertEqual(source.count(needle), 1)
+        namespace = {}
+        exec(compile(source.replace(needle, 'pass'), '<restoration intent removed>', 'exec'), owner.__dict__, namespace)
+        with driver() as d:
+            for repair in (False, True):
+                sequence = [('begin', 'us'), ('proof', 'full'), ('finish', 'persistent'), ('fresh-login', 'full')]
+                if repair:
+                    sequence += [('restart', 'S'), ('abandon', 'full'), ('restart', '27')]
+                s = self.path(d, starts()[2], sequence)
+                with patch.object(owner.Tools, 'layout', namespace['layout']), self.assertRaisesRegex(AssertionError, 'cut'):
+                    d.step(s, ('abandon', 'intent'), transition(s, ('abandon', 'intent')))
 
     def test_finalize_that_keeps_bootcs_rollback_fails_retention(self):
         class KeepsRollback(Host):

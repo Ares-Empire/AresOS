@@ -1146,3 +1146,50 @@ Temporary logs, scripts and model outputs under `.work/22c-step3/` are removed b
 outside-worktree temporary directory was created. The closing `.work/` inventory has **no file over 500 MB**;
 no large download was made. No builder-started test/watch process remains, and no Gradle daemon was started.
 PR #46 stays open and draft; nothing was merged and nothing was pushed to main.
+
+## Review fixes 1
+
+Builder: Codex GPT-6.1-sol, xhigh. Scope: the three findings in REVIEW-1 only;
+stage 1b, the harness and VM rehearsal remain deferred. This section is updated
+and pushed with each finding so work can continue from a checkpoint.
+
+### Finding 1 — interrupted layout restoration
+
+**Done:** `layout abandon` saves `restoring` (the exact persistent pair before
+restoration) into the pending trial or repair note before either persistent
+write. A retry accepts only that pair, its console-first restoration intermediate,
+and the old finished pair. Initial restoration still accepts only old settings,
+the authorized forward partial finish, or the authorized new settings. A reverse
+partial pair without restoration intent still refuses. Abandoning on another
+deployment carries that intent into its repair note without writing another
+system's settings; retries do not duplicate that note. `check` also names
+fresh-login abandon when a repair note owns a loaded/persistent console mismatch.
+Existing schemas stay unchanged; `restoring` is an additive field.
+
+**Tests:** `LayoutTest.test_every_restoration_cut_resumes_only_its_own_settings`
+covers all six directed profile pairs, both interrupted-finish write points,
+pending trials and repair notes, and restoration intent/console/X11 cuts (72
+cases). It checks durable intent, exact restoration, untouched other settings,
+cleared records and an immediately usable destination command.
+`test_reverse_partial_without_a_restoration_intent_is_not_authorized` preserves
+the refusal boundary. The independent ledger now models abandon intent, console
+and persistent cuts; the driver reconstructs and checks restoration intent, and
+the execution memo observes it as an input. Closure counts will be updated for
+this expanded event set, not treated as coverage of unencoded interruptions.
+
+**Revert proof:**
+`RevertTest.test_rejecting_reverse_partial_restoration_fails_pending_and_note_regressions`
+removes restoration-intermediate acceptance in memory. The same pending and
+repair-note sequences then fail the driver's `accept/refuse` assertion. The
+positive regression also covers moving an interrupted restoration onto stock,
+transferring its intent to a repair note, returning and repairing.
+
+**Verified so far:** after a `free -m` gate of 10330 MB available,
+`cd os/tests && TMPDIR=/var/home/ares/pkg22c-work nice -n 10 python3 -B -m unittest test_ways_back`
+printed `Ran 36 tests in 21.160s` / `OK`. Initial model runs caught missing adapter
+encoding for the new field and a missing abandon next step from `check` during
+repair-note restoration; both were fixed. Full model verification is in progress.
+
+**Not verified:** physical typing, real shutdown durability, VM and laptop
+operations remain outside this round. No Gradle or mod command is applicable.
+No new JUDGMENT-CALL or rule change. No review finding is rejected.

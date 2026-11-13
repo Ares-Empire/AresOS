@@ -31,7 +31,12 @@ class Executions:
         # Other private inputs are fixed by Driver.install; title depends only
         # on the rows/running/stage already in the root key. Writes during a call
         # can cause further reads; recording the initial input overapproximates.
-        return bool(value) if operation == 'exists' else value
+        if operation == 'exists':
+            return bool(value)
+        if record in ('layout-pending', 'layout-repair'):
+            roles = (s.trial.row,) if record == 'layout-pending' and s.trial else tuple(n[0] for n in s.repairs) if record == 'layout-repair' else ()
+            return value, tuple(n for n in s.restoring if n[0] in roles)
+        return value
 
     def step(self, s, event, expected):
         # Restart is a host event and reads the chosen /etc as well as the

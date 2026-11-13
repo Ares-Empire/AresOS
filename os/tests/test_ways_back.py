@@ -577,6 +577,75 @@ class LayoutTest(Unchanged, unittest.TestCase):
         self.assertEqual(host.keyboard(), dict(base.DE, VConsoleKeymap='us-intl'))
         self.assertTrue(tools.load('layout-pending')['finishing'])
 
+    def test_every_restoration_cut_resumes_only_its_own_settings(self):
+        for old, new in itertools.permutations(PROFILES, 2):
+            for note in (False, True):
+                for finish_cut in ('console', 'persistent'):
+                    for abandon_cut in ('intent', 'console', 'persistent'):
+                        with self.subTest(old=old, new=new, note=note, finish=finish_cut, abandon=abandon_cut), \
+                                laptop(listed((R21, R13, 'S'), R21), host_class=KeyboardMachine) as (tools, host, store), \
+                                keyboard_sessions(tools, host) as current:
+                            host.settings[identity(host.running())] = dict(PROFILES[old])
+                            host.loaded = old
+                            untouched = copy.deepcopy(host.settings)
+                            admin = copy.deepcopy(current[0])
+                            tools.layout('begin', new)
+                            self.fresh(tools, current, 'tty4')
+                            tools.layout('proof')
+                            current[0] = admin
+                            mutate = host.mutate
+                            def cut_finish(*command, **kwargs):
+                                result = mutate(*command, **kwargs)
+                                cut = 'set-keymap' if finish_cut == 'console' else 'set-x11-keymap'
+                                if command[:3] == ('localectl', '--no-convert', cut):
+                                    raise PowerCut('finish ' + finish_cut)
+                                return result
+                            with patch.object(host, 'mutate', cut_finish), self.assertRaises(PowerCut):
+                                tools.layout('finish')
+                            if note:
+                                self.boot(tools, host, current, 'S')
+                                tools.layout('abandon')
+                                self.boot(tools, host, current, R21)
+                            else:
+                                self.fresh(tools, current)
+                            save = tools.save
+                            def cut_save(name, value):
+                                save(name, value)
+                                if abandon_cut == 'intent' and (name == 'layout-pending' and value.get('restoring')
+                                        or name == 'layout-repair' and any(n.get('restoring') for n in value['notes'])):
+                                    raise PowerCut('restoration intent')
+                            def cut_restore(*command, **kwargs):
+                                result = mutate(*command, **kwargs)
+                                cut = 'set-keymap' if abandon_cut == 'console' else 'set-x11-keymap'
+                                if abandon_cut != 'intent' and command[:3] == ('localectl', '--no-convert', cut):
+                                    raise PowerCut('abandon ' + abandon_cut)
+                                return result
+                            with patch.object(tools, 'save', cut_save), patch.object(host, 'mutate', cut_restore), self.assertRaises(PowerCut):
+                                tools.layout('abandon')
+                            record = tools.load('layout-repair')['notes'][0] if note else tools.load('layout-pending')
+                            self.assertIn('restoring', record)
+                            self.boot(tools, host, current, R21)
+                            tools.layout('abandon')
+                            self.assertEqual(host.settings, untouched)
+                            self.assertFalse((store / 'layout-pending.json').exists())
+                            self.assertEqual(tools.repair_notes(), [])
+                            tools.previous()
+
+    def test_reverse_partial_without_a_restoration_intent_is_not_authorized(self):
+        for note in (False, True):
+            with self.subTest(note=note), laptop(listed((R21, R13, 'S'), R21), host_class=KeyboardMachine) as (tools, host, store), keyboard_sessions(tools, host) as current:
+                self.finishing_cut(tools, host, current)
+                if note:
+                    self.boot(tools, host, current, 'S')
+                    tools.layout('abandon')
+                    self.boot(tools, host, current, R21)
+                else:
+                    self.fresh(tools, current)
+                host.settings[identity(host.running())] = dict(PROFILES['us-intl'], VConsoleKeymap='de')
+                before = copy.deepcopy(host.settings)
+                self.unchanged(host, lambda: tools.layout('abandon'), 'Finished system layout changed')
+                self.assertEqual(host.settings, before)
+
     def test_begin_and_fresh_login_abandon_with_three_rows_preserve_every_etc(self):
         with laptop(listed((R21, R13, 'S'), R21), host_class=KeyboardMachine) as (tools, host, store), keyboard_sessions(tools, host) as current:
             before = copy.deepcopy(host.settings)

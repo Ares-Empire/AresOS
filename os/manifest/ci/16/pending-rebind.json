@@ -17,7 +17,8 @@
     "22c step 2b audit: assert complete layout records and preserved finish authority before reconstructing each model state",
     "22c stage 1a step 3(a): replace v2 expectations by A2-A5/A9 and repair older BLS/updater fakes",
     "22c stage 1a step 3(a) hosted corrections: records resolves before disk writes; complete old fixture observations",
-    "22c stage 1a step 3(b,c): exact v2 compatibility and publication cuts; defer journal migration until v3 publication"
+    "22c stage 1a step 3(b,c): exact v2 compatibility and publication cuts; defer journal migration until v3 publication",
+    "22c review fixes 1: durable layout restoration intent and abandon interruption coverage"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -70,15 +71,15 @@
       "path": "os/owner-tools/history.json"
     },
     {
-      "sha256": "631d7192eb87491d76e01e01fc238c8e09b18c25e885bf3f885e1c2c62c7f31c",
+      "sha256": "bbc2dc640ae92749f16fc7f7a10c0c64d3058f8190f037ecbbec948932fffe43",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "d570dbc711aca9b05ac4046672a2d28e42e1ddf7d9fd4bdd05c5948882033751",
+      "sha256": "5c6834ae6cd8d5fde413ef25c45d234f81a8b250b53f849daed08508e8e6f402",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "621d59e3cdc5b836ac35b2307ea607a56842e3af399ddf09b6feeff877876467",
+      "sha256": "c5896bc86bcc9eba1d4db17d538c01c14556a59585fdfde455b6367970a82774",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -86,7 +87,7 @@
       "path": "os/owner-tools/payload/history.json"
     },
     {
-      "sha256": "631d7192eb87491d76e01e01fc238c8e09b18c25e885bf3f885e1c2c62c7f31c",
+      "sha256": "bbc2dc640ae92749f16fc7f7a10c0c64d3058f8190f037ecbbec948932fffe43",
       "path": "os/owner-tools/payload/owner.py"
     },
     {

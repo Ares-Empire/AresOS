@@ -49,6 +49,7 @@ class Ledger:
     repairs: tuple = ()  # (deployment, old profile, attempted profile)
     settings: tuple = ()  # (deployment, console profile, X11 profile)
     loaded: str = 'de'
+    restoring: tuple = ()  # (deployment, console, X11) at the durable restoration intent
 
     def keyboard(self, role=None):
         return next(p[1:] for p in self.settings if p[0] == (role or self.running))
@@ -165,17 +166,36 @@ def transition(s, event):
         mine = [n for n in s.repairs if n[0] == s.running]
         if not t and not mine:
             return result(stop='No layout trial')
+        def restore(state, role, old):
+            if state.keyboard(role) == (old, old):
+                return state, False
+            if not any(n[0] == role for n in state.restoring):
+                state = replace(state, restoring=tuple(sorted((*state.restoring, (role, *state.keyboard(role))))))
+                if phase == 'intent':
+                    return state, True
+            state = state.setting(role, old, state.keyboard(role)[1])
+            if phase == 'console':
+                return state, True
+            state = state.setting(role, old, old)
+            return state, phase == 'persistent'
+
         if t:
             if not t.fresh:
                 return result(stop='fresh physical')
             if t.row == s.running:
-                s = s.setting(s.running, t.old, t.old)
+                s, cut = restore(s, s.running, t.old)
+                if cut:
+                    return result(s, cut=True)
+                s = replace(s, restoring=tuple(n for n in s.restoring if n[0] != t.row))
             elif t.finishing:
                 s = replace(s, repairs=tuple(sorted((*s.repairs, (t.row, t.old, t.new)))))
             s = replace(s, trial=None, loaded=s.keyboard()[0])
         for role, old, new in mine:
-            s = s.setting(role, old, old)
-        s = replace(s, repairs=tuple(n for n in s.repairs if n[0] != s.running), loaded=s.keyboard()[0])
+            s, cut = restore(s, role, old)
+            if cut:
+                return result(s, cut=True)
+        s = replace(s, repairs=tuple(n for n in s.repairs if n[0] != s.running), loaded=s.keyboard()[0],
+                    restoring=tuple(n for n in s.restoring if n[0] != s.running))
         s, confirmed = title(s)
         return result(s, confirm=confirmed)
 
@@ -257,8 +277,8 @@ def transition(s, event):
 def events(s):
     for word in ('check', 'title', 'records', 'reboot', 'update', 'previous', 'rollback', 'keep-stock', 'abandon'):
         yield word, 'full'
-    for word in ('update', 'previous', 'rollback', 'keep-stock'):
-        for phase in ('intent', 'primitive', 'record'):
+    for word in ('update', 'previous', 'rollback', 'keep-stock', 'abandon'):
+        for phase in (('intent', 'console', 'persistent') if word == 'abandon' else ('intent', 'primitive', 'record')):
             # A refused/no-op command never reaches a phase to cut. Its full event
             # above still runs; omit only these physically nonexistent cut points.
             if transition(s, (word, phase)).cut:
@@ -378,4 +398,5 @@ def reduced(s):
     journal = None if j is None else (j.mode, j.word, j.phase, j.target, j.same_boot, s.outcome())
     trial = t if t is None or t.same_boot else (t.row, t.old, t.new, t.finishing)
     repairs = tuple(n for n in s.repairs if n[0] in s.rows)
-    return s.bundle, s.rows, s.running, s.stage, journal, trial, repairs, s.settings, s.loaded
+    restoring = tuple(n for n in s.restoring if n[0] in s.rows)
+    return s.bundle, s.rows, s.running, s.stage, journal, trial, repairs, s.settings, s.loaded, restoring

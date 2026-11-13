@@ -83,7 +83,7 @@ class RuleRevertsTest(unittest.TestCase):
 
     def test_a7_abandon_elsewhere_keeps_a_bound_repair_note(self):
         change = mutated(owner.Tools.layout,
-            "notes.append(dict(deployment_identity=value['deployment_identity'], old=value['old'], new=value['new']))", 'None')
+            'notes.append(note)', 'None')
         with model.driver() as d:
             s = model.RevertTest().path(d, starts()[2], [
                 ('begin', 'us'), ('proof', 'full'), ('finish', 'console'), ('restart', 'S')])
