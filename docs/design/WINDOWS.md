@@ -1,7 +1,19 @@
 # App windows: the frame around every program
 
-**Status:** proposal v1, 2026-11-13, branch `design/windows-v1`. Three working themes for the owner to choose from.
-Nothing is switched on: `rc.xml` still names labwc's grey default, and no font was added to the image.
+**Decision: 2026-11-13 (board #206).** The owner chose Ares-Crown: "None look crazy tbh but yes crown.
+But chrome shouldn't get the extra bar, other OS don't have that right? It looks weird".
+
+Package 31 ships **Ares-Crown as designed**, Space Grotesk with its OFL licence, thumbnail Alt+Tab, and the
+AresOS-scoped GSettings default `appmenu:minimize,maximize,close` for programs with their own bars. The image build
+compiles the schemas. **Chrome keeps its own tab bar**, with all three buttons and no second title bar; there is
+no Chrome preference, policy or decoration rule. Ares-Plain and Ares-Block were not chosen and their files do not
+ship; their pictures and design remain below and their files remain in git history.
+
+Verification and fallback pictures: [package 31 report](../../reviews/31-window-frame/REPORT.md). The look on the
+real panel, Discord and the Lunar Client launcher still need the owner's check. Only title-bar size on the real
+panel and a possible dark preference for other apps remain open.
+
+The original design exploration follows, updated to distinguish what ships from the two alternatives.
 
 The owner (2026-11-13): "The app windows I dont really have a design for yet. The ares apps have a design style but
 its more for apps. I dont know if its copiable onto app windows. [...] you can build custom window designs that fit
@@ -11,13 +23,13 @@ Short answer: yes, the Ares style carries onto a window frame, with a few things
 draw. All three themes below keep what he knows from Windows: the title at the left of the bar, minimize, maximize and
 close at the right in that order, and X closes the window and puts him back in the world.
 
-## Today
+## Before package 31
 
 ![Today's frame: labwc's grey default](../../reviews/window-design-v1/08-today.png)
 
-A 26-pixel grey bar with tiny buttons. The active and the inactive window look almost the same.
+The previous default was a 26-pixel grey bar with tiny buttons. The active and the inactive window look almost the same.
 
-## The three themes
+## The shipped theme
 
 Each picture is a real screenshot at the laptop's 1920x1080: an inactive window (the editor) and the active one (the
 terminal) over a bright scene. The scene is a drawing made for these tests, not the game.
@@ -39,38 +51,8 @@ accent, glass. On a frame that becomes:
 - **Edge:** a 1 px warm line all round, top corners rounded by 10 px, a deep soft shadow.
 - **Alt+Tab:** a dark panel with a preview picture of each window; the chosen one has a gold outline.
 
-Needs: the font Space Grotesk in the image (see "What the image would add"). Without it labwc uses the system's
-default sans font and the theme still looks right (tried).
-
-### Ares-Plain: like Windows, but ours
-
-![Ares-Plain](../../reviews/window-design-v1/02-plain.png)
-
-The frame a Windows user already knows, in the Empire's day colours (the "marble hall" of the iPhone apps' light mode:
-ivory wall `#EFEDE6`, near-black ink `#1A1813`, antique gold).
-
-- The app's icon and the title at the left, three wide flat buttons at the right (46x36 px each).
-- Under the pointer a button's whole box fills in, up to the window's corner; close turns red with a white X.
-- A 1 px antique-gold line marks the active window; the others get a quiet grey line and grey text.
-- Title in Adwaita Sans, 16 px. Top corners rounded by 8 px.
-- Alt+Tab: a light panel with preview pictures.
-
-Needs: nothing. Every font and icon it uses is already in the image.
-
-### Ares-Block: a frame from the block world
-
-![Ares-Block](../../reviews/window-design-v1/03-block.png)
-
-A flat grey panel with a hard dark outline and square corners. The buttons are sunken slots with pixel glyphs in them;
-under the pointer a slot lights up, close turns red. Everything sits on a grid of 2x2 screen pixels: the 2 px outline,
-the 40 px bar, the 32 px slots, the glyphs. The title is set in the pixel font Jersey 10 at twice its drawn size.
-Alt+Tab is a list like the game's own lists: the chosen row has a white outline.
-
-Drawn from scratch from rectangles and flat greys: no texture, font, sound or image of the game is used or copied, and
-Jersey 10 is a sports-lettering pixel font, not a copy of the game's font.
-
-Needs: the font Jersey 10 in the image (see "What the image would add"). Do not switch this theme on before the font
-is there: the fallback font at this size is much too large and makes the bar taller.
+Ships with Space Grotesk in the image (see "Image additions"). Without it labwc uses the system's
+default sans font and the theme still looks right (tried, including package 31's recovery shortcut).
 
 ### More pictures
 
@@ -80,7 +62,7 @@ is there: the fallback font at this size is much too large and makes the bar tal
   maximized, inactive.
 - [Window menu and Alt+Tab](../../reviews/window-design-v1/06-menus-switcher.png) in each theme.
 
-## Recommendation: Ares-Crown
+## Why Ares-Crown was recommended and chosen
 
 1. **It is ours.** AresOS belongs to the Empire, and this is the Empire's look reduced to what a frame needs: wall,
    text, one gold point. Nothing on it is decoration.
@@ -95,11 +77,11 @@ is there: the fallback font at this size is much too large and makes the bar tal
 Its cost is one font file of 137 KB, which the Empire's websites and iPhone apps already ship.
 
 Ares-Plain is the safe second: no cost at all, and it sits closest to programs that draw their own light title bar
-(Chrome, GNOME apps). Choose it if a light frame feels more like home.
+(Chrome, GNOME apps). It remains an unchosen alternative.
 
 Ares-Block is the most playful and the closest to the world behind the windows. I would not make it the default: a
 pixel title is harder to read for long file names, and a game panel around Chrome or an editor reads as a costume
-after a while. It is finished and can be switched on whenever he wants it.
+after a while. Its finished design remains in git history.
 
 ## What every theme covers
 
@@ -116,9 +98,9 @@ after a while. It is finished and can be switched on whenever he wants it.
 
 Every row was looked at in a screenshot, except the root menu, which uses the same settings as the window menu.
 
-Each theme is a `themerc` and 36 SVG button images under `os/config/usr/share/themes/<Name>/labwc/`. The images are
-the output of `reviews/window-design-v1/draw-buttons.py`: change a colour or a glyph there and run it again, so all 36
-stay in step.
+The shipped theme is a `themerc` and 36 SVG button images under `os/config/usr/share/themes/Ares-Crown/labwc/`.
+The images are the output of `reviews/window-design-v1/draw-buttons.py`, now limited to Crown: change a colour or a
+glyph there and run it again, so all 36 stay in step. The original exploration covered all three alternatives.
 
 **How it was tested.** In a separate labwc 0.9.6 that draws to memory only (wlroots' headless backend, 1920x1080), with
 its own runtime folder, D-Bus, home folder and font folder, never on the owner's screen. Windows: `foot`, `kwrite`,
@@ -158,12 +140,12 @@ The theme only reaches programs that let the compositor draw their frame. Tried 
 | Notepad (`kwrite`) and other Qt/KDE programs | yes | |
 | Plain GTK3 and GTK4 windows | yes | |
 | X11 programs through Xwayland (`glxgears`) | yes | |
-| Chrome 157, as installed | **no**: its own bar with the tabs in it, and only a close button | see below |
+| Chrome 157 | **no**: its own bar with the tabs in it; package 31 gives it all three buttons | keeps its own bar |
 | Chrome with "Use system title bar and borders" | yes | one switch in Chrome's settings |
 | Chrome app windows (`--app=`) | yes | |
 | Electron 44 app with the normal frame | yes | |
 | Electron 44 app without a frame (chat apps, game launchers) | **no**: draws its whole window | nothing |
-| GNOME apps (libadwaita) and GTK apps with a header bar | **no**: own header bar, only a close button | the button setting below |
+| GNOME apps (libadwaita) and GTK apps with a header bar | **no**: own header bar; package 31 gives it all three buttons | the button setting below |
 
 ![Our frame next to programs that draw their own](../../reviews/window-design-v1/07-other-apps.png)
 
@@ -172,12 +154,12 @@ Chrome, the GNOME sample and the frameless Electron sample draw their own.)
 
 **One setting gives them all three buttons.** Chrome and GNOME apps show only a close button because GNOME's default
 for `org.gnome.desktop.wm.preferences button-layout` is `appmenu:close`. Set to `appmenu:minimize,maximize,close`,
-Chrome's own bar and every header bar show minimize, maximize and close at the right, in our order. Tried with
-`gsettings set` in the test session; the image would ship it as a default (see "What the image would add").
+Chrome's own bar and every header bar show minimize, maximize and close at the right, in our order. Originally tried with
+`gsettings set`; package 31 ships and tests the compiled AresOS-scoped default (see "Image additions").
 
-**Chrome: two honest options.**
+**Chrome: the choice and the alternative.**
 
-- *Leave Chrome's own bar* (my advice). With the button setting it looks like Chrome on Windows: tabs on top, three
+- *Leave Chrome's own bar* (chosen).  With the button setting it looks like Chrome on Windows: tabs on top, three
   buttons at the right. It costs no screen height and is what he knows.
 - *Switch on "Use system title bar and borders"* (Chrome's settings, Appearance). Chrome then wears the AresOS frame
   like every other program, at the cost of 36 px of height. I found no Chrome policy for this switch (none among the
@@ -195,10 +177,10 @@ needed: they are dark, and next to Ares-Crown they look at home.
 closest to dark apps such as the terminal and frameless launchers, and next to it Chrome simply looks like Chrome.
 Ares-Block is the furthest from all of them.
 
-## Switching a theme on
+## Shipped configuration
 
-Not done here: another session is changing `rc.xml`'s key bindings this week. These lines replace the present
-`<theme><name>Default</name></theme>`. They are exactly the lines each theme's pictures were taken with.
+Package 31 replaces only `<theme><name>Default</name></theme>` in `rc.xml` with the Crown block below and adds its
+`<windowSwitcher>` line. Key bindings and window rules are unchanged. These are the settings used for its pictures.
 
 **Ares-Crown**
 
@@ -218,6 +200,81 @@ Not done here: another session is changing `rc.xml`'s key bindings this week. Th
   </theme>
   <windowSwitcher><osd style="thumbnail" /></windowSwitcher>
 ```
+
+What the lines do:
+
+- `<icon>` names the icon set for app icons in the title bar and in Alt+Tab. Without it labwc looks for an icon set
+  named like the theme, and there is none.
+- `<fallbackAppIcon>`: the terminal opened from the hub has the app id `aresos.terminal`, which has no desktop entry,
+  so it has no icon; labwc's own fallback icon is not in the image. With this line such windows get a generic program
+  icon instead of an empty space. A desktop entry `aresos.terminal.desktop` with a terminal icon would be the better
+  fix; it is left out here because another session is building the program listing in `aresos-shell`, and a new
+  desktop entry could show up in it.
+- `<cornerRadius>`, `<dropShadows>`, `<font>` and `<windowSwitcher>` belong to the theme's look but are `rc.xml`
+  settings in labwc.
+- Sizes are whole points: 12 = 16 px, 13 = 17 px, 21 = 28 px.
+
+Dragging the bar, double-click to maximize, dragging to the top edge to maximize and the right-click window menu are
+labwc's default mouse settings; they are not changed.
+
+### Image additions
+
+| For | What | Size and licence |
+|---|---|---|
+| Ares-Crown | `/usr/share/fonts/aresos/SpaceGrotesk-Variable.ttf`, with `OFL-SpaceGrotesk.txt`. Unchanged from `ares-empire/web/fonts/` | 137 KB, SIL Open Font License 1.1, © 2020 The Space Grotesk Project Authors |
+| Apps with their own bar | `/usr/share/glib-2.0/schemas/zz-aresos.gschema.override`: `[org.gnome.desktop.wm.preferences:AresOS]`, `button-layout='appmenu:minimize,maximize,close'` | A default only in `XDG_CURRENT_DESKTOP=AresOS`; saved user settings still win |
+
+The configure step runs `glib-compile-schemas --strict /usr/share/glib-2.0/schemas`; errors fail the build.
+`gschemas.compiled` changes in the image: the next release's image diff needs a rule for it, which the OS lead writes.
+The image checks validate all 36 button images, the theme configuration, the font and licence, and query the compiled
+AresOS default as `ares` with a fresh home and memory settings backend.
+
+Space Grotesk SHA-256: `acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72`.
+The README lists its copyright and licence. Neither Jersey 10 nor either alternative theme ships.
+
+## Still open
+
+1. **Size on the real panel.** Crown's bar is 36 px high with a 17 px title. The owner needs to judge size and
+   legibility on the laptop's screen with the real game behind it.
+2. **A dark look for other programs later.** Telling programs to prefer their dark look would change every app's
+   appearance and is outside package 31.
+
+## Not chosen
+
+The following designs and pictures are retained as alternatives. Their theme files stay in git history, and
+switching either on would first need its files restored. The original Block design also needs Jersey 10 installed.
+
+### Ares-Plain: like Windows, but ours
+
+![Ares-Plain](../../reviews/window-design-v1/02-plain.png)
+
+The frame a Windows user already knows, in the Empire's day colours (the "marble hall" of the iPhone apps' light mode:
+ivory wall `#EFEDE6`, near-black ink `#1A1813`, antique gold).
+
+- The app's icon and the title at the left, three wide flat buttons at the right (46x36 px each).
+- Under the pointer a button's whole box fills in, up to the window's corner; close turns red with a white X.
+- A 1 px antique-gold line marks the active window; the others get a quiet grey line and grey text.
+- Title in Adwaita Sans, 16 px. Top corners rounded by 8 px.
+- Alt+Tab: a light panel with preview pictures.
+
+Needs: nothing. Every font and icon it uses is already in the image.
+
+### Ares-Block: a frame from the block world
+
+![Ares-Block](../../reviews/window-design-v1/03-block.png)
+
+A flat grey panel with a hard dark outline and square corners. The buttons are sunken slots with pixel glyphs in them;
+under the pointer a slot lights up, close turns red. Everything sits on a grid of 2x2 screen pixels: the 2 px outline,
+the 40 px bar, the 32 px slots, the glyphs. The title is set in the pixel font Jersey 10 at twice its drawn size.
+Alt+Tab is a list like the game's own lists: the chosen row has a white outline.
+
+Drawn from scratch from rectangles and flat greys: no texture, font, sound or image of the game is used or copied, and
+Jersey 10 is a sports-lettering pixel font, not a copy of the game's font.
+
+Needs: the font Jersey 10 in the image (details below). Do not switch this theme on before the font
+is there: the fallback font at this size is much too large and makes the bar taller.
+
+### Alternative configurations (reference only)
 
 **Ares-Plain**
 
@@ -257,57 +314,17 @@ Not done here: another session is changing `rc.xml`'s key bindings this week. Th
   <windowSwitcher><osd style="classic" /></windowSwitcher>
 ```
 
-What the lines do:
-
-- `<icon>` names the icon set for app icons in the title bar and in Alt+Tab. Without it labwc looks for an icon set
-  named like the theme, and there is none.
-- `<fallbackAppIcon>`: the terminal opened from the hub has the app id `aresos.terminal`, which has no desktop entry,
-  so it has no icon; labwc's own fallback icon is not in the image. With this line such windows get a generic program
-  icon instead of an empty space. A desktop entry `aresos.terminal.desktop` with a terminal icon would be the better
-  fix; it is left out here because another session is building the program listing in `aresos-shell`, and a new
-  desktop entry could show up in it.
-- `<cornerRadius>`, `<dropShadows>`, `<font>` and `<windowSwitcher>` belong to the theme's look but are `rc.xml`
-  settings in labwc.
-- Sizes are whole points: 12 = 16 px, 13 = 17 px, 21 = 28 px.
-
-Dragging the bar, double-click to maximize, dragging to the top edge to maximize and the right-click window menu are
-labwc's default mouse settings; they are not changed.
-
-### What the image would add
-
-| For | What | Size and licence |
-|---|---|---|
-| Ares-Crown | `SpaceGrotesk-Variable.ttf` under `/usr/share/fonts/`, with its licence text. The same file as in `ares-empire/web/fonts/` | 137 KB, SIL Open Font License 1.1, © 2020 The Space Grotesk Project Authors |
-| Ares-Block | `Jersey10-Regular.ttf` under `/usr/share/fonts/`, with its licence text. From `github.com/google/fonts`, folder `ofl/jersey10` | 78 KB, SIL Open Font License 1.1, © 2023 The Soft Type Project Authors |
-| Ares-Plain | nothing | Adwaita Sans is in the image (`adwaita-sans-fonts`) |
-| All three (advised) | a default for the button setting: `/usr/share/glib-2.0/schemas/90-aresos.gschema.override` with `[org.gnome.desktop.wm.preferences]` and `button-layout='appmenu:minimize,maximize,close'`, and `glib-compile-schemas` in the build | a few bytes |
-
-The files tested here (sha256): `SpaceGrotesk-Variable.ttf`
-`acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72`, `Jersey10-Regular.ttf`
-`db9cbd091617048a145d249daa2b815fe7083be6ab66ac26626e21a4e01c3e82`. Both fonts are used unchanged; the licence
-allows bundling them, with their licence text and copyright line kept, and the README's list of parts from others
-would name them.
-
-Only the chosen theme should ship: before this branch merges, delete the two theme folders that were not chosen.
-
-## Left for the owner to choose
-
-1. **Which theme.** My advice: Ares-Crown.
-2. **Chrome:** keep its own bar (my advice) or have it wear the AresOS frame. Either way the button setting above.
-3. **Size.** The bars are 36 px high (40 px for Ares-Block) with titles of 16 to 17 px, about what Windows shows at
-   100 to 125% scaling. Whether that is right can only be judged on the laptop's own screen.
-4. **Alt+Tab:** preview pictures (Crown, Plain) or a list (Block). One word in `rc.xml` either way.
-5. **Only if Ares-Plain:** light as drawn, or a dark version of the same frame.
-6. **Later, if Ares-Crown:** whether AresOS should also tell programs to prefer their dark look, so Chrome and GNOME
-   apps come closer to the frame. That changes how every app looks and was not tried here.
+Jersey 10's tested file was `Jersey10-Regular.ttf`, SHA-256
+`db9cbd091617048a145d249daa2b815fe7083be6ab66ac26626e21a4e01c3e82`, from Google Fonts' `ofl/jersey10`;
+78 KB, SIL Open Font License 1.1, © 2023 The Soft Type Project Authors. It is not in the image.
 
 ## Not verified
 
 - **On the real screen.** Everything was looked at as screenshots; size and legibility on the laptop's panel, and the
   real game behind the windows, need his eyes.
-- **The image side.** The fonts were loaded from a test folder and the button setting was set by hand in the test
-  session. The schema override, the font install and Chrome's `initial_preferences` file (the way to give *new*
-  Chrome profiles the system title bar) were not built or tried.
+- **Original exploration vs package 31.** The exploration used temporary fonts and a hand-set button layout.
+  Package 31 tests the installed font and compiled desktop-scoped override; see its report for image-build results.
+  Chrome initial preferences are deliberately absent, following the owner's decision.
 - **The Lunar Client launcher and Discord themselves** were not started; the Electron findings come from a test app
   on the same Electron version.
 - **Flatpak apps** (KCalc, Flatseal, Firefox): the sandbox did not start inside the isolated test session. KCalc is a
