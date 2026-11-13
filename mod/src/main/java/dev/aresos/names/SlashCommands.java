@@ -71,7 +71,10 @@ public final class SlashCommands {
             // Check again at the actual registration, without merging into somebody else's literal.
             if (root.getChild(name) != null || NameRules.OWN.contains(name)) continue;
             var node = dispatcher.register(Commands.literal(name).requires(AppCommands::allowed)
-                    .executes(c -> launch(c.getSource(), app.id())));
+                    .executes(c -> {
+                        var current = AresOs.app(app.id());
+                        return current != null && current.mine() && current.names().contains(name) ? launch(c.getSource(), app.id()) : 0;
+                    }));
             state.owned.put(name, node);
         }
         state.apps = AresOs.apps(); state.enabled = enabled; state.reserved = reserved(server);

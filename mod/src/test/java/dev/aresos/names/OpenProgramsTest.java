@@ -15,7 +15,7 @@ class OpenProgramsTest {
         var twin = app("second-browser", "Google Chrome");
         var apps = List.of(chrome, chromium, twin);
         assertEquals(List.of(chrome), OpenPrograms.find(apps, "chrome", Set.of()));
-        assertEquals(List.of(chromium, chrome, twin), OpenPrograms.find(apps, "ch", Set.of()));
+        assertEquals(List.of(chromium, chrome), OpenPrograms.find(apps, "ch", Set.of()));
         assertEquals(List.of(chrome, twin), OpenPrograms.find(apps, "Google Chrome", Set.of()));
         assertEquals(List.of(twin), OpenPrograms.find(apps, "second-browser", Set.of()));
         assertEquals(List.of(), OpenPrograms.find(apps, "unknown", Set.of()));

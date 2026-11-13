@@ -68,7 +68,10 @@ public final class AresOs implements ModInitializer {
     }
 
     public static synchronized void assignNames(Set<String> reserved) throws IOException {
-        var updated = AppsConfig.assignNames(configPath(), reserved);
+        var saved = AppsConfig.assignNames(configPath(), reserved);
+        // This operation only edits names. Do not reload launch definitions or replace a newer in-memory list.
+        var byId = saved.stream().collect(java.util.stream.Collectors.toMap(AppDefinition::id, AppDefinition::names));
+        var updated = apps.stream().map(app -> byId.containsKey(app.id()) ? app.withNames(byId.get(app.id())) : app).toList();
         if (!apps.equals(updated)) apps = updated;
     }
 

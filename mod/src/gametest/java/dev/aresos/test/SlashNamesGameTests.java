@@ -45,7 +45,7 @@ public final class SlashNamesGameTests {
             config = System.getProperty("aresos.appsConfig"); profile = server.getSingleplayerProfile();
             desktop = DesktopWorld.isEnabled(server);
             Path file = Files.createTempDirectory(Path.of("."), "slash-names-").resolve("apps.json");
-            AppsConfig.save(file, List.of(app("discord", "Discord", true), app("other", "Other", false),
+            AppsConfig.save(file, List.of(app("discord", "Discord", true), app("other", "Other", false), app("lunar", "Lunar Client", false),
                     app("helpapp", "Help", true).withNames(List.of("help")), app("timeapp", "Time", true).withNames(List.of("time")),
                     app("listapp", "List", true).withNames(List.of("list"))));
             System.setProperty("aresos.appsConfig", file.toString()); AresOs.saveMine(Map.of());
