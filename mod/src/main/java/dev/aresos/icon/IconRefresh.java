@@ -86,6 +86,9 @@ public final class IconRefresh {
                     }
                 }
                 var result = IconPack.generate(pack.get(), apps, converter);
+                // Startup may attach the client while generation is in flight. Its initial resource load can
+                // already have read this pack, so use the reloader that exists after all files were written.
+                reload = reloader;
                 reloadOwed |= result.changed();
                 if (!reloadOwed && result.generated().equals(current.get())) continue;
                 if (reloadOwed && reload != null) {

@@ -12,6 +12,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -116,5 +117,36 @@ class IconRefreshTest {
     @Test void withoutAGameToReloadPicturesAreHandedOutAtOnce() throws Exception {
         refresh().request(List.of(app("a", 0xffcc0000)));
         await(() -> shown.get().equals(Set.of("a")), "The picture was never handed out");
+    }
+
+    @Test void aClientAttachedDuringStartupGenerationLoadsPicturesBeforeTheyAreHandedOut() throws Exception {
+        var generating = new CountDownLatch(1);
+        var finish = new CountDownLatch(1);
+        var pixels = new PixelIconConverter();
+        var converter = new IconConverter() {
+            @Override public String version() { return "startup-barrier"; }
+            @Override public BufferedImage convert(BufferedImage image) {
+                generating.countDown();
+                try {
+                    if (!finish.await(10, TimeUnit.SECONDS)) throw new AssertionError("Startup generation barrier timed out");
+                } catch (InterruptedException error) { throw new AssertionError(error); }
+                return pixels.convert(image);
+            }
+        };
+        var refresh = new IconRefresh(() -> directory.resolve("pack"), converter, GAP, shown::get, shown::set);
+        refresh.request(List.of(app("startup", 0xffcc0000)));
+        try {
+            assertTrue(generating.await(10, TimeUnit.SECONDS));
+            refresh.reloader(() -> {
+                var reload = new CompletableFuture<Void>();
+                reloads.add(reload);
+                return reload;
+            });
+        } finally { finish.countDown(); }
+        var reload = reloads.poll(10, TimeUnit.SECONDS);
+        assertNotNull(reload, "The client attached during generation was ignored");
+        assertTrue(shown.get().isEmpty(), "Startup published a picture before the attached client loaded it");
+        reload.complete(null);
+        await(() -> shown.get().equals(Set.of("startup")), "The startup picture was never handed out");
     }
 }
