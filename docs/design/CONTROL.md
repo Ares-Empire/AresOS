@@ -590,8 +590,12 @@ the front when he should look at it or sign in there.
   that copy it into the field's default, work kept in a canvas, the finished steps of a wizard, and a form on its
   way to the server. So with brief 28b **a tab he has used is never known clean.** Used means that he has clicked
   or typed in the page since it loaded, or that the page wasn't opened fresh (it was restored, reloaded or reached
-  by Back). The tool installs no watcher to know this: the browser itself records a click or a key in a page (its
-  sticky user activation), and the reader reads that on demand. A tab is known clean only when all of this holds:
+  by Back). The browser itself records a click or a key in a page (its sticky user activation), and the reader
+  reads that on demand. Work can also arrive without a click or a key: text or a file dropped in from another
+  window, or a paste from Chrome's menu. Where the browser's mark doesn't cover those (brief 28b measures it), a
+  small script present from each document's start records only that a drop or a paste happened, reading no
+  content, and such a tab counts as used; a document it didn't watch from its start is never known clean. A tab
+  is known clean only when all of this holds:
   - every frame answered, no dialog is open, and no load or form submission is under way;
   - nothing plays;
   - he hasn't used the page;
@@ -1338,14 +1342,14 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
 - **A reload on take loses what isn't work:** an open menu, a place in an endless list, a selection. *Harm:* he
   finds his tab reset. *Accepted:* the take rule (owner, 2026-11-11); looking needs no take, and Claude can work on
   a copy of the page in its own tab.
-- **Work that reached a page without a click or a key of his.** A tab he has clicked or typed in is never reloaded or
-  closed by the tool's own choice, so work a page holds only in its script's memory (an earlier step of a wizard)
-  isn't lost without his say. The mark for "clicked or typed" is the browser's own record. Text dropped in from
-  another window, or pasted from Chrome's own menu, may not set it. The check still sees a changed field, an editor
-  and a chosen file then; it doesn't see what only a script holds (a file dropped onto a page's own drop zone).
-  *Harm:* that state is lost when the tab is reloaded or closed. *Accepted:* it needs work that arrived with no click
-  and no key in the page and that shows in no field; brief 28b measures which inputs set the mark, and its report
-  lists them.
+- **A tab older than the extension counts as used.** A tab he has clicked or typed in is never reloaded or closed
+  by the tool's own choice, so work a page holds only in its script's memory (an earlier step of a wizard) isn't
+  lost without his say. The mark for "clicked or typed" is the browser's own record. Where text dropped in from
+  another window, a paste from Chrome's own menu or a dropped file doesn't set it, a small script present from each
+  document's start records only that a drop or a paste happened, and a tab with that record counts as used too
+  (brief 28b measures which is the case, and fails closed). A document that script didn't watch from its start can't
+  be known clean. *Harm:* none to his work; right after the extension is installed or updated, Claude asks before
+  it reloads any tab he had open, and keeps those tabs on a close. *Accepted:* it errs on the side of his work.
 - **A group of his that held only the taken tab comes back as a new group.** Chrome removes a group when its
   last tab leaves, and the tool makes one with the same name and colour on release. *Harm:* a group he had saved
   or synced isn't linked to the new one. *Accepted:* the tab, its place and the group's look are restored; Chrome

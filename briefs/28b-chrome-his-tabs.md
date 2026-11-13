@@ -282,9 +282,10 @@ lead's decision, 2026-11-13). Replace the check with this one.
 
 **A used tab is never known clean.** A tab is *used* when one of these holds:
 
-- he has clicked or typed in its page since the page loaded. The tool installs no watcher for that, because the
-  browser already records it: the page's sticky user activation, `navigator.userActivation.hasBeenActive`. The
-  reader reads it on demand, in every frame that answers, and one frame that says true makes the tab used;
+- he has clicked or typed in its page since the page loaded. The browser already records that: the page's sticky
+  user activation, `navigator.userActivation.hasBeenActive`. The reader reads it on demand, in every frame that
+  answers, and one frame that says true makes the tab used. No watcher is needed for clicks and keys; the one
+  small record for drops and pastes is added only if the measurement below requires it;
 - its top document wasn't opened fresh: it was reached by Back or Forward, reloaded, or restored with a session
   (its navigation entry's type isn't `navigate`). The browser may have put back what he typed there.
 
@@ -326,8 +327,14 @@ Three things documentation doesn't settle. Measure each in CI and write the resu
 - whether Chrome carries the mark over to the next document of the same site. That would only make more tabs
   count as used;
 - whether text dropped in from another window, a paste from Chrome's own menu, and a file dropped onto the page
-  set it. Where they don't, point 5 still catches a changed field, an editor and a chosen file, and what only a
-  script then holds goes into `KNOWN-LIMITS.md` (section 6 has the line);
+  set it. **Where one of them doesn't, the rule fails closed; lost work is not written off as a known limit.** A
+  page can then hold work that no mark and no field shows (a file dropped onto a page's own drop zone, kept only by
+  its script). Add the one piece of evidence that settles it: a content script present from the document's start
+  in every tab that records, in its own isolated world, only *that* a drop or a paste happened. It reads no
+  content, keeps nothing else, and puts nothing into the page's world. A tab with that record counts as used. A
+  document this script didn't watch from its start (a tab older than the extension's install or update) is not
+  known clean. If that can't be built as written, stop and report: until the lead decides, no tab of his counts as
+  known clean, so a take always answers `reload_required` and a close keeps every tab of his;
 - that nothing of ours sets it. An in-place read, the check itself and a message from the extension must leave
   it false, or every tab Claude looked at would count as used.
 
@@ -471,7 +478,9 @@ gate would need his host's name in the image or in this public repo.
 - **The password rule,** as brief 28 left it (its name and history additions included). Nothing is relaxed.
 - **Ordinary tabs stay ordinary:** nothing in the page's own world, no listener that cancels or changes anything,
   no debugger, unless Claude took the tab. The compatibility comparison with an untouched Chrome still passes.
-- **The manifest** gains only `"incognito": "not_allowed"`. No new permission and no content script.
+- **The manifest** gains only `"incognito": "not_allowed"`. No new permission, and no content script except the
+  drop-and-paste record of item 4a, if the measurement there requires it (isolated world, two passive listeners,
+  one flag, no content read).
 - **No new DevTools method.**
 - The qualification record's format, the service unit, Mail, the base, `os/`.
 
@@ -540,6 +549,10 @@ owner with real keys and clicks (`owner-ui.mjs`). Every new rule gets a test tha
   **The mark itself, measured** (item 4a): a click and a key each set it, in the top frame and in a frame from
   another site; an in-place read, the check and a message from the extension don't; the report says what a
   navigation within the same site, a drop from another window, a paste from Chrome's menu and a dropped file do.
+  **Fail closed:** a fresh tab onto whose own drop zone a file was dropped, with no click and no key and no field
+  changed, is kept on a close and answers `reload_required` on a take, whichever way the measurement came out
+  (through the mark, or through the drop-and-paste record of item 4a); the same for text dropped in from another
+  window and for a paste from Chrome's menu.
   `reload: true` takes every tab of the first list except the one with a frame that doesn't answer, the load and
   the submission under way, which stay refused (item 4, point 4). The check is the last thing before the reload:
   he types into a field while the take is running (the test holds the command right before its check), and the
