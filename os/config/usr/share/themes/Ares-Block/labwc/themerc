@@ -1,0 +1,107 @@
+# Ares-Block: a frame that belongs to the block world (labwc 0.9).
+#
+# A flat grey panel with a hard dark outline, square corners, and buttons that
+# are sunken slots holding pixel glyphs. Everything sits on a grid of 2x2
+# screen pixels. Drawn from scratch: no texture, font or image from any game.
+# The title uses the pixel font Jersey 10 (SIL Open Font License 1.1), which the
+# image has to add. Design notes and the rc.xml lines: docs/design/WINDOWS.md.
+
+# frame: one grid step wide, near-black on the active window
+border.width: 2
+window.active.border.color: #151515
+window.inactive.border.color: #4b4b4b
+window.active.indicator.toggled-keybind.color: #c0392f
+
+# title bar: 40px = 32px slots + 4px above and below
+window.titlebar.padding.width: 4
+window.titlebar.padding.height: 4
+window.active.title.bg: Solid
+window.active.title.bg.color: #c6c6c6
+window.inactive.title.bg: Solid
+window.inactive.title.bg.color: #a2a2a2
+window.active.label.text.color: #2f2f2f
+window.inactive.label.text.color: #5c5c5c
+window.label.text.justify: Left
+
+# buttons: SVG images of exactly this size (the *.svg next to this file, drawn by
+# reviews/window-design-v1/draw-buttons.py in the AresOS repo)
+window.button.width: 32
+window.button.height: 32
+window.button.spacing: 4
+# only used for a button without a hover image; every button here has one
+window.button.hover.bg.color: #ffffff60
+window.button.hover.bg.corner-radius: 0
+# only used for xbm buttons; kept in step with the SVG glyphs
+window.active.button.unpressed.image.color: #262626
+window.inactive.button.unpressed.image.color: #4a4a4a
+
+# shadow: short and dark, so the panel sits on the scene without a soft glow
+window.active.shadow.size: 20
+window.active.shadow.color: #00000090
+window.inactive.shadow.size: 12
+window.inactive.shadow.color: #00000060
+
+# menus (window menu, root menu)
+menu.overlap.x: 0
+menu.overlap.y: 0
+menu.width.min: 200
+menu.width.max: 360
+menu.border.width: 2
+menu.border.color: #151515
+menu.items.padding.x: 12
+menu.items.padding.y: 6
+menu.items.bg.color: #c6c6c6
+menu.items.text.color: #2f2f2f
+menu.items.active.bg.color: #3c3c3c
+menu.items.active.text.color: #ffffff
+menu.separator.width: 2
+menu.separator.padding.width: 8
+menu.separator.padding.height: 4
+menu.separator.color: #8b8b8b
+menu.title.bg.color: #8b8b8b
+menu.title.text.color: #ffffff
+menu.title.text.justify: Left
+
+# on-screen display: window switcher (Alt+Tab), workspace and resize notes
+osd.bg.color: #c6c6c6
+osd.border.color: #151515
+osd.border.width: 2
+osd.label.text.color: #2f2f2f
+
+osd.window-switcher.style-classic.width: 720
+osd.window-switcher.style-classic.padding: 8
+osd.window-switcher.style-classic.item.padding.x: 12
+osd.window-switcher.style-classic.item.padding.y: 8
+osd.window-switcher.style-classic.item.active.border.width: 2
+osd.window-switcher.style-classic.item.active.border.color: #ffffff
+osd.window-switcher.style-classic.item.active.bg.color: #8b8b8b
+osd.window-switcher.style-classic.item.icon.size: 28
+
+osd.window-switcher.style-thumbnail.width.max: 80%
+osd.window-switcher.style-thumbnail.padding: 12
+osd.window-switcher.style-thumbnail.item.width: 320
+osd.window-switcher.style-thumbnail.item.height: 240
+osd.window-switcher.style-thumbnail.item.padding: 10
+osd.window-switcher.style-thumbnail.item.active.border.width: 2
+osd.window-switcher.style-thumbnail.item.active.border.color: #ffffff
+osd.window-switcher.style-thumbnail.item.active.bg.color: #8b8b8b
+osd.window-switcher.style-thumbnail.item.icon.size: 40
+
+# the outline drawn around the window Alt+Tab is about to pick
+osd.window-switcher.preview.border.width: 2
+osd.window-switcher.preview.border.color: #151515,#ffffff,#151515
+
+osd.workspace-switcher.boxes.width: 22
+osd.workspace-switcher.boxes.height: 22
+osd.workspace-switcher.boxes.border.width: 2
+
+# where a dragged window will snap
+snapping.overlay.region.bg.color: #ffffff40
+snapping.overlay.edge.bg.color: #ffffff40
+snapping.overlay.region.border.width: 2
+snapping.overlay.edge.border.width: 2
+snapping.overlay.region.border.color: #151515,#ffffff,#151515
+snapping.overlay.edge.border.color: #151515,#ffffff,#151515
+
+magnifier.border.width: 2
+magnifier.border.color: #151515
