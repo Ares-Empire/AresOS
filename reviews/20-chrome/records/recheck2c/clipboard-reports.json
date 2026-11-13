@@ -1,0 +1,214 @@
+[
+  {
+    "artifact": "control-chrome-43319232281-1-external",
+    "rows": [
+      {
+        "id": "recheck2c-clipboard-writeText",
+        "route": "writeText",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "writeText"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=review-page&mode=clipboard-report&variant=writeText&id=recheck2c-clipboard-writeText"
+      },
+      {
+        "id": "recheck2c-clipboard-write",
+        "route": "write",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "write"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=review-page&mode=clipboard-report&variant=write&id=recheck2c-clipboard-write"
+      },
+      {
+        "id": "recheck2c-clipboard-copy",
+        "route": "copy",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "copy"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=review-page&mode=clipboard-report&variant=copy&id=recheck2c-clipboard-copy"
+      },
+      {
+        "id": "recheck2c-clipboard-writeText-nav",
+        "route": "writeText-nav",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "writeText"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=compose&id=clipboard-after-navigation"
+      }
+    ]
+  },
+  {
+    "artifact": "control-chrome-43319232281-1-policy",
+    "rows": [
+      {
+        "id": "recheck2c-clipboard-writeText",
+        "route": "writeText",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "writeText"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=review-page&mode=clipboard-report&variant=writeText&id=recheck2c-clipboard-writeText"
+      },
+      {
+        "id": "recheck2c-clipboard-write",
+        "route": "write",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "write"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=review-page&mode=clipboard-report&variant=write&id=recheck2c-clipboard-write"
+      },
+      {
+        "id": "recheck2c-clipboard-copy",
+        "route": "copy",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "copy"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=review-page&mode=clipboard-report&variant=copy&id=recheck2c-clipboard-copy"
+      },
+      {
+        "id": "recheck2c-clipboard-writeText-nav",
+        "route": "writeText-nav",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "writeText"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=compose&id=clipboard-after-navigation"
+      }
+    ]
+  },
+  {
+    "artifact": "control-chrome-43319941241-1-external",
+    "rows": [
+      {
+        "id": "recheck2c-clipboard-writeText",
+        "route": "writeText",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "writeText"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=review-page&mode=clipboard-report&variant=writeText&id=recheck2c-clipboard-writeText"
+      },
+      {
+        "id": "recheck2c-clipboard-write",
+        "route": "write",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "write"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=review-page&mode=clipboard-report&variant=write&id=recheck2c-clipboard-write"
+      },
+      {
+        "id": "recheck2c-clipboard-copy",
+        "route": "copy",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "copy"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=review-page&mode=clipboard-report&variant=copy&id=recheck2c-clipboard-copy"
+      },
+      {
+        "id": "recheck2c-clipboard-writeText-nav",
+        "route": "writeText-nav",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "writeText"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=compose&id=clipboard-after-navigation"
+      }
+    ]
+  },
+  {
+    "artifact": "control-chrome-43319941241-1-policy",
+    "rows": [
+      {
+        "id": "recheck2c-clipboard-writeText",
+        "route": "writeText",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "writeText"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=review-page&mode=clipboard-report&variant=writeText&id=recheck2c-clipboard-writeText"
+      },
+      {
+        "id": "recheck2c-clipboard-write",
+        "route": "write",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "write"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=review-page&mode=clipboard-report&variant=write&id=recheck2c-clipboard-write"
+      },
+      {
+        "id": "recheck2c-clipboard-copy",
+        "route": "copy",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "copy"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=review-page&mode=clipboard-report&variant=copy&id=recheck2c-clipboard-copy"
+      },
+      {
+        "id": "recheck2c-clipboard-writeText-nav",
+        "route": "writeText-nav",
+        "fact": {
+          "written": true,
+          "message": "The page wrote to the clipboard.",
+          "routes": [
+            "writeText"
+          ]
+        },
+        "observed_url": "http://localhost:8765/?case=compose&id=clipboard-after-navigation"
+      }
+    ]
+  }
+]

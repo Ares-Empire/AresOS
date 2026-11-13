@@ -1,122 +1,204 @@
-# Recheck fixes 2c — final copy-scope regression and verification pending
+# Recheck fixes 2 / 2b / 2c — completed
 
-The lead decided both stops in `briefs/20-recheck-fixes-2b.md` and `-2c.md`. The all-borrowed-native path is an
-accepted autonomous-page limit. **Every Claude click grants user activation**, as normal owner clicks do. The
-measured extra popup and clipboard capability is accepted by 2c; it is not an unconditional “adds no harm” claim.
-The historical stop and PLAN-GAP below remain as history, superseded by those decisions. PR #27 remains draft and
-unmerged. No branch has been merged into this one; no design document has been changed.
+**Run:** source `5c4e4add2b867f6e439f496a12320aea67c03f4b`, installed runtime
+`5a22b796fd859535227a54f27456ac4c37731f310fb4ac94bcfda88f3233f9dd`. Both final Chrome runs pass
+all **89 named browser cases in both installation modes**, followed by the mandatory full Python sweep.
+Base, Mail, boundary and qualification also pass twice on this source. PR
+[#27](https://github.com/Ares-Empire/AresOS/pull/27) remains draft and unmerged. The closing push changes reports and
+evidence only, with `[skip ci]`. No branch was merged, and no design document was changed.
 
-## Done
+## Done (read)
 
-- While a document's guard is active, MAIN-world Clipboard `write` and `writeText` wrappers observe successful native
-  completion, and isolated capture
-  observes trusted `copy` events for `execCommand` only when their native composed root is this controlled document. The native calls still run once with the same arguments and
-  success/error values; the copy listener neither cancels nor changes propagation. Cached wrappers become native
-  after release. No clipboard value, preview or hash is collected; no `clipboardRead` permission is added.
-- The post-input result includes only `page.clipboard = {written:true, message:"The page wrote to the clipboard.",
-  routes:[…]}` inside the untrusted page result. A private, epoch-bound background fact preserves the observation
-  across frame navigation; the reader and background consume their metadata at the next observation. A reported
-  fact is an observation, not proof the click caused it. Borrowed-native writes remain undetected, explicitly tested.
+- `page.js` / `guard.js`: MAIN-world Clipboard `write` and `writeText` wrappers observe native fulfillment with the
+  original receiver/arguments and success/error behavior. Trusted `copy` events observe `execCommand` in the controlled
+  document only. The listener neither cancels nor changes propagation; cached wrappers act natively after release.
+  No clipboard contents, preview or hash are collected, and no `clipboardRead` permission is added.
+- `reader.js` / `background.js`: the post-input result includes only
+  `page.clipboard = {written:true, message:"The page wrote to the clipboard.", routes:[…]}` inside untrusted page
+  observations. An authenticated, epoch/document-scoped metadata queue preserves the fact across navigation and
+  consumes it once. This observes a page write; it does not prove the click caused it. Borrowed-native API writes
+  remain undetected, explicitly tested and listed in [KNOWN-LIMITS.md](KNOWN-LIMITS.md).
 - Ten click/input/action descriptions say to tell the owner about a reported write and never paste or run clipboard
-  contents because a page asked. The liftable `SHARED` block and `instructions_for` are unchanged for the post-18d
-  generator move. Generated tools and `docs/control/TOOLS.md` match the definitions.
-- The narrow session DNR default fence, synchronous default neutralization, owner navigation and compose binding
-  remain as described in the implementation below. All six default variants and compose inside/outside cases keep
-  their strict receiver checks. New Linux cases exercise native `writeText`, `write`, `execCommand('copy')`, and a
-  write followed by navigation, requiring the write fact and one independent receipt without returning contents.
-- The Linux owner-navigation driver removes a selected inline history completion before Enter. A retained failed
-  run showed the second navigation had an old `&id=restored-…` suffix. Exact committed-URL assertions remain strict;
-  this fix neither retries the navigation nor changes the default fence.
+  contents because a page asked. [All 28 descriptions](TOOL-DESCRIPTIONS.md) match the generated tools. `SHARED` and
+  `instructions_for` stay unchanged until the post-18d slim-generator move.
+- The default-action guard synchronously neutralizes destinations/submitters while a narrow, tab-scoped session DNR
+  rule blocks only the content-free quarantine address. Approved input and private owner-marked navigation retain
+  native destinations. Expiry, answer/deny, Stop/close and restart reconciliation remove the rule. A stopped default
+  reports its reason and is never automatically replayed.
+- Compose binding covers the smallest composed ancestor holding Send and its draft/editor, including visible
+  read-only preview text. A first change retires the original approval and re-asks with exact before/after text;
+  a second change stops and asks the owner to send it himself. Outside live text stays free. Whole-body compose
+  binds all visible body text, with the accepted owner-send cost below.
+- Native-created/imported/cloned nodes and handler installation acquire private capture before borrowed insertion.
+  The all-borrowed-native factory/root/listener/insertion/non-composed-dispatch path is the lead-accepted autonomous
+  page limit. Its click result reports dispatch with delivery unproven and untrusted page observations; it does not
+  falsely claim that the hidden step was stopped or that nothing happened.
 
-## Verified / Not verified
+## Verified (run)
 
-**Run:** all **288 Node tests** pass with zero failures/cancellations/skips; the prior runtime's **230 Python tests / OK** (the scope-corrected runtime's full Python repeat is running);
-all **187 removal mutations rejected, every baseline passing**; five artifact-stream reader tests and four transport
-tests pass. The removals cover each clipboard route, reporting after navigation, the description warning and exact
-owner navigation. Generated files match definitions, and `git diff --check` passes.
-[Commands, output tails and hashes](records/recheck2c/local-summary.json), [removal evidence](records/recheck2c/mutations.json).
-The first Python invocation omitted `PYTHONPATH` and failed to import `test_bridge` (220 tests, one error); the full
-corrected invocation above passed. The final Linux acceptance pair remains pending after the batch-timeout and copy-scope corrections below.
-No local browser/profile, container, Java or Gradle process is used. Browser evidence comes only from GitHub Linux
-containers in `control-chrome.yml`, with synthetic fixture hosts and no real accounts.
+Local commands and sanitized output tails/hashes are in [local-summary.json](records/recheck2c/local-summary.json):
 
-**Run, measured user activation:** the complete ten-row probe in run `43257735216` (policy install) observed neither
-transient nor sticky activation autonomously and both inside Claude's click in open and closed roots. The nested
-borrowed-native event itself remained untrusted. Popups were blocked autonomously and opened on the click; their
-children joined control. Clipboard writes stayed pending at the native permission prompt autonomously and were
-accepted on the click without clicking Allow. Downloads reached the receiver both ways. The synthetic unsupported
-payment probe was rejected both ways (NotSupportedError autonomously; SecurityError on its second call after the
-click). This is no evidence that a real payment sheet is safe. Earlier measurements in both installs already showed
-the activation increase and popup behavior; final runs repeat all ten probes and the independent receipt audit.
-[Retained raw observations and receiver rows](records/recheck2c/activation-probes-initial.json).
-The original click's result reports dispatch with delivery unproven and the untrusted page notice; it does not report
-the hidden step as stopped/unknown or claim nothing happened.
+- `PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s control/chrome_tests -v`:
+  **230 tests in 580.945 s, OK**.
+- `node --test control/chrome_tests/*.test.mjs`: **288 passed**, zero failed/cancelled/skipped.
+- `python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2c/mutations.json`:
+  **187 removals rejected; every baseline passed**. [Exact mutation results](records/recheck2c/mutations.json).
+- Five artifact-stream tests and four transport regressions pass. Generated artifacts match definitions;
+  `git diff --check` passes. No local browser/profile, container, Java or Gradle process was started or accessed.
+  All browser evidence comes from GitHub Linux containers in `control-chrome.yml`, using synthetic fixtures.
 
-**Run, implementation source `5f0b568194a68a82a5b235fe5b396d69290d1892`, runtime
-`837b537f0c78d9fb2e1f2bd695e3657f1f0618d192c6215a9d8529d973c81b0a`:** all four browser jobs
-completed all **89 named cases**. Three jobs completed the full subsequent Python sweep and pass the independent
-artifact audit: both policy jobs and repeat `43270268166`'s external job. Each audited dataset has **1,277 page and
-139 adapter receiver 0/1/1 sequences**, four clipboard cases, 230 Python tests, 287 Node tests, and no password
-sentinel or forbidden Runtime value events. The navigation variant reports its clipboard fact on the new document.
-[Three complete dataset audits](records/recheck2c/browser-audit-partial.json).
+The first local Python invocation omitted `PYTHONPATH` and failed only the `test_bridge` import; the complete corrected
+invocation above passes. Full local base discovery lacked `jsonschema` (23 errors); no dependency was installed.
+The complete base suite passes in CI below.
 
-Push `43270186321`'s external job completed all 89 browser cases, then hit the **240-minute container limit** during
-`test_chrome_storage_single_persistent_cleanup_pairs_crash_restart_space_restored`. It is **not a green run**.
-Repeat `43270268166` completed both modes; its external job took **3h56m3s**. The container limit is now 300 minutes
-and the job limit 310 in both the normal Chrome workflow and the qualification-pair workflow, allowing the
-unchanged mandatory Python sweep to finish on slower runners. All shipped
-runtime and test/assertion bytes are unchanged. The first budget correction missed the qualification copy; the superseded runs started by this agent were
-cancelled and full verification restarts with both budgets aligned. No owner or other-package run is cancelled.
-[Timeout metadata, output tail and hashes](records/recheck2c/timeout-43270186321.json).
-
-| Workflow on implementation source | Runs | Result |
+| Workflow | First successful run | Second successful run |
 |---|---|---|
-| Chrome | 43270186321 / 43270268166 | First hit the Python-sweep batch limit; repeat passes both installs; all four browser matrices 89/89 |
-| Base | 43270272776 / 43271116470 | Both pass, 146 tests each |
-| Mail | 43270288363 / 43274963177 | Both pass; 146 base + 309 Mail and all four fault shards each |
-| Boundary | 43270278039 / 43271001440 | Both pass; 127 attacks per seccomp mode, zero hostile connections; absent-mode VSOCK transport explicitly unqualified |
-| Qualification | 43270283908 / 43271006209 | Both pass, 47 Python + 287 Node and the real attestation/delivery verifier checks |
+| Control Chrome | [43319232281](https://github.com/Ares-Empire/AresOS/actions/runs/43319232281) | [43319941241](https://github.com/Ares-Empire/AresOS/actions/runs/43319941241) |
+| Control base | [43319945952](https://github.com/Ares-Empire/AresOS/actions/runs/43319945952) | [43324347900](https://github.com/Ares-Empire/AresOS/actions/runs/43324347900) |
+| Control Mail | [43319957579](https://github.com/Ares-Empire/AresOS/actions/runs/43319957579) | [43322952952](https://github.com/Ares-Empire/AresOS/actions/runs/43322952952) |
+| Control boundary | [43319949694](https://github.com/Ares-Empire/AresOS/actions/runs/43319949694) | [43320702816](https://github.com/Ares-Empire/AresOS/actions/runs/43320702816) |
+| Control Chrome qualification | [43319953689](https://github.com/Ares-Empire/AresOS/actions/runs/43319953689) | [43320706777](https://github.com/Ares-Empire/AresOS/actions/runs/43320706777) |
 
-[Eight shared-artifact checks and SHA-256 records](records/recheck2c/initial-shared-audit.json). No production
-qualification/data branch is published from this package branch. Local full base discovery lacked `jsonschema`
-(23 errors); complete base CI passes as above. No local dependencies were installed.
+[Completed source/job metadata](records/recheck2c/completed.json),
+[all 356 exact browser PASS locations](records/recheck2c/test-index.md),
+[independent browser audit](records/recheck2c/browser-audit.json), and
+[eight shared-artifact checks/hashes](records/recheck2c/shared-audit.json) retain the results.
+Each Chrome job also passes **230 Python and 288 Node tests**. Each base run passes **146 tests**; each Mail run
+passes **146 base + 309 Mail** and all four **4-test fault shards**. Boundary records **127 attacks** per filter mode,
+**42 unchanged protected files** and **zero hostile connections**; absent-filter VSOCK transport is explicitly
+unqualified, not a successful denial. Qualification passes **47 Python + 288 Node** plus real attestation/delivery
+verification. Branch-only runs skip main-only publishing; nothing was written to the real qualification data branch.
+All four browser datasets use **Google Chrome 157.0.8103.78**.
 
-**Run, final scope regression:** a node created in a controlled document retains its listeners when adopted into an
-ordinary document. The first copy observer wrongly reported that other document's trusted copy. The new browser-free
-regression reproduces the false write fact before the fix; native composed-root identity now excludes it without
-cancelling or stopping the copy event. Its removal probe fails as required. Clipboard contents were never collected.
-[Reproduction and correction](records/recheck2c/copy-document-scope.json). The owned-document browser copy case remains
-mandatory in both modes. This guard correction gives the final runtime hash
-`5a22b796fd859535227a54f27456ac4c37731f310fb4ac94bcfda88f3233f9dd`; final verification restarts on that build.
+### Default actions, compose and clipboard
 
-**Read:** after `git fetch origin main`, specification files were read with `git show origin/main:<path>`; latest
-read is `d6df3ee3`. Briefs 2/2b/2c override the older residual wording in CONTROL section 6. Group 12 and the slim
-instructions move remain for post-18d. Owner live-site behavior and whole-body compose frequency remain unverified.
+Every exact case is indexed above; the changed cases are:
+
+| Named browser case | Independent result |
+|---|---|
+| GROUP 2 RECHECK2 every borrowed native insertion route captures noncomposed shadow events | Open/closed roots, six insertion routes and reused Events; fresh approval is exactly 0/1/1 |
+| GROUP 2 RECHECK2 native defaults cover new tabs frames ping forms and downloads | `_blank`, frame, ping, form, form-to-new-window and download all stop before approval, then exactly 0/1/1; approved ping once |
+| GROUP 2 RECHECK2 the owner navigates during the network hold | Owner navigation arrives once; exact destination remains strict |
+| GROUP 3 RECHECK2 live compose text reasks once while outside text stays free | Outside live text sends 0/1/1; inside changes re-ask once with before/after, then owner-send with zero arrivals |
+| GROUP 5 RECHECK2C clipboard writes are reported without reading contents | `writeText`, `write`, `execCommand('copy')` and write-then-navigation all report the content-free fact; receiver 0 before/1 accepted/1 after status |
+| GROUP 8 RECHECK2 extension restart reconciles leftover session network rules | Fresh session has no stranded rule 2 |
+| GROUP 13 RECHECK2B all-native limit records user activation and honest after-click reporting | Ten probes, exact autonomous/click receipts and honest dispatch/delivery-unproven result |
+
+[Clipboard report facts and observed documents](records/recheck2c/clipboard-reports.json) include all four routes in
+each dataset. The navigation variant returns its write fact on the **new compose document**. The synthetic written
+marker never appears in any result. Unit/removal probes cover both API wrappers independently, trusted copy,
+forged-copy rejection, native error behavior, release, private message boundaries, post-input consumption,
+navigation retention and the description warning. A native node adopted into an ordinary document reproduced a
+false copy warning; the fixed native composed-root check excludes it without changing copy delivery. Its focused
+regression and removal probe pass. [Before/after reproduction](records/recheck2c/copy-document-scope.json).
+
+### User activation — measured, lead decided
+
+Every Claude click grants user activation to the page's own handlers, as an owner's click does. Withholding it would
+break ordinary clicks. This is a property of **all clicks**, not only A-3. The final four datasets repeat ten probes
+each: open and closed roots, secure localhost, all steps borrowed from an ordinary same-origin donor window.
+
+| Probe | Autonomous | Inside Claude's click |
+|---|---|---|
+| Transient / sticky activation at the hidden handler | false / false | true / true |
+| Popup | blocked | opened; child joins control |
+| Clipboard write | pending native permission after bounded 2.5 s | accepted without clicking Allow |
+| Download | independent receiver arrival | independent receiver arrival |
+| Synthetic unsupported PaymentRequest | rejected | rejected |
+
+[Actual measured probe rows](records/recheck2c/activation-probes.json) retain the outcomes/error names. The payment
+probe is no evidence about real payment sheets. Popup control, opener badges and first-input reload rules are also
+covered by the full group-8 cases. Borrowed-native Clipboard API writes remain **undetected**, as the browser and
+unit tests require. The hidden event stays untrusted, but runs unasked both autonomously and under the click.
+The original click is reported as dispatched with delivery unproven; no hidden stopped/unknown step is invented.
+This replaces the unconditional “adds no harm” claim under the lead's 2c decision.
+
+### Independent receiver and password boundary
+
+The artifact-only audit reconstructs ingress and checks every approval snapshot against the separately recorded
+raw receiver. Every complete sequence is exactly **0 before / 1 after / 1 after repeat**. It also verifies changed
+quantity/draft/item bodies, three ordinary GET queries, all default routes, bounded compose zeroes, restart cleanup,
+clipboard facts and the owner-mark overlap proof. Protocol and sensitive-getter observations must be present; no
+password sentinel reaches reconstructed ingress, tool or service output, and forbidden Runtime value events are absent.
+
+| Run / install | Page 0/1/1 | Adapter 0/1/1 | Ingress rows | Protocol events | Sensitive getters |
+|---|---:|---:|---:|---:|---:|
+| control-chrome-43319232281-1-external | 1277 | 139 | 165606 | 30257 | 3854 |
+| control-chrome-43319232281-1-policy | 1277 | 139 | 165077 | 28419 | 3854 |
+| control-chrome-43319941241-1-external | 1277 | 139 | 165877 | 30205 | 3854 |
+| control-chrome-43319941241-1-policy | 1277 | 139 | 163766 | 28431 | 3856 |
+
+The raw-derived owner proof requires his Enter's consumed private mark, immediate arrival within 200 ms, a real
+Claude timer firing inside an independently bounded Enter-mark interval, zero timer arrivals until its own approval,
+then one with no repeat. All four datasets pass. Owner Enter remains “passes in CI, panel to confirm”; CI does not
+grant panel acceptance. [Audit program hashes](records/recheck2c/audit-sources.json).
+
+### Measured views
+
+The representative long article/form has 120 paragraphs and 80 fields. Each dataset reads all 14 bounded pages;
+each tree page is at most 16,000 characters. Bytes equal characters for these synthetic pages. Token counts below
+are `ceil(characters/4)` estimates, not tokenizer measurements.
+
+| Run / install | Characters / UTF-8 bytes | Pages | Milliseconds | Estimated tokens |
+|---|---:|---:|---:|---:|
+| control-chrome-43319232281-1-external | 221477 / 221477 | 14 | 23661 | 55370 |
+| control-chrome-43319232281-1-policy | 221476 / 221476 | 14 | 17998 | 55369 |
+| control-chrome-43319941241-1-external | 221477 / 221477 | 14 | 21911 | 55370 |
+| control-chrome-43319941241-1-policy | 221476 / 221476 | 14 | 23982 | 55369 |
+
+[Actual measurements and exact VIEW log lines](records/recheck2c/view-measurements.json). Screenshots remain in
+the linked Linux artifacts; no browser profile is exported.
+
+## Earlier failures and corrections (run/read)
+
+Source `5f0b5681` completed all 89 browser cases in all four jobs; three completed the mandatory subsequent Python
+sweep. Push `43270186321`'s external job hit the 240-minute container limit during the final storage sweep;
+it is **not green**. Repeat `43270268166` passed both installs, external in 3h56m3s.
+[Retained partial audit](records/recheck2c/browser-audit-partial.json),
+[timeout output and metadata](records/recheck2c/timeout-43270186321.json).
+Both normal and qualification-pair batch budgets are now 300 container / 310 job minutes. No assertion or required
+sweep was removed. Superseded own runs were cancelled after the budget/copy-scope corrections; no other owner's run
+was cancelled. The final pair above completes everything on the corrected runtime.
+
+Base `43320698770` hit its job limit in checkout's git fetch before any test started; its test step was skipped.
+[Checkout failure receipt](records/recheck2c/base-checkout-timeout.json). Its unchanged-source replacement
+`43324347900` passes. Earlier chooser/bootstrap, native navigation-completion and transport-envelope corrections
+retain focused regressions/removal probes. Exact destinations, receiver counts and timing/ownership assertions
+remain strict. Historical failing/partial runs are excluded from acceptance.
 
 ## PLAN-GAP / JUDGMENT-CALL — decided by the lead
 
-A-3's all-native network action is accepted under the autonomous-page class in 2b. Native entry breakpoints cannot
-see borrowed calls through the controlled realm; DOM breakpoints expose raw attributes and violate the password
-rule; attaching the donor would violate “only Claude's tabs”. The detailed historical analysis stays below.
-The independent activation comparison disproved equivalence for all capabilities. The lead accepted activation
-from every click in 2c to preserve normal clicks, with clipboard-write reporting and the explicit known limit.
-The accepted narrow DNR/default neutralization and whole-body compose binding are conditional on the final browser
-proof. All visible whole-body text is bound; persistent live changes consume one re-ask and end in owner-send.
+The historical A-3 stop below remains, marked decided in 2b/2c. A hostile page can borrow all natives from an
+ordinary same-origin donor and run labelled Delete unasked, just as it can autonomously fetch a deletion. Rejected
+fixes: native entry breakpoints cannot see that borrowed call; DOM breakpoints expose raw attributes and violate
+the password rule; attaching the donor violates “only Claude's tabs”. Every click adds activation; the measured
+extra popup/clipboard capability is the accepted 2c cost, with clipboard reporting where observable and an explicit
+known-limit line. This is not a blanket “adds no harm” assertion.
 
-A permission promise in the first clipboard probe never settled. Its bounded measurement now reports “pending
-browser permission” separately from acceptance/rejection and never grants permission. A boundary VSOCK reset is
-classified as unqualified transport, not a successful policy denial; successful connects still fail the boundary
-oracle. The chooser bootstrap now waits for its native cancel event and browser focus before exact owner navigation.
-Each harness/transport correction has a focused regression and removal probe; no passing assertion was removed.
+The lead accepted the narrow DNR plus synchronous default neutralization, proven above across all escape routes,
+approved submissions and owner navigation. Whole-body compose binds **all visible body text**; live text there can
+consume the one re-ask and end in “send it yourself”. The owner/live-site frequency remains to be measured after
+boot. Delayed owner page work inside Claude's hold remains held when task ownership is unclear, as already decided.
 
-Opening ledger for this resumption: **195 control-chrome IDs / 196 executions**. Six further runs have completed
-(`43253386438`, `43254424374`, `43254591612`, `43257735216`, `43257858791`, `43260816675`): total before this code push **201 IDs /
-202 executions**; the new push and repeat bring it to **203 IDs / 204 executions**. They exposed measurement-envelope, pending-permission and exact-navigation harness failures; they
-are not acceptance evidence. The clipboard/default/compose batch used one code push and a repeated full run. A workflow-only push corrects the
-observed batch-time budget and repeats full verification; it changes no shipped code or tests.
-The budget is about 235, with a mandatory report before passing 245. Report-only pushes use `[skip ci]`; each CI run
-has one blocking watcher. The earlier cancelled-log parser missed lines ending in `PASS`; corrected retained
-progress confirms `43237751838` passed the new cases before cancellation and did not finish the suite.
+## Not verified / open questions
+
+The owner's panel/live-site acceptance, real payment sheets/accounts and bot checks, installed OS/Minecraft behavior,
+integration with current main, production main-only qualification publishing, and post-18d group-12 precedence
+remain outside this verification. The slim-generator `instructions_for(app)` sentence is still for post-18d;
+the click descriptions carry it now. [KNOWN-LIMITS.md](KNOWN-LIMITS.md) is the surviving cost/coverage list.
+The historical feature → tool → test map and 18d/19b handoffs below still apply. No new assumption is used as evidence.
+
+**Read:** after `git fetch origin main`, specification files were read with `git show origin/main:<path>`;
+latest read `d6df3ee3`. Briefs 2/2b/2c win where they differ. No spec/design file was edited.
+
+## Runs and local storage
+
+[Final branch ledger](records/recheck2c/run-ledger.json): **209 distinct control-chrome IDs / 210 executions**,
+below the 245-run ceiling. Each run in this verification was waited on with one blocking watcher, without
+turn-by-turn CI status queries. Report-only pushes
+use `[skip ci]`. [Worktree inventory](records/recheck2c/work-inventory.json) lists files over 500 MB: **none**.
+No ISO, image layer or extracted image was downloaded locally; exported CI evidence is logs/JSON/PNGs only, with
+one local copy per retained artifact. No Gradle daemon was started.
 
 ---
 

@@ -1,0 +1,2086 @@
+[
+  {
+    "artifact": "control-chrome-43319232281-1-external",
+    "popup_receiver_counts": {
+      "recheck2b-limit-open-popup-claude-popup": 1,
+      "recheck2b-limit-closed-popup-claude-popup": 1
+    },
+    "rows": [
+      {
+        "id": "recheck2b-limit-open-network",
+        "mode": "open",
+        "capability": "network",
+        "alone": {
+          "id": "recheck2b-limit-open-network",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "network",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-network",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "network",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-popup",
+        "mode": "open",
+        "capability": "popup",
+        "alone": {
+          "id": "recheck2b-limit-open-popup",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "popup",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "blocked",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-popup",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "popup",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "opened",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-download",
+        "mode": "open",
+        "capability": "download",
+        "alone": {
+          "id": "recheck2b-limit-open-download",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "download",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-download",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "download",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-clipboard",
+        "mode": "open",
+        "capability": "clipboard",
+        "alone": {
+          "id": "recheck2b-limit-open-clipboard",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "clipboard",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "pending browser permission",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-clipboard",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "clipboard",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "write accepted",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-payment",
+        "mode": "open",
+        "capability": "payment",
+        "alone": {
+          "id": "recheck2b-limit-open-payment",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "payment",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "NotSupportedError",
+            "message": "The payment method \"https://fixture.test/synthetic-payment\" is not supported. Unable to download payment manifest \"https://fixture.test/synthetic-payment\"."
+          }
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-payment",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "payment",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "SecurityError",
+            "message": "PaymentRequest.show() calls after the first (per page load) require either transient user activation or delegated payment request capability."
+          }
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-network",
+        "mode": "closed",
+        "capability": "network",
+        "alone": {
+          "id": "recheck2b-limit-closed-network",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "network",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-network",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "network",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-popup",
+        "mode": "closed",
+        "capability": "popup",
+        "alone": {
+          "id": "recheck2b-limit-closed-popup",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "popup",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "blocked",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-popup",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "popup",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "opened",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-download",
+        "mode": "closed",
+        "capability": "download",
+        "alone": {
+          "id": "recheck2b-limit-closed-download",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "download",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-download",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "download",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-clipboard",
+        "mode": "closed",
+        "capability": "clipboard",
+        "alone": {
+          "id": "recheck2b-limit-closed-clipboard",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "clipboard",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "pending browser permission",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-clipboard",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "clipboard",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "write accepted",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-payment",
+        "mode": "closed",
+        "capability": "payment",
+        "alone": {
+          "id": "recheck2b-limit-closed-payment",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "payment",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "NotSupportedError",
+            "message": "The payment method \"https://fixture.test/synthetic-payment\" is not supported. Unable to download payment manifest \"https://fixture.test/synthetic-payment\"."
+          }
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-payment",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "payment",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "SecurityError",
+            "message": "PaymentRequest.show() calls after the first (per page load) require either transient user activation or delegated payment request capability."
+          }
+        },
+        "added_transient_activation": true
+      }
+    ]
+  },
+  {
+    "artifact": "control-chrome-43319232281-1-policy",
+    "popup_receiver_counts": {
+      "recheck2b-limit-open-popup-claude-popup": 1,
+      "recheck2b-limit-closed-popup-claude-popup": 1
+    },
+    "rows": [
+      {
+        "id": "recheck2b-limit-open-network",
+        "mode": "open",
+        "capability": "network",
+        "alone": {
+          "id": "recheck2b-limit-open-network",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "network",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-network",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "network",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-popup",
+        "mode": "open",
+        "capability": "popup",
+        "alone": {
+          "id": "recheck2b-limit-open-popup",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "popup",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "blocked",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-popup",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "popup",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "opened",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-download",
+        "mode": "open",
+        "capability": "download",
+        "alone": {
+          "id": "recheck2b-limit-open-download",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "download",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-download",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "download",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-clipboard",
+        "mode": "open",
+        "capability": "clipboard",
+        "alone": {
+          "id": "recheck2b-limit-open-clipboard",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "clipboard",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "pending browser permission",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-clipboard",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "clipboard",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "write accepted",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-payment",
+        "mode": "open",
+        "capability": "payment",
+        "alone": {
+          "id": "recheck2b-limit-open-payment",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "payment",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "NotSupportedError",
+            "message": "The payment method \"https://fixture.test/synthetic-payment\" is not supported. Unable to download payment manifest \"https://fixture.test/synthetic-payment\"."
+          }
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-payment",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "payment",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "SecurityError",
+            "message": "PaymentRequest.show() calls after the first (per page load) require either transient user activation or delegated payment request capability."
+          }
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-network",
+        "mode": "closed",
+        "capability": "network",
+        "alone": {
+          "id": "recheck2b-limit-closed-network",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "network",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-network",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "network",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-popup",
+        "mode": "closed",
+        "capability": "popup",
+        "alone": {
+          "id": "recheck2b-limit-closed-popup",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "popup",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "blocked",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-popup",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "popup",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "opened",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-download",
+        "mode": "closed",
+        "capability": "download",
+        "alone": {
+          "id": "recheck2b-limit-closed-download",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "download",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-download",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "download",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-clipboard",
+        "mode": "closed",
+        "capability": "clipboard",
+        "alone": {
+          "id": "recheck2b-limit-closed-clipboard",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "clipboard",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "pending browser permission",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-clipboard",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "clipboard",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "write accepted",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-payment",
+        "mode": "closed",
+        "capability": "payment",
+        "alone": {
+          "id": "recheck2b-limit-closed-payment",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "payment",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "NotSupportedError",
+            "message": "The payment method \"https://fixture.test/synthetic-payment\" is not supported. Unable to download payment manifest \"https://fixture.test/synthetic-payment\"."
+          }
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-payment",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "payment",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "SecurityError",
+            "message": "PaymentRequest.show() calls after the first (per page load) require either transient user activation or delegated payment request capability."
+          }
+        },
+        "added_transient_activation": true
+      }
+    ]
+  },
+  {
+    "artifact": "control-chrome-43319941241-1-external",
+    "popup_receiver_counts": {
+      "recheck2b-limit-open-popup-claude-popup": 1,
+      "recheck2b-limit-closed-popup-claude-popup": 1
+    },
+    "rows": [
+      {
+        "id": "recheck2b-limit-open-network",
+        "mode": "open",
+        "capability": "network",
+        "alone": {
+          "id": "recheck2b-limit-open-network",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "network",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-network",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "network",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-popup",
+        "mode": "open",
+        "capability": "popup",
+        "alone": {
+          "id": "recheck2b-limit-open-popup",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "popup",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "blocked",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-popup",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "popup",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "opened",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-download",
+        "mode": "open",
+        "capability": "download",
+        "alone": {
+          "id": "recheck2b-limit-open-download",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "download",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-download",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "download",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-clipboard",
+        "mode": "open",
+        "capability": "clipboard",
+        "alone": {
+          "id": "recheck2b-limit-open-clipboard",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "clipboard",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "pending browser permission",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-clipboard",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "clipboard",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "write accepted",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-payment",
+        "mode": "open",
+        "capability": "payment",
+        "alone": {
+          "id": "recheck2b-limit-open-payment",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "payment",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "NotSupportedError",
+            "message": "The payment method \"https://fixture.test/synthetic-payment\" is not supported. Unable to download payment manifest \"https://fixture.test/synthetic-payment\"."
+          }
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-payment",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "payment",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "SecurityError",
+            "message": "PaymentRequest.show() calls after the first (per page load) require either transient user activation or delegated payment request capability."
+          }
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-network",
+        "mode": "closed",
+        "capability": "network",
+        "alone": {
+          "id": "recheck2b-limit-closed-network",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "network",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-network",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "network",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-popup",
+        "mode": "closed",
+        "capability": "popup",
+        "alone": {
+          "id": "recheck2b-limit-closed-popup",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "popup",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "blocked",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-popup",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "popup",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "opened",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-download",
+        "mode": "closed",
+        "capability": "download",
+        "alone": {
+          "id": "recheck2b-limit-closed-download",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "download",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-download",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "download",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-clipboard",
+        "mode": "closed",
+        "capability": "clipboard",
+        "alone": {
+          "id": "recheck2b-limit-closed-clipboard",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "clipboard",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "pending browser permission",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-clipboard",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "clipboard",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "write accepted",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-payment",
+        "mode": "closed",
+        "capability": "payment",
+        "alone": {
+          "id": "recheck2b-limit-closed-payment",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "payment",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "NotSupportedError",
+            "message": "The payment method \"https://fixture.test/synthetic-payment\" is not supported. Unable to download payment manifest \"https://fixture.test/synthetic-payment\"."
+          }
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-payment",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "payment",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "SecurityError",
+            "message": "PaymentRequest.show() calls after the first (per page load) require either transient user activation or delegated payment request capability."
+          }
+        },
+        "added_transient_activation": true
+      }
+    ]
+  },
+  {
+    "artifact": "control-chrome-43319941241-1-policy",
+    "popup_receiver_counts": {
+      "recheck2b-limit-open-popup-claude-popup": 1,
+      "recheck2b-limit-closed-popup-claude-popup": 1
+    },
+    "rows": [
+      {
+        "id": "recheck2b-limit-open-network",
+        "mode": "open",
+        "capability": "network",
+        "alone": {
+          "id": "recheck2b-limit-open-network",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "network",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-network",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "network",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-popup",
+        "mode": "open",
+        "capability": "popup",
+        "alone": {
+          "id": "recheck2b-limit-open-popup",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "popup",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "blocked",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-popup",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "popup",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "opened",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-download",
+        "mode": "open",
+        "capability": "download",
+        "alone": {
+          "id": "recheck2b-limit-open-download",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "download",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-download",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "download",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-clipboard",
+        "mode": "open",
+        "capability": "clipboard",
+        "alone": {
+          "id": "recheck2b-limit-open-clipboard",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "clipboard",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "pending browser permission",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-clipboard",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "clipboard",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "write accepted",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-open-payment",
+        "mode": "open",
+        "capability": "payment",
+        "alone": {
+          "id": "recheck2b-limit-open-payment",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "payment",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "NotSupportedError",
+            "message": "The payment method \"https://fixture.test/synthetic-payment\" is not supported. Unable to download payment manifest \"https://fixture.test/synthetic-payment\"."
+          }
+        },
+        "clicked": {
+          "id": "recheck2b-limit-open-payment",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "payment",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "SecurityError",
+            "message": "PaymentRequest.show() calls after the first (per page load) require either transient user activation or delegated payment request capability."
+          }
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-network",
+        "mode": "closed",
+        "capability": "network",
+        "alone": {
+          "id": "recheck2b-limit-closed-network",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "network",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-network",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "network",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "not requested",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-popup",
+        "mode": "closed",
+        "capability": "popup",
+        "alone": {
+          "id": "recheck2b-limit-closed-popup",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "popup",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "blocked",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-popup",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "popup",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "opened",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-download",
+        "mode": "closed",
+        "capability": "download",
+        "alone": {
+          "id": "recheck2b-limit-closed-download",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "download",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-download",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "download",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "dispatched; receiver decides",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-clipboard",
+        "mode": "closed",
+        "capability": "clipboard",
+        "alone": {
+          "id": "recheck2b-limit-closed-clipboard",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "clipboard",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "pending browser permission",
+          "error": null
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-clipboard",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "clipboard",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "write accepted",
+          "error": null
+        },
+        "added_transient_activation": true
+      },
+      {
+        "id": "recheck2b-limit-closed-payment",
+        "mode": "closed",
+        "capability": "payment",
+        "alone": {
+          "id": "recheck2b-limit-closed-payment",
+          "phase": "all-native-limit",
+          "cause": "alone",
+          "capability": "payment",
+          "before": {
+            "active": false,
+            "ever": false
+          },
+          "atHandler": {
+            "active": false,
+            "ever": false
+          },
+          "trusted": false,
+          "after": {
+            "active": false,
+            "ever": false
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "NotSupportedError",
+            "message": "The payment method \"https://fixture.test/synthetic-payment\" is not supported. Unable to download payment manifest \"https://fixture.test/synthetic-payment\"."
+          }
+        },
+        "clicked": {
+          "id": "recheck2b-limit-closed-payment",
+          "phase": "all-native-limit",
+          "cause": "claude",
+          "capability": "payment",
+          "before": {
+            "active": true,
+            "ever": true
+          },
+          "atHandler": {
+            "active": true,
+            "ever": true
+          },
+          "trusted": false,
+          "after": {
+            "active": true,
+            "ever": true
+          },
+          "secure": true,
+          "outcome": "rejected",
+          "error": {
+            "name": "SecurityError",
+            "message": "PaymentRequest.show() calls after the first (per page load) require either transient user activation or delegated payment request capability."
+          }
+        },
+        "added_transient_activation": true
+      }
+    ]
+  }
+]

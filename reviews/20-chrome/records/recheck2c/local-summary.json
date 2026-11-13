@@ -14,8 +14,11 @@
     "every_baseline_passed": true
   },
   "python": {
-    "status": "running",
-    "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s control/chrome_tests -v"
+    "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s control/chrome_tests -v",
+    "tests": 230,
+    "seconds": 580.945,
+    "result": "OK",
+    "prior_import_only_failure_recorded": true
   },
   "audit_streams_tests": 5,
   "host_transport_tests": 4,
@@ -86,7 +89,14 @@
       "bytes": 7001,
       "sha256": "77348c3e905061150ced8fe39bd6a54c47b2960ab591e6b5dc1e04d318fa51a3",
       "tail": "k2-network-expiry MUTATION REJECTED\nrecheck2-network-restart MUTATION REJECTED\nrecheck2-network-release MUTATION REJECTED\nrecheck2-compose-reader MUTATION REJECTED\nrecheck2-compose-service MUTATION REJECTED\nrecheck2-compose-reask MUTATION REJECTED\nrecheck2-compose-bounded MUTATION REJECTED\nrecheck2-compose-change-shown MUTATION REJECTED\nrecheck2-markup-handler MUTATION REJECTED\nrecheck2-single-capture MUTATION REJECTED\nrecheck2-compose-extension MUTATION REJECTED\nrecheck2-compose-final-boundary MUTATION REJECTED\nrecheck2-engine-reask MUTATION REJECTED\nrecheck2-engine-boundary-reask MUTATION REJECTED\nrecheck2-event-reuse MUTATION REJECTED\nrecheck2-slot-dedup-scope MUTATION REJECTED\nrecheck2-clone-native-kinds MUTATION REJECTED\nrecheck2-cached-factory MUTATION REJECTED\nrecheck2b-activation-baseline MUTATION REJECTED\nrecheck2b-activation-receipt MUTATION REJECTED\nrecheck2b-pending-clipboard MUTATION REJECTED\nrecheck2b-picker-leave-chooser MUTATION REJECTED\nrecheck2b-picker-browser-focus MUTATION REJECTED\nrecheck2c-clipboard-write MUTATION REJECTED\nrecheck2c-clipboard-writeText MUTATION REJECTED\nrecheck2c-copy-event MUTATION REJECTED\nrecheck2c-copy-trust MUTATION REJECTED\nrecheck2c-copy-document MUTATION REJECTED\nrecheck2c-clipboard-reader MUTATION REJECTED\nrecheck2c-clipboard-navigation MUTATION REJECTED\nrecheck2c-clipboard-post-input MUTATION REJECTED\nrecheck2c-clipboard-route MUTATION REJECTED\nrecheck2c-clipboard-description MUTATION REJECTED\nrecheck2c-owner-exact-url MUTATION REJECTED\nrecheck2b-transport-reset MUTATION REJECTED\n187 mutations rejected; every baseline passed\n"
+    },
+    {
+      "file": "recheck2c-python-scope.txt",
+      "bytes": 44100,
+      "sha256": "6aa0bd12fde456c97b0824df9deab890309ae5e067e39172759ebf18f1a91b64",
+      "tail": "ut) ... ok\ntest_r2_created_tab_identity_commits_before_navigation (test_storage.Storage.test_r2_created_tab_identity_commits_before_navigation) ... ok\ntest_r2_free_input_has_committed_context_before_dispatch (test_storage.Storage.test_r2_free_input_has_committed_context_before_dispatch) ... ok\ntest_review1_password_failure_refuses_before_any_binding_read (test_storage.Storage.test_review1_password_failure_refuses_before_any_binding_read) ... ok\ntest_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds (test_storage.Storage.test_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds) ... ok\ntest_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch (test_storage.Storage.test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch) ... ok\ntest_taken_read_preserves_document_and_first_input_commits_reload_before_staling (test_storage.Storage.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok\ntest_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_storage.Storage.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok\ntest_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_storage.Storage.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok\ntest_service_sandbox_and_launch_are_exact (test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact) ... ok\n\n----------------------------------------------------------------------\nRan 230 tests in 580.945s\n\nOK\n"
     }
   ],
-  "verification_note": "Current document-scope correction; full Python repeat running. Prior complete local results are preserved separately."
+  "verification_note": "Scope-corrected runtime; full local suites and all removal baselines pass.",
+  "source": "5c4e4add2b867f6e439f496a12320aea67c03f4b"
 }
