@@ -137,6 +137,14 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
                 context.getInput().pressKey(options -> options.keyInventory);
                 context.waitForScreen(InventoryScreen.class);
                 context.waitTicks(5);
+                context.runOnClient(client -> {
+                    var screen = client.gui.screen();
+                    var button = net.fabricmc.fabric.api.client.screen.v1.Screens.getButtons(screen).stream()
+                            .filter(widget -> widget.getMessage().getString().equals("Apps…")).findFirst().orElseThrow();
+                    check(button.getWidth() == 70 && button.getHeight() == 20 && button.getX() == screen.width / 2 - 35
+                            && button.getY() + button.getHeight() == (screen.height - 166) / 2 - 4,
+                            "The Apps button is not centred four pixels above the inventory panel");
+                });
                 screenshot(context, "34-day-one-inventory");
 
                 appsScreen(context, world);

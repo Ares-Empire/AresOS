@@ -81,7 +81,7 @@ public final class AppsScreen extends Screen {
         ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
             if (screen instanceof InventoryScreen && active(client)) {
                 Screens.getWidgets(screen).add(Button.builder(Component.literal("Apps…"),
-                        button -> client.gui.setScreen(new AppsScreen(screen))).bounds(width / 2 - 35, height / 2 + 90, 70, 20).build());
+                        button -> client.gui.setScreen(new AppsScreen(screen))).bounds(width / 2 - 35, (height - 166) / 2 - 24, 70, 20).build());
             }
         });
         // The chat is behind this screen, so a line that arrives while it is open is shown in it as well.
