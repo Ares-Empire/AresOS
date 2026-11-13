@@ -227,7 +227,7 @@ are all retained and logged as ambiguous; discovery never chooses between them.
 
 ```json
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "baseline": "2026-11-13",
   "apps": [
     {
@@ -267,17 +267,17 @@ An optional `icon` path can supply a local PNG. Missing/unreadable icons use `lo
 a missing vanilla item uses a book. Websites use their configured vanilla look
 unless a local icon is supplied; AresOS does not fetch favicons.
 
-Older files move over on startup, package-01 arrays (schema 1) and schema 2
-alike: the entire file is validated first, copied byte for byte to
-`apps.json.schema-<1 or 2>-<unique id>.bak`, then replaced atomically by schema 3.
+Older files move over on startup, package-01 arrays (schema 1), schema 2
+and schema 3 alike: the entire file is validated first, copied byte for byte to
+`apps.json.schema-<1, 2 or 3>-<unique id>.bak`, then replaced atomically by schema 4.
 An app that was pinned, and the starters `browser`, `terminal` and `notepad`,
-start as yours; nothing else in an entry changes. The move runs once. Invalid
+start as yours when moving from schema 1 or 2; schema 3 keeps its My apps choices.
+Nothing else in an entry changes. The move runs once. Invalid
 entries, duplicate IDs, unsupported schemas or an I/O error stop with a
 diagnostic and preserve the original file. No defaults replace a broken file.
 Pin, My-apps and merge edits also preserve unknown optional fields.
 
-An older mod that finds a schema-3 file refuses it ("Unsupported schemaVersion
-(expected 2)"), leaves the file untouched, starts without apps and says
+An older mod that finds a schema-4 file refuses it ("Unsupported schemaVersion"), leaves the file untouched, starts without apps and says
 "AresOS apps disabled: ..." in the chat.
 
 Before downgrading to an older mod, close Minecraft and run the explicit recovery
@@ -288,10 +288,10 @@ command from `mod/` (substitute the paths to your dev config and its migration b
 ```
 
 It takes a schema-1 or a schema-2 backup, validates it, keeps your current
-schema-3 file as `apps.json.schema-3-before-downgrade-<id>.bak`, prints a warning
+schema-4 file as `apps.json.schema-4-before-downgrade-<id>.bak`, prints a warning
 about later edits, and restores the backup's bytes atomically. **The old backup
 excludes later apps, edits, pins and My apps.** Compare both retained versions
-before using the older mod. Starting the new mod again moves the file to schema 3.
+before using the older mod. Starting the new mod again moves the file to schema 4.
 
 On Linux (AresOS) the program list and every launch come from the OS app helper
 over `aresos-shell` (this mod speaks 1.1 and works with a 1.0 helper as before);
