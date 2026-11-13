@@ -19,6 +19,43 @@ completion, and save regression screenshots in `build/review/01-first-app/`.
 Nether-home and seed screenshots go in `../reviews/04-nether-home/`.
 The client test task has a ten-minute timeout for a stuck game startup.
 
+## On Linux (AresOS)
+
+On the AresOS laptop, use the scripts in `dev/` (from any directory). They need
+no system install and change no shell setup:
+
+- **Java:** Eclipse Temurin JDK 25.0.5+8 in the home folder:
+  `~/.local/opt/jdk-25.0.5+8`, linked as `~/.local/opt/jdk-25`, unpacked from
+  [OpenJDK25U-jdk_x64_linux_hotspot_25.0.5_8.tar.gz](https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.5%2B8/OpenJDK25U-jdk_x64_linux_hotspot_25.0.5_8.tar.gz)
+  (SHA-256 `68982529869257d0ee6b824ec5aa270ff8b118bb438670da0b97ebdab178d7fb`,
+  as Adoptium publishes it). The scripts use `JAVA_HOME` if it is a Java 25 JDK,
+  otherwise that link (`dev/env.sh`).
+- **`dev/build.sh`** runs `./gradlew build` (unit tests and server game tests).
+  Six Windows catalogue unit tests (PowerShell discovery, Windows paths) skip on
+  Linux and say why.
+- **`dev/client-test.sh`** runs `./gradlew runClientGameTest` in its own headless
+  compositor (`cage`, `WLR_BACKENDS=headless`) and that compositor's Xwayland, so
+  no window appears on the screen and the game cannot reach the real display.
+  It renders on the RTX 4060 (PRIME offload) when that works headless, else on
+  the Intel GPU, else in software (`--gpu` picks one), and says which at the end.
+  Sound goes to OpenAL's null device. `--keep-screenshots <dir>` copies the
+  screenshots the run wrote; then `git checkout -- ../reviews/` undoes the
+  rewritten tracked ones.
+- **`dev/run-hub.sh`** (a development aid; package 23's session supervisor replaces
+  it) starts the app helper `/usr/libexec/aresos-shell` with a fresh desktop
+  instance and launch nonce, then `./gradlew runClient` on the real screen on the
+  RTX 4060, so walking into a logo opens the app. The helper stops when the game
+  exits. It refuses a helper it did not start that already serves the socket.
+  `--helper <path>` starts another helper (for example one from a worktree) and
+  `--registry <dir>` passes its app folder to the helper's `--registry`.
+
+Extra arguments go to Gradle. Only one client test runs at a time on the laptop:
+`client-test.sh` waits for `~/.cache/aresos-dev/client-test.lock` and says so.
+All three refuse (exit code 75) while the Lunar Client game runs or less than
+6 GB of memory is available; `--force` skips those two checks. Gradle runs
+without a lasting daemon (`--no-daemon`) inside its own systemd user scope, which
+every exit, Ctrl+C included, stops with everything in it.
+
 Click **AresOS** above Singleplayer on the title screen to reopen **AresHub**,
 or choose a seed on the create screen if it does not exist. Seed **49** is
 prefilled; **49**, **50** and **26** have quick-pick buttons. Seed entry follows
