@@ -15,7 +15,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
- * Keeps the icon pack in step with the app list while the game runs. One background thread makes the pictures.
+ * Keeps the icon pack in step with the app list from startup onwards. One background thread makes the pictures;
+ * file reads have their own deadline and disposable workers ({@link AppIcons}), so a stuck read cannot hold it.
  * When a file of the pack changed, the game loads its resource packs again, at most once per {@code gap}; lists
  * that arrive in between share the next reload. Only after the reload are the new pictures handed out
  * ({@code publish}), so an item never points at a picture the game has not loaded. When nothing changed, nothing

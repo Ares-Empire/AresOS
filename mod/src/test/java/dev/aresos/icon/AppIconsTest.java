@@ -14,6 +14,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -105,5 +108,59 @@ class AppIconsTest {
         assertEquals(AppIcons.MAX_SIDE + 88, picture.image().getWidth());
         assertEquals(Set.of("fixture"), IconPack.generate(directory.resolve("pack-own"),
                 List.of(app(large.toString(), null)), new PixelIconConverter()).generated());
+    }
+
+    @Test void aStuckReadIsAbandonedAndDoesNotHoldUpTheNextPicture() throws Exception {
+        Path good = png("good.png", 32, 32, 0xff00aa00, false);
+        var release = new CountDownLatch(1);
+        var finished = new CountDownLatch(1);
+        try {
+            var error = assertThrows(IOException.class, () -> AppIcons.read(app(null, good.toString()),
+                    Duration.ofMillis(100), () -> {
+                        // A filesystem call can ignore interruption. Keep this worker stuck until the test ends.
+                        try { while (true) try { release.await(); break; } catch (InterruptedException ignored) { } }
+                        finally { finished.countDown(); }
+                    }));
+            assertTrue(error.getMessage().contains("timed out"));
+            assertEquals(1, finished.getCount(), "The fixture did not leave a stuck worker behind");
+            assertEquals(32, AppIcons.read(app(null, good.toString())).image().getWidth(),
+                    "A later read queued behind the stuck worker");
+        } finally { release.countDown(); }
+        assertTrue(finished.await(5, TimeUnit.SECONDS));
+    }
+
+    @Test void aFinalSymlinkIsRefusedAlsoWhenItReplacesTheFileDuringOpen() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(directory.getFileSystem().supportedFileAttributeViews().contains("unix"));
+        Path target = png("target.png", 32, 32, 0xff00aa00, false);
+        Path link = directory.resolve("link.png");
+        Files.createSymbolicLink(link, target);
+        assertThrows(IOException.class, () -> AppIcons.read(app(null, link.toString())));
+        Path replaced = png("replaced.png", 32, 32, 0xff00aa00, false);
+        assertThrows(IOException.class, () -> AppIcons.read(app(null, replaced.toString()), Duration.ofSeconds(2), () -> {
+            try { Files.delete(replaced); Files.createSymbolicLink(replaced, target); }
+            catch (IOException error) { throw new java.io.UncheckedIOException(error); }
+        }));
+    }
+
+    @Test void aFifoReplacementCannotBlockLaterIconReads() throws Exception {
+        org.junit.jupiter.api.Assumptions.assumeTrue(System.getProperty("os.name").equals("Linux"));
+        Path replaced = png("fifo.png", 32, 32, 0xff00aa00, false);
+        try {
+            var error = assertThrows(IOException.class, () -> AppIcons.read(app(null, replaced.toString()),
+                    Duration.ofMillis(200), () -> {
+                        try {
+                            Files.delete(replaced);
+                            if (new ProcessBuilder("mkfifo", replaced.toString()).start().waitFor() != 0)
+                                throw new AssertionError("Could not create the FIFO fixture");
+                        } catch (IOException | InterruptedException failure) { throw new AssertionError(failure); }
+                    }));
+            assertTrue(error.getMessage().contains("timed out"), error.getMessage());
+            Path next = png("next.png", 32, 32, 0xff00aa00, false);
+            assertEquals(32, AppIcons.read(app(null, next.toString())).image().getWidth());
+        } finally {
+            // O_RDWR opens a Linux FIFO without waiting and releases the abandoned reader's open.
+            try (var release = java.nio.channels.FileChannel.open(replaced,
+                    java.nio.file.StandardOpenOption.READ, java.nio.file.StandardOpenOption.WRITE)) { }
+        }
     }
 }

@@ -30,8 +30,6 @@ import java.util.Locale;
 import java.util.Set;
 import dev.aresos.catalogue.WindowsAppCatalogue;
 import dev.aresos.catalogue.LinuxAppCatalogue;
-import dev.aresos.icon.IconPack;
-import dev.aresos.icon.PixelIconConverter;
 import dev.aresos.item.AppInventory;
 import dev.aresos.shell.ShellClient;
 
@@ -133,8 +131,7 @@ public final class AresOs implements ModInitializer {
                     LOGGER.error("App discovery failed; existing catalogue kept intact", error);
                 }
             }
-            try { generatedIcons = IconPack.generate(iconPackPath(), apps, new PixelIconConverter()).generated(); }
-            catch (IOException error) { LOGGER.error("Cannot write icon cache; using configured vanilla looks", error); }
+            dev.aresos.item.MyAppsGame.pictures(apps);
         } catch (IOException error) {
             configError = error.getMessage();
             LOGGER.error("Cannot load app catalogue; apps disabled and original file left intact", error);
