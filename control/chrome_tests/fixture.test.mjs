@@ -146,7 +146,7 @@ test('recheck script POST observes both exact document commits before takeover',
 test('recheck3 full mixed matrix and activation whitespace fixtures compile without a browser',async()=>{
   const {recheck3Page,defaultRows,whitespaceKinds}=await import('../chrome/ci/recheck3-fixtures.mjs');
   const {mixedRows,browserMixes}=await import('../chrome/ci/guard-matrix.mjs');
-  assert.equal([...mixedRows()].length,128);assert.equal(browserMixes().length,42);
+  assert.equal([...mixedRows()].length,128);assert.equal(browserMixes().length,56);
   for(const mask of [1,2,4,8])assert.equal(browserMixes().filter(row=>row.mask===mask&&!row.foreign).length,8);
   const urls=[...[...[...mixedRows()],...browserMixes().filter(row=>row.foreign)].map(row=>({...row,mode:'mixed',root:row.mode,foreign:row.foreign?1:0,id:'mixed'})),...defaultRows().map(row=>({mode:'activation-default',...row})),...whitespaceKinds.flatMap(kind=>['indent','line'].map(change=>({mode:'compose-whitespace',kind,change,id:'space'})))];
   for(const row of urls){const page=recheck3Page(new URL('http://fixture.test/?'+new URLSearchParams(row)));new vm.Script(page.script);assert.ok(page.body);}

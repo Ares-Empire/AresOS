@@ -224,10 +224,10 @@ case('recheck2b-transport-reset','control/boundary/hostile.py',', errno.ECONNRES
 
 case('recheck3-detached-listener',M,'if(node)watchCreated(this);','',node('page','recheck3 every wrapped native mix'))
 case('recheck3-node-brand',M,'let node=false;try{invoke(root,this,[]);node=true;}catch{}','let node=this instanceof Node;',node('page','recheck3 detached listener branding'))
-case('recheck3-foreign-node',G,"if(stage.detail.kind==='watch_node'){const other=foreignGuard(stage.target.ownerDocument||stage.target);if(other?.watch)other.watch(stage.target,active()?{config}:null);else if(!other&&stage.target.ownerDocument===ownDocument)watch(stage.target);event.preventDefault();return;}","if(stage.detail.kind==='watch_node'){if(stage.target.ownerDocument===ownDocument)watch(stage.target);event.preventDefault();return;}",node('page','wrapped detached listener from another'))
-case('recheck3-foreign-document-lookup',G,"doc[Symbol.for('aresos.chrome.guard.v2')]||",'',node('page','wrapped detached listener from another'))
-case('recheck3-foreign-document-reference',G,"Object.defineProperty(ownDocument,Symbol.for('aresos.chrome.guard.v2'),{value:api,configurable:true});",'',node('page','wrapped detached listener from another'))
-case('recheck3-foreign-document-release',G,"delete ownDocument[Symbol.for('aresos.chrome.guard.v2')];",'',node('page','P4 borrowed wrappers'))
+case('recheck3-foreign-node',M,'watchForeign(node);return node;','return node;',node('page','wrapped detached listener from another'))
+case('recheck3-foreign-document-lookup',M,"    report(node,{kind:'watch_node'});",'',node('page','wrapped detached listener from another'))
+case('recheck3-foreign-document-reference',M,"    invoke(mapSet,foreignCarriers,[doc,{node,control,key,value}]);return true;","    return true;",node('page','wrapped detached listener from another'))
+case('recheck3-foreign-document-release',M,"invoke(removeListener,node,[kind,record.listener,true]);",'void 0;',node('page','foreign watch bridges and recipient capture'))
 case('recheck3-svg-capture',G,'const shadow=element instanceof HTMLElement&&globalThis.chrome?.dom?.openOrClosedShadowRoot(element);','const shadow=globalThis.chrome?.dom?.openOrClosedShadowRoot(element);',node('page','recheck3 every hyperlink'))
 case('recheck3-area-default',G,"['A','AREA'].includes(element.tagName)","['A'].includes(element.tagName)",node('page','recheck3 every hyperlink'))
 case('recheck3-svg-default',G,"element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a'","false",node('page','recheck3 every hyperlink'))
@@ -244,6 +244,13 @@ case('recheck3-visible-descendant',R,"if(style.display==='none')return;","if(sty
 case('recheck3-visible-hidden-attribute',R,"if(style.display==='none')return;","if(node.hidden||style.display==='none')return;",node('reader','recheck3 compose preserves rendered indentation'))
 case('recheck3-compose-question',A,"if state.get('compose') is not None and not changed:","if False:",'test_questions.Questions.test_recheck3_whitespace_only_changes_keep_exact_questions_and_bounded_bindings',True)
 case('recheck3-compose-extension',B,"compose:!adapter&&['send','confirmation','form'].includes(kind)?frame.compose||null:null,",'compose:null,',node('background','recheck3 final extension binding'))
+
+case('recheck3-private-carrier-brand',M,'invoke(getAttribute,node,[key])!==value','false',node('page','private foreign links reject'))
+case('recheck3-private-carrier-retirement',M,'if(relayKey&&privateRelay)invoke(removeAttribute,privateRelay,[relayKey]);','',node('page','private foreign links reject'))
+case('recheck3-private-source-hold',G,'value:holdConfig()','value:null',node('page','wrapped detached listener from another'))
+case('recheck3-private-native-context',B,'state.factoryContexts.set(params.executionContextAuxData.frameId,params.executionContextId)','void 0',node('background','native MAIN context observed'))
+case('recheck3-passive-carrier-retirement',G,'if(relayNode&&relayMarker)removeAttribute.call(relayNode,relayMarker);','',node('page','passive controlled recipient'))
+case('recheck3-conservative-recipient',G,'candidate.conservative||combined?.conservative','candidate.conservative',node('page','already conservative recipient'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

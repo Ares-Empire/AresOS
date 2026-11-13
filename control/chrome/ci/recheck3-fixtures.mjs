@@ -18,12 +18,14 @@ export function recheck3Page(url){
     body='<button type="button" id="continue">Continue</button>'+(foreign?'<iframe id="child" width="400" height="160" src="/?case=review-page&mode=mixed-child&id='+id+'"></iframe>':'<div id="host"></div>');
     script=`${foreign?`const key=Symbol.for('aresos.chrome.guard.v2'),exposed=document[key]!==undefined;document[key]={watch(){},route(){},clear(){}};fetch('/compat-report',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase:'mixed-parent-ready',exposed})});`:''}document.querySelector('#continue').onclick=()=>{
       const donor=opener,doc=${foreign?"document.querySelector('#child').contentDocument":'document'},host=doc.querySelector('#host');
-      const root=${mask&1?'host.attachShadow(':'donor.Element.prototype.attachShadow.call(host,'}{mode:${JSON.stringify(rootMode)}});
+      const root=${mask&1?(foreign?'Element.prototype.attachShadow.call(host,':'host.attachShadow('):'donor.Element.prototype.attachShadow.call(host,'}{mode:${JSON.stringify(rootMode)}});
       const button=donor.Document.prototype.createElement.call(doc,'button');button.textContent='Delete';button.type='button';
-      const insert=()=>${mask&2?'root.appendChild(button)':'donor.Node.prototype.appendChild.call(root,button)'};
+      const insert=()=>${mask&2?(foreign?'Node.prototype.appendChild.call(root,button)':'root.appendChild(button)'):'donor.Node.prototype.appendChild.call(root,button)'};
       const listen=()=>${mask&4?"EventTarget.prototype.addEventListener.call(button,'click',handler)":"donor.EventTarget.prototype.addEventListener.call(button,'click',handler)"};
       const handler=()=>fetch(${JSON.stringify(receive)},{method:'POST',body:'mixed handler'});
       ${order==='before'?'listen();insert();':'insert();listen();'}
+      ${foreign?`for(const data of ['clear','allow','release'])donor.EventTarget.prototype.dispatchEvent.call(doc,new donor.InputEvent('aresos-watch-node-v1',{bubbles:true,composed:true,data,targetRanges:[new donor.StaticRange({startContainer:button,startOffset:0,endContainer:button,endOffset:0})]}));`:''}
+      ${foreign?'const until=performance.now()+650;while(performance.now()<until){}':''}
       ${mask&8?'EventTarget.prototype.dispatchEvent':'donor.EventTarget.prototype.dispatchEvent'}.call(button,new donor.MouseEvent('click',{bubbles:true,composed:${composed},cancelable:true}));
     };`;
   }else if(mode==='activation-default'){

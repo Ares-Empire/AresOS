@@ -4,25 +4,25 @@
       "command": "node --test control/chrome_tests/*.test.mjs",
       "exit_code": 0,
       "output": "local-node.txt",
-      "sha256": "67f12341789357335db39c33ff0284545002aaf37fff475af8541c7523869f7c",
+      "sha256": "2fc3c573e51a43c632ca121d5d3d41aafb4fbd50f93f504428e7ec218826387e",
       "tail": [
-        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.204792ms)",
-        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.699625ms)",
-        "\u2139 tests 303",
+        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.204417ms)",
+        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.710333ms)",
+        "\u2139 tests 310",
         "\u2139 suites 0",
-        "\u2139 pass 303",
+        "\u2139 pass 310",
         "\u2139 fail 0",
         "\u2139 cancelled 0",
         "\u2139 skipped 0",
         "\u2139 todo 0",
-        "\u2139 duration_ms 7301.006584"
+        "\u2139 duration_ms 7269.07425"
       ]
     },
     {
       "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s control/chrome_tests -v",
       "exit_code": 0,
       "output": "local-python.txt",
-      "sha256": "54ca2b08c09e15cf75b6aa6d6166e14fa0c658d6b3e1816458b655af42f73daa",
+      "sha256": "c31c0c3a1ff6ab9e03fb805f6f58a029e787d0797c4a40f0b499f329ee290f1c",
       "tail": [
         "test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch (test_storage.Storage.test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch) ... ok",
         "test_taken_read_preserves_document_and_first_input_commits_reload_before_staling (test_storage.Storage.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok",
@@ -31,7 +31,7 @@
         "test_service_sandbox_and_launch_are_exact (test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact) ... ok",
         "",
         "----------------------------------------------------------------------",
-        "Ran 231 tests in 580.628s",
+        "Ran 231 tests in 580.856s",
         "",
         "OK"
       ]
@@ -40,18 +40,18 @@
       "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck3/mutations.json",
       "exit_code": 0,
       "output": "local-mutations.txt",
-      "sha256": "a9ffcd34635edcdaff9db5cffcf63a2cc60224bf2ab64467038e667220ec73c5",
+      "sha256": "156624d5db27dbc897ec52a7b9ff0708b37b522c16d5806e0cd0b35284267971",
       "tail": [
-        "recheck3-pre-modes MUTATION REJECTED",
-        "recheck3-pre-line MUTATION REJECTED",
-        "recheck3-trailing-newline MUTATION REJECTED",
-        "recheck3-leading-pre-line MUTATION REJECTED",
-        "recheck3-leading-br MUTATION REJECTED",
-        "recheck3-visible-descendant MUTATION REJECTED",
         "recheck3-visible-hidden-attribute MUTATION REJECTED",
         "recheck3-compose-question MUTATION REJECTED",
         "recheck3-compose-extension MUTATION REJECTED",
-        "209 mutations rejected; every baseline passed"
+        "recheck3-private-carrier-brand MUTATION REJECTED",
+        "recheck3-private-carrier-retirement MUTATION REJECTED",
+        "recheck3-private-source-hold MUTATION REJECTED",
+        "recheck3-private-native-context MUTATION REJECTED",
+        "recheck3-passive-carrier-retirement MUTATION REJECTED",
+        "recheck3-conservative-recipient MUTATION REJECTED",
+        "215 mutations rejected; every baseline passed"
       ]
     },
     {
@@ -271,7 +271,7 @@
   "probe": {
     "command": "node reviews/20-chrome/probe-recheck3.mjs reviews/20-chrome/records/recheck3/mixed-probe.json",
     "exit_code": 0,
-    "stdout": "130 generated mixes passed; only 4 all-native non-composed rows run their handler"
+    "stdout": "256 generated mixes passed; only 12 all-native rows run their handler"
   },
   "generator": {
     "command": "python3 -B control/generate.py --check",
@@ -294,5 +294,13 @@
     "A strict local PRE case with hidden plus computed display:block reproduced omitted visible text. The compose walker/candidate selection now use computed display. The Linux PRE variant includes that exact CSS override. Only this build's superseded 7536ebff pair was cancelled before acceptance.",
     "A strict cross-controlled-document detached-listener probe failed: watch_node ignored a node owned by another controlled document. It now forwards capture and the active hold to that document's private guard, like watch_root already does. Open/closed iframe browser cases and two production probes extend the matrix; ordinary documents gain no authority. Only this build's superseded 04eeaa1f Chrome pair was cancelled.",
     "55dde837 failed the new iframe case at one unapproved arrival in both runs. WindowProxy did not expose the other isolated guard. The owning document now has an isolated-wrapper reference, removed on disposal; the mock masks WindowProxy access and the browser checks MAIN absence plus forged-document-property rejection. P4's ordinary-document setup now executes full guard disposal before deleting its fake WindowProxy reference; every assertion stays unchanged."
+  ],
+  "corrections": [
+    "The private document-wrapper candidate also failed the strict Linux foreign-listener case on 14833d50; private MAIN absence alone did not establish working cross-document routing.",
+    "Use authenticated detached native relays per controlled recipient, privately wired before page resume. No public watch packet is accepted; a pre-commit public-watch experiment was discarded.",
+    "The fixture now shares native DOM identity across its realms and snapshots target listeners, so a synthetic cross-realm descriptor cannot invent a failure or accept a listener added too late. No original assertion was weakened.",
+    "Full foreign matrix tests also advance the recipient clock past 500 ms. A live private query retains the source hold during long synchronous handlers, preserves conservative recipient policy and stops at source release; the browser rows busy-wait past 500 ms too.",
+    "Six extra removals cover native context identity, private carrier branding/retirement, live source holds, passive recipient cleanup and conservative policy. Final 215 removals fail with all baselines passing.",
+    "The first removal attempt on the refactor survived P19-context-generation because duplicate context-construction code changed the edit selector. Unified the native-context registration; the original race assertions and the removal both pass/fail as required."
   ]
 }

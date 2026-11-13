@@ -84,11 +84,24 @@
     endingDialog=null;
   }
   // Real documents never accept page-forgeable reports, even before private linking.
-  let relayControl=null,legacyBridge=typeof globalThis.Document!=='function',requestDepth=0;const relayListeners=[];
+  let relayNode=null,relayMarker=null,relayControl=null,legacyBridge=typeof globalThis.Document!=='function',requestDepth=0;const relayListeners=[];
   function requestNative(form,submitter){requestDepth++;try{return submitter?native.requestSubmit.call(form,submitter):native.requestSubmit.call(form);}finally{requestDepth--;}}
   const currentPhase = event => phase ? phase.call(event) : event.eventPhase;
   const type = event => eventType ? eventType.call(event) : event.type;
-  const active = () => generation !== null && (inFlight || performance.now() < until);
+  const sources=new Set();let sourceSeen=new WeakSet(),queryingSources=false;
+  const invoke=Reflect.apply;
+  function holdConfig(){
+    if(generation===null)return null;
+    let combined=inFlight||performance.now()<until?config:null;
+    if(queryingSources)return combined;
+    queryingSources=true;
+    try{for(const ref of sources){const source=ref.deref();if(!source){sources.delete(ref);continue;}
+      const candidate=invoke(source,undefined,[]);
+      if(candidate)combined={...candidate,conservative:candidate.conservative||combined?.conservative};
+    }}finally{queryingSources=false;}
+    if(combined)config=combined;return combined;
+  }
+  const active=()=>!!holdConfig();
   const ownerTasks=new MessageChannel();
   ownerTasks.port1.onmessage=event=>{if(owner?.token===event.data)owner=null;};
   const ownerMutations=globalThis.MutationObserver?new MutationObserver(()=>{if(owner)owner.changed=true;}):null;
@@ -234,7 +247,7 @@
     if(doc===ownDocument)return null;
     let view;try{view=defaultView?defaultView.call(doc):doc.defaultView;}catch{return {unknown:true};}
     if(!view)return null;
-    try{return doc[Symbol.for('aresos.chrome.guard.v2')]||view[Symbol.for('aresos.chrome.guard.v2')]||(view.top&&view.top===window.top?{unknown:true}:{outside:true});}catch{return {unknown:true};}
+    try{return view[Symbol.for('aresos.chrome.guard.v2')]||(view.top&&view.top===window.top?{unknown:true}:{outside:true});}catch{return {unknown:true};}
   }
   function outsideCall(event,stage){const {target,detail}=stage;if(detail.kind==='native_submit')native.submit.call(target);else if(detail.kind==='request_submit')requestNative(detail.with_submitter?target.form:target,detail.with_submitter?target:null);else event.preventDefault();}
   function onCall(event,request=null) {
@@ -319,7 +332,7 @@
   }
   watch(window);
   // This object exists only in the extension's isolated world. MAIN has no API or capability.
-  const api=globalThis[Symbol.for('aresos.chrome.guard.v2')] = {
+  globalThis[Symbol.for('aresos.chrome.guard.v2')] = {
     get ready(){return !!reader;},
     clipboard:clipboardObservation,
     control(epoch){if(generation!==epoch)clipboardRoutes.clear();generation=epoch;},
@@ -331,12 +344,15 @@
       const carrier=node.firstElementChild,stack=[];
       const listen=(kind,listener)=>{carrier.addEventListener(kind,listener);relayListeners.push([kind,listener]);};
       const ranges=InputEvent.prototype.getTargetRanges;
+      relayNode=node;
+      listen('aresos-relay-source-hold',event=>{Object.defineProperty(event.detail,'value',{value:holdConfig()});});
+      listen('aresos-relay-source',event=>{const source=event.detail;if(typeof source==='function'&&!sourceSeen.has(source)){sourceSeen.add(source);sources.add(new WeakRef(source));}});
       legacyBridge=false;relayControl=carrier;
       for(const [root,listeners]of watchedRoots())for(const [kind,listener,capture]of listeners)if(kind==='aresos-page-call-v2')root.removeEventListener(kind,listener,capture);
       const drop=request=>{if(stack.at(-1)?.detail.request===request)stack.pop();};
       listen('aresos-relay-meta',event=>{
         const detail=event.detail;
-        if(stack.length>=32||!['native_submit','request_submit','click','dispatch','watch_root','watch_node','clipboard_write','dialog_begin','dialog_end'].includes(detail?.kind))return;
+        if(stack.length>=32||!['native_submit','request_submit','click','dispatch','watch_root','watch_node','clipboard_write','dialog_begin','dialog_end','foreign_click'].includes(detail?.kind))return;
         if(!Number.isSafeInteger(detail.request))return;
         const stage={detail};stack.push(stage);
       });
@@ -364,6 +380,20 @@
         if(stage.detail.kind==='watch_root'){const other=foreignGuard(stage.target.ownerDocument||stage.target);if(other?.watch)other.watch(stage.target,active()?{config}:null);else if(!other)watch(stage.target);event.preventDefault();return;}
         const other=foreignGuard(stage.target);if(other){if(other.outside)outsideCall(event,stage);else if(other.route)other.route(event,stage,active()?{config}:null);return;}
         const element=eventElement(stage.target);
+        if(stage.detail.kind==='foreign_click'){
+          // The original is page-owned. Every field/method used by capture is
+          // read through our native Event interface, never through expandos.
+          const original=stage.original,facade={};
+          for(const key of ['type','cancelable','isTrusted','defaultPrevented','eventPhase','key','ctrlKey','altKey','metaKey','shiftKey']){
+            let proto=key==='key'||key.endsWith('Key')?globalThis.KeyboardEvent?.prototype:Event.prototype,getter;
+            while(proto&&!getter){getter=Object.getOwnPropertyDescriptor(proto,key)?.get;proto=Object.getPrototypeOf(proto);}
+            Object.defineProperty(facade,key,{get:()=>getter?getter.call(original):original[key]});
+          }
+          facade.composedPath=()=>Event.prototype.composedPath.call(original);
+          facade.preventDefault=()=>Event.prototype.preventDefault.call(original);
+          facade.stopImmediatePropagation=()=>Event.prototype.stopImmediatePropagation.call(original);
+          capture(facade,stage.target);event.preventDefault();return;
+        }
         if(['click','dispatch'].includes(stage.detail.kind)){
           const name=stage.detail.kind==='click'?'click':stage.detail.event_type;
           if(typeof name!=='string')return;
@@ -375,9 +405,11 @@
         }
         onCall(event,stage);
       });
+      listen('aresos-relay-original',event=>{const stage=stack.at(-1);if(stage?.detail.kind==='foreign_click')stage.original=event.detail;});
       listen('aresos-relay-drop',event=>drop(event.detail));
       return reader.document;
     },
+    privateRelay(key,value){const node=document.createElement('div');node.appendChild(document.createElement('span'));setAttribute.call(node,key,value);this.relay(node);relayMarker=key;return node;},
     reader(value) { reader=value; }, watch,
     arm(value) {
       generation=value.generation;dispatchNonce=value.dispatch_nonce;config={...value.config,words:value.config.words.map(word=>word.toLowerCase())};inFlight=true;owner=null;until=performance.now()+config.holdMs;
@@ -391,8 +423,8 @@
       await new Promise(resolve=>setTimeout(resolve,0));
       if (generation===epoch && dispatchNonce===nonce) { until=Math.max(until,performance.now()+config.holdMs);inFlight=false;mark=null; }
     },
-    clear() { clipboardRoutes.clear();generation=null;until=0;inFlight=false;mark=null;owner=null;held.clear(); },
-    dispose() { let restored=true;if(relayControl){restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete ownDocument[Symbol.for('aresos.chrome.guard.v2')];delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
+    clear() { sources.clear();sourceSeen=new WeakSet();clipboardRoutes.clear();generation=null;until=0;inFlight=false;mark=null;owner=null;held.clear(); },
+    dispose() { let restored=true;if(relayNode&&relayMarker)removeAttribute.call(relayNode,relayMarker);relayNode=null;relayMarker=null;if(relayControl){restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
     steps() { const result=[...held.values()].filter(step=>!step.reported).map(step=>{step.reported=true;return {id:step.id,kind:step.kind,document:step.document,label:step.label,element:step.element,submitter:step.submitter,cancellable:step.cancellable};});return result; },
     resume(id,operation,element,form) {
       const step=held.get(id);
@@ -405,7 +437,4 @@
       return {resumed:step.kind};
     },
   };
-  // DOM wrapper expandos stay in this extension's isolated world. Unlike a
-  // WindowProxy global lookup, this reaches the owning frame's private guard.
-  Object.defineProperty(ownDocument,Symbol.for('aresos.chrome.guard.v2'),{value:api,configurable:true});
 })();

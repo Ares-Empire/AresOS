@@ -1087,3 +1087,20 @@ test('recheck3 final extension binding catches indentation and linebreak drift b
     await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'send',binding:approved})"),/page changed/);assert.equal(f.run('effects.length'),0);
   }
 });
+
+test('recheck3 private cross-document wiring uses the native MAIN context observed during factory setup',async()=>{
+  const f=startupFixture();await f.run('prepareTarget({tabId:7})');await startupContexts(f,'private');
+  f.run("const nativeSend=chrome.debugger.sendCommand;chrome.debugger.sendCommand=async(source,method,parameters)=>{if(method==='Runtime.callFunctionOn'&&parameters.functionDeclaration.includes('wrapper fixture'))await preloadEvent(source,'Debugger.scriptParsed',{scriptId:'private-factory',executionContextId:33,url:'',executionContextAuxData:{isDefault:true,frameId:'frame'}});return nativeSend(source,method,parameters);}");
+  await paused(f,'private');assert.equal(f.run("[...preloadTargets.get('[7,null]').documents.values()][0].mainContext"),33);
+  assert.equal(f.run("startup.some(row=>row.method==='Runtime.enable')"),false);
+});
+
+test('recheck3 private cross-document wiring rejects mismatched native carriers and caches only authenticated links',async()=>{
+  const f=lifecycleFixture();f.run("globalThis.wiring=[];globalThis.acceptLink=false;controlled.set(7,{epoch:'a'});controlled.set(8,{epoch:'b'});for(const [tab,epoch,context]of [[7,'a',17],[8,'b',18],[9,'outside',19]])preloadTargets.set(JSON.stringify([tab,null]),{tab,epoch,source:{tabId:tab},contexts:new Map(),documents:new Map([[epoch,{mainContext:context,cleanup:epoch+'-factory',backend:context,relayKey:'data-private-'+epoch,relayValue:'nonce-'+epoch}]])});chrome.debugger.sendCommand=async(source,method,parameters)=>{wiring.push({source,method,parameters});return method==='DOM.resolveNode'?{object:{objectId:'private-node-in-'+parameters.executionContextId}}:{result:{value:acceptLink}};}");
+  await f.run('linkPrivateDocuments()');assert.equal(f.run("[...preloadTargets.values()].flatMap(state=>[...state.documents.values()]).some(doc=>doc.links?.size)"),false);
+  f.run('acceptLink=true');await f.run('linkPrivateDocuments()');
+  const commands=JSON.parse(f.run('JSON.stringify(wiring)'));assert.ok(commands.every(row=>row.source.tabId!==9));
+  assert.deepEqual(commands.filter(row=>row.method==='DOM.resolveNode').map(row=>[row.source.tabId,row.parameters.executionContextId,row.parameters.backendNodeId]),[[7,17,18],[8,18,17],[7,17,18],[8,18,17]]);
+  const length=commands.length;await f.run('linkPrivateDocuments()');assert.equal(f.run('wiring.length'),length);
+  f.run("controlled.delete(8);[...preloadTargets.values()].forEach(state=>state.documents.forEach(doc=>doc.links?.clear()))");await f.run('linkPrivateDocuments()');assert.equal(f.run('wiring.length'),length);
+});

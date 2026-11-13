@@ -246,5 +246,101 @@
       "page-receiver.jsonl": "8cdeebf4e51a9444e728df27d043eeae7f484f652387b09437c3472cb4718922",
       "tool.jsonl": "8bb8d5bd998d64c4b661e2f4ca6bb3d16a54a3a275cf170ec0f4edc5faee6b0e"
     }
+  },
+  {
+    "run": 43368079994,
+    "source": "14833d50",
+    "artifact": "control-chrome-43368079994-1-external",
+    "last_snapshot": {
+      "id": "recheck3-mix-4-open-false-before-foreign",
+      "phase": "mixed handler held",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794545621650,
+          "url": "/receive?case=recheck3-mix-4-open-false-before-foreign",
+          "method": "POST",
+          "body": "mixed handler",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    "matrix": [
+      {
+        "name": "GROUP 2 first-script natives are guarded in pages and frames",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 0\n\n    at file:///workspace/control/chrome/ci/recheck3-matrices.mjs:16:73\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async recheck3Matrices (file:///workspace/control/chrome/ci/recheck3-matrices.mjs:11:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:55:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+      }
+    ],
+    "boundaries": [
+      {
+        "id": "recheck3-mix-4-open-false-before-foreign",
+        "phase": "mixed-parent-ready",
+        "exposed": false
+      },
+      {
+        "id": "recheck3-mix-4-open-false-before-foreign",
+        "phase": "mixed-child-ready",
+        "exposed": false
+      }
+    ],
+    "sha256": {
+      "browser.txt": "dd6579348208b759f662d04c1d403de6f6329d7fc317c253f2452af7e0a0909d",
+      "receiver.jsonl": "f958fdb572aa10881c085d097fb6422d9a4f0d327e701b24071f1b55b45d7113",
+      "page-receiver.jsonl": "e971df22ad8906c0342a8aa10056c9a00dc02424213fb12e027c363d6fb875e8",
+      "tool.jsonl": "b3bb8e715e20c5d0a099be4985c63814095bd59426bcc9576acc100ec5b41bf2"
+    }
+  },
+  {
+    "run": 43368079994,
+    "source": "14833d50",
+    "artifact": "control-chrome-43368079994-1-policy",
+    "last_snapshot": {
+      "id": "recheck3-mix-4-open-false-before-foreign",
+      "phase": "mixed handler held",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794545662418,
+          "url": "/receive?case=recheck3-mix-4-open-false-before-foreign",
+          "method": "POST",
+          "body": "mixed handler",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    "matrix": [
+      {
+        "name": "GROUP 2 first-script natives are guarded in pages and frames",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 0\n\n    at file:///workspace/control/chrome/ci/recheck3-matrices.mjs:16:73\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async recheck3Matrices (file:///workspace/control/chrome/ci/recheck3-matrices.mjs:11:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:55:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+      }
+    ],
+    "boundaries": [
+      {
+        "id": "recheck3-mix-4-open-false-before-foreign",
+        "phase": "mixed-parent-ready",
+        "exposed": false
+      },
+      {
+        "id": "recheck3-mix-4-open-false-before-foreign",
+        "phase": "mixed-child-ready",
+        "exposed": false
+      }
+    ],
+    "sha256": {
+      "browser.txt": "6a971a78e9c1eaa8c8bdfd845da3851732ba3c550de0f64f7764c6dfa5e55805",
+      "receiver.jsonl": "48461f924da8259098e4e00d188ff46d36008cd0759dd367e0bf286c907d78d0",
+      "page-receiver.jsonl": "23cdf2987227d38f4bd414cb9cbf288c217f64b8ffdd7f3482e9722ea7dbe14e",
+      "tool.jsonl": "9249b36598acb81329f169df1da4b7aa0bb3fc841b9f93605d98c1ca72c91e9a"
+    }
   }
 ]

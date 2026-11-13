@@ -50,6 +50,20 @@ async function contextGone(state,identity){
   }
 }
 async function targetCommand(state,method,parameters={}){assertTarget(state);const value=await preloadCommand(state.source,method,parameters);assertTarget(state);return value;}
+// Only detached native carriers cross controlled documents. An unpredictable
+// marker rejects backend-node aliases in another renderer before any event runs.
+async function linkPrivateDocuments(){
+  const entries=[...preloadTargets.values()].flatMap(state=>[...state.documents.values()].filter(doc=>doc.backend&&controlled.get(state.tab)?.epoch===state.epoch).map(doc=>({state,doc})));
+  for(const source of entries){if(!source.doc.mainContext)continue;source.doc.links??=new Set();
+    for(const destination of entries){if(source===destination||source.doc===destination.doc||source.doc.links.has(destination.doc.relayValue))continue;
+      try{
+        const node=await targetCommand(source.state,'DOM.resolveNode',{backendNodeId:destination.doc.backend,executionContextId:source.doc.mainContext});
+        const linked=await targetCommand(source.state,'Runtime.callFunctionOn',{objectId:source.doc.cleanup,functionDeclaration:'function(node,key,value){return this.link(node,key,value);}',arguments:[{objectId:node.object.objectId},{value:destination.doc.relayKey},{value:destination.doc.relayValue}],returnByValue:true});
+        if(!linked.exceptionDetails&&linked.result?.value===true)source.doc.links.add(destination.doc.relayValue);
+      }catch{} // Different renderers cannot exchange native node references.
+    }
+  }
+}
 async function prepareTarget(source,tab=source.tabId,targetId=null){
   const state={source,tab,targetId,epoch:controlled.get(tab)?.epoch,contexts:new Map(),scripts:new Map(),documents:new Map(),failures:new Map(),installing:new Set()};preloadTargets.set(targetKey(source),state);
   await targetCommand(state,'Page.enable');
@@ -91,7 +105,8 @@ async function preloadEvent(source,method,params){
   if(method==='Runtime.executionContextDestroyed'){const old=state.contexts.get(params.executionContextId);state.contexts.delete(params.executionContextId);for(const [script,context]of state.scripts)if(context===params.executionContextId)state.scripts.delete(script);for(const [key,document]of state.documents)if(document.main===old?.uniqueId)state.documents.delete(key);else if(document.isolated===old?.uniqueId)document.ready=false;for(const [key,failure]of state.failures||[])if(old?.uniqueId&&(failure.main===old.uniqueId||failure.isolated===old.uniqueId))state.failures.delete(key);contextChanged(state);return;}
   if(method==='Runtime.executionContextsCleared'){state.contexts.clear();state.scripts.clear();state.documents.clear();state.failures?.clear();contextChanged(state);return;}
   if(method==='Debugger.scriptParsed'){
-    if(params.url===chrome.runtime.getURL('context.js')&&params.executionContextAuxData?.isDefault===false){
+    if(params.executionContextAuxData?.isDefault===true&&state.factoryContexts?.has(params.executionContextAuxData.frameId))state.factoryContexts.set(params.executionContextAuxData.frameId,params.executionContextId);
+    if(['context.js','guard.js','reader.js'].some(file=>params.url===chrome.runtime.getURL(file))&&params.executionContextAuxData?.isDefault===false){
       const context={id:params.executionContextId,uniqueId:'isolated-'+params.executionContextId+(state.contextGeneration?'-navigation-'+state.contextGeneration:''),origin:chrome.runtime.getURL('').replace(/\/$/,''),auxData:params.executionContextAuxData};
       state.contexts.set(context.id,context);state.scripts.set(params.scriptId,context.id);
     }
@@ -164,12 +179,15 @@ async function preloadEvent(source,method,params){
     const carrier=await documentCommand('Runtime.evaluate',{contextId:context.id,expression:'document.createElement("div")',disableBreaks:true});
     const description=await documentCommand('DOM.describeNode',{objectId:carrier.result.objectId,depth:0});
     const mainNode=await documentCommand('DOM.resolveNode',{backendNodeId:description.node.backendNodeId});
+    state.factoryContexts??=new Map();state.factoryContexts.set(context.auxData.frameId,null);
     const wrapped=await documentCommand('Runtime.callFunctionOn',{objectId:mainNode.object.objectId,functionDeclaration:'function(){return (\n'+page.trim().replace(/;$/, '')+'\n);}',silent:true});
+    const mainContext=state.factoryContexts.get(context.auxData.frameId);state.factoryContexts.delete(context.auxData.frameId);
     if(wrapped.exceptionDetails||!wrapped.result?.objectId)throw Error('refused: page wrappers did not initialize before page scripts');
-    const installed={document:isolated.result.value,frameId:context.auxData.frameId,main:main.uniqueId,isolated:context.uniqueId,cleanup:wrapped.result.objectId,ready:false};state.documents.set(main.uniqueId,installed);
+    const installed={document:isolated.result.value,frameId:context.auxData.frameId,main:main.uniqueId,isolated:context.uniqueId,cleanup:wrapped.result.objectId,mainContext,relayKey:'data-aresos-'+crypto.randomUUID(),relayValue:crypto.randomUUID(),ready:false};state.documents.set(main.uniqueId,installed);
     assertTarget(state);
     const relay=await documentCommand('Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.relay;}'});
-    const described=await documentCommand('DOM.describeNode',{objectId:relay.result.objectId,depth:0});
+    await documentCommand('Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(key,value){return this.identify(key,value);}',arguments:[{value:installed.relayKey},{value:installed.relayValue}],returnByValue:true});
+    const described=await documentCommand('DOM.describeNode',{objectId:relay.result.objectId,depth:0});installed.backend=described.node.backendNodeId;
     const resolved=await documentCommand('DOM.resolveNode',{backendNodeId:described.node.backendNodeId,executionContextId:context.id});
     const linked=await documentCommand('Runtime.callFunctionOn',{objectId:resolved.object.objectId,functionDeclaration:'function(){return globalThis[Symbol.for("aresos.chrome.guard.v2")].relay(this);}',returnByValue:true});
     if(linked.exceptionDetails||linked.result?.value!==installed.document)throw Error('refused: private native relay did not initialize');
@@ -182,6 +200,7 @@ async function preloadEvent(source,method,params){
       if(armed.exceptionDetails)throw Error('refused: new frame could not inherit the active hold');
       installed.activeNonce=hold.inFlight?hold.nonce:null;
     }
+    await linkPrivateDocuments();
     const activated=await documentCommand('Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.activate();}',returnByValue:true});
     if(activated.exceptionDetails)throw Error('refused: document guard activation failed');
     installed.ready=true;
@@ -215,7 +234,23 @@ async function lateReader(tab,browserDocument=null){
     if(frame.parentFrameId<0&&inlineFrame(frame.url))continue;
     await chrome.scripting.executeScript({target:{tabId:tab,...(frame.documentId?{documentIds:[frame.documentId]}:{frameIds:[frame.frameId]})},files:['guard.js','reader.js'],world:'ISOLATED',injectImmediately:true});assertControl(tab,owner.epoch);
     await content(tab,frame.frameId,'set_control',{generation:owner.epoch},frame.documentId);
-  }}finally{owner.settingUp.delete(settingUp);complete();}
+  }
+  for(const state of preloadTargets.values()){if(state.tab!==tab)continue;
+    await Promise.all([...state.installing||[]]);assertTarget(state);
+    for(const context of state.contexts.values()){
+      if(context.origin!==chrome.runtime.getURL('').replace(/\/$/,'')||context.auxData?.isDefault!==false||[...state.documents.values()].some(doc=>doc.isolated===context.uniqueId))continue;
+      const relayKey='data-aresos-'+crypto.randomUUID(),relayValue=crypto.randomUUID();
+      const factory=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'(()=>{const guard=globalThis[Symbol.for("aresos.chrome.guard.v2")];if(!guard?.ready)return null;return {document:guard.identity(),relay:guard.privateRelay('+JSON.stringify(relayKey)+','+JSON.stringify(relayValue)+'),cleanup(){return guard.dispose();}};})()',disableBreaks:true});
+      if(factory.exceptionDetails||!factory.result?.objectId)continue;
+      const relay=await targetCommand(state,'Runtime.callFunctionOn',{objectId:factory.result.objectId,functionDeclaration:'function(){return this.relay;}'});
+      const identity=await targetCommand(state,'Runtime.callFunctionOn',{objectId:factory.result.objectId,functionDeclaration:'function(){return this.document;}',returnByValue:true});
+      const described=await targetCommand(state,'DOM.describeNode',{objectId:relay.result.objectId,depth:0});
+      if(state.contexts.get(context.id)?.uniqueId!==context.uniqueId)throw Error('stale_reference: passive document changed');
+      state.documents.set(context.uniqueId,{document:identity.result.value,isolated:context.uniqueId,main:context.uniqueId,cleanup:factory.result.objectId,backend:described.node.backendNodeId,relayKey,relayValue,ready:false});
+    }
+  }
+  await linkPrivateDocuments();
+  }finally{owner.settingUp.delete(settingUp);complete();}
 }
 function waitDialog(tab){
   let resolve;const promise=new Promise(done=>{resolve=done;});

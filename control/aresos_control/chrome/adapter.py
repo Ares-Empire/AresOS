@@ -646,7 +646,7 @@ class Chrome:
                 source['reference'] = reference
                 label=visible(step.get('label') or 'an unnamed control')
                 text = f"The page activated '{label}' by itself; it may have happened. Never resume this activation." if step['kind'] == 'activation_unknown' else f"The page tried to activate '{label}' by itself; it was stopped. Act on the current control to prepare fresh asking input if wanted."
-                if step['kind']=='activation' and step.get('cancellable') is False:text += ' Its non-cancellable default was stopped before its address could be requested; the hold uses a tab-scoped session network block.'
+                if step['kind']=='activation' and step.get('cancellable') is False:text += ' Its non-cancellable default was stopped by neutralising the destination or disabling the submitter.'
                 changes, _ = check_result(self.store,source,key,'page_activation',step,{'reason':text,'warning':text,'reference':reference})
                 source['state'] = 'done'
                 self.store.write({key:source,**changes},'chrome_page_step','Page activation result committed',untrusted_content={'warning':text})

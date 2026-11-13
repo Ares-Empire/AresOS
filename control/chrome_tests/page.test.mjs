@@ -8,6 +8,7 @@ import {mixedRows} from '../chrome/ci/guard-matrix.mjs';
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
 function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeShadows=false,retarget=false,dialogs=false,nativeNodeKinds=false,clipboard=false,onDialogBoundary=()=>{}}={}) {
+  const sharedDOM=fixture.sharedDOM??={shadowHosts:new WeakMap(),hostShadows:new WeakMap(),parents:new WeakMap(),children:new WeakMap()};
   const windowListeners=new Map(),reports=[],arrivals=[],nodes=[],bridgeDetails=[];let now=0;
   class Event {
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
@@ -25,17 +26,17 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
       try {
         const localRoot=this.getRootNode?.();
         event.visibleTarget=localRoot?.mode==='closed'?localRoot.host:null;
-        for(const fn of localRoot?.host&&event.composed!==true?[]:windowListeners.get(event.type)||[]){fn(event);if(event.stopped)return !event.defaultPrevented;}
+        for(const fn of localRoot?.host&&event.composed!==true?[]:((this.ownerDocument||this).fixtureWindowListeners||windowListeners).get(event.type)||[]){fn(event);if(event.stopped)return !event.defaultPrevented;}
         event.visibleTarget=null;
         if(localRoot?.host)for(const fn of localRoot.listeners.get(event.type)||[]){fn(event);if(event.stopped)return !event.defaultPrevented;}
         event.eventPhase=2;
-        for(const fn of this.listeners.get(event.type)||[]){fn(event);if(event.stopped)break;}
+        for(const fn of [...this.listeners.get(event.type)||[]]){fn(event);if(event.stopped)break;}
         return !event.defaultPrevented;
       } finally {event.eventPhase=0;}
     }
   }
   const originalDispatch=EventTarget.prototype.dispatchEvent;
-  const shadowHosts=new WeakMap(),hostShadows=new WeakMap(),parents=new WeakMap(),children=new WeakMap();class Node extends EventTarget {
+  const {shadowHosts,hostShadows,parents,children}=sharedDOM;class Node extends EventTarget {
     get parentNode(){return parents.get(this)||null;}set parentNode(value){parents.set(this,value);}
     get previousSibling(){const parent=parents.get(this),list=parent&&children.get(parent)||[];return list[list.indexOf(this)-1]||null;}
     get childNodes(){return children.get(this)||[];}set childNodes(value){children.set(this,value);}
@@ -73,7 +74,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   const originalRequestSubmit=HTMLFormElement.prototype.requestSubmit,nativeAttach=Element.prototype.attachShadow,nativeListen=EventTarget.prototype.addEventListener;
   class Document extends EventTarget {createElement(){const node=new HTMLElement();node.root=node;node.isConnected=false;node.parentNode=null;return node;}}
   if(nativeNodeKinds){Object.defineProperty(Node.prototype,'nodeType',{get(){return this.fixtureKind??1;}});Node.prototype.cloneNode=function(){const clone=new Node();clone.fixtureKind=this.fixtureKind??1;clone.ownerDocument=document;clone.root=clone;return clone;};}
-  const document=new Document();document.getElementById=key=>document.labels?.[key];
+  const document=new Document();document.root=document;document.fixtureWindowListeners=windowListeners;document.getElementById=key=>document.labels?.[key];
   if(!relay)document.createElement=undefined;
   const window={addEventListener(type,fn){if(!windowListeners.has(type))windowListeners.set(type,[]);windowListeners.get(type).push(fn);},removeEventListener(type,fn){windowListeners.set(type,(windowListeners.get(type)||[]).filter(value=>value!==fn));}};
   class MessageChannel {port1={close(){}};port2={postMessage:token=>setImmediate(()=>this.port1.onmessage?.({data:token})),close(){}};}
@@ -550,10 +551,11 @@ test('P26 wrappers have native nonconstructible method shapes',()=>{
   }
 });
 test('P4 borrowed wrappers route to another controlled document guard',()=>{
-  const source=fixture({relay:true}),target=fixture({relay:true}),form=new target.HTMLFormElement();source.arm(new source.HTMLElement(),null);target.guard.control('target-epoch');
+  const source=fixture({relay:true}),target=fixture({relay:true}),form=new target.HTMLFormElement();target.factory.identify('data-private-test','nonce');assert.equal(source.factory.link(target.factory.relay,'data-private-test','nonce'),true);source.arm(new source.HTMLElement(),null);target.guard.control('target-epoch');
   source.HTMLFormElement.prototype.submit.call(form);assert.equal(source.arrivals.length,0);assert.equal(target.arrivals.length,0);assert.equal(target.reports.length,1);
   const outside=fixture({relay:true}),ordinary=new outside.HTMLFormElement();outside.cleanup();outside.guard.dispose();delete outside.document.defaultView[Symbol.for('aresos.chrome.guard.v2')];
   source.HTMLFormElement.prototype.submit.call(ordinary);assert.equal(source.arrivals.length,1,'the saved source native is used for an uncontrolled document');
+  const handler=()=>{};source.EventTarget.prototype.addEventListener.call(ordinary,'click',handler);assert.deepEqual(ordinary.listeners.get('click'),[handler],'ordinary recipients get no private bridge listeners');
 });
 test('P5 composed root keeps asking controls inside shadow DOM held',()=>{
   const f=fixture(),host=new f.HTMLElement(),root=new f.Node(),form=new f.HTMLFormElement();root.host=host;form.root=root;f.arm(host,null);
@@ -863,14 +865,63 @@ test('recheck3 detached listener branding uses a saved native after the page rep
 });
 
 test('recheck3 a wrapped detached listener from another controlled document installs capture in its owner',()=>{
-  for(const mode of ['open','closed']){
+  for(const row of mixedRows()){
     const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});
-    owner.document.root=owner.document;owner.document.defaultView={};owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
+    owner.document.defaultView={};owner.factory.identify('data-private-test','nonce');assert.equal(caller.factory.link(owner.factory.relay,'data-private-test','nonce'),true);owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
     const host=new owner.HTMLElement(),button=new owner.HTMLElement();button.root=button;button.tagName='BUTTON';button.textContent='Delete';let handlers=0;
-    caller.EventTarget.prototype.addEventListener.call(button,'click',()=>handlers++);
-    const root=owner.nativeAttach.call(host,{mode});owner.nativeAppend.call(root,button);
-    owner.originalDispatch.call(button,new owner.Event('click',{composed:false,cancelable:true}));
-    assert.equal(handlers,0,mode);assert.equal(owner.reports.length,1,mode);assert.equal(caller.reports.length,0);
+    const root=(row.root?caller.main.Element.prototype.attachShadow:owner.nativeAttach).call(host,{mode:row.mode});
+    const insert=()=>(row.insert?caller.Node.prototype.appendChild:owner.nativeAppend).call(root,button);
+    const listen=()=>(row.listen?caller.EventTarget.prototype.addEventListener:owner.nativeListen).call(button,'click',()=>handlers++);
+    if(row.order==='before'){listen();insert();}else{insert();listen();}
+    owner.advance(5000);
+    (row.dispatch?caller.EventTarget.prototype.dispatchEvent:owner.originalDispatch).call(button,new owner.Event('click',{composed:row.composed,cancelable:true}));
+    assert.equal(handlers,row.mask?0:1,JSON.stringify(row));assert.equal(owner.reports.length,row.mask?1:0,JSON.stringify(row));assert.equal(caller.reports.length,0);
+    if(row.mask===4){caller.guard.dispose();owner.arm(button,null);owner.originalDispatch.call(button,new owner.Event('click',{composed:row.composed,cancelable:true}));assert.equal(handlers,0,'recipient capture survives source release');assert.equal(owner.reports.length,2);}
     caller.cleanup();owner.cleanup();caller.guard.dispose();owner.guard.dispose();
   }
+});
+
+test('recheck3 public watch traffic cannot relax a private hold or reactivate ended control',()=>{
+  for(const data of ['', 'clear','allow','release','s.9999']){
+    const f=fixture({relay:true,nativeShadows:true}),button=new f.HTMLElement();button.root=f.document;button.tagName='BUTTON';button.textContent='Delete';let handlers=0;f.nativeListen.call(button,'click',()=>handlers++);f.arm(button,null);
+    const range=new f.main.StaticRange({startContainer:button,startOffset:0,endContainer:button,endOffset:0});
+    f.originalDispatch.call(f.document,new f.main.InputEvent('aresos-watch-node-v1',{bubbles:true,composed:true,data,targetRanges:[range]}));
+    f.originalDispatch.call(button,new f.Event('click',{composed:false}));assert.equal(handlers,0,data);assert.equal(f.reports.length,1,data);
+    f.guard.clear();f.originalDispatch.call(f.document,new f.main.InputEvent('aresos-watch-node-v1',{bubbles:true,composed:true,data:'',targetRanges:[range]}));
+    f.originalDispatch.call(button,new f.Event('click',{composed:false}));assert.equal(handlers,1,'a public request cannot reactivate ended control');f.cleanup();f.guard.dispose();
+  }
+});
+test('recheck3 foreign watch bridges and recipient capture are removed on release',()=>{
+  const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});owner.document.defaultView={};owner.factory.identify('data-private-test','nonce');assert.equal(caller.factory.link(owner.factory.relay,'data-private-test','nonce'),true);owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
+  const button=new owner.HTMLElement();button.root=button;button.tagName='BUTTON';button.textContent='Delete';const handler=()=>{};
+  caller.EventTarget.prototype.addEventListener.call(button,'click',handler);assert.ok(button.listeners.get('click').length>1);
+  caller.guard.dispose();owner.guard.dispose();assert.deepEqual(button.listeners.get('click'),[handler]);
+});
+
+test('recheck3 private foreign links reject forged carriers and expire with recipient cleanup',()=>{
+  const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});
+  owner.factory.identify('data-private-test','nonce');
+  assert.equal(caller.factory.link(owner.factory.relay,'data-private-test','wrong'),false);
+  assert.equal(caller.factory.link(owner.factory.relay,'data-private-test','nonce'),true);
+  owner.document.defaultView={};owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
+  owner.guard.dispose();const button=new owner.HTMLElement();button.tagName='BUTTON';button.textContent='Delete';let handlers=0;
+  owner.nativeListen.call(button,'click',()=>handlers++);caller.HTMLElement.prototype.click.call(button);assert.equal(handlers,1);
+  assert.equal(caller.factory.link(owner.factory.relay,'data-private-test','nonce'),false);caller.guard.dispose();
+});
+
+test('recheck3 a passive controlled recipient gets private capture without MAIN wrappers and releases it fully',()=>{
+  const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,link:false,activate:false,nativeShadows:true});
+  const relay=owner.guard.privateRelay('data-passive','nonce');assert.equal(caller.factory.link(relay,'data-passive','nonce'),true);owner.document.defaultView={};owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
+  assert.deepEqual([owner.HTMLFormElement.prototype.submit,owner.HTMLFormElement.prototype.requestSubmit,owner.HTMLElement.prototype.click,owner.EventTarget.prototype.dispatchEvent],owner.nativeFunctions);
+  const host=new owner.HTMLElement(),button=new owner.HTMLElement();button.root=button;button.textContent='Delete';button.tagName='BUTTON';let handlers=0;
+  caller.EventTarget.prototype.addEventListener.call(button,'click',()=>handlers++);owner.nativeAppend.call(owner.nativeAttach.call(host,{mode:'closed'}),button);
+  owner.originalDispatch.call(button,new owner.Event('click',{composed:false}));assert.equal(handlers,0);assert.equal(owner.reports.length,1);
+  owner.guard.dispose();owner.originalDispatch.call(button,new owner.Event('click',{composed:false}));assert.equal(handlers,1,'a cached bridge cannot replay or hold after recipient release');
+  assert.equal(caller.factory.link(relay,'data-passive','nonce'),false);caller.guard.dispose();owner.cleanup();
+});
+
+test('recheck3 inherited foreign holds preserve an already conservative recipient dispatch',()=>{
+  const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});owner.factory.identify('data-private-test','nonce');caller.factory.link(owner.factory.relay,'data-private-test','nonce');owner.document.defaultView={};
+  const button=new owner.HTMLElement();button.textContent='Ordinary control';button.tagName='BUTTON';button.root=owner.document;let handlers=0;owner.arm(button,null,null,true);caller.arm(new caller.HTMLElement(),null);
+  caller.EventTarget.prototype.addEventListener.call(button,'click',()=>handlers++);owner.originalDispatch.call(button,new owner.Event('click',{composed:false}));assert.equal(handlers,0);assert.equal(owner.reports.length,1);caller.guard.dispose();owner.guard.dispose();
 });
