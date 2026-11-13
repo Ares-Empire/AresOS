@@ -205,20 +205,21 @@ WSL. Never two suites at once; temporary files in a work folder outside the repo
 
 - **Targeted, from the worktree:** `test_aresos_desktop` 144 tests OK, 1 skipped, 194 s, with
   `-W error::ResourceWarning` (before this round, same machine: 132 OK, 1 skipped, 142 s; the model is about 80 s of
-  the difference). The skip is the real-scope test (PLAN-GAP below). After the merge: `test_aresos_shell` 74 OK,
+  the difference; 145 tests since `88ac79fd`, as in both full runs). The skip is the real-scope test (PLAN-GAP
+  below). After the merge: `test_aresos_shell` 74 OK,
   `test_everyday_account` 34 OK, `test_build_tools` 3 OK, `test_checkout_sources` 5 OK.
 - **Full suite, natively, from a fresh full clone of the pushed branch at `88ac79fd`** (the merged head with all of
   this round's code and tests; later commits change only this report).
   - Plain: `Ran 1088 tests in 833 s`, `FAILED (failures=102, errors=23, skipped=1)`.
-  - `-B`: BSUITE_PENDING (the detached driver `/var/home/ares/pkg23-work/suite.sh` started it at 15:59; its log is
-    `/var/home/ares/pkg23-work/suite/B.log`, and `suite/DONE` appears when it has finished and removed its clone).
+  - `-B`: `Ran 1088 tests in 865 s`, `FAILED (failures=102, errors=23, skipped=1)`: exactly the same tests fail
+    and skip as in the plain run. Both classified: `runs/native-review-fixes-5/full-suite.txt`.
   - All of package 23's tests pass (`test_aresos_desktop` 145 with 1 skipped, `test_aresos_shell` 74). What does not
     pass, by module (a subtest counts as one result):
 
     | Module | Results | One of WSL's 13 known failures? | Why here |
     |---|---|---|---|
     | `test_release27` | 1 failure | no: **new, and caused by this merge** | see "Merge of main" |
-    | `test_inherited_homebrew` | 1 failure, 7 errors (8 tests) | yes, all 8 | need root (`sudo -n`) |
+    | `test_inherited_homebrew` | 1 failure, 7 errors (4 tests) | yes, all 8 | need root (`sudo -n`) |
     | `test_sysusers` | 2 errors | yes, both | need root (`sudo -n`) |
     | `test_greeter` | none | its 3 known failures pass here | (WSL only) |
     | `test_owner_update` | 99 failures (5 tests) | no, new here | its real entry expects a host without `rpm-ostree` |
@@ -232,20 +233,27 @@ WSL. Never two suites at once; temporary files in a work folder outside the repo
     bus). It has no privileges there and I saw nothing changed, but nobody had run these tests on AresOS itself
     before; packages 22 and 27 should know.
   - A first attempt with `--depth 1`, as in earlier rounds, gave 9 more errors: tests of package 27 read older
-    commits (`775be05b`, and `3fd79165` on `pkg/14-owner-tools`). Hence the full clone. Two stand-ins of that run
-    outlived it (a `sleep 3600` and a `python-adapter.py` poller); the driver now ends what a run leaves behind.
-- **How the full suite ran here.** From a fresh `git clone --depth 1` of the pushed branch, `python3 -m unittest
+    commits (`775be05b`, and `3fd79165` on `pkg/14-owner-tools`). Hence the full clone.
+  - In every run three stand-ins of owner-tool tests were still running when the suite ended (a `sleep 3600`, a
+    `bash` and a `python-adapter.py` poller with a 30-minute deadline). The driver ended them, by PID.
+  - Against WSL's last full run (`d6aab7ab`: 995 tests, failures=1, errors=12): 93 more tests, all from main and
+    this round. Of WSL's 13 known results, the 10 that need root fail here too and `test_greeter`'s 3 pass. The
+    115 others are new here: 1 from the merge, 99 from the host having `rpm-ostree`, 15 from Python 3.14.
+- **How the full suite ran here.** From a fresh full `git clone` of the pushed branch, `python3 -m unittest
   discover -s os/tests -v`, plain and then `-B`, one at a time, under `nice -n 10`, detached (`setsid`, stdin from
   `/dev/null`), with at least 4.5 GB available before each. Because this is a live machine, the suite also ran under
   `setpriv --no-new-privs` (no test can become root: `sudo` and `pkexec` cannot elevate) and in a clean environment
   (`env -i`): a scratch `HOME` and `XDG_RUNTIME_DIR`, no display, no session bus, and a system bus address that
-  leads nowhere. Tests that need root or a user manager therefore fail or skip here by design.
+  leads nowhere. Tests that need root or a user manager therefore fail or skip here by design. (Without
+  `no_new_privs`, `sudo -n` would have asked for his password, by the image's own sudoers rule; not tried.)
 - CI: none started by this round.
 
 ### Not proven
 
 - A real Prism and Minecraft, and a real systemd-oomd kill: as before, tests kill by hand.
 - The VM's `desktop_jvm` check has not run against this round's wrapper (no CI run; the check itself is unchanged).
+- The merged head is not green: `test_release27`'s package-diff test fails on it (see "Merge of main"); left for
+  the integrator.
 - `WrapperTest.test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target` is skipped natively (see the
   checks): the changed wrapper was not run against a real user manager in this round.
 
