@@ -60,12 +60,11 @@ public final class MyAppsGame {
 
     static void register() {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            var seen = new Seen();
-            // A fresh login gets its items at once (AresOs: populate). One that put the Live inventory back from
-            // its save did not, so that player is brought in step on the first safe tick.
-            if (!ModeInventories.of(handler.player).restoredForLogin()) seen.removed = seen.added = CHANGES.get();
-            SEEN.put(handler.player.getUUID(), seen);
+            // The counter is only in memory. A previous session may have saved either inventory before a
+            // deferred removal ran, or the apps file may have moved here from another machine.
+            SEEN.put(handler.player.getUUID(), new Seen());
         });
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> SEEN.remove(handler.player.getUUID()));
         ServerTickEvents.END_SERVER_TICK.register(MyAppsGame::tick);
     }
 

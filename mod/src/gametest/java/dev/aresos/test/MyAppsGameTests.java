@@ -113,6 +113,45 @@ public final class MyAppsGameTests {
         catch (IOException error) { throw new UncheckedIOException(error); }
     }
 
+    private static ServerPlayer reconnect(ServerPlayer player) {
+        var server = player.level().getServer();
+        server.getPlayerList().remove(player);
+        var cookie = CommonListenerCookie.createInitial(player.getGameProfile(), false);
+        var returning = new ServerPlayer(server, player.level(), cookie.gameProfile(), cookie.clientInformation());
+        var connection = new Connection(PacketFlow.SERVERBOUND);
+        new EmbeddedChannel(connection);
+        server.getPlayerList().placeNewPlayer(connection, returning, cookie);
+        registerStateReceiver(returning);
+        return returning;
+    }
+
+    @GameTest(environment = BATCH)
+    public void everyLoginRemovesStaleAppsFromBothInventories(GameTestHelper helper) {
+        // Both ordinary Live login and a login that restores Live from a saved Build session.
+        for (boolean quitInBuild : List.of(false, true)) try (var fixture = Fixture.open(helper)) {
+            var player = fixture.player();
+            check(switchAndAcknowledge(player, GameType.CREATIVE), "Switch to Build failed");
+            player.getInventory().setItem(12, AppItems.create(AresOs.app("mine")));
+            player.getInventory().setItem(13, new ItemStack(Items.DIAMOND, 7));
+            if (!quitInBuild) check(switchAndAcknowledge(player, GameType.SURVIVAL), "Switch to Live failed");
+            // Save the removal while unsafe, then leave before reconciliation can run.
+            player.inventoryMenu.setCarried(new ItemStack(Items.STICK));
+            remove(player, "mine");
+            check(items(player, "mine") == 2, "Fixture: deferred removal ran before logout");
+            player.inventoryMenu.setCarried(ItemStack.EMPTY);
+            var returning = reconnect(player);
+            try {
+                check(ModeInventories.of(returning).restoredForLogin() == quitInBuild, "Wrong login path");
+                MyAppsGame.tick(returning.level().getServer());
+                check(items(returning, "mine") == 0, "Login left a removed app in one of the inventories");
+                check(switchAndAcknowledge(returning, GameType.CREATIVE), "Return to Build failed");
+                check(returning.getInventory().getItem(13).is(Items.DIAMOND)
+                        && returning.getInventory().getItem(13).getCount() == 7, "Reconciliation touched an ordinary item");
+            } finally { returning.level().getServer().getPlayerList().remove(returning); }
+        }
+        helper.succeed();
+    }
+
     private static String id(ItemStack stack) { return stack.is(AppItems.APP) ? stack.get(AppItems.APP_ID) : null; }
 
     /** Everywhere an item can be: the inventory he holds, the saved one, and the ground. */
