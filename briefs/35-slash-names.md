@@ -1,8 +1,8 @@
 # 35: Slash names
 
-Empire board brief 283. Mod package. `docs/design/HUB.md`, section 6, row 4. It starts from a `main` that contains package 34 (My apps).
+Empire board brief 283. Mod package. `docs/design/HUB.md`, section 6, row 4. It starts from a `main` that contains packages 32, 33 and 34 (the flat home, the gate logo, My apps).
 
-**Builder:** Codex (model picked at launch, xhigh): the rules are written out in full in the design, with a worked list to test against, and nothing here is about looks. **Review:** a fresh reviewer that isn't the builder.
+**Builder:** Codex (gpt-6.1-sol, xhigh): the rules are written out in full in the design, with a worked list to test against, and nothing here is about looks. **Review:** a fresh reviewer that isn't the builder.
 
 ## Why
 
@@ -25,7 +25,8 @@ The owner (2026-11-13): "I also think in the minecraft chat "/appname" should op
 7. **`/aresos app name <app> <new name>`** adds a name and makes it the main one; **`/aresos app unname <name>`** removes one (the last name of an app can't be removed; say so). A name that is not valid, is reserved or belongs to another app is refused, and the message says why and, for a clash, which app holds it.
 8. **Reserved** are every command the game has at that moment and AresOS's own: `aresos`, `home`, `go`, `open`, `apps`. `home` and `go` are reserved now and built in package 37.
 9. **The Apps screen** (package 34) shows each of his apps' main short name beside its name, and its search also looks in the short names.
-10. **A hook for the logos:** one function that gives an app's main short name, so package 36 can write it on the sign.
+10. **The logo's sign:** a gate built with `/aresos logo` shows the app's main short name with the slash on its second line (the plan already has the field, `zone/GatePlan`; package 33 left it empty). Keep one function that gives an app's main short name, for package 36. A gate that already stands keeps its sign as it is.
+11. **The client test suite's time limit** goes from 10 to 20 minutes (`mod/build.gradle`, one line): the suite takes about eight minutes now and every package adds to it.
 
 ## Acceptance
 
@@ -38,7 +39,7 @@ The owner (2026-11-13): "I also think in the minecraft chat "/appname" should op
 
 ## Out of scope
 
-`/go`, `/home`, the H key and places (package 37), logos and signs (33 and 36), the OS helper (30). No change under `os/`.
+`/go`, `/home`, the H key and places (package 37), where logos stand (36), the OS helper (30). No change under `os/`.
 
 ## Already decided
 
