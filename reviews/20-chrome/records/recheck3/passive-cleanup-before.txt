@@ -1,0 +1,30 @@
+✖ recheck3 a passive controlled recipient gets private capture without MAIN wrappers and releases it fully (4.174917ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 39.477917
+
+✖ failing tests:
+
+test at control/chrome_tests/page.test.mjs:915:1
+✖ recheck3 a passive controlled recipient gets private capture without MAIN wrappers and releases it fully (4.174917ms)
+  AssertionError [ERR_ASSERTION]: passive cleanup needs no MAIN restoration acknowledgement
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file://<old-passive-fixture>/control/chrome_tests/page.test.mjs:922:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

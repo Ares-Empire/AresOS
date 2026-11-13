@@ -222,4 +222,5 @@ recheck3-main-data-clone MUTATION REJECTED
 recheck3-paused-peer-setup MUTATION REJECTED
 recheck3-unavailable-private-peer MUTATION REJECTED
 recheck3-conservative-adopted-recipient MUTATION REJECTED
-224 mutations rejected; every baseline passed
+recheck3-passive-cleanup-ack MUTATION REJECTED
+225 mutations rejected; every baseline passed

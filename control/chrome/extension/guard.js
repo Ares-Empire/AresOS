@@ -88,7 +88,7 @@
     endingDialog=null;
   }
   // Real documents never accept page-forgeable reports, even before private linking.
-  let relayNode=null,relayMarker=null,relayControl=null,legacyBridge=typeof globalThis.Document!=='function',requestDepth=0;const relayListeners=[];
+  let relayNode=null,relayMarker=null,relayControl=null,relayMain=true,legacyBridge=typeof globalThis.Document!=='function',requestDepth=0;const relayListeners=[];
   function requestNative(form,submitter){requestDepth++;try{return submitter?native.requestSubmit.call(form,submitter):native.requestSubmit.call(form);}finally{requestDepth--;}}
   const currentPhase = event => phase ? phase.call(event) : event.eventPhase;
   const type = event => eventType ? eventType.call(event) : event.type;
@@ -360,12 +360,12 @@
     route(event,stage,hold){if(hold){config=hold.config;until=Math.max(until,performance.now()+config.holdMs);owner=null;mark=null;}if(stage.detail.kind==='click'||stage.detail.kind==='dispatch'){const node=eventElement(stage.target),name=stage.detail.kind==='click'?'click':stage.detail.event_type;if(node)watch(node.getRootNode());if(active()&&node&&(name==='click'&&asks(node)||name==='submit'&&!search(reader.form(node),node))){report('activation',control(node));return;}event.preventDefault();}else onCall(event,stage);},
     identity(){return reader?.document;},
     dialogBoundary(){return {document:reader?.document,token:endingDialog};},
-    relay(node){
+    relay(node,main=true){
       if(!reader||!(html(node,HTMLElement))||node.ownerDocument!==document||node.isConnected||node.parentNode||!node.firstElementChild)throw Error('invalid private relay');
       const carrier=node.firstElementChild,stack=[];
       const listen=(kind,listener)=>{carrier.addEventListener(kind,listener);relayListeners.push([kind,listener]);};
       const ranges=InputEvent.prototype.getTargetRanges;
-      relayNode=node;
+      relayNode=node;relayMain=main;
       listen('aresos-relay-guard',event=>{event.detail.api=api;});
       legacyBridge=false;relayControl=carrier;
       for(const [root,listeners]of watchedRoots())for(const [kind,listener,capture]of listeners)if(kind==='aresos-page-call-v2')root.removeEventListener(kind,listener,capture);
@@ -425,7 +425,7 @@
     privateCurrent(){if(!defaultView)return true;const view=defaultView.call(ownDocument);return !!view&&view.document===ownDocument;},
     privateHold(){return this.privateCurrent()?holdConfig():null;},
     capture(event,root,hold){const previous=inheritedCapture;inheritedCapture=hold;try{return capture(event,root);}finally{inheritedCapture=previous;}},
-    privateRelay(key,value){const node=document.createElement('div');node.appendChild(document.createElement('span'));setAttribute.call(node,key,value);this.relay(node);relayMarker=key;return node;},
+    privateRelay(key,value){const node=document.createElement('div');node.appendChild(document.createElement('span'));setAttribute.call(node,key,value);this.relay(node,false);relayMarker=key;return node;},
     reader(value) { reader=value;privacyCheck=value.protected; }, watch,
     arm(value) {
       generation=value.generation;dispatchNonce=value.dispatch_nonce;config={...value.config,words:value.config.words.map(word=>word.toLowerCase())};inFlight=true;owner=null;until=performance.now()+config.holdMs;
@@ -440,7 +440,7 @@
       if (generation===epoch && dispatchNonce===nonce) { until=Math.max(until,performance.now()+config.holdMs);inFlight=false;mark=null; }
     },
     clear() { peers.clear();clipboardRoutes.clear();generation=null;until=0;inFlight=false;mark=null;owner=null;held.clear(); },
-    dispose() { let restored=true;if(relayNode&&relayMarker)removeAttribute.call(relayNode,relayMarker);relayNode=null;relayMarker=null;if(relayControl){restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;reader?.protectPeers?.();this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
+    dispose() { let restored=true;if(relayNode&&relayMarker)removeAttribute.call(relayNode,relayMarker);relayNode=null;relayMarker=null;if(relayControl){if(relayMain)restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;reader?.protectPeers?.();this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
     steps() { const result=[...held.values()].filter(step=>!step.reported).map(step=>{step.reported=true;return {id:step.id,kind:step.kind,document:step.document,label:step.label,element:step.element,submitter:step.submitter,cancellable:step.cancellable};});return result; },
     resume(id,operation,element,form) {
       const step=held.get(id);

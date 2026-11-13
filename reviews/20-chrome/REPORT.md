@@ -5,7 +5,7 @@ Fetched `origin/main` and read its `AGENTS.md` and `briefs/20-chrome.md` with `g
 also read SECURITY-RECHECK-3, the prior report/known limits and briefs 2/2b/2c.
 The first code push included all three classes. Additional local whitespace/visibility probes and the Linux SVG/trailing-newline cases required further corrections. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
 stays draft and unmerged; its existing conflict with main is not resolved in this brief.
-Installed runtime hash: `5f2cd7f551d014e55cb304bbb5ea4abe60b416908c4018b8368e81b365782ba2`.
+Installed runtime hash: `66cdb07105b163cecf8e82c1c6293a3459fda2da556533552305dd5e41e737c0`.
 Linux acceptance on the new source is pending; historical green sections below do not establish it.
 
 ## Done (read)
@@ -21,7 +21,8 @@ Linux acceptance on the new source is pending; historical green sections below d
   authenticated with unpredictable markers and linked by background handles before page resume. Live private
   isolated guard queries retain the source hold past 500 ms during synchronous handlers; the browser cases wait 650 ms before
   dispatch. Ordinary recipient documents get no added bridge listeners. Passive controlled recipients get isolated
-  capture without MAIN prototype changes. Marker retirement, source release, forged public traffic and conservative
+  capture without MAIN prototype changes. Passive disposal confirms isolated teardown directly; it does not wait
+  for a MAIN-wrapper restoration acknowledgement. MAIN-installed guards still require that restoration. Marker retirement, source release, forged public traffic and conservative
   recipient policy have separate regressions. MAIN document properties carry no API and may be forged harmlessly.
   MAIN metadata contains primitive source IDs; private guard references stay in our own isolated world.
   [Chromium clones object values between worlds](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/bindings/core/v8/world_safe_v8_reference.cc), while its
@@ -55,7 +56,7 @@ Linux acceptance on the new source is pending; historical green sections below d
 
 ## Verified (run)
 
-Local-only verification so far: **317 Node tests pass**, **224 removal mutations rejected, every baseline passing**,
+Local-only verification so far: **317 Node tests pass**, **225 removal mutations rejected, every baseline passing**,
 384 generated production-code mixes pass, generated artifacts match definitions and `git diff --check` passes.
 [Exact commands, output tails/hashes and corrected local attempts](records/recheck3/local-summary.json) retain the results.
 The full plain-Python suite passes **231 tests in 580.856 s, OK**; Linux CI is still pending. Five artifact-stream tests pass. No local browser,
@@ -104,8 +105,12 @@ proved its MAIN-function transport invalid. Its before/after local receipts are 
 acceptance. The `bc90cdbd` pair (`43384844084`, `43384908890`) then failed the first foreign root-wrapper row: both private
 peer exports returned false while startup was paused. [Raw-derived receipts](records/recheck3/paused-browser-failure.json)
 and a strict before/after paused-listener regression retain this failure. Native peer registration now precedes
-resume, and private isolated reference exchange waits until live use. The next pair brings the ledger to
-**229 IDs / 230 executions**,
+resume, and private isolated reference exchange waits until live use. The `613f2c96` pair (`43388084520`, `43388151101`) passes all 107 new receiver sequences in both installation
+modes, but fails the existing taken-tab cleanup test after 38 named cases. [Independent scoped receipts](records/recheck3/passive-browser-failure.json)
+retain both the new-case passes and the full-workflow failure. Passive disposal now skips the nonexistent MAIN
+acknowledgement; the strict before/after local assertion and removal cover that correction. Mail's main job and
+three shards passed on this source, but shard 0 reached its 45-minute timeout; the cancelled workflow is not a pass.
+The next pair brings the ledger to **231 IDs / 232 executions**,
 within the approximate
 235-run budget and below the 245 notice threshold. Each CI run uses one blocking `gh run watch`, without
 turn-by-turn status polling. Report-only pushes use `[skip ci]`. Closing run IDs, exact logs and `.work/` inventory

@@ -1,0 +1,50 @@
+[
+  {
+    "source": "613f2c96880a710eb6b22f34e7e6c5a32ec933f4",
+    "run": 43388151101,
+    "artifact": "control-chrome-43388151101-1-external",
+    "scoped_result": {
+      "mixed": 60,
+      "defaults": 33,
+      "whitespace": 14,
+      "complete_0_1_1": 107,
+      "independent_arrivals_match": true
+    },
+    "full_workflow": "failed",
+    "failure": {
+      "name": "GROUP 8 taken tabs preserve reads and guard the first input reload",
+      "passed": false,
+      "error": "Error: owner tab restoration settled: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)\n    at async select (file:///workspace/control/chrome/ci/owner-ui.mjs:16:18)\n    at async navigate (file:///workspace/control/chrome/ci/owner-ui.mjs:26:30)\n    at async file:///workspace/control/chrome/ci/matrices.mjs:77:62\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:75:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+    },
+    "sha256": {
+      "recheck3.json": "765c9b7a4606d9d09f6a4c35cb0b631918c03d4a7b0b2e4561a7d0063b2d72d6",
+      "page-receiver.jsonl": "d5d03d09bdbaf34e13b4f7045bf719a3f1d9a60749f9cee5c782558eb0eb88cf",
+      "receiver.jsonl": "92db518c4539e16a7df1c2c1f0ef31af7bca7c53e374e4aaf8072ce3042433de",
+      "matrices.json": "b4ade8aa00c081ca14f4e36851ee32f9ef0e5a70da7ca1bf5d146e36808a675a"
+    }
+  },
+  {
+    "source": "613f2c96880a710eb6b22f34e7e6c5a32ec933f4",
+    "run": 43388151101,
+    "artifact": "control-chrome-43388151101-1-policy",
+    "scoped_result": {
+      "mixed": 60,
+      "defaults": 33,
+      "whitespace": 14,
+      "complete_0_1_1": 107,
+      "independent_arrivals_match": true
+    },
+    "full_workflow": "failed",
+    "failure": {
+      "name": "GROUP 8 taken tabs preserve reads and guard the first input reload",
+      "passed": false,
+      "error": "Error: owner tab restoration settled: undefined\n    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)\n    at async select (file:///workspace/control/chrome/ci/owner-ui.mjs:16:18)\n    at async navigate (file:///workspace/control/chrome/ci/owner-ui.mjs:26:30)\n    at async file:///workspace/control/chrome/ci/matrices.mjs:77:62\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:75:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+    },
+    "sha256": {
+      "recheck3.json": "11046233e2da21c5ebc8a38362fc89208d948e196f0047fa4d3cabb2ec231273",
+      "page-receiver.jsonl": "91e810410ff25cb5c79980ff4459124425a4041bb58a0bdda25f19b020b435d5",
+      "receiver.jsonl": "940559fd8aaccbaba0ad27da543ea559dbd48fba3fda83a8f83271b64979b6ea",
+      "matrices.json": "b4ade8aa00c081ca14f4e36851ee32f9ef0e5a70da7ca1bf5d146e36808a675a"
+    }
+  }
+]

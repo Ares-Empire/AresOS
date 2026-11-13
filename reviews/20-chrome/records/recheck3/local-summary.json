@@ -4,10 +4,10 @@
       "command": "node --test control/chrome_tests/*.test.mjs",
       "exit_code": 0,
       "output": "local-node.txt",
-      "sha256": "9714ffe6355fdce4968c3dc526e1855621f6c8ad0dbdae1109d0884978cfd88d",
+      "sha256": "6606339ff90cc5ff66537386f5aad85832beac505dd7d6a6f49698e6cc5b6d73",
       "tail": [
-        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.190625ms)",
-        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.660375ms)",
+        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.215583ms)",
+        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.743375ms)",
         "\u2139 tests 317",
         "\u2139 suites 0",
         "\u2139 pass 317",
@@ -15,7 +15,7 @@
         "\u2139 cancelled 0",
         "\u2139 skipped 0",
         "\u2139 todo 0",
-        "\u2139 duration_ms 7274.846583"
+        "\u2139 duration_ms 7278.885584"
       ]
     },
     {
@@ -40,9 +40,8 @@
       "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck3/mutations.json",
       "exit_code": 0,
       "output": "local-mutations.txt",
-      "sha256": "9f6dd8b5ba0dea8502ee967224ea6becb9cfc99848b62587f1e32a01de55a5d2",
+      "sha256": "c1fc6b5e398052d8929374f126e66e010b909172bb367a14fa7a29190cd6e59a",
       "tail": [
-        "recheck3-adopted-element-brand MUTATION REJECTED",
         "recheck3-adopted-field-brand MUTATION REJECTED",
         "recheck3-peer-password MUTATION REJECTED",
         "recheck3-retired-peer-password MUTATION REJECTED",
@@ -51,7 +50,8 @@
         "recheck3-paused-peer-setup MUTATION REJECTED",
         "recheck3-unavailable-private-peer MUTATION REJECTED",
         "recheck3-conservative-adopted-recipient MUTATION REJECTED",
-        "224 mutations rejected; every baseline passed"
+        "recheck3-passive-cleanup-ack MUTATION REJECTED",
+        "225 mutations rejected; every baseline passed"
       ]
     },
     {
@@ -336,6 +336,41 @@
         "\u2139 todo 0",
         "\u2139 duration_ms 38.453375"
       ]
+    },
+    {
+      "command": "git show 613f2c96 guard; node --test --test-name-pattern 'passive controlled recipient' control/chrome_tests/page.test.mjs",
+      "exit_code": 1,
+      "output": "passive-cleanup-before.txt",
+      "sha256": "269b9f683081b3456848576ff7ff76178c4eb4efac52cd3885d18e4fac4cd627",
+      "tail": [
+        "      at Test.run (node:internal/test_runner/test:1382:25)",
+        "      at Test.start (node:internal/test_runner/test:1242:17)",
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: false,",
+        "    expected: true,",
+        "    operator: 'strictEqual',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'passive controlled recipient' control/chrome_tests/page.test.mjs",
+      "exit_code": 0,
+      "output": "passive-cleanup-after.txt",
+      "sha256": "a7ddf2078a2f9329db8f5e9a296165524b7cb405142600605b371ff30c376ca3",
+      "tail": [
+        "\u2714 recheck3 a passive controlled recipient gets private capture without MAIN wrappers and releases it fully (3.969792ms)",
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 37.99825"
+      ]
     }
   ],
   "probe": {
@@ -377,7 +412,8 @@
     "All 128 masks are also generated for native adoption into a third controlled document, making 384 probes. Native DOM brands and private sticky node metadata preserve password exclusion across realm changes, release and retake. Four extra Linux adoption rows extend receiver acceptance to 107 exact sequences.",
     "Added removals for adoption brands, private password provenance and cloneable MAIN data. P17 reset now removes both persistent stores because the new private node marker independently preserved the old assertion. Removed duplicate watchCreated branches so the existing native-creation removal targets its actual interception path. All 221 removals now fail; every baseline passes.",
     "Both bc90cdbd Chrome runs failed the first foreign root-wrapper case. Native protocol evidence shows marked private roots, but both peer exports returned false during the debugger startup pause. Chromium listener runnability and a strict paused-callback fixture explain the failure.",
-    "Register native peer roots during startup and exchange private isolated references lazily after execution resumes. Expired source documents are pruned by native document identity even before a reference is available. An unavailable recipient holds as unknown and retries later; an inherited hold cannot relax a conservative recipient. All 317 Node tests and 224 removals pass."
+    "Register native peer roots during startup and exchange private isolated references lazily after execution resumes. Expired source documents are pruned by native document identity even before a reference is available. An unavailable recipient holds as unknown and retries later; an inherited hold cannot relax a conservative recipient. All 317 Node tests and 224 removals pass.",
+    "613f2c96 passes all 107 new receiver sequences in both install modes, independently audited from the completed second-run artifacts. Its full workflow fails an existing taken-tab test: a passive guard awaited a MAIN cleanup acknowledgement despite having no MAIN wrappers. Passive disposal now confirms isolated teardown directly; MAIN restoration remains required for MAIN-installed documents. A new removal rejects reintroducing the missing-ack wait; all 225 removals fail with passing baselines."
   ],
   "historical_corrections": "Earlier notes describe intermediate candidates, not current acceptance."
 }

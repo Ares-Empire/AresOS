@@ -267,6 +267,8 @@ case('recheck3-unavailable-private-peer',G,"else if(hold){if(event.cancelable)ev
 
 case('recheck3-conservative-adopted-recipient',G,'inheritedCapture.config.conservative||combined?.conservative','inheritedCapture.config.conservative',node('page','adopted capture preserves its conservative recipient'))
 
+case('recheck3-passive-cleanup-ack',G,'if(relayMain)restored=!native.dispatch.call','restored=!native.dispatch.call',node('page','passive controlled recipient'))
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']

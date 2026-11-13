@@ -919,7 +919,7 @@ test('recheck3 a passive controlled recipient gets private capture without MAIN 
   const host=new owner.HTMLElement(),button=new owner.HTMLElement();button.root=button;button.textContent='Delete';button.tagName='BUTTON';let handlers=0;
   caller.EventTarget.prototype.addEventListener.call(button,'click',()=>handlers++);owner.nativeAppend.call(owner.nativeAttach.call(host,{mode:'closed'}),button);
   owner.originalDispatch.call(button,new owner.Event('click',{composed:false}));assert.equal(handlers,0);assert.equal(owner.reports.length,1);
-  owner.guard.dispose();owner.originalDispatch.call(button,new owner.Event('click',{composed:false}));assert.equal(handlers,1,'a cached bridge cannot replay or hold after recipient release');
+  assert.equal(owner.guard.dispose(),true,'passive cleanup needs no MAIN restoration acknowledgement');owner.originalDispatch.call(button,new owner.Event('click',{composed:false}));assert.equal(handlers,1,'a cached bridge cannot replay or hold after recipient release');
   assert.equal(caller.wire(owner,'data-passive','nonce',relay),false);caller.guard.dispose();owner.cleanup();
 });
 
