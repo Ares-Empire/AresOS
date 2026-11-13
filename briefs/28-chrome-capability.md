@@ -168,7 +168,7 @@ value   = a field's value in double quotes; the words (not read) instead for "pa
           history the reader doesn't know (item 1)
 state   = checked | selected | disabled | required | invalid | expanded | collapsed | current | readonly
 target  = for a link that leaves the page's site: its site; for a form: its method, site and path
-ref     = "e" and a number (item 3)
+ref     = three letters and a number, for example kqt5 (item 3)
 ```
 
 - Text appears once, on the deepest element that owns it. A label whose text is its field's name gets no line of
@@ -178,7 +178,7 @@ ref     = "e" and a number (item 3)
 - **Folds** (each says what it hides):
   - a name or text longer than 200 characters is cut and ends in `…+N`, N being the characters left out; the
     element's reference reads it whole;
-  - of more than 8 neighbours with the same role, the first 5 are shown, then `… N more (C characters) eK`; that
+  - of more than 8 neighbours with the same role, the first 5 are shown, then `… N more (C characters) kqt17`; that
     reference reads exactly the neighbours left out, and nothing can act on it;
   - a table is its line and `… R rows, C columns (N characters)`; the table's reference reads it;
   - a list of more than 12 options is `(N options)` on the field's line, with the chosen one as the value;
@@ -206,7 +206,7 @@ Result:
 
 - No `ref`, no `find`: the outline with its folds.
 - `ref`: that element unfolded, in the form that fits its role. A table: a first line `columns: A | B | C`, then one
-  line per row with the cells separated by ` | `, and controls inside a cell as `[link "Open" e31]`. A list: its
+  line per row with the cells separated by ` | `, and controls inside a cell as `[link "Open" kqt31]`. A list: its
   items. A form: every field as an outline line with its options (up to 50 per field, more by the field's own
   `ref`), `required`, the field's error text, the hidden fields by name, the buttons, and the form's target. A text:
   in full. A single link or control: everything known about it (its address in the public form, the title, all
@@ -229,15 +229,31 @@ Result:
 
 ### 3. References (service)
 
-- A reference is `e` and a number. The service issues it: per tab, counting up, never reused while the Chrome
-  session and the service process live. The same live element (same frame, document and reader id) gets the same
-  reference in every read and result.
-- Per reference the service keeps the frame, the document, the reader's element id and **the line it last showed
-  Claude** for that element. It keeps the newest 5,000 per tab, in memory only.
+- **A reference is three letters and a number, for example `kqt5`.** The service issues it, and no string is ever
+  issued for two things:
+  - **The letters name this run of the service.** The service draws them at random when its process starts (three
+    consonants, so they spell nothing). It writes the letters of its last 100 runs to its store and never draws one
+    of those again. If the store can't be read or written it still draws at random, and reading goes on.
+  - **The number comes from one counter for the whole process, across all tabs.** It only counts up. It isn't reset
+    when Chrome restarts or reconnects, when a tab closes or when entries are dropped. Tab A and tab B can never
+    both hold `kqt5`.
+  - The same live element (same connection, tab, frame, document, reader instance and reader id) gets the same
+    reference in every read and result.
+- **Per reference the service keeps** the extension connection it was issued under (the `session` of the
+  extension's hello), the tab, the frame, the document, the reader instance, the reader's element id, and **the
+  line it last showed Claude** for that element. It keeps the newest 5,000 per tab, in memory only. A dropped
+  entry is gone for good: its string is never issued again, so an old reference can't come to mean a new element.
+- **The reader instance.** Brief 20's reader numbers its elements from `e1` each time it is installed, while its
+  document id survives a release and a new take of the same page. So `(document, e5)` can name two elements over
+  time. The reader therefore draws a random instance id at each install and returns it with `outline`, `read` and
+  `facts` (one new field of `snapshot`); the table keeps it, and a different instance means the reference is stale.
 - Every action resolves its reference to brief 20's internal reference (session, tab, frame, document, element; no
   `view`) and then runs brief 20's path unchanged. It is refused with `stale_reference` when:
-  - the reference is unknown, belongs to another tab, or was issued before a Chrome or service restart;
-  - the document or the element is gone;
+  - the reference isn't in the table: invented, dropped, or issued by another run of the service;
+  - it was issued for another tab than the one the call names;
+  - it was issued under another connection (Chrome or the extension restarted or reconnected; the service empties
+    the table then and the counter goes on);
+  - the document, the reader instance or the element is gone or is another one;
   - the element's role or name differs from the line Claude last saw;
   - for `fill` and `select`: the field's value differs from the value Claude last saw.
   The refusal carries the element's present line, and that counts as shown, so a repeated call can pass.
@@ -290,7 +306,7 @@ Result:
 
 ```
 {"tab": 431,
- "steps": [{"do": "fill", "ref": "e8", "outcome": "done"}, {"do": "click", "ref": "e10", "outcome": "prepared"}],
+ "steps": [{"do": "fill", "ref": "kqt8", "outcome": "done"}, {"do": "click", "ref": "kqt10", "outcome": "prepared"}],
  "not_run": 0,
  "prepared": [{"approval": {"question": "…", "operation_id": "…", "description": {}}, "state": "reserved"}],
  "unknown": [],
@@ -451,7 +467,9 @@ Every new rule gets a test that fails without it.
 
 **Without a browser** (Python and Node): the outline renderer against recorded node lists (every fold, every
 escape, depth, the `ref` forms, `find`, the cut at `max` and at 48 KiB with non-ASCII text); the reference table
-(same element same reference, never reused, the four stale cases, the 5,000 bound, another tab's reference); the
+(same element same reference; one counter for all tabs; no string issued twice, also after entries were dropped at
+the 5,000 bound and after the table was emptied; every stale case of item 3; a new reader instance in the same
+document; the letters differ from those of the last 100 runs, and are still drawn when the store fails); the
 `public_address` against a table (a user name and password, ports, a non-ASCII host, `http`, queries, fragments,
 each sign-in word, random-looking segments such as a UUID, 40 hex digits, a 43-character token and a JWT, segments
 that stay such as a slug with digits, a numeric id and an 11-character id, and characters such as `|`, `[`, quotes,
@@ -487,11 +505,25 @@ Added cases, each with group 7's known password and a label that says nothing ("
 - F5, a page that changes part of itself on a click (rows replaced, a status line, one element renamed, one removed)
   and a page that loads a new document on a click;
 - F6, a page with frames from a second fixture site and open and closed shadow roots;
-- H1, hostile text: names and paragraphs shaped like outline lines, references (`e5`), folds (`… 40 more`),
+- H1, hostile text: names and paragraphs shaped like outline lines, references (`kqt5`), folds (`… 40 more`),
   instructions to Claude, quotes, line breaks and direction-changing characters; a page of 100,000 elements; a name
   of 100,000 characters.
 
 Small fixtures are compared with stored expected outlines, character for character.
+
+**References that can't collide, in group 14.** Each case first makes sure that new references exist, so a refusal
+isn't just an empty table:
+
+- Two tabs show the same fixture and both are read: no reference string appears in both outlines, and each of tab
+  A's references is refused when the call names tab B.
+- Chrome is restarted (and, separately, only the extension's connection is cut), the same pages are opened and
+  read again: every reference from before is refused, and none of the new strings equals an old one.
+- The service is restarted, the same tabs are read again: every reference from before is refused although the new
+  counter has passed the old numbers.
+- More than 5,000 elements are read in one tab: a reference dropped from the table is refused, and its string
+  isn't issued again.
+- A tab is released and taken again without a reload in between: a reference from before is refused, although
+  the document id and the reader's element id are the same.
 
 **Addresses, in group 14.** Fixture pages carry one marker value in the query, in the fragment, as a user name and
 password, and as a 40-character path segment after `/reset/`: in the page's own address, in link targets, in form

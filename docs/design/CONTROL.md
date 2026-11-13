@@ -573,16 +573,16 @@ untrusted content (rule 4.8): a page can never instruct Claude.
 ```
 main
   h1 "Week 46"
-  button "Next week" e5
-  form "Filter" → GET uni.example/timetable e7
-    combobox "Semester" = "Winter 2026" e8
-    checkbox "Only my courses" checked e9
-    button "Apply" e10
-  table "Timetable" e6
+  button "Next week" kqt5
+  form "Filter" → GET uni.example/timetable kqt7
+    combobox "Semester" = "Winter 2026" kqt8
+    checkbox "Only my courses" checked kqt9
+    button "Apply" kqt10
+  table "Timetable" kqt6
     … 12 rows, 5 columns (1,840 characters)
-  list e11
-    link "Lecture 1: Graphs" e12
-    … 47 more (2,900 characters) e17
+  list kqt11
+    link "Lecture 1: Graphs" kqt12
+    … 47 more (2,900 characters) kqt17
 ```
 
 - A line holds the role, the name in quotes, a field's value after `=`, the states that are set (checked, selected,
@@ -645,12 +645,18 @@ extension, where navigation and the binding need it: an approved input is still 
 destination. Claude uses an address it can't see by reference: it opens a link, a library entry or the address of
 one of his tabs with `chrome_open`.
 
-**References.** A reference is a short name the service issues: `e` and a number, counted per tab and never used
-twice in one Chrome session. An element keeps its reference for as long as it lives, across reads and results, so
-Claude can act on what it read earlier. For every reference the service remembers the tab, the frame and document,
-the element, and the line it last showed Claude. An action on a reference is refused with `stale_reference` when:
+**References.** A reference is a short name the service issues: three letters and a number, such as `kqt5`. No
+reference is ever issued for two things. The letters name one run of the service and change every time it starts.
+The number comes from one counter for all tabs, only counts up, and isn't reset when Chrome restarts or when old
+entries are dropped. So a reference from another tab, from before a restart of Chrome or of the service, or one
+the service has dropped, never comes to mean another element: it is unknown, and refused. An element keeps its
+reference for as long as it lives, across reads and results, so Claude can act on what it read earlier. For every
+reference the service remembers the connection to Chrome, the tab, the frame and document, the reader that issued
+the element's id, the element, and the line it last showed Claude. An action on a reference is refused with
+`stale_reference` when:
 
-- Chrome or the service restarted, or the document or the element is gone;
+- the reference is unknown, was issued for another tab, or was issued before Chrome or the service restarted;
+- the document or the element is gone, or the page's reader was installed anew since;
 - the element's role or name is no longer what Claude last saw;
 - for filling or choosing, the field's value is no longer what Claude last saw, so Claude never overwrites
   something it hasn't seen.
@@ -1249,9 +1255,13 @@ harness's helper functions change, never an assertion.
       frames, literal and without regard to case; five tabs in one call, one of them unreadable; `until` met and
       not met; paging, and a cursor refused after the page changed;
     - references: the same element keeps its reference across reads; an action still works after an unrelated
-      change on the page; a removed element, a renamed one, a field whose value changed, a new document, a Chrome
-      restart, a service restart, another tab's reference and an invented one are each refused, the renamed one
-      with its present line;
+      change on the page; a removed element, a renamed one, a field whose value changed, a new document and an
+      invented reference are each refused, the renamed one with its present line;
+    - references that can't collide: with two tabs that have both issued references, no string appears in both,
+      and tab A's reference is refused with tab B's number; after a Chrome restart, and after a service restart,
+      the same pages are read again until new references exist, and every old reference is still refused; a
+      reference dropped from the table is refused and its string never comes back; after a release and a new take
+      of the same page, a reference from before is refused;
     - addresses: a marker in the query, the fragment, the user name and a sign-in path of a page's own address, of
       link and form targets, of frames, redirects and library entries appears in no result, error, question,
       status, notice or log line; `chrome_open` by reference still reaches the full address; the binding still
