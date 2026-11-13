@@ -17,6 +17,13 @@ public abstract class AppInventoryMixin implements AppMenuPins {
     @Unique private Set<String> aresos$before;
     @Override public void aresos$beginMove(Set<String> before) { if (aresos$before == null) aresos$before = before; }
     @Override public void aresos$resetMove() { aresos$before = null; }
+    // First, so a refused click starts no pin bookkeeping: Q over an app's item, or a click outside the window with
+    // one on the cursor, does nothing. The server then sends the client what the slots really hold.
+    @Inject(method = "clicked", at = @At("HEAD"), cancellable = true)
+    private void aresos$keepAppItem(int slot, int button, ContainerInput input, Player player, CallbackInfo ci) {
+        if (player instanceof ServerPlayer serverPlayer
+                && AppInventory.keepsOnClick(serverPlayer, (AbstractContainerMenu)(Object)this, slot, input)) ci.cancel();
+    }
     @Inject(method = "clicked", at = @At("HEAD"))
     private void aresos$start(int slot, int button, ContainerInput input, Player player, CallbackInfo ci) {
         if (player instanceof ServerPlayer serverPlayer && LiveMode.isLive(serverPlayer)

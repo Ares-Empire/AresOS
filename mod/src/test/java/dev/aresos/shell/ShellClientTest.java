@@ -12,7 +12,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** The mod side of aresos-shell/1.0 against a fake helper on a real Unix socket. */
+/** The mod side of aresos-shell against a fake 1.0 helper on a real Unix socket. ShellListTest covers 1.1. */
 class ShellClientTest {
     private Path folder;
     private FakeHelper helper;
@@ -51,19 +51,23 @@ class ShellClientTest {
     @Test void handshakeSendsVersionCapabilitiesInstanceAndNonceThenListsApps() throws Exception {
         var apps = connect().apps();
         var hello = helper.received("hello").getFirst();
-        assertEquals("aresos-shell/1.0", hello.get("protocol").getAsString());
+        // hello carries the client's own version; after a 1.0 helper's reply everything else says 1.0.
+        assertEquals("aresos-shell/1.1", hello.get("protocol").getAsString());
         assertEquals(1, hello.get("major").getAsInt());
-        assertEquals(0, hello.get("minor").getAsInt());
+        assertEquals(1, hello.get("minor").getAsInt());
         assertEquals(FakeHelper.INSTANCE, hello.get("instance").getAsString());
         assertEquals(FakeHelper.NONCE, hello.get("nonce").getAsString());
         var capabilities = hello.getAsJsonArray("capabilities").asList().stream().map(value -> value.getAsString()).toList();
         assertTrue(capabilities.containsAll(List.of("open_app", "app_state", "shell_focus", "world_ready", "heartbeat")));
         assertEquals(List.of("list_apps", "open_app"),
                 hello.getAsJsonArray("requires").asList().stream().map(value -> value.getAsString()).toList());
+        client.world("AresOS");
+        FakeHelper.await(() -> !helper.received("world_ready").isEmpty(), "world_ready");
         for (var message : helper.received) {
-            assertEquals("aresos-shell/1.0", message.get("protocol").getAsString());
+            assertEquals(message == hello ? "aresos-shell/1.1" : "aresos-shell/1.0", message.get("protocol").getAsString());
             assertTrue(message.get("id").getAsString().matches("[A-Za-z0-9._:-]{1,128}"));
         }
+        assertFalse(client.detailed());
         assertEquals(ShellClient.State.CONNECTED, client.status().state());
         assertTrue(client.tracksWindows());
         assertEquals(List.of(new ShellClient.App("terminal", "Terminal", true, null),
@@ -125,7 +129,7 @@ class ShellClientTest {
         var launcher = new LinuxAppLauncher(() -> null);
         var app = new AppDefinition("notepad", "Notepad", List.of("notepad.exe"), "minecraft:paper", true);
         var failure = assertThrows(CompletionException.class, () -> launcher.launch(app).toCompletableFuture().join());
-        assertTrue(failure.getCause().getMessage().contains("aresos-shell/1.0"));
+        assertTrue(failure.getCause().getMessage().contains("aresos-shell/1.1"));
         assertEquals("app helper unavailable", LinuxAppLauncher.reason(failure));
         assertThrows(IOException.class, () -> new LinuxAppCatalogue().listApps());
     }
@@ -193,6 +197,48 @@ class ShellClientTest {
         var ids = helper.received("open_app").stream().map(message -> message.get("id").getAsString()).toList();
         assertEquals(List.of(first.requestId(), second.requestId()), ids);
         assertEquals(2, helper.launches.get());
+    }
+
+    @Test void anOpenSentInsideTheStartupCallbackIsNotSentAgainByReplay() throws Exception {
+        var received = new CountDownLatch(1);
+        var resume = new CountDownLatch(1);
+        var opened = new CompletableFuture<CompletableFuture<ShellClient.Launch>>();
+        // Keep the future pending until the writer barrier: an early focused reply could hide replay's duplicate.
+        helper.launchState = "starting";
+        helper.override = message -> {
+            if ("open_app".equals(FakeHelper.string(message, "op"))) received.countDown();
+            return null;
+        };
+        client = helper.client(FakeHelper.fast());
+        client.world("startup-barrier");
+        // Drain world()'s pre-start task while disconnected. Only session's post-replay task may send world_ready.
+        var writerField = ShellClient.class.getDeclaredField("writer");
+        writerField.setAccessible(true);
+        var drained = new CountDownLatch(1);
+        ((ExecutorService) writerField.get(client)).execute(drained::countDown);
+        assertTrue(drained.await(5, TimeUnit.SECONDS), "The pre-start writer task did not drain");
+        client.addListener(new ShellClient.Listener() {
+            @Override public void apps(List<ShellClient.App> apps) {
+                opened.complete(client.open("notepad"));
+                try {
+                    if (!received.await(5, TimeUnit.SECONDS) || !resume.await(5, TimeUnit.SECONDS))
+                        throw new AssertionError("Startup send barrier timed out");
+                } catch (InterruptedException error) { throw new AssertionError(error); }
+            }
+        });
+        client.start();
+        try { assertTrue(received.await(5, TimeUnit.SECONDS), "The normal send never reached the helper"); }
+        finally { resume.countDown(); }
+        client.awaitApps(Duration.ofSeconds(5));
+        // Startup queues world_ready after replay on the same writer, so receiving it is a writer barrier.
+        FakeHelper.await(() -> !helper.received("world_ready").isEmpty(), "the startup replay writer barrier");
+        assertFalse(join(opened).isDone(), "The open must remain pending through startup replay");
+        assertEquals(1, helper.connections.get());
+        var ids = helper.received("open_app").stream().map(message -> FakeHelper.string(message, "id")).toList();
+        assertEquals(1, ids.size(), "An ID was sent twice on one connection: " + ids);
+        helper.event("app_state", Map.of("request_id", ids.getFirst(), "launch_id", "launch-1",
+                "app_id", "notepad", "state", "focused"));
+        assertEquals(ids.getFirst(), join(join(opened)).requestId());
     }
 
     @Test void aRestartingHelperIsReconnectedAndAnUncertainOpenIsNeverLaunchedTwice() throws Exception {

@@ -10,7 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class ZoneData extends SavedData {
-    private static final Codec<ZoneData> CODEC = AppZone.CODEC.listOf().fieldOf("zones")
+    /** The contents of {@code data/aresos/zones.dat}. */
+    public static final Codec<ZoneData> CODEC = AppZone.CODEC.listOf().fieldOf("zones")
             .xmap(ZoneData::new, data -> List.copyOf(data.zones)).codec();
     private static final SavedDataType<ZoneData> TYPE = new SavedDataType<>(AresOs.id("zones"),
             () -> new ZoneData(List.of()), CODEC, null);
@@ -19,6 +20,20 @@ public final class ZoneData extends SavedData {
     private ZoneData(List<AppZone> zones) { this.zones = new ArrayList<>(zones); }
     public static ZoneData get(MinecraftServer server) { return server.getDataStorage().computeIfAbsent(TYPE); }
     public List<AppZone> zones() { return List.copyOf(zones); }
+
+    /** Ownership is a saved coordinate and block ID, never membership of the colour palette. */
+    public java.util.Map<net.minecraft.core.BlockPos, String> gateBlocks(net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> dimension) {
+        var blocks = new java.util.HashMap<net.minecraft.core.BlockPos, String>();
+        for (var zone : zones) if (zone.dimension().equals(dimension))
+            zone.gate().ifPresent(gate -> gate.placed().forEach(placed -> blocks.put(placed.pos(), placed.block())));
+        return blocks;
+    }
+
+    /** The entity IDs of every gate's sign. */
+    public java.util.Set<java.util.UUID> signs() {
+        return zones.stream().flatMap(zone -> zone.gate().flatMap(AppZone.Gate::sign).stream())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
 
     public String conflict(AppZone candidate) {
         if (candidate.touchesPlayer(candidate.exit().position())) return "Stand fully outside the zone to save its exit point.";

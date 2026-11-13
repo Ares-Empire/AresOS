@@ -93,7 +93,35 @@ Existing scope names are avoided, and a failed creation is never stopped.
   name, is outside these scripts' guarantees.
 
 Click **AresOS** above Singleplayer on the title screen to reopen **AresHub**,
-or choose a seed on the create screen if it does not exist. Seed **49** is
+or to create it if it does not exist. The create screen has one choice,
+**Home: Flat** or **Home: Nether** (click it to switch). Flat is chosen first.
+
+**The flat home** is a flat Overworld: bedrock at y -64, stone up to y 59,
+three layers of dirt and grass at y 63, plains everywhere, no structures,
+nothing generated on the grass, seed 0. It is survival, normal difficulty,
+cheats off. You stand in block **(0, 64, 0)** on a gold block in a 5 x 5 pad of
+polished blackstone bricks and look north. It is noon and clear and stays so,
+and no mob spawns. Four roads, 5 blocks wide, lead from the pad to 24 blocks
+out, each with a centre line in its group's colour and the group's name 9
+blocks up over it, 20 blocks out: north light blue (INTERNET), east red
+(GAMES), south yellow (SYSTEM & TOOLS), west purple (WORK & MEDIA). The world
+spawn is the home block. The numbers and the group table are data in
+`hub/HubLayout.java`; the design is `docs/design/HUB.md`. The logos along the
+roads come with later packages.
+
+The pad, the roads and the names are built once, with the new world, and never
+again. The mod paves only untouched grass with air above it; anything else
+stays. What it placed is saved as `data/aresos/hub.dat`: every block as
+`{pos, block}`, the IDs of the four names (text displays), the layout's name
+`flat-1`, its numbers and the home block. In Live mode a recorded block that is
+still the block the mod placed cannot be broken by hand or by an explosion, and
+the names cannot be hit. In Build mode you can change anything, explosions
+included. A block you changed is yours: the mod no longer protects it and never
+puts its own block back. The rules (the Nether home's, plus the day cycle and
+the weather cycle off), noon and clear weather are set once at creation, so a
+rule you change later stays changed.
+
+**The Nether home** shows its seed settings when it is chosen. Seed **49** is
 prefilled; **49**, **50** and **26** have quick-pick buttons. Seed entry follows
 vanilla Minecraft: numbers use that exact seed, text is hashed, and an empty
 field chooses a random seed. Changing the seed resets the placeholder toggle:
@@ -109,7 +137,8 @@ If no safe location is found, the incomplete save is kept for recovery rather
 than carved or retried. A placeholder is built only for an explicitly new
 creation; later edits always persist.
 
-To try another seed, click **New AresOS world…** beside AresOS and confirm.
+To start over, with either home or another seed, click **New AresOS world…**
+beside AresOS and confirm.
 The entire current save is renamed to **AresHub-<date-time>** before the create
 screen opens. No save is deleted or replaced. Canceling confirmation keeps
 AresHub as it was; canceling creation after confirmation keeps the dated save.
@@ -126,10 +155,13 @@ These commands need no cheats and accept only the singleplayer host in an
 enabled AresOS desktop. Ordinary desktops marked with `/aresos desktop on`
 can also set a home without constructing a hub. Joining always enters Live.
 
-The save keeps `aresos-home.properties` (provisioning version and seed/site),
+The save keeps `aresos-home.properties` (provisioning version and seed/site;
+`home=flat` in it names a flat home, and without that key it is a Nether home),
 `aresos-home.provisioned` (a permanent provisioning claim, marked complete after
-saving provisioning), `data/aresos/nether_home.dat` (initial site and optional exact home), and
-the existing desktop marker. Keep the whole world directory with backups.
+saving provisioning), `data/aresos/nether_home.dat` (initial site and optional
+exact home; despite its name the flat home's too), for a flat home
+`data/aresos/hub.dat`, and the existing desktop marker. Keep the whole world
+directory with backups. All of this holds for both homes.
 Only a new creation through the AresOS button can build a hub. If an existing
 home loses its home data, it opens without rebuilding, changing gamerules or
 enabling the desktop marker, and chat explains how to restore a backup. This
@@ -145,8 +177,8 @@ To repeat the offline generator survey, run `.\gradlew.bat searchNetherSeeds`.
 
 `runClient` uses the isolated `run/` game directory. Worlds created through normal
 Singleplayer play like normal Minecraft. In singleplayer, run `/aresos desktop on` to mark the world as an
-AresOS desktop; cheats are not needed. This does not build a Nether hub or change
-that world's gamerules. Notepad appears in the first empty hotbar
+AresOS desktop; cheats are not needed. This does not build a Nether hub, a home
+pad or roads, and does not change that world's gamerules. Notepad appears in the first empty hotbar
 slot. Right-click it to launch, including when looking at a door, chest or
 villager; the target stays untouched. Holding right-click or switching slots
 while holding does not launch repeatedly. Each release and new press launches
@@ -171,10 +203,10 @@ The new home's gamerules remain saved world settings. The marker is saved as
 
 ## App configuration
 
-The first start creates schema 2 at `config/aresos/apps.json` inside the dev
+The first start creates schema 3 at `config/aresos/apps.json` inside the dev
 client's game directory. On Windows, AresOS reads user/common Start Menu `.lnk`
 files and the current user's AppsFolder/Store entries. Discovered apps are added
-without pins. Existing IDs, names, looks, pins and Windows command argv stay intact;
+without pins and are not in My apps (see "My apps" below). Existing IDs, names, looks, pins and Windows command argv stay intact;
 Notepad keeps `notepad`. Shortcut launches go through Explorer so their arguments
 and working directory remain Windows' responsibility. Disappearing apps are kept
 in the configuration; discovery never removes an owner entry.
@@ -195,7 +227,8 @@ are all retained and logged as ambiguous; discovery never chooses between them.
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
+  "baseline": "2026-11-13",
   "apps": [
     {
       "id": "notepad",
@@ -203,7 +236,8 @@ are all retained and logged as ambiguous; discovery never chooses between them.
       "type": "command",
       "command": ["notepad.exe"],
       "look": "minecraft:writable_book",
-      "pinned": true
+      "pinned": true,
+      "mine": true
     },
     {
       "id": "moodle",
@@ -211,11 +245,19 @@ are all retained and logged as ambiguous; discovery never chooses between them.
       "type": "url",
       "url": "https://www.moodle.tum.de/",
       "look": "minecraft:book",
-      "pinned": false
+      "pinned": false,
+      "mine": true
     }
   ]
 }
 ```
+
+`mine` says the app is one of My apps. An entry you write by hand without `mine`
+counts as yours. A pinned app is always yours. `baseline` is the day the first
+full program list from the system was taken (AresOS only; see "My apps"). An
+entry may also carry `system`: what the system last said about the program
+(where it came from, its categories, its icon path and so on). The mod writes
+it; leave it alone.
 
 Restart after edits. A URL must use HTTP or HTTPS; Windows opens it through the
 default browser. Commands remain argument lists passed directly to `ProcessBuilder`.
@@ -225,29 +267,38 @@ An optional `icon` path can supply a local PNG. Missing/unreadable icons use `lo
 a missing vanilla item uses a book. Websites use their configured vanilla look
 unless a local icon is supplied; AresOS does not fetch favicons.
 
-Package-01 arrays migrate on startup: the entire file is validated first, copied
-byte for byte to `apps.json.schema-1-<unique id>.bak`, then replaced atomically by
-schema 2. Migration runs once. Invalid entries, duplicate IDs, unsupported schemas
-or an I/O error stop with a diagnostic and preserve the original file. No defaults
-replace a broken file. Pin/merge edits also preserve unknown optional fields.
+Older files move over on startup, package-01 arrays (schema 1) and schema 2
+alike: the entire file is validated first, copied byte for byte to
+`apps.json.schema-<1 or 2>-<unique id>.bak`, then replaced atomically by schema 3.
+An app that was pinned, and the starters `browser`, `terminal` and `notepad`,
+start as yours; nothing else in an entry changes. The move runs once. Invalid
+entries, duplicate IDs, unsupported schemas or an I/O error stop with a
+diagnostic and preserve the original file. No defaults replace a broken file.
+Pin, My-apps and merge edits also preserve unknown optional fields.
 
-Before downgrading to package 01, close Minecraft and run the explicit recovery
+An older mod that finds a schema-3 file refuses it ("Unsupported schemaVersion
+(expected 2)"), leaves the file untouched, starts without apps and says
+"AresOS apps disabled: ..." in the chat.
+
+Before downgrading to an older mod, close Minecraft and run the explicit recovery
 command from `mod/` (substitute the paths to your dev config and its migration backup):
 
 ```powershell
 .\gradlew.bat restoreLegacyApps '-PappsConfig=run/config/aresos/apps.json' '-PappsBackup=run/config/aresos/apps.json.schema-1-<id>.bak'
 ```
 
-It validates the backup, keeps your current schema-2 file as
-`apps.json.schema-2-before-downgrade-<id>.bak`, prints a warning about later edits,
-and restores the original schema-1 bytes atomically. **The old backup excludes
-later apps, edits and pins.** Compare both retained versions before using the older
-mod. Starting the new mod again migrates back to schema 2.
+It takes a schema-1 or a schema-2 backup, validates it, keeps your current
+schema-3 file as `apps.json.schema-3-before-downgrade-<id>.bak`, prints a warning
+about later edits, and restores the backup's bytes atomically. **The old backup
+excludes later apps, edits, pins and My apps.** Compare both retained versions
+before using the older mod. Starting the new mod again moves the file to schema 3.
 
-On Linux, `aresos-shell/1.0` is a stub until the OS helper arrives. Legacy migration
-imports appearance/pins and removes command argv from schema 2 (the original
-remains in its backup). Unknown/custom IDs stay visible. All Linux launches,
-including URLs, fail with an unavailable-helper diagnostic; no commands execute.
+On Linux (AresOS) the program list and every launch come from the OS app helper
+over `aresos-shell` (this mod speaks 1.1 and works with a 1.0 helper as before);
+the mod never runs a command itself. Legacy migration imports appearance/pins and
+removes command argv from schema 2 (the original remains in its backup).
+Unknown/custom IDs stay visible. While the helper is away, every launch,
+including URLs, fails with a message that says so.
 
 Generated icons live only in `aresos-runtime/` under the game directory, in a
 required runtime resource pack. Each source becomes a 16×16 texture, fitted within
@@ -256,20 +307,106 @@ version are hashed; unchanged converted textures are reused. Windows re-reads
 shortcut/resource/UWP icons on startup to detect changes. The `IconConverter`
 interface isolates the style. No installed app list or extracted icon belongs in Git.
 
+On AresOS the system names a picture for each program (`icon` in
+`aresos-shell/1.1`). Your own `icon` path in `apps.json` wins; without one, the
+system's file is used, but only if it is a regular file of at most 1 MiB that is
+a PNG of at most 512 x 512 pixels. Anything else means the app has no picture and
+shows its `look`. When the program list or a picture changes while the game
+runs, the pack is made again in the background and the game reloads its resource
+packs once: not when nothing changed, and at most once every five seconds
+(changes in between share one reload). The items you already hold then get the
+new picture.
+
+## My apps
+
+One list decides what is in your inventory: **My apps**. Everything else the
+system lists is still there to pick from ("All programs"), but has no item.
+
+- **Day one (AresOS).** When the first full program list arrives from the app
+  helper (`aresos-shell/1.1`), My apps gets the starters (`browser`, `terminal`,
+  `notepad`) and what you installed yourself (programs from your own folder and
+  Flatpaks installed for your user). That day is saved as `baseline`.
+- **Later.** A program that newly appears and did not come with the system joins
+  My apps by itself, and the chat says so: "Spotify is new and joined My apps."
+  Programs that come with a new AresOS image, or whose origin the system does not
+  say, never join by themselves.
+- **Windows, or an older helper (1.0).** Nothing joins by itself: yours are the
+  pinned apps, the starters and what you add.
+- Only a complete list counts. While the helper is away or its list will not hold
+  still, My apps stays as it is.
+
+### The Apps screen
+
+**E → Apps…** (Live mode, in an AresOS world) opens one list that scrolls: a
+search box on top, then **My apps**, then **All programs**, both by name. Each
+row shows the program's icon and name and, in gray, what kind of program the
+system says it is. Under All programs a check mark marks the ones that are yours.
+
+| You do | What happens |
+|---|---|
+| Click a program that is not yours | It becomes yours: its item lands in the first free inventory slot beside the hotbar. The screen stays open, so you can add more. |
+| Click one of yours | You pick up its item and are back in the inventory, to put it in the hotbar (that pins it). An app without an item, because the inventory was full, gets one this way. |
+| Right-click one of yours | It leaves My apps, as with `/aresos app remove`. It stays under All programs. |
+| Type | The letters go to the search box, wherever you clicked last. The search looks in the name, the generic name and the keywords the system gives, so "mail" or "pdf" finds the right program. Every word you type must be found; upper and lower case are the same. |
+| Enter | A click on the program, if the search found exactly one. The search text is then selected, so typing starts the next search. |
+| The wheel, the scroll bar, Up, Down, Page Up, Page Down | Scroll the list (three rows for each notch of the wheel). |
+| Escape, or Done | Back to the inventory. |
+
+The line above Done says what a click does and, for five seconds, what just
+happened ("Added Steam to My apps."). The chat gets the same line, but it is
+hidden behind the screen. When the list changes, the row under the pointer stays
+where it is if scrolling permits it. The second click of a double-click is ignored,
+so a row that moves under the pointer cannot add a neighbour.
+
+### Commands
+
+For the singleplayer host in an AresOS world (Tab completes the ID):
+
+| Command | What it does |
+|---|---|
+| `/aresos app add <app>` | Makes a program yours. Its item lands in the first free inventory slot beside the hotbar. With no free slot the app is yours without an item, and the chat says so; the next safe Live tick with a free slot supplies it. |
+| `/aresos app remove <app>` | Takes it out of My apps and unpins it. Its item leaves your Live inventory and your saved Build inventory. It stays in All programs with everything saved about it. |
+| `/aresos app list` | Your apps, one line each. |
+
+`/aresos give <app>` also makes the program yours. Pinning (moving an item into
+the hotbar) makes an app yours too; unpinning changes nothing else.
+`give` moves an existing item in your active inventory instead of making a copy.
+Finish moving cursor and crafting-grid items before picking up an app through Apps or `give`.
+
+**Known limit: containers.** Chests and other containers, including nested storage,
+are yours to use. The mod searches only your player inventory when supplying a
+missing app item. Storing one elsewhere can therefore leave another copy in your
+inventory, and breaking its container can drop the stored copy into the world.
+App items are not globally unique; the Q rule covers player drops only.
+
+Your inventories are never edited at a risky moment. A change is done at once
+when that is safe, and otherwise on the first tick on which no mode switch is
+under way, no container is open, and nothing is on the cursor or in the crafting
+grid. Added in Build mode, an app's item waits in Live. No other item is ever
+moved, replaced or lost. An item of an app the file does not know is left alone.
+
+**Q never removes an app.** Dropping an app's item does nothing: Q and Ctrl+Q in
+the world, Q over it in the inventory, and a click outside the inventory window
+with it on the cursor (put it in a slot, or close the inventory). An app's item
+is kept out of player drops; stored copies can reach the ground through containers.
+
+A program the system no longer lists keeps its entry and its item; using it says
+that it is unavailable, with the helper's reason.
+
 In marked AresOS worlds in Live mode, pinned apps fill empty hotbar slots and the
-remaining apps fill empty inventory slots. Existing items are never overwritten.
+rest of My apps fill empty inventory slots. Existing items are never overwritten.
 When a hotbar slot becomes available, initial population on rejoin moves an
 existing pinned app from inventory into it instead of creating another item.
 Switching modes restores the exact saved layout instead of repopulating it;
-home arrival from Build also restores Live exactly. Ordinary joins already in Live
-keep catalogue population. Use the Apps catalogue for additional apps between joins.
-**E → Apps…** opens a paged catalogue, including apps that did not fit. Pick an app
-to put its item on the inventory cursor, then place it with normal inventory input.
+home arrival from Build also restores Live exactly, and My apps is then brought
+in step on the first safe tick (only app items are added or taken out). Ordinary
+joins already in Live keep catalogue population. An app of yours that did not
+fit can be picked up in the Apps screen (above) and placed with normal inventory input.
 Moving an item into/out of the hotbar updates its `pinned` value once the cursor
 is empty, including through chest and other container menus; reordering within the
 hotbar does not change pins. A failed save displays
 a diagnostic. More than nine pins remain configured; overflow stays in the
-inventory/catalogue. Build mode and normal worlds get no catalogue or pin edits.
+inventory. Build mode and normal worlds get no Apps screen and no pin edits.
 
 Only survival players in marked AresOS worlds receive Live protection. Void
 recovery uses their personal bed/anchor spawn, or the world's default spawn if
@@ -334,8 +471,60 @@ Removing a zone leaves its logo blocks in place and removes their protection.
 Zones cannot overlap or cover each other's return exits. Multiple separate zones
 can launch the same app.
 
-For automatic pixel art, stand on safe ground, face the intended logo, and run
-`/aresos logo <app id> [wall|floor]` (default: `wall`). The nearest horizontal
+### The gate: `/aresos logo <app id>`
+
+Stand on solid ground, look where the logo should stand, and run
+`/aresos logo <app id>`. The mod builds the app's icon as a **gate**: 12 blocks
+wide, 12 tall and 3 thick, standing on the ground you stand on, its front six
+blocks ahead and facing you, with a doorway (2 wide, 3 high, 2 deep) at the
+bottom middle and the app's name floating above it. The doorway's middle is on
+the block edge nearest to you. Stepping into the doorway opens the app; walking
+past the gate or along its front does nothing. Closing the app puts you back
+where you stood when you built it, 5.5 blocks in front of the door, looking at it.
+
+How the icon becomes blocks (`docs/design/HUB.md`, section 3.6):
+- The icon is cut to what is visible and scaled to 12 × 12 cells; a cell is
+  built when at least half of it is covered. A round icon gives a round gate. A
+  picture that is not square stands in the middle, on the ground.
+- A small figure on a plain plate (a face on a disc, a moon on a tile) is
+  enlarged, and the plate's colour fills the whole 12 × 12.
+- Each cell is one kind of block, three blocks deep, picked from 60 blocks: the
+  wall's 48 plus red mushroom block, emerald, lapis, amethyst, snow, iron,
+  polished diorite, smooth stone, smooth sandstone, honeycomb, prismarine bricks
+  and blue ice. The nearest block is found in the Oklab colour space with
+  lightness counted half, so a bright red stays red. The colours are averages
+  measured from the game's own textures (`./gradlew measureBlockColours` prints
+  them); only the numbers are in this repo.
+- The doorway is cut out. Its back is black concrete, and so are the posts
+  beside it and the bar above it wherever the icon has no block there.
+- An app without a readable icon gets a plain front in its group's colour.
+
+With the gate come a **doormat** (the two floor blocks under the doorway and
+the two rows in front, in concrete), two invisible `light` blocks in front of
+the face, and the **sign** (a text display, readable from 160 blocks, as bright
+at night as by day). The doormat is light blue, red, yellow or purple by the
+app's group (`browser` is Internet; `terminal` and `notepad` are System & Tools)
+and light grey for any other app until the mod is told an app's categories. It
+is only laid where the floor at the door is one kind of untouched natural
+ground (grass, dirt, stone and the like); a paved floor is yours and stays.
+
+A gate needs free air: its own 12 × 12 × 3 blocks, one layer in front of the
+face, and a way in four blocks wide and three high out to where you stand. The
+ground from you to the door must be solid. Everything is checked before the
+first block changes; a refusal names the reason and changes nothing. The place
+must be loaded, so build where you are.
+
+`/aresos logo remove <app id>` takes down every gate of that app;
+`/aresos logo remove here` the one you stand at (anywhere between its door and
+its exit point). A removal takes each block the gate placed **only if it is
+still that block**, puts the ground under the doormat back, and removes the
+sign and the zone. A block you changed, replaced or mined stays as you left it.
+For an older wall or floor logo the command only removes the zone and says that
+the blocks stay. `/aresos zone remove` leaves gates alone.
+
+### The older forms: `/aresos logo <app id> wall|floor`
+
+`/aresos logo <app id> wall` and `floor` build flat pixel art as before. The nearest horizontal
 direction determines the orientation. The near edge starts four blocks ahead;
 the wall rises from your feet, while the floor is one block below your feet.
 The original source icon is fitted within 32×32 without upscaling, and visible
@@ -349,18 +538,22 @@ Occupied space, entities in placement cells, out-of-bounds placement and overlap
 are refused before building. Logo blocks must also clear every saved exit's full
 standing body. The builder conservatively refuses plants, circuits, fluids and
 blocks with special behavior within two face-adjacent steps of a pixel, including
-through a solid neighbor. Only air and plain inert full blocks are accepted in
-that margin; this avoids firing support updates, drops or redstone before a build
-can be refused. The error names the neighboring block and its position.
+through a solid neighbor. Only air, plain inert full blocks, natural ground (grass,
+dirt, stone and the like) and the blocks the mod itself builds logos from are
+accepted in that margin; this avoids firing support updates, drops or redstone before a build
+can be refused. The error names the neighboring block and its position. A gate's
+light blocks are checked four steps around, because their light would melt ice and snow.
 **There is no overwrite command:** clear the required
 space yourself in Build mode and retry. A floor logo usually needs its footprint
 excavated one block deep first. The builder saves a matching zone: two blocks in
 front of a wall, or two blocks of feet space above a floor. It saves your standing
-position as the exit. Auto-built blocks resist player breaking in Live mode and
-explosions in both modes; press **G** for Build mode to mine and edit them.
+position as the exit. Auto-built blocks, a gate's doormat included, resist player
+breaking in Live mode and explosions in both modes; press **G** for Build mode to
+mine and edit them. A gate's sign cannot be hit in any mode.
 
 Only the singleplayer host in Live mode launches on entering from outside, once
-per entry, with portal particles and a short teleport sound. Entry uses the
+per entry, with portal particles and a short teleport sound. A gate's zone is
+exactly its doorway; a wall's is the two blocks in front of its whole face. Entry uses the
 player's body touching the box, including over transparent floor pixels. Entry
 membership is tracked independently for each zone, so touching a
 neighboring zone cannot rearm one you still occupy. Simultaneous entry into two
@@ -374,8 +567,11 @@ before the app took focus. An already-open screen stays open. A failed launch do
 retry while you stand inside. If an exit has since become unsafe, AresOS reports
 the obstruction and leaves you in place. Clear that exit in Build mode.
 
-Zones and exact auto-built block positions persist in `data/aresos/zones.dat`.
-Keep the whole world save with backups. Client tests use original geometric icons
-and save wall/floor evidence under `../reviews/08-walk-in-logos/screenshots/`.
+Zones and exact auto-built block positions persist in `data/aresos/zones.dat`;
+a gate's zone also holds every block it placed with the block's ID, the ground
+its doormat replaced and its sign's ID. Zones files written before gates existed
+load unchanged. Keep the whole world save with backups. Client tests use original geometric icons
+and save gate pictures under `../reviews/33-gate-logo/screenshots/` and wall/floor
+evidence under `../reviews/08-walk-in-logos/screenshots/`.
 The lime glass frames in those screenshots are test fixtures around the saved
 trigger boxes; they are not placed by the logo command.

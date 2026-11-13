@@ -10,8 +10,8 @@ AresOS is installed on the owner's laptop, on its own SSD next to Windows. It st
 terminal; the game and the apps aren't in it yet.
 
 - **The mod** works in Minecraft's development client on Windows. Right-click an app item and the installed Windows app
-  or website opens. Walk into a block logo and its app opens. The Nether home, Live mode (you can't die) and Build mode
-  (creative), each with its own inventory, work. Unit tests, server game tests and client game tests cover it; they
+  or website opens. Walk into a block logo and its app opens. The flat home world (the Nether home stays as a choice), Live mode (you
+  can't die) and Build mode (creative), each with its own inventory, work. Unit tests, server game tests and client game tests cover it; they
   run on Windows, not in CI.
 - **The OS image** is a Bazzite derivative (`bazzite-nvidia-open`) that starts into a minimal labwc session with a
   terminal. GitHub Actions builds it, boots it in virtual machines, and tests the recovery login, the switch from stock
@@ -34,8 +34,11 @@ update of the installed laptop to a new release, which is the next step.
 - **Apps are items.** Pinned apps sit in the hotbar and all others in the inventory, each with a pixel icon made from
   the app's real icon, or a plain Minecraft item when there is none. Right-click one to open it. Big block logos in
   the world open their app when you walk into them.
-- **Home is the Nether.** Every start puts you at your home spot. In Live mode you can't die. G switches to Build mode
-  (creative) for building, and the app hotbar comes back when you switch back.
+- **Home is a flat world.** The AresOS button creates a flat Overworld where it is always noon and no mob appears:
+  a small dark pad with a gold block under your feet and four roads, one for each group of apps. The logos along the
+  roads are not built yet. The Nether home stays as a choice when the world is created. Every start puts you at your
+  home spot. In Live mode you can't die. G switches to Build mode (creative) for building, and the app hotbar comes
+  back when you switch back.
 - **Only the AresOS world follows these rules.** Every other world plays like normal Minecraft, and normal Minecraft
   will be an app you open from AresOS.
 - **Underneath is Linux.** The image is defined in this repository on top of Bazzite, a gaming-focused Fedora with
@@ -69,7 +72,7 @@ The mod needs Java 25; the Gradle wrapper is included. From `mod/`:
 
 On Windows in PowerShell, use `.\gradlew.bat`. The client game tests write their screenshots into `reviews/`;
 `git checkout -- ../reviews/` (from `mod/`) puts the committed ones back. In the development client, click **AresOS** above
-Singleplayer to create the Nether home. Opening apps works on Windows only for now. More in
+Singleplayer to create the home world (flat, or the Nether home as a choice). Opening apps works on Windows only for now. More in
 [mod/README.md](mod/README.md).
 
 The OS image is built and tested by `.github/workflows/os-image.yml` on GitHub Actions, started by hand. Details are

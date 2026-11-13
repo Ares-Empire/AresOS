@@ -59,13 +59,13 @@ class WindowsCatalogueFixesTest {
         var row = new JsonObject(); row.addProperty("kind", "configured"); row.addProperty("key", owner.id());
         row.addProperty("icon", Base64.getEncoder().encodeToString(getClass().getResourceAsStream("/icons/compass.png").readAllBytes()));
         var good = AppsConfig.merge(file, new WindowsAppCatalogue(cache, List.of(owner)).decodeConfigured(rows(row), cache));
-        assertEquals(Set.of("notes"), IconPack.generate(pack, good, new PixelIconConverter()));
+        assertEquals(Set.of("notes"), IconPack.generate(pack, good, new PixelIconConverter()).generated());
         Path source = Path.of(good.getFirst().icon()); assertTrue(Files.exists(source));
         row.add("icon", JsonNull.INSTANCE);
         var bad = AppsConfig.merge(file, new WindowsAppCatalogue(cache, good).decodeConfigured(rows(row), cache));
         assertNull(bad.getFirst().icon(), "Failed refresh retained configured cache path");
         assertFalse(Files.exists(source), "Failed refresh retained generated source");
-        assertTrue(IconPack.generate(pack, bad, new PixelIconConverter()).isEmpty());
+        assertTrue(IconPack.generate(pack, bad, new PixelIconConverter()).generated().isEmpty());
         assertFalse(Files.exists(pack.resolve("assets/aresos/items/apps/notes.json")));
         assertFalse(Files.exists(pack.resolve("assets/aresos/textures/item/apps/notes.png")));
         var custom = new AppDefinition("notes", "Custom", owner.command(), owner.look(), true, "command", null, "owner-art.png");

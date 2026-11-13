@@ -44,6 +44,7 @@ public final class AresOsClient implements ClientModInitializer {
     public void onInitializeClient() {
         HomeButton.register();
         AppsScreen.register();
+        IconReload.register(dev.aresos.item.MyAppsGame.icons());
         if (AresOs.shell() != null) ShellFocusClient.register(AresOs.shell());
         ClientPlayNetworking.registerGlobalReceiver(dev.aresos.mode.ModeSwitchStatePayload.TYPE,
                 (payload, context) -> ModeSwitchClient.receive(payload));

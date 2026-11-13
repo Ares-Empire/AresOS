@@ -42,7 +42,7 @@ class WindowsCatalogueTest {
     /** Package 24: without a helper connection the Linux catalogue fails closed instead of returning apps. */
     @Test void linuxCatalogueWithoutAHelperFailsClosed() {
         var error = assertThrows(java.io.IOException.class, () -> new LinuxAppCatalogue().listApps());
-        assertTrue(error.getMessage().contains("aresos-shell/1.0")); assertEquals("aresos-shell/1.0",LinuxAppCatalogue.PROTOCOL);
+        assertTrue(error.getMessage().contains("aresos-shell/1.1")); assertEquals("aresos-shell/1.1",LinuxAppCatalogue.PROTOCOL);
     }
     @Test @EnabledOnOs(value = OS.WINDOWS, disabledReason = WindowsOnly.POWERSHELL)
     void nativeShortcutIdentityIncludesArgvAndWorkingDirectory() throws Exception {
