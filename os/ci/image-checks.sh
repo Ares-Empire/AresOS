@@ -624,5 +624,43 @@ if grep -rlE 'aresos-desktop|prismlauncher' /usr/lib/systemd/system /etc/systemd
 fi
 pass 'no system service runs the desktop: it starts inside the everyday session only'
 
+# --- Package 31: the Ares-Crown frame and the defaults for apps' own bars.
+python3 - <<'PY'
+import hashlib, pathlib, xml.etree.ElementTree as ET
+share = pathlib.Path('/usr/share')
+theme = share / 'themes/Ares-Crown/labwc'
+assert (theme / 'themerc').is_file(), 'Ares-Crown themerc is missing'
+# labwc's nine glyphs, including the toggled states, in both focus and hover states.
+for button in ('menu', 'iconify', 'max', 'max_toggled', 'close', 'shade', 'shade_toggled', 'desk', 'desk_toggled'):
+    for hover in ('', '_hover'):
+        for state in ('active', 'inactive'):
+            path = theme / f'{button}{hover}-{state}.svg'
+            svg = ET.parse(path).getroot()
+            assert svg.tag == '{http://www.w3.org/2000/svg}svg', path
+            assert (svg.get('width'), svg.get('height')) == ('44', '36'), path
+assert not any((share / 'themes' / name).exists() for name in ('Ares-Plain', 'Ares-Block'))
+font = share / 'fonts/aresos/SpaceGrotesk-Variable.ttf'
+assert hashlib.sha256(font.read_bytes()).hexdigest() == 'acad6de1fc93436f5c0f1f4137751ef04f1aea3063e7036535970ffcfbd79f72'
+license = (font.parent / 'OFL-SpaceGrotesk.txt').read_text()
+assert 'Copyright 2020 The Space Grotesk Project Authors' in license
+assert 'SIL OPEN FONT LICENSE Version 1.1' in license
+rc = ET.parse(share / 'aresos/labwc/rc.xml').getroot()
+assert rc.findtext('theme/name') == 'Ares-Crown'
+assert rc.findtext('theme/titlebar/layout') == 'menu:iconify,max,close'
+assert rc.find('windowSwitcher/osd').get('style') == 'thumbnail'
+override = share / 'glib-2.0/schemas/zz-aresos.gschema.override'
+assert '[org.gnome.desktop.wm.preferences:AresOS]' in override.read_text()
+assert (override.parent / 'gschemas.compiled').is_file()
+print('CROWN_FILES_PASSED: themerc, 36 button images, pinned font, licence, rc.xml and schema override')
+PY
+# A fresh user/home cannot hide a broken compiled default behind a saved setting.
+install -d -o ares -g ares -m 0700 /tmp/pkg31-home
+layout=$(runuser -u ares -- env -i HOME=/tmp/pkg31-home PATH=/usr/bin:/usr/sbin \
+    XDG_CURRENT_DESKTOP=AresOS GSETTINGS_BACKEND=memory \
+    /usr/bin/gsettings get org.gnome.desktop.wm.preferences button-layout)
+printf '%s\n' "$layout"
+test "$layout" = "'appmenu:minimize,maximize,close'"
+pass 'Ares-Crown files installed; compiled AresOS default gives apps all three buttons'
+
 set +x
 echo IMAGE_CHECKS_PASSED

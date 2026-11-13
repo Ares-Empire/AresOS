@@ -1,7 +1,20 @@
 <?xml version="1.0"?>
 <labwc_config>
   <core><decoration>server</decoration></core>
-  <theme><name>Default</name></theme>
+  <theme>
+    <name>Ares-Crown</name>
+    <icon>breeze</icon>
+    <fallbackAppIcon>application-x-executable</fallbackAppIcon>
+    <cornerRadius>10</cornerRadius>
+    <dropShadows>yes</dropShadows>
+    <titlebar><layout>menu:iconify,max,close</layout></titlebar>
+    <font place="ActiveWindow"><name>Space Grotesk</name><size>13</size><weight>medium</weight></font>
+    <font place="InactiveWindow"><name>Space Grotesk</name><size>13</size><weight>medium</weight></font>
+    <font place="MenuHeader"><name>Space Grotesk</name><size>12</size><weight>bold</weight></font>
+    <font place="MenuItem"><name>Space Grotesk</name><size>12</size></font>
+    <font place="OnScreenDisplay"><name>Space Grotesk</name><size>13</size><weight>medium</weight></font>
+  </theme>
+  <windowSwitcher><osd style="thumbnail" /></windowSwitcher>
   <keyboard>
     <keybind key="W-C-Escape"><action name="Execute" command="/usr/bin/aresos-terminal --recovery" /></keybind>
     <keybind key="A-F4"><action name="Close" /></keybind>

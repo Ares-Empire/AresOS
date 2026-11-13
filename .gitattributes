@@ -7,3 +7,5 @@
 *.jpg binary
 *.jar binary
 *.zip binary
+# Keep the bundled upstream font licence byte for byte, including its CRLFs.
+/os/config/usr/share/fonts/aresos/OFL-SpaceGrotesk.txt -text
