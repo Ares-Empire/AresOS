@@ -124,6 +124,12 @@ SCAN_FOLDERS = 256
 SCAN_DEPTH = 8
 SCAN_BYTES = 32 * 1024 * 1024
 SCAN_SECONDS = 2.0
+# Opening an app checks its program off the serving loop (review 2, finding 1). The loop waits CHECK_WAIT for the
+# check (a local file answers in microseconds), then answers when it does, or fails the launch as unavailable once
+# CHECK_SECONDS have passed. A check stuck in a dead mount keeps its thread, so at most MAX_CHECKS are outstanding.
+CHECK_WAIT = 0.2
+CHECK_SECONDS = 3.0
+MAX_CHECKS = 4
 WINDOW_CAPABILITIES = frozenset({'shell_focus', 'windows'})
 # The launch secrets stay with the desktop; launched apps never inherit them,
 # nor the helper's own service plumbing.
@@ -211,6 +217,8 @@ class App:
     desktop_id: str = None
     exec_name: str = None
     app_id_prefixes: tuple = ()
+    # Why it cannot start now (None: it can), worked out when its catalogue was built (review 2, finding 1).
+    unavailable: str = None
 
 
 ENTRY_KEYS = {'schema', 'id', 'name', 'argv', 'desktop_entry', 'working_directory', 'window', 'replaces', 'gpu'}
@@ -428,6 +436,30 @@ def resolve(app, executable=None, entry_dirs=DESKTOP_ENTRY_DIRS):
             argv[0] = found
         return argv, directory or app.working_directory, None if executable(argv[0]) else 'not_installed'
     return list(app.argv), app.working_directory, None if executable(app.argv[0]) else 'not_installed'
+
+
+def with_availability(apps, executable=None, budget=None):
+    """Each program with whether it can start, worked out where the catalogue is built: on the discovery worker,
+    never on the serving loop. list_apps serves these values and touches no file (review 2, finding 1)."""
+    result = {}
+    for key, app in apps.items():
+        if budget is not None:
+            budget.time()
+        result[key] = dataclasses.replace(app, unavailable=resolve(app, executable)[2])
+    return result
+
+
+def launch_check(app, executable, working_directory):
+    """What opening an app needs from the filesystem. Runs on a LaunchChecks thread (review 2, finding 1)."""
+    argv, directory, reason = resolve(app, executable)
+    if reason is None:
+        # Popen's child changes into this folder while the helper waits for it to start systemd-run, so a folder on
+        # a dead mount must stall this thread first, not the serving loop.
+        try:
+            os.stat(working_directory(directory))
+        except OSError:
+            pass  # a missing folder still fails the start itself, as before
+    return argv, directory, reason
 
 
 EXEC_RESERVED = set('\t\n\'><~|&;$*?#()`\\')
@@ -913,6 +945,7 @@ def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None,
         for desktop_id in dict.fromkeys((*app.replaces, *((app.desktop_entry,) if app.desktop_entry else ()))):
             if desktop_id not in entries:
                 continue
+            budget.time()
             try:
                 values = read_desktop_entry(entries[desktop_id], budget, roots)
                 if desktop_bool(values, 'Hidden') or values.get('Type') != 'Application':
@@ -924,6 +957,8 @@ def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None,
     for desktop_id, path in entries.items():
         if desktop_id in replaced:
             continue
+        # The scan's deadline holds while entries are parsed too (review 2, finding 1).
+        budget.time()
         try:
             values = read_desktop_entry(path, budget, roots)
             if dependencies is not None:
@@ -955,12 +990,19 @@ def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None,
         owners.update(app.app_ids)
         apps[app.id] = app
     apps = apply_hints(apps, load_hints(os.path.join(registry_dir, HINTS)))
+    # Availability is part of each App, so it is part of the revision too.
+    apps = with_availability(apps, executable, budget)
     digest = hashlib.sha256(revision.encode())
     for app in sorted(apps.values(), key=lambda app: app.id):
         digest.update(json.dumps(dataclasses.asdict(app), sort_keys=True,
                                  default=lambda value: sorted(value)).encode('utf-8'))
-        digest.update(str(resolve(app, executable)[2]).encode())
     return apps, digest.hexdigest()[:16]
+
+
+def load_legacy(registry_dir, executable=None, budget=None):
+    """A 1.0 client's list: the reviewed registry alone, with its own revision and published availability."""
+    apps, revision = load_registry(registry_dir)
+    return with_availability(apps, executable, budget), revision
 
 
 class Catalogue:
@@ -1038,7 +1080,9 @@ class Catalogue:
         apps, revision = load_catalogue(self.registry_dir, self.environ, self.directories, self.executable,
                                         dependencies=dependencies, entries=entries, budget=budget,
                                         deployments=self.deployments)
-        legacy = load_registry(self.registry_dir)
+        legacy = load_legacy(self.registry_dir, self.executable, budget)
+        # A pass that ran out of time publishes nothing, however far it got (review 2, finding 1).
+        budget.time()
         self.apps, self.revision, self.legacy = apps, revision, legacy
         self.dependencies = dependencies
         self.signature = signature
@@ -1060,7 +1104,7 @@ class Discovery:
         self.catalogue = catalogue
         self.apps, self.revision = load_catalogue(catalogue.registry_dir, catalogue.environ, entry_dirs=(),
                                                   executable=catalogue.executable, deployments=())
-        self.legacy = load_registry(catalogue.registry_dir)
+        self.legacy = load_legacy(catalogue.registry_dir, catalogue.executable)
         self.lock = threading.Lock()
         self.wanted = threading.Event()
         self.scanned = threading.Event()
@@ -1743,13 +1787,66 @@ class ScopeLauncher:
             env.update(NVIDIA_OFFLOAD)
         return env
 
-    def spawn(self, app, argv, directory, launch_id):
+    def working_directory(self, directory):
         home = self.environ.get('HOME') or os.path.expanduser('~')
-        cwd = home if directory == '~' else directory
+        return home if directory == '~' else directory
+
+    def spawn(self, app, argv, directory, launch_id):
         # --scope execs the app in this child, so poll() reports the app's own exit.
-        return self.popen(self.command(app, argv, launch_id), cwd=cwd, env=self.environment(app),
-                          stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                          start_new_session=True, close_fds=True)
+        return self.popen(self.command(app, argv, launch_id), cwd=self.working_directory(directory),
+                          env=self.environment(app), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                          stderr=subprocess.DEVNULL, start_new_session=True, close_fds=True)
+
+
+class LaunchCheck:
+    def __init__(self):
+        self.done = threading.Event()
+        self.result = None
+
+
+class LaunchChecks:
+    """Launch checks on their own threads, never on the serving loop (review 2, finding 1).
+
+    A program on a mount that stopped answering blocks its check's thread, maybe for good. Repeated launches of the
+    same program share its outstanding check, and at most MAX_CHECKS checks are outstanding at once: beyond that a
+    launch fails as unavailable at once instead of starting yet another thread.
+    """
+
+    def __init__(self, limit=MAX_CHECKS):
+        self.limit = limit
+        self.lock = threading.Lock()
+        self.running = {}
+
+    def start(self, key, function, *arguments):
+        """The outstanding check for key, or a new one; None when MAX_CHECKS are outstanding."""
+        with self.lock:
+            check = self.running.get(key)
+            if check is not None:
+                return check
+            if len(self.running) >= self.limit:
+                return None
+            check = self.running[key] = LaunchCheck()
+        try:
+            threading.Thread(target=self.run, args=(key, check, function, arguments), name='aresos-launch-check',
+                             daemon=True).start()
+        except RuntimeError as error:
+            LOG.error('could not start a launch check: %s', error)
+            with self.lock:
+                del self.running[key]
+            return None
+        return check
+
+    def run(self, key, check, function, arguments):
+        try:
+            check.result = function(*arguments)
+        except Exception:
+            LOG.exception('a launch check failed')
+            check.result = (None, None, 'invalid_entry')
+        finally:
+            with self.lock:
+                if self.running.get(key) is check:
+                    del self.running[key]
+            check.done.set()
 
 
 
@@ -2189,6 +2286,9 @@ class Helper:
         self.keep_target = None
         self.nonce = nonce
         self.apps, self.revision = registry or load_registry(registry_dir)
+        if catalogue is None:
+            # Without a discovery worker (tests, diagnostics) availability is worked out once, here at start-up.
+            self.apps = with_availability(self.apps, executable)
         self.catalogue = catalogue
         self.icons = icons
         self.catalogue_apps = self.apps
@@ -2219,6 +2319,9 @@ class Helper:
         self.connections = []
         self.desktop = None
         self.events = 0
+        self.checks = LaunchChecks()
+        # Request ID -> a launch waiting for its check: the app, the check, its deadline and who to answer.
+        self.checking = {}
         self.processes = {}
         self.deadlines = {}
         self.started = {}
@@ -2381,9 +2484,13 @@ class Helper:
         except Failure as failure:
             self.error(conn, request_id, failure)
             return
+        # None: the answer comes later (a launch whose check is still running).
         if result is not None:
-            ok = result.pop('ok', True)
-            self.send(conn, dict({'id': request_id, 'ok': ok}, **result))
+            self.reply(conn, request_id, result)
+
+    def reply(self, conn, request_id, result):
+        ok = result.pop('ok', True)
+        self.send(conn, dict({'id': request_id, 'ok': ok}, **result))
 
     def send(self, conn, message):
         conn.send(dict({'protocol': protocol(conn.minor)}, **message))
@@ -2447,9 +2554,6 @@ class Helper:
         self.status(event='desktop_connected')
         return {'major': MAJOR, 'minor': conn.minor, 'capabilities': sorted(offered)}
 
-    def availability(self, app):
-        return resolve(app, self.executable)
-
     def list_apps(self, conn, request_id, message):
         self.refresh_catalogue()
         if conn.minor == 0:
@@ -2482,8 +2586,8 @@ class Helper:
         return f'p{offset}-{tag}'
 
     def app_row(self, app, details=False):
-        _, _, reason = self.availability(app)
-        row = dict(id=app.id, name=app.name, available=reason is None, reason=reason)
+        # The catalogue's published value: listing touches no file (review 2, finding 1).
+        row = dict(id=app.id, name=app.name, available=app.unavailable is None, reason=app.unavailable)
         if details:
             for key in ('source', 'icon', 'categories', 'generic_name', 'keywords', 'desktop_id', 'exec_name'):
                 if value := getattr(app, key):
@@ -2529,6 +2633,15 @@ class Helper:
             raise Failure('malformed', 'app_id must be a string')
         unknown = {'app_id': app_id, 'launch_id': None, 'state': 'failed',
                    'error': 'unknown_app', 'message': 'no reviewed launch definition'}
+        waiting = self.checking.get(request_id)
+        if waiting is not None:
+            # Resent while its check runs: answered with the same launch once there is an answer, never a second one.
+            if waiting['app'].id != app_id:
+                raise Failure('request_id_reused', 'this request ID already opened another app')
+            if conn.minor == 0 and waiting['app'].discovered:
+                return self.launch_result(request_id, unknown)
+            waiting['conns'].append(conn)
+            return None
         entry = self.journal.entries.get(request_id)
         if entry is not None:
             if entry['app_id'] != app_id:
@@ -2539,15 +2652,56 @@ class Helper:
             # A duplicate (e.g. resent after a reconnect) returns the same launch, never a second one.
             return self.launch_result(request_id, entry)
         if not self.journal.room():
-            # Forgetting a recent request ID could start an app twice; refusing a new one cannot.
-            raise Failure('journal_full', 'too many launches in the last few minutes; try again shortly',
-                          request_id=request_id, app_id=app_id, state='failed')
+            raise self.journal_full(request_id, app_id)
         # A 1.0 client knows only the reviewed registry: for it, a discovered ID is an unknown one, answered and
         # journaled exactly as before package 30 (review 1, finding 3).
         app = self.catalogue_apps.get(app_id) if conn.minor >= 1 or app_id in self.legacy_apps else None
         if app is None:
             return self.record(request_id, unknown)
-        argv, directory, reason = self.availability(app)
+        # Whether its program is still there is checked off the loop (review 2, finding 1).
+        check = self.checks.start(app, launch_check, app, self.executable, self.launcher.working_directory)
+        if check is None:
+            LOG.warning('%s not opened: %d launch checks are still waiting for an answer', app.id, MAX_CHECKS)
+            return self.launch(request_id, app, None, None, 'checks_busy')
+        if check.done.wait(CHECK_WAIT):
+            return self.launch(request_id, app, *check.result)
+        self.checking[request_id] = dict(app=app, check=check, deadline=self.clock() + CHECK_SECONDS, conns=[conn])
+        return None
+
+    @staticmethod
+    def journal_full(request_id, app_id):
+        # Forgetting a recent request ID could start an app twice; refusing a new one cannot.
+        return Failure('journal_full', 'too many launches in the last few minutes; try again shortly',
+                       request_id=request_id, app_id=app_id, state='failed')
+
+    def checks_answered(self):
+        """Go on with launches whose check has answered; fail those whose check is overdue as unavailable."""
+        now = self.clock()
+        for request_id, waiting in list(self.checking.items()):
+            app, check = waiting['app'], waiting['check']
+            if check.done.is_set():
+                result = check.result
+            elif now >= waiting['deadline']:
+                LOG.warning('%s not opened: its program did not answer within %g seconds', app.id, CHECK_SECONDS)
+                result = (None, None, 'not_responding')
+            else:
+                continue
+            del self.checking[request_id]
+            conns = [conn for conn in waiting['conns'] if conn in self.connections]
+            try:
+                if not self.journal.room():
+                    raise self.journal_full(request_id, app.id)
+                answer = self.launch(request_id, app, *result)
+            except Failure as failure:
+                for conn in conns:
+                    self.error(conn, request_id, failure)
+                continue
+            for conn in conns:
+                self.reply(conn, request_id, dict(answer))
+
+    def launch(self, request_id, app, argv, directory, reason):
+        """Start app once its check has answered, or record why it could not start."""
+        app_id = app.id
         if reason is not None:
             return self.record(request_id, {'app_id': app_id, 'launch_id': None, 'state': 'failed',
                                             'error': 'unavailable', 'reason': reason, 'message': reason})
@@ -2730,6 +2884,7 @@ class Helper:
 
     def tick(self):
         self.refresh_catalogue()
+        self.checks_answered()
         now = self.clock()
         for conn in list(self.connections):
             if not conn.authenticated and now - conn.opened > HELLO_TIMEOUT:

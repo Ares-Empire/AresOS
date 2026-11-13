@@ -1,0 +1,209 @@
+"""Package 30, review fixes 2: SECURITY-2.md findings 1 and 2, REVIEW-2.md findings 1 to 4.
+
+Everything is synthetic: no real program, window or compositor. Time moves through the tests' own clock; a stalled
+mount is a stand-in check that never answers until the test ends.
+"""
+import os
+import threading
+import time
+from unittest import mock
+
+from test_aresos_shell import shell, Base, Conn, REGISTRY, INSTANCE, NONCE, ALL
+from test_aresos_shell_hardening import HardeningBase
+
+
+def icons_stub():
+    icons = mock.Mock()
+    icons.take.side_effect = lambda apps, revision: (apps, shell.icons_revision(apps, revision))
+    return icons
+
+
+class StalledMountTest(HardeningBase, Base):
+    """Security fix 1: a program on a mount that stopped answering never stops the helper answering."""
+
+    DEAD = '/mnt/dead/'
+
+    def setUp(self):
+        HardeningBase.setUp(self)
+        Base.setUp(self)
+        self.loop = threading.current_thread()
+        # Set when the test ends: the mount answers again, so no check thread outlives the test for long.
+        self.mount_back = threading.Event()
+        self.addCleanup(self.mount_back.set)
+
+    def stalled(self, path):
+        """Anything under /mnt/dead never answers while the mount is down. On the serving loop that would stop the
+        helper for good, so there it fails the test at once instead of hanging it."""
+        if not str(path).startswith(self.DEAD):
+            return False
+        if threading.current_thread() is self.loop:
+            raise AssertionError(f'the serving loop touched {path}')
+        self.mount_back.wait()
+        return True
+
+    def executable(self, path):
+        self.stalled(path)
+        return True
+
+    def start(self):
+        # The worker found every program while the mount still answered.
+        discovery = shell.Discovery(shell.Catalogue(str(REGISTRY), entry_dirs=self.folders, executable=lambda p: True,
+                                                    deployments=()))
+        self.addCleanup(discovery.stop)
+        discovery.start(self.clock())
+        helper = shell.Helper(str(REGISTRY), INSTANCE, NONCE, self.journal, registry=(discovery.apps,
+                              discovery.revision), catalogue=discovery, icons=icons_stub(), clock=self.clock,
+                              executable=self.executable, launcher=self.launcher())
+        self.addCleanup(helper.watcher.stop)
+        conn = Conn()
+        helper.connected(conn)
+        self.assertTrue(self.request(helper, conn, 'hello', 'h-1', major=1, minor=1, capabilities=ALL,
+                                     instance=INSTANCE, nonce=NONCE)['ok'])
+        return helper, conn
+
+    @staticmethod
+    def answers(conn, *request_ids):
+        return {message['id']: message for message in conn.sent if message.get('id') in request_ids}
+
+    def wait_for_checks(self, helper):
+        deadline = time.monotonic() + 5
+        while helper.checks.running and time.monotonic() < deadline:
+            time.sleep(0.01)
+        self.assertEqual(helper.checks.running, {})
+
+    def test_listing_heartbeats_and_other_launches_go_on_while_a_launch_check_never_returns(self):
+        self.write(self.folders[0] / 'stalled.desktop', Name='Stalled', Exec=self.DEAD + 'tool')
+        self.write(self.folders[0] / 'other.desktop', Name='Other', Exec='/usr/bin/other')
+        # Its program answers, but its working folder is on the dead mount: Popen would wait for chdir there.
+        self.write(self.folders[0] / 'folder.desktop', Name='Folder', Exec='/usr/bin/other', Path=self.DEAD + 'work')
+        helper, conn = self.start()
+        original_stat, original_resolve, resolved_on = os.stat, shell.resolve, []
+
+        def stat(path, *args, **kwargs):
+            self.stalled(path)
+            return original_stat(path, *args, **kwargs)
+
+        def resolve(*args, **kwargs):
+            resolved_on.append(threading.current_thread())
+            return original_resolve(*args, **kwargs)
+
+        with mock.patch.object(shell.os, 'stat', stat), mock.patch.object(shell, 'resolve', side_effect=resolve):
+            start = time.monotonic()
+            self.request(helper, conn, 'open_app', 'o-1', app_id='stalled')
+            self.request(helper, conn, 'open_app', 'o-2', app_id='folder')
+            self.assertEqual(self.answers(conn, 'o-1', 'o-2'), {})  # answered once their checks answer
+            listing = self.request(helper, conn, 'list_apps', 'l-1')
+            rows = {row['id']: row for row in listing['apps']}
+            # The catalogue's published value: the program was there when the worker looked.
+            self.assertEqual((rows['stalled']['available'], rows['stalled']['reason']), (True, None))
+            self.assertTrue(rows['terminal']['available'])
+            self.assertTrue(self.request(helper, conn, 'heartbeat', 'b-1', ready=True, instance=INSTANCE,
+                                         nonce=NONCE)['ok'])
+            other = self.request(helper, conn, 'open_app', 'o-3', app_id='other')
+            self.assertEqual((other['id'], other['ok'], other['state']), ('o-3', True, 'starting'))
+            self.request(helper, conn, 'open_app', 'o-4', app_id='stalled')  # a second click shares the check
+            self.assertEqual(self.answers(conn, 'o-4'), {})
+            helper.tick()
+            self.assertLess(time.monotonic() - start, 3 * shell.CHECK_WAIT + 1.0)
+            self.assertNotIn(self.loop, resolved_on)
+            self.assertEqual(len(helper.checks.running), 2)  # stalled (shared) and folder
+            # The checks are overdue: those launches fail as unavailable, nothing else changes.
+            self.now[0] += shell.CHECK_SECONDS
+            helper.tick()
+            self.assertTrue(self.request(helper, conn, 'heartbeat', 'b-2', ready=True, instance=INSTANCE,
+                                         nonce=NONCE)['ok'])
+        answers = self.answers(conn, 'o-1', 'o-2', 'o-4')
+        self.assertEqual(sorted(answers), ['o-1', 'o-2', 'o-4'])
+        for request_id, answer in answers.items():
+            with self.subTest(request_id):
+                self.assertEqual((answer['ok'], answer['state'], answer['error'], answer['reason'], answer['launch_id']),
+                                 (False, 'failed', 'unavailable', 'not_responding', None))
+                self.assertEqual(helper.journal.entries[request_id]['reason'], 'not_responding')
+        self.assertEqual(self.popen.call_count, 1)  # only Other started
+        # A resent request ID replays its answer; it never starts a second check or a launch.
+        replay = self.request(helper, conn, 'open_app', 'o-1', app_id='stalled')
+        self.assertEqual(replay['reason'], 'not_responding')
+        # The mount comes back: its check threads end, and the program opens again.
+        self.mount_back.set()
+        self.wait_for_checks(helper)
+        self.assertEqual(self.request(helper, conn, 'open_app', 'o-5', app_id='stalled')['state'], 'starting')
+
+    def test_at_most_a_few_checks_wait_at_once_and_the_helper_still_answers(self):
+        names = [f'stalled{n}' for n in range(shell.MAX_CHECKS + 1)]
+        for name in names:
+            self.write(self.folders[0] / f'{name}.desktop', Name=name, Exec=self.DEAD + name)
+        self.write(self.folders[0] / 'other.desktop', Name='Other', Exec='/usr/bin/other')
+        helper, conn = self.start()
+        for n, name in enumerate(names[:shell.MAX_CHECKS]):
+            self.request(helper, conn, 'open_app', f'o-{n}', app_id=name)
+        self.assertEqual(len(helper.checks.running), shell.MAX_CHECKS)
+        self.assertEqual(len(helper.checking), shell.MAX_CHECKS)
+        # No further thread: the next launches fail at once, whatever they open, and say why.
+        for request_id, name in (('o-busy', names[-1]), ('o-other', 'other')):
+            start = time.monotonic()
+            answer = self.request(helper, conn, 'open_app', request_id, app_id=name)
+            self.assertLess(time.monotonic() - start, shell.CHECK_WAIT)
+            self.assertEqual((answer['id'], answer['ok'], answer['error'], answer['reason']),
+                             (request_id, False, 'unavailable', 'checks_busy'))
+        self.assertEqual(len([t for t in threading.enumerate() if t.name == 'aresos-launch-check']),
+                         shell.MAX_CHECKS)
+        self.assertTrue(self.request(helper, conn, 'list_apps', 'l-1')['ok'])
+        self.assertTrue(self.request(helper, conn, 'heartbeat', 'b-1', ready=True, instance=INSTANCE,
+                                     nonce=NONCE)['ok'])
+        self.popen.assert_not_called()
+        # Once the mount answers, the waiting launches go on and new ones are checked again.
+        self.mount_back.set()
+        self.wait_for_checks(helper)
+        helper.tick()
+        self.assertEqual([self.answers(conn, f'o-{n}')[f'o-{n}']['state'] for n in range(shell.MAX_CHECKS)],
+                         ['starting'] * shell.MAX_CHECKS)
+        self.assertEqual(self.request(helper, conn, 'open_app', 'o-again', app_id='other')['state'], 'starting')
+
+
+class ScanDeadlineTest(HardeningBase):
+    """Security fix 1: the scan's deadline holds while entries are parsed and right before a catalogue is published."""
+
+    def test_a_scan_out_of_time_while_parsing_or_before_publishing_changes_nothing(self):
+        self.write(self.folders[0] / 'good.desktop')
+        catalogue = self.catalogue()
+        self.assertTrue(catalogue.scan())
+        good = (catalogue.apps, catalogue.revision, catalogue.legacy)
+        for n in range(10):
+            self.write(self.folders[1] / f'more{n}.desktop', Name=f'More {n}')
+
+        calls = {}
+
+        def slow(name, before=0.0, after=0.0):
+            original = getattr(shell, name)
+
+            def call(*args, **kwargs):
+                calls[name] = calls.get(name, 0) + 1
+                time.sleep(before)
+                result = original(*args, **kwargs)
+                time.sleep(after)
+                return result
+            return mock.patch.object(shell, name, call)
+
+        # Each case also says where the work stopped: a scan out of time stops, it does not finish and then refuse.
+        cases = {
+            'while parsing entries': ([slow('discovered_app', before=0.03)], lambda: calls['discovered_app'] < 10),
+            'after parsing': ([slow('load_hints', before=0.2), slow('resolve')], lambda: 'resolve' not in calls),
+            'right before publishing': ([slow('load_legacy', after=0.2)], lambda: calls['load_legacy'] == 1),
+        }
+        with mock.patch.object(shell, 'SCAN_SECONDS', 0.1):
+            for name, (patches, stopped) in cases.items():
+                calls.clear()
+                with self.subTest(name):
+                    for patch in patches:
+                        patch.start()
+                    try:
+                        self.assertFalse(catalogue.scan())
+                    finally:
+                        for patch in patches:
+                            patch.stop()
+                    self.assertTrue(catalogue.limited)
+                    self.assertEqual((catalogue.apps, catalogue.revision, catalogue.legacy), good)
+                    self.assertTrue(stopped(), calls)
+        # In time again, the same scan publishes the new programs.
+        self.assertTrue(catalogue.scan())
+        self.assertEqual(len(catalogue.apps), 11)
