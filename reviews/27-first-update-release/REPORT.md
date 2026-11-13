@@ -1,5 +1,33 @@
 # 27 REPORT: The first update release (packages 21, 22 and 24)
 
+## Laptop update recorded (27b)
+
+Built by a Claude agent (Opus 5.5). Briefs: `briefs/27b-laptop-update-record.md` (empire brief 274) and its follow-up `briefs/27b-pending-rebind.md`.
+
+**Done.**
+- `docs/INSTALL-STATUS.md` records the owner's step 8 update of 2026-11-13 from the evidence in brief 27b (the guiding session's report, board #189, and a read-only check on the laptop the same day; raw records stay private): the "as of" line, the R13 and R27 lines, the Physical installation row's release cell, the Stage C row (**Step 8 PASSED 2026-11-13**, `at previous` not used) and the update route row (**USED ONCE ON THE LAPTOP 2026-11-13**, R27 running with R13 as rollback, `at previous` run only in the VM, the refusals after a first update until package 22c). The rehearsal evidence and the announcement are unchanged.
+- `os/tests/test_owner_path.py` pins every clause this package wrote word for word, each between its neighbours (`STEP8_RECORD`): the "as of" sentence, the R13 and R27 sentences, the Physical installation release cell, the Stage C step 8 clause, and the update row's status and release cells and step 8 clause. It also rejects the old phrases (`No step 8 update has run`, `NOT USED`, `R13 on the laptop`). Review 1 (`REVIEW-27b-1.md`) found the first version's substring pins too loose; this replaces them.
+- The waiting list reopens (integrator, 2026-11-13). `test_checkout_sources.py` no longer requires an empty list while package 27's bindings exist. Its rules hold at any time: every waiting path is bound and listed once, every other bound file replays its walk bytes, and every waiting file differs from its walk bytes and matches its recorded bytes. A fixture test proves each refusal, and `rebind.changed()` must equal the list. `test_owner_step_limits.py` lost its "a non-empty list means package 16's bindings" fallback: with the list non-empty, main's version fails on `commands.json`. `rebind.py pending "<note>"` now compares with `checkout.active_tables`.
+- `os/manifest/ci/16/pending-rebind.json`: status waiting for the next VM rehearsal, with the integrator's decision and this package's change. Package 27's rebind, including the owner's approval of 2026-11-08, is kept under `rebound`. Four rows wait: three test files (`os/tests/test_checkout_sources.py`, `os/tests/test_owner_path.py` and `os/tests/test_owner_step_limits.py`) and the workflow `.github/workflows/os-image.yml` (the checks-only job's checkout, see the hosted checks below). Nothing under `os/manifest/ci/27/` changed.
+
+**Verified.** Run one module at a time (`python3 -m unittest discover -s os/tests -p <module>.py`). Baseline on `25b7c8a6`: `test_owner_path` 39 OK, `test_owner_equality` 9 OK, `test_checkout_sources` 4 OK, `test_owner_step_limits` 4 OK. Final: 39 OK, 9 OK, 5 OK, 4 OK. Revert proof:
+- Status rows: the test fails when main's Stage C row, update row, both rows, the R13/R27 lines or the Physical installation row are put back. It also fails when the Stage C row claims `at previous` passed or drops `sudo -v` or board #189, when the update row claims `at previous` ran on the laptop, when the status cell claims more, or when the 22c refusal is removed. Review 1's five mutations passed the first version of the test and now fail: tools version 2 became 20 (both rows), the post-restart check "not confirmed" (both rows), `ares` "not in `wheel`", the corrected stock "no longer pinned", and the "as of" date back to 2026-11-09.
+- Waiting list, on the real checkout: a waiting file changed again without its row fails (`binding mismatch: os/tests/test_owner_step_limits.py`). A listed file that still equals its walk bytes fails (`still equals its walk bytes: os/tests/test_owner_entry.py`). A listed path that is not bound fails (`not bound: briefs/27b-pending-rebind.md`). A bound file changed without a row fails (`binding mismatch: os/tests/test_owner_entry.py`). Each was restored and the module passed again.
+
+**Not verified.** The full suite locally. No VM rehearsal ran; the three test files and the workflow wait for the next one.
+
+**Hosted checks (integrator).** The first run (43438101954, on `5802d677`) failed with 9 errors, none from this package: the checks-only job cloned without history, and `test_owner_equality`, `test_owner_walk` and `test_release27` read files of earlier commits (`git show`, `git diff`). The same errors stopped run 43336083190 on package 27's branch. Fixed here by the integrator: `fetch-depth: 0` on that job's checkout (`.github/workflows/os-image.yml`, a bound file, so it has a row in the waiting list).
+
+**JUDGMENT-CALL.** None.
+
+**PLAN-GAP.**
+- `rebind.py record` stays package 27's one-time step: it writes `os/manifest/ci/27/` and the list's old top-level fields. The next rehearsal package needs its own record step, which moves the waiting changes into `rebound` and empties `files`.
+- Rows that still describe the time before the update, left as they were: Physical installation (its evidence cell lists steps 4–7 only); Post-release tools change (**next VM rehearsal pending**); Unaided-reader/phone trial and LOQ shortcuts (**R13; steps 4–7 …**); Token retirement (**R13 target**); Early hardware (**R13 on the laptop, step 7**, waits for 21b); Owner-path documents ("package 22's update route awaits review", **documents target R13**).
+
+**Open questions.** None.
+
+---
+
 Built by a Claude agent (Opus 5.5). Brief: `briefs/27-first-update-release.md` (empire brief 266).
 
 **Outcome.** Release 27 is published privately and keyless-signed:

@@ -27,6 +27,52 @@ UPDATE_GATE = ('**Update gate: require STEP 5 COMPLETE and a checked running Are
                'before authentication or updating.**')
 SENSITIVE = re.compile(r'^sudo /var/lib/ares/at (?:login|switch|update)$')
 LINK = re.compile(r'(?<!!)\[[^\]\n]+\]\(([^\s)]+)\)')
+# Package 27b: the laptop's step 8 update as INSTALL-STATUS records it. Each
+# clause is pinned whole, between its neighbours, so no word in it or next to
+# it changes unnoticed: (line start, before, clause, after); an empty after
+# means the clause ends the line.
+STEP8_RECORD = (
+    ('This is the **single current gate/status table**', 'table**, ',
+     "as of **2026-11-13**, based on the retained reports, the owner decision in brief 16, the maintainer's checks "
+     "of Stage A's and Stage B's records, the step 4 result supplied in brief 15g, the step 5–7 records the "
+     "maintainer checked on 2026-11-08/09 and the step 8 update records the maintainer checked on 2026-11-13 "
+     "(brief 27b).",
+     ' Historical results'),
+    ('- **R13 (previous):**', '13.json)). ',
+     "Installed on the laptop at step 6 and ran there until the owner's step 8 update on 2026-11-13; since then "
+     "it is the laptop's rollback.",
+     ' Its VM evidence'),
+    ('- **R27 (current):**', 'REPORT.md)). ',
+     "A fresh install's step 6 switches to it. The laptop runs it since 2026-11-13, reached through the step 8 "
+     "update route, with R13 as its rollback and the corrected stock still pinned.",
+     ''),
+    ('| **Physical installation** |', '| ',
+     '**R13 installed; steps 4–7 passed 2026-11-08/09, step 7 with two items OPEN; step 8 update to R27 passed '
+     '2026-11-13**',
+     ' |'),
+    ('| Stage C —', 'stay OPEN under Early hardware. ',
+     "**Step 8 PASSED 2026-11-13** (board #189, [brief 27b](../briefs/27b-laptop-update-record.md)), the first "
+     "update, guided: the tools updated themselves from version 1 to 2, then `at update`, `at title`, `at export` "
+     "and `at reboot` passed; after the restart the check was confirmed, and records, typing and password sudo "
+     "passed; the owner set `ares`'s password and `sudo -v` passed. `at previous` was not used. Two earlier "
+     "bootstrap attempts stopped on typing mistakes before anything was installed.",
+     " Send each step's record"),
+    ('| Update route (packages 22 and 27) |', '| Update route (packages 22 and 27) | ',
+     '**R27 PUBLISHED; VM REHEARSAL PASSED; USED ONCE ON THE LAPTOP 2026-11-13** | '
+     '**R27 on the laptop since 2026-11-13, R13 its rollback; R27 published privately**',
+     ' | '),
+    ('| Update route (packages 22 and 27) |', 'REPORT.md)). ',
+     "On the laptop step 8 is the owner's own step; the owner ran it once on 2026-11-13, guided (Stage C row): "
+     "the tools updated themselves from version 1 to 2, `at update`, `at title`, `at export` and `at reboot` "
+     "passed, and after the restart the check was confirmed and records, typing, password sudo and (once the "
+     "owner had set `ares`'s password) `sudo -v` passed. A read-only check on the laptop the same day: the "
+     "booted deployment is R27, the second R13 and the third the pinned stock `bazzite-nvidia-open:stable`, the "
+     "transaction state is idle and `ares` is in `wheel`. `at previous` has run only in the VM rehearsal, never on "
+     "the laptop. After this first update the stock rollback, keep-stock, recovery-menu and layout-trial "
+     "procedures refuse, as the [step 8 update route](INSTALL.md#update-aresos-to-a-new-release) says, until "
+     "package 22c. Raw records stay private and off this public repository.",
+     ' **Announcement for step 8:**'),
+)
 HEADING = re.compile(r'^#{1,6} (.+)$')
 
 
@@ -545,25 +591,33 @@ class OwnerPathTest(unittest.TestCase):
         status = documents()['INSTALL-STATUS.md']
         stage = next(line for line in status.splitlines() if line.startswith('| Stage C —'))
         # Steps 5-7 are recorded as they happened (package 22), step 7 with
-        # its two open items; no update has run.
+        # its two open items.
         for value in ('RELEASED 2026-11-07', 'Step 4 PASSED 2026-11-08', 'Step 5 COMPLETE 2026-11-09',
                       'Step 6 PASSED 2026-11-09', 'Step 7 PASSED 2026-11-09 with two items OPEN',
-                      'board #139', 'board #140', 'No step 8 update has run'):
+                      'board #139', 'board #140'):
             self.assertIn(value, stage)
+        # Step 8 is recorded as it happened (27b), word for word.
+        for start, before, clause, after in STEP8_RECORD:
+            line = next(line for line in status.splitlines() if line.startswith(start))
+            with self.subTest(clause=clause[:60]):
+                self.assertIn(before + clause + after, line)
+                if not after:
+                    self.assertTrue(line.endswith(clause))
+        self.assertNotIn('No step 8 update has run', stage)
         hardware = next(line for line in status.splitlines() if line.startswith('| Early hardware / P1a |'))
         for value in ('**Brightness FAIL** (board #139)', '**Power-button gate OPEN** (board #140)', 'stay OPEN'):
             self.assertIn(value, hardware)
         update = next(line for line in status.splitlines() if line.startswith('| Update route (packages 22 and 27) |'))
-        # Package 27: the rehearsal's own bindings exist only once it passed;
-        # until then the row must forbid step 8 on the laptop.
-        if (ROOT/'os/manifest/ci/27/source-bindings.json').exists():
-            expected = ('VM REHEARSAL PASSED', 'actions/runs/', 'step 8 is the owner\'s own step')
-        else:
-            expected = ('VM REHEARSAL PENDING', 'do not run step 8 on the laptop until this row says PASSED')
-        for value in (*expected, 'NOT USED', 'R13 on the laptop', '27 report', '`daily_wheel: true`',
-                      'one-time password box', 'published privately'):
+        # Package 27's rehearsal passed and recorded its bindings before the
+        # laptop's first update (27b); its evidence and announcement stay.
+        self.assertTrue((ROOT/'os/manifest/ci/27/source-bindings.json').exists())
+        for value in ('VM REHEARSAL PASSED', 'actions/runs/', '27 report', '`daily_wheel: true`', 'one-time password box'):
             self.assertIn(value, update)
-        tools = next(line for line in status.splitlines() if line.startswith('| Post-release tools change |'))
+        for value in ('NOT USED', 'R13 on the laptop', 'not installed', 'still to come'):
+            self.assertNotIn(value, update)
+        previous = next(line for line in status.splitlines() if line.startswith('- **R13 (previous):**'))
+        self.assertNotIn('running there until', previous)
+        tools =next(line for line in status.splitlines() if line.startswith('| Post-release tools change |'))
         for value in ('PR #22', '3ef85c4a', 'unit-tested and reviewed', 'without a new VM rehearsal',
                       'pending-rebind.json', 'no new image or stage'):
             self.assertIn(value, tools)
