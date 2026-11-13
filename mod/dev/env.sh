@@ -125,15 +125,24 @@ aresos_job_running() {
 # ARESOS_UNIT to the scope and ARESOS_JOB to the job, which is only ever waited for. A stop sends TERM to
 # everything in the scope and KILL to what is left 20 s later (TimeoutStopSec; an option may set another).
 aresos_scope_start() {
+    local deadline=$((SECONDS + 15))
     ARESOS_UNIT="aresos-dev-$1-$$-$SRANDOM.scope"
     shift
     # systemd-run creates the scope before it starts the command in it, so a stop by name before then would miss
     # a command that is about to start. A signal until the scope exists is held, then acted on below.
     ARESOS_DEFER=1
     ARESOS_SCOPES+=("$ARESOS_UNIT")
-    /usr/bin/systemd-run --user --scope --quiet --collect --unit="$ARESOS_UNIT" --property=TimeoutStopSec=20 "$@" &
+    systemd-run --user --scope --quiet --collect --unit="$ARESOS_UNIT" --property=TimeoutStopSec=20 "$@" &
     ARESOS_JOB=$!
     while aresos_job_running "$ARESOS_JOB" && ! systemctl --user --quiet is-active "$ARESOS_UNIT"; do
+        if ((SECONDS >= deadline)); then
+            # This is still our live launcher job. Reap it before cleanup so it cannot launch a command later.
+            kill -KILL "$ARESOS_JOB" 2>/dev/null || true
+            wait "$ARESOS_JOB" 2>/dev/null || true
+            ARESOS_DEFER=0
+            aresos_say "Scope $ARESOS_UNIT did not activate within 15 s; cancelled its launcher."
+            exit "$((ARESOS_PENDING == 0 ? 1 : ARESOS_PENDING))"
+        fi
         /usr/bin/sleep 0.02
     done
     ARESOS_DEFER=0
