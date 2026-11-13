@@ -29,9 +29,11 @@ public final class AppCommands {
                 .then(Commands.literal("add").then(argument(false).executes(c -> change(c.getSource(), getString(c, "app"), MyAppsGame::add))))
                 .then(Commands.literal("remove").then(argument(true).executes(c -> change(c.getSource(), getString(c, "app"), MyAppsGame::remove))))
                 .then(Commands.literal("list").executes(c -> list(c.getSource())))
-                .then(Commands.literal("name").then(argument(true).then(Commands.argument("name", greedyString())
+                // Brigadier checks a requirement while parsing, against the source that typed the command, so
+                // "execute as <host> run ..." from a command block or another operator cannot rename his apps.
+                .then(Commands.literal("name").requires(AppCommands::allowed).then(argument(true).then(Commands.argument("name", greedyString())
                         .executes(c -> name(c.getSource(), getString(c, "app"), getString(c, "name"))))))
-                .then(Commands.literal("unname").then(Commands.argument("name", word()).suggests((c, b) -> {
+                .then(Commands.literal("unname").requires(AppCommands::allowed).then(Commands.argument("name", word()).suggests((c, b) -> {
                     if (allowed(c.getSource())) for (var app : AresOs.apps()) for (String name : app.names())
                         if (name.startsWith(b.getRemainingLowerCase())) b.suggest(name);
                     return b.buildFuture();

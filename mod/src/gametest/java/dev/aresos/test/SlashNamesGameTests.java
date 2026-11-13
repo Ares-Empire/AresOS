@@ -66,6 +66,11 @@ public final class SlashNamesGameTests {
         int run(String command) throws Exception {
             return server.getCommands().getDispatcher().execute(command, player.createCommandSourceStack());
         }
+        /** -1 when the command does not even parse for this source. */
+        int attempt(String command, net.minecraft.commands.CommandSourceStack source) throws Exception {
+            try { return server.getCommands().getDispatcher().execute(command, source); }
+            catch (com.mojang.brigadier.exceptions.CommandSyntaxException refused) { return -1; }
+        }
         List<String> completions(String text) {
             var dispatcher = server.getCommands().getDispatcher();
             return dispatcher.getCompletionSuggestions(dispatcher.parse(text, player.createCommandSourceStack()))
@@ -178,6 +183,26 @@ public final class SlashNamesGameTests {
         }
         helper.succeed();
     }
+
+    /** Review 1, finding 2: the requirement is checked against who typed it, not whom "execute as" picks. */
+    @GameTest(environment = BATCH)
+    public void onlyTheHostWhoTypesItCanNameApps(GameTestHelper helper) throws Exception {
+        try (var f = new Fixture(helper)) {
+            var before = AresOs.app("discord").names();
+            var console = f.server.createCommandSourceStack();
+            String as = "execute as " + f.player.getStringUUID() + " run aresos app ";
+            check(f.attempt(as + "name discord changed", console) <= 0, "execute as the host renamed an app");
+            check(f.attempt(as + "unname dc", console) <= 0, "execute as the host removed a name");
+            f.server.setSingleplayerProfile(new GameProfile(UUID.randomUUID(), "DifferentHost"));
+            check(f.attempt("aresos app name discord changed", f.player.createCommandSourceStack()) == -1, "A guest may type name");
+            check(f.attempt("aresos app unname dc", f.player.createCommandSourceStack()) == -1, "A guest may type unname");
+            f.server.setSingleplayerProfile(f.player.getGameProfile());
+            check(AresOs.app("discord").names().equals(before), "Names changed: " + AresOs.app("discord").names());
+            check(f.run("aresos app name discord changed") == 1, "The host could not name his app");
+        }
+        helper.succeed();
+    }
+
     @GameTest(environment = BATCH)
     public void openOneManyNoneCompletionAndClickableApps(GameTestHelper helper) throws Exception {
         try (var f = new Fixture(helper)) {
