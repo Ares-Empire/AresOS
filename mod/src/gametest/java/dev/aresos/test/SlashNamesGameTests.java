@@ -100,8 +100,16 @@ public final class SlashNamesGameTests {
             return dispatcher.getCompletionSuggestions(dispatcher.parse(text, player.createCommandSourceStack()))
                     .join().getList().stream().map(com.mojang.brigadier.suggestion.Suggestion::getText).toList();
         }
+        /**
+         * What reached the channel. From the second tick of a test on, the server holds packets back until its
+         * end-of-tick flush, which an embedded channel never sees; flush it here.
+         */
+        Queue<Object> sent() {
+            channel.runPendingTasks(); channel.flushOutbound();
+            return channel.outboundMessages();
+        }
         Set<String> visibleNames() {
-            var packet = channel.outboundMessages().stream().filter(ClientboundCommandsPacket.class::isInstance)
+            var packet = sent().stream().filter(ClientboundCommandsPacket.class::isInstance)
                     .map(ClientboundCommandsPacket.class::cast).reduce((first, last) -> last).orElseThrow();
             var root = packet.getRoot(Commands.createValidationContext(server.registryAccess()),
                     new ClientboundCommandsPacket.NodeBuilder<net.minecraft.commands.CommandSourceStack>() {
@@ -120,18 +128,18 @@ public final class SlashNamesGameTests {
             return root.getChildren().stream().map(com.mojang.brigadier.tree.CommandNode::getName).collect(java.util.stream.Collectors.toSet());
         }
         boolean said(String text) {
-            return channel.outboundMessages().stream().anyMatch(packet -> packet instanceof ClientboundSystemChatPacket chat
+            return sent().stream().anyMatch(packet -> packet instanceof ClientboundSystemChatPacket chat
                     && chat.content().getString().contains(text));
         }
-        long commandPackets() { return channel.outboundMessages().stream().filter(ClientboundCommandsPacket.class::isInstance).count(); }
+        long commandPackets() { return sent().stream().filter(ClientboundCommandsPacket.class::isInstance).count(); }
         /** The app IDs of every launch request sent so far, in order. */
         List<String> launches() {
-            return channel.outboundMessages().stream().filter(packet -> packet instanceof ClientboundCustomPayloadPacket p
+            return sent().stream().filter(packet -> packet instanceof ClientboundCustomPayloadPacket p
                     && p.payload() instanceof ZoneLaunchPayload).map(packet -> ((ZoneLaunchPayload)((ClientboundCustomPayloadPacket)packet).payload()).app()).toList();
         }
         /** Every chat line with a click, oldest first. */
         List<net.minecraft.network.chat.Component> clickable() {
-            return channel.outboundMessages().stream().filter(ClientboundSystemChatPacket.class::isInstance)
+            return sent().stream().filter(ClientboundSystemChatPacket.class::isInstance)
                     .map(ClientboundSystemChatPacket.class::cast).map(ClientboundSystemChatPacket::content)
                     .filter(line -> line.getStyle().getClickEvent() instanceof net.minecraft.network.chat.ClickEvent.RunCommand).toList();
         }
