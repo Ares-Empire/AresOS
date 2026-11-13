@@ -167,12 +167,20 @@ PY
         liberation-fonts foot labwc greetd grim fcft libsfdo utf8proc wlroots0.19 xdg-desktop-portal-wlr \
         greetd-selinux
     section existing-lock-availability
+    # The candidate below requests each locked NEVRA Fedora still serves. Its
+    # updates repository keeps only the newest build, so a vanished pin is
+    # requested by name and architecture instead: the candidate renews only
+    # the pins that vanished, as the build cannot use them any more.
+    : > /tmp/lock-requests.txt
     python3 -c 'import json; [print(p["nevra"]) for p in json.load(open("/tmp/aresos/packages.lock.json"))["packages"]]' |
         while read -r nevra; do
             if dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates repoquery -q "$nevra" | grep -q .; then
                 printf 'available %s\n' "$nevra"
+                printf '%s\n' "$nevra" >> /tmp/lock-requests.txt
             else
                 printf 'MISSING %s\n' "$nevra"
+                python3 -c 'import sys; body, arch = sys.argv[1].rsplit(".", 1); print(body.rsplit("-", 2)[0] + "." + arch)' \
+                    "$nevra" >> /tmp/lock-requests.txt
             fi
         done
 } > "$out/fedora.txt" 2>&1
@@ -217,10 +225,11 @@ PY
     head -60 /tmp/prism-home/.local/share/PrismLauncher/prismlauncher.cfg
 } > "$out/pkg23.txt" 2>&1
 
-# Candidate lock: the existing exact inputs plus package 23's Java 25,
+# Candidate lock: the existing exact inputs (a vanished pin by name and
+# architecture, see existing-lock-availability) plus package 23's Java 25,
 # resolved exactly as build.sh does.
 names=()
-while read -r nevra; do names+=("$nevra"); done < <(python3 -c 'import json; [print(p["nevra"]) for p in json.load(open("/tmp/aresos/packages.lock.json"))["packages"]]')
+while read -r spec; do names+=("$spec"); done < /tmp/lock-requests.txt
 names+=(java-25-openjdk-headless)
 {
     printf 'Requested: %s\n' "${names[*]}"
