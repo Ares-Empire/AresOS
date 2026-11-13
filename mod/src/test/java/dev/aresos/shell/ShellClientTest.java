@@ -203,7 +203,8 @@ class ShellClientTest {
         var received = new CountDownLatch(1);
         var resume = new CountDownLatch(1);
         var opened = new CompletableFuture<CompletableFuture<ShellClient.Launch>>();
-        helper.launchState = "focused";
+        // Keep the future pending until the writer barrier: an early focused reply could hide replay's duplicate.
+        helper.launchState = "starting";
         helper.override = message -> {
             if ("open_app".equals(FakeHelper.string(message, "op"))) received.countDown();
             return null;
@@ -231,10 +232,13 @@ class ShellClientTest {
         client.awaitApps(Duration.ofSeconds(5));
         // Startup queues world_ready after replay on the same writer, so receiving it is a writer barrier.
         FakeHelper.await(() -> !helper.received("world_ready").isEmpty(), "the startup replay writer barrier");
-        var launch = join(join(opened));
+        assertFalse(join(opened).isDone(), "The open must remain pending through startup replay");
         assertEquals(1, helper.connections.get());
-        assertEquals(List.of(launch.requestId()), helper.received("open_app").stream()
-                .map(message -> FakeHelper.string(message, "id")).toList(), "An ID was sent twice on one connection");
+        var ids = helper.received("open_app").stream().map(message -> FakeHelper.string(message, "id")).toList();
+        assertEquals(1, ids.size(), "An ID was sent twice on one connection: " + ids);
+        helper.event("app_state", Map.of("request_id", ids.getFirst(), "launch_id", "launch-1",
+                "app_id", "notepad", "state", "focused"));
+        assertEquals(ids.getFirst(), join(join(opened)).requestId());
     }
 
     @Test void aRestartingHelperIsReconnectedAndAnUncertainOpenIsNeverLaunchedTwice() throws Exception {
