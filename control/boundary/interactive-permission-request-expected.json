@@ -1,6 +1,22 @@
 {
-  "normal-permission-user": {"prompt_shown": false, "send_arrivals": 1, "hook_calls": 1},
-  "normal-permission-managed": {"prompt_shown": false, "send_arrivals": 1, "hook_calls": 1},
-  "skip-permission-user": {"prompt_shown": false, "send_arrivals": 1, "hook_calls": 1},
-  "skip-permission-managed": {"prompt_shown": false, "send_arrivals": 1, "hook_calls": 1}
+  "normal-permission-user": {
+    "send_arrivals": 1,
+    "hook_calls": 1,
+    "owner_answers": 0
+  },
+  "normal-permission-managed": {
+    "send_arrivals": 1,
+    "hook_calls": 1,
+    "owner_answers": 0
+  },
+  "skip-permission-user": {
+    "send_arrivals": 1,
+    "hook_calls": 1,
+    "owner_answers": 0
+  },
+  "skip-permission-managed": {
+    "send_arrivals": 1,
+    "hook_calls": 1,
+    "owner_answers": 0
+  }
 }

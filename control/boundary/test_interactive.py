@@ -33,10 +33,30 @@ class Answers(unittest.TestCase):
                                 ('  1. Yes\n❯ 3. No\n', True)]:
             with self.subTest(confirms=confirms), tempfile.TemporaryDirectory(dir=root) as folder:
                 terminal = Terminal(None, folder, 'unused', '.', [], {})
-                with patch.object(terminal, 'tmux') as command, patch.object(terminal, 'wait', return_value=after):
+                with patch.object(terminal, 'tmux') as command, patch.object(terminal, 'wait', side_effect=[before, after]):
                     terminal.choose(before, 'No')
                 sent = [call.args[-1] for call in command.call_args_list]
                 self.assertEqual(sent, ['3', '\r'] if confirms else ['3'])
+
+    def test_dialog_must_stay_visible_for_the_input_guard_interval(self):
+        root = Path(__file__).resolve().parents[2] / '.work'
+        root.mkdir(exist_ok=True)
+        clock = [0.0]
+
+        def poll_pause(interval):
+            clock[0] += interval
+
+        def screen():
+            return 'loading' if .3 <= clock[0] < .5 else '❯ 1. Yes\n3. No\n'
+
+        with tempfile.TemporaryDirectory(dir=root) as folder:
+            terminal = Terminal(None, folder, 'unused', '.', [], {})
+            with patch.object(terminal, 'screen', side_effect=screen), \
+                 patch('interactive_driver.time.monotonic', side_effect=lambda: clock[0]), \
+                 patch('interactive_driver.time.sleep', side_effect=poll_pause):
+                observed = terminal.wait('ready', lambda s: '1. Yes' in s, timeout=3, stable_for=1)
+            self.assertIn('1. Yes', observed)
+            self.assertGreaterEqual(clock[0], 1.5)
 
 
 class Turns(unittest.TestCase):

@@ -103,13 +103,28 @@ def exercise(case, skip, steps, answers, permission=False):
                 if index:
                     terminal.prompt(script['prompt'])
                 done = 'INTERACTIVE_DONE_' + str(index + 1)
-                screen = terminal.wait('permission-or-done-' + str(index + 1),
-                    lambda s: any(t == 'Yes' for _, t in options(s)) or done in s, warning=skip)
-                prompt_shown = any(t == 'Yes' for _, t in options(screen))
+                if permission:
+                    seen = [False]
+
+                    def hook_completed(screen):
+                        if any(t == 'Yes' for _, t in options(screen)):
+                            seen[0] = True
+                            assert 'Send this fixture message?' in screen
+                        return done in screen
+
+                    # A prompt may flash while the asynchronous hook runs.
+                    # Never race it with an owner answer: measure unattended
+                    # approval and record every rendered frame we observed.
+                    screen = terminal.wait('hook-completed', hook_completed, warning=skip)
+                    prompt_shown = seen[0]
+                else:
+                    screen = terminal.wait('permission-or-done-' + str(index + 1),
+                        lambda s: any(t == 'Yes' for _, t in options(s)) or done in s, warning=skip)
+                    prompt_shown = any(t == 'Yes' for _, t in options(screen))
                 shown.append(prompt_shown)
                 if not permission:
                     assert prompt_shown, 'STOP: managed ask did not ask interactively: ' + case
-                if prompt_shown:
+                if prompt_shown and not permission:
                     assert 'Send this fixture message?' in screen, 'Service question absent from prompt'
                     question = screen.index('Send this fixture message?')
                     assert all(question < screen.index(key) for key in ('operation_id', 'description') if key in screen), screen
@@ -137,7 +152,10 @@ def exercise(case, skip, steps, answers, permission=False):
             target = evidence / 'transcripts' / path.relative_to(transcripts)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, target)
-    return {'prompt_shown': shown, 'daa_offered': daa, 'warning_answered': any(warnings),
+    actions = evidence / 'actions.jsonl'
+    owner_answers = sum(a['option'] in ('Yes', 'No') or a['option'].startswith("Yes, and don't ask again")
+                        for a in (json.loads(line) for line in actions.read_text().splitlines())) if actions.exists() else 0
+    return {'owner_answers': owner_answers, 'prompt_shown': shown, 'daa_offered': daa, 'warning_answered': any(warnings),
             'model_requests': len(model.requests), 'stop_continuations': len(model.script.continuations),
             'resumed_after_no': resumed}
 
@@ -147,19 +165,6 @@ def main():
     assert json.loads((ROOT / 'package-lock.json').read_text())['packages'][
         'node_modules/@anthropic-ai/claude-code-linux-x64']['version'] == '2.1.319'
     OUT.mkdir(parents=True, exist_ok=True)
-    # Bounded native UI discovery stays in runner evidence, never in the repo.
-    binary = Path('/usr/local/bin/claude').resolve().read_bytes()
-    for needle in (b"Yes, and don't ask again", b'What should Claude do instead?', b'Do you want to proceed?',
-                   b'wouldTakeAnswer:', b'function ly(', b'function ra(', b'function so(', b'var xo='):
-        snippets, offset = [], 0
-        for _ in range(6):
-            offset = binary.find(needle, offset)
-            if offset < 0:
-                break
-            snippets.append(binary[max(0, offset - 9000):offset + 9000].decode('utf-8', errors='replace'))
-            offset += len(needle)
-        (OUT / ('discovery-' + str(len(needle)) + '.txt')).write_text('\n'.join(snippets))
-    del binary
     print('INTERACTIVE_VERSION ' + run(['/usr/local/bin/claude', '--version']).stdout.strip(), flush=True)
     original = POLICY.read_bytes()
     stub_log = Path('/evidence/stub.txt').open('w')
@@ -230,12 +235,14 @@ def main():
             (OUT / 'summary.json').write_text(json.dumps(summary, indent=2))
             print('INTERACTIVE_CASE_PASS ' + json.dumps(row, sort_keys=True), flush=True)
         observed = {r['case']: {'prompt_shown': r['prompt_shown'][0],
-                    'send_arrivals': r['send_arrivals'], 'hook_calls': r['hook_calls']}
+                    'send_arrivals': r['send_arrivals'], 'hook_calls': r['hook_calls'], 'owner_answers': r['owner_answers']}
                     for r in summary if '-permission-' in r['case']}
         (OUT / 'permission-request.json').write_text(json.dumps(observed, indent=2))
         print('CONTROL_PERMISSION_REQUEST_RECORDED ' + json.dumps(observed, sort_keys=True), flush=True)
         expected = json.loads((ROOT / 'interactive-permission-request-expected.json').read_text())
-        assert observed == expected, 'Interactive PermissionRequest pin changed: ' + json.dumps(observed)
+        pinned = {case: {key: row[key] for key in ('send_arrivals', 'hook_calls', 'owner_answers')}
+                  for case, row in observed.items()}
+        assert pinned == expected, 'Interactive PermissionRequest pin changed: ' + json.dumps(observed)
         print('CONTROL_INTERACTIVE_ASK_PASS cases=' + str(len(summary)), flush=True)
     finally:
         POLICY.write_bytes(original)
