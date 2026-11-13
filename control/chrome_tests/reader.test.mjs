@@ -316,10 +316,11 @@ test('recheck3 area and SVG links expose native destinations and mapped area inp
 
 test('recheck3 leading pre-line newlines and block br blank lines cannot alias their absence',()=>{
   const f=fixture([{tagName:'BUTTON',type:'button',attrs:{'aria-label':'Send'}},{tagName:'DIV',isContentEditable:true,childNodes:[{nodeType:3,textContent:'Draft'}]}]);
-  const [button,draft]=f.nodes;f.generic(button);f.generic(draft);
+  const [button,draft]=f.nodes;f.generic(button);f.generic(draft);button.childNodes=[{nodeType:3,textContent:'Send'}];
   const preview=new f.Element({tagName:'DIV',whiteSpace:'pre-line',childNodes:[{nodeType:3,textContent:'line'}]}),area=new f.Element({tagName:'SECTION',childNodes:[draft,preview,button]});
   for(const node of area.childNodes)node.parentElement=area;f.nodes.push(area,preview);const key=f.read().data.rows.find(row=>row.name==='Send').element;
   const current=()=>f.command({command:'facts',element:key}).data.compose.text,before=current();
+  preview.childNodes[0].textContent='line\n';assert.notEqual(current(),before,'a trailing preserved linebreak remains separate from its block boundary');assert.match(current(),/line\n\nSend/);
   preview.childNodes[0].textContent='\nline';assert.notEqual(current(),before,'a leading preserved linebreak adds a blank line');assert.match(current(),/Draft\n\nline/);
   preview.childNodes=[new f.Element({tagName:'BR'}),{nodeType:3,textContent:'line'}];assert.match(current(),/Draft\n\nline/,'a block-leading br also adds a blank line');
 });

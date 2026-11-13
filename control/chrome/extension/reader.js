@@ -278,7 +278,7 @@
     // innerText/textContent on an ancestor could read protected descendants.
     // Walk the composed tree ourselves, applying whitespace rules per text run.
     let result='',pending='';
-    const flush=()=>{if(result&&pending&&!result.endsWith('\n'))result+=pending;pending='';};
+    const flush=()=>{if(result&&pending&&(pending==='\n'||!result.endsWith('\n')))result+=pending;pending='';};
     function append(value,space){
       value=value.replace(/\r\n?/g,'\n');
       if(['pre','pre-wrap','break-spaces','preserve'].includes(space)){flush();result+=value;return;}
