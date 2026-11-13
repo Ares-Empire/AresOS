@@ -782,7 +782,7 @@ class Mail:
         if operation_ids is None:
             resolve_checks(self)
         unresolved = []
-        for _, op in self.store.iter_items('op:'):
+        for _, op in self.store.iter_operations(app='mail'):
             if operation_ids is not None and op['id'] not in operation_ids:
                 continue
             if (op['app'] != 'mail' or not op.get('payload', {}).get('composition') or
@@ -815,7 +815,7 @@ class Mail:
     def unresolved_sent_checks(self):
         # Pure snapshots keep refusals/replays out of IMAP. The committed open
         # row is enough to disclose the check without another server read.
-        for _, op in self.store.iter_items('op:'):
+        for _, op in self.store.iter_operations(app='mail'):
             if op['app'] == 'mail' and op.get('sent_copy_check', {}).get('state') == 'open':
                 yield self.unchecked_sent_notice(op)
 

@@ -172,6 +172,23 @@ class Store:
                               "INSERT OR IGNORE INTO head VALUES (1,0,'');"
                               "CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY, value TEXT NOT NULL);"
                               "CREATE TABLE IF NOT EXISTS operation_versions (id TEXT PRIMARY KEY, seq INTEGER NOT NULL);")
+        # Optional working-row headers avoid decoding completed Chrome payloads
+        # for every other app's pending/recovery catalogue. SQLite maintains the
+        # expressions in the same transaction as kv; no values or verdicts are
+        # cached in Python. Reads still work when storage cannot add the index.
+        self.operation_headers = bool(self.db.execute("SELECT 1 FROM sqlite_master WHERE name='operation_headers'").fetchone())
+        if not self.operation_headers:
+            try:
+                count=self.db.execute("SELECT count(*) FROM kv WHERE substr(k,1,3)='op:'").fetchone()[0]
+                self.ledger.admit(max(128*1024,count*256))
+                self.db.execute("CREATE INDEX operation_headers ON kv(json_extract(v,'$.app'),json_extract(v,'$.context_version'),json_extract(v,'$.state')) WHERE substr(k,1,3)='op:'")
+                self.operation_headers = True
+            except (OSError, sqlite3.Error) as exc:
+                if storage_refusal(exc) is None:raise
+                self.observations.storage(exc)
+            except Refused as exc:
+                if exc.code not in {'storage_limit','storage_unavailable'}:raise
+                self.observations.storage(exc)
         sync_directory(self.state_dir)
         # Derived, disposable index outside the backed-up state. Never trust it
         # across restarts: rebuild solely from the verified permanent journal.
@@ -763,6 +780,28 @@ class Store:
     def iter_items(self, prefix):
         for k, v in self.db.execute("SELECT k,v FROM kv WHERE substr(k,1,?)=? ORDER BY k", (len(prefix), prefix)):
             yield k, json.loads(v)
+
+    def iter_operations(self, app=None, exclude_app=None, legacy_open=False):
+        # Inspect small headers in SQLite before decoding retained payloads.
+        # This is a fresh query of the same working rows, not a cached verdict;
+        # Chrome's independent committed projection remains its read authority.
+        clauses = ["substr(k,1,3)='op:'"]
+        parameters = []
+        if app is not None:
+            clauses.append("json_extract(v,'$.app')=?")
+            parameters.append(app)
+        if exclude_app is not None:
+            clauses.append("json_extract(v,'$.app') IS NOT ?")
+            parameters.append(exclude_app)
+        if legacy_open:
+            # Only unfinished false-like version headers can be legacy notices.
+            # Any extra SQLite coercion
+            # matches still pass through the caller's original Python predicate.
+            clauses.append("NOT COALESCE(json_extract(v,'$.context_version'),0)")
+            clauses.append("json_extract(v,'$.state') IN ('reserved','submitting','unknown','partial')")
+        table='kv INDEXED BY operation_headers' if self.operation_headers else 'kv'
+        for key, value in self.db.execute('SELECT k,v FROM '+table+' WHERE '+ ' AND '.join(clauses)+' ORDER BY k', parameters):
+            yield key, json.loads(value)
 
     def items(self, prefix):
         return list(self.iter_items(prefix))

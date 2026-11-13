@@ -177,7 +177,7 @@ class Engine:
     def _pending(self, app=None, args=None, resolve_checks=True, include_chrome=True):
         notices = self.notices(resolve_checks=resolve_checks,include_chrome=include_chrome)
         def rows():
-            for key, op in self.store.iter_items('op:'):
+            for key, op in self.store.iter_operations(exclude_app='chrome'):
                 if (op['app']=='chrome' or (app is not None and op['app'] != app) or
                         not (op['state'] in {'reserved', 'submitting', 'partial', 'unknown'} or
                              (op.get('notice') and not op.get('ack')))):

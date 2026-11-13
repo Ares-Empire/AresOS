@@ -73,7 +73,7 @@ def recovery_notices(store, include_checks=True):
     sources = unfinished(store, keys=keys)
     if include_checks:
         from itertools import chain
-        legacy = ((key, value) for key, value in store.iter_items('op:') if key not in keys and
+        legacy = ((key, value) for key, value in store.iter_operations(legacy_open=True) if key not in keys and
             not value.get('context_version') and value.get('state') in {'reserved', 'submitting', 'unknown', 'partial'})
         sources = chain(sources, unfinished(store, rows=legacy))
     for key, notice_id, app, reason in sources:

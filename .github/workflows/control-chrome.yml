@@ -186,47 +186,28 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        revision: [current, ab7aba92]
         privacy: [plain, audit]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Rebuild the historical runtime with the same measurement driver
-        env:
-          LATENCY_REVISION: ${{ matrix.revision }}
-        run: |
-          set -euo pipefail
-          mkdir -p .work/latency-runtime
-          if test "$LATENCY_REVISION" = current; then
-            git archive HEAD control docs/control/TOOLS.md .github/workflows/control-chrome.yml .github/workflows/control-chrome-qualification.yml | tar -x -C .work/latency-runtime
-          else
-            git archive ab7aba92 control docs/control/TOOLS.md .github/workflows/control-chrome.yml .github/workflows/control-chrome-qualification.yml | tar -x -C .work/latency-runtime
-            cp -R control/chrome/ci/. .work/latency-runtime/control/chrome/ci/
-            cp -R control/chrome_tests/. .work/latency-runtime/control/chrome_tests/
-            cp .github/workflows/control-chrome.yml .github/workflows/control-chrome-qualification.yml .work/latency-runtime/.github/workflows/
-          fi
-          python3 .work/latency-runtime/control/chrome/build.py > .work/latency-runtime/runtime-build.txt
-      - name: Build the same exact Chrome package
+      - name: Paired current and historical measurements on the same runner
         env:
           PACKAGE_URL: ${{ needs.package.outputs.package_url }}
           PACKAGE_SHA256: ${{ needs.package.outputs.package_sha256 }}
-        run: tar -C .work/latency-runtime -cf - control docs/control/TOOLS.md .github/workflows/control-chrome-qualification.yml .github/workflows/control-chrome.yml | docker build --build-arg PACKAGE_URL="$PACKAGE_URL" --build-arg PACKAGE_SHA256="$PACKAGE_SHA256" -t aresos-latency -f control/chrome/ci/Dockerfile -
-      - name: Measure six call types and internal stages without owner think time
-        env:
           QUALIFICATION_VERSION: ${{ needs.package.outputs.version }}
           LATENCY_PRIVACY: ${{ matrix.privacy }}
-          LATENCY_BASELINE: ${{ matrix.revision }}
-        run: |
-          set -euo pipefail
-          mkdir -p .work/latency-out
-          cp .work/latency-runtime/runtime-build.txt .work/latency-out/
-          timeout --signal=TERM --kill-after=30s 110m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e INSTALL_MODE=policy -e LATENCY_PROBE=true -e LATENCY_PRIVACY -e LATENCY_BASELINE -e QUALIFICATION_VERSION -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/latency-out:/out" aresos-latency
-          python3 control/chrome/ci/latency-summary.py .work/latency-out
+        run: bash control/chrome/ci/latency-pair.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
-          name: chrome-latency-${{ github.run_id }}-${{ github.run_attempt }}-${{ matrix.revision }}-${{ matrix.privacy }}
-          path: .work/latency-out/
+          name: chrome-latency-${{ github.run_id }}-${{ github.run_attempt }}-current-${{ matrix.privacy }}
+          path: .work/latency-out/current/
+          retention-days: 14
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: chrome-latency-${{ github.run_id }}-${{ github.run_attempt }}-ab7aba92-${{ matrix.privacy }}
+          path: .work/latency-out/ab7aba92/
           retention-days: 14

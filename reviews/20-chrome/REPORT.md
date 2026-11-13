@@ -342,6 +342,67 @@ reject their mutation with passing baselines**, retained in
 unit-pin test also passes. A replacement safety probe brings the ledger to **247**;
 no Linux acceptance is claimed yet.
 
+**Addendum -f accepted in the focused Linux probe:**
+[43488005234](https://github.com/Ares-Empire/AresOS/actions/runs/43488005234)
+(**247**, `6133468e`) passes both install modes, including the 66 destination
+sequences, 27 animated defaults, late readers, exact asking-read identity changes,
+one-call approval/replay and withheld-form refusal. A
+[metadata receipt](records/post18d/f-43488005234.json) retains artifact hashes.
+Both scoped compose re-checks are SAFE:
+[package](BUILD-POST18D-F-RECHECK-2.md) and
+[security](BUILD-POST18D-F-SECURITY-RECHECK-2.md). Full final acceptance remains.
+
+**Latency investigation and change:** plain-Python production-engine profiling
+with a fake native bridge confirms that retained finished operations are decoded
+repeatedly for pending/recovery and Mail catalogues. At 1,000 completed inputs,
+read service work grew to about 64 ms and click work to 86 ms on this Mac (browser
+and hold timer absent). Fresh SQLite header predicates, backed by an optional
+transactionally maintained expression index, reduce the same local timing to
+**1.7 / 22.1 ms**. This is a diagnosis, not Linux acceptance or a claim that it
+fully reconstructs the old historical suite slowdown. No read authority changes:
+Chrome's hash-verified committed projection remains; the original Python warning
+predicates remain after filtering. Index admission uses the existing space ledger;
+low space can decline it and use the same unindexed query. Regression tests retain
+legacy/mixed-app warnings, fresh updates, rollback and fallback behavior.
+The 525 ms observation wait and every durable journal write remain unchanged.
+
+The paired CI measurement now runs current/old sequentially on the same runner,
+in plain and instrumented modes, measuring fresh, 1,000- and 4,000-operation
+histories (20 samples per call and phase). Warm history is explicitly synthetic
+timing input, never receiver/qualification evidence. The old runtime retains its
+original clean-take behavior in this timing-only bootstrap. The next full
+intermediate dispatch brings the Chrome ledger to **248**. The noise-robust
+regression gate will be set from that evidence and the lead's target decision;
+final acceptance and ready remain pending.
+
+**Latency proposal — lead decision pending:** intermediate Linux run
+`43466571812` measured 20 calls per category, without owner think time, against
+`ab7aba92` rebuilt with the same driver and exact Chrome package. Times below are
+median / p95 milliseconds for plain mode; privacy instrumentation is retained in
+the four linked records and does not change the fixed timer.
+
+| Call | Old baseline | Current | Proposed ceiling |
+| --- | ---: | ---: | ---: |
+| read | 16.1 / 21.8 | 20.6 / 29.6 | 35 / 60 |
+| navigate | 38.1 / 45.7 | 62.2 / 78.8 | 100 / 150 |
+| free click | 570.4 / 585.8 | 590.7 / 604.3 | 650 / 750 |
+| fill | 569.4 / 580.8 | 581.8 / 589.5 | 650 / 750 |
+| asking click to question | 26.3 / 33.7 | 34.3 / 47.6 | 60 / 100 |
+| approval to done | 583.9 / 598.5 | 604.9 / 626.2 | 700 / 850 |
+
+The fixed post-input observation timer is **525 ms** in both runtimes and is
+about 89–90% of free click/fill latency. It protects the 500 ms delayed-submit
+window and will remain. Current DNR add/remove medians are about 1 ms each;
+compose binding is 0.2–1.2 ms and clipboard hooks 0–0.2 ms. The current bridge
+round trip for read is 4.8 ms and service work outside it 11.2 ms; approval has
+44.4 ms outside its 556.5 ms bridge call. Nested stages overlap. The short probe
+does not reproduce the historical long-session doubling; investigation continues.
+The proposed limits allow runner noise while bounding routine free actions below
+one second. They are proposals, **not adopted owner targets**. Section 4 requires
+the lead to set them before ready. A CI check and final-source measurements follow.
+Raw summary records are `records/post18d/chrome-latency-43466571812-1-*.json`;
+historical unavailable stages remain absent rather than zero.
+
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
 blank-frame base case. The new fixture had duplicate blank-frame addresses, so

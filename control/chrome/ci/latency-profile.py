@@ -1,4 +1,5 @@
 """CI-only timers around the real service and bridge, without page values."""
+import copy
 import json
 from pathlib import Path
 import time
@@ -33,6 +34,22 @@ def install(daemon):
     bridge.call=call
     def request(value,admin=False):
         nonlocal active
+        seed=Path('/out/latency-history-seed.json')
+        if seed.exists():
+            count=json.loads(seed.read_text())['count'];assert count in {1000,4000}
+            seed.unlink()
+            # Disposable timing input only: copy a real completed free-input
+            # shape, never claim a receiver effect or qualification verdict.
+            store=daemon.engine.store
+            template=next(op for _,op in store.iter_items('op:') if op['app']=='chrome' and op['state']=='done' and op['action']=='chrome_click' and not op['payload'].get('kind'))
+            for start in range(0,count,32):
+                changes={}
+                for index in range(start,min(start+32,count)):
+                    operation=copy.deepcopy(template)
+                    operation.update(id=store.generation+':latency-history-'+str(index),reason='Synthetic completed timing history; no input dispatched')
+                    changes['op:'+operation['id']]=operation
+                store.write(changes,'chrome_latency_fixture','Synthetic completed timing history; not acceptance')
+            emit({'stage':'history_fixture','count':count,'journal_bytes':store.journal.seek(0,2)})
         previous=active
         try:marker=json.loads(MARKER.read_text())
         except FileNotFoundError:marker=None
