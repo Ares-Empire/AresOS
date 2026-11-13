@@ -140,7 +140,8 @@ the owner's OK.
    2026-11-13: `ares` has no `Downloads`, `Documents` or `Desktop`, and no `user-dirs.dirs`), and the file policy
    neither creates folders nor follows other names. Proposed: one tmpfiles line each in the image that creates the
    two folders for `ares` if they are missing (0700, `ares`), and nothing else in his home. Which folders these are
-   is the owner's choice (a JUDGMENT-CALL below); the mechanism is `linux-aresos`'s (question 11).
+   was the owner's choice: "Downloads and Documents" (board #203, 2026-11-13). The mechanism is `linux-aresos`'s
+   (question 11).
 
 **Must not change:** the base digest, the other locked packages and the Chrome pin, the accounts (`ares` stays 1001;
 `aresos-tools` is a new system user with no login and no password), sudo, polkit, the unit masks, the session, PATH,
@@ -232,8 +233,7 @@ under the real unit.
   `aresos-mcp chrome` answers with no browser connected: a clear refusal, never a hang.
 - **The two config files** come from the drafts with only `owner_uid`, `home` and `folders` changed, and without
   the drafts' `_comment` (it calls the file a draft; no code reads that key). `folders` is
-  `/var/home/ares/Downloads` and `/var/home/ares/Documents` unless the owner's answer (through the lead) says
-  otherwise.
+  `/var/home/ares/Downloads` and `/var/home/ares/Documents`, as the owner chose (board #203).
 - **`gh`.** Extend `os/ci/check-resolve.sh` by the one step of item 3, then run `check_build=resolve` once. If
   Fedora's `gh` is 2.102.0 or newer, add it to `packages.lock.json` from that resolution. If not, add `os/gh.lock.json` and the install step beside Chrome's in `build.sh packages`, with the
   same checks (bytes, name, version). Record which route and why as a JUDGMENT-CALL.
@@ -508,9 +508,9 @@ alone, and say so in the report.
 
 ## Owner decides
 
-Throwaway CI images need no OK (`CLAUDE.md`). His before merge: the report's JUDGMENT-CALLs, among them which
-folders the tools may use (the lead asks him; build with `Downloads` and `Documents` meanwhile). A release that
-carries Control, and the live tests on his laptop, are later and his.
+Throwaway CI images need no OK (`CLAUDE.md`). Already his: the folders the tools may use, "Downloads and Documents"
+(board #203, 2026-11-13). His before merge: the report's JUDGMENT-CALLs, and his yes to a release carrying Control
+(agreed change 10). The live tests on his laptop are later and his.
 
 ## Open questions for `linux-aresos` (the lead sends them with the proposal)
 
