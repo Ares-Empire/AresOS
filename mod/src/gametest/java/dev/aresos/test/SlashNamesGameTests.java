@@ -33,6 +33,8 @@ public final class SlashNamesGameTests {
     private static final String BATCH = "aresos-test:slash_names";
     /** Alone in its batch: it rebuilds the server's command tree and waits for ticks. */
     private static final String RELOAD = "aresos-test:slash_names_reload";
+    /** Alone in its batch too: it breaks the apps file and waits for the retry. */
+    private static final String RETRY = "aresos-test:slash_names_retry";
     private static AppDefinition app(String id, String name, boolean mine) {
         return new AppDefinition(id, name, List.of(id), "minecraft:book", false).withMine(mine);
     }
@@ -315,6 +317,54 @@ public final class SlashNamesGameTests {
                 check(f.run("dc") == 1 && f.launches().getLast().equals("discord"), "/dc does not open Discord after /reload");
                 var seen = f.rejoin(helper);
                 check(seen.containsAll(names) && seen.containsAll(List.of("help", "list", "time")), "The rejoin's command list: " + seen);
+                f.close();
+                helper.succeed();
+            } catch (AssertionError error) {
+                done[0] = true; closeQuietly(f);
+                helper.fail(error.getMessage());
+            } catch (Exception error) {
+                done[0] = true; closeQuietly(f);
+                throw new RuntimeException(error);
+            }
+        });
+    }
+
+    /** Review 1, finding 6: a failed save still removes what must go, and tries again by itself after a growing pause. */
+    @GameTest(environment = RETRY, maxTicks = 300)
+    public void aFailedSaveRemovesAndRetriesByItself(GameTestHelper helper) throws Exception {
+        check(SlashCommands.retryDelay(1) == 20 && SlashCommands.retryDelay(2) == 40 && SlashCommands.retryDelay(3) == 80
+                && SlashCommands.retryDelay(30) == 1200, "The pause does not grow from a second to a minute");
+        var f = new Fixture(helper);
+        var root = f.server.getCommands().getDispatcher().getRoot();
+        try {
+            check(root.getChild("dc") != null && root.getChild("other") == null, "Fixture: unexpected commands");
+            Path file = Path.of(System.getProperty("aresos.appsConfig"));
+            // Discord leaves and Other joins at once; then the apps file cannot be read, so Other's names cannot be saved.
+            AresOs.saveMine(Map.of("discord", false, "other", true));
+            String saved = Files.readString(file);
+            Files.writeString(file, "{ not json");
+            SlashCommands.refresh(f.server);
+            check(root.getChild("dc") == null && root.getChild("discord") == null, "A failed save kept the commands of a removed app");
+            check(root.getChild("other") == null, "Other has a command without saved names");
+            check(f.said("Could not save app names"), "The host was not told");
+            // The file is fine again. Nothing else changes from here on.
+            Files.writeString(file, saved);
+            SlashCommands.refresh(f.server);
+            check(root.getChild("other") == null, "Retried at once, without a pause");
+        } catch (Exception | Error error) { f.close(); throw error; }
+        long start = helper.getTick();
+        boolean[] done = {false};
+        helper.onEachTick(() -> {
+            if (done[0]) return;
+            try {
+                if (root.getChild("other") == null) {
+                    if (helper.getTick() - start > 100) throw new AssertionError("No retry within 100 ticks");
+                    return;
+                }
+                done[0] = true;
+                check(helper.getTick() - start >= 15, "Retried before its pause: after " + (helper.getTick() - start) + " ticks");
+                check(AresOs.app("other").names().equals(List.of("other")), "Other's names: " + AresOs.app("other").names());
+                check(f.run("other") == 1 && f.launches().getLast().equals("other"), "/other does not open Other");
                 f.close();
                 helper.succeed();
             } catch (AssertionError error) {

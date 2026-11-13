@@ -28,7 +28,12 @@ public final class SlashCommands {
         List<AppDefinition> apps;
         Set<String> reserved = Set.of();
         boolean enabled;
+        // Failed saves in a row, and the server tick of the next try.
+        int failures;
+        long retryAt;
     }
+    /** After a failed save: a second, then twice as long each time, at most a minute. */
+    static final int FIRST_RETRY_TICKS = 20, LONGEST_RETRY_TICKS = 1200;
     private static final Map<MinecraftServer, State> STATES = new WeakHashMap<>();
     private SlashCommands() { }
 
@@ -59,19 +64,36 @@ public final class SlashCommands {
         }
         boolean enabled = server.isSingleplayer() && DesktopWorld.isEnabled(server);
         var reserved = reserved(server);
-        if (state.apps == AresOs.apps() && state.enabled == enabled && state.reserved.equals(reserved)) return;
-        // Failed persistence keeps the previous working commands, which still check current membership.
-        if (enabled) try { AresOs.assignNames(reserved); }
-        catch (IOException | RuntimeException error) {
-            AresOs.LOGGER.error("Could not save app names; commands will retry after the next app change", error);
-            state.apps = AresOs.apps(); state.enabled = enabled; state.reserved = reserved;
-            for (var player : server.getPlayerList().getPlayers()) if (DesktopWorld.isHost(server, player))
-                player.sendSystemMessage(Component.literal("Could not save app names: " + error.getMessage()));
-            return;
-        }
+        long now = server.getTickCount();
+        boolean changed = state.apps != AresOs.apps() || state.enabled != enabled || !state.reserved.equals(reserved);
+        if (!changed && !(state.failures > 0 && now >= state.retryAt)) return;
+        if (enabled) save(server, state, reserved, now); else state.failures = 0;
+        // Whether or not that save worked: removals, and names already saved, never depend on it.
         follow(dispatcher, state, enabled);
         state.apps = AresOs.apps(); state.enabled = enabled; state.reserved = reserved(server);
         for (var player : server.getPlayerList().getPlayers()) server.getCommands().sendCommands(player);
+    }
+
+    /** Missing names and displaced ones are saved first; a failure stays due and is tried again by itself. */
+    private static void save(MinecraftServer server, State state, Set<String> reserved, long now) {
+        try {
+            AresOs.assignNames(reserved);
+            if (state.failures > 0) AresOs.LOGGER.info("App names saved after {} failed attempts", state.failures);
+            state.failures = 0;
+        } catch (IOException | RuntimeException error) {
+            state.failures++;
+            state.retryAt = now + retryDelay(state.failures);
+            if (state.failures > 1) { AresOs.LOGGER.warn("Could not save app names (attempt {}): {}", state.failures, error.getMessage()); return; }
+            AresOs.LOGGER.error("Could not save app names; trying again by itself", error);
+            for (var player : server.getPlayerList().getPlayers()) if (DesktopWorld.isHost(server, player))
+                player.sendSystemMessage(Component.literal("Could not save app names: " + error.getMessage()
+                        + ". New names wait; AresOS tries again by itself."));
+        }
+    }
+
+    /** Ticks to wait after this many failed saves in a row. */
+    public static long retryDelay(int failures) {
+        return Math.min((long)FIRST_RETRY_TICKS << Math.min(Math.max(failures - 1, 0), 16), LONGEST_RETRY_TICKS);
     }
 
     /** Brings the tree in line with the saved names: names that lost their app go, free saved names come. */
