@@ -703,8 +703,11 @@ and briefs 28 and 28b keep it as built:
 - the values come back marked as page text, like everything else from a page;
 - a normal read says how many such fields a tab has, so Claude knows the tool exists for them; the instructions
   tell it to ask only when his request needs such a value;
-- with brief 28b it works on a tab of his read in place as well as on a taken tab before its reload, bound to
-  the listed page like every call on his tabs, and never on a page of his never-list.
+- it offers every typed field whose history the reader doesn't know, wherever that field is: in a taken tab
+  before its reload, in a frame the reader came to late, and in a shadow root it met late inside a page it
+  otherwise watched;
+- with brief 28b it works on a tab of his read in place as well, bound to the listed page like every call on his
+  tabs, and never on a page of his never-list.
 
 **All of it.** With `full`, `chrome_read` returns the page, or with `ref` one part of it, with nothing folded and
 nothing cut, paged by the budget below. So reading a long page to its end is two or three calls, not one call per
@@ -853,8 +856,9 @@ gave, one from a page or one Claude wrote), typing and filling fields, choosing 
 closing Claude tabs, taking one of his tabs and giving it back. Searches are free everywhere: a search form sent as a
 plain address (GET) is navigation.
 
-**One read asks:** the values of typed form fields whose history the reader doesn't know, in one of his tabs or in
-a taken tab before its reload (`chrome_read_typed_fields`, "Reading a page"; owner, 2026-11-13: "Ask first").
+**One read asks:** the values of typed form fields whose history the reader doesn't know: in one of his tabs, in
+a taken tab before its reload, or in a shadow root the reader met late (`chrome_read_typed_fields`, "Reading a
+page"; owner, 2026-11-13: "Ask first").
 
 **Asks, decided before the input is dispatched.** The extension collects the target's facts and the service
 classifies them before anything reaches the page:
@@ -1495,7 +1499,8 @@ the first input (brief 28b).
       line breaks, outline lines and references shows as a role from the fixed list and nothing more; a refusal's
       message holds no page text; a page of 100,000 elements is cut with a plain notice;
     - the asking read: a normal read never returns a typed field's value and counts such fields; an
-      approved read returns exactly the fields the question listed, as page text; a field named like a
+      approved read returns exactly the fields the question listed, as page text, also a field in a shadow root
+      the reader met late; a field named like a
       credential is absent though he approved; a field added after the question asks again; a field replaced by
       one with the same label, two fields with the same label or with none, a frame that navigated, a field
       that became credential-like, an altered question and a replayed approval each read nothing; a refusal

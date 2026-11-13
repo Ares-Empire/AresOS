@@ -741,8 +741,10 @@ the start of the call, and no timeout is raised:
   #210): "Ask first." **Brief 20 builds this tool before it merges, and this package keeps it rather than
   redesigns it.** Read its exact name, inputs and flow from the merged tree; keep the name unless it collides
   with one here. What it is, as brief 20 builds it:
-  - it reads the typed fields a normal read shows only as `(filled, not read)`: every `input` that can hold typed
-    text, whatever its type, and every `textarea`, in a document the reader didn't watch from its start;
+  - it reads the typed fields a normal read shows only as `(filled, not read)`. **Eligibility follows the field,
+    not the document: a typed field whose history the reader doesn't know** (item 1). That is every `input` that
+    can hold typed text and every `textarea` in a document the reader didn't watch from its start, and one that
+    already held text when the reader first met its shadow root in a watched document;
   - its question names the tab and lists the labels of the fields it will read, with a stable description for a
     field without a label, and never a value;
   - credential-like fields are never included, also when he approves: the name rule and brief 20's password rule
@@ -777,8 +779,11 @@ the start of the call, and no timeout is raised:
   - an approved read changes nothing else. A later normal read shows `(filled, not read)` again, and the field
     still isn't typed into.
 
-  In this package the only such documents are a taken tab before its reload and a frame the preload missed. Brief
-  28b lets it work on his tabs read in place.
+  In this package such fields are in a taken tab before its reload, in a frame the preload missed, and in a
+  shadow root met late. Brief 28b lets the tool work on his tabs read in place. The reader's own mark "withheld
+  for unknown history" (item 1) is what makes a field eligible, so there is one rule, not a second list. If the
+  merged tool decides eligibility by the document instead and so leaves out the late-root field, report it
+  (PLAN-GAP) and make it use the mark; that is the one change this package may make inside the asking read.
 - **`chrome_upload`** (change; input: `tab`, `ref`, `path`). Brief 20's tool with a short reference. The proxy's
   file branch stays as it is, apart from the field names it reads.
 - **Unchanged in name, input, result and behaviour:** `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`,
@@ -1027,6 +1032,9 @@ surface, with the taken, not yet reloaded tab):
   - a listed field becomes credential-like while the approval waits (its type set to `password`; a mask added);
   - the question or the field list is altered between the question and the approval;
   - an approval used a second time (a replay);
+- **a shadow root met late, in a Claude tab** (item 1's fixture): the typed field that held text when the reader
+  first met its root shows `(filled, not read)` and is counted in `typed_fields`; the asking read lists it and,
+  approved, returns it; the field named like a credential in the same root is in neither;
 - **refused:** nothing is read, and the next normal read still shows `(filled, not read)` and `(empty)`;
 - **one approval, one call:** a second call asks again;
 - **the ask can't be skipped,** as for `chrome_submit` (group 12): an allow rule for the tool, and
