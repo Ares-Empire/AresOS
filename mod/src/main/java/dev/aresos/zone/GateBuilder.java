@@ -200,6 +200,11 @@ public final class GateBuilder {
 
     private static String id(BlockState state) { return BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString(); }
 
+    private static boolean unchanged(BlockState state, AppZone.Placed placed) {
+        return id(state).equals(placed.block()) && (!state.is(Blocks.LIGHT)
+                || state.getValue(LightBlock.LEVEL) == LightBlock.MAX_LEVEL && !state.getValue(LightBlock.WATERLOGGED));
+    }
+
     /**
      * Takes a gate down: each recorded block that is still that block (the doormat goes back to the ground it
      * replaced), the sign and the zone. A block he changed since is his and stays. Refuses, changing nothing,
@@ -215,7 +220,7 @@ public final class GateBuilder {
         for (var replaced : gate.ground()) ground.put(replaced.pos(), replaced.block());
         int removed = 0, kept = 0;
         for (var placed : gate.placed()) {
-            if (!id(level.getBlockState(placed.pos())).equals(placed.block())) { kept++; continue; }
+            if (!unchanged(level.getBlockState(placed.pos()), placed)) { kept++; continue; }
             var before = Optional.ofNullable(ground.get(placed.pos())).map(Identifier::tryParse).flatMap(BuiltInRegistries.BLOCK::getOptional);
             level.setBlockAndUpdate(placed.pos(), before.orElse(Blocks.AIR).defaultBlockState());
             removed++;

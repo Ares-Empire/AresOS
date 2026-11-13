@@ -414,6 +414,22 @@ public final class GateGameTests {
     }
 
     @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
+    public void editedLightsKeepTheirWaterAndLevel(GameTestHelper helper) {
+        Site.run(helper, 160, site -> {
+            var plan = site.plan(GatePicture.plain("iron_block", 12));
+            var zone = site.build(plan);
+            var water = Blocks.LIGHT.defaultBlockState().setValue(LightBlock.WATERLOGGED, true);
+            var dim = Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, 7);
+            site.level().setBlock(plan.lights().getFirst(), water, 2);
+            site.level().setBlock(plan.lights().getLast(), dim, 2);
+            var removal = GateBuilder.remove(site.level().getServer(), zone);
+            check(removal.kept() == 2 && removal.removed() == zone.blocks().size() - 2, "edited light removal: " + removal);
+            check(site.level().getBlockState(plan.lights().getFirst()).equals(water), "waterlogged light or its water removed");
+            check(site.level().getBlockState(plan.lights().getLast()).equals(dim), "dimmed light removed");
+        });
+    }
+
+    @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
     public void everyRefusalChangesNothing(GameTestHelper helper) {
         Site.run(helper, 100, site -> {
             var level = site.level();
