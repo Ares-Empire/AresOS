@@ -4,15 +4,48 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.aresos.world.NetherHome;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.UUIDUtil;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
+/**
+ * A box that opens an app when the host steps into it, with the blocks the mod built for it ({@code blocks}, which
+ * Live mode protects). A gate also records what it placed, so it can be taken down again.
+ */
 public record AppZone(String id, String app, ResourceKey<Level> dimension, BlockPos min, BlockPos max,
-                      NetherHome.Home exit, List<BlockPos> blocks) {
+                      NetherHome.Home exit, List<BlockPos> blocks, Optional<Gate> gate) {
+    /** One block the mod placed, with the block's ID as text. */
+    public record Placed(BlockPos pos, String block) {
+        public static final Codec<Placed> CODEC = RecordCodecBuilder.create(i -> i.group(
+                BlockPos.CODEC.fieldOf("pos").forGetter(Placed::pos),
+                Codec.STRING.fieldOf("block").forGetter(Placed::block)).apply(i, Placed::new));
+    }
+
+    /**
+     * What makes a zone a gate: every block placed for it (the logo, the light blocks, the doormat), the ground
+     * blocks the doormat replaced, and the sign's entity. Removal takes a block away only while it is still the
+     * recorded one.
+     */
+    public record Gate(List<Placed> placed, List<Placed> ground, Optional<UUID> sign, List<BlockPos> grass) {
+        public static final Codec<Gate> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Placed.CODEC.listOf().fieldOf("placed").forGetter(Gate::placed),
+                Placed.CODEC.listOf().fieldOf("ground").forGetter(Gate::ground),
+                UUIDUtil.CODEC.optionalFieldOf("sign").forGetter(Gate::sign),
+                BlockPos.CODEC.listOf().optionalFieldOf("grass", List.of()).forGetter(Gate::grass)).apply(i, Gate::new));
+
+        public Gate(List<Placed> placed, List<Placed> ground, Optional<UUID> sign) {
+            this(placed, ground, sign, List.of());
+        }
+    }
+
+    // Walls, floors and hand-made zones have no "gate" field, in files written before gates existed and now.
+    // An older mod reading a newer file skips the field and sees a zone with protected blocks.
     public static final Codec<AppZone> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.STRING.fieldOf("id").forGetter(AppZone::id),
             Codec.STRING.fieldOf("app").forGetter(AppZone::app),
@@ -20,7 +53,22 @@ public record AppZone(String id, String app, ResourceKey<Level> dimension, Block
             BlockPos.CODEC.fieldOf("min").forGetter(AppZone::min),
             BlockPos.CODEC.fieldOf("max").forGetter(AppZone::max),
             NetherHome.Home.CODEC.fieldOf("exit").forGetter(AppZone::exit),
-            BlockPos.CODEC.listOf().fieldOf("blocks").forGetter(AppZone::blocks)).apply(i, AppZone::new));
+            BlockPos.CODEC.listOf().fieldOf("blocks").forGetter(AppZone::blocks),
+            Gate.CODEC.optionalFieldOf("gate").forGetter(AppZone::gate)).apply(i, AppZone::new));
+
+    public AppZone(String id, String app, ResourceKey<Level> dimension, BlockPos min, BlockPos max,
+                   NetherHome.Home exit, List<BlockPos> blocks) {
+        this(id, app, dimension, min, max, exit, blocks, Optional.empty());
+    }
+
+    public boolean isGate() { return gate.isPresent(); }
+
+    /** A gate with everything in front of it, out to its exit point: where "here" means this gate. */
+    public AABB area() {
+        var area = box().minmax(new AABB(BlockPos.containing(exit.position())));
+        for (var pos : blocks) area = area.minmax(new AABB(pos));
+        return area;
+    }
 
     public AABB box() { return new AABB(min.getX(), min.getY(), min.getZ(), max.getX() + 1, max.getY() + 1, max.getZ() + 1); }
     public boolean touchesPlayer(Vec3 feet) {

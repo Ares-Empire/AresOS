@@ -1,0 +1,25 @@
+{
+  "protocol": "aresos-shell/1.1",
+  "id": "h-5f0c9a12-1",
+  "op": "hello",
+  "major": 1,
+  "minor": 1,
+  "capabilities": [
+    "list_apps",
+    "open_app",
+    "app_state",
+    "shell_focus",
+    "world_ready",
+    "heartbeat",
+    "windows",
+    "app_details",
+    "apps_changed",
+    "list_paging"
+  ],
+  "requires": [
+    "list_apps",
+    "open_app"
+  ],
+  "instance": "desk-example",
+  "nonce": "example-nonce-0123456789"
+}

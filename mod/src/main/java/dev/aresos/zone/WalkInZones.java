@@ -1,6 +1,7 @@
 package dev.aresos.zone;
 
 import dev.aresos.AresOs;
+import dev.aresos.hub.HubData;
 import dev.aresos.mode.LiveMode;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.world.HomeSites;
@@ -50,11 +51,12 @@ public final class WalkInZones {
             if (state != null) { state.inside.remove(handler.player.getUUID()); state.pending.remove(handler.player.getUUID()); }
         });
         PlayerBlockBreakEvents.BEFORE.register((level, player, pos, block, entity) -> {
-            if (player instanceof ServerPlayer host && isProtected(host, pos)) {
-                host.sendSystemMessage(Component.literal("Auto-built logo protected. Press G for Build mode."), true);
-                return false;
-            }
-            return true;
+            if (!(player instanceof ServerPlayer host)) return true;
+            String refusal = isProtected(host, pos) ? "Auto-built logo protected. Press G for Build mode."
+                    : HubData.protectsFrom(host, pos) ? "The home pad and roads are protected. Press G for Build mode." : null;
+            if (refusal == null) return true;
+            host.sendSystemMessage(Component.literal(refusal), true);
+            return false;
         });
     }
 

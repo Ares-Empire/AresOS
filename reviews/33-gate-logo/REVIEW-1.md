@@ -1,0 +1,49 @@
+Reviewed `42146c6c..d8a56b77`, excluding `mod/dev`. This was read-only: no Gradle or game execution. I inspected the code, tests, all nine screenshots, and relevant behaviour in the cached 26.2 game bytecode.
+
+1. **Blocking — removal can destroy the owner’s additions.** [GateBuilder.java:217](/var/home/ares/AresOS-33-gate-logo/mod/src/main/java/dev/aresos/zone/GateBuilder.java:217) removes matching blocks with neighbour updates but performs no removal safety check. Attach a torch or item frame to the gate, or replace an upper pixel with sand supported by another gate block: removal drops the attachment or makes the owner’s sand fall, despite reporting that changed blocks stay. **Fix:** preflight the actual removal set against dependent blocks and entities; refuse before changing anything if removal would disturb them. Retain the complete cleanup record on refusal.
+
+2. **Blocking — water added to a light block is deleted.** [GateBuilder.java:218](/var/home/ares/AresOS-33-gate-logo/mod/src/main/java/dev/aresos/zone/GateBuilder.java:218) compares only block IDs. Vanilla light blocks support waterlogging, so an owner-waterlogged light still matches `minecraft:light` and becomes air, deleting their water. Changed light levels are also ignored. **Fix:** distinguish relevant state edits and preserve introduced fluids; add a waterlogged-light removal regression.
+
+3. **Blocking — the neighbour whitelist can permanently alter someone else’s mushroom block.** [Neighbors.java:58](/var/home/ares/AresOS-33-gate-logo/mod/src/main/java/dev/aresos/zone/Neighbors.java:58) accepts palette blocks by type, not ownership. Put an existing red mushroom block immediately behind a planned red mushroom pixel: placement sets the existing block’s adjoining face property to false. Its vanilla update handler does not restore that face when the gate disappears. **Fix:** distinguish recorded mod-owned blocks from external blocks and refuse this interaction, or prevent updates from modifying external states. This contradicts the report’s claim that the mushroom behaviour is harmless.
+
+4. **Blocking — “natural-looking” ground is treated as untouched ground.** [GateBuilder.java:143](/var/home/ares/AresOS-33-gate-logo/mod/src/main/java/dev/aresos/zone/GateBuilder.java:143) will pave over a sufficiently large stone platform or grass/dirt landscaping the owner built: matching block types establish no provenance. Also, [GatePlan.java:113](/var/home/ares/AresOS-33-gate-logo/mod/src/main/java/dev/aresos/zone/GatePlan.java:113) omits the doormat’s rear surrounding row (`along = 2`), contrary to the claimed complete ring check. **Fix:** omit the doormat where untouched-ground status cannot be established, track ownership/edits where available, and check the complete surrounding ring.
+
+5. **Blocking — a successful build/removal permanently changes underlying terrain.** [Neighbors.java:69](/var/home/ares/AresOS-33-gate-logo/mod/src/main/java/dev/aresos/zone/Neighbors.java:69) permits grass, mycelium and nylium beneath opaque gate blocks. They can decay into dirt/netherrack; only the eight doormat replacements are recorded. This violates the promised unchanged world after removal. **Fix:** prevent gate-induced terrain decay, or explicitly revise the contract to permit recorded, conditional restoration. Teaching package 36 to accept dirt does not fix this package’s preservation failure.
+
+6. **Should-fix — the unloaded-area refusal does not cover the safety checks.** [GateBuilder.java:92](/var/home/ares/AresOS-33-gate-logo/mod/src/main/java/dev/aresos/zone/GateBuilder.java:92) checks loading for `plan.space()` only. [Neighbors.java:43](/var/home/ares/AresOS-33-gate-logo/mod/src/main/java/dev/aresos/zone/Neighbors.java:43) then reads outside it, up to four blocks around lights. Those `getBlockState` calls can synchronously load chunks. **Fix:** calculate and check the complete inspection/update footprint before any world reads, including the neighbour halo. Add a chunk-boundary refusal test.
+
+7. **Should-fix — the plate rule was changed despite an explicit instruction not to tune it.** [GatePicture.java:20](/var/home/ares/AresOS-33-gate-logo/mod/src/main/java/dev/aresos/zone/GatePicture.java:20) changes visibility to 50% for plate detection. HUB.md 3.6 establishes visible pixels at 12%; the brief explicitly says to retain rules producing poor real-icon results and report a proposed change. The glow fixture now asserts the deviation. **Fix:** implement the specified threshold and move the Lunar-driven alternative into a proposed PLAN-GAP.
+
+8. **Should-fix — downgrade/resave loses the only gate cleanup record.** [AppZone.java:42](/var/home/ares/AresOS-33-gate-logo/mod/src/main/java/dev/aresos/zone/AppZone.java:42) is correct that an older reader can ignore `gate`. But an older writer cannot preserve that unknown field. After an older mod edits and saves zones, upgrading again sees ordinary zones: `logo remove` leaves blocks and lights, and the sign UUID and original doormat ground are lost. **Fix:** preserve a recoverable ownership ledger independently of the older zone codec, and test new → old decode/save → new cleanup. Read compatibility alone does not provide cleanup compatibility.
+
+9. **Should-fix — the sign’s space is never checked.** [GatePlan.java:90](/var/home/ares/AresOS-33-gate-logo/mod/src/main/java/dev/aresos/zone/GatePlan.java:90) reserves space only below the sign. Plain blocks immediately above the gate pass the neighbour check, so a gate can successfully create its name inside an existing ceiling or overhang. **Fix:** include the sign’s rendered clearance in placement validation and test an obstructed sign.
+
+10. **Nit — changing `SIZE` alone breaks verification.** [GatePictureTest.java:211](/var/home/ares/AresOS-33-gate-logo/mod/src/test/java/dev/aresos/zone/GatePictureTest.java:211) insists that the configurable default remains 12; the client fixture also spaces default gates 14 blocks apart. Changing the default to 16 makes that arrangement overlap. **Fix:** derive default-dependent assertions and spacing from `SIZE`, while retaining explicit size-12 worked-example tests.
+
+The geometry itself checks out: the six worked examples, niche bounds, 5.5-block front-face exit distance, yaw, pitch, lights and doormat coordinates match HUB.md. Ordinary entry uses the niche, and the existing return path rechecks exit safety. Normal cleanup remains driven by saved coordinates, so missing pixels do not inherently strand the sign or lights.
+
+There is one **should-fix contract ambiguity inherited from before this PR**: [WalkInZones.java:79](/var/home/ares/AresOS-33-gate-logo/mod/src/main/java/dev/aresos/zone/WalkInZones.java:79) suppresses two *new entries*, not every situation where the player touches two zones. The existing seam test deliberately expects launches while another zone remains touched. Clarify the brief/report rather than claiming the broader “two zones at once open nothing” rule is implemented.
+
+No existing test assertion was weakened in the requested diff. However, the new evidence is narrower than claimed:
+
+- [GateGameTests.java:468](/var/home/ares/AresOS-33-gate-logo/mod/src/gametest/java/dev/aresos/test/GateGameTests.java:468) explicitly accepts grass becoming dirt.
+- The main world-restoration test repairs external differences after its explosion, potentially masking earlier collateral changes.
+- The compatibility test deletes `gate` and invokes the **new** codec; it never exercises the older codec.
+- Changed-block tests use inert replacements, missing support-dependent replacements and waterlogged lights.
+- Refusal snapshots are immediate; they do not establish absence of scheduled side effects.
+
+For every numbered item in the [report](/var/home/ares/AresOS-33-gate-logo/reviews/33-gate-logo/REPORT.md:37):
+
+| # | JUDGMENT-CALL assessment | PLAN-GAP assessment |
+|---|---|---|
+| 1 | Agree: preserve the gate record when using `zone remove`. | Disagree with deferral: terrain preservation belongs in this package; finding 5. |
+| 2 | Disagree: the opacity change violates the brief; finding 7. | Disagree that all three exceptions are harmless. Amethyst and blue ice are reasonable; mushroom neighbour mutations require handling. |
+| 3 | Disagree that this establishes untouched ground; finding 4. | Agree: starter colours and an explicit fallback fit the available app data. |
+| 4 | Agree with refusing unloaded places; implementation is incomplete, finding 6. | Agree: rear-sign occlusion is visible in the screenshots and follows the specified position. A relocation needs a design change. |
+| 5 | Agree with the four-block ice-melting radius. It is not proof of overall placement safety. | No objection to the integration warning; retain all registrations when resolving conflicts. |
+| 6 | Agree with nearest-edge alignment. Describe the return as the snapped exit, not necessarily the exact original position. | No objection; timings were not independently verified in this read-only review. |
+| 7 | Agree with the broader `here` area. | **Nit:** “never release forced chunks” is too broad. Release tickets owned by the test; do not release the framework’s or another test’s ownership. |
+| 8 | Disagree with the blanket safety relaxation for natural/palette blocks; findings 3 and 5. | Agree to leave neutral-colour filtering as a proposal, preserving the specified matcher. |
+| 9 | Agree: the darker sign background is a reasonable unspecified presentation choice. | Agree about the spotted texture; that observation does not resolve the mushroom’s behavioural risk. |
+
+CHANGES-NEEDED

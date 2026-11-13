@@ -104,7 +104,7 @@ public final class AresOsClientGameTest implements FabricClientGameTest {
                 context.getInput().holdKeyFor(options -> options.keyUse, 16);
                 world.getConnection().waitForServerboundPackets();
                 context.waitTicks(4);
-                check(calls.equals(List.of(List.of("notepad.exe"))), "Holding one click launched app more than once: " + calls);
+                check(calls.equals(List.of(notepadCommand())), "Holding one click launched app more than once: " + calls);
                 context.getInput().pressKey(options -> options.keyUse);
                 context.waitTicks(4);
                 check(calls.size() == 2, "Second click did not launch exactly once: " + calls);
@@ -134,10 +134,23 @@ public final class AresOsClientGameTest implements FabricClientGameTest {
                 context.waitFor(client -> overlay(client).equals("Couldn't open Notepad"));
                 context.runOnClient(client -> AresOsClient.replaceLauncher(fake));
 
+                world.getServer().runOnServer(server -> {
+                    var inventory = world.getConnection().getServerPlayer().getInventory();
+                    inventory.setItem(15, inventory.removeItemNoUpdate(0));
+                });
                 context.runOnClient(client -> client.player.connection.sendCommand("aresos give notepad"));
-                context.waitFor(client -> client.player.getInventory().getItem(1).is(AppItems.APP));
-                context.runOnClient(client -> check("notepad".equals(client.player.getInventory().getItem(1)
-                        .get(AppItems.APP_ID)), "Give command did not create the configured app"));
+                world.getConnection().waitForServerboundPackets();
+                context.waitFor(client -> client.player.getInventory().getItem(0).is(AppItems.APP)
+                        && client.player.getInventory().getItem(15).isEmpty());
+                context.runOnClient(client -> check("notepad".equals(client.player.getInventory().getItem(0)
+                        .get(AppItems.APP_ID)), "Give command did not move the configured app"));
+                world.getServer().runOnServer(server -> {
+                    var inventory = world.getConnection().getServerPlayer().getInventory();
+                    int count = 0;
+                    for (int slot = 0; slot < inventory.getContainerSize(); slot++)
+                        if ("notepad".equals(inventory.getItem(slot).get(AppItems.APP_ID))) count++;
+                    check(count == 1 && inventory.getItem(15).isEmpty(), "Give copied the existing app item");
+                });
                 world.getServer().runOnServer(server -> world.getConnection().getServerPlayer().getInventory().clearContent());
             }
             try (TestSingleplayerContext reopened = save.open()) {
@@ -231,7 +244,7 @@ public final class AresOsClientGameTest implements FabricClientGameTest {
             context.waitFor(client -> "test-b".equals(client.player.getInventory().getItem(1).get(AppItems.APP_ID)));
             // Both event batches run on the client thread, so no tick can split selection and use.
             for (boolean scroll : List.of(false, true)) {
-                sameTickSelectAndClick(context, calls, scroll, scroll ? 8 : 2, 0, List.of("notepad.exe"));
+                sameTickSelectAndClick(context, calls, scroll, scroll ? 8 : 2, 0, notepadCommand());
                 sameTickSelectAndClick(context, calls, scroll, 0, 1, appB.command());
                 sameTickSelectAndClick(context, calls, scroll, 1, 2, null);
             }
@@ -272,6 +285,18 @@ public final class AresOsClientGameTest implements FabricClientGameTest {
         var launched = List.copyOf(calls.subList(before, calls.size()));
         check(launched.equals(expected == null ? List.of() : List.of(expected)),
                 scenario + ": wrong launches: " + launched);
+    }
+
+    /**
+     * What the fake launcher records for the default Notepad: notepad.exe on Windows, and no command on AresOS,
+     * where an app is launched by its ID through the app helper. Unique among the configured apps, so a recorded
+     * launch still names Notepad and nothing else.
+     */
+    private static List<String> notepadCommand() {
+        var command = AresOs.app("notepad").command();
+        check(AresOs.apps().stream().filter(app -> app.command().equals(command)).count() == 1,
+                "Notepad's launch command does not identify it among " + AresOs.apps());
+        return command;
     }
 
     private static void rawKey(Minecraft client, int key, int action) {

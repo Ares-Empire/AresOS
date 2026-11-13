@@ -1,0 +1,118 @@
+{
+ "returncode": 0,
+ "desktop_state": {
+  "ok": true,
+  "state": "SETUP",
+  "reason": "setup",
+  "latched": false,
+  "consecutive": 0,
+  "failures": 0,
+  "hub_seen": false,
+  "instance": "aresdesktop-f4c8386aaeb2",
+  "launch": "2318b577edf0",
+  "jvm_pid": null,
+  "ready": false,
+  "nvidia": false,
+  "helper": true
+ },
+ "desktop_prism_scope": "0::/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-desktop-2318b577edf0.scope",
+ "desktop_supervisor_log": "2026-11-13 18:50:30,669 aresos-desktop: INFO state SETUP (setup)\n2026-11-13 18:50:30,734 aresos-desktop: INFO launch 2318b577edf0: Prism started (title screen for setup)\n",
+ "game_scope": {
+  "jvm_cgroup": "/sys/fs/cgroup/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-game-2318b577edf0.scope",
+  "memory_high": "5368709120",
+  "unit": "aresos-game-2318b577edf0.scope",
+  "wrapper_exit": 137,
+  "wrapper_output": "",
+  "after": {
+   "ok": true,
+   "state": "RECOVERY",
+   "reason": "killed",
+   "latched": true,
+   "consecutive": 0,
+   "failures": 0,
+   "hub_seen": false,
+   "instance": "aresdesktop-f4c8386aaeb2",
+   "launch": "2318b577edf0",
+   "jvm_pid": null,
+   "ready": false,
+   "nvidia": false,
+   "helper": true
+  }
+ },
+ "memory_protection": {
+  "memory_low": {
+   "/sys/fs/cgroup/user.slice": "1073741824",
+   "/sys/fs/cgroup/user.slice/user-1001.slice": "1073741824",
+   "/sys/fs/cgroup/user.slice/user-1001.slice/session-1.scope": "1073741824"
+  },
+  "oomd_avoid": {
+   "user.oomd_avoid": "1",
+   "trusted.oomd_avoid": "unset (No data available)"
+  },
+  "user_service": "ManagedOOMSwap=auto\nManagedOOMMemoryPressure=auto\nManagedOOMMemoryPressureLimit=0\n",
+  "oomctl": "Dry Run: no\nSwap Used Limit: 90.00%\nDefault Memory Pressure Limit: 60.00%\nDefault Memory Pressure Duration: 20s\nSystem Context:\n\tMemory: Used: 983.9M, Total: 5.7G\n\tSwap: Used: 0B, Total: 2.8G\nSwap Monitored CGroups:\nMemory Pressure Monitored CGroups:\n\tPath: /system.slice\n\t\tMemory Pressure Limit: 80.00%\n\t\tMemory Pressure Duration: 20s\n\t\tPressure: Avg10: 0.00, Avg60: 0.00, Avg300: 0.00, Total: 12us\n\t\tCurrent Memory Usage: 2.4G\n\t\tMemory Min: 0B\n\t\tMemory Low: 0B\n\t\tPgscan: 0\n\t\tLast Pgscan: 0\n\tPath: /user.slice/user-1001.slice/user@1001.service/app.slice\n\t\tMemory Pressure Limit: 80.00%\n\t\tMemory Pressure Duration: 20s\n\t\tPressure: Avg10: 0.00, Avg60: 0.00, Avg300: 0.00, Total: 0\n\t\tCurrent Memory Usage: 512K\n\t\tMemory Min: 0B\n\t\tMemory Low: 0B\n\t\tPgscan: 0\n\t\tLast Pgscan: 0\n\tPath: /user.slice/user-1001.slice/user@1001.service/aresos.slice\n\t\tMemory Pressure Limit: 80.00%\n\t\tMemory Pressure Duration: 20s\n\t\tPressure: Avg10: 0.00, Avg60: 0.00, Avg300: 0.00, Total: 0\n\t\tCurrent Memory Usage: 114M\n\t\tMemory Min: 0B\n\t\tMemory Low: 0B\n\t\tPgscan: 0\n\t\tLast Pgscan: 0\n\tPath: /user.slice/user-1001.slice/user@1001.service/session.slice\n\t\tMemory Pressure Limit: 80.00%\n\t\tMemory Pressure Duration: 20s\n\t\tPressure: Avg10: 0.00, Avg60: 0.00, Avg300: 0.00, Total: 0\n\t\tCurrent Memory Usage: 15.5M\n\t\tMemory Min: 250M\n\t\tMemory Low: 0B\n\t\tPgscan: 0\n\t\tLast Pgscan: 0\n",
+  "oomd_active": "active"
+ },
+ "pressure": {
+  "hog_exit": 137,
+  "pid": 2921,
+  "cgroup": "0::/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-ci-pressure.scope",
+  "allocated_mib": 5376,
+  "status_seconds": [
+   0.10972489200000268,
+   0.09671439899999257,
+   0.0979402709999988,
+   0.16386981899999853,
+   0.09751254799999742,
+   0.11007474699999875,
+   0.12650641800000528,
+   0.09646347199999639,
+   0.12165471099999081,
+   0.1161555900000053,
+   0.1076190679999911,
+   0.14251506300000472,
+   0.09744343500000241,
+   0.11749509300000227,
+   0.17611465199999543,
+   0.11262607800000524,
+   0.12966231699999753,
+   0.11565456799999652,
+   0.09861111899999742,
+   0.10327927000000159,
+   0.1126075410000027,
+   0.09543910300000391,
+   0.13284416799999121,
+   0.5500537340000022,
+   0.5234329889999998,
+   2.7084082009999975
+  ],
+  "survivors": {
+   "labwc": [
+    1773,
+    "0::/user.slice/user-1001.slice/session-1.scope"
+   ],
+   "keeper": [
+    2156,
+    "0::/user.slice/user-1001.slice/session-1.scope"
+   ],
+   "supervisor": [
+    2165,
+    "0::/user.slice/user-1001.slice/session-1.scope"
+   ],
+   "recovery terminal": [
+    2860,
+    "0::/user.slice/user-1001.slice/session-1.scope"
+   ]
+  },
+  "supervisor_state": "RECOVERY",
+  "evidence": {
+   "kernel": [
+    "oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-ci-pressure.scope,task=python3,pid=2921,uid=1001",
+    "Out of memory: Killed process 2921 (python3) total-vm:5813404kB, anon-rss:5535996kB, file-rss:2412kB, shmem-rss:0kB, UID:1001 pgtables:10900kB oom_score_adj:0"
+   ],
+   "oomd": [],
+   "unit": "Result=oom-kill",
+   "proven": true
+  }
+ }
+}

@@ -1,6 +1,9 @@
 package dev.aresos.world;
 
 import com.mojang.serialization.Codec;
+import com.mojang.datafixers.util.Pair;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.aresos.AresOs;
@@ -38,8 +41,18 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static java.nio.file.StandardOpenOption.CREATE_NEW;
 
-/** Explicitly provisioned homes only; enabling the ordinary desktop marker never builds a hub. */
+/**
+ * Explicitly provisioned homes only; enabling the ordinary desktop marker never builds a hub.
+ * Despite the name this holds every AresHub home: the Nether one and, since package 32, the flat one
+ * ({@link FlatHome}), which shares the save folder, the manifest, the provisioning promises and the home data.
+ */
 public final class NetherHome extends SavedData {
+    /** Which home a new AresHub gets. The manifest names it; a manifest without the key is a Nether home. */
+    public enum Kind { NETHER, FLAT }
+    /** What a starting server may do with a save: see {@link #startPlan}. */
+    public enum Start { NOTHING, MISSING_DATA, PROVISION }
+    private static final String KIND_KEY = "home";
+    private static final String KIND_FLAT = "flat";
     public static final String SAVE_FOLDER = "AresHub";
     public static final String MANIFEST = "aresos-home.properties";
     public static final String PROVISIONED = "aresos-home.provisioned";
@@ -79,10 +92,23 @@ public final class NetherHome extends SavedData {
     }
 
     // Old saves retain their anchor behavior; an optional exact home adds no migration writes or block edits.
-    private static final Codec<NetherHome> CODEC = RecordCodecBuilder.create(i -> i.group(
+    private static final Codec<NetherHome> CODEC = RecordCodecBuilder.<NetherHome>create(i -> i.group(
             Site.MAP_CODEC.forGetter(home -> home.site),
             Home.CODEC.optionalFieldOf("home").forGetter(home -> Optional.ofNullable(home.home)))
-            .apply(i, (site, home) -> new NetherHome(site, home.orElse(null))));
+            .apply(i, (site, home) -> new NetherHome(site, home.orElse(null))))
+            .mapResult(new Codec.ResultFunction<>() {
+                @Override
+                public <T> DataResult<Pair<NetherHome, T>> apply(DynamicOps<T> ops, T input,
+                                                                 DataResult<Pair<NetherHome, T>> result) {
+                    // SavedDataStorage accepts partial results. A damaged home must never become an arrival.
+                    return result.error().isPresent() ? DataResult.error(() -> result.error().orElseThrow().message()) : result;
+                }
+
+                @Override
+                public <T> DataResult<T> coApply(DynamicOps<T> ops, NetherHome home, DataResult<T> result) {
+                    return result;
+                }
+            });
     private static final SavedDataType<NetherHome> TYPE = new SavedDataType<>(AresOs.id("nether_home"),
             () -> new NetherHome(DEFAULT_SITE, null), CODEC, null);
     private final Site site;
@@ -90,11 +116,27 @@ public final class NetherHome extends SavedData {
 
     private NetherHome(Site site, Home home) { this.site = site; this.home = home; }
 
-    public static NetherHome get(MinecraftServer server) { return server.getDataStorage().get(TYPE); }
+    public static NetherHome get(MinecraftServer server) {
+        var data = server.getDataStorage().get(TYPE);
+        if (data == null || data.hasExactHome()) return data;
+        Path directory = server.getWorldPath(LevelResource.ROOT);
+        try {
+            // Only pre-exact-home Nether saves may use the old anchor arrival.
+            if (Files.exists(directory.resolve(MANIFEST)) && readKind(directory) != Kind.NETHER) return null;
+        } catch (IOException error) {
+            return null;
+        }
+        return data;
+    }
     public Site site() { return site; }
     public Home home() { return home != null ? home : new Home(Level.NETHER, site.arrival(), site.yaw, 20); }
     public boolean hasExactHome() { return home != null; }
     public void setHome(Home home) { this.home = home; setDirty(); }
+
+    /** A newly provisioned home that arrives at an exact spot from the start (the flat home). */
+    static void store(MinecraftServer server, Site site, Home home) {
+        server.getDataStorage().set(TYPE, new NetherHome(site, home));
+    }
 
     public static NetherHome recordHome(MinecraftServer server, Home target) {
         var data = get(server);
@@ -111,6 +153,19 @@ public final class NetherHome extends SavedData {
     }
 
     public static void writeManifest(Path directory, Site site, boolean placeholder) throws IOException {
+        var properties = siteProperties(site);
+        properties.setProperty("placeholder", Boolean.toString(placeholder));
+        storeManifest(directory, properties, "AresOS Nether home provisioning v1; keep with this save");
+    }
+
+    /** The manifest of a flat home: the same file and version, with the home kind named. */
+    public static void writeFlatManifest(Path directory) throws IOException {
+        var properties = siteProperties(FlatHome.SITE);
+        properties.setProperty(KIND_KEY, KIND_FLAT);
+        storeManifest(directory, properties, "AresOS flat home provisioning v1; keep with this save");
+    }
+
+    private static Properties siteProperties(Site site) {
         var properties = new Properties();
         properties.setProperty("version", "1");
         properties.setProperty("seed", Long.toString(site.seed));
@@ -118,10 +173,23 @@ public final class NetherHome extends SavedData {
         properties.setProperty("y", Integer.toString(site.y));
         properties.setProperty("z", Integer.toString(site.z));
         properties.setProperty("yaw", Float.toString(site.yaw));
-        properties.setProperty("placeholder", Boolean.toString(placeholder));
-        try (var output = Files.newOutputStream(directory.resolve(MANIFEST), java.nio.file.StandardOpenOption.CREATE_NEW)) {
-            properties.store(output, "AresOS Nether home provisioning v1; keep with this save");
+        return properties;
+    }
+
+    private static void storeManifest(Path directory, Properties properties, String comment) throws IOException {
+        try (var output = Files.newOutputStream(directory.resolve(MANIFEST), CREATE_NEW)) {
+            properties.store(output, comment);
         }
+    }
+
+    /** The home kind a manifest asks for. An unknown kind is refused, never guessed. */
+    public static Kind readKind(Path directory) throws IOException {
+        var properties = new Properties();
+        try (var input = Files.newInputStream(directory.resolve(MANIFEST))) { properties.load(input); }
+        String value = properties.getProperty(KIND_KEY);
+        if (value == null) return Kind.NETHER;
+        if (value.equals(KIND_FLAT)) return Kind.FLAT;
+        throw new IOException("Invalid AresOS home manifest: unknown home kind");
     }
 
     private static boolean placeholderRequested(Path directory) throws IOException {
@@ -171,24 +239,12 @@ public final class NetherHome extends SavedData {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             Path directory = server.getWorldPath(LevelResource.ROOT);
             boolean newWorld = NEW_SERVERS.remove(server);
-            if (get(server) != null || !Files.exists(directory.resolve(MANIFEST))) return;
-            if (!newWorld) {
-                AresOs.LOGGER.warn(MISSING_HOME_MESSAGE);
-                return;
-            }
             try {
-                if (Files.exists(directory.resolve("data/aresos/nether_home.dat")) || Files.exists(directory.resolve(PROVISIONED))) {
-                    throw new IOException("Previous provisioning detected; restore the save instead of rebuilding the hub");
+                switch (startPlan(directory, get(server) != null, newWorld)) {
+                    case NOTHING -> { }
+                    case MISSING_DATA -> AresOs.LOGGER.warn(MISSING_HOME_MESSAGE);
+                    case PROVISION -> provision(server, directory);
                 }
-                Site site = readManifest(directory);
-                if (server.overworld().getSeed() != site.seed) throw new IOException("Home manifest seed differs from world seed");
-                // Claim before touching blocks: a crash or partial restore must never authorize a second build.
-                Files.writeString(directory.resolve(PROVISIONED), "started\n", CREATE_NEW);
-                boolean placeholder = placeholderRequested(directory);
-                if (site.seed != 49 || !placeholder) site = HomeSites.find(java.util.Objects.requireNonNull(server.getLevel(Level.NETHER)));
-                initialize(server, site, placeholder);
-                server.saveEverything(false, true, true);
-                Files.writeString(directory.resolve(PROVISIONED), "complete\n");
             } catch (IOException error) { AresOs.LOGGER.error("Cannot provision AresOS home; automatic recovery refused", error); }
         });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
@@ -196,6 +252,36 @@ public final class NetherHome extends SavedData {
                 handler.player.sendSystemMessage(Component.literal(MISSING_HOME_MESSAGE));
             }
         });
+    }
+
+    /**
+     * The promises every AresHub home keeps, Nether or flat. A home is built only in a world this session created
+     * ({@code newWorld}) that carries a manifest and no trace of an earlier provisioning. A save whose home data is
+     * missing or unreadable is opened unchanged with a message, and a leftover claim or data file is refused.
+     */
+    public static Start startPlan(Path directory, boolean hasHomeData, boolean newWorld) throws IOException {
+        if (hasHomeData || !Files.exists(directory.resolve(MANIFEST))) return Start.NOTHING;
+        if (!newWorld) return Start.MISSING_DATA;
+        if (Files.exists(directory.resolve("data/aresos/nether_home.dat")) || Files.exists(directory.resolve(PROVISIONED))) {
+            throw new IOException("Previous provisioning detected; restore the save instead of rebuilding the hub");
+        }
+        return Start.PROVISION;
+    }
+
+    private static void provision(MinecraftServer server, Path directory) throws IOException {
+        Site site = readManifest(directory);
+        Kind kind = readKind(directory);
+        if (server.overworld().getSeed() != site.seed) throw new IOException("Home manifest seed differs from world seed");
+        // Claim before touching blocks: a crash or partial restore must never authorize a second build.
+        Files.writeString(directory.resolve(PROVISIONED), "started\n", CREATE_NEW);
+        if (kind == Kind.FLAT) FlatHome.initialize(server, site);
+        else {
+            boolean placeholder = placeholderRequested(directory);
+            if (site.seed != 49 || !placeholder) site = HomeSites.find(java.util.Objects.requireNonNull(server.getLevel(Level.NETHER)));
+            initialize(server, site, placeholder);
+        }
+        server.saveEverything(false, true, true);
+        Files.writeString(directory.resolve(PROVISIONED), "complete\n");
     }
 
     private static void initialize(MinecraftServer server, Site site, boolean placeholder) {
