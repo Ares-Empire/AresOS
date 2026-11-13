@@ -111,8 +111,10 @@ chosen option, and the element's **own** text (not its descendants').
   page (the latency budget below).
 - At most 20,000 nodes per tab. Beyond that the reply says how many were left out.
 
-A second read-only command, `page_state`, returns the top document's id, its revision and `readyState`. The service
-uses it to wait; it never polls with full reads.
+A second read-only command, `page_state`, returns the top document's id, its revision and `readyState`, and from
+the background script whether a native dialog is open in the tab and whether page steps are queued for it (brief
+20's `queued_steps`). The service uses it to wait and to look at the tab between the steps of a list (item 5); it
+never polls with full reads.
 
 `background.js` gets these two commands, a `show` command for `chrome_show`, and a `tabs` reply that holds every
 tab at once with the fields item 6 needs. **Nothing else in `background.js` changes in this package:** not `input`,
@@ -255,7 +257,9 @@ Result:
     the table then and the counter goes on);
   - the document, the reader instance or the element is gone or is another one;
   - the element's role or name differs from the line Claude last saw;
-  - for `fill` and `select`: the field's value differs from the value Claude last saw.
+  - for a step that changes or uses what a field holds (`fill`, `select`, `check`, `press`): the field's value, its
+    tick or its chosen option differs from what Claude last saw. The service compares the whole value: it keeps a
+    digest of it beside the line, because the outline may have shown the value cut.
   The refusal carries the element's present line, and that counts as shown, so a repeated call can pass.
 - This replaces two things in `adapter.py`: the comparison of the caller's `expected` in `payload`, and the
   comparison of `view` in `facts`. The extension's own checks stay (session, tab, document, element, the hit test
@@ -320,11 +324,29 @@ How it runs:
 
 1. **Check first.** Resolve every reference and apply item 3's rule before the first step. If one fails, nothing has
    run, and the result names the step.
-2. **Run in order.** Each step goes through brief 20's path for that verb: `payload` (fresh facts, classification,
-   binding), then `free` (dispatch once) or `engine.reserve` (prepare). Between steps of one call, a later step's
-   element is checked again for its role and name; its states and value may have changed because of earlier steps.
-   Every free step is still committed as its own operation before its input, as today.
-3. **Stop** after the first step whose outcome isn't `done` or `unchanged`, and also after a step that:
+2. **Run in order, and check each step again right before it runs.** Each step goes through brief 20's path for
+   that verb: `payload` (fresh facts, classification, binding), then `free` (dispatch once) or `engine.reserve`
+   (prepare). Every free step is still committed as its own operation before its input, as today. On the fresh
+   facts `payload` has just read, item 3's rule is applied again **in full, the value included**: what the element
+   shows must be what Claude last saw.
+   - One thing only moves "last saw" inside a list: after a step of this list has itself acted on an element (a
+     fill, a select, a check, a key in a field), the service records that element as the extension reports it right
+     after the step. So `fill` and then Enter on the same field passes.
+   - A step on any other element whose name, value, tick or options changed since Claude saw it ends `stale`,
+     whatever changed it: the page's reaction to an earlier step, a draft the page loaded, his own typing. Nothing
+     is dispatched for that step, the list stops, and the result carries the element's present line. A list never
+     overwrites text Claude hasn't seen.
+3. **Look at the tab before the next step.** Before every step after the first, and again after every `wait`, the
+   service asks `page_state`. The list stops before the next step when:
+   - the top document isn't the one the list started on;
+   - a native dialog is open;
+   - a page step is queued. It then goes through brief 20's `steps`, exactly as a read handles it: a held
+     submission is prepared and comes back in `prepared`, a stopped activation in `stopped`, one that may have
+     happened in `unknown`.
+   Brief 20's `held_step` event only records what the extension saw (`event` and `observe_step` in `adapter.py`);
+   it stops nothing by itself. A page step can arrive after the reply to the step that caused it, so the loop has
+   to ask.
+4. **Stop** after the first step whose outcome isn't `done` or `unchanged`, and also after a step that:
    - was prepared (`prepared`): the result carries the base's prepared result, to pass unchanged to `chrome_submit`;
    - made the page start a submission or activation that the page script stopped (`stopped`; a held submission is in
      `prepared`, a stopped activation is described in `untrusted_content.stopped`);
@@ -332,13 +354,13 @@ How it runs:
    - ended `unknown` (its operation id is in `unknown`), `stale` or `refused`.
    `not_run` counts the steps after it. Nothing is retried, and no step runs twice, also when Chrome, the host or
    the service stops in the middle.
-4. **Report.** Take the outline nodes before the first step and again after the last one that ran, once the page has
+5. **Report.** Take the outline nodes before the first step and again after the last one that ran, once the page has
    gone quiet (the revision still for 150 ms, at most 1,500 ms; after a new top document: loaded, at most 8,000 ms).
    `changed` lists what differs by element: a line starting `+ ` for a new element, `~ ` for one whose line changed
    (the new line), `- ` for one that is gone; new elements are shown under their new parent. At most `max`
    characters; `more_changes` counts the rest. After a new top document, `outline` holds the new page's outline
    (at most 4,000 characters) and `changed` is empty.
-5. The clipboard notice, the dialog facts, a taken tab's first-input reload and the version notice come back as
+6. The clipboard notice, the dialog facts, a taken tab's first-input reload and the version notice come back as
    brief 20 returns them. For the reload: a clean tab reloads, and the result is `stale` for that step with the new
    outline attached; a tab with unsaved typing or playing media answers `reload_required` and names `chrome_take`
    with `reload: true` (item 6).
@@ -473,8 +495,9 @@ document; the letters differ from those of the last 100 runs, and are still draw
 `public_address` against a table (a user name and password, ports, a non-ASCII host, `http`, queries, fragments,
 each sign-in word, random-looking segments such as a UUID, 40 hex digits, a 43-character token and a JWT, segments
 that stay such as a slug with digits, a numeric id and an 11-character id, and characters such as `|`, `[`, quotes,
-spaces and line breaks); the `chrome_do` loop with a fake bridge (the check before the first step, every stop, `not_run`, nothing twice after an
-interruption at each point); the change report; the reader's `outline` command in the Node VM doubles that
+spaces and line breaks); the `chrome_do` loop with a fake bridge (the check before the first step; the check before each step on fresh facts,
+with the value compared whole; a queued page step, a dialog and a new document found between two steps and after
+a `wait`; every stop, `not_run`, nothing twice after an interruption at each point); the change report; the reader's `outline` command in the Node VM doubles that
 `reader.test.mjs` uses, with the password fixtures; the credential words (each word, as a whole word and as a name
 part, in each of the six places; `shipping`, `postal code` and `pinned` don't match).
 
@@ -541,6 +564,15 @@ actions, in a frame's address, in a redirect's target, and in history, bookmark 
   evidence: nothing before approval, one arrival after, none on a repeat;
 - a list whose third step asks: the fixture counts the first two inputs, no input from steps three to five, and
   after `chrome_submit` exactly the third;
+- **nothing unseen is overwritten:** a list whose first step makes the page put a draft into another field, and
+  whose second step fills that field: the second step is `stale`, the field still holds the draft, and the result
+  shows the field's present line. The same when the owner types into that field with real keys while the first
+  step runs. The same for a value of 5,000 characters that the outline showed cut, after its last character
+  changed. A `fill` and then Enter on the same field passes without a read in between;
+- **the look between steps:** a submission that the page starts while handling step one and that reaches the
+  service only after step one's reply, and one that arrives during a `wait`: the next step doesn't run, the
+  fixture counts no further input, and the held submission is in `prepared`. A dialog that opens during a `wait`,
+  and a new top document that loads during a `wait`, stop the list the same way;
 - a control inside a folded part of the outline, found with `find` and labelled Delete, still asks;
 - the read-only fixture site refuses every acting step and still allows `wait` and scrolling;
 - the conservative mode (an unqualified Chrome major) asks for the same inputs through `chrome_do` as brief 20's

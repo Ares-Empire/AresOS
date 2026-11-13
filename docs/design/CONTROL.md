@@ -658,8 +658,9 @@ the element's id, the element, and the line it last showed Claude. An action on 
 - the reference is unknown, was issued for another tab, or was issued before Chrome or the service restarted;
 - the document or the element is gone, or the page's reader was installed anew since;
 - the element's role or name is no longer what Claude last saw;
-- for filling or choosing, the field's value is no longer what Claude last saw, so Claude never overwrites
-  something it hasn't seen.
+- for a step that changes or uses what a field holds, the field's value, tick or chosen option is no longer what
+  Claude last saw, so Claude never overwrites something it hasn't seen. The whole value is compared, also where
+  the outline showed it cut.
 
 The refusal shows the element's line as it is now. When he switches or opens tabs, nothing is redirected.
 
@@ -693,6 +694,12 @@ needed.
   - Steps run in order. Each is classified right before its input, on what the element shows at that moment,
     exactly as a single action is ("What is free and what asks"). A free step is dispatched once. An asking step
     isn't dispatched: it is prepared.
+  - Each step's element is checked again right before the step, on what the page shows then, its value included.
+    It must still be what Claude last saw, unless this list's own earlier step on that same element changed it.
+    Text that arrived in a field after Claude read it (a draft the page loaded, his own typing) is never
+    overwritten: the step ends `stale` and the result shows the field as it is.
+  - Before every further step, and after every wait, the tool looks at the tab. A submission the page started and
+    the tool holds, an open dialog or a new page stops the list there.
   - The list stops after the first step that is prepared, fails, opens a dialog, loads a new page, makes the page
     start something the tool stops, or ends `unknown`. The result names the steps that didn't run. Nothing is
     retried and nothing runs twice.
@@ -1279,6 +1286,11 @@ harness's helper functions change, never an assertion.
     - `chrome_do`: one stale reference means nothing ran; the list stops at the first asking step, a failure, a
       dialog, a new page, a stopped page step and an `unknown`, and the fixture counts no input from the steps
       after it;
+    - nothing unseen is overwritten: a later step that fills a field into which the page loaded a draft, or the
+      owner typed, after Claude's read is `stale` and the field keeps its text, also when only the cut part of a
+      long value changed; a fill and then Enter on the same field passes;
+    - the look between steps: a held submission that arrives after a step's reply or during a wait, a dialog and
+      a new page each stop the list before the next step, with the held submission prepared;
     - a form filled and sent in one call and `chrome_submit`: the receiver has nothing before approval, one
       submission after, none on a repeat, and the question shows every field as filled;
     - the change report names exactly the added, changed and removed lines on the fixture, within its bound;
