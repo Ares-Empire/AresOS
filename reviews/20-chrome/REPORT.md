@@ -12,20 +12,21 @@
   mutation baseline passing. Generator, diff and exact-unit checks pass.
 - **Mail diagnostic:** `43513676712` passed all four suites and eight complete
   fault shards; longest job **54m53s**, within the 60-minute job budget.
+- **Green twice on the final code head:** boundary `43521486793` (17 interactive
+  cases and 20 boundary unit tests each attempt), qualification `43521486667`
+  (47 Python and 365 Node tests each). Their blockers are closed.
 - **In flight on the final code head:** Chrome push **`43521476596`** (watch session
-  `64588`) and PR **`43521486785`** (`56197`); base **`43521486682`** (`85771`), Mail
-  **`43521486798`** (`77388`), boundary **`43521486793`** (`76388`), qualification
-  **`43521486667`** (`1327`). Each has one blocking watcher. The four non-Chrome
-  watchers request a second attempt only after success; Chrome runs once each.
+  `64588`) and PR **`43521486785`** (`56197`); base **`43521486682`** (`85771`,
+  first passed, second underway), Mail **`43521486798`** (`77388`, first underway).
+  Each has one blocking watcher; Mail repeats after its first success.
 - **Budget:** **251 / about 280** Chrome workflow runs, including this final pair.
-- **Exact next step:** resume those watchers (if stopped, start one blocking watch
-  on each run). Before restarting the four repeat helpers, read their retained
-  attempt receipts under `.work/post18d/acceptance/` to avoid an extra rerun.
-  Finish both attempts of each named Control workflow and both full Chrome runs;
-  independently audit both Chrome installs in both runs, require all 92 original
-  round-3 case names, and rerun both measured latency gates. The metadata-only
-  helper is `.work/post18d/fetch-final-chrome.py RUN`. Commit receipts and update
-  this Handover with `[skip ci]` at each finished step. Keep PR #27 draft.
+- **Exact next step:** resume these four watchers (if stopped, start one blocking
+  watch per run). Inspect `.work/post18d/acceptance/` receipts before requesting
+  any rerun. Finish base's second execution, both Mail attempts and both Chrome
+  runs; independently audit both Chrome installs in both runs, require all 92
+  original round-3 case names, and rerun both measured latency gates. The
+  metadata-only helper is `.work/post18d/fetch-final-chrome.py RUN`. Commit receipts
+  and update this Handover with `[skip ci]` at each finished step. Keep PR #27 draft.
 
 # Post-18d integration — final repetitions pending
 
@@ -119,7 +120,13 @@ sharded pair. All 92 original named cases and their required current shards are
 listed in [round3-required-cases.json](records/post18d/round3-required-cases.json).
 The stopgap cause is per-input slowdown plus the larger unsplit matrices.
 
-**Still required:** every named Control workflow twice on final code head
+**Final CI progress:** [boundary](records/post18d/final-boundary-43521486793.json)
+and [qualification](records/post18d/final-qualification-43521486667.json) pass
+both attempts on `0ca3f6d7`. Boundary reports `CONTROL_INTERACTIVE_ASK_PASS cases=17`
+and 20 unit tests each; qualification reports 47 Python, 365 Node, zero failed
+and zero skipped each.
+
+**Still required:** base twice (first passed), Mail twice and the Chrome pair on final code head
 `0ca3f6d7`, with both Chrome installs and independent receiver audits. The pair
 and four other runs are listed in the Handover and
 [run inventory](records/post18d/final-0ca3f6d7-runs.json). Replacement diagnostics
