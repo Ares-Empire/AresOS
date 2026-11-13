@@ -70,19 +70,27 @@ public final class AresOs implements ModInitializer {
     }
 
     /** One complete program list from the helper goes into the apps file; My apps follows (item/MyAppsGame). */
-    private static synchronized void takeIn(List<AppDefinition> listed) throws IOException {
-        var merged = AppsConfig.merge(configPath(), listed, shell.detailed(), java.time.LocalDate.now());
+    private static synchronized void takeIn(ShellClient.AppList listed) throws IOException {
+        var merged = AppsConfig.merge(configPath(), LinuxAppCatalogue.definitions(listed.apps()), listed.detailed(), java.time.LocalDate.now());
         apps = merged.apps();
         dev.aresos.item.MyAppsGame.listed(merged);
     }
 
-    private static synchronized void mergeHelperApps(List<ShellClient.App> listed) {
+    private static synchronized void mergeHelperApps(ShellClient.AppList listed) {
         try {
-            takeIn(LinuxAppCatalogue.definitions(listed));
+            takeIn(listed);
             dev.aresos.item.MyAppsGame.pictures(apps);
         } catch (IOException | RuntimeException error) {
             LOGGER.error("Could not merge apps from the AresOS app helper; existing catalogue kept", error);
         }
+    }
+
+    private static void startHelper(ShellClient helper, boolean discovery) {
+        shell = helper;
+        if (discovery) helper.addListener(new ShellClient.Listener() {
+            @Override public void catalogue(ShellClient.AppList listed) { mergeHelperApps(listed); }
+        });
+        helper.start();
     }
 
     public static Identifier id(String path) {
@@ -109,14 +117,14 @@ public final class AresOs implements ModInitializer {
             boolean discovery = !Boolean.getBoolean("aresos.disableDiscovery");
             if (!windows && FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
                 // On AresOS only the OS app helper opens apps; the session supervisor provides its socket and nonce.
-                shell = ShellClient.fromEnvironment(System.getenv(), ShellClient.Settings.DEFAULT);
-                shell.start();
+                startHelper(ShellClient.fromEnvironment(System.getenv(), ShellClient.Settings.DEFAULT), discovery);
             }
             if (discovery && (windows || shell != null)) {
                 try {
                     if (windows) apps = AppsConfig.merge(configPath(), new WindowsAppCatalogue(
                             FabricLoader.getInstance().getGameDir().resolve("aresos-runtime/discovery"), apps).listApps());
-                    else takeIn(new LinuxAppCatalogue(shell, HELPER_WAIT).listApps());
+                    // All lists, including the first, are applied by the subscribed callback exactly once.
+                    else shell.awaitCatalogue(HELPER_WAIT);
                 } catch (ShellClient.ShellException helper) {
                     // Reported in game from the connection status; apps stay as configured until the helper answers.
                     LOGGER.warn("AresOS app helper not available at startup: {}", helper.getMessage());
@@ -124,9 +132,6 @@ public final class AresOs implements ModInitializer {
                     discoveryError = error.getMessage();
                     LOGGER.error("App discovery failed; existing catalogue kept intact", error);
                 }
-                if (shell != null) shell.addListener(new ShellClient.Listener() {
-                    @Override public void apps(List<ShellClient.App> listed) { mergeHelperApps(listed); }
-                });
             }
             try { generatedIcons = IconPack.generate(iconPackPath(), apps, new PixelIconConverter()).generated(); }
             catch (IOException error) { LOGGER.error("Cannot write icon cache; using configured vanilla looks", error); }

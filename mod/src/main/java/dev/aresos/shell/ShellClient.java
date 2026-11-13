@@ -53,6 +53,10 @@ public final class ShellClient implements AutoCloseable {
     public record App(String id, String name, boolean available, String reason, SystemInfo system) {
         public App(String id, String name, boolean available, String reason) { this(id, name, available, reason, null); }
     }
+    /** A complete listing carries its protocol meaning with it, including across later reconnects. */
+    public record AppList(List<App> apps, boolean detailed) {
+        public AppList { apps = List.copyOf(apps); }
+    }
     public record Focus(boolean foreground, String reason, String appId, boolean activated) { }
     public record Launch(String requestId, String launchId, String state) { }
     public enum State { STARTING, CONNECTED, UNAVAILABLE, INCOMPATIBLE, CLOSED }
@@ -74,6 +78,7 @@ public final class ShellClient implements AutoCloseable {
     public interface Listener {
         /** A complete list: after connecting and after every apps_changed. Never a part of one. */
         default void apps(List<App> apps) { }
+        default void catalogue(AppList listed) { apps(listed.apps()); }
         default void focus(Focus focus) { }
         default void status(Status status) { }
         /** Without window tracking an open already counted as done; the helper reported its failure afterwards. */
@@ -103,7 +108,7 @@ public final class ShellClient implements AutoCloseable {
     private final AtomicLong ids = new AtomicLong();
     private final List<Listener> listeners = new CopyOnWriteArrayList<>();
     private final Map<String, PendingOpen> opens = new ConcurrentHashMap<>();
-    private final CompletableFuture<List<App>> firstAttempt = new CompletableFuture<>();
+    private final CompletableFuture<AppList> firstAttempt = new CompletableFuture<>();
     private final Map<String, PendingOpen> watching = new ConcurrentHashMap<>();
     // Writes can block when the helper stops reading, so they get their own thread; the watchdog never writes,
     // so it can always notice a stalled write and close the connection, which unblocks the writer.
@@ -112,8 +117,7 @@ public final class ShellClient implements AutoCloseable {
     private final ScheduledExecutorService timer = Executors.newSingleThreadScheduledExecutor(
             task -> Thread.ofPlatform().daemon().name("aresos-shell-watchdog").unstarted(task));
     private volatile Status status = new Status(State.STARTING, "connecting to the app helper");
-    private volatile List<App> apps = List.of();
-    private volatile boolean detailed;
+    private volatile AppList catalogue = new AppList(List.of(), false);
     private volatile Connection connection;
     private volatile Connection attempt;
     private volatile boolean windows;
@@ -153,9 +157,9 @@ public final class ShellClient implements AutoCloseable {
     public void addListener(Listener listener) { listeners.add(Objects.requireNonNull(listener)); }
     public Status status() { return status; }
     /** The last complete list; it is kept while the helper is away or its list will not hold still. */
-    public List<App> apps() { return apps; }
+    public List<App> apps() { return catalogue.apps(); }
     /** True when the last complete list said where each program came from (a 1.1 helper). */
-    public boolean detailed() { return detailed; }
+    public boolean detailed() { return catalogue.detailed(); }
 
     static String protocol(int minor) { return "aresos-shell/" + MAJOR + "." + minor; }
     /** True when the helper confirms windows; otherwise a started process counts as opened, as on Windows. */
@@ -175,6 +179,11 @@ public final class ShellClient implements AutoCloseable {
 
     /** Waits for the first connection attempt; later reconnects refresh apps through {@link Listener#apps}. */
     public List<App> awaitApps(Duration timeout) throws IOException {
+        return awaitCatalogue(timeout).apps();
+    }
+
+    /** Startup may wait for readiness, but must not reapply this older snapshot after later callbacks. */
+    public AppList awaitCatalogue(Duration timeout) throws IOException {
         try {
             return firstAttempt.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (ExecutionException error) {
@@ -348,10 +357,10 @@ public final class ShellClient implements AutoCloseable {
             current.minor = Math.clamp(number(reply, "minor"), 0, MINOR);
             windows = offered.contains("windows") && offered.contains("app_state");
             var listed = firstList(current);
-            if (listed != null) keep(current, listed);
+            var snapshot = listed == null ? null : keep(current, listed);
             connection = current;
             setStatus(new Status(State.CONNECTED, windows ? "tracking windows" : "without window tracking"));
-            if (listed != null) announce(listed);
+            if (snapshot != null) announce(snapshot);
             // Without a complete list nothing is known yet; whoever waits must not take an empty list for one.
             else firstAttempt.completeExceptionally(new ShellException("list_incomplete",
                     "the app helper's app list did not hold still"));
@@ -446,14 +455,15 @@ public final class ShellClient implements AutoCloseable {
         }
     }
 
-    private void keep(Connection current, List<App> listed) {
-        apps = listed;
-        detailed = current.minor >= 1;
+    private AppList keep(Connection current, List<App> listed) {
+        var snapshot = new AppList(listed, current.minor >= 1);
+        catalogue = snapshot;
+        return snapshot;
     }
 
-    private void announce(List<App> listed) {
+    private void announce(AppList listed) {
         for (var listener : listeners) {
-            try { listener.apps(listed); }
+            try { listener.catalogue(listed); }
             catch (RuntimeException error) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", error); }
         }
         firstAttempt.complete(listed);
@@ -541,8 +551,7 @@ public final class ShellClient implements AutoCloseable {
         }
         if (listed == null) LOG.log(System.Logger.Level.WARNING, "AresOS app helper: " + problem + "; app list kept as it was");
         else if (connection == current) {
-            keep(current, listed);
-            announce(listed);
+            announce(keep(current, listed));
         }
         scheduleRefresh(current);
     }

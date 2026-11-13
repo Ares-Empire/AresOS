@@ -79,7 +79,7 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
             helper.revision = "day-one";
             var programs = programs(root.resolve("icons"));
             check(programs.size() == 150, "The fixture lists " + programs.size() + " programs, not 150");
-            helper.entries = List.copyOf(programs);
+            helper.entries = List.copyOf(programs.subList(0, 149));
             shell = helper.client(new ShellClient.Settings(Duration.ofSeconds(2), Duration.ofSeconds(3), Duration.ofSeconds(1),
                     Duration.ofMillis(50), Duration.ofMillis(200), Duration.ofMillis(200)));
             var connection = shell;
@@ -87,12 +87,13 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
             // have. This one gets the wiring AresOs gives its own: every complete list goes to mergeHelperApps.
             context.runOnClient(client -> {
                 AppsTestAccess.aresos$setApps(firstStart);
-                AppsTestAccess.aresos$setShell(connection);
+                AppsTestAccess.aresos$startHelper(connection, true);
             });
-            shell.addListener(new ShellClient.Listener() {
-                @Override public void apps(List<ShellClient.App> listed) { AppsTestAccess.aresos$mergeHelperApps(listed); }
-            });
-            shell.start();
+            var initial = shell.awaitCatalogue(Duration.ofSeconds(5));
+            check(initial.detailed() && initial.apps().size() == 149, "Startup lost the initial listing's details");
+            helper.entries = List.copyOf(programs);
+            helper.revision = "startup-refresh";
+            helper.event("apps_changed", Map.of("revision", "startup-refresh"));
 
             // Day one, before any world: the first complete list, in four pages, sets the baseline and My apps.
             context.waitFor(client -> AresOs.apps().size() == 150);
@@ -101,7 +102,11 @@ public final class MyAppsClientGameTest implements FabricClientGameTest {
             check(saved.baseline() != null, "Day one wrote no baseline");
             check(saved.apps().stream().filter(AppDefinition::mine).map(AppDefinition::id).collect(Collectors.toSet()).equals(DAY_ONE),
                     "The apps file does not hold day one's My apps");
-            check(helper.received("list_apps").size() == 4, "150 programs did not come in four pages: "
+            // A caller returning late from the startup wait gets the old list, but production never reapplies it.
+            check(shell.awaitCatalogue(Duration.ofSeconds(1)) == initial && AresOs.apps().size() == 150,
+                    "An older startup snapshot replaced a later callback");
+            check(saved.apps().size() == 150, "The startup refresh did not reach the apps file");
+            check(helper.received("list_apps").size() == 8, "The startup lists did not each come in four pages: "
                     + helper.received("list_apps").size());
             // The helper's pictures become the icon pack, and the game loads it without being asked.
             context.waitFor(client -> AresOs.generatedIcons.contains("discord") && client.gui.overlay() == null, 600);

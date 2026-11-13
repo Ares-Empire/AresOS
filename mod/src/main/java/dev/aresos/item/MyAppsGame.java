@@ -76,7 +76,6 @@ public final class MyAppsGame {
 
     /** Any thread: a complete program list went into the apps file. */
     public static void listed(AppsConfig.Merged merged) {
-        if (merged.joined().isEmpty()) return;
         // Day one fills My apps quietly; a program that turns up later is announced by name.
         if (!merged.dayOne() && merged.baseline() != null) for (String id : merged.joined())
             merged.apps().stream().filter(app -> app.id().equals(id)).findFirst()

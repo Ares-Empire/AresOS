@@ -22,9 +22,9 @@ public interface AppsTestAccess {
         throw new AssertionError("Test accessor was not transformed");
     }
 
-    /** What the game does with every complete program list from the helper. */
-    @Invoker("mergeHelperApps")
-    static void aresos$mergeHelperApps(List<ShellClient.App> listed) {
+    /** Production's subscription and start order, including its first complete list. */
+    @Invoker("startHelper")
+    static void aresos$startHelper(ShellClient helper, boolean discovery) {
         throw new AssertionError("Test accessor was not transformed");
     }
 }
