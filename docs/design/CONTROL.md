@@ -629,9 +629,12 @@ main
   other sites and shadow DOM, closed roots too, are part of the outline.
 - A password field is the line `password "Label" (not read)`. A text field whose history the reader doesn't know
   is `textbox "Label" (not read)`.
-- A page's text can't forge a line. Names and values are quoted, with quotes, line breaks, control and
-  direction-changing characters escaped (rule 4.1's escaping), and a reference the service didn't issue doesn't
-  work.
+- A page can't forge a line. The role is one word from a fixed list: a page's own `role` string is used only when
+  it is on that list, and otherwise the element's tag decides. Everything a page wrote (names, texts, values,
+  option labels, table cells, titles, the path of a `find` hit) appears only inside quotes, with quotes, line
+  breaks, control and direction-changing characters escaped (rule 4.1's escaping). That holds in the outline, in
+  every detail read, in a change report and in the line a refusal shows. A refusal's own message never holds page
+  text. A reference the service didn't issue doesn't work.
 
 **Detail on request.** With `ref`, `chrome_read` returns that part of the page unfolded, in the shortest form that
 fits its kind:
@@ -1317,7 +1320,10 @@ harness's helper functions change, never an assertion.
       status, notice or log line; `chrome_open` by reference still reaches the full address; the binding still
       refuses a destination whose query changed;
     - hostile content: text and names shaped like outline lines, references, folds or instructions come back
-      quoted and escaped inside the untrusted fields; a page of 100,000 elements is cut with a plain notice;
+      quoted and escaped inside the untrusted fields, in the outline, in tables, lists and forms read by `ref`, in
+      a `find` hit's path, in a change report and in a stale reference's present line; a `role` attribute made of
+      line breaks, outline lines and references shows as a role from the fixed list and nothing more; a refusal's
+      message holds no page text; a page of 100,000 elements is cut with a plain notice;
     - passwords: group 7's fixtures and recording run over every new output (the outline, a form read by `ref`,
       `find` for the password itself, several tabs, `until`, the change report after a "show password" click, the
       results of `chrome_open`, `chrome_go` and `chrome_take`, a prepared operation's question); the password

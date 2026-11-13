@@ -80,7 +80,12 @@ the reader's element id, the parent's id, the role, the accessible name, and onl
 states that are set, the link address, a form's method, action and hidden field names, a list's option count and
 chosen option, and the element's **own** text (not its descendants').
 
-- Roles and names as the reader computes them today. Headings carry their level.
+- **Roles come from a fixed list** (item 2), never from a page's own string. Brief 20's `role` returns a `role`
+  attribute verbatim (`reader.js`, `role`), and the outline prints the role outside the quotes, so a page could
+  write outline lines with it. For `outline` the reader takes the attribute only when its first word, in lower
+  case, is on the list; otherwise it takes the role of the tag (the table in item 2); otherwise the element has no
+  role. `targetFacts` keeps brief 20's `role` as it is, because the classification reads it. Names as the reader
+  computes them today. Headings carry their level.
 - **The password rule comes first, and it gets two additions** (section 6, "What the extension can and can't do").
   The exclusion check runs before every value or text read, in every frame and shadow root; a password-kind field
   yields its label and the kind, nothing else. The additions are built into the reader's own functions, so every
@@ -164,7 +169,7 @@ Claude uses an address it can't see by reference: a link's `ref`, his tab's numb
 ```
 line    = indent role [" " name] [" = " value] {" " state} [" → " target] [" " ref]
 indent  = two spaces per level of depth
-role    = the reader's role; h1 to h6 for headings; "text" for plain text; "password" for a password-kind field
+role    = one word from the role list below, nothing else
 name    = the accessible name or own text, in double quotes
 value   = a field's value in double quotes; the words (not read) instead for "password" and for a field whose
           history the reader doesn't know (item 1)
@@ -173,10 +178,41 @@ target  = for a link that leaves the page's site: its site; for a form: its meth
 ref     = three letters and a number, for example kqt5 (item 3)
 ```
 
+- **The role list.** Landmarks: `main`, `navigation`, `banner`, `contentinfo`, `complementary`, `region`, `search`,
+  `form`. Structure: `article`, `group`, `list`, `listitem`, `table`, `row`, `cell`, `columnheader`, `rowheader`,
+  `figure`, `img`, `separator`, `toolbar`, `dialog`, `alertdialog`, `alert`, `status`, `tooltip`, `progressbar`,
+  `frame`. Text: `h1` to `h6`, `p`, `text`. Controls: `link`, `button`, `textbox`, `searchbox`, `combobox`,
+  `listbox`, `option`, `checkbox`, `radio`, `radiogroup`, `switch`, `slider`, `spinbutton`, `tab`, `tablist`,
+  `tabpanel`, `menu`, `menubar`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `tree`, `treeitem`, `grid`,
+  `gridcell`, `password`. The list is in the definitions; the reader and the renderer both check against it, and
+  the renderer treats a word that isn't on it as no role.
+- **The role of a tag,** when the `role` attribute gives none from the list (brief 20 maps `table`, `ul`, `ol` and
+  `main` to `generic`, which the outline can't use): `main` is `main`; `nav` is `navigation`; `header` and `footer`
+  directly under `body` are `banner` and `contentinfo`; `aside` is `complementary`; a `section` with a name is
+  `region`; `form` is `form`; `article` is `article`; `fieldset` and `details` are `group`; `ul`, `ol`, `dl` and
+  `menu` are `list`; `li`, `dt` and `dd` are `listitem`; `table`, `tr`, `td` are `table`, `row`, `cell`; `th` is
+  `columnheader`, or `rowheader` with `scope="row"`; `figure` is `figure`; an `img` with an `alt` text is `img`;
+  `hr` is `separator`; `dialog` is `dialog`; `iframe` is `frame`; `h1` to `h6` and `role="heading"` with a level
+  are `h1` to `h6`; `p`, `blockquote` and `pre` are `p`; an `a` with an address is `link`; `button` and `summary`
+  are `button`; an `input` goes by its type (`checkbox`, `radio`, `range` as `slider`, `number` as `spinbutton`,
+  `search` as `searchbox`, the button types as `button`, a password-kind field as `password`, `hidden` none, every
+  other as `textbox`); `textarea` and an editable area are `textbox`; `select` is `combobox`, or `listbox` when it
+  shows several rows; `option` is `option`; `progress` and `meter` are `progressbar`; any other element with text
+  of its own is `text`. `role="presentation"` and `role="none"` give no role.
+- **One escaping rule for everything a page wrote.** Names, texts, values, option labels, titles, error texts,
+  table cells and column headers, the names in a `find` hit's path, hidden field names, a dialog's text and tab
+  titles appear only inside double quotes, and only after one function, `quoted`: the base's `visible()` (control
+  and direction-changing characters, line breaks, backslash), then `"` as `\"`. Outside quotes a line holds only
+  what the tool wrote: indentation, a role word, state words, numbers, references, public-form addresses and the
+  marks `=`, `→`, `·`, `|`, `[`, `]`, `(`, `)` and `…`. This holds for the outline, for every `ref` form (tables
+  and forms included), for `find`, for the change report and for the present line of a stale reference.
+- **A refusal never carries page text in its message.** The message is the tool's own fixed sentence. Where the
+  element's present line is given (a stale reference), it sits in `untrusted_content`, rendered and escaped like
+  any outline line: in that read's entry beside its `error` for `chrome_read`, and in `untrusted_content.now` for
+  `chrome_do`. `chrome_open` and `chrome_upload` give the message alone, and Claude reads the element again.
 - Text appears once, on the deepest element that owns it. A label whose text is its field's name gets no line of
   its own. An element without a role, a name or own text gets no line, and its children move up a level.
-- Quoting: the base's `visible()` escaping (control and direction-changing characters, backslash), then `"` as
-  `\"`. A name or value can never start a new line or end its quotes.
+- A name or value can never start a new line or end its quotes (the escaping rule above).
 - **Folds** (each says what it hides):
   - a name or text longer than 200 characters is cut and ends in `…+N`, N being the characters left out; the
     element's reference reads it whole;
@@ -318,7 +354,7 @@ Result:
  "unknown": [],
  "loaded": null,
  "untrusted_content": {"url": "…", "title": "…", "changed": "…", "more_changes": 0, "outline": null,
-                       "dialog": null, "clipboard": null, "stopped": []},
+                       "dialog": null, "clipboard": null, "stopped": [], "now": null},
  "version_notice": null}
 ```
 
@@ -559,6 +595,13 @@ Added cases, each with group 7's known password and a label that says nothing ("
 - H1, hostile text: names and paragraphs shaped like outline lines, references (`kqt5`), folds (`… 40 more`),
   instructions to Claude, quotes, line breaks and direction-changing characters; a page of 100,000 elements; a name
   of 100,000 characters.
+  - **Hostile roles:** a `role` attribute that holds a line break and a whole outline line with a reference; one
+    that holds `button" kqt5`; one of 10,000 characters; one in capitals with spaces around it. Each line shows a
+    role from the list or the tag's role, and nothing else of the attribute.
+  - **Hostile text everywhere:** the same strings as a name, a value, an option label, a cell, a column header, a
+    title, an error text and an ancestor's name come back quoted and escaped in the outline, in a table, a list
+    and a form read by `ref`, in a `find` hit with its path, in a change report, and in the present line of a
+    stale reference. A stale reference's message holds nothing from the page.
 
 Small fixtures are compared with stored expected outlines, character for character.
 
