@@ -1,6 +1,6 @@
 # 35: Slash names
 
-**Status: verification in progress.** PR #56 is draft. The final build and two client runs are pending the laptop's owner-game guard. Do not read the earlier-stage green build as verification of the final code.
+**Status: blocked on local verification.** PR #56 remains draft. The final source compiles and passes unit/server tests twice in hosted CI, but the final local build and two client runs could not run while the owner’s Lunar Client was open. No claim of full acceptance or visual verification is made.
 
 ## Done
 
@@ -20,14 +20,16 @@ All commands ran from this worktree. Every build used `mod/dev/build.sh`, preced
 - Initial rules build: `All 73 required tests passed :)`, then `162 tests completed, 1 failed, 6 skipped`, `BUILD FAILED in 1m 44s`. The new two-part desktop-ID test incorrectly expected `orgtest`; step 3 takes `org.test` whole and step 2 strips `org.`, so the correct specified answer is `test`. Corrected the expectation with an explanation.
 - First persistence build: failed the existing hand-written-entry assertion during schema-3 migration. Fixed migration to preserve schema 3's missing-`mine` semantics, instead of reapplying schema-1/2 defaults.
 - Rules/persistence rerun: `mod/dev/build.sh` printed `All 73 required tests passed :)` and `BUILD SUCCESSFUL in 1m 3s`; XML totals: 165 unit cases, 0 failures, 0 errors, 6 existing Windows skips.
-- Subsequent compilation attempts found an obsolete `getDayTime()` test call, an unavailable `ChatFormatting.getColor()`, and missing client-context/screenshot imports. These are fixed; sign text is checked through saved data because TextDisplay's getter is private in 26.2. Final compilation is still pending.
-- Several later attempts exited 75 with `The owner's Minecraft (Lunar Client, PID ...) is running; try again once it has closed, or pass --force.` Waited in blocking sleeps of several minutes between retries. No guard was bypassed. A guarded retry continues every three minutes.
+- Before the hosted passes, local compilation attempts found an obsolete `getDayTime()` test call, an unavailable `ChatFormatting.getColor()`, and missing client-context/screenshot imports. These are fixed; sign text is checked through saved data because TextDisplay's getter is private in 26.2. Final-source compilation subsequently passed in both hosted checkouts.
+- Eight later build attempts (5, 8–14) exited 75 with `The owner's Minecraft (Lunar Client, PID ...) is running; try again once it has closed, or pass --force.` Waited in blocking sleeps of several minutes between retries. No guard was bypassed. The final retry process waited three minutes between attempts 12–14, then was stopped (only its own shell and sleeping child, exit 143). No Gradle process or client was active in that retry loop.
 - Hosted CI at `49e57050` ([job log](https://github.com/Ares-Empire/AresOS/actions/runs/43518209980/job/132205514877)): both clean checkout builds passed all 77 required server tests and their unit suites; printed `BUILD SUCCESSFUL in 1m 4s` and `BUILD SUCCESSFUL in 59s`, then matched the jar hashes. The overall job was cancelled during post-cache cleanup by the later documentation push, after every build/test/reproduction step succeeded. This verifies final-source compilation and server behavior, not the pending local client suite. Retrieved with `~/.local/bin/gh run view --job 132205514877 --log`.
+- Latest completed hosted check at `12249b5a` ([run 43519033298](https://github.com/Ares-Empire/AresOS/actions/runs/43519033298)): `Build, test and reproduce jar` **pass**, 4m3s; `gh run view ... --json headSha,status,conclusion` printed `status: completed`, `conclusion: success`. Changes since `49e57050` are this report only.
+- Final `free -g`: 15 GB total, 10 used, 4 available. `mod/dev/client-test.sh` exited **75** with `The owner's Minecraft (Lunar Client, PID ...) is running; try again once it has closed, or pass --force.` No compositor or test client was started.
 - `git diff --check`: no output, exit 0. `git push -u origin pkg/35-slash-names`: exit 0 through the privacy hook. `~/.local/bin/gh pr create --base main --head pkg/35-slash-names --draft ... --body-file .work/35-pr-body.md`: created https://github.com/Ares-Empire/AresOS/pull/56.
 
 ## Not verified
 
-- Final build, final server tests and the full headless client suite twice: pending the laptop guard. No screenshot has yet been captured or inspected for package 35.
+- Final local `mod/dev/build.sh` and the full headless client suite twice: blocked by the laptop guard despite repeated waits. Hosted CI verifies final unit/server behavior but cannot replace the required client runs. No package-35 screenshot was captured or inspected, and no screenshot is committed. Other packages’ screenshots remain untouched.
 - Real Chrome/Discord/Lunar window behavior and the owner's feel for the chosen names require a human. Automated launches use a fake launcher only.
 
 ## JUDGMENT-CALL
@@ -44,7 +46,7 @@ All commands ran from this worktree. Every build used `mod/dev/build.sh`, preced
 
 ## Open questions
 
-- None requiring an answer during this run. PR stays draft until final verification and screenshots finish.
+- No answer was requested mid-run. PR must remain draft until the owner’s game is closed, a guarded local build and two full client runs pass, and their screenshots are inspected. The newly added client test has only compiled; its runtime behavior still needs those runs.
 
 ## Try this
 
