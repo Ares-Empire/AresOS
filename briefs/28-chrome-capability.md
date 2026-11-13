@@ -309,11 +309,22 @@ site and the path, nothing else. It is used in two kinds of place.
 
 Full addresses stay inside the service and the extension: in the reference table, in an operation's payload
 (`binding`, `reference`) and in the commands to the extension. **Nothing about comparing changes:** the extension
-still compares the full destination right before an approved input. To build this, `prepare`, `question`, `free`
-and `stage` in `adapter.py` take their description, question and stage texts from a copy in which each address
-went through `public_address` (`url`, `frame_url`, `effective_url`, `form.action`, `target.href`,
-`editable[].url`, a dialog's `frame_url`, and the `url` the extension reports after an input). The payload isn't
-touched. This is the one change this package makes inside those functions; show its lines in the report.
+still compares the full destination right before an approved input. To build this (package re-check 2, N9:
+PR #27's adapter has no `stage` method, and its stage texts are made in `execute`):
+
+- **`prepare` and `question`** take the description and the question from a copy in which each address went
+  through `public_address`, in the public form: `url`, `frame_url`, `effective_url`, `form.action`,
+  `target.href`, `editable[].url` and a dialog's `frame_url`.
+- **`free`** does the same for the description it commits and for what it returns, and writes its `page` stage
+  with addresses in the short form.
+- **`execute`** serialises the extension's raw reply into the stage callback (`stage('confirmation', …)` and
+  `stage('page', …)`), and `Engine.stage` stores that text on the operation and writes it to the audit log. So
+  `execute` builds those two texts from a copy of the reply in which each address (the `url` the extension
+  reports after an input, a frame's and a dialog's address) went through `public_address` in the short form,
+  before it serialises them. Those two lines are the one change inside `execute`. `Engine.stage` isn't changed.
+- **`steps`** writes its page-step warning (`chrome_page_step`) to the log with addresses in the short form.
+
+The payload isn't touched anywhere, and no comparison reads a projected text. Show these lines in the report.
 
 Claude uses an address it can't see whole by reference: a link's `ref`, his tab's number, a library entry's `ref`
 (items 4 and 6). So a `…` never blocks a navigation.
@@ -924,8 +935,9 @@ Restructure in steps that keep everything working:
   15-minute deadline; one approval, one run. Brief 20's asking read belongs to it too: `chrome_read_typed_fields` with
   its question, its binding to the prepared read, its one approval for one call, its refusal of credential-like
   fields and its new question when a field was added, replaced or relabelled. **Four narrow exceptions, each named
-  where it is specified, and nothing beyond them:** `prepare`, `question`, `free` and `stage` write addresses in the
-  public form while the payload and every comparison keep the full address (item 2); `input` brings its target on
+  where it is specified, and nothing beyond them:** `prepare` and `question` write addresses in the public form, and
+  `execute` writes its two stage texts with addresses in the short form, while the payload and every comparison keep
+  the full address (item 2); `input` brings its target on
   screen inside the armed hold before brief 20's own hit test (item 5); `input` checks its command's time once,
   right before the dispatch, and dispatches nothing when it is up (item 5, "Time"); the password rule gets its two
   additions (item 1). What asks, what is bound, and what is compared before an approved input don't change.
@@ -1286,7 +1298,7 @@ The base's, 18d's and Mail's suites still pass, and the generated artifacts are 
 ## Out of scope
 
 - His open tabs in place, the **READ** sign, the popup list, incognito, tabs in the background: brief 28b.
-- Anything in the asking path or the hold beyond the three exceptions named in "What must not change".
+- Anything in the asking path or the hold beyond the four exceptions named in "What must not change".
 - Screenshots (owner, 2026-11-13, board #202: "Text only first"), coordinates, hover, drag, console or network
   reading, running script text, a search that needs a model, loops or conditions in a step list, steps across
   tabs, a richer result for `chrome_submit` (section 6, "Left out on purpose").
@@ -1324,10 +1336,10 @@ AGENTS.md's format (Done, Verified, Not verified, JUDGMENT-CALL, PLAN-GAP, Open 
 - the baseline and the measured numbers side by side, per task, with run ids;
 - the outline of each fixture as returned (short ones in full, long ones by their first 40 lines);
 - the tool descriptions and instructions as Claude will read them, with anything you are unsure reads well;
-- what changed in `adapter.py`'s `payload` and `facts`, line by line; the lines of the three exceptions (the
-  public form in `prepare`, `question`, `free` and `stage`; the reveal in `input`; the two password additions in
-  `reader.js`); and a statement that nothing else in the asking path changed, with the diff command that shows
-  it;
+- what changed in `adapter.py`'s `payload` and `facts`, line by line; the lines of the four exceptions (the
+  projected addresses in `prepare`, `question` and `execute`; the reveal in `input`; the time check in `input`;
+  the two password additions in `reader.js`); and a statement that nothing else in the asking path changed, with
+  the diff command that shows it;
 - the harness map and the inventory mapping;
 - every claim marked **run** (workflow run id and log line), **read** (file and line) or **assumed**.
 
@@ -1389,7 +1401,7 @@ fewer characters. Say what you chose in the report.
 
 - Stop and report, rather than weaken a rule, if a budget can only be met by leaving out something Claude needs to
   act safely, if a budget can't be met with the calls its row names, or if the asking path would have to change
-  beyond the three exceptions named in "What must not change".
+  beyond the four exceptions named in "What must not change".
 - Stop if any test would need a real site or a real account.
 - The full `control-chrome.yml` suite takes three to four hours a run. Develop against the browser-free tests and
   the short job. Plan about 10 full runs; tell the lead in the report before passing 14. Wait on each run with one
