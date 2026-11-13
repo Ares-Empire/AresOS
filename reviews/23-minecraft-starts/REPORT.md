@@ -674,7 +674,8 @@ errors on round 0's helper, because the shared fixture now passes `keep_foregrou
     and the pinned Java are accepted; refused while recovery is latched or a desktop already runs);
   - starts Java as its child with the launch nonce, desktop instance and GPU variables, reports the JVM's PID (the
     supervisor checks it is the wrapper's child, records its start time and watches it with a pidfd) and its exact
-    exit status (also in `desktop-exit.json`, in case the supervisor restarted meanwhile);
+    exit status (first in `~/.local/state/aresos/desktop-exit.json`, which outlives a supervisor restart and, since
+    review fixes 5, a reboot);
   - makes Java die with it (PR_SET_PDEATHSIG) and forwards termination signals. Prism's stdin (its launch script),
     stdout and stderr pass straight through.
   A restarted supervisor adopts a JVM that still runs (PID and start time) and never starts a second one.
@@ -872,16 +873,36 @@ Owner-facing ones first (1 to 6); 7 to 14 are technical.
 9. **Fabric Loader stays 0.19.5** although 0.20.1 (2026-10-19) exists: the mod builds and its client tests run on
    0.19.5. Moving the image to 0.20.x belongs with a mod change that also moves `gradle.properties`. Fabric API
    0.161.0+26.2 is already the newest for 26.2.
-10. **Kills and unknown exits (updated in review fixes 1 and accepted by the owner, board #170; review fixes 2
-    applies it before the PID hand-off too).** A
-    JVM killed by SIGKILL (the kernel's OOM killer, systemd-oomd, or a forced kill) and an exit nobody reported (the
-    wrapper ended too, as when a whole scope is killed or with Prism's Kill button) both latch recovery `killed`.
-    Neither counts as a crash, and neither restarts by itself (B5: no automatic restart under memory pressure). The
-    message names the scope's systemd result when there is one, and `retry` waits until memory pressure has
-    cleared. Rejected: counting an unexplained exit as a crash (round 0's choice), because a memory kill would then
-    come back after 5 s into the same pressure. Cost: a crash that also takes the wrapper down needs his `retry`
-    instead of restarting by itself; that is rare, since the wrapper is a separate process outside the game's
-    scope.
+10. **Only a certain ordinary crash restarts by itself (updated in review fixes 1 and accepted by the owner, board
+    #170; review fixes 2 applies it before the PID hand-off too; widened in review fixes 5, see below).**
+    - The supervisor decides every end from Java's real exit status, as its wrapper saw it:
+      - any status other than 0 and SIGKILL: a crash, counted, restarted after its backoff (three latch, as before);
+      - exit 0: his quit, whenever it comes. Never counted, never restarted;
+      - SIGKILL (the kernel's OOM killer, systemd-oomd, any forced kill): latches recovery `killed`;
+      - no report and no record (the wrapper ended too, as when a whole scope is killed or with Prism's Kill
+        button): latches `killed` as well.
+      A latch is never counted as a crash and never restarts by itself (B5: no automatic restart under memory
+      pressure). The message names the scope's systemd result when there is one, and `retry` waits until memory
+      pressure has stayed clear for a minute.
+    - **New in review fixes 5** (brief 5's rule: restart only when the end is certain to be an ordinary crash; the
+      integrator decides whether this goes back to the owner):
+      - A SIGKILL latches **whoever sent it**, also the wrapper's own SIGKILL of a Java that ignored SIGTERM for
+        10 s while a start was being aborted. Until round 4 that counted as a failed start and restarted. The exit
+        status cannot tell whose SIGKILL landed first, and a Java that cannot stop within 10 s may itself be a sign
+        of memory pressure. The message then also says that the launcher wrapper sent a SIGKILL and that the cause
+        is not certain.
+      - Exit 0 before the hand-off (or after a refused or lost one) is his quit, no longer a failed start.
+      - After a reboot, an end that was latched as unexplained is settled from the wrapper's exit record, which
+        now survives the reboot. What the old session would have done next (wait after his quit, restart after a
+        crash) is not carried into the new session; only a latch is.
+    - Rejected: counting an unexplained exit as a crash (round 0's choice), because a memory kill would then come
+      back after 5 s into the same pressure. Rejected in round 5: keeping "the wrapper stopped Java itself" as a
+      reason to restart. It needs to know who ended Java, and five reviews in a row found a race in exactly that.
+    - Cost: these ends need his `retry` instead of restarting by themselves: a crash that also takes the wrapper
+      down (as before; rare, since the wrapper is a separate process outside the game's scope), and an aborted
+      start whose Java had to be SIGKILLed (new; rare: the hand-off must break or be refused, and Java must then
+      ignore SIGTERM for 10 s). A Java that exits 0 right at its start shows "Minecraft was closed" and is not
+      tried again. Changing any of it later: a few lines in `Supervisor.conclude` and the model's `truth()`.
 11. **One nonce per launch, one instance ID per session.** Every game launch gets a fresh `ARESOS_LAUNCH_NONCE`, so
     the helper is restarted with it before each launch (the game is not running then; the helper reconciles its app
     journal on restart, package 24). The instance ID stays for the session so the helper keeps its journal.

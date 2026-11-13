@@ -1863,15 +1863,21 @@ class HandOffRun:
                 self.sup.on_wrapper_gone(self.peer.launch)
         self.lock()
 
+    def send(self, signum):
+        """The wrapper's real send(). A signal counts as sent exactly when Java had not ended at the wrapper's
+        look: a skipped send is never noted (review 5, finding 1)."""
+        running, before = self.java_alive, list(self.sent)
+        confirmed = wrapper.send(self.java, signum, self.sent)
+        assert (confirmed, self.sent) == (running, before + [int(signum)] * running), (
+            'a signal was noted that no running Java took', int(signum), running, self.sent)
+
     def stop_term(self):
-        before = list(self.sent)
-        delivered = wrapper.send(self.java, signal.SIGTERM, self.sent)
-        assert self.sent == before + ([TERM] if delivered else []), self.sent
+        self.send(signal.SIGTERM)
         self.wrapper = 'window' if self.java_alive else 'ending'
 
     def stop_kill(self):
         self.pass_time(wrapper.STOP_WAIT)
-        wrapper.send(self.java, signal.SIGKILL, self.sent)
+        self.send(signal.SIGKILL)
         assert not self.java_alive
         self.wrapper = 'ending'
 
@@ -2092,8 +2098,8 @@ class HandOffModelTest(Base):
         if os.environ.get('ARESOS_MODEL_REPORT'):
             print(f'model: {len(failures)} failing; {dict(seen)}', file=sys.stderr)
         if failures:
-            self.fail(f'{len(failures)} of {seen["orders"]} orders fail, for example:\n  '
-                      + '\n  '.join(failures[:12]))
+            self.fail(f'{len(failures)} of {seen["orders"]} orders fail; the shortest:\n  '
+                      + '\n  '.join(sorted(failures, key=lambda text: len(text.split(':')[0]))[:12]))
         # The model reaches every kind of end, the restart, and both sides of a reboot (so it cannot pass by
         # having lost its orders).
         self.assertGreater(seen['orders'], 40000)
@@ -2637,26 +2643,27 @@ def kill_unreaped(child):
     os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOWAIT)
 
 
-def killed_from_outside(look, when):
-    """An ended() for the real wrapper that lets a SIGKILL from outside land at an exact point, without sleeps.
-    While the wrapper stops Java it looks at it once before each signal: look 1 before its SIGTERM, look 2 before its
-    SIGKILL (after the stop window). The kill lands right `before` that look (the wrapper then sees that Java has
-    ended and sends nothing), or right `after` it (the wrapper saw Java running, and its signal reaches a Java that
-    has just been killed: reviews 4 and 5, finding 1)."""
-    real_ended, looks = wrapper.ended, [0]
+def outside_kill(step, when):
+    """Stand-ins for the real wrapper's functions that let a SIGKILL from outside land at an exact point of its
+    stop, without sleeps. Step 1 is the wrapper's SIGTERM, step 2 its SIGKILL after the stop window. The kill lands
+    right `before` that step (the wrapper then finds that Java has ended and sends nothing: review 5, finding 1), or
+    `after` the wrapper's look at Java inside that step (it saw Java running, and its signal reaches a Java that
+    has just been killed: review 4, finding 1)."""
+    real_send, real_ended, steps = wrapper.send, wrapper.ended, [0]
+
+    def send(child, signum, sent):
+        steps[0] += 1
+        if steps[0] == step and when == 'before':
+            kill_unreaped(child)
+        return real_send(child, signum, sent)
 
     def ended(child):
-        looks[0] += 1
-        if looks[0] != look:
-            return real_ended(child)
-        if when == 'before':
-            kill_unreaped(child)
-            return real_ended(child)
         result = real_ended(child)
-        if not result:
+        if steps[0] == step and when == 'after' and not result:
+            steps[0] += 1  # once
             kill_unreaped(child)
         return result
-    return ended
+    return dict(send=send, ended=ended)
 
 
 def run_wrapper_here(java, environ, cwd):
@@ -2891,15 +2898,14 @@ class WrapperTest(unittest.TestCase):
         # the report and the record say the same.
         environ = {'XDG_RUNTIME_DIR': str(self.root), 'INST_ID': 'AresDesktop', 'HOME': str(self.root),
                    'INST_DIR': str(self.root / 'instance'), 'PATH': '/usr/bin:/bin', 'FAKE_JAVA_SLEEP': '60'}
-        for look, when, ignores, sent in ((1, 'before', False, []), (1, 'after', False, [TERM]),
+        for step, when, ignores, sent in ((1, 'before', False, []), (1, 'after', False, [TERM]),
                                           (2, 'before', True, [TERM]), (2, 'after', True, [TERM, KILL])):
-            with self.subTest(look=look, when=when):
+            with self.subTest(step=step, when=when):
                 self.requests.clear()
                 # A Java that ignores SIGTERM gets a moment to say so before the hand-off breaks.
                 self.drop_started, self.drop_delay = True, 1.0 if ignores else 0.0
                 env = dict(environ, FAKE_JAVA_TERM='ignore') if ignores else environ
-                with mock.patch.object(wrapper, 'ended', killed_from_outside(look, when)), \
-                        mock.patch.object(wrapper, 'STOP_WAIT', 0.3):
+                with mock.patch.multiple(wrapper, STOP_WAIT=0.3, **outside_kill(step, when)):
                     code = run_wrapper_here(self.java, env, self.root)
                 self.assertEqual(code, wrapper.REFUSED)
                 failed = self.requests[-1]
@@ -3348,7 +3354,7 @@ class LoopTest(Base):
         with mock.patch.object(desktop.Loop, 'handle', losing):
             self.thread.start()
             self.wait(lambda: sup.launch is not None and sup.launch.prism is not None)
-            self.assertEqual(self.wrapper_here(ended=killed_from_outside(1, 'after')), wrapper.REFUSED)
+            self.assertEqual(self.wrapper_here(**outside_kill(1, 'after')), wrapper.REFUSED)
             self.wait(lambda: (sup.state, sup.reason) == ('RECOVERY', 'killed'))
             self.assertTrue(sup.persisted.latched)
             self.assertEqual(desktop.request(self.paths, {'op': 'status'})['consecutive'], 0)
@@ -3360,7 +3366,7 @@ class LoopTest(Base):
         alone. Whatever the wrapper then counts as sent, the kill latches and nothing restarts."""
         self.mode.write_text('idle')
         pathlib.Path(f'{self.exit_file}.term-ignore').touch()
-        patches = dict(ended=killed_from_outside(2, when), STOP_WAIT=0.3)
+        patches = dict(outside_kill(2, when), STOP_WAIT=0.3)
         if record_only:
             patches['report_again'] = lambda path, message: None  # no report reaches the supervisor
         sup = self.loop.supervisor
