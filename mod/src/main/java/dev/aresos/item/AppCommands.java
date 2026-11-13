@@ -5,6 +5,7 @@ import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.aresos.AresOs;
 import dev.aresos.config.AppDefinition;
+import dev.aresos.config.AppSearch;
 import dev.aresos.world.DesktopWorld;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -59,9 +60,7 @@ public final class AppCommands {
             source.sendSuccess(() -> Component.literal(said), false);
             return 1;
         } catch (IOException | RuntimeException error) {
-            // The apps file is written whole or not at all, so a failure leaves My apps as it was.
-            source.sendFailure(Component.literal(error instanceof IOException ? error.getMessage()
-                    : "Could not change My apps: " + error.getMessage()));
+            source.sendFailure(Component.literal(MyAppsGame.failure(error)));
             return 0;
         }
     }
@@ -69,8 +68,7 @@ public final class AppCommands {
     private static int list(CommandSourceStack source) throws CommandSyntaxException {
         var player = host(source);
         if (player == null) return 0;
-        var mine = AresOs.apps().stream().filter(AppDefinition::mine)
-                .sorted(java.util.Comparator.comparing(app -> app.name().toLowerCase(java.util.Locale.ROOT))).toList();
+        var mine = AresOs.apps().stream().filter(AppDefinition::mine).sorted(AppSearch.BY_NAME).toList();
         source.sendSuccess(() -> Component.literal("My apps: " + mine.size()), false);
         for (var app : mine) source.sendSuccess(() -> Component.literal(app.name() + " (" + app.id() + ")"
                 + (app.pinned() ? ", in the hotbar" : "")), false);

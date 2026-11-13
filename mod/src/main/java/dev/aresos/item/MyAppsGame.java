@@ -113,6 +113,24 @@ public final class MyAppsGame {
         return "Removed " + app.name() + " from My apps. It stays in All programs.";
     }
 
+    /**
+     * The Apps screen's click: the same change as the command, for the host in an AresOS world. The line goes to
+     * the chat; the screen shows it too while it covers the chat.
+     */
+    static void asked(ServerPlayer player, String id, boolean mine) {
+        var server = player.level().getServer();
+        if (!DesktopWorld.isHost(server, player) || !DesktopWorld.isEnabled(server)) return;
+        String said;
+        try { said = mine ? add(player, id) : remove(player, id); }
+        catch (IOException | RuntimeException error) { said = failure(error); }
+        player.sendSystemMessage(Component.literal(said));
+    }
+
+    /** Why My apps could not be changed. The apps file is written whole or not at all, so nothing changed. */
+    static String failure(Exception error) {
+        return error instanceof IOException ? error.getMessage() : "Could not change My apps: " + error.getMessage();
+    }
+
     /** {@code /aresos give}: what is in his inventory is his, so giving a program that is not his makes it his. */
     public static boolean own(net.minecraft.commands.CommandSourceStack source, AppDefinition app) {
         if (app.mine()) return true;

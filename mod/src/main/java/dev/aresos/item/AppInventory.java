@@ -23,6 +23,9 @@ public final class AppInventory {
     public static void register() {
         PayloadTypeRegistry.serverboundPlay().register(TakeAppPayload.TYPE, TakeAppPayload.CODEC);
         ServerPlayNetworking.registerGlobalReceiver(TakeAppPayload.TYPE, (payload, context) -> take(context.player(), payload.id()));
+        PayloadTypeRegistry.serverboundPlay().register(MyAppPayload.TYPE, MyAppPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(MyAppPayload.TYPE,
+                (payload, context) -> MyAppsGame.asked(context.player(), payload.id(), payload.mine()));
         MyAppsGame.register();
     }
     public static List<AppDefinition> populate(ServerPlayer player) { return populate(player, AresOs.apps()); }

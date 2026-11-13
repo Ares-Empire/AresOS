@@ -73,8 +73,10 @@ public final class RealAppsClientGameTest implements FabricClientGameTest {
                 context.waitFor(client->!AresOs.app("fixture-notes").pinned());
                 check(!AppsConfig.load(config).apps().getFirst().pinned(),"Unpin was not persisted");
                 context.clickScreenButton("Apps…");context.waitForScreen(AppsScreen.class);
-                context.clickScreenButton("›");screenshot(context,"07-apps-page-2");
-                context.clickScreenButton("    Fixture 40");context.waitForScreen(InventoryScreen.class);
+                // Package 34 replaced the pages by a search box: the name finds the one app, Enter picks up its item.
+                // The screenshot keeps package 07's name, so its place in the numbering of the tracked files stays.
+                context.getInput().typeChars("fixture 40");context.waitTicks(2);screenshot(context,"07-apps-page-2");
+                context.getInput().pressKey(InputConstants.KEY_RETURN);context.waitForScreen(InventoryScreen.class);
                 context.waitFor(client->"fixture-39".equals(client.player.inventoryMenu.getCarried().get(AppItems.APP_ID)));
                 clickSlot(context,38);world.getConnection().waitForServerboundPackets();
                 context.waitFor(client->AresOs.app("fixture-39").pinned());
