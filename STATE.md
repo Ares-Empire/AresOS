@@ -9,7 +9,7 @@ Updated 2026-11-13. The live truth is `git log`, `gh pr list` and `git worktree 
   - Update rehearsal run 14 (43302603386) passed the owner's whole route in the VM: tools v1 to v2, `at update`, `at title`, `at reboot` into R27 with R13 as rollback and stock pinned, `sudo passwd ares`, package 21's rules, `at previous` back to R13 (forward refused), every protected-disk audit unchanged.
   - Built by a Claude agent (Opus). Reviews 1–3 CHANGES-NEEDED (the update stop routine); reviews 4 (owner tools), 5 and 6 (harness) SAFE. Runs, reviews and known limits: `reviews/27-first-update-release/REPORT.md`.
   - Owner answers: board #175 (JUDGMENT-CALL 11, unmasking the two staging finalizers) and board #188 (JUDGMENT-CALLs 1 and 2, "OK to both").
-  - **Next: the owner runs the update route on the laptop** (`docs/INSTALL.md` → "Update AresOS to a new release", then `sudo passwd ares`). INSTALL-STATUS stays "NOT USED" until his records come back.
+  - **The laptop runs R27 since 2026-11-13.** The owner ran the update route himself, guided by `mac-aresos-install` (board #189): tools v1 to v2, update, title, export and reboot passed, the check was confirmed after the restart, and he set `ares`'s password (`sudo -v` passes). Checked live the same day: R27 booted, R13 as rollback, stock pinned. `at previous` has not been used on the laptop. Brief 27b records it in INSTALL-STATUS.
   - Later fixes (harness only): `fetch-depth: 0` on the checks-only job; cache the pinned rehearsal tool .debs; PLAN-GAP for the next image: stop masking the two finalize units.
 
 - **The update route: `at update`, `at previous`, tools updating themselves** (PR #32, brief 22 to 22-review-fixes-9, empire brief 263, merged 2026-11-10 as `002dcc09`):
@@ -99,6 +99,12 @@ Updated 2026-11-13. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## In progress
 
+- **Who works where (since 2026-11-13).** The OS lead runs on the laptop itself as `linux-aresos` (`laptop-aresos` on Windows is retired). Worktrees are `~/AresOS-NN-slug`, and the tests run natively.
+  - `linux-aresos`: `os/`, the install and update documents, `STATE.md`, `HANDOFF.md`, the releases; packages 23, 22c, 21b, 25 and 26.
+  - `linux-hub`: all of `mod/`, the helper's app list, `/usr/libexec/aresos-shell` and labwc's theme (the home screen, later the companions).
+  - `linux-tools`: the control tools, including brief 18c (the control files in the image). `mac-aresos-control` keeps the Chrome PR #27 until it merges.
+  - Touch points: labwc's `rc.xml` (21b changes key bindings there; tell each other first) and the mod jar the image pins (it moves with each release). Desktop shortcuts and the app wheel (board #163): the in-game side goes to `linux-hub`, the helper's program lookup stays with the OS lead (proposed 2026-11-13).
+- **Lunar Client on AresOS (2026-11-13).** The owner's normal Minecraft client runs from his home folder (`lunar`, the official AppImage, started with the RTX 4060 selected), outside the image. The in-game check of graphics card, sound and frame rate is still open. Package 23's Prism instance is a separate thing.
 - **Owner OK to merge and publish this round (2026-11-09: "Once its safe and done you can merge and publish"):** packages 21–24 merge after a fresh SAFE review, passing checks and his answers to their judgment calls. The next AresOS release built from them may be published and pinned without asking again, once its rehearsal passes. Installing it on the laptop (`at update`) is still his own step. Anything outside this round still needs his OK.
 - **Package 23, started 2026-11-10** (Claude agent, Opus; branch `pkg/23-minecraft-starts`): package 23 (brief `23-minecraft-starts.md`, empire brief 264): Prism and Java 25 in the image, the managed `AresDesktop` instance, the `AresHub` world, and a supervisor that boots into the hub.
   - Built: PR #36 (head `d08fde0f`). Check build with VM passed (run 42809824712); WSL suites show only the known failures. Not proven: a real JVM start (CI has no Microsoft account).
@@ -115,7 +121,7 @@ Updated 2026-11-13. The live truth is `git log`, `gh pr list` and `git worktree 
     - Still unproven: an oomd kill and focus hand-back with a real game; both wait for the laptop trial.
     - REVIEW-3 (Astra): CHANGES-NEEDED. All 9 REVIEW-2 findings are fixed. Left: 1 blocking (a SIGKILL after PID acceptance with a lost answer still restarts) and 2 should-fix (hand-off deadline vs the wrapper's stop window; pressure-sampling gaps). Review fixes 3 is pushed (`8420eba2`). All three are fixed, each with revert proof. WSL suites show only the known failures (run at ≥ 4.5 GB free; WSL's page cache kept Windows below 5 GB).
     - REVIEW-4 (Sol): CHANGES-NEEDED, a third round of hand-off races (a kill between `poll()` and `stop()` reported as wrapper-stopped; the unresolved latch not persisted; the 30 s vs 20 s deadline). Review fixes 4 (brief `23-review-fixes-4.md`) settles the hand-off by construction: classification from facts, persisted unresolved state, one deadline rule, and a model-based test over every order of events. If REVIEW-5 still finds blocking races, move the builder to Fable 5.2.
-    - REVIEW-5 (Astra, on `d6aab7ab`): CHANGES-NEEDED, 1 blocking (an attempted SIGKILL counted as sent) and 3 should-fix. **Parked until after the Claude reset (Thu 11-12 00:00).** Next: a fresh Fable 5.2 builder with `briefs/23-review-fixes-5.md` (only certain crashes restart; uncertain ends wait for `retry`). The full WSL suite at `d6aab7ab` did run: 995 tests, plain and `-B`, only the 13 known WSL-only failures.
+    - REVIEW-5 (Astra, on `d6aab7ab`): CHANGES-NEEDED, 1 blocking (an attempted SIGKILL counted as sent) and 3 should-fix. **Review fixes 5 started 2026-11-13**: a fresh Fable 5.2 builder with `briefs/23-review-fixes-5.md` (only certain crashes restart; uncertain ends wait for `retry`), natively on AresOS. Then a fresh review, then the merge. The full WSL suite at `d6aab7ab` did run: 995 tests, plain and `-B`, only the 13 known WSL-only failures.
     - Updated JUDGMENT-CALL 10 (a memory kill or unexplained whole-scope death latches recovery, no automatic restart) was accepted by the owner (board #170, 2026-11-10: "Yes").
   - Merges after 27.
 - **Package 27 merged 2026-11-13** (see Done). Left over for 22c and the next release:
@@ -124,7 +130,14 @@ Updated 2026-11-13. The live truth is `git log`, `gh pr list` and `git worktree 
   - Packages 23 and 21b go into the next release, which needs 22c first.
 - **Main's hosted test leak fixed** (PR #37, `d5d5c447`, 2026-11-10). `test_owner_update`'s refusal invariant now undoes its injected patch however a subtest ends. Before, a namespace skip on GitHub's runner leaked a patched `disk_record` into later tests (118 errors). Hosted `checks_only` on the fix: 853 tests OK (run 42819274873). The runner still skips the namespace tests; WSL runs them. REVIEW-2 (Sol) SAFE.
 - **Then:**
-  - 21b: backlight and power button, after the read-only check on the laptop in AresOS (board #149 tells the next AresOS session).
+  - 22c: the brief is being drafted (2026-11-13).
+  - 21b: backlight and power button. The read-only check ran on the laptop on 2026-11-13 (R27, board #149):
+    - Brightness: a backlight device exists now (`nvidia_wmi_ec_backlight`, firmware type, 0 to 800) and brightnessctl is installed and sees it. The panel hangs on the Intel card (hybrid mode). Whether the keys change the screen is the owner's test, still open.
+    - Power button: logind watches both power-button devices and `HandlePowerKey=poweroff` is set. The journal holds one "Power key pressed short" in all boots (2026-11-09 21:40), and the fixed-feature button counter is 0. Which device reports a press, and how reliably, needs a watched press (root, or an inhibitor so the press doesn't power off).
+  - The next image, beyond 23 and 21b (checked live on R27, 2026-11-13: PATH, Flatpak without login noise, foot font 16, `script`, qrencode and Chrome have arrived):
+    - Control's files and `gh` 2.102 or newer (brief 18c, `linux-tools`; the image has no `gh` of its own yet).
+    - Konsole as the everyday terminal (owner, 2026-11-13, board #190 and #191: "a normal terminal with easy tabs"; noted, not to be built yet). Konsole for the hub's Terminal app and any login terminal, foot stays for recovery. Mind package 23's "no login terminal" call and the checks built on foot (`image-checks.sh`, `keyboard_vm.py`, `owner_vm.py`).
+    - Stop masking the two finalize units (package 27's PLAN-GAP).
   - P2's remaining packages: 25 (guardian: clean save and shutdown) and 26 (backups).
   - Desktop shortcuts and the app wheel (owner, board #163): they open the apps from the hub and his own programs (`~/.local/bin`, Homebrew, Flatpak exports), each found by its full path.
 
