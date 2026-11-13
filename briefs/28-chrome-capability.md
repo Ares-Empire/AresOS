@@ -155,19 +155,22 @@ The node never holds its descendants' text, a box or a style.
     scripts ran (brief 20's preload: Claude's own tabs, and a taken tab after its reload), brief 20's rule knows
     every field's past. In every other document (a taken tab before its reload, a frame the preload missed, and
     with brief 28b each of his tabs read in place) it can't know whether a field was a password field before the
-    reader arrived, and a password he made visible looks like any other text. **A password field is always a
-    single-line `<input>`,** so the rule is as narrow as that (lead's decision, 2026-11-13: the owner asked for
-    capability, and a draft he is writing must be readable). In such a document:
-    - **a single-line `<input>` that can hold typed text returns no value:** the types `text`, `tel` and `number`,
-      an `input` without a type, and every type the next points don't name. The reader says only whether it is
-      filled: `(filled, not read)` or `(empty)`. It looks at the value's length inside the content script and
-      keeps, traces and returns nothing else of it. The way to such a value is to ask him: brief 20's asking
-      read, `chrome_read_typed_fields` (item 6);
-    - **a `<textarea>` and an editable area are read,** so Claude can proofread what he wrote in a tab and see what
-      a form's long fields hold;
-    - **inputs that can't have been a password field keep their values:** `checkbox`, `radio`, `range`, `color`,
-      the date and time kinds (`date`, `time`, `datetime-local`, `month`, `week`), `email`, `url`, `search`, and
-      a `select`;
+    reader arrived, and a password he made visible looks like any other text. **A field's present type proves
+    nothing about its past** (security re-check 2, finding (a); the lead's decision, 2026-11-13). A password field
+    can have been switched to `search` or `email` as easily as to `text`, and brief 20's own rule protects a
+    masked `textarea` too (`ownPassword` in `reader.js`). So in such a document:
+    - **a typed field returns no value.** A typed field is every `<input>` that can hold typed text, whatever its
+      type (`text`, `search`, `email`, `url`, `tel`, `number`, no type, and every type the next point doesn't
+      name), and every `<textarea>`. The reader says only whether it is filled: `(filled, not read)` or
+      `(empty)`. It looks at the value's length inside the content script and keeps, traces and returns nothing
+      else of it. The way to such a value is to ask him: brief 20's asking read, `chrome_read_typed_fields`
+      (item 6), which covers single-line and multi-line form fields alike;
+    - **kinds whose value isn't typed text keep it:** `checkbox`, `radio`, `range`, `color`, the date and time
+      kinds (`date`, `time`, `datetime-local`, `month`, `week`), and a `select`. The browser itself forces these
+      values into a fixed shape, so none of them can still hold a password;
+    - **an editable area (`contenteditable`) is read.** Whole-page editors are editable areas, and what he writes
+      in one must be readable. What that leaves is the one written known limit: a secret in an editable area
+      whose mask was taken off before the reader came and whose label doesn't name it (section 6);
     - **above all of it:** a field named like a credential is never read (the name rule), and a field that is
       masked right now is never read (brief 20's rule), whatever element it is.
     The reader knows which case a document is from how it was installed, never from anything a page can set; when
@@ -177,8 +180,9 @@ The node never holds its descendants' text, a box or a style.
     shadow root only at the next change it sees in a tree it already watches. A component that attaches its root
     to an element that is already in the page (a custom element upgraded after the load) causes no such change.
     He can type into its field and make it plain before the reader has met that root at all. So when the reader
-    first meets a shadow root, a single-line text `input` in it that **already holds text** has no known history:
-    it is `(filled, not read)` for the life of the document. An empty one is watched from then on.
+    first meets a shadow root, a typed field in it (an `input` that can hold typed text, or a `textarea`) that
+    **already holds text** has no known history: it is `(filled, not read)` for the life of the document. An
+    empty one is watched from then on.
   - **A field whose value isn't read is not typed into either.** A `fill` or a key on a field that is
     `(filled, not read)` is refused like one on a password field (`owner_signin`), because it would overwrite what
     Claude can't see.
@@ -305,7 +309,7 @@ role    = one word from the role list below, nothing else
 part    = quoted | "[" role " " quoted [" " ref] "]"
 quoted  = the accessible name, or a run of own text, in double quotes
 value   = a field's value in double quotes; (not read) instead for "password"; (filled, not read) or (empty)
-          instead for a single-line field whose history the reader doesn't know (item 1)
+          instead for a typed field whose history the reader doesn't know (item 1)
 state   = checked | selected | disabled | required | invalid | expanded | collapsed | current | readonly
 target  = for a link that leaves the page's site: its site; for a form: its method, site and path
 ref     = three letters and a number, for example kqt5 (item 3)
@@ -737,8 +741,8 @@ the start of the call, and no timeout is raised:
   #210): "Ask first." **Brief 20 builds this tool before it merges, and this package keeps it rather than
   redesigns it.** Read its exact name, inputs and flow from the merged tree; keep the name unless it collides
   with one here. What it is, as brief 20 builds it:
-  - it reads the single-line typed fields a normal read shows only as `(filled, not read)`: text, `tel`, `number`
-    and unknown types, in a document the reader didn't watch from its start;
+  - it reads the typed fields a normal read shows only as `(filled, not read)`: every `input` that can hold typed
+    text, whatever its type, and every `textarea`, in a document the reader didn't watch from its start;
   - its question names the tab and lists the labels of the fields it will read, with a stable description for a
     field without a label, and never a value;
   - credential-like fields are never included, also when he approves: the name rule and brief 20's password rule
@@ -813,7 +817,7 @@ Restructure in steps that keep everything working:
    it reaches the tool. It never changes what it asserts about the receiver's log, the question, the binding or the
    outcome. A test of the old "any change makes every reference stale" rule becomes a test of item 3's rule, named
    in the map. A brief 20 test that reads a text field's value in a taken tab before its reload now gets
-   `(filled, not read)` for a single-line field (item 1, history): list each one in the map.
+   `(filled, not read)` for a typed field, an `input` or a `textarea` (item 1, history): list each one in the map.
 4. Remove brief 20's replaced tools (`chrome_find`, `chrome_read_form`, `chrome_wait`, `chrome_click`,
    `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll`,
    `chrome_dialog`, `chrome_navigate`, `chrome_take_tab`, `chrome_release_tab`, `chrome_close_tab`,
@@ -894,9 +898,10 @@ Every new rule gets a test that fails without it.
 **Passwords, in group 14 and in `password_exclusion`.** Group 7's fixtures and recording run over every new output.
 Added cases, each with group 7's known password and a label that says nothing ("Code"):
 
-- **A field made plain before the reader arrived** (a taken tab before its reload): once by `type` changed from
-  `password` to `text`, once by a removed `autocomplete="current-password"`, once by a removed mask (as a style and
-  as a class); each in the page, in an open and a closed shadow root and in a frame from another site.
+- **A field made plain before the reader arrived** (a taken tab before its reload): by `type` changed from
+  `password` to `text`, and also to `search`, to `email` and to `url`; once by a removed
+  `autocomplete="current-password"`; once by a removed mask (as a style and as a class), on an `input` and on a
+  `textarea`; each in the page, in an open and a closed shadow root and in a frame from another site.
 - **A sign-in code known only by its name** (`name="otp"`, a label "Verification code", no `autocomplete`), in a
   document watched from its start and in one that wasn't.
 - **A shadow root met late, in a document watched from its start:** a custom element is upgraded after the load
@@ -904,16 +909,18 @@ Added cases, each with group 7's known password and a label that says nothing ("
   switches the field to plain text before the first read. Once with the label "Password" (kept out by its name),
   once with the label "Code" (kept out because it held text when the reader first met its root). In the same
   root, a field that was empty at that first meeting is read afterwards, and a `fill` on the unread one is
-  refused.
-- **What stays readable in a document the reader didn't watch from its start** (the same taken, not yet reloaded
-  tab): a draft he typed into a `textarea` and one in an editable area are read whole; a single-line text field,
-  a `tel` and a `number` field show `(filled, not read)` or `(empty)` and never their values; an `email`, a `url`,
-  a `search` and a date field, a ticked box and a chosen option keep their values.
+  refused. A `textarea` in that root that held text at the first meeting is unread in the same way.
+- **What a document the reader didn't watch from its start shows** (the same taken, not yet reloaded tab): a
+  draft he typed into an editable area is read whole; a `text`, a `search`, an `email`, a `url`, a `tel` and a
+  `number` field, an `input` of an unknown type and a `textarea` show `(filled, not read)` or `(empty)` and never
+  their values; a date field, a ticked box, a radio choice, a range, a colour and a chosen option keep their
+  values.
 - **The name rule wins there too:** an editable area labelled "Password", a `textarea` named `secret_value`, one
   labelled "Recovery phrase" and one labelled "Private key" are not read, in a watched document and in one that
-  wasn't. A `textarea` that is masked right now isn't read either.
-- **The limit, shown honestly:** a `textarea` that was masked by a style, is labelled "Value", and was unmasked
-  before the reader arrived is read. The report lists the case under known limits.
+  wasn't. An editable area and a `textarea` that are masked right now aren't read either.
+- **The limit, shown honestly:** an editable area that was masked by a style, is labelled "Value", and was
+  unmasked before the reader arrived is read. The report lists the case under known limits. A `textarea` with the
+  same history isn't read: it shows `(filled, not read)`.
 - Every surface reads them: the outline, a form by `ref`, `find` for the password itself, several tabs, `until`,
   the change report, the results of `chrome_open`, `chrome_go` and `chrome_take`, and a prepared operation's
   question for a form that holds such a field.
@@ -986,8 +993,9 @@ isn't just an empty table:
 **The asking read, in group 14** (brief 20's tests for it pass through the new list; these run on the new
 surface, with the taken, not yet reloaded tab):
 
-- a normal read shows the single-line fields as `(filled, not read)`, returns none of their values with any input
-  (`ref`, `full`, `find` for a value), and counts them in `typed_fields`;
+- a normal read shows the typed fields (a `text`, a `search` and an `email` input, and a `textarea`) as
+  `(filled, not read)`, returns none of their values with any input (`ref`, `full`, `find` for a value), and
+  counts them in `typed_fields`;
 - **approved:** the result holds exactly the fields the question listed, each with its label, its short reference
   and its value inside `untrusted_content`; a value shaped like an outline line or an instruction comes back
   quoted and escaped;
@@ -1158,9 +1166,11 @@ No open JUDGMENT-CALL.
 - 2026-11-11: the bar. Safe the way a good MCP or CLI is; a flaw with real harm is fixed, and a known limit is for
   low harm. A password or a sign-in code reaching Claude is never a limit.
 - 2026-11-13 (board #202): "Text only first." Pages are read as text; no screenshots in this package.
-- 2026-11-13 (board #210): "Ask first." Where the reader can't know a single-line field's history, a normal read
+- 2026-11-13 (board #210): "Ask first." Where the reader can't know a typed field's history, a normal read
   shows only whether the field is filled, and its value is read only after he was asked: brief 20's
-  `chrome_read_typed_fields`, kept here as it is built.
+  `chrome_read_typed_fields`, kept here as it is built. The lead's reading (2026-11-13, after security re-check
+  2): "Ask first" covers single-line and multi-line form fields alike, because a field's present type proves
+  nothing about its past. Editable areas stay read.
 - 2026-11-13 (board #213, "Show link addresses"): Claude sees link addresses with their query on the pages it
   reads. A value that looks like a sign-in stays hidden by item 2's rule: a credential-named parameter, a long
   random-looking value, what follows a sign-in word in a path, and never a user name. The security re-check asked
@@ -1174,10 +1184,11 @@ No open JUDGMENT-CALL.
 - The tool list is replaced, not kept beside the new one: one surface to describe, test and review.
 - The library is listed in the short form like the tabs, and an operation's stage texts and notices are written
   in the short form because the log holds the same texts (item 2). Both are choices made here and easy to turn.
-- In a document the reader didn't watch from its start, a single-line text field shows only whether it is
-  filled, and its value needs his OK; a `textarea` and an editable area are read (item 1; narrowed by the lead on
-  2026-11-13). What that
-  leaves is in section 6's known limits: a secret he unmasked in a long field under a label that says nothing.
+- In a document the reader didn't watch from its start, an editable area is read and every typed form field
+  shows only whether it is filled (item 1; the lead's decision of 2026-11-13 on security re-check 2, finding
+  (a), which replaces the narrower single-line rule of the same day). What that leaves is in section 6's known
+  limits: a secret in an editable area whose mask was taken off before the reader came and whose label doesn't
+  name it.
 - `request` isn't an input in this package. An input that is accepted and ignored is dead weight, and it suggests
   a check that doesn't exist. Brief 28b adds it where it means something, and the size pins move then.
 - A list holds at most 20 steps and ends at its deadline (item 5, "Time").

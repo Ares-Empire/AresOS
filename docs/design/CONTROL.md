@@ -447,19 +447,21 @@ sites and synthetic profiles).
   helps in a document the reader has watched since before the page's scripts ran: Claude's own tabs, and a taken
   tab after its reload. In any other document a password he made visible earlier is by now an ordinary text
   field, and nothing in the page says what it was. That is the case in a taken tab before its reload, and in every
-  tab of his that Claude looks at in place (*brief 28b*). A password field is always a single-line input, so the
-  rule is as narrow as that. In such a document:
-  - a single-line input that can hold typed text (text, phone, number, and any type the tool doesn't know) shows
-    no value, only whether it is filled: `textbox "Label" (filled, not read)`. Its value is read only after he
-    was asked ("Reading a page", "A single-line field's value");
-  - a multi-line text field and an editable area are read, so Claude can proofread a draft he is writing in a tab
-    of his and see what a form's long fields hold;
-  - ticks, radio choices, chosen options, ranges, colours, dates and times, and email, address and search fields
-    keep their values: none of them can have been a password field;
+  tab of his that Claude looks at in place (*brief 28b*). A field's present type proves nothing about its past: a
+  password field can have been switched to a search or an email field as easily as to a text field, and a page
+  can mask a multi-line field too. In such a document:
+  - a typed field shows no value, only whether it is filled: `textbox "Label" (filled, not read)`. A typed field
+    is every input that can hold typed text, whatever its type (text, search, email, address, phone, number, and
+    any type the tool doesn't know), and every multi-line text field. Its value is read only after he was asked
+    ("Reading a page", "A typed field's value");
+  - ticks, radio choices, chosen options, ranges, colours, dates and times keep their values: the browser forces
+    them into a fixed shape, so none of them can still hold a password;
+  - an editable area is read, because whole-page editors are editable areas and what he writes there must be
+    readable;
   - the name rule above wins over all of this, and so does masking: a field that is named like a credential, or
     masked right now, is never read.
 
-  The same holds, inside a watched document, for a single-line field that already held text when the reader first
+  The same holds, inside a watched document, for a typed field that already held text when the reader first
   met its shadow root, because a component can attach a root without the reader noticing at once. Claude doesn't
   type into a field whose value it can't read. A password or sign-in code reaching Claude is never an accepted
   limit (owner, 2026-11-11). What this rule costs and what it leaves are under "Known limits".
@@ -529,7 +531,7 @@ the front when he should look at it or sign in there.
   in place: nothing moves, nothing reloads, no debugger attaches and nothing runs in the page's own world. His
   typing, his scroll position and playing media stay as they are. The reader is the same content script with the
   same password rule (above). Because it arrives late in his tab, it reads the page's text and what he wrote in
-  long fields, but of a single-line field only whether it is filled, until he has agreed to more.
+  an editor, but of a form field he can type into only whether it is filled, until he has agreed to more.
   - A tab that Chrome put to sleep to save memory is loaded by reading it, as his own click would load it; the
     result says so. That is a visit to the site, not a silent look ("Known limits").
   - A tab that shows one of Chrome's own dialogs can't answer. The tool waits two seconds, never hangs, and tells
@@ -605,10 +607,10 @@ the front when he should look at it or sign in there.
 
 His decisions behind this (brief 28b lists them with his words): Claude looks at the tab his request needs without
 a separate question, and the take rules stay (2026-11-11); Claude closes a tab of his when he asks (2026-11-13,
-"Yes, when I ask"); a single-line field's value in his tabs is read only after asking (2026-11-13, "Ask first").
+"Yes, when I ask"); a typed form field's value in his tabs is read only after asking (2026-11-13, "Ask first").
 Possible later, after his live test, and not built now: a list of sites where Claude asks him before it looks;
-working in a tab with unsaved typing without a reload; reading what single-line fields hold in his own tabs
-without asking.
+working in a tab with unsaved typing without a reload; reading what form fields hold in his own tabs without
+asking.
 
 **Until brief 28b merges** the tool does what brief 20 built: Claude reads and acts only inside the group. Looking at
 one of his tabs needs `chrome_take` first, which moves the tab and keeps its page; the first input then reloads it,
@@ -660,7 +662,7 @@ main
   hold as the input itself, and checks that the click lands on the element), elements behind an open dialog, hidden
   elements, and frames of the fixed list. Frames from other sites and shadow DOM, closed roots too, are part of the
   outline.
-- A password field is the line `password "Label" (not read)`. A single-line field whose history the reader doesn't
+- A password field is the line `password "Label" (not read)`. A typed field whose history the reader doesn't
   know is `textbox "Label" (filled, not read)` or `textbox "Label" (empty)`.
 - A page can't forge a line. The role is one word from a fixed list: a page's own `role` string is used only when
   it is on that list, and otherwise the element's tag decides. Everything a page wrote (names, texts, values,
@@ -679,10 +681,11 @@ fits its kind:
 - a text in full;
 - a single link or control with everything known about it (its address in the public form, the title).
 
-**A single-line field's value: ask first** (owner, 2026-11-13, board #210: "Ask first"). Where a read shows a field
-only as `(filled, not read)`, Claude can ask him for the values with `chrome_read_typed_fields`. It is a tool of
-its own under the managed ask rules (section 7), so Claude Code asks him and Claude can't answer for him. Brief 20
-builds it before it merges, and briefs 28 and 28b keep it as built:
+**A typed field's value: ask first** (owner, 2026-11-13, board #210: "Ask first"). Where a read shows a field
+only as `(filled, not read)`, Claude can ask him for the values with `chrome_read_typed_fields`. That covers
+single-line and multi-line form fields alike (lead, 2026-11-13). It is a tool of its own under the managed ask
+rules (section 7), so Claude Code asks him and Claude can't answer for him. Brief 20 builds it before it merges,
+and briefs 28 and 28b keep it as built:
 
 - the question names the tab and lists the labels of the fields it will read, with a stable description for a
   field without a label, and never a value;
@@ -783,7 +786,7 @@ need a site adapter or are listed as not supported yet in [`FEATURES.md`](../con
 A picture of a page region stays a possible later package. It would be taken only on request, of one element
 Claude names by reference, never of a whole window. It would have to refuse a region that holds or overlaps a
 password field, a field named like a credential, or any field whose value the reader itself wouldn't return, so
-in his own tabs it could show no single-line field. And it would have to honour the fixed list and his
+in his own tabs it could show no typed form field. And it would have to honour the fixed list and his
 never-list frame by frame, because a picture of a tab shows every frame in it, and get its pixels without
 bringing his tab to the front or attaching to it.
 
@@ -843,7 +846,7 @@ gave, one from a page or one Claude wrote), typing and filling fields, choosing 
 closing Claude tabs, taking one of his tabs and giving it back. Searches are free everywhere: a search form sent as a
 plain address (GET) is navigation.
 
-**One read asks:** the values of single-line fields whose history the reader doesn't know, in one of his tabs or in
+**One read asks:** the values of typed form fields whose history the reader doesn't know, in one of his tabs or in
 a taken tab before its reload (`chrome_read_typed_fields`, "Reading a page"; owner, 2026-11-13: "Ask first").
 
 **Asks, decided before the input is dispatched.** The extension collects the target's facts and the service
@@ -1090,7 +1093,7 @@ merges (28 at `8b7e799c`, and the asking read for typed fields).
 |---|---|---|---|
 | `chrome_tabs` | read | every tab of every normal window in one result: number, whose, title, address (short form), marks | `chrome_tabs` (5 to 10 tabs per call) |
 | `chrome_read` | read | the outline of a tab, or of up to five tabs; one part by `ref`; `find`; `until`; paged by `max` and `cursor`. In one of his tabs it reads in place and needs `request` | `chrome_read`, `chrome_read_form`, `chrome_find`, `chrome_wait` |
-| `chrome_read_typed_fields` | **ask** (read) | after his OK, read the single-line fields that a normal read shows only as filled, in a page the reader didn't watch from its start: the question lists the fields' labels, never a value; credential-like fields never; one approval, one call | the same (brief 20 adds it before it merges) |
+| `chrome_read_typed_fields` | **ask** (read) | after his OK, read the typed form fields (single-line and multi-line) that a normal read shows only as filled, because the reader doesn't know their history: the question lists the fields' labels, never a value; credential-like fields never; one approval, one call | the same (brief 20 adds it before it merges) |
 | `chrome_open` | change | open a web address in a new Claude tab (an address, a link or a library entry by reference, or the address of one of his tabs), wait, return the outline | `chrome_open`, then wait and read |
 | `chrome_go` | change | in a Claude tab: an address, back, forward or reload; wait, return the outline | `chrome_navigate`, then wait and read |
 | `chrome_do` | change | up to 20 steps in one tab (click, fill, select, check, press, scroll, dialog, wait), each by reference. An asking step isn't dispatched and returns a prepared operation, and so does a submission the page starts while handling a step; an activation the page starts is stopped and reported, never resumed. Returns what changed | `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll`, `chrome_dialog` |
@@ -1254,26 +1257,29 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   page his request needs is what he asked for, and navigation is free (decision 25). The result says that the tab
   was woken. "Leaves no trace" is promised only for a tab that is already loaded, and a tab that wakes with
   restored fields isn't known clean for a later take or close.
-- **In his own tabs Claude sees what a single-line field holds only after asking.** Where the reader hasn't
-  watched a page from its start, such a field shows only whether it is filled ("What the extension can and can't
-  do"). *Harm:* a question to him before Claude can read back a name, a number or a search he typed in a tab of
-  his. *Accepted:* his decision (2026-11-13, board #210: "Ask first"); a password he made visible is a single-line
-  field that looks like any other, and the question shows him which fields are meant before any is read. A field
-  named like a credential stays unread even then. A passive marker that proves each field's history could spare
-  him the question later, after his live test. In Claude's own tabs the same hits one case: a filled single-line
-  field inside a component whose shadow root the reader met late.
+- **In his own tabs Claude sees what a form field holds only after asking.** Where the reader hasn't watched a
+  page from its start, a field he can type into, single-line or multi-line, shows only whether it is filled
+  ("What the extension can and can't do"). *Harm:* a question to him before Claude can read back a name, a
+  number, a search or a message he typed into a form in a tab of his. *Accepted:* his decision (2026-11-13, board
+  #210: "Ask first"), read by the lead to cover every typed form field; a password he made visible is a field
+  that looks like any other, whatever its type is now, and the question shows him which fields are meant before
+  any is read. A field named like a credential stays unread even then. What he writes in an editor (an editable
+  area) is read without a question. A passive marker that proves each field's history could spare him the
+  question later, after his live test. In Claude's own tabs the same hits one case: a filled typed field inside
+  a component whose shadow root the reader met late.
 - **An approved read can still hold a password.** He approves a list of labels, and a password he made visible
   sits in a field whose label says nothing. *Harm:* that password reaches Claude after his own OK. *Accepted:* he
   is asked with the labels in front of him, for the tab he pointed Claude to; the tool can't know more about that
   field than its label, and a field it can recognise as a credential is never offered.
-- **A secret he unmasked in a long field, under a label that says nothing.** In a document the reader didn't watch
-  from its start, a multi-line field or an editable area is read unless its name says credential or it is masked
-  at that moment. A settings page that masks a long secret by style (a key, a recovery phrase), labels it only
+- **A secret in an editable area, unmasked before the reader came, under a label that doesn't name it.** In a
+  document the reader didn't watch from its start, an editable area is read unless its name says credential or
+  it is masked at that moment. A page that keeps a secret in an editable area, masks it by style, labels it only
   "Value", and that he switched to visible before Claude looked, is read like the text it then is. *Harm:* that
-  secret reaches Claude. *Accepted* (lead, 2026-11-13): reading his drafts is what he asked for, and it needs long
-  fields to be readable; a password field is always a single-line input, and those stay unread; such a secret is
-  plain text on his screen at that moment, like a key a page prints as text; the name list covers the labelled
-  ones (secret, token, private key, recovery phrase, seed).
+  secret reaches Claude. *Accepted* (lead, 2026-11-13): whole-page editors are editable areas, so not reading
+  them would stop Claude from reading what he writes; a secret is kept in a form field on nearly every page, and
+  every typed form field with unknown history stays unread; such a secret is plain text on his screen at that
+  moment, like a key a page prints as text; the name list covers the labelled ones (secret, token, private key,
+  recovery phrase, seed).
 - **A short sign-in code under an ordinary name is shown.** The public form hides a value whose parameter is named
   like a credential or that looks random and is 20 characters or longer, and in a path what follows a sign-in
   word or looks random. A short code under a plain name (`?c=8f3k2j`), or a short or wordy key in a path, is
@@ -1416,9 +1422,10 @@ field it can't confirm is safe isn't read; every result says plainly that this C
    text by a "show password" button, a field whose type changes to password after the page loaded, and a password
    in the field's `value` attribute in the page source), each also inside an open shadow root, a closed shadow root
    and a frame from another site. With brief 28: a sign-in code in a plain field known only by its name, and the
-   late cases, where the field was made plain before the reader arrived (by its type, by a removed `autocomplete`,
-   by a removed mask), with a label that says nothing; there a single-line field shows only whether it is filled,
-   and a long field is read unless its name says credential or it is masked. While the
+   late cases, where the field was made plain before the reader arrived (by its type, also to a search or an
+   email field, by a removed `autocomplete`, by a removed mask), with a label that says nothing; there a typed
+   field, single-line or multi-line, shows only whether it is filled, and an editable area is read unless its
+   name says credential or it is masked. While the
    reader and the binding run over those forms, a test build records everything the extension receives from the
    browser (every DevTools response and every value its content script reads) and everything it sends to the host,
    the service, the log and the results; the password appears in none of them.
@@ -1446,7 +1453,7 @@ field it can't confirm is safe isn't read; every result says plainly that this C
 **Groups added by briefs 28 and 28b.** Groups 1 to 13 keep their cases and run through the new tools. The harness's
 helper functions change, and never an assertion about a question, a binding, an approval or what the receiver got. Two
 kinds of assertion do change, each listed in its brief's harness map: reading a text field in a taken tab before its
-reload now gives `(filled, not read)` for a single-line field (brief 28), and a take reloads the tab itself instead of
+reload now gives `(filled, not read)` for a typed field (brief 28), and a take reloads the tab itself instead of
 the first input (brief 28b).
 
 14. **Reading and references** (*brief 28*):
@@ -1480,17 +1487,17 @@ the first input (brief 28b).
       a `find` hit's path, in a change report and in a stale reference's present line; a `role` attribute made of
       line breaks, outline lines and references shows as a role from the fixed list and nothing more; a refusal's
       message holds no page text; a page of 100,000 elements is cut with a plain notice;
-    - the asking read: a normal read never returns a single-line field's value and counts such fields; an
+    - the asking read: a normal read never returns a typed field's value and counts such fields; an
       approved read returns exactly the fields the question listed, as page text; a field named like a
       credential is absent though he approved; a field added after the question asks again; a refusal leaves
       "filled" and "empty"; one approval covers one call;
     - passwords: group 7's fixtures and recording run over every new output (the outline, a form read by `ref`,
       `find` for the password itself, several tabs, `until`, the change report after a "show password" click, the
       results of `chrome_open`, `chrome_go` and `chrome_take`, a prepared operation's question); the password
-      appears in none. In a document the reader didn't watch from its start, a single-line text field shows only
-      whether it is filled, and the recording shows that the content script kept and sent none of those values; a
-      draft in a multi-line field and in an editable area is read; a long field named like a credential, or
-      masked at that moment, isn't.
+      appears in none. In a document the reader didn't watch from its start, a typed field of any type (text,
+      search, email, a multi-line field) shows only whether it is filled, and the recording shows that the
+      content script kept and sent none of those values; a draft in an editable area is read; an editable area
+      named like a credential, or masked at that moment, isn't.
 15. **Going and acting in one call** (*brief 28*):
     - `chrome_open` and `chrome_go` return the outline after the load, say `loaded: false` on a timeout, and refuse
       what group 6 refuses; a navigation inside the same document counts as loaded without a new document, and a
@@ -1549,12 +1556,12 @@ the first input (brief 28b).
       in it;
     - closing: every tab that isn't known clean stays open and is listed with its reason, and no input closes
       it; a known clean one closes and is listed; a taken tab is refused;
-    - passwords: in one of his tabs no single-line text field is read in place, so a field he switched to plain
-      text before Claude's first read isn't either, whatever its label (in the page itself, in a frame, in an open
-      and a closed shadow root; made plain by its type, its `autocomplete` or its mask); after a take with its
-      reload a plain field is read again;
-    - what he wrote: a draft in a multi-line field and in an editable area of his tab is read in place; a
-      single-line field shows "filled" without its value; an editable area labelled "Password" isn't read;
+    - passwords: in one of his tabs no typed form field is read in place, so a field he switched to plain
+      text before Claude's first read isn't either, whatever its label and its type now (in the page itself, in a
+      frame, in an open and a closed shadow root; made plain by its type, its `autocomplete` or its mask); after
+      a take with its reload a plain field is read again;
+    - what he wrote: a draft in an editable area of his tab is read in place; a single-line and a multi-line
+      form field show "filled" without their values; an editable area labelled "Password" isn't read;
     - ask first, in his tabs: the asking read works on a tab of his in place and leaves no trace in it; it is
       refused without the list's token or his request, on a never-list page, and when he went elsewhere between
       the list, the question and the read; the sign, the popup and the log show the fields' labels, never a
@@ -1725,7 +1732,7 @@ improvement if he asks for it.
 ## 10. Open questions
 
 **Open:** none for Chrome. His answers on his open tabs (2026-11-11), on closing them (2026-11-13, "Yes, when I
-ask"), on screenshots (2026-11-13, "Text only first") and on single-line fields in pages the reader didn't watch
+ask"), on screenshots (2026-11-13, "Text only first") and on typed form fields in pages the reader didn't watch
 (2026-11-13, "Ask first") are built into section 6 ("Which tabs Claude works in",
 "Reading a page"); brief 28b lists them with what stays possible later.
 
