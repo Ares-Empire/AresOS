@@ -33,14 +33,14 @@ function fixture(fields,{subtle=true,NativeBlob=Blob}={}) {
   const context=vm.createContext({document,chrome,Blob:NativeBlob,crypto:{subtle:subtle?webcrypto.subtle:undefined,getRandomValues:array=>array.fill(++fileSequence)},MutationObserver,
     Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,Node:{TEXT_NODE:3},CustomEvent:class{},
     atob:value=>Buffer.from(value,'base64').toString('binary'),setTimeout:fn=>timers.push(fn),
-    getComputedStyle:element=>({display:['DIV','P'].includes(element.tagName)?'block':'inline',visibility:'visible',webkitTextSecurity:element.mask || 'none'}),
+    URL,getComputedStyle:element=>({display:['DIV','P','PRE'].includes(element.tagName)?'block':'inline',visibility:'visible',webkitTextSecurity:element.mask || 'none',whiteSpace:element.whiteSpace||(element.tagName==='PRE'?'pre':undefined)}),
     [Symbol.for('aresos.chrome.guard.v2')]:{clipboard(take){const value=clipboardInfo;if(take)clipboardInfo=null;return value;},watch(){},reader(value){readerAPI=value;},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];}},
     origin:'https://fixture.test',location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
   function read(){let result;listener({command:'read'},{id:'fixture'},value=>result=value);assert.equal(result.ok,true,JSON.stringify(result));return result;}
   function command(message){let result;listener(message,{id:'fixture'},value=>result=value);return result;}
   const readAsync=()=>new Promise(resolve=>listener({command:'read'},{id:'fixture'},resolve));
-  return {nodes,Element,setClipboard:value=>{clipboardInfo=value},observeAsync:()=>new Promise(resolve=>listener({command:'observe'},{id:'fixture'},resolve)),designMode:value=>{document.designMode=value},generic:node=>Object.setPrototypeOf(node,Element.prototype),reinject:()=>{readerAPI.dispose();vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);},read,readAsync,command,form:(element,submitter)=>readerAPI.form(element,submitter),observationOptions,expire:()=>{for(const fn of timers.splice(0))fn();},mutations:()=>observer.records,calls:()=>calls};
+  return {nodes,Element,atPoint:node=>{document.elementFromPoint=()=>node;},textarea:node=>Object.setPrototypeOf(node,HTMLTextAreaElement.prototype),setClipboard:value=>{clipboardInfo=value},observeAsync:()=>new Promise(resolve=>listener({command:'observe'},{id:'fixture'},resolve)),designMode:value=>{document.designMode=value},generic:node=>Object.setPrototypeOf(node,Element.prototype),reinject:()=>{readerAPI.dispose();vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);},read,readAsync,command,form:(element,submitter)=>readerAPI.form(element,submitter),observationOptions,expire:()=>{for(const fn of timers.splice(0))fn();},mutations:()=>observer.records,calls:()=>calls};
 }
 
 test('group7 protected values never reach a getter, source attribute, trace or binding',()=>{
@@ -264,4 +264,52 @@ test('2c post-input observations expose only the private clipboard fact and cons
   const f=fixture([]),fact={written:true,message:'The page wrote to the clipboard.',routes:['writeText']};f.setClipboard(fact);
   const first=await f.observeAsync();assert.equal(first.ok,true);assert.deepEqual(first.data.clipboard,fact);
   const second=await f.observeAsync();assert.equal(second.ok,true);assert.equal(second.data.clipboard,undefined);
+});
+
+
+test('recheck3 compose preserves rendered indentation linebreaks and significant spaces without protected reads',()=>{
+  for(const kind of ['pre','pre-wrap','pre-line','break-spaces','PRE','TEXTAREA','CODE']){
+    const f=fixture([{tagName:'BUTTON',type:'button',attrs:{'aria-label':'Send'}},{tagName:'DIV',isContentEditable:true}]);
+    const [button,draft]=f.nodes;f.generic(button);f.generic(draft);
+    let content='if approved:\n    send()\naudit()';
+    const preview=new f.Element({tagName:['PRE','TEXTAREA','CODE'].includes(kind)?kind:'DIV',whiteSpace:kind==='CODE'?'pre-wrap':kind.toLowerCase(),childNodes:[]});
+    const text={nodeType:3,parentElement:preview,get textContent(){return content;}};preview.childNodes=[text];
+    if(kind==='TEXTAREA'){f.textarea(preview);Object.defineProperty(preview,'value',{get(){return content;}});}
+    const secret=new f.Element({tagName:'INPUT',type:'password',forbidden:true,childNodes:[{nodeType:3,get textContent(){throw Error('PASSWORD TEXT READ');}}]});
+    Object.setPrototypeOf(secret,Object.getPrototypeOf(draft));secret.isContentEditable=true;
+    const area=new f.Element({tagName:'SECTION',childNodes:[draft,preview,secret,button]});for(const node of area.childNodes)node.parentElement=area;
+    f.nodes.push(area,preview,secret);const row=f.read().data.rows.find(row=>row.name==='Send');
+    const current=()=>f.command({command:'facts',element:row.element}).data.compose.text;
+    const before=current();assert.ok(before.includes(kind==='pre-line'?'if approved:\nsend()\naudit()':content),kind);
+    content='if approved:\n    send()\n    audit()';
+    if(kind==='pre-line')assert.equal(current(),before,'pre-line collapses indentation as rendered');
+    else{assert.notEqual(current(),before,kind+' indentation');assert.ok(current().includes(content));}
+    content='if approved:\n    send() audit()';assert.notEqual(current(),before,kind+' linebreak');
+  }
+});
+
+test('recheck3 ordinary collapsed whitespace stays free while br blocks inline runs and nonbreaking spaces remain visible',()=>{
+  const f=fixture([{tagName:'BUTTON',type:'button',attrs:{'aria-label':'Send'}},{tagName:'DIV',isContentEditable:true}]);const [button,draft]=f.nodes;f.generic(button);f.generic(draft);
+  const first=new f.Element({tagName:'SPAN',childNodes:[{nodeType:3,textContent:'one  '}]}),second=new f.Element({tagName:'SPAN',childNodes:[{nodeType:3,textContent:' two'}]}),br=new f.Element({tagName:'BR'});
+  const preview=new f.Element({tagName:'DIV',childNodes:[first,second,br,{nodeType:3,textContent:'three\u00a0 four'}]}),area=new f.Element({tagName:'SECTION',childNodes:[draft,preview,button]});
+  for(const node of area.childNodes)node.parentElement=area;f.nodes.push(preview,area);f.read();const key=f.read().data.rows.find(row=>row.name==='Send').element;
+  const current=()=>f.command({command:'facts',element:key}).data.compose.text;const before=current();assert.match(before,/one two\nthree\u00a0 four/);
+  first.childNodes[0].textContent='one\n  ';assert.equal(current(),before);
+  preview.childNodes[3].textContent='three four';assert.notEqual(current(),before);
+});
+
+
+test('recheck3 area and SVG links expose native destinations and mapped area input stays on its own shape',()=>{
+  const f=fixture([]),map=new f.Element({tagName:'MAP',attrs:{name:'map'}}),image=new f.Element({tagName:'IMG',attrs:{usemap:'#map'}});
+  image.getBoundingClientRect=()=>({x:20,y:30,width:160,height:70,bottom:100,right:180});
+  const area=new f.Element({tagName:'AREA',attrs:{alt:'Delete',href:'/delete',shape:'rect',coords:'0,0,160,70'}});
+  area.closest=selector=>selector==='map'?map:null;map.querySelectorAll=()=>[area];f.nodes.push(map,image,area);f.atPoint(image);
+  const row=f.read().data.rows.find(row=>row.role==='link');assert.equal(row.name,'Delete');assert.equal(row.href,'https://fixture.test/delete');
+  assert.deepEqual(JSON.parse(JSON.stringify(row.box)),{x:20,y:30,width:160,height:70});assert.equal(f.command({command:'hit',element:row.element,x:100,y:65}).data.hit,true);
+  const earlier=new f.Element({tagName:'AREA',attrs:{shape:'circle',coords:'80,35,20'}});map.querySelectorAll=()=>[earlier,area];
+  assert.equal(f.command({command:'hit',element:row.element,x:100,y:65}).data.hit,false,'an earlier map region must win');
+  for(const href of ['/delete','']){
+    const svg=new f.Element({tagName:'a',namespaceURI:'http://www.w3.org/2000/svg',localName:'a',attrs:{'aria-label':'Delete',href}});f.nodes.push(svg);
+    const found=f.read().data.rows.filter(row=>row.role==='link').at(-1);assert.equal(found.name,'Delete');assert.equal(found.href,new URL(href,'https://fixture.test/').href);
+  }
 });

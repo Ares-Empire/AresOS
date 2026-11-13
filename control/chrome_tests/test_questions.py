@@ -285,3 +285,37 @@ class Questions(unittest.TestCase):
         reply=self.call('submit',approval)
         self.assertTrue(reply['ok'],reply);self.assertEqual(reply['data']['operation']['state'],'failed')
         self.assertIn('approval',reply['data'],reply);self.assertIn('Boundary preview',reply['data']['approval']['question']);self.assertEqual(self.browser.dispatched,[])
+
+
+    def test_recheck3_whitespace_only_changes_keep_exact_questions_and_bounded_bindings(self):
+        from aresos_control.common import visible
+        for boundary in [False, True]:
+            for after in ['if approved:\n    send()\n    audit()', 'if approved:\n    send() audit()']:
+                with self.subTest(boundary=boundary, after=after):
+                    frame=self.browser.facts['frames'][0]
+                    before='if approved:\n    send()\naudit()'
+                    frame['compose']={'element':'area','whole_page':False,'text':before}
+                    self.browser.dispatched.clear();approval=self.prepare()
+                    self.assertIn(visible(before),approval['question'])
+                    self.assertEqual(approval['description']['untrusted_content']['page_state']['compose']['text'],visible(before))
+                    original=self.browser.call
+                    if boundary:
+                        from aresos_control.common import Refused
+                        def late(name,**args):
+                            if name=='input':
+                                frame['compose']['text']=after
+                                raise Refused('stale_approval','page changed during frame setup')
+                            return original(name,**args)
+                        self.browser.call=late
+                    else: frame['compose']['text']=after
+                    try: reply=self.call('submit',approval)
+                    finally: self.browser.call=original
+                    self.assertTrue(reply['ok'],reply);replacement=reply['data']['approval']
+                    self.assertIn(visible(before),replacement['question']);self.assertIn(visible(after),replacement['question'])
+                    self.assertEqual(self.browser.dispatched,[])
+                    frame['compose']['text']=after+'\n'
+                    stopped=self.call('submit',replacement)['data'];self.assertNotIn('approval',stopped)
+                    self.assertIn('text next to Send keeps changing',stopped['operation']['reason'])
+                    self.call('submit',replacement);self.assertEqual(self.browser.dispatched,[])
+                    fresh=self.prepare();self.assertTrue(self.call('submit',fresh)['ok'])
+                    self.call('submit',fresh);self.assertEqual(len(self.browser.dispatched),1)

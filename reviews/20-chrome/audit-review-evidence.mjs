@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {assertComplete} from '../../control/chrome/ci/verdicts.mjs';
 import {assertOwnerOverlap} from '../../control/chrome/ci/owner-evidence.mjs';
+import {assertRecheck3} from '../../control/chrome/ci/recheck3-evidence.mjs';
 import {assertNativeLimit} from '../../control/chrome/ci/activation-evidence.mjs';
 import {jsonLines,completeIngressStream,containsText,digestFile} from './audit-streams.mjs';
 
@@ -21,8 +22,8 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
     assert.equal(matches.length,1,row.name);
     return {name:row.name,line:matches[0]};
   });
-  const rawIdentities=new Set(),counts=new Map(),ownerRows=[],ownerTraces=[],queryRows=[],bindingRows=[],limitRows=[],clipboardRows=[];
-  for await(const row of jsonLines(path.join(folder,'receiver.jsonl'))){rawIdentities.add(JSON.stringify(row));const id=caseId(row);if(id?.startsWith('recheck2b-limit-'))limitRows.push(row);if(id?.startsWith('recheck2c-clipboard-'))clipboardRows.push(row);if(/^recheck-query-[0-2]$/.test(id))queryRows.push(row);if(/^review-bind-(quantity|confirmation|shadow-binding|compose-key)-/.test(id))bindingRows.push(row);counts.set(id,(counts.get(id)||0)+1);if(['owner-recheck-owner-overlap','trace-recheck-owner-overlap'].includes(id))ownerRows.push(row);}
+  const rawIdentities=new Set(),counts=new Map(),ownerRows=[],ownerTraces=[],queryRows=[],bindingRows=[],limitRows=[],clipboardRows=[],recheck3Rows=[],recheck3Snapshots=[];
+  for await(const row of jsonLines(path.join(folder,'receiver.jsonl'))){rawIdentities.add(JSON.stringify(row));const id=caseId(row);if(id?.startsWith('recheck3-')||id?.startsWith('ping-recheck3-'))recheck3Rows.push(row);if(id?.startsWith('recheck2b-limit-'))limitRows.push(row);if(id?.startsWith('recheck2c-clipboard-'))clipboardRows.push(row);if(/^recheck-query-[0-2]$/.test(id))queryRows.push(row);if(/^review-bind-(quantity|confirmation|shadow-binding|compose-key)-/.test(id))bindingRows.push(row);counts.set(id,(counts.get(id)||0)+1);if(['owner-recheck-owner-overlap','trace-recheck-owner-overlap'].includes(id))ownerRows.push(row);}
   for(const row of bindingRows)assert.equal(row.body,caseId(row).startsWith('review-bind-quantity-')?'2':caseId(row).startsWith('review-bind-shadow-binding-')?'Invoice B':'Different draft');
   assert.equal(queryRows.length,3,'all ordinary GET query regressions must arrive once');
   for(const [index,query]of ['Pay for lunch','Delete old notes','Send a letter'].entries()){const rows=queryRows.filter(row=>caseId(row)==='recheck-query-'+index);assert.equal(rows.length,1);assert.equal(rows[0].method,'GET');assert.equal(new URL(rows[0].url,'http://fixture.test').searchParams.get('q'),query);}
@@ -30,7 +31,7 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
   for(const name of ['page-receiver.jsonl','adapters-receiver.jsonl']){
     const sequences=new Map();let snapshots=0;
     for await(const row of jsonLines(path.join(folder,name))){
-      snapshots++;
+      snapshots++;if(row.id.startsWith('recheck3-')||row.id.startsWith('ping-recheck3-'))recheck3Snapshots.push(row);
       assert.equal(row.count,row.arrivals.length,`${name}: ${row.id} ${row.phase}`);
       for(const arrival of row.arrivals){
         assert.equal(caseId(arrival),row.id);
@@ -72,6 +73,7 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
     const arrivals=clipboardRows.filter(row=>caseId(row)===id);assert.equal(arrivals.length,1);assert.equal(arrivals[0].body,route+' accepted');
   }
   const restart=json(path.join(folder,'network-restart-audit.json'));assert.notEqual(restart.before.session,restart.after.session);assert(restart.before.rules.some(rule=>rule.id===2));assert(!restart.after.network_rules.some(rule=>rule.id===2));
+  const recheck3=assertRecheck3(json(path.join(folder,'recheck3.json')),recheck3Snapshots,recheck3Rows);
   let ingress=0,nullRows=0,events=0,getters=0;const getterKinds=new Map();
   for await(const row of completeIngressStream(path.join(folder,'browser-boundary.jsonl'))){
     ingress++;if(row===null)nullRows++;if(row?.owner_trace)ownerTraces.push(row.owner_trace);
@@ -85,11 +87,11 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
   for(const name of ['tool.jsonl','service.txt'])assert(!await containsText(path.join(folder,name),'SENTINEL_PRIVATE_PASSWORD_20'),`Password sentinel reached ${name}`);
   const python=read(path.join(folder,'python.txt')),py=/^Ran (\d+) tests in ([0-9.]+)s$/m.exec(python);
   assert(py&&/^OK$/m.test(python),'Full Python suite missing or failed');
-  assert.equal(Number(py[1]),230);
+  assert.equal(Number(py[1]),231);
   const node=Object.fromEntries([...read(path.join(folder,'node.txt')).matchAll(/^(?:# |ℹ )?(tests|pass|fail|cancelled|skipped)\s+(\d+)/gm)].map(match=>[match[1],Number(match[2])]));
-  assert.deepEqual(node,{tests:288,pass:288,fail:0,cancelled:0,skipped:0});
-  const hashes={};for(const name of ['browser.txt','matrices.json','receiver.jsonl','page-receiver.jsonl','adapters-receiver.jsonl','browser-boundary.jsonl','tool.jsonl','service.txt','python.txt','node.txt','owner-overlap.json','all-native-limit.json','all-native-limit-audit.json','clipboard-report.json','network-restart-audit.json'])hashes[name]=await digestFile(path.join(folder,name));
-  results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,native_limit:nativeLimit,clipboard:{cases:clipboard.length,contents_returned:false,borrowed_native_undetected:true},ordinary_get_queries:queryRows,owner_overlap:ownerOverlap,password_audit:{rows:ingress,null_rows:nullRows,protocol_events:events,forbidden_runtime_value_events:0,sensitive_getters:getters,getter_kinds:Object.fromEntries(getterKinds),password_sentinel_absent:true},python:{tests:Number(py[1]),seconds:Number(py[2])},node,sha256:hashes});
+  assert.deepEqual(node,{tests:300,pass:300,fail:0,cancelled:0,skipped:0});
+  const hashes={};for(const name of ['browser.txt','matrices.json','receiver.jsonl','page-receiver.jsonl','adapters-receiver.jsonl','browser-boundary.jsonl','tool.jsonl','service.txt','python.txt','node.txt','owner-overlap.json','all-native-limit.json','all-native-limit-audit.json','clipboard-report.json','network-restart-audit.json','recheck3.json'])hashes[name]=await digestFile(path.join(folder,name));
+  results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,native_limit:nativeLimit,recheck3,clipboard:{cases:clipboard.length,contents_returned:false,borrowed_native_undetected:true},ordinary_get_queries:queryRows,owner_overlap:ownerOverlap,password_audit:{rows:ingress,null_rows:nullRows,protocol_events:events,forbidden_runtime_value_events:0,sensitive_getters:getters,getter_kinds:Object.fromEntries(getterKinds),password_sentinel_absent:true},python:{tests:Number(py[1]),seconds:Number(py[2])},node,sha256:hashes});
 }
 assert(results.length>0,'No artifacts found');
 console.log(JSON.stringify(results,null,2));

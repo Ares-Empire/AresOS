@@ -123,11 +123,18 @@
   }
   for(const [prototype,names] of [[globalThis.Node?.prototype,['appendChild','insertBefore','replaceChild']],
     [globalThis.Element?.prototype,['append','prepend','replaceChildren','insertAdjacentElement','insertAdjacentHTML']],
-    [globalThis.DocumentFragment?.prototype,['append','prepend','replaceChildren']],
-    [EventTarget.prototype,['addEventListener']]])for(const name of names){
+    [globalThis.DocumentFragment?.prototype,['append','prepend','replaceChildren']]])for(const name of names){
       const method=prototype&&descriptor(prototype,name)?.value;
       if(typeof method==='function')install(prototype,name,function(){watchReceiver(this);return invoke(method,this,arguments);});
     }
+  const listen=EventTarget.prototype.addEventListener;
+  install(EventTarget.prototype,'addEventListener',function(){
+    // Registration can precede insertion into a root made with borrowed natives.
+    // Capture must already travel with the detached receiver, before its handler.
+    let node=false;try{invoke(root,this,[]);node=true;}catch{}
+    if(node)watchCreated(this);
+    watchReceiver(this);return invoke(listen,this,arguments);
+  });
   for(const prototype of [globalThis.Element?.prototype,globalThis.ShadowRoot?.prototype]){
     const previous=prototype&&descriptor(prototype,'innerHTML');if(!previous?.set)continue;
     const method=previous.set;

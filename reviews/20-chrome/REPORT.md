@@ -1,3 +1,75 @@
+# Recheck fixes 3 / 3b — verification in progress
+
+**Read:** briefs `20-recheck-fixes-3.md` and `-3b.md` govern this round on `pkg/20-chrome`.
+Fetched `origin/main` and read its `AGENTS.md` and `briefs/20-chrome.md` with `git show`;
+also read SECURITY-RECHECK-3, the prior report/known limits and briefs 2/2b/2c.
+All three classes are in one code push. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
+stays draft and unmerged; its existing conflict with main is not resolved in this brief.
+Installed runtime hash: `452eb9214e5637871777cfdaf76d500b8bbac752837c82d34d5503a17423d763`.
+Linux acceptance on the new source is pending; historical green sections below do not establish it.
+
+## Done (read)
+
+- `page.js`: wrapped listener registration installs private capture on the receiver **before** its handler,
+  including detached receivers. A saved native brands the receiver even if page code replaces global `Node`.
+  Root/insertion/dispatch hooks remain in place. The generated unit and production-code probe cover all
+  **128** combinations: 16 wrapped/native masks × open/closed × composed/non-composed × listener before/after
+  insertion. All non-native rows hold; the four all-native non-composed rows alone run unheld. Linux fixtures
+  add all **32** single-wrapped-step rows plus eight all-wrapped rows. No outside donor tab is attached.
+- `guard.js`: native `a`, `area` and SVG `a` lose hyperlink authority synchronously, including both SVG `href`
+  and namespaced `xlink:href` when both exist. Ping is quarantined. Native submit/reset controls (including image
+  submitters and external `form=` buttons) are disabled through activation. Repeated interceptions restore their
+  original state once. Destinations restore only if still carrying the guard's change. Unknown defaults, including
+  checkbox/radio preactivation, never receive a false stopped result. The existing narrow DNR rule is unchanged.
+- `reader.js`: exposes area/SVG link destinations as strings, names and input targets so the approved action can
+  run normally. Image-map bounds and hit checking respect preceding map regions. Compose text walks only safe
+  visible composed nodes, preserving line breaks, indentation, tabs and significant spaces under `pre`, `pre-wrap`,
+  `pre-line` and `break-spaces`, including pre, textarea and code. Ordinary collapsible whitespace stays collapsed;
+  pre-line indentation is correctly insignificant. Password exclusion is checked before every text/value read.
+- Service questions include the original compose representation as well as exact before/after text on the one
+  allowed re-ask. Service and extension bindings retain the same text. A second change stops with the decided
+  owner-send message; stale approvals cannot send. The original input/whole-question bounds still apply.
+- The new Linux matrices independently identify **33** native-default scenarios (each listed element, self/new
+  context/frame, HTML link ping/download and reset) and **13** significant-whitespace changes. Every stopped
+  sequence must remain zero through stale/re-ask/stop attempts, then reach exactly **0/1/1** after fresh approval.
+  `recheck3.json` retains questions, bindings and outcomes; its separate auditor checks them against raw receiver
+  arrivals and snapshots. The exact named qualification inventory now requires all three new matrices.
+
+## Verified (run)
+
+Local-only verification so far: **300 Node tests pass**, **199 removal mutations rejected, every baseline passing**,
+128 generated production-code mixes pass, generated artifacts match definitions and `git diff --check` passes.
+[Exact commands, output tails/hashes and corrected local attempts](records/recheck3/local-summary.json) retain the results.
+The full plain-Python suite passes **231 tests in 580.628 s, OK**; Linux CI is still pending. Five artifact-stream tests pass. No local browser,
+browser profile, container, Java/Gradle process or installed system software was used.
+
+## Not verified / open questions
+
+Linux browser receiver and privacy evidence on this source is pending. Live accounts/sites, owner panel acceptance,
+real payment sheets, installed image behavior, main integration and deferred post-18d group 12 remain outside this
+round. `KNOWN-LIMITS.md` is unchanged: none of its accepted lines changes. Unsupported native defaults are described
+as unknown rather than claiming that their effects were stopped.
+
+## JUDGMENT-CALL / PLAN-GAP (read)
+
+The password-safe representation follows computed whitespace: `pre-line` keeps newlines but collapses indentation;
+code with significant whitespace is exercised with pre-wrap. No blanket source-whitespace binding was added to
+ordinary HTML. Questions retain the common escaping of controls (`\u000a` for a newline), with indentation and
+spaces intact. Including the full initial compose text can reach the existing 4,096-character question limit sooner;
+this refuses with the existing explicit size message instead of omitting content. This size cost goes to the lead
+and owner before merge; changing it requires a shared approval-format decision. No new cap or blanket send refusal
+was introduced.
+
+## Runs and storage
+
+Opening ledger: **209 distinct control-chrome IDs / 210 executions**. The next pair is within the approximate
+235-run budget and below the 245 notice threshold. Each CI run uses one blocking `gh run watch`, without
+turn-by-turn status polling. Report-only pushes use `[skip ci]`. Closing run IDs, exact logs and `.work/` inventory
+will replace this pending section after verification. No main/PR merge, force-push or qualification-data publishing
+is authorized in this round.
+
+---
+
 # Recheck fixes 2 / 2b / 2c — completed
 
 **Run:** source `5c4e4add2b867f6e439f496a12320aea67c03f4b`, installed runtime

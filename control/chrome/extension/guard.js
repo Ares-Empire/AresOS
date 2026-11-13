@@ -7,6 +7,7 @@
     click: HTMLElement.prototype.click, dispatch: EventTarget.prototype.dispatchEvent,
   };
   const getAttribute=Element.prototype.getAttribute,setAttribute=Element.prototype.setAttribute,removeAttribute=Element.prototype.removeAttribute;
+  const getAttributeNS=Element.prototype.getAttributeNS,setAttributeNS=Element.prototype.setAttributeNS,removeAttributeNS=Element.prototype.removeAttributeNS;
   const quarantined=new WeakMap();
   const captured=new WeakMap();
   function capturedBefore(event,root){
@@ -26,21 +27,28 @@
     // use only the content-free, session-blocked address.
     // New browsing contexts cannot escape the source tab's network fence.
     if(!config?.defaultBlock)return false;
-    if(element.form&&['BUTTON','INPUT'].includes(element.tagName)){
+    if(element.form&&['BUTTON','INPUT'].includes(element.tagName)&&['submit','image','reset'].includes(element.type)){
+      if(quarantined.has(element))return true;
       const previous=getAttribute.call(element,'disabled');setAttribute.call(element,'disabled','');
-      setTimeout(()=>{if(getAttribute.call(element,'disabled')===''){if(previous===null)removeAttribute.call(element,'disabled');else setAttribute.call(element,'disabled',previous);}},0);
+      quarantined.set(element,previous);
+      setTimeout(()=>{quarantined.delete(element);if(getAttribute.call(element,'disabled')===''){if(previous===null)removeAttribute.call(element,'disabled');else setAttribute.call(element,'disabled',previous);}},0);
       return true;
     }
-    const node=element.tagName==='A'?element:element.form||element;
-    if(!['A','FORM'].includes(node.tagName))return true;
+    const hyperlink=['A','AREA'].includes(element.tagName)||element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a';
+    const node=element;
+    // Stopping handlers alone cannot establish that an unknown default stopped.
+    if(!hyperlink&&node.tagName!=='FORM')return false;
     if(quarantined.has(node))return true;
-    const names=node.tagName==='A'?['href','ping']:['action','target'];
+    const names=hyperlink?['href','ping']:['action','target'];
     const previous=names.map(name=>[name,getAttribute.call(node,name)]);
+    const xlink='http://www.w3.org/1999/xlink';
+    const legacy=hyperlink&&getAttributeNS?getAttributeNS.call(node,xlink,'href'):null;
     quarantined.set(node,previous);
-    if(node.tagName==='A'){
+    if(hyperlink){
       // No hyperlink remains for the uncancellable default to follow. In
       // particular it cannot create a new browsing context outside tabIds.
       removeAttribute.call(node,'href');
+      if(legacy!==null)removeAttributeNS.call(node,xlink,'href');
       if(getAttribute.call(node,'ping'))setAttribute.call(node,'ping',config.defaultBlock);
     }else{setAttribute.call(node,'action',config.defaultBlock);setAttribute.call(node,'target','_self');}
     const blockedAddress=config.defaultBlock;
@@ -48,7 +56,7 @@
       const held=name==='target'?'_self':name==='href'?null:blockedAddress;
       if(getAttribute.call(node,name)!==held)continue;
       if(value===null)removeAttribute.call(node,name);else setAttribute.call(node,name,value);
-    }},0);
+    }if(legacy!==null&&getAttributeNS.call(node,xlink,'href')===null)setAttributeNS.call(node,xlink,'xlink:href',legacy);},0);
     return true;
   }
   const phase = Object.getOwnPropertyDescriptor(Event.prototype, 'eventPhase')?.get;
@@ -114,7 +122,7 @@
     if(currentPhase(owner.event)===0&&(requestDepth||!owner.defaultSubmission||owner.event.defaultPrevented||!event?.isTrusted||owner.changed||ownerMutations?.takeRecords().length))return false;
     owner.consumed=true;return true;
   }
-  const control=element=>element.closest('button,input,a,[role=button],[role=link],[role=menuitem],[onclick]') || element;
+  const control=element=>element.closest('button,input,a,area,[role=button],[role=link],[role=menuitem],[onclick]') || element;
   const eventElement=node=>node instanceof Element?node:node?.parentElement||(globalThis.ShadowRoot&&node instanceof ShadowRoot?node.host:null);
   function facts(element) { return reader.target(element); }
   function decoded(value) { return value.replace(/(?:%[0-9a-f]{2})+/gi,encoded=>new TextDecoder('utf-8',{ignoreBOM:true}).decode(Uint8Array.from(encoded.match(/%../g),byte=>parseInt(byte.slice(1),16)))); }
@@ -293,7 +301,7 @@
   }
   function watch(root,hold=null) {
     if(hold){config=hold.config;until=Math.max(until,performance.now()+config.holdMs);owner=null;mark=null;}
-    if (root===document || roots.has(root)) return;
+    if (!root?.addEventListener || root===document || roots.has(root)) return;
     if(root instanceof Node)ownerMutations?.observe(root,ownerMutationOptions);
     const listeners=[];
     const listen=(kind,listener,capture)=>{root.addEventListener(kind,listener,capture);listeners.push([kind,listener,capture]);};

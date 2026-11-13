@@ -56,7 +56,7 @@ test('unmapped additional checks fail closed until explicitly assigned to record
 });
 
 test('every named core popup and adapter case is in the exact required inventory',()=>{
-  const names=['control/chrome/ci/matrices.mjs','control/chrome/ci/review-matrices.mjs','control/chrome/ci/recheck2-matrices.mjs','control/chrome/ci/popups.mjs','control/chrome/ci/sites/matrices.mjs'].flatMap(file=>
+  const names=['control/chrome/ci/matrices.mjs','control/chrome/ci/review-matrices.mjs','control/chrome/ci/recheck2-matrices.mjs','control/chrome/ci/recheck3-matrices.mjs','control/chrome/ci/popups.mjs','control/chrome/ci/sites/matrices.mjs'].flatMap(file=>
     [...fs.readFileSync(file,'utf8').matchAll(/await check\('([^']+)'/g)].flatMap(match=>match[1]==='GROUP 10 adapter '?['gmail','whatsapp','github','gemini','deezer'].map(site=>match[1]+site):[match[1]]));
   assert.deepEqual([...names].sort(),[...Object.values(REQUIRED).flat(),...SUPPORT].sort());
   assert.equal(verdicts(complete(),baseline,adapters).groups[12],false);

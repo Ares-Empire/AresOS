@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {execFileSync} from 'node:child_process';
+import {mixedRows} from '../chrome/ci/guard-matrix.mjs';
 
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
@@ -53,6 +54,9 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     getAttribute(name){return this[name]??null;}
     setAttribute(name,value){this[name]=String(value);}
     removeAttribute(name){delete this[name];}
+    getAttributeNS(ns,name){return this.namespaceAttrs?.[ns+' '+name]??null;}
+    setAttributeNS(ns,name,value){(this.namespaceAttrs??={})[ns+' '+name.split(':').at(-1)]=String(value);}
+    removeAttributeNS(ns,name){delete this.namespaceAttrs?.[ns+' '+name];}
     matches(){return false;}
     querySelector(){return null;}
     attachShadow(options={}){const root=new Node();root.root=root;root.ownerDocument=this.ownerDocument;root.host=this;root.mode=options.mode;return root;}
@@ -786,4 +790,73 @@ test('2c borrowed clipboard natives remain undetected and cached wrappers become
   const f=fixture({relay:true,nativeShadows:true,clipboard:true}),button=new f.HTMLElement();f.arm(button,null);
   await f.nativeClipboard.writeText.call(f.clipboard,'synthetic');assert.equal(f.guard.clipboard(),null);
   const cached=f.clipboard.writeText;f.cleanup();await cached.call(f.clipboard,'synthetic');assert.equal(f.guard.clipboard(),null);assert.equal(f.clipboardCalls.length,2);f.guard.dispose();
+});
+
+
+test('recheck3 every wrapped native mix captures both listener insertion orderings',()=>{
+  const results=[];
+  for(const row of mixedRows()){
+    const f=fixture({relay:true,nativeShadows:true}),host=new f.HTMLElement(),button=new f.HTMLElement();
+    button.root=button;button.isConnected=false;button.tagName='BUTTON';button.textContent='Delete';let handlers=0;
+    f.arm(host,null);
+    const root=row.root?host.attachShadow({mode:row.mode}):f.nativeAttach.call(host,{mode:row.mode});
+    const insert=()=>row.insert?root.appendChild(button):f.nativeAppend.call(root,button);
+    const listen=()=>row.listen?button.addEventListener('click',()=>handlers++):f.nativeListen.call(button,'click',()=>handlers++);
+    if(row.order==='before'){listen();insert();}else{insert();listen();}
+    const event=new f.Event('click',{composed:row.composed,cancelable:true});
+    if(row.dispatch)button.dispatchEvent(event);else f.originalDispatch.call(button,event);
+    const limit=row.mask===0&&!row.composed;
+    assert.equal(handlers,limit?1:0,JSON.stringify(row));assert.equal(f.reports.length,limit?0:1,JSON.stringify(row));
+    results.push({...row,handlers,held:f.reports.length});f.cleanup();f.guard.dispose();
+  }
+  assert.equal(results.length,128);
+  console.log('RECHECK3 MIX MATRIX',JSON.stringify(results));
+});
+
+test('recheck3 every hyperlink type loses both href authorities and restores only unchanged attributes',async()=>{
+  const xlink='http://www.w3.org/1999/xlink';
+  for(const type of ['A','AREA','svg-href','svg-xlink','svg-both'])for(const target of ['_self','_blank','sink']){
+    const f=fixture({relay:true,nativeShadows:true}),link=new f.HTMLElement();link.tagName=type.startsWith('svg')?'a':type;link.textContent='Delete';link.target=target;link.ping='https://fixture.test/ping';
+    if(type.startsWith('svg')){link.namespaceURI='http://www.w3.org/2000/svg';link.localName='a';}
+    if(type!=='svg-xlink')link.href='https://fixture.test/delete';
+    if(['svg-xlink','svg-both'].includes(type))link.setAttributeNS(xlink,'xlink:href','https://fixture.test/legacy');
+    f.guard.arm({generation:'epoch',config:{...policy,defaultBlock:'https://aresos-hold.invalid/'},target:f.id(link)});
+    f.originalDispatch.call(link,new f.Event('click',{cancelable:false}));
+    assert.equal(link.getAttribute('href'),null,type);assert.equal(link.getAttributeNS(xlink,'href'),null,type);assert.equal(link.ping,'https://aresos-hold.invalid/');assert.equal(f.reports[0].kind,'activation');
+    // A page's new destination must survive the later restoration task.
+    if(target==='sink')link.href='https://fixture.test/new';
+    await new Promise(resolve=>setTimeout(resolve,5));
+    assert.equal(link.href,target==='sink'?'https://fixture.test/new':type==='svg-xlink'?undefined:'https://fixture.test/delete');
+    assert.equal(link.getAttributeNS(xlink,'href'),['svg-xlink','svg-both'].includes(type)?'https://fixture.test/legacy':null);
+    assert.equal(link.ping,'https://fixture.test/ping');f.cleanup();f.guard.dispose();
+  }
+});
+
+test('recheck3 native submitters including images external form buttons and resets are disabled through default',async()=>{
+  for(const [tag,type]of [['BUTTON','submit'],['INPUT','submit'],['INPUT','image'],['BUTTON','reset'],['INPUT','reset']]){
+    const f=fixture({relay:true,nativeShadows:true}),form=new f.HTMLFormElement(),button=new f.HTMLElement();
+    button.tagName=tag;button.type=type;button.textContent='Delete';button.form=form;button.setAttribute('form','external');
+    f.guard.arm({generation:'epoch',config:{...policy,defaultBlock:'https://aresos-hold.invalid/'},target:f.id(button)});
+    for(let repeat=0;repeat<2;repeat++){f.originalDispatch.call(button,new f.Event('click',{cancelable:false}));assert.equal(button.getAttribute('disabled'),'');}
+    assert.ok(f.reports.every(row=>row.kind==='activation'));await new Promise(resolve=>setTimeout(resolve,5));assert.equal(button.getAttribute('disabled'),null);
+    f.cleanup();f.guard.dispose();
+  }
+});
+
+test('recheck3 unrecognised defaults and checkbox preactivation are never falsely reported stopped',()=>{
+  for(const [tag,type]of [['SUMMARY',''],['LABEL',''],['SELECT',''],['INPUT','checkbox'],['INPUT','radio'],['INPUT','file'],['DIV','']]){
+    const f=fixture({relay:true,nativeShadows:true}),element=new f.HTMLElement();element.tagName=tag;element.type=type;element.textContent='Delete';element.form=new f.HTMLFormElement();
+    f.guard.arm({generation:'epoch',config:{...policy,defaultBlock:'https://aresos-hold.invalid/'},target:f.id(element)});
+    f.originalDispatch.call(element,new f.Event('click',{cancelable:false}));assert.equal(f.reports[0].kind,'activation_unknown',tag+' '+type);
+    f.cleanup();f.guard.dispose();
+  }
+});
+
+
+test('recheck3 detached listener branding uses a saved native after the page replaces Node',()=>{
+  const f=fixture({relay:true,nativeShadows:true}),host=new f.HTMLElement(),button=new f.HTMLElement();
+  button.root=button;button.tagName='BUTTON';button.textContent='Delete';f.main.Node=function PageNode(){};f.arm(host,null);let handlers=0;
+  button.addEventListener('click',()=>handlers++);const root=f.nativeAttach.call(host,{mode:'closed'});f.nativeAppend.call(root,button);
+  f.originalDispatch.call(button,new f.Event('click',{composed:false}));assert.equal(handlers,0);assert.equal(f.reports.length,1);
+  f.cleanup();f.guard.dispose();
 });

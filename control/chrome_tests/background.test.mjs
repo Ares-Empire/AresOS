@@ -1078,3 +1078,12 @@ test('2c clipboard messages cannot cross sender identity control epoch or route 
     [{event:'clipboard_write',document:'d',route:'readText',generation:'epoch'},{id:'fixture-extension',tab:{id:7},frameId:0}],
   ]){f.run(`clip(${JSON.stringify(message)},${JSON.stringify(sender)})`);assert.equal(f.run("clipboardObservation(7,'epoch')"),null);}
 });
+
+
+test('recheck3 final extension binding catches indentation and linebreak drift before native dispatch',async()=>{
+  for(const next of ['if approved:\n    send()\n    audit()','if approved:\n    send() audit()']){
+    const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.effects=[];globalThis.snapshot={tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:'Send'},form:null,editable:[{value:'Draft'}],compose:{element:'area',text:'if approved:\\n    send()\\naudit()'}}]};facts=async()=>snapshot;content=async()=>({});pointer=async()=>({x:1,y:1});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async()=>effects.push('input')};globalThis.approved=JSON.parse(JSON.stringify(binding(snapshot,{frame:0},'send',false)));");
+    f.run('snapshot.frames[0].compose.text='+JSON.stringify(next));
+    await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'send',binding:approved})"),/page changed/);assert.equal(f.run('effects.length'),0);
+  }
+});

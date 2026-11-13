@@ -356,6 +356,8 @@ class Chrome:
         if data.get('confirmation'):
             summary += f" and confirm '{data['confirmation']['text']}'"
         changed=data.get('changed_compose')
+        if state.get('compose') is not None and not changed:
+            summary += f"; text next to Send: '{state['compose']['text']}'"
         if changed:
             summary += f"; text next to Send changed from '{changed['before']}' to '{changed['after']}'"
         return summary + '?'

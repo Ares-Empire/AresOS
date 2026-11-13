@@ -141,3 +141,13 @@ test('recheck script POST observes both exact document commits before takeover',
   });
   assert.equal(checks,1);assert.equal(postCommitted,true);assert.equal(popupPosted,true);
 });
+
+
+test('recheck3 full mixed matrix and activation whitespace fixtures compile without a browser',async()=>{
+  const {recheck3Page,defaultRows,whitespaceKinds}=await import('../chrome/ci/recheck3-fixtures.mjs');
+  const {mixedRows,browserMixes}=await import('../chrome/ci/guard-matrix.mjs');
+  assert.equal([...mixedRows()].length,128);assert.equal(browserMixes().length,40);
+  for(const mask of [1,2,4,8])assert.equal(browserMixes().filter(row=>row.mask===mask).length,8);
+  const urls=[...[...mixedRows()].map(row=>({...row,mode:'mixed',root:row.mode,id:'mixed'})),...defaultRows().map(row=>({mode:'activation-default',...row})),...whitespaceKinds.flatMap(kind=>['indent','line'].map(change=>({mode:'compose-whitespace',kind,change,id:'space'})))];
+  for(const row of urls){const page=recheck3Page(new URL('http://fixture.test/?'+new URLSearchParams(row)));new vm.Script(page.script);assert.ok(page.body);}
+});

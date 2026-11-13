@@ -146,7 +146,7 @@ case('recheck-confirmation-submitter',P,"if evidence and target.get('page_dialog
 case('recheck-confirmation-extension',B,"kind==='confirmation'||kind==='send'&&!frame.form","['confirmation','send'].includes(kind)&&!frame.form",node('background','recheck confirmation form'))
 case('recheck-shadow-composed',G,'if(nodeRoot!==document){watch(nodeRoot);return;}','if(nodeRoot!==document)return;',node('page','recheck composed native roots'))
 case('recheck-shadow-native-insertion',M,"[globalThis.DocumentFragment?.prototype,['append','prepend','replaceChildren']]","[globalThis.DocumentFragment?.prototype,[]]",node('page','recheck native roots'),extra=[(M,"[globalThis.Node?.prototype,['appendChild','insertBefore','replaceChild']]","[globalThis.Node?.prototype,[]]")])
-case('recheck-shadow-native-listener',M,"[EventTarget.prototype,['addEventListener']]","[EventTarget.prototype,[]]",node('page','recheck native roots'))
+case('recheck-shadow-native-listener',M,re.search(r"  install\(EventTarget.prototype,'addEventListener',function\(\)\{[\s\S]*?\n  \}\);",(ROOT/M).read_text())[0],'',node('page','recheck native roots'))
 case('recheck-shadow-native-markup',M,'set innerHTML(html){watchReceiver(this);invoke(method,this,[html]);}','set innerHTML(html){invoke(method,this,[html]);}',node('page','recheck native roots'))
 case('recheck-shadow-host',G,'if(shadow)watch(shadow);','if(shadow){watch(shadow);return;}',node('page','recheck a shadow host'))
 case('recheck-search-service',P,"form.get('method','').lower()=='get' and not evidence","form.get('method','').lower()=='get'",'test_policy.RecheckSearch.test_explicit_search_submitters_ask_and_ordinary_search_stays_free',True)
@@ -220,6 +220,20 @@ case('recheck2c-clipboard-route',B,"!['write','writeText','copy'].includes(messa
 case('recheck2c-clipboard-description','control/aresos_control/chrome/definitions.py',"purpose += ' ' + CLIPBOARD_NOTICE","purpose += ''",'test_policy.ClipboardDescriptions.test_2c_click_descriptions_warn_without_changing_the_liftable_shared_block',True)
 case('recheck2c-owner-exact-url','control/chrome/ci/owner-ui.mjs',"exec('xdotool',['key','--clearmodifiers','Delete']);",'',node('owner-ui','owner navigation deletes an inline history'))
 case('recheck2b-transport-reset','control/boundary/hostile.py',', errno.ECONNRESET','', 'control.tests.test_boundary_host_transport.HostTransport.test_reset_and_timeout_are_unqualified_not_policy_denials',True)
+
+
+case('recheck3-detached-listener',M,'if(node)watchCreated(this);','',node('page','recheck3 every wrapped native mix'))
+case('recheck3-node-brand',M,'let node=false;try{invoke(root,this,[]);node=true;}catch{}','let node=this instanceof Node;',node('page','recheck3 detached listener branding'))
+case('recheck3-area-default',G,"['A','AREA'].includes(element.tagName)","['A'].includes(element.tagName)",node('page','recheck3 every hyperlink'))
+case('recheck3-svg-default',G,"element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a'","false",node('page','recheck3 every hyperlink'))
+case('recheck3-svg-legacy-default',G,"if(legacy!==null)removeAttributeNS.call(node,xlink,'href');",'',node('page','recheck3 every hyperlink'))
+case('recheck3-image-default',G,"['submit','image','reset'].includes(element.type)","['submit','reset'].includes(element.type)",node('page','recheck3 native submitters'))
+case('recheck3-unknown-default',G,"if(!hyperlink&&node.tagName!=='FORM')return false;","if(!hyperlink&&node.tagName!=='FORM')return true;",node('page','recheck3 unrecognised defaults'))
+case('recheck3-rendered-compose',R,'const content=renderedCompose(area);',"const content=text(area,false,true).replace(/\\s+/g,' ').trim();",node('reader','recheck3 compose preserves'))
+case('recheck3-pre-modes',R,"['pre','pre-wrap','break-spaces','preserve'].includes(space)","['pre'].includes(space)",node('reader','recheck3 compose preserves'))
+case('recheck3-pre-line',R,"space==='pre-line'&&part.includes('\\n')","false",node('reader','recheck3 compose preserves'))
+case('recheck3-compose-question',A,"if state.get('compose') is not None and not changed:","if False:",'test_questions.Questions.test_recheck3_whitespace_only_changes_keep_exact_questions_and_bounded_bindings',True)
+case('recheck3-compose-extension',B,"compose:!adapter&&['send','confirmation','form'].includes(kind)?frame.compose||null:null,",'compose:null,',node('background','recheck3 final extension binding'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

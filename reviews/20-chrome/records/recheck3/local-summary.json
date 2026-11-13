@@ -1,0 +1,97 @@
+{
+  "checks": [
+    {
+      "command": "node --test control/chrome_tests/*.test.mjs",
+      "exit_code": 0,
+      "output": "local-node.txt",
+      "sha256": "39e77ffe99adff33ff2a588f2e4d03b639190911ebbf9ed163c6ead3c2314b7f",
+      "tail": [
+        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.289417ms)",
+        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.87025ms)",
+        "\u2139 tests 300",
+        "\u2139 suites 0",
+        "\u2139 pass 300",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 7197.510791"
+      ]
+    },
+    {
+      "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s control/chrome_tests -v",
+      "exit_code": 0,
+      "output": "local-python.txt",
+      "sha256": "54ca2b08c09e15cf75b6aa6d6166e14fa0c658d6b3e1816458b655af42f73daa",
+      "tail": [
+        "test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch (test_storage.Storage.test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch) ... ok",
+        "test_taken_read_preserves_document_and_first_input_commits_reload_before_staling (test_storage.Storage.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok",
+        "test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_storage.Storage.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok",
+        "test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_storage.Storage.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok",
+        "test_service_sandbox_and_launch_are_exact (test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact) ... ok",
+        "",
+        "----------------------------------------------------------------------",
+        "Ran 231 tests in 580.628s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck3/mutations.json",
+      "exit_code": 0,
+      "output": "local-mutations.txt",
+      "sha256": "beaf1f0255c79455598b541507759461fd196204b24ea44a3b27570fa999d848",
+      "tail": [
+        "recheck3-svg-default MUTATION REJECTED",
+        "recheck3-svg-legacy-default MUTATION REJECTED",
+        "recheck3-image-default MUTATION REJECTED",
+        "recheck3-unknown-default MUTATION REJECTED",
+        "recheck3-rendered-compose MUTATION REJECTED",
+        "recheck3-pre-modes MUTATION REJECTED",
+        "recheck3-pre-line MUTATION REJECTED",
+        "recheck3-compose-question MUTATION REJECTED",
+        "recheck3-compose-extension MUTATION REJECTED",
+        "199 mutations rejected; every baseline passed"
+      ]
+    },
+    {
+      "command": "node --test reviews/20-chrome/audit-streams.test.mjs",
+      "exit_code": 0,
+      "output": "local-streams.txt",
+      "sha256": "548044bcb227959b1419fe19a254c1427554fc7d23426e309c6f2229564bada7",
+      "tail": [
+        "\u2714 sentinel scans find an ASCII sentinel split across stream chunks without retaining the file (2.250417ms)",
+        "\u2714 streamed SHA-256 equals the complete byte digest including multibyte chunk boundaries (0.886458ms)",
+        "\u2139 tests 5",
+        "\u2139 suites 0",
+        "\u2139 pass 5",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 48.81775"
+      ]
+    }
+  ],
+  "probe": {
+    "command": "node reviews/20-chrome/probe-recheck3.mjs reviews/20-chrome/records/recheck3/mixed-probe.json",
+    "exit_code": 0,
+    "stdout": "128 generated mixes passed; only 4 all-native non-composed rows run their handler"
+  },
+  "generator": {
+    "command": "python3 -B control/generate.py --check",
+    "stdout": "Generated artifacts match definitions",
+    "exit_code": 0
+  },
+  "diff": {
+    "command": "git diff --check",
+    "stdout": "",
+    "exit_code": 0
+  },
+  "corrected_attempts": [
+    "Focused page/reader first failed the inert-target compatibility regression; watch now ignores non-EventTarget roots, preserving native inert/detached behavior.",
+    "First fixture compile check failed because its test generator overwrote the fixture mode; corrected the test parameter ordering.",
+    "First complete Node run failed the required-inventory scan; added the new matrix module to the exact inventory scanner.",
+    "First mutation audit stopped at its old addEventListener-list edit selector; updated that removal to remove the whole dedicated listener wrapper. No original assertion was removed."
+  ]
+}

@@ -102,7 +102,7 @@
     const buttonValue=element instanceof HTMLInputElement && ['button','submit','reset'].includes(element.type) ? safeValue(element).value || (element.type==='submit'?'Submit':element.type==='reset'?'Reset':''):null;
     return (labelled.length ? labelled.map(node=>text(node,true)).join(' ') : element.getAttribute('aria-label') ||
       (element.labels?.length ? [...element.labels].map(node=>text(node,true)).join(' ') : element.getAttribute('alt') || buttonValue ||
-      ((['BUTTON','A','SUMMARY'].includes(element.tagName) || element.hasAttribute('role') ? text(element) : element.getAttribute('placeholder') || '') || element.getAttribute('title') || ''))).replace(/\s+/g, ' ').trim();
+      ((['BUTTON','A','SUMMARY'].includes(element.tagName) || hyperlink(element) || element.hasAttribute('role') ? text(element) : element.getAttribute('placeholder') || '') || element.getAttribute('title') || ''))).replace(/\s+/g, ' ').trim();
   }
   function editableText(node) {
     if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
@@ -187,6 +187,7 @@
   function role(element) {
     if (element.getAttribute('role')) return element.getAttribute('role');
     const tag = element.tagName;
+    if(hyperlink(element))return 'link';
     if (tag === 'INPUT') return {checkbox:'checkbox',radio:'radio',submit:'button',button:'button',range:'slider',search:'searchbox',hidden:'hidden'}[element.type] || 'textbox';
     return {BUTTON:'button',A:element.href ? 'link':'generic',TEXTAREA:'textbox',SELECT:'combobox',OPTION:'option',FORM:'form',DIALOG:'dialog',LI:'listitem',TR:'row',ARTICLE:'article',SECTION:'region',H1:'heading',H2:'heading',H3:'heading',P:'paragraph',TD:'cell',TH:'columnheader',IFRAME:'iframe'}[tag] || (element.isContentEditable ? 'textbox' : 'generic');
   }
@@ -210,9 +211,36 @@
     if(!(element instanceof HTMLInputElement) || !element.form || ['button','submit','image','checkbox','radio','file','hidden','range','color'].includes(element.type))return null;
     return [...element.getRootNode().querySelectorAll('button,input')].find(control=>control.form===element.form&&['submit','image'].includes(control.type)) || null;
   }
+  function mappedImage(area){
+    if(area.tagName!=='AREA')return null;
+    const map=area.closest('map'),name=map?.getAttribute('name');
+    return name?[...document.querySelectorAll('img[usemap]')].find(image=>image.getAttribute('usemap')==='#'+name):null;
+  }
+  function areaContains(area,x,y){
+    const shape=(area.getAttribute('shape')||'rect').toLowerCase(),coords=(area.getAttribute('coords')||'').split(/[ ,]+/).map(Number);
+    if(shape==='default')return true;
+    if(!coords.every(Number.isFinite))return false;
+    if(shape==='rect'&&coords.length===4)return x>=Math.min(coords[0],coords[2])&&x<=Math.max(coords[0],coords[2])&&y>=Math.min(coords[1],coords[3])&&y<=Math.max(coords[1],coords[3]);
+    if(shape==='circle'&&coords.length===3)return coords[2]>=0&&(x-coords[0])**2+(y-coords[1])**2<=coords[2]**2;
+    if(shape==='poly'&&coords.length>=6&&coords.length%2===0){let inside=false;for(let i=0,j=coords.length-2;i<coords.length;j=i,i+=2)if((coords[i+1]>y)!==(coords[j+1]>y)&&x<(coords[j]-coords[i])*(y-coords[i+1])/(coords[j+1]-coords[i+1])+coords[i])inside=!inside;return inside;}
+    return false;
+  }
   function targetFacts(element) {
-    const box = element.getBoundingClientRect(), value = safeValue(element);
-    const clickControl=['BUTTON','A','SUMMARY'].includes(element.tagName) ||
+    let box = element.getBoundingClientRect();
+    const image=mappedImage(element);
+    if(image){
+      const bounds=image.getBoundingClientRect(),shape=(element.getAttribute('shape')||'rect').toLowerCase(),coords=(element.getAttribute('coords')||'').split(/[ ,]+/).map(Number);
+      let left=0,top=0,right=bounds.width,bottom=bounds.height;
+      if(coords.every(Number.isFinite)){
+        if(shape==='rect'&&coords.length===4)[left,top,right,bottom]=[Math.min(coords[0],coords[2]),Math.min(coords[1],coords[3]),Math.max(coords[0],coords[2]),Math.max(coords[1],coords[3])];
+        else if(shape==='circle'&&coords.length===3)[left,top,right,bottom]=[coords[0]-coords[2],coords[1]-coords[2],coords[0]+coords[2],coords[1]+coords[2]];
+        else if(shape==='poly'&&coords.length>=6){const xs=coords.filter((_,i)=>i%2===0),ys=coords.filter((_,i)=>i%2===1);[left,top,right,bottom]=[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)];}
+      }
+      left=Math.max(0,left);top=Math.max(0,top);right=Math.min(bounds.width,right);bottom=Math.min(bounds.height,bottom);
+      box={x:bounds.x+left,y:bounds.y+top,width:Math.max(0,right-left),height:Math.max(0,bottom-top),top:bounds.y+top,left:bounds.x+left,right:bounds.x+right,bottom:bounds.y+bottom};
+    }
+    const value = safeValue(element);
+    const clickControl=['BUTTON','A','AREA','SUMMARY'].includes(element.tagName) || hyperlink(element) ||
       element instanceof HTMLInputElement && ['button','submit','image','checkbox','radio','range','color','file','reset'].includes(element.type) ||
       (element.getAttribute('role')||'').toLowerCase().split(/\s+/).some(role=>['button','link','menuitem','menuitemcheckbox','menuitemradio','checkbox','radio','switch','option','tab','treeitem'].includes(role));
     const dialog=element.closest('dialog,[role=dialog],[role=alertdialog]');
@@ -220,7 +248,7 @@
     return {element: id(element), role: role(element), page_dialog, name: name(element), label:element.labels?.length?[...element.labels].map(node=>text(node,true)).join(' ').replace(/\s+/g,' ').trim():name(element), title: element.getAttribute('title') || '', ...value,
       ...(element instanceof HTMLSelectElement && !value.password ? {options:field(element).options}:{}),
       ...(implicitSubmitter(element) ? {implicit_submitter:id(implicitSubmitter(element))}:{}),
-      href: element.tagName === 'A' ? element.href : null,
+      href: hyperlinkAddress(element),
       editable: !clickControl && (element instanceof HTMLInputElement && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || element instanceof HTMLTextAreaElement || element.isContentEditable),
       search: element.type === 'search' || element.getAttribute('role') === 'searchbox', submit: !!element.form && (element.type === 'submit' || element.type === 'image'),
       states: {checked: !!element.checked, selected: !!element.selected, disabled: !!element.disabled, required: !!element.required, invalid: element.getAttribute('aria-invalid') === 'true', expanded: element.getAttribute('aria-expanded')},
@@ -237,6 +265,50 @@
   function itemText(element) {
     return text(affectedItem(element),false,true).replace(/\s+/g, ' ').trim();
   }
+  function hyperlinkAddress(element){
+    if(!hyperlink(element))return null;
+    const address=element.getAttribute('href')??element.getAttributeNS?.('http://www.w3.org/1999/xlink','href');
+    try{return new URL(address,location.href).href;}catch{return address;}
+  }
+  function hyperlink(element){
+    return (['A','AREA'].includes(element.tagName)||element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a')&&
+      (element.hasAttribute('href')||element.hasAttributeNS?.('http://www.w3.org/1999/xlink','href'));
+  }
+  function renderedCompose(area){
+    // innerText/textContent on an ancestor could read protected descendants.
+    // Walk the composed tree ourselves, applying whitespace rules per text run.
+    let result='',pending='';
+    const flush=()=>{if(result&&pending&&!result.endsWith('\n'))result+=pending;pending='';};
+    function append(value,space){
+      value=value.replace(/\r\n?/g,'\n');
+      if(['pre','pre-wrap','break-spaces','preserve'].includes(space)){flush();result+=value;return;}
+      for(const part of value.split(/([ \t\n\f]+)/)){
+        if(!part)continue;
+        if(/^[ \t\n\f]+$/.test(part)){
+          if(space==='pre-line'&&part.includes('\n')){pending='';result+='\n'.repeat((part.match(/\n/g)||[]).length);}
+          else if(pending!=='\n')pending=' ';
+        }else{flush();result+=part;}
+      }
+    }
+    function visit(node,space='normal'){
+      if(node.nodeType===Node.TEXT_NODE){if(!node.parentElement||!password(node.parentElement))append(node.textContent,space);return;}
+      if(!(node instanceof Element)||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','SELECT'].includes(node.tagName))return;
+      const style=getComputedStyle(node);
+      if(node.hidden||style.display==='none'||style.visibility==='hidden'||style.visibility==='collapse')return;
+      if(node.tagName==='BR'){pending='';result+='\n';return;}
+      const block=['block','list-item','table-row','flex','grid','table','flow-root'].includes(style.display);
+      if(block&&result)pending='\n';
+      const whiteSpace=style.whiteSpace|| (node.tagName==='PRE'?'pre':space);
+      if(node instanceof HTMLTextAreaElement){const safe=safeValue(node);if(!safe.password)append(safe.value,'pre-wrap');}
+      else if(node.tagName==='IMG')append(node.getAttribute('alt')||'',whiteSpace);
+      else{
+        const assigned=node.tagName==='SLOT'?node.assignedNodes?.():null;
+        for(const child of assigned?.length?assigned:shadow(node)?.childNodes||node.childNodes)visit(child,whiteSpace);
+      }
+      if(block&&result)pending='\n';
+    }
+    visit(area);return result;
+  }
   function composeText(element,nodes){
     const candidates=nodes.filter(node=>node!==element&&
       (node instanceof HTMLTextAreaElement||node.isContentEditable||node instanceof HTMLInputElement&&!['hidden','button','submit','reset','image','file','checkbox','radio'].includes(node.type))&&
@@ -250,8 +322,8 @@
     if(element.isContentEditable||element instanceof HTMLTextAreaElement||element instanceof HTMLInputElement)drafts.push(element);
     const contains=(area,node)=>{for(let parent=node;parent;parent=composedParent(parent))if(parent===area)return true;return false;};
     for(let area=composedParent(element);area;area=composedParent(area)){
-      const content=text(area,false,true).replace(/\s+/g,' ').trim();
-      if(drafts.some(draft=>contains(area,draft))||!drafts.length&&content!==text(element,false,true).replace(/\s+/g,' ').trim())return {element:id(area),whole_page:['BODY','HTML'].includes(area.tagName),text:content};
+      const content=renderedCompose(area);
+      if(drafts.some(draft=>contains(area,draft))||!drafts.length&&content!==renderedCompose(element))return {element:id(area),whole_page:['BODY','HTML'].includes(area.tagName),text:content};
     }
     return null;
   }
@@ -281,6 +353,8 @@
   }
   function hit(element,x,y){
     let actual=document.elementFromPoint(x,y);
+    const image=mappedImage(element);
+    if(image&&actual===image){const box=image.getBoundingClientRect();return [...element.closest('map').querySelectorAll('area')].find(area=>areaContains(area,x-box.x,y-box.y))===element;}
     while(actual){const root=shadow(actual),deeper=root?.elementFromPoint(x,y);if(!deeper || deeper===actual)break;actual=deeper;}
     for(let node=actual;node;node=node.parentElement || node.getRootNode().host)if(node===element)return true;
     return false;
