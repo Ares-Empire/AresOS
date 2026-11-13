@@ -1909,6 +1909,11 @@ class Windows:
         self.owners = {window_id: app.id for app in apps.values() if not app.invalid for window_id in app.app_ids}
         self.prefixes = tuple((prefix, app.id) for app in apps.values() if not app.invalid
                               for prefix in app.app_id_prefixes)
+        # A dialog's inherited owner goes with its program (e.g. a 1.0 desktop: discovered programs own nothing).
+        valid = {app.id for app in apps.values() if not app.invalid}
+        for toplevel in self.toplevels.values():
+            if toplevel.launch_owner not in valid:
+                toplevel.launch_owner = None
         # Windows listed before the registry was known get their owners now (twice, so dialogs follow parents).
         for _ in range(2):
             for toplevel in self.toplevels.values():

@@ -549,6 +549,26 @@ class LegacyWindowsTest(Base):
         self.current.tick()
         self.assertEqual(self.activations, [1])  # a 1.1 desktop gets the discovered program's return
 
+    def test_a_dialog_of_a_discovered_window_is_nobodys_for_a_1_0_desktop(self):
+        self.hello(1)
+        self.window(1, 'aresos-desktop', active=False)
+        self.window(10, 'firefox', active=True)
+        self.windows.new(11)
+        self.windows.parent(11, 10)
+        self.windows.done(11)
+        self.current.windows_changed()
+        self.windows.gone(10)
+        self.current.windows_changed()
+        self.assertEqual(self.windows.toplevels[11].owner, 'firefox')  # kept after its parent closed
+        self.hello(0)
+        self.assertIsNone(self.windows.toplevels[11].owner)
+        self.focus(11)
+        self.windows.gone(11)
+        self.focus(1)
+        self.now[0] += shell.HANDOFF * 3
+        self.current.tick()
+        self.assertEqual(self.activations, [])
+
 
 class DroppedReturnTest(OwnershipBase):
     """Finding 4: after A closed and the compositor moved to B, choosing C drops A's pending return."""

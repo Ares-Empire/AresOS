@@ -4,33 +4,32 @@
   "observations": [
     {
       "app_id": "check-kcalc",
-      "unit": "app-aresos-check\\x2dkcalc-449687ad4dbc3dad.scope",
-      "properties": "ActiveState=active\nSlice=app.slice\nControlGroup=/user.slice/user-1001.slice/user@1001.service/app.slice/app-aresos-check\\x2dkcalc-449687ad4dbc3dad.scope\n",
+      "unit": "app-aresos-check\\x2dkcalc-b57c7e1f78977b7e.scope",
+      "properties": "ActiveState=active\nSlice=app.slice\nControlGroup=/user.slice/user-1001.slice/user@1001.service/app.slice/app-aresos-check\\x2dkcalc-b57c7e1f78977b7e.scope\n",
       "window_app_id": "org.kde.kcalc",
       "scope_pids": [
-        "1171729",
-        "1171730",
-        "1171731",
-        "1171733",
-        "1171734",
-        "1171742",
-        "1171748",
-        "1171754",
-        "1171758",
-        "1171770"
+        "1256399",
+        "1256403",
+        "1256404",
+        "1256411",
+        "1256422",
+        "1256428",
+        "1256434",
+        "1256439",
+        "1256453"
       ],
       "focused": {
         "protocol": "aresos-shell/1.1",
-        "id": "e-1",
+        "id": "e-3",
         "event": "app_state",
         "request_id": "open-check-kcalc",
-        "launch_id": "449687ad4dbc3dad",
+        "launch_id": "b57c7e1f78977b7e",
         "app_id": "check-kcalc",
         "state": "focused"
       },
       "returned": {
         "protocol": "aresos-shell/1.1",
-        "id": "e-5",
+        "id": "e-7",
         "event": "shell_focus",
         "focus": "foreground",
         "reason": "desktop_activated"
@@ -38,25 +37,25 @@
     },
     {
       "app_id": "check-btop",
-      "unit": "app-aresos-check\\x2dbtop-69956cf08ceabc9c.scope",
-      "properties": "ActiveState=active\nSlice=app.slice\nControlGroup=/user.slice/user-1001.slice/user@1001.service/app.slice/app-aresos-check\\x2dbtop-69956cf08ceabc9c.scope\n",
+      "unit": "app-aresos-check\\x2dbtop-f0e17785b873ade4.scope",
+      "properties": "ActiveState=active\nSlice=app.slice\nControlGroup=/user.slice/user-1001.slice/user@1001.service/app.slice/app-aresos-check\\x2dbtop-f0e17785b873ade4.scope\n",
       "window_app_id": "aresos.app.check-btop",
       "scope_pids": [
-        "1171833",
-        "1171834"
+        "1256530",
+        "1256531"
       ],
       "focused": {
         "protocol": "aresos-shell/1.1",
-        "id": "e-7",
+        "id": "e-9",
         "event": "app_state",
         "request_id": "open-check-btop",
-        "launch_id": "69956cf08ceabc9c",
+        "launch_id": "f0e17785b873ade4",
         "app_id": "check-btop",
         "state": "focused"
       },
       "returned": {
         "protocol": "aresos-shell/1.1",
-        "id": "e-9",
+        "id": "e-11",
         "event": "shell_focus",
         "focus": "foreground",
         "reason": "desktop_activated"
@@ -87,7 +86,7 @@
       "protocol": "aresos-shell/1.1",
       "id": "list",
       "ok": true,
-      "revision": "192d184a6ea3f61b",
+      "revision": "f20efe029c75ae23",
       "apps": [
         {
           "id": "bazzite-documentation",
@@ -1112,22 +1111,34 @@
       "id": "open-check-kcalc",
       "ok": true,
       "request_id": "open-check-kcalc",
-      "launch_id": "449687ad4dbc3dad",
+      "launch_id": "b57c7e1f78977b7e",
       "app_id": "check-kcalc",
       "state": "starting"
     },
     {
       "protocol": "aresos-shell/1.1",
       "id": "e-1",
+      "event": "apps_changed",
+      "revision": "f1cf73fe5054dc94"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-2",
+      "event": "apps_changed",
+      "revision": "97f2f1c0457dba80"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-3",
       "event": "app_state",
       "request_id": "open-check-kcalc",
-      "launch_id": "449687ad4dbc3dad",
+      "launch_id": "b57c7e1f78977b7e",
       "app_id": "check-kcalc",
       "state": "focused"
     },
     {
       "protocol": "aresos-shell/1.1",
-      "id": "e-2",
+      "id": "e-4",
       "event": "shell_focus",
       "focus": "background",
       "reason": "app_activated",
@@ -1135,29 +1146,29 @@
     },
     {
       "protocol": "aresos-shell/1.1",
-      "id": "e-3",
-      "event": "apps_changed",
-      "revision": "c66eafe687f79c16"
-    },
-    {
-      "protocol": "aresos-shell/1.1",
-      "id": "e-4",
-      "event": "apps_changed",
-      "revision": "a2f8035893dfb658"
-    },
-    {
-      "protocol": "aresos-shell/1.1",
       "id": "e-5",
+      "event": "apps_changed",
+      "revision": "bac4d79cc74cfe0b"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-6",
+      "event": "apps_changed",
+      "revision": "1e25fae2e09cc250"
+    },
+    {
+      "protocol": "aresos-shell/1.1",
+      "id": "e-7",
       "event": "shell_focus",
       "focus": "foreground",
       "reason": "desktop_activated"
     },
     {
       "protocol": "aresos-shell/1.1",
-      "id": "e-6",
+      "id": "e-8",
       "event": "app_state",
       "request_id": "open-check-kcalc",
-      "launch_id": "449687ad4dbc3dad",
+      "launch_id": "b57c7e1f78977b7e",
       "app_id": "check-kcalc",
       "state": "closed"
     },
@@ -1166,22 +1177,22 @@
       "id": "open-check-btop",
       "ok": true,
       "request_id": "open-check-btop",
-      "launch_id": "69956cf08ceabc9c",
+      "launch_id": "f0e17785b873ade4",
       "app_id": "check-btop",
       "state": "starting"
     },
     {
       "protocol": "aresos-shell/1.1",
-      "id": "e-7",
+      "id": "e-9",
       "event": "app_state",
       "request_id": "open-check-btop",
-      "launch_id": "69956cf08ceabc9c",
+      "launch_id": "f0e17785b873ade4",
       "app_id": "check-btop",
       "state": "focused"
     },
     {
       "protocol": "aresos-shell/1.1",
-      "id": "e-8",
+      "id": "e-10",
       "event": "shell_focus",
       "focus": "background",
       "reason": "app_activated",
@@ -1189,17 +1200,17 @@
     },
     {
       "protocol": "aresos-shell/1.1",
-      "id": "e-9",
+      "id": "e-11",
       "event": "shell_focus",
       "focus": "foreground",
       "reason": "desktop_activated"
     },
     {
       "protocol": "aresos-shell/1.1",
-      "id": "e-10",
+      "id": "e-12",
       "event": "app_state",
       "request_id": "open-check-btop",
-      "launch_id": "69956cf08ceabc9c",
+      "launch_id": "f0e17785b873ade4",
       "app_id": "check-btop",
       "state": "closed"
     }

@@ -260,7 +260,7 @@ New tests are in `os/tests/test_aresos_shell_review_fixes.py` unless named other
   production builds the catalogue): with a 1.0 desktop, Firefox started by hand over the terminal opens and closes
   three times (connected, disconnected, reconnected): never a return, the terminal stays focused, and the terminal's
   own close still returns; a 1.1 desktop owns Firefox's window, a 1.0 reconnect gives it up, and a 1.1 reconnect gets
-  the discovered return back.
+  the discovered return back; a dialog that inherited a discovered parent's owner loses it for a 1.0 desktop too.
 - **Finding 3, a 1.0 client asking for a discovered ID gets exactly the old failed-launch answer.** For a 1.0 client
   a discovered ID is an unknown one: answered and journaled exactly as the pre-package-30 helper answers any unknown
   ID, and a repeated request ID replays it (also after a restart) or answers `request_id_reused`. A 1.0 client
@@ -355,3 +355,39 @@ that name the same desktop ID, or could claim the same window, are all refused.
 - A permanently open window nobody owns stops discovered programs' forced returns (see the JUDGMENT-CALL).
 - A mod that reconnects with a lower minor while discovered programs are open makes their windows nobody's; their
   launches close after the hand-over interval.
+
+### Verified (review fixes 1)
+
+On the laptop, 2026-11-14, at the step-B code (the last code commit is the one after `228ae93c`; the headless
+check ran at `228ae93c`, before a one-function change to `Windows.set_registry` that it does not reach):
+
+- `TMPDIR="$PWD/.work/30-installed-programs/tmp" python3 -m unittest discover -s os/tests -p 'test_aresos_shell*.py'`
+  → **Ran 255 tests, OK**, twice (198 before review fixes 1, 224 after step A).
+- `... -p 'check_aresos_shell_launch.py'` (FIX 4's real `systemd-run --user --scope` route) → **Ran 2 tests, OK**.
+- `... -p 'check_aresos_shell_icons.py'` (the real sandboxed converter) → **Ran 7 tests, OK**.
+- **Each fix taken out alone** (scratch script, helper patched in memory, the fix's tests run): without hints 8 of
+  15 fail; with the old guess back 5 of 21; without the unowned-window rule 2 of 21; without prefix matching 2 of 7;
+  with the full catalogue for 1.0 desktops two of three `LegacyWindowsTest` tests, and with inherited dialog owners
+  kept the third; with the old generic refusal both
+  `LegacyDiscoveredIdTest` tests; without the switch cancel 2 of 4 and without the launch cancel 1 of 4
+  `DroppedReturnTest` tests; with markers removed everywhere 2 of 3; with the old invented Flatpak ID all 4 of
+  `FlatpakAppIdTest` (subtests included). With every fix in, all pass.
+- **Headless end to end once more:** `python3 os/tests/check_aresos_shell_headless.py` → **`HEADLESS_KCALC_BTOP_PASSED`**,
+  then **`owned processes and scopes stopped`**. Before it, the owner's Lunar game had been running (its Java under
+  `~/.lunarclient/`, 3 GB available), so the run waited until it had ended: the script's own guard then printed
+  9 GB available and no Lunar Java. Its own headless labwc (`.work/h30/r/wayland-0`), its own HOME and socket, the
+  real KCalc executable and btop in Foot, both opened by 1.1 `open_app` over the real socket: KCalc in
+  `app-aresos-check\x2dkcalc-b57c7e1f78977b7e.scope` (active, `app.slice`, nine PIDs, window `org.kde.kcalc`), btop in
+  `app-aresos-check\x2dbtop-f0e17785b873ade4.scope` (window `aresos.app.check-btop`); each `app_state=focused`, then on
+  closing labwc activated the stand-in hub (`shell_focus=foreground, reason=desktop_activated`) and the launch
+  `closed`. `headless.json` and `screenshots/check-btop.png` are this run's (btop drawn in its Foot window in front
+  of the stand-in hub, inspected); the KCalc picture came out identical. Afterwards no `app-aresos-check*` unit was
+  left and the compositor's PID was gone.
+- Hosted runs: see below.
+
+### Not verified (review fixes 1)
+
+- A real Lunar Client session through the helper (launcher to game hand-over with the hint) and a real Steam game's
+  window identity: both need the owner's own programs, which this run never starts. The Lunar identities are the ones
+  read from his session's window list on 2026-11-13; Steam's prefix was not seen there.
+- The real package-34 mod against these windows rules (1.0 and 1.1): covered here at the protocol level only.
