@@ -17,23 +17,23 @@
   boundary `43521486793` (17 interactive
   cases and 20 boundary unit tests each attempt), qualification `43521486667`
   (47 Python and 365 Node tests each). Their blockers are closed.
-- **Open FIX:** Chrome push `43521476596` failed the preexisting-dialog recovery
-  fixture in both installs. Its post-reload read has revision 3; the click facts
-  have revision 4 with identical rows/editables, so the runtime correctly refuses
-  before dispatch. Both aggregate failures follow from the missing review shard.
-  Fix the fixture's reload/view settling, retain strict stale and receiver checks;
-  no asking-read binding or withheld-form refusal is reopened.
-- **In flight on the superseded candidate:** Chrome PR **`43521486785`** (watch
-  session `56197`); Mail **`43521486798`** (`77388`, first underway, helper would
-  repeat after success). Do not count them as final acceptance after a fix.
+- **Fixture correction, scoped review pending:** the preexisting-dialog case
+  now requires the intended reload refusal, waits for a new document and two
+  agreeing reference views, checks the old reference still refuses, then clicks
+  once. All original receiver assertions remain; new zero-extra-arrival checks
+  are added. Three plain-Node regressions pass and removing the settling wait is
+  killed with a passing baseline. Production runtime/bindings/refusals are unchanged.
+- **Existing runs:** Chrome push `43521476596` failed both review shards (revision
+  3→4 race) and aggregate required-shard checks; PR `43521486785` is still watched
+  in session `56197`. Own superseded Mail `43521486798` was cancelled before its
+  second attempt to avoid obsolete work. None is final acceptance after this fix.
 - **Budget:** **251 / about 280** Chrome workflow runs, including this final pair.
-- **Exact next step:** add a fixture-only wait for a changed document and stable
-  Ready view before the single follow-up click, with a plain-Node delayed-parser
-  regression and removal probe. Get a scoped fixture review, checkpoint with
-  `[skip ci]`, then freeze a new candidate and repeat final local checks and the
-  full pair/every named Control workflow twice on that head. Finish/record the
-  existing PR watcher. Superseded own Mail may be cancelled to avoid its obsolete
-  second execution. Keep the runtime and both credential/asking protections unchanged.
+- **Exact next step:** finish the two scoped fixture reviews, checkpoint them
+  with `[skip ci]`, then freeze a new candidate and run full local checks (expected
+  268 Python, 373 Node/artifact, 316 mutations). Push normally for a new full
+  Chrome pair and run every named Control workflow twice on that head. Finish
+  and record the existing PR watcher. Batch browser evidence in that new pair;
+  keep runtime `b9de9a97…`, the 525 ms wait, and both credential/asking protections.
 
 # Post-18d integration — fixture correction and final repetitions pending
 
@@ -143,6 +143,18 @@ independent case failure. [Trace proof](records/post18d/review-reload-failure-43
 [artifact hashes](records/post18d/review-reload-artifacts-43521476596.json),
 [jobs](records/post18d/chrome-failed-43521476596-jobs.json). This candidate is not
 accepted; final-head repetitions restart after the fixture correction.
+
+**Fixture-only correction:** `guardedHandoffClick` waits for a changed document
+and two identical fresh reference views before one input. It requires the specific
+guarded-reload refusal, rechecks that the old reference refuses, and retains all
+original exact receiver assertions. Three plain-Node regressions cover deferred
+parser revisions, no retry after an uncertain dispatch, and an unrelated stale
+error refusing. [Output](records/post18d/review-reload-local.txt). Removing the
+settling condition is killed with a passing baseline
+([mutation](records/post18d/review-reload-mutation.json)). Scoped reviews and a new
+final head are pending. No production runtime or asking/form protection changed.
+Own superseded Mail `43521486798` was cancelled; its watch exited 1 with
+`conclusion=cancelled` and did not request attempt 2.
 
 **Still required:** Mail twice and the Chrome pair on final code head
 `0ca3f6d7`, with both Chrome installs and independent receiver audits. The pair

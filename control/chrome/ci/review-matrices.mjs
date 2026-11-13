@@ -6,6 +6,25 @@ import {allTabs} from './tabs.mjs';
 import {createHash} from 'node:crypto';
 import fs from 'node:fs';
 
+export async function guardedHandoffClick({rpc,call,target,eventually,receiverEvidence,id}){
+  const before=await target('Ready');
+  const first=await rpc('click',{...before,reload_taken_tab:true});
+  assert.equal(first.ok,false);assert.equal(first.error.code,'stale_reference');
+  assert.match(first.error.message,/reloaded to install its page guard/);
+  // The new document can still be parsing after the reload has committed.
+  let previous;
+  const fresh=await eventually(async()=>{
+    const current=await target('Ready');
+    const settled=current.reference.document!==before.reference.document&&previous&&JSON.stringify(current.reference)===JSON.stringify(previous.reference);
+    previous=current;return settled?current:false;
+  },'guarded reload Ready view settled');
+  assert.equal(receiverEvidence(id,'reload settled before guarded act').count,1);
+  const stale=await rpc('click',before);assert.equal(stale.ok,false);assert.equal(stale.error.code,'stale_reference');
+  assert.equal(receiverEvidence(id,'old reference still refuses').count,1);
+  await call('click',fresh);
+  assert.equal(receiverEvidence(id,'first guarded act after handoff').count,1);
+}
+
 export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,ownerKey,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
   await check('GROUP 2 RECHECK Claude timer fires inside the owner Enter mark',async()=>{
     const id='recheck-owner-overlap';await nav('review-page&mode=owner-overlap&id='+id);
@@ -67,7 +86,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       ownerDismiss();await eventually(()=>counts(id)===1,'owner answers the preexisting dialog');assert.equal(receiverEvidence(id,'owner answer').count,1);
       await eventually(async()=>(await read()).some(row=>row.expected.name==='Ready'),'read recovers without restarting Chrome');assert.equal((await call('tabs')).session,session);
       assert.equal((await call('operation_status',{operation_id:taken.operation_id})).operation.state,'done');
-      const first=await rpc('click',{...await target('Ready'),reload_taken_tab:true});assert.equal(first.ok,false);assert.equal(first.error.code,'stale_reference');await call('click',await target('Ready'));assert.equal(receiverEvidence(id,'first guarded act after handoff').count,1);
+      await guardedHandoffClick({rpc,call,target,eventually,receiverEvidence,id});
     }
   });
   await check('GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay',async()=>{
