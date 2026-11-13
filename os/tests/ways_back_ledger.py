@@ -304,6 +304,11 @@ def invariants(s):
     for role, console, x11 in s.settings:
         if console != x11:
             assert (s.trial and s.trial.row == role and s.trial.finishing) or any(n[0] == role for n in s.repairs), 'half-written layout lost its owner'
+            old = s.trial.old if s.trial and s.trial.row == role else next(n[1] for n in s.repairs if n[0] == role)
+            booted = transition(s, ('power-off' if s.stage else 'restart', role)).state
+            repaired = transition(booted, ('abandon', 'full'))
+            assert not repaired.stop and repaired.state.keyboard(role) == (old, old), 'abandon did not restore the owning /etc'
+            assert all(p in repaired.state.settings for p in s.settings if p[0] != role), 'abandon wrote another /etc'
             if role == s.running:
                 attempt = transition(s, ('update', 'full'))
                 assert attempt.state.stage == s.stage, 'staged from a half-written /etc'
@@ -353,3 +358,24 @@ def invariants(s):
                 assert update.stop == 'layout abandon'  # A6's repair lock still applies.
             else:
                 assert update.state.stage == s.bundle and update.announcement == row, 'update must stage the bundle'
+
+
+def reduced(s):
+    """A future-equivalence key; keep the representative's full evidence for each edge.
+
+    Once a journal is in place its before-order and original running row are
+    provenance: a restart cannot change the order, and a new change archives it.
+    Before application, the current rows supply before. Keep the mode, word,
+    phase, target, boot age AND outcome, so no journal outcome is merged.
+
+    After a trial crosses a boot, proof/revert/finish all refuse before reading
+    proof or reverted; abandon uses old/new/finishing and its saved authority.
+    Notes for removed releases can never apply again: the fixed bundle only
+    stages its own target, and that target can never be removed by these events.
+    All live notes and every installed /etc pair remain literal, not shared.
+    """
+    j, t = s.journal, s.trial
+    journal = None if j is None else (j.mode, j.word, j.phase, j.target, j.same_boot, s.outcome())
+    trial = t if t is None or t.same_boot else (t.row, t.old, t.new, t.finishing)
+    repairs = tuple(n for n in s.repairs if n[0] in s.rows)
+    return s.bundle, s.rows, s.running, s.stage, journal, trial, repairs, s.settings, s.loaded

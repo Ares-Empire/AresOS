@@ -13,7 +13,7 @@ import json
 import pathlib
 import time
 import unittest
-from collections import deque
+from collections import Counter, deque
 from dataclasses import replace
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -21,23 +21,26 @@ from unittest.mock import patch
 import test_owner_update as base  # library only; never runs that module's tests
 from ways_back_keyboard import PowerCut, PROFILES, identity
 from ways_back_host import Host, status, compact
-from ways_back_ledger import Ledger, Journal, Trial, Result, starts, transition, events, invariants, destination_paths
+from ways_back_memo import Executions
+from ways_back_ledger import Ledger, Journal, Trial, Result, starts, transition, events, invariants, destination_paths, reduced
 
 owner = base.owner
 ROOT = base.ROOT
-RUN = ROOT / 'reviews/22c-ways-back-after-update/runs/reorder-probe-43470161858'
+RUNS = ROOT / 'reviews/22c-ways-back-after-update/runs'
+RUN = RUNS / 'reorder-probe-43470161858'
 REFS = {'13': base.R13, '27': base.R21, '28': base.R30}
 
 
 class MemoryPath:
     """Only Tools' private records; payload paths are real read-only repository files."""
-    def __init__(self, files, name=''):
-        self.files, self.name = files, name
+    def __init__(self, files, name='', observe=lambda *a: None):
+        self.files, self.name, self.observe = files, name, observe
 
     def __truediv__(self, name):
-        return MemoryPath(self.files, name.removesuffix('.json'))
+        return MemoryPath(self.files, name.removesuffix('.json'), self.observe)
 
     def exists(self):
+        self.observe('exists:' + self.name)
         return self.name in self.files
 
     is_file = exists
@@ -46,6 +49,7 @@ class MemoryPath:
         return False
 
     def unlink(self):
+        self.observe('load:' + self.name)
         del self.files[self.name]
 
 
@@ -57,11 +61,33 @@ class Driver:
         self.by_digest = {row['container-image-reference-digest']: name for name, row in host.templates.items()}
         self.phase = ''
         self.files = {}
-        tools.store = MemoryPath(self.files)
-        tools.load = lambda name: copy.deepcopy(self.files[name]) if name in self.files else self.missing(name)
+        self.dependencies = None
+        tools.store = MemoryPath(self.files, observe=self.observe)
+        tools.load = self.load
+        keyboard = host.keyboard
+        def observed_keyboard():
+            self.observe('keyboard-' + self.by_id[identity(host.running())])
+            return keyboard()
+        host.keyboard = observed_keyboard
+        read = host.read
+        def observed_read(*command, **kwargs):
+            if command[0] == 'dumpkeys':
+                self.observe('loaded')
+            return read(*command, **kwargs)
+        host.read = observed_read
+        mutate = host.mutate
+        def observed_mutate(*command, **kwargs):
+            # Include the pre-write value even for an idempotent write: a memo
+            # effect must distinguish writing X from leaving an unread X alone.
+            if command[0] == 'loadkeys':
+                self.observe('loaded')
+            elif command[0] == 'localectl':
+                self.observe('keyboard-' + self.by_id[identity(host.running())])
+            return mutate(*command, **kwargs)
+        host.mutate = observed_mutate
         tools.save = self.save
         tools.keyboard = host.keyboard
-        tools.session = lambda: copy.deepcopy(self.session)
+        tools.session = self.get_session
         self.saved = dict(state=dict(rpm=copy.deepcopy(base.VALUES['after-pin rpm-ostree-status']),
                                     bootc=copy.deepcopy(base.VALUES['after-pin bootc-status'])))
         self.saved['stock'] = copy.deepcopy(host.templates['S'])
@@ -69,10 +95,25 @@ class Driver:
         # The prepared state only determines which former stock entries are exempt.
         self.saved['state']['rpm']['deployments'] = [dict(host.templates['S'], booted=True, staged=False)]
 
+    def observe(self, name):
+        if ':' in name and name.split(':', 1)[1] not in ('outcome-pending', 'layout-pending', 'layout-repair'):
+            return  # fixed inputs and archive timestamps are outside the state
+        if self.dependencies is not None and name not in self.dependencies:
+            self.dependencies.append(name)
+
+    def load(self, name):
+        self.observe('load:' + name)
+        return copy.deepcopy(self.files[name]) if name in self.files else self.missing(name)
+
+    def get_session(self):
+        self.observe('session')
+        return copy.deepcopy(self.session)
+
     def missing(self, name):
         raise owner.Stop('Missing private ' + name + ' record')
 
     def save(self, name, value):
+        self.observe('load:' + name)
         self.files[name] = copy.deepcopy(value)
         if name == 'outcome-pending' and self.phase == ('intent' if value['status'] == 'intent' else 'record'):
             raise PowerCut('after journal ' + value['status'])
@@ -159,6 +200,7 @@ class Driver:
         before_entries, before_rows = copy.deepcopy(host.entries()), copy.deepcopy(host.state['rpm']['deployments'])
         cut, error, lines = False, '', []
         output = io.StringIO()
+        self.dependencies = []
         with contextlib.redirect_stdout(output):
             try:
                 if word in ('restart', 'power-off'):
@@ -186,11 +228,18 @@ class Driver:
                 error = str(problem)
             except PowerCut:
                 cut = True
+        self.reads, self.dependencies = self.dependencies, None
         assert bool(error) == bool(expected.stop), ('accept/refuse', event, expected.stop, error)
         if error:
             assert expected.stop.lower() in error.lower(), ('STOP next step', event, expected.stop, error)
             assert host.state['rpm']['deployments'] == before_rows and host.entries() == before_entries, 'refusal mutated deployment/pin/entries'
         assert cut == expected.cut, ('cut', event, expected.cut, cut)
+        reorders = [c for c in host.changes if isinstance(c, str) and c.startswith('ostree admin set-default ')]
+        if reorders:
+            assert len(reorders) == 1, 'reorder primitive repeated'
+            if not (cut and self.phase == 'primitive'):
+                assert host.changes == [reorders[0], 'sync'], 'reorder must sync before its record'
+
         found = self.snapshot(s.bundle)
         if word == 'restart' and s.stage:
             assert found.rows == (s.stage, s.running, 'S'), ('retention after finalize', found.rows)
@@ -203,6 +252,7 @@ class Driver:
         archives = tuple(name.split('-outcome-')[1] for name in self.files if '-outcome-' in name)
         assert archives == expected.archives, ('archives', event, expected.archives, archives)
         text = '\n'.join(lines + tools.notes) + output.getvalue()
+        self.observed = found, error, cut, archives, text
         assert ('confirmed after the restart' in text) == (expected.confirmation and not cut), ('premature/missing confirmation', event, text)
         if word == 'check' and expected.stop == 'layout':
             assert 'sudo /var/lib/ares/at layout ' in error, ('check has no executable next step', error)
@@ -248,9 +298,10 @@ class CaptureTest(unittest.TestCase):
     This does not pretend to be a capture of finalize over three installed rows.
     """
     def captured(self, stage, kind):
-        return json.loads((RUN / (stage + '-' + kind + '.json')).read_text())
+        return json.loads((self.capture_run / (stage + '-' + kind + '.json')).read_text())
 
-    def replay(self, host_class=Host):
+    def replay(self, host_class=Host, folder=RUN):
+        self.capture_run = folder
         first = self.captured('walk-0-start', 'deployments')
         h = host_class(status([compact(r) for r in first['rpm']['deployments']]))
         h.entry_files = {e['file']: e['content'] for e in first['bls']}
@@ -291,11 +342,20 @@ class CaptureTest(unittest.TestCase):
         compare('menu-stock')
         h.restart()
         compare('after-menu-booted')
-        self.assertEqual(set(visited), {p.name.removesuffix('-deployments.json') for p in RUN.glob('*-deployments.json')})
+        self.assertEqual(set(visited), {p.name.removesuffix('-deployments.json') for p in folder.glob('*-deployments.json')})
         self.assertEqual(len(visited), 15)
 
     def test_every_probe_capture_matches_the_model_host(self):
-        self.replay()
+        replayed = set()
+        for folder in sorted(RUNS.glob('reorder-probe-*')):
+            with self.subTest(run=folder.name):
+                self.replay(folder=folder)
+                replayed.update(folder.glob('*-deployments.json'))
+        self.assertTrue(replayed)
+        # Stage 2 must register its operation replay here when committing captures.
+        # Merely adding a new directory must never silently escape the fixture gate.
+        self.assertEqual(replayed, set(RUNS.rglob('*-deployments.json')),
+                         'Every new capture needs an operation replay through Host (B10), including stage 2')
 
     def test_append_instead_of_prepend_fails_the_fixture(self):
         class Appends(Host):
@@ -412,6 +472,52 @@ class RevertTest(unittest.TestCase):
                     self.path(d, starts()[start], sequence)
 
 
+class EquivalenceTest(unittest.TestCase):
+    def test_provenance_quotient_preserves_every_successor_and_actual_command(self):
+        applied = Journal('previous', 'reorder', 'recorded', '13', '27', ('27', '13', 'S'), False)
+        s = replace(starts()[2], rows=('13', '27', 'S'), journal=applied)
+        variants = [(s, replace(s, journal=replace(applied, running='S', before=('27', 'S', '13'))))]
+        t = Trial('13', 'de', 'us', same_boot=False, fresh=True)
+        s = replace(starts()[2], trial=t)
+        variants.append((s, replace(s, trial=replace(t, proof=True, reverted=True))))
+        s = replace(starts()[3], rows=('28', '27', 'S'), running='28',
+                    settings=(('27', 'de', 'de'), ('28', 'de', 'de'), ('S', 'de', 'de')))
+        variants.append((s, replace(s, repairs=(('13', 'de', 'us'),))))
+        with driver() as d:
+            for left, right in variants:
+                self.assertEqual(reduced(left), reduced(right))
+                self.assertEqual(list(events(left)), list(events(right)))
+                for event in events(left):
+                    a, b = transition(left, event), transition(right, event)
+                    self.assertEqual(reduced(a.state), reduced(b.state), event)
+                    self.assertEqual((a.stop, a.cut, a.archives, a.confirmation, a.announcement),
+                                     (b.stop, b.cut, b.archives, b.confirmation, b.announcement), event)
+                    d.step(left, event, a)
+                    d.step(right, event, b)
+
+    def test_execution_reuse_frames_each_etc_and_matches_uncached_execution(self):
+        with driver() as d:
+            memo = Executions(d)
+            for profile in ('de', 'us', 'us-intl'):
+                s = starts()[3].setting('13', profile, profile)
+                for event in events(s):
+                    expected = transition(s, event)
+                    self.assertEqual(memo.step(s, event, expected), d.step(s, event, expected))
+            # A restart reads the chosen deployment's /etc, not just the one
+            # that ran before it; the memo must discover that input too.
+            self.assertGreater(memo.reused, 0)
+            self.assertGreater(memo.executed, 0)
+
+    def test_journal_outcomes_and_live_repairs_are_not_equivalent(self):
+        base_state = starts()[2]
+        waiting = transition(base_state, ('previous', 'full')).state
+        applied = replace(waiting, running='13')
+        confirmed = replace(applied, journal=replace(applied.journal, same_boot=False))
+        self.assertEqual(len({reduced(waiting), reduced(applied), reduced(confirmed)}), 3)
+        self.assertNotEqual(reduced(base_state), reduced(replace(base_state, repairs=(('13', 'de', 'us'),))))
+        self.assertNotEqual(reduced(base_state), reduced(base_state.setting('13', 'us', 'de')))
+
+
 class ModelTest(unittest.TestCase):
     def test_new_bundle_stages_and_the_newer_installed_release_has_a_walked_menu_path(self):
         """The follow-up keeps A4/A6 and supplies the formerly missing B2 path."""
@@ -441,33 +547,51 @@ class ModelTest(unittest.TestCase):
     def test_reachable_state_space(self):
         began = time.perf_counter()
         queue = deque(starts())
-        parents = {s: None for s in queue}
+        parents = {reduced(s): None for s in queue}
         edges = 0
         processed = 0
+        outcomes, commands, menu_only = Counter(), Counter(), set()
         with driver() as d:
+            executions = Executions(d)
             while queue:
                 s = queue.popleft()
-                invariants(s)
+                event = ('invariants', 'all')
+                try:
+                    invariants(s)
+                    outcomes[s.outcome()] += 1
+                    for row, is_menu, path in destination_paths(s):
+                        if is_menu:
+                            menu_only.add((s.bundle, s.rows, s.running, row))
+                    for event in events(s):
+                        expected = transition(s, event)
+                        executions.step(s, event, expected)
+                        edges += 1
+                        commands[event[0], 'cut' if expected.cut else 'STOP' if expected.stop else 'PASS'] += 1
+                        key = reduced(expected.state)
+                        if key not in parents:
+                            parents[key] = reduced(s), event
+                            queue.append(expected.state)
+                except AssertionError as error:
+                    sequence = [event]
+                    parent = reduced(s)
+                    while parents[parent] is not None:
+                        parent, action = parents[parent]
+                        sequence.append(action)
+                    self.fail('Sequence from %r: %s\n%s' % (parent, list(reversed(sequence)), error))
                 processed += 1
                 if processed % 10000 == 0:
-                    print('22c model: %d processed, %d discovered' % (processed, len(parents)), flush=True)
-                for event in events(s):
-                    expected = transition(s, event)
-                    try:
-                        d.step(s, event, expected)
-                    except AssertionError as error:
-                        sequence = [event]
-                        parent = s
-                        while parents[parent] is not None:
-                            parent, action = parents[parent]
-                            sequence.append(action)
-                        self.fail('Sequence from %r: %s\n%s' % (parent, list(reversed(sequence)), error))
-                    edges += 1
-                    if expected.state not in parents:
-                        parents[expected.state] = s, event
-                        queue.append(expected.state)
-        print('22c model: %d states, %d edges, %.3fs; queue exhausted' % (len(parents), edges, time.perf_counter() - began), flush=True)
-        self.assertGreater(len(parents), 100)
+                    print('22c model: %d processed, %d discovered, %d executions, %d reuses, %.3fs'
+                          % (processed, len(parents), executions.executed, executions.reused, time.perf_counter() - began), flush=True)
+        print('22c model: %d states, %d edges, %d executions, %d reuses, %.3fs; queue exhausted'
+              % (len(parents), edges, executions.executed, executions.reused, time.perf_counter() - began), flush=True)
+        self.assertEqual(processed, len(parents))
+        print('22c outcomes: ' + repr(dict(sorted(outcomes.items()))), flush=True)
+        print('22c command edges: ' + repr(dict(sorted(commands.items()))), flush=True)
+        print('22c menu-only destinations: ' + repr(sorted(menu_only)), flush=True)
+        self.assertEqual(len(parents), 486627)
+        self.assertEqual(edges, 12176910)
+        self.assertEqual(set(outcomes), {'none', 'retry', 'complete', 'waiting', 'not-applied',
+                                        'selection-applied', 'target-boot-confirmed', 'in-place-not-started'})
 
 
 if __name__ == '__main__':
