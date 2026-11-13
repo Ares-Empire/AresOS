@@ -4,6 +4,14 @@ Updated 2026-11-13. The live truth is `git log`, `gh pr list` and `git worktree 
 
 ## Done (on main)
 
+- **Minecraft starts in AresOS: Prism, Java 25, the desktop supervisor** (PR #36, brief 23 to 23-review-fixes-5, empire brief 264, merged 2026-11-13 as `3bff81b6`):
+  - Prism and Java 25 in the image, the managed `AresDesktop` instance, and a supervisor that boots into the hub. On the first start the owner creates the hub himself with the mod's AresOS button (board #168); his other answers are board #169 and #170.
+  - The supervisor decides from Java's exit status alone: a SIGKILL by anyone latches recovery, exit 0 is his quit, no facts latch, any other status is one counted crash and a restart (the three-crash latch stays). The widened JUDGMENT-CALL 10 (a Java the wrapper had to SIGKILL latches instead of restarting) is covered by board #170. Twelve known limits are in the report.
+  - Every image build builds the mod jar from the build commit. Its pinned hash binds release builds only: a throwaway check build with another jar goes on with one loud line and records its jar in `/usr/share/aresos/manifest/aresos-mod.json`. The pin is stale (`8b04c511…`); the next release sets it from the "Mod" workflow's hash for its commit (the jar builds reproducibly since PR #51, `linux-hub`).
+  - Built by Claude agents (Opus; fix round 5 on Fable 5.2). Reviews 1 to 5 CHANGES-NEEDED; reviews 6 and 7 (gpt-6-astra high) SAFE. On the merged head: hosted checks 43490423057 (1095 tests) and the check build with VM 43490417132 (40 image checks; in the VM the JVM in its 5 GiB scope, a whole-scope kill latching recovery, memory pressure hitting only the hog).
+  - Not proven: a real Prism and Minecraft start with his account, a systemd-oomd kill, and the focus hand-back with a real game. They wait for the laptop trial. It reaches the laptop with the next release.
+  - Left for the next release: pins expire on their own (Fedora replaced the Java builds within three days, Prism's Minecraft metadata changes about weekly; `check_build=resolve` now renews a vanished Fedora pin by name, and a session whose check build stops on a pin reports it to the OS lead); the release diff does not know this package's build-time files yet; a regression test for known limit 11; one uncaptured local failure in `test_aresos_desktop` on a busy laptop (possibly timing).
+
 - **Release 27, the first update release** (PR #35, brief 27 to 27-review-fixes-3 and 27-rehearsal-fixes-1, empire brief 266, merged 2026-11-13 as `41b06513`):
   - Image `ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c` (packages 21, 22 and 24; private, keyless-signed, run 42842793096). Tools fingerprint `851eb742…`.
   - Update rehearsal run 14 (43302603386) passed the owner's whole route in the VM: tools v1 to v2, `at update`, `at title`, `at reboot` into R27 with R13 as rollback and stock pinned, `sudo passwd ares`, package 21's rules, `at previous` back to R13 (forward refused), every protected-disk audit unchanged.
@@ -12,6 +20,7 @@ Updated 2026-11-13. The live truth is `git log`, `gh pr list` and `git worktree 
   - **The laptop runs R27 since 2026-11-13.** The owner ran the update route himself, guided by `mac-aresos-install` (board #189): tools v1 to v2, update, title, export and reboot passed, the check was confirmed after the restart, and he set `ares`'s password (`sudo -v` passes). Checked live the same day: R27 booted, R13 as rollback, stock pinned. `at previous` has not been used on the laptop. INSTALL-STATUS records it since 27b (PR #41, merged 2026-11-13 as `4d0c4dc5`; built by a Claude agent on Opus; reviews gpt-6.1-sol: one should-fix, then SAFE; hosted checks 43439396623, 933 tests OK).
   - **Bound files may change again (27b, integrator's decision 2026-11-13).** A file bound by a rehearsal that changes records its new bytes in `os/manifest/ci/16/pending-rebind.json` (`reviews/27-first-update-release/rebind.py pending "<note>"`); the next VM rehearsal rebinds it and empties the list. Three test files and the workflow wait now, no tool, guide or image file. The next rehearsal package needs its own record step (27b's PLAN-GAP).
   - The hosted checks-only job fetches full history since 27b; before that the hosted suite failed with 9 errors from package 27's merge on.
+  - **The hosted checks run the owner tools' namespace tests since 27c** (PR #47, merged 2026-11-13; a Claude agent on Opus, review gpt-6.1-sol SAFE). GitHub's runner refused unprivileged user namespaces, so the 136 tests of `test_owner_update.ToolsUpdateTest` were skipped there, and since the Windows laptop with WSL was retired they ran nowhere (on the AresOS laptop that module must never run: it reaches the real `rpm-ostree`). Now 933 tests run with 0 skipped and pass (run 43470821960). The `image` and `rehearsal` jobs still run the suite without that setup and skip them silently: give them the same step when 22c touches the rehearsal job.
   - Later fixes (harness only): cache the pinned rehearsal tool .debs; PLAN-GAP for the next image: stop masking the two finalize units. INSTALL-STATUS rows that still describe the time before the update are listed in 27b's report section.
 
 - **The update route: `at update`, `at previous`, tools updating themselves** (PR #32, brief 22 to 22-review-fixes-9, empire brief 263, merged 2026-11-10 as `002dcc09`):
@@ -106,26 +115,13 @@ Updated 2026-11-13. The live truth is `git log`, `gh pr list` and `git worktree 
   - `linux-hub`: all of `mod/`, the helper's app list, `/usr/libexec/aresos-shell` and labwc's theme (the home screen, later the companions).
   - `linux-tools`: the control tools, including brief 18c (the control files in the image). `mac-aresos-control` keeps the Chrome PR #27 until it merges.
   - Touch points: labwc's `rc.xml` (21b changes key bindings there; tell each other first) and the mod jar the image pins (it moves with each release). His own programs in the hub (board #163; Lunar, Discord and Chrome first): `linux-hub` builds the listing of installed programs inside `aresos-shell` as one package with the game side; the OS lead reviews its `os/` diff before the merge, and it ships with the next release (agreed 2026-11-13).
+- **The home screen (`linux-hub`, since 2026-11-13).** The owner's pointers: a flat Overworld first, app logos built from blocks that he walks into, the hotbar as the taskbar, `/name` in chat. Design: `docs/design/HUB.md` (PR #45), by a Fable design agent; his decisions so far: logos 12 blocks tall (board #207), the window frame Ares-Crown with Chrome keeping its own bar (board #206).
+  - **Merged:** package 29, the mod's dev scripts under AresOS (PR #44, `640e300f`).
+  - **In review or a fix round (2026-11-13 evening):** 32 the flat home (PR #50), 33 the gate logo (PR #49), 34 My apps and the mod's side of `aresos-shell/1.1` (PR #52), 38 a reproducible mod jar with the mod's tests on GitHub (PR #51).
+  - **Waiting for package 23 on main:** 30 the helper lists his installed programs (brief on branch `pkg/30-installed-programs`, a Codex build) and 31 the Ares-Crown frame (brief and themes on branch `design/windows-v1`).
+  - **Then:** 35 slash names (brief on branch `pkg/35-slash-names`, after 34), 36 the town builds itself (after 32, 33, 34), 37 getting around. The companions come after the hub works; they are a Windows app today and need an AresOS host first.
 - **Lunar Client on AresOS (2026-11-13).** The owner's normal Minecraft client runs from his home folder (`lunar`, the official AppImage, started with the RTX 4060 selected), outside the image. The in-game check of graphics card, sound and frame rate is still open. Package 23's Prism instance is a separate thing.
 - **Owner OK to merge and publish this round (2026-11-09: "Once its safe and done you can merge and publish"):** packages 21–24 merge after a fresh SAFE review, passing checks and his answers to their judgment calls. The next AresOS release built from them may be published and pinned without asking again, once its rehearsal passes. Installing it on the laptop (`at update`) is still his own step. Anything outside this round still needs his OK.
-- **Package 23, started 2026-11-10** (Claude agent, Opus; branch `pkg/23-minecraft-starts`): package 23 (brief `23-minecraft-starts.md`, empire brief 264): Prism and Java 25 in the image, the managed `AresDesktop` instance, the `AresHub` world, and a supervisor that boots into the hub.
-  - Built: PR #36 (head `d08fde0f`). Check build with VM passed (run 42809824712); WSL suites show only the known failures. Not proven: a real JVM start (CI has no Microsoft account).
-  - In review: REVIEW-1 (gpt-6-astra high).
-  - The owner answered all 14 JUDGMENT-CALLs (2026-11-10). #168: "Create it myself": on first start he creates the hub with the mod's AresOS button; nothing is auto-created with seed 49. #169: "Yes to all" for calls 2–6 (no login terminal, no restart after his own quit, a slow start never kills the game, Intel fallback, a managed instance without extra mods) and the 8 technical ones.
-  - REVIEW-1 (Astra): CHANGES-NEEDED, 3 blocking and 8 should-fix. Review fixes 1 is pushed (`7ec26b84`, brief `23-review-fixes-1.md`).
-    - Every image build now builds and checks the mod jar: a `mod` stage in the Containerfile plus a pin check in `build.sh`. That replaces its PLAN-GAP 1.
-    - Hosted `checks_only`: 958 tests OK (run 42830860249).
-    - The VM build failed twice on Ubuntu mirror 502/503s; one more `check_build=build` is approved.
-    - REVIEW-2 (Astra): CHANGES-NEEDED. Of REVIEW-1's 11 findings, 6 are fixed and 5 partial; 1 blocking (kills before the PID handoff still restart) and 8 should-fix remain. Review fixes 2 is pushed (`e69b16a0`).
-    - The first build hit a real defect: the pinned JDK image has no curl. Fix: a Bazzite `source` stage fetches the commit, and the JDK stage only runs Gradle.
-    - Check build with VM: run 42865819198 passed. The image's own jar equals the pin `8b04c511`.
-    - VM evidence: the real JVM ran in its 5 GiB scope; a whole-scope SIGKILL latched recovery; under real memory pressure the kernel OOM killer hit only the hog's scope while the supervisor kept answering.
-    - Still unproven: an oomd kill and focus hand-back with a real game; both wait for the laptop trial.
-    - REVIEW-3 (Astra): CHANGES-NEEDED. All 9 REVIEW-2 findings are fixed. Left: 1 blocking (a SIGKILL after PID acceptance with a lost answer still restarts) and 2 should-fix (hand-off deadline vs the wrapper's stop window; pressure-sampling gaps). Review fixes 3 is pushed (`8420eba2`). All three are fixed, each with revert proof. WSL suites show only the known failures (run at ≥ 4.5 GB free; WSL's page cache kept Windows below 5 GB).
-    - REVIEW-4 (Sol): CHANGES-NEEDED, a third round of hand-off races (a kill between `poll()` and `stop()` reported as wrapper-stopped; the unresolved latch not persisted; the 30 s vs 20 s deadline). Review fixes 4 (brief `23-review-fixes-4.md`) settles the hand-off by construction: classification from facts, persisted unresolved state, one deadline rule, and a model-based test over every order of events. If REVIEW-5 still finds blocking races, move the builder to Fable 5.2.
-    - REVIEW-5 (Astra, on `d6aab7ab`): CHANGES-NEEDED, 1 blocking (an attempted SIGKILL counted as sent) and 3 should-fix. **Review fixes 5 started 2026-11-13**: a fresh Fable 5.2 builder with `briefs/23-review-fixes-5.md` (only certain crashes restart; uncertain ends wait for `retry`), natively on AresOS. Then a fresh review, then the merge. The full WSL suite at `d6aab7ab` did run: 995 tests, plain and `-B`, only the 13 known WSL-only failures.
-    - Updated JUDGMENT-CALL 10 (a memory kill or unexplained whole-scope death latches recovery, no automatic restart) was accepted by the owner (board #170, 2026-11-10: "Yes").
-  - Merges after 27.
 - **Package 27 merged 2026-11-13** (see Done). Left over for 22c and the next release:
   - Its JUDGMENT-CALL 2: package 22's tools can't go forward again after `at previous`, so the rehearsal ends on 13 with 27 beside it; going forward after a rollback belongs in 22c.
   - Also for 22c (PR #37 REVIEW-1 should-fix, older than that fix): the refusal invariant in `test_owner_update` tries a persistent refusal twice but never asserts that it refused. Assert the refusal on both attempts wherever the check applies.
@@ -139,6 +135,7 @@ Updated 2026-11-13. The live truth is `git log`, `gh pr list` and `git worktree 
     - Control's files and `gh` 2.102 or newer (brief 18c, `linux-tools`; the image has no `gh` of its own yet).
     - Konsole as the everyday terminal (owner, 2026-11-13, board #190 and #191: "a normal terminal with easy tabs"; noted, not to be built yet). Konsole for the hub's Terminal app and any login terminal, foot stays for recovery. Mind package 23's "no login terminal" call and the checks built on foot (`image-checks.sh`, `keyboard_vm.py`, `owner_vm.py`).
     - Stop masking the two finalize units (package 27's PLAN-GAP).
+    - labwc with pointer constraints on layer-shell surfaces (reported 2026-11-13 by the laptop session `ares-e7`), so the owner can use the laptop's mouse and keyboard on his MacBook through Lan Mouse (set up in his home, its unit disabled until then; Deskflow cannot work on labwc, which has no InputCapture portal). labwc 0.9.6 in the image never applies the pointer lock to Lan Mouse's capture surface. Upstream fixed it in labwc 0.20.3 (commit `b7820667a2`, "allow constraints for wlr_layer_surface_v1"); Fedora 44 only has 0.9.6. Two routes for a package: backport that one commit onto 0.9.6 (the smaller change to the session he uses daily, if it applies), or build 0.20.3 (the image already has wlroots 0.20.2). Either means building labwc in the image build, which is new. His call with the release.
     - A short command for the owner tools (owner, 2026-11-13, board #195: "Can we just make it 'update' or like 'AresOS update' in the terminal? Instead of going /var/lib etc"): `aresos update` and the other words, a root-owned command in the image that runs the same tools and asks for his password. The guides keep the full path as the way that always works.
       - Agreed with `linux-tools` (2026-11-13): `/usr/bin/aresos` is one command, owned by the OS. A small dispatcher routes the owner tools' words (update, previous, rollback, keep-stock, check, title, records, export, login, verify, switch, install, prepare, layout, reboot, logs) to the owner tools through sudo and hands every other word, unchanged, to Control's own command, which then lives at `/usr/libexec/aresos-control/cli`. Control reserves those words (a test pins it) and drops its top-level `log` shortcut then. Brief 18c installs Control's wrapper as `/usr/bin/aresos` until that package.
     - Control in the image (brief 18c, `linux-tools`, PR #42): the `os/` side is agreed in the brief's section "Agreed with linux-aresos on 2026-11-13" (a fixed UID for its system user, its config under `/usr/share/aresos/control`, a failed service never delays login or breaks Claude Code). Its `os/` part starts after 23 and the Chrome PR #27 are on main, and it merges only after the owner's yes to the next release carrying Control. The next release's rehearsal covers the update from R27 with Control.
@@ -218,12 +215,28 @@ Updated 2026-11-13. The live truth is `git log`, `gh pr list` and `git worktree 
      his account installs software normally. Chrome (decision 25, "B is good"): a light tool of our own in his normal
      Chrome, with no proxy and no certificate; it asks before anything that clearly sends, and a page that sends on
      its own after an ordinary click isn't held, as with Claude in Chrome.
-   - **In progress:** the Chrome tool (brief 20, PR #27): a fix round for four findings of its re-check, then main
-     merged in, Chrome moved onto the slim generator, test group 12 in 18d's harness, and reviews of the combined
-     head. `laptop-aresos` owns `os/` and the accounts;
-     for Chrome the image needs the extension policy, the native host's manifest and `gh` 2.102 or newer.
-   - **Next:** after Mail, 18d and Chrome merge, an AresOS-side session takes over (`docs/control/TOOLS-HANDOFF.md`):
-     the Chrome decisions and known limits into CONTROL.md section 6, the Chrome capability brief, brief 18c, and
-     live tests with the owner (Mail onboarding first).
+   - **In progress:** the Chrome tool (brief 20, PR #27, led by `mac-aresos-control` until it merges, planned
+     2026-11-16): a fix round for four findings of its re-check, then main merged in, Chrome moved onto the slim
+     generator, test group 12 in 18d's harness, and reviews of the combined head. `linux-aresos` owns `os/` and the
+     accounts.
+   - **Since 2026-11-13 the AresOS-side session `linux-tools` leads the tools** (`docs/control/TOOLS-HANDOFF.md`):
+     - **Brief 18c, the image test with the tools inside** (`briefs/18c-image-test.md`, PR #42, `25c0df62`), with
+       the `os/` change agreed with `linux-aresos` (sixteen changes, in the brief). Its container part is on main
+       (PR #43, `1108fc30`): the service's unit may reach the network (Mail couldn't under the real unit before), and
+       17 cases prove in interactive Claude Code that the send question holds with allow rules, a `PreToolUse` allow
+       hook, "don't ask again" and skip-permissions; a `PermissionRequest` allow hook approves, the accepted residual,
+       now pinned for the interactive case. The image part (Part A and B2) waits for package 23 and PR #27 on main.
+       Part A merges only after the owner's yes to a release carrying Control (a background service, two managed
+       hooks in every Claude Code session). Owner answer: the tools use `Downloads` and `Documents` (board #203).
+     - **The Chrome capability briefs** (branch `briefs/28-chrome-capability`, not merged): 28 (reading: outline,
+       short references, folds, paging), 28a (acting: open, go, batched steps, the smaller tool list) and 28b (his
+       own open tabs), with section 6 of `CONTROL.md` rewritten to match. Two Codex review rounds are worked in; the
+       final checks are `BRIEF-REVIEW-3.md` and `BRIEF-SECURITY-3.md` in `reviews/28-chrome-capability/`. Building
+       starts after PR #27 merges; none of the three reaches the laptop before all three are merged. Owner answers
+       (2026-11-13): Claude may close his tabs when he asks (#201); text only first, no screenshots (#202); typed
+       text in form fields is read only after asking (#210, "Ask first"); link addresses are shown (#213).
+     - **Then:** brief 18c-b (Chrome's browser side in the image; where the extension is served from and where its
+       key lives are open, board #194), and the live tests with the owner once a release carries the tools (Mail
+       onboarding first; his own hosts go on Chrome's never-list in that sitting, board #200).
 
 Codex Pro runs until 2026-11-21.

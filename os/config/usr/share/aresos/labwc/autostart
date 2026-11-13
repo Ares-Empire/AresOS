@@ -1,3 +1,5 @@
 # Asks for the everyday account's password when an app needs admin rights.
 /usr/libexec/kf6/polkit-kde-authentication-agent-1 &
-/usr/bin/aresos-terminal &
+# The desktop: Minecraft in the AresHub world, or a terminal that says what to
+# do (first start, sign-in, recovery). Package 23.
+/usr/libexec/aresos-desktop session &

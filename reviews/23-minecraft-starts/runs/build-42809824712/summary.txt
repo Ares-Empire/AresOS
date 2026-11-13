@@ -1,0 +1,12 @@
+Mod jar build 1: 8b04c511d11d0fa4bd4dad509949026e5346435a0f04bfe9d63084dd65386743
+MOD_JAR_PINNED 8b04c511d11d0fa4bd4dad509949026e5346435a0f04bfe9d63084dd65386743
+polkit: 333 cached defaults made uncached
+polkit: Flatpak app-update now implies only: org.freedesktop.Flatpak.runtime-update
++ pass 'polkit: after ares authorizes once, the same process is asked again (a cached control action is reused)'
+PASS polkit: after ares authorizes once, the same process is asked again (a cached control action is reused)
+polkit: 21 rule files, 401 actions, 0 change with wheel, 73 denied to ares, 132 reviewed passwordless, 0 cached defaults in the image
+POLKIT_CHECK_PASSED
+Image manifest locks equal the reviewed locks
+CHECK_BUILD_PASSED
+UEFI VM checks passed: session, updater/sleep policy, recovery shortcut, tty3 getty, password authentication via login PAM, ignored lid/sleep events, clean ACPI poweroff
+CHECK_BUILD_VM_PASSED

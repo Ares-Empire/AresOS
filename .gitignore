@@ -48,3 +48,6 @@ aresos-runtime/
 /os/manifest/ci/11m/**/installer/squashfs-files.txt
 
 /os/manifest/ci/11n/**/installer/squashfs-files.txt
+
+# Package 23: the mod jar CI builds into the image build context
+/os/minecraft/aresos.jar
