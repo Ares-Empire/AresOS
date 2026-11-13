@@ -1159,12 +1159,30 @@ redirect's target, and in history, bookmark and download entries.
 
 **Group 15, going and acting in one call** (browser): as section 6 lists it. In addition:
 
-- **time, through the real transports** (the `aresos` command and the MCP proxy, not a fake bridge): a list of 20
-  `wait` steps of 8 seconds returns a normal result within 20 seconds, with `deadline` and `not_run`; a list of 20
-  fills on F4 returns within 20 seconds with the fills that ran and the rest counted; a `chrome_read` with `until`
-  on a text that never comes returns within 10 seconds; five tabs of which one is slow return four outlines and
-  one `not_read`. A caller killed in the middle of a list: the fixture counts no input later than 12 seconds after
-  the call began, every step that ran is in the log as its own operation, and the next call works;
+- **time, through the real transports** (the `aresos` command and the MCP proxy, not a fake bridge). The cut-off
+  governs the dispatch of an input, and the tests assert exactly that: the fixture stamps every input event it
+  receives, and none is later than 12.5 seconds after the test sent the call (12 seconds, and half a second for
+  the way from the test to the service).
+  - **Staged waits carry a list across the cut-off.** A fixture page shows the texts "stage 1", "stage 2" and so
+    on, one every 3.5 seconds. The list has 20 steps: a `wait` for the next stage (`timeout_ms` 8,000), then a
+    fill, in turn. Expected: the waits for stages 1 to 3 are `done` and their three fills are counted by the
+    fixture; the wait for stage 4, which is due at second 14, ends at second 12 as `timeout`; the fourth fill
+    isn't dispatched; the result arrives within 18 seconds with `deadline: true` and `not_run` counting the
+    rest; and the fixture counts no further input in the 10 seconds after the result. A single `wait` that
+    isn't met is a different case and stays in "the steps as defined" below.
+  - **Many inputs.** A list of 20 fills on F4 returns within 18 seconds. The fills that ran are `done`, the
+    fixture counts exactly those, and the rest are in `not_run`.
+  - **An input held back at the boundary.** A test build of the extension holds back one frame's answer during
+    the setup of a fill that the service started at about second 11, until second 13. Expected: that fill is
+    never dispatched, although its step had started; it counts in `not_run`; its committed operation says that
+    nothing was dispatched; the fixture has no input event for it, then or later.
+  - **Reads.** A `chrome_read` with `until` on a text that never comes returns within 8 seconds with
+    `until_met: false`. Five tabs of which one doesn't answer (the test build holds its reader's reply back)
+    return four outlines and one `not_read`, within 8 seconds.
+  - **Nothing runs later, and the connection stays good.** After each case above the next call on the same
+    connection gets its own answer, and a reply the test build releases late changes nothing.
+  - **A caller killed in the middle of a list:** no input later than the bound above, every step that ran is in
+    the log as its own operation, and the next call works;
 - every asking case of group 1 runs through `chrome_do` once the harness has moved, with the receiver's log as
   evidence: nothing before approval, one arrival after, none on a repeat;
 - a list whose third step asks: the fixture counts the first two inputs, no input from steps three to five, and

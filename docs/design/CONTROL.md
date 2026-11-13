@@ -1558,9 +1558,11 @@ the first input (brief 28b).
       check as a first input; a take, and opening one of his tabs' address, need the list's token and are refused
       when the tab has moved on (the opened address is the one the list showed);
     - Chrome, the host and the service each stopped in the middle of a list: no step runs twice;
-    - time: through the real command and the real MCP proxy, a list that would wait longer than its deadline
-      returns in time with the steps it didn't start counted, and a caller that goes away in the middle leaves
-      every step that ran in the log and none running later;
+    - time: through the real command and the real MCP proxy, a list whose waits are met one after another until
+      its cut-off has passed returns in time with the steps it didn't dispatch counted; an input that is held
+      back past the cut-off isn't dispatched at all; a late answer from the extension is dropped and the next
+      call works; and a caller that goes away in the middle leaves every step that ran in the log and none
+      running later;
     - two similar tabs, and he switches tabs while a list runs (PLAN task 14): every step lands in the named tab.
 16. **Efficiency** (*brief 28*): the budgets of "Efficiency, as a tested property", against the recorded baseline.
 17. **His open tabs** (*brief 28b*):
