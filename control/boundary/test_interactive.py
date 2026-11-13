@@ -22,6 +22,9 @@ class Answers(unittest.TestCase):
     def test_unexpected_warning_is_not_permission(self):
         screen = '1. No, exit\n2. Yes, I accept\n'
         self.assertEqual(answer_option(screen, 'warning'), ('2', 'Yes, I accept'))
+        unnumbered = '  ❯ No, exit\n    Yes, I accept\n'
+        self.assertEqual(answer_option(unnumbered, 'warning'), (None, 'Yes, I accept'))
+        self.assertTrue(selected_option(unnumbered, None, 'No, exit'))
         with self.assertRaises(AssertionError):
             answer_option(screen, 'Yes')
 

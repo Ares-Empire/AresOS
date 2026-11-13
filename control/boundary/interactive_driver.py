@@ -14,7 +14,11 @@ OPTIONS = re.compile(r'^\s*[❯>]?\s*(\d+)\.\s+(.+?)\s*$', re.MULTILINE)
 
 
 def options(screen):
-    return [(number, text.strip()) for number, text in OPTIONS.findall(screen)]
+    numbered = [(number, text.strip()) for number, text in OPTIONS.findall(screen)]
+    if numbered:
+        return numbered
+    warning = re.findall(r'^\s*[❯>]?\s*(No, exit|Yes, I accept)\s*$', screen, re.MULTILINE)
+    return [(None, text) for text in warning] if set(warning) == {'No, exit', 'Yes, I accept'} else []
 
 
 def answer_option(screen, answer):
@@ -34,7 +38,8 @@ def answer_option(screen, answer):
 
 
 def selected_option(screen, number, text):
-    return re.search(r'^\s*❯\s*' + re.escape(number) + r'\.\s+' + re.escape(text) + r'\s*$',
+    prefix = re.escape(number) + r'\.\s+' if number is not None else ''
+    return re.search(r'^\s*❯\s*' + prefix + re.escape(text) + r'\s*$',
                      screen, re.MULTILINE) is not None
 
 
@@ -98,10 +103,17 @@ class Terminal:
         # completion screen and independent arrival count still prove the result.
         screen = self.wait('ready-' + answer, lambda s: options(s) == choices,
                            expected_options=choices, stable_for=1)
+        keys = [number]
+        if number is None:
+            focused = [i for i, (n, t) in enumerate(choices) if selected_option(screen, n, t)]
+            assert len(focused) == 1, 'Unobserved warning focus'
+            target = choices.index((number, text))
+            keys = ['Down' if target > focused[0] else 'Up'] * abs(target - focused[0])
         shot = self.save('answer-' + answer, screen)
         with (self.evidence / 'actions.jsonl').open('a') as log:
-            log.write(json.dumps({'screen': shot, 'option': text, 'key': number}) + '\n')
-        self.tmux('send-keys', '-t', 'case:0.0', number)
+            log.write(json.dumps({'screen': shot, 'option': text, 'key': number, 'keys': keys}) + '\n')
+        for key in keys:
+            self.tmux('send-keys', '-t', 'case:0.0', key)
         # Numeric shortcuts can submit immediately, or only move the selection.
         # Observe which happened before sending a confirming Enter.
         after = self.wait('selected-or-submitted-' + answer,
