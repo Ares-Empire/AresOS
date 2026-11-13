@@ -2220,6 +2220,7 @@ class Helper:
         self.handles = {}
         # Discovered scopes can outlive their windows (Steam/Discord) and their launch replies.
         self.discovered_scopes = {}
+        # Discovered program -> (deadline, return wanted, the compositor's pick after the close or None).
         self.discovered_closing = {}
         self.shell = 'foreground'
         self.foreground_app = None
@@ -2567,6 +2568,8 @@ class Helper:
         self.journal.touch(entry)
         self.journal.save()
         self.processes[request_id] = process
+        # A deliberate launch says where he wants to be: an earlier close's pending return is dropped (finding 4).
+        self.cancel_returns()
         if app.discovered:
             self.discovered_scopes[unit] = dict(app_id=app_id, state=ACTIVE, started=entry['started'],
                                                request_id=request_id, process=process)
@@ -2816,7 +2819,7 @@ class Helper:
             elif request_id in self.handles and not any(t.owner == entry['app_id'] for t in closed):
                 # A late, explicit identity corrected an inferred owner. It no longer belongs to this launch.
                 del self.handles[request_id]
-                self.discovered_closing.setdefault(entry['app_id'], (now + HANDOFF, False))
+                self.discovered_closing.setdefault(entry['app_id'], (now + HANDOFF, False, None))
         returned = False
         for toplevel in closed:
             app = toplevel.owner
@@ -2826,9 +2829,12 @@ class Helper:
                     handed_off = (self.handoff is not None and self.handoff[0] == app
                                   and now - self.handoff[2] <= HANDOFF)
                     pending = self.discovered_closing.get(app)
+                    # A window already active now is the compositor's pick (it may arrive before the close).
+                    pick = self.windows.active()
                     self.discovered_closing[app] = (pending[0] if pending else now + HANDOFF,
                                                     bool(pending and pending[1]) or app == self.foreground_app
-                                                    or handed_off)
+                                                    or handed_off,
+                                                    pending[2] if pending else pick and pick.handle)
                     for request_id in list(self.handles):
                         if self.journal.entries[request_id]['app_id'] == app:
                             del self.handles[request_id]
@@ -2849,7 +2855,7 @@ class Helper:
                 self.return_to_desktop(app)
         # Closing a launcher and announcing its child are separate protocol messages, possibly separate reads.
         # Reuse the focus hand-off interval to bridge that gap, without waiting for tray-only processes to exit.
-        for app, (deadline, should_return) in list(self.discovered_closing.items()):
+        for app, (deadline, should_return, _) in list(self.discovered_closing.items()):
             if self.windows.of(app):
                 del self.discovered_closing[app]
                 continue
@@ -2872,6 +2878,13 @@ class Helper:
             return
         previous_handle, previous_owner = self.active_handle, self.active_owner
         self.active_handle, self.active_owner = active.handle, active.owner
+        if active.handle != previous_handle and active.owner != Windows.SHELL:
+            # The first window activated after a close is the compositor's own pick and keeps the return; a later
+            # switch is his choice, and a return he no longer wants is dropped (review 1, finding 4).
+            for app, (deadline, should_return, pick) in list(self.discovered_closing.items()):
+                if should_return:
+                    self.discovered_closing[app] = (deadline, pick is None or pick == active.handle,
+                                                    active.handle if pick is None else pick)
         if (active.handle != previous_handle and previous_handle in self.windows.toplevels
                 and self.windows.toplevels[previous_handle].owner != Windows.SHELL):
             self.keep_target = previous_handle
@@ -2889,8 +2902,7 @@ class Helper:
         if active.owner == Windows.SHELL:
             # The compositor already returned us. A pending close must not later
             # steal focus from another app deliberately opened during its grace.
-            self.discovered_closing = {app: (deadline, False)
-                                       for app, (deadline, _) in self.discovered_closing.items()}
+            self.cancel_returns()
             self.returning_until = None
             self.handoff = None
             self.foreground_app = None
@@ -2912,6 +2924,11 @@ class Helper:
             if active.owner:
                 fields['app_id'] = active.owner
             self.emit('shell_focus', **fields)
+
+    def cancel_returns(self):
+        """Pending closes still end their launches, but none of them brings the hub back any more."""
+        self.discovered_closing = {app: (deadline, False, pick)
+                                   for app, (deadline, _, pick) in self.discovered_closing.items()}
 
     def window_apps(self):
         """The programs whose windows the helper tells apart. With a 1.0 desktop that is today's set, the reviewed

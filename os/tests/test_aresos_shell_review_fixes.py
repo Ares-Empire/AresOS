@@ -548,3 +548,58 @@ class LegacyWindowsTest(Base):
         self.now[0] += shell.HANDOFF + 0.01
         self.current.tick()
         self.assertEqual(self.activations, [1])  # a 1.1 desktop gets the discovered program's return
+
+
+class DroppedReturnTest(OwnershipBase):
+    """Finding 4: after A closed and the compositor moved to B, choosing C drops A's pending return."""
+
+    def setUp(self):
+        super().setUp()
+        self.window(3, 'aresos.terminal')  # B: the reviewed terminal, open behind
+        self.window(4, 'org.kde.kwrite')  # C: the reviewed editor, open behind
+        self.open('lunarclient', 'o-l')  # A
+        self.window(2, 'lunarclient', active=True)
+        self.later(10)
+        self.before = len(self.conn.events('shell_focus'))
+
+    def settle(self):
+        for _ in range(4):
+            self.later(shell.HANDOFF)
+        self.assertEqual(self.state('o-l'), 'closed')
+
+    def test_close_then_compositor_pick_then_his_switch(self):
+        self.close(2)
+        self.focus(3)  # the compositor's pick
+        self.later(shell.HANDOFF / 5)
+        self.focus(4)  # his own choice, inside the hand-over interval
+        self.settle()
+        self.assertEqual(self.activations, [])
+        self.assertEqual((self.helper_.shell, self.helper_.foreground_app), ('background', 'notepad'))
+        self.assertEqual(self.focus_events(self.before), [])
+
+    def test_compositor_pick_arriving_before_the_close_then_his_switch(self):
+        self.focus(3)
+        self.close(2)
+        self.later(shell.HANDOFF / 5)
+        self.focus(4)
+        self.settle()
+        self.assertEqual(self.activations, [])
+        self.assertEqual(self.helper_.foreground_app, 'notepad')
+
+    def test_close_then_compositor_pick_then_a_launch(self):
+        self.close(2)
+        self.focus(3)
+        self.later(shell.HANDOFF / 5)
+        self.open('discord', 'o-d')
+        self.settle()
+        self.assertEqual(self.activations, [])
+        self.window(5, 'discord', active=True)
+        self.later(1)
+        self.assertEqual((self.activations, self.state('o-d')), ([], 'focused'))
+
+    def test_without_a_choice_the_compositor_pick_still_gets_the_return(self):
+        self.close(2)
+        self.focus(3)
+        self.settle()
+        self.assertEqual(self.activations, [1])
+        self.assertEqual(self.focus_events(self.before), [('foreground', 'app_closed', 'lunarclient')])
