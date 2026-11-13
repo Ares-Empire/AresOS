@@ -119,9 +119,11 @@ catch a page that submits by itself. If you have typed something there, or music
   read; frames from other sites and shadow roots included.
 - **`request` is required** on a call that touches one of his tabs: his request in a few words, 1 to 200
   characters. Without it the call is refused (`invalid_input`, "say which request of the owner needs this tab").
-  The tool doesn't judge the text. With `tabs`, one `request` covers the call.
+  The tool can't check the text. It records what Claude says, for the log and the popup, and proves nothing. With
+  `tabs`, one `request` covers the call.
 - **A tab asleep** (Chrome unloaded it): the read loads it, as his click would, waits as `chrome_go` waits, and the
-  result says `woke: true`.
+  result says `woke: true`. That is a visit, not a silent look: the site sees it and the page's scripts start.
+  "Leaves no trace" (tests) is a promise for a tab that is already loaded.
 - **A tab that can't answer** (one of Chrome's own dialogs is open, or the page is stuck): the read gives up after
   two seconds with `owner_dialog`, "this tab doesn't answer; a dialog may be open; ask the owner". It never hangs.
 - **The result** carries `"whose": "his"` for such a tab.
@@ -289,7 +291,7 @@ password cases under `password_exclusion`):
   tabs: nothing of the query, the fragment or the sign-in path is in a result, the popup list or the log); a title
   made of instructions,
   forged marks (`claude`, `taken`, `no`) and direction-changing characters comes back quoted and escaped.
-- **Looking in place leaves no trace.** A fixture page records everything it can observe: every event on window
+- **Looking in place leaves no trace, in a tab that is loaded.** A fixture page records everything it can observe: every event on window
   and document, focus and visibility, scrolling, DOM mutations, wrapped native functions, requests to the
   receiver. Across a read, a `find`, a read by `ref` and a read with `until`: the page records nothing new; the
   document is the same; text he typed, his scroll position and a playing video are as they were; no debugger

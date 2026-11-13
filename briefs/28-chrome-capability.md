@@ -249,6 +249,8 @@ Result:
   `ref`), `required`, the field's error text, the hidden fields by name, the buttons, and the form's target. A text:
   in full. A single link or control: everything known about it (its address in the public form, the title, all
   options).
+- Everything a read returns from the page sits in `untrusted_content`, also what `ref`, `find` and `until` bring.
+  Outside it are only the tool's own numbers and flags.
 - `find`: up to 20 hits per page. Each hit is the element's outline line, then ` · in ` and the path of named
   ancestors (at most 80 characters); a hit inside a longer text adds 60 characters either side of it. Literal, no
   regard to case, over names, labels, values that may be read, and text; folded parts and frames included; inside
@@ -292,13 +294,29 @@ Result:
   - it was issued under another connection (Chrome or the extension restarted or reconnected; the service empties
     the table then and the counter goes on);
   - the document, the reader instance or the element is gone or is another one;
-  - the element's role or name differs from the line Claude last saw;
-  - for a step that changes or uses what a field holds (`fill`, `select`, `check`, `press`): the field's value, its
-    tick or its chosen option differs from what Claude last saw. The service compares the whole value: it keeps a
-    digest of it beside the line, because the outline may have shown the value cut.
+  - **the element's fingerprint differs** from the one Claude last saw.
   The refusal carries the element's present line, and that counts as shown, so a repeated call can pass.
-- This replaces two things in `adapter.py`: the comparison of the caller's `expected` in `payload`, and the
-  comparison of `view` in `facts`. The extension's own checks stay (session, tab, document, element, the hit test
+- **The fingerprint.** Brief 20 made the caller send back everything the element had shown (`expected`) and
+  compared all of it, its place on the screen included. The service now keeps that comparison itself, per
+  reference, as a digest of what the element means:
+  - it is brief 20's element facts (`targetFacts`) without the `box`, without `onscreen`, and without the states
+    `disabled`, `required` and `invalid`;
+  - so it holds the role, the name, the label and the title; a link's destination, resolved and in full; whether
+    the element submits a form, is editable or is a search field; the page dialog it belongs to; whether it is
+    ticked, selected or expanded; a list's options; and the whole value (for a password-kind or unread field only
+    that it is one);
+  - it is taken from the full facts, not from the line. A name or value the outline showed cut, and a link's
+    address that the line doesn't show at all, are compared whole;
+  - it moves only when a result shows Claude that element again (a read, a `find` hit, a `~` line of a change
+    report, the present line of a refusal), or when a step of Claude's own has acted on that element (item 5).
+  Left out on purpose: where the element sits, and three states that don't change what it means. A control that
+  became enabled is still the control Claude meant, and a disabled one does nothing when clicked.
+- **What is no longer checked, said plainly:** anything outside the element. Brief 20 refused an action when
+  anything on the page had changed since the read. Now a free step runs although the text around a button or a
+  neighbouring field changed. An asking step still shows and binds the form, the draft and the affected item. The
+  change report covers the call itself, not the time between Claude's last read and the call.
+- This replaces two things in `adapter.py`: the comparison of the caller's `expected` in `payload` (now against
+  the stored fingerprint), and the comparison of `view` in `facts` (gone). The extension's own checks stay (session, tab, document, element, the hit test
   before a click), and so does everything that follows in `payload`.
 - No tool input carries `reference`, `expected` or `view` objects any more.
 
@@ -605,6 +623,14 @@ Added cases, each with group 7's known password and a label that says nothing ("
 
 Small fixtures are compared with stored expected outlines, character for character.
 
+**The fingerprint, in group 14.** Each of these is refused with `stale_reference` and the element's present line:
+a link that keeps its name while its destination changes (once the path, once only the query); a list whose
+options change while its name and chosen option stay; a box the page ticked; a menu button the page expanded; a
+field whose value changed in a part the outline had cut. Each of these still runs: a button that became enabled; a
+field that became `required` or `invalid`; an element that moved on the screen. And the limit, shown honestly: a
+button without a destination keeps its name while the row around it shows another item; the free click runs, and
+the report lists the case under known limits.
+
 **References that can't collide, in group 14.** Each case first makes sure that new references exist, so a refusal
 isn't just an empty table:
 
@@ -739,7 +765,8 @@ loss, his normal use broken) is never a limit: fix it or stop.
 
 None is open for the owner before this package starts. Decided here, and the lead's to defend:
 
-- A reference is checked on its own element, not on the whole view (item 3; section 6 gives the reasons).
+- A reference is checked on its own element, by a fingerprint the service keeps, not on the whole view (item 3;
+  section 6 gives the reasons and names what is no longer checked).
 - The tool list is replaced, not kept beside the new one: one surface to describe, test and review.
 
 Anything you meet that changes how Chrome feels for the owner goes into the report as a JUDGMENT-CALL with what you

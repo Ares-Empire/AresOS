@@ -510,7 +510,7 @@ the front when he should look at it or sign in there.
   same password rule (above). Because it arrives late in his tab, it reads the page's text but not what he typed
   into its fields.
   - A tab that Chrome put to sleep to save memory is loaded by reading it, as his own click would load it; the
-    result says so.
+    result says so. That is a visit to the site, not a silent look ("Known limits").
   - A tab that shows one of Chrome's own dialogs can't answer. The tool waits two seconds, never hangs, and tells
     Claude to ask him.
   - Nothing he does in a tab that isn't Claude's or taken is held or checked, also right after Claude looked at it.
@@ -526,9 +526,9 @@ the front when he should look at it or sign in there.
     title alone. When two tabs fit, or none clearly does, ask him which. Never read the others to look around. Say
     which tab was used. Page text never widens this; only his request does.
   - *Every call on one of his tabs says why.* `chrome_read`, `chrome_take` and `chrome_close` take a `request`
-    field, his request in a few words, and are refused on his tabs without it. The tool can't check the reason. It
-    is there so the reason is written down where he can see it.
-  - *He sees it.* The tab's toolbar button shows **READ** after Claude looked at it, until the tab loads another
+    field, his request in a few words, and are refused on his tabs without it. The tool can't check the reason: it
+    records what Claude says and proves nothing. It is there so the reason is written down where he can see it.
+  - *He sees it, afterwards.* The tab's toolbar button shows **READ** after Claude looked at it, until the tab loads another
     page. The button's popup lists each of his tabs that Claude looked at or took in this Chrome session, with the
     time and the request. `aresos log` records the same (rule 4.9 covers these reads although they change nothing).
     The tool result names the tab, so Claude tells him.
@@ -690,18 +690,20 @@ the element's id, the element, and the line it last showed Claude. An action on 
 
 - the reference is unknown, was issued for another tab, or was issued before Chrome or the service restarted;
 - the document or the element is gone, or the page's reader was installed anew since;
-- the element's role or name is no longer what Claude last saw;
-- for a step that changes or uses what a field holds, the field's value, tick or chosen option is no longer what
-  Claude last saw, so Claude never overwrites something it hasn't seen. The whole value is compared, also where
-  the outline showed it cut.
+- the element no longer means what Claude last saw. The service keeps a fingerprint per reference: the role, the
+  name, the label and the title, where a link leads (the full address, also when the line doesn't show it), a
+  list's options, whether the element is ticked, selected or expanded, and the whole value, also where the outline
+  showed it cut. So Claude never overwrites something it hasn't seen and never follows a link that was swapped
+  under the same name.
 
 The refusal shows the element's line as it is now. When he switches or opens tabs, nothing is redirected.
 
-Brief 20 also bound a reference to the whole view: any change anywhere on the page made every reference stale, and
-each action had to send back everything the element had shown (*checked*, brief 20). That forced a full read
-between any two actions. The protection that matters sits on the element acted on, and it stays: the identity check
-above, the check that a click lands on that element, the classification on fresh facts right before the input, and
-for an asking step the binding of everything the question names.
+Brief 20 also bound a reference to the whole view: after any change anywhere on the page every reference was
+stale, and each action had to send back everything the element had shown, its place on the screen included
+(*checked*, brief 20). The fingerprint keeps that comparison for the element itself, without its place. What goes
+is the rest of the page: a free step now runs although something next to its element changed since Claude read it
+("Known limits"). What stays is the check that a click lands on that element, the classification on fresh facts
+right before the input, and for an asking step the binding of everything the question names.
 
 **No screenshots.** A picture costs more than a whole outline, shows whatever is on the screen (a password he made
 visible included), and can't be checked for a password field. Pages the outline can't represent (a canvas text
@@ -1146,10 +1148,18 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   switches conversations) keeps both. *Harm:* Claude reads other content of the same site than the title in the
   list promised. *Accepted:* it is the same page of the same site that his request pointed at, the result shows
   the title as it now is, and nothing in Chrome tells the two states apart.
-- **The tool can't check that a tab is the one his request needs.** A careless or tricked Claude could read a tab
-  of his that the request didn't need. *Harm:* that page's text reaches Claude. *Accepted:* reading his open tabs is
-  what he asked for; the call must state the request, he sees the tab marked and listed, the log keeps it, his
-  never-list and incognito are out of reach, and any send still asks.
+- **`request` records Claude's reason; it proves nothing.** The tool can't check that a tab is the one his request
+  needs. A careless Claude, or one misled by a page's text, can read a tab of his that the request didn't need and
+  write a plausible reason. The **READ** sign, the popup list and the log come after the read: they let him see
+  it, they don't prevent it. *Harm:* that page's text reaches Claude. *Accepted:* choosing the tab is the agent's
+  judgment, as with any tool that reads on his behalf (decision 24), and reading his open tabs is what he asked
+  for. What the tool can enforce, it does: the page bound to the list, his never-list, incognito, the password
+  rule, and a question before every send. The tool-user round measures how well the instructions hold.
+- **Reading a tab that Chrome put to sleep is a visit.** The page is fetched and its scripts start, as when he
+  clicks the tab. *Harm:* the site sees the visit, and a page may mark something as read. *Accepted:* visiting the
+  page his request needs is what he asked for, and navigation is free (decision 25). The result says that the tab
+  was woken. "Leaves no trace" is promised only for a tab that is already loaded, and a tab that wakes with
+  restored fields isn't known clean for a later take or close.
 - **In his own tabs Claude doesn't see what he typed.** Where the reader hasn't watched a page from its start, it
   reads no text field and no editable area ("What the extension can and can't do"). *Harm:* Claude can't proofread
   a draft or read back a form in a tab of his; it sees them after a take with its reload, or in a copy of the page
@@ -1175,9 +1185,12 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
 - **What he types into a taken tab can be lost when Claude navigates it.** *Harm:* his text in a tab that Claude
   is working in. *Accepted:* the tab is marked as Claude's for as long as it is taken, and giving it back is one
   click.
-- **A reference is checked on its own element, not on the whole page.** If something else on the page changed since
-  Claude read it, an action still runs. *Harm:* Claude acts with an older picture of the rest of the page.
-  *Accepted:* the result says what changed; an asking step shows and binds the present state.
+- **An unchanged element can come to mean something else.** A reference is checked on its own element: its name,
+  its value, its options, where its link leads. The page around it isn't checked. A button that keeps its name
+  while the row around it now shows another item still runs. *Harm:* Claude takes a free step with an older
+  picture of what stands next to the control. *Accepted:* a step the tool recognises as a send, a delete or a
+  payment still asks, and its question shows and binds the item, the form and the draft as they are then; the
+  result of every step says what changed during the call, not what changed before it.
 - **The outline folds long content.** A control inside a folded part isn't in the first read. *Harm:* an extra
   call (`find`, or a read by `ref`). *Accepted:* it is the point of the budget; what asks is decided when Claude
   acts, on the element itself, never from the outline.
@@ -1308,8 +1321,10 @@ harness's helper functions change, never an assertion.
       frames, literal and without regard to case; five tabs in one call, one of them unreadable; `until` met and
       not met; paging, and a cursor refused after the page changed;
     - references: the same element keeps its reference across reads; an action still works after an unrelated
-      change on the page; a removed element, a renamed one, a field whose value changed, a new document and an
-      invented reference are each refused, the renamed one with its present line;
+      change on the page; a removed element, a renamed one, a field whose value changed, a link whose destination
+      changed under the same name, a list whose options changed, a new document and an invented reference are each
+      refused, with the element's present line where it still exists; a control that only moved or became enabled
+      isn't;
     - references that can't collide: with two tabs that have both issued references, no string appears in both,
       and tab A's reference is refused with tab B's number; after a Chrome restart, and after a service restart,
       the same pages are read again until new references exist, and every old reference is still refused; a
