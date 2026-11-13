@@ -15,7 +15,7 @@
 #   --force           skip the Lunar Client and 6 GB memory checks (otherwise exit 75); they run at the start and
 #                     again right before Gradle starts
 #
-# Gradle's --daemon, --stop and --status are refused (exit 2).
+# Gradle's --daemon, --foreground, --stop and --status are refused (exit 2).
 #
 # Every run has a helper and a socket of its own: the private folder $XDG_RUNTIME_DIR/aresos-dev/run-hub-<pid>/
 # (mode 0700) holds the socket and the helper's launch journal, and the game gets that socket in

@@ -94,12 +94,13 @@ aresos_check_room() {
 ARESOS_GRADLE=("$ARESOS_MOD_DIR/gradlew" --no-daemon)
 
 # Refuses Gradle's own daemon switches among the forwarded arguments: --daemon would win over --no-daemon (Gradle
-# takes the last of the two), and --stop and --status act on every daemon of this Gradle version on the laptop.
+# takes the last of the two), --foreground starts a daemon that other sessions' builds could use, and --stop and
+# --status act on every daemon of this Gradle version on the laptop.
 aresos_check_gradle_args() {
     local arg
     for arg; do
         case $arg in
-            --daemon | --stop | --status)
+            --daemon | --foreground | --stop | --status)
                 aresos_fail 2 "Gradle's $arg is refused: these scripts run Gradle without a lasting daemon and leave other sessions' daemons alone." ;;
         esac
     done

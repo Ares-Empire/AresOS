@@ -13,7 +13,7 @@
 # - One run at a time on the laptop: it waits for ~/.cache/aresos-dev/client-test.lock and says so.
 # - Refuses (exit 75) while the owner's Lunar Client game runs or less than 6 GB of memory is available, at the
 #   start and again right before Gradle starts (after the lock and the probes); --force skips those two checks
-#   (not the lock). Gradle's --daemon, --stop and --status are refused (exit 2).
+#   (not the lock). Gradle's --daemon, --foreground, --stop and --status are refused (exit 2).
 # - Each GPU probe and the run itself run in systemd user scopes of this script's own (env.sh). A probe is
 #   stopped after 30 s at most; every exit stops the compositor, the game and Gradle's daemon.
 # - The tests rewrite tracked screenshots under reviews/. --keep-screenshots copies the ones this run wrote into

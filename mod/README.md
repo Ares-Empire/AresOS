@@ -53,8 +53,8 @@ no system install and change no shell setup:
   worktree) and `--registry <dir>` passes its app folder to the helper's
   `--registry`.
 
-Extra arguments go to Gradle; its `--daemon`, `--stop` and `--status` are refused
-(exit code 2). Only one client test runs at a time on the laptop: `client-test.sh`
+Extra arguments go to Gradle; its daemon switches `--daemon`, `--foreground`,
+`--stop` and `--status` are refused (exit code 2). Only one client test runs at a time on the laptop: `client-test.sh`
 waits for `~/.cache/aresos-dev/client-test.lock` and says so. All three refuse
 (exit code 75) while the Lunar Client game (Lunar's own Java) runs or less than
 6 GB of memory is available, and `client-test.sh` and `run-hub.sh` check again
