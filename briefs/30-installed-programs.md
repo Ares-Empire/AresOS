@@ -1,6 +1,6 @@
 # 30: The hub lists his installed programs
 
-Empire board brief 277 (board #163, the owner's "his own programs in the hub"). One package for both sides: the OS app helper (`aresos-shell`) and the mod.
+Empire board brief 277 (board #163, the owner's "his own programs in the hub"). The OS app helper's side (`aresos-shell`). The mod's side is package 34 ("My apps"), built first; both follow one description, `docs/design/HUB.md` section 3.8.
 
 **Builder:** a Claude agent (Fable 5.2): it changes what the helper starts, so mistakes cost more than usual. **Review:** a package review and a security review at the tools bar (`docs/REVIEW.md`, "Tools for Claude"), both fresh; then `linux-aresos` reads the `os/` diff before merge.
 
@@ -10,11 +10,11 @@ On AresOS the hub knows three apps: Chrome, Terminal and Notepad, from a reviewe
 
 **Goal:** every program installed on the laptop that a normal start menu would show appears in the game's app list with its real name and icon, opens through the helper like the three built-in apps, and returns to the hub when its last window closes. A program installed while AresOS runs appears without logging out. Lunar Client and Steam start on the RTX 4060.
 
-Not in this package: which apps get a logo in the world or a place in the inventory by default, and the `/name` commands. Those follow `docs/design/HUB.md` in later packages; this one delivers the list they build on.
+Not in this package: anything in the mod. Which programs are his, their items, logos and `/name` commands are the hub packages 32 to 37 (`docs/design/HUB.md`); this one delivers the list they build on.
 
 ## A. The helper (interface `aresos-shell/1.1`)
 
-Read `os/config/usr/libexec/aresos-shell` fully first, and `docs/design/OS-BASE.md` Appendix B1 and B2.
+Read `os/config/usr/libexec/aresos-shell` fully first, `docs/design/OS-BASE.md` Appendix B1 and B2, and `docs/design/HUB.md` sections 3.7 and 3.8. Section 3.8 is the interface; where this brief and 3.8 differ, 3.8 wins and you say so in the report.
 
 ### A1. Where programs come from
 
@@ -79,43 +79,30 @@ The game needs one picture per program, as a file it can read without trusting t
 
 ### A7. The interface
 
-- Minor version 1 (`aresos-shell/1.1`), negotiated in `hello` as today (`min(minor)`).
-- `list_apps` entries gain optional fields, sent only to a client that negotiated 1.1: `icon` (absolute path of the normalised PNG, or absent), `categories` (the entry's categories, each `[A-Za-z0-9-]{1,32}`, at most 16), `generic_name`, `keywords` (at most 16, each at most 32 characters), `desktop_id`, `exec_name` (the base name of the program that runs; for a Flatpak entry the Flatpak app ID), `source` (`image`, `system`, `flatpak` or `user`), `terminal` (boolean). No command, no arguments and no environment are ever sent to the game.
-- The list changes while the helper runs. Detect it without inotify (standard library only): rescan when asked and at most every few seconds, cheaply (folder and file times first). Tell a connected 1.1 client with an `apps_changed` event carrying the new revision; the client then asks again. `list_apps` stays within the 64 KiB limit that holds for every message: page it (one size rule for everything is easier to keep safe).
-- Compatibility, both ways, each with a test:
-  - an older mod (1.0, the jar pinned in an image) with this helper: gets exactly what it gets today, the registry apps with `{id, name, available, reason}` and nothing else. Discovered programs are listed and opened only for a client that negotiated 1.1 (the older mod would put every one of them into his inventory);
-  - this mod with the older helper (release 27's, 1.0): three apps, no pictures, today's behaviour, no error message.
-- Update `docs/design/OS-BASE.md` Appendix B1 for 1.1 (the `list_apps` row and one paragraph on discovered programs), and the header comment of the helper.
+Implement the helper's side of `docs/design/HUB.md` section 3.8 exactly: minor version 1 and the three new capabilities, paging with `cursor` and `next` inside the 64 KiB limit, the optional entry fields (`source` in its five kinds, `icon`, `categories`, `generic_name`, `keywords`, `desktop_id`, `exec_name`, `terminal`), a starter that stands for desktop entries listed once with that entry's picture and details, the `apps_changed` event, and exactly today's answer for a 1.0 client.
+
+- The mod package (34) committed example messages under `mod/src/test/resources/shell-1.1/`. They are the contract: your tests read those files and check that the helper produces and accepts that shape. If one of them is wrong or can't be met, stop and report it; do not change it.
+- The list changes while the helper runs. Detect it without inotify (standard library only): rescan when asked and at most every few seconds, cheaply (folder and file times first).
+- Compatibility, both ways, each with a test: the older mod (1.0, the jar pinned in an image) with this helper gets the starters only, as today; the newer mod with release 27's helper is package 34's test.
+- No command, no arguments and no environment are ever sent to the game.
+- Update `docs/design/OS-BASE.md` Appendix B1 for 1.1 (take HUB.md 3.8 over, and one paragraph on discovered programs), and the header comment of the helper.
 
 ### A8. What must stay green
 
 - `os/tests` (the helper's tests and the whole suite), `os/ci/image-checks.sh` and the VM checks. After pushing, run one check build on the PR's branch: `gh workflow run "OS image" --ref pkg/30-installed-programs -f check_build=build`, and wait for it with one blocking `gh run watch`, not by polling. GitHub's runners are free for this repo.
 - Files you may touch under `os/`: `config/usr/libexec/aresos-shell`, `config/usr/share/aresos/apps/*.json`, `tests/test_aresos_shell.py` and new test files and fixtures beside it, and `ci/image-checks.sh` only to add checks. Nothing else under `os/`. None of these is bound by a rehearsal today (the active bindings are `os/manifest/ci/27/source-bindings.json`); if a test tells you a bound file changed, stop and report it, the OS lead decides. List every `os/` file you touched at the top of the report.
-- **Starting point:** package 23 (PR #36) changes `aresos-shell`, `test_aresos_shell.py` and `image-checks.sh` too. This package is cut from a `main` that contains package 23, and you read the helper as it is then; check "scope, unchanged" in A4 against that version. If the orchestrator starts you before package 23 has merged, build part B's Java side against the 1.1 fields first and leave `os/` alone until told.
+- **Starting point:** package 23 (PR #36) changes `aresos-shell`, `test_aresos_shell.py` and `image-checks.sh` too. This package is cut from a `main` that contains package 23 and package 34, and you read the helper as it is then; check "scope, unchanged" in A4 against that version.
 
-## B. The mod
-
-Read `mod/src/main/java/dev/aresos/shell/ShellClient.java`, `catalogue/LinuxAppCatalogue.java`, `config/AppsConfig.java`, `config/AppDefinition.java`, `icon/*.java`, `item/AppInventory.java` and `client/AppsScreen.java` first.
-
-1. `ShellClient` speaks 1.1: parses the new optional fields (unknown ones are ignored), handles `apps_changed` by asking again, and still works with a 1.0 helper.
-2. The fields reach the app list: the picture path becomes the app's icon source, so the item shows the program's own pixel icon and `/aresos logo` can build its logo. Categories, generic name, keywords, desktop ID, executable name and source are kept on the app in memory for the packages that follow (`/name`, the plaza). They come fresh from the helper at every start and are not written into `apps.json`; his own name, look and pin for an app stay in `apps.json` as today.
-3. A program without a picture gets a plain vanilla item look chosen by its main category (a short table in one place; `minecraft:paper` when nothing fits).
-4. When the list or a picture changes while the game runs, the item icons follow: regenerate the icon pack and reload it, once per change and not more than once every few seconds. No reload when nothing changed.
-5. **The inventory must not flood.** Today every known app is put into the inventory. Keep that for the three registry apps and for anything already pinned or already in his inventory. A discovered program is listed in the **Apps…** screen only, and taking it from there puts its item in his hand as today. Give the Apps… screen a search field (type to filter by name; Enter takes the only match), because the list is now long, and sort it by name.
-6. A program that disappears (uninstalled) stays in `apps.json` and in his inventory but shows as unavailable when used, with the helper's reason; nothing is deleted.
-7. Windows behaviour is unchanged. Platform code stays behind the existing interfaces.
-
-## C. Verification
+## B. Verification
 
 - **Helper:** unit tests for every rule in A1 to A7, with fixtures taken from real entries of this laptop (`/usr/share/applications`, the Flatpak exports, Lunar's entry with the home path replaced by a placeholder). Hostile fixtures: oversized file, binary junk, `Exec` with shell characters, `Icon=../../x`, an icon that is not an image, 500 entries, two entries with one identity, an entry that hides a system one.
-- **Mod:** Java unit tests with the fake helper for 1.0 and 1.1, `apps_changed`, a list of 150 programs, the Apps… search. `mod/dev/build.sh` passes; `mod/dev/client-test.sh` passes **twice** (see `mod/README.md`, "On Linux"; it holds the laptop's client-test lock and refuses while the owner's game runs).
 - **End to end, headless:** start a headless labwc, this worktree's helper inside it, and open two neutral programs through the real socket (a small script or test that speaks the protocol is enough; the game is not needed): `kcalc` and `btop` (the terminal case). Show that each got its own scope under `app.slice`, that its window was matched, and that ending it produced the return event. Never open a window in the owner's session, and never start Chrome with his profile, Lunar Client or Steam; he tries those himself with `mod/dev/run-hub.sh --helper … --registry …` once this is reviewed.
 - **Not verified here:** Lunar Client and Steam for real, and the offload variables' effect on a real game. Say so, and write the three-line "try this" note for the owner at the end of the report.
 
 ## Already decided
 
-- One package, built in this order: helper listing and launch, helper windows, icons, interface, mod.
-- Standard library only in the helper. No new dependency in the mod.
+- Built in this order: listing and launch, windows, icons, interface.
+- Standard library only in the helper. No change under `mod/` except reading its example messages from tests.
 - No shell, no command or environment from the game, the helper unprivileged: these are not up for trade.
 - The safety bar is the tools bar: safe the way a normal app launcher is. A desktop entry in his own folders can already run anything as him on any Linux desktop; listing it adds no new power. A hostile entry that looks like another program is a known limit, not a finding to fix.
 
@@ -128,6 +115,6 @@ Leave a program out of the list rather than start something in a way the entry d
 - `AGENTS.md` applies. Worktree `~/AresOS-30-installed-programs`, branch `pkg/30-installed-programs`. Push it and open a PR against `main`. Never merge, never push to `main`, never `--no-verify`.
 - The repo is public: no personal data in fixtures (replace the home path), no third-party icons committed (draw two tiny test images yourself).
 - Don't touch other worktrees, `~/AresOS` itself, `~/.minecraft`, `~/.lunarclient`, or PR #36's branch. No sudo, no system installs.
-- 16 GB of memory is shared with other sessions: one Gradle daemon, stopped when done; never two heavy steps at once.
+- 16 GB of memory is shared with other sessions: never two heavy steps at once.
 - Commits end with `Co-Authored-By: Claude Fable 5.2 <noreply@anthropic.com>`.
 - `reviews/30-installed-programs/REPORT.md` in the AGENTS.md format, with JUDGMENT-CALLs and PLAN-GAPs marked.
