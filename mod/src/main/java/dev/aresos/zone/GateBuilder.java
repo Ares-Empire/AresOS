@@ -119,6 +119,7 @@ public final class GateBuilder {
         // The ground the doormat replaces, to put back when the gate is removed.
         var before = new LinkedHashMap<BlockPos, BlockState>();
         if (doormat.isPresent()) for (var pos : plan.doormat()) before.put(pos, level.getBlockState(pos));
+        var grass = plan.floor().stream().filter(pos -> level.getBlockState(pos).is(Blocks.GRASS_BLOCK)).toList();
         var record = new ArrayList<AppZone.Placed>();
         for (var block : placed.entrySet()) {
             level.setBlockAndUpdate(block.getKey(), block.getValue());
@@ -131,7 +132,7 @@ public final class GateBuilder {
         }
         var ground = before.entrySet().stream().map(block -> new AppZone.Placed(block.getKey(), id(block.getValue()))).toList();
         var built = new AppZone(zone.id(), app, zone.dimension(), zone.min(), zone.max(), zone.exit(), zone.blocks(),
-                Optional.of(new AppZone.Gate(List.copyOf(record), ground, Optional.of(sign.getUUID()))));
+                Optional.of(new AppZone.Gate(List.copyOf(record), ground, Optional.of(sign.getUUID()), grass)));
         data.add(built);
         return built;
     }
@@ -223,11 +224,12 @@ public final class GateBuilder {
             var before = Optional.ofNullable(ground.get(placed.pos())).map(Identifier::tryParse).flatMap(BuiltInRegistries.BLOCK::getOptional);
             removing.put(placed.pos(), before.orElse(Blocks.AIR).defaultBlockState());
         }
+        for (var pos : gate.grass()) if (level.getBlockState(pos).is(Blocks.DIRT)) removing.put(pos, Blocks.GRASS_BLOCK.defaultBlockState());
         // Refuse the whole operation before touching the sign, the record or any block.
         Neighbors.check(level, removing.keySet(), removing.keySet(), 2);
         removing.forEach(level::setBlockAndUpdate);
         gate.sign().map(level::getEntity).ifPresent(Entity::discard);
         ZoneData.get(server).remove(saved -> saved.id().equals(zone.id()));
-        return new Removal(removing.size(), kept);
+        return new Removal(gate.placed().size() - kept, kept);
     }
 }

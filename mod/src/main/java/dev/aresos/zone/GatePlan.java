@@ -106,6 +106,13 @@ public record GatePlan(ResourceKey<Level> dimension, BlockPos origin, Direction 
         return floor;
     }
 
+    /** The complete size by depth floor under the gate, including transparent columns and the niche. */
+    public List<BlockPos> floor() {
+        var floor = new ArrayList<BlockPos>();
+        for (int along = 0; along < GateNumbers.DEPTH; along++) for (int u = 0; u < size; u++) floor.add(at(along, u, -1));
+        return floor;
+    }
+
     /** The floor under the doormat and its complete one-block ring, including the row behind the niche. */
     public List<BlockPos> doormatSurround() {
         var floor = new ArrayList<BlockPos>();

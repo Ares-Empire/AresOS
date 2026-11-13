@@ -32,11 +32,16 @@ public record AppZone(String id, String app, ResourceKey<Level> dimension, Block
      * blocks the doormat replaced, and the sign's entity. Removal takes a block away only while it is still the
      * recorded one.
      */
-    public record Gate(List<Placed> placed, List<Placed> ground, Optional<UUID> sign) {
+    public record Gate(List<Placed> placed, List<Placed> ground, Optional<UUID> sign, List<BlockPos> grass) {
         public static final Codec<Gate> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Placed.CODEC.listOf().fieldOf("placed").forGetter(Gate::placed),
                 Placed.CODEC.listOf().fieldOf("ground").forGetter(Gate::ground),
-                UUIDUtil.CODEC.optionalFieldOf("sign").forGetter(Gate::sign)).apply(i, Gate::new));
+                UUIDUtil.CODEC.optionalFieldOf("sign").forGetter(Gate::sign),
+                BlockPos.CODEC.listOf().optionalFieldOf("grass", List.of()).forGetter(Gate::grass)).apply(i, Gate::new));
+
+        public Gate(List<Placed> placed, List<Placed> ground, Optional<UUID> sign) {
+            this(placed, ground, sign, List.of());
+        }
     }
 
     // Walls, floors and hand-made zones have no "gate" field, in files written before gates existed and now.

@@ -83,12 +83,14 @@ final class Neighbors {
 
     /**
      * The ground the world is made of: grass, dirt, stone, netherrack and their kin. It reacts to nothing a logo
-     * does next to it. Grass right under a logo turns to dirt in time, as under any block.
+     * does next to it. Grass decay under a gate is recorded and conditionally restored; other decaying substrates
+     * (mycelium and nylium) have no restoration record and are refused.
      */
     static boolean ground(ServerLevel level, BlockPos pos, BlockState state) {
         return state.isCollisionShapeFullBlock(level, pos) && state.getFluidState().isEmpty() && !state.hasBlockEntity()
+                && (state.is(Blocks.GRASS_BLOCK) || state.getBlock().getClass() == Block.class && !state.isRandomlyTicking())
                 && (state.is(BlockTags.SUBSTRATE_OVERWORLD) || state.is(BlockTags.BASE_STONE_OVERWORLD)
-                || state.is(BlockTags.BASE_STONE_NETHER) || state.is(BlockTags.NYLIUM));
+                || state.is(BlockTags.BASE_STONE_NETHER));
     }
 
     /** The first entity inside one of the cells, other than a gate's sign; null when they are all free. */

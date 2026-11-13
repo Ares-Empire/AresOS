@@ -359,6 +359,21 @@ public final class GateGameTests {
             check(sign.getUUID().equals(gate.sign().orElseThrow()) && sign.position().equals(plan.sign().position()), "sign is at " + sign.position());
             check(!sign.isPickable() && !sign.hurtServer(level, level.damageSources().generic(), 100) && sign.isAlive(), "the sign can be hit");
 
+            var removal = GateBuilder.remove(level.getServer(), zone);
+            check(removal.removed() == recorded.size() && removal.kept() == 0, "removal: " + removal);
+            for (var cell : before.entrySet()) check(level.getBlockState(cell.getKey()).equals(cell.getValue()),
+                    "After removal " + cell.getKey() + " is " + level.getBlockState(cell.getKey()) + ", was " + cell.getValue());
+            check(site.signs().isEmpty() && site.zones().isEmpty(), "sign or zone left behind");
+        });
+    }
+
+    @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
+    public void explosionsStillProtectGateBlocks(GameTestHelper helper) {
+        Site.run(helper, 220, site -> {
+            var level = site.level();
+            var plan = site.plan(stripes(12));
+            var zone = site.build(plan);
+            var gate = zone.gate().orElseThrow();
             // Explosions leave the logo and the doormat alone, as they do a wall's blocks.
             var control = plan.at(-3, 3, 0);
             level.setBlockAndUpdate(control, Blocks.STONE.defaultBlockState());
@@ -367,15 +382,30 @@ public final class GateGameTests {
             check(level.getBlockState(control).isAir(), "explosion did not destroy the unprotected control block");
             for (var placed : gate.placed()) check(("minecraft:" + BuiltInRegistries.BLOCK.getKey(level.getBlockState(placed.pos()).getBlock()).getPath()).equals(placed.block()),
                     "explosion destroyed " + placed);
-            // The explosion also took unprotected floor; put the test's floor back before comparing.
-            for (var cell : before.entrySet()) if (!recorded.containsKey(cell.getKey()) && !level.getBlockState(cell.getKey()).equals(cell.getValue()))
-                level.setBlock(cell.getKey(), cell.getValue(), 2 | 16);
+        });
+    }
 
-            var removal = GateBuilder.remove(level.getServer(), zone);
-            check(removal.removed() == recorded.size() && removal.kept() == 0, "removal: " + removal);
-            for (var cell : before.entrySet()) check(level.getBlockState(cell.getKey()).equals(cell.getValue()),
-                    "After removal " + cell.getKey() + " is " + level.getBlockState(cell.getKey()) + ", was " + cell.getValue());
-            check(site.signs().isEmpty() && site.zones().isEmpty(), "sign or zone left behind");
+    @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
+    public void removalRestoresOnlyRecordedGrassThatIsNowDirt(GameTestHelper helper) {
+        Site.run(helper, 250, site -> {
+            var level = site.level();
+            var plan = site.plan(GatePicture.plain("iron_block", 12));
+            var before = site.snapshot();
+            var zone = site.build(plan);
+            var saved = AppZone.CODEC.parse(NbtOps.INSTANCE, AppZone.CODEC.encodeStart(NbtOps.INSTANCE, zone).getOrThrow()).getOrThrow();
+            check(saved.equals(zone) && saved.gate().orElseThrow().grass().size() == 12 * 3, "grass floor record did not round-trip");
+            var changed = plan.at(1, 3, -1);
+            for (var pos : saved.gate().orElseThrow().grass()) if (!plan.doormat().contains(pos)) {
+                // Exercise vanilla's decay, rather than accepting dirt as a restoration success.
+                var state = level.getBlockState(pos);
+                state.randomTick(level, pos, level.random);
+                check(level.getBlockState(pos).is(Blocks.DIRT), "covered grass did not decay at " + pos);
+            }
+            level.setBlockAndUpdate(changed, Blocks.DIAMOND_BLOCK.defaultBlockState());
+            GateBuilder.remove(level.getServer(), saved);
+            var expected = new HashMap<>(before);
+            expected.put(changed, Blocks.DIAMOND_BLOCK.defaultBlockState());
+            check(expected.equals(site.snapshot()), "removal did not restore decayed grass or changed his floor");
         });
     }
 
@@ -527,7 +557,7 @@ public final class GateGameTests {
             GateBuilder.remove(level.getServer(), second);
             loose.keySet().forEach(pos -> level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2));
             GateBuilder.remove(level.getServer(), first);
-            for (var pos : site.region()) check(pos.getY() == site.base().getY() - 1 ? level.getBlockState(pos).is(Blocks.GRASS_BLOCK) || level.getBlockState(pos).is(Blocks.DIRT)
+            for (var pos : site.region()) check(pos.getY() == site.base().getY() - 1 ? level.getBlockState(pos).is(Blocks.GRASS_BLOCK)
                     : level.getBlockState(pos).isAir(), "left behind at " + pos + ": " + level.getBlockState(pos));
 
             // One paving stone beside the door: the floor there may be his, so the gate is built without a doormat.
@@ -541,7 +571,7 @@ public final class GateGameTests {
                     && plan.doormat().stream().noneMatch(bare.blocks()::contains), "doormat laid on changed ground");
             check(level.getBlockState(plan.at(0, 0, 0)).is(Blocks.RED_MUSHROOM_BLOCK), "gate not built without its doormat");
             GateBuilder.remove(level.getServer(), bare);
-            for (var cell : before.entrySet()) check(level.getBlockState(cell.getKey()).equals(cell.getValue()) || cell.getValue().is(Blocks.GRASS_BLOCK) && level.getBlockState(cell.getKey()).is(Blocks.DIRT),
+            for (var cell : before.entrySet()) check(level.getBlockState(cell.getKey()).equals(cell.getValue()),
                     "After removal " + cell.getKey() + " is " + level.getBlockState(cell.getKey()));
             // Paving all around the door is not ground either.
             site.clear();
