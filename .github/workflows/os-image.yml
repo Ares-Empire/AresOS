@@ -57,6 +57,9 @@ jobs:
       actions: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # The suite reads files of earlier commits (git show, git diff).
+          fetch-depth: 0
       - name: Reserve package 13 checks budget
         if: github.ref_name == 'pkg/13-keyboard-layout' || github.ref_name == 'pkg/27-first-update-release'
         env:
