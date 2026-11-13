@@ -2203,9 +2203,14 @@ class Helper:
         self.window_timeout = window_timeout
         self.capabilities = BASE_CAPABILITIES | DETAIL_CAPABILITIES | (
             WINDOW_CAPABILITIES if windows is not None else frozenset())
-        if windows is not None:
-            windows.set_registry(self.apps)
         self.journal = Journal(journal_path, instance, clock)
+        # Which client's rules decide window ownership (review 1, finding 2): the last desktop's minor. Only a 1.1
+        # client can start a discovered launch, so a journal that still holds one means the desktop spoke 1.1.
+        self.window_minor = int(any(entry.get('discovered') and entry['state'] not in FINAL
+                                    for entry in self.journal.entries.values()))
+        self.windows_pending = False
+        if windows is not None:
+            windows.set_registry(self.window_apps())
         self.connections = []
         self.desktop = None
         self.events = 0
@@ -2422,6 +2427,11 @@ class Helper:
             raise Failure('not_authorized', 'desktop instance or launch nonce does not match', close=True)
         conn.authenticated = True
         conn.minor = min(minor, MINOR)
+        if self.windows is not None and conn.minor != self.window_minor:
+            # Applied at the next tick, after this reply: a 1.0 desktop sees the registry's windows alone.
+            self.window_minor = conn.minor
+            self.windows.set_registry(self.window_apps())
+            self.windows_pending = True
         conn.capabilities = capabilities
         previous, self.desktop = self.desktop, conn
         if previous is not None and previous is not conn:
@@ -2493,7 +2503,7 @@ class Helper:
                              or (self.windows is not None and self.windows.of(key)))}
             self.apps = dict(retained, **self.catalogue_apps)
             if self.windows is not None:
-                self.windows.set_registry(self.apps)
+                self.windows.set_registry(self.window_apps())
                 self.windows_changed()
             self.icon_requested = float('-inf')
         if self.icons is not None:
@@ -2751,7 +2761,7 @@ class Helper:
                     self.set_state(request_id, 'failed', error='no_window',
                                    message='no matching window appeared')
         self.scopes_answered()
-        if self.windows is not None and self.discovered_closing:
+        if self.windows is not None and (self.discovered_closing or self.windows_pending):
             self.windows_changed()
 
     def windows_changed(self):
@@ -2762,6 +2772,7 @@ class Helper:
         and the outcome is the same however the bytes were split.
         """
         opened, closed = self.windows.take()
+        self.windows_pending = False
         now = self.clock()
         if any(toplevel.owner == Windows.SHELL for toplevel in opened):
             self.desktop_appeared = now
@@ -2901,6 +2912,14 @@ class Helper:
             if active.owner:
                 fields['app_id'] = active.owner
             self.emit('shell_focus', **fields)
+
+    def window_apps(self):
+        """The programs whose windows the helper tells apart. With a 1.0 desktop that is today's set, the reviewed
+        registry alone: a discovered program's window is nobody's, so it never forces a return (review 1, finding 2).
+        """
+        if self.window_minor >= 1:
+            return self.apps
+        return {key: app for key, app in self.apps.items() if not app.discovered}
 
     def unowned_windows(self):
         return [toplevel for toplevel in self.windows.toplevels.values() if toplevel.ready and toplevel.owner is None]

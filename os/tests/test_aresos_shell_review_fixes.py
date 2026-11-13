@@ -4,6 +4,8 @@ Everything is synthetic: no real program, window or compositor. Time moves throu
 """
 import json
 import os
+import pathlib
+from unittest import mock
 
 from test_aresos_shell import shell, Base, Conn, REGISTRY, INSTANCE, NONCE, ALL
 from test_aresos_shell_discovery import DiscoveryBase
@@ -434,3 +436,115 @@ class HintedOwnershipTest(OwnershipBase):
         self.later(5)
         self.close(2)
         self.assertEqual((self.activations, self.state('o-n')), ([1], 'closed'))
+
+
+class LegacyWindowsTest(Base):
+    """Finding 2: with a 1.0 desktop only the registry's identities own windows and trigger returns, also after a
+    reconnect. The catalogue is built as production builds it (build(): Discovery over real folders)."""
+
+    def setUp(self):
+        super().setUp()
+        self.root = pathlib.Path(self.folder.name)
+        self.folders = [self.root / str(n) for n in range(5)]
+        for folder in self.folders:
+            folder.mkdir()
+        # Firefox installed, started by hand from the terminal (build() checks executables for real).
+        (self.folders[0] / 'firefox.desktop').write_text(
+            '[Desktop Entry]\nType=Application\nName=Firefox\nExec=/usr/bin/true\nStartupWMClass=firefox\n')
+        self.compositor = []
+
+        def connect(windows, environ):
+            self.compositor.append(windows)
+            return mock.Mock(activate=self.activate)
+
+        with mock.patch.object(shell, 'desktop_directories', return_value=tuple(map(str, self.folders))), \
+                mock.patch.object(shell, 'IconCache', return_value=mock.Mock(**{
+                    'take.side_effect': lambda apps, revision: (apps, shell.icons_revision(apps, revision))})):
+            self.current, _ = shell.build(str(REGISTRY), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
+                                          clock=self.clock, connect=connect, environ={'HOME': str(self.root)})
+        self.addCleanup(self.current.catalogue.stop)
+        self.addCleanup(self.current.watcher.stop)
+        self.windows = self.compositor[0]
+        self.assertTrue(self.current.apps['firefox'].discovered)
+
+    def window(self, handle, identity, active):
+        self.windows.new(handle)
+        self.windows.app_id(handle, identity)
+        if active:
+            for other in self.windows.toplevels.values():
+                if other.ready:
+                    self.windows.state(other.handle, False)
+                    self.windows.done(other.handle)
+        self.windows.state(handle, active)
+        self.windows.done(handle)
+        self.current.windows_changed()
+
+    def focus(self, handle):
+        for toplevel in self.windows.toplevels.values():
+            self.windows.state(toplevel.handle, toplevel.handle == handle)
+            self.windows.done(toplevel.handle)
+        self.current.windows_changed()
+
+    def firefox_opens_and_closes_over_the_terminal(self, handle):
+        self.window(handle, 'firefox', active=True)
+        self.now[0] += 20
+        self.current.tick()
+        self.windows.gone(handle)
+        self.focus(3)  # the compositor's own pick
+        for _ in range(3):
+            self.now[0] += shell.HANDOFF
+            self.current.tick()
+        return self.windows
+
+    def hello(self, minor):
+        conn = Conn()
+        self.current.connected(conn)
+        reply = self.request(self.current, conn, 'hello', 'h-1', major=1, minor=minor, capabilities=ALL,
+                             instance=INSTANCE, nonce=NONCE)
+        self.assertEqual(reply['minor'], minor)
+        self.current.tick()
+        return conn
+
+    def test_a_1_0_desktop_keeps_todays_window_behaviour_across_reconnects(self):
+        conn = self.hello(0)
+        self.window(1, 'aresos-desktop', active=True)
+        self.request(self.current, conn, 'open_app', 'o-t', app_id='terminal')
+        self.window(3, 'aresos.terminal', active=True)
+        for round, handle in enumerate((10, 11, 12)):
+            with self.subTest(round=round):
+                self.firefox_opens_and_closes_over_the_terminal(handle)
+                self.assertEqual(self.activations, [])
+                self.assertEqual(self.current.shell, 'background')
+                self.assertEqual(self.current.journal.entries['o-t']['state'], 'focused')
+                self.assertFalse([e for e in conn.events('shell_focus') if e.get('app_id') == 'firefox'])
+            if round == 0:
+                self.current.disconnected(conn)  # the next round runs with no desktop connected
+            elif round == 1:
+                conn = self.hello(0)  # the mod reconnects, still speaking 1.0
+        # The 1.0 desktop's terminal still returns it when the terminal closes.
+        self.windows.gone(3)
+        self.current.windows_changed()
+        self.assertEqual(self.activations, [1])
+        self.assertEqual(self.current.journal.entries['o-t']['state'], 'closed')
+
+    def test_a_1_1_desktop_owns_discovered_windows_and_a_1_0_reconnect_gives_them_up(self):
+        self.hello(1)
+        self.window(1, 'aresos-desktop', active=True)
+        self.window(3, 'aresos.terminal', active=False)
+        self.window(10, 'firefox', active=True)
+        self.assertEqual(self.windows.toplevels[10].owner, 'firefox')
+        self.hello(0)
+        self.assertIsNone(self.windows.toplevels[10].owner)
+        self.windows.gone(10)
+        self.focus(3)
+        self.now[0] += shell.HANDOFF * 3
+        self.current.tick()
+        self.assertEqual(self.activations, [])
+        self.hello(1)
+        self.window(11, 'firefox', active=True)
+        self.assertEqual(self.windows.toplevels[11].owner, 'firefox')
+        self.windows.gone(11)
+        self.focus(3)
+        self.now[0] += shell.HANDOFF + 0.01
+        self.current.tick()
+        self.assertEqual(self.activations, [1])  # a 1.1 desktop gets the discovered program's return
