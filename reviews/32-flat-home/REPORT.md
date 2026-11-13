@@ -212,10 +212,11 @@ Builder: Codex, gpt-6.1-sol. No look, world preset, home coordinates, dependency
 **Verified so far**
 
 - `free -g` preceded every build/test attempt; only one heavy step ran at a time in this worktree.
-- `mod/dev/build.sh`: six successful runs, printing `BUILD SUCCESSFUL in 50s`, `46s`, `48s`, `37s`, `42s`, and `38s`.
-  The last two were consecutive on code commit `5ad95f74`, each printing `All 47 required tests passed :)`.
+- `mod/dev/build.sh`: eight successful runs, printing `BUILD SUCCESSFUL in 50s`, `46s`, `48s`, `37s`, `42s`, `38s`,
+  `42s`, and `38s`. The last two were consecutive on code commit `05be8ccf`, each printing
+  `All 47 required tests passed :)`.
   JUnit XML records 68 tests, 6 platform skips, 0 failures and 0 errors (62 passed, including all 6 layout tests).
-- In the last two builds the control saw slimes after 56 and 58 ticks; both printed
+- In the first consecutive pair the control saw slimes after 56 and 58 ticks; both printed
   `32 server no-mob check: 12000 ticks, 0 mob additions`.
 - The first `mod/dev/client-test.sh` attempt included the optional real-home vanilla tick sprint. It printed
   `Timed out waiting for predicate`, `BUILD FAILED in 9m 2s`, and exit code 1 after 9 min 3 s. A thread dump showed
@@ -223,6 +224,13 @@ Builder: Codex, gpt-6.1-sol. No look, world preset, home coordinates, dependency
   for the sprint. Fabric still paces those server ticks; vanilla's sprint does not bypass its synchronization.
   The optional check was omitted under the follow-up brief's explicit eight-and-a-half-minute allowance. The full
   server interval, positive control, and ordinary actual-home mob assertions remain.
+- The next `mod/dev/client-test.sh` run printed all three `32 damaged flat home regression passed` lines (missing,
+  malformed, partial), then `Missing home data changed the save: [hub record]` and `BUILD FAILED in 7m 24s` (script
+  exit 1 after 7 min 25 s). All new ownership/restart and host-explosion checks precede those lines and passed.
+  The older missing-data fixture deliberately edited a still-owned pad corner, which now correctly relinquishes
+  that entry before reopening. It now edits the already-relinquished gold instead, with an explicit precondition
+  that it is unowned. The exact unchanged-record assertion remains intact; a rebuild would still overwrite that
+  emerald home marker. This fixture correction is code commit `05be8ccf`.
 
 **Not verified / limits**
 
