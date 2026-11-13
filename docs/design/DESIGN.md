@@ -25,6 +25,7 @@ First theme: **Minecraft** (real Minecraft Java + our own Fabric mod). Possible 
 | Inventory (E) | All other apps (the normal survival inventory, with extra pages if needed); drag into the hotbar to pin |
 | **Walk-in app logos** (owner idea, 2026-10-21) | Big block logos of apps or sites. Walk into one and it opens like a portal. Optional auto-build of a logo from the app's real icon as block pixel art. A sign door is an optional alternative. |
 | Close the app (X) | Back in front of the logo, facing it (no re-trigger). Zones are off in Build mode. |
+| Chat: `/chrome`, `/dc`, `/lunar` (owner idea, 2026-11-13) | Opens the app by a short name. Minecraft's own commands always win. Rules: [HUB.md](HUB.md) section 4. |
 | Villagers | App shops; each job is a category (librarian = notes/reading, cartographer = maps), trading = installing |
 | Bed | Sleep mode |
 | Esc → Save and Quit | Shut down |
@@ -39,9 +40,13 @@ BedWars world extras:
 - Generators drop finished downloads as items
 - Throwing a file into the void deletes it
 
-## Home: the Nether
+## Home: a flat Overworld first, the Nether later
 
-Ares, god of war, lives in the Nether. Phase 1 is built here.
+**Since 2026-11-13 the first home is a flat Overworld** (owner: "I think we start with an overworld superflat world. its easier to build and design can come later"). Its design is [HUB.md](HUB.md): the flat world, app logos as block builds with a doorway along four roads, "My apps", and `/name` in chat. The app windows' frame is in [WINDOWS.md](WINDOWS.md).
+
+The Nether home below is built in the mod and stays as a choice on the create screen. It can come back later as a second look that uses the hub's rules.
+
+Ares, god of war, lives in the Nether. Phase 1 was built here.
 
 - **Spawn:** every AresOS start puts you at your home spot, like a home screen.
   - **Seed and spot are not locked yet** (owner decision 2026-10-21). The owner explores seeds and picks a spot later, then sets it with `/aresos home set`.

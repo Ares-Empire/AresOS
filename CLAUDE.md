@@ -15,7 +15,7 @@ The workflow is nametbd's Codex-era workflow (branch `archive/codex-era-workflow
 - **Claude (me):** planner, orchestrator and integrator. I cut the design into small packages, write the briefs, launch Codex, check its work, merge, and keep the docs true.
 - **Codex:** the builder. One headless `codex exec` run per package, in its own git worktree. It builds, tests, and opens a PR. It never merges.
 
-**Claude agents may build packages too** (owner, 2026-11-09: "we could work with claude agents too", to use his Claude allowance). They get the same brief, worktree, branch and AGENTS.md rules as Codex. Pick Codex or a Claude agent per package by fit and remaining allowance. Claude agents run on Opus by default. For a hard AresOS task or a problem that resists normal attempts, use Fable 5.2 (owner, 2026-11-09: "in the dev of an own OS I could imagine hard tasks").
+**Claude agents may build packages too** (owner, 2026-11-09: "we could work with claude agents too", to use his Claude allowance). They get the same brief, worktree, branch and AGENTS.md rules as Codex. Pick Codex or a Claude agent per package by fit and remaining allowance. Claude agents run on Opus by default. For a hard AresOS task or a problem that resists normal attempts, use Fable 5.2 (owner, 2026-11-09: "in the dev of an own OS I could imagine hard tasks"). Design work (how something looks, feels or is laid out) runs on Fable agents (owner, 2026-11-13: "if you do actual design work use fable agents").
 
 **Reviews (owner, 2026-11-11: "Yes change it").** Every package gets a fresh reviewer that isn't its builder: a fresh Codex context while Codex is available (ChatGPT Pro ends 2026-11-21), otherwise a fresh Claude agent.
 - A Claude reviewer runs on **Opus** by default.
@@ -41,6 +41,7 @@ I only build things myself when writing the brief would cost more than doing it 
 | `AGENTS.md` | Rules for Codex in every run. |
 | `docs/WORKFLOW.md`, `docs/REVIEW.md` | How a package gets built, reviewed and merged, and how councils run. |
 | `docs/design/OS-BASE.md` | The Linux layer design (council-approved). Long, so read the section you need. |
+| `docs/design/HUB.md` | The home screen, version 1: the flat world, the logos and where they stand, "My apps", short names, and the `aresos-shell/1.1` additions (section 3.8). The hub packages (briefs 32 to 37) build it. |
 | `docs/INSTALL.md` | The owner's install guide for AresOS on its own SSD (briefs 10 and 10b). The same-drive fallback is `docs/INSTALL-SAME-DRIVE.md`. Physical install stays NOT RELEASED until the remaining gates in its "Maintainer release gate" section pass (brief 06's image gate is done). |
 | `docs/EMERGENCY.md` | The owner's one-page "If something goes wrong" card (escape routes back to Windows, recovery, rollback). Keep it in line with INSTALL.md. |
 | `briefs/NN-slug.md` | One frozen task per package. Follow-ups are `NNb`, `NNc`. |
