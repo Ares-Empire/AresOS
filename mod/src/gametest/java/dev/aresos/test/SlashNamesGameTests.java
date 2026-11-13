@@ -143,7 +143,7 @@ public final class SlashNamesGameTests {
             check(f.run("aresos app name discord chat") == 1, "Could not add own name");
             check(AresOs.app("discord").names().equals(List.of("chat", "discord", "dc")), "New name is not main");
             check(f.completions("ch").contains("chat"), "New name did not reach commands");
-            for (String bad : List.of("a", "Upper", "1bad", "bad-name", "abcdefghijklmnopq"))
+            for (String bad : List.of("a", "Upper", "1bad", "bad-name", "abcdefghijklmnopq", "two words", "bad$", "éé"))
                 check(f.run("aresos app name discord " + bad) == 0 && f.said("Invalid name"), "Invalid accepted: " + bad);
             for (String bad : List.of("help", "list", "time", "aresos", "home", "go", "open", "apps"))
                 check(f.run("aresos app name discord " + bad) == 0 && f.said("Reserved command"), "Reserved accepted: " + bad);

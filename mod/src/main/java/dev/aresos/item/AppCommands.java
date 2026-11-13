@@ -16,6 +16,7 @@ import java.io.IOException;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
+import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
 
 /** {@code /aresos app add|remove|list}: My apps by command. The host only, in an AresOS world. */
 public final class AppCommands {
@@ -28,7 +29,7 @@ public final class AppCommands {
                 .then(Commands.literal("add").then(argument(false).executes(c -> change(c.getSource(), getString(c, "app"), MyAppsGame::add))))
                 .then(Commands.literal("remove").then(argument(true).executes(c -> change(c.getSource(), getString(c, "app"), MyAppsGame::remove))))
                 .then(Commands.literal("list").executes(c -> list(c.getSource())))
-                .then(Commands.literal("name").then(argument(true).then(Commands.argument("name", word())
+                .then(Commands.literal("name").then(argument(true).then(Commands.argument("name", greedyString())
                         .executes(c -> name(c.getSource(), getString(c, "app"), getString(c, "name"))))))
                 .then(Commands.literal("unname").then(Commands.argument("name", word()).suggests((c, b) -> {
                     if (allowed(c.getSource())) for (var app : AresOs.apps()) for (String name : app.names())
