@@ -289,6 +289,31 @@ public final class MyAppsGameTests {
     }
 
     @GameTest(environment = BATCH)
+    public void laterReconciliationNeverMovesAnExistingPin(GameTestHelper helper) {
+        try (var fixture = Fixture.open(helper)) {
+            var player = fixture.player();
+            var inventory = player.getInventory();
+            inventory.setItem(10, inventory.getItem(0));
+            inventory.setItem(0, ItemStack.EMPTY);
+            // A saved pin may have landed outside a previously full hotbar. A later free slot is not a pin action.
+            inventory.getItem(10).set(net.minecraft.core.component.DataComponents.ITEM_MODEL,
+                    net.minecraft.resources.Identifier.withDefaultNamespace("paper"));
+            add(player, "other");
+            check("pinned".equals(id(inventory.getItem(10))) && inventory.getItem(0).isEmpty(),
+                    "An unrelated add moved a pinned item into the hotbar");
+            check(net.minecraft.resources.Identifier.withDefaultNamespace("compass").equals(
+                    inventory.getItem(10).get(net.minecraft.core.component.DataComponents.ITEM_MODEL)),
+                    "Reconciliation did not refresh the existing item's look");
+            remove(player, "other");
+            MyAppsGame.changed();
+            MyAppsGame.tick(player.level().getServer());
+            check("pinned".equals(id(inventory.getItem(10))) && inventory.getItem(0).isEmpty(),
+                    "A removal or icon refresh moved a pin");
+        }
+        helper.succeed();
+    }
+
+    @GameTest(environment = BATCH)
     public void aFullInventoryLeavesTheAppWithoutAnItemAndSaysSoOnce(GameTestHelper helper) {
         try (var fixture = Fixture.open(helper)) {
             var player = fixture.player();

@@ -39,8 +39,14 @@ public final class AppInventory {
      */
     public static List<AppDefinition> populate(ServerPlayer player, List<AppDefinition> apps) {
         if (!LiveMode.isLive(player)) return List.of();
-        sweep(player, apps);
         AppItems.placePinned(player, apps);
+        return reconcile(player, apps);
+    }
+
+    /** Later changes preserve all existing positions. Pins are placed only by the initial population paths. */
+    public static List<AppDefinition> reconcile(ServerPlayer player, List<AppDefinition> apps) {
+        if (!LiveMode.isLive(player)) return List.of();
+        sweep(player, apps);
         var inventory = player.getInventory();
         var present = new HashSet<String>();
         for (int i = 0; i < inventory.getContainerSize(); i++) {

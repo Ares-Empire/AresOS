@@ -182,7 +182,7 @@ public final class MyAppsGame {
         }
         // Items are only ever put into the Live inventory, and only while he holds it.
         if (seen.added != now && LiveMode.isLive(player)) {
-            var without = AppInventory.populate(player, apps);
+            var without = AppInventory.reconcile(player, apps);
             seen.added = now;
             var names = without.stream().filter(app -> !seen.without.contains(app.id())).map(AppDefinition::name).toList();
             seen.without = without.stream().map(AppDefinition::id).collect(Collectors.toUnmodifiableSet());
