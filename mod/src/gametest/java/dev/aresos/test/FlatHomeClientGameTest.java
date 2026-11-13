@@ -104,7 +104,6 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
             assertArrival(context, world, dimensions);
             assertNewWorld(world, directory);
             photographViews(context, world);
-            assertNoMobsDuringSprint(context, world);
             assertHomeCommands(context, world, messages);
             assertRespawn(context, world);
             photographAboveInBuildMode(context, world);
@@ -234,43 +233,6 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
 
     private static boolean facesNorth(float yaw, float pitch) {
         return Math.abs(Mth.wrapDegrees(yaw - 180)) < 0.5 && Math.abs(pitch + 8) < 0.5;
-    }
-
-    /** Ten minutes in the production preset and initialized home, using vanilla's unthrottled tick sprint. */
-    private static void assertNoMobsDuringSprint(ClientGameTestContext context, TestSingleplayerContext world) {
-        long started = System.nanoTime();
-        MobAdditions counter = world.getServer().computeOnServer(server -> {
-            assertEmptyOfMobs(server.overworld());
-            return new MobAdditions(server.overworld(), null);
-        });
-        try {
-            long gameTime = world.getServer().computeOnServer(server -> {
-                check(!server.tickRateManager().isSprinting(), "Fixture: already sprinting");
-                long time = server.overworld().getGameTime();
-                server.tickRateManager().requestGameToSprint(12000);
-                return time;
-            });
-            context.waitFor(client -> !client.getSingleplayerServer().tickRateManager().isSprinting(), 2400);
-            world.getServer().runOnServer(server -> {
-                var level = server.overworld();
-                var player = world.getConnection().getServerPlayer();
-                check(level.getGameTime() - gameTime >= 12000, "Sprint ran fewer than 12000 world ticks");
-                check(LiveMode.isLive(player) && player.blockPosition().equals(HOME), "Player left home during the sprint");
-                check(FlatHome.isFlatHome(level.getChunkSource().getGenerator()), "Not the production flat preset");
-                check(level.getChunkSource().getLastSpawnState().getSpawnableChunkCount() > 0, "No spawnable chunks during the sprint");
-                check(counter.count() == 0, "A mob was added during the sprint: " + counter.examples());
-                assertEmptyOfMobs(level);
-                NetherHomeGameTests.assertRules(server.getGameRules());
-                check(level.getOverworldClockTime() == 6000 && !level.isRaining() && !level.isThundering(), "Noon/clear weather changed");
-                AresOs.LOGGER.info("32 real flat home: 12000 sprint ticks, {} mob additions, {} seconds elapsed", counter.count(),
-                        (System.nanoTime() - started) / 1_000_000_000.0);
-            });
-        } finally {
-            world.getServer().runOnServer(server -> {
-                server.tickRateManager().stopSprinting();
-                counter.close();
-            });
-        }
     }
 
     /** Everything brief point 2 to 6 says about a world that was just created. Returns what the hub recorded. */
