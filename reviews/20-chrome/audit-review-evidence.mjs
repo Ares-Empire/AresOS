@@ -101,10 +101,23 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
   const late=json(path.join(folder,'late-reader.json'));assert.equal(late.length,3);assert(!JSON.stringify(late).includes('SENTINEL_PRIVATE_PASSWORD_20'));
   assert(late[2].approved.untrusted_content);assert(!late[2].repeat.untrusted_content);assert(late[2].reasked.approval);
 
+  const lateBinding=json(path.join(folder,'late-binding.json'));assert.equal(lateBinding.length,5);
+  for(const variant of ['replacement','relabel','frame','credential']){
+    const matching=lateBinding.filter(row=>row.variant===variant);assert.equal(matching.length,1);const row=matching[0];
+    assert.equal(row.altered.ok,false);assert.equal(row.reasked.operation.state,'failed');assert.notEqual(row.prepared.approval.operation_id,row.reasked.approval.operation_id);
+    assert(!row.stale.untrusted_content&&!row.repeated.untrusted_content);assert.equal(row.approved.operation.state,'done');
+    assert(!/PRIVATE_FIRST|PRIVATE_SECOND|PRIVATE_UNLABELLED|PRIVATE_REPLACED|PRIVATE_FRAME|SENTINEL_PRIVATE_PASSWORD_20/.test(JSON.stringify([row.prepared,row.reasked])));
+    const frames=row.prepared.approval.description.untrusted_content.fields.frames;assert(frames.every(frame=>frame.reader&&frame.document&&frame.browser_document));
+    assert.equal(frames.find(frame=>frame.frame===0).fields.filter(field=>field.label==='Value').length,2);
+  }
+  const withheld=lateBinding.find(row=>row.id==='post18df-withheld-form');assert(withheld);assert.equal(counts.get(withheld.id)||0,0);
+  for(const result of [withheld.refused,withheld.afterRead]){assert.equal(result.ok,false);assert.match(result.error.message,/send it yourself, or let Claude reload the tab first/);}
+  assert.match(JSON.stringify(withheld.approved.untrusted_content),/PRIVATE_LATE_FORM_B_20/);assert(!withheld.repeat.untrusted_content);
+
   const node=Object.fromEntries([...read(path.join(folder,'node.txt')).matchAll(/^(?:# |ℹ )?(tests|pass|fail|cancelled|skipped)\s+(\d+)/gm)].map(match=>[match[1],Number(match[2])]));
   assert(node.tests>=340);assert.deepEqual(node,{tests:node.tests,pass:node.tests,fail:0,cancelled:0,skipped:0});
-  const hashes={};for(const name of ['browser.txt','matrices.json','receiver.jsonl','page-receiver.jsonl','adapters-receiver.jsonl','browser-boundary.jsonl','tool.jsonl','service.txt','python-shards.json','node.txt','owner-overlap.json','all-native-limit.json','all-native-limit-audit.json','clipboard-report.json','network-restart-audit.json','recheck3.json'])hashes[name]=await digestFile(path.join(folder,name));
-  results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,native_limit:nativeLimit,recheck3,destinations,group12:true,late_reader:{cases:late.length},clipboard:{cases:clipboard.length,contents_returned:false,borrowed_native_undetected:true},ordinary_get_queries:queryRows,owner_overlap:ownerOverlap,password_audit:{rows:ingress,null_rows:nullRows,protocol_events:events,forbidden_runtime_value_events:0,sensitive_getters:getters,getter_kinds:Object.fromEntries(getterKinds),password_sentinel_absent:true},python:{tests:pyProof.tests,shards:pyProof.shards.length},node,sha256:hashes});
+  const hashes={};for(const name of ['browser.txt','matrices.json','receiver.jsonl','page-receiver.jsonl','adapters-receiver.jsonl','browser-boundary.jsonl','tool.jsonl','service.txt','python-shards.json','node.txt','owner-overlap.json','all-native-limit.json','all-native-limit-audit.json','clipboard-report.json','network-restart-audit.json','recheck3.json','late-binding.json'])hashes[name]=await digestFile(path.join(folder,name));
+  results.push({artifact:path.basename(folder),chrome:read(path.join(folder,'chrome-version.txt')).trim(),named_passes:rows.length,test_index:testIndex,verdicts:verdict,receiver_audit:receiverAudits,native_limit:nativeLimit,recheck3,destinations,group12:true,late_reader:{cases:late.length,binding_cases:lateBinding.length,withheld_form_arrivals:0},clipboard:{cases:clipboard.length,contents_returned:false,borrowed_native_undetected:true},ordinary_get_queries:queryRows,owner_overlap:ownerOverlap,password_audit:{rows:ingress,null_rows:nullRows,protocol_events:events,forbidden_runtime_value_events:0,sensitive_getters:getters,getter_kinds:Object.fromEntries(getterKinds),password_sentinel_absent:true},python:{tests:pyProof.tests,shards:pyProof.shards.length},node,sha256:hashes});
 }
 assert(results.length>0,'No artifacts found');
 console.log(JSON.stringify(results,null,2));

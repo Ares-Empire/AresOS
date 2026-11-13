@@ -512,7 +512,7 @@ test('Stop during the selected-tab read cannot activate the released owner tab',
 test('form destinations changed to an excluded host during arming refuse input and resume without a binding',async()=>{
   for(const method of ['get','post'])for(const name of ['input','resume']){
     const f=fixture();
-    f.run(`excludedHosts=['approval.test'];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});globalThis.reads=0;globalThis.commands=[];globalThis.effects=[];facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'textbox',name:'Query',editable:true},form:{element:'form1',method:'${method}',search:${method==='get'},action:++reads===1?'http://fixture.test/receive':'http://approval.test/receive'}}]});content=async(tab,frame,command)=>{commands.push(command);return {}};chrome.tabs={get:async()=>({active:true}),update:async()=>effects.push('activate')};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async()=>effects.push('input')};`);
+    f.run(`excludedHosts=['approval.test'];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});globalThis.reads=0;globalThis.commands=[];globalThis.effects=[];facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'textbox',name:'Query',editable:true},form:{element:'form1',fields:[],method:'${method}',search:${method==='get'},action:++reads===1?'http://fixture.test/receive':'http://approval.test/receive'}}]});content=async(tab,frame,command)=>{commands.push(command);return {}};chrome.tabs={get:async()=>({active:true}),update:async()=>effects.push('activate')};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async()=>effects.push('input')};`);
     await assert.rejects(f.run(`dispatch({name:'${name}',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'Enter'}})`),/approval\/settings/,method+' '+name);
     assert.equal(f.run('reads'),2,'the first destination was allowed and the decisive reread followed arming');
     assert.ok(f.run("commands.includes('arm')"));
@@ -523,7 +523,7 @@ test('form destinations changed to an excluded host during arming refuse input a
 
 test('an allowed GET search destination reaches native input without a binding',async()=>{
   const f=fixture();
-  f.run("excludedHosts=['approval.test'];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});globalThis.effects=[];facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'textbox',name:'Search',editable:true},form:{element:'form1',method:'get',search:true,action:'http://fixture.test/search'}}]});content=async()=>({});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async(source,method,parameters)=>{effects.push(parameters.type);return {}}};");
+  f.run("excludedHosts=['approval.test'];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/'});globalThis.effects=[];facts=async()=>({tab:7,frames:[{frame:0,target:{element:'e1',role:'textbox',name:'Search',editable:true},form:{element:'form1',fields:[],method:'get',search:true,action:'http://fixture.test/search'}}]});content=async()=>({});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async(source,method,parameters)=>{effects.push(parameters.type);return {}}};");
   const reply=await f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'press',key:'Enter'}})");
   assert.equal(reply.dispatched,true);assert.deepEqual(Array.from(f.run('effects')),['keyDown','keyUp']);
 });
@@ -1120,4 +1120,23 @@ test('post18d typed reads require approval consume once and check the complete l
   await assert.rejects(f.run('dispatch({...command,approved:true})'),/fresh one-call approval/);assert.equal(f.run('reads'),1);
   f.run("list.frames[0].fields[0].label='Changed';command.operation='second';");
   await assert.rejects(f.run('dispatch({...command,approved:true})'),/list or document changed/);assert.equal(f.run('reads'),1);
+});
+
+test('post18df asking preparation uses value-free frame metadata and binds reader plus native document identity',async()=>{
+  for(const change of ['element','reader','frame']){
+    const f=fixture();await f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/',title:'Fixture'});globalThis.nativeFrames=[{frameId:0,parentFrameId:-1,documentId:'native-doc',url:'http://fixture.test/'}];chrome.webNavigation={getAllFrames:async()=>nativeFrames};globalThis.metadata={document:'doc',reader:'reader-one',origin:'http://fixture.test',url:'http://fixture.test/',title:'Fixture',fields:[{element:'first',label:'Draft',type:'text'},{element:'second',label:'Draft',type:'textarea'}]};globalThis.valueReads=0;globalThis.metadataCommands=[];content=async(tab,frame,command)=>{metadataCommands.push(command);if(command==='typed_fields')return JSON.parse(JSON.stringify(metadata));if(command==='read_typed_fields'){valueReads++;return {fields:[]}}throw Error('Preparation attempted an ordinary value read');};(async()=>{globalThis.prepared=await typedFacts(7)})()");
+    assert.deepEqual(JSON.parse(f.run('JSON.stringify(metadataCommands)')),['typed_fields']);assert.equal(f.run('valueReads'),0);assert.equal(f.run('prepared.frames[0].reader'),'reader-one');assert.equal(f.run('prepared.frames[0].fields.length'),2);
+    if(change==='element')f.run("metadata.fields[0].element='same-label-replacement'");
+    if(change==='reader')f.run("metadata.reader='reader-two'");
+    if(change==='frame')f.run("nativeFrames[0].documentId='new-native-document'");
+    await assert.rejects(f.run("dispatch({name:'read_typed_fields',tab:7,approved:true,operation:'old',binding:prepared})"),/list or document changed/);assert.equal(f.run('valueReads'),0);
+  }
+});
+
+test('post18df final native boundary refuses forms holding withheld content even after frame arming',async()=>{
+  for(const late of [false,true]){
+    const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.effects=[];globalThis.snapshot={tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:'Send',submit:true},form:{element:'f1',action:'http://fixture.test/receive',method:'post',fields:[]}}]};facts=async()=>snapshot;content=async(tab,frame,name)=>{if(name==='arm'&&globalThis.late)snapshot.frames[0].form.fields.push({unknown_history:true,value_status:'filled'});return {finished:true}};pointer=async()=>({x:1,y:1});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async()=>effects.push('input')};globalThis.approved=JSON.parse(JSON.stringify(binding(snapshot,{frame:0},'send',false)));");
+    f.run(`globalThis.late=${late};${late?'':"snapshot.frames[0].form.fields.push({unknown_history:true,value_status:'filled'});"}`);
+    await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'send',binding:approved})"),/send it yourself, or let Claude reload the tab first/);assert.equal(f.run('effects.length'),0);
+  }
 });

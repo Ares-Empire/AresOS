@@ -18,6 +18,7 @@
   if(guard.ready)return;
   const randomToken=()=>[...crypto.getRandomValues(new Uint8Array(16))].map(value=>value.toString(16).padStart(2,'0')).join('');
   const documentId = privacy.documentId??=randomToken();
+  const readerInstance=randomToken();
   let sequence = 0, revision = 0, controlGeneration = null;
   const traces = [], files = new Map(), watchedRoots = new WeakSet(), typedReads = new Set();
   const formGetters=globalThis.HTMLFormElement?Object.fromEntries(['elements','action','method','enctype','target'].map(key=>[key,Object.getOwnPropertyDescriptor(HTMLFormElement.prototype,key)?.get])):{};
@@ -212,8 +213,8 @@
   function safeValue(element) {
     // The exclusion is repeated immediately before EACH value/text read.
     if (password(element)) return {password: true};
-    if(!watched&&typedField(element))return {typed_text:true,value_status:filledStatus(element)};
-    if(!watched&&html(element,HTMLInputElement,'input')&&element.type==='hidden')return {value_status:'not_read'};
+    if(!watched&&typedField(element))return {typed_text:true,unknown_history:true,value_status:filledStatus(element)};
+    if(!watched&&html(element,HTMLInputElement,'input')&&element.type==='hidden')return {unknown_history:true,value_status:'not_read'};
     let value;
     if (html(element,HTMLInputElement,'input')) {
       if (element.type === 'file') value = [...element.files].map(selectedFile);
@@ -225,7 +226,10 @@
     return {value,...(element.isContentEditable?{rich:richIdentity(element)}:{})};
   }
   function typedField(element) {
-    return html(element,HTMLInputElement,'input')&&!['hidden','password','checkbox','radio','date','datetime-local','month','week','time','email','url','search','range','color','file','button','submit','reset','image'].includes(element.type);
+    // This shared predicate controls normal reads, approval scope and reload warnings.
+    // Editable areas remain readable under board #216; extending this predicate
+    // will include their identities in the same prepared asking-read binding.
+    return html(element,HTMLTextAreaElement,'textarea')||html(element,HTMLInputElement,'input')&&!['hidden','password','checkbox','radio','date','datetime-local','month','week','time','range','color','file','button','submit','reset','image'].includes(element.type);
   }
   function filledStatus(element) {
     // Native import copies the live control state without extracting its value.
@@ -236,17 +240,17 @@
     return element.validity?.badInput||!copy.validity.valueMissing?'filled':'empty';
   }
   function typedFields() {
-    return {document:documentId,fields:watched?[]:all().filter(element=>typedField(element)&&!password(element)).map((element,index)=>({element:id(element),label:name(element)||'single-line field '+(index+1),type:element.type}))};
+    return {document:documentId,reader:readerInstance,fields:watched?[]:all().filter(element=>typedField(element)&&!password(element)).map((element,index)=>({element:id(element),label:name(element)||(html(element,HTMLTextAreaElement,'textarea')?'textarea ':'single-line field ')+(index+1),type:element.type}))};
   }
   function readTypedFields(message) {
     if(message.approved!==true||!message.operation||typedReads.has(message.operation))throw Error('refused: typed fields require a fresh one-call approval');
     typedReads.add(message.operation);
     const current=typedFields(),expected=message.expected;
-    if(expected?.document!==documentId||expected.fields.length!==current.fields.length||current.fields.some((field,index)=>['element','label','type'].some(key=>field[key]!==expected.fields[index][key])))throw Error('stale_approval: typed field list changed; ask again');
-    return {document:documentId,fields:current.fields.map(field=>{
+    if(expected?.document!==documentId||expected.reader!==readerInstance||expected.fields.length!==current.fields.length||current.fields.some((field,index)=>['element','label','type'].some(key=>field[key]!==expected.fields[index][key])))throw Error('stale_approval: typed field list changed; ask again');
+    return {document:documentId,reader:readerInstance,fields:current.fields.map(field=>{
       const element=elements.get(field.element);
       if(password(element)||!typedField(element))throw Error('stale_approval: typed field became a credential; ask again');
-      return {...field,value:element.value};
+      return {...field,value:html(element,HTMLInputElement,'input')||html(element,HTMLTextAreaElement,'textarea')?element.value:editableText(element).replace(/\n$/,'')};
     })};
   }
   function role(element) {
@@ -476,7 +480,7 @@
     for(const element of all()){
       if(element.matches('input,textarea,select,[contenteditable]')){
         if(password(element)){unsaved=true;continue;}
-        if(!watched&&typedField(element)){unsaved=true;continue;}
+        if(!watched&&(typedField(element)||html(element,HTMLInputElement,'input')&&element.type==='hidden')){unsaved=true;continue;}
         // There is no native defaultValue for rich text. A late reader cannot
         // prove it unchanged, including an editor the owner emptied.
         if(element.isContentEditable){unsaved=true;continue;}
@@ -537,7 +541,7 @@
       }
       else if (message.command === 'reload_state') value=reloadState();
       else if (message.command === 'ready') value = {preload:true,document:documentId,...(message.element?{element_present:!!elements.get(message.element)?.isConnected}:{})};
-      else if (message.command === 'typed_fields') value=typedFields();
+      else if (message.command === 'typed_fields') value={...typedFields(),origin:globalThis.origin,url:location.href,title:document.title};
       else if (message.command === 'read_typed_fields') value=readTypedFields(message);
       else if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
       else if (message.command === 'steps') { value = guard.steps(); }

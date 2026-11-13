@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 test('P30 ingress instrumentation records native values and raw source before any filtering',()=>{
-  for(const page of ['?case=password-matrix','?case=review-page&mode=late-reader']){
+  for(const page of ['?case=password-matrix','?case=review-page&mode=late-reader','?case=review-page&mode=late-binding','?case=review-page&mode=late-binding-child','?case=review-page&mode=late-withheld-form']){
   const records=[];
   class Node {get textContent(){return this.text;}}
   class Element extends Node {getAttribute(key){return this.attrs?.[key]??null;}}

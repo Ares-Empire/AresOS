@@ -358,7 +358,7 @@ class Questions(unittest.TestCase):
     def typed_browser(self):
         original=self.browser.call
         state={'session':self.browser.session,'tab':1,'control':'control-1','url':'https://fixture.test/','title':'Fixture',
-            'frames':[{'frame':0,'document':'document-1','url':'https://fixture.test/','fields':[{'element':'typed1','label':'Draft','type':'text'},{'element':'typed2','label':'single-line field 2','type':'tel'}]}]}
+            'frames':[{'frame':0,'document':'document-1','reader':'reader-one','browser_document':'browser-document-one','url':'https://fixture.test/','fields':[{'element':'typed1','label':'Draft','type':'text'},{'element':'typed2','label':'single-line field 2','type':'tel'}]}]}
         reads=[]
         def request(name,**args):
             if name=='typed_fields':return copy.deepcopy(state)
@@ -404,3 +404,37 @@ class Questions(unittest.TestCase):
             self.assertNotEqual(approval['operation_id'],replacement['operation_id']);self.assertEqual(reads,[])
             self.call('read_typed_fields',approval);self.assertEqual(reads,[])
             self.assertTrue(self.call('read_typed_fields',replacement)['ok']);self.assertEqual(len(reads),1)
+
+    def test_post18df_connection_frame_reader_and_element_identity_changes_retire_approval(self):
+        for change in ['connection','frame','reader','replacement']:
+            state,reads=self.typed_browser();approval=self.call('prepare_read_typed_fields',{'tab':1})['data']['approval']
+            if change=='connection':self.browser.connection_identity='replacement-connection'
+            if change=='frame':state['frames'][0]['browser_document']='new-native-frame-document';state['frames'][0]['document']='new-reader-document'
+            if change=='reader':state['frames'][0]['reader']='reader-two'
+            if change=='replacement':state['frames'][0]['fields'][0]['element']='replacement-with-the-same-label'
+            result=self.call('read_typed_fields',approval);self.assertTrue(result['ok'],result);self.assertEqual(reads,[])
+            self.assertIn('approval',result['data'],result);fresh=result['data']['approval'];self.assertNotEqual(fresh['operation_id'],approval['operation_id'])
+            self.call('read_typed_fields',approval);self.assertEqual(reads,[])
+            self.assertTrue(self.call('read_typed_fields',fresh)['ok']);self.assertEqual(len(reads),1)
+
+    def test_post18df_form_with_withheld_values_refuses_before_reload_or_preparation(self):
+        frame=self.browser.facts['frames'][0];frame['form']={'element':'form1','action':'https://fixture.test/receive','method':'post','fields':[{'element':'field1','type':'text','unknown_history':True,'value_status':'filled'}]}
+        self.browser.facts['needs_reload']=True
+        result=self.call('click',self.target());self.assertFalse(result['ok'],result);self.assertEqual(result['error']['code'],'refused')
+        self.assertIn('send it yourself, or let Claude reload the tab first',result['error']['message']);self.assertEqual(self.browser.dispatched,[])
+
+    def test_post18df_form_added_withheld_field_and_changed_value_cannot_use_waiting_approval(self):
+        frame=self.browser.facts['frames'][0];frame['form']={'element':'form1','action':'https://fixture.test/receive','method':'post','fields':[{'element':'field1','type':'text','value':'Old draft'}]}
+        approval=self.prepare();frame['form']['fields'][0]={'element':'field1','type':'text','unknown_history':True,'value_status':'filled'}
+        result=self.call('submit',approval);self.assertFalse(result['ok'],result);self.assertIn('send it yourself, or let Claude reload the tab first',result['error']['message']);self.assertEqual(self.browser.dispatched,[])
+        state,reads=self.typed_browser();typed=self.call('prepare_read_typed_fields',{'tab':1})['data']['approval'];self.assertTrue(self.call('read_typed_fields',typed)['ok'])
+        self.assertEqual(len(reads),1);self.assertFalse(self.call('click',self.target())['ok']);self.assertEqual(self.browser.dispatched,[])
+
+    def test_post18df_connection_change_after_revalidation_cannot_read_values(self):
+        state,reads=self.typed_browser();approval=self.call('prepare_read_typed_fields',{'tab':1})['data']['approval']
+        original=self.chrome.revalidate
+        def late(operation):
+            result=original(operation);self.browser.connection_identity='changed-after-revalidation';return result
+        self.chrome.revalidate=late
+        result=self.call('read_typed_fields',approval);self.assertEqual(reads,[])
+        self.assertNotIn('untrusted_content',result.get('data',{}))

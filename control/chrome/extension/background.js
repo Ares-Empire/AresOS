@@ -661,7 +661,7 @@ async function readyDialog(tab){
   if(dialog.frame===undefined)throw Error('refused: dialog opener is not yet established; inspect with the owner');
   return dialog;
 }
-async function facts(tab, reference) {
+async function facts(tab, reference, typedOnly=false) {
   const current = await requireTab(tab);
   const epoch=controlled.get(tab)?.epoch;assertControl(tab,epoch);
   if([...preloadTargets.values()].some(state=>state.tab===tab&&state.failures?.size))throw Error('refused: this tab could not install its document-start guard; open its address fresh in a Claude tab');
@@ -678,7 +678,7 @@ async function facts(tab, reference) {
   for (const frame of frames) {
     let effective;try { effective=frameAddress(frame,frames); } catch { if (reference?.frame === frame.frameId) throw Error('refused: excluded frame');uncovered.push({frame:frame.frameId,eligible:false,reason:'excluded origin or scheme'});continue; }
     let snapshot;try{
-    const query=()=>content(tab,frame.frameId,reference?.frame === frame.frameId ? 'facts':'read',{...(reference?.frame===frame.frameId?{element:reference.element}:{}),...(privacyDocuments.has(frame.documentId)?{expected_document:privacyDocuments.get(frame.documentId)}:{}),...(inlineFrame(frame.url)&&frame.parentFrameId>=0?{expected_origin:new URL(effective).origin}:{})},frame.documentId);
+    const query=()=>content(tab,frame.frameId,typedOnly?'typed_fields':reference?.frame === frame.frameId ? 'facts':'read',{...(reference?.frame===frame.frameId?{element:reference.element}:{}),...(privacyDocuments.has(frame.documentId)?{expected_document:privacyDocuments.get(frame.documentId)}:{}),...(inlineFrame(frame.url)&&frame.parentFrameId>=0?{expected_origin:new URL(effective).origin}:{})},frame.documentId);
     try{snapshot=await query();}catch(error){
       if(!error.readerUnavailable||!frame.documentId)throw error;
       // Admission can finish on a popup's initial blank document. Recover only
@@ -687,6 +687,7 @@ async function facts(tab, reference) {
       try{await Promise.race([lateReader(tab,frame.documentId),wake.promise]);}finally{wake.dispose();}
       snapshot=await query();
     }
+    if(typedOnly)snapshot={...snapshot,typed_fields:{document:snapshot.document,reader:snapshot.reader,fields:snapshot.fields}};
     if(inlineFrame(frame.url)&&frame.parentFrameId>=0&&(!frame.documentId||snapshot.origin!==new URL(effective).origin))throw Error('refused: inherited frame origin cannot be authenticated');
     }catch(error){assertControl(tab,epoch);if(reference?.frame===frame.frameId||String(error.message).includes('password history was lost'))throw error;uncovered.push({frame:frame.frameId,eligible:true,reason:'reader or inherited origin unavailable'});continue;}
     if(frame.documentId){const known=privacyDocuments.get(frame.documentId);if(known&&known!==snapshot.document)throw Error('refused: private password history was lost for this surviving document; ask the owner to reload');privacyDocuments.set(frame.documentId,snapshot.document);}
@@ -697,17 +698,23 @@ async function facts(tab, reference) {
   assertControl(tab,epoch);
   // A modal can open while the last reader reply is completing. Re-enter the
   // modal path so its private frame/guard decision is complete before exposure.
-  if(dialogs.has(tab))return facts(tab,reference);
+  if(dialogs.has(tab))return facts(tab,reference,typedOnly);
   return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,needs_reload:controlled.get(tab).popupNeedsReload||result.some(frame=>!isPreloaded(tab,frame.document)),frames:result,uncovered,frame_tree:frames.map(frame=>({frame:frame.frameId,parent:frame.parentFrameId,url:frame.url})),dialog:null};
 }
 async function typedFacts(tab) {
-  const snapshot=await facts(tab);
+  const snapshot=await facts(tab,null,true);
   if(snapshot.uncovered?.some(frame=>frame.eligible!==false))throw Error('refused: a complete typed-field list needs every eligible frame');
   return {session,tab,control:snapshot.control,url:snapshot.url,title:snapshot.title,
     frames:snapshot.frames.map(frame=>{
-      if(!frame.typed_fields||frame.typed_fields.document!==frame.document)throw Error('refused: typed-field provenance is unavailable');
-      return {frame:frame.frame,document:frame.document,browser_document:frame.browser_document,url:frame.url,effective_url:frame.effective_url||frame.url,fields:frame.typed_fields.fields};
+      if(!frame.typed_fields||frame.typed_fields.document!==frame.document||typeof frame.typed_fields.reader!=='string'||!frame.typed_fields.reader)throw Error('refused: typed-field provenance is unavailable');
+      return {frame:frame.frame,document:frame.document,browser_document:frame.browser_document,reader:frame.typed_fields.reader,url:frame.url,effective_url:frame.effective_url||frame.url,fields:frame.typed_fields.fields};
     })};
+}
+function refuseWithheldSubmission(snapshot,reference,command){
+  const frame=snapshot.frames.find(frame=>frame.frame===reference.frame),target=frame?.target;
+  const verb=command.input?.verb,key=command.input?.key?.split('+').at(-1);
+  const submitting=target?.submit&&(['click','check','select'].includes(verb)||verb==='press'&&['Enter','Space',' '].includes(key))||verb==='press'&&key==='Enter'&&target?.editable;
+  if((command.kind||command.name==='resume'||submitting)&&frame?.form?.fields.some(field=>field.unknown_history))throw Error('refused: this form holds unread typed text; send it yourself, or let Claude reload the tab first');
 }
 function binding(facts, reference, kind, adapter) {
   const frame = facts.frames.find(frame=>frame.frame === reference.frame);
@@ -861,7 +868,7 @@ async function dispatch(command) {
     for(const frame of current.frames){
       if(!frame.fields.length)continue;
       current=await typedFacts(tab);same();
-      const result=await content(tab,frame.frame,'read_typed_fields',{approved:true,operation:command.operation,expected:{document:frame.document,fields:frame.fields},expected_document:frame.document},frame.browser_document);
+      const result=await content(tab,frame.frame,'read_typed_fields',{approved:true,operation:command.operation,expected:{document:frame.document,reader:frame.reader,fields:frame.fields},expected_document:frame.document},frame.browser_document);
       assertControl(tab,current.control);values.push({frame:frame.frame,...result});
     }
     current=await typedFacts(tab);same();return {frames:values};
@@ -926,6 +933,7 @@ async function dispatch(command) {
   }
   if (command.name !== 'input' && command.name !== 'resume') throw Error('permission_denied: unknown fixed command');
   let snapshot = await facts(tab,reference);
+  refuseWithheldSubmission(snapshot,reference,command);
   if(snapshot.needs_reload)throw Error('stale_reference: the taken document needs its guarded reload before input; read and prepare again');
   if (command.binding && stable(binding(snapshot,reference,command.kind,command.adapter)) !== stable(command.binding)) throw Error('stale_approval: page changed; prepare again');
   if (command.operation && used.has(command.operation)) throw Error('refused: operation already dispatched or attempted');
@@ -959,6 +967,7 @@ async function dispatch(command) {
   if(recording&&command.fixture_arm_delay){port?.postMessage({event:'fixture_arm_wait',operation:command.operation});await new Promise(resolve=>setTimeout(resolve,command.fixture_arm_delay));}
   // Arming other frames may take time. Compare again at the actual input boundary.
   snapshot=await facts(tab,reference);
+  refuseWithheldSubmission(snapshot,reference,command);
   if(command.binding&&stable(binding(snapshot,reference,command.kind,command.adapter))!==stable(command.binding))throw Error('stale_approval: page changed during frame setup; prepare again');
   for(const added of snapshot.frames){
     if(armed.some(frame=>frame.frame===added.frame&&frame.document===added.document))continue;

@@ -18,7 +18,7 @@ WORK=ROOT/'.work/20-chrome'; WORK.mkdir(parents=True,exist_ok=True)
 
 
 class Browser:
-    session='fixture-session'; version='157.0.1.0'
+    session='fixture-session'; version='157.0.1.0'; connection_identity='fixture-connection'
     def __init__(self):
         self.dispatched=[]
         target={'element':'e1','role':'button','name':'Send','label':'Send','title':'','href':None,'states':{},'editable':False,'search':False,'submit':False,'box':{'x':1,'y':1,'width':30,'height':30},'onscreen':True}

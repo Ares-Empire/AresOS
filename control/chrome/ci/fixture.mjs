@@ -40,7 +40,8 @@ export async function fixtures(options={}) {
     const kind=url.searchParams.get('case') || 'compose';
     // Mutation channels belong to the current fixture document. Old SSEs must
     // not exhaust Chrome's six HTTP/1.1 connections and hide later receivers.
-    if(!['draft-inner','password-inner'].includes(kind))for(const [id,stream]of streams){stream.end();streams.delete(id);}
+    const lateBindingChild=kind==='review-page'&&url.searchParams.get('mode')==='late-binding-child';
+    if(!['draft-inner','password-inner'].includes(kind)&&!lateBindingChild)for(const [id,stream]of streams){stream.end();streams.delete(id);}
     let body,script='';
     if(kind==='latency'){body='<textarea aria-label="Draft">Synthetic latency draft</textarea><button type="button">Continue</button><button type="button">Send</button>';script="document.querySelectorAll('button')[0].onclick=()=>{if(navigator.clipboard)navigator.clipboard.writeText('Synthetic latency clipboard').catch(()=>{});};document.querySelectorAll('button')[1].onclick=()=>fetch('/receive?case=latency-'+"+JSON.stringify(url.searchParams.get('id'))+",{method:'POST',body:document.querySelector('textarea').value});";}
     else if(kind==='destination-sink'){res.end(page('<p>Destination sink</p>'));return;}
@@ -66,7 +67,7 @@ export async function fixtures(options={}) {
       body='<form method="post" action="/post-document?case=taken-post"><button type="submit">Load POST</button></form>';
     }else if(kind==='take-state'){
       const id=url.searchParams.get('id'),mode=url.searchParams.get('mode');
-      body='<button type="button" id="play">Play media</button>'+(mode==='clean'?'<textarea aria-label="Draft">Saved</textarea>':'<input aria-label="Draft" value="Saved">')+'<button type="button" id="continue">Continue</button><audio loop src="/tone.wav"></audio><form method="post" action="/post-document?case='+id+'"><button type="submit">Load POST</button></form>';
+      body='<button type="button" id="play">Play media</button>'+(mode==='clean'?'<select aria-label="Draft"><option selected>Saved</option></select>':'<input aria-label="Draft" value="Saved">')+'<button type="button" id="continue">Continue</button><audio loop src="/tone.wav"></audio><form method="post" action="/post-document?case='+id+'"><button type="submit">Load POST</button></form>';
       script=`fetch('/receive?case=loaded-${id}',{method:'POST'});${mode==='dirty'?"document.querySelector('input').value='Unsaved';":''}${mode==='blank-editor'?"const child=document.createElement('iframe');document.body.append(child);child.contentDocument.designMode='on';child.contentDocument.body.textContent='Unsaved iframe draft';":''}document.querySelector('#play').onclick=()=>{${mode==='detached-media'?"const media=new Audio('/tone.wav');media.loop=true;globalThis.fixtureMedia=media;return media.play().then(()=>fetch('/receive?case=playing-"+id+"',{method:'POST'}));":mode==='web-audio'?"const audio=new AudioContext(),oscillator=audio.createOscillator();oscillator.connect(audio.destination);oscillator.start();globalThis.fixtureMedia=audio;return audio.resume().then(()=>fetch('/receive?case=playing-"+id+"',{method:'POST'}));":"return document.querySelector('audio').play().then(()=>fetch('/receive?case=playing-"+id+"',{method:'POST'}));"}};`;
     } else if(kind==='features') {
       body='<form><input aria-label="First" name="first" value="Original first"><input aria-label="Second" name="second" value="Original second"><select name="choice" aria-label="Choice"><option value="a">First option</option><option value="b">Second option</option><option value="c" disabled>Disabled option</option></select><input type="hidden" name="hidden" value="Hidden field"><input type="checkbox" name="tick" aria-label="Tick"></form><a href="/download?id='+url.searchParams.get('id')+'">Download fixture</a><p>Findable synthetic paragraph</p>';
@@ -251,7 +252,7 @@ export async function fixtures(options={}) {
       body='<button aria-label="">●</button><textarea aria-label="Autosave"></textarea>';
       script="document.querySelector('button').onclick=()=>fetch('/receive?case=residual-click',{method:'POST',body:'ordinary click'});document.querySelector('textarea').oninput=e=>fetch('/receive?case=residual-autosave',{method:'POST',body:e.target.value});";
     } else {res.statusCode=404;res.end('Unknown synthetic fixture');return;}
-    const mutationId=['review-page','binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-')?url.searchParams.get('id'):null;
+    const mutationId=!lateBindingChild&&(['review-page','binding','page-dialog','upload','draft-inner','stop-modal'].includes(kind)||kind==='site'&&url.searchParams.get('id')?.startsWith('adapter-bind-'))?url.searchParams.get('id'):null;
     if(mutationId)script+=`;new EventSource('/events?id='+${JSON.stringify(mutationId)}).onmessage=event=>{
       const mutation=JSON.parse(event.data),change=mutation.change,form=document.querySelector('form'),button=document.querySelector('button');
       if(change==='review-change')globalThis.reviewChange();

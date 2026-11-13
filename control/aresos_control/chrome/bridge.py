@@ -15,7 +15,7 @@ LIMIT = 1024 * 1024
 class Bridge:
     def __init__(self):
         self.connection = None
-        self.session = self.version = None
+        self.session = self.version = self.connection_identity = None
         self.buffer = b''
         self.events = []
         self.on_event = lambda event: self.events.append(event)
@@ -51,9 +51,10 @@ class Bridge:
             # The accepting daemon still owns this descriptor and must send its
             # refusal before closing it. Closing here killed the entire daemon.
             self.connection, self.buffer = None, b''
-            self.session = self.version = None
+            self.session = self.version = self.connection_identity = None
             raise Refused('permission_denied', 'Native host must identify one Chrome session and full version.') from exc
         self.session, self.version = hello['session'], hello['version']
+        self.connection_identity = uuid.uuid4().hex
 
     def call(self, name, **arguments):
         if self.connection is None:
@@ -112,5 +113,5 @@ class Bridge:
         if self.connection is not None:
             self.connection.close()
         self.connection = None
-        self.session = self.version = None
+        self.session = self.version = self.connection_identity = None
         self.buffer = b''

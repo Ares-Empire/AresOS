@@ -262,6 +262,61 @@ original cases remain alongside the added cases (**134** exact receiver sequence
 Replacement dispatch brings the count to **245**. These fixes still need their
 scoped re-check and browser result before addendum -f begins.
 
+**Scoped SVG fixes closed locally:** [package](BUILD-POST18D-SVG-RECHECK-3.md)
+and [security](BUILD-POST18D-SVG-SECURITY-RECHECK-3.md) both return SAFE on
+`c78178dd`. The earlier Linux replacement `43475723438` (**244**) passes all 66
+destination/context cases, late readers and its 18 animated native defaults in
+both installs. The current 27-case replacement remains pending.
+
+**Intermediate full green:** [43466571812](https://github.com/Ares-Empire/AresOS/actions/runs/43466571812)
+at `a108d517` passes all 95 named suites and all 999 word cells in both installs,
+237 Python tests, 347 Node tests, native group 12 and both independent audits.
+The audit matches 1,445 page and 139 adapter 0/1/1 sequences to independent raw
+arrivals. [Job timings](records/post18d/full-43466571812-jobs.json) show the longest
+job at **30m46s**, well below the 120-minute container target. The raw intermediate
+audit's Python `seconds:0` was a placeholder, removed in the current auditor;
+it is not a measured duration. These are intermediate results, superseded for
+acceptance by the SVG fixes and new addendum -f.
+
+**Base-URL class complete:** [43477146168](https://github.com/Ares-Empire/AresOS/actions/runs/43477146168)
+(**245**, `c78178dd`) passes both install modes: all **66** absolute destination
+and native context sequences, **27** animated native-default cases, credentials
+and asking-read checks. Both scoped reviewers are SAFE. The `_self` and named
+frame checks use receiver-page context observations plus native tab identities.
+
+**Addendum -f built, Linux verification pending:** all text-capable inputs,
+including search/email/url, and all textareas in unwatched documents show only
+filled/empty. Credential-like fields remain excluded before status/value access.
+A shared scope predicate also controls the asking manifest and reload warning;
+editable areas remain readable and their accepted board-216 limit is stated in
+`KNOWN-LIMITS.md`.
+
+Preparations now collect metadata only, even from watched frames. The service
+binds its native-connection identity, the tab/control, native frame documents,
+private documents, reader instances, exact element IDs and shown labels. The
+engine verifies the supplied question/description; one approval produces one
+transient response. Replacement with the same label, duplicates/unlabelled
+fields, frame/reader/connection changes, credential eligibility, alteration and
+replay have regressions. A fresh connection to the same browser session receives
+a new private identity.
+
+Recognised form submissions holding unknown-history content refuse before
+preparation and at both revalidation/native boundaries, with “send it yourself,
+or let Claude reload the tab first”. An approved read never clears the withheld
+state. The Linux fixtures cover a late closed-shadow form and a value change
+while the asking read waits. A separate service regression introduces withheld
+content while a submission approval waits and requires refusal before input.
+Unchanged readable choices retain the clean-reload fixture; typed text/textarea
+fixtures preserve content until the explicit acknowledgement. No assertion was
+relaxed. Tab-group handling is unchanged.
+
+**Local -f verification:** [exact commands/results](records/post18d/f-local.json):
+**369 Node/artifact tests pass**, **79 focused Python tests pass**, and **302
+removal probes** reject their mutation with every baseline passing. Generated
+artifacts match. The native-value recorder covers the new parent/child/form
+routes. The next Linux safety dispatch brings the count to **246**. Main's
+PR #43/#47 integration, latency limits and final workflow repetitions follow.
+
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
 blank-frame base case. The new fixture had duplicate blank-frame addresses, so

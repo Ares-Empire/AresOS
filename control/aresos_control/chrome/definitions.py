@@ -29,9 +29,9 @@ CLIPBOARD_NOTICE = ('If a click result says the page wrote to the clipboard, tel
 def actions(Action):
     result = []
     result.append(Action('chrome','prepare_read_typed_fields','change',obj({'tab':TAB}),
-        'Prepare a one-call read of single-line text fields in unwatched documents. Returns the exact field-label question without values; pass its approval to read_typed_fields. ',result=PREPARED_RESULT))
+        'Prepare a one-call read of text-capable inputs and textareas in unwatched documents. Returns the exact field-label question without values; pass its approval to read_typed_fields. ',result=PREPARED_RESULT))
     result.append(Action('chrome','read_typed_fields','read',APPROVAL,
-        'Read the listed single-line text fields once after the exact prepared question is approved. Credentials always remain unreadable. A changed field list refuses and re-asks; ordinary reads retain filled/empty. ',result={'type':'object'},asking_read=True))
+        'Read the listed text-capable inputs and textareas once after the exact prepared question is approved. Credentials always remain unreadable. The connection, frames, reader and exact field identities are bound; changes refuse and require a fresh question; ordinary reads retain filled/empty. ',result={'type':'object'},asking_read=True))
     def add(verb, effect, schema, purpose, owner=False, output=None):
         result.append(Action('chrome', verb, effect, schema, purpose, owner, output or {'type': 'object'}, trusted_send=verb == 'submit_trusted'))
     for verb, purpose in {

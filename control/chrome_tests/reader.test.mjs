@@ -405,20 +405,21 @@ for(const signal of ['name','id','autocomplete','aria-label','placeholder','labe
 });
 
 test('post18d late single-line values show filled or empty without reading their value getter',()=>{
-  for(const type of ['text','tel','number','unknown'])for(const empty of [false,true]){
+  for(const type of ['text','tel','number','unknown','email','url','search'])for(const empty of [false,true]){
     const f=fixture([{type,empty}],{watched:false});f.read();const row=f.command({command:'facts',element:'e1'}).data.target;
     assert.equal(row.value_status,empty?'empty':'filled');assert.equal(row.value,undefined);assert.equal(f.calls(),0);
     assert.doesNotMatch(JSON.stringify(f.read()),/safe visible text/);
     f.command({command:'set_control',generation:'epoch'});f.reinject();f.read();assert.equal(f.command({command:'facts',element:'e1'}).data.target.value,undefined,'late history never upgrades on control or reinjection');
   }
 });
-test('post18d watched input types and late choices formatted values textarea and editors stay readable',()=>{
-  for(const watched of [false,true])for(const type of ['text','tel','number','unknown','checkbox','radio','date','email','url','search']){
+test('post18d watched input types and late choices date kinds and editors stay readable',()=>{
+  for(const watched of [false,true])for(const type of ['text','tel','number','unknown','checkbox','radio','date','datetime-local','month','week','time','range','color','email','url','search']){
     const f=fixture([{type}],{watched}),row=f.read().data.rows[0];
-    assert.equal(typeof row.value==='string',watched||!['text','tel','number','unknown'].includes(type),type+' '+watched);
+    assert.equal(typeof row.value==='string',watched||!['text','tel','number','unknown','email','url','search'].includes(type),type+' '+watched);
   }
+  const watchedTextarea=fixture([{tagName:'TEXTAREA'}]);watchedTextarea.textarea(watchedTextarea.nodes[0]);assert.equal(watchedTextarea.read().data.rows[0].value,'safe visible text');
   const f=fixture([{tagName:'TEXTAREA'},{tagName:'DIV',isContentEditable:true,childNodes:[{nodeType:3,textContent:'Editable draft'}]}],{watched:false});
-  f.textarea(f.nodes[0]);f.generic(f.nodes[1]);const rows=f.read().data.rows;assert.equal(rows[0].value,'safe visible text');assert.equal(rows[1].value,'Editable draft');
+  f.textarea(f.nodes[0]);f.generic(f.nodes[1]);const rows=f.read().data.rows;assert.equal(rows[0].value,undefined);assert.equal(rows[0].value_status,'filled');assert.equal(rows[1].value,'Editable draft');
 });
 test('post18d credential checks precede late filled-state and preserve ordinary shipping labels',()=>{
   const f=fixture([{attrs:{name:'PIN'}}],{watched:false});Object.defineProperty(f.nodes[0],'textLength',{get(){assert.fail('credential filled state was read');}});
@@ -454,7 +455,7 @@ test('post18d late reload warning never extracts unapproved typed text to compar
 
 test('post18d hidden late fields disclose presence without extracting a value or claiming emptiness',()=>{
   const f=fixture([{type:'hidden',forbidden:true}],{watched:false});f.read();
-  const row=f.command({command:'facts',element:'e1'}).data.target;assert.equal(row.value,undefined);assert.equal(row.value_status,'not_read');assert.equal(f.calls(),0);
+  const row=f.command({command:'facts',element:'e1'}).data.target;assert.equal(row.value,undefined);assert.equal(row.value_status,'not_read');assert.equal(f.calls(),0);assert.equal(f.command({command:'reload_state'}).ok,true);assert.equal(f.calls(),0);
 });
 
 test('post18d credential aria-labelledby labels never expose values in watched late or approved reads',()=>{
@@ -497,4 +498,30 @@ test('post18d SVG empty native target stays self despite an HTML base target',()
   assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'_self');base.attrs.target='changed';
   assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'_self');node.currentTarget='explicit';
   assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'explicit');
+});
+
+test('post18df late textareas withhold values status only until their one asking read',()=>{
+  for(const empty of [false,true]){
+    const f=fixture([{tagName:'TEXTAREA',empty}],{watched:false});f.textarea(f.nodes[0]);
+    const row=f.read().data.rows[0];assert.equal(row.value,undefined);assert.equal(row.value_status,empty?'empty':'filled');assert.equal(f.calls(),0);
+    const expected=f.command({command:'typed_fields'}).data;assert.equal(expected.fields.length,1);assert.match(expected.fields[0].label,/textarea/);
+    assert.equal(f.command({command:'read_typed_fields',approved:true,operation:'textarea',expected}).ok,true);assert.equal(f.calls(),1);
+    assert.equal(f.read().data.rows[0].value,undefined);assert.equal(f.calls(),1);
+  }
+});
+test('post18df exact element identities distinguish same-label replacement duplicate and unlabelled fields',()=>{
+  const f=fixture([{attrs:{'aria-label':'Draft'}},{attrs:{'aria-label':'Draft'}},{}],{watched:false});
+  const expected=f.command({command:'typed_fields'}).data;assert.equal(expected.fields.length,3);assert.equal(new Set(expected.fields.map(field=>field.element)).size,3);assert.equal(expected.fields[2].label,'single-line field 3');
+  f.nodes[0]=new f.Element({tagName:'INPUT',localName:'input',namespaceURI:'http://www.w3.org/1999/xhtml',attrs:{'aria-label':'Draft'}});
+  assert.equal(f.command({command:'read_typed_fields',approved:true,operation:'replaced',expected}).ok,false);assert.equal(f.calls(),0);
+  const fresh=f.command({command:'typed_fields'}).data;assert.equal(f.command({command:'read_typed_fields',approved:true,operation:'fresh',expected:fresh}).ok,true);assert.equal(f.calls(),3);
+});
+test('post18df reader instance replacement refuses even with the same document labels and element ids',()=>{
+  const f=fixture([{attrs:{'aria-label':'Draft'}}],{watched:false}),expected=f.command({command:'typed_fields'}).data;f.reinject();
+  const current=f.command({command:'typed_fields'}).data;assert.equal(current.document,expected.document);assert.deepEqual(current.fields,expected.fields);assert.notEqual(current.reader,expected.reader);
+  assert.equal(f.command({command:'read_typed_fields',approved:true,operation:'old-instance',expected}).ok,false);assert.equal(f.calls(),0);
+});
+test('post18df preparation reads metadata only even in a watched document',()=>{
+  const f=fixture([{type:'text'},{tagName:'TEXTAREA'}]);f.textarea(f.nodes[1]);
+  const prepared=f.command({command:'typed_fields'});assert.equal(prepared.ok,true);assert.equal(prepared.data.fields.length,0);assert.equal(f.calls(),0);
 });

@@ -10,6 +10,17 @@ from aresos_control.daemon import Daemon
 
 
 class Handshake(unittest.TestCase):
+    def test_post18df_reconnecting_the_same_browser_session_changes_private_connection_identity(self):
+        bridge=Bridge();pairs=[];identities=[]
+        try:
+            for _ in range(2):
+                server,client=socket.socketpair();pairs.extend([server,client]);client.sendall(b'{"event":"hello","session":"same","version":"157.0.1.0"}\n')
+                bridge.accept(server);identities.append(bridge.connection_identity);self.assertEqual(bridge.session,'same');bridge.close();self.assertIsNone(bridge.connection_identity)
+            self.assertNotEqual(*identities);self.assertTrue(all(len(value)==32 for value in identities))
+        finally:
+            bridge.close()
+            for connection in pairs:connection.close()
+
     def test_invalid_replacement_removes_eof_peer_and_next_host_can_connect(self):
         bridge = Bridge()
         daemon = Daemon.__new__(Daemon)

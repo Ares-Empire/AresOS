@@ -22,6 +22,11 @@ from .sites import recognize, KINDS, recipients
 RUNTIME = Path(__file__).resolve().parents[2]
 
 
+def refuse_withheld_form(state):
+    if any(field.get('unknown_history') for field in (state.get('form') or {}).get('fields',[])):
+        raise Refused('refused','This form holds unread typed text; send it yourself, or let Claude reload the tab first.')
+
+
 def view_identity(facts):
     return digest([facts.get('control'),[{k: frame.get(k) for k in ['frame','document','revision','url','title','scroll','rows','editable']}
                    for frame in facts['frames']]])
@@ -163,7 +168,7 @@ class Chrome:
                 if not payload.get('typed_read'):self.check_readonly(payload)
             if payload.get('typed_read'):
                 current=self.typed_binding(payload['binding']['tab'])
-                if current!=payload['binding']:raise Refused('stale_approval','The typed-field list changed; prepare a fresh question.')
+                if payload.get('read_connection')!=self.bridge.connection_identity or current!=payload['binding']:raise Refused('stale_approval','The typed-field list changed; prepare a fresh question.')
                 return {'validity':'current'}
             site_adapter=payload.get('adapter')
             if site_adapter and not mode['adapters'].get(site_adapter['site']):
@@ -291,10 +296,11 @@ class Chrome:
         if verb=='read_typed_fields':
             state=self.typed_binding(payload['tab'])
             labels=[f"frame {frame['frame']}: {field['label']}" for frame in state['frames'] for field in frame['fields']]
-            if not labels:raise Refused('refused','No single-line text fields in unwatched documents need approval; use the normal read.')
+            if not labels:raise Refused('refused','No text fields or textareas in unwatched documents need approval; use the normal read.')
             question=f"On {state['url']}, tab '{state['title']}', read the typed text once from these fields, as the page shows them: "+'; '.join(labels)+'?'
-            return question,{'action':'chrome_read_typed_fields','untrusted_content':{'fields':state}},{'typed_read':True,'process_session':self.process_session,'binding':state}
+            return question,{'action':'chrome_read_typed_fields','untrusted_content':{'fields':state}},{'typed_read':True,'process_session':self.process_session,'read_connection':self.bridge.connection_identity,'binding':state}
         state = payload['binding']
+        refuse_withheld_form(state)
         if payload.get('adapter', {}).get('confirmation') if payload.get('adapter') else False:
             payload = copy.deepcopy(payload)
             payload['confirmation'] = {**payload['adapter']['confirmation'], 'frame':state['frame']}
@@ -316,6 +322,7 @@ class Chrome:
     def typed_binding(self,tab):
         self.mode()
         state=self.bridge.call('typed_fields',tab=tab)
+        if not self.bridge.connection_identity:raise Refused('stale_reference','The browser connection is not prepared; read and prepare again.')
         if state.get('session')!=self.bridge.session:raise Refused('stale_reference','The browser session changed; prepare again.')
         self.allowed_url(state['url'])
         for frame in state['frames']:self.allowed_url(frame.get('effective_url',frame['url']))
@@ -411,7 +418,7 @@ class Chrome:
         if operation['payload'].get('process_session') != self.process_session:
             raise Refused('stale_approval', 'Chrome service restarted; drop this preparation, read and prepare again.')
         if operation['payload'].get('typed_read'):
-            if self.typed_binding(operation['payload']['binding']['tab'])!=operation['payload']['binding']:
+            if operation['payload'].get('read_connection')!=self.bridge.connection_identity or self.typed_binding(operation['payload']['binding']['tab'])!=operation['payload']['binding']:
                 return self.changed_typed_fields(operation)
             return
         site_adapter = operation['payload'].get('adapter')
@@ -424,9 +431,11 @@ class Chrome:
             raise Refused('stale_approval', 'Chrome session changed; read and prepare again.')
         self.check_readonly(operation['payload'])
         state=operation['payload']['binding']
+        refuse_withheld_form(state)
         if state.get('compose') is not None or state.get('form') or state.get('target',{}).get('href'):
             facts=self.bridge.call('facts',reference=operation['payload']['reference'])
             fresh=binding(facts,operation['payload']['reference'],operation['payload']['kind'],site_adapter)
+            refuse_withheld_form(fresh)
             if destination(fresh)!=destination(state):
                 return self.changed_destination(operation,facts)
             if fresh.get('compose')!=state.get('compose'):
@@ -495,6 +504,7 @@ class Chrome:
         payload = operation['payload']
         self.mode(acting=True)
         if payload.get('typed_read'):
+            if payload.get('read_connection')!=self.bridge.connection_identity:raise NothingLeft('The prepared browser connection changed; prepare a fresh read.')
             try:
                 values=self.bridge.call('read_typed_fields',tab=payload['binding']['tab'],binding=payload['binding'],approved=True,operation=operation['id'])
             except Refused as exc:
@@ -577,15 +587,16 @@ class Chrome:
         kind = classify(verb,args,frame,conservative=mode['conservative'],readonly=readonly,adapter=adapter)
         if adapter and kind in {'delete', 'pay', 'item'} and kind != adapter['effect']:
             adapter = None
+        key = args.get('key','').split('+')[-1]
+        target = frame['target']
+        submitting = target.get('submit') and (verb in {'click','check','select'} or verb == 'press' and key in {'Enter','Space',' '}) or verb == 'press' and key == 'Enter' and target.get('editable')
+        if frame.get('form') and (kind or hold or submitting):refuse_withheld_form(frame)
         if facts.get('needs_reload'):
             self.free('prepare_control', tab=args['reference']['tab'], reload_taken_tab=args.get('reload_taken_tab', False))
             raise Refused('stale_reference', 'The taken tab reloaded to install its page guard. Every old reference is stale; read again.')
         if hold:
             kind = 'form'
         state = binding(facts,args['reference'],kind,adapter)
-        key = args.get('key','').split('+')[-1]
-        target = frame['target']
-        submitting = target.get('submit') and (verb in {'click','check','select'} or verb == 'press' and key in {'Enter','Space',' '}) or verb == 'press' and key == 'Enter' and target.get('editable')
         if state['form'] and (hold or kind or submitting):
             self.allowed_url(state['form']['action'])
         if kind == 'send' and not state['form'] and not adapter:

@@ -11,6 +11,6 @@ export function wordInventory(words,shard=null){return words.flatMap((word,wi)=>
 // The same source inventory used by the qualification completeness regression.
 export async function caseInventories(){
   const fs=await import('node:fs');
-  const files={core:['matrices.mjs','destination-matrix.mjs','late-reader-matrix.mjs','animated-default-matrix.mjs'],review:['review-matrices.mjs'],recheck2:['recheck2-matrices.mjs','popups.mjs'],recheck3:['recheck3-matrices.mjs'],adapters:['sites/matrices.mjs']};
+  const files={core:['matrices.mjs','destination-matrix.mjs','late-reader-matrix.mjs','late-binding-matrix.mjs','animated-default-matrix.mjs'],review:['review-matrices.mjs'],recheck2:['recheck2-matrices.mjs','popups.mjs'],recheck3:['recheck3-matrices.mjs'],adapters:['sites/matrices.mjs']};
   return Object.fromEntries(Object.entries(files).map(([block,names])=>[block,names.flatMap(file=>[...fs.readFileSync('control/chrome/ci/'+file,'utf8').matchAll(/await check\('([^']+)'/g)].flatMap(match=>match[1]==='GROUP 10 adapter '?['gmail','whatsapp','github','gemini','deezer'].map(site=>match[1]+site):[match[1]])).filter(name=>name!=='GROUP 1 what asks word/label/key matrix').sort()]));
 }

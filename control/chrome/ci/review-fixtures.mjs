@@ -1,3 +1,4 @@
+import {lateBindingPage} from './late-binding-fixtures.mjs';
 import {lateReaderPage} from './late-reader-fixtures.mjs';
 import {destinationPage} from './destination-fixtures.mjs';
 import {recheck3Page} from './recheck3-fixtures.mjs';
@@ -8,6 +9,7 @@ export function reviewPage(url){
   if(url.searchParams.get('mode')==='destination')return destinationPage(url);
   if(['mixed','mixed-child','activation-default','compose-whitespace'].includes(url.searchParams.get('mode')))return recheck3Page(url);
   const id=url.searchParams.get('id'),mode=url.searchParams.get('mode'),variant=url.searchParams.get('variant')||'';
+  if(['late-binding','late-binding-child','late-withheld-form'].includes(mode))return lateBindingPage(url);
   const receive='/receive?case='+encodeURIComponent(id),send=`fetch(${JSON.stringify(receive)},{method:'POST',body:'review fixture'})`;
   let body='',script='';
   const form=(extra='')=>`<form method="post" action="${receive}" target="sink"><input name="draft" value="Saved">${extra}</form>`;
@@ -16,7 +18,7 @@ export function reviewPage(url){
     body='<button type="button" id="open">Open window</button><button type="button" id="continue">Continue</button>';
     script=`let child;document.querySelector('#open').onclick=()=>{child=window.open('/?case=review-page&mode=cross-tab-inner&id='+${JSON.stringify(id)},'_blank');};document.querySelector('#continue').onclick=()=>HTMLFormElement.prototype.submit.call(child.document.querySelector('form'));`;
   }else if(mode==='cross-tab-inner'){
-    body=`<form method="post" action="${receive}" target="sink"><textarea name="draft">Saved</textarea><button type="button">Ready</button></form>`+sink;
+    body=`<form method="post" action="${receive}" target="sink"><select name="draft"><option selected>Saved</option></select><button type="button">Ready</button></form>`+sink;
   }else if(mode==='mixed-adapter'){
     body='<main><p aria-label="Signed in as">Synthetic account</p><textarea aria-label="Enter a prompt here">Synthetic question</textarea><button type="button"'+(variant==='none'?'':' title="'+variant+'"')+'>Send</button></main>';
     script=`document.querySelector('button').onclick=()=>${send};`;

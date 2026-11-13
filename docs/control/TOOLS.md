@@ -5792,7 +5792,7 @@ Result data:
 
 `aresos chrome prepare_read_typed_fields`; effect **change**; owner-only **False**.
 
-Prepare a one-call read of single-line text fields in unwatched documents. Returns the exact field-label question without values; pass its approval to read_typed_fields.  Effect: change. Pass the service-provided approval unchanged, including its first field question, operation_id and complete description; never write or amend the question yourself.
+Prepare a one-call read of text-capable inputs and textareas in unwatched documents. Returns the exact field-label question without values; pass its approval to read_typed_fields.  Effect: change. Pass the service-provided approval unchanged, including its first field question, operation_id and complete description; never write or amend the question yourself.
 
 Input:
 ```json
@@ -5859,7 +5859,7 @@ Result data:
 
 `aresos chrome read_typed_fields`; effect **read**; owner-only **False**.
 
-Read the listed single-line text fields once after the exact prepared question is approved. Credentials always remain unreadable. A changed field list refuses and re-asks; ordinary reads retain filled/empty.  Effect: read. Pass the service-provided approval unchanged, including its first field question, operation_id and complete description; never write or amend the question yourself.
+Read the listed text-capable inputs and textareas once after the exact prepared question is approved. Credentials always remain unreadable. The connection, frames, reader and exact field identities are bound; changes refuse and require a fresh question; ordinary reads retain filled/empty.  Effect: read. Pass the service-provided approval unchanged, including its first field question, operation_id and complete description; never write or amend the question yourself.
 
 Input:
 ```json

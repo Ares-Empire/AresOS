@@ -27,7 +27,7 @@ case('P1-dialog-conversion',M,'if(arguments[index]!==undefined)arguments[index]=
 case('P1-opening-once',B,'!native||native.dialog||native.kind','!native||native.kind',node('background','P1 a private native token'))
 case('P1-opening-binding',B,'entry.dialog!==dialog.id||','',node('background','P1 a cross-site dialog'))
 case('P1-opening-readiness',B,'if(opening){','if(false){',node('background','P1 native dialog metadata waits'))
-case('P1-opening-final-reader',B,'if(dialogs.has(tab))return facts(tab,reference);','',node('background','P1 a dialog opening during'))
+case('P1-opening-final-reader',B,'if(dialogs.has(tab))return facts(tab,reference,typedOnly);','',node('background','P1 a dialog opening during'))
 case('P1-opening-completion',B,'dialogOpenings.delete(dialog);finishOpening();','dialogOpenings.delete(dialog);',node('background','P1 native dialog metadata waits'))
 case('P1-opening-deadline',B,"dialog opener is still being established; read again before answering')),5000)","dialog opener is still being established; read again before answering')),30000)",node('background','P1 dialog classification waits'))
 case('P1-dialog-fresh',B,"if(dialogs.get(tab)!==expectedDialog)throw Error('stale_approval: dialog changed while checking its guard coverage');",'',node('background','P1 a dialog changed during'))
@@ -298,26 +298,28 @@ for signal in ['name','id','autocomplete','aria-label','placeholder']:
     case('post18d-credential-'+signal,R,before,after,node('reader','post18d credential signal '+signal+' excludes'))
 case('post18d-credential-label',R,"signals.push([...element.labels||[]].map(labelText).join(' '));",'',node('reader','post18d credential signal label excludes'))
 case('post18d-late-mask',R,"if(!watched&&typedField(element))","if(false&&typedField(element))",node('reader','post18d late single-line values'))
-for kind in ['text','tel','number','unknown']:
-    case('post18d-late-type-'+kind,R,"return html(element,HTMLInputElement,'input')&&!['hidden'",f"return html(element,HTMLInputElement,'input')&&element.type!={kind!r}&&!['hidden'",node('reader','post18d late single-line values'))
+for kind in ['text','tel','number','unknown','email','url','search']:
+    case('post18d-late-type-'+kind,R,"html(element,HTMLInputElement,'input')&&!['hidden'",f"html(element,HTMLInputElement,'input')&&element.type!={kind!r}&&!['hidden'",node('reader','post18d late single-line values'))
 case('post18d-watch-provenance',B,'globalThis[Symbol.for("aresos.chrome.document-start.v1")]=true;','',node('background','startup evaluates only fixed bundles'))
 case('post18d-read-approval',R,'message.approved!==true||','',node('reader','post18d typed read approval is one call'))
 case('post18d-read-replay',R,'||typedReads.has(message.operation)','',node('reader','post18d typed read approval is one call'))
 case('post18d-read-credential-scope',R,'typedField(element)&&!password(element)','typedField(element)',node('reader','post18d typed read approval is one call'))
-case('post18d-read-unlabelled',R,"name(element)||'single-line field '+(index+1)","name(element)",node('reader','post18d typed read approval is one call'))
+case('post18d-read-unlabelled',R,"name(element)||(html(element,HTMLTextAreaElement,'textarea')?'textarea ':'single-line field ')+(index+1)","name(element)",node('reader','post18d typed read approval is one call'))
 case('post18d-read-list',R,"current.fields.some((field,index)=>['element','label','type'].some(key=>field[key]!==expected.fields[index][key]))",'false',node('reader','post18d typed field additions relabelling'))
-case('post18d-read-service',A,"if self.typed_binding(operation['payload']['binding']['tab'])!=operation['payload']['binding']:",'if False:','test_questions.Questions.test_post18d_typed_field_list_change_reasks_at_service_and_final_extension',True)
+case('post18d-read-service',A,"if operation['payload'].get('read_connection')!=self.bridge.connection_identity or self.typed_binding(operation['payload']['binding']['tab'])!=operation['payload']['binding']:",'if False:','test_questions.Questions.test_post18d_typed_field_list_change_reasks_at_service_and_final_extension',True)
 case('post18d-read-final',B,'if(stable(current)!==stable(command.binding))','if(false)',node('background','post18d typed reads require approval'))
 case('post18d-read-once-background',B,"||used.has(command.operation))throw Error('refused: typed fields", ")throw Error('refused: typed fields",node('background','post18d typed reads require approval'))
 
 
-for kind in ['checkbox','radio','date','email','url','search']:
-    before=next(line.strip() for line in (ROOT/R).read_text().splitlines() if line.strip().startswith("return html(element,HTMLInputElement,'input')&&!['hidden'"))
+for kind in ['checkbox','radio','date','datetime-local','month','week','time','range','color']:
+    before=next(line.strip() for line in (ROOT/R).read_text().splitlines() if line.strip().startswith("return html(element,HTMLTextAreaElement,'textarea')||html(element,HTMLInputElement,'input')&&!['hidden'"))
     case('post18d-readable-type-'+kind,R,before,before.replace(repr(kind)+',',''),node('reader','post18d watched input types and late choices'))
+for kind in ['email','url','search']:
+    case('post18d-readable-type-'+kind,R,'else value = element.value;',f'else if(element.type!={kind!r}) value = element.value;',node('reader','post18d watched input types and late choices'))
 case('post18d-readable-textarea',R,"html(element,HTMLTextAreaElement,'textarea') || html(element,HTMLSelectElement,'select') || html(element,HTMLButtonElement,'button')) value", "html(element,HTMLSelectElement,'select') || html(element,HTMLButtonElement,'button')) value",node('reader','post18d watched input types and late choices'))
 case('post18d-readable-editor',R,"else if (element.isContentEditable) value = editableText(element)","else if (false) value = editableText(element)",node('reader','post18d watched input types and late choices'))
 case('post18d-credential-mask',R,"getComputedStyle(element).webkitTextSecurity !== 'none'",'false',node('reader','group7 protected values never reach'))
-case('post18d-late-reload-privacy',R,'if(!watched&&typedField(element)){unsaved=true;continue;}','',node('reader','post18d late reload warning never extracts'))
+case('post18d-late-reload-privacy',R,"if(!watched&&(typedField(element)||html(element,HTMLInputElement,'input')&&element.type==='hidden')){unsaved=true;continue;}",'',node('reader','post18d late reload warning never extracts'))
 
 case('post18d-credential-aria-labelledby',R,"signals.push(referenced.map(labelText).join(' '));",'',node('reader','post18d credential aria-labelledby labels'))
 
@@ -338,6 +340,19 @@ case('post18d-native-default-reentry',G,"const earlier=quarantined.get(node),blo
 case('post18d-native-query-clobber',G,"for(const animation of animationElements(root))","for(const animation of root.querySelectorAll?.('animate,set,animateTransform,animateMotion')||[])",node('page','post18d SVG scan uses native queries'))
 for change in ['retarget','detach']:
     case('post18d-animation-restore-'+change,G,"for(const item of earlier?.animations||[])if(!animations.some(([node])=>node===item[0]))animations.push(item);",'',node('page','post18d reentry retains restoration for an animation the page '+change))
+
+case('post18df-textarea-history',R,"return html(element,HTMLTextAreaElement,'textarea')||html(element,HTMLInputElement", "return html(element,HTMLInputElement",node('reader','post18df late textareas withhold values'))
+case('post18df-reader-instance',R,'expected.reader!==readerInstance||','',node('reader','post18df reader instance replacement refuses'))
+case('post18df-element-identity',R,"['element','label','type'].some(key=>field[key]!==expected.fields[index][key])","['label','type'].some(key=>field[key]!==expected.fields[index][key])",node('reader','post18df exact element identities distinguish'))
+case('post18df-metadata-only',B,'const snapshot=await facts(tab,null,true);','const snapshot=await facts(tab);',node('background','post18df asking preparation uses value-free'))
+case('post18df-frame-reader',B,'reader:frame.typed_fields.reader,','',node('background','post18df asking preparation uses value-free'))
+case('post18df-native-frame',B,'browser_document:frame.browser_document,reader:frame.typed_fields.reader,','reader:frame.typed_fields.reader,',node('background','post18df asking preparation uses value-free'))
+case('post18df-connection-identity','control/aresos_control/chrome/bridge.py','self.connection_identity = uuid.uuid4().hex','self.connection_identity = self.session','test_bridge.Handshake.test_post18df_reconnecting_the_same_browser_session_changes_private_connection_identity',True)
+case('post18df-connection-before-read',A,"operation['payload'].get('read_connection')!=self.bridge.connection_identity or ",'','test_questions.Questions.test_post18df_connection_frame_reader_and_element_identity_changes_retire_approval',True)
+case('post18df-connection-final',A,"if payload.get('read_connection')!=self.bridge.connection_identity:raise NothingLeft('The prepared browser connection changed; prepare a fresh read.')",'','test_questions.Questions.test_post18df_connection_change_after_revalidation_cannot_read_values',True)
+case('post18df-withheld-form-prepare',A,"if any(field.get('unknown_history') for field in (state.get('form') or {}).get('fields',[])):",'if False:','test_questions.Questions.test_post18df_form_with_withheld_values_refuses_before_reload_or_preparation',True)
+case('post18df-withheld-form-wait',A,'refuse_withheld_form(fresh)','pass','test_questions.Questions.test_post18df_form_added_withheld_field_and_changed_value_cannot_use_waiting_approval',True)
+case('post18df-withheld-form-final',B,"if((command.kind||command.name==='resume'||submitting)&&frame?.form?.fields.some(field=>field.unknown_history))",'if(false)',node('background','post18df final native boundary refuses forms'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

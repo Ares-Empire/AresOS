@@ -49,7 +49,7 @@ try {
   tab=current.items.find(item=>item.url==='http://fixture.test:8765/?case=compose'&&item.active&&item.focused)?.tab;assert.ok(tab !== undefined);
   await call('take_tab',{tab});
   const takenRead=await target('Send');
-  const firstInput=await rpc('click',takenRead);assert.equal(firstInput.ok,false);assert.equal(firstInput.error.code,'stale_reference');assert.equal(counts('compose'),0);
+  const firstInput=await rpc('click',takenRead);assert.equal(firstInput.ok,false);assert.equal(firstInput.error.code,'reload_required');assert.equal(counts('compose'),0);const acknowledged=await rpc('click',{...takenRead,reload_taken_tab:true});assert.equal(acknowledged.ok,false);assert.equal(acknowledged.error.code,'stale_reference');assert.equal(counts('compose'),0);
   await eventually(async()=>{const current=await target('Send');return current.reference.document!==takenRead.reference.document;},'taken tab first input reloads and stales old references');
   execFileSync('import',['-window','root','/out/controlled.png']);
   const processes=execFileSync('ps',['-C','chrome','-o','pid,args'],{encoding:'utf8'});assert.doesNotMatch(processes,/--no-sandbox|--remote-debugging-(port|pipe)/);
