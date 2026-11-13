@@ -10,8 +10,8 @@ export function popupPage(url){
     script:`let child;document.querySelector('button').onclick=()=>{child=window.open(${JSON.stringify(mode==='post'?'about:blank':child)},${JSON.stringify(name)},'popup,width=620,height=480');};window.addEventListener('message',event=>{if(event.source===child&&event.origin==='http://popup.test:8766'&&event.data===${JSON.stringify(id)})fetch('/receive?case=flow-'+${JSON.stringify(id)},{method:'POST',body:'opener relationship preserved'});});`,
   };
   return {
-    body:`<input aria-label="Draft" value="Saved"><form method="post" action="/receive?case=${id}" target="sink"><input name="draft" value="Saved"><button type="button">Continue</button></form><iframe name="sink" hidden></iframe>`,
-    script:`document.title='Popup '+${JSON.stringify(id)};const firstSubmit=HTMLFormElement.prototype.submit,documentToken=Date.now()+'-'+Math.random();const probes=new EventSource('/events?id='+${JSON.stringify(id)});probes.onmessage=event=>{const change=JSON.parse(event.data);if(change.change==='popup-probe'){fetch('/receive?case=state-'+${JSON.stringify(id)},{method:'POST',body:JSON.stringify({document:documentToken,opener:!!opener,openerClosed:opener?.closed,name:window.name,draft:document.querySelector('input').value})});fetch('/mutation-ack?nonce='+change.nonce);}};fetch('/receive?case=loaded-'+${JSON.stringify(id)},{method:'POST',body:JSON.stringify({opener:!!opener,name:window.name,outerWidth,outerHeight})});${mode==='dirty'?"document.querySelector('input').value='Unsaved';":''}document.querySelector('button').onclick=()=>{opener?.postMessage(${JSON.stringify(id)},'http://fixture.test:8765');firstSubmit.call(document.querySelector('form'));};`,
+    body:mode==='typed-clean'?`<input aria-label="Draft" value="Saved"><form method="post" action="/receive?case=${id}" target="sink"><input name="draft" value="Saved"><button type="button">Continue</button></form><iframe name="sink" hidden></iframe>`:`<textarea aria-label="Draft">Saved</textarea><form method="post" action="/receive?case=${id}" target="sink"><textarea name="draft">Saved</textarea><button type="button">Continue</button></form><iframe name="sink" hidden></iframe>`,
+    script:`document.title='Popup '+${JSON.stringify(id)};const firstSubmit=HTMLFormElement.prototype.submit,documentToken=Date.now()+'-'+Math.random();const probes=new EventSource('/events?id='+${JSON.stringify(id)});probes.onmessage=event=>{const change=JSON.parse(event.data);if(change.change==='popup-probe'){fetch('/receive?case=state-'+${JSON.stringify(id)},{method:'POST',body:JSON.stringify({document:documentToken,opener:!!opener,openerClosed:opener?.closed,name:window.name,draft:document.querySelector('input,textarea').value})});fetch('/mutation-ack?nonce='+change.nonce);}};fetch('/receive?case=loaded-'+${JSON.stringify(id)},{method:'POST',body:JSON.stringify({opener:!!opener,name:window.name,outerWidth,outerHeight})});${mode==='dirty'?"document.querySelector('input,textarea').value='Unsaved';":''}document.querySelector('button').onclick=()=>{opener?.postMessage(${JSON.stringify(id)},'http://fixture.test:8765');firstSubmit.call(document.querySelector('form'));};`,
   };
 }
 
@@ -25,14 +25,14 @@ export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab
   const evidence=(id,phase)=>console.log('POPUP RECEIVER',id,phase,JSON.stringify(fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')?.includes(id))));
   await check('GROUP 8 popups preserve opener flow and guard first input without moving windows',async()=>{
     const tab=getTab();
-    for(const mode of ['clean','dirty']){
+    for(const mode of ['clean','dirty','typed-clean']){
       const id='popup-'+mode;await nav('popup-opener&id='+id+'&mode='+mode);const parent=(await call('tabs',{limit:10})).items.find(item=>item.tab===tab);const open=(await call('read',{tab})).untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Open window');
       await call('click',{reference:open.reference,expected:open.expected});const popup=await find(id);await eventually(async()=>(await find(id)).controlled,'private popup group');
       assert.notEqual(popup.window,parent.window,'the popup must remain separate from its opener window');
       await eventually(()=>counts('loaded-'+id)===1,'initial popup load');const before=await target(popup.tab);await rows(popup.tab);assert.equal(counts('loaded-'+id),1,'read preserves popup');
       const nativeBefore=await popupEvidence(id,'before');
-      const first=await rpc('click',before);assert.equal(first.ok,false);assert.equal(first.error.code,mode==='dirty'?'reload_required':'stale_reference');
-      if(mode==='dirty'){assert.equal(counts('loaded-'+id),1);const repeated=await rpc('click',{...before,reload_taken_tab:true});assert.equal(repeated.error.code,'stale_reference');}
+      const first=await rpc('click',before);assert.equal(first.ok,false);assert.equal(first.error.code,mode==='clean'?'stale_reference':'reload_required');
+      if(mode!=='clean'){assert.equal(counts('loaded-'+id),1);const repeated=await rpc('click',{...before,reload_taken_tab:true});assert.equal(repeated.error.code,'stale_reference');}
       await eventually(()=>counts('loaded-'+id)===2,'one guarded reload');const fresh=await target(popup.tab);assert.notEqual(fresh.reference.document,before.reference.document);assert.equal((await rpc('click',before)).ok,false);
       const loads=fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')==='loaded-'+id).map(row=>JSON.parse(row.body));
       assert.equal(loads.length,2);assert.ok(loads.every(load=>load.opener));assert.equal(loads[1].name,loads[0].name);

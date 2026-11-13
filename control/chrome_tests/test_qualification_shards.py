@@ -42,6 +42,33 @@ class QualificationShards(unittest.TestCase):
         combined=workflow.split('  qualification-combine:')[1].split('  qualification-publish:')[0]
         self.assertLess(combined.index('cp -R ../driver/control/chrome_tests/.'),combined.index('merge-python.py'))
 
+    def test_python_shard_launcher_is_import_safe_for_spawned_workers(self):
+        WORK.mkdir(parents=True,exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=WORK) as folder:
+            root=Path(folder);script=root/'control/chrome/ci/python-shard.py';script.parent.mkdir(parents=True)
+            shutil.copyfile(ROOT/'control/chrome/ci/python-shard.py',script)
+            tests=root/'control/chrome_tests';tests.mkdir(parents=True)
+            (tests/'test_spawn_probe.py').write_text("""import multiprocessing
+import unittest
+
+def work(queue):
+    queue.put('separate worker completed')
+
+class Probe(unittest.TestCase):
+    def test_worker_completes_without_reentering_the_suite(self):
+        context=multiprocessing.get_context('spawn');queue=context.Queue()
+        child=context.Process(target=work,args=(queue,));child.start();child.join(10)
+        if child.is_alive():child.terminate();child.join()
+        self.assertEqual(child.exitcode,0)
+        self.assertEqual(queue.get(timeout=1),'separate worker completed')
+""")
+            out=root/'out';env={**os.environ,'PYTHON_SHARD':'0','TEST_OUT':str(out)}
+            result=subprocess.run([sys.executable,'-B',str(script)],env=env,capture_output=True,text=True,timeout=30)
+            self.assertEqual(result.returncode,0,result.stderr)
+            proof=json.loads((out/'python-shard-0.json').read_text())
+            self.assertTrue(proof['successful']);self.assertEqual(proof['tests'],1)
+            self.assertEqual(proof['modules'],['test_spawn_probe'])
+
     def test_every_immutable_pair_expands_to_the_complete_partition_under_matrix_limit(self):
         WORK.mkdir(parents=True,exist_ok=True)
         with tempfile.TemporaryDirectory(dir=WORK) as folder:

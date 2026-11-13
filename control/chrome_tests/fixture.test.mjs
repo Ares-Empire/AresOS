@@ -33,7 +33,7 @@ test('popup state probe uses the receiver mutation protocol and preserves docume
   let probe;const sent=[];const input={value:'Draft kept'};
   const page=popupPage(new URL('http://popup.test/?case=popup-child&id=probe&mode=clean'));
   vm.runInNewContext(page.script,{
-    document:{title:'',querySelector:selector=>selector==='input'?input:{}},
+    document:{title:'',querySelector:selector=>selector==='input,textarea'?input:{}},
     HTMLFormElement:{prototype:{submit(){throw Error('probe must never submit')}}},Date:{now:()=>123},Math:{random:()=>0.5},
     EventSource:class{set onmessage(value){probe=value;}},fetch:(...args)=>{sent.push(args);return Promise.resolve();},
     opener:{closed:false},window:{name:'same-popup'},outerWidth:620,outerHeight:480,

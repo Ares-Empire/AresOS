@@ -16,7 +16,7 @@ export function reviewPage(url){
     body='<button type="button" id="open">Open window</button><button type="button" id="continue">Continue</button>';
     script=`let child;document.querySelector('#open').onclick=()=>{child=window.open('/?case=review-page&mode=cross-tab-inner&id='+${JSON.stringify(id)},'_blank');};document.querySelector('#continue').onclick=()=>HTMLFormElement.prototype.submit.call(child.document.querySelector('form'));`;
   }else if(mode==='cross-tab-inner'){
-    body=form('<button type="button">Ready</button>')+sink;
+    body=`<form method="post" action="${receive}" target="sink"><textarea name="draft">Saved</textarea><button type="button">Ready</button></form>`+sink;
   }else if(mode==='mixed-adapter'){
     body='<main><p aria-label="Signed in as">Synthetic account</p><textarea aria-label="Enter a prompt here">Synthetic question</textarea><button type="button"'+(variant==='none'?'':' title="'+variant+'"')+'>Send</button></main>';
     script=`document.querySelector('button').onclick=()=>${send};`;

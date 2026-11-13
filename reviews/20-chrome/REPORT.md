@@ -129,6 +129,28 @@ A production-reader removal probe and an older-runtime/current-driver merger
 regression cover the fixes. The independent [security review](BUILD-POST18D-SECURITY-1.md) also found split associated labels bypassing the credential check. Both referenced and associated labels now combine their value-free text before classification. Watched, late and approved reads are covered. **347 Node tests pass**, **15 focused Python tests pass**, and **270 removal probes reject their mutation, with every baseline passing**. Scoped re-checks are pending. The first full sharded/latency run is `43462608845` (**238** total); its
 result will not be final-head acceptance because of these fixes.
 
+**Scoped reviews:** [package](BUILD-POST18D-RECHECK-1.md) and
+[security](BUILD-POST18D-SECURITY-RECHECK-1.md) both return **SAFE** on
+`6e79f1f5`, with independent removal probes. This closes their reported fixes,
+not the still-pending full CI and latency work.
+
+**First sharded run — failed, retained:** `43462608845` at `cdd1cbcb` passes
+all four word slices in both installs, adapters and round-3 slices. The actual
+native CLI [group-12 receipt](records/post18d/native-precedence-43462608845.json)
+passes all ten normal/skip and owner-entry cases. Python shards exposed an
+unguarded launcher re-entering tests under multiprocessing spawn; the main guard
+is fixed and an actual subprocess/worker regression passes. Latency jobs failed
+before browser startup because the Dockerfile path referred outside the tar
+context; that path is fixed. No measurement was produced or invented.
+
+Core, review and popup slices found the expected new conservative reload warning
+on unread single-line fields. Their original clean-reload assertions remain:
+clean fixtures use unchanged readable textareas. Additional unchanged single-line
+fixtures require preservation, explicit acknowledgement, one reload and stale old
+references. Dirty/media, receiver, window/opener and replay assertions remain.
+The aggregate correctly refused incomplete shards. Replacement dispatch brings
+the count to **239**; no final acceptance is claimed.
+
 **Runs:** opening count **233** distinct `control-chrome.yml` runs (lead's count).
 Destination-only dispatch `43451063290` used **234** and failed at the first
 blank-frame base case. The new fixture had duplicate blank-frame addresses, so

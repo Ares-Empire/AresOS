@@ -83,7 +83,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     await call('take_tab',{tab});
   });
   await check('GROUP 8 taken tabs preserve reads and guard the first input reload',async()=>{
-    for(const mode of ['clean','dirty','media']){
+    for(const mode of ['clean','dirty','media','typed-clean']){
       const id='taken-'+mode;await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode);
       await eventually(()=>counts('loaded-'+id)===1,'taken page initial load');
       if(mode==='media'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'native media started');}
