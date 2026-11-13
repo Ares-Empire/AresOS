@@ -7,7 +7,8 @@
   owner's board #216 acceptance. No binding/refusal change is open.
 - **Post-18d:** base-URL/SVG class, main/slim integration, group 12, measured
   expiry optimization and sharding are done. Main is merged through `b2b51107`.
-  Final code head is **`0ca3f6d7`**; subsequent commits contain evidence/report only.
+  Candidate **`0ca3f6d7`** has a final-pair fixture failure; it is not accepted.
+  Runtime remains `e0cc9846` / `b9de9a97…` and is unchanged by the proposed fixture fix.
   On that head, **268 Python, 370 Node/artifact and 315 removal probes pass**, every
   mutation baseline passing. Generator, diff and exact-unit checks pass.
 - **Mail diagnostic:** `43513676712` passed all four suites and eight complete
@@ -16,26 +17,31 @@
   boundary `43521486793` (17 interactive
   cases and 20 boundary unit tests each attempt), qualification `43521486667`
   (47 Python and 365 Node tests each). Their blockers are closed.
-- **In flight on the final code head:** Chrome push **`43521476596`** (watch session
-  `64588`) and PR **`43521486785`** (`56197`); Mail **`43521486798`** (`77388`,
-  first underway).
-  Each has one blocking watcher; Mail repeats after its first success.
+- **Open FIX:** Chrome push `43521476596` failed the preexisting-dialog recovery
+  fixture in both installs. Its post-reload read has revision 3; the click facts
+  have revision 4 with identical rows/editables, so the runtime correctly refuses
+  before dispatch. Both aggregate failures follow from the missing review shard.
+  Fix the fixture's reload/view settling, retain strict stale and receiver checks;
+  no asking-read binding or withheld-form refusal is reopened.
+- **In flight on the superseded candidate:** Chrome PR **`43521486785`** (watch
+  session `56197`); Mail **`43521486798`** (`77388`, first underway, helper would
+  repeat after success). Do not count them as final acceptance after a fix.
 - **Budget:** **251 / about 280** Chrome workflow runs, including this final pair.
-- **Exact next step:** resume these three watchers (if stopped, start one blocking
-  watch per run). Inspect `.work/post18d/acceptance/` receipts before requesting
-  any rerun. Finish both Mail attempts and both Chrome
-  runs; independently audit both Chrome installs in both runs, require all 92
-  original round-3 case names, and rerun both measured latency gates. The
-  metadata-only helper is `.work/post18d/fetch-final-chrome.py RUN`. Commit receipts
-  and update this Handover with `[skip ci]` at each finished step. Keep PR #27 draft.
+- **Exact next step:** add a fixture-only wait for a changed document and stable
+  Ready view before the single follow-up click, with a plain-Node delayed-parser
+  regression and removal probe. Get a scoped fixture review, checkpoint with
+  `[skip ci]`, then freeze a new candidate and repeat final local checks and the
+  full pair/every named Control workflow twice on that head. Finish/record the
+  existing PR watcher. Superseded own Mail may be cancelled to avoid its obsolete
+  second execution. Keep the runtime and both credential/asking protections unchanged.
 
-# Post-18d integration — final repetitions pending
+# Post-18d integration — fixture correction and final repetitions pending
 
 **Current status:** the base-URL/SVG class, credential/late-reader work, slim
 integration and reported review FIXes are closed. The runtime is frozen at
 `e0cc9846` (`b9de9a97d18c56090421614364239471ef82b8c1002ee1696f86ba39d2afb3b4`).
 The measured regression reference and CI gate use the ceilings set by the lead
-(mac-aresos-control, 2026-11-13, addendum-g). Final acceptance is pending; PR #27
+(mac-aresos-control, 2026-11-13, addendum-g). Final acceptance is blocked by the reload-view fixture correction below; PR #27
 remains draft.
 
 **Done:**
@@ -127,6 +133,16 @@ and [qualification](records/post18d/final-qualification-43521486667.json) pass
 both attempts on `0ca3f6d7`. Base reports 309 tests each. Boundary reports `CONTROL_INTERACTIVE_ASK_PASS cases=17`
 and 20 unit tests each; qualification reports 47 Python, 365 Node, zero failed
 and zero skipped each.
+
+**Failed final push run `43521476596`:** both review shards fail at the single
+Ready click after preexisting-dialog handoff/reload. The retained bridge facts
+show the new document changing revision 3→4 between read and click, with identical
+rows/editables. Runtime `view_identity` correctly refuses the obsolete view before
+input. The aggregate errors are the required missing-shard rejection, not an
+independent case failure. [Trace proof](records/post18d/review-reload-failure-43521476596.json),
+[artifact hashes](records/post18d/review-reload-artifacts-43521476596.json),
+[jobs](records/post18d/chrome-failed-43521476596-jobs.json). This candidate is not
+accepted; final-head repetitions restart after the fixture correction.
 
 **Still required:** Mail twice and the Chrome pair on final code head
 `0ca3f6d7`, with both Chrome installs and independent receiver audits. The pair
