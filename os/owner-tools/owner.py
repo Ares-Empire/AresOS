@@ -2395,7 +2395,7 @@ def update_tools(payload, fingerprint, host, intent):
     staged, held, retired = HOME / '.update-tools', HOME / '.tools-held', HOME / 'retired-tools'
     published = HOME / ('tools-' + fingerprint)
 
-    def system_ready():
+    def system_ready(resolve=False):
         # The new tools must accept today's system before they replace the old ones.
         checker = Tools(payload, host, HOME / 'records')
         require(not (checker.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
@@ -2403,7 +2403,13 @@ def update_tools(payload, fingerprint, host, intent):
             require(checker.load('prepare-intent').get('phase') == 'complete', 'Prepare is unfinished; get help')
         state = observations(host)
         idle(state, checker.processes())
+        if not resolve:
+            # Until publication, settle_tools can restore version 2. Judge with the new
+            # rules, but leave its records readable by that old code after a cut.
+            checker.archive = lambda *args: None
+            checker.save = lambda name, value: require(name == OUTCOME, 'Unexpected readiness write')
         checker.qualified(state)
+        return getattr(checker, 'notes', [])
 
     def exclusive():
         running = installed_commands(HOME)
@@ -2483,7 +2489,9 @@ def update_tools(payload, fingerprint, host, intent):
         system_ready()
         advance('retire')
     require(checked_bundle(published) == fingerprint and entry_toolset() == 'tools-' + fingerprint, 'Published tools differ; get help')
+    notes = []
     if intent['phase'] == 'retire':
+        notes = system_ready(resolve=True)
         # Only now, with the new tools published, does the old copy retire.
         source = held if old_name == 'tools' else current
         if source.exists() or source.is_symlink():
@@ -2509,7 +2517,7 @@ def update_tools(payload, fingerprint, host, intent):
         advance('complete')
     return ['Tools updated from version ' + str(intent['previous_version']) + ' to ' + str(intent['tools_version']),
             'manifest SHA256 ' + fingerprint, 'Previous tools kept in /var/lib/ares/retired-tools (private)',
-            'Release target ' + new['releases'][-1]['reference']]
+            'Release target ' + new['releases'][-1]['reference'], *notes]
 
 
 def install(payload, host=None):

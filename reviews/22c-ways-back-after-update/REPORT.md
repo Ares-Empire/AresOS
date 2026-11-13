@@ -1,8 +1,8 @@
 # 22c: every way back works after an update — builder report
 
 Brief: `briefs/22c-ways-back-after-update.md`. Branch `pkg/22c-ways-back-after-update`, cut from main `6cca14b6`.
-PR #46 (draft). Stage 0 is captured; stage 1a step 2 stops on the A4/A6 versus B2 rule conflict documented
-below. Stages 1b and 2 are not started. Shorthand: R27 the newer AresOS, R13 the older one, S the pinned stock.
+PR #46 (draft). Stage 0 is captured; step 2b closed the model under the destination follow-up.
+Stage 1a step 3 is in progress below. Stages 1b and 2 are not started. Shorthand: R27 the newer AresOS, R13 the older one, S the pinned stock.
 
 ## Stage 0 (P): the reorder probe
 
@@ -926,3 +926,84 @@ that call and must reproduce the assertion failure. This changes no schema, dest
 The older fake failures exposed additional missing observations only after the first fixture repair let
 those tests reach their later assertions. The route test's new diagnostic follows A7's repair-note support;
 no guide, route sequence or binding assertion is changed.
+
+### B8 and the publication boundary (implementation pending hosted verification)
+
+`test_ways_back_compatibility.py` loads the exact version-2 `owner.py` and manifest-listed payload bytes from
+`41b06513` with `git show`, checks fingerprint `851eb742…`, and executes that code as an imported module.
+It never invokes an installed owner entry. Synthetic rows use the real R13/R27 references for this matrix.
+
+Coverage added:
+
+- The 13 named shapes accepted by version 2 over its unchanged two-release history: six resting pairs,
+  four resting triples, prepared stock, first switch staged, and an update staged over a pair. The
+  prepared-single-stock and single-stock first-switch variants are checked separately. Old and new
+  first-install title output must be equal. Tools update runs over every one of those states.
+- Each modified-deployment field and `unlocked` remains readable and accepts a tools update, preserving
+  step 1's PLAN-GAP 5 (changing deployments still refuses modifications).
+- Both named stuck states, with no journal and with version 2's actual `previous` intent and record,
+  plus stock after previous. Also both before/intended orders × each running row × intent/record ×
+  same/later boot during tools update. A journal's keys, running identity and boot id remain distinct.
+- Version 2's own `intend`/`finish` produce update/previous records. A literal expected-outcome table
+  checks same-boot staging's exception, pending, confirmed, elsewhere and not-applied; old accepted
+  outcomes remain the same. Lost staging, an unknown list and a stage still present after a restart
+  stay separate. Reading an old intent may never repeat its primitive.
+- Version 2 writes the layout trial, revert, proof, interrupted finish (one and both persistent writes),
+  completed and abandoned records and the title. Version 3 reads/continues them. A version-2 finish cut
+  followed by version-3 revert must preserve `finish_proof` beside `proof: null`, and fresh-login abandon
+  must restore the old persistent settings. Old records without that additive field still work.
+- Version 2's actual `settle_tools` reads version 3's `tools-update1` at every copy, rename and record-write
+  cut before publication, for first-install and versioned old directories. The old entry and verified
+  toolset must return, remain unretired, and version 3 must resume the update. Unknown change schemas
+  refuse both reads and tools update with unchanged records/deployments.
+
+**Defect found (A9, tools update):** version 2 `previous` writes an intent; the reorder happens; a restart
+runs R13; version 3's bootstrap runs `system_ready()`; that calls the new `qualified()` and writes a
+`change1` record **before publication**. A cut then returns the old version-2 entry via `settle_tools`, but
+version 2 cannot read that new record. Even a refused tools update could prematurely change its records.
+The same readiness call could archive a not-applied record and silently lose its explanation.
+
+Fix: both pre-publication readiness calls judge the list/journal with the new rules while suppressing
+journal writes/archives. Once the tools journal says `retire` (new tools published), resolve persistently,
+also on a resumed `retire`, and return the resolution notes with the existing install result. The
+`tools-update1` schema, phases and fields are unchanged. The regression asserts byte/data preservation
+of the old intent after the first tools-journal cut, version 2's `complete` result, then a resumed update.
+A second test binds the archive to `retire` and requires the “was not applied” line.
+
+The payload's `owner.py` and its two generated hash manifests were refreshed solely to keep that fix equal
+to its source (brief's stage-1a source-consistency provision). The bundle inventory, release history,
+commands, old scripts and published fingerprint pins are untouched; all inventory/pin work remains 1b.
+
+**B11 additions:** removing legacy-journal support fails the literal outcome table; restoring version 2's
+shape gate fails the named stuck-state install assertions; premature readiness writes fail the old-intent
+preservation assertion; changing `tools-update1` is rejected by actual version-2 recovery. Earlier steps'
+A1–A11 and fake mutants remain intact.
+
+**JUDGMENT-CALL:** readiness is a read-only preview until publication, rather than migrating records while
+the old tools can still become current. New tools persist the same A5 decision immediately after publication.
+This keeps version 2's recovery route usable; it changes no destination, schema or owner command. Reverting
+this choice costs the demonstrated unreadable-old-record window. No new owner-facing rule is requested.
+
+**PLAN-GAP:** A9's requirement to judge readiness with the new rules did not specify when that judgment's
+journal writes become safe. The publication boundary is necessary for its old-reader compatibility guarantee.
+
+
+Part (a)'s fixes were committed and pushed separately as `6b0e209b`, after initial checkpoint `85c037b1`.
+The next hosted run tests those fixes together with B8/B11. The old card-route helper still models the
+current guide's old missing-trial quote; only the handler's new A7 diagnostic assertion changed here.
+Stage 1b must update that guide quote and its route expectation together.
+
+Additional local verification (one test module at a time, `nice -n 10`, memory ≥4500 MB):
+
+- After the tools-update readiness fix, `cd os/tests && nice -n 10 python3 -m unittest test_ways_back`:
+  **34 tests in 11.972s, OK**; `nice -n 10 python3 -B -m unittest test_ways_back`: **34 in 11.869s, OK**.
+- `nice -n 10 python3 -m unittest test_ways_back_model`: **15 in 378.339s, OK**; **486627 states,
+  12176910 edges, 249475 executions, 11927435 reuses, queue exhausted** (377.541s exploration). This process
+  started before the `records` ordering fix; the final source's `-B` rerun is in progress.
+- Import-only audit of B8: the historical acceptance predicate accepts **13** candidates; 15 manifest-listed
+  version-2 payload files verified. No compatibility test method or `test_owner_update` suite ran locally.
+- AST parsing of the new compatibility module and changed owner source: OK. The B8 module has **21** tests,
+  including five executable B11 proofs. Hosted execution remains required.
+
+**B11 records proof:** removing `records`' first `survey()` reruns the real four-cut interruption test and
+must fail its unchanged-private-records assertion, with no unrelated test error.
