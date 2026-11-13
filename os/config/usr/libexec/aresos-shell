@@ -1,17 +1,24 @@
 #!/usr/bin/python3
-"""AresOS app helper: the OS side of the aresos-shell/1.0 interface.
+"""AresOS app helper: the OS side of the aresos-shell/1.1 interface.
 
 Design: docs/design/OS-BASE.md Appendix B1 (mod and OS interface v1) and B2
 (supervision and focus). The desktop mod connects over a private Unix socket
-and never sends a command. It names an app ID; this helper starts the reviewed
-launch definition from /usr/share/aresos/apps in its own systemd user scope,
+and never sends a command. It names an app ID; this helper starts a reviewed
+definition or a discovered desktop entry in its own systemd user scope,
 watches the app's windows and tells the mod when focus moves.
 
 Wire format: one UTF-8 JSON object per line, at most 64 KiB per line.
-  request  {"protocol": "aresos-shell/1.0", "id": <request id>, "op": <operation>, ...}
+  request  {"protocol": "aresos-shell/1.1", "id": <request id>, "op": <operation>, ...}
   reply    {"protocol": ..., "id": <request id>, "ok": true, ...}
            {"protocol": ..., "id": <request id or null>, "ok": false, "error": <code>, "message": <text>}
-  event    {"protocol": ..., "id": <event id>, "event": "app_state" | "shell_focus", ...}
+  event    {"protocol": ..., "id": <event id>, "event": "app_state" | "shell_focus" | "apps_changed", ...}
+
+Minor 1 adds app_details, list_paging and apps_changed. list_apps returns an
+ID-ordered page with revision and optional next; cursor requests the next page.
+Only icon paths and bounded descriptive metadata leave the helper, never launch
+commands or environment. Folder/file times are polled every three seconds;
+icons arrive asynchronously. Minor 0 keeps the original starter-only list,
+revision and launch access. Examples: mod/src/test/resources/shell-1.1/.
 
 Operations (B1): hello, list_apps, open_app, world_ready, heartbeat. Everything
 else, including the guardian's request_power, prepare_stop and save_complete
@@ -73,7 +80,7 @@ LOG = logging.getLogger('aresos-shell')
 
 NAME = 'aresos-shell'
 MAJOR = 1
-MINOR = 0
+MINOR = 1
 MAX_MESSAGE = 64 * 1024
 MAX_OUTGOING = 1024 * 1024
 MAX_CONNECTIONS = 8
@@ -106,6 +113,8 @@ SYSTEMCTL = '/usr/bin/systemctl'
 # The desktop mod sets this Wayland app_id (and X11 class) on its own window.
 DESKTOP_APP_IDS = frozenset({'aresos-desktop'})
 BASE_CAPABILITIES = frozenset({'list_apps', 'open_app', 'app_state', 'world_ready', 'heartbeat'})
+DETAIL_CAPABILITIES = frozenset({'app_details', 'apps_changed', 'list_paging'})
+CATALOGUE_CHECK = 3.0
 WINDOW_CAPABILITIES = frozenset({'shell_focus', 'windows'})
 # The launch secrets stay with the desktop; launched apps never inherit them,
 # nor the helper's own service plumbing.
@@ -186,6 +195,12 @@ class App:
     terminal: bool = False
     icon_name: str = ''
     icon: str = None
+    source: str = None
+    categories: tuple = ()
+    generic_name: str = None
+    keywords: tuple = ()
+    desktop_id: str = None
+    exec_name: str = None
 
 
 ENTRY_KEYS = {'schema', 'id', 'name', 'argv', 'desktop_entry', 'working_directory', 'window', 'replaces', 'gpu'}
@@ -432,7 +447,7 @@ def _unescape_string(value):
     return ''.join(result)
 
 
-# ---------------------------------------------------------------- desktop discovery (wired to 1.1 in package 30 step 4)
+# ---------------------------------------------------------------- desktop discovery
 
 def desktop_directories(environ=None):
     environ = os.environ if environ is None else environ
@@ -534,6 +549,20 @@ def terminal_app_id(app):
     return 'aresos.app.' + app.id
 
 
+def detail_text(value, limit):
+    return ''.join(c for c in _unescape_string(value).strip() if c.isprintable())[:limit]
+
+
+def desktop_details(desktop_id, values):
+    categories = tuple(dict.fromkeys(word for word in values.get('Categories', '').split(';')
+                                     if re.fullmatch(r'[A-Za-z0-9-]{1,32}', word)))[:16]
+    keywords = tuple(dict.fromkeys(word for value in re.split(r'(?<!\\);', values.get('Keywords', ''))
+                                   if (word := detail_text(value.replace(r'\;', ';'), 32))))[:16]
+    return dict(icon_name=_unescape_string(values.get('Icon', '')), categories=categories,
+                generic_name=detail_text(values.get('GenericName', ''), 64) or None,
+                keywords=keywords, desktop_id=desktop_id if len(desktop_id) <= 128 and desktop_id.isprintable() else None)
+
+
 def discovered_app(desktop_id, path, values, executable):
     if (desktop_bool(values, 'Hidden') or desktop_bool(values, 'NoDisplay')
             or values.get('Type') != 'Application'):
@@ -571,25 +600,55 @@ def discovered_app(desktop_id, path, values, executable):
     if terminal:
         identities = [terminal_app_id(App(app_id, name))]
     identities = tuple(dict.fromkeys(value for value in identities if WINDOW_ID.fullmatch(value)))
+    exec_name = values.get('X-Flatpak') or (desktop_id[:-len('.desktop')]
+                                           if os.path.basename(program) == 'flatpak' and 'run' in argv[1:]
+                                           else os.path.basename(program))
+    exec_name = detail_text(exec_name, 128)
     return App(app_id, name, tuple(argv), desktop_entry=desktop_id,
                working_directory=directory if os.path.isabs(directory) else '~',
                app_ids=identities, instance=None, discovered=True, terminal=terminal,
-               gpu='discrete' if discrete else None, icon_name=_unescape_string(values.get('Icon', '')))
+               gpu='discrete' if discrete else None,
+               exec_name=exec_name if '/' not in exec_name else None,
+               **desktop_details(desktop_id, values))
 
 
-def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None):
-    """Catalogue plumbing. The 1.0 server deliberately still uses load_registry()."""
+def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None, dependencies=None):
+    """Keep reviewed launch policies; desktop replacements contribute presentation only."""
     apps, revision = load_registry(registry_dir)
+    apps = {key: dataclasses.replace(app, source='image') for key, app in apps.items()}
     owners = {identity for app in apps.values() for identity in app.app_ids} | DESKTOP_APP_IDS
     executable = executable or executable_file
     replaced = {desktop_id for app in apps.values() for desktop_id in app.replaces}
     replaced.update(app.desktop_entry for app in apps.values() if app.desktop_entry)
-    digest = hashlib.sha256(revision.encode())
-    for desktop_id, path in desktop_files(desktop_directories(environ) if entry_dirs is None else entry_dirs):
+    directories = tuple(desktop_directories(environ) if entry_dirs is None else entry_dirs)
+    entries = dict((desktop_id, path) for desktop_id, path in desktop_files(directories))
+    for key, app in list(apps.items()):
+        for desktop_id in dict.fromkeys((*app.replaces, *((app.desktop_entry,) if app.desktop_entry else ()))):
+            if desktop_id not in entries:
+                continue
+            try:
+                values = read_desktop_entry(entries[desktop_id])
+                if desktop_bool(values, 'Hidden') or values.get('Type') != 'Application':
+                    continue
+                apps[key] = dataclasses.replace(app, **desktop_details(desktop_id, values))
+                break
+            except (OSError, ValueError) as error:
+                LOG.warning('desktop entry %r skipped: %r', entries[desktop_id], error)
+    for desktop_id, path in entries.items():
         if desktop_id in replaced:
             continue
         try:
-            app = discovered_app(desktop_id, path, read_desktop_entry(path), executable)
+            values = read_desktop_entry(path)
+            if dependencies is not None:
+                words = [_unescape_string(values.get('TryExec', ''))]
+                if values.get('Exec'):
+                    words.append(_desktop_argv(values, path, forwarding=True)[0])
+                for word in words:
+                    if os.path.isabs(word):
+                        dependencies.add(word)
+                    elif word and '/' not in word:
+                        dependencies.update(os.path.join(folder, word) for folder in EXEC_PATH.split(':'))
+            app = discovered_app(desktop_id, path, values, executable)
         except (OSError, ValueError) as error:
             LOG.warning('desktop entry %r skipped: %r', path, error)
             continue
@@ -602,15 +661,71 @@ def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None)
             LOG.warning('catalogue cut at MAX_APPS=%d', MAX_APPS)
             break
         # Even an unavailable reviewed entry reserves its identities; discovery never disables another app.
-        app = dataclasses.replace(app, app_ids=tuple(identity for identity in app.app_ids if identity not in owners))
+        source = next(('user', 'flatpak-user', 'flatpak-system', 'system', 'system')[min(i, 4)]
+                      for i, folder in enumerate(directories) if os.path.commonpath((folder, path)) == str(folder))
+        app = dataclasses.replace(app, source=source,
+                                  app_ids=tuple(identity for identity in app.app_ids if identity not in owners))
         owners.update(app.app_ids)
         apps[app.id] = app
-        digest.update(json.dumps([app.id, app.name, app.argv, app.desktop_entry, app.working_directory,
-                                  app.terminal, app.gpu, app.app_ids, app.icon_name], ensure_ascii=True).encode())
+    digest = hashlib.sha256(revision.encode())
+    for app in sorted(apps.values(), key=lambda app: app.id):
+        digest.update(json.dumps(dataclasses.asdict(app), sort_keys=True,
+                                 default=lambda value: sorted(value)).encode('utf-8'))
+        digest.update(str(resolve(app, executable)[2]).encode())
     return apps, digest.hexdigest()[:16]
 
 
-# ---------------------------------------------------------------- icons (wired to 1.1 in package 30 step 4)
+class Catalogue:
+    """Stat before parsing; even repeated list requests do at most one pass every three seconds."""
+
+    def __init__(self, registry_dir, environ=None, entry_dirs=None, executable=None):
+        self.registry_dir = registry_dir
+        self.environ = environ
+        self.directories = tuple(desktop_directories(environ) if entry_dirs is None else entry_dirs)
+        self.executable = executable
+        self.signature = None
+        self.apps = {}
+        self.revision = None
+        self.legacy = None
+        self.checked = float('-inf')
+        self.dependencies = set(EXEC_PATH.split(':')) | {TERMINAL_COMMAND[0]}
+
+    def refresh(self, now):
+        if now - self.checked < CATALOGUE_CHECK:
+            return False
+        self.checked = now
+        paths = set(self.dependencies)
+        for folder in (self.registry_dir, *self.directories):
+            paths.add(str(folder))
+            for root, dirs, files in os.walk(folder, followlinks=False):
+                paths.add(root)
+                paths.update(os.path.join(root, name) for name in dirs)
+                paths.update(os.path.join(root, name) for name in files if name.endswith(('.json', '.desktop')))
+        # Executable changes can change visibility or availability without changing an entry.
+        for app in self.apps.values():
+            if app.argv:
+                paths.add(app.argv[0])
+            if app.terminal:
+                paths.add(TERMINAL_COMMAND[0])
+        signature = []
+        for path in sorted(paths):
+            try:
+                info = os.stat(path)
+                signature.append((path, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns))
+            except OSError:
+                signature.append((path, None))
+        if signature == self.signature:
+            return False
+        dependencies = set(EXEC_PATH.split(':')) | {TERMINAL_COMMAND[0]}
+        self.apps, self.revision = load_catalogue(self.registry_dir, self.environ, self.directories, self.executable,
+                                                  dependencies=dependencies)
+        self.dependencies = dependencies
+        self.legacy = load_registry(self.registry_dir)
+        self.signature = signature
+        return True
+
+
+# ---------------------------------------------------------------- icons
 
 MAX_ICON_BYTES = 8 * 1024 * 1024
 MAX_ICON_OUTPUT = 1024 * 1024
@@ -1470,7 +1585,7 @@ class Helper:
 
     def __init__(self, registry_dir, instance, nonce, journal_path, launcher=None, windows=None,
                  activate=None, clock=time.monotonic, executable=None, window_timeout=WINDOW_TIMEOUT, registry=None,
-                 watcher=None, status=no_status, keep_foreground=False):
+                 watcher=None, status=no_status, keep_foreground=False, catalogue=None, icons=None):
         self.instance = instance
         self.status = status
         self.keep_foreground = keep_foreground
@@ -1481,6 +1596,15 @@ class Helper:
         self.keep_target = None
         self.nonce = nonce
         self.apps, self.revision = registry or load_registry(registry_dir)
+        self.catalogue = catalogue
+        self.icons = icons
+        self.catalogue_apps = self.apps
+        self.base_revision = self.revision
+        self.legacy_apps, self.legacy_revision = (catalogue.legacy if catalogue is not None
+                                                 else ({k: a for k, a in self.apps.items() if not a.discovered},
+                                                       self.revision))
+        self.icon_requested = float('-inf')
+        self.cursor_key = secrets.token_bytes(32)
         self.launcher = launcher or ScopeLauncher()
         # Started by build(); tests drive its passes directly.
         self.watcher = watcher or ScopeWatcher(run=self.launcher.run)
@@ -1489,7 +1613,8 @@ class Helper:
         self.clock = clock
         self.executable = executable
         self.window_timeout = window_timeout
-        self.capabilities = BASE_CAPABILITIES | (WINDOW_CAPABILITIES if windows is not None else frozenset())
+        self.capabilities = BASE_CAPABILITIES | DETAIL_CAPABILITIES | (
+            WINDOW_CAPABILITIES if windows is not None else frozenset())
         if windows is not None:
             windows.set_registry(self.apps)
         self.journal = Journal(journal_path, instance, clock)
@@ -1672,7 +1797,7 @@ class Helper:
 
     def emit(self, event, **fields):
         conn = self.desktop
-        if conn is None or event not in conn.capabilities:
+        if conn is None or event not in conn.capabilities or (event == 'apps_changed' and conn.minor < 1):
             return
         self.events += 1
         self.send(conn, dict({'id': f'e-{self.events}', 'event': event}, **fields))
@@ -1699,7 +1824,8 @@ class Helper:
             raise Failure('incompatible_version', f'this helper speaks {protocol()}', close=True)
         capabilities = names(message.get('capabilities', []))
         required = names(message.get('requires', []))
-        missing = sorted(required - self.capabilities)
+        offered = self.capabilities if minor >= 1 else self.capabilities - DETAIL_CAPABILITIES
+        missing = sorted(required - offered)
         if missing:
             raise Failure('incompatible_version', 'missing capabilities: ' + ', '.join(missing), close=True,
                           missing=missing)
@@ -1715,22 +1841,91 @@ class Helper:
             previous.finish()
         LOG.info('desktop connected (minor %d)', conn.minor)
         self.status(event='desktop_connected')
-        return {'major': MAJOR, 'minor': conn.minor, 'capabilities': sorted(self.capabilities)}
+        return {'major': MAJOR, 'minor': conn.minor, 'capabilities': sorted(offered)}
 
     def availability(self, app):
         return resolve(app, self.executable)
 
     def list_apps(self, conn, request_id, message):
-        apps = []
-        for app in sorted(self.apps.values(), key=lambda app: app.id):
-            _, _, reason = self.availability(app)
-            apps.append({'id': app.id, 'name': app.name, 'available': reason is None, 'reason': reason})
-        return {'revision': self.revision, 'apps': apps}
+        self.refresh_catalogue()
+        if conn.minor == 0:
+            return {'revision': self.legacy_revision,
+                    'apps': [self.app_row(app) for app in sorted(self.legacy_apps.values(), key=lambda a: a.id)]}
+        offset = 0
+        if 'cursor' in message:
+            cursor = message['cursor']
+            if not isinstance(cursor, str) or not 0 < len(cursor) <= 64:
+                raise Failure('malformed', 'cursor must be a helper-issued string of at most 64 characters')
+            match = re.fullmatch(r'p([0-9]{1,3})-[0-9a-f]{24}', cursor)
+            if match is None or not hmac.compare_digest(cursor, self.page_cursor(int(match[1]))):
+                raise Failure('invalid_cursor', 'cursor was not issued by this helper; list again without it')
+            offset = int(match[1])
+        rows = [self.app_row(app, details=True)
+                for app in sorted(self.catalogue_apps.values(), key=lambda a: a.id)]
+        page = {'revision': self.revision, 'apps': []}
+        for index in range(offset, len(rows)):
+            trial = dict(revision=self.revision, apps=page['apps'] + [rows[index]])
+            if index + 1 < len(rows):
+                trial['next'] = self.page_cursor(index + 1)
+            envelope = dict(protocol=protocol(conn.minor), id=request_id, ok=True, **trial)
+            if len(json.dumps(envelope, separators=(',', ':'), ensure_ascii=False).encode('utf-8')) + 1 > MAX_MESSAGE:
+                break
+            page = trial
+        return page
+
+    def page_cursor(self, offset):
+        tag = hmac.new(self.cursor_key, str(offset).encode(), 'sha256').hexdigest()[:24]
+        return f'p{offset}-{tag}'
+
+    def app_row(self, app, details=False):
+        _, _, reason = self.availability(app)
+        row = dict(id=app.id, name=app.name, available=reason is None, reason=reason)
+        if details:
+            for key in ('source', 'icon', 'categories', 'generic_name', 'keywords', 'desktop_id', 'exec_name'):
+                if value := getattr(app, key):
+                    row[key] = list(value) if isinstance(value, tuple) else value
+            if app.discovered:
+                row['terminal'] = app.terminal
+        return row
+
+    def refresh_catalogue(self):
+        now = self.clock()
+        previous = self.revision
+        if self.catalogue is not None and self.catalogue.refresh(now):
+            self.base_revision = self.catalogue.revision
+            self.legacy_apps, self.legacy_revision = self.catalogue.legacy
+            self.catalogue_apps = {
+                key: dataclasses.replace(app, icon=old.icon) if (old := self.catalogue_apps.get(key)) is not None
+                and old.icon_name == app.icon_name else app for key, app in self.catalogue.apps.items()}
+            # Uninstalling an entry must not erase an existing window's owner or its pending return.
+            retained = {key: app for key, app in self.apps.items() if key not in self.catalogue_apps
+                        and (any(entry['app_id'] == key and entry['state'] not in FINAL
+                                 for entry in self.journal.entries.values())
+                             or any(scope['app_id'] == key for scope in self.discovered_scopes.values())
+                             or (self.windows is not None and self.windows.of(key)))}
+            self.apps = dict(retained, **self.catalogue_apps)
+            if self.windows is not None:
+                self.windows.set_registry(self.apps)
+                self.windows_changed()
+            self.icon_requested = float('-inf')
+        if self.icons is not None:
+            if now - self.icon_requested >= CATALOGUE_CHECK:
+                self.icons.request(self.catalogue_apps, self.base_revision)
+                self.icon_requested = now
+            self.catalogue_apps, self.revision = self.icons.take(self.catalogue_apps, self.base_revision)
+            self.apps.update(self.catalogue_apps)
+        else:
+            self.revision = self.base_revision
+        if self.revision != previous:
+            self.emit('apps_changed', revision=self.revision)
 
     def open_app(self, conn, request_id, message):
         app_id = message.get('app_id')
         if not isinstance(app_id, str) or len(app_id) > 128:
             raise Failure('malformed', 'app_id must be a string')
+        if conn.minor == 0 and ((self.apps.get(app_id) is not None and self.apps[app_id].discovered)
+                                or self.journal.entries.get(request_id, {}).get('discovered')):
+            raise Failure('unknown_app', 'no reviewed launch definition')
         entry = self.journal.entries.get(request_id)
         if entry is not None:
             if entry['app_id'] != app_id:
@@ -1741,7 +1936,7 @@ class Helper:
             # Forgetting a recent request ID could start an app twice; refusing a new one cannot.
             raise Failure('journal_full', 'too many launches in the last few minutes; try again shortly',
                           request_id=request_id, app_id=app_id, state='failed')
-        app = self.apps.get(app_id)
+        app = self.catalogue_apps.get(app_id)
         if app is None:
             return self.record(request_id, {'app_id': app_id, 'launch_id': None, 'state': 'failed',
                                             'error': 'unknown_app', 'message': 'no reviewed launch definition'})
@@ -1754,6 +1949,7 @@ class Helper:
         entry = {'app_id': app_id, 'launch_id': launch_id, 'state': 'launching', 'unit': unit}
         if app.discovered:
             entry['started'] = self.clock()
+            entry['discovered'] = True
         self.journal.put(request_id, entry)
         # Recorded before starting: a crash in between is reconciled, not retried.
         self.journal.save()
@@ -1923,6 +2119,7 @@ class Helper:
         self.watcher.watch(self.watched_units())
 
     def tick(self):
+        self.refresh_catalogue()
         now = self.clock()
         for conn in list(self.connections):
             if not conn.authenticated and now - conn.opened > HELLO_TIMEOUT:
@@ -2331,6 +2528,8 @@ class Server:
         self.selector.close()
         self.listener.close()
         self.helper.watcher.stop()
+        if self.helper.icons is not None:
+            self.helper.icons.stop()
         try:
             os.unlink(self.path)
         except FileNotFoundError:
@@ -2340,7 +2539,9 @@ class Server:
 def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=None, clock=time.monotonic,
           connect=None, status=no_status, keep_foreground=False):
     """Start-up in the order that matters: owners from the registry first, then the compositor's window list."""
-    registry = load_registry(registry_dir)
+    catalogue = Catalogue(registry_dir, environ=environ)
+    catalogue.refresh(clock())
+    registry = catalogue.apps, catalogue.revision
     windows = Windows(clock=clock)
     windows.set_registry(registry[0])
     try:
@@ -2350,21 +2551,21 @@ def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=No
         wayland, windows = None, None
     helper = Helper(registry_dir, instance, nonce, journal_path, launcher=launcher, windows=windows,
                     activate=wayland.activate if wayland else None, clock=clock, registry=registry, status=status,
-                    keep_foreground=keep_foreground)
+                    keep_foreground=keep_foreground, catalogue=catalogue, icons=IconCache(environ=environ))
     helper.watcher.watch(helper.watched_units())
     helper.watcher.start()
     return helper, wayland
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='AresOS app helper (aresos-shell/1.0)')
+    parser = argparse.ArgumentParser(description='AresOS app helper (aresos-shell/1.1)')
     parser.add_argument('--registry', default=REGISTRY, help='folder of reviewed app entries')
     parser.add_argument('--socket', help='socket path (default $XDG_RUNTIME_DIR/aresos/shell.sock)')
-    parser.add_argument('--list', action='store_true', help='print the registry with availability and exit')
+    parser.add_argument('--list', action='store_true', help='print the 1.1 catalogue with availability and exit')
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format='aresos-shell: %(levelname)s %(message)s')
     if args.list:
-        apps, revision = load_registry(args.registry)
+        apps, revision = load_catalogue(args.registry)
         rows = []
         for app in sorted(apps.values(), key=lambda app: app.id):
             _, _, reason = resolve(app)

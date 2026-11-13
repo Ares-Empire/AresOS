@@ -484,17 +484,26 @@ class GraphicsTest(DiscoveryBase):
 
 
 class CompatibilityTest(Base):
-    def test_discovery_is_not_yet_exposed_to_the_1_0_server_or_its_launches(self):
-        # Until step 4 negotiates 1.1, build()/Helper/--list stay on the reviewed registry path.
-        with mock.patch.object(shell, 'load_catalogue', side_effect=AssertionError('1.0 must not use discovery')):
-            helper = self.helper(missing=())
-            conn = self.connect(helper)
-            listing = self.request(helper, conn, 'list_apps')
-            self.assertEqual({app['id'] for app in listing['apps']}, {'browser', 'terminal', 'notepad'})
-            self.assertTrue(all(set(app) == {'id', 'name', 'available', 'reason'} for app in listing['apps']))
-            reply = self.request(helper, conn, 'open_app', 'discover-1', app_id='lunarclient')
-            self.assertEqual(reply['error'], 'unknown_app')
-            self.popen.assert_not_called()
+    def test_discovery_is_not_exposed_to_1_0_listing_or_launches(self):
+        folder = pathlib.Path(self.folder.name) / 'entries'
+        folder.mkdir()
+        (folder / 'lunarclient.desktop').write_text(
+            '[Desktop Entry]\nType=Application\nName=Lunar Client\nExec=/usr/bin/tool\n')
+        catalogue = shell.Catalogue(str(REGISTRY), entry_dirs=[folder], executable=lambda p: True)
+        catalogue.refresh(self.clock())
+        helper = shell.Helper(str(REGISTRY), 'desk-1', 'test-nonce-0123456789abcdef', self.journal,
+                              registry=(catalogue.apps, catalogue.revision), catalogue=catalogue,
+                              launcher=self.launcher(), clock=self.clock, executable=lambda p: True)
+        self.addCleanup(helper.watcher.stop)
+        self.assertIn('lunarclient', helper.apps)
+        conn = self.connect(helper)
+        listing = self.request(helper, conn, 'list_apps')
+        self.assertEqual(listing['revision'], shell.load_registry(str(REGISTRY))[1])
+        self.assertEqual({app['id'] for app in listing['apps']}, {'browser', 'terminal', 'notepad'})
+        self.assertTrue(all(set(app) == {'id', 'name', 'available', 'reason'} for app in listing['apps']))
+        reply = self.request(helper, conn, 'open_app', 'discover-1', app_id='lunarclient')
+        self.assertEqual(reply['error'], 'unknown_app')
+        self.popen.assert_not_called()
 
 
 if __name__ == '__main__':

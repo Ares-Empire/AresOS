@@ -539,7 +539,7 @@ class IconCompatibilityTest(Base):
         for app in response['apps']:
             self.assertEqual(set(app), {'id', 'name', 'available', 'reason'})
         self.assertEqual(response['protocol'], 'aresos-shell/1.0')
-        self.assertEqual(shell.MINOR, 0)
+        self.assertEqual(shell.MINOR, 1)
 
     def test_release_converter_check_is_separate_and_rejects_internal_svg(self):
         script = (ROOT / 'os/ci/image-checks.sh').read_text()

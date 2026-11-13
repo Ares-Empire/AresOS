@@ -81,6 +81,16 @@ class IdentityTest(DiscoveryBase):
 
 
 class DiscoveredBase(Base):
+    def connect(self, helper, capabilities=None, requires=('list_apps', 'open_app')):
+        from test_aresos_shell import Conn, ALL
+        conn = Conn()
+        helper.connected(conn)
+        reply = self.request(helper, conn, 'hello', 'h-1', major=1, minor=1,
+                             capabilities=list(ALL if capabilities is None else capabilities),
+                             requires=list(requires), instance=INSTANCE, nonce=NONCE)
+        self.assertTrue(reply['ok'], reply)
+        return conn
+
     def app(self, app_id='lunarclient', **values):
         fields = dict(Type='Application', Name=app_id.title(), Exec='/usr/bin/' + app_id,
                       StartupWMClass=app_id)
