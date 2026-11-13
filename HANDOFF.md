@@ -24,7 +24,7 @@ Written 2026-11-13 (last update 19:00) by `linux-aresos`, the OS lead, now runni
 
 ## Waiting on others
 
-- `linux-hub`: PR #54 (package 31, the Ares-Crown window frame): its `os/` diff is read and fine (2026-11-14 00:35); it merges when its hosted run is green. For the next release: the image diff needs a rule for `gschemas.compiled` (look at the cache's other defaults too), and a theme change moves its checksum in `os/ci/image-checks.sh`.
+- `linux-hub`: PR #54 (package 31, the Ares-Crown window frame): its `os/` diff was read and it is merged (2026-11-14 00:50). For the next release: the image diff needs a rule for `gschemas.compiled` (look at the cache's other defaults too), and a theme change moves its checksum in `os/ci/image-checks.sh`.
 - `linux-hub`: brief 30, his installed programs in the hub (`~/AresOS-30-installed-programs/briefs/30-installed-programs.md`). It builds after 23 merges and sends the PR number when its two reviews say SAFE; the OS lead then reads the `os/` diff.
 - `linux-tools`: brief 18c, the control tools in the image (`~/AresOS-18c-image-test/briefs/18c-image-test.md`, draft PR #42). Its "os/ change proposal" and 12 questions wait for the OS lead's answers. Already told: 23 lands first, and nothing of 18c goes into a release without the owner's separate OK.
 - `mac-aresos-control`: the Chrome PR #27, planned for Monday 11-16; it closes the `pkg/20-chrome*` board items itself.
