@@ -178,7 +178,8 @@ All on the laptop, 2026-11-13, through the two scripts only.
 
 - Should explosions follow one rule for logos and for the pad and roads (JUDGMENT-CALL 1)? Package 36 is the place
   to settle it.
-- Nothing is left in `.work/`; this package downloaded nothing.
+- No large downloads are left in `.work/`; this package downloaded nothing. Review-fix screenshot backups are
+  described below.
 
 ## Review fixes 1
 
@@ -193,7 +194,8 @@ Builder: Codex, gpt-6.1-sol. No look, world preset, home coordinates, dependency
    opens the save with the nested home missing, malformed, and partially decodable, checks saved position and respawn,
    rules, blocks, names and record, refuses `home set`, and compares file bytes after shutdown. The Nether client
    regression explicitly checks its legacy file has no nested home, still arrives at the anchor, and remains byte-identical.
-2. **Permanent ownership:** `HubBlockChangeMixin` observes successful block-kind changes at `LevelChunk.setBlockState`.
+2. **Permanent ownership:** `HubBlockChangeMixin` observes successful block-kind changes at `LevelChunk.setBlockState`;
+   `aresos.mixins.json` registers the hook.
    `HubData` removes the position from both its lookup and saved `{pos, block}` list immediately and marks it dirty.
    `holds` permanently drops observed mismatches too. Server regressions cover mined/replaced gold, an intervening
    replacement changed back, direct replacement, and a stale record whose mismatch is observed. Client regressions
@@ -209,7 +211,7 @@ Builder: Codex, gpt-6.1-sol. No look, world preset, home coordinates, dependency
    one tick. The no-mob test retains its spawning-positive control, asserts the cumulative counter every quiet tick,
    and restores every changed rule, including `SPAWN_MONSTERS` (restored last to refresh the cached spawning flag).
 
-**Verified so far**
+**Verified**
 
 - `free -g` preceded every build/test attempt; only one heavy step ran at a time in this worktree.
 - `mod/dev/build.sh`: eight successful runs, printing `BUILD SUCCESSFUL in 50s`, `46s`, `48s`, `37s`, `42s`, `38s`,
@@ -218,6 +220,8 @@ Builder: Codex, gpt-6.1-sol. No look, world preset, home coordinates, dependency
   JUnit XML records 68 tests, 6 platform skips, 0 failures and 0 errors (62 passed, including all 6 layout tests).
 - In the first consecutive pair the control saw slimes after 56 and 58 ticks; both printed
   `32 server no-mob check: 12000 ticks, 0 mob additions`.
+  In the final pair it saw a slime after 897 ticks and cows/pigs after 1194 ticks; both again printed the same
+  12,000-tick, zero-additions result.
 - The first `mod/dev/client-test.sh` attempt included the optional real-home vanilla tick sprint. It printed
   `Timed out waiting for predicate`, `BUILD FAILED in 9m 2s`, and exit code 1 after 9 min 3 s. A thread dump showed
   the server waiting in Fabric's `ThreadingImpl.enterPhase` / `postRunTasks` test-tick barrier while the test waited
@@ -231,6 +235,20 @@ Builder: Codex, gpt-6.1-sol. No look, world preset, home coordinates, dependency
   that entry before reopening. It now edits the already-relinquished gold instead, with an explicit precondition
   that it is unowned. The exact unchanged-record assertion remains intact; a rebuild would still overwrite that
   emerald home marker. This fixture correction is code commit `05be8ccf`.
+- Two complete `mod/dev/client-test.sh` runs then passed consecutively on that final code, with all 13 registered
+  client tests enabled: `BUILD SUCCESSFUL in 7m 13s` and `BUILD SUCCESSFUL in 7m 21s`. The script printed exit code 0
+  after 7 min 15 s and 7 min 22 s respectively, headless on the RTX 4060. Each printed all three damaged nested-home
+  regression passes and `32 client checks passed`, including the corrected missing-file fixture.
+- All nine package screenshots were inspected: `0033_create-flat.png`, `0034_create-nether.png`, `0035_arrival.png`,
+  `0036_east.png`, `0037_south.png`, `0038_west.png`, `0039_above-build.png`, `0040_rejoin.png`, and
+  `0041_missing-home-data.png`. The seven changed pictures from the final run are committed; the two create-screen
+  pictures were byte-identical and are retained. The final warning is visible in the missing-data picture.
+- After every client run, other packages' tracked screenshots were restored with `git checkout -- reviews/` and
+  their untracked generated pictures removed; only this package's captures were kept. `git diff --check` passed.
+  The scripts use single-use Gradle daemons and clean up their process scopes on exit; no direct Gradle invocation
+  or real-session window was used.
+- Closing `.work/` inventory: **no files over 500 MB**. Only small backups of this package's screenshots remain;
+  no large download or extracted image was made.
 
 **Not verified / limits**
 
