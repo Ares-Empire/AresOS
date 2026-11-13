@@ -60,6 +60,7 @@ public final class SlashNamesGameTests {
                             net.fabricmc.fabric.impl.networking.RegistrationPayload.REGISTER, List.of(ZoneLaunchPayload.TYPE.id())));
             player.setGameMode(GameType.SURVIVAL); acknowledge(player);
             server.getCommands().getDispatcher().register(Commands.literal("aresos").then(AppCommands.app()));
+            dev.aresos.names.ProgramCommands.register(server.getCommands().getDispatcher());
             DesktopWorld.setEnabled(server, true); SlashCommands.refresh(server);
         }
         int run(String command) throws Exception {
@@ -157,4 +158,32 @@ public final class SlashNamesGameTests {
         }
         helper.succeed();
     }
+    @GameTest(environment = BATCH)
+    public void openOneManyNoneCompletionAndClickableApps(GameTestHelper helper) throws Exception {
+        try (var f = new Fixture(helper)) {
+            check(f.run("open oth") == 1, "Unique /open prefix failed for a program outside My apps");
+            check(f.run("open missing") == 0 && f.said("No program matches"), "Missing /open lacks explanation");
+            check(f.run("open l") >= 2 && f.said("Several programs match"), "Ambiguous /open did not list choices");
+            check(f.completions("open dis").contains("discord"), "/open does not complete programs");
+            long before = f.channel.outboundMessages().stream().filter(packet -> packet instanceof ClientboundCustomPayloadPacket p
+                    && p.payload() instanceof ZoneLaunchPayload).count();
+            int size = f.run("apps");
+            check(size == 4, "/apps includes a program outside My apps");
+            check(f.said("/discord, /dc") && f.said("System & Tools"), "/apps lacks aliases or group");
+            var lines = f.channel.outboundMessages().stream().filter(ClientboundSystemChatPacket.class::isInstance)
+                    .map(ClientboundSystemChatPacket.class::cast).map(ClientboundSystemChatPacket::content)
+                    .filter(line -> line.getStyle().getClickEvent() instanceof net.minecraft.network.chat.ClickEvent.RunCommand).toList();
+            check(lines.size() >= 6, "Ambiguity or app rows are not clickable");
+            for (var line : lines) {
+                var click = (net.minecraft.network.chat.ClickEvent.RunCommand)line.getStyle().getClickEvent();
+                check(f.run(click.command().substring(1)) == 1, "Click did not resolve exactly one app: " + click.command());
+            }
+            check(f.channel.outboundMessages().stream().filter(packet -> packet instanceof ClientboundCustomPayloadPacket p
+                    && p.payload() instanceof ZoneLaunchPayload).count() == before + lines.size(), "Clicks did not send one launch each");
+            DesktopWorld.setEnabled(f.server, false); SlashCommands.refresh(f.server);
+            check(!f.completions("op").contains("open") && !f.completions("app").contains("apps"), "Normal-world list exposes commands");
+        }
+        helper.succeed();
+    }
+
 }

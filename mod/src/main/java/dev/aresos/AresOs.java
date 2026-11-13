@@ -179,6 +179,7 @@ public final class AresOs implements ModInitializer {
         });
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             if (!environment.includeIntegrated) return;
+            dev.aresos.names.ProgramCommands.register(dispatcher);
             dispatcher.register(Commands.literal("aresos")
                         .then(dev.aresos.world.HomeCommands.command())
                         .then(dev.aresos.zone.ZoneCommands.zone())
