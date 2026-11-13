@@ -1,0 +1,531 @@
+# 28: Chrome capability: reading, references, navigation and batched steps
+
+**Goal:** Claude gets a Chrome tool that costs far less to use than the one brief 20 built, with the same questions
+before every send. One read returns a compact outline of the page with short, stable references. One call opens a
+page and returns that outline. One call runs several steps and says what changed. One call reads several tabs. The
+tool list a session loads shrinks from 28 tools to 17. "Better" is written as budgets and a CI test group measures
+them against brief 20's tools on the same fixture pages.
+
+The owner's words (2026-11-11): "I don't just wanna rebuild Claude in Chrome. I wanna make a better tool for AresOS
+that's more efficient with readings, navigation, free tab navigation etc."
+
+**This is the first of two packages.** Brief 28 builds the efficient surface inside the control model brief 20 built
+(Claude's tab group; one of his tabs only after a take). Brief 28b (`briefs/28b-chrome-his-tabs.md`) then lets Claude
+look at his open tabs in place. 28 comes first because it needs no owner decision; 28b waits on 28 and on three
+judgment calls.
+
+**Building starts only after PR #27 (brief 20) is merged.** Branch from `main` after that merge and work on top of
+it. Paths and line numbers in this brief come from PR #27 at `8b7e799c`; read them again on merged `main`.
+
+**Builder (recommended, the lead confirms at launch):** a Claude agent on Fable 5.2. The work changes a dense,
+security-reviewed code base, needs judgment about what a reader should show, and must not be cut off halfway; Codex
+is away from about 2026-11-14 to 11-17 and ends on 11-21. **Review** (`docs/REVIEW.md`, "Tools for Claude"): two
+fresh reviewers at once, a package review and a security review, Codex while it is available, otherwise Claude on
+Opus. This package doesn't touch the asking path, so it needs no Fable reviewer.
+
+## Background (read first)
+
+- `docs/design/CONTROL.md` **section 6 is this package's specification**: "Reading a page", "Going to pages and
+  acting", "Actions", "Efficiency, as a tested property", "Known limits" and test groups 14 to 16 under "Tests".
+  Sections 3 and 4 are the rules every action follows. Where this brief and section 6 differ, tell the lead in the
+  report (PLAN-GAP); don't pick one silently.
+- `docs/control/PLAN.md`: decisions 24 and 25 and the entries of 2026-11-11 (the owner's bar and his words).
+- `docs/REVIEW.md`, "Tools for Claude": the bar the reviewers use.
+- `reviews/20-chrome/REPORT.md` (the newest sections first, "Measured views", and the latency section),
+  `reviews/20-chrome/KNOWN-LIMITS.md` and `reviews/20-chrome/TOOL-DESCRIPTIONS.md`.
+- `reviews/18d-base-slim/REPORT.md`: how shared rules go once into the server's MCP instructions, and how the
+  description sizes are measured.
+- The code, before you change it:
+  - `control/aresos_control/chrome/adapter.py`: `read`, `facts`, `payload`, `free`, `steps` and `call`;
+  - `control/aresos_control/chrome/definitions.py`;
+  - `control/chrome/extension/reader.js`: `snapshot`, `targetFacts`, `safeValue`, `password`;
+  - `control/chrome/extension/background.js`: `facts`, `collection`, `dispatch`;
+  - `control/aresos_control/proxy.py`: the Chrome upload branch;
+  - `control/chrome/ci/browser.mjs` (the helpers `rpc`, `call`, `read`, `target`, `nav`) and `ci/verdicts.mjs`.
+
+**Why brief 20's tools cost so much** (read in its code and reports):
+
+- A read returns one JSON line per element with a six-field reference, everything the element holds (`expected`,
+  with its box) and its text. A container's text repeats the text of everything inside it. The long fixture (120
+  paragraphs, 80 fields, about 57,000 characters of content) comes back as 221,477 characters in 14 calls.
+- Every action must send `reference` and `expected` back. A reference is bound to the whole view, so any change on
+  the page makes every reference stale, and a full read is needed between any two actions.
+- `chrome_open` and `chrome_navigate` return before the page has loaded. Claude then waits and reads.
+- A result says what happened to the one element acted on, not what changed on the page.
+- `chrome_tabs` returns 5 tabs per call, 10 at most.
+- 28 tools, with nine separate tools for the kinds of input.
+
+## Before anything else: record the baseline
+
+Do this first, on merged `main`, before any change to the tools.
+
+1. Add the fixture pages of "Tests, group 16" to the fixture server.
+2. Write the scripted tasks of group 16 against **brief 20's tools as they are** and run them in CI.
+3. Commit the counts as `control/chrome/ci/efficiency-baseline.json`: calls and returned characters per task; the
+   characters of all tool descriptions plus the server instructions; the characters of all tool names plus input
+   schemas (compact JSON); the run id. This file is the baseline for every budget. It isn't edited afterwards.
+
+PR #27 adds a latency harness and a CI latency check under `control/chrome/ci/`. Read their exact paths and the
+targets from the merged tree and from the latency section of `reviews/20-chrome/REPORT.md`. **Build group 16 into
+that harness: one harness, not two.** If the merged tree has none, say so as a PLAN-GAP and put group 16 into a short
+job of its own in `control-chrome.yml`.
+
+## What to build
+
+### 1. The reader collects outline nodes (extension, read-only)
+
+A new read-only command of the content script, `outline`, next to `read`. For every readable frame it returns the
+document, its revision, address, title, scroll position and page height, and a flat list of nodes in document order:
+the reader's element id, the parent's id, the role, the accessible name, and only what applies of: the value, the
+states that are set, the link address, a form's method, action and hidden field names, a list's option count and
+chosen option, and the element's **own** text (not its descendants').
+
+- Roles and names as the reader computes them today. Headings carry their level.
+- **The password rule is unchanged and comes first:** the exclusion check runs before every value or text read, in
+  every frame and shadow root; a password-kind field yields its label and the kind, nothing else.
+- Left out: scripts, styles, hidden elements, elements behind an open modal dialog, frames of the fixed list.
+  Frames of other sites and open and closed shadow roots are included, as today.
+- No box, no computed style beyond what the checks above need. The command must be cheaper than `read` on the same
+  page (the latency budget below).
+- At most 20,000 nodes per tab. Beyond that the reply says how many were left out.
+
+A second read-only command, `page_state`, returns the top document's id, its revision and `readyState`. The service
+uses it to wait; it never polls with full reads.
+
+`background.js` gets these two commands and a `tabs` reply that holds every tab at once (item 6). **Nothing else in
+`background.js` changes in this package:** not `input`, `resume`, `dialog`, `prepare_control`, `take`, `release`,
+the debugger methods or the session rules.
+
+### 2. The outline, and `chrome_read` (service)
+
+The service renders the nodes; the reader only collects. Put the rendering and the references in a module of their
+own (for example `control/aresos_control/chrome/view.py`), tested without a browser against recorded node lists.
+
+**The outline format** (normative; section 6 shows an example):
+
+```
+line    = indent role [" " name] [" = " value] {" " state} [" → " target] [" " ref]
+indent  = two spaces per level of depth
+role    = the reader's role; h1 to h6 for headings; "text" for plain text; "password" for a password-kind field
+name    = the accessible name or own text, in double quotes
+value   = a field's value in double quotes; for "password" the words (not read) instead
+state   = checked | selected | disabled | required | invalid | expanded | collapsed | current | readonly
+target  = for a link that leaves the page's site: its site; for a form: its method, site and path
+ref     = "e" and a number (item 3)
+```
+
+- Text appears once, on the deepest element that owns it. An element without a role, a name or own text gets no
+  line, and its children move up a level.
+- Quoting: the base's `visible()` escaping (control and direction-changing characters, backslash), then `"` as
+  `\"`. A name or value can never start a new line or end its quotes.
+- **Folds** (each says what it hides):
+  - a name or text longer than 200 characters is cut and ends in `…+N`, N being the characters left out;
+  - of more than 8 neighbours with the same role, the first 5 are shown, then `… N more (C characters)`;
+  - a table is its line and `… R rows, C columns (N characters)`;
+  - a list of more than 12 options is `(N options)` on the field's line, with the chosen one as the value;
+  - a form's fields are never folded, up to 40 per form; hidden fields are `(N hidden)` on the form's line.
+- A reference is put on every element that can be acted on, and on every element that can be read by itself: a
+  form, table, list, landmark, dialog, article or frame, and anything cut or folded.
+
+**`chrome_read`** (effect read).
+
+Input: `tab` (integer), or `tabs` (2 to 5 integers; then only `max` and `request` may accompany it); `ref`; `find`
+(1 to 200 characters); `role` (with `find`); `until` (an object with `text` or `gone`, each up to 200 characters);
+`timeout_ms` (0 to 8,000, default 3,000, with `until`); `max` (1,000 to 40,000; default 6,000, or 3,000 per tab with
+`tabs`); `cursor`; `request` (up to 200 characters; unused until brief 28b, accepted and ignored now).
+
+Result:
+
+```
+{"reads": [{"tab": 412, "whose": "claude", "characters": 4211, "total": 18840, "cursor": null,
+            "until_met": true,
+            "untrusted_content": {"url": "…", "title": "…", "scroll": "0/3200", "outline": "…", "dialog": null}},
+           {"tab": 413, "error": {"code": "refused", "message": "…"}}],
+ "version_notice": null}
+```
+
+- No `ref`, no `find`: the outline with its folds.
+- `ref`: that element unfolded, in the form that fits its role. A table: a first line `columns: A | B | C`, then one
+  line per row with the cells separated by ` | `, and controls inside a cell as `[link "Open" e31]`. A list: its
+  items. A form: every field as an outline line with its options (up to 50 per field, more by the field's own
+  `ref`), `required`, the field's error text, the hidden fields by name, the buttons, and the form's target. A text:
+  in full. A single link or control: everything known about it (the full address, the title, all options).
+- `find`: up to 20 hits per page. Each hit is the element's outline line, then ` · in ` and the path of named
+  ancestors (at most 80 characters); a hit inside a longer text adds 60 characters either side of it. Literal, no
+  regard to case, over names, labels, values that may be read, and text; folded parts and frames included; inside
+  `ref` when both are given. `role` keeps only that role.
+- `until`: poll `page_state` and re-read only when the revision moved; return when the text is there (`text`) or no
+  longer there (`gone`), or at the timeout, with `until_met`.
+- `tabs`: each tab is read by itself. A tab that can't be read (not in Claude's group, the fixed list, a dialog)
+  gets its `error`; the others are returned.
+- `max` counts the characters of `outline`. The service cuts at a line end and returns a `cursor` bound to the
+  page's revision, as today's paging does: a cursor from an older revision fails with `stale_reference`, "page
+  changed, read again without the cursor". The whole result must also fit the base's 48 KiB bound when the text
+  isn't ASCII: cut earlier when needed.
+- A native dialog that is open is returned as `dialog` (kind, text), with an empty outline, as today.
+- The checks of today's `read` stay: the fixed list on the top document and on every frame, the qualification
+  mode, the queued page steps (`reconcile_checks`, `steps`).
+
+### 3. References (service)
+
+- A reference is `e` and a number. The service issues it: per tab, counting up, never reused while the Chrome
+  session and the service process live. The same live element (same frame, document and reader id) gets the same
+  reference in every read and result.
+- Per reference the service keeps the frame, the document, the reader's element id and **the line it last showed
+  Claude** for that element. It keeps the newest 5,000 per tab, in memory only.
+- Every action resolves its reference to brief 20's internal reference (session, tab, frame, document, element; no
+  `view`) and then runs brief 20's path unchanged. It is refused with `stale_reference` when:
+  - the reference is unknown, belongs to another tab, or was issued before a Chrome or service restart;
+  - the document or the element is gone;
+  - the element's role or name differs from the line Claude last saw;
+  - for `fill` and `select`: the field's value differs from the value Claude last saw.
+  The refusal carries the element's present line, and that counts as shown, so a repeated call can pass.
+- This replaces two things in `adapter.py`: the comparison of the caller's `expected` in `payload`, and the
+  comparison of `view` in `facts`. The extension's own checks stay (session, tab, document, element, the hit test
+  before a click), and so does everything that follows in `payload`.
+- No tool input carries `reference`, `expected` or `view` objects any more.
+
+### 4. `chrome_open` and `chrome_go` (effect change)
+
+**`chrome_open`** input: exactly one of `url`; `tab` (open the address that tab shows); `tab` with `ref` (open that
+link's address). Also `until`, `timeout_ms` (0 to 20,000, default 8,000) and `max` (default 4,000).
+**`chrome_go`** input: `tab`, and exactly one of `url` or `to` (`back`, `forward`, `reload`); `until`, `timeout_ms`,
+`max` as above.
+
+Result of both:
+
+```
+{"tab": 431, "loaded": true, "until_met": true, "characters": 2210, "total": 2210, "cursor": null,
+ "untrusted_content": {"url": "…", "title": "…", "scroll": "0/1800", "outline": "…", "dialog": null},
+ "version_notice": null}
+```
+
+- Both use brief 20's `open` and `navigate` commands and rules unchanged (web addresses only, the fixed list, the
+  refusal of form-loaded history entries, the guarded reload). Then the service waits: until the top document has
+  changed and `readyState` is `complete`, and the revision has been still for 150 ms; or until `until` is met; or
+  until the timeout. `loaded` says which.
+- `chrome_open` with `tab`: the service reads that tab's address itself (Claude never sees the part after `?`), and
+  the rules of "Where Claude may go" apply to it.
+- The outline is the same as `chrome_read`'s, with references ready for the next call.
+
+### 5. `chrome_do` (effect change)
+
+Input: `tab`; `steps`, 1 to 32 objects, each with `do` and what that step needs; `max` (500 to 8,000, default 2,000:
+the bound of the change report).
+
+| `do` | Needs | Is brief 20's |
+|---|---|---|
+| `click` | `ref` | `chrome_click` |
+| `fill` | `ref`, `text` (up to 20,000 characters; line breaks go in as text) | `chrome_fill` |
+| `select` | `ref`, `value` (an option's label or value) | `chrome_select` |
+| `check` | `ref`, `checked` | `chrome_check` |
+| `press` | `ref`, `key` | `chrome_press` |
+| `scroll` | `ref` (optional: the page), `y` (pixels, negative is up) | `chrome_scroll` |
+| `dialog` | `accept`, `text` (optional, for a prompt) | `chrome_dialog` |
+| `wait` | `until`, `timeout_ms` (0 to 8,000) | `chrome_wait` |
+
+Result:
+
+```
+{"tab": 431,
+ "steps": [{"do": "fill", "ref": "e8", "outcome": "done"}, {"do": "click", "ref": "e10", "outcome": "prepared"}],
+ "not_run": 0,
+ "prepared": [{"approval": {"question": "…", "operation_id": "…", "description": {}}, "state": "reserved"}],
+ "unknown": [],
+ "loaded": null,
+ "untrusted_content": {"url": "…", "title": "…", "changed": "…", "more_changes": 0, "outline": null,
+                       "dialog": null, "clipboard": null, "stopped": []},
+ "version_notice": null}
+```
+
+How it runs:
+
+1. **Check first.** Resolve every reference and apply item 3's rule before the first step. If one fails, nothing has
+   run, and the result names the step.
+2. **Run in order.** Each step goes through brief 20's path for that verb: `payload` (fresh facts, classification,
+   binding), then `free` (dispatch once) or `engine.reserve` (prepare). Between steps of one call, a later step's
+   element is checked again for its role and name; its states and value may have changed because of earlier steps.
+   Every free step is still committed as its own operation before its input, as today.
+3. **Stop** after the first step whose outcome isn't `done` or `unchanged`, and also after a step that:
+   - was prepared (`prepared`): the result carries the base's prepared result, to pass unchanged to `chrome_submit`;
+   - made the page start a submission or activation that the page script stopped (`stopped`; a held submission is in
+     `prepared`, a stopped activation is described in `untrusted_content.stopped`);
+   - opened a native dialog, or loaded a new top document;
+   - ended `unknown` (its operation id is in `unknown`), `stale` or `refused`.
+   `not_run` counts the steps after it. Nothing is retried, and no step runs twice, also when Chrome, the host or
+   the service stops in the middle.
+4. **Report.** Take the outline nodes before the first step and again after the last one that ran, once the page has
+   gone quiet (the revision still for 150 ms, at most 1,500 ms; after a new top document: loaded, at most 8,000 ms).
+   `changed` lists what differs by element: a line starting `+ ` for a new element, `~ ` for one whose line changed
+   (the new line), `- ` for one that is gone; new elements are shown under their new parent. At most `max`
+   characters; `more_changes` counts the rest. After a new top document, `outline` holds the new page's outline
+   (at most 4,000 characters) and `changed` is empty.
+5. The clipboard notice, the dialog facts, a taken tab's first-input reload and the version notice come back as
+   brief 20 returns them. For the reload: a clean tab reloads, and the result is `stale` for that step with the new
+   outline attached; a tab with unsaved typing or playing media answers `reload_required` and names `chrome_take`
+   with `reload: true` (item 6).
+
+`dialog`: the service compares the open dialog with the one it last showed Claude for that tab, as it compares
+references; brief 20's rules for the three kinds of dialog are unchanged.
+
+### 6. The smaller tools
+
+- **`chrome_tabs`** (read; input: `cursor`). Every tab of every normal window in one result; a cursor only beyond
+  200 tabs. The list is text in `untrusted_content.list`:
+
+  ```
+  window 3 (in front)
+    412 his * "Uni portal: timetable" uni.example/timetable
+    413 his pinned sound "Radio" radio.example/live
+    group Claude
+      431 claude "Docs" docs.example/guide/start
+      408 taken "Shop: basket" shop.example/basket
+  window 5
+    440 his asleep "Car: listing 4411" cars.example/listing/4411
+    441 his no "Claude" claude.ai/chat
+  ```
+
+  Per tab: Chrome's tab number; whose (`claude`, `his`, `taken`); the marks `*` (the tab showing in its window),
+  `pinned`, `sound`, `asleep`, `popup`, `no` (never readable: the fixed list, his never-list, not a web page) and
+  `look` (a read-only site); the title, quoted and cut at 80 characters; the site and path, cut at 60 characters,
+  **without the part after `?` or `#`**.
+- **`chrome_show`** (change; input: `tab`). Makes the tab the one showing in its window and brings that window to
+  the front. For him: to look, to sign in, to answer a dialog. Refused for nothing but an unknown tab.
+- **`chrome_close`** (change; input: `tabs`, 1 to 20; `request`, accepted and ignored now). Closes Claude's own
+  tabs, as `chrome_close_tab` does. In this package a tab that isn't Claude's is refused. The result lists `closed`
+  and, with the reason, `kept`.
+- **`chrome_take`** (change; input: `tab`, `reload`, `request` accepted and ignored now) and **`chrome_release`**
+  (change; input: `tab`). In this package they are brief 20's `take_tab` and `release_tab`, with one difference:
+  the explicit reload has one home. `chrome_take` without `reload` takes the tab and keeps its page, and its result
+  says whether a reload is still due and what it would lose. `chrome_take` with `reload: true` also does that
+  reload now (brief 20's `prepare_control` with its explicit repeat) and returns the outline. No other tool has a
+  `reload` input.
+- **`chrome_library`** (read; input: `kind`, one of `downloads`, `bookmarks`, `history`; `text`; `cursor`; `limit`).
+  The three brief 20 tools merged, unchanged otherwise, with their snapshot paging.
+- **`chrome_upload`** (change; input: `tab`, `ref`, `path`). Brief 20's tool with a short reference. The proxy's
+  file branch stays as it is, apart from the field names it reads.
+- **Unchanged in name, input, result and behaviour:** `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`,
+  `chrome_operation_status`, `chrome_notices`, `chrome_notice_ack`, and the owner-only `chrome_sites`.
+- A new error code, `take_first`, for `chrome_go`, `chrome_do` and `chrome_upload` on a tab that isn't in Claude's
+  group: "this is one of the owner's tabs; take it, or open its address in a Claude tab".
+
+### 7. Definitions, instructions and sizes
+
+- Seventeen actions are offered to Claude, plus `chrome_sites`. Everything is generated from the definitions as
+  today: the MCP tool list, the `aresos` command, `docs/control/TOOLS.md`, the ask rules, `user-mcp.json`.
+- **The generated ask rules for Chrome must not change by a byte.** A test compares them with the copy on `main`.
+- The rules shared by every Chrome action go once into the Chrome server's MCP instructions (brief 18d's pattern,
+  with its check that Claude Code passes them on unshortened): untrusted page text; what to do on
+  `stale_reference`, `reload_required`, `take_first`, `owner_signin`, `owner_dialog` and `unknown`; the version
+  notice; that `done` doesn't prove delivery and pages can send on their own; the clipboard rule; how to read an
+  outline line and a fold; that a reference stays valid until its element changes; that `chrome_do` stops at the
+  first asking step and its `prepared` entry goes unchanged to `chrome_submit`. Each description keeps only what is
+  specific to its action. Write them for Claude: what it does, when to use it, what comes back.
+- **Sizes** (measured as brief 18d measured Mail's): all descriptions plus the instructions at most 10,000
+  characters and not above the baseline; all names plus input schemas at most 6,000 characters. A test pins the
+  exact totals; a change that grows them fails until the pin is changed on purpose.
+- Put the final descriptions and instructions, exactly as generated, into
+  `reviews/28-chrome-capability/TOOL-DESCRIPTIONS.md`.
+
+### 8. The order of the change
+
+Restructure in steps that keep everything working:
+
+1. The baseline (above).
+2. Add the new commands, the view module and the new tools **next to** brief 20's tools. Unit tests and groups 14
+   to 16 pass. Brief 20's groups pass unchanged through the old names.
+3. Move the CI harness to the new tools **in its helper functions only**. Before you start, list in
+   `reviews/28-chrome-capability/HARNESS-MAP.md` every helper you change, and every test that builds a `reference`,
+   an `expected` or a `view` by hand (the staleness and mismatch cases), with its new form. A test may change how
+   it reaches the tool. It never changes what it asserts about the receiver's log, the question, the binding or the
+   outcome. A test of the old "any change makes every reference stale" rule becomes a test of item 3's rule, named
+   in the map.
+4. Remove brief 20's replaced tools (`chrome_find`, `chrome_read_form`, `chrome_wait`, `chrome_click`,
+   `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll`,
+   `chrome_dialog`, `chrome_navigate`, `chrome_take_tab`, `chrome_release_tab`, `chrome_close_tab`,
+   `chrome_downloads`, `chrome_bookmarks`, `chrome_history`), the reader's `read` rows that nothing uses any more,
+   and the old paging of `chrome_tabs`. Regenerate. Pin the sizes.
+5. The full Chrome suite twice on the final head, with the base, Mail, boundary and qualification workflows.
+
+### 9. The documents that list tools
+
+- `docs/control/TOOLS.md` is generated.
+- `docs/control/FEATURES.md`, Chrome table and the Chrome rows under "Files": change the **Tool** column to the new
+  names, add rows for what is new (several tabs in one read, steps in one call, bringing a tab to the front), and
+  change no **State** cell. List the changed rows in the report.
+- `control/README.md`: the Chrome part.
+
+## What must not change
+
+- **The asking path:** the classification rules and the word list (`policy.py`, `policy.js`); `binding`, `prepare`,
+  `question`, `revalidate`, `changed_compose`, `execute`, `command` and `trusted` in `adapter.py`; the adapters
+  (`sites.py`); `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`, `chrome_operation_status` and the notices;
+  the 15-minute deadline; one approval, one run.
+- **The hold:** `guard.js`, `page.js`, the 500 ms window, the default block, the owner's own Enter, the three kinds
+  of dialog.
+- **The reader's password rule,** and that the extension uses no DOM snapshot, no accessibility tree and no form
+  serialisation. No new DevTools method. No new permission in the manifest.
+- **Where Claude may go:** the schemes, the fixed list, the owner-only excluded-sites setting, read-only sites.
+- **The take rules:** a reload before the first input, unsaved typing and playing media reported first, no reload
+  of a form-loaded page. Popups as brief 20 built them.
+- **The qualification record:** its format, `qualification.py`, `qualify.py`, the publishing workflow. The build
+  hash changes because the code does; nothing else.
+- **The service unit's sandbox lines** (`control/packaging/aresos-toold.service`; `test_unit.py` pins them).
+- **Mail, the base and `os/`.** Change the base only where Chrome needs a helper that belongs there, and say why in
+  the report.
+
+## Tests
+
+No model, no real site, no real account. Fixture pages only. **Browser tests run only in containers on GitHub's
+Linux runners, through the control-chrome workflows. Never start, read or touch the owner's Chrome or any browser
+profile on the machine you run on; locally run only plain Python and Node tests that start no browser.**
+
+Every new rule gets a test that fails without it.
+
+**Without a browser** (Python and Node): the outline renderer against recorded node lists (every fold, every
+escape, depth, the `ref` forms, `find`, the cut at `max` and at 48 KiB with non-ASCII text); the reference table
+(same element same reference, never reused, the four stale cases, the 5,000 bound, another tab's reference); the
+`chrome_do` loop with a fake bridge (the check before the first step, every stop, `not_run`, nothing twice after an
+interruption at each point); the change report; the reader's `outline` command in the Node VM doubles that
+`reader.test.mjs` uses, with the password fixtures.
+
+**Group 14, reading and references** (browser): as section 6 lists it. Fixtures:
+
+- F1, brief 20's long page (120 paragraphs, 80 fields);
+- F2, a table of 200 rows and 6 columns with a link in each row;
+- F3, a listing of 300 links in a list, with navigation and footer link groups;
+- F4, a form of 25 fields: text, a date, checkboxes, radios, a list of 200 options, a required field with an error
+  text, three hidden fields, each kind of password field from group 7;
+- F5, a page that changes part of itself on a click (rows replaced, a status line, one element renamed, one removed)
+  and a page that loads a new document on a click;
+- F6, a page with frames from a second fixture site and open and closed shadow roots;
+- H1, hostile text: names and paragraphs shaped like outline lines, references (`e5`), folds (`… 40 more`),
+  instructions to Claude, quotes, line breaks and direction-changing characters; a page of 100,000 elements; a name
+  of 100,000 characters.
+
+Small fixtures are compared with stored expected outlines, character for character.
+
+**Group 15, going and acting in one call** (browser): as section 6 lists it. In addition:
+
+- every asking case of group 1 runs through `chrome_do` once the harness has moved, with the receiver's log as
+  evidence: nothing before approval, one arrival after, none on a repeat;
+- a list whose third step asks: the fixture counts the first two inputs, no input from steps three to five, and
+  after `chrome_submit` exactly the third;
+- a control inside a folded part of the outline, found with `find` and labelled Delete, still asks;
+- the read-only fixture site refuses every acting step and still allows `wait` and scrolling;
+- the conservative mode (an unqualified Chrome major) asks for the same inputs through `chrome_do` as brief 20's
+  tools did.
+
+**Group 16, efficiency** (browser, in the latency harness): the scripted tasks below, each run against the baseline
+file. The build fails when a budget is exceeded or when a number is worse than the baseline.
+
+| Task | Budget |
+|---|---|
+| F1: the first read | 1 call, the whole outline, at most 6,000 characters |
+| F1: everything (the outline, then each folded part by `ref`) | at most 75,000 characters, at most 4 calls |
+| F1: the 80 fields with their values | 1 call, at most 6,000 characters |
+| F2: the whole table | at most 1.2 times the cells' own text, at most 2 calls |
+| F3: find one named link | 1 call, at most 800 characters |
+| Open a fixture page and return one fact from it | 1 call |
+| F4: fill 6 fields and send the form | 2 calls and `chrome_submit`; one question; the receiver has it once |
+| Three result pages, one click each, the titles collected | 3 calls |
+| Compare three open tabs | 1 call |
+| List 25 open tabs | 1 call, at most 3,000 characters |
+| F5: a free click that changes part of the page | 1 call, at most 2,500 characters, the change named |
+| Descriptions plus instructions | at most 10,000 characters, and not above the baseline |
+| Names plus input schemas | at most 6,000 characters |
+| Latency | PR #27's latency check stays within its targets; an outline read of F1 is no slower than one page of the old read at the baseline; a single click with its change report is faster than the baseline's click plus read |
+
+**Brief 20's groups 1 to 13** pass twice on the final head, through the new tools, in both install modes. Register
+the new browser cases in the named inventory (`ci/verdicts.mjs`) the way brief 20's FEATURE and VIEW cases are
+registered. The password cases join the `password_exclusion` group. Cases that prove an asking step asks join
+`classification` or `binding`. Group 16 is a CI check only and never part of a verdict. Don't add a core group and
+don't change the record's format. Say in the report which case went where.
+
+The base's, 18d's and Mail's suites still pass, and the generated artifacts are in sync.
+
+## Out of scope
+
+- His open tabs in place, the **READ** sign, the popup list, the password marker, incognito, tabs in the
+  background: brief 28b.
+- Anything in the asking path or the hold ("What must not change").
+- Screenshots, coordinates, hover, drag, console or network reading, running script text, a search that needs a
+  model, loops or conditions in a step list, steps across tabs, a richer result for `chrome_submit` (section 6,
+  "Left out on purpose").
+- Any real site or account. The image (`os/`). Running Claude Code with a model.
+
+## Paths
+
+**May change:** `control/aresos_control/chrome/adapter.py`, `definitions.py` and new modules beside them;
+`control/chrome/extension/reader.js` and `background.js` (only as item 1 says); `control/aresos_control/proxy.py`
+(the Chrome upload branch's field names); the generated files; `control/chrome_tests/`, `control/chrome/ci/`;
+`.github/workflows/control-chrome*.yml`; `docs/control/TOOLS.md`, `docs/control/FEATURES.md` (item 9),
+`control/README.md`; `reviews/28-chrome-capability/`.
+
+**Must not touch:** `os/`, `mod/`, `docs/design/`, `docs/control/PLAN.md`, `docs/control/TOOLS-HANDOFF.md`,
+`STATE.md`, `HANDOFF.md`, `docs/INSTALL*`, `docs/EMERGENCY.md`, `briefs/`; `control/aresos_control/mail/`,
+`control/mail_tests/`, `control/boundary/`, `control/checks/`, `control/packaging/`; `reviews/20-chrome/` and every
+other package's `reviews/` folder; in the Chrome code `guard.js`, `page.js`, `policy.js`, `manifest.json`,
+`policy.py`, `sites.py`, `qualification.py`, `committed.py`, `uploads.py`, `qualify.py`.
+
+## Acceptance
+
+- The seventeen tools exist with the inputs and results above; brief 20's replaced tools are gone.
+- Groups 14, 15 and 16 pass, and groups 1 to 13 pass twice on the final head.
+- Every budget holds against the committed baseline.
+- The generated Chrome ask rules are byte-identical to `main`'s.
+- `HARNESS-MAP.md` accounts for every changed helper and every rewritten staleness test.
+- No secrets, real addresses, account names, provider names or real sites.
+
+## Report (`reviews/28-chrome-capability/REPORT.md`)
+
+AGENTS.md's format (Done, Verified, Not verified, JUDGMENT-CALL, PLAN-GAP, Open questions), and in it:
+
+- the baseline and the measured numbers side by side, per task, with run ids;
+- the outline of each fixture as returned (short ones in full, long ones by their first 40 lines);
+- the tool descriptions and instructions as Claude will read them, with anything you are unsure reads well;
+- what changed in `adapter.py`'s `payload` and `facts`, line by line, and a statement that nothing else in the
+  asking path changed, with the diff command that shows it;
+- the harness map and the inventory mapping;
+- every claim marked **run** (workflow run id and log line), **read** (file and line) or **assumed**.
+
+**Known limits.** Keep `reviews/28-chrome-capability/KNOWN-LIMITS.md`: start from section 6's "Known limits", and
+for every line you add, change or find untrue give what it is, the harm and why it is acceptable or not. The lead
+moves the result into section 6. A flaw with real harm (an action without its question, a password read, data
+loss, his normal use broken) is never a limit: fix it or stop.
+
+## JUDGMENT-CALLs
+
+None is open for the owner before this package starts. Decided here, and the lead's to defend:
+
+- A reference is checked on its own element, not on the whole view (item 3; section 6 gives the reasons).
+- The tool list is replaced, not kept beside the new one: one surface to describe, test and review.
+
+Anything you meet that changes how Chrome feels for the owner goes into the report as a JUDGMENT-CALL with what you
+chose, what you rejected, why, and what changing it later costs. Likely candidates: a fold that hides something
+Claude nearly always needs; a wait that is too short or too long on real-looking pages.
+
+## If unsure
+
+Take the option that keeps a send from going without its question or going twice, that never returns a password,
+and that never says something happened or was stopped when the tool can't know. Then the option that returns
+fewer characters. Say what you chose in the report.
+
+## Stop rules
+
+- Stop and report, rather than weaken a rule, if a budget can only be met by leaving out something Claude needs to
+  act safely, or if the asking path would have to change.
+- Stop if any test would need a real site or a real account.
+- The full `control-chrome.yml` suite takes three to four hours a run. Develop against the browser-free tests and
+  the short job. Plan about 10 full runs; tell the lead in the report before passing 14. Wait on each run with one
+  blocking call; never poll turn by turn. Mark report-only pushes `[skip ci]`.
+
+## Rules for this run
+
+- `AGENTS.md` hard rules 1, 4, 5 and 6 apply; its Minecraft, Gradle and Windows parts do not.
+- Work only in your worktree, on branch `pkg/28-chrome-capability`, from `main` after PR #27's merge. Commit in
+  small steps, push this branch, open a draft PR against `main`. Never merge, never push to `main`, never
+  force-push.
+- The pre-push privacy check runs on every push. Never use `--no-verify`; fix what it finds.
+- On the laptop: one test suite at a time, `pkg28-` names for scripts and `/tmp` paths, and check free memory first.
+- Name your model in a commit trailer.
