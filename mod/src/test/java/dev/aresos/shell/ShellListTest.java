@@ -176,6 +176,7 @@ class ShellListTest {
     }
 
     @Test void malformedRevisionsNeverPublishOrChangeTheAppsFile() throws Exception {
+        helper.launchState = "focused";
         connect();
         var file = folder.resolve("apps.json");
         dev.aresos.config.AppsConfig.load(file, true);
@@ -215,6 +216,55 @@ class ShellListTest {
             assertEquals(1, lists.size(), "An incomplete list reached a listener");
             assertEquals(before, Files.readString(file), "A malformed revision changed the apps file or baseline");
         }
+    }
+
+    @Test void malformedInitialRevisionsNeverSetABaseline() throws Exception {
+        var invalid = Arrays.asList(null, JsonNull.INSTANCE, new JsonPrimitive(7), new JsonObject(), new JsonPrimitive(""));
+        int index = 0;
+        for (var revision : invalid) {
+            var file = folder.resolve("fresh-" + index++ + ".json");
+            dev.aresos.config.AppsConfig.load(file, true);
+            String before = Files.readString(file);
+            helper.override = message -> {
+                if (!isList(message)) return null;
+                var reply = new JsonObject();
+                reply.addProperty("id", FakeHelper.string(message, "id"));
+                reply.addProperty("ok", true);
+                if (revision != null) reply.add("revision", revision);
+                var rows = new JsonArray();
+                rows.add(FakeHelper.entry("user-program", "User program", null, "user"));
+                reply.add("apps", rows);
+                return reply;
+            };
+            client = helper.client(FakeHelper.fast());
+            client.addListener(new ShellClient.Listener() {
+                @Override public void catalogue(ShellClient.AppList listed) {
+                    try { dev.aresos.config.AppsConfig.merge(file, dev.aresos.catalogue.LinuxAppCatalogue.definitions(listed.apps()),
+                            listed.detailed(), java.time.LocalDate.now()); }
+                    catch (IOException error) { throw new java.io.UncheckedIOException(error); }
+                }
+            });
+            client.start();
+            assertEquals("list_incomplete", assertThrows(ShellClient.ShellException.class,
+                    () -> client.awaitCatalogue(Duration.ofSeconds(5))).code());
+            assertTrue(client.apps().isEmpty());
+            assertEquals(before, Files.readString(file));
+            assertNull(dev.aresos.config.AppsConfig.load(file).baseline());
+            client.close();
+        }
+    }
+
+    @Test void anOlderSnapshotKeepsItsOwnProtocolDetailsAfterReconnect() throws Exception {
+        helper.minor = 0;
+        connect();
+        var initial = client.awaitCatalogue(Duration.ofSeconds(1));
+        assertFalse(initial.detailed());
+        helper.minor = 1;
+        helper.drop();
+        FakeHelper.await(client::detailed, "a detailed list after reconnect");
+        assertFalse(initial.detailed(), "The older list acquired the newer connection's protocol details");
+        assertTrue(initial.apps().stream().allMatch(app -> app.system() == null));
+        assertTrue(client.apps().stream().allMatch(app -> app.system() != null));
     }
 
     @Test void aListThatNeverHoldsStillIsGivenUpAndTriedAgainAtTheNextChange() throws Exception {
