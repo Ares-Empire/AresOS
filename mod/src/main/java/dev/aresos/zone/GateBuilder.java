@@ -89,7 +89,14 @@ public final class GateBuilder {
         var solid = new LinkedHashMap<BlockPos, BlockState>();
         for (var block : plan.blocks().entrySet()) solid.put(block.getKey(), Neighbors.block(block.getValue()).defaultBlockState());
         var space = plan.space();
-        if (!loaded(level, space)) throw new IOException("The place for the gate isn't loaded. Go nearer, then retry. No blocks changed.");
+        var inspection = new HashSet<>(space);
+        inspection.addAll(plan.walkway());
+        inspection.addAll(plan.doormatSurround());
+        inspection.addAll(plan.floor());
+        inspection.addAll(Neighbors.footprint(solid.keySet(), 2));
+        inspection.addAll(Neighbors.footprint(plan.doormat(), 2));
+        inspection.addAll(Neighbors.footprint(plan.lights(), LIGHT_MELTS));
+        if (!loaded(level, inspection)) throw new IOException("The place for the gate isn't loaded. Go nearer, then retry. No blocks changed.");
         for (var pos : space) {
             if (pos.getY() < level.getMinY() || pos.getY() >= level.getMaxY() || !level.getWorldBorder().isWithinBounds(pos))
                 throw new IOException("Gate would be outside the build limits or world border.");
@@ -213,7 +220,11 @@ public final class GateBuilder {
         var gate = zone.gate().orElseThrow(() -> new IOException("Not a gate."));
         var level = server.getLevel(zone.dimension());
         if (level == null) throw new IOException("The gate's dimension does not exist.");
-        if (!loaded(level, gate.placed().stream().map(AppZone.Placed::pos).toList()))
+        var recorded = gate.placed().stream().map(AppZone.Placed::pos).collect(java.util.stream.Collectors.toSet());
+        recorded.addAll(gate.grass());
+        var inspection = Neighbors.footprint(recorded, 2);
+        inspection.addAll(Neighbors.footprint(gate.placed().stream().filter(placed -> placed.block().equals("minecraft:light")).map(AppZone.Placed::pos).toList(), LIGHT_MELTS));
+        if (!loaded(level, inspection))
             throw new IOException("The gate of " + zone.app() + " isn't loaded. Go to it and use /aresos logo remove here. Nothing changed.");
         var ground = new HashMap<BlockPos, String>();
         for (var replaced : gate.ground()) ground.put(replaced.pos(), replaced.block());

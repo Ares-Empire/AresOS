@@ -18,6 +18,7 @@ import net.minecraft.world.phys.AABB;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -30,6 +31,15 @@ final class Neighbors {
     private Neighbors() { }
 
     static Block block(String name) { return BuiltInRegistries.BLOCK.getValue(Identifier.withDefaultNamespace(name)); }
+
+    /** Every block inspected, plus the full boxes used for entity queries. No world access. */
+    static Set<BlockPos> footprint(Collection<BlockPos> around, int reach) {
+        var cells = new LinkedHashSet<BlockPos>();
+        for (var cell : around) for (int x = -reach; x <= reach; x++) for (int y = -reach; y <= reach; y++) for (int z = -reach; z <= reach; z++)
+            if (Math.abs(x) + Math.abs(y) + Math.abs(z) <= reach || Math.max(Math.max(Math.abs(x), Math.abs(y)), Math.abs(z)) <= 1)
+                cells.add(cell.offset(x, y, z));
+        return cells;
+    }
 
     /**
      * Refuses when something that could react stands within {@code reach} face-steps of a cell in {@code around}.

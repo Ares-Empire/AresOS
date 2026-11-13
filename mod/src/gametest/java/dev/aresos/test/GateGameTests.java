@@ -505,6 +505,51 @@ public final class GateGameTests {
     }
 
     @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
+    public void chunkBorderRefusesBeforeReadingTheUnloadedHalo(GameTestHelper helper) {
+        var level = helper.getLevel();
+        var chunk = new ChunkPos(10_000, 10_000);
+        var origin = new BlockPos(chunk.getMinBlockX() + 1, 180, chunk.getMinBlockZ() + 8);
+        var plan = plan(12, origin, Direction.NORTH);
+        long key = chunk.pack();
+        // A full but non-ticking chunk: its neighbours are not full chunks. Own only this ticket.
+        level.getChunkSource().addTicketWithRadius(TicketType.DRAGON, chunk, 0);
+        helper.startSequence().thenWaitUntil(() -> helper.assertTrue(level.hasChunk(chunk.x(), chunk.z()) && level.areEntitiesLoaded(key), "border chunk not loaded"))
+                .thenExecute(() -> {
+                    var outside = plan.lights().getFirst().west(4);
+                    var halo = ChunkPos.containing(outside);
+                    try {
+                        check(plan.space().stream().allMatch(pos -> ChunkPos.containing(pos).equals(chunk)), "fixture space crosses the border");
+                        check(!level.hasChunk(halo.x(), halo.z()), "fixture's four-cell light halo is already loaded");
+                        for (var pos : plan.walkway()) level.setBlock(pos, Blocks.STONE.defaultBlockState(), 2 | 16);
+                        int chunks = level.getChunkSource().getLoadedChunksCount();
+                        try {
+                            GateBuilder.build(level, "gate-border", plan);
+                            throw new AssertionError("built across unloaded light halo");
+                        } catch (IOException expected) { check(expected.getMessage().contains("isn't loaded"), "border build: " + expected.getMessage()); }
+                        check(!level.hasChunk(halo.x(), halo.z()) && chunks == level.getChunkSource().getLoadedChunksCount(), "build loaded an inspection chunk");
+                        check(plan.blocks().keySet().stream().allMatch(pos -> level.getBlockState(pos).isAir()), "border build changed blocks");
+
+                        var edge = origin.west();
+                        level.setBlock(edge, Blocks.IRON_BLOCK.defaultBlockState(), 2 | 16);
+                        var zone = new AppZone("gate-border", "gate-border", level.dimension(), plan.nicheMin(), plan.nicheMax(), plan.exit(), List.of(edge),
+                                java.util.Optional.of(new AppZone.Gate(List.of(new AppZone.Placed(edge, "minecraft:iron_block")), List.of(), java.util.Optional.empty())));
+                        ZoneData.get(level.getServer()).add(zone);
+                        try {
+                            GateBuilder.remove(level.getServer(), zone);
+                            throw new AssertionError("removed across unloaded neighbour halo");
+                        } catch (IOException expected) { check(expected.getMessage().contains("isn't loaded"), "border removal: " + expected.getMessage()); }
+                        check(level.getBlockState(edge).is(Blocks.IRON_BLOCK) && ZoneData.get(level.getServer()).zones().contains(zone), "border refusal changed the gate or record");
+                        check(!level.hasChunk(halo.x(), halo.z()) && chunks == level.getChunkSource().getLoadedChunksCount(), "removal loaded an inspection chunk");
+                        level.setBlock(edge, Blocks.AIR.defaultBlockState(), 2 | 16);
+                    } finally {
+                        ZoneData.get(level.getServer()).remove(zone -> zone.id().equals("gate-border"));
+                        for (var pos : plan.walkway()) level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2 | 16);
+                        level.getChunkSource().removeTicketWithRadius(TicketType.DRAGON, chunk, 0);
+                    }
+                }).thenSucceed();
+    }
+
+    @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
     public void everyRefusalChangesNothing(GameTestHelper helper) {
         Site.run(helper, 100, site -> {
             var level = site.level();
