@@ -111,7 +111,8 @@ the fixture owner (the future guest can use `runuser`). `wait(label, predicate)`
 uses deadlines and rendered `capture-pane -p` text. `choose(screen, answer)`
 selects the option by its full text before sending its displayed number; it
 accepts `Yes`, `No`, `DAA`, and the separately named bypass warning. Every screen
-acted on, launch command and choice is saved. Unknown dialogs fail the case.
+acted on, launch command and choice is saved. A dialog must remain visible
+for one second before input; completion and receiver evidence prove the result. Unknown dialogs fail the case.
 Numeric choices may submit immediately or only select an option; the driver
 observes the rendered result and confirms with Enter only if still selected.
 Normal cases pass `--permission-mode default` explicitly: this pinned binary
@@ -133,13 +134,20 @@ counts; neither reusable module changes the installed service or its policy.
 
 The 17 cases cover Yes, both No modes, user/project/local allows, PreToolUse
 allow, DAA with sends 2 and 3, and all four PermissionRequest combinations.
-PermissionRequest observations are compared with
-`interactive-permission-request-expected.json`; the old print-mode pin remains
+PermissionRequest hook counts, arrivals and zero owner answers are compared with
+`interactive-permission-request-expected.json`. Raw `prompt_shown` is recorded
+for each case: a prompt can briefly render while a hook is still running, so
+that timing-dependent frame observation is not pinned; the old print-mode pin remains
 unchanged. Evidence lives under `terminal/interactive/<case>/`: rendered screens,
 choice logs, managed settings, per-turn source snapshots, hook input events,
 complete model requests/results and native JSONL transcripts. The independent
 receiver remains `terminal/stub.txt`; `summary.json` and `permission-request.json`
 record the counts. A denied send must never reach it.
+
+The pinned bypass warning is unnumbered. The driver matches `Yes, I accept`,
+moves from the observed focus with the arrow key and confirms. The binary then
+writes `skipDangerousModePermissionPrompt: true` in user settings; a DAA restart
+retains it. No guessed warning key is pre-seeded.
 
 The supervisor pre-seeds onboarding, synthetic-key approval and workspace trust
 exactly as the print harness does. It accepts the skip-permissions warning by
