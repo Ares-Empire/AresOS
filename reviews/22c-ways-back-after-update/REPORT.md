@@ -1193,3 +1193,29 @@ repair-note restoration; both were fixed. Full model verification is in progress
 **Not verified:** physical typing, real shutdown durability, VM and laptop
 operations remain outside this round. No Gradle or mod command is applicable.
 No new JUDGMENT-CALL or rule change. No review finding is rejected.
+
+### Finding 2 — bind the script read to the journalled list
+
+**Done:** the caller passes its entire pre-change deployment list as hex-encoded
+JSON (`BEFORE`), so it cannot introduce quoting or script substitutions. The
+script compares its fresh read with that snapshot before target lookup and
+`set-default`. A mismatch reports an outside change and performs no mutation.
+Target identity/origin/stage checks, exact postcondition and `sync` remain.
+The accepted race after the final read and before the primitive remains.
+
+**Tests and revert proof:**
+`ScriptTest.test_fresh_read_must_equal_the_callers_snapshot_before_any_mutation`
+checks order, pin, identity, running row and deployment metadata drift, with
+exactly one read and no primitive. The owner-level
+`DestinationTest.test_outside_reorder_between_intent_and_script_does_not_add_an_owner_mutation`
+injects `[R13, R27*, S]` after rollback has journalled `[R27*, R13, S]`; it
+requires unchanged outside state, an open intent and zero owner changes.
+`ScriptTest.test_removing_snapshot_guard_fails_the_outside_writer_regression`
+removes only the fresh snapshot assertion in memory; that same regression must
+fail because it observes `ostree admin set-default 2` instead of no owner change.
+Local execution of these new tests is pending completion of the one-at-a-time
+model run; no test result is claimed at this checkpoint.
+
+The payload was refreshed without changing stage-1b inventory or fingerprint
+pins. The host walk and pending bindings were refreshed in that order. No new
+JUDGMENT-CALL, PLAN-GAP or changed brief rule.

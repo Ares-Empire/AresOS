@@ -10,6 +10,8 @@ def deployments():
 target = ('@CHECKSUM@', int('@SERIAL@'))
 # Read immediately before the call: the index belongs to this list.
 before = deployments()
+assert before == json.loads(bytes.fromhex('@BEFORE@')), \
+    'STOP: deployment list changed outside the tools since the intent; nothing was changed; get help'
 assert not any(d.get('staged') for d in before), 'STOP: a staged deployment exists; nothing was changed'
 found = [i for i, d in enumerate(before) if (d['checksum'], d['serial']) == target]
 assert len(found) == 1, 'STOP: the target deployment is missing or listed twice; nothing was changed'

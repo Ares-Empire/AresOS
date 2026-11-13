@@ -1549,7 +1549,8 @@ class Tools:
             'Target deployment missing or ambiguous; nothing changed; get help')
         self.intend(word, state, settled, target)
         self.script('start-next', {'CHECKSUM': target['checksum'], 'SERIAL': str(target['serial']),
-            'DIGEST': target['container-image-reference-digest'], 'REFERENCE': reference})
+            'DIGEST': target['container-image-reference-digest'], 'REFERENCE': reference,
+            'BEFORE': json.dumps(rows).encode().hex()})
         after = observations(self.host)
         qualified_state(after, self.load('prepared'), self.release['reference'], self.known())
         # The same identities and flags, the target first, the others in their old order.

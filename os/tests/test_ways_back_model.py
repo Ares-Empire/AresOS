@@ -447,7 +447,8 @@ class FakeRulesTest(unittest.TestCase):
             before = copy.deepcopy(d.host.state), d.host.entries()
             with self.assertRaises(owner.Stop):
                 d.tools.script('start-next', dict(CHECKSUM='f' * 64, SERIAL='0', DIGEST='sha256:' + 'e' * 64,
-                                                REFERENCE='ostree-unverified-registry:' + base.R21))
+                                                REFERENCE='ostree-unverified-registry:' + base.R21,
+                                                BEFORE=json.dumps(d.host.state['rpm']['deployments']).encode().hex()))
             self.assertEqual((d.host.state, d.host.entries()), before)
             self.assertEqual(d.host.changes, [])
             self.assertFalse(any(r.get('mutation') for r in d.host.trace))

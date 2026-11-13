@@ -211,10 +211,11 @@ class ScriptTest(unittest.TestCase):
     TARGET = dict(checksum='a' * 64, serial=1, booted=False, pinned=True,
                   **{'container-image-reference-digest': 'sha256:' + 'b' * 64, 'container-image-reference': 'ostree-image-signed:docker://example/stock:stable'})
 
-    def run_script(self, rows, after=None, fails=False):
+    def run_script(self, rows, after=None, fails=False, expected=None):
         source = (ROOT / 'os/release/start-next.sh').read_text().split("<<'START_NEXT'\n", 1)[1].rsplit('\nSTART_NEXT', 1)[0]
         for name, value in (('CHECKSUM', 'a' * 64), ('SERIAL', '1'), ('DIGEST', 'sha256:' + 'b' * 64),
-                            ('REFERENCE', 'ostree-image-signed:docker://example/stock:stable')):
+                            ('REFERENCE', 'ostree-image-signed:docker://example/stock:stable'),
+                            ('BEFORE', json.dumps(rows if expected is None else expected).encode().hex())):
             source = source.replace('@' + name + '@', value)
         self.assertNotIn('@', source.replace('ostree-image-signed:docker://example', ''))
         model, self.calls = dict(rows=copy.deepcopy(rows)), []
@@ -256,6 +257,33 @@ class ScriptTest(unittest.TestCase):
                 self.run_script(rows)
             self.assertEqual(self.calls, ['read'])
 
+    def test_fresh_read_must_equal_the_callers_snapshot_before_any_mutation(self):
+        a, b = self.others()
+        expected = [a, b, self.TARGET]
+        cases = ([b, a, self.TARGET], [a, dict(b, pinned=True), self.TARGET],
+                 [a, dict(b, serial=9), self.TARGET], [dict(a, booted=False), dict(b, booted=True), self.TARGET],
+                 [dict(a, **{'requested-packages': ['outside-change']}), b, self.TARGET])
+        for rows in cases:
+            with self.subTest(rows=rows), self.assertRaisesRegex(AssertionError, 'changed outside the tools'):
+                self.run_script(rows, expected=expected)
+            self.assertEqual(self.calls, ['read'])
+
+    def test_removing_snapshot_guard_fails_the_outside_writer_regression(self):
+        real = pathlib.Path.read_text
+        def without_snapshot(path, *args, **kwargs):
+            text = real(path, *args, **kwargs)
+            if path.name == 'start-next.sh':
+                before = "assert before == json.loads(bytes.fromhex('@BEFORE@')), \\\n    'STOP: deployment list changed outside the tools since the intent; nothing was changed; get help'"
+                self.assertEqual(text.count(before), 1)
+                return text.replace(before, 'pass')
+            return text
+        result = unittest.TestResult()
+        with patch.object(pathlib.Path, 'read_text', without_snapshot):
+            DestinationTest('test_outside_reorder_between_intent_and_script_does_not_add_an_owner_mutation').run(result)
+        self.assertEqual(result.errors, [])
+        self.assertEqual(len(result.failures), 1)
+        self.assertIn('ostree admin set-default 2', result.failures[0][1])
+
     def test_a_wrong_list_afterwards_or_a_failed_call_fails(self):
         a, b = self.others()
         for name, after in (('appended', [a, b, self.TARGET]), ('others swapped', [self.TARGET, b, a]),
@@ -294,6 +322,22 @@ class DestinationTest(Unchanged, unittest.TestCase):
                         self.assertEqual((value['schema'], value['mode'], value['status'], value['boot']), ('change1', 'reorder', 'recorded', 'boot-1'))
                         self.assertEqual(value['word'], {'stock': 'keep-stock' if running == 'S' else 'rollback'}.get(word, word))
                         self.assertEqual(tools.load('title')['state'], host.state)
+
+    def test_outside_reorder_between_intent_and_script_does_not_add_an_owner_mutation(self):
+        with laptop(listed((R21, R13, 'S'), R21)) as (tools, host, store):
+            original = copy.deepcopy(host.state['rpm']['deployments'])
+            script = host.script
+            drifted = listed((R13, R21, 'S'), R21)
+            def drift(text, name, mutation=True):
+                self.assertEqual(name, 'start-next')
+                self.assertEqual(journal(store)['before'], [list(owner.key(r)) for r in original])
+                host.state = copy.deepcopy(drifted)
+                return script(text, name, mutation)
+            with patch.object(host, 'script', drift), self.assertRaises(owner.Stop):
+                tools.recover()
+            self.assertEqual(host.changes, [])
+            self.assertEqual(host.state, drifted)
+            self.assertEqual(journal(store)['status'], 'intent')
 
     def test_rollback_and_keep_stock_keep_their_sides_and_name_the_other_word(self):
         with laptop(listed((R21, R13, 'S'), 'S')) as (tools, host, store):
