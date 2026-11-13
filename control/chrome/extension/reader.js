@@ -205,7 +205,8 @@
   function safeValue(element) {
     // The exclusion is repeated immediately before EACH value/text read.
     if (password(element)) return {password: true};
-    if(!watched&&(typedField(element)||html(element,HTMLInputElement,'input')&&element.type==='hidden'))return {typed_text:typedField(element),value_status:element.textLength?'filled':'empty'};
+    if(!watched&&typedField(element))return {typed_text:true,value_status:filledStatus(element)};
+    if(!watched&&html(element,HTMLInputElement,'input')&&element.type==='hidden')return {value_status:'not_read'};
     let value;
     if (html(element,HTMLInputElement,'input')) {
       if (element.type === 'file') value = [...element.files].map(selectedFile);
@@ -218,6 +219,14 @@
   }
   function typedField(element) {
     return html(element,HTMLInputElement,'input')&&!['hidden','password','checkbox','radio','date','datetime-local','month','week','time','email','url','search','range','color','file','button','submit','reset','image'].includes(element.type);
+  }
+  function filledStatus(element) {
+    // Native import copies the live control state without extracting its value.
+    // An inert document has no page custom-element registry or event handlers.
+    const inert=privacy.emptyProbe??=document.implementation.createHTMLDocument('');
+    const copy=inert.importNode(element,false);
+    copy.disabled=false;copy.readOnly=false;copy.required=true;
+    return element.validity?.badInput||!copy.validity.valueMissing?'filled':'empty';
   }
   function typedFields() {
     return {document:documentId,fields:watched?[]:all().filter(element=>typedField(element)&&!password(element)).map((element,index)=>({element:id(element),label:name(element)||'single-line field '+(index+1),type:element.type}))};

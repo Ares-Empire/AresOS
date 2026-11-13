@@ -32,7 +32,7 @@ function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false,wat
   class HTMLSelectElement extends Element{}
   class HTMLButtonElement extends Element{}
   const nodes=fields.map(config=>new HTMLInputElement(config));
-  const document={title:'Fixture',childNodes:[],getElementById(){return null;},
+  const document={implementation:{createHTMLDocument(){return {importNode:element=>{if(element.forbidden)throw Error('PROTECTED CONTROL WAS CLONED');return {validity:{valueMissing:!!element.empty}};}};}},title:'Fixture',childNodes:[],getElementById(){return null;},
     querySelector(selector){return selector==='base[target]'?nodes.find(node=>node.tagName==='BASE'&&node.hasAttribute('target'))||null:null;},querySelectorAll(selector){return nodes;},addEventListener(){},dispatchEvent(){}};
   let listener,observer,readerAPI;const observationOptions=[];
   const chrome={dom:{openOrClosedShadowRoot:element=>element.fixtureShadow||null},runtime:{id:'fixture',sendMessage:async()=>({}),onMessage:{addListener(fn){listener=fn;},removeListener(){}}}};
@@ -400,7 +400,7 @@ for(const signal of ['name','id','autocomplete','aria-label','placeholder','labe
 });
 
 test('post18d late single-line values show filled or empty without reading their value getter',()=>{
-  for(const type of ['text','tel','number','unknown','hidden'])for(const empty of [false,true]){
+  for(const type of ['text','tel','number','unknown'])for(const empty of [false,true]){
     const f=fixture([{type,empty}],{watched:false});f.read();const row=f.command({command:'facts',element:'e1'}).data.target;
     assert.equal(row.value_status,empty?'empty':'filled');assert.equal(row.value,undefined);assert.equal(f.calls(),0);
     assert.doesNotMatch(JSON.stringify(f.read()),/safe visible text/);
@@ -445,4 +445,9 @@ test('post18d typed field additions relabelling credential changes and document 
 test('post18d late reload warning never extracts unapproved typed text to compare defaults',()=>{
   const f=fixture([{type:'text',forbidden:true}],{watched:false});
   const state=f.command({command:'reload_state'});assert.equal(state.ok,true,JSON.stringify(state));assert.equal(state.data.unsaved,true);assert.equal(f.calls(),0);
+});
+
+test('post18d hidden late fields disclose presence without extracting a value or claiming emptiness',()=>{
+  const f=fixture([{type:'hidden',forbidden:true}],{watched:false});f.read();
+  const row=f.command({command:'facts',element:'e1'}).data.target;assert.equal(row.value,undefined);assert.equal(row.value_status,'not_read');assert.equal(f.calls(),0);
 });

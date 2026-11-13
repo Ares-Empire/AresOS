@@ -34,7 +34,7 @@ and sticky history. It now additionally excludes credential names in `name`,
 and German, before value or filled-state access. Exclusion stays sticky.
 
 A private document-start marker distinguishes watched from late readers. Late
-text/tel/number/unknown inputs show filled/empty from native text length; choices,
+text/tel/number/unknown inputs show filled/empty through native constraint state on an inert imported control; choices,
 formatted inputs, textareas and editable areas remain readable. Normal reads
 never inherit a previous read approval. The new preparation lists only labels
 (including a stable ordinal for unlabelled fields); `chrome_read_typed_fields`
@@ -58,6 +58,15 @@ choices/textareas/editors, approval, denial, replay, unlabelled descriptions and
 field-list changes. Linux late-reader and one-call-read cases are added to the
 required inventory; their browser evidence and the slim-generator artifacts
 are still pending. `KNOWN-LIMITS.md` remains current.
+
+**Browser correction:** combined probe `43455378594` (**236** total) passed
+the 60 destination cases in both installs, then correctly failed a filled-state
+assertion: Chrome does not provide the assumed input `textLength` property.
+The fix imports the native control into an inert document and checks only its
+required/missing constraint state; it never extracts a value, alters the live
+field, runs custom-element code or collects protected credentials. Hidden fields
+in a late document disclose presence only. Strict filled/empty assertions stay.
+The replacement probe will be run **237**; final acceptance remains pending.
 
 **Main/slim integration (in progress):** `origin/main` is merged into this branch.
 Mail's action scopes, contexts, recovery semantics and slim policy are retained.

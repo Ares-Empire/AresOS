@@ -14,7 +14,7 @@ export async function lateReaderMatrix({check,nav,call,rpc,read,target,fixture,e
       const rows=await read();assert.doesNotMatch(JSON.stringify(rows),/SENTINEL_PRIVATE_PASSWORD_20/);
       for(const type of lateInputTypes){
         const row=rows.find(row=>row.expected.name==='Type '+type);assert.ok(row,type);
-        if(!watched&&['text','tel','number','unknown'].includes(type)){assert.equal(row.expected.value_status,'filled');assert.equal(row.expected.value,undefined);}
+        if(!watched&&['text','tel','number','unknown'].includes(type)){assert.equal(row.expected.value_status,'filled',type);assert.equal(row.expected.value,undefined);}
         else assert.equal(typeof row.expected.value,'string',type+' remains readable');
       }
       assert.equal(rows.find(row=>row.expected.name==='Safe textarea').expected.value,'PUBLIC_TEXTAREA_20');
