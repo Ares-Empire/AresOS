@@ -86,7 +86,7 @@ tasks.register('restoreLegacyApps', JavaExec) {
     mainClass = 'dev.aresos.config.RestoreLegacyApps'
     doFirst {
         if (!project.hasProperty('appsConfig') || !project.hasProperty('appsBackup'))
-            throw new GradleException('Close Minecraft, then provide -PappsConfig=<path> -PappsBackup=<schema-1 backup path>')
+            throw new GradleException('Close Minecraft, then provide -PappsConfig=<path> -PappsBackup=<schema-1 or schema-2 backup path>')
         args project.property('appsConfig'), project.property('appsBackup')
     }
 }
