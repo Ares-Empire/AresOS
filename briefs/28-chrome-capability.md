@@ -387,6 +387,11 @@ references; brief 20's rules for the three kinds of dialog are unchanged.
     441 his no "Claude" claude.ai/chat
   ```
 
+  **Whose a tab is follows from who opened it, not from the group it sits in.** `claude`: Claude opened it with
+  `chrome_open`, or a tab under Claude's control opened it. `his`: every other tab, also one he dragged into
+  Claude's group. `taken`: one of his, under Claude's control for now. A taken tab stays his: closing it or
+  reloading it follows the rules for his tabs.
+
   Per tab: Chrome's tab number; whose (`claude`, `his`, `taken`); the marks `*` (the tab showing in its window),
   `pinned`, `sound`, `asleep`, `popup`, `no` (never readable: the fixed list, his never-list, not a web page) and
   `look` (a read-only site); the title, quoted and cut at 80 characters; the address in the public form (item 2),
@@ -407,15 +412,22 @@ references; brief 20's rules for the three kinds of dialog are unchanged.
   - Claude's own tabs and a taken tab need no `seen`.
 - **`chrome_show`** (change; input: `tab`). Makes the tab the one showing in its window and brings that window to
   the front. For him: to look, to sign in, to answer a dialog. Refused for nothing but an unknown tab.
-- **`chrome_close`** (change; input: `tabs`, 1 to 20; `request`, accepted and ignored now). Closes Claude's own
-  tabs, as `chrome_close_tab` does. In this package a tab that isn't Claude's is refused. The result lists `closed`
-  and, with the reason, `kept`.
+- **`chrome_close`** (change; input: `tabs`, 1 to 20; `request`, accepted and ignored now). Closes tabs that are
+  `claude`. In this package every other tab is refused, **a taken tab included** ("this is the owner's tab;
+  release it"). Brief 20's `chrome_close_tab` closes any tab in the group, a taken one too, without looking at
+  what it holds: that ends here. The result lists `closed` and, with the reason, `kept`.
 - **`chrome_take`** (change; input: `tab`, `seen`, `reload`, `request` accepted and ignored now) and **`chrome_release`**
   (change; input: `tab`). In this package they are brief 20's `take_tab` and `release_tab`, with one difference:
   the explicit reload has one home. `chrome_take` without `reload` takes the tab and keeps its page, and its result
   says whether a reload is still due and what it would lose. `chrome_take` with `reload: true` also does that
   reload now (brief 20's `prepare_control` with its explicit repeat) and returns the outline. No other tool has a
   `reload` input.
+  - **`chrome_go` in a taken tab that hasn't had its reload** would replace his page without any check in brief
+    20. Here it first goes through `prepare_control`, as a first input does: `reload_required` when brief 20's
+    check finds typing, an editor or playing media, otherwise the guarded reload, and then the navigation.
+  - **Brief 20's check before that reload is unchanged in this package.** It calls a tab clean when no field
+    differs from its default, which many pages defeat by copying his typing into the default. Brief 28b replaces
+    it (its item 4a). Say so in `KNOWN-LIMITS.md`; brief 28 must not reach his laptop without 28b.
 - **`chrome_library`** (read; input: `kind`, one of `downloads`, `bookmarks`, `history`; `text`; `cursor`; `limit`).
   The three brief 20 tools merged, with their snapshot paging. Two differences: every address is in the public
   form, and every entry carries a reference (item 3) that `chrome_open` takes as `ref`. The service keeps the full

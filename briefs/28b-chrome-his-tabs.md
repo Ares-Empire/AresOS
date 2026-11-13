@@ -159,26 +159,67 @@ and report.
 1. **Check first, in place:** the tab still shows the page of the list (`seen`, item 2); not a page of the fixed
    list or his never-list; `request` given; loaded by a plain GET (otherwise refused: "open its address fresh in a
    Claude tab"); no dialog open.
-2. **Unsaved typing or playing media:** if the tab holds a changed field, any rich-text editor or playing media
-   (brief 20's `reload_state`) and `reload` isn't `true`, answer `reload_required` and **change nothing**: the tab
-   hasn't moved. The answer says what would be lost: how many fields hold typing, with their labels (never their
-   values), and whether media plays.
+2. **Is it known that nothing of his is lost?** Run the check of item 4a, in place. If the answer isn't "known
+   clean" and `reload` isn't `true`, answer `reload_required` and **change nothing**: the tab isn't attached, moved
+   or reloaded. The answer says what the tool found, in the tool's own words: how many fields hold text, with their
+   labels (never their values), an editor, a chosen file, a canvas, playing media, or "you have used this page and
+   the tool can't see whether it holds unsaved work".
 3. **Otherwise take it:** attach, move it into Claude's group, reload it once as brief 20 does, wait for the load,
    and return the new page's outline (brief 28's result shape, with `"whose": "taken"`).
-4. Popups keep brief 20's rule (a reload before the first input in the popup, through `chrome_do`'s result).
+4. **`reload: true` is his decision, passed on by Claude.** It takes and reloads a tab that isn't known clean. It
+   never overrides three things: a dialog that is open, a load or a form submission that is still under way, and a
+   page that a form submission loaded.
+5. Popups keep brief 20's rule (a reload before the first input in the popup, through `chrome_do`'s result).
+
+### 4a. Before the tool reloads or closes one of his tabs
+
+Brief 20's check (`reloadState` in `reader.js`) calls a tab clean when no field differs from its default, there is
+no editor and nothing plays. That isn't evidence. Many pages copy what he types into the field's default, so the
+field never "differs". A drawing or a document kept in a canvas has no field at all. A form may be on its way to
+the server. **Unknown is not clean.** Replace the check with this one. A tab is **known clean** only when all of it
+holds:
+
+1. every frame of the tab answered the check, and no dialog is open;
+2. the tab isn't loading, and no navigation or form submission is under way (Chrome reports it `complete`, with
+   no pending address);
+3. nothing plays: no playing media element, and Chrome doesn't mark the tab as audible;
+4. there is no editable area (`contenteditable`, `designMode`), no chosen file, no password-kind field, and no
+   field that differs from its default (brief 20's comparisons);
+5. no text field or `textarea` holds any text, search fields aside (`type="search"`, `role="searchbox"`, a field
+   of a `role="search"` form). One exception: he has never used the page. That means no frame of it has had a
+   click or a key of his since it loaded (`navigator.userActivation.hasBeenActive` is false in every frame), and
+   its top document was opened fresh, not reached by Back, Forward, a reload or a restored session (its navigation
+   entry has the type `navigate`). Then text in a field came with the page;
+6. there is no `canvas` on a page he has used;
+7. for a reload: the page was loaded by a plain GET (brief 20's rule).
+
+- The check runs in the extension, in place, without a debugger. Fields are compared inside the content script;
+  what leaves it are counts, labels and the reasons, never a value.
+- It runs **as the last thing before the reload or the close**, in the same command, with no round trip to the
+  service in between.
+- **Chrome's own "Leave site?" question is his.** A page that guards itself may make Chrome ask when the tool
+  reloads or closes its tab. The tool never answers that question: a `dialog` step for it is refused with
+  `owner_dialog`, and the result says the tab waits for him. Measure in CI what Chrome does for the take's reload
+  and for a close by the extension, on a fixture with such a guard, and write it into the report.
+- **The rule follows the tab, not the group.** A tab he opened stays his while it is taken ("whose" in brief 28,
+  item 6). `chrome_close` never closes a taken tab: Claude gives it back, and then the rule for his tabs applies.
 
 `chrome_release` and every other way of giving a tab back restore **all** of its place: the window, the index, his
 own group, and **pinned** if it was pinned (brief 20's record of the original place has no pin; add it and test it).
 
 `chrome_go`, `chrome_do` and `chrome_upload` on one of his tabs that isn't taken answer `take_first`.
 
-### 5. Closing his tabs (judgment call 3, answer a)
+### 5. Closing his tabs
 
-`chrome_close` closes one of his tabs only when `request` and `seen` are given and the tab still shows the page
-of that list, and never one with unsaved typing or playing
-media (the same check as item 4; such a tab is listed under `kept` with the reason). The result lists each closed
-tab with its title and its address in the public form. A page of the fixed list or his never-list is never closed
-by Claude.
+The owner, 2026-11-13 (board #201): "Yes, when I ask."
+
+- `chrome_close` closes one of his tabs only when `request` and `seen` are given and the tab still shows the page
+  of that list.
+- It closes only a tab that is **known clean** (item 4a). Every other tab stays open and is listed under `kept`
+  with the reason. **There is no input that closes a kept tab:** where work could be lost, or the tool can't tell,
+  he closes the tab himself.
+- The result lists each closed tab with its title and its address in the public form, so Claude tells him.
+- A page of the fixed list or his never-list is never closed by Claude. A taken tab is given back first.
 
 ### 6. What he sees
 
@@ -225,8 +266,8 @@ The size pins of brief 28 move with it and stay within the budget (at most 10,00
 
 - **The asking path and the hold,** exactly as brief 28 lists them. In `dispatch`'s input part only the tab
   selection of item 7 may change.
-- **The take rules:** a reload before the first input; unsaved typing and playing media reported first; no reload
-  of a page that a form submission loaded.
+- **The take rules:** a reload before the first input; whatever could be lost reported first (item 4a makes that
+  check stricter, never looser); no reload of a page that a form submission loaded.
 - **The password rule,** as brief 28 left it (its name and history additions included). Nothing is relaxed.
 - **Ordinary tabs stay ordinary:** nothing in the page's own world, no listener that cancels or changes anything,
   no debugger, unless Claude took the tab. The compatibility comparison with an untouched Chrome still passes.
@@ -273,14 +314,31 @@ password cases under `password_exclusion`):
   text.
 - **Asleep and stuck:** an asleep tab is loaded and says `woke`; a tab with an open `alert` answers `owner_dialog`
   within three seconds and the service stays usable.
-- **Taking:** a clean tab moves, reloads and returns its outline; a tab with typing (a changed field; a rich-text
-  editor; a changed select) and one playing media each answer `reload_required` with the right labels and counts
-  and **no value**, and the tab's window, index and group are unchanged; `reload: true` takes it; a page loaded by a
-  form submission is refused; an untaken tab answers `take_first` to `chrome_do`, `chrome_go` and `chrome_upload`.
+- **Taking, known clean or not** (item 4a). Each of these tabs answers `reload_required` with its reason, with
+  labels and counts and **no value**, and its window, index, group, document and debugger state are unchanged:
+  - a field that differs from its default; a changed select; a ticked box;
+  - a field whose page keeps the default equal to what he types (he typed with real keys, so brief 20's check
+    would call it clean);
+  - a rich-text editor; a chosen file; a password-kind field; playing media;
+  - a canvas page he clicked on;
+  - a page reached by Back whose fields the browser restored, which he hasn't touched since;
+  - a tab with a frame that doesn't answer;
+  - a page whose load, and one whose form submission, is still under way (the fixture server delays its answer).
+  These are taken and reloaded without `reload`: a tab he opened fresh and never clicked or typed in, although the
+  server prefilled a field; a used page whose only text is in a search box; a used page with empty fields.
+  `reload: true` takes every tab of the first list except the unanswering frame, the load and the submission
+  under way, which stay refused. The check is the last thing before the reload: he types into a field while the
+  take is running (the test holds the command right before its check), and the tab isn't reloaded.
+  A page loaded by a form submission is refused. An untaken tab answers `take_first` to `chrome_do`, `chrome_go`
+  and `chrome_upload`.
+- **"Leave site?":** a fixture page with a `beforeunload` guard, used by the owner: the report says what Chrome
+  does on the take's reload and on a close by the extension; if Chrome asks, a `dialog` step is refused with
+  `owner_dialog` and the tab stays as it is until he answers.
 - **Giving back:** `chrome_release`, **Give back**, dragging the tab out of the group, and **Stop** each restore the
   window, the index, his group and the pin; prepared operations for the tab are dropped and nothing is sent.
-- **Closing:** a tab with typing and one playing media stay open and are listed as kept; a clean one closes and is
-  listed; a fixed-list tab is refused.
+- **Closing:** every tab of the "taking" list above that isn't known clean stays open and is listed as kept with
+  its reason; no input of `chrome_close` closes it; the known clean ones close and are listed with title and
+  address; a taken tab and a fixed-list tab are refused; a close without `request` or `seen` is refused.
 - **Passwords:** group 7's known password in a field he switched to plain text **before** Claude's first read,
   with a label that says nothing ("Code"): once by its `type`, once by a removed `autocomplete`, once by a removed
   mask (as a style and as a class); each in the page, in a frame from another site, and in an open and a closed
