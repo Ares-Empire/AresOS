@@ -117,6 +117,24 @@ Built by Codex, gpt-6.1-sol, for `briefs/33-review-fixes-1.md` on the same branc
 - Human play in the owner's real session; no window was opened there.
 - Long-term weather/mob/day-cycle behaviour and real app icon recognition were not rechecked in this rules-only follow-up.
 - The orchestrator's separate HUB.md correction and future package 36 ledger integration are outside this branch's permitted scope.
+
+## Review fixes 2
+
+Built by Codex, gpt-6.1-sol, for `briefs/33-review-fixes-2.md`; finding 11 is committed as `2f16bf76` on PR #49.
+
+**Done:** removal has its own retained-block check. It inspects inherited survival, neighbour and tick callbacks rather than block IDs or full-cube geometry. In 26.2, the default callbacks do nothing; verified dry slab, stair, wall, fence and pane updates only retain the state or recompute connections. Unknown overrides still refuse with the block ID and coordinates. Placement retains its stricter check. The changed-block regression now preserves a top stone slab, horizontal quartz pillar and top stair with their exact states. Another regression checks wall/fence/pane connections after removal. Torch, sand and item-frame refusals still compare the whole world, sign and record; wet slabs and reactive waxed copper bulbs are covered too. A dry slab still refuses placement.
+
+**Verified:** all commands below used the final source code unless explicitly identified as the initial compile failure.
+
+- `mod/dev/build.sh`, twice: exit 0, `All 53 required tests passed :)`, `BUILD SUCCESSFUL in 35s` and `BUILD SUCCESSFUL in 25s`. JUnit XML reports 75 unit cases: 69 passed, six Windows-only skips, zero failures/errors; the second unit task was up to date.
+- `mod/dev/client-test.sh --keep-screenshots .work/33-review-fixes-2/client-3-screenshots`: exit 0, `33 client checks passed: four gates by command ... nine screenshots`, `BUILD SUCCESSFUL in 7m 23s`, `Client tests ended with exit code 0 after 7 min 23 s` on the headless NVIDIA GeForce RTX 4060 Laptop GPU. All nine captures 0033–0041 were inspected and refreshed here: fronts, thickness, mirrored back, doorways, signs, spacing and night lighting remain as designed, including the known rear sign occlusion. Other packages' tracked pictures were restored with `git checkout -- reviews/`; untracked pictures outside this package were removed after both client runs.
+- The initial `mod/dev/build.sh` failed at `compileGametestJava`: `COPPER_BULB` is a collection in 26.2, so `defaultBlockState()` was unavailable; `BUILD FAILED in 7s`. The fixture now resolves a waxed bulb through the registry, exercising its neighbour callback without weathering.
+- The first full client run, using `--keep-screenshots .work/33-review-fixes-2/client-screenshots`, timed out before the gate test: `Timeout has been exceeded`, `BUILD FAILED in 10m 5s`, exit 1 after 10 min 7 s. It passed mounted Nether rejoin, then stopped producing progress during the existing 04b mounted Overworld rejoin. The next invocation exited 75: `Only 5.7 GB of memory is available and a run needs 6 GB`. After a blocking `sleep 180`, the unchanged full retry above passed all three 04b regressions and the remaining suite. The earlier timeout remains unexplained; the passing retry does not establish repeatable client-suite success.
+- `free -g` preceded every heavy step; the scripts enforced memory checks and the shared client lock. No `--force`, direct Gradle invocation, test filtering, timeout change or daemon-stop command was used. `javap -p -c` inspected cached 26.2 `BlockBehaviour`, `Block`, shape/update helpers, pillar, fluid, gravity and reactive callbacks. `git diff --check` passed. The normal `git push` published the fix successfully. Closing `.work/` inventory: no files over 500 MiB; only small logs and screenshot backups.
+
+**Not verified:** human play, the six Windows-only unit cases, and the cause of the intermittent 04b timeout. The full client suite has one passing run on this code, as requested by this brief, with the earlier failed run disclosed above.
+
+**JUDGMENT-CALL:** none beyond the brief's explicit allowance for cosmetic connection changes. **PLAN-GAP / Open questions:** the existing 04b mounted Overworld rejoin can stall the full suite; diagnosis or changes to those tests are outside this fix's permitted paths.
 - GitHub reports PR #49 open and unmerged, but `mergeable: false` against current `main`. Integration/merge-conflict resolution is not verified by these worktree checks and was not attempted in this scoped fix run.
 
 ### PLAN-GAP and open questions
