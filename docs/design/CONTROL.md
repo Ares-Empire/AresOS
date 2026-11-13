@@ -643,8 +643,9 @@ closing or reloading it. Nothing of ours ever opens a window or takes the focus 
 ### Reading a page
 
 *brief 28* builds the read, and *brief 28a* makes it the `chrome_read` Claude is offered. Reading is text, built
-by the extension's own content script (above): never a screenshot, never Chrome's accessibility tree. `chrome_read` gives an **outline** first and the detail on request. Page text is
-untrusted content (rule 4.8): a page can never instruct Claude.
+by the extension's own content script (above): never a screenshot, never Chrome's accessibility tree.
+`chrome_read` gives an **outline** first and the detail on request. Page text is untrusted content (rule 4.8): a
+page can never instruct Claude.
 
 **The outline** is one line per element, indented by depth:
 
@@ -1202,8 +1203,8 @@ is brief 20's tool list on the same fixtures, recorded once before it is replace
 - **Latency:** fewer calls don't prove a faster tool, because a step still reads the page's facts as brief 20 does.
   So brief 20's tools and the new ones are timed in the same CI run, where the runner is the same: the first
   read of the long page (brief 28, and again in 28a), a free click with its report, and the 6-field form (brief
-  28a) must each take at most 1.10 times brief 20's median plus 50 ms. PR #27 has no latency check at `8b7e799c`; one that its later part brings stays
-  green.
+  28a) must each take at most 1.10 times brief 20's median plus 50 ms. PR #27 has no latency check at `8b7e799c`;
+  one that its later part brings stays green.
 - The efficiency group is a CI check only. It never turns anything off on the laptop: the qualification record
   ("Tests") counts the safety groups, not the budgets.
 
@@ -1339,7 +1340,7 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   a copy of the page in its own tab.
 - **Work that reached a page without a click or a key of his.** A tab he has clicked or typed in is never
   reloaded or closed by the tool's own choice, so work a page holds only in its script's memory (an earlier
-  step of a wizard) is safe. The mark for "clicked or typed" is the browser's own record. Text dropped in from
+  step of a wizard) isn't lost without his say. The mark for "clicked or typed" is the browser's own record. Text dropped in from
   another window, or pasted from Chrome's own menu, may not set it. The check still sees a changed field, an
   editor and a chosen file then; it doesn't see what only a script holds (a file dropped onto a page's own drop
   zone). *Harm:* that state is lost when the tab is reloaded or closed. *Accepted:* it needs work that arrived

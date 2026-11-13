@@ -53,7 +53,7 @@ else.
 
 No open JUDGMENT-CALL. The owner has answered every question this package had.
 
-**Already decided** (his words; `docs/control/PLAN.md` and the board):
+**Already decided by the owner** (his words; `docs/control/PLAN.md` and the board):
 
 - **Claude looks at his open tabs without a separate question** (2026-11-11, `PLAN.md`, answer 4): "Claude sees
   everything once I need it or ask a question or smth, then that's automatically given … Although the permission
@@ -90,13 +90,22 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
   each field's history.
 - A picture of a page region, on request (section 6, "Reading a page", says what it would have to respect).
 
+**Already decided by the lead** (2026-11-13, on the design's second reviews; a builder doesn't reopen them):
+
+- The design is built as three packages, 28, 28a and 28b, in that order, and none reaches the laptop before all
+  three are merged.
+- In his own tabs Claude reads the page's text and what he wrote in an editor, and sees of a form field he can
+  type into only whether it is filled until he has agreed to more (item 3; security re-check 2, finding (a)).
+- The asking read's approval is bound to a prepared read. PR #27 built that binding; this package keeps it and
+  adds the listed page to what it holds (item 3; finding (c)).
+- A tab he has clicked or typed in is never known clean: a take asks him through `reload_required`, and a close
+  keeps it with no override (item 4a; the re-check's remaining fix 6).
+- `reload: true` doesn't override a frame that doesn't answer (item 4; package re-check 2, N8).
+- `chrome_open` with `tab` opens the address the list showed, wherever his tab has gone since (item 2; N4).
+- No marker watches his tabs; the reader a read installs keeps its passive observers (item 3; N5).
+
 **Decided here, and the lead's to defend:**
 
-- In his own tabs Claude reads the page's text and what he wrote in an editor, and sees of a form field he can
-  type into only whether it is filled until he has agreed to more (item 3; the lead's decision of 2026-11-13 on
-  security re-check 2, finding (a)).
-- A tab he has clicked or typed in is never known clean: a take asks him through `reload_required`, and a close
-  keeps it (item 4a; the lead's decision of 2026-11-13 on security re-check 2, remaining fix 6).
 - A taken tab is marked where it stands, not moved into Claude's group (item 4b).
 - The reload is part of the take (item 4).
 - The never-list ships empty and no gate waits for it; his own hosts go in during the live setup (item 9).
@@ -166,6 +175,8 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
   "Leaves no trace" (tests) is a promise for a tab that is already loaded.
 - **A tab that can't answer** (one of Chrome's own dialogs is open, or the page is stuck): the read gives up after
   two seconds with `owner_dialog`, "this tab doesn't answer; a dialog may be open; ask the owner". It never hangs.
+  This is brief 28's deadline at work (its item 4): a read command to one of his tabs carries two seconds at most,
+  or its share of the call's time when that is less.
 - **The result** carries `"whose": "his"` for such a tab, and the page's address in the public form, as every read
   does (brief 28, item 2): the list showed that tab without its query, the read of the tab his request needs shows
   it.
