@@ -12,7 +12,8 @@ Rules for whoever continues: read `AGENTS.md`, `briefs/32-flat-home.md` and `doc
 - Step 3 to 5 (built, compiles, the 38 older server tests pass): `world/FlatHome.java`, `hub/HubData.java`, `hub/FlatHub.java`, the home kind and `startPlan` in `world/NetherHome.java`, the two protection hooks (`zone/WalkInZones.java`, `mixin/LogoExplosionMixin.java`), `client/HomeCreateScreen.java` ("Home: Flat" / "Home: Nether"), `client/HomeButton.createFlat`, one `systemProperty 'aresos.hubReviewDir'` in `mod/build.gradle`, and one added click (`clickScreenButton("Home: Flat")`) in `NetherHomeClientGameTest` and twice in `HomeChoiceClientGameTest` so they still create a Nether home.
 - Step 6 (green): `src/gametest/.../FlatHomeGameTests.java` (7 tests), registered in the gametest `fabric.mod.json`, with two new environments: `test_environment/flat_home.json` (the no-mob test, alone because it changes the server's rules) and `flat_hub.json` (the Live/Build protection test, alone because other desktop tests keep creative players in the world, which switches the hub's explosion rule off).
 
-**Nothing of the flat home has run in a real client yet.** `client-test.sh` has not been run on this branch at all, so the two edited Nether client tests are also unverified.
+- Step 7 (written; see "Client test" below for whether it has run): `src/gametest/.../FlatHomeClientGameTest.java`, registered last in the client list. `FlatHomeGameTests.assertFixedThings` is shared by the server and the client test. One added check each in `NetherHomeClientGameTest` and `HomeChoiceClientGameTest`: no hub record in a Nether home or a marked desktop world.
+- Step 8 (done): `mod/README.md` and `README.md` describe the flat home.
 
 ## State of the server tests
 
@@ -22,14 +23,19 @@ Rules for whoever continues: read `AGENTS.md`, `briefs/32-flat-home.md` and `doc
 2. The mode switch failed because a marked world routes every mode change through `ModeInventories.switchTo`, which refuses a client that cannot acknowledge it. It was not the mock player's `gameMode()` override. `join()` in the test does what `ModeInventoryGameTests.connect` does: unmarked world, plain `ServerPlayer` through `placeNewPlayer`, `ModeInventoryFixtures.registerStateReceiver`, survival; switches go through `ModeInventoryFixtures.switchAndAcknowledge`.
 3. The no-mob test runs its control first: mob spawning on (`SPAWN_MOBS`, then `SPAWN_MONSTERS`, because only the second refreshes the level's cached monsters flag), and a slime appeared after 83 and 52 ticks in the two runs. Then `FlatHome.applyRules`, the control's mobs are discarded, and 12000 ticks follow with a survival player at home in a marked world (Live mode). One `helper.onEachTick` callback drives both phases and restores rules, mobs, player and marker on every way out. In a tick callback throw through `helper.fail(...)`: the runner catches `Exception` there, not `AssertionError`.
 
+4. One run in three then failed in the protection test with "An explosion removed a group name". Cause: a chunk loaded in the same tick shows its entities only after the server has run that chunk's queued promotion task, so a text display added to the chunk the build loaded last cannot be looked up by ID yet (it is in the world and is saved). With home at x 15, z 3 inside its chunk the west name is in that last chunk. The test is pinned to this alignment (it failed there every time) and the test's `build()` runs the queued tasks (`level.getChunkSource().pollTask()`); green after that. The game itself is not affected: nothing looks a name up in the tick that built it.
+
 The whole server suite takes about 15 seconds; `build.sh` about 50.
+
+## Client test
+
+First run started 2026-11-13 18:06 and waited for the laptop's client-test lock; see the newest commit message or the end of this section for a result. If no result is noted here, it has not finished: run `mod/dev/client-test.sh --keep-screenshots <dir>` and start from its failures. Things in the test that are guesses until a run proves them: the flight for the picture from above (teleport up, then `flying`, then wait for the client), the exact text of `/aresos home info` ("Seed: 0", "0.500, 64.000, 0.500", "minecraft:overworld", "180.0, -8.0"), and that a reopened flat world shows no "experimental settings" screen.
 
 ## Left, in order
 
-1. Client game test `FlatHomeClientGameTest` (design under "Tests" below), registered after `HomeChoiceClientGameTest`; screenshots into `System.getProperty("aresos.hubReviewDir")`.
-2. `mod/dev/client-test.sh` twice (`--keep-screenshots <dir>`). Look at every screenshot. Tune the names' colours only if a screenshot shows they are wrong (red 0xB02E26 and purple 0x8932B8 on the default dark background may be too dim against the sky) and say what changed. Afterwards `git checkout -- ../reviews/` from `mod/` for the other packages' screenshots; commit only `reviews/32-flat-home/screenshots/`.
-3. `mod/README.md` (the flat home next to the Nether home), `README.md` ("Home is the Nether" line), `reviews/32-flat-home/REPORT.md` with the "try this" note.
-4. `git fetch origin`; if #44 merged, merge `origin/main` (main's `mod/dev/` on conflict). Delete this file. Push. `gh pr create` against `main`. Do not merge.
+1. `mod/dev/client-test.sh` until it passes **twice** (`--keep-screenshots <dir>`). Look at every screenshot under `reviews/32-flat-home/screenshots/`: `create-flat`, `create-nether`, `arrival` (HUB.md's first picture: horizon, pad, north road, INTERNET), `east`, `south`, `west`, `above-build`, `rejoin`, `missing-home-data`. Tune the names' colours only if a screenshot shows they are wrong (red 0xB02E26 and purple 0x8932B8 may be too dim against the sky) and say what changed. Afterwards `git checkout -- ../reviews/` from `mod/` for the other packages' screenshots; commit only `reviews/32-flat-home/screenshots/`.
+2. `reviews/32-flat-home/REPORT.md` with the "try this" note. A subagent's Write tool refuses report files; the second builder kept the full text as the PR description instead (draft in its scratchpad, not in the repo), so whoever can write the file commits it.
+3. `git fetch origin`; if #44 merged (it was still open at 18:10), merge `origin/main` (main's `mod/dev/` on conflict). Delete this file. Push. `gh pr create` against `main`. Do not merge.
 
 ## The plan (decided while reading; nothing here is tested yet)
 

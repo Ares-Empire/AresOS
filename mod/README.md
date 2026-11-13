@@ -57,7 +57,35 @@ without a lasting daemon (`--no-daemon`) inside its own systemd user scope, whic
 every exit, Ctrl+C included, stops with everything in it.
 
 Click **AresOS** above Singleplayer on the title screen to reopen **AresHub**,
-or choose a seed on the create screen if it does not exist. Seed **49** is
+or to create it if it does not exist. The create screen has one choice,
+**Home: Flat** or **Home: Nether** (click it to switch). Flat is chosen first.
+
+**The flat home** is a flat Overworld: bedrock at y -64, stone up to y 59,
+three layers of dirt and grass at y 63, plains everywhere, no structures,
+nothing generated on the grass, seed 0. It is survival, normal difficulty,
+cheats off. You stand in block **(0, 64, 0)** on a gold block in a 5 x 5 pad of
+polished blackstone bricks and look north. It is noon and clear and stays so,
+and no mob spawns. Four roads, 5 blocks wide, lead from the pad to 24 blocks
+out, each with a centre line in its group's colour and the group's name 9
+blocks up over it, 20 blocks out: north light blue (INTERNET), east red
+(GAMES), south yellow (SYSTEM & TOOLS), west purple (WORK & MEDIA). The world
+spawn is the home block. The numbers and the group table are data in
+`hub/HubLayout.java`; the design is `docs/design/HUB.md`. The logos along the
+roads come with later packages.
+
+The pad, the roads and the names are built once, with the new world, and never
+again. The mod paves only untouched grass with air above it; anything else
+stays. What it placed is saved as `data/aresos/hub.dat`: every block as
+`{pos, block}`, the IDs of the four names (text displays), the layout's name
+`flat-1`, its numbers and the home block. In Live mode a recorded block that is
+still the block the mod placed cannot be broken by hand or by an explosion, and
+the names cannot be hit. In Build mode you can change anything, explosions
+included. A block you changed is yours: the mod no longer protects it and never
+puts its own block back. The rules (the Nether home's, plus the day cycle and
+the weather cycle off), noon and clear weather are set once at creation, so a
+rule you change later stays changed.
+
+**The Nether home** shows its seed settings when it is chosen. Seed **49** is
 prefilled; **49**, **50** and **26** have quick-pick buttons. Seed entry follows
 vanilla Minecraft: numbers use that exact seed, text is hashed, and an empty
 field chooses a random seed. Changing the seed resets the placeholder toggle:
@@ -73,7 +101,8 @@ If no safe location is found, the incomplete save is kept for recovery rather
 than carved or retried. A placeholder is built only for an explicitly new
 creation; later edits always persist.
 
-To try another seed, click **New AresOS world…** beside AresOS and confirm.
+To start over, with either home or another seed, click **New AresOS world…**
+beside AresOS and confirm.
 The entire current save is renamed to **AresHub-<date-time>** before the create
 screen opens. No save is deleted or replaced. Canceling confirmation keeps
 AresHub as it was; canceling creation after confirmation keeps the dated save.
@@ -90,10 +119,13 @@ These commands need no cheats and accept only the singleplayer host in an
 enabled AresOS desktop. Ordinary desktops marked with `/aresos desktop on`
 can also set a home without constructing a hub. Joining always enters Live.
 
-The save keeps `aresos-home.properties` (provisioning version and seed/site),
+The save keeps `aresos-home.properties` (provisioning version and seed/site;
+`home=flat` in it names a flat home, and without that key it is a Nether home),
 `aresos-home.provisioned` (a permanent provisioning claim, marked complete after
-saving provisioning), `data/aresos/nether_home.dat` (initial site and optional exact home), and
-the existing desktop marker. Keep the whole world directory with backups.
+saving provisioning), `data/aresos/nether_home.dat` (initial site and optional
+exact home; despite its name the flat home's too), for a flat home
+`data/aresos/hub.dat`, and the existing desktop marker. Keep the whole world
+directory with backups. All of this holds for both homes.
 Only a new creation through the AresOS button can build a hub. If an existing
 home loses its home data, it opens without rebuilding, changing gamerules or
 enabling the desktop marker, and chat explains how to restore a backup. This
@@ -109,8 +141,8 @@ To repeat the offline generator survey, run `.\gradlew.bat searchNetherSeeds`.
 
 `runClient` uses the isolated `run/` game directory. Worlds created through normal
 Singleplayer play like normal Minecraft. In singleplayer, run `/aresos desktop on` to mark the world as an
-AresOS desktop; cheats are not needed. This does not build a Nether hub or change
-that world's gamerules. Notepad appears in the first empty hotbar
+AresOS desktop; cheats are not needed. This does not build a Nether hub, a home
+pad or roads, and does not change that world's gamerules. Notepad appears in the first empty hotbar
 slot. Right-click it to launch, including when looking at a door, chest or
 villager; the target stays untouched. Holding right-click or switching slots
 while holding does not launch repeatedly. Each release and new press launches
