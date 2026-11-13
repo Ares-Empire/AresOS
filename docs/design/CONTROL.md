@@ -450,7 +450,8 @@ sites and synthetic profiles).
   tab of his that Claude looks at in place (*brief 28b*). A password field is always a single-line input, so the
   rule is as narrow as that. In such a document:
   - a single-line input that can hold typed text (text, phone, number, and any type the tool doesn't know) shows
-    no value, only whether it is filled: `textbox "Label" (filled, not read)`;
+    no value, only whether it is filled: `textbox "Label" (filled, not read)`. Its value is read only after he
+    was asked ("Reading a page", "A single-line field's value");
   - a multi-line text field and an editable area are read, so Claude can proofread a draft he is writing in a tab
     of his and see what a form's long fields hold;
   - ticks, radio choices, chosen options, ranges, colours, dates and times, and email, address and search fields
@@ -528,7 +529,7 @@ the front when he should look at it or sign in there.
   in place: nothing moves, nothing reloads, no debugger attaches and nothing runs in the page's own world. His
   typing, his scroll position and playing media stay as they are. The reader is the same content script with the
   same password rule (above). Because it arrives late in his tab, it reads the page's text and what he wrote in
-  long fields, but of a single-line field only whether it is filled.
+  long fields, but of a single-line field only whether it is filled, until he has agreed to more.
   - A tab that Chrome put to sleep to save memory is loaded by reading it, as his own click would load it; the
     result says so. That is a visit to the site, not a silent look ("Known limits").
   - A tab that shows one of Chrome's own dialogs can't answer. The tool waits two seconds, never hangs, and tells
@@ -604,9 +605,10 @@ the front when he should look at it or sign in there.
 
 His decisions behind this (brief 28b lists them with his words): Claude looks at the tab his request needs without
 a separate question, and the take rules stay (2026-11-11); Claude closes a tab of his when he asks (2026-11-13,
-"Yes, when I ask"). Possible later, after his live test, and not built now: a list of sites where Claude asks him
-before it looks; working in a tab with unsaved typing without a reload; reading what single-line fields hold in
-his own tabs.
+"Yes, when I ask"); a single-line field's value in his tabs is read only after asking (2026-11-13, "Ask first").
+Possible later, after his live test, and not built now: a list of sites where Claude asks him before it looks;
+working in a tab with unsaved typing without a reload; reading what single-line fields hold in his own tabs
+without asking.
 
 **Until brief 28b merges** the tool does what brief 20 built: Claude reads and acts only inside the group. Looking at
 one of his tabs needs `chrome_take` first, which moves the tab and keeps its page; the first input then reloads it,
@@ -676,6 +678,23 @@ fits its kind:
   and where it sends;
 - a text in full;
 - a single link or control with everything known about it (its address in the public form, the title).
+
+**A single-line field's value: ask first** (owner, 2026-11-13, board #210: "Ask first"). Where a read shows a field
+only as `(filled, not read)`, Claude can ask him for the values with `chrome_read_typed_fields`. It is a tool of
+its own under the managed ask rules (section 7), so Claude Code asks him and Claude can't answer for him. Brief 20
+builds it before it merges, and briefs 28 and 28b keep it as built:
+
+- the question names the tab and lists the labels of the fields it will read, with a stable description for a
+  field without a label, and never a value;
+- a field that is named like a credential, is a password field or is masked is never included, also when he
+  approves;
+- one approval covers one call. If he refuses, the fields stay `(filled, not read)`. If the list of fields has
+  changed between the question and the read, nothing is read and it asks again;
+- the values come back marked as page text, like everything else from a page;
+- a normal read says how many such fields a tab has, so Claude knows the tool exists for them; the instructions
+  tell it to ask only when his request needs such a value;
+- with brief 28b it works on a tab of his read in place as well as on a taken tab before its reload, bound to
+  the listed page like every call on his tabs, and never on a page of his never-list.
 
 **All of it.** With `full`, `chrome_read` returns the page, or with `ref` one part of it, with nothing folded and
 nothing cut, paged by the budget below. So reading a long page to its end is two or three calls, not one call per
@@ -821,6 +840,9 @@ or Space on a focused control, any other key, filling, choosing or ticking.
 gave, one from a page or one Claude wrote), typing and filling fields, choosing from lists, ticking boxes, opening and
 closing Claude tabs, taking one of his tabs and giving it back. Searches are free everywhere: a search form sent as a
 plain address (GET) is navigation.
+
+**One read asks:** the values of single-line fields whose history the reader doesn't know, in one of his tabs or in
+a taken tab before its reload (`chrome_read_typed_fields`, "Reading a page"; owner, 2026-11-13: "Ask first").
 
 **Asks, decided before the input is dispatched.** The extension collects the target's facts and the service
 classifies them before anything reaches the page:
@@ -1059,12 +1081,14 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 
 ### Actions
 
-*brief 28*, and *brief 28b* for his tabs. Seventeen tools are offered to Claude, where brief 20 had 28.
+*brief 28*, and *brief 28b* for his tabs. Eighteen tools are offered to Claude, where brief 20 has 29 when it
+merges (28 at `8b7e799c`, and the asking read for typed fields).
 
 | Action | Effect | What it does | Replaces (brief 20) |
 |---|---|---|---|
 | `chrome_tabs` | read | every tab of every normal window in one result: number, whose, title, address (short form), marks | `chrome_tabs` (5 to 10 tabs per call) |
 | `chrome_read` | read | the outline of a tab, or of up to five tabs; one part by `ref`; `find`; `until`; paged by `max` and `cursor`. In one of his tabs it reads in place and needs `request` | `chrome_read`, `chrome_read_form`, `chrome_find`, `chrome_wait` |
+| `chrome_read_typed_fields` | **ask** (read) | after his OK, read the single-line fields that a normal read shows only as filled, in a page the reader didn't watch from its start: the question lists the fields' labels, never a value; credential-like fields never; one approval, one call | the same (brief 20 adds it before it merges) |
 | `chrome_open` | change | open a web address in a new Claude tab (an address, a link or a library entry by reference, or the address of one of his tabs), wait, return the outline | `chrome_open`, then wait and read |
 | `chrome_go` | change | in a Claude tab: an address, back, forward or reload; wait, return the outline | `chrome_navigate`, then wait and read |
 | `chrome_do` | change | up to 20 steps in one tab (click, fill, select, check, press, scroll, dialog, wait), each by reference. An asking step isn't dispatched and returns a prepared operation, and so does a submission the page starts while handling a step; an activation the page starts is stopped and reported, never resumed. Returns what changed | `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll`, `chrome_dialog` |
@@ -1081,8 +1105,9 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 | `chrome_sites` | owner-only | his read-only sites and his "don't ask again" entries, to see and change | the same |
 
 - **The asking tools don't change.** `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`,
-  `chrome_operation_status` and the notices keep their names, inputs, results and behaviour, and the managed ask rule
-  stays on `chrome_submit` alone (section 7).
+  `chrome_operation_status`, the notices and `chrome_read_typed_fields` keep their names, inputs and behaviour, and
+  the managed ask rules stay on exactly two tools: `chrome_submit` for every send, and `chrome_read_typed_fields` for
+  that one read (section 7).
 - **A list from `chrome_library` is a snapshot,** so paging through it is stable. A snapshot expires 5 minutes after
   the last page was asked for, or 30 minutes after it was made, whichever comes first; then the list starts again
   (*brief 20*).
@@ -1123,8 +1148,8 @@ is brief 20's tool list on the same fixtures, recorded once before it is replace
 | List 25 open tabs | 3 calls | 1 call, at most 3,500 characters |
 | A free click that changes part of the page | a click, then a read or a find: 2 calls | 1 call, at most 2,500 characters |
 | Read a fact from one of his tabs (*brief 28b*) | list, take, read; the tab moves | list, read; the tab untouched |
-| What a session loads: descriptions and instructions | 28 tools; recorded on main after PR #27 | 17 tools, at most 10,000 characters, and not above the baseline |
-| What a session loads: names and input schemas | 28 tools, about 10,600 characters (PR #27 at `8b7e799c`) | at most 6,000 characters |
+| What a session loads: descriptions and instructions | 29 tools; recorded on main after PR #27 | 18 tools, at most 10,500 characters, and not above the baseline (11,500 with brief 28b's rule for his tabs) |
+| What a session loads: names and input schemas | 28 tools, about 10,600 characters at `8b7e799c`; recorded again on main with the 29th | at most 6,300 characters (6,600 with brief 28b's inputs) |
 
 - Every budget names the exact calls it allows (brief 28's table), and the test makes those calls and no others. A
   budget nobody can meet is changed in the brief, never in the test.
@@ -1227,14 +1252,18 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   page his request needs is what he asked for, and navigation is free (decision 25). The result says that the tab
   was woken. "Leaves no trace" is promised only for a tab that is already loaded, and a tab that wakes with
   restored fields isn't known clean for a later take or close.
-- **In his own tabs Claude doesn't see what a single-line field holds.** Where the reader hasn't watched a page
-  from its start, such a field shows only whether it is filled ("What the extension can and can't do"). *Harm:*
-  Claude can't read back a name, a number or a search he typed in a tab of his; it reads his drafts in long
-  fields, and it sees the rest after a take with its reload or in a copy of the page in its own tab. *Accepted:*
-  a password he made visible is a single-line field that looks like any other, and a password is never a limit. A
-  passive marker that proves each field's history could lift this later, after his live test. In Claude's own
-  tabs the same hits one case: a filled single-line field inside a component whose shadow root the reader met
-  late.
+- **In his own tabs Claude sees what a single-line field holds only after asking.** Where the reader hasn't
+  watched a page from its start, such a field shows only whether it is filled ("What the extension can and can't
+  do"). *Harm:* a question to him before Claude can read back a name, a number or a search he typed in a tab of
+  his. *Accepted:* his decision (2026-11-13, board #210: "Ask first"); a password he made visible is a single-line
+  field that looks like any other, and the question shows him which fields are meant before any is read. A field
+  named like a credential stays unread even then. A passive marker that proves each field's history could spare
+  him the question later, after his live test. In Claude's own tabs the same hits one case: a filled single-line
+  field inside a component whose shadow root the reader met late.
+- **An approved read can still hold a password.** He approves a list of labels, and a password he made visible
+  sits in a field whose label says nothing. *Harm:* that password reaches Claude after his own OK. *Accepted:* he
+  is asked with the labels in front of him, for the tab he pointed Claude to; the tool can't know more about that
+  field than its label, and a field it can recognise as a credential is never offered.
 - **A secret he unmasked in a long field, under a label that says nothing.** In a document the reader didn't watch
   from its start, a multi-line field or an editable area is read unless its name says credential or it is masked
   at that moment. A settings page that masks a long secret by style (a key, a recovery phrase), labels it only
@@ -1404,7 +1433,8 @@ field it can't confirm is safe isn't read; every result says plainly that this C
     additions free, its removals, deletions, shares and payments asking; read-only sites refusing every action.
 11. **"Don't ask again":** set only through his channels; used only for the exact kind, account and recipients;
     revoked entries ask again; an adapter update that widens a kind suspends its entries until he confirms them.
-12. **The managed ask rule on `chrome_submit`** in normal and in skip-permissions mode (section 7).
+12. **The managed ask rules on `chrome_submit` and on `chrome_read_typed_fields`** in normal and in skip-permissions
+    mode; an allow rule doesn't turn either off (section 7).
 13. **The residual shown honestly:** a fixture page that sends with `fetch` after a click on an unlabelled button,
     one that autosaves typing, one that submits after the hold, and one that borrows every step from a window
     outside Claude's tabs are listed in the brief's report as not held, so "Known limits" stays true.
@@ -1446,6 +1476,10 @@ the first input (brief 28b).
       a `find` hit's path, in a change report and in a stale reference's present line; a `role` attribute made of
       line breaks, outline lines and references shows as a role from the fixed list and nothing more; a refusal's
       message holds no page text; a page of 100,000 elements is cut with a plain notice;
+    - the asking read: a normal read never returns a single-line field's value and counts such fields; an
+      approved read returns exactly the fields the question listed, as page text; a field named like a
+      credential is absent though he approved; a field added after the question asks again; a refusal leaves
+      "filled" and "empty"; one approval covers one call;
     - passwords: group 7's fixtures and recording run over every new output (the outline, a form read by `ref`,
       `find` for the password itself, several tabs, `until`, the change report after a "show password" click, the
       results of `chrome_open`, `chrome_go` and `chrome_take`, a prepared operation's question); the password
@@ -1517,6 +1551,10 @@ the first input (brief 28b).
       reload a plain field is read again;
     - what he wrote: a draft in a multi-line field and in an editable area of his tab is read in place; a
       single-line field shows "filled" without its value; an editable area labelled "Password" isn't read;
+    - ask first, in his tabs: the asking read works on a tab of his in place and leaves no trace in it; it is
+      refused without the list's token or his request, on a never-list page, and when he went elsewhere between
+      the list, the question and the read; the sign, the popup and the log show the fields' labels, never a
+      value;
     - the background: a new Claude tab doesn't come to the front, and a list of steps in a Claude tab leaves his
       front tab in front (or the brief's report says why it can't, and the question goes to him).
     A tool-user round (section 8) then checks the rule "the tab his request clearly needs" with a model: tabs named
@@ -1683,7 +1721,8 @@ improvement if he asks for it.
 ## 10. Open questions
 
 **Open:** none for Chrome. His answers on his open tabs (2026-11-11), on closing them (2026-11-13, "Yes, when I
-ask") and on screenshots (2026-11-13, "Text only first") are built into section 6 ("Which tabs Claude works in",
+ask"), on screenshots (2026-11-13, "Text only first") and on single-line fields in pages the reader didn't watch
+(2026-11-13, "Ask first") are built into section 6 ("Which tabs Claude works in",
 "Reading a page"); brief 28b lists them with what stays possible later.
 
 **Answered on 2026-11-07 and built into this draft** (his words in quotes; `PLAN.md` decisions):

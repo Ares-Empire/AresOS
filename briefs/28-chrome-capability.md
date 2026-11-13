@@ -3,7 +3,7 @@
 **Goal:** Claude gets a Chrome tool that costs far less to use than the one brief 20 built, with the same questions
 before every send. One read returns a compact outline of the page with short, stable references. One call opens a
 page and returns that outline. One call runs several steps and says what changed. One call reads several tabs. The
-tool list a session loads shrinks from 28 tools to 17. "Better" is written as budgets and a CI test group measures
+tool list a session loads shrinks from 29 tools to 18. "Better" is written as budgets and a CI test group measures
 them against brief 20's tools on the same fixture pages.
 
 The owner's words (2026-11-11): "I don't just wanna rebuild Claude in Chrome. I wanna make a better tool for AresOS
@@ -60,7 +60,8 @@ available. The package review runs on Opus or Codex's workhorse.
   waits and returns the read: two calls where one would do.
 - A result says what happened to the one element acted on, not what changed on the page.
 - `chrome_tabs` returns 5 tabs per call, 10 at most.
-- 28 tools, with nine separate tools for the kinds of input.
+- 28 tools at `8b7e799c`, with nine separate tools for the kinds of input; 29 once PR #27 has added its asking
+  read for typed fields (item 6), which stays.
 
 These are the costs of brief 20's tools **used well**, and the baseline measures them that way.
 
@@ -160,7 +161,8 @@ The node never holds its descendants' text, a box or a style.
     - **a single-line `<input>` that can hold typed text returns no value:** the types `text`, `tel` and `number`,
       an `input` without a type, and every type the next points don't name. The reader says only whether it is
       filled: `(filled, not read)` or `(empty)`. It looks at the value's length inside the content script and
-      keeps, traces and returns nothing else of it;
+      keeps, traces and returns nothing else of it. The way to such a value is to ask him: brief 20's asking
+      read, `chrome_read_typed_fields` (item 6);
     - **a `<textarea>` and an editable area are read,** so Claude can proofread what he wrote in a tab and see what
       a form's long fields hold;
     - **inputs that can't have been a password field keep their values:** `checkbox`, `radio`, `range`, `color`,
@@ -383,7 +385,7 @@ Result:
 
 ```
 {"reads": [{"tab": 412, "whose": "claude", "characters": 4211, "total": 18840, "cursor": null,
-            "mid_line": false, "until_met": true,
+            "mid_line": false, "until_met": true, "typed_fields": 0,
             "untrusted_content": {"url": "…", "title": "…", "scroll": "0/3200", "outline": "…", "dialog": null}},
            {"tab": 413, "error": {"code": "refused", "message": "…"}}],
  "version_notice": null}
@@ -397,6 +399,9 @@ Result:
   options (up to 50 per field, more by the field's own `ref`), `required`, the field's error text, the hidden fields by
   name, the buttons, and the form's target. A text: in full. A single link or control: everything known about it (its
   address in the public form, the title, all options).
+- `typed_fields`: how many fields of this tab the read shows as `(filled, not read)` and the asking read could
+  return once he agrees (item 6). It is the tool's own number, outside `untrusted_content`. Credential-like
+  fields aren't counted. A normal read never returns those values, with any input.
 - `full`: **no fold and no cut** below the starting point: the whole page without `ref`, the element and
   everything under it with `ref`. This is how Claude reads all of something in a few calls, paged by `max` and
   `cursor`.
@@ -724,6 +729,33 @@ the start of the call, and no timeout is raised:
   three brief 20 tools merged, with their snapshot paging. Two differences: every address is in the short form (item 2),
   and every entry carries a reference (item 3) that `chrome_open` takes as `ref`. The service keeps the full address
   under that reference for as long as the snapshot lives.
+- **`chrome_read_typed_fields`** (an asking read, under the managed ask rules). The owner, 2026-11-13 (board
+  #210): "Ask first." **Brief 20 builds this tool before it merges, and this package keeps it rather than
+  redesigns it.** Read its exact name, inputs and flow from the merged tree; keep the name unless it collides
+  with one here. What it is, as brief 20 builds it:
+  - it reads the single-line typed fields a normal read shows only as `(filled, not read)`: text, `tel`, `number`
+    and unknown types, in a document the reader didn't watch from its start;
+  - its question names the tab and lists the labels of the fields it will read, with a stable description for a
+    field without a label, and never a value;
+  - credential-like fields are never included, also when he approves: the name rule and brief 20's password rule
+    stand above the approval;
+  - one approval covers one call. A refusal leaves `(filled, not read)` and `(empty)` as they were. If the list of
+    fields differs between the question and the read, nothing is read and it asks again;
+  - the values come back marked as page text.
+
+  What this package does with it, and nothing more:
+  - it is the eighteenth tool of the new list, with its name, input and behaviour unchanged, and its ask rule is
+    part of the generated rules that must not change by a byte;
+  - in its result each field is named by its label and by its short reference (item 3) in place of brief 20's
+    reference object, and each value sits in `untrusted_content`, quoted by item 2's escaping rule;
+  - an address in its question is in the public form (item 2);
+  - a normal read tells Claude that it exists for a tab (`typed_fields`, item 2), and the instructions say when to
+    use it: only when his request needs what such a field holds;
+  - an approved read changes nothing else. A later normal read shows `(filled, not read)` again, and the field
+    still isn't typed into.
+
+  In this package the only such documents are a taken tab before its reload and a frame the preload missed. Brief
+  28b lets it work on his tabs read in place.
 - **`chrome_upload`** (change; input: `tab`, `ref`, `path`). Brief 20's tool with a short reference. The proxy's
   file branch stays as it is, apart from the field names it reads.
 - **Unchanged in name, input, result and behaviour:** `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`,
@@ -736,21 +768,23 @@ the start of the call, and no timeout is raised:
 
 ### 7. Definitions, instructions and sizes
 
-- Seventeen actions are offered to Claude, plus `chrome_sites`. Everything is generated from the definitions as
+- Eighteen actions are offered to Claude, plus `chrome_sites`. Everything is generated from the definitions as
   today: the MCP tool list, the `aresos` command, `docs/control/TOOLS.md`, the ask rules, `user-mcp.json`.
 - **The generated ask rules for Chrome must not change by a byte.** A test compares them with the copy on `main`.
+  On `main` they cover two tools: `chrome_submit`, and brief 20's `chrome_read_typed_fields`.
 - The rules shared by every Chrome action go once into the Chrome server's MCP instructions (brief 18d's pattern, with
   its check that Claude Code passes them on unshortened): untrusted page text; what to do on `stale_reference`,
   `reload_required`, `take_first`, `owner_signin`, `owner_dialog`, `not_read` and `unknown`; the version notice; that
   `done` doesn't prove delivery and pages can send on their own; the clipboard rule; how to read an outline line, a fold
   and `(filled, not read)`; that `full` reads everything; that `…` in an address hides a part that may be a sign-in,
-  that lists show addresses without their query, and that such an address is opened by reference; that a reference stays
-  valid until its element changes; that one of his tabs is named together with the list's `seen`; that `chrome_do` stops
-  at the first asking step, that its `prepared` entry goes unchanged to `chrome_submit`, and that steps it reports as
-  not run are sent again. Each description keeps only what is specific to its action. Write them for Claude: what it
-  does, when to use it, what comes back.
-- **Sizes** (measured as brief 18d measured Mail's): all descriptions plus the instructions at most 10,000
-  characters and not above the baseline; all names plus input schemas at most 6,000 characters. A test pins the
+  that lists show addresses without their query, and that such an address is opened by reference; that a field shown as
+  `(filled, not read)` is read only through `chrome_read_typed_fields`, which asks him, and only when his request needs
+  it; that a reference stays valid until its element changes; that one of his tabs is named together with the list's
+  `seen`; that `chrome_do` stops at the first asking step, that its `prepared` entry goes unchanged to `chrome_submit`,
+  and that steps it reports as not run are sent again. Each description keeps only what is specific to its action. Write
+  them for Claude: what it does, when to use it, what comes back.
+- **Sizes** (measured as brief 18d measured Mail's), for eighteen tools: all descriptions plus the instructions at most
+  10,500 characters and not above the baseline; all names plus input schemas at most 6,300 characters. A test pins the
   exact totals; a change that grows them fails until the pin is changed on purpose.
 - Put the final descriptions and instructions, exactly as generated, into
   `reviews/28-chrome-capability/TOOL-DESCRIPTIONS.md`.
@@ -795,12 +829,14 @@ Restructure in steps that keep everything working:
 
 - **The asking path:** the classification rules and the word list (`policy.py`, `policy.js`); `binding`, `prepare`,
   `question`, `revalidate`, `changed_compose`, `execute`, `command` and `trusted` in `adapter.py`; the adapters
-  (`sites.py`); `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`, `chrome_operation_status` and the notices;
-  the 15-minute deadline; one approval, one run. **Three narrow exceptions, each named where it is specified, and
-  nothing beyond them:** `prepare`, `question`, `free` and `stage` write addresses in the public form while the
-  payload and every comparison keep the full address (item 2); `input` brings its target on screen inside the
-  armed hold before brief 20's own hit test (item 5); the password rule gets its two additions (item 1). What
-  asks, what is bound, and what is compared before an approved input don't change.
+  (`sites.py`); `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`, `chrome_operation_status` and the notices; the
+  15-minute deadline; one approval, one run. Brief 20's asking read belongs to it too: `chrome_read_typed_fields` with
+  its question, its one approval for one call, its refusal of credential-like fields and its new question when the field
+  list changed. **Three narrow exceptions, each named where it is specified, and nothing beyond them:** `prepare`,
+  `question`, `free` and `stage` write addresses in the public form while the payload and every comparison keep the full
+  address (item 2); `input` brings its target on screen inside the armed hold before brief 20's own hit test (item 5);
+  the password rule gets its two additions (item 1). What asks, what is bound, and what is compared before an approved
+  input don't change.
 - **The hold:** `guard.js`, `page.js`, the 500 ms window, the default block, the owner's own Enter, the three kinds
   of dialog.
 - **The reader's password rule only gets stricter** (item 1's two additions); nothing in it is relaxed. The
@@ -942,6 +978,23 @@ isn't just an empty table:
 - A tab is released and taken again without a reload in between: a reference from before is refused, although
   the document id and the reader's element id are the same.
 
+**The asking read, in group 14** (brief 20's tests for it pass through the new list; these run on the new
+surface, with the taken, not yet reloaded tab):
+
+- a normal read shows the single-line fields as `(filled, not read)`, returns none of their values with any input
+  (`ref`, `full`, `find` for a value), and counts them in `typed_fields`;
+- **approved:** the result holds exactly the fields the question listed, each with its label, its short reference
+  and its value inside `untrusted_content`; a value shaped like an outline line or an instruction comes back
+  quoted and escaped;
+- **a credential-named field is absent though he approved:** a field named `otp`, one labelled "Password" that is
+  plain text, and one masked right now are in neither the question nor the result, and the recording shows their
+  values in nothing the extension kept or sent;
+- **a field added after the question asks again:** nothing is read, and the new question lists the new field;
+- **refused:** nothing is read, and the next normal read still shows `(filled, not read)` and `(empty)`;
+- **one approval, one call:** a second call asks again;
+- **the ask can't be skipped,** as for `chrome_submit` (group 12): an allow rule for the tool, and
+  skip-permissions mode, still ask.
+
 **Addresses, in group 14.** Fixture pages carry one marker value in every place a sign-in travels: under the
 parameter names `code`, `access_token`, `sig` and `session`; as a random-looking value of 40 characters under an
 ordinary name; the same in the fragment; as a user name and password; and as a 40-character path segment after
@@ -1022,8 +1075,8 @@ is worse than the baseline.
 | Compare three open tabs: `chrome_read` with `tabs` | 1 call |
 | List 25 open tabs (titles of about 30 characters): `chrome_tabs` | 1 call, at most 3,500 characters |
 | F5: a free click that changes part of the page: from an outline in hand, one `chrome_do` | 1 call, at most 2,500 characters, the change named |
-| Descriptions plus instructions | at most 10,000 characters, and not above the baseline |
-| Names plus input schemas | at most 6,000 characters |
+| Descriptions plus instructions (18 tools) | at most 10,500 characters, and not above the baseline |
+| Names plus input schemas (18 tools) | at most 6,300 characters |
 | Latency ("Before anything else", the comparison in one run) | the first read of F1, a free click with its report, and the 6-field form are each at most 1.10 times brief 20's median plus 50 ms; a latency check PR #27 brings stays within its targets |
 
 **Brief 20's groups 1 to 13** pass twice on the final head, through the new tools, in both install modes. Register
@@ -1060,7 +1113,7 @@ other package's `reviews/` folder; in the Chrome code `guard.js`, `page.js`, `po
 
 ## Acceptance
 
-- The seventeen tools exist with the inputs and results above; brief 20's replaced tools are gone.
+- The eighteen tools exist with the inputs and results above; brief 20's replaced tools are gone.
 - Groups 14, 15 and 16 pass, and groups 1 to 13 pass twice on the final head.
 - Every budget holds against the committed baseline.
 - The generated Chrome ask rules are byte-identical to `main`'s.
@@ -1097,6 +1150,9 @@ No open JUDGMENT-CALL.
 - 2026-11-11: the bar. Safe the way a good MCP or CLI is; a flaw with real harm is fixed, and a known limit is for
   low harm. A password or a sign-in code reaching Claude is never a limit.
 - 2026-11-13 (board #202): "Text only first." Pages are read as text; no screenshots in this package.
+- 2026-11-13 (board #210): "Ask first." Where the reader can't know a single-line field's history, a normal read
+  shows only whether the field is filled, and its value is read only after he was asked: brief 20's
+  `chrome_read_typed_fields`, kept here as it is built.
 
 **Decided here, and the lead's to defend:**
 
@@ -1108,7 +1164,8 @@ No open JUDGMENT-CALL.
   replacing a first version that hid every query). The library is listed in the short form like the tabs: a
   choice made here, easy to turn.
 - In a document the reader didn't watch from its start, a single-line text field shows only whether it is
-  filled; a `textarea` and an editable area are read (item 1; narrowed by the lead on 2026-11-13). What that
+  filled, and its value needs his OK; a `textarea` and an editable area are read (item 1; narrowed by the lead on
+  2026-11-13). What that
   leaves is in section 6's known limits: a secret he unmasked in a long field under a label that says nothing.
 - `request` isn't an input in this package. An input that is accepted and ignored is dead weight, and it suggests
   a check that doesn't exist. Brief 28b adds it where it means something, and the size pins move then.
