@@ -532,9 +532,12 @@ the front when he should look at it or sign in there.
     page. The button's popup lists each of his tabs that Claude looked at or took in this Chrome session, with the
     time and the request. `aresos log` records the same (rule 4.9 covers these reads although they change nothing).
     The tool result names the tab, so Claude tells him.
-- **Acting takes the tab.** Before its first input in one of his tabs Claude calls `chrome_take`. He sees the tab
-  move into the Claude group and its button show **ON**. The take rules are brief 20's, and brief 28b makes them one
-  step:
+- **Acting takes the tab.** Before its first input in one of his tabs Claude calls `chrome_take`. He sees a
+  **Claude** group label appear around the tab, where it stands, and its button show **ON**. The tab isn't moved:
+  brief 20 put a taken tab into Claude's own group, which can sit in another window, and that made his tab strip
+  jump. Only two tabs still shift a little while taken, because Chrome wants it so: one inside a group of his
+  steps to that group's edge, and a pinned one is unpinned. The take rules are brief 20's, and brief 28b makes
+  them one step:
   - **The tab reloads once before Claude's first input.** The page script that stops a page's own submissions
     (below) has to be in place before the page's scripts run, and a reload is the only way to get it there.
   - **Whatever could be lost is reported first.** Unless the tool knows that nothing of his is lost (next point),
@@ -561,7 +564,9 @@ the front when he should look at it or sign in there.
   reload or the close. If Chrome itself asks "Leave site?", that question is his and the tool never answers it.
 - **Giving it back.** `chrome_release`, the **Give back** button next to the tab in the popup, dragging the tab out
   of the group, or **Stop** (which gives back everything) each end Claude's control of the tab, drop its prepared
-  operations and put it back where it was: its window, its place, his own group, pinned if it was pinned.
+  operations and put it back where it was: its window, its place, his own group, pinned if it was pinned. If his
+  group was removed by Chrome because the taken tab was its only one, a group with the same name and colour is
+  made for it.
 - **Closing** (owner, 2026-11-13, board #201: "Yes, when I ask"). `chrome_close` closes Claude's own tabs. It
   closes one of his only when he asked for it, the call names his request, and the tab is known clean (above). A
   tab where work could be lost, or where the tool can't tell, stays open: the result lists it with the reason,
@@ -1207,6 +1212,10 @@ with real harm is fixed instead (owner, 2026-11-11). Each brief's report keeps t
   with no field showing it (an earlier step of a wizard). *Harm:* that state is lost when the tab is reloaded or
   closed. *Accepted:* the same happens when he closes the tab himself; pages that care ask "Leave site?", and the
   tool never answers that for him.
+- **A group of his that held only the taken tab comes back as a new group.** Chrome removes a group when its
+  last tab leaves, and the tool makes one with the same name and colour on release. *Harm:* a group he had saved
+  or synced isn't linked to the new one. *Accepted:* the tab, its place and the group's look are restored; Chrome
+  offers no way to keep an empty group.
 - **What he types into a taken tab can be lost when Claude navigates it.** *Harm:* his text in a tab that Claude
   is working in. *Accepted:* the tab is marked as Claude's for as long as it is taken, and giving it back is one
   click.
@@ -1422,6 +1431,10 @@ harness's helper functions change, never an assertion.
       by a form submission is refused; `chrome_do` on one of his tabs that isn't taken is refused;
       `chrome_release`, **Give back**, dragging out and **Stop** each restore the window, the place, his group and
       the pin;
+    - marked in place: a taken tab keeps its window and its place and shows a Claude group around it, also when
+      another window is in front and when tabs are taken from two windows; the only tab of one of his groups
+      returns into a group of the same name and colour; a tab from the middle of his group returns to its place
+      in it;
     - closing: every tab that isn't known clean stays open and is listed with its reason, and no input closes
       it; a known clean one closes and is listed; a taken tab is refused;
     - passwords: in one of his tabs no text field and no editable area is read in place, so a field he switched

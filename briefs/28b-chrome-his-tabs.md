@@ -174,8 +174,8 @@ keep brief 20's rule and say so (PLAN-GAP).
    or reloaded. The answer says what the tool found, in the tool's own words: how many fields hold text, with their
    labels (never their values), an editor, a chosen file, a canvas, playing media, or "you have used this page and
    the tool can't see whether it holds unsaved work".
-3. **Otherwise take it:** attach, move it into Claude's group, reload it once as brief 20 does, wait for the load,
-   and return the new page's outline (brief 28's result shape, with `"whose": "taken"`).
+3. **Otherwise take it, where it stands:** attach, mark it (item 4b), reload it once as brief 20 does, wait for the
+   load, and return the new page's outline (brief 28's result shape, with `"whose": "taken"`).
 4. **`reload: true` is his decision, passed on by Claude.** It takes and reloads a tab that isn't known clean. It
    never overrides three things: a dialog that is open, a load or a form submission that is still under way, and a
    page that a form submission loaded.
@@ -214,10 +214,45 @@ holds:
 - **The rule follows the tab, not the group.** A tab he opened stays his while it is taken ("whose" in brief 28,
   item 6). `chrome_close` never closes a taken tab: Claude gives it back, and then the rule for his tabs applies.
 
-`chrome_release` and every other way of giving a tab back restore **all** of its place: the window, the index, his
-own group, and **pinned** if it was pinned (brief 20's record of the original place has no pin; add it and test it).
-
 `chrome_go`, `chrome_do` and `chrome_upload` on one of his tabs that isn't taken answer `take_first`.
+
+### 4b. A taken tab stays where it is, and goes back exactly
+
+His words: "work in my open tabs basically as if I was working in them". Brief 20 moves a taken tab into the one
+Claude group, which may sit in another window: his tab strip jumps and his own group loses the tab.
+
+- **Marked in place.** A taken tab gets a group of its own, labelled **Claude** in Claude's colour, wrapped around
+  it where it stands: `chrome.tabs.group` with this one tab and with `createProperties.windowId` set to the tab's
+  own window (Chrome's default is the window in front). The tab keeps its window, and its place when it wasn't in
+  a group.
+- **Two cases still move it a little,** because Chrome allows a tab one group only, and no group among pinned
+  tabs: a tab inside one of his groups steps to that group's edge, and a pinned tab is unpinned. Both are put
+  back on release. Show both in the report's screenshots.
+- **He keeps both signs brief 20 gave him:** the label on the tab strip, which he sees also while the tab is in
+  the background, and the gesture: dragging the tab out of its Claude group ends control.
+- **In the code:** brief 20 keeps one global `groupId` and tests a tab against it in `admitTab`, `takenTab`,
+  `requireTab`, the `tabs.onUpdated` listener, `collection` and `release`. Make the group a field of the tab's
+  control record, set at admission: the global group for a tab Claude opened or a Claude tab opened, the wrapper
+  for a taken tab. Those places then compare with the record's group. Popups keep brief 20's rule; they hang on
+  the opener's control record, not on a group.
+
+**Giving it back** (`chrome_release`, **Give back**, dragging out, **Stop**) restores his tab's whole place. Record
+at the take: the window, the index, whether the tab was pinned, and his group if it had one, with the group's
+title, colour and whether it was collapsed. Then:
+
+1. take the tab out of its Claude wrapper;
+2. pin it again if it was pinned;
+3. put it back at its index in its window;
+4. if it was in one of his groups, put it back into that group. If the group is gone (it was the group's only
+   tab, and Chrome removes an empty group), make a group in its place with the recorded title and colour,
+   collapsed as it was. To Chrome that is a new group: a saved or synced group of his isn't linked to it again.
+   Write that into `KNOWN-LIMITS.md`;
+5. if its window is gone, or he moved the tab himself in the meantime, leave it where it is and only remove the
+   wrapper.
+
+Brief 20's `restoreTab` swallows every error. Here a step that fails is named in the result, and the steps after
+it still run. The measurement of item 7 (input in a background tab) is a separate matter: it changes nothing
+about what a take records or how a release restores.
 
 ### 5. Closing his tabs
 
@@ -344,8 +379,15 @@ password cases under `password_exclusion`):
 - **"Leave site?":** a fixture page with a `beforeunload` guard, used by the owner: the report says what Chrome
   does on the take's reload and on a close by the extension; if Chrome asks, a `dialog` step is refused with
   `owner_dialog` and the tab stays as it is until he answers.
-- **Giving back:** `chrome_release`, **Give back**, dragging the tab out of the group, and **Stop** each restore the
-  window, the index, his group and the pin; prepared operations for the tab are dropped and nothing is sent.
+- **Marked in place:** a tab taken in a window that isn't in front keeps its window and its index, and shows a
+  **Claude** group around it. Two tabs taken from two windows each stay in their window. A new tab that a taken
+  tab opens joins Claude's own group, as in brief 20.
+- **Giving back:** `chrome_release`, **Give back**, dragging the tab out of its Claude group, and **Stop** each
+  restore the window, the index, his group and the pin; prepared operations for the tab are dropped and nothing
+  is sent. In detail: a tab from the middle of one of his groups is back at its index inside that group; the only
+  tab of one of his groups is, after the release, in a group with the same title and colour; a pinned tab is
+  pinned again at its index; a tab he dragged to another window while it was taken stays there, without the
+  wrapper.
 - **Closing:** every tab of the "taking" list above that isn't known clean stays open and is listed as kept with
   its reason; no input of `chrome_close` closes it; the known clean ones close and are listed with title and
   address; a taken tab and a fixed-list tab are refused; a close without `request` or `seen` is refused.
