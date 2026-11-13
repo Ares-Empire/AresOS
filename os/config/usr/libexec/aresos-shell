@@ -2395,23 +2395,26 @@ class Helper:
         app_id = message.get('app_id')
         if not isinstance(app_id, str) or len(app_id) > 128:
             raise Failure('malformed', 'app_id must be a string')
-        if conn.minor == 0 and ((self.apps.get(app_id) is not None and self.apps[app_id].discovered)
-                                or self.journal.entries.get(request_id, {}).get('discovered')):
-            raise Failure('unknown_app', 'no reviewed launch definition')
+        unknown = {'app_id': app_id, 'launch_id': None, 'state': 'failed',
+                   'error': 'unknown_app', 'message': 'no reviewed launch definition'}
         entry = self.journal.entries.get(request_id)
         if entry is not None:
             if entry['app_id'] != app_id:
                 raise Failure('request_id_reused', 'this request ID already opened another app')
+            if conn.minor == 0 and entry.get('discovered'):
+                # A 1.1 client's launch stays its own; a 1.0 client gets what it gets for any unknown ID.
+                return self.launch_result(request_id, unknown)
             # A duplicate (e.g. resent after a reconnect) returns the same launch, never a second one.
             return self.launch_result(request_id, entry)
         if not self.journal.room():
             # Forgetting a recent request ID could start an app twice; refusing a new one cannot.
             raise Failure('journal_full', 'too many launches in the last few minutes; try again shortly',
                           request_id=request_id, app_id=app_id, state='failed')
-        app = self.catalogue_apps.get(app_id)
+        # A 1.0 client knows only the reviewed registry: for it, a discovered ID is an unknown one, answered and
+        # journaled exactly as before package 30 (review 1, finding 3).
+        app = self.catalogue_apps.get(app_id) if conn.minor >= 1 or app_id in self.legacy_apps else None
         if app is None:
-            return self.record(request_id, {'app_id': app_id, 'launch_id': None, 'state': 'failed',
-                                            'error': 'unknown_app', 'message': 'no reviewed launch definition'})
+            return self.record(request_id, unknown)
         argv, directory, reason = self.availability(app)
         if reason is not None:
             return self.record(request_id, {'app_id': app_id, 'launch_id': None, 'state': 'failed',

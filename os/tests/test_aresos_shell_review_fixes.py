@@ -91,3 +91,72 @@ def mock_helper():
         def availability(self, app):
             return (), '~', None
     return Stub()
+
+
+class LegacyDiscoveredIdTest(Base):
+    """Finding 3: a 1.0 client asking for a discovered ID gets exactly the old failed-launch answer and journal entry.
+
+    The expected answers are whole messages, as the pre-package-30 helper (origin/main) produced them for any ID it
+    did not know; that path is also unchanged here, so the unknown 'no-such-app' answer must match it too.
+    """
+
+    def setUp(self):
+        super().setUp()
+        folder = os.path.join(self.folder.name, 'entries')
+        os.mkdir(folder)
+        with open(os.path.join(folder, 'lunarclient.desktop'), 'w') as handle:
+            handle.write('[Desktop Entry]\nType=Application\nName=Lunar Client\nExec=/usr/bin/tool\n')
+        self.catalogue = shell.Catalogue(str(REGISTRY), entry_dirs=[folder], executable=lambda p: True, deployments=())
+        self.catalogue.refresh(self.clock())
+
+    def helper_for(self, journal):
+        helper = shell.Helper(str(REGISTRY), INSTANCE, NONCE, journal, registry=(self.catalogue.apps,
+                              self.catalogue.revision), catalogue=self.catalogue, launcher=self.launcher(),
+                              clock=self.clock, executable=lambda p: True)
+        self.addCleanup(helper.watcher.stop)
+        return helper
+
+    @staticmethod
+    def old_answer(request_id, app_id):
+        return {'protocol': 'aresos-shell/1.0', 'id': request_id, 'ok': False, 'request_id': request_id,
+                'launch_id': None, 'app_id': app_id, 'state': 'failed', 'error': 'unknown_app',
+                'message': 'no reviewed launch definition'}
+
+    def test_whole_answer_journal_entry_and_replays_match_the_old_helper(self):
+        helper = self.helper_for(self.journal)
+        self.assertTrue(helper.apps['lunarclient'].discovered)
+        conn = self.connect(helper)
+        for app_id, request_id in (('lunarclient', 'o-1'), ('no-such-app', 'o-2')):
+            with self.subTest(app_id):
+                self.assertEqual(self.request(helper, conn, 'open_app', request_id, app_id=app_id),
+                                 self.old_answer(request_id, app_id))
+                self.assertEqual(helper.journal.entries[request_id],
+                                 {'app_id': app_id, 'launch_id': None, 'state': 'failed', 'error': 'unknown_app',
+                                  'message': 'no reviewed launch definition', 'updated': 100.0})
+                with open(self.journal) as handle:
+                    self.assertIn(request_id, json.load(handle)['launches'])
+                # The same request again: the same answer from the journal; another app: request_id_reused.
+                self.assertEqual(self.request(helper, conn, 'open_app', request_id, app_id=app_id),
+                                 self.old_answer(request_id, app_id))
+                reused = self.request(helper, conn, 'open_app', request_id, app_id='terminal')
+                self.assertEqual((reused['ok'], reused['error']), (False, 'request_id_reused'))
+        self.popen.assert_not_called()
+        # A restarted helper replays the journaled answer, as before.
+        again = self.helper_for(self.journal)
+        self.assertEqual(self.request(again, self.connect(again), 'open_app', 'o-1', app_id='lunarclient'),
+                         self.old_answer('o-1', 'lunarclient'))
+        self.popen.assert_not_called()
+
+    def test_a_1_1_launch_is_never_shown_or_repeated_to_a_1_0_client(self):
+        helper = self.helper_for(self.journal)
+        newer = Conn()
+        helper.connected(newer)
+        self.request(helper, newer, 'hello', 'h-1', major=1, minor=1, capabilities=ALL, instance=INSTANCE,
+                     nonce=NONCE)
+        started = self.request(helper, newer, 'open_app', 'o-1', app_id='lunarclient')
+        self.assertEqual(started['state'], 'starting')
+        older = self.connect(helper)
+        self.assertEqual(self.request(helper, older, 'open_app', 'o-1', app_id='lunarclient'),
+                         self.old_answer('o-1', 'lunarclient'))
+        self.assertEqual(helper.journal.entries['o-1']['state'], 'starting')  # the real launch is untouched
+        self.assertEqual(self.popen.call_count, 1)
