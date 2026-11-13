@@ -265,7 +265,7 @@ class DiscoveryOffTheLoopTest(HardeningBase, Base):
             overlap.append(running[0])
             scans.append(threading.current_thread().name)
             try:
-                time.sleep(0.3)
+                time.sleep(0.5)
                 return original(catalogue)
             finally:
                 running[0] -= 1
@@ -290,7 +290,7 @@ class DiscoveryOffTheLoopTest(HardeningBase, Base):
             writer = threading.Thread(target=churn)
             writer.start()
             ticks, slowest = 0, 0.0
-            deadline = time.monotonic() + 1.5
+            deadline = time.monotonic() + 2.5
             while time.monotonic() < deadline:
                 self.now[0] += 1.0
                 start = time.monotonic()
@@ -302,7 +302,8 @@ class DiscoveryOffTheLoopTest(HardeningBase, Base):
                 time.sleep(0.02)
             stop.set()
             writer.join()
-        self.assertLess(slowest, 0.15)
+        # A scan takes over 0.5 seconds; on the loop, every due tick would wait for it.
+        self.assertLess(slowest, 0.25)
         self.assertEqual(max(overlap), 1)
         self.assertGreaterEqual(len(scans), 3)
         # One request per CATALOGUE_CHECK of helper time at most, and only while no scan runs.

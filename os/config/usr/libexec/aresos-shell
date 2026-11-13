@@ -16,8 +16,9 @@ Wire format: one UTF-8 JSON object per line, at most 64 KiB per line.
 Minor 1 adds app_details, list_paging and apps_changed. list_apps returns an
 ID-ordered page with revision and optional next; cursor requests the next page.
 Only icon paths and bounded descriptive metadata leave the helper, never launch
-commands or environment. Folder/file times are polled every three seconds;
-icons arrive asynchronously. Minor 0 keeps the original starter-only list,
+commands or environment. Discovery scans run on their own thread within hard
+bounds, at most every three seconds, and the last good catalogue answers
+meanwhile; icons arrive asynchronously. Minor 0 keeps the original starter-only list,
 revision and launch access. Examples: mod/src/test/resources/shell-1.1/.
 
 Operations (B1): hello, list_apps, open_app, world_ready, heartbeat. Everything
