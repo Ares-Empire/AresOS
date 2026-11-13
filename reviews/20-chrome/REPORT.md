@@ -5,7 +5,7 @@ Fetched `origin/main` and read its `AGENTS.md` and `briefs/20-chrome.md` with `g
 also read SECURITY-RECHECK-3, the prior report/known limits and briefs 2/2b/2c.
 The first code push included all three classes. Additional local whitespace/visibility probes and the Linux SVG/trailing-newline cases required further corrections. PR [#27](https://github.com/Ares-Empire/AresOS/pull/27)
 stays draft and unmerged; its existing conflict with main is not resolved in this brief.
-Installed runtime hash: `6bf9fb44f69ad465cdec55df9fae5332882875db57b3a4bbe67fe2665a114a70`.
+Installed runtime hash: `2e113bf4d025e95459525bdff063c301d56dd94999f1e01be45d8b46e95b008d`.
 Linux acceptance on the new source is pending; historical green sections below do not establish it.
 
 ## Done (read)
@@ -16,13 +16,18 @@ Linux acceptance on the new source is pending; historical green sections below d
   **128** combinations: 16 wrapped/native masks × open/closed × composed/non-composed × listener before/after
   insertion. All non-native rows hold; the four all-native non-composed rows alone run unheld. Linux fixtures
   add all **32** single-wrapped-step rows plus eight all-wrapped rows, and **16** iframe rows covering each single
-  wrapped step in both insertion orders and root modes. The full foreign matrix is generated in unit/probe tests
-  too: **256** production probes in total. Cross-document routing uses detached private native carriers,
+  wrapped step in both insertion orders and root modes, plus **four** native-adoption rows. The full matrix is
+  generated for same-document, foreign-wrapper and third-document adoption cases: **384** production probes. Cross-document routing uses detached private native carriers,
   authenticated with unpredictable markers and linked by background handles before page resume. Live private
-  queries retain the source hold past 500 ms during synchronous handlers; the browser cases wait 650 ms before
+  isolated guard queries retain the source hold past 500 ms during synchronous handlers; the browser cases wait 650 ms before
   dispatch. Ordinary recipient documents get no added bridge listeners. Passive controlled recipients get isolated
   capture without MAIN prototype changes. Marker retirement, source release, forged public traffic and conservative
   recipient policy have separate regressions. MAIN document properties carry no API and may be forged harmlessly.
+  MAIN metadata contains primitive source IDs; private guard references stay in our own isolated world.
+  [Chromium clones object values between worlds](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/bindings/core/v8/world_safe_v8_reference.cc), while its
+  [isolated-world registry reuses a given world ID](https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/platform/bindings/dom_wrapper_world.cc).
+  DOM branding accepts adopted native objects; private node metadata preserves sticky password exclusion across
+  adoption, source release and retake. No password value enters that metadata.
 - `guard.js`: native `a`, `area` and SVG `a` lose hyperlink authority synchronously, including both SVG `href`
   and namespaced `xlink:href` when both exist. Ping is quarantined. Native submit/reset controls (including image
   submitters and external `form=` buttons) are disabled through activation. Repeated interceptions restore their
@@ -47,8 +52,8 @@ Linux acceptance on the new source is pending; historical green sections below d
 
 ## Verified (run)
 
-Local-only verification so far: **310 Node tests pass**, **215 removal mutations rejected, every baseline passing**,
-256 generated production-code mixes pass, generated artifacts match definitions and `git diff --check` passes.
+Local-only verification so far: **314 Node tests pass**, **221 removal mutations rejected, every baseline passing**,
+384 generated production-code mixes pass, generated artifacts match definitions and `git diff --check` passes.
 [Exact commands, output tails/hashes and corrected local attempts](records/recheck3/local-summary.json) retain the results.
 The full plain-Python suite passes **231 tests in 580.856 s, OK**; Linux CI is still pending. Five artifact-stream tests pass. No local browser,
 browser profile, container, Java/Gradle process or installed system software was used.
@@ -91,7 +96,9 @@ brings this to **221 IDs / 222 executions**. Both `55dde837` runs (`43366455119`
 cross-frame case: WindowProxy did not expose the other isolated guard, leaving one unapproved arrival.
 [Raw receipts](records/recheck3/foreign-browser-failure.json) retain this failure. The document-wrapper pair (`43368079994`, `43368174114`, source `14833d50`) also failed the same strict
 cross-frame case, although both MAIN-absence checks passed. That candidate is superseded by the private carrier
-registry; these failures are not acceptance. The replacement pair brings the ledger to **225 IDs / 226 executions**,
+registry; these failures are not acceptance. The own `9433b2be` pair (`43379684072`, `43379749705`) was then cancelled after the corrected clone model
+proved its MAIN-function transport invalid. Its before/after local receipts are retained; no partial CI pass is
+acceptance. The replacement pair brings the ledger to **227 IDs / 228 executions**,
 within the approximate
 235-run budget and below the 245 notice threshold. Each CI run uses one blocking `gh run watch`, without
 turn-by-turn status polling. Report-only pushes use `[skip ci]`. Closing run IDs, exact logs and `.work/` inventory

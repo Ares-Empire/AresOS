@@ -54,8 +54,19 @@ async function targetCommand(state,method,parameters={}){assertTarget(state);con
 // marker rejects backend-node aliases in another renderer before any event runs.
 async function linkPrivateDocuments(){
   const entries=[...preloadTargets.values()].flatMap(state=>[...state.documents.values()].filter(doc=>doc.backend&&controlled.get(state.tab)?.epoch===state.epoch).map(doc=>({state,doc})));
+  for(const recipient of entries){
+    const context=[...recipient.state.contexts.values()].find(context=>context.uniqueId===recipient.doc.isolated);
+    if(!context)continue;recipient.doc.peers??=new Set();
+    for(const source of entries){if(source.doc===recipient.doc||recipient.doc.peers.has(source.doc.relayValue))continue;
+      try{
+        const node=await targetCommand(recipient.state,'DOM.resolveNode',{backendNodeId:source.doc.backend,executionContextId:context.id});
+        const linked=await targetCommand(recipient.state,'Runtime.callFunctionOn',{objectId:node.object.objectId,functionDeclaration:'function(key,value){return globalThis[Symbol.for("aresos.chrome.guard.v2")].source(this,key,value);}',arguments:[{value:source.doc.relayKey},{value:source.doc.relayValue}],returnByValue:true});
+        if(!linked.exceptionDetails&&linked.result?.value===true)recipient.doc.peers.add(source.doc.relayValue);
+      }catch{} // A marker mismatch cannot export a guard from another renderer.
+    }
+  }
   for(const source of entries){if(!source.doc.mainContext)continue;source.doc.links??=new Set();
-    for(const destination of entries){if(source===destination||source.doc===destination.doc||source.doc.links.has(destination.doc.relayValue))continue;
+    for(const destination of entries){if(source.doc===destination.doc||!destination.doc.peers?.has(source.doc.relayValue)||source.doc.links.has(destination.doc.relayValue))continue;
       try{
         const node=await targetCommand(source.state,'DOM.resolveNode',{backendNodeId:destination.doc.backend,executionContextId:source.doc.mainContext});
         const linked=await targetCommand(source.state,'Runtime.callFunctionOn',{objectId:source.doc.cleanup,functionDeclaration:'function(node,key,value){return this.link(node,key,value);}',arguments:[{objectId:node.object.objectId},{value:destination.doc.relayKey},{value:destination.doc.relayValue}],returnByValue:true});

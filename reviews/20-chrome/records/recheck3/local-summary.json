@@ -4,18 +4,18 @@
       "command": "node --test control/chrome_tests/*.test.mjs",
       "exit_code": 0,
       "output": "local-node.txt",
-      "sha256": "2fc3c573e51a43c632ca121d5d3d41aafb4fbd50f93f504428e7ec218826387e",
+      "sha256": "2e49d4421b840826c3b9fe9e527c44534c88a2ee9dd64c820ae39691826d020d",
       "tail": [
-        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.204417ms)",
-        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.710333ms)",
-        "\u2139 tests 310",
+        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.297042ms)",
+        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.829208ms)",
+        "\u2139 tests 314",
         "\u2139 suites 0",
-        "\u2139 pass 310",
+        "\u2139 pass 314",
         "\u2139 fail 0",
         "\u2139 cancelled 0",
         "\u2139 skipped 0",
         "\u2139 todo 0",
-        "\u2139 duration_ms 7269.07425"
+        "\u2139 duration_ms 7287.924916"
       ]
     },
     {
@@ -40,18 +40,18 @@
       "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck3/mutations.json",
       "exit_code": 0,
       "output": "local-mutations.txt",
-      "sha256": "156624d5db27dbc897ec52a7b9ff0708b37b522c16d5806e0cd0b35284267971",
+      "sha256": "3db2d755f5558c39247cadb41111388866e69d471b31f45fbe624441bc5e6010",
       "tail": [
-        "recheck3-visible-hidden-attribute MUTATION REJECTED",
-        "recheck3-compose-question MUTATION REJECTED",
-        "recheck3-compose-extension MUTATION REJECTED",
-        "recheck3-private-carrier-brand MUTATION REJECTED",
-        "recheck3-private-carrier-retirement MUTATION REJECTED",
-        "recheck3-private-source-hold MUTATION REJECTED",
         "recheck3-private-native-context MUTATION REJECTED",
         "recheck3-passive-carrier-retirement MUTATION REJECTED",
         "recheck3-conservative-recipient MUTATION REJECTED",
-        "215 mutations rejected; every baseline passed"
+        "recheck3-adopted-element-brand MUTATION REJECTED",
+        "recheck3-adopted-field-brand MUTATION REJECTED",
+        "recheck3-peer-password MUTATION REJECTED",
+        "recheck3-retired-peer-password MUTATION REJECTED",
+        "recheck3-adopted-password-marker MUTATION REJECTED",
+        "recheck3-main-data-clone MUTATION REJECTED",
+        "221 mutations rejected; every baseline passed"
       ]
     },
     {
@@ -266,12 +266,47 @@
         "\u2139 todo 0",
         "\u2139 duration_ms 40.301"
       ]
+    },
+    {
+      "command": "git show 9433b2be source + corrected MAIN-clone fixture; node --test --test-name-pattern 'wrapped detached listener from another' control/chrome_tests/page.test.mjs",
+      "exit_code": 1,
+      "output": "private-data-clone-before.txt",
+      "sha256": "0ea7c36226bc9b35be9b58fe4a0861c5a097f7e7bd49a7cf01a9da0d6afe8019",
+      "tail": [
+        "      at Test.run (node:internal/test_runner/test:1382:25)",
+        "      at Test.start (node:internal/test_runner/test:1242:17)",
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: 1,",
+        "    expected: 0,",
+        "    operator: 'strictEqual',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'wrapped detached listener from another' control/chrome_tests/page.test.mjs",
+      "exit_code": 0,
+      "output": "private-data-clone-after.txt",
+      "sha256": "81dc4229af1b4704a31a61a74ec98229765fd3200e8ba9e052721f91ab40d941",
+      "tail": [
+        "\u2714 recheck3 a wrapped detached listener from another controlled document installs capture in its owner (178.860375ms)",
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 235.921958"
+      ]
     }
   ],
   "probe": {
     "command": "node reviews/20-chrome/probe-recheck3.mjs reviews/20-chrome/records/recheck3/mixed-probe.json",
     "exit_code": 0,
-    "stdout": "256 generated mixes passed; only 12 all-native rows run their handler"
+    "stdout": "384 generated mixes passed; only 20 all-native rows run their handler"
   },
   "generator": {
     "command": "python3 -B control/generate.py --check",
@@ -301,6 +336,11 @@
     "The fixture now shares native DOM identity across its realms and snapshots target listeners, so a synthetic cross-realm descriptor cannot invent a failure or accept a listener added too late. No original assertion was weakened.",
     "Full foreign matrix tests also advance the recipient clock past 500 ms. A live private query retains the source hold during long synchronous handlers, preserves conservative recipient policy and stops at source release; the browser rows busy-wait past 500 ms too.",
     "Six extra removals cover native context identity, private carrier branding/retirement, live source holds, passive recipient cleanup and conservative policy. Final 215 removals fail with all baselines passing.",
-    "The first removal attempt on the refactor survived P19-context-generation because duplicate context-construction code changed the edit selector. Unified the native-context registration; the original race assertions and the removal both pass/fail as required."
-  ]
+    "The first removal attempt on the refactor survived P19-context-generation because duplicate context-construction code changed the edit selector. Unified the native-context registration; the original race assertions and the removal both pass/fail as required.",
+    "9433b2be depended on non-cloneable MAIN function/event data. Chromium primary source confirmed cross-world cloning. The corrected platform double fails the unchanged old foreign matrix (private-data-clone-before.txt) and passes the new matrix (private-data-clone-after.txt). Only the own 9433b2be Chrome pair was cancelled.",
+    "Private guard exports now stay entirely inside this extension isolated world. MAIN sends only cloneable primitive source identifiers to authenticated detached relays. Native markers reject renderer aliases and stop routing after release; stale source documents are pruned without retaining active holds.",
+    "All 128 masks are also generated for native adoption into a third controlled document, making 384 probes. Native DOM brands and private sticky node metadata preserve password exclusion across realm changes, release and retake. Four extra Linux adoption rows extend receiver acceptance to 107 exact sequences.",
+    "Added removals for adoption brands, private password provenance and cloneable MAIN data. P17 reset now removes both persistent stores because the new private node marker independently preserved the old assertion. Removed duplicate watchCreated branches so the existing native-creation removal targets its actual interception path. All 221 removals now fail; every baseline passes."
+  ],
+  "historical_corrections": "Earlier notes describe intermediate candidates, not current acceptance."
 }

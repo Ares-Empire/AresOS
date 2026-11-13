@@ -14,12 +14,12 @@ export function recheck3Page(url){
     body='<div id="host"></div>';script=`const key=Symbol.for('aresos.chrome.guard.v2'),exposed=document[key]!==undefined;document[key]={watch(){},route(){},clear(){}};fetch('/compat-report',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase:'mixed-child-ready',exposed})});`;
   }else if(mode==='mixed'){
     const mask=Number(url.searchParams.get('mask')),rootMode=url.searchParams.get('root'),order=url.searchParams.get('order'),composed=url.searchParams.get('composed')==='true';
-    const foreign=url.searchParams.get('foreign')==='1';
+    const foreign=url.searchParams.get('foreign')==='1',adopted=url.searchParams.get('adopted')==='1';
     body='<button type="button" id="continue">Continue</button>'+(foreign?'<iframe id="child" width="400" height="160" src="/?case=review-page&mode=mixed-child&id='+id+'"></iframe>':'<div id="host"></div>');
     script=`${foreign?`const key=Symbol.for('aresos.chrome.guard.v2'),exposed=document[key]!==undefined;document[key]={watch(){},route(){},clear(){}};fetch('/compat-report',{method:'POST',body:JSON.stringify({id:${JSON.stringify(id)},phase:'mixed-parent-ready',exposed})});`:''}document.querySelector('#continue').onclick=()=>{
       const donor=opener,doc=${foreign?"document.querySelector('#child').contentDocument":'document'},host=doc.querySelector('#host');
       const root=${mask&1?(foreign?'Element.prototype.attachShadow.call(host,':'host.attachShadow('):'donor.Element.prototype.attachShadow.call(host,'}{mode:${JSON.stringify(rootMode)}});
-      const button=donor.Document.prototype.createElement.call(doc,'button');button.textContent='Delete';button.type='button';
+      const button=donor.Document.prototype.createElement.call(${adopted?'document':'doc'},'button');button.textContent='Delete';button.type='button';
       const insert=()=>${mask&2?(foreign?'Node.prototype.appendChild.call(root,button)':'root.appendChild(button)'):'donor.Node.prototype.appendChild.call(root,button)'};
       const listen=()=>${mask&4?"EventTarget.prototype.addEventListener.call(button,'click',handler)":"donor.EventTarget.prototype.addEventListener.call(button,'click',handler)"};
       const handler=()=>fetch(${JSON.stringify(receive)},{method:'POST',body:'mixed handler'});

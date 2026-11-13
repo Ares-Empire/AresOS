@@ -8,7 +8,8 @@ import {mixedRows} from '../chrome/ci/guard-matrix.mjs';
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
 function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeShadows=false,retarget=false,dialogs=false,nativeNodeKinds=false,clipboard=false,onDialogBoundary=()=>{}}={}) {
-  const sharedDOM=fixture.sharedDOM??={shadowHosts:new WeakMap(),hostShadows:new WeakMap(),parents:new WeakMap(),children:new WeakMap()};
+  const sourceIdentity="source-"+(fixture.sequence=(fixture.sequence||0)+1);
+  const sharedDOM=fixture.sharedDOM??={shadowHosts:new WeakMap(),hostShadows:new WeakMap(),parents:new WeakMap(),children:new WeakMap(),elements:new WeakSet()};
   const windowListeners=new Map(),reports=[],arrivals=[],nodes=[],bridgeDetails=[];let now=0;
   class Event {
     constructor(type,options={}) {Object.assign(this,{type,cancelable:true,defaultPrevented:false,stopped:false,eventPhase:0,isTrusted:false,...options});}
@@ -43,16 +44,16 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
     get host(){return shadowHosts.get(this);}set host(value){shadowHosts.set(this,value);hostShadows.set(value,this);}
     getRootNode(options={}){const root=this.root??this.ownerDocument??document;return options.composed&&root.host?root.host.getRootNode(options):root;}
   }
-  Node.prototype.appendChild=function(node){node.parentNode=this;node.root=this.getRootNode();this.childNodes=[...this.childNodes,node];return node;};
+  Node.prototype.appendChild=function(node){node.parentNode=this;node.root=this.getRootNode();if(this.ownerDocument)node.ownerDocument=this.ownerDocument;this.childNodes=[...this.childNodes,node];return node;};
   Node.prototype.append=function(...nodes){for(const node of nodes)Node.prototype.appendChild.call(this,node);};
   const nativeAppend=Node.prototype.appendChild,markup=new WeakMap();
   const nativeHTMLSetter=function(value){markup.set(this,String(value));};Object.defineProperty(Node.prototype,'innerHTML',{configurable:true,get(){return markup.get(this)||'';},set:nativeHTMLSetter});
   class Element extends Node {
     isConnected=true;tagName='DIV';type='';textContent='';form=null;role='';
-    constructor(){super();this.ownerDocument=document;nodes.push(this);}
+    constructor(){super();this.ownerDocument=document;sharedDOM.elements.add(this);nodes.push(this);}
     get childNodes(){return [{nodeType:3,textContent:this.textContent}];}
     closest(){return this;}
-    getAttribute(name){return this[name]??null;}
+    getAttribute(name){if(!sharedDOM.elements.has(this))throw TypeError('Invalid Element brand');return this[name]??null;}
     setAttribute(name,value){this[name]=String(value);}
     removeAttribute(name){delete this[name];}
     getAttributeNS(ns,name){return this.namespaceAttrs?.[ns+' '+name]??null;}
@@ -98,7 +99,8 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   function id(node){if(!ids.has(node)){const key='e'+(++sequence);ids.set(node,key);elements.set(key,node);}return ids.get(node);}
   function name(node){const labels=(node['aria-labelledby']||'').split(/\s+/).map(key=>document.getElementById(key)).filter(Boolean);return labels.length ? labels.map(label=>label.textContent).join(' ') : node['aria-label'] || node.labels?.map(label=>label.textContent).join(' ') || node.textContent;}
   guard.reader({dialog:(...value)=>dialogReports.push(value),document:'document-1',id,element:key=>elements.get(key),target:node=>({name:name(node),title:node.title,role:node.role,password:!!node.password,submit:!!node.form && node.type==='submit',editable:node instanceof HTMLInputElement}),form:(node,button)=>{const form=node.form || (node.tagName==='FORM' ? node:null);return form ? {method:button?.formmethod || form.method,search:form.role==='search',action:button?.formAction || form.action,encoding:form.encoding||'application/x-www-form-urlencoded',target:form.target||'',fields:nodes.filter(node=>node.form===form).map(node=>({type:node.type,label:name(node)}))}:null;}});
-  const main=vm.createContext({...globals});
+  class MainReport extends CustomEvent {constructor(type,options={}){let detail=options.detail;if(nativeShadows)try{detail=structuredClone(detail);}catch{detail=null;}super(type,{...options,detail});}}
+  const main=vm.createContext({...globals,...(nativeShadows?{CustomEvent:MainReport}:{})});
   const nativeFunctions=[HTMLFormElement.prototype.submit,HTMLFormElement.prototype.requestSubmit,HTMLElement.prototype.click,EventTarget.prototype.dispatchEvent];
   const nativeStrings=nativeFunctions.map(fn=>Function.prototype.toString.call(fn));
   const installed=vm.runInContext(fs.readFileSync('control/chrome/extension/page.js','utf8'),main);
@@ -108,7 +110,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,clipboard:clipboardObject,nativeClipboard,clipboardCalls,clipboardOutcome,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,Node,SVGElement,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,nativeAttach,nativeAppend,nativeListen,nativeHTMLSetter,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,clipboard:clipboardObject,nativeClipboard,clipboardCalls,clipboardOutcome,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,wire(other,key,value,node=other.factory.relay){installed.identify('data-fixture-source',sourceIdentity);assert.equal(other.guard.source(installed.relay,'data-fixture-source',sourceIdentity),true);return installed.link(node,key,value);},Node,SVGElement,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,nativeAttach,nativeAppend,nativeListen,nativeHTMLSetter,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
 }
 
 test('private factory creation changes no prototype before its cleanup handle can be retained',()=>{
@@ -551,7 +553,7 @@ test('P26 wrappers have native nonconstructible method shapes',()=>{
   }
 });
 test('P4 borrowed wrappers route to another controlled document guard',()=>{
-  const source=fixture({relay:true}),target=fixture({relay:true}),form=new target.HTMLFormElement();target.factory.identify('data-private-test','nonce');assert.equal(source.factory.link(target.factory.relay,'data-private-test','nonce'),true);source.arm(new source.HTMLElement(),null);target.guard.control('target-epoch');
+  const source=fixture({relay:true}),target=fixture({relay:true}),form=new target.HTMLFormElement();target.factory.identify('data-private-test','nonce');assert.equal(source.wire(target,'data-private-test','nonce'),true);source.arm(new source.HTMLElement(),null);target.guard.control('target-epoch');
   source.HTMLFormElement.prototype.submit.call(form);assert.equal(source.arrivals.length,0);assert.equal(target.arrivals.length,0);assert.equal(target.reports.length,1);
   const outside=fixture({relay:true}),ordinary=new outside.HTMLFormElement();outside.cleanup();outside.guard.dispose();delete outside.document.defaultView[Symbol.for('aresos.chrome.guard.v2')];
   source.HTMLFormElement.prototype.submit.call(ordinary);assert.equal(source.arrivals.length,1,'the saved source native is used for an uncontrolled document');
@@ -867,7 +869,7 @@ test('recheck3 detached listener branding uses a saved native after the page rep
 test('recheck3 a wrapped detached listener from another controlled document installs capture in its owner',()=>{
   for(const row of mixedRows()){
     const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});
-    owner.document.defaultView={};owner.factory.identify('data-private-test','nonce');assert.equal(caller.factory.link(owner.factory.relay,'data-private-test','nonce'),true);owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
+    owner.document.defaultView={};owner.factory.identify('data-private-test','nonce');assert.equal(caller.wire(owner,'data-private-test','nonce'),true);owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
     const host=new owner.HTMLElement(),button=new owner.HTMLElement();button.root=button;button.tagName='BUTTON';button.textContent='Delete';let handlers=0;
     const root=(row.root?caller.main.Element.prototype.attachShadow:owner.nativeAttach).call(host,{mode:row.mode});
     const insert=()=>(row.insert?caller.Node.prototype.appendChild:owner.nativeAppend).call(root,button);
@@ -892,7 +894,7 @@ test('recheck3 public watch traffic cannot relax a private hold or reactivate en
   }
 });
 test('recheck3 foreign watch bridges and recipient capture are removed on release',()=>{
-  const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});owner.document.defaultView={};owner.factory.identify('data-private-test','nonce');assert.equal(caller.factory.link(owner.factory.relay,'data-private-test','nonce'),true);owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
+  const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});owner.document.defaultView={};owner.factory.identify('data-private-test','nonce');assert.equal(caller.wire(owner,'data-private-test','nonce'),true);owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
   const button=new owner.HTMLElement();button.root=button;button.tagName='BUTTON';button.textContent='Delete';const handler=()=>{};
   caller.EventTarget.prototype.addEventListener.call(button,'click',handler);assert.ok(button.listeners.get('click').length>1);
   caller.guard.dispose();owner.guard.dispose();assert.deepEqual(button.listeners.get('click'),[handler]);
@@ -901,27 +903,53 @@ test('recheck3 foreign watch bridges and recipient capture are removed on releas
 test('recheck3 private foreign links reject forged carriers and expire with recipient cleanup',()=>{
   const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});
   owner.factory.identify('data-private-test','nonce');
-  assert.equal(caller.factory.link(owner.factory.relay,'data-private-test','wrong'),false);
-  assert.equal(caller.factory.link(owner.factory.relay,'data-private-test','nonce'),true);
+  assert.equal(caller.wire(owner,'data-private-test','wrong'),false);
+  assert.equal(caller.wire(owner,'data-private-test','nonce'),true);
   owner.document.defaultView={};owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
   owner.guard.dispose();const button=new owner.HTMLElement();button.tagName='BUTTON';button.textContent='Delete';let handlers=0;
   owner.nativeListen.call(button,'click',()=>handlers++);caller.HTMLElement.prototype.click.call(button);assert.equal(handlers,1);
-  assert.equal(caller.factory.link(owner.factory.relay,'data-private-test','nonce'),false);caller.guard.dispose();
+  assert.equal(caller.wire(owner,'data-private-test','nonce'),false);caller.guard.dispose();
 });
 
 test('recheck3 a passive controlled recipient gets private capture without MAIN wrappers and releases it fully',()=>{
   const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,link:false,activate:false,nativeShadows:true});
-  const relay=owner.guard.privateRelay('data-passive','nonce');assert.equal(caller.factory.link(relay,'data-passive','nonce'),true);owner.document.defaultView={};owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
+  const relay=owner.guard.privateRelay('data-passive','nonce');assert.equal(caller.wire(owner,'data-passive','nonce',relay),true);owner.document.defaultView={};owner.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
   assert.deepEqual([owner.HTMLFormElement.prototype.submit,owner.HTMLFormElement.prototype.requestSubmit,owner.HTMLElement.prototype.click,owner.EventTarget.prototype.dispatchEvent],owner.nativeFunctions);
   const host=new owner.HTMLElement(),button=new owner.HTMLElement();button.root=button;button.textContent='Delete';button.tagName='BUTTON';let handlers=0;
   caller.EventTarget.prototype.addEventListener.call(button,'click',()=>handlers++);owner.nativeAppend.call(owner.nativeAttach.call(host,{mode:'closed'}),button);
   owner.originalDispatch.call(button,new owner.Event('click',{composed:false}));assert.equal(handlers,0);assert.equal(owner.reports.length,1);
   owner.guard.dispose();owner.originalDispatch.call(button,new owner.Event('click',{composed:false}));assert.equal(handlers,1,'a cached bridge cannot replay or hold after recipient release');
-  assert.equal(caller.factory.link(relay,'data-passive','nonce'),false);caller.guard.dispose();owner.cleanup();
+  assert.equal(caller.wire(owner,'data-passive','nonce',relay),false);caller.guard.dispose();owner.cleanup();
 });
 
 test('recheck3 inherited foreign holds preserve an already conservative recipient dispatch',()=>{
-  const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});owner.factory.identify('data-private-test','nonce');caller.factory.link(owner.factory.relay,'data-private-test','nonce');owner.document.defaultView={};
+  const caller=fixture({relay:true,nativeShadows:true}),owner=fixture({relay:true,nativeShadows:true});owner.factory.identify('data-private-test','nonce');caller.wire(owner,'data-private-test','nonce');owner.document.defaultView={};
   const button=new owner.HTMLElement();button.textContent='Ordinary control';button.tagName='BUTTON';button.root=owner.document;let handlers=0;owner.arm(button,null,null,true);caller.arm(new caller.HTMLElement(),null);
   caller.EventTarget.prototype.addEventListener.call(button,'click',()=>handlers++);owner.originalDispatch.call(button,new owner.Event('click',{composed:false}));assert.equal(handlers,0);assert.equal(owner.reports.length,1);caller.guard.dispose();owner.guard.dispose();
+});
+
+test('recheck3 detached capture follows native adoption into a third controlled document',()=>{
+  for(const row of mixedRows()){
+    const caller=fixture({relay:true,nativeShadows:true}),initial=fixture({relay:true,nativeShadows:true}),recipient=fixture({relay:true,nativeShadows:true});
+    initial.factory.identify('data-initial','initial');recipient.factory.identify('data-recipient','recipient');
+    assert.equal(caller.wire(initial,'data-initial','initial'),true);assert.equal(caller.wire(recipient,'data-recipient','recipient'),true);
+    assert.equal(initial.guard.source(recipient.factory.relay,'data-recipient','recipient'),true);
+    initial.guard.control('epoch');recipient.guard.control('epoch');caller.arm(new caller.HTMLElement(),null);
+    const button=new initial.HTMLElement();button.root=button;button.textContent='Delete';button.tagName='BUTTON';let handlers=0;
+    const root=(row.root?caller.main.Element.prototype.attachShadow:recipient.nativeAttach).call(new recipient.HTMLElement(),{mode:row.mode});
+    const listen=()=>(row.listen?caller.EventTarget.prototype.addEventListener:initial.nativeListen).call(button,'click',()=>handlers++);
+    const insert=()=>(row.insert?caller.Node.prototype.appendChild:recipient.nativeAppend).call(root,button);
+    if(row.order==='before'){listen();insert();}else{insert();listen();}
+    assert.equal(button.ownerDocument,recipient.document);recipient.advance(5000);
+    (row.dispatch?caller.EventTarget.prototype.dispatchEvent:initial.originalDispatch).call(button,new initial.Event('click',{composed:row.composed,cancelable:true}));
+    assert.equal(handlers,row.mask?0:1,JSON.stringify(row));assert.equal(recipient.reports.length,row.mask?1:0,JSON.stringify(row));assert.equal(initial.reports.length,0);assert.equal(caller.reports.length,0);
+    caller.guard.dispose();initial.guard.dispose();recipient.guard.dispose();
+  }
+});
+
+test('recheck3 retired peer metadata can only preserve password protection and cannot extend a hold',()=>{
+  const initial=fixture({relay:true,nativeShadows:true}),recipient=fixture({relay:true,nativeShadows:true}),node=new initial.HTMLInputElement();
+  initial.factory.identify('data-initial','initial');initial.guard.reader({document:'old',protected:element=>element===node});
+  assert.equal(recipient.guard.source(initial.factory.relay,'data-initial','initial'),true);recipient.guard.control('epoch');
+  assert.equal(recipient.guard.protectedPeer(node),true);initial.guard.dispose();assert.equal(recipient.guard.protectedPeer(node),true);assert.equal(recipient.guard.privateHold(),null);recipient.guard.dispose();
 });

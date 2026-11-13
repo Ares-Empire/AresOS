@@ -213,4 +213,10 @@ recheck3-private-source-hold MUTATION REJECTED
 recheck3-private-native-context MUTATION REJECTED
 recheck3-passive-carrier-retirement MUTATION REJECTED
 recheck3-conservative-recipient MUTATION REJECTED
-215 mutations rejected; every baseline passed
+recheck3-adopted-element-brand MUTATION REJECTED
+recheck3-adopted-field-brand MUTATION REJECTED
+recheck3-peer-password MUTATION REJECTED
+recheck3-retired-peer-password MUTATION REJECTED
+recheck3-adopted-password-marker MUTATION REJECTED
+recheck3-main-data-clone MUTATION REJECTED
+221 mutations rejected; every baseline passed

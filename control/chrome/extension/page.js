@@ -26,9 +26,8 @@
   if(typeof globalThis.Document==='function'&&!privateRelay)throw Error('The private native relay is unavailable; this document cannot be controlled.');
   if(privateRelay)privateRelay.appendChild(privateControl);
   const TargetEvent=globalThis.InputEvent,TargetRange=globalThis.StaticRange,Signal=Event;
-  const removeListener=EventTarget.prototype.removeEventListener,nativeListen=EventTarget.prototype.addEventListener;
+  const removeListener=EventTarget.prototype.removeEventListener;
   const ownerDocument=globalThis.Node&&descriptor(Node.prototype,'ownerDocument')?.get;
-  const Ref=WeakRef,deref=WeakRef.prototype.deref,foreignNodes=new WeakSet(),foreignRefs=[];
   const foreignCarriers=new WeakMap(),mapGet=WeakMap.prototype.get,mapSet=WeakMap.prototype.set;
   const getAttribute=Element.prototype.getAttribute,setAttribute=Element.prototype.setAttribute,removeAttribute=Element.prototype.removeAttribute;
   const firstElement=globalThis.Element&&descriptor(Element.prototype,'firstElementChild')?.get;
@@ -46,8 +45,6 @@
     const record=invoke(mapGet,foreignCarriers,[doc]);
     return record&&invoke(getAttribute,record.node,[record.key])===record.value?record.control:null;
   }
-  function sourceHold(){if(!enabled)return null;if(defaultView&&windowDocument){try{const view=invoke(defaultView,ownDocument,[]);if(!view||invoke(windowDocument,view,[])!==ownDocument)return null;}catch{return null;}}const detail=create(null);invoke(dispatch,privateControl,[new Report('aresos-relay-source-hold',options({detail}))]);return detail.value;}
-
   let enabled=false,closed=false;
   const getters={};
   const formElements=descriptor(HTMLFormElement.prototype,'elements')?.get;
@@ -85,25 +82,15 @@
       }
       return {anchor,path};
   }
-  function watchForeign(node){
-    if(!invoke(has,foreignNodes,[node])){
-      invoke(add,foreignNodes,[node]);const record=create(null);record.node=new Ref(node);
-      record.listener=event=>{if(event.isTrusted)return;const target=invoke(deref,record.node,[]);if(target)report(target,{kind:read(event,'type')==='click'?'foreign_click':'watch_node'},event);};
-      foreignRefs[foreignRefs.length]=new Ref(record);
-      for(const kind of ['click','submit'])invoke(nativeListen,node,[kind,record.listener,true]);
-    }
-    report(node,{kind:'watch_node'});
-  }
   function report(target,detail,original=null) {
     if(privateRelay){
       const control=carrier(target);
       if(!control){if(original&&detail.kind==='dispatch')return invoke(saved.dispatchEvent,target,[original]);if(detail.kind==='click')invoke(saved.click,target,[]);else if(detail.kind==='native_submit')invoke(saved.submit,target,[]);else if(detail.kind==='request_submit')invoke(saved.requestSubmit,detail.with_submitter?target.form:target,detail.with_submitter?[target]:[]);return true;}
-      if(control!==privateControl)invoke(dispatch,control,[new Report('aresos-relay-source',options({detail:sourceHold}))]);
+      if(control!==privateControl)property(detail,'source_id',relayValue,true);
       const request=++requestSequence;property(detail,'request',request,true);
       const {anchor,path}=endpoint(target);property(detail,'target_path',path,true);
       invoke(dispatch,control,[new Report('aresos-relay-meta',options({detail}))]);
       try{
-        if(detail.kind==='foreign_click')invoke(dispatch,control,[new Report('aresos-relay-original',options({detail:original}))]);
         const range=new TargetRange(options({startContainer:anchor,startOffset:0,endContainer:anchor,endOffset:0}));
         const ranges=create(null);property(ranges,iterator,()=>{let done=false;const result=create(null);result.next=()=>{const step=create(null);step.done=done;if(!done){done=true;step.value=range;}return step;};return result;});
         invoke(dispatch,control,[new TargetEvent('aresos-relay-target',options({data:''+request,targetRanges:ranges}))]);
@@ -137,7 +124,7 @@
   if(saved.attachShadow)install(Element.prototype,'attachShadow',function(){const result=invoke(saved.attachShadow,this,arguments);report(result,{kind:'watch_root'});return result;});
   // Capture travels with the node even when a borrowed native inserts it into
   // a new closed root and dispatches a non-composed event in the same stack.
-  function watchCreated(node){if(!enabled)return node;if(nodeType){const kind=invoke(nodeType,node,[]);if(kind===2||kind===10)return node;}const doc=ownerDocument?invoke(ownerDocument,node,[]):node.ownerDocument;if(doc&&doc!==ownDocument){if(carrier(node))watchForeign(node);return node;}report(node,{kind:'watch_node'});return node;}
+  function watchCreated(node){if(!enabled)return node;if(nodeType){const kind=invoke(nodeType,node,[]);if(kind===2||kind===10)return node;}report(node,{kind:'watch_node'});return node;}
   for(const [prototype,names] of [[globalThis.Document?.prototype,['createElement','createElementNS','importNode']],
     [globalThis.Node?.prototype,['cloneNode']]])for(const name of names){
     const method=prototype&&descriptor(prototype,name)?.value;
@@ -234,7 +221,7 @@
   }
   // Runtime.evaluate retains this return value as a private remote handle. It is
   // never a global or a DOM capability the page can invoke to end its hold.
-  function cleanup(){closed=true;enabled=false;if(relayKey&&privateRelay)invoke(removeAttribute,privateRelay,[relayKey]);let restored=true;for(let index=0;index<foreignRefs.length;index++){const record=invoke(deref,foreignRefs[index],[]),node=record&&invoke(deref,record.node,[]);if(node)for(const kind of ['click','submit'])try{invoke(removeListener,node,[kind,record.listener,true]);}catch{restored=false;}}foreignRefs.length=0;for(let index=0;index<installed.length;index++){const item=installed[index],current=descriptor(item.prototype,item.name),key=item.setter?'set':'value';if(current&&descriptor(current,key)&&current[key]===item.value){try{define(item.prototype,item.name,item.setter?options({...current,set:item.previous.set}):item.previous);}catch{try{define(item.prototype,item.name,options({[key]:item.previous[key]}));}catch{restored=false;}}}}return restored;}
+  function cleanup(){closed=true;enabled=false;if(relayKey&&privateRelay)invoke(removeAttribute,privateRelay,[relayKey]);let restored=true;for(let index=0;index<installed.length;index++){const item=installed[index],current=descriptor(item.prototype,item.name),key=item.setter?'set':'value';if(current&&descriptor(current,key)&&current[key]===item.value){try{define(item.prototype,item.name,item.setter?options({...current,set:item.previous.set}):item.previous);}catch{try{define(item.prototype,item.name,options({[key]:item.previous[key]}));}catch{restored=false;}}}}return restored;}
   if(privateControl)privateControl.addEventListener('aresos-relay-cleanup',event=>{if(cleanup())event.preventDefault();});
   if(privateRelay)return {activate,cleanup,identify,link,relay:privateRelay};
   activate();return cleanup;

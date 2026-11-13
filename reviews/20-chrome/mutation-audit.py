@@ -88,7 +88,7 @@ case('P13',R,"value = editableText(element).replace(/\\n$/, '');","value = text(
 case('P14',P,"ITEM = {'unsubscribe', 'abbestellen'}","ITEM = set()",'test_policy.ReviewClassification.test_p14_unsubscribe_binds_item_without_a_draft',True)
 case('P15',R,"element.getAttribute('alt') || buttonValue ||","element.getAttribute('alt') || element.getAttribute('title') || buttonValue ||",node('reader','P15'))
 case('P16',R,"element.hasAttribute('srcdoc') ? 'about:srcdoc'","element.srcdoc ? 'about:srcdoc'",node('reader','P16'))
-case('P17',R,'const {protectedFields,fileIdentities}=privacy;','const protectedFields=new WeakSet(),fileIdentities=privacy.fileIdentities;',node('reader','P17'))
+case('P17',R,'const {protectedFields,fileIdentities}=privacy;','const protectedFields=new WeakSet(),fileIdentities=privacy.fileIdentities;',node('reader','P17'),extra=[(R,"const protectedKey=Symbol.for('aresos.chrome.password-node.v1');","const protectedKey=Symbol('aresos.chrome.password-node.v1');")])
 case('P17-before-getter',R,"if(message.expected_document&&message.expected_document!==documentId)","if(false)",node('reader','P17 lost-history identity'))
 case('P17-private-expectation',B,"...(privacyDocuments.has(frame.documentId)?{expected_document:privacyDocuments.get(frame.documentId)}:{})","...{}",node('background','P17 expected privacy identity'))
 case('popup-late-reader',B,'if(!error.readerUnavailable||!frame.documentId)throw error;','throw error;',node('background','a popup committing after admission'))
@@ -98,7 +98,7 @@ case('P2-native-frame',B,"origins=authenticated.length===1?authenticated:inherit
 case('P2-native-readonly',A,"facts.get('effective_url',facts['dialog']['frame_url'])","facts['dialog']['frame_url']",'test_questions.Questions.test_p2_inline_native_dialog_uses_authenticated_inherited_readonly_host',True)
 case('P2-before-getter',R,"if(message.expected_origin&&message.expected_origin!==globalThis.origin)","if(false)",node('reader','P2 inherited origin'))
 case('P18-descendants',R,'node=node.parentElement||node.getRootNode?.().host','node=null',node('reader','P18'))
-case('P18-sticky',R,'if(protectedFields.has(element))return true;','if(false)return true;',node('reader','P18'))
+case('P18-sticky',R,"if(protectedFields.has(element)||Object.getOwnPropertyDescriptor(element,protectedKey)?.value===true)return true;",'if(false)return true;',node('reader','P18'))
 case('P19',B,"await targetCommand(state,'Page.enable');","await targetCommand(state,'Page.enable');await targetCommand(state,'Runtime.enable');",node('background','startup evaluates only fixed bundles'),extra=[('control/chrome/extension/policy.js','"Runtime.evaluate"','"Runtime.enable", "Runtime.evaluate"')])
 case('P19-root-context',B,'if(params.frame.id===state.frameId){','if(false){',node('background','P19 root navigation'))
 case('P19-context-generation',B,"(state.contextGeneration?'-navigation-'+state.contextGeneration:'')","''",node('background','P19 a cancelled startup'))
@@ -224,11 +224,11 @@ case('recheck2b-transport-reset','control/boundary/hostile.py',', errno.ECONNRES
 
 case('recheck3-detached-listener',M,'if(node)watchCreated(this);','',node('page','recheck3 every wrapped native mix'))
 case('recheck3-node-brand',M,'let node=false;try{invoke(root,this,[]);node=true;}catch{}','let node=this instanceof Node;',node('page','recheck3 detached listener branding'))
-case('recheck3-foreign-node',M,'watchForeign(node);return node;','return node;',node('page','wrapped detached listener from another'))
-case('recheck3-foreign-document-lookup',M,"    report(node,{kind:'watch_node'});",'',node('page','wrapped detached listener from another'))
+case('recheck3-foreign-node',M,"if(control!==privateControl)property(detail,'source_id',relayValue,true);",'',node('page','wrapped detached listener from another'))
+case('recheck3-foreign-document-lookup',G,'if(source)source.enabled=true;','',node('page','wrapped detached listener from another'))
 case('recheck3-foreign-document-reference',M,"    invoke(mapSet,foreignCarriers,[doc,{node,control,key,value}]);return true;","    return true;",node('page','wrapped detached listener from another'))
-case('recheck3-foreign-document-release',M,"invoke(removeListener,node,[kind,record.listener,true]);",'void 0;',node('page','foreign watch bridges and recipient capture'))
-case('recheck3-svg-capture',G,'const shadow=element instanceof HTMLElement&&globalThis.chrome?.dom?.openOrClosedShadowRoot(element);','const shadow=globalThis.chrome?.dom?.openOrClosedShadowRoot(element);',node('page','recheck3 every hyperlink'))
+case('recheck3-foreign-document-release',G,"for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);",'',node('page','foreign watch bridges and recipient capture'))
+case('recheck3-svg-capture',G,'const shadow=html(element,HTMLElement)&&globalThis.chrome?.dom?.openOrClosedShadowRoot(element);','const shadow=globalThis.chrome?.dom?.openOrClosedShadowRoot(element);',node('page','recheck3 every hyperlink'))
 case('recheck3-area-default',G,"['A','AREA'].includes(element.tagName)","['A'].includes(element.tagName)",node('page','recheck3 every hyperlink'))
 case('recheck3-svg-default',G,"element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a'","false",node('page','recheck3 every hyperlink'))
 case('recheck3-svg-legacy-default',G,"if(legacy!==null)removeAttributeNS.call(node,xlink,'href');",'',node('page','recheck3 every hyperlink'))
@@ -247,10 +247,19 @@ case('recheck3-compose-extension',B,"compose:!adapter&&['send','confirmation','f
 
 case('recheck3-private-carrier-brand',M,'invoke(getAttribute,node,[key])!==value','false',node('page','private foreign links reject'))
 case('recheck3-private-carrier-retirement',M,'if(relayKey&&privateRelay)invoke(removeAttribute,privateRelay,[relayKey]);','',node('page','private foreign links reject'))
-case('recheck3-private-source-hold',G,'value:holdConfig()','value:null',node('page','wrapped detached listener from another'))
+case('recheck3-private-source-hold',G,'const candidate=peer.api.privateHold();','const candidate=null;',node('page','wrapped detached listener from another'))
 case('recheck3-private-native-context',B,'state.factoryContexts.set(params.executionContextAuxData.frameId,params.executionContextId)','void 0',node('background','native MAIN context observed'))
 case('recheck3-passive-carrier-retirement',G,'if(relayNode&&relayMarker)removeAttribute.call(relayNode,relayMarker);','',node('page','passive controlled recipient'))
 case('recheck3-conservative-recipient',G,'candidate.conservative||combined?.conservative','candidate.conservative',node('page','already conservative recipient'))
+
+case('recheck3-adopted-element-brand',G,"const isElement=node=>{try{elementAttribute.call(node,'');return true;}catch{return false;}};",'const isElement=node=>node instanceof Element;',node('page','native adoption into a third'))
+case('recheck3-adopted-field-brand',R,"||isElement(node)&&node.namespaceURI==='http://www.w3.org/1999/xhtml'&&(!tag||node.localName===tag)",'',node('reader','adopted HTML controls'))
+case('recheck3-peer-password',R,'if(guard.protectedPeer?.(element))protectNode(element);','',node('reader','adopted peer password provenance'))
+case('recheck3-retired-peer-password',G,'return privacyCheck?.(node)===true;','return reader?.protected?.(node)===true;',node('page','retired peer metadata'))
+
+case('recheck3-adopted-password-marker',R,'Object.defineProperty(node,protectedKey,{value:true});','void 0;',node('reader','adopted peer password provenance'))
+
+case('recheck3-main-data-clone',M,"property(detail,'source_id',relayValue,true)","property(detail,'source_id',()=>relayValue,true)",node('page','wrapped detached listener from another'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

@@ -2,6 +2,10 @@
 (() => {
   'use strict';
   if(globalThis[Symbol.for('aresos.chrome.guard.v2')])return;
+  // DOM wrappers can keep their original realm after native adoption.
+  const elementAttribute=Element.prototype.getAttribute;
+  const isElement=node=>{try{elementAttribute.call(node,'');return true;}catch{return false;}};
+  const html=(node,Constructor,tag=null)=>node instanceof Constructor||isElement(node)&&node.namespaceURI==='http://www.w3.org/1999/xhtml'&&(!tag||node.localName===tag);
   const native = {
     submit: HTMLFormElement.prototype.submit, requestSubmit: HTMLFormElement.prototype.requestSubmit,
     click: HTMLElement.prototype.click, dispatch: EventTarget.prototype.dispatchEvent,
@@ -66,7 +70,7 @@
   const defaultView=globalThis.Document&&Object.getOwnPropertyDescriptor(Document.prototype,'defaultView')?.get;
   const held = new Map(), roots = new WeakMap(), rootRefs = new Set(), consumed = new Set();
   function* watchedRoots(){for(const ref of rootRefs){const root=ref.deref();if(root)yield [root,roots.get(root)];else rootRefs.delete(ref);}}
-  let reader, generation = null, dispatchNonce = null, config, until = 0, inFlight = false, mark = null, owner = null, sequence = 0;
+  let privacyCheck=null,reader, generation = null, dispatchNonce = null, config, until = 0, inFlight = false, mark = null, owner = null, sequence = 0;
   const clipboardRoutes=new Set();
   function noteClipboard(route){if(generation!==null&&['write','writeText','copy'].includes(route)){clipboardRoutes.add(route);try{reader?.clipboard?.(route,generation);}catch{}}}
   function clipboardObservation(take=false){
@@ -88,15 +92,17 @@
   function requestNative(form,submitter){requestDepth++;try{return submitter?native.requestSubmit.call(form,submitter):native.requestSubmit.call(form);}finally{requestDepth--;}}
   const currentPhase = event => phase ? phase.call(event) : event.eventPhase;
   const type = event => eventType ? eventType.call(event) : event.type;
-  const sources=new Set();let sourceSeen=new WeakSet(),queryingSources=false;
-  const invoke=Reflect.apply;
+  const peers=new Map(),peerDocuments=new WeakMap();let queryingSources=false,inheritedCapture=null;
+  const alive=peer=>{const node=peer.node.deref();return node&&getAttribute.call(node,peer.key)===peer.value;};
   function holdConfig(){
     if(generation===null)return null;
-    let combined=inFlight||performance.now()<until?config:null;
+    let combined=inheritedCapture?.config||(inFlight||performance.now()<until?config:null);
     if(queryingSources)return combined;
     queryingSources=true;
-    try{for(const ref of sources){const source=ref.deref();if(!source){sources.delete(ref);continue;}
-      const candidate=invoke(source,undefined,[]);
+    try{for(const peer of peers.values()){
+      if(!alive(peer)||!peer.api.privateCurrent()){reader?.protectPeers?.();peers.delete(peer.value);continue;}
+      if(!peer.enabled)continue;
+      const candidate=peer.api.privateHold();
       if(candidate)combined={...candidate,conservative:candidate.conservative||combined?.conservative};
     }}finally{queryingSources=false;}
     if(combined)config=combined;return combined;
@@ -110,16 +116,16 @@
   function nativeDefault(element,form,submitter){
     if(!form)return false;
     if(submitter)return !submitter.matches(':disabled');
-    if(!(element instanceof HTMLInputElement)||!['','text','search','url','tel','email','password'].includes(element.type))return false;
+    if(!(html(element,HTMLInputElement,'input'))||!['','text','search','url','tel','email','password'].includes(element.type))return false;
     const blocking=['','text','search','url','tel','email','password','date','month','week','time','datetime-local','number'];
-    try{const fields=formElements?formElements.call(form):form.elements||[element];let count=0;for(let index=0;index<fields.length;index++)if(fields[index] instanceof HTMLInputElement&&blocking.includes(fields[index].type))count++;return count<=1;}catch{return false;}
+    try{const fields=formElements?formElements.call(form):form.elements||[element];let count=0;for(let index=0;index<fields.length;index++)if(html(fields[index],HTMLInputElement,'input')&&blocking.includes(fields[index].type))count++;return count<=1;}catch{return false;}
   }
   function ownerInput(event,element) {
     if(!event.isTrusted||inFlight)return;
     const kind=type(event),key=event.key;
     let form=null,submitter=null,defaultSubmission=false;
-    if(kind==='click'&&element instanceof Element){const target=control(element);if(target.form&&reader.target(target).submit){form=target.form;submitter=target;defaultSubmission=nativeDefault(target,form,submitter);}}
-    if(['keydown','keypress','keyup'].includes(kind)&&key==='Enter'&&element instanceof Element){
+    if(kind==='click'&&isElement(element)){const target=control(element);if(target.form&&reader.target(target).submit){form=target.form;submitter=target;defaultSubmission=nativeDefault(target,form,submitter);}}
+    if(['keydown','keypress','keyup'].includes(kind)&&key==='Enter'&&isElement(element)){
       form=element.form||null;
       if(form&&reader.target(element).submit)submitter=element;
       else if(form){const implicit=reader.target(element).implicit_submitter;submitter=implicit?reader.element(implicit):null;}
@@ -136,7 +142,7 @@
     owner.consumed=true;return true;
   }
   const control=element=>element.closest('button,input,a,area,[role=button],[role=link],[role=menuitem],[onclick]') || element;
-  const eventElement=node=>node instanceof Element?node:node?.parentElement||(globalThis.ShadowRoot&&node instanceof ShadowRoot?node.host:null);
+  const eventElement=node=>isElement(node)?node:node?.parentElement||(globalThis.ShadowRoot&&node instanceof ShadowRoot?node.host:null);
   function facts(element) { return reader.target(element); }
   function decoded(value) { return value.replace(/(?:%[0-9a-f]{2})+/gi,encoded=>new TextDecoder('utf-8',{ignoreBOM:true}).decode(Uint8Array.from(encoded.match(/%../g),byte=>parseInt(byte.slice(1),16)))); }
   function listed(value) {
@@ -192,7 +198,7 @@
     return false;
   }
   function submit(form, submitter, kind) {
-    if (!(form instanceof HTMLFormElement)) return;
+    if (!(html(form,HTMLFormElement,'form'))) return;
     if (!active() || ownerSubmission(form,submitter) || search(reader.form(form,submitter),submitter||form) || allowance(form,null,submitter)) {
       if (kind === 'native_submit') native.submit.call(form);
       else requestNative(form,submitter);
@@ -203,20 +209,24 @@
       if(!active())return;
       if(event.cancelable)event.preventDefault();event.stopImmediatePropagation();
       const element=event.composedPath()[0];
-      if(element instanceof Element)report(event.cancelable?'activation':'activation_unknown',element,null,event.cancelable);
+      if(isElement(element))report(event.cancelable?'activation':'activation_unknown',element,null,event.cancelable);
     }
   }
   function captureInput(event,root) {
     let element=eventElement(event.composedPath()[0]);
-    if(element&&nativeRoot&&nativeRoot.call(element,{composed:true})!==ownDocument)return;
+    if(element&&nativeRoot&&nativeRoot.call(element,{composed:true})!==ownDocument){
+      const peer=peerDocuments.get(element.ownerDocument);
+      if(peer&&alive(peer))peer.api.capture(event,root,active()?{config}:null);
+      return;
+    }
     if (!active()) return;
-    if (!(element instanceof Element)) return;
+    if (!(isElement(element))) return;
     const nodeRoot=element.getRootNode();
     if(root===window){
       // Native-created roots may have bypassed the MAIN attachShadow wrapper.
       // Install capture while this composed event is still above the root.
       if(nodeRoot!==document){watch(nodeRoot);return;}
-      const shadow=element instanceof HTMLElement&&globalThis.chrome?.dom?.openOrClosedShadowRoot(element);
+      const shadow=html(element,HTMLElement)&&globalThis.chrome?.dom?.openOrClosedShadowRoot(element);
       if(shadow)watch(shadow);
     }else if(nodeRoot!==root&&root!==element)return;
     if(capturedBefore(event,root))return;
@@ -264,13 +274,13 @@
       if(detail?.kind==='clipboard_write'){if(element===ownDocument)noteClipboard(detail.route);return;}
       if(detail?.kind==='dialog_begin'){reader.dialog?.('begin',detail.token,generation,null,detail.dialog_kind);event.preventDefault();return;}
       if(detail?.kind==='dialog_end'){nativeDialogReturned(detail.token);event.preventDefault();return;}
-      if(element instanceof Element)watch(element.getRootNode());
+      if(isElement(element))watch(element.getRootNode());
       if (detail?.kind === 'native_submit') {delivery=true;submit(element,null,'native_submit');}
       else if (detail?.kind === 'request_submit') {
         // Validation and the native submit event must precede interception.
         delivery=true;
-        if(detail.with_submitter===true){if(!(element instanceof HTMLElement)||!(element.form instanceof HTMLFormElement)){event.preventDefault();return;}requestNative(element.form,element);}
-        else if(element instanceof HTMLFormElement)requestNative(element);
+        if(detail.with_submitter===true){if(!(html(element,HTMLElement))||!(html(element.form,HTMLFormElement,'form'))){event.preventDefault();return;}requestNative(element.form,element);}
+        else if(html(element,HTMLFormElement,'form'))requestNative(element);
         else event.preventDefault();
       } else if (detail?.kind === 'click' || detail?.kind === 'dispatch') {
         let original=null;
@@ -284,8 +294,8 @@
             for(const key of ['bubbles','cancelable','composed']){const value=flags?.[key];if(typeof value==='boolean')options[key]=value;}
             // Never read keyboard/input payloads for a protected field. A forged
             // descriptor can change only this fresh event, never the original.
-            let protectedPayload=element instanceof Element&&facts(element).password;
-            const allowedPayload=()=>!(protectedPayload ||= element instanceof Element&&facts(element).password);
+            let protectedPayload=isElement(element)&&facts(element).password;
+            const allowedPayload=()=>!(protectedPayload ||= isElement(element)&&facts(element).password);
             if(allowedPayload()){
               const data=detail.event_data??detail;
               for(const key of ['key','code','data','inputType']){if(!allowedPayload())break;const value=data?.[key];if(typeof value==='string'&&value.length<=65536)options[key]=value;}
@@ -299,7 +309,7 @@
         }
         const isClick=detail.kind === 'click' || type(original) === 'click';
         // All page-controlled getters have finished before this final check.
-        if (element instanceof Element && active() && isClick && asks(element)) {
+        if (isElement(element) && active() && isClick && asks(element)) {
           report('activation',control(element),null,original?.cancelable ?? true);event.preventDefault();return;
         }
         delivery=true;
@@ -308,7 +318,7 @@
       } else event.preventDefault();
     } catch {
       event.preventDefault();
-      if(active()&&element instanceof Element)report(delivery?'activation_unknown':'activation',element,null,!delivery);
+      if(active()&&isElement(element))report(delivery?'activation_unknown':'activation',element,null,!delivery);
       console.warn(delivery?'AresOS page API failed during native delivery; outcome uncertain.':'AresOS page descriptor was held before native delivery.');
     } // Invalid/forged reports can only add a hold.
   }
@@ -320,7 +330,7 @@
     const listen=(kind,listener,capture)=>{root.addEventListener(kind,listener,capture);listeners.push([kind,listener,capture]);};
     roots.set(root,listeners);rootRefs.add(new WeakRef(root));
     if(legacyBridge){listen('aresos-page-call-v2',event=>{
-      const element=event.composedPath()[0],shadow=element instanceof Element?globalThis.chrome?.dom?.openOrClosedShadowRoot(element):null;
+      const element=event.composedPath()[0],shadow=isElement(element)?globalThis.chrome?.dom?.openOrClosedShadowRoot(element):null;
       // A closed root hides its inner target here. Install its native listener
       // before this report reaches it; a host's own report uses the bubble fallback.
       if(shadow){watch(shadow);return;}
@@ -332,7 +342,7 @@
   }
   watch(window);
   // This object exists only in the extension's isolated world. MAIN has no API or capability.
-  globalThis[Symbol.for('aresos.chrome.guard.v2')] = {
+  const api=globalThis[Symbol.for('aresos.chrome.guard.v2')] = {
     get ready(){return !!reader;},
     clipboard:clipboardObservation,
     control(epoch){if(generation!==epoch)clipboardRoutes.clear();generation=epoch;},
@@ -340,19 +350,18 @@
     identity(){return reader?.document;},
     dialogBoundary(){return {document:reader?.document,token:endingDialog};},
     relay(node){
-      if(!reader||!(node instanceof HTMLElement)||node.ownerDocument!==document||node.isConnected||node.parentNode||!node.firstElementChild)throw Error('invalid private relay');
+      if(!reader||!(html(node,HTMLElement))||node.ownerDocument!==document||node.isConnected||node.parentNode||!node.firstElementChild)throw Error('invalid private relay');
       const carrier=node.firstElementChild,stack=[];
       const listen=(kind,listener)=>{carrier.addEventListener(kind,listener);relayListeners.push([kind,listener]);};
       const ranges=InputEvent.prototype.getTargetRanges;
       relayNode=node;
-      listen('aresos-relay-source-hold',event=>{Object.defineProperty(event.detail,'value',{value:holdConfig()});});
-      listen('aresos-relay-source',event=>{const source=event.detail;if(typeof source==='function'&&!sourceSeen.has(source)){sourceSeen.add(source);sources.add(new WeakRef(source));}});
+      listen('aresos-relay-guard',event=>{event.detail.api=api;});
       legacyBridge=false;relayControl=carrier;
       for(const [root,listeners]of watchedRoots())for(const [kind,listener,capture]of listeners)if(kind==='aresos-page-call-v2')root.removeEventListener(kind,listener,capture);
       const drop=request=>{if(stack.at(-1)?.detail.request===request)stack.pop();};
       listen('aresos-relay-meta',event=>{
         const detail=event.detail;
-        if(stack.length>=32||!['native_submit','request_submit','click','dispatch','watch_root','watch_node','clipboard_write','dialog_begin','dialog_end','foreign_click'].includes(detail?.kind))return;
+        if(stack.length>=32||!['native_submit','request_submit','click','dispatch','watch_root','watch_node','clipboard_write','dialog_begin','dialog_end'].includes(detail?.kind))return;
         if(!Number.isSafeInteger(detail.request))return;
         const stage={detail};stack.push(stage);
       });
@@ -376,24 +385,11 @@
         // Pop before entering page handlers; nested requests get their own record.
         drop(stage.detail.request);
         if(stage.detail.kind==='clipboard_write'){if(stage.target===ownDocument)noteClipboard(stage.detail.route);return;}
+        const source=peers.get(stage.detail.source_id);if(source)source.enabled=true;
         if(stage.detail.kind==='watch_node'){const other=foreignGuard(stage.target.ownerDocument||stage.target);if(other?.watch)other.watch(stage.target,active()?{config}:null);else if(!other&&stage.target.ownerDocument===ownDocument)watch(stage.target);event.preventDefault();return;}
         if(stage.detail.kind==='watch_root'){const other=foreignGuard(stage.target.ownerDocument||stage.target);if(other?.watch)other.watch(stage.target,active()?{config}:null);else if(!other)watch(stage.target);event.preventDefault();return;}
         const other=foreignGuard(stage.target);if(other){if(other.outside)outsideCall(event,stage);else if(other.route)other.route(event,stage,active()?{config}:null);return;}
         const element=eventElement(stage.target);
-        if(stage.detail.kind==='foreign_click'){
-          // The original is page-owned. Every field/method used by capture is
-          // read through our native Event interface, never through expandos.
-          const original=stage.original,facade={};
-          for(const key of ['type','cancelable','isTrusted','defaultPrevented','eventPhase','key','ctrlKey','altKey','metaKey','shiftKey']){
-            let proto=key==='key'||key.endsWith('Key')?globalThis.KeyboardEvent?.prototype:Event.prototype,getter;
-            while(proto&&!getter){getter=Object.getOwnPropertyDescriptor(proto,key)?.get;proto=Object.getPrototypeOf(proto);}
-            Object.defineProperty(facade,key,{get:()=>getter?getter.call(original):original[key]});
-          }
-          facade.composedPath=()=>Event.prototype.composedPath.call(original);
-          facade.preventDefault=()=>Event.prototype.preventDefault.call(original);
-          facade.stopImmediatePropagation=()=>Event.prototype.stopImmediatePropagation.call(original);
-          capture(facade,stage.target);event.preventDefault();return;
-        }
         if(['click','dispatch'].includes(stage.detail.kind)){
           const name=stage.detail.kind==='click'?'click':stage.detail.event_type;
           if(typeof name!=='string')return;
@@ -405,12 +401,23 @@
         }
         onCall(event,stage);
       });
-      listen('aresos-relay-original',event=>{const stage=stack.at(-1);if(stage?.detail.kind==='foreign_click')stage.original=event.detail;});
       listen('aresos-relay-drop',event=>drop(event.detail));
       return reader.document;
     },
+    source(node,key,value){
+      if(getAttribute.call(node,key)!==value||!node.firstElementChild)return false;
+      const detail={};native.dispatch.call(node.firstElementChild,new CustomEvent('aresos-relay-guard',{detail}));
+      if(!detail.api)return false;
+      const peer={node:new WeakRef(node),key,value,api:detail.api,enabled:false};
+      peers.set(value,peer);peerDocuments.set(node.ownerDocument,peer);return true;
+    },
+    privatePassword(node){return privacyCheck?.(node)===true;},
+    protectedPeer(node){return [...peers.values()].some(peer=>peer.api.privatePassword(node));},
+    privateCurrent(){if(!defaultView)return true;const view=defaultView.call(ownDocument);return !!view&&view.document===ownDocument;},
+    privateHold(){return this.privateCurrent()?holdConfig():null;},
+    capture(event,root,hold){const previous=inheritedCapture;inheritedCapture=hold;try{return capture(event,root);}finally{inheritedCapture=previous;}},
     privateRelay(key,value){const node=document.createElement('div');node.appendChild(document.createElement('span'));setAttribute.call(node,key,value);this.relay(node);relayMarker=key;return node;},
-    reader(value) { reader=value; }, watch,
+    reader(value) { reader=value;privacyCheck=value.protected; }, watch,
     arm(value) {
       generation=value.generation;dispatchNonce=value.dispatch_nonce;config={...value.config,words:value.config.words.map(word=>word.toLowerCase())};inFlight=true;owner=null;until=performance.now()+config.holdMs;
       const target=reader.element(value.target),implicit=reader.element(value.implicit);
@@ -423,8 +430,8 @@
       await new Promise(resolve=>setTimeout(resolve,0));
       if (generation===epoch && dispatchNonce===nonce) { until=Math.max(until,performance.now()+config.holdMs);inFlight=false;mark=null; }
     },
-    clear() { sources.clear();sourceSeen=new WeakSet();clipboardRoutes.clear();generation=null;until=0;inFlight=false;mark=null;owner=null;held.clear(); },
-    dispose() { let restored=true;if(relayNode&&relayMarker)removeAttribute.call(relayNode,relayMarker);relayNode=null;relayMarker=null;if(relayControl){restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
+    clear() { peers.clear();clipboardRoutes.clear();generation=null;until=0;inFlight=false;mark=null;owner=null;held.clear(); },
+    dispose() { let restored=true;if(relayNode&&relayMarker)removeAttribute.call(relayNode,relayMarker);relayNode=null;relayMarker=null;if(relayControl){restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;reader?.protectPeers?.();this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
     steps() { const result=[...held.values()].filter(step=>!step.reported).map(step=>{step.reported=true;return {id:step.id,kind:step.kind,document:step.document,label:step.label,element:step.element,submitter:step.submitter,cancellable:step.cancellable};});return result; },
     resume(id,operation,element,form) {
       const step=held.get(id);

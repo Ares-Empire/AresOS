@@ -2,11 +2,17 @@
 (() => {
   'use strict';
   try {
+  // DOM wrappers can keep their original realm after native adoption.
+  const elementAttribute=Element.prototype.getAttribute;
+  const isElement=node=>{try{elementAttribute.call(node,'');return true;}catch{return false;}};
+  const html=(node,Constructor,tag=null)=>node instanceof Constructor||isElement(node)&&node.namespaceURI==='http://www.w3.org/1999/xhtml'&&(!tag||node.localName===tag);
   const elements = new Map(), ids = new WeakMap();
   // This passive ISOLATED tracker has document lifetime, including release/retake.
   const privacyKey=Symbol.for('aresos.chrome.passwords.v1');
   const privacy=globalThis[privacyKey]??={protectedFields:new WeakSet(),observed:new WeakSet(),fileIdentities:new WeakMap()};
   const {protectedFields,fileIdentities}=privacy;
+  const protectedKey=Symbol.for('aresos.chrome.password-node.v1');
+  const protectNode=node=>{protectedFields.add(node);if(!Object.getOwnPropertyDescriptor(node,protectedKey))Object.defineProperty(node,protectedKey,{value:true});};
   const guard=globalThis[Symbol.for('aresos.chrome.guard.v2')];
   if(guard.ready)return;
   const randomToken=()=>[...crypto.getRandomValues(new Uint8Array(16))].map(value=>value.toString(16).padStart(2,'0')).join('');
@@ -16,7 +22,7 @@
   const formGetters=globalThis.HTMLFormElement?Object.fromEntries(['elements','action','method','enctype','target'].map(key=>[key,Object.getOwnPropertyDescriptor(HTMLFormElement.prototype,key)?.get])):{};
   const formProperty=(form,key)=>formGetters[key]?formGetters[key].call(form):form[key];
   const formQuery=(form,selector)=>Element.prototype.querySelector?Element.prototype.querySelector.call(form,selector):form.querySelector(selector);
-  const shadow=element=>element instanceof HTMLElement ? chrome.dom.openOrClosedShadowRoot(element):null;
+  const shadow=element=>html(element,HTMLElement) ? chrome.dom.openOrClosedShadowRoot(element):null;
   function composedParent(element) {
     if(element.assignedSlot)return element.assignedSlot;
     // assignedSlot hides a closed root. Its native slots still expose their
@@ -41,23 +47,24 @@
     if(!privacy.observed.has(root)){privacy.observed.add(root);observer.observe(root,{subtree:true,attributes:true,attributeOldValue:true,attributeFilter:['type','autocomplete','style']});}
   }
   function protect(changes) {
-    for(const change of changes)if(change.type==='attributes' && (change.attributeName==='type' && (change.oldValue||'').toLowerCase()==='password' || change.attributeName==='autocomplete' && /(?:password|one-time-code)/i.test(change.oldValue||'') || change.attributeName==='style' && /-webkit-text-security\s*:\s*(?!none\b)/i.test(change.oldValue||'')))protectedFields.add(change.target);
+    for(const change of changes)if(change.type==='attributes' && (change.attributeName==='type' && (change.oldValue||'').toLowerCase()==='password' || change.attributeName==='autocomplete' && /(?:password|one-time-code)/i.test(change.oldValue||'') || change.attributeName==='style' && /-webkit-text-security\s*:\s*(?!none\b)/i.test(change.oldValue||'')))protectNode(change.target);
   }
   function ownPassword(element) {
-    if(protectedFields.has(element))return true;
-    if (!(element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement || element instanceof HTMLButtonElement || element.isContentEditable)) return false;
+    if(protectedFields.has(element)||Object.getOwnPropertyDescriptor(element,protectedKey)?.value===true)return true;
+    if (!(html(element,HTMLInputElement,'input') || html(element,HTMLTextAreaElement,'textarea') || html(element,HTMLSelectElement,'select') || html(element,HTMLButtonElement,'button') || element.isContentEditable)) return false;
     let unsafe = protectedFields.has(element);
     try {
       unsafe ||= element.type === 'password' || /(?:^|\s)(current-password|new-password|one-time-code)(?:\s|$)/i.test(element.getAttribute('autocomplete') || '') ||
         getComputedStyle(element).webkitTextSecurity !== 'none';
     } catch { unsafe = true; }
-    if (unsafe) protectedFields.add(element);
+    if (unsafe) protectNode(element);
     return unsafe;
   }
   function password(element) {
     if(observer?.takeRecords)protect(observer.takeRecords());
+    if(guard.protectedPeer?.(element))protectNode(element);
     for(let node=element;node;node=node.parentElement||node.getRootNode?.().host){
-      if(node instanceof Element && ownPassword(node))return true;
+      if(isElement(node) && ownPassword(node))return true;
     }
     return false;
   }
@@ -73,7 +80,7 @@
     revision++;protect(changes);
     for (const change of changes) {
       if (change.type === 'attributes') {
-        if (change.attributeName === 'type' && (change.oldValue||'').toLowerCase() === 'password' || change.attributeName === 'autocomplete' && /(?:password|one-time-code)/i.test(change.oldValue || '')) protectedFields.add(change.target);
+        if (change.attributeName === 'type' && (change.oldValue||'').toLowerCase() === 'password' || change.attributeName === 'autocomplete' && /(?:password|one-time-code)/i.test(change.oldValue || '')) protectNode(change.target);
         password(change.target);
       }
     }
@@ -89,7 +96,7 @@
   };
   function text(node, includeHidden=false, composed=false) {
     if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
-    if (!(node instanceof Element) || ['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName) || password(node)) return '';
+    if (!(isElement(node)) || ['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName) || password(node)) return '';
     if (!includeHidden && (node.hidden || getComputedStyle(node).display === 'none' || getComputedStyle(node).visibility === 'hidden')) return '';
     if(node.tagName==='IMG')return node.getAttribute('alt')||'';
     const assigned=composed&&node.tagName==='SLOT'?node.assignedNodes?.():null;
@@ -99,19 +106,19 @@
   function name(element) {
     const root = element.getRootNode();
     const labelled = (element.getAttribute('aria-labelledby') || '').split(/\s+/).map(key => root.getElementById?.(key)).filter(Boolean);
-    const buttonValue=element instanceof HTMLInputElement && ['button','submit','reset'].includes(element.type) ? safeValue(element).value || (element.type==='submit'?'Submit':element.type==='reset'?'Reset':''):null;
+    const buttonValue=html(element,HTMLInputElement,'input') && ['button','submit','reset'].includes(element.type) ? safeValue(element).value || (element.type==='submit'?'Submit':element.type==='reset'?'Reset':''):null;
     return (labelled.length ? labelled.map(node=>text(node,true)).join(' ') : element.getAttribute('aria-label') ||
       (element.labels?.length ? [...element.labels].map(node=>text(node,true)).join(' ') : element.getAttribute('alt') || buttonValue ||
       ((['BUTTON','A','SUMMARY'].includes(element.tagName) || hyperlink(element) || element.hasAttribute('role') ? text(element) : element.getAttribute('placeholder') || '') || element.getAttribute('title') || ''))).replace(/\s+/g, ' ').trim();
   }
   function editableText(node) {
     if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
-    if(!(node instanceof Element)||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName))return '';
+    if(!(isElement(node))||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName))return '';
     const style=getComputedStyle(node);if(node.hidden||style.display==='none'||style.visibility==='hidden')return '';
     if(node.tagName==='BR')return '\n';
     let result='';
     for(const child of node.childNodes){
-      const block=child instanceof Element&&(['DIV','P','LI','TR','SECTION','ARTICLE','BLOCKQUOTE','PRE'].includes(child.tagName)||['block','list-item','table-row'].includes(getComputedStyle(child).display));
+      const block=isElement(child)&&(['DIV','P','LI','TR','SECTION','ARTICLE','BLOCKQUOTE','PRE'].includes(child.tagName)||['block','list-item','table-row'].includes(getComputedStyle(child).display));
       if(block&&result&&!result.endsWith('\n'))result+='\n';
       result+=editableText(child);
       if(block&&!result.endsWith('\n'))result+='\n';
@@ -120,7 +127,7 @@
   }
   function richIdentity(node){
     if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
-    if(!(node instanceof Element))return null;
+    if(!(isElement(node)))return null;
     if(password(node))return {element:id(node),password:true};
     if(['SCRIPT','STYLE','NOSCRIPT','INPUT','TEXTAREA','SELECT'].includes(node.tagName))return null;
     const style=getComputedStyle(node);if(node.hidden||style.display==='none'||style.visibility==='hidden')return null;
@@ -134,7 +141,7 @@
     if(!fileIdentities.has(file))fileIdentities.set(file,{identity:randomToken()});
     return fileIdentities.get(file);
   }
-  const selectedFileLists=()=>all().filter(element=>element instanceof HTMLInputElement&&element.type==='file'&&!password(element)).map(element=>({element,files:[...element.files]}));
+  const selectedFileLists=()=>all().filter(element=>html(element,HTMLInputElement,'input')&&element.type==='file'&&!password(element)).map(element=>({element,files:[...element.files]}));
   function prepareSelectedFiles(){
     const pending=[],selections=selectedFileLists();
     for(const {files} of selections){
@@ -175,10 +182,10 @@
     // The exclusion is repeated immediately before EACH value/text read.
     if (password(element)) return {password: true};
     let value;
-    if (element instanceof HTMLInputElement) {
+    if (html(element,HTMLInputElement,'input')) {
       if (element.type === 'file') value = [...element.files].map(selectedFile);
       else value = element.value;
-    } else if (element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement || element instanceof HTMLButtonElement) value = element.value;
+    } else if (html(element,HTMLTextAreaElement,'textarea') || html(element,HTMLSelectElement,'select') || html(element,HTMLButtonElement,'button')) value = element.value;
     else if (element.isContentEditable) value = editableText(element).replace(/\n$/, '');
     else return {};
     traces.push({element: id(element), value});
@@ -195,7 +202,7 @@
     const safe=safeValue(element);
     return {element: id(element), name: element.getAttribute('name') || '', label: name(element), type: element.type || element.getAttribute('role') || 'editable',
       hidden: element.type === 'hidden', checked:!!element.checked, disabled:element.matches(':disabled'), multiple:!!element.multiple, readOnly:!!element.readOnly, ...safe,
-      ...(element instanceof HTMLSelectElement && !safe.password ? {options: [...element.options].map(option => ({label: text(option), value: option.value, selected: option.selected, disabled: option.matches(':disabled')}))} : {})};
+      ...(html(element,HTMLSelectElement,'select') && !safe.password ? {options: [...element.options].map(option => ({label: text(option), value: option.value, selected: option.selected, disabled: option.matches(':disabled')}))} : {})};
   }
   function formFacts(form, submitter) {
     if (!form) return null;
@@ -208,7 +215,7 @@
       fields: [...formProperty(form,'elements')].map(field)};
   }
   function implicitSubmitter(element) {
-    if(!(element instanceof HTMLInputElement) || !element.form || ['button','submit','image','checkbox','radio','file','hidden','range','color'].includes(element.type))return null;
+    if(!(html(element,HTMLInputElement,'input')) || !element.form || ['button','submit','image','checkbox','radio','file','hidden','range','color'].includes(element.type))return null;
     return [...element.getRootNode().querySelectorAll('button,input')].find(control=>control.form===element.form&&['submit','image'].includes(control.type)) || null;
   }
   function mappedImage(area){
@@ -241,15 +248,15 @@
     }
     const value = safeValue(element);
     const clickControl=['BUTTON','A','AREA','SUMMARY'].includes(element.tagName) || hyperlink(element) ||
-      element instanceof HTMLInputElement && ['button','submit','image','checkbox','radio','range','color','file','reset'].includes(element.type) ||
+      html(element,HTMLInputElement,'input') && ['button','submit','image','checkbox','radio','range','color','file','reset'].includes(element.type) ||
       (element.getAttribute('role')||'').toLowerCase().split(/\s+/).some(role=>['button','link','menuitem','menuitemcheckbox','menuitemradio','checkbox','radio','switch','option','tab','treeitem'].includes(role));
     const dialog=element.closest('dialog,[role=dialog],[role=alertdialog]');
     const page_dialog=dialog ? {element:id(dialog),kind:role(dialog),text:text(dialog).replace(/\s+/g,' ').trim(),button:name(element),fields:[...dialog.querySelectorAll('input,textarea,select,[contenteditable]')].map(field)} : null;
     return {element: id(element), role: role(element), page_dialog, name: name(element), label:element.labels?.length?[...element.labels].map(node=>text(node,true)).join(' ').replace(/\s+/g,' ').trim():name(element), title: element.getAttribute('title') || '', ...value,
-      ...(element instanceof HTMLSelectElement && !value.password ? {options:field(element).options}:{}),
+      ...(html(element,HTMLSelectElement,'select') && !value.password ? {options:field(element).options}:{}),
       ...(implicitSubmitter(element) ? {implicit_submitter:id(implicitSubmitter(element))}:{}),
       href: hyperlinkAddress(element),
-      editable: !clickControl && (element instanceof HTMLInputElement && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || element instanceof HTMLTextAreaElement || element.isContentEditable),
+      editable: !clickControl && (html(element,HTMLInputElement,'input') && !['button','submit','image','checkbox','radio','file','hidden'].includes(element.type) || html(element,HTMLTextAreaElement,'textarea') || element.isContentEditable),
       search: element.type === 'search' || element.getAttribute('role') === 'searchbox', submit: !!element.form && (element.type === 'submit' || element.type === 'image'),
       states: {checked: !!element.checked, selected: !!element.selected, disabled: !!element.disabled, required: !!element.required, invalid: element.getAttribute('aria-invalid') === 'true', expanded: element.getAttribute('aria-expanded')},
       box: {x:box.x,y:box.y,width:box.width,height:box.height}, onscreen: box.bottom > 0 && box.right > 0 && box.top < innerHeight && box.left < innerWidth && box.width > 0 && box.height > 0};
@@ -292,7 +299,7 @@
     }
     function visit(node,space='normal',visible=true){
       if(node.nodeType===Node.TEXT_NODE){if(visible&&(!node.parentElement||!password(node.parentElement)))append(node.textContent,space);return;}
-      if(!(node instanceof Element)||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','SELECT'].includes(node.tagName))return;
+      if(!(isElement(node))||password(node)||['SCRIPT','STYLE','NOSCRIPT','INPUT','SELECT'].includes(node.tagName))return;
       const style=getComputedStyle(node);
       if(style.display==='none')return;
       visible=style.visibility!=='hidden'&&style.visibility!=='collapse';
@@ -300,7 +307,7 @@
       const block=['block','list-item','table-row','flex','grid','table','flow-root'].includes(style.display);
       if(block&&result)pending='\n';
       const whiteSpace=style.whiteSpace|| (node.tagName==='PRE'?'pre':space);
-      if(node instanceof HTMLTextAreaElement){if(visible){const safe=safeValue(node);if(!safe.password)append(safe.value,'pre-wrap');}}
+      if(html(node,HTMLTextAreaElement,'textarea')){if(visible){const safe=safeValue(node);if(!safe.password)append(safe.value,'pre-wrap');}}
       else if(node.tagName==='IMG'){if(visible)append(node.getAttribute('alt')||'',whiteSpace);}
       else{
         const assigned=node.tagName==='SLOT'?node.assignedNodes?.():null;
@@ -312,15 +319,15 @@
   }
   function composeText(element,nodes){
     const candidates=nodes.filter(node=>node!==element&&
-      (node instanceof HTMLTextAreaElement||node.isContentEditable||node instanceof HTMLInputElement&&!['hidden','button','submit','reset','image','file','checkbox','radio'].includes(node.type))&&
+      (html(node,HTMLTextAreaElement,'textarea')||node.isContentEditable||html(node,HTMLInputElement,'input')&&!['hidden','button','submit','reset','image','file','checkbox','radio'].includes(node.type))&&
       !password(node)&&getComputedStyle(node).display!=='none'&&getComputedStyle(node).visibility!=='hidden');
     // A recipient input beside Send is not the message when a body editor is
     // present farther out (including the generic sibling-editor layout).
-    const bodies=candidates.filter(node=>node instanceof HTMLTextAreaElement||node.isContentEditable);
+    const bodies=candidates.filter(node=>html(node,HTMLTextAreaElement,'textarea')||node.isContentEditable);
     const drafts=bodies.length?bodies:candidates;
     // The activated editor is itself the draft for Enter. Start at its parent
     // so the neighbouring Send and read-only preview participate as well.
-    if(element.isContentEditable||element instanceof HTMLTextAreaElement||element instanceof HTMLInputElement)drafts.push(element);
+    if(element.isContentEditable||html(element,HTMLTextAreaElement,'textarea')||html(element,HTMLInputElement,'input'))drafts.push(element);
     const contains=(area,node)=>{for(let parent=node;parent;parent=composedParent(parent))if(parent===area)return true;return false;};
     for(let area=composedParent(element);area;area=composedParent(area)){
       const content=renderedCompose(area);
@@ -331,7 +338,7 @@
   function itemFields(element,nodes) {
     const item=affectedItem(element);
     return nodes.filter(node=>{
-      if(!(node instanceof HTMLInputElement || node instanceof HTMLTextAreaElement || node instanceof HTMLSelectElement || node.isContentEditable) || ['hidden','button','submit','reset','image'].includes(node.type))return false;
+      if(!(html(node,HTMLInputElement,'input') || html(node,HTMLTextAreaElement,'textarea') || html(node,HTMLSelectElement,'select') || node.isContentEditable) || ['hidden','button','submit','reset','image'].includes(node.type))return false;
       for(let ancestor=node;ancestor;ancestor=composedParent(ancestor)){
         const style=getComputedStyle(ancestor);
         if(ancestor.hidden || style.display==='none' || style.visibility==='hidden')return false;
@@ -378,7 +385,7 @@
     const editable = nodes.filter(node => node.matches('input,textarea,select,[contenteditable]') && !['hidden','button','submit','reset','image','file'].includes(node.type)).map(field);
     return {document: documentId, revision, url: location.href, origin:globalThis.origin, title: document.title, scroll: {x:scrollX,y:scrollY}, rows,
       target: element ? targetFacts(element) : null, form: element ? formFacts(element.form || (element.tagName === 'FORM' ? element : null), implicitSubmitter(element) || element) : null,
-      editable, compose:element?composeText(element,nodes):null, selected_files:nodes.filter(node=>node instanceof HTMLInputElement&&node.type==='file').map(field), embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', item_fields:element?itemFields(element,nodes):[], adapter: adapterRead(nodes, element), trace: traces.splice(0)};
+      editable, compose:element?composeText(element,nodes):null, selected_files:nodes.filter(node=>html(node,HTMLInputElement,'input')&&node.type==='file').map(field), embeds:nodes.filter(node=>node.tagName==='IFRAME').map(embedding), item: element ? itemText(element) : '', item_fields:element?itemFields(element,nodes):[], adapter: adapterRead(nodes, element), trace: traces.splice(0)};
   }
   function adapterRead(nodes, target) {
     const scope=target?.closest('form,[role=dialog],[role=region][aria-label],main,[role=main]');
@@ -401,7 +408,7 @@
       rich_drafts:fields.filter(node=>node.isContentEditable).map(node=>({element:id(node),...safeValue(node)})),
       attachments:fields.filter(node=>node.matches('[aria-label^="Attachment:"]')).map(node=>({label:name(node),text:text(node)})),target:target ? name(target):null};
   }
-  guard.reader({document:documentId,id,clipboard:(route,generation)=>{chrome.runtime.sendMessage({event:'clipboard_write',document:documentId,route,generation}).catch(()=>{});},element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element),report:(step,generation)=>{chrome.runtime.sendMessage({event:'held_step',step,generation}).catch(()=>{});},dialog:(phase,token,generation,nonce,kind)=>{chrome.runtime.sendMessage({event:'native_dialog_boundary',phase,token,generation,nonce,kind,document:documentId}).catch(()=>{});},dispose:()=>{revisionObserver.disconnect();files.clear();elements.clear();traces.length=0;chrome.runtime.onMessage.removeListener(onMessage);}});
+  guard.reader({protected:node=>protectedFields.has(node),protectPeers:()=>remember(document),document:documentId,id,clipboard:(route,generation)=>{chrome.runtime.sendMessage({event:'clipboard_write',document:documentId,route,generation}).catch(()=>{});},element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element),report:(step,generation)=>{chrome.runtime.sendMessage({event:'held_step',step,generation}).catch(()=>{});},dialog:(phase,token,generation,nonce,kind)=>{chrome.runtime.sendMessage({event:'native_dialog_boundary',phase,token,generation,nonce,kind,document:documentId}).catch(()=>{});},dispose:()=>{revisionObserver.disconnect();files.clear();elements.clear();traces.length=0;chrome.runtime.onMessage.removeListener(onMessage);}});
   function reloadState(){
     let unsaved=document.designMode?.toLowerCase()==='on';
     for(const element of all()){
@@ -410,7 +417,7 @@
         // There is no native defaultValue for rich text. A late reader cannot
         // prove it unchanged, including an editor the owner emptied.
         if(element.isContentEditable){unsaved=true;continue;}
-        if(element instanceof HTMLSelectElement)unsaved ||= [...element.options].some(option=>option.selected!==option.defaultSelected);
+        if(html(element,HTMLSelectElement,'select'))unsaved ||= [...element.options].some(option=>option.selected!==option.defaultSelected);
         else if(['checkbox','radio'].includes(element.type))unsaved ||= element.checked!==element.defaultChecked;
         else unsaved ||= element.value!==element.defaultValue;
       }
@@ -483,7 +490,7 @@
         if (!element?.isConnected || password(element)) throw Error('stale_reference: read again');
         guard.direct(message.element);
         if (message.command === 'select') {
-          if(!(element instanceof HTMLSelectElement) || element.matches(':disabled'))throw Error('refused: choose an enabled native select control');
+          if(!(html(element,HTMLSelectElement,'select')) || element.matches(':disabled'))throw Error('refused: choose an enabled native select control');
           const choices=[...element.options].filter(option=>option.value===message.value);
           if(choices.length!==1 || choices[0].matches(':disabled'))throw Error('stale_reference: the exact enabled option is missing or ambiguous; read again');
           element.value = message.value;

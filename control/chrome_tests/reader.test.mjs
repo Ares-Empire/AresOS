@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {webcrypto,createHash} from 'node:crypto';
 
-function fixture(fields,{subtle=true,NativeBlob=Blob}={}) {
+function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false}={}) {
   let calls=0,fileSequence=0,clipboardInfo=null;const timers=[];
   class Element {
     isConnected=true;nodeType=1;tagName='INPUT';textContent='';childNodes=[];hidden=false;type='text';isContentEditable=false;labels=[];files=[];name='';
@@ -34,7 +34,7 @@ function fixture(fields,{subtle=true,NativeBlob=Blob}={}) {
     Element,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,Node:{TEXT_NODE:3},CustomEvent:class{},
     atob:value=>Buffer.from(value,'base64').toString('binary'),setTimeout:fn=>timers.push(fn),
     URL,getComputedStyle:element=>({display:['DIV','P','PRE'].includes(element.tagName)?'block':'inline',visibility:element.visibility||'visible',webkitTextSecurity:element.mask || 'none',whiteSpace:element.whiteSpace||(element.tagName==='PRE'?'pre':undefined)}),
-    [Symbol.for('aresos.chrome.guard.v2')]:{clipboard(take){const value=clipboardInfo;if(take)clipboardInfo=null;return value;},watch(){},reader(value){readerAPI=value;},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];}},
+    [Symbol.for('aresos.chrome.guard.v2')]:{protectedPeer,clipboard(take){const value=clipboardInfo;if(take)clipboardInfo=null;return value;},watch(){},reader(value){readerAPI=value;},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];}},
     origin:'https://fixture.test',location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
   function read(){let result;listener({command:'read'},{id:'fixture'},value=>result=value);assert.equal(result.ok,true,JSON.stringify(result));return result;}
@@ -332,4 +332,18 @@ test('recheck3 significant visible descendant text survives a visibility hidden 
   for(const node of area.childNodes)node.parentElement=area;preview.parentElement=hidden;f.nodes.push(area,hidden,preview);const key=f.read().data.rows.find(row=>row.name==='Send').element;
   const current=()=>f.command({command:'facts',element:key}).data.compose.text,before=current();assert.ok(before.includes('one\n    two'));assert.ok(!before.includes('HIDDEN SOURCE'));
   preview.childNodes[0].textContent='one\ntwo';assert.notEqual(current(),before);
+});
+
+test('recheck3 adopted HTML controls retain their native field brand and current password exclusion',()=>{
+  const f=fixture([{namespaceURI:'http://www.w3.org/1999/xhtml',localName:'input'}]);f.generic(f.nodes[0]);
+  assert.equal(f.read().data.editable[0].value,'safe visible text');const before=f.calls();
+  f.nodes[0].mask='disc';f.nodes[0].forbidden=true;assert.equal(f.read().data.editable[0].password,true);assert.equal(f.calls(),before);
+  f.nodes[0].mask='none';f.read();assert.equal(f.calls(),before);
+});
+
+test('recheck3 adopted peer password provenance stays private and sticky across peer release and retake',()=>{
+  let protectedPeer=true;const f=fixture([{forbidden:true,namespaceURI:'http://www.w3.org/1999/xhtml',localName:'input'}],{protectedPeer:()=>protectedPeer});f.generic(f.nodes[0]);
+  assert.equal(f.read().data.editable[0].password,true);assert.equal(f.calls(),0);
+  protectedPeer=false;f.read();f.reinject();f.read();assert.equal(f.calls(),0);
+  const recipient=fixture([]);recipient.nodes.push(f.nodes[0]);assert.equal(recipient.read().data.editable[0].password,true);assert.equal(f.calls(),0,'private node provenance survives adoption into another reader realm');
 });
