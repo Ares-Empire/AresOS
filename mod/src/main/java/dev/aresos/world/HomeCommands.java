@@ -2,6 +2,7 @@ package dev.aresos.world;
 
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import dev.aresos.zone.WalkInZones;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
@@ -35,13 +36,18 @@ public final class HomeCommands {
         if (refusal != null) player.sendSystemMessage(Component.literal(refusal), true);
     }
 
-    /** Moves him and nothing else: off any mount, standing still, not falling, not burning. */
+    /**
+     * Moves him and nothing else: off any mount, standing still, not falling, not burning. Every teleport of the mod
+     * goes through here or marks its arrival the same way (package 37, review fixes 1, point 1): a doorway he arrives
+     * in is not walked into ({@link WalkInZones#arrived}), so arriving never opens an app; stepping out and in does.
+     */
     public static void teleport(ServerPlayer player, ServerLevel level, Vec3 position, float yaw, float pitch) {
         player.stopRiding();
         player.teleportTo(level, position.x, position.y, position.z, Set.of(), yaw, pitch, false);
         player.setDeltaMovement(Vec3.ZERO);
         player.fallDistance = 0;
         player.clearFire();
+        WalkInZones.arrived(player);
     }
 
     /** To the home spot, from any dimension, its respawn point kept with it. Null when he arrived; otherwise why not. */

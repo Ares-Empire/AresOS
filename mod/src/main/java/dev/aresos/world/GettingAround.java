@@ -14,7 +14,6 @@ import dev.aresos.names.OpenPrograms;
 import dev.aresos.names.OwnedNodes;
 import dev.aresos.names.SlashCommands;
 import dev.aresos.zone.GateNumbers;
-import dev.aresos.zone.WalkInZones;
 import dev.aresos.zone.ZoneData;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -136,7 +135,6 @@ public final class GettingAround {
             return refuse(source, "Something of yours stands in front of " + app.name() + "'s door (" + place.words()
                     + ") with no free spot on the way in, so you stay where you are.");
         HomeCommands.teleport(player, level, spot.get(), exit.yaw(), exit.pitch());
-        WalkInZones.arrived(player);
         if (where.kind() == Whereabouts.Kind.WAITS) {
             String line = complete ? "The town builds " + app.name() + "'s logo here now that you are near."
                     : app.name() + "'s logo is built here once the system has listed your programs.";
@@ -171,7 +169,6 @@ public final class GettingAround {
         if (level == null || !HomeSites.isSafe(level, exit.position()))
             return refuse(source, "The exit of " + app.name() + "'s logo is obstructed. Clear it in Build mode; you stay where you are.");
         HomeCommands.teleport(player, level, exit.position(), exit.yaw(), exit.pitch());
-        WalkInZones.arrived(player);
         return 1;
     }
 

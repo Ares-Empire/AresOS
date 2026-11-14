@@ -362,7 +362,7 @@ public final class GettingAroundGameTests {
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(26000, 0, 0);
         var near = chunks(column.offset(-32, 0, -32), column.offset(32, 0, 32));
         hold(level, near, true);
-        var state = new Object() { Host host; };
+        var state = new Object() { Host host; boolean failed; HomeRecord record; Vec3 inside, outside; };
         helper.startSequence()
                 .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The chunks are not loaded yet"))
                 .thenExecute(() -> {
@@ -416,8 +416,9 @@ public final class GettingAroundGameTests {
                         HomeCommands.key(host.player);
                         check(host.player.level().dimension() == level.dimension(), "The H key left him in " + host.player.level().dimension());
                         standsAt(host.player, home.position(), 180, -8, "The H key");
-                    } catch (Exception error) {
-                        throw new AssertionError(error.getMessage(), error);
+                    } catch (Exception | AssertionError error) {
+                        state.failed = true;
+                        throw error instanceof AssertionError assertion ? assertion : new AssertionError(error.getMessage(), error);
                     } finally {
                         var server = level.getServer();
                         try {
@@ -425,11 +426,83 @@ public final class GettingAroundGameTests {
                             if (recorded && hadRecord) NetherHome.get(server).setHome(before);
                             else if (recorded) forgetHome(server);
                         } finally {
+                            if (state.failed) hold(level, near, false);
+                        }
+                    }
+                })
+                // Review fixes 1, point 1: a home inside a doorway (setting it checks safe ground only, as in Build mode).
+                // /home and the H key arrive there and open nothing, ten ticks on; stepping out and in again opens it.
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    state.host = null;
+                    state.host = new Host(helper, "go3-", List.of(app("go3-door", "Door", "door", false, true, null, null)));
+                    var server = state.host.server;
+                    var spot = surface(level, column);
+                    var exit = new NetherHome.Home(level.dimension(), Vec3.atBottomCenterOf(spot.offset(0, 0, 6)), 180, 0);
+                    ZoneData.get(server).add(new AppZone("go3-zone", "go3-door", level.dimension(), spot.offset(0, 0, 3), spot.offset(1, 2, 3), exit, List.of()));
+                    state.inside = Vec3.atBottomCenterOf(spot.offset(0, 0, 3));
+                    state.outside = Vec3.atBottomCenterOf(spot.offset(0, 0, 10));
+                    check(dev.aresos.world.HomeSites.isSafe(level, state.inside), "Fixture: the doorway is no safe spot for a home");
+                    state.record = HomeRecord.of(server);
+                    NetherHome.recordHome(server, new NetherHome.Home(level.dimension(), state.inside, 180, 0));
+                    state.host.at(level, state.outside);
+                }, () -> state.record))
+                .thenIdle(2)
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    state.host.ran("home", 1);
+                    standsAt(state.host.player, state.inside, 180, 0, "/home into the doorway");
+                }, () -> state.record))
+                .thenIdle(10)
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    check(state.host.launches(state.host.sent()) == 0, "Arriving by /home opened the app");
+                    state.host.at(level, state.outside);
+                }, () -> state.record))
+                .thenIdle(2)
+                .thenExecute(() -> state.host.player.teleportTo(level, state.inside.x, state.inside.y, state.inside.z, Set.of(), 180, 0, false))
+                .thenIdle(2)
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    check(state.host.launches(state.host.sent()) == 1, "Walking out and into the doorway did not open it");
+                    state.host.at(level, state.outside);
+                }, () -> state.record))
+                .thenIdle(2)
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    HomeCommands.key(state.host.player);
+                    standsAt(state.host.player, state.inside, 180, 0, "The H key into the doorway");
+                }, () -> state.record))
+                .thenIdle(10)
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    check(state.host.launches(state.host.sent()) == 0, "Arriving by the H key opened the app");
+                    state.host.at(level, state.outside);
+                }, () -> state.record))
+                .thenIdle(2)
+                .thenExecute(() -> state.host.player.teleportTo(level, state.inside.x, state.inside.y, state.inside.z, Set.of(), 180, 0, false))
+                .thenIdle(2)
+                .thenExecute(() -> {
+                    try (var host = state.host) {
+                        check(host.launches(host.sent()) == 1, "Walking out and into the doorway after H did not open it");
+                    } catch (Exception error) {
+                        throw new AssertionError(error.getMessage(), error);
+                    } finally {
+                        try {
+                            state.record.restore(level.getServer());
+                        } finally {
                             hold(level, near, false);
                         }
                     }
                 })
                 .thenSucceed();
+    }
+
+    /** The world's home record before a test made its own: none, or the one it had (with its exact home or without). */
+    private record HomeRecord(boolean had, NetherHome.Home exact) {
+        static HomeRecord of(MinecraftServer server) {
+            var previous = NetherHome.get(server);
+            return new HomeRecord(previous != null, previous != null && previous.hasExactHome() ? previous.home() : null);
+        }
+
+        void restore(MinecraftServer server) {
+            if (had) NetherHome.get(server).setHome(exact);
+            else forgetHome(server);
+        }
     }
 
 
@@ -770,11 +843,20 @@ public final class GettingAroundGameTests {
 
     /** Runs a part of the town test; when it fails, puts the host, the hub record and the chunks back. */
     private static void guarded(java.util.function.Supplier<Host> hosting, ServerLevel level, Set<Long> near, Part part) {
+        guarded(hosting, level, near, part, () -> null);
+    }
+
+    /** {@link #guarded}, also putting the world's home record back when the test made one ({@code home}: null when not). */
+    private static void guarded(java.util.function.Supplier<Host> hosting, ServerLevel level, Set<Long> near, Part part,
+                                java.util.function.Supplier<HomeRecord> home) {
         try {
             part.run();
         } catch (Throwable error) {
             var host = hosting.get();
             try {
+                if (home.get() != null) {
+                    try { home.get().restore(level.getServer()); } catch (Throwable ignored) { }
+                }
                 if (host != null) {
                     var hub = HubData.get(host.server);
                     if (hub != null) for (var logo : hub.logos()) if (logo.app().startsWith(host.prefix)) {

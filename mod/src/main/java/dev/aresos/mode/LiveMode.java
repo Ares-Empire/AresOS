@@ -43,6 +43,7 @@ public final class LiveMode {
             player.teleport(player.findRespawnPositionAndUseSpawnBlock(false,
                     net.minecraft.world.level.portal.TeleportTransition.DO_NOTHING));
             player.fallDistance = 0;
+            dev.aresos.zone.WalkInZones.arrived(player);
         }
     }
 
