@@ -161,7 +161,9 @@ has only `git-core`. See "gh" below.
 2. Agreed change 3 names "whatever list pins the enabled units": on today's `main` only `ci/release_diff.py`
    (release 27 against 13) lists units and users. The next release's diff must explain Control: the unit and its
    `multi-user.target.wants` link, `aresos-tools` (sysusers at boot), the files and vendored tree via `control.json`,
-   the wheels via `requirements.lock`, and `gh` once its route is chosen.
+   the wheels via `requirements.lock`, and `gh` once its route is chosen. Likewise `ci/verify_release.py` binds a
+   release to `os/` source trees only (release 27's list); a release carrying Control also comes from `control/` at
+   its source commit (recorded in `control.json`'s `source_revision`).
 3. The negative fixture check matches `fixture`, `.invalid`, `greenmail`, `dovecot`, `badmail` and `10.0.2.2`. Step 2's
    CI layer must use a CA subject and host names it would catch (as `control/ci/mail/run.sh` does: `mail-fixture.invalid`,
    `greenmail`, `dovecot`), or widen the pattern in the same commit.
@@ -183,8 +185,12 @@ has only `git-core`. See "gh" below.
 - **run 43548179061** Control base on `1aba53a5`: success, `Ran 309 tests ... OK`, `Control base suite PASS`
   (includes `test_integration` with the moved config path and the two new tests).
 - **run 43548178915** Control boundary on `1aba53a5`: success, `CONTROL_INTERACTIVE_ASK_PASS cases=17`.
-- Control Mail on `1aba53a5` was cancelled by the next push; base, boundary and Mail on `8c4105a9` are listed below
-  once they finish.
+- On `4a6d4c66` (all of Part A step 1 but this note): **run 43549031133** Control base success, `Ran 309 tests ... OK`,
+  `Control base suite PASS`; **run 43549031150** Control boundary success, `CONTROL_INTERACTIVE_ASK_PASS cases=17`;
+  **run 43549031127** Control Mail success, `Control Mail suite PASS` in all 8 jobs (the integration and Mail suites
+  run the launcher with the config in `/usr/share/aresos/control`). Earlier runs on `1aba53a5`/`8c4105a9` were
+  superseded by later pushes.
+- Also run locally (they read `build.sh`): `test_everyday_account.py` 34 tests OK, `test_release27.py` 41 tests OK.
 
 ## Left, in order (step 2)
 
