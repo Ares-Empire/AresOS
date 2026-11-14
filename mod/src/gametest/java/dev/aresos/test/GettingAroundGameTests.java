@@ -519,24 +519,27 @@ public final class GettingAroundGameTests {
     /** The game as swap and move see it, with the test's drawn picture; the apps file is the host's. */
     private static TownMoves.Game game(List<String> reads, Set<String> unread) {
         var ring = picture();
-        return new TownMoves.Game(() -> new TownKeeper.Programs(AresOs.apps(), true),
-                app -> unread.contains(app.id()) ? Optional.empty() : Optional.of(ring), app -> reads.add(app.id()), AresOs::saveSpots);
+        return new TownMoves.Game(() -> {
+            var apps = AresOs.apps();
+            return new TownMoves.Snapshot(apps, new TownKeeper.Programs(apps, true));
+        }, app -> unread.contains(app.id()) ? Optional.empty() : Optional.of(ring), app -> reads.add(app.id()), AresOs::saveSpots, AresOs::saveSpotsIf);
     }
 
     /** The same game with his apps changed as the system or My apps would have them, and more apps than the file holds. */
     private static TownMoves.Game game(TownMoves.Game game, java.util.function.UnaryOperator<AppDefinition> how, List<AppDefinition> more) {
         return new TownMoves.Game(() -> {
-            var apps = new ArrayList<>(AresOs.apps().stream().map(how).toList());
+            var file = AresOs.apps();
+            var apps = new ArrayList<>(file.stream().map(how).toList());
             apps.addAll(more);
-            return new TownKeeper.Programs(apps, true);
-        }, game.pictures(), game.read(), game.spots());
+            return new TownMoves.Snapshot(file, new TownKeeper.Programs(apps, true));
+        }, game.pictures(), game.read(), game.spots(), game.commit());
     }
 
     /** A flat home of these rules on new ground, built by a first pass of the test's own keeper. */
     private static HubData town(ServerLevel level, BlockPos home, TownKeeper keeper, TownMoves.Game game, int logos) throws IOException {
         var hub = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), FlatHub.build(level, home));
         HubData.store(level.getServer(), hub);
-        var first = keeper.keep(level.getServer(), game.programs().get(), game.pictures(), game.spots());
+        var first = keeper.keep(level.getServer(), game.programs(), game.pictures(), game.spots());
         check(first.lines().equals(List.of("The town is built: " + logos + " logos. /apps lists them.")), "The first build: " + first.lines());
         return hub;
     }
@@ -677,9 +680,48 @@ public final class GettingAroundGameTests {
         check(AresOs.apps().equals(file) && hub.logos().equals(logos), "A refused swap changed the apps file or the town's records");
         level.setBlockAndUpdate(torch, Blocks.AIR.defaultBlockState());
 
+        // Review fixes 1, point 2: a helper refresh between the checks and the save changes Chrome's icon path. The
+        // command saves only while the catalogue is the one it checked with, so nothing changes, and it says so.
+        var path = Path.of(System.getProperty("aresos.appsConfig"));
+        var refresh = new Object() { byte[] bytes; boolean ran; };
+        var raced = new TownMoves.Game(game.catalogue(), game.pictures(), game.read(), game.spots(), (token, spots) -> {
+            var refreshed = AresOs.apps().stream().map(app -> app.id().equals("sw-chrome") ? app.withSystem(new SystemInfo("user",
+                    "/test/elsewhere/chrome.png", List.of("Network"), null, null, app.id(), app.id(), false)) : app).toList();
+            AppsConfig.save(path, refreshed);
+            AresOs.saveMine(Map.of());
+            refresh.bytes = Files.readAllBytes(path);
+            refresh.ran = true;
+            return AresOs.saveSpotsIf(token, spots);
+        });
+        var zones = ZoneData.get(server).zones();
+        before = snapshot(level, home.offset(-40, -1, -40), home.offset(40, 12, 40));
+        logos = hub.logos();
+        said = TownMoves.swap(server, keeper, raced, "sw-chrome", "sw-lunar");
+        check(refresh.ran && !said.done() && said.line().equals("Your apps changed just now. Nothing was swapped; try again."),
+                "A refresh between the checks and the save: " + said.line());
+        check(java.util.Arrays.equals(Files.readAllBytes(path), refresh.bytes), "A refused swap changed the apps file");
+        check(hub.logos().equals(logos) && ZoneData.get(server).zones().equals(zones), "A refused swap changed the town's records or the zones");
+        check(snapshot(level, home.offset(-40, -1, -40), home.offset(40, 12, 40)).equals(before), "A refused swap changed a block");
+        check("/test/elsewhere/chrome.png".equals(dev.aresos.zone.AppIcons.path(AresOs.app("sw-chrome"))), "Fixture: the refresh did not change the icon");
+        // The same for a move.
+        refresh.ran = false;
+        said = TownMoves.move(server, keeper, raced, "sw-steam", AppGroup.WORK_MEDIA);
+        check(refresh.ran && !said.done() && said.line().equals("Your apps changed just now. Nothing was moved; try again."),
+                "A refresh between the checks and the save of a move: " + said.line());
+        check(java.util.Arrays.equals(Files.readAllBytes(path), refresh.bytes) && hub.logos().equals(logos)
+                && ZoneData.get(server).zones().equals(zones), "A refused move changed the file, the records or the zones");
+        check(snapshot(level, home.offset(-40, -1, -40), home.offset(40, 12, 40)).equals(before), "A refused move changed a block");
+        // His apps as they were: Chrome's icon from the system again (none).
+        AppsConfig.save(path, AresOs.apps().stream().map(app -> app.id().equals("sw-chrome") ? app.withSystem(new SystemInfo("user",
+                null, List.of("Network"), null, null, app.id(), app.id(), false)) : app).toList());
+        AresOs.saveMine(Map.of());
+
         // Before a complete program list it refuses before checking anything, as hub rebuild does.
         String waits = "The town waits for the system's list of programs. Nothing changed; try again in a moment.";
-        var incomplete = new TownMoves.Game(() -> new TownKeeper.Programs(AresOs.apps(), false), game.pictures(), game.read(), game.spots());
+        var incomplete = new TownMoves.Game(() -> {
+            var apps = AresOs.apps();
+            return new TownMoves.Snapshot(apps, new TownKeeper.Programs(apps, false));
+        }, game.pictures(), game.read(), game.spots(), game.commit());
         said = TownMoves.swap(server, keeper, incomplete, "sw-chrome", "sw-discord");
         check(!said.done() && said.line().equals(waits), "An incomplete list: " + said.line());
 
@@ -780,7 +822,7 @@ public final class GettingAroundGameTests {
         var torch = Town.plan(hub, AresOs.app("mv-discord"), Place.parse("N0R0").orElseThrow(), picture()).doormat().getFirst().above();
         level.setBlockAndUpdate(torch, Blocks.TORCH.defaultBlockState());
         var left = game(game, app -> app.id().equals("mv-discord") ? app.withMine(false) : app, List.of());
-        var pass = keeper.keep(server, left.programs().get(), left.pictures(), left.spots());
+        var pass = keeper.keep(server, left.programs(), left.pictures(), left.spots());
         check(pass.lines().size() == 1 && pass.lines().getFirst().startsWith("The logo of Discord stays: ") && hub.logo("mv-discord").isPresent(),
                 "Discord's logo with his torch: " + pass.lines());
         // A move there refuses (all or nothing) instead of going on to another place.
@@ -792,11 +834,11 @@ public final class GettingAroundGameTests {
         java.util.function.UnaryOperator<AppDefinition> joining = app -> app.id().equals("mv-discord") ? app.withMine(false)
                 : app.id().equals("mv-new") ? app.withMine(true) : app;
         var joined = game(game, joining, List.of());
-        pass = keeper.keep(server, joined.programs().get(), joined.pictures(), joined.spots());
+        pass = keeper.keep(server, joined.programs(), joined.pictures(), joined.spots());
         check(pass.lines().isEmpty() && "N0R0".equals(AresOs.app("mv-new").place()) && hub.logo("mv-new").isEmpty(), "The newcomer waits: " + pass.lines()
                 + ", saved at " + AresOs.app("mv-new").place());
         level.setBlockAndUpdate(torch, Blocks.AIR.defaultBlockState());
-        pass = keeper.keep(server, joined.programs().get(), joined.pictures(), joined.spots());
+        pass = keeper.keep(server, joined.programs(), joined.pictures(), joined.spots());
         check(hub.logo("mv-discord").isEmpty(), "Discord's logo did not come down: " + pass.lines());
         stands(server, "mv-new", "N0R0", null);
 

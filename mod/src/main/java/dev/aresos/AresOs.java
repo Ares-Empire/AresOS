@@ -105,6 +105,17 @@ public final class AresOs implements ModInitializer {
     }
 
     /**
+     * {@link #saveSpots}, only while the list in memory is still {@code expected}, the very object a swap or move took
+     * at its start (package 37, review fixes 1, point 2). Every change of the catalogue (a helper refresh, My apps, a
+     * name) puts a new list here under this same lock, so false means it changed since: then nothing is saved.
+     */
+    public static synchronized boolean saveSpotsIf(Object expected, java.util.Map<String, AppsConfig.Spot> spots) throws IOException {
+        if (apps != expected) return false;
+        saveSpots(spots);
+        return true;
+    }
+
+    /**
      * One complete program list from the helper goes into the apps file; My apps follows (item/MyAppsGame). The helper
      * owns every launch here, so what it does not name is marked absent: no command, no /open, until it returns.
      */

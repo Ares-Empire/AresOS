@@ -34,8 +34,10 @@ import java.util.function.Supplier;
  * uses, asked before the pass does it. The new places come from {@link TownKeeper#plan}, the pass's own planning with
  * the places it finds blocked; a logo's take-down is checked by {@link Town#checkRemove}, which is the check
  * {@link Town#remove} makes; a new logo by {@link Town#check} with the very picture the pass will use and the logos
- * involved read as their take-down leaves them. Nothing can run between the checks and the pass: one command, one tick,
- * the server thread. Should the pass still end otherwise, the command says so in one line instead of its own.
+ * involved read as their take-down leaves them. Nothing in the world can change between the checks and the pass: one
+ * command, one tick, the server thread. The catalogue can (a helper refresh runs on its own thread), so the command takes
+ * it once and uses that snapshot throughout, and saves only while the catalogue is still that snapshot. Should the pass
+ * still end otherwise, the command says so in one line instead of its own.
  */
 public final class TownMoves {
     /** How many places a move passes by in which the moved logo alone cannot stand (its name needs more air). */
@@ -52,11 +54,27 @@ public final class TownMoves {
     }
 
     /**
-     * What the commands take from the game: his apps and whether the program list is complete, the pictures the town
-     * holds, how to ask the town to read a picture it lacks, and where places are saved. A test gives its own.
+     * The catalogue as a swap or move takes it, once, at the start (review fixes 1, point 2): his apps and whether the
+     * list is complete, for the checks, the saved places and the town's pass alike. {@code token} is what
+     * {@link Game#commit} compares when it saves: in this game the very list object the game held then.
      */
-    public record Game(Supplier<TownKeeper.Programs> programs, Function<AppDefinition, Optional<GatePicture>> pictures,
-                       Consumer<AppDefinition> read, TownKeeper.Spots spots) { }
+    public record Snapshot(Object token, TownKeeper.Programs programs) { }
+
+    /** Saves the new places only while the catalogue is still the snapshot's (its token), under the catalogue's lock. */
+    public interface Commit {
+        /** False, and nothing saved, when the catalogue changed since the snapshot was taken. */
+        boolean save(Object token, Map<String, AppsConfig.Spot> spots) throws IOException;
+    }
+
+    /**
+     * What the commands take from the game: the catalogue, the pictures the town holds, how to ask the town to read a
+     * picture it lacks, where the pass saves places, and how the command saves its own. A test gives its own.
+     */
+    public record Game(Supplier<Snapshot> catalogue, Function<AppDefinition, Optional<GatePicture>> pictures,
+                       Consumer<AppDefinition> read, TownKeeper.Spots spots, Commit commit) {
+        /** The catalogue as it is now. */
+        public TownKeeper.Programs programs() { return catalogue.get().programs(); }
+    }
 
     /**
      * {@code /aresos app swap} in this game: the town's own keeper, pictures and apps file. Server thread. The caller
@@ -74,8 +92,10 @@ public final class TownMoves {
     }
 
     private static Game game(MinecraftServer server, TownKeeper keeper) {
-        return new Game(() -> new TownKeeper.Programs(AresOs.apps(), TownKeeper.complete()), keeper::picture,
-                app -> keeper.read(server, List.of(app)), AresOs::saveSpots);
+        return new Game(() -> {
+            var apps = AresOs.apps();
+            return new Snapshot(apps, new TownKeeper.Programs(apps, TownKeeper.complete()));
+        }, keeper::picture, app -> keeper.read(server, List.of(app)), AresOs::saveSpots, AresOs::saveSpotsIf);
     }
 
     /**
@@ -92,7 +112,8 @@ public final class TownMoves {
      */
     public static Said swap(MinecraftServer server, TownKeeper keeper, Game game, String first, String second) {
         String verb = "swapped";
-        var programs = game.programs().get();
+        var snapshot = game.catalogue().get();
+        var programs = snapshot.programs();
         var refusal = refusal(server, programs.complete());
         if (refusal.isPresent()) return Said.no(refusal.get());
         var hub = HubData.get(server);
@@ -114,7 +135,7 @@ public final class TownMoves {
         moves.put(movedB, from.get());
         var refused = check(server, keeper, game, hub, programs, moves, verb);
         if (refused.isPresent()) return Said.no(refused.get().line());
-        return change(server, keeper, game, moves, verb, movedA.name() + " now stands at " + to.get().words()
+        return change(server, keeper, game, snapshot, moves, verb, movedA.name() + " now stands at " + to.get().words()
                 + ", and " + movedB.name() + " at " + from.get().words() + ".");
     }
 
@@ -124,7 +145,8 @@ public final class TownMoves {
      */
     public static Said move(MinecraftServer server, TownKeeper keeper, Game game, String id, AppGroup group) {
         String verb = "moved";
-        var programs = game.programs().get();
+        var snapshot = game.catalogue().get();
+        var programs = snapshot.programs();
         var refusal = refusal(server, programs.complete());
         if (refusal.isPresent()) return Said.no(refusal.get());
         var hub = HubData.get(server);
@@ -147,7 +169,7 @@ public final class TownMoves {
             var moves = new LinkedHashMap<AppDefinition, Place>();
             moves.put(moved, to);
             var refused = check(server, keeper, game, hub, programs, moves, verb);
-            if (refused.isEmpty()) return change(server, keeper, game, moves, verb, moved.name() + " now stands at " + to.words() + ".");
+            if (refused.isEmpty()) return change(server, keeper, game, snapshot, moves, verb, moved.name() + " now stands at " + to.words() + ".");
             if (!to.equals(refused.get().unbuildable()) || tries == TRIES) return Said.no(refused.get().line());
             passed.add(to);
         }
@@ -218,19 +240,27 @@ public final class TownMoves {
         return Optional.empty();
     }
 
+    /** The line when a helper refresh changed his apps between the checks and the save. */
+    static String changed(String verb) { return "Your apps changed just now. Nothing was " + verb + "; try again."; }
+
     /**
-     * Saves the new places, then one pass of the town brings the world in step. Says {@code done} when every moved
-     * logo stands in its new place afterwards; otherwise the one line that says which does not.
+     * Saves the new places, then one pass of the town brings the world in step. The save happens only while the
+     * catalogue is still the snapshot the checks used (compared under the catalogue's lock); otherwise nothing changes
+     * and one line says to try again. The pass works on that snapshot with the new places, the very apps the checks
+     * planned with. Says {@code done} when every moved logo stands in its new place afterwards; otherwise the one line
+     * that says which does not.
      */
-    private static Said change(MinecraftServer server, TownKeeper keeper, Game game, Map<AppDefinition, Place> moves, String verb, String done) {
+    private static Said change(MinecraftServer server, TownKeeper keeper, Game game, Snapshot snapshot, Map<AppDefinition, Place> moves,
+                               String verb, String done) {
         var spots = new LinkedHashMap<String, AppsConfig.Spot>();
         for (var app : moves.keySet()) spots.put(app.id(), new AppsConfig.Spot(app.place(), app.group()));
         try {
-            game.spots().save(spots);
+            if (!game.commit().save(snapshot.token(), spots)) return Said.no(changed(verb));
         } catch (IOException | RuntimeException error) {
             return Said.no("Nothing was " + verb + ": the apps file could not be saved (" + error.getMessage() + ").");
         }
-        var pass = keeper.keep(server, game.programs().get(), game.pictures(), game.spots(), spots.keySet());
+        var programs = new TownKeeper.Programs(with(snapshot.programs().apps(), moves.keySet()), snapshot.programs().complete());
+        var pass = keeper.keep(server, programs, game.pictures(), game.spots(), spots.keySet());
         var hub = HubData.get(server);
         for (var move : moves.entrySet()) {
             var stands = hub.logo(move.getKey().id()).map(HubData.Logo::place);
