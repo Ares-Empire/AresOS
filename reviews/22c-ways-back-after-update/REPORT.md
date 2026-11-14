@@ -3347,3 +3347,53 @@ reorder-probe, ways-back). `walk-host.py` was regenerated after the last bound c
 4. **What reading cannot settle** and the VM run decides: rule 10 on a later start of plain Bazzite (no updater unit
    active), US International in `foot` on release 27, the tools' reorder under real ostree and bootc in every order,
    the boot menu's second row, and the cut's timing.
+
+### Runs and budget (step 2)
+
+| Run | Kind | Head | Result | Minutes |
+|---|---|---|---|---|
+| [43595273649](https://github.com/Ares-Empire/AresOS/actions/runs/43595273649) | checks-only, `full_model=true` | `f84041bf` | **passed.** Regressions: `Ran 1124 tests in 935.830s` / `OK` (1121 + this step's 3; the slice 173,130 states / 3,185,862 edges). Model job: full model, 967,215 states / 26,519,328 edges, `Ran 1 test in 1569.439s` / `OK` | 27 wall (two jobs, 44 runner minutes) |
+| [43597505549](https://github.com/Ares-Empire/AresOS/actions/runs/43597505549) | `ways-back`, VM dispatch 3 of 6 | `f84041bf` | **result pending.** Dispatched 2026-11-14 12:59:52 UTC; its budget step (the guard with the 345-minute reservation, the native gate and the model gate) passed, and the job went on to install its tools. Not watched by this builder (integrator's change to this step: a shell watcher waits, and a fresh agent reads the result) | pending |
+
+Before the dispatch the guard ran here read-only (`REHEARSAL_PACKAGE=22c python3 os/ci/rehearsal_guard.py ways-back 345`,
+exit 0): the cap read 2400, the native step and the full model were proved by run 43595273649 on the same head, and
+the ledger stood at **863 of 2400 minutes** (819 before this step, 44 for the checks-only run); 27 of 30 checks-only
+runs; 2 of 6 VM dispatches. With the rehearsal's reservation that is 1208; the run uses what its job really takes
+(my estimate: 270 to 290 minutes for a walk that passes).
+
+### What the VM showed (run 43597505549)
+
+Pending. The first unproved steps are, in order: `layout proof`'s public text read by version 3 from its own folder
+(the `layout-intl-proof-toolset.json` capture names the folder the harness read), `layout finish`, the first typed
+restart with version 3, then every start of step 1's table from `intl-27` to `final-27`. The per-step table, the
+swap line of each of the twelve reorders and the stage table (`collect.py` prints it) belong here once the run ended.
+
+### The record step
+
+Not run: it follows a passing rehearsal. Nothing it needs has changed since the dispatch (see "For the next agent").
+
+### For the next agent (after run 43597505549 ended)
+
+1. **Read the result:** `gh run view 43597505549 --json conclusion,jobs`; the artifact is `two-disk-evidence`
+   (`gh run download 43597505549 -n two-disk-evidence -D /var/home/ares/pkg22c-work/evidence`; remove it afterwards).
+   The result file is `two-disk/ways-back-rehearsal-result.json` (it exists only after a walk that reached its end).
+2. **If the walk passed:** `python3 reviews/22c-ways-back-after-update/collect.py <artifact>/two-disk 43597505549`
+   (first use on a real rehearsal result; a dry run on the local walk's result passed). Read what it wrote before
+   committing: no token, hash, password or identifier (it stops on the kinds it knows and on any UUID it did not
+   replace). Commit the captures, then `python3 reviews/27-first-update-release/rebind.py rebind 22c
+   <artifact>/two-disk/22c-bound-sources.json 43597505549`, then `test_checkout_sources`, and say what it rebound
+   (44 files and 2 removed paths wait). Then the run link in the 22c row of `docs/INSTALL-STATUS.md` (brief C).
+3. **Do not change a bound file before the record step.** It replays the run's head (`f84041bf`): the harness, the
+   tests, the ledger, the workflow and the guides are bound. `collect.py`, `rebind.py`, this report and
+   `docs/INSTALL-STATUS.md` are not, and may change.
+4. **If the walk failed:** the stage is in the VM step's log and in the newest files of the artifact
+   (`*-owner-diagnostics.json` holds a command's STOP, `*-observed.json` the last list, `*-timeout-*.vcsa` a screen).
+   A STOP of the tools on real state is a finding about the tools; an assertion of the harness on a line, a path or
+   a process is the class of this step. Three VM dispatches and three checks-only runs remain by count; each new head
+   needs `-f checks_only=true -f full_model=true` first, and exactly one such run per head.
+5. **Budget table:** add the rehearsal's minutes (the guard's own accounting; `rehearsal_guard.py ways-back 345`
+   prints `consumed_minutes`).
+
+Cleanup at the end of this step: the temp files under `/var/home/ares/pkg22c-work/` are removed with the folder;
+`.work/` holds no file over 500 MB; no builder-started test, walk or watch process remains; no Gradle daemon was
+started. PR #46 stays draft; nothing was merged or pushed to main.
