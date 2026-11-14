@@ -1867,7 +1867,7 @@ daemon was started. PR #46 is open and draft; nothing was merged or pushed to ma
 Builder: a Claude agent on Opus 5.5 (`briefs/22c-stage-1b-additions.md`, step 2, and its "Decision after step 1").
 Section C is written against step 1's lines; the guides keep the stick route and no guide routes to the folder
 block (package 22d). Nothing else in the owner tools changed. No VM was dispatched, nothing was merged or pushed to
-main, and no owner tool, deployment binary or start block ran on the laptop. Tested heads: `45059edf` (hosted run 1) and the final head (hosted run 2, below); the closing commit changes this report only.
+main, and no owner tool, deployment binary or start block ran on the laptop. Tested heads: `45059edf` (hosted run 1) and **`3908ec4e`** (hosted run 2); the closing commit changes this report only.
 
 ### What changed, per guide
 
@@ -1982,7 +1982,7 @@ job runs beside the checks while its sources differ from main). After one rehear
 more checks runs fit in 1200 minutes, so 30 (12 more) lets the minute cap stay the real bound, which is what the cap
 is for: it stops a runaway dispatch loop, not spending (standard runners are free for this public repository). The
 minute cap and the four-VM cap are unchanged. Stage 2 should know the minutes are the tighter limit now: every
-further checks run costs about 35 of the remaining minutes (721 after hosted run 1: the ledger read 19 checks runs, 1 probe and 479 of 1200 minutes).
+further checks run costs about 35 of the remaining minutes (688 after this step's two runs: the ledger reads 20 checks runs, 1 probe and 512 of 1200 minutes).
 
 ### Verified
 
@@ -2007,7 +2007,10 @@ Each `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_
 | Hosted run | Head | Regressions job | Model job | Result |
 |---|---|---|---|---|
 | [43557895861](https://github.com/Ares-Empire/AresOS/actions/runs/43557895861) | `45059edf` (all five guides, the route tests, the cap, the bindings) | 13m52s: **`Ran 1092 tests in 764.752s` / `OK`: 0 failures, 0 errors, 0 skipped**; the slice 173,476 states / 3,043,109 edges (154.8 s) | 18m38s: full model, 963,003 states / 25,257,042 edges, 1 test in 1090.7 s, OK | Watch exit 0. 1092 = step 1's 1090 + the two new route tests; PLAN-GAP 4's test passes. |
-| Run 2 | the final head (precision fixes and this report) | recorded by the closing commit | | |
+| **[43559488500](https://github.com/Ares-Empire/AresOS/actions/runs/43559488500)** | **`3908ec4e`** (the two precision fixes `898ac0d4` and this section) | **14m01s: `Ran 1092 tests in 781.076s` / `OK`: 0 failures, 0 errors, 0 skipped**; the slice again 173,476 / 3,043,109 (160.5 s) | **17m11s: full model, 963,003 states / 25,257,042 edges, 1 test in 992.6 s, OK** | Watch exit 0. |
+
+Both logs end with the unittest summary line, so no per-test summing was needed. After run 2 the ledger reads 20 checks runs,
+1 probe and **512 of 1200 minutes** (each run 33). The closing commit after run 2 changes this report only.
 
 ### JUDGMENT-CALL
 
@@ -2045,3 +2048,7 @@ Each `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_
 3. `docs/INSTALL-PROCEDURES.md`: recovery menu, rollback, keep-stock, back to AresOS from stock, what you notice.
 4. `docs/INSTALL-STATUS.md`: the 22c row (does it claim more than built and reviewed?).
 5. `os/tests/test_owner_path.py`: the two rewritten and two new tests, and that each quote is bound to `owner.py`.
+
+Cleanup: the run logs under `/var/home/ares/pkg22c-work/` are removed; `.work/` holds no file over 500 MB; no download
+was made; no builder-started test or watch process remains; no Gradle daemon was started. PR #46 stays draft; nothing
+was merged or pushed to main.
