@@ -653,3 +653,185 @@ the run's untracked pictures removed.
   exact line. Rejected: a test-only freeze method in the main code.
 - **F7. The waits' clock bound is 120 s**, not the brief's example of 60 s: in step 2 a town on new ground took over
   8 s to load while another builder's Gradle ran, and a bound too short fails a test that would pass.
+
+## Review fixes 2
+
+Brief: `briefs/37-review-fixes-2.md`, after `REVIEW-2.md` (CHANGES-NEEDED: one FIX, two SHOULD, one NIT, all accepted).
+One Claude agent (Opus 5.5), one step, on `pkg/37-getting-around` from `77462b5a`.
+
+Commits:
+
+- `9fa7f052` 37: fix 2, point 1: swap and move commit through the town's pass limited to the apps they move
+- `b2a0ba85` 37: fix 2, point 2: a waiting /go is dropped when it is no longer his wish, and checks its target before landing
+- `242dcabe` 37: fix 2, points 1 to 3: tests (three apps, a waiting newcomer, a waiting /go dropped or refused, forced wait timeouts)
+- `b302d842` 37: fix 2, points 1, 2 and 4: HUB.md, mod/README.md and the report say what the code does
+- 37: fix 2: the report's section "Review fixes 2" (this text)
+
+Points 1 to 3 were built and tested together, then committed by file: point 1's code, point 2's code, the one test file.
+
+### Point 1 (FIX 1): the swap's own pass touches only the logos it moves
+
+F4 is withdrawn. `swap` and `move` now commit through `TownKeeper.keep(server, programs, pictures, scope)`: the ordinary
+pass (`keep` and its `round`) with a `Scope`, the apps of the command each with the place it checked. It is the same
+code; the scope decides, step by step:
+
+| Step of the pass | Ordinary pass | Pass of a swap or move |
+|---|---|---|
+| Planning (`plan`) | every app | every app, the same call |
+| Before anything | | each app's planned place is the checked one, else nothing changes (pending) |
+| Saving places (`save`) | every place that changed | none (the command saved its apps' places itself, under the catalogue's lock) |
+| Take-downs | every logo not at its planned place | only `TownKeeper.down`: the command's apps' logos and a logo still standing in one of their new places |
+| Builds and renewals | every app | only the command's apps |
+| A build refused in a place that looked free | the place is blocked (`refused`), up to three rounds | nothing blocked, one round |
+| Missing doorways (`doorways`) | every logo | only the command's apps' logos |
+| Roads and counts | every group, from the plan | only the groups the apps leave or enter; each count is the one this keeper last wrote there, changed by the apps that left and came; each road paved on to the farthest of their new places and the logos that stand in it (untouched loaded grass only, as always) |
+| Lines | every change | only about the command's apps (their move itself is the command's own line) |
+
+`TownKeeper.down(hub, scope)` is one rule used twice: the pass takes down exactly that set, and `TownMoves.check` counts
+exactly that set as gone (`Gone`) and checks each of its take-downs. Round 1's extra loop in the check (other logos the
+plan moves or drops) is gone, since the pass no longer takes them down. After the pass, `TownMoves.change` asks the
+keeper for an ordinary pass in the next tick (`TownKeeper.again`, with the pictures it holds).
+
+**Why nothing outside the scope can change in the swap's tick.** The command runs on the server thread and the pass
+follows the checks in the same call, so no other code of the mod or the game runs in between. Within the pass: it saves
+no place (only the command's own save of its apps' places, done before it); it calls `Town.remove` only for the logos of
+`down` and `Town.build` only for the command's apps; it renews no other logo (the renewal branch is reached only for an
+app of the scope); it blocks no place; `doorways` looks only at the scope's logos; `FlatHub.pave` and `FlatHub.count`
+are called only for the groups the apps leave or enter, and the counts change by exactly those apps, so a newcomer the
+planning sees is neither saved, built nor counted, and a leaver's logo stays and is still counted. A logo due for
+renewal (a changed name or picture), a newcomer and a leaver therefore wait for the next ordinary pass, one tick later.
+What the pass does change is what the checks modelled: the take-downs of `down` (through `Gone`) and the builds of the
+command's apps (`Town.check` with the very pictures); the roads and counts come after the builds and touch no logo.
+
+**How it never saves a place other than the checked one.** (1) It saves no place at all. (2) It makes one round and adds
+no place to the keeper's blocked places, so it cannot plan an app of the command elsewhere. (3) Before changing
+anything it plans once and compares each app's planned place with the checked one; any difference and it changes
+nothing. The planning's inputs are the same objects the check planned with in the same tick, so (3) is a guard that does
+not fire in practice. Should a build still fail, the command says "The town did not finish: … Its place is saved, and
+the town keeps trying."; the next ordinary pass tries that place again by its own rules (where its build is refused
+there too, it blocks the place and moves the app on with its own line, as for any app).
+
+Tests (`swapExchangesTwoLogos`, new steps):
+
+- The review's three apps. Chrome is due for renewal (the test's game gives it another drawn picture) and comes first
+  in the pass's order; Chrome's sign is moved (`snapTo`, as `/data` would) into a block Lunar Client's logo fills at
+  Steam's place; then `swap lunar steam`. It succeeds as checked ("Lunar Client now stands at Games, east, front row,
+  right, and Steam at Games, east, front row, left."), the pass says no line of its own, both stand where saved,
+  Chrome's record is unchanged and the sign is where he put it. The next ordinary pass says "The logo of Chrome was
+  renewed.", Chrome's record has the new picture, and his sign stays where he put it (his from then on).
+- A newcomer waiting while a swap runs (a test app added to My apps in the game the command sees): after the swap its
+  logo is not built, its place is not saved, and the group names show the same counts; the next ordinary pass says
+  "Newcomer is new. It stands in Internet, north. /newcomer opens it.", builds it at its saved place and the count says
+  `INTERNET · 3`.
+
+"Fails without it": from reading. The old whole pass renewed Chrome in the swap's tick (the record changes), dropped the
+moved sign's record and then refused Lunar's build ("The town did not finish", Lunar moved on in the next round); and it
+saved, built and counted the newcomer in the swap's tick. Not run against the old code. The existing swap and move tests
+(counts, roads, doormats, signs, hand-set groups, refusals) pass unchanged through the limited pass.
+
+### Point 2 (SHOULD 2): a waiting `/go` is dropped when it is no longer his wish
+
+- `Arrivals.Pending` holds the connection he typed it on and his dimension then. Each tick, before anything else, a
+  waiting `/go` whose player is gone, on another connection or in another dimension is dropped with its tickets, and
+  nothing is said.
+- Dropped at once, nothing said: a death (`ServerLivingEntityEvents.AFTER_DEATH`), a respawn
+  (`ServerPlayerEvents.AFTER_RESPAWN`), void recovery (`LiveMode.protect`), the spawn on joining (`NetherHome.arrive`),
+  and, as before, the shared teleport (`/home`, H, another `/go`, a doorway's return) and leaving the game.
+- Before landing (its chunks loaded), it asks `still`, given by `GettingAround`: the app is still one of his (in My
+  apps and installed), and the town still gives it the same place (`Whereabouts.place()`: its logo stands there or is
+  to be built there), or for a world without a town, a zone with the same ID, app and exit still exists. Otherwise one
+  line and he stays: "Door is no longer one of your apps, so you stay where you are.", "Chrome's logo is no longer at
+  Internet, north, front row, right, so you stay where you are.", "Door's logo here is gone, so you stay where you are."
+
+Tests (`goWithoutATownAndHomeFromTheNether`, new steps; each `/go` goes to a zone of the test's app whose exit lies
+3,000 to 4,000 blocks off, in chunks not loaded, a fresh one for each case): he goes to the Nether while it waits (three
+ticks later it waits no more, he is still in the Nether, none of its lines); the game's respawn event fires (dropped at
+once); `/home` (dropped at once, he stands at home); void recovery (dropped at once); the app removed from My apps
+(`AresOs.saveMine`, as `/aresos app remove` does) while it waits: once loaded, the one line and he stays; the zone
+removed while it waits: the one line and he stays. "Fails without it": from reading (the old code had no dimension,
+respawn or void-recovery drop and landed without checking its target); the `/home` case passes with the old code too,
+which already dropped it there.
+
+### Point 3 (SHOULD 3): the test's clean-up says what it does
+
+- The two bare teleport steps (the walk into the doorway after `/home` and after H) now run through `guarded` with the
+  home record, like the steps around them; the last step's check also runs through `guarded`, and a final step lets go.
+- The comments at `WAIT_NANOS` and `MAX_TICKS` say it: the clock bound works only while the server ticks, since the
+  test's own waits check it each tick; a server that stops ticking runs none of them and ends the whole run through
+  Gradle's limits; no watchdog thread, since releasing tickets off the server thread is not safe.
+- The timeout path, forced: `waitFor` takes its bounds as parameters, and a step calls two waits that never pass, one
+  with a bound of one tick and one with a clock bound of zero (no tickets of their own, so the test's stay held). Each
+  runs its clean-up and fails with "A forced wait after … ms and … ticks; the test's tickets were released"; the clock
+  one only on its second tick.
+- A bug in round 1's test, found by builds 2 and 3: `chunks(from, to)` counted chunks only from the first corner up to
+  the second, and the far spots of `/go far` run north. Wherever the six spots straddle a chunk border (it depends on
+  where the framework puts the test's plot) the set was empty, so "the far chunks did not unload" passed at once and the
+  next `/go far` found its chunks still loaded. The helper now takes its corners in any order.
+
+### Point 4 (NIT 4): wording
+
+`Arrivals`, `GettingAround`, a test comment, HUB.md (2.6) and this report (point 4 of "Review fixes 1") now say: the
+arrival's chunks are requested through the game's ticket system and checked in a later tick; the game loads them in its
+own server ticks. The distinction stays: the command itself about 1 ms; the loading tick of new ground in the test world
+373 to 399 ms in round 1, and in this round's passing runs 1,548.85, 285.34 and 715.12 ms; in his own world not
+measured.
+
+### What ran
+
+From the worktree root, 2026-11-14:
+
+| Run | Exit | What it printed |
+|---|---|---|
+| `mod/dev/build.sh` (point 1 with its tests) | 1 | `BUILD FAILED in 16s`: "The next pass: [The logo of Chrome was renewed., Newcomer is new. It stands in Internet, north. /newcomer opens it.]", the newcomer case: the test left Chrome with its other picture (now an ordinary pass puts it back between the cases). The three-app case passed |
+| `mod/dev/build.sh` (the same, fixed) | 1 | `BUILD FAILED in 55s`: round 1's `goPutsHimInFrontOfHisAppsDoors`, "/go far returned 0, not 1: [Something of yours stands in front of Far's door …]" (the empty chunk set, point 3) |
+| `mod/dev/build.sh` (the same code again) | 1 | `BUILD FAILED in 33s`: the same; the swap and move tests passed |
+| `mod/dev/build.sh` (points 1 to 3) | 1 | the dimension case: "A /go dropped by a dimension change said []": the game's own line of his first visit to the Nether had come; the check now looks for the `/go`'s lines only |
+| `mod/dev/build.sh` | 0 | "All 98 required tests passed :)", `BUILD SUCCESSFUL in 2m 3s` |
+| `mod/dev/build.sh` (final code) | 0 | "All 98 required tests passed :)", `BUILD SUCCESSFUL in 1m 32s`; round 1's point 4: the command 1.40 ms, arrived 321.60 ms (2 ticks) later, the longest tick 285.34 ms; every spot blocked: 1.41 ms, its line 13.15 ms later |
+| `mod/dev/build.sh` (final code, again) | 0 | "All 98 required tests passed :)", `BUILD SUCCESSFUL in 1m 32s`; the command 1.12 ms, arrived 725.44 ms later, the longest tick 715.12 ms; every spot blocked: 1.54 ms, its line 18.10 ms later |
+| `mod/dev/client-test.sh` (final code) | 0 | `BUILD SUCCESSFUL in 9m 38s`; 16 "client checks passed" lines (09c, 09d, 09b, 09, 08, 07b, 07, 01c, 04, 04c, 32, 33, 34, 35, 36, 37), "36 pictures taken", "37 pictures taken"; "Client tests ended with exit code 0 after 9 min 40 s (intel: Mesa Intel(R) Iris(R) Xe Graphics (RPL-P) (Intel))" |
+
+This package's pictures from the client run were compared with the committed ones (pixels that differ by more than 24
+in a channel): `0077` to `0081` none; `0076` 53, all in a strip of 52 by 2 pixels at the left edge; `0082` 450, within
+25 by 47 pixels where round 1 found the torch's flame. None shows anything different, so none is committed again; every
+tracked picture was put back and the run's untracked pictures removed.
+
+Each failed build ended with "Game test server crashed": an `AssertionError` in a step takes the test server down, as in
+round 1. The test count stays 98: the new checks are steps inside existing tests. Package 36's `keepingNear` did not
+fail in this round (it ran in at least the three passing runs; the crashed runs may have stopped before it).
+
+### Not verified (review fixes 2)
+
+- A real respawn and a real death while a `/go` waits: the test fires the game's respawn event on the same player (a
+  real respawn replaces the player object the test holds); death by reading (in Live mode he cannot die; in Build mode
+  `AFTER_DEATH` drops it).
+- A reconnect with a waiting `/go` (the connection check) and the spawn on joining: by reading; leaving already drops it.
+- The limited pass's guard (a planned place other than the checked one) and a build refused in the limited pass: by
+  reading; a test cannot reach them without changing the check's inputs within the tick.
+- A move whose new place still holds another app's logo (a town not in step): the limited pass takes that logo down and
+  the next ordinary pass builds it at its own place; by reading. Round 1's test covers the refusal when it cannot come
+  down.
+- A count the keeper has not written yet (a swap as he enters, before the town's first pass): that count is not written
+  in the swap's tick and the next ordinary pass writes it; by reading.
+- The cold `/go` in his own flat home, as before.
+- Every "fails without it" above is from reading; none of the new tests was run against the old code.
+
+### JUDGMENT-CALL (review fixes 2)
+
+- **G1. A logo of another app still standing in a new place is in the scope of the take-downs**, as round 1's check had
+  it (only a move in a town not yet in step can meet one); the next ordinary pass builds that app at its own place.
+  Rejected: refusing the move then, which the brief does not ask for.
+- **G2. Counts in the limited pass: the count this keeper last wrote, changed by the apps moved out and in.** Rejected:
+  the ordinary rule over the plan, which counts a newcomer or drops a leaver that the tick does not build or take
+  down; and reading the count back from the name's text.
+- **G3. Roads in the limited pass:** the groups its apps leave or enter, paved on to the farthest of their new places
+  and the logos standing there; a newcomer's planned row does not extend a road in that tick.
+- **G4. The next ordinary pass is asked with `again`** (next tick, the pictures already held), not `ask` (which reads
+  every picture again first).
+- **G5. The limited pass blocks no place**: a build that still fails leaves the checked place saved, and the next
+  ordinary pass tries it by its own rules.
+- **G6. A waiting `/go` to a logo checks the place, not that a logo stands**: the town still gives the app the same
+  place, standing or to be built (a `/go` to a place not loaded arrives before its logo is built). For a zone: same ID,
+  app and exit.
+- **G7. Dimension and connection are checked each tick while it waits**, not through a dimension-change event; a death
+  and a respawn drop it through Fabric's events at once.
