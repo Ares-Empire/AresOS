@@ -45,8 +45,7 @@ class HintFormatTest(DiscoveryBase):
     def test_each_accepted_form(self):
         # Fails without the change: the old helper refuses every file with gpu or environment.
         printable = ''.join(map(chr, range(0x20, 0x7f)))  # all 95 printable ASCII characters
-        bounds = {'SDL_' + 'A' * 60: 'x', 'SDL_1': 'v' * 128, 'SDL__': printable, 'SDL_DOLLAR': '${HOME} $PATH',
-                  'SDL_B': ' ', 'SDL_C': '~', 'SDL_D': 'wayland,x11', 'SDL_E': '0'}
+        bounds = ['x', 'v' * 128, printable, '${HOME} $PATH', ' ', '~', 'wayland,x11', '0']
         forms = {
             'gpu': ({'gpu': 'discrete'}, dict(gpu='discrete')),
             'environment': ({'environment': SDL}, dict(environment=SDL_PAIRS)),
@@ -55,9 +54,10 @@ class HintFormatTest(DiscoveryBase):
                                'environment': SDL},
                               dict(app_ids=('org.with.Game',), app_id_prefixes=('with_game_',), gpu='discrete',
                                    environment=SDL_PAIRS)),
-            # Eight entries at the bounds; values arrive exactly as written, never expanded.
-            'bounds': ({'environment': bounds}, dict(environment=tuple(bounds.items()))),
-            # An empty object is "at most 8 entries"; it counts as no start setting (refused alone, below).
+            # Values at the bounds arrive exactly as written, never expanded.
+            **{f'bound{n}': ({'environment': {'SDL_VIDEO_DRIVER': value}},
+                             dict(environment=(('SDL_VIDEO_DRIVER', value),))) for n, value in enumerate(bounds)},
+            # An empty object names nothing that is not allowed; it counts as no start setting (refused alone, below).
             'empty-environment': ({'app_ids': ['org.empty.Game'], 'environment': {}},
                                   dict(app_ids=('org.empty.Game',))),
         }
@@ -80,14 +80,18 @@ class HintFormatTest(DiscoveryBase):
             'environment-list': dict(good, environment=[['SDL_VIDEO_DRIVER', 'wayland']]),
             'environment-string': dict(good, environment='SDL_VIDEO_DRIVER=wayland'),
             'environment-null': dict(good, environment=None),
-            'nine-entries': dict(good, environment={f'SDL_N{n}': 'x' for n in range(9)}),
+            'allowed-beside-another': dict(good, environment={'SDL_VIDEO_DRIVER': 'wayland', 'SDL_AUDIO_DRIVER': 'x'}),
             'empty-environment-alone': {'schema': 1, 'desktop_id': 'good.desktop', 'environment': {}},
             'other-key': dict(good, env=SDL), 'schema-2': dict(good, schema=2, gpu='discrete'),
             'name-twice': '{"schema": 1, "desktop_id": "good.desktop", "app_ids": ["org.good.Game"], '
                           '"environment": {"SDL_VIDEO_DRIVER": "wayland", "SDL_VIDEO_DRIVER": "x11"}}',
             'key-twice': '{"schema": 1, "desktop_id": "good.desktop", "gpu": "discrete", "gpu": "discrete"}',
         }
-        names = ['LD_PRELOAD', 'PATH', 'DRI_PRIME', '__NV_PRIME_RENDER_OFFLOAD', 'ARESOS_LAUNCH_NONCE',
+        # The allowlist is exact names: other SDL_ names are refused too, among them the ones that load a library
+        # or write a file (REVIEW-1, SHOULD 1) and SDL 2's spelling of the allowed one.
+        names = ['SDL_OPENGL_LIBRARY', 'SDL_VULKAN_LIBRARY', 'SDL_AUDIO_DRIVER', 'SDL_AUDIO_DISK_OUTPUT_FILE',
+                 'SDL_VIDEODRIVER', 'SDL_VIDEO_DRIVER_', 'SDL_1', 'SDL__',
+                 'LD_PRELOAD', 'PATH', 'DRI_PRIME', '__NV_PRIME_RENDER_OFFLOAD', 'ARESOS_LAUNCH_NONCE',
                  'sdl_video_driver', 'Sdl_VIDEO_DRIVER', 'SDL_', 'SDL_' + 'A' * 61, 'SDL_VIDEO DRIVER',
                  'SDL_VIDEO-DRIVER', 'SDL_VIDEO.DRIVER', 'SDL_video_driver', 'XSDL_VIDEO_DRIVER', 'SDL_VIDEO_DRIVER\n',
                  'SDL_VIDEO_DRIVERÉ', 'SDL_VIDEO_DRIVER=x', '']
@@ -113,6 +117,23 @@ class HintFormatTest(DiscoveryBase):
         self.assertEqual((app.gpu, app.environment), ('discrete', SDL_PAIRS))
         # Its window identities stay its own; nothing else about it changes.
         self.assertEqual(dataclasses.replace(app, gpu=None, environment=()), before)
+
+    def test_a_changed_start_setting_changes_the_1_1_revision_alone(self):
+        # Fails without the change (the old helper refuses both files, so the revisions are equal). REVIEW-1, nit 1:
+        # through the catalogue's own path, a hint's value counts toward the 1.1 revision, changes no row a client is
+        # sent, and leaves the 1.0 list and revision alone.
+        self.write('tool.desktop')
+        helper = shell.Helper.__new__(shell.Helper)  # app_row reads nothing of the helper
+        seen = {}
+        for value in ('wayland', 'x11'):
+            self.hint('tool.json', {'schema': 1, 'desktop_id': 'tool.desktop',
+                                    'environment': {'SDL_VIDEO_DRIVER': value}})
+            apps, revision = self.catalogue()
+            self.assertEqual(apps['tool'].environment, (('SDL_VIDEO_DRIVER', value),))
+            seen[value] = (revision, [helper.app_row(app, details=True) for app in apps.values()],
+                           shell.load_legacy(str(self.registry), lambda path: True))
+        self.assertNotEqual(seen['wayland'][0], seen['x11'][0])
+        self.assertEqual(seen['wayland'][1:], seen['x11'][1:])
 
     def test_a_hint_asks_for_the_nvidia_card_and_never_takes_the_entrys_wish_away(self):
         # Fails without the change (plain); own is a control that passes either way.

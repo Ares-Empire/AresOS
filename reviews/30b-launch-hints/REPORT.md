@@ -24,8 +24,9 @@ Status: built, verified on the laptop, pushed. The hosted checks-only run is und
 ## Done
 
 - **Two optional keys in a hint file.** `"gpu"` takes only `"discrete"`, the registry entry's value and check (any
-  other value, `null` included, refuses the file). `"environment"` is an object of at most 8 entries; a name must match
-  `HINT_ENVIRONMENT_NAME = SDL_[A-Z0-9_]{1,60}` (one pattern, one place in the helper); a value is a string of 1 to
+  other value, `null` included, refuses the file). `"environment"` is an object whose names must be in
+  `HINT_ENVIRONMENT_NAMES` (exact names, one place in the helper; today only `SDL_VIDEO_DRIVER`; the builder's first
+  form, at most 8 names matching `SDL_[A-Z0-9_]{1,60}`, was narrowed after review 1, below); a value is a string of 1 to
   128 printable ASCII characters (`[ -~]{1,128}`), kept exactly as written and never expanded (the launcher already
   passes `--expand-environment=no`, and the values go into the process environment, not the command). A hint may hold
   start settings alone: it needs at least one window identity, `gpu` or a non-empty `environment`. Anything else
@@ -50,8 +51,8 @@ Status: built, verified on the laptop, pushed. The hosted checks-only run is und
 
 Besides package 30's keys: `gpu` (optional) must be `"discrete"`: start the program on the NVIDIA card where the driver
 lists one, as a registry entry's `gpu` does; it adds to the desktop entry's own wish (`PrefersNonDefaultGPU`, a game
-category) and never removes it. `environment` (optional) is an object of at most 8 names matching `SDL_[A-Z0-9_]{1,60}`,
-each with a value of 1 to 128 printable ASCII characters, passed as written. A hint needs at least one window identity,
+category) and never removes it. `environment` (optional) is an object whose names are on the helper's exact list (today only
+`SDL_VIDEO_DRIVER`), each with a value of 1 to 128 printable ASCII characters, passed as written. A hint needs at least one window identity,
 `gpu` or a non-empty `environment`. A key given twice anywhere in the file refuses it.
 
 **`schema` stays 1.** Hint files ship in the same image as the helper that reads them, so a helper always knows every
@@ -199,3 +200,31 @@ none.**
 - `63a28d96` 30b: tests run alone against the old helper; the real route carries the hint
 - `ec9cd047` 30b: report text in PROGRESS.md (hosted run pending)
 - this file's update with the hosted run's state
+
+## Review 1 and what changed after it
+
+`REVIEW-1.md` (gpt-6-astra, high, one reviewer with the package and the security lens; the brief's two reviewers became
+one because the change is sixty lines, and the OS lead's reader reads the `os/` diff as well): **SAFE with documented
+known limits**, no FIX. Its three points, handled by the orchestrator (Claude Fable 5.2):
+
+- **SHOULD 1, the `SDL_` namespace is not narrow:** it also holds names that load a library (`SDL_OPENGL_LIBRARY`) or
+  write a file (`SDL_AUDIO_DISK_OUTPUT_FILE` with the disk audio driver). The brief's pattern was the OS lead's wish for
+  a list of what is allowed rather than of what is forbidden; an exact list of names is that wish taken to its end. So
+  the pattern is replaced by `HINT_ENVIRONMENT_NAMES = frozenset({'SDL_VIDEO_DRIVER'})`, and the limit of 8 entries
+  went with it (the list cannot be exceeded). A new name is a reviewed change to that line: what the variable makes a
+  program do, and every file a value could name. Tests: every other `SDL_` name refuses the file, among them the two
+  above and SDL 2's spelling `SDL_VIDEODRIVER`; the bounds of a value are tested on the one allowed name.
+- **SHOULD 2, the hosted result:** below.
+- **NIT 1, the revision through the catalogue's own path:** new test
+  `test_a_changed_start_setting_changes_the_1_1_revision_alone` (a changed value changes the 1.1 revision, no row a
+  client is sent, and nothing of the 1.0 list or its revision).
+
+Verified after these changes, on the laptop (each with `TMPDIR="$PWD/.work/30b-launch-hints/tmp"`):
+`python3 -m unittest discover -s os/tests -p 'test_aresos_shell*.py'` → **Ran 284 tests, OK** (283 plus the new one;
+the same with `/usr/bin/foot`, Chrome and KWrite reported missing, as on GitHub's runner); `-p
+'check_aresos_shell_launch.py'` → **Ran 4 tests, OK**, no unit left; `-p 'check_aresos_shell_icons.py'` → **Ran 7
+tests, OK**; `bash -n os/ci/image-checks.sh`.
+
+Hosted: the builder's run 43535791471 on `63a28d96` was cancelled by the orchestrator: that head lacked package 30's
+two test fixes (two tests assumed the registry's programs are installed where they run) and would have failed in
+them. The run on this section's commit is recorded in the pull request.

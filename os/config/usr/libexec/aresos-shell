@@ -349,11 +349,12 @@ HINTS = 'hints'
 HINT_KEYS = {'schema', 'desktop_id', 'app_ids', 'app_id_prefixes', 'gpu', 'environment'}
 # A prefix is deliberate: 4 to 64 characters that end at a separator, so `steam_app_` but never `s` or `steam`.
 HINT_PREFIX = re.compile(r'[A-Za-z0-9._-]{3,63}[._-]\Z')
-# The only names a hint may set at a program's start (30b). A wider list is a reviewed change to this one pattern.
-HINT_ENVIRONMENT_NAME = re.compile(r'SDL_[A-Z0-9_]{1,60}\Z')
+# The only names a hint may set at a program's start (30b): exact names, because a namespace is not narrow. Among
+# the SDL_ names are ones that load a library or write a file (SDL_OPENGL_LIBRARY, SDL_AUDIO_DISK_OUTPUT_FILE). A new
+# name is a reviewed change to this line: what the variable makes a program do, and every file a value could name.
+HINT_ENVIRONMENT_NAMES = frozenset({'SDL_VIDEO_DRIVER'})
 # 1 to 128 printable ASCII characters, passed as they are (never expanded).
 HINT_ENVIRONMENT_VALUE = re.compile(r'[ -~]{1,128}\Z')
-MAX_HINT_ENVIRONMENT = 8
 
 
 def parse_hint(data):
@@ -381,10 +382,10 @@ def parse_hint(data):
     if 'gpu' in data and gpu != 'discrete':
         raise ValueError('gpu must be discrete')
     environment = data.get('environment', {})
-    if not isinstance(environment, dict) or len(environment) > MAX_HINT_ENVIRONMENT:
-        raise ValueError(f'environment must be an object of at most {MAX_HINT_ENVIRONMENT} entries')
+    if not isinstance(environment, dict):
+        raise ValueError('environment must be an object')
     for name, value in environment.items():
-        if not HINT_ENVIRONMENT_NAME.match(name):
+        if name not in HINT_ENVIRONMENT_NAMES:
             raise ValueError(f'environment name {name!r} is not allowed')
         if not isinstance(value, str) or not HINT_ENVIRONMENT_VALUE.match(value):
             raise ValueError(f'environment value of {name} must be 1-128 printable ASCII characters')
