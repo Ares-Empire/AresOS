@@ -656,6 +656,13 @@ public final class TownGameTests {
                 .thenSucceed();
     }
 
+    /** Records an app's standing logo as drawn by the converter before this one, as a world of the older mod holds it. */
+    private static void older(HubData hub, String app) {
+        var logo = hub.logo(app).orElseThrow();
+        hub.remove(app);
+        hub.add(new HubData.Logo(logo.app(), logo.place(), logo.picture(), GatePicture.CONVERTER - 1, logo.name(), logo.shortName(), logo.zone(), logo.gate()));
+    }
+
     private static String text(ServerLevel level, java.util.UUID entity) {
         return ((dev.aresos.mixin.TextDisplayAccess) level.getEntity(entity)).aresos$text().getString();
     }
@@ -749,6 +756,25 @@ public final class TownGameTests {
         check(renamed.lines().equals(List.of("The logo of Chrome was renewed.")) && signed.shortName().equals(Optional.of("web"))
                 && text(level, signed.gate().sign().orElseThrow()).equals("Chrome\n/web") && signed.place().equals("N0R0"), "A new short name: " + renamed.lines());
         check(fake.pass(server).lines().isEmpty(), "A pass in step changed something");
+
+        // Package 39, point 4: the first visit after the rules of the logos changed. Every standing logo was drawn by
+        // the older converter and is renewed where it stands, in one pass: five are said one by one, six (as forty
+        // would be) in one line.
+        var standing = hub.logos().stream().map(HubData.Logo::app).sorted().toList();
+        check(standing.equals(List.of("re-chrome", "re-discord", "re-lunar", "re-notepad", "re-spotify", "re-terminal")), "Fixture: the six logos " + standing);
+        var places = new java.util.HashMap<String, String>();
+        for (String app : standing) places.put(app, place(server, app));
+        for (int count : new int[]{5, 6}) {
+            for (String app : standing.subList(0, count)) older(hub, app);
+            var visit = fake.pass(server);
+            var said = visit.lines().stream().sorted().toList();
+            check(count == 5 ? said.equals(List.of("The logo of Chrome was renewed.", "The logo of Discord was renewed.", "The logo of Lunar Client was renewed.",
+                            "The logo of Notepad was renewed.", "The logo of Spotify was renewed."))
+                    : said.equals(List.of("The town changed: 6 logos renewed. /apps lists where your apps stand.")), count + " logos of the older converter: " + visit.lines());
+            for (String app : standing) check(hub.logo(app).orElseThrow().converter() == GatePicture.CONVERTER && place(server, app).equals(places.get(app)),
+                    app + " after the renewal of " + count + ": converter " + hub.logo(app).orElseThrow().converter() + " at " + place(server, app));
+            check(fake.pass(server).lines().isEmpty(), "A second visit renewed again");
+        }
 
         // Point 3: hub rebuild. His glass in place of a block of Discord's logo stays his; Discord cannot stand in N0L0
         // again and goes one place on; every other logo is built again where it stood; his cobblestone stays.
@@ -921,10 +947,13 @@ public final class TownGameTests {
             var discordText = text(level, discordSign);
             var zonesBefore = zones(server);
             var area = snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2));
+            // Package 39, point 4: the frozen town's one logo is of the older converter, and is not drawn again either.
+            older(restored, "seal-chrome");
             HubData.store(server, restored);
             check(TownKeeper.notice(server).equals(Optional.of(FREEZE + "Look over its logo, then type /aresos hub trust.")), "The freeze's line: " + TownKeeper.notice(server));
             var subsetPass = fake.pass(server);
             check(subsetPass.lines().isEmpty() && !subsetPass.pending() && restored.logos().size() == 1 && snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2)).equals(area)
+                    && restored.logo("seal-chrome").orElseThrow().converter() == GatePicture.CONVERTER - 1
                     && zones(server).equals(zonesBefore) && level.getEntity(discordSign) instanceof Display.TextDisplay && text(level, discordSign).equals(discordText),
                     "A subset restored changed something: " + subsetPass.lines() + " " + restored.logos());
             HubData.store(server, hub);

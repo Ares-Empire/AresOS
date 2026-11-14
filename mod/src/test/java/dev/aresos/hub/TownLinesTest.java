@@ -90,6 +90,18 @@ class TownLinesTest {
         return lines;
     }
 
+    /** Package 39: the rules of the logos changed, so on the first visit every standing logo is renewed in one pass. */
+    @Test
+    void aFirstVisitAfterTheRulesChangedSaysFiveLinesForFiveLogosAndOneForForty() {
+        var names = List.of("Chrome", "Discord", "Lunar Client", "Terminal", "Notepad");
+        var five = new TownLines();
+        for (String name : names) five.add(TownLines.Kind.RENEWED, "The logo of " + name + " was renewed.");
+        assertEquals(names.stream().map(name -> "The logo of " + name + " was renewed.").toList(), five.said(false, false, 0));
+        var forty = new TownLines();
+        for (int app = 1; app <= 40; app++) forty.add(TownLines.Kind.RENEWED, "The logo of App " + app + " was renewed.");
+        assertEquals(List.of("The town changed: 40 logos renewed. /apps lists where your apps stand."), forty.said(false, false, 0));
+    }
+
     @Test
     void nothingChangedSaysNothing() {
         assertEquals(List.of(), new TownLines().said(true, false, 0));
