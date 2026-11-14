@@ -1370,3 +1370,10 @@ so the cached effect adds it if absent and preserves an existing snapshot.
 The equivalence regression now fills the cache in **both directions** for each
 pair. It passed **5 tests in 3.261s** (10471 MB available at start). The complete
 20-test model was restarted after a fresh memory gate; results follow below.
+
+The corrected model passed its previous counterexample and processed 100000
+states before dispatching the next hosted run. Retry
+[43535052672](https://github.com/Ares-Empire/AresOS/actions/runs/43535052672)
+tests `b644f5be`; it uses the same checks-only dispatch command and exactly one
+blocking `gh run watch 43535052672 --exit-status`. The cancelled prior watch
+returned 1. Full local 20-test model start gate: **10505 MB available**.
