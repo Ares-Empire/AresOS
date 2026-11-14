@@ -236,7 +236,7 @@ separately in `control/boundary/`.
 Installed entry points use a fixed `/usr/bin/python3 -I -S`, `/usr/bin/env -i`, a
 fixed PATH/LANG, and root-owned code under `/usr/libexec/aresos-control`, vendor
 dependencies under `/usr/lib/aresos-control/vendor` and config under
-`/etc/aresos-control`. `-S` also blocks `.pth`/`sitecustomize` execution. The launcher
+`/usr/share/aresos/control`. `-S` also blocks `.pth`/`sitecustomize` execution. The launcher
 checks ownership, mode and symlinks throughout those trees and their ancestors,
 then adds only the trusted code/vendor directories to isolated Python's stdlib path.
 No environment variable can change config, module path, interpreter or prefix.

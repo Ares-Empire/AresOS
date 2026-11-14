@@ -52,8 +52,8 @@ class Integration(unittest.TestCase):
         self.boundary_paths = install_boundary('/etc/claude-code')
         self.proxy_config = {"act_socket": str(self.root / "sockets/act.sock"), "admin_socket": str(self.root / "sockets/admin.sock"),
                              "home": str(self.home), "folders": [str(self.home / name) for name in ("Documents", "Downloads", "Desktop")]}
-        Path("/etc/aresos-control/service.json").write_text(canonical(self.service_config))
-        Path("/etc/aresos-control/proxy.json").write_text(canonical(self.proxy_config))
+        Path("/usr/share/aresos/control/service.json").write_text(canonical(self.service_config))
+        Path("/usr/share/aresos/control/proxy.json").write_text(canonical(self.proxy_config))
         self.output = open(self.root / "daemon-output.txt", "w+")
         self.daemon = subprocess.Popen(["/usr/bin/python3", "-I", "-S", LAUNCH, "service"],
                                        preexec_fn=identity(SERVICE), stdout=self.output, stderr=subprocess.STDOUT)
@@ -280,7 +280,7 @@ print(json.dumps(proxy.call("file_import", {"path": sys.argv[2]})))
         for path in (self.root / "sockets").glob("*.sock"):
             path.unlink()
         self.service_config["file_limit"] = 128
-        Path("/etc/aresos-control/service.json").write_text(canonical(self.service_config))
+        Path("/usr/share/aresos/control/service.json").write_text(canonical(self.service_config))
         self.daemon = subprocess.Popen(["/usr/bin/python3", "-I", "-S", LAUNCH, "service"],
                                        preexec_fn=identity(SERVICE), stdout=self.output, stderr=subprocess.STDOUT)
         for _ in range(100):
@@ -394,7 +394,7 @@ print(json.dumps(results))
         self.daemon.terminate()
         self.daemon.wait(timeout=8)
         self.service_config["approval_ttl"] = 0.2
-        Path("/etc/aresos-control/service.json").write_text(canonical(self.service_config))
+        Path("/usr/share/aresos/control/service.json").write_text(canonical(self.service_config))
         self.daemon = subprocess.Popen(["/usr/bin/python3", "-I", "-S", LAUNCH, "service"],
                                        preexec_fn=identity(SERVICE), stdout=self.output, stderr=subprocess.STDOUT)
         deadline = time.monotonic() + 8
@@ -539,7 +539,7 @@ print(json.dumps(results))
             self.assertEqual((hook.returncode, hook.stdout, hook.stderr), (0, "", ""))
         finally:
             os.close(fd)
-        config = Path("/etc/aresos-control/proxy.json")
+        config = Path("/usr/share/aresos/control/proxy.json")
         original = config.read_bytes()
         try:
             config.write_bytes(b"malformed configuration")
