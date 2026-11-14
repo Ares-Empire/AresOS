@@ -21,11 +21,15 @@
 - **Observer backoff resolved:** shared REST quota reset at01:42:22 UTC; helpers
   resumed at01:42:52 and confirmed the three second successes without duplicate
   reruns. Remaining watches use300-second intervals. CI was not stopped by the quota.
-- **Only runs still watched:** Chrome push **`43539449510`** (session **`54557`**),
-  PR **`43539458133`** (**`91769`**), Mail **`43539458146`** (**`52800`**). Mail
-  still needs both successes; its helper requests a second only after the first passes.
+- **Chrome PR complete:** **`43539458133`** passes both installs and both local
+  independent audits:98 named cases,999wordcells,92 original round-3 names,
+  derived native group12; both latency profiles pass and match runtime `b9de9a97…`.
+  Every measured median/p95 is below its nominal ceiling; longest job29m00s.
+- **Only runs still watched:** Chrome push **`43539449510`** (session **`54557`**)
+  and Mail **`43539458146`** (**`52800`**), at300-second intervals. Mail needs both
+  successes; its helper requests a second only after the first passes.
 - **Budget:** **255 / about 280** Chrome runs, including this pair.
-- **Exact next step:** resume those three sessions. If stopped, use the
+- **Exact next step:** resume those two sessions. If stopped, use the
   receipt-aware `.work/post18d/resume-acceptance.py RUN LABEL TARGET 1794620542`
   (TARGET1 for each Chrome run,2 for Mail); do not rerun the three verified
   workflows. After Chrome success, fetch root metadata only and run all four
@@ -223,8 +227,18 @@ cases and20 unit tests each; [qualification](records/post18d/final-qualification
 passes47 Python and368 Node tests, zero failed/skipped, each. Both successes for
 each are confirmed on this exact head after the quota reset.
 
-**Still required:** the Chrome pair in both installs with independent audits and
-latency gates, and Mail twice. Those three watchers use300-second intervals;
+**Chrome PR `43539458133` complete on `a4143586`:** both installs,98 named cases,
+999wordcells,all92 original round-3 names and the actual derived native group12
+pass. Both independent audits and both latency gates pass; runtime matches
+`b9de9a97…`, every median/p95 is below its nominal ceiling, longest job29m00s.
+[Summary](records/post18d/final-chrome-43539458133-summary.json),
+[external audit](records/post18d/final-chrome-43539458133-external-independent-audit.json),
+[policy audit](records/post18d/final-chrome-43539458133-policy-independent-audit.json).
+Artifact hashes, native proof, disjoint inventories and paired timing/gate results
+are retained beside them. Only root metadata was extracted; no profile was accessed.
+
+**Still required:** the Chrome push run and its independent audits/latency gates,
+and Mail twice. Those two watchers use300-second intervals;
 all six run IDs remain in [the inventory](records/post18d/final-a4143586-runs.json).
 No CI failure was inferred from the watcher quota error. No final green/ready claim.
 Chrome ledger **255 / about280**; report before exceeding280. No local browser,
