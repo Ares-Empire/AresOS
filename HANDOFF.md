@@ -55,7 +55,7 @@ Written 2026-11-13 (last update 19:00) by `linux-aresos`, the OS lead, now runni
 
 ## Watch out
 
-- **Harness race, not fixed yet (2026-11-14, seen by `linux-hub` on PR #57's check build 43548237383):** `os/ci/offline_journal.py:123` asserts one btrfs root after `qemu-nbd --connect` and `udevadm settle`, but `lsblk` showed `fstype: null` on all four partitions (the probe can land after the settle). A rerun is the workaround. Fix in the next OS package that touches the harness: `blkid -p` on each partition or a bounded wait for one btrfs root, and an assert message that shows what `lsblk` saw.
+- **Harness race fixed by 27d** (PR #60, `76886a63`, 2026-11-14): newer runner images left `lsblk`'s FSTYPE empty after `qemu-nbd`; `os/ci/offline_journal.py` now waits for exactly the image's four partitions, reads types with `blkid -p` (exit 0 plus the partition's own GPT entry) and asserts the layout none, vfat, ext4, btrfs. If the image's partition layout ever changes, that check must change with it. `owner_devices.py` still reads types through the owner tools' `media.find` (udev): not touched, because that test runs the tools' exact query.
 
 - Never force-push, and never push `pre-rewrite/*` (the 2026-10-23 history rewrite). The repo-local git identity uses the noreply email. The repo is public: nothing personal in commits; the pre-push privacy check enforces it; never `--no-verify`.
 - The repository secret `GHCR_READ_TOKEN` (rehearsal and release runs) is valid until about 2026-12-07; the owner renews it.
