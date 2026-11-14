@@ -11,12 +11,14 @@ the list, the boot id, and a later boot that runs the target. No helper merges t
 import contextlib
 import copy
 import io
+import inspect
 import itertools
 import json
 import pathlib
 import subprocess
 import unittest
 import time
+import textwrap
 from unittest.mock import patch
 
 import test_owner_update as base
@@ -739,6 +741,59 @@ class LayoutTest(Unchanged, unittest.TestCase):
                 before = copy.deepcopy(host.settings)
                 self.unchanged(host, lambda: tools.layout('abandon'), 'Finished system layout changed')
                 self.assertEqual(host.settings, before)
+
+    def test_cut_during_note_transfer_then_restoration_updates_the_same_note(self):
+        with laptop(listed((R21, R13, 'S'), R21), host_class=KeyboardMachine) as (tools, host, store), keyboard_sessions(tools, host) as current:
+            admin = copy.deepcopy(current[0])
+            tools.layout('begin', 'us')
+            self.fresh(tools, current, 'tty4')
+            tools.layout('proof')
+            current[0] = admin
+            mutate = host.mutate
+            def cut_finish(*command, **kwargs):
+                result = mutate(*command, **kwargs)
+                if command[:3] == ('localectl', '--no-convert', 'set-x11-keymap'):
+                    raise PowerCut('after finish persistence')
+                return result
+            with patch.object(host, 'mutate', cut_finish), self.assertRaises(PowerCut):
+                tools.layout('finish')
+            self.boot(tools, host, current, 'S')
+            save = tools.save
+            def cut_transfer(name, value):
+                save(name, value)
+                if name == 'layout-repair':
+                    raise PowerCut('after note save, before pending trial clear')
+            with patch.object(tools, 'save', cut_transfer), self.assertRaises(PowerCut):
+                tools.layout('abandon')
+            self.assertEqual(len(tools.repair_notes()), 1)
+            self.assertTrue((store / 'layout-pending.json').exists())
+            self.boot(tools, host, current, R21)
+            host.cut_keyboard = True
+            with self.assertRaises(PowerCut):
+                tools.layout('abandon')
+            intent = tools.load('layout-pending')['restoring']
+            self.assertEqual(host.keyboard(), dict(PROFILES['us'], VConsoleKeymap='de'))
+            self.boot(tools, host, current, 'S')
+            tools.layout('abandon')
+            self.assertEqual(tools.repair_notes(), [dict(deployment_identity=list(identity(row(R21))),
+                old=PROFILES['de'], new=PROFILES['us'], restoring=intent)])
+            self.boot(tools, host, current, R21)
+            tools.layout('abandon')
+            self.assertEqual(host.keyboard(), PROFILES['de'])
+            self.assertEqual(tools.repair_notes(), [])
+
+    def test_duplicate_note_transfer_is_detected_by_the_same_cut_regression(self):
+        source = textwrap.dedent(inspect.getsource(owner.Tools.layout))
+        line = "notes[:] = [n for n in notes if n['deployment_identity'] != note['deployment_identity']]"
+        self.assertEqual(source.count(line), 1)
+        namespace = {}
+        exec(compile(source.replace(line, 'pass'), '<note replacement removed>', 'exec'), owner.__dict__, namespace)
+        result = unittest.TestResult()
+        with patch.object(owner.Tools, 'layout', namespace['layout']):
+            LayoutTest('test_cut_during_note_transfer_then_restoration_updates_the_same_note').run(result)
+        self.assertEqual(result.errors, [])
+        self.assertEqual(len(result.failures), 1)
+        self.assertIn('additional', result.failures[0][1])
 
     def test_begin_and_fresh_login_abandon_with_three_rows_preserve_every_etc(self):
         with laptop(listed((R21, R13, 'S'), R21), host_class=KeyboardMachine) as (tools, host, store), keyboard_sessions(tools, host) as current:

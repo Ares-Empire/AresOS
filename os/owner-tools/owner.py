@@ -2060,8 +2060,19 @@ class Tools:
                         note = dict(deployment_identity=value['deployment_identity'], old=value['old'], new=value['new'])
                         if 'restoring' in value:
                             note['restoring'] = value['restoring']
-                        if note not in notes:
-                            notes.append(note)
+                        previous = [n for n in notes if n['deployment_identity'] == note['deployment_identity']]
+                        require(all(n['old'] == note['old'] and n['new'] == note['new'] for n in previous),
+                            'Conflicting layout repair note; nothing changed; get help')
+                        for n in previous:
+                            if 'restoring' in n:
+                                require('restoring' not in note or note['restoring'] == n['restoring'],
+                                    'Conflicting layout restoration intent; nothing changed; get help')
+                                note['restoring'] = n['restoring']
+                        # A cut after this save can leave the trial too. A later
+                        # transfer updates that deployment's note, never adds a
+                        # second note that lacks its new restoration authority.
+                        notes[:] = [n for n in notes if n['deployment_identity'] != note['deployment_identity']]
+                        notes.append(note)
                         self.save('layout-repair', dict(schema='layout-repair1', notes=notes))
                         lines.append('The trial began on another system and its finish had started: run '
                             + typed('layout', 'abandon') + ' there too, to restore its settings')

@@ -1377,3 +1377,34 @@ states before dispatching the next hosted run. Retry
 tests `b644f5be`; it uses the same checks-only dispatch command and exactly one
 blocking `gh run watch 43535052672 --exit-status`. The cancelled prior watch
 returned 1. Full local 20-test model start gate: **10505 MB available**.
+
+### Finding 1 follow-through: a cut while transferring the note
+
+A direct regression confirmed a further interruption within finding 1:
+save the repair note on stock, cut before clearing the pending trial, return
+to its owner and cut restoration after console, then abandon on stock again.
+The old exact-dictionary deduplication left two notes for the same deployment:
+one without restoration intent, one with it. The first then rejected the
+reverse partial pair. The new direct test failed before the fix (`Ran 1 test
+in 0.084s`, one assertion failure showing an additional note).
+
+Transfer now replaces the note by deployment identity, retaining the recorded
+old/new settings and exact restoration intent. Conflicting records refuse;
+no other deployment's settings are written. The new
+`LayoutTest.test_cut_during_note_transfer_then_restoration_updates_the_same_note`
+replays that sequence, requires exactly one intent-bearing note and then
+restores the owner successfully.
+`test_duplicate_note_transfer_is_detected_by_the_same_cut_regression` removes
+that replacement in memory and requires the same extra-note assertion failure,
+with no unrelated exception accepted. This extra private-note-save cut is a
+direct test; the full model's event set/pins still describe the persistent-write
+cuts, not all private JSON-save interruptions.
+
+The in-progress optimized model was explicitly stopped to serialize this local
+regression, and hosted run **43535052672** was explicitly cancelled before
+retaining verification of the incomplete transfer fix. Its watch returned 1;
+no complete totals are claimed. Final-source focused command passed **44 tests
+in 24.930s, OK**, after a **10166 MB available** gate. The payload refresh is
+intermediate fingerprint `610e1b27…`; stage-1b pins remain unchanged. Acceptance
+count is now **1074** (two additional transfer tests), only the original four
+fingerprint failures, zero errors/skips. No brief rule or schema changed.
