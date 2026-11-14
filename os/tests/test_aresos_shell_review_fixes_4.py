@@ -200,3 +200,36 @@ class LaterPictureTest(SignatureBase):
         (self.outside / 'app-two.png').write_bytes(PNG)
         self.assertEqual(self.ticks(5), [False] * 5)
         self.assertIsNone(self.icon('two'))
+
+
+class FullCacheTest(SignatureBase):
+    """SHOULD 3: pictures refused for a full cache get one more pass once pruning made room; a cache full of pictures
+    still in use asks for no further pass. The budget is two files here."""
+
+    def setUp(self):
+        super().setUp()
+        self.themed(4, size='48x48', name='app-two.png', raw=PNG + b'\0')
+        budget = mock.patch.object(shell, 'ICON_CACHE_FILES', 2)
+        budget.start()
+        self.addCleanup(budget.stop)
+
+    def made(self):
+        return sorted(name for name in os.listdir(self.pictures) if shell.ICON_FILE.match(name))
+
+    def test_pictures_refused_for_a_full_cache_get_their_pass_once_pruning_made_room(self):
+        # Left by an earlier run: as many pictures as the budget allows, none of them used now.
+        old = ['%064x.png' % n for n in range(2)]
+        for name in old:
+            (self.pictures / name).write_bytes(NORMAL)
+        self.assertEqual(self.ticks(10), [True, True] + [False] * 8)
+        self.assertTrue(os.path.isfile(self.icon('one')))
+        self.assertTrue(os.path.isfile(self.icon('two')))
+        self.assertEqual(self.made(), sorted(os.path.basename(self.icon(key)) for key in ('one', 'two')))
+
+    def test_a_cache_full_of_pictures_in_use_asks_for_no_further_pass(self):
+        # A control: the third program's picture does not fit, and pruning has nothing to free.
+        self.themed(4, size='48x48', name='app-three.png', raw=PNG + b'\1')
+        self.desktop('three', 'app-three')
+        self.assertEqual(self.ticks(20), [True] + [False] * 19)
+        self.assertEqual(sorted(self.icon(key) is None for key in ('one', 'two', 'three')), [False, False, True])
+        self.assertEqual(len(self.made()), 2)

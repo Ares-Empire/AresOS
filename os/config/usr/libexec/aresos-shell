@@ -1677,6 +1677,8 @@ class IconCache:
         self.finished = None
         # Broken theme indexes already warned about (IconLookup.warned).
         self.warned = {}
+        # Whether the running pass had a picture refused for the cache's budget.
+        self.crowded = False
         # Once at start rather than once per picture (review fixes 3): without these no picture can be made.
         missing = [path for path in (bwrap, magick, prlimit) if not os.access(path, os.X_OK)]
         if missing:
@@ -1728,6 +1730,7 @@ class IconCache:
                 icon_stat(path, *how) == info for path, (how, info) in self.finished[1].items()):
             return False
         self.finished = None
+        self.crowded = False
         lookup = IconLookup(self.directories, self.deployments, self.warned)
         roots = tuple(os.path.realpath(folder) for folder in (*self.directories, *self.deployments))
         pictures, complete = set(), True
@@ -1752,8 +1755,11 @@ class IconCache:
                 complete = False
                 break  # bounded even if the event loop stops taking answers
         if complete:
-            self.prune(pictures)
-            self.finished = (revision, lookup.seen)
+            freed = self.prune(pictures)
+            # Pictures the full cache refused get one more pass once pruning made room (review 4, SHOULD 3). A cache
+            # full of pictures still in use frees nothing, so it is not asked again.
+            if not (self.crowded and freed):
+                self.finished = (revision, lookup.seen)
         return True
 
     def prepare(self):
@@ -1951,6 +1957,7 @@ class IconCache:
         if files < ICON_CACHE_FILES and total + size <= ICON_CACHE_BYTES:
             self.full_logged = False
             return True
+        self.crowded = True
         if not self.full_logged:
             self.full_logged = True
             LOG.warning('icon cache budget (%d files, %d bytes) is used up; new pictures keep the fallback look',
@@ -1959,12 +1966,13 @@ class IconCache:
 
     def prune(self, keep):
         """After a complete pass: remove pictures no listed program uses (removed programs, older generations,
-        earlier runs) and leftovers of interrupted writes."""
+        earlier runs) and leftovers of interrupted writes. Whether it removed a file, which room() counts."""
         try:
             with os.scandir(self.directory) as listing:
                 entries = [(entry.name, entry.is_dir(follow_symlinks=False)) for entry in listing]
         except OSError:
-            return
+            return False
+        freed = False
         for name, is_folder in entries:
             path = os.path.join(self.directory, name)
             try:
@@ -1972,10 +1980,12 @@ class IconCache:
                     shutil.rmtree(path)
                 elif not is_folder and name not in keep and (ICON_FILE.match(name) or name.startswith('.icon-')):
                     os.unlink(path)
+                    freed = True
             except OSError:
                 pass
         self.generations = {source: target for source, target in self.generations.items()
                             if os.path.basename(target) in keep}
+        return freed
 
     @staticmethod
     def normalized(raw):
