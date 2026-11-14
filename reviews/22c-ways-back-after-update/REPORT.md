@@ -1355,3 +1355,18 @@ and one blocking `gh run watch 43534401745 --exit-status`. Full local model
 started after a **10170 MB available** gate. Both results are pending at this
 report-only checkpoint. Acceptance requires **1072 tests**, only the same four
 stage-1b fingerprint failures, zero errors and zero skipped tests.
+
+The first optimized full local model found a cache framing defect after 80000
+states: a cache fill that already had an intent recorded no *change* to it,
+so a later input without intent did not receive the re-published checkpoint.
+The full literal-ledger assertion failed, as required. This was confined to
+the execution memo; uncached Tools had already passed the entire model.
+Run **43534401745** was explicitly cancelled to avoid completing known failing
+verification; its single watch is allowed to finish. It has no acceptance totals.
+
+The driver now records actual restoration write attempts, including the
+pre-write intent cut. Re-publishing an unchanged intent is an observed write,
+so the cached effect adds it if absent and preserves an existing snapshot.
+The equivalence regression now fills the cache in **both directions** for each
+pair. It passed **5 tests in 3.261s** (10471 MB available at start). The complete
+20-test model was restarted after a fresh memory gate; results follow below.

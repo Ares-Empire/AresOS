@@ -85,6 +85,8 @@ class Driver:
                 self.observe('loaded')
             elif command[0] == 'localectl':
                 self.observe('keyboard-' + self.by_id[identity(host.running())])
+                if self.word == 'abandon':
+                    self.restored.add(self.by_id[identity(host.running())])
                 if self.word == 'abandon' and self.phase == 'intent':
                     records = ([self.files['layout-pending']] if 'layout-pending' in self.files else []) + self.files.get('layout-repair', {}).get('notes', [])
                     assert any(n.get('restoring') and n['deployment_identity'] == list(identity(host.running())) for n in records), 'restoration intent missing before write'
@@ -210,6 +212,7 @@ class Driver:
         tools, host = self.tools, self.host
         word, self.phase = event
         self.word = word
+        self.restored = set()
         host.cut = self.phase
         host.cut_keyboard = word in ('finish', 'abandon') and self.phase == 'console'
         before_entries, before_rows = copy.deepcopy(host.entries()), copy.deepcopy(host.state['rpm']['deployments'])
@@ -590,17 +593,20 @@ class EquivalenceTest(unittest.TestCase):
 
     def test_execution_reuse_frames_exact_restoration_intents(self):
         with driver() as d:
-            memo = Executions(d)
+            reused = 0
             for left, right in self.restoration_variants():
                 # Also frame an unrelated, still-live repair intent.
                 left = replace(left, repairs=tuple(sorted((*left.repairs, ('13', 'de', 'us')))))
                 right = replace(right, repairs=tuple(sorted((*right.repairs, ('13', 'de', 'us')))),
                                 restoring=tuple(sorted((*right.restoring, ('13', 'us', 'de')))))
-                for event in events(left):
-                    for state in (left, right):
-                        expected = transition(state, event)
-                        self.assertEqual(memo.step(state, event, expected), d.step(state, event, expected))
-            self.assertGreater(memo.reused, 0)
+                for order in ((left, right), (right, left)):
+                    memo = Executions(d)
+                    for event in events(left):
+                        for state in order:
+                            expected = transition(state, event)
+                            self.assertEqual(memo.step(state, event, expected), d.step(state, event, expected))
+                    reused += memo.reused
+            self.assertGreater(reused, 0)
 
     def test_provenance_quotient_preserves_every_successor_and_actual_command(self):
         applied = Journal('previous', 'reorder', 'recorded', '13', '27', ('27', '13', 'S'), False)

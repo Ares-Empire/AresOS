@@ -75,7 +75,9 @@ class Executions:
             removed = tuple(r for r in before if r not in after)
             before_intents = {p[0]: p[1:] for p in s.restoring}
             after_intents = {p[0]: p[1:] for p in found.restoring}
-            intents = {r: p for r, p in after_intents.items() if before_intents.get(r) != p}
+            # Republishing an unchanged intent is still a write: reuse must add
+            # it when the next input has no intent, and retain it when it does.
+            intents = {r: p for r, p in after_intents.items() if before_intents.get(r) != p or r in self.driver.restored}
             # Removing a trial/note clears its intent even when this execution
             # started without one. A cache hit may carry that extra provenance.
             cleared = (set(before_intents) - set(after_intents)) | (self.owners(s) - self.owners(found))
