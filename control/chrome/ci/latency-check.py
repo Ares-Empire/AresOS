@@ -11,11 +11,19 @@ PHASES={'fresh','history-1000','history-4000'}
 
 
 def sample_counts(targets):
-    # One count for every measurement this gate reads (latency-targets.json,
-    # set by the lead); the frozen reference keeps the count it was taken with.
-    samples,reference=targets['samples_per_call'],targets['measurement_samples_per_call']
-    assert all(type(count) is int and count>=20 for count in (samples,reference)),'Sample counts must be whole numbers of at least 20'
-    return samples,reference
+    # The lead's counts (latency-targets.json): the current runtime takes 60
+    # per call and history phase. The old runtime only feeds the runner-noise
+    # ratio and must match the frozen 20-sample reference, so it takes the
+    # reference's own count (mac-aresos-control, 2026-11-14, after run
+    # 43613647256). The frozen reference keeps the count it was taken with.
+    samples,old,reference=targets['samples_per_call'],targets['old_runtime_samples_per_call'],targets['measurement_samples_per_call']
+    assert all(type(count) is int and count>=20 for count in (samples,old,reference)),'Sample counts must be whole numbers of at least 20'
+    assert old==reference,'The old runtime must take the frozen reference count'
+    return samples,old,reference
+
+
+def positions(value):
+    return sorted((row['phase'],row['call'],row['sample']) for row in value['input_samples'])
 
 
 def p95(values):
@@ -74,8 +82,11 @@ def check(current,baseline,reference,targets):
     assert reference['current']['runtime']=='current' and reference['baseline']['runtime']=='ab7aba92'
     assert current['privacy']==baseline['privacy']==reference['privacy']==reference['current']['privacy']==reference['baseline']['privacy']
     assert current['chrome']==baseline['chrome'],'Paired measurements must use one exact Chrome package'
-    samples,reference_samples=sample_counts(targets)
-    for value,count in [(current,samples),(baseline,samples),(reference['current'],reference_samples),(reference['baseline'],reference_samples)]:
+    samples,old_samples,reference_samples=sample_counts(targets)
+    # The old runtime slows as its own history grows: its medians compare like
+    # for like with the reference's only at the reference's sample positions.
+    assert positions(baseline)==positions(reference['baseline']),'The old runtime must take the reference sample positions'
+    for value,count in [(current,samples),(baseline,old_samples),(reference['current'],reference_samples),(reference['baseline'],reference_samples)]:
         assert set(value['phases'])==PHASES
         validate_pairs(value,count)
         for phase,group in value['phases'].items():
@@ -96,7 +107,7 @@ def check(current,baseline,reference,targets):
     for phase in sorted(PHASES):
         group=current['phases'][phase];old=baseline['phases'][phase]
         accepted=reference['current']['phases'][phase];accepted_old=reference['baseline']['phases'][phase]
-        noise=statistics.median(active(old,call,'median_ms',samples)/active(accepted_old,call,'median_ms',reference_samples) for call in CALLS)
+        noise=statistics.median(active(old,call,'median_ms',old_samples)/active(accepted_old,call,'median_ms',reference_samples) for call in CALLS)
         assert .25<=noise<=2.5,'Runner differs too much from the reference; repeat the measurement'
         allowance=max(1,noise)
         for call in sorted(CALLS):
@@ -115,8 +126,8 @@ def check(current,baseline,reference,targets):
             rows.append({'phase':phase,'call':call,'runner_factor':noise,'paired_work_ms':observed,'regression_threshold_ms':allowed,
                          'client_ms':{stat:metric(group,call,stat,samples) for stat in observed},'target_miss':target_miss})
     return {'passed':not failures,'failures':failures,'measurements':rows,
-            'samples_per_call':samples,'reference_samples_per_call':reference_samples,
-            'policy':'Lead ceilings and reference regression in every measured history phase. A call misses the lead ceilings when its median or its p95 is over the ceiling; against the reference, median and p95 must both cross. Common paired runner slowdown scales both allowances; Matched per-sample waits are subtracted before percentiles; the 525 ms wait is checked separately.'}
+            'samples_per_call':samples,'old_runtime_samples_per_call':old_samples,'reference_samples_per_call':reference_samples,
+            'policy':'Lead ceilings and reference regression in every measured history phase. A call misses the lead ceilings when its median or its p95 is over the ceiling; against the reference, median and p95 must both cross. Common paired runner slowdown scales both allowances, measured with the old runtime at the reference sample count and positions; Matched per-sample waits are subtracted before percentiles; the 525 ms wait is checked separately.'}
 
 
 if __name__=='__main__':

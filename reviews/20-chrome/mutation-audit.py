@@ -566,7 +566,7 @@ case('gate60-count-back-to-20',LT,'"samples_per_call": 60,','"samples_per_call":
 case('gate60-summary-p95-off-by-one',LS,"ordered[max(0,math.ceil(.95*len(values))-1)]","ordered[min(len(values)-1,math.ceil(.95*len(values)))]",GATE60,True)
 case('gate60-check-p95-off-by-one',LC,"return ordered[max(0,math.ceil(.95*len(ordered))-1)]","return ordered[min(len(ordered)-1,math.ceil(.95*len(ordered)))]",GATE60,True)
 case('gate60-reference-at-new-count',LC,"(reference['current'],reference_samples),(reference['baseline'],reference_samples)","(reference['current'],samples),(reference['baseline'],samples)",'test_latency.LatencyGate.test_gate60_new_measurements_take_the_lead_count_and_the_reference_keeps_its_own',True)
-case('gate60-client-fixed-20','control/chrome/ci/latency-probe.mjs','index<LATENCY_SAMPLES;','index<20;',node('latency','gate60 the latency client takes the lead sample count'))
+case('gate60-client-fixed-20','control/chrome/ci/latency-probe.mjs','index<samples;','index<20;',node('latency','gate60 the latency client takes the lead sample count'))
 # The package re-check of fixes b: the typing record's new shape has its own symbol.
 case('gate60-typing-symbol-v1',G,"Symbol.for('aresos.chrome.typing.v2')","Symbol.for('aresos.chrome.typing.v1')",node('page','gate60 the typing record has its own symbol'))
 # The security re-check of fixes b: every app's instructions within 4,096, and
@@ -594,6 +594,23 @@ case('gate60b-record-late-as-start',B,"state.documents.set(context.uniqueId,{ins
 case('gate60b-record-not-in-status',B,"...await popupStatus(),installs:installRecord()};","...await popupStatus()};",node('background','gate60b the install record'))
 case('gate60b-record-past-control',B,"[...preloadTargets.values()].filter(state=>controlled.get(state.tab)?.epoch===state.epoch).flatMap(","[...preloadTargets.values()].flatMap(",node('background','gate60b the install record'))
 case('gate60b-fixture-hold-ignored','control/chrome/ci/fixture.mjs',"if(held)await held.promise;","",node('fixture','gate60b a held popup document'))
+
+# The gate after run 43613647256, part 2: the old runtime keeps the frozen
+# reference's 20 samples at the reference's positions; the current runtime
+# stays at 60. The probes put the old runtime back to 60 (the lead's removal
+# probe), have the check, the summary or the client read the current count for
+# it, and drop the position checks.
+LP='control/chrome/ci/latency-probe.mjs'
+OLD20='test_latency.LatencyGate.test_gate60b_the_runner_factor_reads_the_old_runtime_at_the_reference_positions'
+OLD20_SUMMARY='test_latency.LatencySummary.test_gate60b_the_old_runtime_summary_takes_20_at_positions_0_to_19'
+case('gate60b-old-runtime-back-to-60',LT,'"old_runtime_samples_per_call": 20,','"old_runtime_samples_per_call": 60,',OLD20,True)
+case('gate60b-check-old-at-current-count',LC,"(baseline,old_samples),(reference['current'],reference_samples)","(baseline,samples),(reference['current'],reference_samples)",OLD20,True)
+case('gate60b-check-ratio-at-current-count',LC,"active(old,call,'median_ms',old_samples)","active(old,call,'median_ms',samples)",OLD20,True)
+case('gate60b-check-positions-unchecked',LC,"    assert positions(baseline)==positions(reference['baseline']),'The old runtime must take the reference sample positions'\n","",OLD20,True)
+case('gate60b-summary-old-at-current-count',LS,"    return OLD_RUNTIME_SAMPLES\n","    return SAMPLES\n",OLD20_SUMMARY,True)
+case('gate60b-summary-positions-unchecked',LS,"            assert {row['sample'] for row in rows if row['phase']==phase and row['call']==call}=={phase+':'+str(index) for index in range(count)},'Samples are not at positions 0 to count-1'\n","            pass\n",OLD20_SUMMARY,True)
+case('gate60b-client-old-at-current-count',LP,"  assert.equal(runtime,TARGETS.baseline,'unknown latency runtime');return OLD_RUNTIME_SAMPLES;","  assert.equal(runtime,TARGETS.baseline,'unknown latency runtime');return LATENCY_SAMPLES;",node('latency','gate60b the old runtime'))
+case('gate60b-client-ignores-container-runtime',LP,"runtime=process.env.LATENCY_BASELINE||'current'}){","runtime='current'}){",node('latency','gate60b the old runtime'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

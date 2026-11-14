@@ -29,7 +29,9 @@
     }
   },
   "samples_per_call": 60,
-  "samples_basis": "Set by mac-aresos-control, 2026-11-14, after run 43603381599: the latency client takes this many samples per call and history phase, for both runtimes and both profiles, and the summary and the check require it. With 20 the p95 was the second-highest sample, so two runner hiccups failed a call; with 60 a p95 over its ceiling takes at least four slow samples.",
+  "samples_basis": "Set by mac-aresos-control, 2026-11-14, after run 43603381599: the latency client takes this many samples per call and history phase for the current runtime in both profiles, and the summary and the check require it. With 20 the p95 was the second-highest sample, so two runner hiccups failed a call; with 60 a p95 over its ceiling takes at least four slow samples.",
+  "old_runtime_samples_per_call": 20,
+  "old_runtime_samples_basis": "Set by mac-aresos-control, 2026-11-14, after run 43613647256: the old runtime (baseline) only feeds the runner-noise ratio, its medians over the frozen 20-sample reference's old-runtime medians, so it takes the reference's 20 samples per call and history phase at the same positions (0 to 19 of each phase). It slows as its own history grows, so at 60 its medians sat later in that history than the reference's and the ratio rose with no runner change (1.22 fresh, against 0.78 to 0.96 at the reference's positions), which loosened the ceilings.",
   "measurement_run": "43502970342",
   "measurement_samples_per_call": 20,
   "baseline": "ab7aba92",

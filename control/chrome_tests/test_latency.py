@@ -288,6 +288,36 @@ class LatencySummary(unittest.TestCase):
                 with self.assertRaises(AssertionError):module.summarize(root)
 
 
+    def test_gate60b_the_old_runtime_summary_takes_20_at_positions_0_to_19(self):
+        import importlib.util
+        import json
+        from pathlib import Path
+        import tempfile
+        path=Path(__file__).resolve().parents[1]/'chrome/ci/latency-summary.py'
+        spec=importlib.util.spec_from_file_location('latency_summary',path)
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        def write(root,runtime,positions):
+            rows=[{'sample':phase+':'+str(i),'phase':phase,'call':call,'milliseconds':(525 if call in module.INPUTS else 0)+10+i} for phase in sorted(module.PHASES) for i in positions for call in sorted(module.CALLS)]
+            internal=[{'sample':row['sample'],'call':row['call'],'stage':'post_input_observation_wait','milliseconds':525} for row in rows if row['call'] in module.INPUTS]
+            internal+=[{'stage':'history_fixture','count':count} for count in [1000,4000]]
+            (root/'latency-service.jsonl').write_text('\n'.join(map(json.dumps,internal)))
+            (root/'latency-client.json').write_text(json.dumps({'samples':rows,'baseline':runtime,'privacy':'plain'}))
+        with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[2]/'.work') as temporary:
+            root=Path(temporary)
+            for file,value in [('chrome-version.txt','Synthetic Chrome'),('runtime-build.txt','synthetic-build')]:(root/file).write_text(value)
+            write(root,'ab7aba92',range(20))
+            result=module.summarize(root)
+            self.assertEqual((result['runtime'],result['samples_per_call']),('ab7aba92',20))
+            self.assertEqual(result['calls']['read']['client_total']['samples'],20)
+            self.assertEqual(result['notes'][0],'20 samples per call and history phase; owner think time absent.')
+            self.assertEqual(sorted({row['sample'] for row in result['input_samples'] if row['phase']=='fresh'}),sorted('fresh:'+str(i) for i in range(20)))
+            # The old runtime at 60 or at later positions, and the current runtime at 20, refuse.
+            for runtime,positions in [('ab7aba92',range(60)),('ab7aba92',range(40,60)),('current',range(20)),('unknown',range(20))]:
+                with self.subTest(runtime=runtime,positions=positions):
+                    write(root,runtime,positions)
+                    with self.assertRaises(AssertionError):module.summarize(root)
+
+
 class LatencyGate(unittest.TestCase):
     def test_round3_measured_cost_removal_probe_fails_the_production_ci_command(self):
         import json
@@ -307,7 +337,8 @@ class LatencyGate(unittest.TestCase):
                 accepted=reference['profiles'][profile]
                 current=copy.deepcopy(accepted['current'])
                 self.assertEqual(current['chrome'],observed['chrome'])
-                baseline=directory/'baseline.json';baseline.write_text(json.dumps(self.repeated(accepted['baseline'])))
+                # The old runtime keeps the reference's 20 samples at its positions.
+                baseline=directory/'baseline.json';baseline.write_text(json.dumps(accepted['baseline']))
                 source=directory/'current.json';source.write_text(json.dumps(self.repeated(current)))
                 command=[sys.executable,'-B',str(ci/'latency-check.py'),str(source),str(baseline),str(ci/'latency-reference.json'),str(ci/'latency-targets.json')]
                 nominal=subprocess.run(command,capture_output=True,text=True,timeout=30)
@@ -336,7 +367,7 @@ class LatencyGate(unittest.TestCase):
 
     def repeated(self,measurement):
         # The frozen reference has 20 samples per call; taking each sample
-        # three times gives the 60 the gate requires of a new measurement with
+        # three times gives the 60 the gate requires of the current runtime with
         # the same median and p95 (the 30th/31st of 60 are the 10th/11th of 20,
         # the 57th of 60 the 19th of 20).
         factor,rest=divmod(self.samples,self.reference_samples)
@@ -360,7 +391,7 @@ class LatencyGate(unittest.TestCase):
             modules[name]=importlib.util.module_from_spec(spec);spec.loader.exec_module(modules[name])
         self.gate,self.summary=modules['latency-check'],modules['latency-summary']
         targets=json.loads((ci/'latency-targets.json').read_text())
-        self.samples,self.reference_samples=targets['samples_per_call'],targets['measurement_samples_per_call']
+        self.samples,self.old_samples,self.reference_samples=targets['samples_per_call'],targets['old_runtime_samples_per_call'],targets['measurement_samples_per_call']
         self.build(self.samples)
 
     def measurement(self,runtime,active,samples):
@@ -382,10 +413,11 @@ class LatencyGate(unittest.TestCase):
         return {'runtime':runtime,'privacy':'plain','chrome':'Synthetic Chrome','phases':phases,'input_samples':pairs}
 
     def build(self,samples):
-        # A new measurement takes `samples`; the reference keeps its own count.
-        self.current=self.measurement('current',20,samples);self.old=self.measurement('ab7aba92',15,samples)
+        # The current runtime takes `samples`, the old runtime and the
+        # reference keep their own 20.
+        self.current=self.measurement('current',20,samples);self.old=self.measurement('ab7aba92',15,self.old_samples)
         self.reference={'privacy':'plain','current':self.measurement('current',20,self.reference_samples),'baseline':self.measurement('ab7aba92',15,self.reference_samples)}
-        self.targets={'format':1,'status':'lead-approved','samples_per_call':samples,'measurement_samples_per_call':self.reference_samples,
+        self.targets={'format':1,'status':'lead-approved','samples_per_call':samples,'old_runtime_samples_per_call':self.old_samples,'measurement_samples_per_call':self.reference_samples,'baseline':'ab7aba92',
                       'ceilings_ms':{call:{'median_ms':100 if call not in self.gate.INPUTS else 650,'p95_ms':150 if call not in self.gate.INPUTS else 750} for call in self.gate.CALLS}}
 
     def check(self):return self.gate.check(self.current,self.old,self.reference,self.targets)
@@ -458,7 +490,7 @@ class LatencyGate(unittest.TestCase):
         ci=Path(__file__).resolve().parents[1]/'chrome/ci'
         reference=json.loads((ci/'latency-reference.json').read_text())['profiles'][profile]
         targets=json.loads((ci/'latency-targets.json').read_text())
-        return self.repeated(reference['current']),self.repeated(reference['baseline']),reference,targets
+        return self.repeated(reference['current']),copy.deepcopy(reference['baseline']),reference,targets
 
     def test_final_f4_a_median_or_p95_over_a_lead_ceiling_fails_alone(self):
         # The final review's case: the lead's ceilings, the measured reference,
@@ -489,7 +521,8 @@ class LatencyGate(unittest.TestCase):
 
     def test_gate60_three_slow_samples_of_sixty_pass_and_a_fourth_fails(self):
         # The lead (mac-aresos-control, 2026-11-14, after run 43603381599): 60
-        # samples per call and history phase, for both runtimes and profiles. A
+        # samples per call and history phase, for the current runtime in both
+        # profiles (the old runtime keeps 20, after run 43613647256). A
         # p95 over its ceiling then takes four slow samples; with the old 20 it
         # took two. The ceilings and "median or p95" stay; the frozen reference
         # keeps its 20.
@@ -520,6 +553,41 @@ class LatencyGate(unittest.TestCase):
         self.current=current;self.assertTrue(self.check()['passed'])
         self.reference['baseline']=self.measurement('ab7aba92',15,self.samples)
         with self.assertRaises(AssertionError):self.check()
+
+    def test_gate60b_the_runner_factor_reads_the_old_runtime_at_the_reference_positions(self):
+        # The lead (mac-aresos-control, 2026-11-14, after run 43613647256): the
+        # old runtime only feeds the runner-noise ratio and must match the
+        # frozen 20-sample reference, so it takes 20 at the reference's sample
+        # positions; the current runtime stays at 60.
+        import json
+        from pathlib import Path
+        targets=json.loads((Path(__file__).resolve().parents[1]/'chrome/ci/latency-targets.json').read_text())
+        self.assertEqual((targets['samples_per_call'],targets['old_runtime_samples_per_call'],targets['measurement_samples_per_call']),(60,20,20))
+        self.assertIn('mac-aresos-control, 2026-11-14, after run 43613647256',targets['old_runtime_samples_basis'])
+        self.assertIn('mac-aresos-control, 2026-11-14, after run 43603381599',targets['samples_basis'])
+        self.assertEqual((self.summary.SAMPLES,self.summary.OLD_RUNTIME_SAMPLES),(60,20))
+        self.assertEqual((self.summary.samples_for('current'),self.summary.samples_for('ab7aba92')),(60,20))
+        for profile in ['plain','audit']:
+            with self.subTest(profile=profile):
+                current,baseline,reference,targets=self.real_profile(profile)
+                positions={phase:sorted(row['sample'] for row in reference['baseline']['input_samples'] if row['phase']==phase and row['call']=='fill') for phase in self.gate.PHASES}
+                self.assertEqual(positions,{phase:sorted(phase+':'+str(index) for index in range(20)) for phase in self.gate.PHASES})
+                # Like for like: the reference's own old runtime gives a factor of exactly 1.
+                result=self.gate.check(current,baseline,reference,targets)
+                self.assertTrue(result['passed'],result['failures'])
+                self.assertEqual(result['old_runtime_samples_per_call'],20)
+                self.assertEqual({row['runner_factor'] for row in result['measurements']},{1.0})
+                # The same 20 samples later in a longer history (positions 40
+                # to 59) and the old runtime at 60 both refuse.
+                shifted=copy.deepcopy(baseline)
+                for row in shifted['input_samples']:row['sample']=row['phase']+':'+str(int(row['sample'].split(':')[1])+40)
+                with self.assertRaisesRegex(AssertionError,'reference sample positions'):self.gate.check(current,shifted,reference,targets)
+                with self.assertRaises(AssertionError):self.gate.check(current,self.repeated(baseline),reference,targets)
+                # The current runtime still needs its 60.
+                with self.assertRaises(AssertionError):self.gate.check(baseline|{'runtime':'current'},baseline,reference,targets)
+        # An old-runtime count that leaves the reference's is refused outright.
+        self.targets['old_runtime_samples_per_call']=60;self.old=self.measurement('ab7aba92',15,60)
+        with self.assertRaisesRegex(AssertionError,'frozen reference count'):self.check()
 
     def test_missing_stage_phase_or_unset_lead_targets_cannot_pass(self):
         for change in ['stage','phase','targets']:
