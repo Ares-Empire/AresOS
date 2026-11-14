@@ -428,14 +428,18 @@ class HintedOwnershipTest(OwnershipBase):
         self.focus(1)  # the compositor gives the hub the focus itself
         self.assertEqual(self.focus_events()[-1], ('foreground', 'desktop_activated', None))
 
-    def test_registry_apps_still_return_when_their_last_window_closes_beside_an_unowned_window(self):
-        # Nothing changes for the three reviewed apps: their own return rule does not look at other windows.
+    def test_registry_apps_leave_an_unowned_window_in_front_too_under_1_1(self):
+        # Review fixes 2 (REVIEW-2 finding 4): the protection holds for the three reviewed apps as well. The 1.0
+        # immediate return is in test_aresos_shell_review_fixes_2.RegistryBesideUnownedTest.
         self.window(5, 'java-unknown')
         self.open('notepad', 'o-n')
         self.window(2, 'org.kde.kwrite', active=True)
         self.later(5)
         self.close(2)
-        self.assertEqual((self.activations, self.state('o-n')), ([1], 'closed'))
+        self.later(shell.HANDOFF * 4)
+        self.assertEqual((self.activations, self.state('o-n'), self.helper_.shell), ([], 'closed', 'background'))
+        self.focus(1)  # the compositor gives the hub the focus itself
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'desktop_activated', None))
 
 
 class LegacyWindowsTest(Base):

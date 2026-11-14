@@ -448,3 +448,27 @@ class PrefixPrecedenceTest(OwnershipBase):
                     windows.app_id(handle, identity)
                     windows.done(handle)
                 self.assertEqual({t.app_id: t.owner for t in windows.toplevels.values()}, expected)
+
+
+class RegistryBesideUnownedTest(WindowsBase):
+    """Package review fix 4 (REVIEW-2 finding 4): under 1.1 a registry app's close leaves an unowned window in front;
+    under 1.0 today's immediate return stays. The 1.1 case is HintedOwnershipTest in test_aresos_shell_review_fixes."""
+
+    def registry_app_closes_beside_an_unowned_window(self):
+        self.window(5, 'java-unknown')
+        self.open('browser', 'o-c')
+        self.window(6, 'google-chrome', active=True)
+        self.later(5)
+        self.close(6)
+
+    def test_under_1_1_the_hub_is_not_pulled_in_front(self):
+        self.registry_app_closes_beside_an_unowned_window()
+        self.later(shell.HANDOFF * 4)
+        self.assertEqual((self.activations, self.state('o-c')), ([], 'closed'))
+
+    def test_under_1_0_the_old_immediate_return_stays(self):
+        self.hello(0)
+        self.later(0)
+        self.registry_app_closes_beside_an_unowned_window()
+        self.assertEqual((self.activations, self.state('o-c')), ([1], 'closed'))
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'app_closed', 'browser'))

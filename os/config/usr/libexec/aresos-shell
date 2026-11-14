@@ -3101,7 +3101,9 @@ class Helper:
             # The compositor may already have activated the next window when the close arrives.
             handed_off = (self.handoff is not None and self.handoff[1] == toplevel.handle
                           and now - self.handoff[2] <= HANDOFF)
-            if app == self.foreground_app or handed_off:
+            # For a 1.1 desktop the registry's apps leave a window nobody owns in front too (review 2, finding 4); a
+            # 1.0 desktop keeps today's immediate return.
+            if (app == self.foreground_app or handed_off) and not (self.window_minor >= 1 and self.unowned_windows()):
                 returned = True
                 self.return_to_desktop(app)
         active = self.windows.active()
