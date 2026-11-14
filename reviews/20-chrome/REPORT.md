@@ -3,40 +3,46 @@
 
 - **Round:** final fixes ([brief](../../briefs/20-final-fixes.md)), answering
   [REVIEW-FINAL](REVIEW-FINAL.md) and [SECURITY-FINAL](SECURITY-FINAL.md). Claude agents build it in steps (owner,
-  board #222). Progress and what is left: [PROGRESS.md](PROGRESS.md) (kept: the round isn't done).
-- **Steps 1 to 5 are done** (see their sections below). **Step 6 STOPPED for the lead's decision** on Chrome's latency
-  with history; everything else it found is fixed locally.
-- **STOP, for the lead: Chrome's latency with history misses the ceilings** (run `43566651314`, both profiles). Fresh
-  is within every ceiling; at 1,000 and 4,000 retained operations every call regressed, e.g. read 389 ms median
-  (ceiling 35, `a4143586` 21.8), navigate 466 (100, 52.2), approval to done 1,005 (700, 591). Cause: step 1's F1, as
-  prescribed (unary `+`, `operation_headers` dropped), turned the three per-request `iter_operations` shapes into
-  scans that `json_extract` every retained operation (locally 12–14 ms each at 4,000 against 0.1–0.5 ms through the
-  old index). The fix needs a decision the brief doesn't make. **Recommendation:** a partial index on `k` alone over
-  open or unacknowledged-notice operations, used by those shapes in key order (no `TEMP B-TREE`, so F1's full-disk
-  property holds), then F1's Mail re-measure and sweep counts again. Details: "Step 6", Failure 2.
-- **Step 6 built and pushed:**
-  - **React-controlled plain fields** (`8fefbba0`): a plain field also counts when the guard saw trusted input in it
-    since load and it still holds text, marked by whose typing it is; a field emptied again doesn't count. The latency
-    page's Send empties value and default (run `43566651314`: the measured navigate still reports nothing).
-  - **CI service wrapper** (`f3853eb1`): forwards the peer step 3 added; run `43564715596` failed on it everywhere.
-  - **Audible tail** (`a777c178`): the same-tab clean rows wait out Chrome's ~2 s `audible` tail (harness premise).
-  - **Lists** (`aafeffe9`): a select counts only when it differs from HTML's reset state; an untouched drop-down
-    whose page marks no option no longer reports as the owner's typing.
-  - **Browser evidence so far** (`43566651314`): F3's 96 destination rows (Chrome uses the base target for
-    `target=""`, so the code stays), F2's credential checks, word shards, recheck2/3, adapters, native precedence and
-    all Python shards (F7's Linux-only spoofing-socket case runs and passes) passed.
-  - **Not yet run in a browser:** everything after GROUP 6 in core and after `final-navigate-reload-clean` in review,
-    including `final-discard-navigate-url-*`, `-close-tab-*`, `-history-*`, `-editor-*` and both React rows.
-- **Code head:** **`aafeffe9`** (records on top of it). The full local preflight passes: **292 Python, 404 Node and 398 mutations** (Python shards 54/43/100/95; the Linux-only socket case is skipped on the Mac and runs in CI), every baseline passing, plus the generator, diff and exact-unit checks (unit byte-identical to `8b7e799c`).
-- **Next:** (1) the lead decides the latency fix; (2) a fresh step builds it and makes **one** batched run that must
-  pass everything above; (3) records, then delete PROGRESS.md; (4) the lead's scoped re-check; (5) the final pair and
-  every Control workflow twice.
-- **Budget:** **257 / about 280** `control-chrome.yml` runs (step 6 used two: `43564715596`, `43566651314`; a third
-  was kept back because latency would fail it by construction). Steps 3 and 5 each started one
-  `control-chrome-check.yml` run for polkit only (`43556395889`, `43561341511`).
+  board #222); the sections below record each step. Progress and what is left: [PROGRESS.md](PROGRESS.md) (kept: the
+  round isn't done).
+- **Steps 1 to 7 are built. STOP, for the lead: one browser row is still red after step 7's three runs**
+  (`final-discard-close-tab-web-audio`, GROUP 8 of the review shard, both installs). Everything else the lead listed
+  passed in run `43584711126`: every core row after GROUP 6, the clean reload row with its audible-tail wait, the
+  drop-down fix, GROUP 8's `review-taken-*`, `final-navigate-reload-*`, `final-discard-navigate-url-*`,
+  `final-discard-close-tab-dirty`, and **latency at fresh, 1,000 and 4,000 under every ceiling in both profiles**
+  (three runs in a row). Not reached, because the shard stops at its first failure: `final-discard-close-tab-clean`,
+  `final-discard-history-*`, `-editor-*`, both React rows and the four review checks after GROUP 8, and the aggregates
+  with their audits. The row's three attempts (Claude's click on "Play media" in a tab fresh from `chrome_open`; the
+  owner's Tab+Return there; the owner loading and playing in the released tab, then Claude taking it) each stopped
+  one step later; the last one is a `chrome_close_tab` without `discard_unsaved` that closed a taken tab with Web
+  Audio playing instead of refusing. Whether that is a product gap (Chrome's `audible` flag not set for that tab at
+  that moment) or a harness premise can't be told without a browser; details and the two observations are in
+  "Step 7". A fourth run was not started (the step's allowance).
+- **Step 7 (Fable 5.2)** built the lead's latency decision and the stricter retake rule, then made the one batched
+  browser run:
+  - **Partial index `operation_open`** on `k` alone over the unresolved operations (open states, malformed state
+    headers, unacknowledged notices, open sent-copy checks), one definition (`OPEN_OPERATIONS`) for the index's WHERE
+    and every selective query's term; no shape sorts, a full disk still reads, and a store that can't add the index
+    opens without it. Mail re-measured: every call at or below main at every history, fresh store included; cases
+    36,490 (×1.29 main). Details: "Step 7".
+  - **Retake rule:** after a release and a retake without a reload every non-empty text field counts (KNOWN-LIMITS
+    line 27 now states the rule and what remains).
+  - **Runs `43575571819`, `43580466542`, `43584711126`** (all three of the step's allowance; the last on `c1173b0b`).
+    Latency at fresh, 1,000 and 4,000 under every ceiling in both profiles in all three (worst median / p95 in the
+    last: read 17.2 / 18.4 against 35 / 60, navigate 43.6 / 51.6 against 100 / 150, asking_click 24.7 / 25.1 against
+    60 / 100, approval_to_done 584.4 / 597.8 against 700 / 850). Receipts: [`records/final-step7/`](records/final-step7/).
+- **Code head:** **`c1173b0b`** (records and this report on top). The full local preflight passes:
+  **297 Python, 405 Node and 411 mutations** (Python shards 53/56/46/142; the Linux-only socket case is skipped on the Mac and runs in CI), every
+  baseline passing, plus the generator, diff and exact-unit checks (unit byte-identical to `8b7e799c`).
+- **Budget:** **260 / about 280** `control-chrome.yml` runs (step 7 used three: `43575571819`, `43580466542`, `43584711126`). Steps
+  3 and 5 each started one `control-chrome-check.yml` run for polkit only (`43556395889`, `43561341511`).
+- **Next:** (1) the lead decides the red row (a fourth run on a decided row, or the row's premise); (2) records, then
+  delete PROGRESS.md; (3) the lead's scoped re-check; (4) the final pair and every Control workflow twice.
 - **For linux-aresos at merge:** install `control/chrome/packaging/org.aresos.control.chrome-loosen.policy` at
   `/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy`; the owner's own agent and seat are
-  linux-tools' 18c-b image test.
+  linux-tools' 18c-b image test. **For linux-tools' 18c-b image:** the plan and timing tests
+  (`control/chrome_tests/test_full_disk_reads.py`, `test_open_index_timing.py`) must also pass on AresOS's own SQLite
+  (see "Step 7", SQLite versions).
 - **Earlier head `a4143586`** (before this round) passed its Chrome pair, base, boundary, qualification and Mail; that
   is history now. Never merge the PR or main, and never force-push.
 
@@ -125,6 +131,8 @@ plain runs averaged; [record](records/post18d/mail-sweep-after-f1.json),
   - It is a constant per result, not growth. The analyst's pre-F1 record shows the same pattern (read +0.07, search
     +0.09, file +0.10 ms), so F1 and the sweep change did not add it.
 - **Expiry lost the index and still beats main** by 4×–5×.
+- **Re-measured after step 7** (the partial index): every call at or below main at every history, the fresh
+  store included; cases 36,490. The table and record are in "Step 7", under "Mail re-measure".
 - **Time per sweep case** on this Mac (`case_cost.py`), main → final:
   - maintenance 11.5 → 12.9 ms (it was 20.2 before);
   - status 37.1 → 42.8 ms;
@@ -639,9 +647,9 @@ p95 in ms, against the ceiling; `a4143586` median for comparison):
   changed `op:` row. No released build ever created it, so there is no migration that drops it. (PROGRESS.md said
   Chrome's latency without the index would be measured "in step 4's browser run"; no step before this one started a
   browser run, so step 6's run is that measurement.)
-- **Dropping the index** means the selective `states` and `legacy_open` scans (expiry, recovery) read every retained
-  operation's header in SQL instead of an index range. The measured expiry time is in the step 1 record and still
-  beats main.
+- **Dropping the index** meant, until step 7, that the selective `states` and `legacy_open` scans (expiry,
+  recovery) read every retained operation's header in SQL instead of an index range; step 7's partial index
+  `operation_open` gives them an index range again (see "Step 7").
 - **In the CI Mail sweep,** `cancel` stays at its forced-miss size. Every other flow drops the repeated journal
   re-reads, and with them most cleanup pairs. The CI Mail workflow measures the real per-job times in the final pair.
 - **Step 1's local measurement** used CPython 3.14.6 with the worktree's `.work/20-chrome/python-deps` (jsonschema
@@ -667,6 +675,212 @@ p95 in ms, against the ceiling; `a4143586` median for comparison):
 - **Generated files changed in this round:** `control/generated/chrome-tools.json`, `chrome-instructions.txt` and
   `docs/control/TOOLS.md` (navigate and close_tab schemas, shared text). The extension's runtime hash changes with
   `reader.js` and `background.js`, so step 6's run measured a new build.
+
+## Step 7: the partial index, the retake rule, and three browser runs stopped at one row
+
+The lead decided the latency fix on 2026-11-14 (a partial index on `k` alone over the unresolved operations, within F1's
+"an index whose order matches `ORDER BY k`"), with four conditions for the index (one definition, SQLite versions
+named, the timing test in the normal suite, full-disk creation) and one for the retake rule (no release-time
+fingerprint). Built on Fable 5.2, because the storage design had already taken one round.
+
+**The index** (`storage.py`, commit `c5810bb0`).
+- **What it covers.** `OPEN_OPERATIONS` is one SQL expression over an operation's headers: state in
+  `retention.OPEN` (`partial`, `reserved`, `submitting`, `unknown`), a malformed state header (not text, or a JSON
+  array or object; kept so the caller's own check fails closed, as the `states` filter already did), a notice the owner
+  hasn't acknowledged (`notice` truthy and `ack` falsy in every SQL spelling of a Python-truthy or -falsy value, so the
+  index is a superset of the Python predicates), and a Mail send whose `sent_copy_check.state` is `open`.
+  `OPEN_INDEX` is `CREATE INDEX operation_open ON kv(k) WHERE substr(k,1,3)='op:' AND <OPEN_OPERATIONS>`.
+- **One definition.** The same constant is the index's WHERE and the extra term `iter_operations` appends to every
+  selective shape: `states` that are a subset of `OPEN` (`_expire` with `{'reserved'}`, `retention.expire` with
+  `OPEN`), `legacy_open` (recovery's notices), and the new flag `unresolved=True`, which `_pending` uses with
+  `exclude_app='chrome'` (the open-or-notice test is now in SQL as well as in Python) and Mail's
+  `unresolved_sent_checks` uses with `app='mail'`. SQLite's planner uses a partial index only when the query's WHERE
+  contains the index's WHERE terms as identical expressions, so one constant on both sides is what keeps the planner
+  on the index; `test_the_index_where_and_every_selective_query_come_from_the_one_definition` pins that the stored index
+  SQL is `OPEN_INDEX`, that `OPEN_OPERATIONS` names exactly `retention.OPEN`, and that every selective shape's SQL
+  carries the constant once and no broad shape does.
+- **Why `unresolved_sent_checks` is in it.** Measuring a Chrome read with 4,000 retained operations through the real
+  store (no browser) showed ten operation scans per read: `_pending` ×4 and recovery's `legacy_open` ×4 (the pending
+  view runs twice per request, each paging twice), and Mail's `unresolved_sent_checks` ×2, which every request's notice
+  rows call. Step 6's analysis named the first two kinds; the Mail one is the same per-request class and would have
+  left a read at about 100 ms on the runner. An open sent-copy check is an unresolved operation, so it belongs in the
+  set; `resolve_sent_checks` (the `control_pending` and `mail_notices` route, which rechecks Mail's sends against the
+  server) keeps its broad `app='mail'` walk, as on main.
+- **Key order, no sort.** The index holds `k` alone, so a walk through it is in `ORDER BY k` order and no shape sorts
+  in a `TEMP B-TREE`: F1's full-disk property holds for every shape. Broad shapes (an app's whole history: Mail read,
+  search, `resolve_sent_checks`) keep the primary-key range and the unary `+`. The unary `+` stays on every header
+  filter, including inside `OPEN_OPERATIONS`; a left-behind `operation_headers` index is never matched.
+- **Creation.** `_index_open_operations` runs at every open, right after the schema: it counts the unresolved rows,
+  admits `max(64 KiB, 128 B per row)` from the ledger, creates the index and commits. A full disk, an over-quota ledger
+  or any other storage refusal is recorded as a storage observation and the store opens without the index: every shape
+  then walks the primary key in key order (still no sort), and the next open with space adds it. SQLite maintains it
+  atomically with `kv`: an operation leaves it when it stops matching (reserved → done, ack, check closed).
+- **SQLite versions.** The plan tests passed locally on SQLite 3.50.4 (CPython 3.14.6, the lead's Mac too) and in CI on
+  3.45.1 (ubuntu-24.04 runner, Python shard 0 of runs 43575571819 and 43584711126). Nothing in the match is version-specific: partial indexes and the
+  identical-term implication rule date from 3.8.0 (2013), and `json_extract` from 3.9. The unary `+` in a query term
+  and in the index's WHERE compare as the same expression tree; the prototype showed the same plans with and without
+  it on 3.50.4, and the CI shards show the same on 3.45.1. **For linux-tools' 18c-b image:** the plan and
+  timing tests (`test_full_disk_reads`, `test_open_index_timing`) must also pass on AresOS's own SQLite; they are in
+  the normal Python suite, so running the suite there is the check.
+
+**Tests** (`control/chrome_tests/test_full_disk_reads.py`, `test_open_index_timing.py`).
+- **Plans:** 48 shapes (every combination of `app`, `exclude_app`, `legacy_open`, `states` ∈ {none, `OPEN`,
+  `{'reserved'}`}, `unresolved`) in four states: fresh, with the old `operation_headers` left behind, the same after
+  `ANALYZE`, and `ANALYZE` without it. Every plan is exactly one `SEARCH kv USING INDEX … (k>? AND k<?)`: through
+  `operation_open` for the 36 selective shapes, through `sqlite_autoindex_kv_1` for the 12 broad ones; none a
+  `TEMP B-TREE`.
+- **Membership:** an operation is in the index while open, unacknowledged or with an open sent-copy check, and leaves it
+  when finished, acknowledged or checked; malformed state headers stay candidates; the index's rows are exactly what
+  `unresolved=True` returns, and the per-request shapes return exactly their rows against a plain walk.
+- **Full disk:** the 1,200-operation Mail read, search and `control_pending` test from step 1 still answers with no
+  write. New: a store whose index was dropped opens while every page write to the main database fails
+  (`FullMainDatabase`, the VFS fault hook): the `CREATE INDEX` fails with `SQLITE_FULL`, the open records the storage
+  observation, every one of the 48 shapes returns the same rows through the primary key with no sort, and the next
+  open adds the index.
+- **No broad scan on Chrome's path:** a Chrome read, the request-start pending view and `engine.expire()` run at least
+  three operation queries and every one carries the index term.
+- **Timing, no browser, in the normal suite:** with 1,000 and 4,000 completed operations (the CI latency fixture's
+  shape), each per-request shape (`_expire`, `retention.expire`, `_pending`, `unresolved_sent_checks`, recovery's
+  `legacy_open`) is timed as the median of nine runs against a scan of the same rows (the same SQL without the index
+  term, run in the same process) and must be under a quarter of it and under 5 ms. A Chrome read's service time
+  (`engine.request`, as the latency profile's `service_total` stage times it) must stay under the 35 ms read ceiling.
+  Measured on this Mac (median ms, indexed / scan): at 1,000 operations 0.003 / 2.9 (`_expire`), 0.003 / 7.0 (`_pending`),
+  0.003 / 6.9 (`unresolved_sent_checks`); at 4,000: 0.003 / 12.4, 0.004 / 30.5, 0.004 / 31.3; a Chrome read's service
+  time 0.74 ms at 1,000 and 2.1 ms at 4,000. On the runner (run 43575571819, SQLite 3.45.1): indexed 0.01 ms everywhere
+  against scans of 6–18 ms at 1,000 and 26–90 ms at 4,000; a Chrome read's service time 2.9 ms at 1,000 and 7.4 ms at
+  4,000 (step 6's analysis put the old scans at about 95 µs per retained operation per call on the runner, which these
+  scan baselines confirm). The record prints as `step7-timing …` in the shard log, with the SQLite version.
+- **Removal probes** (`mutation-audit.py`, `step7-*`, 11): the index term dropped (plans, timing), the index WHERE
+  drifting from the query (plans, one definition), the index never created (plans, timing), the `states` subset test
+  dropped, a full disk fatal at open, the sent-copy clause dropped (membership), `_pending` and
+  `unresolved_sent_checks` back to a scan. All rejected.
+
+**Mail re-measure and sweep counts** (same harness, same Mac, against main `b2b51107` and the F1-only head
+`b72c81fa`; measured head `c5810bb0`; [record](records/final-step7/mail-sweep-after-step7.json),
+[summary](records/final-step7/mail-sweep-after-step7.md)).
+- **Cases** (local, `discover.py --singles`): main 28,321; F1 only 105,335; step 1 35,058; **step 7 36,490 (×1.29
+  main)**. Single and persistent 6,259 → 6,527 (+268 each: one index page per changed unresolved operation row, as the
+  lead expected), pairs 22,540 → 23,436. Coverage: against F1, 47 distinct primary and 81 cleanup sites in both, none
+  missing in any flow; against main, every site is covered (main's seven `iter_items` cleanup sites are
+  `iter_operations` on the branch, as in step 1).
+- **Mail per-call times** (ABBA plain, 50 calls, median ms, main `b2b51107` → `c5810bb0`):
+
+  | Retained ops | read | search | file | compose | prepare_send | expiry |
+  |---|---|---|---|---|---|---|
+  | 0 | 0.51 → 0.51 | 3.88 → 3.87 | 7.92 → 7.76 | 4.21 → 3.70 | 7.57 → 6.78 | 3.38 → 2.57 |
+  | 1,000 | 105 → 4.60 | 108 → 8.00 | 149 → 17.9 | 195 → 11.1 | 159 → 23.8 | 46.9 → 3.76 |
+  | 4,000 | 408 → 8.45 | 414 → 11.9 | 568 → 27.3 | 768 → 18.2 | 611 → 65.1 | 191 → 4.97 |
+
+- **Every call is at or below main at every history, the fresh store included.** The step-1 fresh-store constant
+  (read +0.095, search +0.115, file +0.05 ms) is no longer measurable; the per-request operation queries now read the
+  index in a fresh store too, which is of the same order. With history the branch is far below main (main's own Mail
+  calls scan every retained operation).
+- **Per sweep case** (median ms, main → step 7): maintenance 11.0 → 13.2; restart_index 8.3 → 10.0; status
+  36.0 → 42.3; cancel 16.9 → 23.9 (the kept cache-miss flow).
+- **Full disk:** read and search answer on both heads at every history from 0 to 4,000.
+
+**The retake rule** (`reader.js`, `1e9213f7`; the "stricter alternative" of KNOWN-LIMITS, now the rule).
+- After a release and a retake of the same document without a reload (`guard.typingGap===true`), every plain text
+  field (`typedField`: inputs that take text, and textareas) holding text counts as unsaved, as editors already
+  counted after that gap. It is marked as the owner's unless the guard had seen only Claude type there before the
+  release (the typing record lives with the document, so Claude's mark survives the gap). Empty fields and non-text
+  inputs (range, colour, date) don't count from the gap alone. A late reader (unwatched document) keeps its rule.
+- No release-time fingerprint to cut the extra questions after a retake (the lead's condition).
+- Node: `step 7 after a retake every non-empty text field counts as the owner's, empty and non-text fields do not`;
+  step 6's React test now pins the retaken field too. Probes `step7-retake-counts-text-fields`,
+  `step7-retake-text-only`, both rejected. KNOWN-LIMITS line 27 now states the rule and what remains: a field Claude
+  typed before the release and the owner edited during it stays Claude's.
+
+**The browser runs: three used, the step's whole allowance.** Records in
+[`records/final-step7/`](records/final-step7/) (metadata only; no profile member read).
+- **Run `43575571819`** (`87041a57`): every browser row passed except one, in both installs: core whole (including
+  everything after GROUP 6), GROUP 8's `review-taken-*`, `final-navigate-reload-*` (the clean row with its audible-tail
+  wait), `final-discard-navigate-url-*` and `final-discard-close-tab-dirty`; F3's destination rows, F2's credential
+  checks, the word shards, recheck2/3, adapters, native precedence, the four Python shards (F7's Linux-only socket case
+  ran, `... ok`), and **both latency profiles under every ceiling at fresh, 1,000 and 4,000** (gates passed). Both
+  review shards stopped at `final-discard-close-tab-web-audio`: after Claude's click on "Play media" in a tab fresh
+  from `chrome_open`, the page never reported its `AudioContext` running (15 s). The aggregates didn't run (a shard
+  was missing).
+- **Run `43580466542`** (`d12b2c24`, the row's sound started by the owner's Tab+Return in that same fresh tab): the
+  same result, the same row; latency gates passed again.
+- **Run `43584711126`** (`c1173b0b`, the row runs its Web Audio case as every other Web Audio row does: the owner loads
+  the page and plays in a released tab, which the owner helper selects and focuses, then Claude takes it):
+  everything passed except that row, one step further: the owner loaded the page in the released tab, the sound
+  started (the page reported playing), Claude took the tab, and the first `chrome_close_tab` **without**
+  `discard_unsaved` **closed the tab** (`{"closed":…}`) instead of refusing with "media that is playing"
+  (review-matrices.mjs:290). The dirty case of the same loop was refused with its "Draft" report just before, and
+  `final-discard-navigate-url-web-audio` (the owner's own tab, taken) got the media report in all three runs. Latency
+  gates passed a third time. **STOP:** the step's three runs are used; a fourth would be needed, so this goes to the
+  lead (see the Handover).
+- **Two observations for the lead, not diagnosed** (no browser runs locally): in a tab fresh from `chrome_open`,
+  neither Claude's dispatched click on a button nor the owner's Tab+Return started an `AudioContext` and its report
+  within 15 s, while the same page played at once after the owner loaded it through the address bar. The likely
+  difference is where Chrome leaves the keyboard focus after a tab created at `about:blank` (the omnibox), which
+  explains the owner's keys but not Claude's click; KNOWN-LIMITS line 5's activation claims rest on the earlier
+  popup and clipboard probes, not on Web Audio. The row's purpose is the close_tab report, which Chrome's `audible`
+  flag gives whoever started the sound.
+
+**Latency against the lead's ceilings** (run `43584711126`, client median / p95 ms; a median or p95 over the ceiling
+fails; the `ab7aba92` column is the old runtime the pair measures for comparison, same service). Runs `43575571819`
+and `43580466542` passed the same gates with the same picture (their summaries are in the records).
+
+| History | Call | Ceiling (median / p95) | Plain | Instrumented | Old runtime `ab7aba92`, plain |
+|---|---|---|---|---|---|
+| fresh | read | 35 / 60 | 7.2 / 8.4 | 7.3 / 9.7 | 8.5 / 15.2 |
+| fresh | navigate | 100 / 150 | 33.2 / 50.6 | 33.6 / 51.6 | 23.2 / 32.9 |
+| fresh | free_click | 650 / 750 | 555.5 / 581.2 | 562.4 / 568.5 | 556.2 / 569.2 |
+| fresh | fill | 650 / 750 | 561.4 / 570.6 | 560.0 / 561.3 | 556.1 / 561.0 |
+| fresh | asking_click | 60 / 100 | 10.9 / 12.9 | 12.7 / 13.0 | 14.0 / 17.0 |
+| fresh | approval_to_done | 700 / 850 | 566.1 / 597.8 | 573.9 / 575.6 | 566.7 / 576.1 |
+| 1,000 | read | 35 / 60 | 7.2 / 8.5 | 9.6 / 10.3 | 108.6 / 117.5 |
+| 1,000 | navigate | 100 / 150 | 31.1 / 38.5 | 36.8 / 38.3 | 159.4 / 169.0 |
+| 1,000 | free_click | 650 / 750 | 560.4 / 569.9 | 557.9 / 571.8 | 685.4 / 698.5 |
+| 1,000 | fill | 650 / 750 | 559.8 / 561.5 | 556.7 / 557.9 | 688.5 / 700.4 |
+| 1,000 | asking_click | 60 / 100 | 12.7 / 13.7 | 15.4 / 15.7 | 140.8 / 170.1 |
+| 1,000 | approval_to_done | 700 / 850 | 575.6 / 578.5 | 569.1 / 571.9 | 699.4 / 727.2 |
+| 4,000 | read | 35 / 60 | 12.4 / 13.8 | 17.2 / 18.4 | 419.8 / 450.1 |
+| 4,000 | navigate | 100 / 150 | 39.2 / 41.5 | 43.6 / 47.9 | 592.9 / 656.1 |
+| 4,000 | free_click | 650 / 750 | 562.7 / 573.5 | 574.1 / 577.4 | 1115.9 / 1159.2 |
+| 4,000 | fill | 650 / 750 | 555.6 / 572.1 | 565.0 / 566.5 | 1125.1 / 1188.4 |
+| 4,000 | asking_click | 60 / 100 | 18.4 / 19.9 | 24.7 / 25.1 | 584.7 / 633.4 |
+| 4,000 | approval_to_done | 700 / 850 | 580.7 / 582.3 | 584.4 / 585.8 | 1132.5 / 1182.4 |
+
+Worst of both profiles per call and history, against the ceiling (median / p95 ms):
+
+| Call | Ceiling | fresh | 1,000 | 4,000 |
+|---|---|---|---|---|
+| read | 35 / 60 | 7.3 / 9.7 | 9.6 / 10.3 | 17.2 / 18.4 |
+| navigate | 100 / 150 | 33.6 / 51.6 | 36.8 / 38.5 | 43.6 / 47.9 |
+| free_click | 650 / 750 | 562.4 / 581.2 | 560.4 / 571.8 | 574.1 / 577.4 |
+| fill | 650 / 750 | 561.4 / 570.6 | 559.8 / 561.5 | 565.0 / 572.1 |
+| asking_click | 60 / 100 | 12.7 / 13.0 | 15.4 / 15.7 | 24.7 / 25.1 |
+| approval_to_done | 700 / 850 | 573.9 / 597.8 | 575.6 / 578.5 | 584.4 / 585.8 |
+
+### What the code doesn't show (step 7)
+
+- **Why a Chrome read scanned ten times.** Each request runs the pending view twice (at the start and for the result's
+  pending section), and each pending view pages `_pending` twice and asks recovery for legacy notices twice, and Mail
+  for its open sent-copy checks once. Every one of those is a selective shape now; a Chrome read's service time with
+  4,000 completed operations is about 2 ms on this Mac (0.8 ms at 1,000).
+- **`control_pending` and `mail_notices` still walk Mail's history** (`resolve_sent_checks`, resolving the checks
+  against the server), as main did with `iter_items('op:')`. It isn't on a Chrome request's path and isn't one of the
+  latency check's calls.
+- **Unfinished Chrome rows cost per row, not per history size.** With the full-disk fixture's 42 `unknown` rows a
+  pending view took about 150 ms at any history, in the committed projection's canonical hash per unfinished Chrome
+  operation (`committed.py`, pre-existing; `a4143586` behaves the same). The timing test retains completed rows only,
+  like the CI latency fixture; real stores hold few unfinished operations.
+- **The full-disk open test** (`FullMainDatabase`) fails every page write to the main database and spares two things
+  the VFS hook can't tell apart from a full disk: the create flag SQLite passes when opening an existing file, and the
+  disposable `journal-index.sqlite` rebuilt at every open (a failing rebuild raises `sqlite3.Error` out of
+  `require_index`, which `_initialize` doesn't catch; that is older than this round and not changed here).
+- **Step 7's local measurement** used CPython 3.14.6 with the worktree's `.work/20-chrome/python-deps` (jsonschema
+  4.26.0), the analyst's harness unchanged (`records/post18d/mail-sweep/`), and detached worktrees at `b2b51107`,
+  `b72c81fa` and `c5810bb0`, removed afterwards. The two Mail tests `test_review25_*_enospc_then_unlink_eio_*` fail
+  locally on main and on this branch alike (`boundary_not_installed`: the Mail suite expects the container's installed
+  boundary); the Mail workflow runs them.
+- **The Mail record's fresh-store numbers** show the step-1 per-result constant gone (read 0.513 → 0.508 ms). The
+  per-request operation queries now read the index in a fresh store too, which is of the same order; the record
+  doesn't claim more than the measurement.
 
 # Post-18d integration — final repetitions pending
 

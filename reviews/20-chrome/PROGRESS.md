@@ -141,28 +141,44 @@ details in REPORT.md, "Step 6". Runs `43564715596` and `43566651314`; receipts i
      HTML's reset state, tests, probe).
 - **Full local preflight on `aafeffe9`:** **292 Python, 404 Node and 398 mutations** (Python shards 54/43/100/95; the Linux-only socket case is skipped on the Mac and runs in CI), every baseline passing, plus the generator, diff and exact-unit checks (unit byte-identical to `8b7e799c`).
 
+### Step 7 (the partial index, the retake rule, three browser runs; STOPPED for the lead), Claude Fable 5.2, 2026-11-14
+
+Commits `c5810bb0` (index), `1e9213f7` (retake rule), `87041a57` (probes), `17f402d1` and `c1173b0b` (the one row's
+harness), `967ef7e8`, `d12b2c24` and the record commits; details in REPORT.md, "Step 7".
+- **Partial index `operation_open`** on `k` alone over the unresolved operations (open states, malformed state headers,
+  unacknowledged notices, open sent-copy checks); one definition `OPEN_OPERATIONS` for the index's WHERE and every
+  selective query's term (`states` ⊆ OPEN, `legacy_open`, the new `unresolved=True` used by `_pending` and Mail's
+  `unresolved_sent_checks`). No shape sorts; a store that can't add the index (full disk) opens and reads through the
+  primary key. Tests: 48 plan shapes in four index states, one definition, membership, full-disk open, no broad scan on
+  a Chrome request, timing in the normal suite (indexed 0.003 ms against scans of 3–31 ms locally; 0.01 against 6–90
+  on the runner, SQLite 3.45.1). 11 probes `step7-*`.
+- **Mail re-measure** (`records/final-step7/mail-sweep-after-step7.*`): every call at or below main at every history,
+  fresh store included; cases 36,490 (×1.29 main; +268 single and persistent from the index).
+- **Retake rule:** after a release and a retake without a reload every non-empty text field counts, marked as the
+  owner's unless only Claude was seen typing there before; KNOWN-LIMITS line 27 states the rule and what remains.
+  Node test, two probes.
+- **Runs `43575571819`, `43580466542`, `43584711126`** (the step's three): latency under every ceiling at fresh, 1,000
+  and 4,000 in both profiles, three times; every row passed except `final-discard-close-tab-web-audio` (GROUP 8,
+  review shard), whose three attempts each stopped one step later (see REPORT, "Step 7").
+- **Full local preflight on `c1173b0b`:** 297 Python (shards 53/56/46/142; the Linux-only socket case is skipped on
+  the Mac and ran in CI), 405 Node and 411 mutations, plus the generator, diff and exact-unit checks, all green.
+
 ## Left, in order
 
-1. **The lead decides the latency fix** (REPORT, "Step 6", Failure 2). Recommended: a partial index on `k` alone over
-   open or unacknowledged-notice operations, used by `_expire` (`states={'reserved'}`), `retention.expire`
-   (`states=OPEN`), `_pending` (`exclude_app='chrome'`, moving its open-or-notice test into SQL) and `legacy_open` in
-   key order, so no shape sorts in a `TEMP B-TREE` and a full disk still reads. Then extend step 1's plan, full-disk
-   and index tests and probes to it, and redo F1's Mail re-measure (`records/post18d/mail-sweep/`, against
-   `b2b51107`) and the sweep case counts.
-2. **One batched browser run** (`gh workflow run control-chrome.yml --ref pkg/20-chrome`; budget **257 / about 280**).
-   It must pass everything, including what hasn't run in a browser yet:
-   - core after GROUP 6 (GROUP 6 itself with the list fix);
-   - review: `final-navigate-reload-clean` (with the wait), `final-discard-navigate-url-*`, `-close-tab-*`,
-     `-history-*`, `-editor-*`, `final-discard-react-typed-by-claude` and `-typed-by-owner` (the first browser row
-     with the owner's real keystrokes, `xdotool type`), and the four review checks after GROUP 8;
-   - latency at fresh, 1,000 and 4,000 under the ceilings (median or p95 over fails), both profiles;
-   - the aggregates and their independent audits (none ran in step 6: shards were missing).
-   - `.work/final-step6/fetch.py` and `save.py` fetch and record a run (metadata only).
-   - Runner flake to know: the extension-free native baseline's file chooser can miss its 20 s window
-     (`native detached file picker opens`; once in run `43564715596`, also on 2026-11-09).
-3. **Records,** REPORT's Handover ("fix round done"), KNOWN-LIMITS; then delete this file (its notes are already in
-   REPORT, "Step 6", "What the code doesn't show"). Then the lead's scoped re-check, and only after it the final pair
-   and every Control workflow twice.
+1. **The lead decides the red row** `final-discard-close-tab-web-audio` (REPORT, "Step 7", the runs and the two
+   observations). In run `43584711126` the sound was playing (page report) in a tab Claude had opened, released, the
+   owner loaded and played in, and Claude took back; `chrome_close_tab` without `discard_unsaved` closed it with no
+   report. Either Chrome's `audible` flag wasn't set for that tab at that moment (a product gap for close_tab on such
+   a tab), or the row's premise needs a browser to settle. Options: a fourth run with a diagnostic row (print the
+   `tabs` row and the reader's `reload_state` for the tab before the close), or decide the row's premise.
+2. **One batched run that passes everything,** including what the red row hides in the review shard:
+   `final-discard-close-tab-clean`, `final-discard-history-*`, `-editor-*`, `final-discard-react-typed-by-claude` and
+   `-typed-by-owner`, the four review checks after GROUP 8, and the aggregates with their four audits (none has run yet:
+   a shard was missing each time). Budget: **260 / about 280** `control-chrome.yml` runs.
+   `.work/final-step7/fetch.py` and `save.py` fetch and record a run (metadata only; `save.py` needs a run whose
+   aggregates exist).
+3. **Records,** REPORT's Handover ("fix round done"), KNOWN-LIMITS; then delete this file. Then the lead's scoped
+   re-check, and only after it the final pair and every Control workflow twice.
 
 ## What the code doesn't show
 
