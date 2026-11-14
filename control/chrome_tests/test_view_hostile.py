@@ -52,7 +52,8 @@ def comparable(text):
     return re.sub(r" \u00b7 in .*$", " \u00b7 in", re.sub(r"\([0-9,]+ characters\)", "(N characters)", skeleton(text)), flags=re.MULTILINE)
 
 
-PATH = re.compile(r'(\u2026|[a-z0-9]+ ""\u2026?)( \u203a [a-z0-9]+ ""\u2026?)*')
+# A path: roles with emptied quotes, or a landmark's role alone (decision 2), and marks.
+PATH = re.compile(r'(\u2026|[a-z0-9]+( ""\u2026?)?)( \u203a [a-z0-9]+( ""\u2026?)?)*')
 
 
 def page(text):

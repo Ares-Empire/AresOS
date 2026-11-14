@@ -86,7 +86,7 @@ class Budgets(unittest.TestCase):
     def test_f3_the_one_link_with_the_unique_name(self):
         # the read with find and role: 1 call, at most 800; worked: about 100 and about 420
         calls = read(View(f3()), references(), find=F3_UNIQUE, role="link")
-        self.row(calls, 800, (100, 420), (1, 56, 385))
+        self.row(calls, 800, (100, 420), (1, 63, 397))
         self.assertEqual(calls[0][0].count("\n"), 0)
 
     def test_f3_read_in_full(self):

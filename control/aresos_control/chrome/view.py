@@ -44,6 +44,8 @@ READABLE = frozenset((
     "form table list main navigation banner contentinfo complementary region search dialog "
     "alertdialog article frame").split())
 TABLES = frozenset(("table", "grid"))
+# A hit's path names these also without a name (section 7, decision 2).
+PATH_ROLES = frozenset("main navigation banner contentinfo complementary form dialog table".split())
 LISTS = frozenset(("combobox", "listbox"))
 METHODS = frozenset(("get", "post", "dialog"))
 # What the fingerprint keeps of the states: ticked, selected, expanded.
@@ -672,13 +674,15 @@ class _Renderer:
                     yield node, found
 
     def _path(self, node):
-        """The named elements a hit stands in, outermost first."""
+        """The named elements and the landmarks a hit stands in, outermost first."""
         names = []
         parent = self.parent(node)
         while parent is not None:
+            role = shown_role(parent)
             if parent.name:
-                names.append(shown_role(parent) + " " + quoted(parent.name[:PATH_NAME]) +
-                             (MARK if len(parent.name) > PATH_NAME else ""))
+                names.append(role + " " + quoted(parent.name[:PATH_NAME]) + (MARK if len(parent.name) > PATH_NAME else ""))
+            elif role in PATH_ROLES:
+                names.append(role)
             parent = self.parent(parent)
         shown = []
         for name in names:  # from the nearest outwards, while they fit
@@ -686,6 +690,8 @@ class _Renderer:
                 break
             shown.insert(0, name)
         if len(shown) < len(names):
+            while shown and len(" › ".join([MARK] + shown)) > PATH:  # the mark counts too
+                shown.pop(0)
             shown.insert(0, MARK)
         return " › ".join(shown)
 

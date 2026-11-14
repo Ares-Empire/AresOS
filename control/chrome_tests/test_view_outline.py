@@ -566,17 +566,36 @@ class Find(unittest.TestCase):
     def test_a_hit_is_the_elements_line_and_the_path_of_named_ancestors(self):
         table = references()
         self.assertEqual(outline(View(f3()), table, find=F3_UNIQUE, role="link"),
-                         'link "Quarterly zebra report" kqtvm1 · in list "Results"')
+                         'link "Quarterly zebra report" kqtvm1 · in main › list "Results"')
         self.assertEqual(outline(View(f3()), table, find="quarterly ZEBRA"),                     # without regard to case
-                         'link "Quarterly zebra report" kqtvm1 · in list "Results"')
+                         'link "Quarterly zebra report" kqtvm1 · in main › list "Results"')
         self.assertEqual(outline(View(f3()), table, find="zebra report."), "")                   # literal
-        self.assertEqual(outline(View(f3()), table, find="Footer 3"), 'link "Footer 3" kqtvm2')  # no named ancestor: no path
+        self.assertEqual(outline(View(f3()), table, find="Footer 3"), 'link "Footer 3" kqtvm2 · in contentinfo')
+        self.assertEqual(outline([node(1, "group"), node(2, "p", 1, text=["Alone"])], find="alone"), 'p "Alone" kqtvm1')   # no path
+
+    def test_the_path_names_the_landmarks_also_without_a_name(self):
+        # Decision 2 (section 7): named ancestors, and these roles also without a name.
+        self.assertEqual(outline(week(), find="Lecture 3"), 'link "Lecture 3" → other.example kqtvm1 · in main')   # a list only with a name
+        nodes = [node(1, "main"), node(2, "list", 1, name="Week 46"), node(3, "listitem", 2, text=["Rooms change"])]
+        self.assertEqual(outline(nodes, find="rooms"), 'listitem "Rooms change" kqtvm1 · in main › list "Week 46"')
+        for role in ("main", "navigation", "banner", "contentinfo", "complementary", "form", "dialog", "table"):
+            with self.subTest(role=role):
+                nodes = [node(1, role), node(2, "row", 1), node(3, "cell", 2), node(4, "button", 3, name="Needle")]
+                self.assertEqual(outline(nodes, find="needle").split(" · in ")[1], role)   # an unnamed row or cell isn't named
+        for role in ("region", "group", "article", "list", "listitem", "search", "alertdialog", "figure", "grid", "row", "cell", None):
+            with self.subTest(role=role):
+                nodes = [node(1, role), node(2, "button", 1, name="Needle")]
+                self.assertEqual(outline(nodes, find="needle"), 'button "Needle" kqtvm1')
+        nodes = [node(index + 1, "dialog", index or None) for index in range(20)] + [node(30, "button", 20, name="Needle")]
+        path = outline(nodes, find="needle").split(" \u00b7 in ")[1]                 # still at most 80 characters
+        self.assertEqual(path, " \u203a ".join([MARK] + ["dialog"] * 8))                # nine would be 82 with the mark
+        self.assertLessEqual(len(path), 80)
 
     def test_role_keeps_only_that_role_and_must_be_one(self):
         table = references()
         both = outline(View(f3()), table, find="results").split("\n")
-        self.assertEqual(both, ['h1 "Results" kqtvm1', 'list "Results" kqtvm2'])
-        self.assertEqual(outline(View(f3()), table, find="results", role="h1"), 'h1 "Results" kqtvm1')
+        self.assertEqual(both, ['h1 "Results" kqtvm1 · in main', 'list "Results" kqtvm2 · in main'])
+        self.assertEqual(outline(View(f3()), table, find="results", role="h1"), 'h1 "Results" kqtvm1 · in main')
         self.assertEqual(outline(View(f3()), table, find="results", role="button"), "")
         with self.assertRaises(Refused) as caught:
             outline(View(f3()), table, find="results", role='link"\nbutton')
@@ -584,7 +603,7 @@ class Find(unittest.TestCase):
 
     def test_folded_parts_frames_values_and_cells_are_searched(self):
         table = references()
-        self.assertEqual(outline(View(f1()), table, find="Synthetic value 77"), 'textbox "Field 77" = "Synthetic value 77" kqtvm1')
+        self.assertEqual(outline(View(f1()), table, find="Synthetic value 77"), 'textbox "Field 77" = "Synthetic value 77" kqtvm1 · in form')
         self.assertEqual(outline(View(f2()), table, find="r150c3"), 'cell "r150c3abcdef" kqtvm2 · in table "Stock"')
         self.assertEqual(outline(View(f2()), table, find="Select order 1"), 'checkbox "Select order 1" kqtvm3 · in table "Orders"')
         raw = reply(frames=[frame([node(1, "main", name="Page"), node(2, "frame", 1, name="Ad", frame=7)]),
