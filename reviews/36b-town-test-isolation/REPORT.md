@@ -42,7 +42,7 @@ The throwaway changes are saved outside the repo; the reviewer can rebuild them 
 ### Checked, no change needed
 
 - **Package 34's My apps server tests:** they never complete the list, never set a singleplayer profile (the players they place are not the host), and do not touch the town. `MyAppsGame`'s news comes only from `listed()`.
-- **Package 37's held boxes, worked out by hand:** TOWN (-48..48, -60..30) holds N0L0, N0R0, E0L0 and W1R1 (to x -40, z -33 with the 4-block margin); N40L0 has its own box. NO_TOWN (±32) holds N0L0. SWAP (±48) holds N0, E0 and S0L0 (to z +26). MOVE (-40..39) holds W0L0, W1L0 (to x -40, exactly at the edge with the margin; the real inspection reaches -38), W0R0, E0, S0L0 and N0. Avenues reach `avenueEnd(1)` = 38 out. These tests do not assert `pending`.
+- **Package 37's held boxes, worked out by hand:** TOWN (-48..48, -60..30) holds N0L0, N0R0, E0L0 and W1R1 (to x -40, z -33 with the 4-block margin); N40L0 has its own box. NO_TOWN (±32) holds N0L0. SWAP (±48) holds N0, E0 and S0L0 (to z +26). MOVE (-40..39) holds W0L0, W1L0 (to x -40, exactly at the edge with the margin; the real inspection reaches -38), W0R0, E0, S0L0 and N0. *Corrected by REVIEW-1, NIT 1: W1L0's sign space alone reaches x -40 (centre -33.5, radius 6.1), so the inspection reaches the box edge exactly, and with `withinTown`'s 4-block margin it would reach -44. The move test's home sits in the middle of its chunk, so the box edge is -40 in every run and the test holds; `withinTown` could not be reused there as it stands.* Avenues reach `avenueEnd(1)` = 38 out. These tests do not assert `pending`.
 - **`stepThree`** holds ±80 around its home: S0, E1L0, W0R0 and N2L1 all lie well inside.
 
 ## Verified
