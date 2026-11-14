@@ -436,8 +436,8 @@ public final class TownGameTests {
         // The first build: pinned first, so Chrome gets N0L0 although Discord comes first in the file. The far place
         // is not loaded: its build waits, nothing is said about it, its place stays saved.
         var first = fake.pass(server);
-        check(first.lines().equals(List.of("Chrome is new. It stands in Internet, north. /chrome opens it.",
-                "Discord is new. It stands in Internet, north. /discord opens it.")), "First build: " + first.lines());
+        // A first build says one line, whatever the count (review fixes 1, step B, point 6).
+        check(first.lines().equals(List.of("The town is built: 2 logos. /apps lists them.")), "First build: " + first.lines());
         check(place(server, "keep-chrome").equals("N0L0") && place(server, "keep-discord").equals("N0R0") && hub.logos().size() == 2, "Day one: " + hub.logos());
         check(first.pending() && first.pictures().isEmpty(), "The far place's build does not wait: " + first);
         check("N0L0".equals(fake.get("keep-chrome").place()) && "N0R0".equals(fake.get("keep-discord").place())

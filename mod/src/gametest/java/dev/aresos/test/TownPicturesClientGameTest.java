@@ -186,7 +186,9 @@ public final class TownPicturesClientGameTest implements FabricClientGameTest {
                 world.getConnection().waitForChunksRender();
                 TownClientGameTest.waitForServer(context, world, server -> HubData.get(server) != null && HubData.get(server).logos().size() == 5,
                         "The town did not stand up after the host joined", 1200);
-                context.waitFor(client -> messages.stream().filter(line -> line.contains(" is new. It stands in ")).count() == 5, 200);
+                // Day one is a first build: one line (review fixes 1, step B, point 6).
+                context.waitFor(client -> messages.contains("The town is built: 5 logos. /apps lists them."), 200);
+                check(messages.stream().noneMatch(line -> line.contains(" is new. It stands in ")), "Day one said a line an app: " + messages);
                 var places = world.getServer().computeOnServer(TownPicturesClientGameTest::places);
                 check(places.get("browser").startsWith("N0") && places.get("discord").startsWith("N0") && places.get("lunar-client").equals("E0L0")
                         && places.get("notepad").startsWith("S0") && places.get("terminal").startsWith("S0"), "Day one stands at " + places);

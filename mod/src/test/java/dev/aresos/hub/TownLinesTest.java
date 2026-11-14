@@ -23,8 +23,22 @@ class TownLinesTest {
 
     @Test
     void fiveChangesAreSaidOneByOne() {
-        assertEquals(texts(5), built(5).said(true, false, 0));
         assertEquals(texts(5), built(5).said(false, false, 0));
+    }
+
+    /** The orchestrator's decision in review fixes 1 (step B, point 6): a first build says one line, whatever the count. */
+    @Test
+    void aFirstBuildIsOneLineWhateverTheCount() {
+        assertEquals(List.of("The town is built: 5 logos. /apps lists them."), built(5).said(true, false, 0));
+        assertEquals(List.of("The town is built: 1 logo. /apps lists it."), built(1).said(true, false, 0));
+        var blocked = built(2);
+        blocked.add(TownLines.Kind.WAY, "N0L0 is blocked by something of yours, so App 2 stands at N0R0.");
+        assertEquals(List.of("The town is built: 2 logos. /apps lists them.", "N0L0 is blocked by something of yours, so App 2 stands at N0R0."),
+                blocked.said(true, false, 0));
+        // Only lines about his things: nothing was built, nothing to sum up.
+        var way = new TownLines();
+        way.add(TownLines.Kind.WAY, "Mail has no free place in Internet: every place there is blocked.");
+        assertEquals(List.of("Mail has no free place in Internet: every place there is blocked."), way.said(true, false, 0));
     }
 
     @Test

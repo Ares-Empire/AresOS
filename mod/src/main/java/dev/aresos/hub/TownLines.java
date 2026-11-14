@@ -8,9 +8,10 @@ import java.util.Map;
 /**
  * What a pass of the town says in the chat (HUB.md 3.4, point 6). One line a change while there are few. When one
  * pass has more than {@link #FEW} lines of the ordinary kind (a logo built, moved, renewed or taken down), it says one
- * line for all of them instead, so a first build of forty apps does not fill the chat. Lines about something of his
- * in the way (a blocked place, a removal that was refused) are always said one by one, after that line.
- * {@code /aresos hub rebuild} always says one line.
+ * line for all of them instead, so forty new apps do not fill the chat. A first build (no logo stood, and the pass
+ * only built) is always one line, whatever the count ("The town is built: 5 logos. /apps lists them.", the
+ * orchestrator's decision in review fixes 1). Lines about something of his in the way (a blocked place, a removal that
+ * was refused) are always said one by one, after that line. {@code /aresos hub rebuild} always says one line.
  */
 public final class TownLines {
     /** At most this many ordinary lines are said one by one. */
@@ -36,12 +37,13 @@ public final class TownLines {
      */
     public List<String> said(boolean first, boolean rebuilt, int waiting) {
         var ordinary = lines.stream().filter(line -> line.kind() != Kind.WAY).toList();
-        if (!rebuilt && ordinary.size() <= FEW) return lines.stream().map(Line::text).toList();
+        boolean firstBuild = first && !ordinary.isEmpty() && ordinary.stream().allMatch(line -> line.kind() == Kind.BUILT);
+        if (!rebuilt && !firstBuild && ordinary.size() <= FEW) return lines.stream().map(Line::text).toList();
         var counts = new EnumMap<Kind, Integer>(Kind.class);
         for (var line : ordinary) counts.merge(line.kind(), 1, Integer::sum);
         var said = new ArrayList<String>();
-        said.add(rebuilt ? rebuilt(counts, waiting) : first && counts.keySet().equals(java.util.Set.of(Kind.BUILT))
-                ? "The town is built: " + logos(ordinary.size()) + ". /apps lists them."
+        said.add(rebuilt ? rebuilt(counts, waiting) : firstBuild
+                ? "The town is built: " + logos(ordinary.size()) + ". /apps lists " + (ordinary.size() == 1 ? "it." : "them.")
                 : "The town changed: " + parts(counts, List.of(Kind.BUILT, Kind.MOVED, Kind.RENEWED, Kind.DOWN)) + ". /apps lists where your apps stand.");
         lines.stream().filter(line -> line.kind() == Kind.WAY).map(Line::text).forEach(said::add);
         return said;

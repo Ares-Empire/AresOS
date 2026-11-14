@@ -108,8 +108,9 @@ public final class TownClientGameTest implements FabricClientGameTest {
                             .collect(Collectors.toMap(AppDefinition::id, app -> String.valueOf(app.place())));
                     check(saved.equals(places), "The apps file holds other places: " + saved);
                 });
-                context.waitFor(client -> messages.stream().filter(line -> line.contains(" is new. It stands in ")).count() == 5, 100);
-                check(messages.stream().anyMatch(line -> line.startsWith("Chrome is new. It stands in Internet, north.")), "Chat: " + messages);
+                // Day one is a first build: one line (review fixes 1, step B, point 6).
+                context.waitFor(client -> messages.contains("The town is built: 5 logos. /apps lists them."), 100);
+                check(messages.stream().noneMatch(line -> line.contains(" is new. It stands in ")), "Day one said a line an app: " + messages);
 
                 // A command that changes My apps asks the keeper again: the logo comes down a few ticks later.
                 context.runOnClient(client -> client.player.connection.sendCommand("aresos app remove discord"));
