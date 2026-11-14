@@ -77,7 +77,9 @@ lead's reading of its logs): one failure in four installs on identical code.
    listing shows the popup `controlled:false` in its own popup window from then on (`tool.jsonl` 959–992).
 
 **The passing counterpart** (the pull-request run's external shard, saved by the lead, same row): the POST document
-had already committed before `Page.enable` (749); `Debugger.enable` (751) replayed only the new renderer's `context.js`
+had already committed before `Debugger.enable` (751), in this shard even before `Page.enable` (749); in both passing
+policy shards it committed just after `Page.enable`, still before `Debugger.enable` (package re-check, round 5).
+`Debugger.enable` replayed only the new renderer's `context.js`
 (context 2, scriptId 3) and the page script, the late reader evaluated context 2 and the popup was admitted. So the
 race is whether `Debugger.enable` lands while the popup still shows its first document in the opener's renderer; when
 it does, the renderer swap that follows leaves a context the extension never hears the end of.
