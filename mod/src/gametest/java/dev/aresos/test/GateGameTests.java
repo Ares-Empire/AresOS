@@ -8,6 +8,7 @@ import dev.aresos.zone.GatePalette;
 import dev.aresos.zone.GatePicture;
 import dev.aresos.zone.GatePlan;
 import dev.aresos.zone.LogoPixels;
+import dev.aresos.zone.ZoneCommands;
 import dev.aresos.zone.ZoneData;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.fabricmc.fabric.api.registry.FlammableBlockRegistry;
@@ -322,6 +323,80 @@ public final class GateGameTests {
         var icon = new BufferedImage(90, 90, BufferedImage.TYPE_INT_ARGB);
         for (int y = 0; y < 90; y++) for (int x = 0; x < 90; x++) icon.setRGB(x, y, x < 30 ? 0xffc82f2d : x < 60 ? 0xff8662bf : 0xff74a8fd);
         return GatePicture.of(icon, size);
+    }
+
+    /**
+     * Review fixes 2, point 2, through {@code /aresos logo remove}'s own path ({@link GateBuilder#remove} and its line):
+     * a hand-built gate records where its sign stands and what it says, and the sign is taken down only while it is
+     * still that. An unedited sign goes; an edited one stays; a text display of his with the sign's ID and text at
+     * another place stays; a record without the sign's place and text (packages 33 to 35, or written again by one of
+     * them) leaves the sign and says so. The gate's blocks come down every time.
+     */
+    @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)
+    public void aHandBuiltSignIsTakenDownOnlyWhileItIsTheOneTheGateWasBuiltWith(GameTestHelper helper) {
+        Site.run(helper, 310, site -> {
+            var level = site.level();
+            var server = level.getServer();
+            var before = site.snapshot();
+            var plan = site.plan(stripes(12));
+            java.util.function.Consumer<String> blocksBack = when -> {
+                for (var cell : before.entrySet()) check(level.getBlockState(cell.getKey()).equals(cell.getValue()),
+                        when + ": " + cell.getKey() + " is " + level.getBlockState(cell.getKey()) + ", was " + cell.getValue());
+            };
+
+            // Unedited: the record names the sign's place and text, saved and read back whole; the sign goes.
+            var unedited = site.build(plan);
+            check(unedited.gate().orElseThrow().signPlan().equals(java.util.Optional.of(plan.sign())), "The sign's place and text are not recorded: " + unedited.gate());
+            check(AppZone.CODEC.parse(NbtOps.INSTANCE, AppZone.CODEC.encodeStart(NbtOps.INSTANCE, unedited).getOrThrow()).getOrThrow().equals(unedited), "The record does not read back whole");
+            var gone = GateBuilder.remove(server, unedited);
+            check(gone.sign() == GateBuilder.SignLeft.NONE && site.signs().isEmpty() && site.zones().isEmpty()
+                    && ZoneCommands.tookDown(unedited, gone).equals("Took down the gate of " + site.app() + ": " + gone.removed() + " blocks removed."),
+                    "An unedited sign: " + ZoneCommands.tookDown(unedited, gone) + ", signs " + site.signs().size());
+            blocksBack.accept("Unedited");
+
+            // Edited (as /data does): his, it stays.
+            var editedGate = site.build(plan);
+            var edited = site.signs().getFirst();
+            ((dev.aresos.mixin.TextDisplayAccess)edited).aresos$setText(net.minecraft.network.chat.Component.literal("My notice"));
+            var withEdited = GateBuilder.remove(server, editedGate);
+            check(withEdited.sign() == GateBuilder.SignLeft.CHANGED && !edited.isRemoved() && site.signs().equals(List.of(edited)) && site.zones().isEmpty()
+                    && ZoneCommands.tookDown(editedGate, withEdited).endsWith(" blocks removed. Its sign stays: it is not the one the gate was built with, so it is yours."),
+                    "An edited sign: " + ZoneCommands.tookDown(editedGate, withEdited) + ", taken away " + edited.isRemoved());
+            blocksBack.accept("Edited");
+            edited.discard();
+
+            // A text display of his that took the sign's ID, with the sign's text, four blocks higher: his, it stays.
+            var reusedGate = site.build(plan);
+            var sign = site.signs().getFirst();
+            var id = sign.getUUID();
+            var his = net.minecraft.world.entity.EntityType.create(net.minecraft.world.entity.EntityTypes.TEXT_DISPLAY,
+                    net.minecraft.world.level.storage.TagValueInput.create(net.minecraft.util.ProblemReporter.DISCARDING, level.registryAccess(), new CompoundTag()),
+                    level, net.minecraft.world.entity.EntitySpawnReason.COMMAND).orElseThrow();
+            ((dev.aresos.mixin.TextDisplayAccess)his).aresos$setText(((dev.aresos.mixin.TextDisplayAccess)sign).aresos$text());
+            sign.discard();
+            his.setUUID(id);
+            his.snapTo(sign.getX(), sign.getY() + 4, sign.getZ(), 0, 0);
+            check(level.addFreshEntity(his) && level.getEntity(id) == his, "Fixture: his display with the sign's ID");
+            var withHis = GateBuilder.remove(server, reusedGate);
+            check(withHis.sign() == GateBuilder.SignLeft.CHANGED && !his.isRemoved() && site.zones().isEmpty(), "His display with the sign's ID: " + withHis + ", taken away " + his.isRemoved());
+            blocksBack.accept("His display");
+            his.discard();
+
+            // A record of packages 33 to 35: no place or text of its sign. Its blocks come down, the sign stays, and the
+            // line says the sign is his.
+            var built = site.build(plan);
+            var gate = built.gate().orElseThrow();
+            var older = new AppZone(built.id(), built.app(), built.dimension(), built.min(), built.max(), built.exit(), built.blocks(),
+                    java.util.Optional.of(new AppZone.Gate(gate.placed(), gate.ground(), gate.sign(), gate.grass())));
+            ZoneData.get(server).remove(zone -> zone.id().equals(built.id()));
+            ZoneData.get(server).add(older);
+            var olderSign = site.signs().getFirst();
+            var withOlder = GateBuilder.remove(server, older);
+            check(withOlder.sign() == GateBuilder.SignLeft.UNRECORDED && !olderSign.isRemoved() && site.zones().isEmpty()
+                    && ZoneCommands.tookDown(older, withOlder).endsWith(" blocks removed. Its sign stays and is yours: this gate's record is from an older AresOS and does not say what the sign said."),
+                    "An older record: " + ZoneCommands.tookDown(older, withOlder) + ", taken away " + olderSign.isRemoved());
+            blocksBack.accept("An older record");
+        });
     }
 
     @GameTest(environment = "aresos-test:desktop", maxTicks = SITE_TICKS)

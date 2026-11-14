@@ -412,6 +412,20 @@ PY
 test ! -s "$shadow/ran"
 rm -rf "$shadow"
 pass 'the app helper resolves browser, notepad and terminal and launches by absolute paths under the system PATH with shadows first'
+# Package 30 review fixes: the reviewed window hints ship in the image and pass the helper's own strict check.
+runuser -u ares -- env -i HOME=/var/home/ares PATH=/usr/bin /usr/bin/python3 - <<'PY'
+import importlib.machinery, importlib.util
+loader = importlib.machinery.SourceFileLoader('aresos_shell', '/usr/libexec/aresos-shell')
+spec = importlib.util.spec_from_loader('aresos_shell', loader)
+shell = importlib.util.module_from_spec(spec)
+loader.exec_module(shell)
+hints = shell.load_hints('/usr/share/aresos/apps/hints')
+assert hints == {'lunarclient.desktop': shell.Hint('lunarclient.desktop', ('com.mojang.minecraft',), (), 'discrete',
+                                                   (('SDL_VIDEO_DRIVER', 'wayland'),)),
+                 'steam.desktop': shell.Hint('steam.desktop', (), ('steam_app_',))}, hints
+PY
+test "$(stat -c %U /usr/share/aresos/apps/hints /usr/share/aresos/apps/hints/*.json | sort -u)" = root
+pass 'the app helper loads the two reviewed window hints (Lunar Client, Steam), owned by root'
 test "$(runuser -l ares -c 'command -v brew')" = /usr/bin/brew
 test "$(runuser -l ares -c 'brew --version')" = FIXTURE_BREW
 grep -qx -- '--version' /tmp/brew-calls
@@ -636,6 +650,22 @@ if grep -rlE 'aresos-desktop|prismlauncher' /usr/lib/systemd/system /etc/systemd
 fi
 pass 'no system service runs the desktop: it starts inside the everyday session only'
 
+# --- Package 30: the icon conversion route must survive base-image updates.
+test -x /usr/bin/magick
+test -x /usr/bin/bwrap
+# Review 1, FIX 2: the converter's address-space ceiling is set by util-linux prlimit.
+test -x /usr/bin/prlimit
+python3 - <<'PY'
+import re, subprocess
+formats = subprocess.run(['/usr/bin/magick', '-list', 'format'], check=True, capture_output=True,
+                         timeout=3, env={'PATH': '/usr/bin', 'LC_ALL': 'C', 'HOME': '/nonexistent'}).stdout
+assert re.search(rb'^\s*SVG\s+SVG\s+r[-w+]+\s+[^\n]*\bRSVG\b', formats, re.MULTILINE), \
+    'ImageMagick svg: must use librsvg, never MSVG or an external delegate'
+assert re.search(rb'^\s*PNG\*?\s+PNG\s+rw', formats, re.MULTILINE), 'PNG coder missing'
+print('ICON_CONVERTER /usr/bin/magick; SVG coder: librsvg (RSVG); bubblewrap present')
+PY
+pass 'package 30: ImageMagick PNG and librsvg SVG coders, bubblewrap and prlimit exist'
+
 # --- Package 31: the Ares-Crown frame and the defaults for apps' own bars.
 python3 - <<'PY'
 import hashlib, pathlib, xml.etree.ElementTree as ET
@@ -675,6 +705,7 @@ install -d -o ares -g ares -m 0700 /tmp/pkg31-home
 layout=$(runuser -u ares -- env -i HOME=/tmp/pkg31-home PATH=/usr/bin:/usr/sbin \
     XDG_CURRENT_DESKTOP=AresOS GSETTINGS_BACKEND=memory \
     /usr/bin/gsettings get org.gnome.desktop.wm.preferences button-layout)
+rm -rf /tmp/pkg31-home
 printf '%s\n' "$layout"
 test "$layout" = "'appmenu:minimize,maximize,close'"
 pass 'Ares-Crown files installed; compiled AresOS default gives apps all three buttons'

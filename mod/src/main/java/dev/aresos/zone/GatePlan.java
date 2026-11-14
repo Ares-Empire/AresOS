@@ -1,5 +1,7 @@
 package dev.aresos.zone;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.aresos.world.NetherHome;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -11,6 +13,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Everything one gate consists of, worked out from a picture, a place and a facing (HUB.md 3.2). Plain data: no
@@ -27,7 +30,19 @@ public record GatePlan(ResourceKey<Level> dimension, BlockPos origin, Direction 
                        Map<BlockPos, String> blocks, List<BlockPos> lights, List<BlockPos> doormat, String doormatBlock,
                        BlockPos nicheMin, BlockPos nicheMax, NetherHome.Home exit, Sign sign) {
     /** The text display above the gate: its lower middle point, the app's name and, once apps have one, its short name. */
-    public record Sign(Vec3 position, String name, String shortName) { }
+    public record Sign(Vec3 position, String name, String shortName) {
+        /** A blank short name is none (null): the sign shows no second line, and its record reads back the same. */
+        public Sign {
+            if (shortName != null && shortName.isBlank()) shortName = null;
+        }
+
+        /** As a hand-built gate records it ({@link AppZone.Gate#signPlan}). */
+        public static final Codec<Sign> CODEC = RecordCodecBuilder.create(i -> i.group(
+                Vec3.CODEC.fieldOf("position").forGetter(Sign::position),
+                Codec.STRING.fieldOf("name").forGetter(Sign::name),
+                Codec.STRING.optionalFieldOf("short_name").forGetter(sign -> Optional.ofNullable(sign.shortName()).filter(name -> !name.isBlank()))
+        ).apply(i, (position, name, shortName) -> new Sign(position, name, shortName.orElse(null))));
+    }
 
     public static GatePlan of(GatePicture picture, ResourceKey<Level> dimension, BlockPos origin, Direction outward,
                               String name, String shortName, String doormatBlock) {

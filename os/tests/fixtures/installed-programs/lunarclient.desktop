@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Lunar Client
+Exec=@HOME@/.local/opt/lunarclient/LunarClient.AppImage --no-sandbox %U
+TryExec=@HOME@/.local/opt/lunarclient/LunarClient.AppImage
+Terminal=false
+Type=Application
+Icon=@HOME@/.local/share/icons/hicolor/512x512/apps/lunarclient.png
+StartupWMClass=lunarclient
+X-AppImage-Version=3.7.36-ow
+Comment=Electron launcher for Lunar Client
+MimeType=application/x-lcpack;application/x-dawnpack;x-scheme-handler/lunarclient;
+Categories=Game;

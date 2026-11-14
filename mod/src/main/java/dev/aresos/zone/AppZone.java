@@ -29,15 +29,27 @@ public record AppZone(String id, String app, ResourceKey<Level> dimension, Block
 
     /**
      * What makes a zone a gate: every block placed for it (the logo, the light blocks, the doormat), the ground
-     * blocks the doormat replaced, and the sign's entity. Removal takes a block away only while it is still the
-     * recorded one.
+     * blocks the doormat replaced, the sign's entity, and the grass under it. Removal takes a block away only while
+     * it is still the recorded one.
+     *
+     * @param signPlan where a gate built by hand ({@code /aresos logo}) placed its sign and what it said (review fixes
+     *                 2, point 2): removal takes the sign down only while it is still that. Empty in records of
+     *                 packages 33 to 35, in records an older mod wrote again (it reads the field and drops it), and in
+     *                 the town's records, whose signs the town checks against its own plan: such a sign is never
+     *                 taken down by {@code /aresos logo remove}
      */
-    public record Gate(List<Placed> placed, List<Placed> ground, Optional<UUID> sign, List<BlockPos> grass) {
+    public record Gate(List<Placed> placed, List<Placed> ground, Optional<UUID> sign, List<BlockPos> grass, Optional<GatePlan.Sign> signPlan) {
         public static final Codec<Gate> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Placed.CODEC.listOf().fieldOf("placed").forGetter(Gate::placed),
                 Placed.CODEC.listOf().fieldOf("ground").forGetter(Gate::ground),
                 UUIDUtil.CODEC.optionalFieldOf("sign").forGetter(Gate::sign),
-                BlockPos.CODEC.listOf().optionalFieldOf("grass", List.of()).forGetter(Gate::grass)).apply(i, Gate::new));
+                BlockPos.CODEC.listOf().optionalFieldOf("grass", List.of()).forGetter(Gate::grass),
+                GatePlan.Sign.CODEC.optionalFieldOf("sign_plan").forGetter(Gate::signPlan)).apply(i, Gate::new));
+
+        /** A record that does not know its sign's place and text. */
+        public Gate(List<Placed> placed, List<Placed> ground, Optional<UUID> sign, List<BlockPos> grass) {
+            this(placed, ground, sign, grass, Optional.empty());
+        }
 
         public Gate(List<Placed> placed, List<Placed> ground, Optional<UUID> sign) {
             this(placed, ground, sign, List.of());

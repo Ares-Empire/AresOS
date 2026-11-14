@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 4,
+  "baseline": "2026-11-13",
+  "apps": [
+    {
+      "id": "discord",
+      "name": "Discord",
+      "command": [],
+      "look": "minecraft:ender_pearl",
+      "pinned": true,
+      "type": "helper",
+      "mine": true,
+      "system": { "source": "flatpak-user", "categories": ["Network", "InstantMessaging"] },
+      "names": ["discord", "dc"],
+      "place": "N0R0"
+    },
+    {
+      "id": "spotify",
+      "name": "Spotify",
+      "command": [],
+      "look": "minecraft:painting",
+      "pinned": false,
+      "type": "helper",
+      "mine": true,
+      "system": { "source": "flatpak-user", "categories": ["AudioVideo"] },
+      "names": ["spotify"],
+      "place": "E0R0",
+      "group": "games"
+    },
+    {
+      "id": "gimp",
+      "name": "GIMP",
+      "command": [],
+      "look": "minecraft:painting",
+      "pinned": false,
+      "type": "helper",
+      "mine": true,
+      "system": { "source": "flatpak-user", "categories": ["Graphics"] },
+      "names": ["gimp"],
+      "absent": true,
+      "place": "W0L0"
+    },
+    {
+      "id": "calc",
+      "name": "Calculator",
+      "command": [],
+      "look": "minecraft:iron_pickaxe",
+      "pinned": false,
+      "type": "helper",
+      "mine": false,
+      "system": { "source": "system", "categories": ["Utility"] },
+      "place": "S0R0"
+    }
+  ]
+}

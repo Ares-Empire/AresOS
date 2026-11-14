@@ -10,6 +10,11 @@ import java.util.Arrays;
  * Columns count from his left as he looks at the front, rows from the ground.
  */
 public final class GatePicture {
+    /**
+     * The version of these rules. A standing logo records the version that drew it, so a logo drawn by older rules
+     * is noticed and drawn again (HUB.md 2.5). Raise it with every change that can draw a different picture.
+     */
+    public static final int CONVERTER = 1;
     /** A pixel counts as visible from 12% opacity. */
     private static final double VISIBLE = 0.12;
     /**
@@ -66,6 +71,21 @@ public final class GatePicture {
     /** True when the icon was a small figure on a plain plate and the figure was enlarged. */
     public boolean enlarged() { return enlarged; }
     public boolean isEmpty() { return Arrays.stream(cells).allMatch(java.util.Objects::isNull); }
+
+    /**
+     * A fingerprint of the picture as it is built: its size and every cell's block. Two pictures with the same hash
+     * build the same blocks, so a standing logo records it and is rebuilt only when the picture really changed.
+     */
+    public String hash() {
+        var text = new StringBuilder().append(size);
+        for (String cell : cells) text.append(',').append(cell == null ? "" : cell);
+        try {
+            var digest = java.security.MessageDigest.getInstance("SHA-256").digest(text.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(digest);
+        } catch (java.security.NoSuchAlgorithmException impossible) {
+            throw new IllegalStateException("Every Java has SHA-256", impossible);
+        }
+    }
 
     /** The block of column u, row v, without its namespace; null where the picture has none. */
     public String at(int u, int v) {

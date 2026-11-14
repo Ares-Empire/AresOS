@@ -104,7 +104,8 @@ public final class GateLogoClientGameTest implements FabricClientGameTest {
                 // The command builds each gate six blocks in front of him, facing him, with its door on his line.
                 var apps = List.of(pinwheel, sunny, tree, plain);
                 int[] lines = {PINWHEEL, SUNNY, TREE, PLAIN};
-                String[] doormats = {"light_blue_concrete", "yellow_concrete", "light_gray_concrete", "yellow_concrete"};
+                // Every app has a group: the tree says nothing about itself, so it is System & Tools.
+                String[] doormats = {"light_blue_concrete", "yellow_concrete", "yellow_concrete", "yellow_concrete"};
                 for (int i = 0; i < apps.size(); i++) {
                     int line = lines[i], index = i;
                     stand(context, world, new Vec3(line, Y, BUILD_Z), 180, 0);

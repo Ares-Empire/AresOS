@@ -52,8 +52,7 @@ public final class WalkInZones {
         });
         PlayerBlockBreakEvents.BEFORE.register((level, player, pos, block, entity) -> {
             if (!(player instanceof ServerPlayer host)) return true;
-            String refusal = isProtected(host, pos) ? "Auto-built logo protected. Press G for Build mode."
-                    : HubData.protectsFrom(host, pos) ? "The home pad and roads are protected. Press G for Build mode." : null;
+            String refusal = isProtected(host, pos) ? "Auto-built logo protected. Press G for Build mode." : HubData.protection(host, pos);
             if (refusal == null) return true;
             host.sendSystemMessage(Component.literal(refusal), true);
             return false;

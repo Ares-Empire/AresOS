@@ -369,7 +369,7 @@ print(json.dumps(results))
                 self.assertEqual(list(json.loads(prepared_tool.content[0].text)["data"]["approval"]), list(approval))
                 self.assertEqual(list(next(tool for tool in tools.tools if tool.name == "send").input_schema["properties"]), list(approval))
                 # A hook sees a held operation via act.sock, with documented I/O.
-                hook_input = {"hook_event_name": "Stop", "session_id": "fixture-session", "transcript_path": "/unused", "cwd": str(self.home), "permission_mode": "default", "stop_hook_active": False}
+                hook_input = {"hook_event_name": "Stop", "session_id": "fixture-session", "prompt_id": "fixture-prompt", "transcript_path": "/unused", "cwd": str(self.home), "permission_mode": "default", "stop_hook_active": False}
                 hook = self.launch(OWNER, ["hook", "Stop"], input=canonical(hook_input))
                 self.assertEqual(json.loads(hook.stdout)["decision"], "block", hook.stderr)
                 source.write_bytes(b"changed after import")
@@ -411,7 +411,7 @@ print(json.dumps(results))
         time.sleep(0.4)
         status = self.call(OWNER, "testapp_operation_status", {"operation_id": prepared["operation_id"]})
         self.assertEqual(status["data"]["operation"]["state"], "failed")
-        prompt_input = {"hook_event_name": "UserPromptSubmit", "session_id": "fixture-session", "prompt": "owner message", "cwd": str(self.home)}
+        prompt_input = {"hook_event_name": "UserPromptSubmit", "session_id": "fixture-session", "prompt_id": "fixture-prompt", "prompt": "owner message", "cwd": str(self.home)}
         prompt = self.launch(OWNER, ["hook", "UserPromptSubmit"], input=canonical(prompt_input))
         self.assertIn(prepared["operation_id"], json.loads(prompt.stdout)["hookSpecificOutput"]["additionalContext"])
 
