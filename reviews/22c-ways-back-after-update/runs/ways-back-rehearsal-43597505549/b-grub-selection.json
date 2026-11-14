@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "menu_titles": [
+    "Bazzite (ostree:0)",
+    "Bazzite (ostree:1)",
+    "Bazzite (ostree:2)"
+  ],
+  "stock_position": 2,
+  "stock_title": "Bazzite (ostree:2)",
+  "aresos_title": "Bazzite (ostree:0)",
+  "before_any_selection_key": true,
+  "keys": [
+    "home",
+    "down",
+    "down",
+    "ret"
+  ]
+}

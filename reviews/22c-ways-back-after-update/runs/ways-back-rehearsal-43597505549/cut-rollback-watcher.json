@@ -1,0 +1,19 @@
+{
+  "status": "frozen",
+  "pid": 18587,
+  "state": "T",
+  "links_before": [
+    [
+      "boot.0",
+      "boot.0.1"
+    ]
+  ],
+  "links_after": [
+    [
+      "boot.0",
+      "boot.0.0"
+    ]
+  ],
+  "stop_after_swap_ms": 0.029,
+  "release_step_ended": true
+}

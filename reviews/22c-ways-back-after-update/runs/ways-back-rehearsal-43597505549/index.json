@@ -1,0 +1,326 @@
+{
+  "run": "https://github.com/Ares-Empire/AresOS/actions/runs/43597505549",
+  "kind": "ways-back-rehearsal",
+  "commit": "f84041bfa506c8b048f1985c1b634d91700ecec2",
+  "status": "passed",
+  "files": [
+    "abandon-27-deployments.json",
+    "abandon-27-layout.json",
+    "abandon-27-observed.json",
+    "b-grub-menu-ocr-proof.json",
+    "b-grub-selection.json",
+    "back-13-deployments.json",
+    "back-13-layout.json",
+    "back-13-observed.json",
+    "back-13-update-refused-deployments.json",
+    "back-13-update-refused-layout.json",
+    "back-13-update-refused-observed.json",
+    "back-13b-deployments.json",
+    "back-13b-layout.json",
+    "back-13b-observed.json",
+    "cut-rollback-deployments.json",
+    "cut-rollback-journal-after.json",
+    "cut-rollback-journal-before.json",
+    "cut-rollback-layout.json",
+    "cut-rollback-observed.json",
+    "cut-rollback-proof.json",
+    "cut-rollback-swap.json",
+    "cut-rollback-watcher.json",
+    "cut-stock-deployments.json",
+    "cut-stock-layout.json",
+    "cut-stock-observed.json",
+    "cut-stock-recorded-deployments.json",
+    "cut-stock-recorded-layout.json",
+    "cut-stock-recorded-observed.json",
+    "final-27-deployments.json",
+    "final-27-layout.json",
+    "final-27-observed.json",
+    "forward-27-deployments.json",
+    "forward-27-layout.json",
+    "forward-27-observed.json",
+    "forward-27b-deployments.json",
+    "forward-27b-layout.json",
+    "forward-27b-observed.json",
+    "forward-27c-deployments.json",
+    "forward-27c-layout.json",
+    "forward-27c-menu-bls-entries.json",
+    "forward-27c-menu-recorded-stock-entry.json",
+    "forward-27c-observed.json",
+    "forward-27d-deployments.json",
+    "forward-27d-layout.json",
+    "forward-27d-menu-bls-entries.json",
+    "forward-27d-menu-recorded-stock-entry.json",
+    "forward-27d-observed.json",
+    "forward-27e-deployments.json",
+    "forward-27e-layout.json",
+    "forward-27e-observed.json",
+    "intl-27-deployments.json",
+    "intl-27-layout.json",
+    "intl-27-observed.json",
+    "layout-de-proof-toolset.json",
+    "layout-intl-proof-toolset.json",
+    "menu-27-attempt-06-ocr.txt",
+    "menu-27-deployments.json",
+    "menu-27-grub-menu-ocr-proof.json",
+    "menu-27-grub-selection.json",
+    "menu-27-layout.json",
+    "menu-27-observed.json",
+    "menu-stock-attempt-05-ocr.txt",
+    "menu-stock-deployments.json",
+    "menu-stock-grub-menu-ocr-proof.json",
+    "menu-stock-grub-selection.json",
+    "menu-stock-layout.json",
+    "menu-stock-observed.json",
+    "owner-forward-1-deployments.json",
+    "owner-forward-1-journal-after.json",
+    "owner-forward-1-journal-before.json",
+    "owner-forward-1-layout.json",
+    "owner-forward-1-observed.json",
+    "owner-forward-1-swap.json",
+    "owner-forward-2-deployments.json",
+    "owner-forward-2-journal-after.json",
+    "owner-forward-2-journal-before.json",
+    "owner-forward-2-layout.json",
+    "owner-forward-2-observed.json",
+    "owner-forward-2-swap.json",
+    "owner-forward-3-deployments.json",
+    "owner-forward-3-journal-after.json",
+    "owner-forward-3-journal-before.json",
+    "owner-forward-3-layout.json",
+    "owner-forward-3-observed.json",
+    "owner-forward-3-swap.json",
+    "owner-forward-4-deployments.json",
+    "owner-forward-4-journal-after.json",
+    "owner-forward-4-journal-before.json",
+    "owner-forward-4-layout.json",
+    "owner-forward-4-observed.json",
+    "owner-forward-4-swap.json",
+    "owner-forward-5-deployments.json",
+    "owner-forward-5-journal-after.json",
+    "owner-forward-5-journal-before.json",
+    "owner-forward-5-layout.json",
+    "owner-forward-5-observed.json",
+    "owner-forward-5-swap.json",
+    "owner-forward-6-deployments.json",
+    "owner-forward-6-journal-after.json",
+    "owner-forward-6-journal-before.json",
+    "owner-forward-6-layout.json",
+    "owner-forward-6-observed.json",
+    "owner-forward-6-swap.json",
+    "owner-keep-stock-deployments.json",
+    "owner-keep-stock-journal-after.json",
+    "owner-keep-stock-journal-before.json",
+    "owner-keep-stock-layout.json",
+    "owner-keep-stock-observed.json",
+    "owner-keep-stock-swap.json",
+    "owner-previous-1-deployments.json",
+    "owner-previous-1-journal-after.json",
+    "owner-previous-1-journal-before.json",
+    "owner-previous-1-layout.json",
+    "owner-previous-1-observed.json",
+    "owner-previous-1-swap.json",
+    "owner-previous-2-deployments.json",
+    "owner-previous-2-journal-after.json",
+    "owner-previous-2-journal-before.json",
+    "owner-previous-2-layout.json",
+    "owner-previous-2-observed.json",
+    "owner-previous-2-swap.json",
+    "owner-previous-3-deployments.json",
+    "owner-previous-3-journal-after.json",
+    "owner-previous-3-journal-before.json",
+    "owner-previous-3-layout.json",
+    "owner-previous-3-observed.json",
+    "owner-previous-3-swap.json",
+    "owner-rollback-1-deployments.json",
+    "owner-rollback-1-journal-after.json",
+    "owner-rollback-1-journal-before.json",
+    "owner-rollback-1-layout.json",
+    "owner-rollback-1-observed.json",
+    "owner-rollback-1-swap.json",
+    "private-owner-dummy-login-toolset.json",
+    "private-owner-login-toolset.json",
+    "release-27-start-deployments.json",
+    "release-27-start-layout.json",
+    "release-27-start-observed.json",
+    "stock-1-deployments.json",
+    "stock-1-keep-stock-deployments.json",
+    "stock-1-keep-stock-layout.json",
+    "stock-1-keep-stock-observed.json",
+    "stock-1-layout.json",
+    "stock-1-observed.json",
+    "stock-1-rollback-refused-deployments.json",
+    "stock-1-rollback-refused-layout.json",
+    "stock-1-rollback-refused-observed.json",
+    "stock-1-stock-updaters.json",
+    "stock-2-deployments.json",
+    "stock-2-layout.json",
+    "stock-2-observed.json",
+    "trial-27-deployments.json",
+    "trial-27-layout.json",
+    "trial-27-observed.json",
+    "ways-back-rehearsal-result.json"
+  ],
+  "replaced": {
+    "vm_root_filesystem_uuids": 1,
+    "boot_ids": 17,
+    "rule": "the same fixed word for the same value in every file; nothing else was changed"
+  },
+  "checked_for": [
+    "gh[pousr]_[A-Za-z0-9]{20,}",
+    "github_pat_",
+    "x-access-token",
+    "[Aa]uthorization: ",
+    "\"auth\"\\s*:",
+    "\\$(?:6|5|y|gy|2[aby])\\$",
+    "yz-/!\u00fc[0-9a-f]{4}",
+    "BEGIN [A-Z ]*PRIVATE KEY"
+  ],
+  "protected_disk_baseline_sha256": "1415e2c8f4481b41eb15d00e70203a1144a5be81d9db363d51ec30eb786485fa",
+  "audits": [
+    {
+      "boot": 1,
+      "stage": "baseline-firmware",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 2,
+      "stage": "protected-second-install",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 3,
+      "stage": "boot-3-pre-login-reset",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 4,
+      "stage": "offline-first-stock",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 5,
+      "stage": "offline-roundtrip-unattended-windows",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 6,
+      "stage": "offline-roundtrip-detached-windows",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 7,
+      "stage": "tools-stock",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 8,
+      "stage": "prepared-unattended-windows",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 9,
+      "stage": "corrected-stock",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 10,
+      "stage": "release-13",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 11,
+      "stage": "release-27",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 12,
+      "stage": "intl-27",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 13,
+      "stage": "trial-27",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 14,
+      "stage": "abandon-27",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 15,
+      "stage": "back-13",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 16,
+      "stage": "forward-27",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 17,
+      "stage": "stock-1",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 18,
+      "stage": "forward-27b",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 19,
+      "stage": "back-13b",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 20,
+      "stage": "forward-27c",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 21,
+      "stage": "menu-27",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 22,
+      "stage": "forward-27d",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 23,
+      "stage": "menu-stock",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 24,
+      "stage": "stock-2",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 25,
+      "stage": "forward-27e",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 26,
+      "stage": "cut-stock",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 27,
+      "stage": "final-27",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 28,
+      "stage": "final-unattended-windows",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 29,
+      "stage": "final-detached-windows",
+      "protected_disk_equals_baseline": true
+    }
+  ]
+}
