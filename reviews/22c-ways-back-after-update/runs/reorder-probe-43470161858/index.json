@@ -1,0 +1,206 @@
+{
+  "run": "https://github.com/Ares-Empire/AresOS/actions/runs/43470161858",
+  "kind": "reorder-probe",
+  "commit": "f81fab91e06a1768328bdb215088e0fba8383165",
+  "status": "contradicted",
+  "files": [
+    "after-menu-booted-deployments.json",
+    "after-menu-booted-layout.json",
+    "after-menu-booted-observed.json",
+    "b-grub-menu-ocr-proof.json",
+    "b-grub-selection.json",
+    "menu-bls-entries.json",
+    "menu-recorded-stock-entry.json",
+    "menu-stock-attempt-06-ocr.txt",
+    "menu-stock-deployments.json",
+    "menu-stock-layout.json",
+    "menu-stock-observed.json",
+    "reorder-probe-result.json",
+    "walk-0-start-deployments.json",
+    "walk-0-start-layout.json",
+    "walk-0-start-observed.json",
+    "walk-1-booted-deployments.json",
+    "walk-1-booted-layout.json",
+    "walk-1-booted-observed.json",
+    "walk-1-moved-deployments.json",
+    "walk-1-moved-journal-after.json",
+    "walk-1-moved-journal-before.json",
+    "walk-1-moved-layout.json",
+    "walk-1-moved-observed.json",
+    "walk-1-moved-set-default.json",
+    "walk-1-moved-swap.json",
+    "walk-2-booted-deployments.json",
+    "walk-2-booted-layout.json",
+    "walk-2-booted-observed.json",
+    "walk-2-moved-deployments.json",
+    "walk-2-moved-journal-after.json",
+    "walk-2-moved-journal-before.json",
+    "walk-2-moved-layout.json",
+    "walk-2-moved-observed.json",
+    "walk-2-moved-set-default.json",
+    "walk-2-moved-swap.json",
+    "walk-3-booted-deployments.json",
+    "walk-3-booted-layout.json",
+    "walk-3-booted-observed.json",
+    "walk-3-moved-deployments.json",
+    "walk-3-moved-journal-after.json",
+    "walk-3-moved-journal-before.json",
+    "walk-3-moved-layout.json",
+    "walk-3-moved-observed.json",
+    "walk-3-moved-set-default.json",
+    "walk-3-moved-swap.json",
+    "walk-4-booted-deployments.json",
+    "walk-4-booted-layout.json",
+    "walk-4-booted-observed.json",
+    "walk-4-moved-deployments.json",
+    "walk-4-moved-journal-after.json",
+    "walk-4-moved-journal-before.json",
+    "walk-4-moved-layout.json",
+    "walk-4-moved-observed.json",
+    "walk-4-moved-set-default.json",
+    "walk-4-moved-swap.json",
+    "walk-5-booted-deployments.json",
+    "walk-5-booted-layout.json",
+    "walk-5-booted-observed.json",
+    "walk-5-moved-deployments.json",
+    "walk-5-moved-journal-after.json",
+    "walk-5-moved-journal-before.json",
+    "walk-5-moved-layout.json",
+    "walk-5-moved-observed.json",
+    "walk-5-moved-set-default.json",
+    "walk-5-moved-swap.json",
+    "walk-6-booted-deployments.json",
+    "walk-6-booted-layout.json",
+    "walk-6-booted-observed.json",
+    "walk-6-moved-deployments.json",
+    "walk-6-moved-journal-after.json",
+    "walk-6-moved-journal-before.json",
+    "walk-6-moved-layout.json",
+    "walk-6-moved-observed.json",
+    "walk-6-moved-set-default.json",
+    "walk-6-moved-swap.json"
+  ],
+  "replaced": {
+    "vm_root_filesystem_uuids": 1,
+    "boot_ids": 9,
+    "rule": "the same fixed word for the same value in every file; nothing else was changed"
+  },
+  "checked_for": [
+    "gh[pousr]_[A-Za-z0-9]{20,}",
+    "github_pat_",
+    "x-access-token",
+    "[Aa]uthorization: ",
+    "\"auth\"\\s*:",
+    "\\$(?:6|5|y|gy|2[aby])\\$",
+    "yz-/!\u00fc",
+    "BEGIN [A-Z ]*PRIVATE KEY"
+  ],
+  "protected_disk_baseline_sha256": "016a457ae21a62790024b818314debc48ea10c4643a38d80df5aa9247f93aaf2",
+  "audits": [
+    {
+      "boot": 1,
+      "stage": "baseline-firmware",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 2,
+      "stage": "protected-second-install",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 3,
+      "stage": "boot-3-pre-login-reset",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 4,
+      "stage": "offline-first-stock",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 5,
+      "stage": "offline-roundtrip-unattended-windows",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 6,
+      "stage": "offline-roundtrip-detached-windows",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 7,
+      "stage": "tools-stock",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 8,
+      "stage": "prepared-unattended-windows",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 9,
+      "stage": "corrected-stock",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 10,
+      "stage": "release-13",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 11,
+      "stage": "release-27",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 12,
+      "stage": "walk-1-booted",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 13,
+      "stage": "walk-2-booted",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 14,
+      "stage": "walk-3-booted",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 15,
+      "stage": "walk-4-booted",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 16,
+      "stage": "walk-5-booted",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 17,
+      "stage": "walk-6-booted",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 18,
+      "stage": "menu-stock",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 19,
+      "stage": "after-menu-booted",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 20,
+      "stage": "final-unattended-windows",
+      "protected_disk_equals_baseline": true
+    },
+    {
+      "boot": 21,
+      "stage": "final-detached-windows",
+      "protected_disk_equals_baseline": true
+    }
+  ]
+}

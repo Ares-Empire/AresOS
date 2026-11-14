@@ -1,0 +1,33 @@
+{
+  "stage": "walk-4-moved",
+  "target": "S",
+  "index": 2,
+  "before": [
+    "R13",
+    "R27",
+    "S"
+  ],
+  "after": [
+    "S",
+    "R13",
+    "R27"
+  ],
+  "bootconfig_swap": "no",
+  "stdout": "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0",
+  "journal": [
+    "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0"
+  ],
+  "loader_link": {
+    "before": "loader.0",
+    "after": "loader.0"
+  },
+  "ostree_boot_links": {
+    "before": {
+      "boot.0": "boot.0.0"
+    },
+    "after": {
+      "boot.0": "boot.0.1"
+    }
+  },
+  "entry_files_changed": false
+}

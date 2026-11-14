@@ -44,8 +44,24 @@ RELEASE_IDENTITY = r'https://github\.com/Ares-Empire/AresOS/\.github/workflows/[
 # The only installed tools without a release history: package 15f's bundle,
 # installed on the laptop on 2026-11-08. Any other history-less bundle STOPs.
 LEGACY_TOOLS = ('3ef85c4adab3c8a5daf5bf26c2a40805d24bcb0c17b9327cfc55e7e96aeebefc',)
-LOGIN_REFUSAL = ('Registry login missing, expired or unreachable: run sudo /var/lib/ares/at login, '
+def typed(*words):
+    """The one place that spells an owner command in a message (os/owner-tools/commands.json is compared with it)."""
+    return ' '.join(('sudo', '/var/lib/ares/at', *words))
+
+
+LOGIN_REFUSAL = ('Registry login missing, expired or unreachable: run ' + typed('login') + ', '
                  'then run this command again; nothing was changed')
+# One word per meaning (briefs/22c-forward-command.md): update installs the release of these tools
+# and never selects an installed system; forward selects the newest installed AresOS and never
+# installs one. The lines that lead from one word to the other are worded here, once.
+FORWARD = typed('forward') + ' (it makes the newest installed AresOS the next start and says whether a restart is needed)'
+RELEASE_INSTALLED = ('The release of these tools is installed already, so update has nothing to install: run '
+                     + FORWARD + '; nothing changed')
+RELEASE_RUNS = ('The release of these tools already runs and starts next: update has nothing to install '
+                'and needs no login; nothing changed')
+FORWARD_FIRST = ('Update installs a new release only from a running AresOS that starts next: run '
+                 + FORWARD + ', then run this command again; nothing changed')
+BACK_TO_ARESOS = 'run ' + typed('forward') + ' to go back to AresOS'
 # What update/previous expect the next start to show (records/outcome-pending.json).
 OUTCOME = 'outcome-pending'
 # One owner command at a time, bootstrap install included; /run is root-only.
@@ -84,6 +100,20 @@ def owner_lock():
 
 class Stop(ValueError):
     pass
+
+
+class Failed(Stop):
+    """A release step that ended with a non-zero exit status of its own. Only a caller that
+    knows the step reads the status (start-next.sh: REFUSED_BEFORE_CHANGE); for every
+    other caller it is the same STOP as before."""
+
+    def __init__(self, message, code):
+        super().__init__(message)
+        self.code = code
+
+
+# start-next.sh exits with this status only when its own checks refused before set-default.
+REFUSED_BEFORE_CHANGE = 3
 
 
 def require(condition, message):
@@ -288,6 +318,9 @@ class Host:
         if reason == 'timed out':
             raise Stop('Shared step timed out: ' + name + ' (stopped after ' + str(SCRIPT_TIMEOUT // 60)
                        + ' minutes); preserve diagnostics and do not reboot')
+        if step.process.returncode:
+            # The step's own exit status; a step that exited 0 but left a process behind has none.
+            raise Failed('Shared step failed: ' + name + '; preserve diagnostics and do not reboot', step.process.returncode)
         raise Stop('Shared step failed: ' + name + '; preserve diagnostics and do not reboot')
 
 
@@ -589,15 +622,30 @@ def slot_identity(slot):
     return (slot['ostree']['checksum'], slot['ostree']['deploySerial'], slot['ostree']['stateroot'])
 
 
+BAZZITE_WAITING = 'A Bazzite update is waiting. Do not restart: the restart deletes {}. Get help.'
+NOT_INSTALLED = 'No AresOS is installed yet: this command works after the first switch; nothing changed'
+
+
+def unmodified(rows):
+    return not any(any(d.get(k) for k in MODIFIED) or d.get('unlocked', 'none') != 'none' for d in rows)
+
+
 def qualified_state(state, saved, release, history=None):
-    """Accept only the reviewed deployment lists; refuse every other shape.
+    """The reviewed deployment sets (package 22c, rule 1); every other list STOPs.
 
     history lists the known AresOS release references, oldest first, ending
-    with the target release. Without it only the target is known (the shapes
-    before package 22). The shapes are: the prepared stock list, the first
-    switch staged, the AresOS/stock pair (optionally a queued stock rollback),
-    an update staged over a running AresOS, and afterwards two AresOS releases
-    plus the pinned stock (optionally a queued return to the previous one).
+    with the target release. Before the first switch (no installed AresOS)
+    only the two states version 2 accepts pass, exactly as before: the
+    prepared stock list and the first switch staged. They return None.
+
+    With AresOS installed the set is the saved, pinned stock, one or two known
+    AresOS releases and, during an update, the staged target in front of a
+    running AresOS that is first. The order of that set is free and any member
+    may run: the first deployment starts next, and nothing else follows from
+    the order (rule 2). bootc's rollback slot and rollbackQueued are derived
+    from the order (status.rs; the probe run 43470161858 showed it at every
+    stage), so they are only compared with it and decide nothing. Returns the
+    rows by role: stock, ares (installed, in list order), staged, booted.
     """
     known = known_releases(release, history)
     target = release.split('@')[1]
@@ -611,45 +659,99 @@ def qualified_state(state, saved, release, history=None):
     ares = [d for d in rows if d['container-image-reference-digest'] in known]
     if not ares:
         require(state == saved['state'], 'Unexpected prepared deployment list/pending state')
-        return
+        return None
+    staged = [d for d in rows if d.get('staged')]
+    installed = [d for d in ares if not d.get('staged')]
+    if installed and booted is stock and (staged or status.get('staged')):
+        # Rule 10: whatever is staged while stock runs, finalizing it keeps only the new, pinned and
+        # booted rows. This comes before every other refusal, so each command says it.
+        raise Stop(BAZZITE_WAITING.format('both AresOS releases' if len(installed) > 1 else 'the installed AresOS'))
     for d in ares:
         require(not d['pinned'] and d['checksum'] != stock['checksum']
             and image_reference(d) == known[d['container-image-reference-digest']][1],
             'Unexpected AresOS identity or origin')
     require(len({d['container-image-reference-digest'] for d in ares}) == len(ares), 'Duplicate AresOS release deployment')
-    is_ares = lambda row: any(row is d for d in ares)
-    staged = [d for d in rows if d.get('staged')]
-    if staged and booted is stock:
+    if not installed:
+        # The first switch staged, as version 2 accepts it.
+        require(booted is stock, 'Unexpected staged update')
         require(staged == ares and ares[0]['container-image-reference-digest'] == target and status.get('staged')
             and not status.get('rollbackQueued'), 'Unexpected staged switch')
         retained = [d for d in rows if not d.get('staged')]
         require(retained == saved['state']['rpm']['deployments'], 'Switch changed the retained stock list')
-        return
+        return None
+    require(all(d is stock or any(d is a for a in ares) for d in rows),
+        'Unknown deployment beside AresOS and the saved stock; get help')
+    require(len(installed) <= 2, 'More than two AresOS releases are installed; get help')
+    require(len(staged) <= 1 and bool(staged) == bool(status.get('staged')), 'Staged observations disagree; get help')
     if staged:
-        # An update: the newest release staged over a running, older release,
-        # with the pinned stock last and at most one older AresOS between.
-        retained = [d for d in rows if not d.get('staged')]
-        require(len(staged) == 1 and staged[0]['container-image-reference-digest'] == target and is_ares(staged[0])
-            and status.get('staged') and slot_identity(status['staged']) == key(staged[0])
-            and not status.get('rollbackQueued') and is_ares(booted)
-            and known[booted['container-image-reference-digest']][0] < known[target][0], 'Unexpected staged update')
-        require(rows[0] is staged[0] and len(retained) in (2, 3) and retained[0] is booted and retained[-1] is stock
-            and all(is_ares(d) for d in retained[1:-1]), 'Unexpected deployments beside a staged update')
-        return
-    require(status.get('staged') is None, 'Final deployments have a pending stage')
-    if len(rows) == 2:
-        if status.get('rollbackQueued'):
-            require(booted is ares[0] and status['rollback']['ostree']['checksum'] == stock['checksum']
-                and status['rollback']['ostree']['deploySerial'] == stock['serial'], 'Wrong queued rollback')
-        return
-    require(len(rows) == 3 and len(ares) == 2 and rows[-1] is stock, 'Final pair has extra/missing deployments')
-    require(is_ares(booted), 'Stock is booted beside two AresOS releases; get help')
-    other, = [d for d in ares if d is not booted]
-    require(status.get('rollback') and slot_identity(status['rollback']) == key(other), 'Wrong AresOS rollback deployment')
-    if status.get('rollbackQueued'):
-        require(rows[0] is other and rows[1] is booted, 'Wrong queued return to the previous AresOS')
-    else:
-        require(rows[0] is booted and rows[1] is other, 'The running AresOS is not the default')
+        # An update: the bundle's release staged in front of a running AresOS that is first (rule 6).
+        new = staged[0]
+        require(new['container-image-reference-digest'] == target and slot_identity(status['staged']) == key(new)
+            and not status.get('rollbackQueued') and rows[0] is new and rows[1] is booted and booted is not stock,
+            'Unexpected staged update')
+        return dict(stock=stock, ares=installed, staged=new, booted=booted, known=known)
+    other = next(d for d in rows if d is not booted)
+    require(status.get('rollback') and slot_identity(status['rollback']) == key(other)
+        and bool(status.get('rollbackQueued')) == (rows[0] is not booted),
+        'bootc rollback slot differs from the deployment order; get help')
+    return dict(stock=stock, ares=installed, staged=None, booted=booted, known=known)
+
+
+def role(shape, row):
+    """One name per installed system, the same in every line (rule 8): by role, never by a release number."""
+    if key(row) == key(shape['stock']):
+        return 'plain Bazzite'
+    if shape['staged'] is not None and key(row) == key(shape['staged']):
+        return 'new AresOS'
+    if len(shape['ares']) == 1:
+        return 'AresOS'
+    rank = lambda d: shape['known'][d['container-image-reference-digest']][0]
+    return 'newer AresOS' if rank(row) == max(rank(d) for d in shape['ares']) else 'older AresOS'
+
+
+def name(shape, row):
+    return role(shape, row) + ' ' + row['container-image-reference-digest'].split(':')[1][:12]
+
+
+def newest(shape):
+    """The newest installed AresOS, by the release history's order: forward's destination."""
+    return max(shape['ares'], key=lambda d: shape['known'][d['container-image-reference-digest']][0])
+
+
+JOURNAL = 'change1'
+# update journals only its staging; forward, previous, rollback and keep-stock only the reorder.
+WORDS = ('update', 'forward', 'previous', 'rollback', 'keep-stock')
+
+
+def journalled(value):
+    """The open journal (records/outcome-pending.json) in version 3's form.
+
+    schema; mode ('staging' or 'reorder'); word; status ('intent' or 'recorded');
+    boot (the boot that made the change); reference and digest of the target;
+    target and running (identities; a staging intent has no target identity
+    yet); before and intended (the deployment list before the change and the
+    one it leads to; a staging intent derives the latter in completion());
+    staged (a staging record's list until the shutdown). A record without
+    schema is version 2's and reads as the change version 2 meant (rule 9); an
+    unknown schema is refused with nothing changed.
+    """
+    require(isinstance(value, dict), 'Invalid change record; get help')
+    if 'schema' in value:
+        require(value['schema'] == JOURNAL, 'The open change record is of unknown tools (schema '
+            + str(value['schema']) + '); nothing changed; install the current tools or get help')
+        require(value.get('mode') in ('staging', 'reorder') and value.get('word') in WORDS
+            and value.get('status') in ('intent', 'recorded'), 'Invalid change record; get help')
+        return value
+    require(value.get('status') in ('intent', 'recorded') and value.get('kind') in ('update', 'previous'),
+        'Invalid update/previous record; get help')
+    before, recorded = value['before'], value['status'] == 'recorded'
+    shared = dict(schema=None, word=value['kind'], status=value['status'], boot=value['boot'], reference=value['reference'],
+        digest=value['reference'].split('@')[1], running=before[0], before=before)
+    if value['kind'] == 'update':
+        return dict(shared, mode='staging', target=value['booted'] if recorded else None,
+            intended=value['expected'] if recorded else None, staged=value['pending'] if recorded else None)
+    target = value['booted'] if recorded else value['target']
+    return dict(shared, mode='reorder', target=target, intended=[target, *[k for k in before if k != target]])
 
 
 def setup_identity(record):
@@ -1118,106 +1220,133 @@ class Tools:
         return [row['reference'] for row in self.lineage()['releases']]
 
     def qualified(self, state, saved=None, retry=None):
-        """The reviewed shapes, and any update/previous result the last start owes."""
-        qualified_state(state, saved if saved is not None else self.load('prepared'), self.release['reference'], self.known())
+        """Rule 1's deployment list, then rule 5: the open journal resolved from that list alone."""
+        self.shape = qualified_state(state, saved if saved is not None else self.load('prepared'),
+            self.release['reference'], self.known())
         return self.outcome(state, retry)
 
+    def note(self, line):
+        """A line the command prints before its own result (main prints them, also before a STOP)."""
+        if getattr(self, 'notes', None) is None:
+            self.notes = []
+        self.notes.append(line)
+
+    @staticmethod
+    def change(value, capital=False):
+        text = {'update': 'update to ', 'forward': 'forward to ', 'previous': 'return to ', 'rollback': 'rollback to ',
+                'keep-stock': 'change to '}[value['word']] + value['reference']
+        return text[0].upper() + text[1:] if capital else text
+
+    def archive(self, state_name, value):
+        """Keep a closed journal under the state it was in; the open one is gone afterwards."""
+        stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
+        self.save(stamp + '-outcome-' + state_name, value)
+        (self.store / (OUTCOME + '.json')).unlink()
+        sync_directory(self.store)
+
     def outcome(self, state, retry=None):
-        """Compare the system with the journalled update/previous.
+        """Rule 5: where the journalled change stands. The deployment list decides, not the command
+        word and not the running row.
 
-        update and previous journal an intent before they change anything and
-        turn it into a record once the change is verified. An intent is never
-        a confirmation: only the same command may continue it, by redoing the
-        change from the unchanged list ('retry') or by recording a change it
-        already made ('complete'); everything else STOPs.
+        Every change journals an intent before it and turns it into a record after it. Three facts
+        are kept apart: the selection is applied (the list is the intended one), a restart is
+        waiting (that, in the boot that made the change, with a target that does not run), and the
+        target's boot is confirmed (a later boot runs it). Returns None without a journal, and
+        after archiving one whose list is as before the change ('not-applied'), or:
 
-        With a record, before the restart (same boot) the exact staged or
-        queued list must still be there: 'pending'. After it, only the
-        recorded booted release in the recorded order with nothing pending is
-        'done'. An unchanged pre-change list may be retried by the same
-        command ('retry'). Any other result STOPs, so check/title/records
-        never confirm a failure.
+        'retry', 'complete'  only for update, in the boot that wrote a staging intent: stage again
+                             from the unchanged list, or record the staging it made. Every other
+                             command STOPs there and names update;
+        'pending'            in place, waiting for the restart (a staging record needs its staged
+                             list still there);
+        'applied'            in place in the boot that made it, and the target runs already: no
+                             restart is waiting, and no start has been seen since the change;
+        'done'               in place after a restart, and the target runs: title confirms it;
+        'elsewhere'          in place after a restart, and another installed system runs. Nothing
+                             blocks; the record stays open for a later start or a new change.
+        An intent whose change is in place becomes the record here, with no second change. Any
+        other list STOPs with nothing changed.
         """
         if not (self.store / (OUTCOME + '.json')).exists():
             return None
-        value = self.load(OUTCOME)
-        require(value.get('status') in ('intent', 'recorded') and value.get('kind') in ('update', 'previous'),
-            'Invalid update/previous record; get help')
-        rows, status = state['rpm']['deployments'], state['bootc']['status']
-        keys, booted = [list(key(d)) for d in rows], list(key(agree(state)))
-        waiting = bool(status.get('staged')) or any(d.get('staged') for d in rows) or bool(status.get('rollbackQueued'))
-        change = ('update to ' if value['kind'] == 'update' else 'return to ') + value['reference']
-        if value['status'] == 'intent':
-            if retry == value['kind']:
-                if keys == value['before'] and booted == value['before'][0] and not waiting:
+        raw = self.load(OUTCOME)
+        value = journalled(raw)
+        rows = state['rpm']['deployments']
+        keys, running, waiting = [list(key(d)) for d in rows], list(key(agree(state))), staged(state)
+        change, same = self.change(value), value['boot'] == boot_id()
+        if value['mode'] == 'staging' and same:
+            if value['status'] == 'intent':
+                if retry == 'update' and keys == value['before'] and not waiting:
                     return 'retry'
-                if self.completion(value, state) is not None:
+                if retry == 'update' and self.completion(value, state) is not None:
                     return 'complete'
-            raise Stop('The ' + change + ' was interrupted before its result was recorded; do not reboot; '
-                'export records and get help: EMERGENCY Failed or bad update')
-        if value['boot'] == boot_id():
-            require(keys == value['pending'] and waiting, 'The ' + change + ' changed before the restart; do not reboot; get help')
+                raise Stop('The ' + change + ' was interrupted before its result was recorded; do not reboot; run '
+                    + typed('update') + ' to continue it, or get help: EMERGENCY Failed or bad update')
+            require(keys == value['staged'] and waiting, 'The ' + change + ' changed before the restart; do not reboot; get help')
             return 'pending'
-        if keys == value['expected'] and booted == value['booted'] and not waiting:
-            return 'done'
-        if retry == value['kind'] and keys == value['before'] and booted == value['before'][0] and not waiting:
-            return 'retry'
-        raise Stop('The ' + change + ' did not finish at the restart (' + ('it is still pending' if waiting else
-            'another deployment runs') + '); do not repeat it; export records and get help: EMERGENCY Failed or bad update')
+        if keys == value['before'] and not waiting:
+            self.archive('not-applied', dict(raw, found_state=state))
+            self.note(self.change(value, True) + ' was not applied: the deployments are as before it, and nothing is waiting')
+            return None
+        record = value if value['status'] == 'recorded' else self.completion(value, state)
+        if record is None or waiting or keys != record['intended']:
+            raise Stop('The ' + change + ' did not finish as recorded (' + ('it is still pending' if waiting else
+                'the deployments are neither as before it nor as it intended') + '); do not repeat it; '
+                'export records and get help: EMERGENCY Failed or bad update')
+        if value['status'] == 'intent':
+            self.save(OUTCOME, record)
+            self.note('The interrupted ' + change + ' had made its change; it is recorded now')
+        if running == record['target']:
+            return 'applied' if same else 'done'
+        return 'pending' if same else 'elsewhere'
 
-    def intend(self, kind, before, reference, target, settled):
-        """Journal the change durably before it is made; a superseded record is kept."""
-        stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
-        if settled in ('done', 'retry'):
-            self.save(stamp + '-outcome-' + ('confirmed' if settled == 'done' else 'retried'), self.load(OUTCOME))
-        self.save(OUTCOME, dict(kind=kind, status='intent', boot=boot_id(), reference=reference,
-            digest=reference.split('@')[1], target=target, before=[list(key(d)) for d in before['rpm']['deployments']]))
+    ARCHIVES = {'done': 'confirmed', 'retry': 'retried', 'applied': 'applied-not-restarted', 'elsewhere': 'in-place-not-started'}
+
+    def intend(self, word, state, settled, target=None):
+        """Journal the change durably before it is made. An open record is first archived under the
+        state it is in. target is the row to start next; None stages the bundle's release, whose
+        identity does not exist yet."""
+        if settled in self.ARCHIVES:
+            self.archive(self.ARCHIVES[settled], self.load(OUTCOME))
+        before = [list(key(d)) for d in state['rpm']['deployments']]
+        if target is None:
+            reference = self.release['reference']
+            extra = dict(mode='staging', reference=reference, digest=reference.split('@')[1], target=None, intended=None)
+        else:
+            identity = list(key(target))
+            extra = dict(mode='reorder', reference=image_reference(target), digest=target['container-image-reference-digest'],
+                target=identity, intended=[identity, *[k for k in before if k != identity]])
+        self.save(OUTCOME, dict(schema=JOURNAL, word=word, status='intent', boot=boot_id(),
+            running=list(key(agree(state))), before=before, **extra))
 
     def completion(self, intent, state):
-        """The full record if state is exactly the intended change, else None.
+        """The record for an intent whose change is in place in state, else None.
 
-        update: the target release staged over the unchanged list (same boot),
-        or booted after the restart with the running one as rollback and the
-        stock last. previous: the queued order (same boot), or the previous
-        release booted in that order after the restart.
+        The intended list is built from identities, never from positions. A reorder: the target
+        first, the others in their old order. Staging: in the boot that staged, the new release in
+        front of the unchanged list; after a restart, the new release, the system that ran and the
+        stock (ostree's finalize keeps the new, pinned, booted and merge rows).
         """
-        rows, status = state['rpm']['deployments'], state['bootc']['status']
-        keys, booted = [list(key(d)) for d in rows], agree(state)
-        before, same = intent['before'], intent['boot'] == boot_id()
-        staged = [d for d in rows if d.get('staged')]
-        if intent['kind'] == 'update':
-            if same and len(staged) == 1 and not status.get('rollbackQueued'):
-                new = staged[0]
-                good = keys[1:] == before and list(key(booted)) == before[0]
-            elif not same and not staged and not status.get('rollbackQueued'):
-                new = booted
-                good = keys == [list(key(booted)), before[0], before[-1]]
-            else:
-                return None
-            if not (good and new['container-image-reference-digest'] == intent['digest'] and not new['pinned']
-                    and list(key(new)) not in before):
-                return None
-            pending = keys if same else [list(key(new)), *before]
-            expected = [list(key(new)), before[0], before[-1]]
-        else:
-            order = [before[1], before[0], before[2]] if len(before) == 3 else None
-            if not (order and intent['target'] == before[1] and keys == order and not staged):
-                return None
-            if same:
-                if not (status.get('rollbackQueued') and list(key(booted)) == before[0]):
-                    return None
-            elif status.get('rollbackQueued') or list(key(booted)) != before[1]:
-                return None
-            new, pending, expected = rows[0], order, order
-        return dict(kind=intent['kind'], status='recorded', boot=intent['boot'], reference=image_reference(new),
-            booted=list(key(new)), before=before, pending=pending, expected=expected)
+        rows = state['rpm']['deployments']
+        keys, before = [list(key(d)) for d in rows], intent['before']
+        if intent['mode'] == 'reorder':
+            return dict(intent, schema=JOURNAL, status='recorded') if keys == intent['intended'] and not staged(state) else None
+        new = [d for d in rows if list(key(d)) not in before]
+        if len(new) != 1 or new[0]['container-image-reference-digest'] != intent['digest'] or new[0]['pinned']:
+            return None
+        identity, same = list(key(new[0])), intent['boot'] == boot_id()
+        pending = [identity, *before]
+        intended = [identity, intent['running'], list(self.load('prepared')['stock_identity'])]
+        if not (same and keys == pending and new[0].get('staged') or not same and keys == intended and not staged(state)):
+            return None
+        return dict(intent, schema=JOURNAL, status='recorded', target=identity, staged=pending, intended=intended)
 
-    def finish(self, kind, state):
+    def finish(self, state):
         """Turn this command's intent into the full record, or STOP unresolved."""
-        intent = self.load(OUTCOME)
-        require(intent.get('status') == 'intent' and intent.get('kind') == kind, 'Missing ' + kind + ' journal; get help')
+        intent = journalled(self.load(OUTCOME))
+        require(intent['status'] == 'intent', 'Missing change journal; get help')
         record = self.completion(intent, state)
-        require(record is not None, 'The ' + kind + ' did not make the intended change; do not reboot; get help')
+        require(record is not None, 'The ' + self.change(intent) + ' did not make the intended change; do not reboot; get help')
         self.save(OUTCOME, record)
         return record
 
@@ -1257,10 +1386,11 @@ class Tools:
         self.host.script("python3 - <<'OWNER_PIN'\n" + source + '\nOWNER_PIN\n', 'cleanup' if cleanup_only else 'pin')
 
     def prepare(self):
-        expected = self.load('disks')
-        disks = setup_identity(disk_record(self.host, expected))
         state = observations(self.host)
         saved = self.load('prepared') if (self.store / 'prepared.json').exists() else None
+        self.survey_installed(state, saved)
+        expected = self.load('disks')
+        disks = setup_identity(disk_record(self.host, expected))
         intent = self.load('prepare-intent') if (self.store / 'prepare-intent.json').exists() else None
         processes = self.processes()
         stock = agree(state) if intent and not saved else preflight_prepare(state, processes, saved, self.pause['SYSTEM'])
@@ -1321,10 +1451,46 @@ class Tools:
         return ['stock ' + ' '.join(map(str, key(now))), 'pin yes; pending none; updaters paused',
                 'Flatpak state recorded; network may now be enabled']
 
+    def standing(self, state, shape, settled, bls):
+        """Rule 8, with AresOS installed: which system runs, which starts next, and the boot menu's
+        rows for the next start, read from the boot entries by identity. Facts only: a cause is
+        named where a record proves one."""
+        rows, running, new = state['rpm']['deployments'], shape['booted'], shape['staged']
+        label = lambda row: name(shape, row)
+        if new is not None:
+            after = [new, running, shape['stock']]
+            return [label(running) + ' runs; ' + label(new) + ' starts next once the update finishes at shutdown',
+                'Boot menu after the update finishes at shutdown (expected): ' + '; '.join(
+                    '(ostree:%d) %s%s' % (place, label(row), ', starts next' if place == 0 else '') for place, row in enumerate(after))]
+        first = rows[0]
+        if first is running:
+            lines = [label(running) + (' runs and now starts next; no restart is waiting' if settled == 'applied'
+                                       else ' runs and starts next')]
+        elif settled == 'pending':
+            lines = [label(running) + ' runs; ' + label(first) + ' starts next, after the restart']
+        else:
+            lines = [label(running) + ' runs; ' + label(first) + ' starts next; this start was not the default']
+        entries = {tuple(e['identity']): e['title'] for e in bls}
+        menu = []
+        for row in rows:
+            place = re.search(r'\(ostree:[0-9]+\)', entries[key(row)])
+            menu.append((place.group(0) if place else '"' + entries[key(row)] + '"') + ' ' + label(row)
+                        + (', starts next' if row is first else ''))
+        lines.append('Boot menu at the next start: ' + '; '.join(menu))
+        if running is shape['stock']:
+            # Rule 10: a warning, never a STOP, so that reboot and the way off stock keep working.
+            try:
+                paused_state(self.host, self.pause)
+            except (Stop, OSError, subprocess.SubprocessError) as error:
+                lines.append('WARNING: ' + str(error) + '. Bazzite must not update while AresOS is installed: '
+                    + BACK_TO_ARESOS + ', then get help')
+        return lines
+
     def title(self):
         saved = self.load('prepared')
         state = observations(self.host)
         settled = self.qualified(state, saved)
+        shape = self.shape
         idle(state, self.processes())
         matches = [d for d in state['rpm']['deployments'] if key(d) == tuple(saved['stock_identity'])]
         require(len(matches) == 1 and matches[0]['pinned'] and
@@ -1336,19 +1502,20 @@ class Tools:
         if not (self.store / 'network-verified.json').exists():
             require(state == saved['state'] and bls == saved['bls'], 'Deployment list/pin/pending/BLS changed after prepare')
             self.save('network-verified', dict(state=state, bls=bls, flatpak=runtime_state(self.host)))
-        notes = []
+        notes = self.standing(state, shape, settled, bls) if shape is not None else []
         if settled is not None:
             value = self.load(OUTCOME)
-            change = ('Update to ' if value['kind'] == 'update' else 'Return to ') + value['reference']
+            change = self.change(journalled(value), True)
             if settled == 'done':
-                # The restart gave exactly the recorded result: keep it, clear it.
-                stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
-                self.save(stamp + '-outcome-confirmed', dict(value, confirmed_state=state))
-                (self.store / (OUTCOME + '.json')).unlink()
-                sync_directory(self.store)
+                # A later boot runs the target of the change that is in place: keep it, clear it.
+                self.archive('confirmed', dict(value, confirmed_state=state))
                 notes.append(change + ' confirmed after the restart')
-            else:
+            elif settled == 'pending':
                 notes.append(change + ' is not finished until the restart')
+            elif settled == 'elsewhere':
+                # A fact, never a failure: the target may have started on a day without a command.
+                notes.append(change + ' is in place and has not started yet')
+            # 'applied': the first line above says it; no start has been seen, so no confirmation.
         result = dict(state=state, bls=bls, title=entry[0], flatpak=runtime_state(self.host))
         self.save('title', result)
         return [*notes, 'stock ' + ' '.join(map(str, saved['stock_identity'])), 'pin yes; transaction idle',
@@ -1358,6 +1525,7 @@ class Tools:
                 'Flatpak sync state saved; unfinished sync is expected and does not block']
 
     def records(self):
+        self.survey()
         record = disk_record(self.host, self.load('disks'))
         self.save('record-c', record)
         return ['target ' + record['target']['path'] + ' serial ' + str(record['target']['serial']),
@@ -1366,6 +1534,7 @@ class Tools:
     def before_switch(self):
         saved = self.load('prepared')
         state = observations(self.host)
+        self.survey_installed(state, saved)
         stock = agree(state)
         idle(state, self.processes())
         require(key(stock) == tuple(saved['stock_identity']) and stock['pinned'], 'Not booted saved pinned stock')
@@ -1376,40 +1545,118 @@ class Tools:
         paused_state(self.host, self.pause)
         return state
 
-    def before_update(self):
-        """Read-only: a running AresOS that may stage the bundle's newer release."""
-        require(not (self.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
+    def installed_aresos(self, state):
+        """Whether a known AresOS release is installed (a staged row alone does not count)."""
+        known = {reference.split('@')[1] for reference in self.known()}
+        return any(not d.get('staged') and d.get('container-image-reference-digest') in known
+                   for d in state['rpm']['deployments'])
+
+    def survey_installed(self, state, saved=None, retry=None):
+        """Install-only commands keep their original prepared/first-switch checks,
+        but an installed lifecycle must resolve and warn before those checks."""
+        if self.installed_aresos(state):
+            return self.qualified(state, saved, retry)
+
+    def survey(self, retry=None):
+        """What list-reading installed commands read first: the list accepted by
+        rule 1 and the journal resolved by rule 5, before any check of its own."""
         saved = self.load('prepared')
-        disk_record(self.host, self.load('disks'))
         state = observations(self.host)
+        settled = self.qualified(state, saved, retry)
+        return state, self.shape, settled
+
+    def may_change(self, state, shape, settled):
+        """Rule 3's read-only preflight, shared by the reorder, by staging and by a layout trial's begin."""
+        require(shape is not None, NOT_INSTALLED)
+        require(not (self.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
         idle(state, self.processes())
-        settled = self.qualified(state, saved, retry='update')
-        booted = agree(state)
-        if settled == 'complete':
-            return state, booted, settled
-        rows, status = state['rpm']['deployments'], state['bootc']['status']
-        require(not status.get('staged') and not any(d.get('staged') for d in rows), 'A staged deployment already exists; do not reboot; get help')
-        require(not status.get('rollbackQueued'), 'A rollback is queued; do not update; get help')
-        known = known_releases(self.release['reference'], self.known())
-        digest, target = booted['container-image-reference-digest'], self.release['reference'].split('@')[1]
-        # No downgrade can pass: the target is the history's newest record, and
-        # a running release newer than these tools is unknown to them and STOPs.
-        require(digest in known, 'Update starts only from a running AresOS release; get help')
-        require(digest != target, 'This release is already running; nothing to update')
-        require(not any(d['container-image-reference-digest'] == target for d in rows), 'Target release is already deployed; get help')
-        for d in rows:
-            if d['container-image-reference-digest'] != BASE:
-                require(not any(d.get(k) for k in MODIFIED) and d.get('unlocked', 'none') == 'none', 'Modified AresOS deployment; get help')
+        disk_record(self.host, self.load('disks'))
+        if settled == 'pending':
+            raise Stop('The ' + self.change(journalled(self.load(OUTCOME))) + ' waits for the restart: restart first ('
+                + typed('reboot') + '), then run this command again; nothing changed')
+        require(shape['staged'] is None, 'A staged deployment already exists; do not reboot; get help')
+        require(unmodified(shape['ares']), 'Modified AresOS deployment; get help')
         validate_bls(state, resolved_bls())
-        return state, booted, settled
+
+    def may_stage(self, state, shape, settled):
+        """Rule 6: staging only from a running AresOS that is first and whole; never from stock."""
+        self.may_change(state, shape, settled)
+        booted = shape['booted']
+        require(booted is not shape['stock'] and state['rpm']['deployments'][0] is booted, FORWARD_FIRST)
+        require(not self.repair_note(booted), "This system's keyboard layout is half written: run "
+            + typed('layout', 'abandon') + ' first, then update again; nothing changed')
+
+    def start_next(self, word, state, shape, settled, target):
+        """Rule 3, the one reorder: target becomes the first deployment by one `ostree admin
+        set-default`. It never creates or removes a deployment and never touches a pin, kernel
+        arguments or any /etc. Journalled before, recorded after; returns the state afterwards."""
+        self.may_change(state, shape, settled)
+        rows, reference = state['rpm']['deployments'], target['container-image-reference']
+        require(len([d for d in rows if key(d) == key(target)]) == 1 and re.fullmatch('[A-Za-z0-9:/.@_-]+', reference),
+            'Target deployment missing or ambiguous; nothing changed; get help')
+        self.intend(word, state, settled, target)
+        try:
+            self.script('start-next', {'CHECKSUM': target['checksum'], 'SERIAL': str(target['serial']),
+                'DIGEST': target['container-image-reference-digest'], 'REFERENCE': reference,
+                'BEFORE': json.dumps(rows).encode().hex()})
+        except Failed as failure:
+            if failure.code != REFUSED_BEFORE_CHANGE:
+                raise  # it may have followed set-default: the intent stays open for rule 5
+            # Certain, not inferred: the script's own checks refused before set-default ran.
+            # They passed here on the journalled list, so its fresh read differed from it.
+            # Close the intent durably, so that the next command surveys the list as it is
+            # instead of stopping on an intent that matches neither list (review 2).
+            value = self.load(OUTCOME)
+            self.archive('refused-before-change', value)
+            raise Stop('The deployment list changed outside the tools before the ' + self.change(value) + '; nothing was changed '
+                'and the change is closed; run ' + typed('check') + ' to see what runs and what starts next') from None
+        after = observations(self.host)
+        qualified_state(after, self.load('prepared'), self.release['reference'], self.known())
+        # The same identities and flags, the target first, the others in their old order.
+        require(after['rpm']['deployments'] == [target, *[d for d in rows if d is not target]],
+            'The reorder changed more than the order; do not reboot; get help')
+        validate_bls(after, resolved_bls())
+        self.finish(after)
+        return after
+
+    @staticmethod
+    def already(shape, target):
+        """What every word says when its destination starts next already: nothing changed, and whether it runs."""
+        label = name(shape, target)
+        return [label[0].upper() + label[1:] + ' already starts next; nothing changed',
+                'It runs now' if target is shape['booted'] else 'It does not run yet: it starts at the next restart']
+
+    def select(self, word, state, shape, settled, target, done):
+        """Rule 4: make target the next start. Already first: nothing changes and no journal is written."""
+        if state['rpm']['deployments'][0] is target:
+            return self.already(shape, target)
+        self.start_next(word, state, shape, settled, target)
+        return [done, *self.title()]
+
+    def tools_release(self, shape):
+        """The installed deployment of the release of these tools, or None while it is not installed."""
+        digest = self.release['reference'].split('@')[1]
+        return next((d for d in shape['ares'] if d['container-image-reference-digest'] == digest), None)
 
     def login(self):
-        # Before the first switch the stock rules apply unchanged; on a
-        # running AresOS a login only serves an update to the bundle's release.
-        if agree(observations(self.host))['container-image-reference-digest'] == BASE:
+        # Before the first switch the stock rules apply unchanged. With an AresOS
+        # installed a login only serves an update that needs a download, so it
+        # refuses wherever update would, plain Bazzite included, with update's
+        # next step (forward there), never the first switch's refusal.
+        state = observations(self.host)
+        self.survey_installed(state, retry='update')
+        if agree(state)['container-image-reference-digest'] == BASE and not self.installed_aresos(state):
             self.before_switch()
         else:
-            require(self.before_update()[2] != 'complete', 'An interrupted update only needs recording: run update')
+            state, shape, settled = self.survey(retry='update')
+            require(settled != 'complete', 'An interrupted update only needs recording: run update')
+            require(shape is not None, 'Unknown booted image; get help')
+            installed = self.tools_release(shape)
+            if installed is not None:
+                # Where update has nothing to install it needs no login either: its own next step.
+                raise Stop(RELEASE_RUNS if installed is shape['booted'] and state['rpm']['deployments'][0] is installed
+                           else RELEASE_INSTALLED)
+            self.may_stage(state, shape, settled)
         require(sys.stdin.isatty(), 'Login requires a real hidden terminal prompt')
         podman = shutil.which('podman', path='/usr/bin:/usr/sbin')
         require(podman and pathlib.Path(podman).is_absolute(), 'podman is missing')
@@ -1456,44 +1703,64 @@ class Tools:
         return ['Signed exact release staged', *self.title(), 'Reboot only after saving this refreshed title; F12 then Linux']
 
     def recover(self, keep=False):
-        saved = self.load('prepared')
-        disk_record(self.host, self.load('disks'))
-        state = observations(self.host)
-        preflight_recovery(state, self.processes(), saved, self.release['reference'], keep, self.known())
-        self.outcome(state)
+        """rollback (on a running AresOS) and keep-stock (on running stock): the pinned stock starts next."""
+        state, shape, settled = self.survey()
+        require(shape is not None, NOT_INSTALLED)
+        on_stock = shape['booted'] is shape['stock']
+        if keep != on_stock:
+            raise Stop(('Plain Bazzite runs here: use ' + typed('keep-stock') + ' (rollback is for a running AresOS)' if on_stock
+                else 'An AresOS runs here: use ' + typed('rollback') + ' (keep-stock is for running plain Bazzite)')
+                + '; nothing changed')
         if keep:
-            self.script('default-stock', {'STOCK_CHECKSUM': saved['stock_identity'][0], 'BASE_DIGEST': BASE})
-        else:
-            self.script('rollback', {'BASE_DIGEST': BASE})
-            require(observations(self.host)['bootc']['status']['rollbackQueued'] is True, 'Rollback was not queued; do not reboot')
-        after = observations(self.host)
-        self.qualified(after, saved)
-        require(sorted(state['rpm']['deployments'], key=key) == sorted(after['rpm']['deployments'], key=key),
-                'Recovery changed deployment identities or flags; do not reboot')
-        return ['Saved stock is default' if keep else 'Saved stock rollback queued', *self.title()]
+            # Rule 10: stock may stay the default only while its own updaters are off.
+            try:
+                paused_state(self.host, self.pause)
+            except Stop as error:
+                raise Stop(str(error) + '; nothing changed. Bazzite must not update while AresOS is installed: '
+                    + BACK_TO_ARESOS + ', then get help') from None
+        return self.select('keep-stock' if keep else 'rollback', state, shape, settled, shape['stock'],
+            'Saved stock is default' if keep else 'Saved stock rollback queued')
 
     def update(self):
-        """Verify and stage the bundle's newer signed release over the running one.
+        """The release of these tools, by staging, and nothing else (briefs/22c-forward-command.md).
 
-        The running AresOS stays as rollback and the pinned stock stays as it
-        is. Every refusal before the staging step leaves the system unchanged.
+        It is not installed and an AresOS runs and is first: verify and stage it over the running
+        one, which stays as rollback beside the pinned stock (rule 6). Update never selects an
+        installed system: where the release is installed already, or staging is not allowed here
+        (stock runs, or the running AresOS is not first), it refuses and names forward. Where the
+        release already runs and starts next there is nothing to do. Every refusal leaves the
+        system unchanged.
         """
-        before, booted, settled = self.before_update()
+        before, shape, settled = self.survey(retry='update')
+        require(shape is not None, 'Update starts only from a running AresOS release; get help')
         target, identity = self.release['reference'], self.release['signature']['identity']
         if settled == 'complete':
             # An interrupted run verified and staged this release; only its record is missing.
-            require(self.load(OUTCOME)['reference'] == target, 'The interrupted update was for another release; get help')
-            record = self.finish('update', before)
+            require(journalled(self.load(OUTCOME))['digest'] == target.split('@')[1], 'The interrupted update was for another release; get help')
+            record = self.finish(before)
             return ['Interrupted update recorded: ' + record['reference'], *self.title()]
+        booted, rows = shape['booted'], before['rpm']['deployments']
+        rank = lambda d: shape['known'][d['container-image-reference-digest']][0]
+        installed = self.tools_release(shape)
+        if installed is not None:
+            if rows[0] is installed and installed is booted:
+                return self.already(shape, installed)
+            raise Stop(RELEASE_INSTALLED)
+        self.may_stage(before, shape, settled)
         stored_login(target)
         require(shutil.which('cosign', path='/usr/sbin:/usr/bin:/sbin:/bin'), 'cosign is missing')
         self.script('verify', {'REFERENCE': target, 'IDENTITY': identity})
         # Verification takes time: every safety check again, immediately before staging.
-        again, _, _ = self.before_update()
-        require(again['rpm']['deployments'] == before['rpm']['deployments'],
-            'Deployments changed during verification; nothing was staged; get help')
+        again, shape, settled = self.survey(retry='update')
+        self.may_stage(again, shape, settled)
+        require(again['rpm']['deployments'] == rows, 'Deployments changed during verification; nothing was staged; get help')
+        booted = shape['booted']
         removed = finalizer_masks()
-        self.intend('update', before, target, None, settled)
+        self.intend('update', again, settled)
+        # A power loss after staging can reach finalize without the result/record below.
+        # Name the deployment it will remove before making that possible.
+        for other in (d for d in shape['ares'] if d is not booted):
+            say('At shutdown, this update removes ' + role(shape, other) + ' ' + image_reference(other))
         text = self.render('update', {'REFERENCE': target, 'CURRENT': image_reference(booted),
                                       'CURRENT_DIGEST': booted['container-image-reference-digest']})
         # From the start of the step to the end of its stop routine, Ctrl+C, a closed
@@ -1515,11 +1782,17 @@ class Tools:
         require(slot and slot['image']['image']['image'] == target and slot['image']['imageDigest'] == target.split('@')[1]
             and not status['rollbackQueued'] and key(agree(after)) == key(booted), 'Staged update identity mismatch; do not reboot')
         retained = [d for d in after['rpm']['deployments'] if not d.get('staged')]
-        require(retained == before['rpm']['deployments'], 'Update changed the retained deployments; do not reboot; get help')
-        self.finish('update', after)
+        require(retained == rows, 'Update changed the retained deployments; do not reboot; get help')
+        self.finish(after)
         lines = ['Signed exact release staged ' + target, 'Running release stays as rollback ' + image_reference(booted)]
-        if len(retained) == 3:
-            lines.append('Older AresOS ' + image_reference(retained[1]) + ' is removed when the update finishes at shutdown')
+        for other in (d for d in shape['ares'] if d is not booted):
+            # ostree's finalize keeps the new, pinned and booted rows: the other AresOS goes, whichever it is.
+            label = role(shape, other)
+            lines.append(label[0].upper() + label[1:] + ' ' + image_reference(other)
+                + ' is removed when the update finishes at shutdown')
+            if rank(booted) < rank(other):
+                lines.append("The new release starts with this system's settings (Wi-Fi, passwords, layout), not "
+                    + name(shape, other) + "'s")
         return [*lines, *self.title(), 'Reboot only after saving this refreshed title; F12 then Linux']
 
     def stop_update(self, step, reason, signals, before, booted, removed, target):
@@ -1600,6 +1873,9 @@ class Tools:
                 and mine[0]['container-image-reference-digest'] == digest
                 and status['staged']['image']['imageDigest'] == digest and list(key(mine[0])) not in known,
                 'a staged deployment this update did not make is present; nothing was deleted')
+        # cleanup --pending also removes unpinned rows before the running one: only the staged row may be there.
+        require(rows[0] is mine[0] and rows[1] is running,
+                'a deployment other than the staged update comes before the running release; nothing was deleted')
         self.host.mutate('rpm-ostree', 'cleanup', '--pending', timeout=CLEANUP_TIMEOUT)
         after = observations(self.host)
         agree(after)
@@ -1607,36 +1883,23 @@ class Tools:
                 'the staged update could not be removed')
         return True
 
+    def forward(self):
+        """The newest installed AresOS starts next, from every system, stock included: rule 3's
+        reorder, journalled and confirmed like every reorder. It never stages, downloads, removes
+        or creates a deployment: no network, no login and no signature check (the release was
+        checked when it was installed). An interrupted staging stays update's to continue."""
+        state, shape, settled = self.survey()
+        require(shape is not None, NOT_INSTALLED)
+        target = newest(shape)
+        return self.select('forward', state, shape, settled, target, 'Newest installed AresOS starts next ' + image_reference(target))
+
     def previous(self):
-        """Queue the previous AresOS release after an update; the stock pin stays."""
-        require(not (self.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
-        saved = self.load('prepared')
-        disk_record(self.host, self.load('disks'))
-        state = observations(self.host)
-        idle(state, self.processes())
-        settled = self.qualified(state, saved, retry='previous')
-        if settled == 'complete':
-            record = self.finish('previous', state)
-            return ['Interrupted return recorded: ' + record['reference'], *self.title()]
-        rows, status = state['rpm']['deployments'], state['bootc']['status']
-        require(not status.get('staged') and not status.get('rollbackQueued'), 'Pending deployment or queued rollback; get help')
-        booted = agree(state)
-        known = known_releases(self.release['reference'], self.known())
-        require(len(rows) == 3 and booted['container-image-reference-digest'] in known,
-            'No previous AresOS beside the running one; nothing to return to')
-        other = rows[1]
-        require(known[other['container-image-reference-digest']][0] < known[booted['container-image-reference-digest']][0],
-            'The other AresOS is newer; previous only returns from an update')
-        self.intend('previous', state, image_reference(other), list(key(other)), settled)
-        self.script('previous', {'PREVIOUS': image_reference(other), 'PREVIOUS_DIGEST': other['container-image-reference-digest'],
-                                 'PREVIOUS_CHECKSUM': other['checksum']})
-        after = observations(self.host)
-        require(after['bootc']['status']['rollbackQueued'] is True, 'Return was not queued; do not reboot')
-        qualified_state(after, saved, self.release['reference'], self.known())
-        require(sorted(rows, key=key) == sorted(after['rpm']['deployments'], key=key),
-            'Return changed deployment identities or flags; do not reboot')
-        self.finish('previous', after)
-        return ['Previous AresOS queued for the next start ' + image_reference(other), *self.title()]
+        """The older of two installed AresOS releases starts next, from every system, stock included."""
+        state, shape, settled = self.survey()
+        require(shape is not None, NOT_INSTALLED)
+        require(len(shape['ares']) == 2, 'Only one AresOS is installed: there is no older one to return to; nothing changed')
+        older = min(shape['ares'], key=lambda d: shape['known'][d['container-image-reference-digest']][0])
+        return self.select('previous', state, shape, settled, older, 'Previous AresOS queued for the next start ' + image_reference(older))
 
     def reboot(self):
         require(not (self.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
@@ -1662,10 +1925,13 @@ class Tools:
         dump = self.host.read('dumpkeys', '-C', '/dev/tty3', '--keys-only')
         profile = settings['VConsoleKeymap']
         require(profile in ('de', 'us', 'us-intl'), 'Unsupported loaded keyboard profile; get help')
+        layout_next = ('; from a fresh physical administrator login run ' + typed('layout', 'abandon')
+            + ', then ' + typed('check') + ' again') if ((self.store / 'layout-pending.json').exists()
+                or self.repair_note(agree(state))) else '; get help'
         for code, letter in zip((21, 44), ('z', 'y') if profile == 'de' else ('y', 'z')):
             rows = re.findall(r'^keycode\s+' + str(code) + r'\s*=\s*([^\s]+)', dump, re.M)
             require(len(rows) == 1 and rows[0] in (letter, '+' + letter, 'U+' + format(ord(letter), '04x'), '+U+' + format(ord(letter), '04x')),
-                'Loaded console keys differ from system layout')
+                'Loaded console keys differ from system layout' + layout_next)
         cmdline = pathlib.Path('/proc/cmdline').read_text().split()
         bls = resolved_bls()
         options = [bls_arguments(e) for e in keyboard_entries(state, saved, bls)]
@@ -1698,6 +1964,18 @@ class Tools:
     def export(self):
         media = media_module(self.payload)
         return media.export(self.host, self.store, checked_bundle(self.payload), checked_bundle, require)
+
+    def repair_notes(self):
+        """Rule 7: deployments whose persistent layout an abandoned trial may have left half written."""
+        if not (self.store / 'layout-repair.json').exists():
+            return []
+        value = self.load('layout-repair')
+        require(isinstance(value, dict) and value.get('schema') == 'layout-repair1' and isinstance(value.get('notes'), list),
+            'Unknown layout repair record; nothing changed; get help')
+        return value['notes']
+
+    def repair_note(self, row):
+        return [n for n in self.repair_notes() if n['deployment_identity'] == list(key(row))]
 
     def keyboard(self):
         values = self.host.json('busctl', '--system', '--json=short', 'call',
@@ -1761,10 +2039,16 @@ class Tools:
                 'Choose begin with a profile, or proof/revert/finish/abandon without extra arguments')
         if action == 'begin':
             require(profile in profiles, 'Choose de, us or us-intl')
-            state = observations(self.host)
-            preflight_recovery(state, self.processes(), self.load('prepared'), self.release['reference'], history=self.known())
-            self.outcome(state)
-            disk_record(self.host, self.load('disks'))
+            state, shape, settled = self.survey()
+            self.may_change(state, shape, settled)
+            booted = shape['booted']
+            require(booted is not shape['stock'], "Plain Bazzite keeps the installer's German layout: no layout trial here; "
+                'nothing changed; ' + BACK_TO_ARESOS + ' first')
+            # The word that selects this system: forward the newest installed AresOS, previous the older one.
+            require(state['rpm']['deployments'][0] is booted, 'This AresOS does not start next: make it the next start first ('
+                + typed('forward' if booted is newest(shape) else 'previous') + '), then begin the trial; nothing changed')
+            require(not self.repair_note(booted), "This system's keyboard layout is half written: run "
+                + typed('layout', 'abandon') + ' first; nothing changed')
             session = self.session()
             old = self.keyboard()
             require(old in profiles.values(), 'Unsupported finished system layout; get help')
@@ -1784,52 +2068,116 @@ class Tools:
             return ['Console-only trial; system/greeter layout stays finished until layout finish',
                 'Keep this administrator console OPEN; reboot is not authorized',
                 'Ctrl+Alt+F4: fresh ares-recovery password login in the new layout',
-                'Then sudo -k; sudo /var/lib/ares/at layout proof',
-                'If typing/login fails: Ctrl+Alt+F3; sudo /var/lib/ares/at layout revert']
-        value = self.load('layout-pending')
-        current = self.session()
+                'Then sudo -k; ' + typed('layout', 'proof'),
+                'If typing/login fails: Ctrl+Alt+F3; ' + typed('layout', 'revert')]
         if action == 'abandon':
-            state = observations(self.host)
-            saved = self.load('prepared')
-            booted = agree(state)
-            stock_side = booted['container-image-reference-digest'] == BASE
-            preflight_recovery(state, self.processes(), saved, self.release['reference'], keep=stock_side, history=self.known())
-            self.outcome(state)
+            # On whichever system runs, stock included. A trial belongs to the deployment it began on.
+            state, shape, settled = self.survey()
+            require(shape is not None, NOT_INSTALLED)
+            idle(state, self.processes())
+            require(shape['staged'] is None, 'A staged deployment exists: restart first, then abandon the trial; nothing changed')
             disk_record(self.host, self.load('disks'))
-            require(current != value['administrator'] and (current['boot'] != value['administrator']['boot']
-                or current['started_us'] > value['began_us']), 'Abandon requires a fresh physical administrator login')
-            finished = self.keyboard()
-            persistent_before = copy.deepcopy(finished)
-            # Each deployment has its own /etc. Retained stock keeps its own
-            # last finished (installer) setting; never write AresOS settings
-            # into it. Runtime-only trials have not changed either /etc.
-            if list(key(booted)) == value['deployment_identity']:
+            current = self.session()
+            booted, notes, lines = shape['booted'], self.repair_notes(), []
+            stock_side = booted is shape['stock']
+            mine = [n for n in notes if n['deployment_identity'] == list(key(booted))]
+            def restoration_settings(value):
                 require(value['old'] in profiles.values() and value['new'] in profiles.values(),
                     'Unsupported recorded layout trial; get help')
-                partial = dict(value['old'], **{k:value['new'][k] for k in ('VConsoleKeymap', 'VConsoleKeymapToggle')})
-                require(finished == value['old'] or value.get('finishing') and value['proof']
-                    and finished in (partial, value['new']), 'Finished system layout changed during the abandoned trial')
+                partial = dict(value['old'], **{k: value['new'][k] for k in ('VConsoleKeymap', 'VConsoleKeymapToggle')})
+                allowed = (value['old'], partial, value['new'])
+                if 'restoring' in value:
+                    require(value['restoring'] in allowed, 'Invalid layout restoration intent; get help')
+                    # Only this restoration's starting pair and its own console-first
+                    # intermediate are authorized, never an arbitrary mixed setting.
+                    allowed = (value['restoring'], dict(value['restoring'],
+                        **{k: value['old'][k] for k in ('VConsoleKeymap', 'VConsoleKeymapToggle')}), value['old'])
+                return allowed
+
+            def restore(value, persist):
+                finished = self.keyboard()
+                require(finished in restoration_settings(value),
+                    'Finished system layout changed during the abandoned trial; get help')
                 if finished != value['old']:
+                    if 'restoring' not in value:
+                        value['restoring'] = finished
+                    # Re-publish the same intent on retry: every persistent
+                    # restoration has the same durable checkpoint before writes.
+                    persist()
                     self.set_keyboard(value['old'])
+
+            pending = (self.store / 'layout-pending.json').exists()
+            require(pending or mine, 'No layout trial and no half-written layout to abandon on this system; nothing changed')
+            if pending:
+                value = self.load('layout-pending')
+                require(current != value['administrator'] and (current['boot'] != value['administrator']['boot']
+                    or current['started_us'] > value['began_us']), 'Abandon requires a fresh physical administrator login')
+                finished = self.keyboard()
+                persistent_before = copy.deepcopy(finished)
+                # Each deployment has its own /etc. Another system keeps its own last
+                # finished setting; the trial's settings are never written into it.
+                # Runtime-only trials have not changed either /etc.
+                if list(key(booted)) == value['deployment_identity']:
+                    require(finished == value['old'] or value.get('finishing') and (value['proof'] or value.get('finish_proof'))
+                        and finished in restoration_settings(value), 'Finished system layout changed during the abandoned trial')
+                    restore(value, lambda: self.save('layout-pending', value))
                     finished = value['old']
-            else:
-                require(stock_side, 'Abandoned trial belongs to another deployment')
-                require(finished in profiles.values(), 'Unsupported finished system layout; get help')
-            self.trial_keyboard(finished)
-            self.save('layout-abandoned', dict(trial=value, administrator=current, restored=finished,
-                persistent_settings_unchanged=self.keyboard() == persistent_before, stock_side=stock_side))
-            (self.store / 'layout-pending.json').unlink()
-            sync_directory(self.store)
-            return ['Last finished console layout restored; abandoned trial cleared',
-                'Last finished persistent layout verified; stock settings preserved', *self.title()]
+                else:
+                    # The running deployment may itself have a repair note from an earlier
+                    # trial. Its exact recorded partial setting is repaired below; another
+                    # deployment's pending trial must not make that repair unreachable.
+                    repairable = any(finished in restoration_settings(n) for n in mine)
+                    require(finished in profiles.values() or repairable, 'Unsupported finished system layout; get help')
+                    if value.get('finishing'):
+                        # Its finish had begun: that deployment's /etc may be half written, and only it
+                        # can be repaired from there. The note stays until layout abandon runs on it.
+                        note = dict(deployment_identity=value['deployment_identity'], old=value['old'], new=value['new'])
+                        if 'restoring' in value:
+                            note['restoring'] = value['restoring']
+                        previous = [n for n in notes if n['deployment_identity'] == note['deployment_identity']]
+                        require(all(n['old'] == note['old'] and n['new'] == note['new'] for n in previous),
+                            'Conflicting layout repair note; nothing changed; get help')
+                        for n in previous:
+                            if 'restoring' in n:
+                                require('restoring' not in note or note['restoring'] == n['restoring'],
+                                    'Conflicting layout restoration intent; nothing changed; get help')
+                                note['restoring'] = n['restoring']
+                        # A cut after this save can leave the trial too. A later
+                        # transfer updates that deployment's note, never adds a
+                        # second note that lacks its new restoration authority.
+                        notes[:] = [n for n in notes if n['deployment_identity'] != note['deployment_identity']]
+                        notes.append(note)
+                        self.save('layout-repair', dict(schema='layout-repair1', notes=notes))
+                        lines.append('The trial began on another system and its finish had started: run '
+                            + typed('layout', 'abandon') + ' there too, to restore its settings')
+                self.trial_keyboard(finished)
+                self.save('layout-abandoned', dict(trial=value, administrator=current, restored=finished,
+                    persistent_settings_unchanged=self.keyboard() == persistent_before, stock_side=stock_side))
+                (self.store / 'layout-pending.json').unlink()
+                sync_directory(self.store)
+                lines[:0] = ['Last finished console layout restored; abandoned trial cleared',
+                    'Last finished persistent layout verified; stock settings preserved']
+            for note in mine:
+                restore(note, lambda: self.save('layout-repair', dict(schema='layout-repair1', notes=notes)))
+                self.trial_keyboard(note['old'])
+                notes = [n for n in notes if n is not note]
+                self.save('layout-repair', dict(schema='layout-repair1', notes=notes))
+                lines.append("This system's half-written layout is restored to the settings before its trial")
+            return [*lines, *self.title()]
+        value = self.load('layout-pending')
+        current = self.session()
         require(current['boot'] == value['administrator']['boot'], 'Trial crossed a reboot without completing the proof')
         if action == 'revert':
             require(current == value['administrator'], 'Revert from the original open administrator session')
             self.trial_keyboard(value['old'])
+            # Revert asks for a new proof, but cannot erase why an interrupted finish
+            # was allowed to write /etc. Abandon still needs that evidence to repair it.
+            if value.get('finishing') and value['proof']:
+                value['finish_proof'] = value['proof']
             value.update(reverted=True, proof=None, began_us=int(time.monotonic() * 1000000))
             self.save('layout-pending', value)
             return ['Old console/X11 settings restored; no reboot', 'Log out tty4; prove a fresh password login using the old layout',
-                    'Then sudo -k; sudo /var/lib/ares/at layout proof']
+                    'Then sudo -k; ' + typed('layout', 'proof')]
         if action == 'proof':
             require(current['session'] != value['administrator']['session']
                 and current['tty'] != value['administrator']['tty'] and current['started_us'] > value['began_us'],
@@ -1846,6 +2194,11 @@ class Tools:
             self.save('layout-pending', value)
             return ['Fresh second-console login and physical typing passed', 'Return to the original console; use layout finish']
         require(action == 'finish' and profile is None, 'Choose begin, proof, revert or finish')
+        # Restoration is an exclusive phase (review 2): once abandon has saved its restoration
+        # intent, only abandon writes this trial's settings again. A renewed finish, also from
+        # the original login, would write a pair that intent does not authorize.
+        require('restoring' not in value, 'Layout abandon has begun restoring the settings from before this trial: '
+            'from a fresh physical administrator login run ' + typed('layout', 'abandon') + ' to complete it; nothing changed')
         require(current == value['administrator'] and value['proof'], 'Keep the original session open and complete the second-console proof first')
         require(self.keyboard() == value['old'], 'Finished system settings changed after proof')
         title = self.title()
@@ -2165,7 +2518,7 @@ def update_tools(payload, fingerprint, host, intent):
     staged, held, retired = HOME / '.update-tools', HOME / '.tools-held', HOME / 'retired-tools'
     published = HOME / ('tools-' + fingerprint)
 
-    def system_ready():
+    def system_ready(resolve=False):
         # The new tools must accept today's system before they replace the old ones.
         checker = Tools(payload, host, HOME / 'records')
         require(not (checker.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')
@@ -2173,7 +2526,13 @@ def update_tools(payload, fingerprint, host, intent):
             require(checker.load('prepare-intent').get('phase') == 'complete', 'Prepare is unfinished; get help')
         state = observations(host)
         idle(state, checker.processes())
+        if not resolve:
+            # Until publication, settle_tools can restore version 2. Judge with the new
+            # rules, but leave its records readable by that old code after a cut.
+            checker.archive = lambda *args: None
+            checker.save = lambda name, value: require(name == OUTCOME, 'Unexpected readiness write')
         checker.qualified(state)
+        return getattr(checker, 'notes', [])
 
     def exclusive():
         running = installed_commands(HOME)
@@ -2253,7 +2612,9 @@ def update_tools(payload, fingerprint, host, intent):
         system_ready()
         advance('retire')
     require(checked_bundle(published) == fingerprint and entry_toolset() == 'tools-' + fingerprint, 'Published tools differ; get help')
+    notes = []
     if intent['phase'] == 'retire':
+        notes = system_ready(resolve=True)
         # Only now, with the new tools published, does the old copy retire.
         source = held if old_name == 'tools' else current
         if source.exists() or source.is_symlink():
@@ -2279,7 +2640,7 @@ def update_tools(payload, fingerprint, host, intent):
         advance('complete')
     return ['Tools updated from version ' + str(intent['previous_version']) + ' to ' + str(intent['tools_version']),
             'manifest SHA256 ' + fingerprint, 'Previous tools kept in /var/lib/ares/retired-tools (private)',
-            'Release target ' + new['releases'][-1]['reference']]
+            'Release target ' + new['releases'][-1]['reference'], *notes]
 
 
 def install(payload, host=None):
@@ -2385,7 +2746,7 @@ def install(payload, host=None):
     records.save(datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ') + '-install',
         dict(status='passed', command=['install'], manifest=fingerprint, trace=host.trace,
             tools_volume_uuid=device['volume']['uuid']))
-    return ['manifest SHA256 ' + fingerprint, 'Use sudo /var/lib/ares/at prepare']
+    return ['manifest SHA256 ' + fingerprint, 'Use ' + typed('prepare')]
 
 
 def refusal_record(host, result):
@@ -2424,7 +2785,7 @@ def main():
     require(os.geteuid() == 0, 'Use sudo from the authenticated ares-recovery session')
     host = Host()
     known = {'install', 'prepare', 'records', 'title', 'login', 'verify', 'switch', 'rollback',
-        'keep-stock', 'export', 'layout', 'reboot', 'check', 'logs', 'update', 'previous'}
+        'keep-stock', 'export', 'layout', 'reboot', 'check', 'logs', 'update', 'forward', 'previous'}
     command = sys.argv[1] if len(sys.argv) >= 2 and sys.argv[1] in known else 'invalid'
     # Never record arbitrary argv: an accidentally pasted credential is not a
     # command. Layout choices are the only accepted extra arguments.
@@ -2434,7 +2795,7 @@ def main():
     elif command == 'layout' and sys.argv[2:] in (['begin', p] for p in ('de', 'us', 'us-intl')):
         action += sys.argv[2:]
     result = dict(status='stopped', command=action, manifest=None, trace=host.trace)
-    lock = None
+    lock = tools = None
     try:
         # Held until this command ends, so two owner commands never interleave.
         lock = owner_lock()
@@ -2454,7 +2815,7 @@ def main():
             require((payload == HOME / 'tools' or payload == HOME / ('tools-' + fingerprint)) and HOME.stat().st_uid == 0
                     and stat.S_IMODE(HOME.stat().st_mode) == 0o700, 'Run the installed root-only tools')
             require(payload == HOME / 'tools' or entry_toolset() == payload.name, 'These tools are not the installed entry '
-                    '(the tools update was undone or superseded); run sudo /var/lib/ares/at ' + ' '.join(action) + ' again')
+                    '(the tools update was undone or superseded); run ' + typed(*action) + ' again')
             private_tree(payload)
             private_tree(HOME / 'records')
             if STOP_RECORDS.exists():
@@ -2464,12 +2825,15 @@ def main():
                        'login': tools.login, 'verify': tools.verify, 'switch': tools.switch,
                        'rollback': tools.recover, 'keep-stock': lambda: tools.recover(True), 'export': tools.export,
                        'layout': lambda: tools.layout(*action[1:]), 'reboot': tools.reboot, 'check': tools.check, 'logs': tools.logs,
-                       'update': tools.update, 'previous': tools.previous}
+                       'update': tools.update, 'forward': tools.forward, 'previous': tools.previous}
             lines = methods[command]()
+            lines = [*(getattr(tools, 'notes', None) or []), *lines]
             result.update(status='passed', result=lines)
             stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
             tools.save(stamp + '-' + command, result)
     except (Stop, OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError, AssertionError, EOFError, KeyboardInterrupt) as error:
+        for line in getattr(tools, 'notes', None) or []:
+            say(line)  # what rule 5 resolved before the STOP
         result['status'] = 'stopped'
         result['error'] = str(error) if not isinstance(error, (EOFError, KeyboardInterrupt)) else 'Input ended or interrupted'
         try:

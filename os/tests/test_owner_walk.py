@@ -27,7 +27,7 @@ import owner_media
 import test_owner_tools as common
 from owner_fuse_shim import Volume
 from guest_shell import syntax
-from owner_console_shim import execute_idle, execute_hidden, execute_screen
+from owner_console_shim import execute_idle, execute_hidden, execute_screen, InstalledTools, model_clock
 from test_owner_hidden import vcsa
 
 FIXTURES = ROOT / 'os/tests/fixtures/owner-tools'
@@ -38,11 +38,19 @@ def retained(name):
 
 
 UPDATE_STAGES = ['stock', 'tools-stock', 'corrected-stock', 'release-13', 'release-27', 'previous-13']
+# Package 22c's probe: package 27's route up to release 27 confirmed, the six orders, one menu choice.
+PROBE_STAGES = UPDATE_STAGES[:5] + [f'walk-{n}-booted' for n in range(1, 7)] + ['menu-stock', 'after-menu-booted']
+# Package 22c's rehearsal (brief E): package 27's route up to release 27 confirmed, tools version 3,
+# the layout trials, then every way between the three systems (two rows from the boot menu, one cut).
+WAYS_BACK_STAGES = UPDATE_STAGES[:5] + ['intl-27', 'trial-27', 'abandon-27', 'back-13', 'forward-27', 'stock-1', 'forward-27b',
+                                        'back-13b', 'forward-27c', 'menu-27', 'forward-27d', 'menu-stock', 'stock-2',
+                                        'forward-27e', 'cut-stock', 'final-27']
 QUALIFICATION_STAGES = ['stock','tools-stock','corrected-stock','layout-reset-trial','layout-reset-recovery','aresos','aresos-intl','aresos-back-de','rollback-stock','default-stock']
 
 
-def update_states(pair):
-    """Package 22's three-deployment shapes, built from the retained release 13 pair."""
+def laptop_rows(pair):
+    """The laptop's three deployments (newer AresOS, older AresOS, stock), built from the retained
+    release 13 pair, and the builder of rpm-ostree's and bootc's status for a list of them."""
     old = next(d for d in pair['rpm']['deployments'] if d['booted'])
     stock = next(d for d in pair['rpm']['deployments'] if d['pinned'])
     reference = json.loads((ROOT / 'os/manifest/release.json').read_text())['reference']
@@ -62,6 +70,12 @@ def update_states(pair):
         bootc['status'].update(booted=slot(rows[booted]), staged=slot(staged[0]) if staged else None,
             rollback=slot(rows[others[0]]), rollbackQueued=others[0] < booted)
         return dict(rpm=dict(copy.deepcopy(pair['rpm']), deployments=rows), bootc=bootc, bls=[])
+    return new, old, stock, machine
+
+
+def update_states(pair):
+    """Package 22's three-deployment shapes."""
+    new, old, stock, machine = laptop_rows(pair)
     up = lambda row, **kw: dict(copy.deepcopy(row), **kw)
     return {'owner-update-staged': machine(up(new, booted=False, staged=True), up(old, booted=True), stock),
             'release-27': machine(up(new, booted=True), up(old, booted=False), stock),
@@ -69,8 +83,183 @@ def update_states(pair):
             'previous-13': machine(up(old, booted=True), up(new, booted=False), stock)}
 
 
+class LaptopDisk:
+    """The probe route's modelled disk: three deployments, the boot entries and the boot menu.
+
+    Written from what the brief expects of ostree 2026.4 and bootc 1.16.13 (set-default removes the
+    row and inserts it first; the rollback slot is the first other row, queued when it comes before
+    the running one; the first row starts; entry files count down from the first row), and then held
+    to the VM probe's captures (run 43470161858; test_ways_back_probe.CapturesTest): the three rows
+    share one boot checksum, so a reorder swaps only the links under /ostree/boot.0 ("bootconfig
+    swap: no"), the entry files stay, and the kernel's `ostree=` link, named by the place the running
+    row had at its start, resolves to whichever row holds that place now.
+    """
+    ENTRY = ('title Bazzite (ostree:{place})\nversion {number}\noptions ostree=/ostree/boot.0/default/{boot}/{place} '
+             'console=tty0 console=ttyS0,115200n8 root=UUID=00000000-0000-4000-8000-000000000000 rootflags=subvol=root rw\n'
+             'linux /ostree/default-{boot}/vmlinuz\ninitrd /ostree/default-{boot}/initramfs.img\n')
+
+    def __init__(self, pair):
+        new, old, stock, self.machine = laptop_rows(pair)
+        self.rows = dict(R27=new, R13=old, S=stock)
+        self.order, self.running, self.boot_number = ['R27', 'R13', 'S'], 'R27', 1
+        self.journal, self.grubenv, self.cursor, self.sets = [], {}, None, []
+        self.on_restart = []  # told which row starts (the rehearsal's modelled tools follow the disk)
+        self.started_at, self.links = 0, 1  # the running row's place at its start; /ostree/boot.0 -> boot.0.<links>
+
+    def path(self, role):
+        row = self.rows[role]
+        return f"/sysroot/ostree/deploy/{row['osname']}/deploy/{row['checksum']}.{row['serial']}"
+
+    def entries(self):
+        count = len(self.order)
+        return [dict(file=f'/boot/loader/entries/ostree-{count - place}.conf', deployment=self.path(role),
+                     content=self.ENTRY.format(place=place, number=count - place, boot='b' * 64))
+                for place, role in enumerate(self.order)]
+
+    def snapshot(self):
+        state = self.machine(*[dict(copy.deepcopy(self.rows[role]), booted=role == self.running, staged=False)
+                               for role in self.order])
+        state['bls'] = self.entries()
+        # bootc 1.16.13: the order reads "rollback" whenever the running row is not first.
+        state['bootc']['spec']['bootOrder'] = 'default' if self.order[0] == self.running else 'rollback'
+        return state
+
+    def inventory(self):
+        """two_disk_vm.bls_inventory_command's export."""
+        return [dict(id=pathlib.PurePosixPath(e['file']).stem, title=e['content'].split('\n')[0].removeprefix('title '),
+                     deployment=e['deployment'], content=e['content']) for e in self.entries()]
+
+    def layout(self):
+        link = f"/ostree/boot.0/default/{'b' * 64}/{self.started_at}"
+        return dict(boot_id=f'boot-{self.boot_number}', cmdline='ostree=' + link + ' rw', running_link=link,
+                    running=self.path(self.order[self.started_at]), loader_link='loader.0',
+                    loader_directories={'loader': [], 'loader.0': []}, ostree_boot_links={'boot.0': f'boot.0.{self.links}'},
+                    ostree_boot_targets={}, grubenv=dict(argv=[], returncode=0, stdout='', stderr=''),
+                    origins={f"{row['checksum']}.{row['serial']}.origin": '[origin]\ncontainer-image-reference=' + row['container-image-reference']
+                             + ('\n\n[libostree-transient]\npinned=true\n' if row['pinned'] else '\n') for row in self.rows.values()},
+                    admin_status=dict(argv=[], returncode=0, stdout='', stderr=''),
+                    packages=dict(argv=[], returncode=0, stdout='', stderr=''))
+
+    def set_default(self, index):
+        assert 0 < index < len(self.order)
+        self.order.insert(0, self.order.pop(index))
+        return self.wrote(index)
+
+    def wrote(self, index):
+        """ostree's report of a list write, printed and logged."""
+        self.sets.append(index)
+        self.links = 1 - self.links
+        message = f'Transaction complete; bootconfig swap: no; bootversion: boot.0.{self.links}, deployment count change: 0'
+        self.journal.append(dict(MESSAGE=message, SYSLOG_IDENTIFIER='ostree', _COMM='ostree'))
+        return dict(argv=['ostree', 'admin', 'set-default', str(index)], returncode=0, stdout=message + '\n', stderr='')
+
+    def screen(self):
+        """What the screen reads while the menu waits: its rows, top to bottom (nothing unless it is shown)."""
+        if 'menu_show_once' not in self.grubenv:
+            return ''
+        return 'GNU GRUB version 2.12\n' + ''.join(' ' + e['title'] + '\n' for e in self.inventory()) + 'Use the arrow keys\n'
+
+    def key(self, keys):
+        if keys == ['home']: self.cursor = 0
+        elif keys == ['down']: self.cursor += 1
+        elif keys == ['ret']:
+            self.restart(self.cursor)
+            return True
+        return False
+
+    def restart(self, choice=None):
+        once = self.grubenv.pop('next_entry', None)
+        self.grubenv.pop('menu_show_once', None)
+        ids = [pathlib.PurePosixPath(e['file']).stem for e in self.entries()]
+        place = choice if choice is not None else ids.index(once) if once else 0
+        self.running, self.boot_number, self.journal, self.cursor = self.order[place], self.boot_number + 1, [], None
+        self.started_at = place
+        for told in self.on_restart:
+            told(place)
+
+
+class Oracle:
+    """The rehearsal route's answers: the owner tools themselves (this checkout's owner.py, version 3)
+    over test_ways_back's modelled machine, holding the disk's three deployments. Every way-back
+    command the walk types is run here, so the lines the harness requires are the lines the tools
+    print for that state, and a restart the tools would refuse fails the walk. The disk follows the
+    machine. check is title with check's own lines around it (its keyboard reads are not modelled);
+    the layout commands and export stay synthetic."""
+    WORDS = ('check', 'title', 'forward', 'previous', 'rollback', 'keep-stock', 'update')
+
+    def __init__(self, stack, disk, old_reference, new_reference):
+        import test_ways_back as model
+        base = model.base
+        rows = [dict(copy.deepcopy(disk.rows[role]), booted=role == disk.running, staged=False) for role in disk.order]
+        known = [base.record(old_reference, False), base.record(new_reference, True)]
+        self.model, self.disk, self.active = model, disk, False
+        self.tools, self.host, self.store = stack.enter_context(model.laptop(base.machine(rows), known))
+        self.roles = {(row['checksum'], row['serial']): role for role, row in disk.rows.items()}
+        disk.on_restart.append(lambda place: model.restart(self.tools, self.host, choice=place))
+
+    def synced(self):
+        rows = self.host.state['rpm']['deployments']
+        assert not any(row.get('staged') for row in rows), 'The rehearsal route staged a deployment'
+        order = [self.roles[row['checksum'], row['serial']] for row in rows]
+        if order != self.disk.order:
+            assert order[1:] == [role for role in self.disk.order if role != order[0]]
+            self.disk.set_default(self.disk.order.index(order[0]))
+        running, = [self.roles[row['checksum'], row['serial']] for row in rows if row['booted']]
+        assert (self.disk.order, self.disk.running) == (order, running), 'The modelled tools and the disk disagree'
+
+    def command(self, name):
+        tools, offset = self.tools, len(self.host.trace)
+        tools.notes = []
+        call = {'check': tools.title, 'title': tools.title, 'forward': tools.forward, 'previous': tools.previous,
+                'rollback': tools.recover, 'keep-stock': lambda: tools.recover(True), 'update': tools.update}[name]
+        try:
+            lines = call()
+        except self.model.owner.Stop as stop:
+            self.synced()
+            return dict(status='stopped', trace=self.host.trace[offset:], error=str(stop))
+        if name == 'check':
+            lines = ['System console de; X11 de variant ', 'Loaded y/z map, cmdline and all retained BLS maps passed', *lines,
+                     'Also prove yz-/!ü by physical typing in the console and labwc terminal']
+        self.synced()
+        return dict(status='passed', trace=self.host.trace[offset:], result=[*tools.notes, *lines])
+
+    def reboot(self):
+        """The tools' own reboot checks (a stale title refuses) on the modelled machine."""
+        self.tools.notes = []
+        self.tools.reboot()
+
+    def cut(self):
+        """rollback, ended after its reorder and before its record (test_ways_back's cut point `after`)."""
+        self.tools.notes = []
+        self.host.interrupt = ('start-next', 'after')
+        try:
+            self.tools.recover()
+        except self.model.owner.Stop:
+            self.synced()
+            return self.model.journal(self.store)
+        raise AssertionError('The modelled rollback was not cut')
+
+
 def walk(ps2=False, route='qualification'):
-    assert route in ('qualification', 'update')
+    assert route in ('qualification', 'update', 'reorder-probe', 'ways-back')
+    laptop = route in ('update', 'reorder-probe', 'ways-back')
+    stages = dict(qualification=QUALIFICATION_STAGES, update=UPDATE_STAGES)
+    stages['reorder-probe'] = PROBE_STAGES
+    stages['ways-back'] = WAYS_BACK_STAGES
+    owner_words = {command: name for name, command in vm.COMMANDS.items()}
+    oracle = [None]
+    # The walk's own /var/lib/ares entry (InstalledTools): which toolset is installed, and the
+    # process its entry starts. The harness's expected reader is judged against it, never copied.
+    installed, tool_readers = [None], []
+    def typed_owner():
+        """The owner command typed last: its sudo words, and the tools' process the entry starts for it."""
+        line = next((text.rstrip('\n') for text, profile in reversed(visible_blocks)
+                     if '\n' not in text.rstrip('\n') and ' /var/lib/ares/at ' in text), None)
+        if line is None:
+            return None
+        words = shlex.split(line.rsplit(';', 1)[-1])
+        assert words[:2] == ['sudo', '/var/lib/ares/at'], line
+        return dict(sudo=words, owner=installed[0].reader(words[2:]))
     visits, commands, typed, checks, markers = [], [], [], [], []
     visible_blocks = []
     physical_cases = []
@@ -83,9 +272,14 @@ def walk(ps2=False, route='qualification'):
     stock = copy.deepcopy(pinned['rpm']['deployments'][0])
     first = common.stock()
     first['bls'] = copy.deepcopy(pinned['bls'])
+    disk = LaptopDisk(pair) if route in ('reorder-probe', 'ways-back') else None
     class Guest:
-        def __init__(self, stage):
+        def __init__(self, stage, menu=False):
             self.stage, self.owner_layout = stage, 'de'
+            # A probe start: the first row, unless the menu is shown and waits for its choice.
+            self.menu = menu
+            if disk is not None and stage not in UPDATE_STAGES and not menu:
+                disk.restart()
             self.owner_signed_in = True
             self.owner_physical_signed_in = False
             self.owner_media = None
@@ -127,6 +321,9 @@ def walk(ps2=False, route='qualification'):
                     and isinstance(n.func,ast.Attribute) and n.func.attr=='b64decode']
                 compile(base64.b64decode(encoded),'prepared-observer-model','exec')
             if name.endswith('-homebrew'): return 'f' * 64 + '  /home/linuxbrew/.linuxbrew/bin/brew\n'
+            if name.endswith('-show-menu-once'): disk.grubenv['menu_show_once'] = '1'
+            if name.endswith('-one-time-entry'):
+                disk.grubenv['next_entry'], = re.findall(r'grub2-reboot (ostree-[0-9]+);', source)
             if name.endswith('-policy'): return 'ARESOS_ACTIVE_SESSION_POLKIT_PASSED\nARESOS_GUEST_CHECKS_PASSED\n'
             return ''
 
@@ -173,8 +370,20 @@ def walk(ps2=False, route='qualification'):
                 script = words[words.index('python3') + 2]
                 phase = 'handoff' if '# hidden-phase: handoff' in script else 'left' if '# hidden-phase: left' in script else 'ready'
                 rejected = phase == 'left' and 'layout-plain-us' in name
-                result, rows, shape = execute_hidden(script, rejected=rejected, facts=True)
-                assert (result.get('handoff_ready') and not result['ready']) if phase == 'handoff' else (result.get('rejected') and not result['ready']) if rejected else result['ready']
+                actual = typed_owner()
+                with model_clock():
+                    result, rows, shape = execute_hidden(script, rejected=rejected, facts=True, actual=actual)
+                if shape in ('nested-owner-getpass', 'sudo-owner-public-handoff'):
+                    # The tools' own process was in front: which one, from the walk's entry.
+                    reader = dict(boot=self.stage, argv=actual['owner'])
+                    if reader not in tool_readers:
+                        tool_readers.append(reader)
+                # The harness stops on the same answer; the observer's reason says why (in run
+                # 43581458429: Unexpected foreground reader).
+                assert ((result.get('handoff_ready') and not result['ready']) if phase == 'handoff'
+                        else (result.get('rejected') and not result['ready']) if rejected else result['ready']), \
+                    'The modelled console does not show the reader the harness expects at ' + name + ': ' + str(
+                        (result.get('observation') or {}).get('reason') or result.get('reason'))
                 tty, = re.findall(r"(?:hidden_observation|hidden_left|hidden_handoff)\('(?P<tty>tty[34])'", script)
                 if phase == 'left':
                     self.idle_models[tty] = rows
@@ -189,7 +398,9 @@ def walk(ps2=False, route='qualification'):
                 # Execute the real read-only observer on the pinned sudo relay
                 # model at every wait, not a pre-granted Boolean authority.
                 tty, = re.findall(r"os.open\('/dev/(tty[34])'", script)
-                value = execute_idle(script, (ROOT / 'os/tests/fixtures/owner-console/14zg-title-completed.vcsa').read_bytes(), rows=self.idle_models.get(tty))
+                # Guest time moves here too: an idle observer that never sees its shell ends at its deadline.
+                with model_clock(0):
+                    value = execute_idle(script, (ROOT / 'os/tests/fixtures/owner-console/14zg-title-completed.vcsa').read_bytes(), rows=self.idle_models.get(tty))
                 idle_answers.append(name)
                 return value
             if 'base64.b64encode(data)' in source or 'base64.b64encode(raw)' in source:
@@ -226,10 +437,45 @@ def walk(ps2=False, route='qualification'):
             if name in ('offline-first-stock-link', 'stock-offline-login', 'live-offline-before-webui'):
                 return dict(status='passed', physical_link_down=True)
             if name == 'owner-record-list': return []
+            if name.endswith('-toolset'):
+                # The harness resolves the installed entry in the guest: its program runs on the walk's own entry.
+                words = shlex.split(source)
+                return installed[0].resolve(words[words.index('python3') + 2])
+            if disk is not None and name.endswith('-layout'): return disk.layout()
+            if disk is not None and name.endswith(('-journal-before', '-journal-after')): return list(disk.journal)
+            if disk is not None and name.endswith('-set-default'):
+                words = shlex.split(source); script = words[words.index('python3') + 2]
+                index, = re.findall(r"^argv=\['ostree', 'admin', 'set-default', '([0-9]+)'\]$", script, re.M)
+                return disk.set_default(int(index))
+            if disk is not None and name.endswith('-bls-entries'): return disk.inventory()
+            if route == 'ways-back':
+                # The rehearsal's own captures; from tools version 3 on, the tools themselves answer.
+                if name == 'tools-3-install-owner-result':
+                    oracle[0].active = True
+                    installed[0].install(media.fingerprint)
+                    return dict(status='passed', trace=[], manifest=media.fingerprint, previous_manifest=vm.TOOLS_V2,
+                        previous_version=2, tools_version=3, releases=[dict(reference=old_reference), dict(reference=new_reference)])
+                if name.endswith('-owner-result') and oracle[0].active:
+                    word = next(owner_words[text.rstrip('\n')] for text, profile in reversed(visible_blocks)
+                                if text.rstrip('\n') in owner_words)
+                    return oracle[0].command(word) if word in Oracle.WORDS else dict(status='passed', trace=[], result=[])
+                if name.endswith('-updaters'):
+                    units = ('uupd.service', 'uupd.timer', 'rpm-ostreed-automatic.timer')
+                    return dict(files={unit: 'disabled' for unit in units}, active={unit: 'inactive' for unit in units})
+                if name.endswith('-armed'): return dict(status='watching')
+                if name.endswith('-frozen'):
+                    cut[0] = oracle[0].cut()
+                    return dict(status='frozen', pid=4242, state='T', release_step_ended=True, stop_after_swap_ms=1.0)
+                if name.endswith('-intent'):
+                    return {field: cut[0].get(field) for field in ('schema', 'word', 'status', 'mode', 'reference', 'digest',
+                                                                   'target', 'before', 'intended', 'running')}
+            if name == 'tools-install-owner-result':
+                installed[0].install()  # the first install: tools/
             if name == 'update-tools-install-owner-result':
+                installed[0].install(media.fingerprint)  # a tools update: tools-<fingerprint>/
                 return dict(status='passed', trace=[], manifest=media.fingerprint, previous_manifest=vm.LAPTOP_TOOLS,
                     previous_version=1, tools_version=2, releases=[dict(reference=old_reference), dict(reference=new_reference)])
-            if name.endswith('-owner-result') and route == 'update':
+            if name.endswith('-owner-result') and laptop:
                 lines = {'owner-update-owner-result': ['Signed exact release staged ' + new_reference],
                          'release-27-title-owner-result': ['Update to ' + new_reference + ' confirmed after the restart'],
                          'owner-previous-owner-result': ['Previous AresOS queued for the next start ' + old_reference],
@@ -262,7 +508,7 @@ def walk(ps2=False, route='qualification'):
                 layout, variant = {'de': ('de', ''), 'us': ('us', ''), 'us-intl': ('us', 'intl')}[self.owner_layout]
                 return dict(XKB_DEFAULT_LAYOUT=layout, XKB_DEFAULT_VARIANT=variant)
             if name.endswith('-loaded-keyboard'):
-                profile = 'de' if self.stage=='layout-reset-trial' and '-pending-' in name else self.owner_layout
+                profile = 'de' if self.stage in ('layout-reset-trial', 'trial-27') and '-pending-' in name else self.owner_layout
                 layout, variant = {'de': ('de', ''), 'us': ('us', ''), 'us-intl': ('us', 'intl')}[profile]
                 props = dict(VConsoleKeymap=profile, X11Layout=layout, X11Variant=variant)
                 return dict(localed=dict(data=[{k:dict(data=v) for k,v in props.items()}]),
@@ -281,6 +527,11 @@ def walk(ps2=False, route='qualification'):
             assert args['hold-time'] == 30
             assert all(k['type'] == 'qcode' for k in args['keys'])
             keys = [k['data'] for k in args['keys']]
+            if self.menu:
+                # The boot menu takes the keys; Enter starts the row under the cursor.
+                self.menu = not disk.key(keys)
+                checks.append(self.stage + '-menu-' + '+'.join(keys))
+                return
             # Observe the real call, without replacing any typing helper.
             frame = sys._getframe(1)
             while frame is not None and frame.f_code is not vm.type_text.__code__:
@@ -325,19 +576,34 @@ def walk(ps2=False, route='qualification'):
             if event=='host-qmp-system-reset':
                 assert self.events==[dict(event='SHUTDOWN',data=dict(guest=False,reason=event))]
                 self.stopped_events=list(self.events)
+            elif oracle[0] is not None and oracle[0].active:
+                # A typed reboot: the tools themselves must allow it (a fresh title, nothing unfinished).
+                oracle[0].reboot()
             self.media_absent(stage)
             self.stopped_events_verified = True
         hard_reset=vm.Guest.hard_reset
         def poweroff(self, stage): self.media_absent(stage)
+        def reboot(self, stage):
+            # Plain `systemctl reboot` in the serial root shell (two_disk_vm.Guest.reboot).
+            checks.append(stage + '-plain-reboot')
+            self.finish_shutdown(stage, 'guest-reset')
+        def login(self):
+            assert not self.menu, 'Login before the boot menu was left'
         def close(self, stage):
             self.last_typing_frame = None
             self.last_visible_frame = None
 
     class Media:
-        fingerprint = vm.LAPTOP_TOOLS if route == 'update' else '0' * 64
-        def replace(self, stage):
-            assert self.fingerprint == vm.LAPTOP_TOOLS and guest_media[0] is None
-            self.fingerprint = common.bundle.check(ROOT / 'os/owner-tools/payload')
+        fingerprint = vm.LAPTOP_TOOLS if laptop else '0' * 64
+        def replace(self, stage, source=None):
+            assert guest_media[0] is None
+            if stage == 'tools-3':
+                # The rehearsal's second copy: this checkout's bundle (version 3) over version 2.
+                assert route == 'ways-back' and source is None and self.fingerprint == vm.TOOLS_V2
+            else:
+                # Package 22c's routes copy version 2 from history; the update rehearsal copied its checkout's payload.
+                assert self.fingerprint == vm.LAPTOP_TOOLS and (source is not None) == (route in ('reorder-probe', 'ways-back'))
+            self.fingerprint = vm.TOOLS_V2 if source is not None else common.bundle.check(ROOT / 'os/owner-tools/payload')
             checks.append(stage + '-windows-copy')
         def attach(self, guest, stage):
             assert guest.owner_signed_in and guest.owner_physical_signed_in
@@ -353,10 +619,15 @@ def walk(ps2=False, route='qualification'):
             checks.append(stage + '-detach')
 
     guest_media = [None]
+    cut = [None]
     media = Media()
 
     def snapshot(guest, stage):
-        if route == 'update' and stage in updates: return updates[stage]
+        if route == 'ways-back' and guest.stage not in UPDATE_STAGES[:4]:
+            return disk.snapshot()
+        if disk is not None and (stage == 'release-27' or guest.stage not in UPDATE_STAGES[:4] and stage.startswith(('walk-', 'menu-', 'after-menu-'))):
+            return disk.snapshot()
+        if laptop and stage in updates: return updates[stage]
         if route == 'update' and stage == 'previous-13-after-refusal': return updates['previous-13']
         if stage == 'offline-first-stock': return first
         if stage == 'owner-switch-staged': return staged
@@ -401,7 +672,19 @@ def walk(ps2=False, route='qualification'):
         stack.enter_context(patch.object(vm.time, 'sleep'))
         stack.enter_context(patch.dict(os.environ, GITHUB_ACTOR='synthetic-user', GH_TOKEN='synthetic_only_0123', GITHUB_SHA='a'*40))
         audit = Mock()
-        if route == 'update':
+        installed[0] = InstalledTools(temporary)
+        if disk is not None:
+            stack.enter_context(patch.object(vm.rp, 'start_at_menu', side_effect=lambda p, h, s: Guest(s, menu=True)))
+            stack.enter_context(patch.object(vm.rp, 'read_screen', side_effect=lambda guest, name: disk.screen()))
+        if route == 'ways-back':
+            oracle[0] = Oracle(stack, disk, old_reference, new_reference)
+            vm.ways_back_rehearsal(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx',
+                                   pathlib.Path(temporary) / 'tools-version-2')
+            result = json.loads((pathlib.Path(temporary) / 'ways-back-rehearsal-result.json').read_text())
+        elif route == 'reorder-probe':
+            vm.reorder_probe(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', pathlib.Path(temporary) / 'tools-version-2')
+            result = json.loads((pathlib.Path(temporary) / 'reorder-probe-result.json').read_text())
+        elif route == 'update':
             vm.update_rehearsal(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', 'abcdefghijklmnopqrstuvwx')
             result = json.loads((pathlib.Path(temporary) / 'update-rehearsal-result.json').read_text())
         else:
@@ -409,7 +692,7 @@ def walk(ps2=False, route='qualification'):
             vm.qualification(audit, media, 'yz-/!ü0123456789abcdef', 'SYNTHETIC-HASH', release=old_reference)
             result = json.loads((pathlib.Path(temporary) / 'owner-tools-result.json').read_text())
         assert result['status'] == 'passed'
-        assert audit.check.call_count == len(UPDATE_STAGES if route == 'update' else QUALIFICATION_STAGES)
+        assert audit.check.call_count == len(stages[route])
         events = [json.loads(p.read_text()) for p in pathlib.Path(temporary).glob('*-resync-1.json')]
         assert len(events) == len(prompt_waits) and all(n == 2 for n in prompt_waits.values())
         assert all(e['enter_sent'] and e['ready'] and e['observer']['ready'] and
@@ -420,11 +703,11 @@ def walk(ps2=False, route='qualification'):
         left_names = [name.removesuffix('-left') for name, phase in hidden_reads if phase == 'left']
         left_names += [name.removesuffix('-repeat') for name, phase in hidden_reads if phase == 'ready' and name.endswith('-repeat')]
         assert ready_names and len(set(ready_names)) == len(ready_names) and set(ready_names) == set(left_names)
-    assert visits == (UPDATE_STAGES if route == 'update' else QUALIFICATION_STAGES)
+    assert visits == stages[route]
     assert {'prepared-unattended-windows','offline-roundtrip-unattended-windows','offline-roundtrip-detached-windows','final-unattended-windows','final-detached-windows'} <= set(markers)
     assert checks.index('tools-stock-hotplug') < checks.index('tools-stock-detach') < checks.index('tools-stock-reboot-tools-absent')
     return dict(stages=visits, commands=commands, typed=typed, visible_blocks=visible_blocks, checks=checks, markers=markers,
-        physical_cases=physical_cases,
+        physical_cases=physical_cases, result=result, disk=disk, tool_readers=tool_readers,
         prompt_waits=sorted(prompt_waits), fresh_idle_answers=idle_answers, resyncs=events,
         hidden_reads=hidden_reads, hidden_shapes=hidden_shapes, wait_shapes=wait_shapes)
 

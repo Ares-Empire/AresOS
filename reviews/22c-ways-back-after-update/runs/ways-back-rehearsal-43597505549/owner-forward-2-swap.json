@@ -1,0 +1,32 @@
+{
+  "stage": "owner-forward-2",
+  "target": "R27",
+  "by": "at forward",
+  "before": [
+    "S",
+    "R27",
+    "R13"
+  ],
+  "after": [
+    "R27",
+    "S",
+    "R13"
+  ],
+  "bootconfig_swap": "no",
+  "journal": [
+    "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0"
+  ],
+  "loader_link": {
+    "before": "loader.0",
+    "after": "loader.0"
+  },
+  "ostree_boot_links": {
+    "before": {
+      "boot.0": "boot.0.0"
+    },
+    "after": {
+      "boot.0": "boot.0.1"
+    }
+  },
+  "entry_files_changed": false
+}

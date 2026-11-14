@@ -1,0 +1,34 @@
+{
+  "files": {
+    "bootc-fetch-apply-updates.service": "static",
+    "dbus-org.freedesktop.sysupdate1.service": "alias",
+    "dnf5-offline-transaction.service": "disabled",
+    "rpm-ostreed-automatic.service": "static",
+    "systemd-sysupdate-reboot.service": "indirect",
+    "systemd-sysupdate.service": "indirect",
+    "systemd-sysupdated.service": "static",
+    "uupd-manual.service": "static",
+    "uupd.service": "static",
+    "bootc-fetch-apply-updates.timer": "disabled",
+    "rpm-ostreed-automatic.timer": "disabled",
+    "systemd-sysupdate-reboot.timer": "disabled",
+    "systemd-sysupdate.timer": "disabled",
+    "uupd.timer": "disabled"
+  },
+  "active": {
+    "bootc-fetch-apply-updates.service": "inactive",
+    "dbus-org.freedesktop.sysupdate1.service": "inactive",
+    "dnf5-offline-transaction.service": "inactive",
+    "rpm-ostreed-automatic.service": "inactive",
+    "systemd-sysupdate-reboot.service": "inactive",
+    "systemd-sysupdate.service": "inactive",
+    "systemd-sysupdated.service": "inactive",
+    "uupd-manual.service": "inactive",
+    "uupd.service": "inactive",
+    "bootc-fetch-apply-updates.timer": "inactive",
+    "rpm-ostreed-automatic.timer": "inactive",
+    "systemd-sysupdate-reboot.timer": "inactive",
+    "systemd-sysupdate.timer": "inactive",
+    "uupd.timer": "inactive"
+  }
+}

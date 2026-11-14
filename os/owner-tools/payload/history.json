@@ -1,5 +1,5 @@
 {
-  "tools_version": 2,
+  "tools_version": 3,
   "releases": [
     {
       "reference": "ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb",

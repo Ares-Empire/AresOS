@@ -1,0 +1,95 @@
+{
+  "implementation": "cfa98e20ea4c37d8446813704e4a3f92de45db25",
+  "hosted": {
+    "run": 43536170182,
+    "conclusion": "failure (exactly four deferred stage-1b fingerprint pins)",
+    "tests": 1074,
+    "failures": 4,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 1366.551,
+    "watch_exit": 1,
+    "failed_tests": [
+      "test_owner_bootstrap.BootstrapTest.test_documented_command_is_generated_from_complete_system_manifest",
+      "test_owner_equality.EqualityTest.test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests",
+      "test_owner_equality.EqualityTest.test_reviewed_windows_payload_is_exact_generated_ci_payload",
+      "test_owner_path.OwnerPathTest.test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns"
+    ],
+    "module_counts": {
+      "test_owner_update": 73,
+      "test_ways_back": 44,
+      "test_ways_back_model": 20,
+      "test_ways_back_compatibility": 21,
+      "test_ways_back_reverts": 15,
+      "test_ways_back_probe": 40
+    },
+    "model": {
+      "states": 879291,
+      "edges": 23108154,
+      "executions": 779125,
+      "reuses": 22329029,
+      "exploration_seconds": 723.035,
+      "queue_exhausted": true,
+      "outcomes": {
+        "complete": 333,
+        "in-place-not-started": 135720,
+        "none": 175704,
+        "not-applied": 277098,
+        "retry": 333,
+        "selection-applied": 108672,
+        "target-boot-confirmed": 91956,
+        "waiting": 89475
+      }
+    }
+  },
+  "local": {
+    "focused": {
+      "tests": 44,
+      "seconds": 24.93,
+      "result": "OK",
+      "available_mb_at_start": 10166
+    },
+    "model": {
+      "tests": 20,
+      "seconds": 885.963,
+      "result": "OK",
+      "available_mb_at_start": 10196,
+      "states": 879291,
+      "edges": 23108154,
+      "executions": 779125,
+      "reuses": 22329029,
+      "exploration_seconds": 880.559,
+      "queue_exhausted": true,
+      "outcomes": {
+        "complete": 333,
+        "in-place-not-started": 135720,
+        "none": 175704,
+        "not-applied": 277098,
+        "retry": 333,
+        "selection-applied": 108672,
+        "target-boot-confirmed": 91956,
+        "waiting": 89475
+      },
+      "abandon_cuts": 1077696
+    }
+  },
+  "earlier_hosted_runs": [
+    {
+      "run": 43530837211,
+      "result": "cancelled at 25-minute job limit; no full totals"
+    },
+    {
+      "run": 43534401745,
+      "result": "cancelled by builder after local cache defect was found"
+    },
+    {
+      "run": 43535052672,
+      "result": "cancelled by builder for note-transfer correction"
+    }
+  ],
+  "limits": [
+    "No owner operations on laptop",
+    "No VM or mod run",
+    "Stage 1b fingerprint pins remain deferred"
+  ]
+}

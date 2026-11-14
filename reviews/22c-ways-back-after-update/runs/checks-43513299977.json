@@ -1,0 +1,323 @@
+{
+  "schema": "22c-step2b-checks1",
+  "run": 43513299977,
+  "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43513299977",
+  "head": "63a293ef277daa333ff2de31ceacc5d12c29bc1a",
+  "conclusion": "failure",
+  "baseline": {
+    "run": 43506717597,
+    "tests": 1019,
+    "failures": 41,
+    "errors": 23,
+    "skipped": 0
+  },
+  "result": {
+    "tests": 1037,
+    "seconds": 1368.427,
+    "failures": 40,
+    "errors": 23,
+    "skipped": 0
+  },
+  "focused_modules": {
+    "test_ways_back": {
+      "tests": 34,
+      "failures_or_errors": 0
+    },
+    "test_ways_back_model": {
+      "tests": 15,
+      "failures_or_errors": 0
+    },
+    "test_ways_back_reverts": {
+      "tests": 15,
+      "failures_or_errors": 0
+    }
+  },
+  "added_failure_or_error_entries": [],
+  "removed_failure_or_error_entries": [
+    "FAIL: test_reachable_state_space (test_ways_back_model.ModelTest.test_reachable_state_space)"
+  ],
+  "remaining_failure_or_error_entries": [
+    "ERROR: test_after_a_restart_the_same_command_records_a_finished_change_or_redoes_a_lost_one (test_owner_update.IntentTest.test_after_a_restart_the_same_command_records_a_finished_change_or_redoes_a_lost_one) (kind='update', restart='finished')",
+    "ERROR: test_after_a_restart_the_same_command_records_a_finished_change_or_redoes_a_lost_one (test_owner_update.IntentTest.test_after_a_restart_the_same_command_records_a_finished_change_or_redoes_a_lost_one) (kind='update', restart='lost')",
+    "ERROR: test_an_unsuccessful_previous_stops_and_a_successful_one_is_confirmed (test_owner_update.OutcomeTest.test_an_unsuccessful_previous_stops_and_a_successful_one_is_confirmed)",
+    "ERROR: test_card_clears_real_pending_state_then_completion_does_not_abandon_again (test_owner_path.OwnerPathTest.test_card_clears_real_pending_state_then_completion_does_not_abandon_again)",
+    "ERROR: test_closed_original_session_can_be_abandoned_by_fresh_physical_login (test_owner_abandon.AbandonTest.test_closed_original_session_can_be_abandoned_by_fresh_physical_login)",
+    "ERROR: test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse (test_owner_update.IntentTest.test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse) (kind='previous', point='record')",
+    "ERROR: test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse (test_owner_update.IntentTest.test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse) (kind='update', point='after')",
+    "ERROR: test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse (test_owner_update.IntentTest.test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse) (kind='update', point='before')",
+    "ERROR: test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse (test_owner_update.IntentTest.test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse) (kind='update', point='observe')",
+    "ERROR: test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse (test_owner_update.IntentTest.test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse) (kind='update', point='record')",
+    "ERROR: test_fresh_session_recovers_an_interrupted_finish_record (test_owner_abandon.AbandonTest.test_fresh_session_recovers_an_interrupted_finish_record)",
+    "ERROR: test_layout_fresh_login_refusal_revert_success_and_partial_failure (test_owner_commands.CommandTest.test_layout_fresh_login_refusal_revert_success_and_partial_failure)",
+    "ERROR: test_only_finish_persists_after_new_login_and_typing_proof (test_owner_abandon.AbandonTest.test_only_finish_persists_after_new_login_and_typing_proof)",
+    "ERROR: test_original_session_and_wrong_stock_identity_refuse_without_mutation (test_owner_abandon.AbandonTest.test_original_session_and_wrong_stock_identity_refuse_without_mutation)",
+    "ERROR: test_other_commands_never_continue_an_intent_and_a_wrong_change_is_not_recorded (test_owner_update.IntentTest.test_other_commands_never_continue_an_intent_and_a_wrong_change_is_not_recorded)",
+    "ERROR: test_reset_reloads_finished_german_and_fresh_login_abandons (test_owner_abandon.AbandonTest.test_reset_reloads_finished_german_and_fresh_login_abandons)",
+    "ERROR: test_stock_side_recovery_preserves_stocks_own_installer_layout (test_owner_abandon.AbandonTest.test_stock_side_recovery_preserves_stocks_own_installer_layout)",
+    "ERROR: test_the_same_command_redoes_an_unmade_change_or_records_a_made_one (test_owner_update.IntentTest.test_the_same_command_redoes_an_unmade_change_or_records_a_made_one) (kind='previous', point='record')",
+    "ERROR: test_the_same_command_redoes_an_unmade_change_or_records_a_made_one (test_owner_update.IntentTest.test_the_same_command_redoes_an_unmade_change_or_records_a_made_one) (kind='update', point='after')",
+    "ERROR: test_the_same_command_redoes_an_unmade_change_or_records_a_made_one (test_owner_update.IntentTest.test_the_same_command_redoes_an_unmade_change_or_records_a_made_one) (kind='update', point='before')",
+    "ERROR: test_the_same_command_redoes_an_unmade_change_or_records_a_made_one (test_owner_update.IntentTest.test_the_same_command_redoes_an_unmade_change_or_records_a_made_one) (kind='update', point='observe')",
+    "ERROR: test_the_same_command_redoes_an_unmade_change_or_records_a_made_one (test_owner_update.IntentTest.test_the_same_command_redoes_an_unmade_change_or_records_a_made_one) (kind='update', point='record')",
+    "ERROR: test_update_verifies_then_stages_keeping_running_release_and_pinned_stock (test_owner_update.UpdateCommandTest.test_update_verifies_then_stages_keeping_running_release_and_pinned_stock)",
+    "FAIL: test_after_a_restart_the_same_command_records_a_finished_change_or_redoes_a_lost_one (test_owner_update.IntentTest.test_after_a_restart_the_same_command_records_a_finished_change_or_redoes_a_lost_one) (kind='previous', restart='finished')",
+    "FAIL: test_after_a_restart_the_same_command_records_a_finished_change_or_redoes_a_lost_one (test_owner_update.IntentTest.test_after_a_restart_the_same_command_records_a_finished_change_or_redoes_a_lost_one) (kind='previous', restart='lost')",
+    "FAIL: test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests (test_owner_equality.EqualityTest.test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests)",
+    "FAIL: test_changes_during_verification_are_caught_immediately_before_staging (test_owner_update.LockTest.test_changes_during_verification_are_caught_immediately_before_staging) (change='queued rollback')",
+    "FAIL: test_documented_command_is_generated_from_complete_system_manifest (test_owner_bootstrap.BootstrapTest.test_documented_command_is_generated_from_complete_system_manifest)",
+    "FAIL: test_downgrade_same_version_foreign_history_and_unknown_legacy_refuse_without_writes (test_owner_update.ToolsUpdateTest.test_downgrade_same_version_foreign_history_and_unknown_legacy_refuse_without_writes) (name='downgrade')",
+    "FAIL: test_downgrade_same_version_foreign_history_and_unknown_legacy_refuse_without_writes (test_owner_update.ToolsUpdateTest.test_downgrade_same_version_foreign_history_and_unknown_legacy_refuse_without_writes) (name='same version, other bytes')",
+    "FAIL: test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse (test_owner_update.IntentTest.test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse) (kind='previous', point='after')",
+    "FAIL: test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse (test_owner_update.IntentTest.test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse) (kind='previous', point='before')",
+    "FAIL: test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse (test_owner_update.IntentTest.test_every_interruption_leaves_an_unresolved_intent_that_check_title_records_refuse) (kind='previous', point='observe')",
+    "FAIL: test_failed_finalization_stops_every_confirmation_until_help_retries_the_update (test_owner_update.OutcomeTest.test_failed_finalization_stops_every_confirmation_until_help_retries_the_update)",
+    "FAIL: test_failed_finalization_stops_every_confirmation_until_help_retries_the_update (test_owner_update.OutcomeTest.test_failed_finalization_stops_every_confirmation_until_help_retries_the_update) (command='check')",
+    "FAIL: test_failed_finalization_stops_every_confirmation_until_help_retries_the_update (test_owner_update.OutcomeTest.test_failed_finalization_stops_every_confirmation_until_help_retries_the_update) (command='layout')",
+    "FAIL: test_failed_finalization_stops_every_confirmation_until_help_retries_the_update (test_owner_update.OutcomeTest.test_failed_finalization_stops_every_confirmation_until_help_retries_the_update) (command='previous')",
+    "FAIL: test_failed_finalization_stops_every_confirmation_until_help_retries_the_update (test_owner_update.OutcomeTest.test_failed_finalization_stops_every_confirmation_until_help_retries_the_update) (command='reboot')",
+    "FAIL: test_failed_finalization_stops_every_confirmation_until_help_retries_the_update (test_owner_update.OutcomeTest.test_failed_finalization_stops_every_confirmation_until_help_retries_the_update) (command='rollback')",
+    "FAIL: test_failed_finalization_stops_every_confirmation_until_help_retries_the_update (test_owner_update.OutcomeTest.test_failed_finalization_stops_every_confirmation_until_help_retries_the_update) (command='title')",
+    "FAIL: test_login_on_aresos_needs_a_newer_target_and_otherwise_keeps_the_stock_rules (test_owner_update.LoginTest.test_login_on_aresos_needs_a_newer_target_and_otherwise_keeps_the_stock_rules)",
+    "FAIL: test_older_installed_tools_are_replaced_and_kept_and_records_survive (test_owner_update.ToolsUpdateTest.test_older_installed_tools_are_replaced_and_kept_and_records_survive)",
+    "FAIL: test_previous_queues_the_older_release_and_keeps_every_deployment (test_owner_update.PreviousTest.test_previous_queues_the_older_release_and_keeps_every_deployment)",
+    "FAIL: test_previous_refuses_without_an_older_release_or_with_pending_work (test_owner_update.PreviousTest.test_previous_refuses_without_an_older_release_or_with_pending_work) (name='already queued')",
+    "FAIL: test_previous_refuses_without_an_older_release_or_with_pending_work (test_owner_update.PreviousTest.test_previous_refuses_without_an_older_release_or_with_pending_work) (name='other is newer')",
+    "FAIL: test_previous_refuses_without_an_older_release_or_with_pending_work (test_owner_update.PreviousTest.test_previous_refuses_without_an_older_release_or_with_pending_work) (name='pair')",
+    "FAIL: test_previous_refuses_without_an_older_release_or_with_pending_work (test_owner_update.PreviousTest.test_previous_refuses_without_an_older_release_or_with_pending_work) (name='staged')",
+    "FAIL: test_refusals_before_any_change (test_owner_update.UpdateCommandTest.test_refusals_before_any_change) (name='booted stock')",
+    "FAIL: test_refusals_before_any_change (test_owner_update.UpdateCommandTest.test_refusals_before_any_change) (name='nothing newer')",
+    "FAIL: test_refusals_before_any_change (test_owner_update.UpdateCommandTest.test_refusals_before_any_change) (name='queued previous')",
+    "FAIL: test_refusals_before_any_change (test_owner_update.UpdateCommandTest.test_refusals_before_any_change) (name='queued stock rollback')",
+    "FAIL: test_refusals_before_any_change (test_owner_update.UpdateCommandTest.test_refusals_before_any_change) (name='running release unknown (bundle older)')",
+    "FAIL: test_refusals_before_any_change (test_owner_update.UpdateCommandTest.test_refusals_before_any_change) (name='target already deployed')",
+    "FAIL: test_reviewed_history_ends_with_the_pinned_release_and_r13_is_not_wheel (test_owner_update.HistoryTest.test_reviewed_history_ends_with_the_pinned_release_and_r13_is_not_wheel)",
+    "FAIL: test_reviewed_windows_payload_is_exact_generated_ci_payload (test_owner_equality.EqualityTest.test_reviewed_windows_payload_is_exact_generated_ci_payload)",
+    "FAIL: test_the_intent_is_written_before_the_change (test_owner_update.IntentTest.test_the_intent_is_written_before_the_change) (kind='previous')",
+    "FAIL: test_the_same_command_redoes_an_unmade_change_or_records_a_made_one (test_owner_update.IntentTest.test_the_same_command_redoes_an_unmade_change_or_records_a_made_one) (kind='previous', point='after')",
+    "FAIL: test_the_same_command_redoes_an_unmade_change_or_records_a_made_one (test_owner_update.IntentTest.test_the_same_command_redoes_an_unmade_change_or_records_a_made_one) (kind='previous', point='before')",
+    "FAIL: test_the_same_command_redoes_an_unmade_change_or_records_a_made_one (test_owner_update.IntentTest.test_the_same_command_redoes_an_unmade_change_or_records_a_made_one) (kind='previous', point='observe')",
+    "FAIL: test_title_switch_and_recovery_real_pairs_and_bls (test_owner_retained.RetainedTest.test_title_switch_and_recovery_real_pairs_and_bls)",
+    "FAIL: test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns (test_owner_path.OwnerPathTest.test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns)",
+    "FAIL: test_wrong_shapes_are_refused (test_owner_update.ShapeTest.test_wrong_shapes_are_refused) (name='stock booted beside two releases')",
+    "FAIL: test_wrong_shapes_are_refused (test_owner_update.ShapeTest.test_wrong_shapes_are_refused) (name='stock not last')"
+  ],
+  "model": {
+    "states": 486627,
+    "edges": 12176910,
+    "executions": 249475,
+    "reuses": 11927435,
+    "seconds": 620.304,
+    "closure_reached": true,
+    "journal_outcomes": {
+      "complete": 261,
+      "in-place-not-started": 73248,
+      "none": 101352,
+      "not-applied": 149682,
+      "retry": 261,
+      "selection-applied": 66384,
+      "target-boot-confirmed": 53388,
+      "waiting": 42051
+    },
+    "menu_only_destinations": [
+      [
+        "28",
+        [
+          "13",
+          "27",
+          "S"
+        ],
+        "13",
+        "27"
+      ],
+      [
+        "28",
+        [
+          "13",
+          "S",
+          "27"
+        ],
+        "13",
+        "27"
+      ]
+    ],
+    "command_edges": [
+      {
+        "command": "abandon",
+        "outcome": "PASS",
+        "count": 289566
+      },
+      {
+        "command": "abandon",
+        "outcome": "STOP",
+        "count": 197061
+      },
+      {
+        "command": "begin",
+        "outcome": "PASS",
+        "count": 21180
+      },
+      {
+        "command": "begin",
+        "outcome": "STOP",
+        "count": 1438701
+      },
+      {
+        "command": "check",
+        "outcome": "PASS",
+        "count": 453417
+      },
+      {
+        "command": "check",
+        "outcome": "STOP",
+        "count": 33210
+      },
+      {
+        "command": "finish",
+        "outcome": "PASS",
+        "count": 20436
+      },
+      {
+        "command": "finish",
+        "outcome": "STOP",
+        "count": 134610
+      },
+      {
+        "command": "finish",
+        "outcome": "cut",
+        "count": 30654
+      },
+      {
+        "command": "fresh-login",
+        "outcome": "PASS",
+        "count": 53112
+      },
+      {
+        "command": "keep-stock",
+        "outcome": "PASS",
+        "count": 97056
+      },
+      {
+        "command": "keep-stock",
+        "outcome": "STOP",
+        "count": 389571
+      },
+      {
+        "command": "keep-stock",
+        "outcome": "cut",
+        "count": 239841
+      },
+      {
+        "command": "power-off",
+        "outcome": "PASS",
+        "count": 1941957
+      },
+      {
+        "command": "previous",
+        "outcome": "PASS",
+        "count": 377172
+      },
+      {
+        "command": "previous",
+        "outcome": "STOP",
+        "count": 109455
+      },
+      {
+        "command": "previous",
+        "outcome": "cut",
+        "count": 620229
+      },
+      {
+        "command": "proof",
+        "outcome": "PASS",
+        "count": 73584
+      },
+      {
+        "command": "proof",
+        "outcome": "STOP",
+        "count": 81462
+      },
+      {
+        "command": "reboot",
+        "outcome": "PASS",
+        "count": 331059
+      },
+      {
+        "command": "reboot",
+        "outcome": "STOP",
+        "count": 155568
+      },
+      {
+        "command": "records",
+        "outcome": "PASS",
+        "count": 486105
+      },
+      {
+        "command": "records",
+        "outcome": "STOP",
+        "count": 522
+      },
+      {
+        "command": "restart",
+        "outcome": "PASS",
+        "count": 1941975
+      },
+      {
+        "command": "revert",
+        "outcome": "PASS",
+        "count": 53112
+      },
+      {
+        "command": "revert",
+        "outcome": "STOP",
+        "count": 101934
+      },
+      {
+        "command": "rollback",
+        "outcome": "PASS",
+        "count": 206232
+      },
+      {
+        "command": "rollback",
+        "outcome": "STOP",
+        "count": 280395
+      },
+      {
+        "command": "rollback",
+        "outcome": "cut",
+        "count": 436740
+      },
+      {
+        "command": "title",
+        "outcome": "PASS",
+        "count": 486105
+      },
+      {
+        "command": "title",
+        "outcome": "STOP",
+        "count": 522
+      },
+      {
+        "command": "update",
+        "outcome": "PASS",
+        "count": 350370
+      },
+      {
+        "command": "update",
+        "outcome": "STOP",
+        "count": 136257
+      },
+      {
+        "command": "update",
+        "outcome": "cut",
+        "count": 607740
+      }
+    ]
+  },
+  "superseded_run": {
+    "run": 43512715278,
+    "head": "030eeebcc88855f813ab4eb1805c455228b9e53e",
+    "conclusion": "cancelled",
+    "reason": "Cancelled before full counts to add complete layout-record assertions and a finish-authority mutant."
+  },
+  "vm_dispatched": false
+}

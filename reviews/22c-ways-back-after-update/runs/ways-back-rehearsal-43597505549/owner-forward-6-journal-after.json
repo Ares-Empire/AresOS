@@ -1,0 +1,17 @@
+[
+  {
+    "SYSLOG_IDENTIFIER": "ostree",
+    "OSTREE_N_DEPLOYMENTS": "3",
+    "OSTREE_BOOTLOADER_CONFIG": "none",
+    "__MONOTONIC_TIMESTAMP": "300402268",
+    "_UID": "0",
+    "MESSAGE": "Transaction complete; bootconfig swap: no; bootversion: boot.0.1, deployment count change: 0",
+    "OSTREE_DID_BOOTSWAP": "no",
+    "OSTREE_BOOTLOADER_ATOMIC": "yes",
+    "__REALTIME_TIMESTAMP": "1794670000880876",
+    "OSTREE_BOOTLOADER": "none",
+    "MESSAGE_ID": "dd440e3e549083b63d0efc7dc15255f1",
+    "_COMM": "ostree",
+    "_PID": "20096"
+  }
+]

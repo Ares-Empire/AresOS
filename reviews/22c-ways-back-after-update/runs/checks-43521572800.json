@@ -1,0 +1,228 @@
+{
+  "schema": "22c-step3-checks1",
+  "run": 43521572800,
+  "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43521572800",
+  "head": "8d2366197413074b97ef3dbf80de09ae310059fc",
+  "conclusion": "failure",
+  "baseline": {
+    "run": 43513299977,
+    "tests": 1037,
+    "failures": 40,
+    "errors": 23,
+    "skipped": 0
+  },
+  "rounds": [
+    {
+      "run": 43517900883,
+      "head": "85c037b1",
+      "result": {
+        "failures": 11,
+        "errors": 1,
+        "skipped": 0,
+        "tests": 1038,
+        "seconds": 974.729
+      },
+      "remaining_failure_or_error_entries": [
+        "ERROR: test_stock_side_recovery_preserves_stocks_own_installer_layout (test_owner_abandon.AbandonTest.test_stock_side_recovery_preserves_stocks_own_installer_layout)",
+        "FAIL: test_documented_command_is_generated_from_complete_system_manifest (test_owner_bootstrap.BootstrapTest.test_documented_command_is_generated_from_complete_system_manifest)",
+        "FAIL: test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests (test_owner_equality.EqualityTest.test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests)",
+        "FAIL: test_reviewed_windows_payload_is_exact_generated_ci_payload (test_owner_equality.EqualityTest.test_reviewed_windows_payload_is_exact_generated_ci_payload)",
+        "FAIL: test_card_clears_real_pending_state_then_completion_does_not_abandon_again (test_owner_path.OwnerPathTest.test_card_clears_real_pending_state_then_completion_does_not_abandon_again)",
+        "FAIL: test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns (test_owner_path.OwnerPathTest.test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns)",
+        "FAIL: test_title_switch_and_recovery_real_pairs_and_bls (test_owner_retained.RetainedTest.test_title_switch_and_recovery_real_pairs_and_bls)",
+        "FAIL: test_every_interruption_resolves_by_list_except_same_boot_staging (test_owner_update.IntentTest.test_every_interruption_resolves_by_list_except_same_boot_staging) (kind='update', point='before')",
+        "FAIL: test_every_interruption_resolves_by_list_except_same_boot_staging (test_owner_update.IntentTest.test_every_interruption_resolves_by_list_except_same_boot_staging) (kind='update', point='after')",
+        "FAIL: test_every_interruption_resolves_by_list_except_same_boot_staging (test_owner_update.IntentTest.test_every_interruption_resolves_by_list_except_same_boot_staging) (kind='update', point='observe')",
+        "FAIL: test_every_interruption_resolves_by_list_except_same_boot_staging (test_owner_update.IntentTest.test_every_interruption_resolves_by_list_except_same_boot_staging) (kind='update', point='record')",
+        "FAIL: test_recovery_and_layout_accept_known_pairs_and_triples_but_refuse_staging (test_owner_update.ShapeTest.test_recovery_and_layout_accept_known_pairs_and_triples_but_refuse_staging) (refused={'rpm': {'deployments': [{'unlocked': 'none', 'requested-local-packages': [], 'base-removals': [], 'pinned': False, 'osname': 'default', 'base-remote-replacements': {}, 'regenerate-initramfs': False, 'checksum': 'c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9', 'container-image-reference-digest': 'sha256:9999999999999999999999999999999999999999999999999999999999999999', 'requested-base-local-replacements': [], 'id': 'default-42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0', 'version': '44.20261012.1', 'requested-local-fileoverride-packages': [], 'requested-base-removals': [], 'requested-packages': [], 'serial': 0, 'timestamp': 1791849998, 'staged': False, 'booted': True, 'container-image-reference': 'ostree-unverified-registry:ghcr.io/ares-empire/aresos@sha256:9999999999999999999999999999999999999999999999999999999999999999', 'packages': [], 'base-local-replacements': []}, {'unlocked': 'none', 'requested-local-packages': [], 'base-removals': [], 'pinned': True, 'osname': 'default', 'base-remote-replacements': {}, 'regenerate-initramfs': False, 'checksum': 'aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71', 'container-image-reference-digest': 'sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151', 'requested-base-local-replacements': [], 'id': 'default-aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1', 'version': '44.20261012.1', 'requested-local-fileoverride-packages': [], 'requested-base-removals': [], 'requested-packages': [], 'serial': 1, 'timestamp': 1791849998, 'staged': False, 'booted': False, 'container-image-reference': 'ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable', 'packages': [], 'base-local-replacements': []}], 'transaction': None, 'cached-update': None, 'update-driver': None}, 'bootc': {'apiVersion': 'org.containers.bootc/v1', 'kind': 'BootcHost', 'metadata': {'name': 'host'}, 'spec': {'bootOrder': 'default', 'image': {'image': 'ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb', 'transport': 'registry'}}, 'status': {'booted': {'ostree': {'checksum': 'c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9c9', 'deploySerial': 0, 'stateroot': 'default'}, 'pinned': False, 'image': {'image': {'image': 'ghcr.io/ares-empire/aresos@sha256:9999999999999999999999999999999999999999999999999999999999999999', 'transport': 'registry'}, 'imageDigest': 'sha256:9999999999999999999999999999999999999999999999999999999999999999'}}, 'readOnly': False, 'rollback': {'ostree': {'checksum': 'aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71', 'deploySerial': 1, 'stateroot': 'default'}, 'pinned': True, 'image': {'image': {'image': 'ghcr.io/ublue-os/bazzite-nvidia-open:stable', 'transport': 'registry'}, 'imageDigest': 'sha256:ed93d2158a1bcba16b226bfb3ab6391446d11466646188c800b982d709435151'}}, 'rollbackQueued': False, 'staged': None, 'type': 'bootcHost', 'usrOverlay': None}}})"
+      ],
+      "focused_modules": {
+        "test_owner_update": {
+          "tests": 73,
+          "failure_or_error_entries": 5
+        },
+        "test_ways_back": {
+          "tests": 34,
+          "failure_or_error_entries": 0
+        },
+        "test_ways_back_model": {
+          "tests": 15,
+          "failure_or_error_entries": 0
+        },
+        "test_ways_back_reverts": {
+          "tests": 15,
+          "failure_or_error_entries": 0
+        },
+        "test_ways_back_probe": {
+          "tests": 40,
+          "failure_or_error_entries": 0
+        }
+      }
+    },
+    {
+      "run": 43521572800,
+      "head": "8d2366197413074b97ef3dbf80de09ae310059fc",
+      "result": {
+        "failures": 4,
+        "errors": 0,
+        "skipped": 0,
+        "tests": 1059,
+        "seconds": 1163.247
+      },
+      "remaining_failure_or_error_entries": [
+        "FAIL: test_documented_command_is_generated_from_complete_system_manifest (test_owner_bootstrap.BootstrapTest.test_documented_command_is_generated_from_complete_system_manifest)",
+        "FAIL: test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests (test_owner_equality.EqualityTest.test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests)",
+        "FAIL: test_reviewed_windows_payload_is_exact_generated_ci_payload (test_owner_equality.EqualityTest.test_reviewed_windows_payload_is_exact_generated_ci_payload)",
+        "FAIL: test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns (test_owner_path.OwnerPathTest.test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns)"
+      ],
+      "focused_modules": {
+        "test_owner_update": {
+          "tests": 73,
+          "failure_or_error_entries": 0
+        },
+        "test_ways_back": {
+          "tests": 34,
+          "failure_or_error_entries": 0
+        },
+        "test_ways_back_compatibility": {
+          "tests": 21,
+          "failure_or_error_entries": 0
+        },
+        "test_ways_back_model": {
+          "tests": 15,
+          "failure_or_error_entries": 0
+        },
+        "test_ways_back_reverts": {
+          "tests": 15,
+          "failure_or_error_entries": 0
+        },
+        "test_ways_back_probe": {
+          "tests": 40,
+          "failure_or_error_entries": 0
+        }
+      }
+    }
+  ],
+  "result": {
+    "failures": 4,
+    "errors": 0,
+    "skipped": 0,
+    "tests": 1059,
+    "seconds": 1163.247
+  },
+  "focused_modules": {
+    "test_owner_update": {
+      "tests": 73,
+      "failure_or_error_entries": 0
+    },
+    "test_ways_back": {
+      "tests": 34,
+      "failure_or_error_entries": 0
+    },
+    "test_ways_back_compatibility": {
+      "tests": 21,
+      "failure_or_error_entries": 0
+    },
+    "test_ways_back_model": {
+      "tests": 15,
+      "failure_or_error_entries": 0
+    },
+    "test_ways_back_reverts": {
+      "tests": 15,
+      "failure_or_error_entries": 0
+    },
+    "test_ways_back_probe": {
+      "tests": 40,
+      "failure_or_error_entries": 0
+    }
+  },
+  "model": {
+    "states": 486627,
+    "edges": 12176910,
+    "executions": 249475,
+    "reuses": 11927435,
+    "seconds": 426.169,
+    "closure_reached": true,
+    "journal_outcomes": {
+      "complete": 261,
+      "in-place-not-started": 73248,
+      "none": 101352,
+      "not-applied": 149682,
+      "retry": 261,
+      "selection-applied": 66384,
+      "target-boot-confirmed": 53388,
+      "waiting": 42051
+    }
+  },
+  "compatibility": {
+    "historical_commit": "41b06513",
+    "historical_shapes": 13,
+    "first_install_single_stock_variants": 2,
+    "publication_cuts": [
+      {
+        "cuts": 25,
+        "versioned": false,
+        "open_previous_intent": false
+      },
+      {
+        "cuts": 25,
+        "versioned": false,
+        "open_previous_intent": true
+      },
+      {
+        "cuts": 24,
+        "versioned": true,
+        "open_previous_intent": false
+      },
+      {
+        "cuts": 24,
+        "versioned": true,
+        "open_previous_intent": true
+      }
+    ],
+    "total_publication_cuts": 98,
+    "revert_proofs": 5
+  },
+  "remaining_failure_or_error_entries": [
+    "FAIL: test_documented_command_is_generated_from_complete_system_manifest (test_owner_bootstrap.BootstrapTest.test_documented_command_is_generated_from_complete_system_manifest)",
+    "FAIL: test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests (test_owner_equality.EqualityTest.test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests)",
+    "FAIL: test_reviewed_windows_payload_is_exact_generated_ci_payload (test_owner_equality.EqualityTest.test_reviewed_windows_payload_is_exact_generated_ci_payload)",
+    "FAIL: test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns (test_owner_path.OwnerPathTest.test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns)"
+  ],
+  "remaining_reason": "Only the four stage-1b fingerprint/bootstrap/guide pins.",
+  "local": {
+    "ways_back_before_records_fix": [
+      {
+        "mode": "plain",
+        "tests": 34,
+        "seconds": 11.972
+      },
+      {
+        "mode": "-B",
+        "tests": 34,
+        "seconds": 11.869
+      }
+    ],
+    "model_before_records_fix": {
+      "mode": "plain",
+      "tests": 15,
+      "seconds": 378.339,
+      "states": 486627,
+      "edges": 12176910
+    },
+    "model_final_implementation": {
+      "mode": "-B",
+      "tests": 15,
+      "seconds": 376.573,
+      "states": 486627,
+      "edges": 12176910
+    },
+    "final_source_plain_reruns": "Not run: available memory stayed below the 4500 MB gate (down to 4044 MB).",
+    "owner_update_executed": false
+  },
+  "blocking_watch_invocations": {
+    "43517900883": 1,
+    "43521572800": 1
+  },
+  "vm_dispatched": false
+}

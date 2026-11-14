@@ -151,7 +151,7 @@ class CompletionTest(unittest.TestCase):
 
     def test_sudo_public_handoff_is_not_completion_then_returns_to_verified_shell(self):
         from owner_console_shim import execute_hidden
-        expected=hidden.sudo_reader(['/var/lib/ares/at','layout','proof'],hidden.owner_reader(['layout','proof']))
+        expected=hidden.sudo_reader(['/var/lib/ares/at','layout','proof'],hidden.owner_reader('/var/lib/ares/tools', ['layout','proof']))
         proof=execute_hidden(hidden.source('tty4',expected,prompt='[sudo] password for ares-recovery:'))
         handoff=execute_hidden(hidden.source('tty4',expected,receipt=proof['reader'],handoff='Physically type'))
         self.assertTrue(handoff['handoff_ready'] and handoff['reader_left']);self.assertFalse(handoff['ready'])
@@ -166,7 +166,7 @@ class CompletionTest(unittest.TestCase):
 
     def test_owner_result_on_cursor_requires_departed_reader_and_verified_lineage(self):
         from owner_console_shim import execute_hidden
-        expected=hidden.owner_reader(['login'])
+        expected=hidden.owner_reader('/var/lib/ares/tools', ['login'])
         proof=execute_hidden(hidden.source('tty3',expected,prompt=PROMPT))
         command=hidden.source('tty3',expected,receipt=proof['reader'])
         refusal=hidden.source('tty3',expected,receipt=proof['reader'],timeout=1)

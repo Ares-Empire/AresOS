@@ -36,7 +36,10 @@ def require_runner():
             (os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE'),os.environ.get('REHEARSAL_MODE')) ==
             ('pkg/16-staged-release','16','probe') or
             (os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE'),os.environ.get('REHEARSAL_MODE')) ==
-            ('pkg/27-first-update-release','27','update'))
+            ('pkg/27-first-update-release','27','update') or
+            # Package 22c: its reorder probe and (stage 2) the rehearsal of every way back.
+            (os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE')) ==
+            ('pkg/22c-ways-back-after-update','22c') and os.environ.get('REHEARSAL_MODE') in ('reorder-probe', 'ways-back'))
 
 
 class Media:
@@ -107,13 +110,22 @@ Copy-AresToolsPayload -Source $Source -Destination $Destination -Drive $drive
             filesystem='FUSE exFAT', label='ARESTOOLS', fsck_readonly=True, readonly_bundle_verified=True,
             file_backed=True, real_hardware=False))
 
-    def replace(self, stage):
-        """Step 8's Windows side: keep the old bundle under a dated name, copy the new one."""
+    def replace(self, stage, source=None):
+        """Step 8's Windows side: keep the old bundle under a dated name, copy the new one.
+
+        source: an existing checked bundle (package 22c: version 2 from history)
+        instead of this checkout's payload, as in create().
+        """
         assert not self.attached and self.fingerprint
         old = self.fingerprint
-        payload = td.WORK / 'owner-payload-update'
+        # One folder per replacement: package 22c's rehearsal replaces the bundle twice (version 2, then 3).
+        payload = td.WORK / ('owner-payload-update' if stage == 'update-windows-copy' else 'owner-payload-' + stage)
         assert not payload.exists()
-        fingerprint = bundle_module('bundle').build(payload)
+        if source is None:
+            fingerprint = bundle_module('bundle').build(payload)
+        else:
+            shutil.copytree(source, payload)
+            fingerprint = bundle_module('owner').checked_bundle(payload)
         assert fingerprint != old
         renamed = 'ares-tools-replaced-' + time.strftime('%Y%m%d-%H%M', time.gmtime())
         loop = self.mounted()

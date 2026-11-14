@@ -1,0 +1,68 @@
+{
+  "boot_id": "vm-boot-10",
+  "cmdline": "BOOT_IMAGE=(hd0,gpt2)/ostree/default-a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/vmlinuz-7.2.9-ogc3.1.fc44.x86_64 ostree=/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0 console=tty0 console=ttyS0,115200n8 root=UUID=VM-ROOT-FILESYSTEM rootflags=subvol=root rw systemd.tty.term.console=vt220 systemd.tty.rows.console=24 systemd.tty.columns.console=80 systemd.tty.term.ttyS0=vt220 systemd.tty.rows.ttyS0=24 systemd.tty.columns.ttyS0=80 bluetooth.disable_ertm=1",
+  "running_link": "/ostree/boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0",
+  "running": "/sysroot/ostree/deploy/default/deploy/809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b.0",
+  "loader_link": "loader.0",
+  "loader_directories": {
+    "loader": [
+      "ostree-1.conf",
+      "ostree-2.conf",
+      "ostree-3.conf"
+    ],
+    "loader.0": [
+      "ostree-1.conf",
+      "ostree-2.conf",
+      "ostree-3.conf"
+    ]
+  },
+  "ostree_boot_links": {
+    "boot.0": "boot.0.1"
+  },
+  "ostree_boot_targets": {
+    "boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0": "../../../deploy/default/deploy/809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b.0",
+    "boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1": "../../../deploy/default/deploy/42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0",
+    "boot.0/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/2": "../../../deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1",
+    "boot.0.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/0": "../../../deploy/default/deploy/809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b.0",
+    "boot.0.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/1": "../../../deploy/default/deploy/42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0",
+    "boot.0.1/default/a25775e4f37d118b532547ddc8a55317d3f05cf4b14ee4bacce4a9a237bc63a6/2": "../../../deploy/default/deploy/aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1"
+  },
+  "origins": {
+    "42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0.origin": "[origin]\ncontainer-image-reference=ostree-unverified-registry:ghcr.io/ares-empire/aresos@sha256:9b19b7942bc131934eac3733a7f8a1c1de488659075897f60c006bc88c77f3eb\n",
+    "809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b.0.origin": "[origin]\ncontainer-image-reference=ostree-unverified-registry:ghcr.io/ares-empire/aresos@sha256:5fad242fceac7244563913eed96cd72dfcd300fec5e458cdb2ba81bce00d944c\n",
+    "aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1.origin": "[origin]\ncontainer-image-reference=ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable\n\n[libostree-transient]\npinned=true\n"
+  },
+  "admin_status": {
+    "argv": [
+      "ostree",
+      "admin",
+      "status"
+    ],
+    "returncode": 0,
+    "stdout": "* default 809c481b9f40dc52ffab1aca5b0e9783bed9c287faec434e71c9edf193808f1b.0\n    origin: <unknown origin type>\n  default 42e5aea14cb87080fb9a96990b56968578a4a10a79c453c51630c01676d8017c.0 (rollback)\n    origin: <unknown origin type>\n  default aa669eff4ea5c1f97c6c816c8d5d2abb5314e9afa3b966c0100e3e65f8040c71.1\n    Pinned: yes\n    origin: <unknown origin type>\n",
+    "stderr": ""
+  },
+  "grubenv": {
+    "argv": [
+      "grub2-editenv",
+      "-",
+      "list"
+    ],
+    "returncode": 0,
+    "stdout": "boot_success=1\n",
+    "stderr": ""
+  },
+  "packages": {
+    "argv": [
+      "rpm",
+      "-q",
+      "ostree",
+      "rpm-ostree",
+      "bootc",
+      "grub2-common"
+    ],
+    "returncode": 0,
+    "stdout": "ostree-2026.4-1.fc44.x86_64\nrpm-ostree-2026.3-2.fc44.x86_64\nbootc-1.16.13-1.fc44.x86_64\ngrub2-common-2.12-66.fc44.noarch\n",
+    "stderr": ""
+  }
+}
