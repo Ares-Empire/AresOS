@@ -328,7 +328,10 @@ class DiscoveryOffTheLoopTest(HardeningBase, Base):
         self.assertIn('good', {row['id'] for row in self.request(helper, conn, 'list_apps')['apps']})
 
     def test_before_the_first_scan_the_registry_alone_is_in_force_with_the_1_0_revision(self):
-        discovery = shell.Discovery(shell.Catalogue(str(REGISTRY), entry_dirs=self.folders))
+        # Every program counts as installed here: the legacy list carries availability since review fixes 2, and
+        # the registry's three programs are not installed on every machine that runs this test (GitHub's runner).
+        discovery = shell.Discovery(shell.Catalogue(str(REGISTRY), entry_dirs=self.folders,
+                                                    executable=lambda path: True))
         apps, revision = shell.load_registry(str(REGISTRY))
         self.assertEqual(set(discovery.apps), set(apps))
         self.assertEqual(discovery.legacy, (apps, revision))

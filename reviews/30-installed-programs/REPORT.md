@@ -152,14 +152,14 @@ Earlier runs [43510212242](https://github.com/Ares-Empire/AresOS/actions/runs/43
 
 ## Open questions
 
-No implementation question blocks this handoff. Owner decisions on the judgment calls, the real Lunar/Steam trial, and independent package/security/OS review remain before merge. PR: [#55](https://github.com/Ares-Empire/AresOS/pull/55). Never merged by this run.
+*(2026-11-14, orchestrator: the judgment calls are technical and stand as recorded; the package, security and OS reviews are done; the real Lunar and Steam trial is the "Try this" below, after package 30b. The builder's original text follows.)* No implementation question blocks this handoff. Owner decisions on the judgment calls, the real Lunar/Steam trial, and independent package/security/OS review remain before merge. PR: [#55](https://github.com/Ares-Empire/AresOS/pull/55). Never merged by this run.
 
 Closing housekeeping: all owned headless processes/scopes and converter/test children were stopped/reaped by held PIDs/groups or unit names. No Gradle daemon was started or stopped. No large download was made; `find .work -type f -size +500M -printf '%p %s bytes\n'` printed nothing. **Files left in `.work/` over 500 MB: none.**
 
 ## Try this (owner, after review)
 
 1. From this worktree on your desktop: `mod/dev/run-hub.sh --helper "$PWD/os/config/usr/libexec/aresos-shell" --registry "$PWD/os/config/usr/share/aresos/apps"` (wait if it refuses for game/memory; do not force).
-2. With the package-34 mod, find your programs/pictures in My apps; open Lunar, close its launcher after the game appears, then close the game and check that you return to the hub once.
+2. *(Wait for package 30b before the Lunar part: until then Lunar opened from the hub lacks the settings of your `lunar` command, see "Open after this package".)* With the package-34 mod, find your programs/pictures in My apps; open Lunar, close its launcher after the game appears, then close the game and check that you return to the hub once.
 3. Open Steam, close its last window while it stays running, reopen it from the hub, and check return, picture updates and the NVIDIA choice during real gameplay.
 
 ## Review fixes 1
@@ -528,6 +528,18 @@ review's name bomb (`SvgPreCheckTest`) fails only with both halves of FIX 2 out:
   the hub coming back at an unexpected moment; no command runs because of it.
 - A mount that stalls in the microseconds between a launch's check and its start still holds the helper while Popen
   waits for the child; a stuck check thread lives until its file call returns.
+- **A second switch right after a program closes can be taken for the system's own choice** (SECURITY-3, nit 1): he
+  closes Lunar Client, the system puts Terminal in front, and he switches on to Notepad so fast that the helper sees
+  both changes at once. Notepad then counts as the system's choice, the waiting return stays, and the hub comes to
+  the front over Notepad a moment later. He would see the hub once where he expected Notepad; nothing is lost.
+- **A new program chosen right after another closed, with a slow check** (REVIEW-3, nit 1): Lunar Client closes and
+  leaves Terminal in front with a return waiting; within the half second he opens another program whose executable
+  check takes a second. The return is only cancelled when that program starts, so the hub can come to the front over
+  Terminal first, and the program he chose opens right after. He would see the hub flash in between; nothing is lost.
+- **A hostile program already running as him can make the helper pause** (SECURITY-3 and REVIEW-3, nit 2): a
+  hundred different open requests in one batch for a program whose check hangs each wait their 0.2 s, so listing and
+  heartbeats stop for about 20 s and the desktop shows the system side as away for that long. The mod never sends
+  such a batch; the limit of four outstanding checks does not cover this.
 
 ### Verified (review fixes 2)
 
@@ -537,8 +549,47 @@ On the laptop, 2026-11-14:
   → **Ran 271 tests, OK** (255 before this round). Each per-fix commit's snapshot (`git checkout-index` of `os/` into a
   scratch folder) also passed: 265, 267, 269, 271 for findings 1 to 4.
 - `... -p 'check_aresos_shell_icons.py'` (the real sandboxed converter) → **Ran 7 tests, OK** (after FIX 2).
-- PENDING (step 2, see PROGRESS.md): `check_aresos_shell_launch.py`, the headless end to end, the hosted runs.
+- `... -p 'check_aresos_shell_launch.py'` (the real `systemd-run --user --scope` route, a stand-in program only) →
+  **Ran 2 tests, OK**; `... -p 'test_window_frame.py'` (package 31's, because `os/ci/image-checks.sh` changed) →
+  **Ran 1 test, OK**; then `test_aresos_shell*.py` once more → **Ran 271 tests, OK**. These three and the headless
+  check below were run by the orchestrator (Claude Fable 5.2) at the final code, after the builder's step ended.
+- **Headless end to end once more:** `python3 os/tests/check_aresos_shell_headless.py` →
+  **`HEADLESS_KCALC_BTOP_PASSED`**, then **`owned processes and scopes stopped`**. Its guard printed 7 GB available
+  and no Lunar Java. As before: its own headless labwc (`.work/h30/r/wayland-0`), HOME and socket; the real KCalc and
+  btop in Foot, opened by 1.1 `open_app`: KCalc in `app-aresos-check\x2dkcalc-219f7cda798efef7.scope` (active,
+  `app.slice`, nine PIDs, window `org.kde.kcalc`), btop in `app-aresos-check\x2dbtop-5e2ffa8b51cf09cb.scope` (window
+  `aresos.app.check-btop`); each `app_state=focused`, then on closing `shell_focus=foreground,
+  reason=desktop_activated` and the launch `closed`. `headless.json` and `screenshots/check-btop.png` are this run's
+  (inspected: btop in its Foot window, CPU and memory boxes only, no process list). Afterwards no
+  `app-aresos-check*` unit was left.
+- Hosted run on `0156d727`, `checks_only=true`:
+  [43532807169](https://github.com/Ares-Empire/AresOS/actions/runs/43532807169) **failed: Ran 1293 tests,
+  failures=5**, all in two tests that had never run on GitHub before (review fixes 1's hosted runs were cancelled):
+  `DiscoveryOffTheLoopTest.test_before_the_first_scan_the_registry_alone_is_in_force_with_the_1_0_revision` and
+  `LegacyWindowsTest.test_a_1_0_desktop_keeps_todays_window_behaviour_across_reconnects` (four failures in its
+  sub-tests). Both took for granted that the registry's three programs (`/usr/bin/foot`, Chrome, KWrite) are
+  installed where the test runs: true on the laptop, false on GitHub's runner. The helper is right; the tests were
+  not self-contained. Fixed by the orchestrator: the first gives its catalogue a stand-in executable check, the
+  second stands in for the launch check only. Reproduced on the laptop with the three paths reported missing (the
+  same 5 failures before, `Ran 271 tests, OK` after, and `OK` unchanged without the stand-in). The hosted runs are
+  repeated on the head of review fixes 3.
 
 ### Not verified (review fixes 2)
 
 - A real stalled mount (NFS or a pulled USB drive): only the stand-in. A real Lunar Client or Steam session, as before.
+
+### Open after this package: Lunar Client's launch settings (follow-up 30b)
+
+Found by the OS lead on 2026-11-14, after both fix checks. On this desktop Lunar Client's game needs two things that
+his `lunar` command sets and Lunar's own desktop entry does not: the NVIDIA card (the entry has no
+`PrefersNonDefaultGPU`) and `SDL_VIDEO_DRIVER=wayland` (Minecraft 26.3 opens its window with SDL, which picks
+XWayland under labwc, where the game's OpenGL does not start on the NVIDIA card). The helper starts a discovered
+program from its desktop entry, so **Lunar Client opened from the hub starts without both**: on the Intel card at
+best. Nothing in this package can carry the two settings.
+
+Decided with the OS lead: package 30b lets a reviewed hint file carry `"gpu": "discrete"` and an `environment` map
+whose names come from a short allowlist (`SDL_...` only at first), and Lunar's hint gets both. Until 30b is in a
+release, `lunar` in a terminal stays his way to start Lunar, and a release with this package but without 30b is not
+described to him as "Lunar opens from the hub". When labwc gets the fifo-v1 protocol, SDL picks Wayland by itself and
+the hint's line can go.
+

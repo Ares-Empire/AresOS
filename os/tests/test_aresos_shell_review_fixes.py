@@ -468,6 +468,9 @@ class LegacyWindowsTest(Base):
                                           clock=self.clock, connect=connect, environ={'HOME': str(self.root)})
         self.addCleanup(self.current.catalogue.stop)
         self.addCleanup(self.current.watcher.stop)
+        # Opening the registry's Terminal must not depend on foot being installed where this test runs (GitHub's
+        # runner has none): only the launch check is stood in for, the catalogue stays as build() made it.
+        self.current.executable = lambda path: True
         self.windows = self.compositor[0]
         self.assertTrue(self.current.apps['firefox'].discovered)
 
