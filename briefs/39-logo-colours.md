@@ -48,6 +48,13 @@ Unit tests with icons the tests draw (never real app icons and no copies of real
 1. **Step 1:** the "before" pictures (repo and private) with the old rules; the new rules, the palette choice and `CONVERTER = 2`; the unit tests; the private "after" with the real three; `mod/dev/build.sh` passes; commit, push, `PROGRESS.md` (what the real three look like now, in words, and what you would still tune).
 2. **Step 2:** tune from the pictures; the renewal test and the chat check of point 4; the cost numbers; the repo "after" pictures; HUB.md 3.6; `mod/README.md` if it describes the converter; the full report text (in `PROGRESS.md` or the pull request's description if your file tool refuses `REPORT.md`) with a "try this" note; `mod/dev/build.sh` once and `mod/dev/client-test.sh` twice on the final code; merge `origin/main`; push; `gh pr create`.
 
+## Added for step 2 (the orchestrator, 2026-11-14)
+
+- **Main moved on:** package 37 (getting around: `/go`, `/home`, swap and move, its client test `GettingAroundClientGameTest`) is merged into this branch as `ee24b314`. The two conflicts (`fabric.mod.json`, `build.gradle`) were resolved by keeping both client tests, 37's before 39's. Run `mod/dev/build.sh` first and fix whatever the merge broke; 37's tests may build logos through the converter or with blocks that step 1 stopped building.
+- **Pictures:** 37's client test now runs before this one, so this package's picture numbers change. Commit this package's pictures under their new numbers, leave 37's pictures as they are unless the converter changes what they show (then commit them anew, look at them, and say so), and remove stray renumbered copies.
+- **A wording fix from package 37's last review** (`reviews/37-getting-around/REVIEW-3.md`, NIT): the comment at `TownKeeper.again()` and HUB.md's correction for 2.5 say the next ordinary pass follows "in the next tick" / "a tick later". It can run at the end of the same tick, after the command, or later while a picture is being read. Write "the town's next ordinary pass, after the command" in both places. Wording only.
+- **Review:** a fresh Claude reviewer on Opus 5.5 (Codex's week is used up).
+
 ## Out of scope
 
 The logo's size, depth, door, niche and sign (packages 33 and 36, and the owner's "12"); where logos stand; the OS helper and how it writes icons (package 30); hand-built gates' rules beyond sharing the converter; no change under `os/`.
