@@ -1,0 +1,299 @@
+{
+  "head": "a41435867c875964bf80f9f25dbc9c066a2a0279",
+  "run": "43539458146",
+  "attempt": 1,
+  "conclusion": "success",
+  "longest_job_seconds": 3648.0,
+  "jobs": [
+    {
+      "name": "containers (3)",
+      "conclusion": "success",
+      "seconds": 764.0
+    },
+    {
+      "name": "sweep (0)",
+      "conclusion": "success",
+      "seconds": 1687.0
+    },
+    {
+      "name": "containers (2)",
+      "conclusion": "success",
+      "seconds": 501.0
+    },
+    {
+      "name": "sweep (7)",
+      "conclusion": "success",
+      "seconds": 564.0
+    },
+    {
+      "name": "sweep (3)",
+      "conclusion": "success",
+      "seconds": 607.0
+    },
+    {
+      "name": "sweep (2)",
+      "conclusion": "success",
+      "seconds": 889.0
+    },
+    {
+      "name": "containers (1)",
+      "conclusion": "success",
+      "seconds": 334.0
+    },
+    {
+      "name": "sweep (5)",
+      "conclusion": "success",
+      "seconds": 2172.0
+    },
+    {
+      "name": "sweep (4)",
+      "conclusion": "success",
+      "seconds": 3058.0
+    },
+    {
+      "name": "containers (0)",
+      "conclusion": "success",
+      "seconds": 1010.0
+    },
+    {
+      "name": "sweep (6)",
+      "conclusion": "success",
+      "seconds": 3648.0
+    },
+    {
+      "name": "sweep (1)",
+      "conclusion": "success",
+      "seconds": 810.0
+    }
+  ],
+  "completed_fault_flows": 23,
+  "flows": [
+    {
+      "flow": "send",
+      "fault_cases": {
+        "single": 845,
+        "persistent": 845,
+        "pairs": 11803
+      },
+      "seconds": 1521.165
+    },
+    {
+      "flow": "cancel",
+      "fault_cases": {
+        "single": 67,
+        "persistent": 67,
+        "pairs": 930
+      },
+      "seconds": 81.633
+    },
+    {
+      "flow": "expiry",
+      "fault_cases": {
+        "single": 67,
+        "persistent": 67,
+        "pairs": 119
+      },
+      "seconds": 18.477
+    },
+    {
+      "flow": "settlement",
+      "fault_cases": {
+        "single": 152,
+        "persistent": 152,
+        "pairs": 2115
+      },
+      "seconds": 348.436
+    },
+    {
+      "flow": "filing_rename",
+      "fault_cases": {
+        "single": 219,
+        "persistent": 219,
+        "pairs": 3047
+      },
+      "seconds": 158.194
+    },
+    {
+      "flow": "delete_permanent",
+      "fault_cases": {
+        "single": 403,
+        "persistent": 403,
+        "pairs": 5595
+      },
+      "seconds": 436.019
+    },
+    {
+      "flow": "testapp_export",
+      "fault_cases": {
+        "single": 117,
+        "persistent": 117,
+        "pairs": 2218
+      },
+      "seconds": 110.452
+    },
+    {
+      "flow": "restart_tail",
+      "fault_cases": {
+        "single": 22,
+        "persistent": 22,
+        "pairs": 68
+      },
+      "seconds": 4.007
+    },
+    {
+      "flow": "delete_trash",
+      "fault_cases": {
+        "single": 269,
+        "persistent": 269,
+        "pairs": 3735
+      },
+      "seconds": 418.281
+    },
+    {
+      "flow": "attachment_export",
+      "fault_cases": {
+        "single": 242,
+        "persistent": 242,
+        "pairs": 4777
+      },
+      "seconds": 384.785
+    },
+    {
+      "flow": "restart_index",
+      "fault_cases": {
+        "single": 20,
+        "persistent": 20,
+        "pairs": 62
+      },
+      "seconds": 5.25
+    },
+    {
+      "flow": "unsubscribe_https",
+      "fault_cases": {
+        "single": 335,
+        "persistent": 335,
+        "pairs": 4650
+      },
+      "seconds": 567.181
+    },
+    {
+      "flow": "filing_move",
+      "fault_cases": {
+        "single": 338,
+        "persistent": 338,
+        "pairs": 4706
+      },
+      "seconds": 474.048
+    },
+    {
+      "flow": "archive",
+      "fault_cases": {
+        "single": 363,
+        "persistent": 363,
+        "pairs": 6114
+      },
+      "seconds": 1062.475
+    },
+    {
+      "flow": "unsubscribe_mailto",
+      "fault_cases": {
+        "single": 847,
+        "persistent": 847,
+        "pairs": 11833
+      },
+      "seconds": 2055.058
+    },
+    {
+      "flow": "password",
+      "fault_cases": {
+        "single": 119,
+        "persistent": 119,
+        "pairs": 1654
+      },
+      "seconds": 141.17
+    },
+    {
+      "flow": "export_rollback",
+      "fault_cases": {
+        "single": 246,
+        "persistent": 246,
+        "pairs": 7699
+      },
+      "seconds": 776.451
+    },
+    {
+      "flow": "status",
+      "fault_cases": {
+        "single": 151,
+        "persistent": 151,
+        "pairs": 2100
+      },
+      "seconds": 471.709
+    },
+    {
+      "flow": "filing_copy",
+      "fault_cases": {
+        "single": 339,
+        "persistent": 339,
+        "pairs": 4722
+      },
+      "seconds": 496.131
+    },
+    {
+      "flow": "send_duplicate",
+      "fault_cases": {
+        "single": 929,
+        "persistent": 929,
+        "pairs": 12972
+      },
+      "seconds": 2607.341
+    },
+    {
+      "flow": "repair",
+      "fault_cases": {
+        "single": 354,
+        "persistent": 354,
+        "pairs": 4920
+      },
+      "seconds": 656.106
+    },
+    {
+      "flow": "restore",
+      "fault_cases": {
+        "single": 70,
+        "persistent": 70,
+        "pairs": 970
+      },
+      "seconds": 79.93
+    },
+    {
+      "flow": "maintenance",
+      "fault_cases": {
+        "single": 60,
+        "persistent": 60,
+        "pairs": 108
+      },
+      "seconds": 11.312
+    }
+  ],
+  "test_summary_lines": [
+    "Ran 309 tests in 251.310s",
+    "Ran 76 tests in 465.025s",
+    "Ran 13 tests in 1646.882s",
+    "Ran 309 tests in 245.364s",
+    "Ran 102 tests in 213.096s",
+    "Ran 13 tests in 523.661s",
+    "Ran 13 tests in 567.506s",
+    "Ran 13 tests in 834.928s",
+    "Ran 309 tests in 205.475s",
+    "Ran 86 tests in 82.693s",
+    "Ran 13 tests in 2132.887s",
+    "Ran 13 tests in 3008.028s",
+    "Ran 309 tests in 219.870s",
+    "Ran 81 tests in 748.355s",
+    "Ran 13 tests in 3606.254s",
+    "Ran 13 tests in 768.261s"
+  ],
+  "log_sha256": "05e6b85ea381bde3d0ad8cbc7bc16f97c261c244fd37488ed0afbb7b5e08423f",
+  "log_bytes": 1374970
+}

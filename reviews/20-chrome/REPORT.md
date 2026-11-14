@@ -27,8 +27,10 @@
   profiles pass, match frozen runtime, and stay below every nominal median/p95
   ceiling in every phase. Longest Chrome jobs 31m01s / 29m00s.
 - **Only run still watched:** Mail **`43539458146`**, session **`52800`**, using
-  one blocking watcher at 300-second intervals. It needs two successes; the helper
-  requests a second only after the first passes. No more Chrome runs are planned.
+  one blocking watcher at 300-second intervals. **Attempt 1 passed all 12 jobs
+  and 23 fault flows**, longest 60m48s; attempt 2 is underway.
+  [First-pass receipt](records/post18d/final-mail-43539458146-attempt1.json).
+  No more Chrome runs are planned.
 - **Budget:** **255 / about 280** Chrome runs, including this pair.
 - **Exact next step:** resume Mail session 52800; if stopped, inspect its finalized
   attempt receipts before requesting anything, then use receipt-aware
@@ -259,7 +261,10 @@ the two runs and plain/instrumented profiles are:
 The 525 ms safety wait remains unchanged; no early-end implementation was added.
 The measured round-3 cost-restoration/removal probe also passes in the final suite.
 
-**Still required: Mail twice on `a4143586`.** Its watcher is the only active one.
+**Mail on `a4143586`:** attempt 1 passed all four suites and all eight fault
+shards, completing all 23 fault flows; longest job 60m48s.
+[First-pass receipt](records/post18d/final-mail-43539458146-attempt1.json).
+Attempt 2 is underway, and its watcher is the only active one.
 No final green/ready claim until both executions pass. Chrome ledger remains
 255 / about 280; no further Chrome runs are planned. Report before exceeding 280.
 
