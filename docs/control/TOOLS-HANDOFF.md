@@ -9,8 +9,9 @@ and `git worktree list` first.
 
 - **`linux-tools`** (this baton): the tools. `control/`, `docs/control/`, `docs/design/CONTROL.md`, the `control-*`
   workflows, briefs 18c, 18c-b, 28, 28a, 28b.
-- **`mac-aresos-control`** (Mac): the Chrome tool, PR #27, until it merges (planned 2026-11-16, with a merge commit,
-  not a squash). Never push to `pkg/20-chrome`.
+- **`mac-aresos-control`** (Mac): merged the Chrome tool, PR #27, on 2026-11-14 (merge commit `09cedc84`). Chrome is
+  now `linux-tools`' own; the notes it left at the merge are in "Chrome merged" below. It keeps board #185 (the
+  optional owner oracle's re-pin) until it says otherwise.
 - **`linux-aresos`**: `os/`, the accounts and the releases. Every `os/` change is agreed with it first, it reads
   the `os/` diff before a merge, and it is told before `.github/workflows/os-image.yml` is touched.
 - **`mac-capacity`** (Mac): the owner's coordinator. Ask it for a limit check before starting builders; tell it
@@ -28,6 +29,69 @@ and `git worktree list` first.
 | Package 28, step 1 | `pkg/28-chrome-read`, `~/AresOS-28-chrome-read`, cut from `pkg/20-chrome` | The view module (pure Python) on a Fable builder, new files only, no pull request; progress in `reviews/28-chrome-read/PROGRESS.md`. | After PR #27 merges: move the commits onto main, then the next steps of 28 (the reader, the wiring, the baseline), then 28a, then 28b. |
 | Brief 18c-b | not written | Design settled: force-install by policy from a `file:` address inside the image, a fresh signing key per image build that is thrown away, symlinks in `/etc` to files in `/usr`. Research with sources: `~/AresOS-18c-b-extension-research.md` on the laptop (put it into the brief's folder). `mac-aresos-control` has no objection. | Write the brief after PR #27 merges; agree the paths with `linux-aresos`; prove it in the CI VM on the shipped Chrome. Board #223, #224. |
 | Live tests | the laptop | Waits for a release that carries the tools. | Mail onboarding with him first (he signs in himself), a test mail, then Chrome. His own hosts go on Chrome's never-list in that sitting (board #200). |
+
+## Chrome merged (2026-11-14, notes from `mac-aresos-control`)
+
+PR #27 is on main as a merge commit (`09cedc84`, final head `d25ccbd3`), so `pkg/20-chrome`'s history is intact and
+`pkg/28-chrome-read` (cut at `524173c4`) can move onto main. Final pair: Control Chrome 43641834739 (push) and
+43641839672 (pull request), 28/28 jobs each; base, boundary, qualification, Mail and polkit twice each (full
+reruns). Reviews: rounds 4 and 5 SAFE, package (Opus) and security (Fable), in `reviews/20-chrome/`.
+
+**Latency.**
+- **Report:** `reviews/20-chrome/REPORT.md`, sections "Latency gate: 60 samples (2026-11-14)", "Step 4" and
+  "Step 6", with receipts in `reviews/20-chrome/records/`.
+- **Gate:** `control/chrome/ci/latency-targets.json`.
+  - Ceilings in ms (median / p95): read 35/60, navigate 100/150, click 650/750, fill 650/750, asking click 60/100,
+    approval to done 700/850.
+  - A median or p95 over its ceiling fails.
+  - Sample counts: `samples_per_call` 60; `old_runtime_samples_per_call` 20, which must match the frozen
+    `latency-reference.json`.
+- **Harness:** in `control/chrome/ci/`, `latency-pair.sh`, `latency-probe.mjs`, `latency-instrument.mjs`,
+  `latency-profile.py`, `latency-summary.py` and `latency-check.py`; plus `control/chrome_tests/latency.test.mjs`.
+- **The 525 ms hold window is unchanged.** A shorter hold is the later package named above.
+
+**Rules from now on.**
+- **4,096 characters.** Claude Code 2.1.319 passes only the first 4,096 characters of an MCP server's instructions.
+  `control/chrome_tests/test_questions.py` (about line 456) checks every app, `control` included. Brief 28's reader
+  text will press on it.
+- **Partial index.** `operation_open` is built from one definition, `OPEN_OPERATIONS` in `storage.py`. Its plan and
+  timing tests (`test_full_disk_reads`, `test_open_index_timing`) passed on SQLite 3.45.1 (CI) and 3.50.4 (Mac). They
+  must also pass on AresOS's own SQLite, so run the normal Python suite in 18c's image.
+- **Run budget.** The ~280 `control-chrome` runs were `mac-aresos-control`'s guard for #27; about 271 are used,
+  main's run included. Package 28 sets its own.
+
+**For `pkg/28-chrome-read`'s `KNOWN-LIMITS.md`, word for word** (both round-4 reviewers recorded it):
+"Taking a tab from another normal window while a Claude tab group already exists moves the tab into that group's
+window, because Chrome keeps a tab group in one window; the extension records the tab's original window and position
+and moves it back on release. The harm is that the owner's tab sits in another window while Claude holds it; it is
+accepted with the single-group design, and one group per window is a design question for brief 28b."
+
+**Follow-ups for 28 or 28b, none blocking.**
+- **Retry advice.** On `requireTab`'s retry for a tab that is already controlled (`background.js`, about line 609,
+  `pending.retry??=lateReader(tab)`), the refusal's "take the tab again" doesn't help: `take_tab` returns early, and
+  the rejected retry stays cached. Say "release and take the tab again", or release on a rejected retry. It's narrow:
+  a dialog or the 5 s timer beat admission.
+- **Hardening.** Match `embedderName` as well as `url` for the injected scripts (`background.js:126`). Pages are
+  already shut out by `isDefault===false`.
+- **`control_status`.** If it ever reaches Claude, review its `installs` rows again.
+- **New fields.** `chrome_tabs` rows now carry Chrome's `audible` and `muted` flags. That's new since the 28 briefs;
+  check section 6 against it.
+
+**For `linux-aresos`, through 18c and 18c-b** (full text in `control/chrome/packaging/README.md`):
+- **Polkit policy:** `org.aresos.control.chrome-loosen.policy`, installed root-owned with mode 0644 at
+  `/usr/share/polkit-1/actions/`.
+  - The image needs `/usr/bin/pkcheck` and a polkit agent in his session.
+  - 18c-b presses "Allow editing" once with his real agent. The dialog names the site, and a cancelled dialog leaves
+    the site read-only.
+- **Chrome policy:** `policy.json`, in `/etc/opt/chrome/policies/managed/`.
+- **Native host:** `native-host.json`, in `/etc/opt/chrome/native-messaging-hosts/`.
+  - The host launcher is installed with mode 0755, and `native_host.py` beside it with mode 0644.
+- **Excluded sites:** `/etc/aresos/control/chrome-excluded-sites.json`, containing `{"format":1,"hosts":[]}`.
+  - Root-owned, mode 0640, in the service's group.
+  - His own hosts are added in the live test (#200), never in the repo.
+- **Build marker:** the build hash goes into `chrome/build-id.json`.
+- **`gh`:** version 2.102 or newer.
+- **Service unit:** `aresos-toold.service` is byte-identical to `8b7e799c`.
 
 ## The owner's answers, written into the briefs (#254: into the service-fix brief)
 
