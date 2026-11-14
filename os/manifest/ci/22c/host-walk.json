@@ -74,7 +74,7 @@
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "291f435197998a9da260baee9761007adcaebc546f2a9152286d38b5f8f17d09",
+      "sha256": "bf51f95f7e688e58c3cd8719f80888d1b2b33ef4234ebe4d6f7c0f3a725254a1",
       "path": "docs/INSTALL.md"
     },
     {
@@ -958,7 +958,7 @@
       "path": "os/tests/test_owner_media.py"
     },
     {
-      "sha256": "fdc1dcfae0259488da9e9905ea9426a9e34a9ad560695864a088edd871967138",
+      "sha256": "9aa8276782db1e83a607637647f109928f7fdb4874e9953b455f7fa86b1d89ef",
       "path": "os/tests/test_owner_path.py"
     },
     {

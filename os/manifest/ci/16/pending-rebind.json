@@ -36,7 +36,8 @@
     "22c review fixes 3, fix 2: the forward/back box never installs a release",
     "22c review fixes 3, fix 3: a return that changes nothing has its own completion",
     "22c review fixes 3, fix 4: a VM dispatch needs the full model passed on its head when its sources changed",
-    "22c review fixes 3: the status row names the new card route and review 4"
+    "22c review fixes 3: the status row names the new card route and review 4",
+    "22c review fixes 4, fix 1: forward again takes the newer AresOS's row first; update only where the running system does not start next"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -49,7 +50,7 @@
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "291f435197998a9da260baee9761007adcaebc546f2a9152286d38b5f8f17d09",
+      "sha256": "bf51f95f7e688e58c3cd8719f80888d1b2b33ef4234ebe4d6f7c0f3a725254a1",
       "path": "docs/INSTALL.md"
     },
     {
@@ -161,7 +162,7 @@
       "path": "os/tests/test_owner_guard.py"
     },
     {
-      "sha256": "fdc1dcfae0259488da9e9905ea9426a9e34a9ad560695864a088edd871967138",
+      "sha256": "9aa8276782db1e83a607637647f109928f7fdb4874e9953b455f7fa86b1d89ef",
       "path": "os/tests/test_owner_path.py"
     },
     {

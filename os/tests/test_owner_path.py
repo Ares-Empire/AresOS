@@ -227,6 +227,23 @@ def walk(texts):
     return len(seen), len(traversed)
 
 
+def destination_space(ledger):
+    """Every state of the reference ledger that update, previous, rollback, keep-stock, title, each
+    restart and each lost finish reach from the model's starts (750 states; no cut, no layout trial)."""
+    reached, todo = set(), list(ledger.starts())
+    while todo:
+        state = todo.pop()
+        if state in reached:
+            continue
+        reached.add(state)
+        restarts = (state.stage, state.running, 'S') if state.stage else state.rows
+        events = [(word, 'full') for word in ('update', 'previous', 'rollback', 'keep-stock', 'title')]
+        events += [('restart', row) for row in ('default', *restarts)]
+        events += [('power-off', row) for row in ('default', *state.rows[1:])] if state.stage else []
+        todo += [result.state for result in (ledger.transition(state, e) for e in events) if not result.stop and not result.cut]
+    return reached
+
+
 def section(text, anchor):
     lines = text.splitlines()
     start = anchors(text)[anchor]
@@ -1007,7 +1024,11 @@ class OwnerPathTest(unittest.TestCase):
                  # 22c: forward again after previous, and back from plain Bazzite, with no download and,
                  # since review 4, never a new release.
                  '**Forward again, or back from plain Bazzite**', 'it never installs a release',
-                 '**Forward again** only when the last update route you followed finished',
+                 # Review 5: update only where the running system does not start next, read from check.
+                 'so this box runs update only where that is not so', '`' + commands['check'] + '`',
+                 '  - **plain Bazzite …**', '**this start was not the default**', '  - **older AresOS … runs and starts next**',
+                 'do **not** run update here', commands['reboot'], pass_line('reboot'), '**newer AresOS**',
+                 '  - **newer AresOS … runs and starts next**',
                  '```bash\n' + commands['update'] + '\n' + commands['title'] + '\n```',
                  pass_line('update'), pass_line('title'), 'No stick, no login and no network',
                  '  - **Newest AresOS starts next** or **Newest installed AresOS starts next**', '**starts next, after the restart**',
@@ -1237,87 +1258,153 @@ class OwnerPathTest(unittest.TestCase):
         # The revert: review 4's case, an update from three installed systems whose finish was lost.
         self.assertEqual(wrong_before, [(('27', '13', 'S'), '28', 'power-off', '13')])
 
-    def test_forward_and_back_box_never_installs_a_release(self):
-        """Review 4, finding 2: the box "Forward again, or back from plain Bazzite" never stages. Its
-        update answer "The release of these tools is newer still" is not followed there, and forward
-        again from the older AresOS needs a finished update route (in the ledger: the tools' release is
-        installed). Traced in the reference ledger over every idle state of the destination commands."""
-        import ways_back_ledger as ledger
-        commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
-        texts = documents()
+    def forward_box(self, texts):
+        """The box "Forward again, or back from plain Bazzite" and its dispatch on check's running line."""
         route = section(texts['INSTALL.md'], UPDATE)
         start = route.index('- [ ] **Forward again, or back from plain Bazzite**')
         box = route[start:route.index('**Record:**', start)]
+        bullets = box.split('```bash', 1)[0].splitlines()
+        dispatch = dict(block=next(line for line in bullets if line.startswith('  - **plain Bazzite …**')),
+                        first=next(line for line in bullets if line.startswith('  - **older AresOS … runs and starts next**')),
+                        done=next(line for line in bullets if line.startswith('  - **newer AresOS … runs and starts next**')))
+        return box, dispatch
+
+    @staticmethod
+    def running_line(state):
+        """Which of the box's cases check's running line is (rule 8's standing line, in the ledger's terms)."""
+        releases = sorted(row for row in state.rows if row != 'S')
+        if state.running == 'S' or state.running != state.rows[0]:
+            return 'block'  # "plain Bazzite …", or "… runs; … starts next; this start was not the default"
+        if state.outcome() == 'selection-applied' or len(releases) != 2:
+            return 'help'  # "… runs and now starts next; no restart is waiting", or one release: anything else
+        return 'first' if state.running == releases[0] else 'done'
+
+    def test_forward_and_back_box_never_installs_a_release(self):
+        """Reviews 4 and 5: the box "Forward again, or back from plain Bazzite" never stages. update runs
+        there only where check's running line shows plain Bazzite or a system that does not start next;
+        forward again from the older AresOS that starts next first takes the newer AresOS's boot-menu row
+        (review 5's two-step path); "The release of these tools is newer still" is not followed. Traced in
+        the reference ledger from every idle state of the destination commands, whether or not the tools'
+        release is installed (no check or title line names it)."""
+        import ways_back_ledger as ledger
+        commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+        texts = documents()
+        box, dispatch = self.forward_box(texts)
         for value in ('This box only chooses between installed systems; it never installs a release',
-                      'On plain Bazzite update never stages',
-                      '**Forward again** only when the last update route you followed finished: its check showed '
-                      '**Update to … confirmed after the restart**, or it was the tools-only box',
-                      'update would stage the release of your newer tools without its announcement → '
-                      '**STOP → [Help](INSTALL-REFERENCE.md#help)**'):
+                      'Update could stage one only on an AresOS that runs and starts next (if the release of your tools '
+                      'is not installed, which no line shows before update runs), so this box runs update only where that '
+                      'is not so', 'First `' + commands['check'] + '`, then go by its line naming what runs'):
             self.assertIn(value, box)
+        self.assertNotIn('the last update route you followed finished', box)
+        self.assertIn('a line ending **this start was not the default**', dispatch['block'])
+        self.assertIn('run the block below', dispatch['block'])
+        first = dispatch['first']
+        positions = [first.index(value) for value in ('do **not** run update here', commands['reboot'], pass_line('reboot'),
+                     '**Bazzite**', '(INSTALL-PROCEDURES.md#recovery-menu)', '**Boot menu at the next start:**',
+                     '**newer AresOS**', 'start this box over with check')]
+        self.assertEqual(positions, sorted(positions))
+        self.assertNotIn(commands['update'], first)
+        for value in ('nothing to do', 'Anything else → **STOP → [Help](INSTALL-REFERENCE.md#help)**'):
+            self.assertIn(value, dispatch['done'])
+        self.assertLess(box.index(dispatch['done']), box.index('```bash\n' + commands['update']))
         newer = next(line for line in box.splitlines() if line.startswith('  - **The release of these tools is newer still**'))
         for value in ('(after either line)', 'do **not** follow it here', 'without its announcement',
                       'This box ends once the installed release runs', "with the maintainer's announcement"):
             self.assertIn(value, newer)
         self.assertNotIn(commands['update'], newer)
-        self.assertNotIn('follow it.', route)
+        self.assertNotIn('follow it.', section(texts['INSTALL.md'], UPDATE))
         back = section(texts['INSTALL-PROCEDURES.md'], 'back-to-aresos-from-stock')
         for value in ('This way never installs a release', '**The release of these tools is newer still**',
                       'do not follow that line here', "with the maintainer's announcement"):
             self.assertIn(value, back)
         source = (ROOT/'os/owner-tools/owner.py').read_text()
         for value in ("'The release of these tools is newer still and is not installed ('",
-                      "('run ' if newest is booted else 'restart, then run ') + typed('update') + ' again'"):
+                      "('run ' if newest is booted else 'restart, then run ') + typed('update') + ' again'",
+                      "if booted is shape['stock'] or rows[0] is not booted:", "' runs and now starts next; no restart is waiting'"):
             self.assertIn(value, source)
 
-        # Every idle state the destination commands and restarts reach from the model's starts.
-        reached, todo = set(), list(ledger.starts())
-        while todo:
-            state = todo.pop()
-            if state in reached:
-                continue
-            reached.add(state)
-            restarts = (state.stage, state.running, 'S') if state.stage else state.rows
-            events = [(word, 'full') for word in ('update', 'previous', 'rollback', 'keep-stock', 'title')]
-            events += [('restart', row) for row in ('default', *restarts)]
-            events += [('power-off', row) for row in ('default', *state.rows[1:])] if state.stage else []
-            todo += [result.state for result in (ledger.transition(state, e) for e in events) if not result.stop and not result.cut]
         traced = collections.Counter()
-        for state in reached:
-            releases = [row for row in state.rows if row != 'S']
-            older = len(releases) == 2 and state.running == min(releases)
-            if state.stage or state.trial or state.outcome() in ('waiting', 'retry', 'complete') or not (state.running == 'S' or older):
+        for state in destination_space(ledger):
+            releases = sorted(row for row in state.rows if row != 'S')
+            if state.stage or state.trial or state.outcome() in ('waiting', 'retry', 'complete') or not (state.running == 'S' or len(releases) == 2):
                 continue
-            finished = state.bundle in releases
-            first = state.rows[0] == state.running
-            update = ledger.transition(state, ('update', 'full'))
-            self.assertFalse(update.stop, state)
-            for word in ('update', 'previous'):
-                with self.subTest(state=state, word=word):
-                    result = update if word == 'update' else ledger.transition(state, ('previous', 'full'))
-                    if word == 'update' and older and first and not finished:
-                        # Why the box needs a finished route: here update stages the tools' release at once.
-                        self.assertTrue(result.state.stage)
-                        traced['stages: forward again before the route finished'] += 1
-                        continue
-                    self.assertFalse(result.state.stage)
-                    if result.stop:
-                        # previous beside one release: "Only one AresOS is installed …; nothing changed"
-                        # (rule 5 still closes a "was not applied" journal first).
-                        self.assertEqual((word, result.stop, result.state.rows, result.state.running),
-                                         ('previous', 'Only one AresOS', state.rows, state.running))
-                        continue
-                    traced[word + (' from plain Bazzite' if state.running == 'S' else ' from the older AresOS')] += 1
-            if not finished and not update.state.stage:
-                # update printed "newer still"; following it (restart unless the newest runs, then
-                # update again) stages that release without its announcement.
-                newest = max(releases)
-                following = update.state if update.state.running == newest else ledger.transition(update.state, ('restart', 'default')).state
-                self.assertTrue(ledger.transition(following, ('update', 'full')).state.stage, state)
-                traced['newer still: following it stages'] += 1
-        self.assertEqual(set(traced), {'update from plain Bazzite', 'previous from plain Bazzite', 'update from the older AresOS',
-                                       'previous from the older AresOS', 'stages: forward again before the route finished',
-                                       'newer still: following it stages'}, traced)
+            with self.subTest(state=state):
+                case = self.running_line(state)
+                here = state
+                if case == 'first':
+                    # Why the box never runs update here: without the tools' release installed it stages at once.
+                    traced['first step; update at once would stage' if ledger.transition(state, ('update', 'full')).state.stage
+                           else 'first step; update at once would reorder'] += 1
+                    here = ledger.transition(ledger.transition(state, ('check', 'full')).state, ('restart', releases[-1])).state
+                    case = self.running_line(here)
+                    self.assertEqual((case, here.running), ('block', releases[-1]))
+                if case in ('done', 'help'):
+                    traced[case] += 1
+                    continue
+                traced['block from plain Bazzite' if here.running == 'S' else 'block where the running system is not the default'] += 1
+                update = ledger.transition(ledger.transition(here, ('check', 'full')).state, ('update', 'full'))
+                self.assertFalse(update.stop or update.state.stage)
+                after = update.state
+                changed = after.journal is not None and after.journal.word == 'update' and after.rows != here.rows
+                if changed or after.running != after.rows[0]:
+                    after = ledger.transition(ledger.transition(after, ('title', 'full')).state, ('restart', 'default')).state
+                titled = ledger.transition(after, ('title', 'full'))
+                self.assertFalse(ledger.transition(after, ('check', 'full')).stop)
+                newest = max(row for row in here.rows if row != 'S')
+                self.assertEqual((after.running, after.rows[0]), (newest, newest))
+                if changed:
+                    self.assertTrue(titled.confirmation)
+                if state.bundle not in releases:
+                    # update printed "newer still"; following it (restart unless the newest runs, then
+                    # update again) stages that release without its announcement.
+                    following = update.state if update.state.running == newest else ledger.transition(update.state, ('restart', 'default')).state
+                    self.assertTrue(ledger.transition(following, ('update', 'full')).state.stage)
+                    traced['newer still: following it would stage'] += 1
+                if state.running == 'S':
+                    self.assertFalse(ledger.transition(state, ('previous', 'full')).state.stage)
+        self.assertEqual(set(traced), {'first step; update at once would stage', 'first step; update at once would reorder',
+                                       'block from plain Bazzite', 'block where the running system is not the default',
+                                       'done', 'help', 'newer still: following it would stage'}, traced)
+
+    def test_forward_again_after_a_failed_update_a_stock_return_and_previous_never_stages(self):
+        """Review 5, finding 1, the connected sequence: tools of release 28 installed, its update's finish
+        lost (27, 13 and plain Bazzite stay); rollback to plain Bazzite and back with update (confirmed);
+        later previous to 13. Forward again by the box: check shows the older AresOS running and starting
+        next, so the newer AresOS's boot-menu row first, then update, which only reorders: 27 runs and
+        starts next, confirmed, 28 is not staged. Round 3's box (update at once) staged 28 and the restart
+        removed 27."""
+        import ways_back_ledger as ledger
+        _, dispatch = self.forward_box(documents())
+
+        def run(state, *events):
+            for event in events:
+                result = ledger.transition(state, event)
+                self.assertFalse(result.stop, (event, state))
+                state = result.state
+            return state
+
+        start = next(s for s in ledger.starts() if s.bundle == '28' and s.rows == ('27', '13', 'S'))
+        state = run(start, ('update', 'full'), ('power-off', 'default'))
+        self.assertEqual((state.rows, state.running, state.outcome()), (('27', '13', 'S'), '27', 'not-applied'))
+        state = run(state, ('check', 'full'), ('rollback', 'full'), ('title', 'full'), ('restart', 'default'), ('check', 'full'))
+        state = run(state, ('update', 'full'), ('title', 'full'), ('restart', 'default'))
+        self.assertTrue(ledger.transition(state, ('title', 'full')).confirmation)  # "Update to … confirmed": not proof of 28
+        state = run(state, ('check', 'full'), ('previous', 'full'), ('title', 'full'), ('restart', 'default'), ('check', 'full'))
+        self.assertEqual((state.rows, state.running), (('13', '27', 'S'), '13'))
+        # Round 3's box: update at once stages 28, and the shutdown keeps 28, 13 and plain Bazzite: 27 is gone.
+        staged = ledger.transition(state, ('update', 'full')).state
+        self.assertEqual((staged.stage, ledger.transition(staged, ('restart', 'default')).state.rows), ('28', ('28', '13', 'S')))
+        # This box: check's running line is "older AresOS … runs and starts next", the first step.
+        self.assertEqual(self.running_line(state), 'first')
+        self.assertIn('do **not** run update here', dispatch['first'])
+        state = run(state, ('restart', '27'))
+        self.assertEqual((self.running_line(state), state.running, state.rows[0]), ('block', '27', '13'))
+        update = ledger.transition(run(state, ('check', 'full')), ('update', 'full'))
+        self.assertFalse(update.stop or update.state.stage)
+        state = run(update.state, ('title', 'full'), ('restart', 'default'))
+        titled = ledger.transition(state, ('title', 'full'))
+        self.assertTrue(titled.confirmation)
+        self.assertEqual((state.rows, state.running, state.stage), (('27', '13', 'S'), '27', ''))
 
     def test_a_return_that_changes_nothing_completes_without_a_confirmation(self):
         """Review 4, finding 3: when the system a command names already starts next, the tools write no
@@ -1335,7 +1422,7 @@ class OwnerPathTest(unittest.TestCase):
         for value in ('nothing was recorded, so no confirmation line is needed (one can still appear for an earlier change)',
                       '**It runs now**',
                       '**It does not run yet: it starts at the next restart**', 'no boot-menu choice',
-                      '`PASS check` whose first line names that AresOS with **… runs and starts next**'):
+                      '`PASS check` showing that AresOS with **… runs and starts next**'):
             self.assertIn(value, nothing)
         self.assertNotIn('confirmed after the restart', nothing)
         self.assertNotIn('no confirmation line follows', texts['INSTALL.md'] + texts['INSTALL-PROCEDURES.md'])
@@ -1345,8 +1432,10 @@ class OwnerPathTest(unittest.TestCase):
         procedures = texts['INSTALL-PROCEDURES.md']
         back = section(procedures, 'back-to-aresos-from-stock')
         self.assertIn('When the command changed nothing (**… already starts next; nothing changed**), nothing was recorded '
-                      'and no confirmation is needed: **PASS** is then `PASS check` whose first line names that AresOS with '
+                      'and no confirmation is needed: **PASS** is then `PASS check` showing that AresOS with '
                       '**… runs and starts next**', back)
+        # check prints its console lines before the title's: "check's first line" named the wrong line (round 3).
+        self.assertNotIn('whose first line', texts['INSTALL.md'] + texts['INSTALL-PROCEDURES.md'])
         rollback = section(procedures, 'rollback-from-running-aresos')
         for value in ('**Plain Bazzite … already starts next; nothing changed**', '**It does not run yet: it starts at the next restart**',
                       'no confirmation line is needed', '`PASS check` with **plain Bazzite … runs and starts next**',
@@ -1359,19 +1448,8 @@ class OwnerPathTest(unittest.TestCase):
                       "' runs and starts next'", "'plain Bazzite'", 'Already first: nothing changes and no journal is written'):
             self.assertIn(value, source)
 
-        reached, todo = set(), list(ledger.starts())
-        while todo:
-            state = todo.pop()
-            if state in reached:
-                continue
-            reached.add(state)
-            restarts = (state.stage, state.running, 'S') if state.stage else state.rows
-            events = [(word, 'full') for word in ('update', 'previous', 'rollback', 'keep-stock', 'title')]
-            events += [('restart', row) for row in ('default', *restarts)]
-            events += [('power-off', row) for row in ('default', *state.rows[1:])] if state.stage else []
-            todo += [result.state for result in (ledger.transition(state, e) for e in events) if not result.stop and not result.cut]
         traced = collections.Counter()
-        for state in reached:
+        for state in destination_space(ledger):
             if state.stage or state.trial or state.outcome() in ('waiting', 'retry', 'complete'):
                 continue
             releases = [row for row in state.rows if row != 'S']
