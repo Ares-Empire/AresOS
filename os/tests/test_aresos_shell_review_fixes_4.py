@@ -176,3 +176,27 @@ class SettledSignatureTest(SignatureBase):
             index.symlink_to(self.outside)
             self.assertEqual(self.ticks(5), [True] + [False] * 4)
             self.assertEqual(warning.call_count, 2)
+
+
+class LaterPictureTest(SignatureBase):
+    """SHOULD 2: a picture that is a link inside its root, to a file not there yet, is recorded as missing; its file
+    appearing is a change."""
+
+    def test_a_link_whose_file_appears_later_asks_for_exactly_one_pass(self):
+        elsewhere = self.folders[4] / 'elsewhere'  # inside the root, in no folder the lookup lists
+        elsewhere.mkdir()
+        self.link(self.folders[4] / 'hicolor/48x48/apps/app-two.png', elsewhere / 'app-two.png')
+        self.ticks(2)
+        self.assertIsNone(self.icon('two'))
+        # Only elsewhere/ changes: not the link, the folder that holds it, or the root.
+        (elsewhere / 'app-two.png').write_bytes(PNG)
+        self.assertEqual(self.ticks(10), [True] + [False] * 9)
+        self.assertTrue(os.path.isfile(self.icon('two')))
+
+    def test_a_link_out_of_the_root_whose_file_appears_asks_for_no_pass(self):
+        # A control: what lies outside the root is never followed, whether it is there or not.
+        self.link(self.folders[4] / 'hicolor/48x48/apps/app-two.png', self.outside / 'app-two.png')
+        self.ticks(2)
+        (self.outside / 'app-two.png').write_bytes(PNG)
+        self.assertEqual(self.ticks(5), [False] * 5)
+        self.assertIsNone(self.icon('two'))

@@ -1472,10 +1472,12 @@ class IconLookup:
     def candidate(self, folder, *parts):
         path = os.path.join(folder, *parts)
         real = os.path.realpath(path)
-        if within(real, self.roots[folder]) and os.path.isfile(real):
+        if not within(real, self.roots[folder]):
+            return None  # the folder that holds it is in the signature, so replacing it is seen
+        if os.path.lexists(path):
+            # Also a link whose file is not there yet: only it shows when that file appears (review 4, SHOULD 2).
             self.note(path)
-            return real
-        return None
+        return real if os.path.isfile(real) else None
 
     def resolve(self, name):
         if not name or '\0' in name:
