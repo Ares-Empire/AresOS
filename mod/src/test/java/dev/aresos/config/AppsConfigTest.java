@@ -360,4 +360,44 @@ class AppsConfigTest {
         assertThrows(java.io.IOException.class, () -> AppsConfig.load(file));
         assertTrue(Files.isDirectory(file));
     }
+
+    /**
+     * Package 36 saves {@code place} and {@code group} with schema 4 and no new number (HUB.md 3.5). This test was
+     * first committed and run on package 35's parser unchanged, where both are fields it does not know: it reads the
+     * file and every edit it makes keeps them where they are, so a mod of package 35 neither refuses nor loses them.
+     */
+    @Test
+    void aSchema4FileWithPlacesAndGroupsIsReadAndEveryEditKeepsThem() throws Exception {
+        Path file = directory.resolve("apps.json");
+        try (var fixture = getClass().getResourceAsStream("/apps/schema-4-town.json")) { Files.copy(fixture, file); }
+        var places = java.util.Map.of("discord", "N0R0", "spotify", "E0R0", "gimp", "W0L0", "calc", "S0R0");
+        var loaded = AppsConfig.load(file, true);
+        assertNull(loaded.migrationBackup(), "a schema-4 file is not moved to another schema");
+        assertEquals(List.of("discord", "spotify", "gimp", "calc"), loaded.apps().stream().map(AppDefinition::id).toList());
+        assertEquals(List.of("discord", "spotify", "gimp"), mine(loaded.apps()));
+        assertTrue(loaded.apps().get(2).absent());
+
+        // Every edit the mod makes while it runs: pins, My apps, a complete program list, short names.
+        AppsConfig.pins(file, java.util.Map.of("spotify", true));
+        AppsConfig.mine(file, java.util.Map.of("calc", true));
+        AppsConfig.merge(file, List.of(listed("discord", "Discord", "flatpak-user"), listed("spotify", "Spotify", "flatpak-user"),
+                listed("calc", "Calculator", "system"), listed("newapp", "New App", "user")), true, java.time.LocalDate.of(2026, 11, 14), true);
+        AppsConfig.assignNames(file, java.util.Set.of("help"));
+        AppsConfig.name(file, "discord", "chat", java.util.Set.of("help"));
+        AppsConfig.unname(file, "chat");
+        AppsConfig.mine(file, java.util.Map.of("discord", false));
+
+        var saved = tree(file);
+        assertEquals(4, saved.get("schemaVersion").getAsInt());
+        var byId = new java.util.HashMap<String, com.google.gson.JsonObject>();
+        for (var app : saved.getAsJsonArray("apps")) byId.put(app.getAsJsonObject().get("id").getAsString(), app.getAsJsonObject());
+        places.forEach((id, place) -> assertEquals(place, byId.get(id).get("place").getAsString(), id + " lost its place"));
+        assertEquals("games", byId.get("spotify").get("group").getAsString());
+        assertFalse(byId.get("discord").has("group") || byId.get("newapp").has("place"));
+        // The edits themselves happened.
+        var after = AppsConfig.load(file, true).apps();
+        assertEquals(List.of("spotify", "gimp", "calc", "newapp"), mine(after));
+        assertTrue(after.stream().filter(app -> app.id().equals("gimp")).findFirst().orElseThrow().absent());
+        assertFalse(after.stream().filter(app -> app.id().equals("discord")).findFirst().orElseThrow().pinned());
+    }
 }
