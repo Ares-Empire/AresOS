@@ -192,19 +192,32 @@ has only `git-core`. See "gh" below.
   superseded by later pushes.
 - Also run locally (they read `build.sh`): `test_everyday_account.py` 34 tests OK, `test_release27.py` 41 tests OK.
 
-## Left, in order (step 2)
+## Lead, 2026-11-14: gh moved, the first build
 
-1. Get the `gh` answer from `linux-aresos` (through the lead); add `os/gh.lock.json`, the install step, its image
-   check and the README line in one commit.
-2. Tell the lead before the first `os-image.yml` change (agreed change 15); then add the `control` choice in its own
+- **`gh` leaves 18c** (`linux-aresos`, 2026-11-14): nothing in 18c calls it; it comes with Chrome's files in brief
+  18c-b, as option 2 (only the binary out of the pinned release RPM, its licence, its hash in the lock and in
+  `control.json`). The `gh` step is out of `check-resolve.sh` again and its test is gone (`3087c59b`). The section on
+  `gh` above is history.
+- **run 43550587025** (`check_build=build`, head `53e0b79e`): failure in `image-checks.sh`. The check that no other
+  unit names the service also required the unit file to contain its own name, which it doesn't. Fixed by the lead in
+  `3087c59b` (only other files naming it fail; proven both ways on a fake tree).
+- **run 43551606129** (`check_build=build`, head `3087c59b`, 44 minutes): **success**, `CHECK_BUILD_PASSED` and
+  `CHECK_BUILD_VM_PASSED`. Control's lines: every recorded file and vendored path in the image as recorded; the
+  managed Claude Code files; the unit enabled by `multi-user.target` only, `Type=simple`, named by no other unit, seen
+  by the updater audit; `aresos-tools` UID and GID 250; tmpfiles modes, with his folders created only when missing;
+  the config derived from `ares`; `aresos --help` as root and as `ares`, no MCP SDK in Python's own site-packages; no
+  fixture CA or names in the image, and planted ones found.
+
+## Left, in order (step 2 on)
+
+1. Tell the lead before the first `os-image.yml` change (agreed change 15); then add the `control` choice in its own
    commit, purely additive.
-3. `check_build=build` once on the Part A head. Watch for: pip and `compileall` inside the build, the two self-check
-   lines (`CONTROL_INSTALLED ... wheels`, `CONTROL_GENERATED_MATCH`), `bootc container lint`, every new `PASS` line of
-   `image-checks.sh`, and `check-image.sh`'s `Control in the image is this checkout`.
-4. B2: `os/ci/control/` (layer, `control_vm.py`, its actions file), the `checks.py` hook (change 8), the check actions
-   for the rehearsal (change 12) and the booted-guest `/etc/claude-code` check (change 7), the idle footprint
-   (change 14), check 6 with the service stopped and failed.
-5. The Chrome follow-up after PR #27: two map entries, their checks, the socket modes from the merged `daemon.py`.
+2. B2: `os/ci/control/` (layer, `control_vm.py`, its actions file), the `checks.py` hook (change 8), the check actions
+   for the rehearsal (change 12: also `aresos-tools`'s UID and GID after the update and the owner of its state
+   folders), the booted-guest `/etc/claude-code` check (change 7), the idle footprint (change 14), check 6 with the
+   service stopped and failed. B2's check 10 (`gh`) is out.
+3. The Chrome follow-up after PR #27: two map entries, their checks, the socket modes from the merged `daemon.py`.
+4. The reviews (the lead's job): a package review and a high-stakes security review of the whole package.
 
 ## The `os/` diff for `linux-aresos`
 
