@@ -82,10 +82,14 @@ public final class OwnedNodes {
 
     /**
      * Called (mixin/CommandNodeMergeMixin) before Brigadier adds {@code incoming} under {@code parent}. If it would
-     * merge into a node of ours, ours goes first and the newcomer is added whole. Anything else is left to Brigadier.
+     * merge into a node of ours where we installed it, ours goes first and the newcomer is added whole. Anything else
+     * is left to Brigadier: a mod that hung our node under a parent of its own merges into it there, and our node
+     * stays where we put it (the merge changes it, so it is foreign from then on).
      */
     public static void beforeAdd(CommandNode<?> parent, CommandNode<?> incoming) {
         var existing = parent.getChild(incoming.getName());
-        if (existing != null && existing != incoming && INSTALLED.containsKey(existing)) remove(existing);
+        if (existing == null || existing == incoming) return;
+        var installed = INSTALLED.get(existing);
+        if (installed != null && installed.parent() == parent) remove(existing);
     }
 }

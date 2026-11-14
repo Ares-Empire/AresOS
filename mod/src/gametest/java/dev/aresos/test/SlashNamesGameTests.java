@@ -294,6 +294,36 @@ public final class SlashNamesGameTests {
         helper.succeed();
     }
 
+    /** Review 2, point 2: a registration under another parent that holds our node too leaves our /open where it is. */
+    @GameTest(environment = BATCH)
+    public void aRegistrationElsewhereLeavesOpenAlone(GameTestHelper helper) throws Exception {
+        try (var f = new Fixture(helper)) {
+            var dispatcher = f.server.getCommands().getDispatcher();
+            var root = dispatcher.getRoot();
+            var ours = root.getChild("open");
+            check(ours != null && OwnedNodes.ours(ours), "Fixture: our /open is not installed");
+            try {
+                // Another mod hangs our /open under its own namespace too, then registers its own "open" there.
+                var namespace = Commands.literal("othermod").build();
+                namespace.addChild(ours);
+                root.addChild(namespace);
+                namespace.addChild(Commands.literal("open").executes(c -> 42).build());
+                check(root.getChild("open") == ours, "A registration under another parent took /open off the root");
+                check(f.run("othermod open") == 42, "Fixture: the other mod's registration did not land");
+                int launched = f.launches().size();
+                check(f.run("open discord") == 1 && f.launches().size() == launched + 1 && f.launches().getLast().equals("discord"),
+                        "/open no longer opens his apps");
+                // Control: the same registration at the root, where we installed /open, still takes the name whole.
+                dispatcher.register(Commands.literal("apps").executes(c -> 43));
+                check(f.run("apps") == 43, "A later /apps at the root did not win");
+            } finally {
+                f.unregister("othermod"); f.unregister("open"); f.unregister("apps");
+                ProgramCommands.register(dispatcher);
+            }
+        }
+        helper.succeed();
+    }
+
     /** Review 1, finding 1: a rebuilt tree (/reload) and a rejoin. Vanilla's commands are vanilla's; the names come back. */
     @GameTest(environment = RELOAD, maxTicks = 600)
     public void reloadAndRejoinBringTheNamesBack(GameTestHelper helper) throws Exception {
