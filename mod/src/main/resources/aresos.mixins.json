@@ -18,7 +18,10 @@
     "CommandNodeAccess",
     "CommandNodeMergeMixin",
     "TextDisplayAccess",
-    "DisplayAccess"
+    "DisplayAccess",
+    "ServerStorageAccess",
+    "LastPlayedMixin",
+    "TownSealMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -18,9 +18,13 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.saveddata.SavedData;
 import net.minecraft.world.level.saveddata.SavedDataType;
+import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.level.storage.SavedDataStorage;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -115,6 +119,12 @@ public final class HubData extends SavedData {
         }, CODEC, null);
         final GlobalPos home;
         final List<Logo> logos;
+        /**
+         * The apps whose logos were in this file when the world opened unsealed ({@link TownSeal}): frozen, nothing of
+         * them is taken down or replaced until he trusts the records again. Not saved: the seal, which is not renewed
+         * while anything is frozen, carries the freeze to the next visit.
+         */
+        final Set<String> frozen = new HashSet<>();
 
         TownFile(GlobalPos home, List<Logo> logos) { this.home = home; this.logos = new ArrayList<>(logos); }
     }
@@ -147,10 +157,49 @@ public final class HubData extends SavedData {
 
     /** The record of this save's hub, or null: not a flat home, or its record is missing or unreadable. */
     public static HubData get(MinecraftServer server) {
-        var hub = server.getDataStorage().get(TYPE);
-        if (hub != null && !hub.attached) hub.attach(server.getDataStorage());
+        return open(server.getDataStorage(), server.getWorldPath(LevelResource.ROOT), TownSeal.seed(server));
+    }
+
+    /**
+     * The record of the hub saved in a world's data, joined to its town as the world opens (the first time it is
+     * asked for): the server's own, or, in tests, a world's files read again or a copy of them.
+     *
+     * @param world the world's folder, where {@code level.dat} and the town's seal are
+     * @param seed  the world's seed
+     */
+    public static HubData open(SavedDataStorage storage, Path world, long seed) {
+        var hub = storage.get(TYPE);
+        if (hub != null && !hub.attached) hub.load(storage, world, seed);
         return hub;
     }
+
+    /**
+     * As the world opens: joins this record to the town file saved beside it. The town's logos are frozen when the
+     * file and the world were not provably saved together ({@link TownSeal}); a world with no logos needs no seal.
+     */
+    private void load(SavedDataStorage storage, Path world, long seed) {
+        var file = storage.get(TownFile.TYPE);
+        if (file != null && home.equals(file.home)) {
+            boolean sealed = file.logos.isEmpty() || TownSeal.sealed(world, seed, file);
+            adopt(file);
+            if (!sealed) for (var logo : town.logos) town.frozen.add(logo.app());
+            attached = true;
+        } else attach(storage);
+    }
+
+    /**
+     * The town file whose seal a save may renew: the town's records are its own (nothing frozen). Empty while the
+     * freeze lasts, so the seal stays broken and the next visit is frozen too.
+     */
+    Optional<TownFile> sealable() {
+        return attached && town.frozen.isEmpty() ? Optional.of(town) : Optional.empty();
+    }
+
+    /** Whether a logo of the town is frozen: the world opened without proof that its record is the town's own. */
+    public boolean frozen(String app) { return town.frozen.contains(app); }
+
+    /** How many logos are frozen. */
+    public int frozenCount() { return (int)town.logos.stream().filter(logo -> town.frozen.contains(logo.app())).count(); }
 
     /**
      * Called once, when a new flat home has been built (and by tests, to put a record back). The town of the same
