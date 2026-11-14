@@ -9,6 +9,7 @@ import base64
 import contextlib
 import copy
 import hashlib
+import inspect
 import io
 import json
 import os
@@ -20,6 +21,7 @@ import subprocess
 import sys
 import time
 import tempfile
+import textwrap
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -988,7 +990,8 @@ class ToolsUpdateTest(unittest.TestCase):
             else:
                 fingerprint = write_bundle(usb / 'ares-tools', *stick)
             if installed is None:
-                old = write_bundle(home / 'tools', drop=('history.json', 'release/update.sh', 'release/previous.sh'),
+                # The 15f stand-in: no history, no update.sh (previous.sh left the payload in 22c).
+                old = write_bundle(home / 'tools', drop=('history.json', 'release/update.sh'),
                                    extra={'owner.py': legacy_owner})
                 stack.enter_context(patch.object(owner, 'LEGACY_TOOLS', (old,)))
             else:
@@ -1306,19 +1309,41 @@ class ToolsUpdateTest(unittest.TestCase):
             writer.save('tools-update-intent', dict(json.loads(journal.read_text()), **{name: value}))
 
     @staticmethod
-    def staged_bytes(home, change):
-        staged = home / '.update-tools/owner.py'
-        if staged.exists():
-            staged.write_bytes(change(staged.read_bytes()))
+    def unpublished_bytes(home, change):
+        """The new tools directory before publication (journal at copy or publish), when it exists."""
+        journal = home / 'tools-update-intent.json'
+        if journal.exists():
+            intent = json.loads(journal.read_text())
+            new = home / ('tools-' + intent['manifest'] + '/owner.py')
+            if intent['phase'] in ('copy', 'publish') and new.exists():
+                new.write_bytes(change(new.read_bytes()))
 
-    def test_invariant_one_working_toolset_after_any_interruption_and_any_refusal(self):
-        """After a cut at every rename, and a persistent refusal from any check, at always works.
+    # The journal phase each cut leaves. A full run renames ten times: 1 the journal to
+    # copy, 2 the new directory, 3 the journal to publish, 4 the entry switch, 5 the block,
+    # 6 the journal to retire, 7 the retirement, 8 the journal to records, 9 the receipt,
+    # 10 the journal to complete.
+    PHASES = {1: 'copy', 2: 'copy', 3: 'publish', 4: 'publish', 5: 'publish',
+              6: 'retire', 7: 'retire', 8: 'records', 9: 'records', 10: 'complete'}
+    COPY, PUBLISH, RETIRE, RECORDS, COMPLETE = (1, 2), (3, 4, 5), (6, 7), (8, 9), (10,)
+    # Brief 22c, F: the cuts at which each injected check runs, read from update_tools.
+    # system_ready (the layout trial, the transaction through idle(), observations) runs
+    # in copy and publish, and again at retire as system_ready(resolve=True), before the
+    # old tools retire; installed_commands only in copy and publish (exclusive()); the disk
+    # record at every resume; the stick identity is compared with the journal's at every
+    # resume but complete; the new directory exists from cut 2 and is checked until it is
+    # published (cut 1 dies before the copy, so it has none to change).
+    REFUSING = {
+        'layout trial': (COPY + PUBLISH + RETIRE, 'Layout trial is unfinished; prove it or revert first'),
+        'transaction': (COPY + PUBLISH + RETIRE, 'Deployment transaction active or unknown'),
+        'disk record': (COPY + PUBLISH + RETIRE + RECORDS + COMPLETE, 'Wrong or ambiguous target disk serial'),
+        'resume identity': (COPY + PUBLISH + RETIRE + RECORDS, 'Interrupted tools update does not exactly match this bundle/stick; get help'),
+        'unpublished bundle': ((2,) + PUBLISH, 'Bundle hash mismatch: owner.py'),
+        'preflight error': (COPY + PUBLISH + RETIRE, 'Read failed: rpm-ostree status --json'),
+        'unexpected exception': (COPY + PUBLISH, 'unexpected'),
+    }
 
-        The refusals come from every kind of fallible check, not only the
-        system preflight: the disk record, the resume identity, the staged
-        bundle, an observation that fails, and an unexpected exception.
-        """
-        refusals = {
+    def refusals(self):
+        return {
             'layout trial': (lambda home, host: self.record(home, 'layout-pending', dict(phase='pin')),
                              lambda home, host: (home / 'records/layout-pending.json').unlink(), owner.Stop),
             'transaction': (lambda home, host: host.state['rpm'].update(transaction=['upgrade', 'uupd', 'socket']),
@@ -1326,34 +1351,81 @@ class ToolsUpdateTest(unittest.TestCase):
             'disk record': (*self.failing(owner, 'disk_record', owner.Stop('Wrong or ambiguous target disk serial')), owner.Stop),
             'resume identity': (lambda home, host: self.journal_value(home, 'tools_volume_uuid', 'OTHER-STICK'),
                                 lambda home, host: self.journal_value(home, 'tools_volume_uuid', 'CAFE-1234'), owner.Stop),
-            'staged bundle': (lambda home, host: self.staged_bytes(home, lambda raw: raw + b'# changed\n'),
-                              lambda home, host: self.staged_bytes(home, lambda raw: raw.removesuffix(b'# changed\n')), owner.Stop),
+            # The staged copy (.update-tools) exists only inside the copy, which no cut at a
+            # rename reaches; the new directory before publication is where a changed byte can sit.
+            'unpublished bundle': (lambda home, host: self.unpublished_bytes(home, lambda raw: raw + b'# changed\n'),
+                                   lambda home, host: self.unpublished_bytes(home, lambda raw: raw.removesuffix(b'# changed\n')), owner.Stop),
             'preflight error': (*self.failing(owner, 'observations', owner.Stop('Read failed: rpm-ostree status --json')), owner.Stop),
             'unexpected exception': (*self.failing(owner, 'installed_commands', RuntimeError('unexpected')), RuntimeError),
         }
-        # A full run renames ten times: the journal to copy, the new directory,
-        # the journal to publish, the entry switch, the block, the journal to
-        # retire, the retirement, the journal to records, the receipt, complete.
+
+    def refusal_cell(self, cut, name, change, undo, refusal):
+        """One cut, one injected refusal: the outcome the table and the journal phase predict."""
+        cuts, message = self.REFUSING[name]
+        phase = self.PHASES[cut]
+        previous = '15f' if phase in ('copy', 'publish') else 'new'
+        with self.installation() as (home, run, fingerprint, old, host):
+            with self.power_cut_after(cut), self.assertRaises(OSError):
+                run()
+            journal = lambda: json.loads((home / 'tools-update-intent.json').read_text())['phase']
+            self.assertEqual(journal(), phase)
+            change(home, host)
+            # Undo however the cell ends: a patched check left active by a skip or a
+            # failure would break every later test (main, 2026-11-10).
+            try:
+                if cut in cuts:
+                    for attempt in range(2):  # a persistent failure refuses every time, changing nothing
+                        with self.assertRaisesRegex(refusal, '^' + re.escape(message) + '$'):
+                            run()
+                        self.assertEqual(journal(), phase)
+                        self.assertEqual(self.works(home, old, fingerprint), previous)
+                else:
+                    # The check does not run here: the update completes, or had completed.
+                    lines = run()
+                    self.assertTrue(lines[0].startswith('Tools already installed; nothing changed' if phase == 'complete'
+                                                        else 'Tools updated from version '), lines)
+                    self.assertEqual(run()[0], 'Tools already installed; nothing changed')
+                    self.assertEqual(journal(), 'complete')
+                    self.assertEqual(self.works(home, old, fingerprint), 'new')
+            finally:
+                undo(home, host)
+            run()
+            self.updated(home, fingerprint, old)
+            self.assertEqual(self.works(home, old, fingerprint), 'new')
+
+    def test_invariant_one_working_toolset_after_any_interruption_and_any_refusal(self):
+        """After a cut at every rename, and a persistent refusal from any check, at always works.
+
+        The refusals come from every kind of fallible check, not only the
+        system preflight: the disk record, the resume identity, the new tools
+        before publication, an observation that fails, and an unexpected
+        exception. Each cell's outcome comes from the table above (22c, F).
+        """
+        refusals = self.refusals()
+        self.assertEqual(set(refusals), set(self.REFUSING))
+        for name, (cuts, message) in self.REFUSING.items():
+            self.assertTrue(cuts, name + ': a row with no cut where its check runs tests nothing')
         for cut in range(1, 11):
             for name, (change, undo, refusal) in refusals.items():
-                with self.subTest(cut=cut, refusal=name), self.installation() as (home, run, fingerprint, old, host):
-                    with self.power_cut_after(cut), self.assertRaises(OSError):
-                        run()
-                    change(home, host)
-                    # Undo however the subtest ends: a patched check left active by a
-                    # skip or a failure would break every later test (main, 2026-11-10).
-                    try:
-                        for attempt in range(2):  # a persistent failure refuses every time
-                            try:
-                                run()
-                            except refusal:
-                                pass
-                            self.works(home, old, fingerprint)
-                    finally:
-                        undo(home, host)
-                    run()
-                    self.updated(home, fingerprint, old)
-                    self.assertEqual(self.works(home, old, fingerprint), 'new')
+                with self.subTest(cut=cut, refusal=name):
+                    self.refusal_cell(cut, name, change, undo, refusal)
+
+    def test_revert_proof_without_the_layout_check_the_invariant_fails_where_it_runs(self):
+        """22c, F: system_ready without its layout-trial check fails exactly the cells where it runs."""
+        source = textwrap.dedent(inspect.getsource(owner.update_tools))
+        needle = "        require(not (checker.store / 'layout-pending.json').exists(), 'Layout trial is unfinished; prove it or revert first')\n"
+        self.assertEqual(source.count(needle), 1)
+        namespace = {}
+        exec(compile(source.replace(needle, ''), '<layout check removed>', 'exec'), owner.__dict__, namespace)
+        change, undo, refusal = self.refusals()['layout trial']
+        failed = set()
+        with patch.object(owner, 'update_tools', namespace['update_tools']):
+            for cut in range(1, 11):
+                try:
+                    self.refusal_cell(cut, 'layout trial', change, undo, refusal)
+                except AssertionError:
+                    failed.add(cut)
+        self.assertEqual(failed, set(self.REFUSING['layout trial'][0]))
 
     def test_the_real_entry_reaches_a_toolset_after_every_cut_and_every_bootstrap_failure(self):
         """No gap: bash /var/lib/ares/at always runs a complete toolset, or says which command to run again.

@@ -20,24 +20,12 @@
     "path": "release.json"
   },
   {
-    "sha256": "f38c58b334422e624fe20adba35cb75287a8b144a0827c1b952f23d8be83f0c6",
-    "path": "release/default-stock.sh"
-  },
-  {
     "sha256": "2e5b201038127a80f9cc02642017a6d010693ba367d5373173684ca7d6528e00",
     "path": "release/pause-stock-updates.sh"
   },
   {
     "sha256": "32cc7ff61f5135b924a64ab851c862f0a95cb2e9b71144b6ae244e7aaa89a649",
     "path": "release/pin-stock.sh"
-  },
-  {
-    "sha256": "5da8834d5496751b7222cc9dfb33423ec8287ffce8092c98cfe7f11f018154ec",
-    "path": "release/previous.sh"
-  },
-  {
-    "sha256": "74d6c5a9476d83c569ecbc15ba0ce8a342c5679db87947dab5cd28e2ae28edc8",
-    "path": "release/rollback.sh"
   },
   {
     "sha256": "120cdafc2a2e18faf305d37448fef5ddb7bf65df1add3e2a0e899749495d40b7",

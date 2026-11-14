@@ -27,13 +27,19 @@
     "22c review fixes 2: layout restoration is an exclusive phase; finish refuses",
     "22c review fixes 2: checks-only job limit 40 minutes for the grown model",
     "22c stage 1b addition 1: the checks-only job explores a bounded model slice; a parallel job runs the full model when its sources changed",
-    "22c stage 1b addition 2: the image and rehearsal jobs allow user namespaces before their tests"
+    "22c stage 1b addition 2: the image and rehearsal jobs allow user namespaces before their tests",
+    "22c stage 1b D: rollback.sh, default-stock.sh and previous.sh out of the owner payload (repository copies unchanged); new fingerprint pinned",
+    "22c stage 1b F: the refusal invariant's expectation table by journal phase, a real injection before publication, and its revert proof"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
       "sha256": "da2151ca86960ab914bcf3b357864c65bad4b0c692b4b3e0cd08da03adfefaa2",
       "path": ".github/workflows/os-image.yml"
+    },
+    {
+      "sha256": "82b586c8deb569fb042544a4e4cb8df233a250a94abcb8ab9a4a44c1b09a6807",
+      "path": "docs/INSTALL.md"
     },
     {
       "sha256": "ba439f07383368b67092d91b0a4ed7fce2f4b6569cf32043d63911b26851a210",
@@ -72,8 +78,12 @@
       "path": "os/ci/two_disk_vm.py"
     },
     {
-      "sha256": "31deaad0dc4a465bc4f9b893faf21b9cac827aa2637a98d201218988d3233a6c",
+      "sha256": "4a0daeb4e41bfdc18e9372b46572a9aa9121e2078f3491238a1d6b4a347e8b91",
       "path": "os/owner-tools/bundle.py"
+    },
+    {
+      "sha256": "a2f35c0e52fc8375b56955286528a679d2deba9d8a338f0572686ead149ac43b",
+      "path": "os/owner-tools/commands.json"
     },
     {
       "sha256": "a292ea185f361753e19236397a148fa050f14b15b63f64ee69bec38f9d40f4f3",
@@ -84,11 +94,11 @@
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "924d80dc5ee7ff3d5b812197db90e18f07090004772298dfcccba855a29ae72e",
+      "sha256": "53f8329adfb455de4f8ebe42d192bc23bea0b047a3bc4dcaa368f9e7ca98b543",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "5869d519787f998bbe4a24027a3ebae2e30678daed4b98985eb9d5f5c955f1d9",
+      "sha256": "ba4c2bb4acd75693836455e1302182a9da6b6510ea418fc26e1ae99d6d074bef",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -100,7 +110,7 @@
       "path": "os/owner-tools/payload/owner.py"
     },
     {
-      "sha256": "042737ea1f9c190e6686e40044b4d04a5169ae5d9aa82b6853366f149baab775",
+      "sha256": "abaf6b6709a0e6d794248269eb2b9dc28882397364ea1d5b8d2fa26f6bb8ff20",
       "path": "os/tests/test_checkout_sources.py"
     },
     {
@@ -118,6 +128,10 @@
     {
       "sha256": "1878da535d481636f91306dd492fdb0c34a6fc3e957cea509fa263f205a50357",
       "path": "os/tests/test_owner_devices_native.py"
+    },
+    {
+      "sha256": "a3644bc48447a967d7d5f43456413654019c89db70b78ba415fe9e7f95647b3d",
+      "path": "os/tests/test_owner_equality.py"
     },
     {
       "sha256": "e062bb255acfad988357dee66de5ac11d48241a9b59c0e8745b81946ca6fdfc2",
@@ -164,5 +178,9 @@
       ],
       "rebound_by": "https://github.com/Ares-Empire/AresOS/actions/runs/43302603386"
     }
+  ],
+  "removed": [
+    "os/owner-tools/payload/release/default-stock.sh",
+    "os/owner-tools/payload/release/rollback.sh"
   ]
 }

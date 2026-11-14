@@ -20,9 +20,9 @@ PENDING = ROOT/'os/manifest/ci/16/pending-rebind.json'
 def fingerprint_documents():
     documents={name:(ROOT/'docs'/name).read_text() for name in OWNER_PAGES}
     # Reports retain historical receipts. Each tools change replaces the
-    # fingerprint the earlier reports gave (packages 14, 15, 15f, then 22), so
-    # those stay history, not rewritten; only the package 27 report is current.
-    documents['27 current report']=(ROOT/'reviews/27-first-update-release/REPORT.md').read_text()
+    # fingerprint the earlier reports gave (packages 14, 15, 15f, 22, then 27),
+    # so those stay history, not rewritten; only the package 22c report is current.
+    documents['22c current report']=(ROOT/'reviews/22c-ways-back-after-update/REPORT.md').read_text()
     return documents
 
 

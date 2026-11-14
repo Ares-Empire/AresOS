@@ -11,8 +11,11 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 PAYLOAD = {'at': 'os/owner-tools/at', 'owner.py': 'os/owner-tools/owner.py',
            'media.py': 'os/owner-tools/media.py', 'release.json': 'os/manifest/release.json',
            'history.json': 'os/owner-tools/history.json'}
+# rollback.sh, default-stock.sh and previous.sh left the payload in 22c: every
+# reorder runs start-next.sh. They stay in os/release, byte-identical, for the
+# older CI modes that read them.
 for name in ('pause-stock-updates', 'pin-stock', 'system-keyboard', 'stock-session',
-             'switch', 'verify', 'rollback', 'default-stock', 'update', 'previous', 'start-next'):
+             'switch', 'verify', 'update', 'start-next'):
     PAYLOAD['release/' + name + '.sh'] = 'os/release/' + name + '.sh'
 
 

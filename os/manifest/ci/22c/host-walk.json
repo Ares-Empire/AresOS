@@ -48,7 +48,10 @@
     ]
   },
   "inherited_from": "os/manifest/ci/27/host-walk.json",
-  "no_longer_bound": [],
+  "no_longer_bound": [
+    "os/owner-tools/payload/release/default-stock.sh",
+    "os/owner-tools/payload/release/rollback.sh"
+  ],
   "sources": [
     {
       "sha256": "f26078d31ff5ecf2b031799d4d98fc6ae6c3727f024675dd86edfc30426932f3",
@@ -71,7 +74,7 @@
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "9222d9cfcb3512fccb29c321615a0c927ee91adb4d210d5f50ccce9a87b377e9",
+      "sha256": "82b586c8deb569fb042544a4e4cb8df233a250a94abcb8ab9a4a44c1b09a6807",
       "path": "docs/INSTALL.md"
     },
     {
@@ -551,11 +554,11 @@
       "path": "os/owner-tools/bootstrap.py"
     },
     {
-      "sha256": "31deaad0dc4a465bc4f9b893faf21b9cac827aa2637a98d201218988d3233a6c",
+      "sha256": "4a0daeb4e41bfdc18e9372b46572a9aa9121e2078f3491238a1d6b4a347e8b91",
       "path": "os/owner-tools/bundle.py"
     },
     {
-      "sha256": "8a4862867d96f449475b92187dbbfcf5420b8fe2fac4dd78d13150e79f66cf25",
+      "sha256": "a2f35c0e52fc8375b56955286528a679d2deba9d8a338f0572686ead149ac43b",
       "path": "os/owner-tools/commands.json"
     },
     {
@@ -571,11 +574,11 @@
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "924d80dc5ee7ff3d5b812197db90e18f07090004772298dfcccba855a29ae72e",
+      "sha256": "53f8329adfb455de4f8ebe42d192bc23bea0b047a3bc4dcaa368f9e7ca98b543",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "5869d519787f998bbe4a24027a3ebae2e30678daed4b98985eb9d5f5c955f1d9",
+      "sha256": "ba4c2bb4acd75693836455e1302182a9da6b6510ea418fc26e1ae99d6d074bef",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -599,20 +602,12 @@
       "path": "os/owner-tools/payload/release.json"
     },
     {
-      "sha256": "f38c58b334422e624fe20adba35cb75287a8b144a0827c1b952f23d8be83f0c6",
-      "path": "os/owner-tools/payload/release/default-stock.sh"
-    },
-    {
       "sha256": "2e5b201038127a80f9cc02642017a6d010693ba367d5373173684ca7d6528e00",
       "path": "os/owner-tools/payload/release/pause-stock-updates.sh"
     },
     {
       "sha256": "32cc7ff61f5135b924a64ab851c862f0a95cb2e9b71144b6ae244e7aaa89a649",
       "path": "os/owner-tools/payload/release/pin-stock.sh"
-    },
-    {
-      "sha256": "74d6c5a9476d83c569ecbc15ba0ce8a342c5679db87947dab5cd28e2ae28edc8",
-      "path": "os/owner-tools/payload/release/rollback.sh"
     },
     {
       "sha256": "630ce503e72b71011fe885d3bc2616aa6b84b31579faa94d879ef34f20a5da7a",
@@ -823,7 +818,7 @@
       "path": "os/tests/serial_pty.py"
     },
     {
-      "sha256": "042737ea1f9c190e6686e40044b4d04a5169ae5d9aa82b6853366f149baab775",
+      "sha256": "abaf6b6709a0e6d794248269eb2b9dc28882397364ea1d5b8d2fa26f6bb8ff20",
       "path": "os/tests/test_checkout_sources.py"
     },
     {
@@ -919,7 +914,7 @@
       "path": "os/tests/test_owner_entry.py"
     },
     {
-      "sha256": "318c4c39801caea591940e756341a0709452f57d03d1d4e554d464dffbbf0f66",
+      "sha256": "a3644bc48447a967d7d5f43456413654019c89db70b78ba415fe9e7f95647b3d",
       "path": "os/tests/test_owner_equality.py"
     },
     {

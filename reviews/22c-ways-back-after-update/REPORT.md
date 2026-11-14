@@ -401,7 +401,7 @@ The hosted comparison below distinguishes this one new name from the inherited f
   the exhaustive walk stops.
 - Four narrow `owner.py` fixes, described below. Its payload copy and generated manifests were refreshed
   because tests read the payload; no guide, fingerprint pin, release/history pin, or commands.json changed.
-  Generated payload fingerprint: `d2b40b50e091b377bc8d9258a35643065202525f27053599f16dbeef08dcb679`.
+  Generated payload fingerprint: `d2b40b50…`.
 - Regenerated the 22c host walk, then the pending-rebind rows (25 bound files). Package 27's receipt is untouched.
 
 ### Defects found in the state machine, and fixes
@@ -443,7 +443,7 @@ command ran. That module was imported only as a fixture library.
 | Same command after all four fixes and payload refresh | 34 tests, 12.110s, OK. Printed the new pre-staging removal lines. |
 | `nice -n 10 python3 -m unittest -f test_ways_back_model.CaptureTest test_ways_back_model.FakeRulesTest test_ways_back_model.RevertTest test_ways_back_model.ModelTest.test_brief_conflict_new_bundle_cannot_select_newest_installed_in_one_command` | 11 tests, 0.242s, OK. |
 | `nice -n 10 python3 -m unittest test_ways_back_model` (final local run) | 12 tests, 1.508s, **1 failure**, the B2/A4 conflict. The other 11 passed. |
-| `python3 os/owner-tools/bundle.py --refresh` | `PASS bundle manifest SHA256 d2b40b50e091b377bc8d9258a35643065202525f27053599f16dbeef08dcb679`. |
+| `python3 os/owner-tools/bundle.py --refresh` | `PASS bundle manifest SHA256 d2b40b50…`. |
 | `python3 reviews/22c-ways-back-after-update/walk-host.py` | `PASS package 22c host walks (reorder-probe): 257 sources; no VM started`. |
 | `python3 reviews/27-first-update-release/rebind.py pending "22c stage 1a step 2: layout/model regressions, four narrow fixes; B2 blocked by A4 destination conflict"` | `pending: 25 bound files differ from the active bindings`. |
 | `git diff --check` | No output, success. |
@@ -1301,7 +1301,7 @@ The only failures are the same stage-1b pins as baseline 43521572800:
 4. `test_owner_path.OwnerPathTest.test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns`.
 
 The source-consistency refresh printed
-`PASS bundle manifest SHA256 610e1b2715dbe95702842eb801aa6e4bc5f556e6237a9741b5df109f90353438`.
+`PASS bundle manifest SHA256 610e1b27…`.
 The inventory/guides/pins remain for stage 1b. After the final bound edit,
 `python3 -B reviews/22c-ways-back-after-update/walk-host.py` printed
 `PASS package 22c host walks (reorder-probe): 257 sources; no VM started`, then

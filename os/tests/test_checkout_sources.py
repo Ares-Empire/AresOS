@@ -28,19 +28,27 @@ def pending_rebind():
     return [dict(sha256=row['sha256'], path=row['path']) for row in record['files']]
 
 
-def check_waiting(root, union, pending):
+def pending_removed():
+    """Bound files deleted since the last VM rehearsal (22c's three old payload scripts)."""
+    return json.loads(PENDING.read_text()).get('removed', [])
+
+
+def check_waiting(root, union, pending, removed=()):
     """The waiting list is empty right after a VM rehearsal rebinds, then holds
     one row per bound file changed since, with its new checkout bytes
-    (integrator, 2026-11-13). These rules hold at any time, so no bound file
-    changes unrecorded.
+    (integrator, 2026-11-13), and the path of each bound file deleted since.
+    These rules hold at any time, so no bound file changes or goes unrecorded.
     """
     waiting = [row['path'] for row in pending]
     walk = {row['path']: row for row in union}
     assert len(waiting) == len(set(waiting)), 'Waiting path listed twice'
-    unbound = [path for path in waiting if path not in walk]
+    assert len(removed) == len(set(removed)) and not set(removed) & set(waiting), 'Removed path listed twice'
+    unbound = [path for path in [*waiting, *removed] if path not in walk]
     assert not unbound, 'Waiting path is not bound: ' + ', '.join(unbound)
-    # Every bound file that is not waiting replays its walk bytes.
-    kept = [row for row in union if row['path'] not in waiting]
+    present = [path for path in removed if (pathlib.Path(root) / path).exists() or (pathlib.Path(root) / path).is_symlink()]
+    assert not present, 'Removed path still exists: ' + ', '.join(present)
+    # Every bound file that is neither waiting nor removed replays its walk bytes.
+    kept = [row for row in union if row['path'] not in waiting and row['path'] not in removed]
     checkout.verify(root, kept)
     # Every waiting file matches the bytes recorded for it ...
     if pending:
@@ -85,9 +93,10 @@ class CheckoutSourcesTest(unittest.TestCase):
         # the next VM rehearsal rebinds them (first the owner, 2026-11-08; the
         # list reopened after package 27's rehearsal by the integrator,
         # 2026-11-13). Those differ from the walk and match the bytes recorded.
-        check_waiting(ROOT, union, pending_rebind())
+        check_waiting(ROOT, union, pending_rebind(), pending_removed())
         # The recording tool finds exactly the rows the list holds.
         self.assertEqual(rebind.changed(), pending_rebind())
+        self.assertEqual(rebind.removed(), pending_removed())
         rows = tables[0][1]
         powershell = next(row for row in rows if row['path'] == 'os/tests/owner-tools.Tests.ps1')
         raw = (ROOT / powershell['path']).read_bytes().replace(b'\r\n', b'\n')
@@ -122,6 +131,20 @@ class CheckoutSourcesTest(unittest.TestCase):
                 for name, raw in before.items():
                     (root / name).write_bytes(raw)
             check_waiting(root, union, pending)
+            # A deleted bound file is listed by path (22c), never silently dropped.
+            (root / 'c.sh').unlink()
+            with self.assertRaisesRegex(AssertionError, 'Missing or linked source: c.sh'):
+                check_waiting(root, union, pending)
+            check_waiting(root, union, pending, ['c.sh'])
+            removed_cases = {
+                'a removed path that still exists': (['a.sh'], 'still exists: a.sh'),
+                'a removed path that is not bound': (['c.sh', 'e.sh'], 'not bound: e.sh'),
+                'a removed path that is also waiting': (['c.sh', 'b.sh'], 'Removed path listed twice'),
+                'a removed path listed twice': (['c.sh', 'c.sh'], 'Removed path listed twice'),
+            }
+            for label, (removed, message) in removed_cases.items():
+                with self.subTest(label), self.assertRaisesRegex(AssertionError, message):
+                    check_waiting(root, union, pending, removed)
 
     def test_exact_dda72ed_record_refuses_with_its_unchanged_crlf_declared_source(self):
         old = json.loads((ROOT / 'os/tests/fixtures/owner-tools/14zzd-checkout-sources.json').read_text())
@@ -130,8 +153,12 @@ class CheckoutSourcesTest(unittest.TestCase):
         row = next(row for row in old['sources'] if row['path'] == 'os/tests/owner-tools.Tests.ps1')
         raw = (ROOT / row['path']).read_bytes().replace(b'\r\n', b'\n')
         self.assertEqual(hashlib.sha256(raw).hexdigest(), row['sha256'])
+        # 22c took these two scripts out of the owner payload (os/release keeps them); the
+        # record still refuses on its CRLF-declared row among the files that remain.
+        gone = [r['path'] for r in old['sources'] if not (ROOT / r['path']).is_file()]
+        self.assertEqual(gone, ['os/owner-tools/payload/release/default-stock.sh', 'os/owner-tools/payload/release/rollback.sh'])
         with self.assertRaisesRegex(AssertionError, 'os/tests/owner-tools.Tests.ps1'):
-            checkout.verify(ROOT, old['sources'])
+            checkout.verify(ROOT, [r for r in old['sources'] if r['path'] not in gone])
 
     def test_real_git_filters_lf_crlf_binary_and_refuses_missing_or_unsafe_sources(self):
         with tempfile.TemporaryDirectory(dir=ROOT / 'os/tests') as temporary:

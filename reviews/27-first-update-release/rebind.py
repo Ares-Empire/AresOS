@@ -2,8 +2,10 @@
 
 pending "<note>": list every bound file that differs from the active bindings
   (checkout.active_tables: package 27's since its rehearsal) with its exact
-  checkout bytes in os/manifest/ci/16/pending-rebind.json, and add the note to
-  the changes waiting there. Run it after the last change to a bound file.
+  checkout bytes in os/manifest/ci/16/pending-rebind.json, every bound file
+  that no longer exists under "removed" (22c took three scripts out of the
+  owner payload), and add the note to the changes waiting there. Run it after
+  the last change to a bound file.
 record <27-bound-sources.json> <run id>: package 27's one-time step after its
   rehearsal passed: write os/manifest/ci/27/source-bindings.json exactly as the
   run recorded it, check every row against this checkout, and empty the pending
@@ -25,9 +27,16 @@ def write(path, value):
         stream.write(json.dumps(value, indent=2, ensure_ascii=False) + '\n')
 
 
-def changed():
-    """Every bound file whose checkout bytes differ from the active bindings, with its current bytes."""
+def removed():
+    """Every bound path that is no longer a file in the checkout (it cannot have checkout bytes)."""
     union = checkout.merge(checkout.active_tables(ROOT))
+    return [row['path'] for row in union if not (ROOT / row['path']).is_file()]
+
+
+def changed():
+    """Every remaining bound file whose checkout bytes differ from the active bindings, with its current bytes."""
+    gone = set(removed())
+    union = [row for row in checkout.merge(checkout.active_tables(ROOT)) if row['path'] not in gone]
     current = checkout.records(ROOT, [row['path'] for row in union])
     return [now for old, now in zip(union, current) if old != now]
 
@@ -38,8 +47,9 @@ def pending(note):
     if note not in record['changes']:
         record['changes'].append(note)
     record['files'] = rows
+    record['removed'] = removed()
     write(PENDING, record)
-    print(f'pending: {len(rows)} bound files differ from the active bindings')
+    print(f'pending: {len(rows)} bound files differ from the active bindings, {len(record["removed"])} removed')
 
 
 def record(evidence, run):
