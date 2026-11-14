@@ -5,6 +5,9 @@ import assert from 'node:assert/strict';
 import {popupMatrices,recordedPath,firstAnswer,admittedAfter} from '../chrome/ci/popups.mjs';
 
 const ROWS='GROUP 8 popups preserve opener flow and guard first input without moving windows';
+// The rows log their receiver evidence; the stand-in's lines must not read
+// like a browser run's in CI output (run 43620235847 printed them).
+async function rows(harness){const log=console.log;console.log=()=>{};try{return await popupMatrices(harness);}finally{console.log=log;}}
 const MODES=['clean','dirty','typed-clean','typed-early','typed-late'];
 // The extension's rule as the run sees it: a list is judged on either path;
 // a text field reloads without asking only after a document-start install.
@@ -77,7 +80,7 @@ function browser({race='late',answer=extension,records=null}={}){
 
 test('popup rows: each install path gives its exact first answer, and the forced rows get their paths',async()=>{
   for(const race of ['document_start','late']){
-    const {harness,seen,holds}=browser({race});await popupMatrices(harness);
+    const {harness,seen,holds}=browser({race});await rows(harness);
     const first=Object.fromEntries(seen.map(row=>[row.mode,row]));
     assert.deepEqual(Object.keys(first),MODES);
     assert.deepEqual({path:first['typed-early'].path,code:first['typed-early'].code},{path:'document_start',code:'stale_reference'});
@@ -93,26 +96,26 @@ test('popup rows: an answer against the recorded path fails its row, on either p
   for(const [mode,race] of [['typed-early','late'],['typed-late','late'],['typed-clean','late'],['typed-clean','document_start']]){
     const flipped=(row,path)=>{const code=extension(row,path);return row!==mode?code:code==='stale_reference'?'reload_required':'stale_reference';};
     const {harness}=browser({race,answer:flipped});
-    await assert.rejects(popupMatrices(harness),error=>error instanceof assert.AssertionError&&error.message.includes(mode+' on the'),mode+' '+race);
+    await assert.rejects(rows(harness),error=>error instanceof assert.AssertionError&&error.message.includes(mode+' on the'),mode+' '+race);
   }
 });
 
 test('popup rows: a forced row whose record names the other path fails, even with a matching answer',async()=>{
   // typed-early released before the admission: the stand-in loads it late.
   const early=browser();early.harness.boundary={size:()=>0,since:()=>JSON.stringify({popup_admitted:{tab:99,type:'popup',opener:7}})+'\n'};
-  await assert.rejects(popupMatrices(early.harness),/typed-early must get the install path it forces/);
+  await assert.rejects(rows(early.harness),/typed-early must get the install path it forces/);
   // typed-late recorded as a document-start install.
   const late=browser({records:(rows,popups)=>rows.map(row=>popups.get(row.tab).mode==='typed-late'?{...row,install:'document_start',ready:true}:row),answer:(mode,path)=>mode==='typed-late'?'stale_reference':extension(mode,path)});
-  await assert.rejects(popupMatrices(late.harness),/typed-late must get the install path it forces/);
+  await assert.rejects(rows(late.harness),/typed-late must get the install path it forces/);
 });
 
 test('popup rows: the path is read only from the extension record for this popup document',async()=>{
   for(const records of [()=>[],rows=>[...rows,...rows]]){
-    const {harness}=browser({records});await assert.rejects(popupMatrices(harness),/exactly one install record/);
+    const {harness}=browser({records});await assert.rejects(rows(harness),/exactly one install record/);
   }
   // Records for another tab or another document of this tab never decide it.
   const {harness,seen}=browser({race:'late',records:rows=>rows.flatMap(row=>[row,{...row,tab:row.tab+100,install:'document_start',ready:true},{...row,document:'other-document',install:'document_start',ready:true}])});
-  await popupMatrices(harness);
+  await rows(harness);
   const first=Object.fromEntries(seen.filter(row=>row.mode.startsWith('typed-')).reverse().map(row=>[row.mode,row.code]));
   assert.deepEqual(first,{'typed-clean':'reload_required','typed-early':'stale_reference','typed-late':'reload_required'});
 });
