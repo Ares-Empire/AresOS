@@ -11,7 +11,11 @@ import copy
 import io
 import inspect
 import json
+import os
 import pathlib
+import subprocess
+import sys
+import tempfile
 import time
 import textwrap
 import unittest
@@ -19,6 +23,8 @@ from collections import Counter, deque
 from dataclasses import replace
 from types import SimpleNamespace
 from unittest.mock import patch
+
+import yaml
 
 import test_owner_update as base  # library only; never runs that module's tests
 from ways_back_keyboard import PowerCut, PROFILES, identity
@@ -708,53 +714,210 @@ class ModelTest(unittest.TestCase):
             self.assertIsNone(confirmed.journal)
 
     def test_reachable_state_space(self):
-        began = time.perf_counter()
-        queue = deque(starts())
-        parents = {reduced(s): None for s in queue}
-        edges = 0
-        processed = 0
-        outcomes, commands, menu_only = Counter(), Counter(), set()
-        with driver() as d:
-            executions = Executions(d)
-            while queue:
-                s = queue.popleft()
-                event = ('invariants', 'all')
-                try:
-                    predictions = dict(steps(s))
-                    invariants(s, predictions)
-                    outcomes[s.outcome()] += 1
-                    for row, is_menu, path in destination_paths(s):
-                        if is_menu:
-                            menu_only.add((s.bundle, s.rows, s.running, row))
-                    for event, expected in predictions.items():
-                        executions.step(s, event, expected)
-                        edges += 1
-                        commands[event[0], 'cut' if expected.cut else 'STOP' if expected.stop else 'PASS'] += 1
-                        key = reduced(expected.state)
-                        if key not in parents:
-                            parents[key] = reduced(s), event
-                            queue.append(expected.state)
-                except AssertionError as error:
-                    sequence = [event]
-                    parent = reduced(s)
-                    while parents[parent] is not None:
-                        parent, action = parents[parent]
-                        sequence.append(action)
-                    self.fail('Sequence from %r: %s\n%s' % (parent, list(reversed(sequence)), error))
-                processed += 1
-                if processed % 10000 == 0:
-                    print('22c model: %d processed, %d discovered, %d executions, %d reuses, %.3fs'
-                          % (processed, len(parents), executions.executed, executions.reused, time.perf_counter() - began), flush=True)
-        print('22c model: %d states, %d edges, %d executions, %d reuses, %.3fs; queue exhausted'
-              % (len(parents), edges, executions.executed, executions.reused, time.perf_counter() - began), flush=True)
-        self.assertEqual(processed, len(parents))
-        print('22c outcomes: ' + repr(dict(sorted(outcomes.items()))), flush=True)
-        print('22c command edges: ' + repr(dict(sorted(commands.items()))), flush=True)
-        print('22c menu-only destinations: ' + repr(sorted(menu_only)), flush=True)
-        self.assertEqual(len(parents), 963003)
-        self.assertEqual(edges, 25257042)
-        self.assertEqual(set(outcomes), {'none', 'retry', 'complete', 'waiting', 'not-applied',
-                                        'selection-applied', 'target-boot-confirmed', 'in-place-not-started'})
+        # Addition 1 of stage 1b: every checks-only run explores the bounded slice;
+        # os/ci/model_scope.py selects the full model when its sources changed.
+        self.assertIn(SCOPE, ('full', 'slice'), 'ARESOS_MODEL_SCOPE must be full or slice')
+        found = explore(SLICE if SCOPE == 'slice' else None)
+        # The slice reaches every journal outcome too.
+        self.assertEqual(set(found.outcomes), {'none', 'retry', 'complete', 'waiting', 'not-applied',
+                                              'selection-applied', 'target-boot-confirmed', 'in-place-not-started'})
+        if SCOPE == 'slice':
+            self.assertEqual(found.processed, SLICE)
+            self.assertEqual((found.discovered, found.edges), SLICE_COUNTS)
+        else:
+            self.assertEqual(found.processed, found.discovered)
+            self.assertEqual(found.discovered, 963003)
+            self.assertEqual(found.edges, 25257042)
+
+
+# The full model by default; the hosted checks-only job sets `slice` and its model
+# job sets `full` when os/ci/model_scope.py finds a changed dependency.
+SCOPE = os.environ.get('ARESOS_MODEL_SCOPE', 'full')
+# The slice: the first SLICE states in the exploration's breadth-first order from
+# starts(), each with its invariants and every edge executed against the tools.
+# The order is fixed (starts() and steps() enumerate in code order), so the same
+# states are explored every time; the counts below pin that.
+SLICE = 120000
+SLICE_COUNTS = (173476, 3043109)  # discovered states, executed edges
+
+
+def explore(budget=None):
+    """Breadth-first over reduced states; with a budget, stop after that many processed states."""
+    began = time.perf_counter()
+    label = '22c model' if budget is None else '22c model slice'
+    queue = deque(starts())
+    parents = {reduced(s): None for s in queue}
+    edges = 0
+    processed = 0
+    outcomes, commands, menu_only = Counter(), Counter(), set()
+    with driver() as d:
+        executions = Executions(d)
+        while queue and (budget is None or processed < budget):
+            s = queue.popleft()
+            event = ('invariants', 'all')
+            try:
+                predictions = dict(steps(s))
+                invariants(s, predictions)
+                outcomes[s.outcome()] += 1
+                for row, is_menu, path in destination_paths(s):
+                    if is_menu:
+                        menu_only.add((s.bundle, s.rows, s.running, row))
+                for event, expected in predictions.items():
+                    executions.step(s, event, expected)
+                    edges += 1
+                    commands[event[0], 'cut' if expected.cut else 'STOP' if expected.stop else 'PASS'] += 1
+                    key = reduced(expected.state)
+                    if key not in parents:
+                        parents[key] = reduced(s), event
+                        queue.append(expected.state)
+            except AssertionError as error:
+                sequence = [event]
+                parent = reduced(s)
+                while parents[parent] is not None:
+                    parent, action = parents[parent]
+                    sequence.append(action)
+                raise AssertionError('Sequence from %r: %s\n%s' % (parent, list(reversed(sequence)), error)) from None
+            processed += 1
+            if processed % 10000 == 0:
+                print('%s: %d processed, %d discovered, %d executions, %d reuses, %.3fs'
+                      % (label, processed, len(parents), executions.executed, executions.reused, time.perf_counter() - began), flush=True)
+    print('%s: %d states, %d edges, %d executions, %d reuses, %.3fs; %s'
+          % (label, len(parents), edges, executions.executed, executions.reused, time.perf_counter() - began,
+             'queue exhausted' if not queue else '%d processed (budget), %d queued' % (processed, len(queue))), flush=True)
+    print(label.replace('model', 'outcomes') + ': ' + repr(dict(sorted(outcomes.items()))), flush=True)
+    print(label.replace('model', 'command edges') + ': ' + repr(dict(sorted(commands.items()))), flush=True)
+    print(label.replace('model', 'menu-only destinations') + ': ' + repr(sorted(menu_only)), flush=True)
+    return SimpleNamespace(discovered=len(parents), edges=edges, processed=processed, outcomes=outcomes,
+                           seconds=time.perf_counter() - began)
+
+
+sys.path.insert(0, str(ROOT / 'os/ci'))
+import model_scope  # noqa: E402  (os/ci is not a package)
+
+
+def git(root, *arguments):
+    # A private, hook-free git: no user or system configuration reaches the fixture repository.
+    environment = dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM='1',
+                       GIT_AUTHOR_NAME='fixture', GIT_AUTHOR_EMAIL='fixture@example.invalid',
+                       GIT_COMMITTER_NAME='fixture', GIT_COMMITTER_EMAIL='fixture@example.invalid')
+    return subprocess.run(['git', '-C', str(root), *arguments], check=True, capture_output=True, text=True,
+                          env=environment).stdout
+
+
+# Runs a bounded exploration in a child process with an audit hook on every file open.
+OPENED = r'''
+import json, os, sys
+root, budget, out = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+sys.path[:0] = [os.path.join(root, 'os/tests'), os.path.join(root, 'os/ci')]
+opened = set()
+def hook(event, args):
+    if event == 'open' and isinstance(args[0], (str, bytes)):
+        opened.add(os.path.realpath(os.fsdecode(args[0])))
+sys.addaudithook(hook)
+import test_ways_back_model
+test_ways_back_model.explore(budget)
+with open(out, 'w') as stream:
+    json.dump(sorted(opened), stream)
+'''
+
+
+class ScopeTest(unittest.TestCase):
+    """Addition 1: which checks-only runs explore the full model (os/ci/model_scope.py)."""
+    def test_a_change_to_a_listed_path_selects_the_full_model_and_elsewhere_the_slice(self):
+        modules = model_scope.closure()
+        listed = ['os/owner-tools/owner.py', 'os/owner-tools/payload/SHA256SUMS', 'os/release/start-next.sh',
+                  'os/tests/test_ways_back_model.py', 'os/tests/ways_back_ledger.py', 'os/tests/ways_back_memo.py',
+                  'os/tests/ways_back_host.py', 'os/tests/ways_back_keyboard.py', 'os/tests/fixtures/owner-tools/dumpkeys-de.json',
+                  'os/tests/test_owner_update.py', 'os/tests/test_owner_tools.py', 'os/tests/owner_bundle_fixture.py',
+                  'os/tests/test_owner_devices.py', 'os/tests/guest_shell.py', 'os/ci/serial_console.py',
+                  'os/manifest/release.json', 'os/manifest/releases/13.json', 'os/ci/model_scope.py',
+                  # Uncertain counts as changed: a non-Python file beside the tests, a deleted
+                  # imported module, a new file that would shadow an imported name.
+                  'os/tests/guest.sh', 'os/ci/test_owner_tools.py', 'os/tests/json.py']
+        elsewhere = ['docs/INSTALL.md', 'README.md', 'mod/build.gradle', 'reviews/22c-ways-back-after-update/REPORT.md',
+                     '.github/workflows/mod.yml', 'os/tests/test_grub_bls.py', 'os/tests/test_ways_back.py',
+                     'os/manifest/ci/16/pending-rebind.json', 'os/ci/check-build.sh', 'os/Containerfile', 'control/x.py']
+        for path in listed:
+            with self.subTest(path=path):
+                self.assertEqual(model_scope.classify(['docs/INSTALL.md', path], modules), ('full', [path]))
+        for path in elsewhere:
+            with self.subTest(path=path):
+                self.assertEqual(model_scope.classify([path], modules), ('slice', []))
+        self.assertEqual(model_scope.classify([], modules), ('slice', []))
+
+    def test_the_diff_from_the_merge_base_decides_and_uncertainty_selects_the_full_model(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = pathlib.Path(temporary)
+            files = {'os/tests/test_ways_back_model.py': 'import ways_back_ledger\n', 'os/tests/ways_back_ledger.py': '',
+                     'os/tests/test_other.py': '', 'docs/guide.md': 'old\n', 'os/owner-tools/owner.py': ''}
+            for name, text in files.items():
+                (root / name).parent.mkdir(parents=True, exist_ok=True)
+                (root / name).write_text(text)
+            git(root, 'init', '-q', '-b', 'main')
+            git(root, 'add', '.')
+            git(root, 'commit', '-q', '-m', 'base')
+            git(root, 'checkout', '-q', '-b', 'work')
+            self.assertEqual(model_scope.decide(root=root, main='main')[0], 'slice')
+            (root / 'docs/guide.md').write_text('new\n')
+            (root / 'os/tests/test_other.py').write_text('pass\n')
+            git(root, 'commit', '-q', '-am', 'elsewhere')
+            # main moves on with a model change of its own: the merge base, not main's tip, decides.
+            git(root, 'checkout', '-q', 'main')
+            (root / 'os/owner-tools/owner.py').write_text('changed on main\n')
+            git(root, 'commit', '-q', '-am', 'main moves')
+            git(root, 'checkout', '-q', 'work')
+            self.assertEqual(model_scope.changed(root, 'main'), ['docs/guide.md', 'os/tests/test_other.py'])
+            self.assertEqual(model_scope.decide(root=root, main='main')[0], 'slice')
+            # A rename lists both paths; the old one is the model's import.
+            git(root, 'mv', 'os/tests/ways_back_ledger.py', 'os/tests/ways_back_rules.py')
+            git(root, 'commit', '-q', '-m', 'rename')
+            self.assertEqual(model_scope.decide(root=root, main='main'), ('full', ['os/tests/ways_back_ledger.py']))
+            self.assertEqual(model_scope.decide(force=True, root=root, main='main'), ('full', ['forced by the full_model input']))
+            scope, reasons = model_scope.decide(root=root, main='no-such-branch')
+            self.assertEqual(scope, 'full')
+            self.assertTrue(reasons[0].startswith('uncertain: CalledProcessError'), reasons)
+            (root / '.git').rename(root / 'not-git')
+            self.assertEqual(model_scope.decide(root=root, main='main')[0], 'full')
+
+    def test_every_repository_file_a_bounded_exploration_opens_is_a_dependency(self):
+        tracked = set(git(ROOT, 'ls-files', '-z').split('\0'))
+        modules = model_scope.closure()
+        with tempfile.TemporaryDirectory() as temporary:
+            out = pathlib.Path(temporary) / 'opened.json'
+            subprocess.run([sys.executable, '-I', '-B', '-c', OPENED, str(ROOT), '2000', str(out)], cwd=ROOT,
+                           check=True, capture_output=True, text=True, timeout=600)
+            opened = json.loads(out.read_text())
+        root = os.path.realpath(ROOT) + os.sep
+        read = {p[len(root):] for p in opened if p.startswith(root)} & tracked
+        # The hook saw the model's data. (Modules show only when Python reads their source,
+        # not a cached compiled copy; closure() covers them by their imports.)
+        self.assertTrue({'os/owner-tools/owner.py', 'os/owner-tools/payload/release/start-next.sh', 'os/manifest/release.json',
+                         'os/tests/fixtures/owner-tools/retained-parsers.json'} <= read, sorted(read))
+        self.assertEqual([p for p in sorted(read) if not model_scope.depends(p, modules)], [])
+
+    def test_hosted_checks_explore_the_slice_and_a_parallel_job_the_full_model_when_selected(self):
+        workflow = yaml.load((ROOT / '.github/workflows/os-image.yml').read_text(), Loader=yaml.BaseLoader)
+        self.assertEqual(workflow['on']['workflow_dispatch']['inputs']['full_model']['type'], 'boolean')
+        self.assertEqual(workflow['on']['workflow_dispatch']['inputs']['full_model']['default'], 'false')
+        checks, model = workflow['jobs']['regressions'], workflow['jobs']['model']
+        self.assertEqual(model['if'], checks['if'])
+        suite, = [s for s in checks['steps'] if s.get('name') == 'Run regression and syntax checks']
+        self.assertEqual(suite['env'], {'ARESOS_MODEL_SCOPE': 'slice'})
+        self.assertIn('python3 -m unittest discover -s os/tests', suite['run'])
+        self.assertEqual(model['steps'][0]['with']['fetch-depth'], '0')  # the merge base needs full history
+        scope, = [s for s in model['steps'] if s.get('id') == 'scope']
+        self.assertEqual(scope['env'], {'FULL_MODEL': '${{ inputs.full_model }}'})
+        self.assertEqual(scope['run'], 'python3 os/ci/model_scope.py --force "$FULL_MODEL" >> "$GITHUB_OUTPUT"')
+        full, = [s for s in model['steps'] if 'test_reachable_state_space' in s.get('run', '')]
+        self.assertEqual(full['if'], "steps.scope.outputs.scope == 'full'")
+        self.assertEqual(full['env'], {'ARESOS_MODEL_SCOPE': 'full'})
+        self.assertEqual(full['run'], 'env -u REHEARSAL_PACKAGE python3 -m unittest discover -s os/tests '
+                                      '-p test_ways_back_model.py -k test_reachable_state_space -v')
+        # The checks-only job is bounded again (it was 40 with the full model inside it);
+        # the model job has room over the slowest hosted model seen (1275 s, run 43547375701).
+        self.assertEqual((checks['timeout-minutes'], model['timeout-minutes']), ('25', '35'))
+        ledger = json.loads((ROOT / 'os/ci/rehearsal-packages.json').read_text())['22c']
+        self.assertEqual(ledger['job_bounds']['checks'], 35)  # an unaccountable checks job costs the larger bound
 
 
 if __name__ == '__main__':

@@ -25,12 +25,13 @@
     "22c review fixes 1: replace repair notes by identity across interrupted transfers",
     "22c review fixes 2: a refusal of start-next before set-default closes its intent",
     "22c review fixes 2: layout restoration is an exclusive phase; finish refuses",
-    "22c review fixes 2: checks-only job limit 40 minutes for the grown model"
+    "22c review fixes 2: checks-only job limit 40 minutes for the grown model",
+    "22c stage 1b addition 1: the checks-only job explores a bounded model slice; a parallel job runs the full model when its sources changed"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "44d0eae936819de9a0acf30563c693e8bd4b506b4836539aceebf105510c5c13",
+      "sha256": "9c4d6f0a3894f44cdf760a7a365c975e45cd1efd9c07dcb473ba17e7361530f2",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -58,7 +59,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "021ad4619ea2446946e504aa9c60c19a3fc4a0d6d629704eb5831a2d85d71600",
+      "sha256": "ebe2bc317a4055f223df8424e6c3adf77ec3fb32517020a428d6630adb7b8037",
       "path": "os/ci/rehearsal-packages.json"
     },
     {

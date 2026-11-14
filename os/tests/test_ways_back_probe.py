@@ -83,7 +83,8 @@ class DispatchTest(unittest.TestCase):
                 with self.subTest(job=name, other_mode=mode):
                     self.assertFalse(condition(job['if'], mode=mode, **on_branch))
             with self.subTest(job=name, checks=True):
-                self.assertEqual(condition(job['if'], mode='', **on_branch, **{'inputs.checks_only': True}), name == 'regressions')
+                # Checks only: the regressions and, beside them, the full ways-back model when its sources changed (22c, 1b).
+                self.assertEqual(condition(job['if'], mode='', **on_branch, **{'inputs.checks_only': True}), name in ('regressions', 'model'))
                 self.assertFalse(condition(job['if'], mode='', **on_branch))
 
     def test_no_other_branch_can_run_a_package_22c_mode(self):

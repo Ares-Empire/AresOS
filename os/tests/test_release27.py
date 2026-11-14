@@ -518,7 +518,8 @@ class DispatchMatrixTest(unittest.TestCase):
         for name, job in workflow['jobs'].items():
             with self.subTest(release=name):
                 self.assertEqual(condition(job['if'], mode='', **branch, **{'inputs.release_27': True}), name == 'release-27')
-                self.assertEqual(condition(job['if'], mode='', **branch, **{'inputs.checks_only': True}), name == 'regressions')
+                # Checks only: the regressions and, beside them, the full ways-back model when its sources changed (22c, 1b).
+                self.assertEqual(condition(job['if'], mode='', **branch, **{'inputs.checks_only': True}), name in ('regressions', 'model'))
                 self.assertFalse(condition(job['if'], mode='update', **branch, **{'inputs.release_27': True}))
         # No other branch can use the update rehearsal or the release-27 job.
         for name, job in workflow['jobs'].items():

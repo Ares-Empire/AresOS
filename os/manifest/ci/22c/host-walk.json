@@ -55,7 +55,7 @@
       "path": ".gitattributes"
     },
     {
-      "sha256": "44d0eae936819de9a0acf30563c693e8bd4b506b4836539aceebf105510c5c13",
+      "sha256": "9c4d6f0a3894f44cdf760a7a365c975e45cd1efd9c07dcb473ba17e7361530f2",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -179,7 +179,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "021ad4619ea2446946e504aa9c60c19a3fc4a0d6d629704eb5831a2d85d71600",
+      "sha256": "ebe2bc317a4055f223df8424e6c3adf77ec3fb32517020a428d6630adb7b8037",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -1055,7 +1055,7 @@
       "path": "os/tests/test_serial_staging.py"
     },
     {
-      "sha256": "04c1abacf56b9ca4e91f2cd5ea14f6016fbfaed5beb5b63b626c900445c2637b",
+      "sha256": "02542f9e95447a0c0e51d8ca4ade50a2321a7a0b7c1c8abd44bd81a8b90048bb",
       "path": "os/tests/test_ways_back_probe.py"
     },
     {

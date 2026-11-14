@@ -135,7 +135,7 @@
     },
     "publish_cap": 0,
     "job_bounds": {
-      "checks": 15,
+      "checks": 35,
       "reorder-probe": 345
     },
     "titles": {
