@@ -26,7 +26,11 @@ class Executions:
         if name == 'session':
             return bool(s.trial and s.trial.fresh)
         operation, record = name.split(':', 1)
-        value = {'outcome-pending': s.journal, 'layout-pending': s.trial,
+        # Whether the trial's restoration began is an input in the trial's own boot: finish
+        # refuses then (review 2). After a restart finish refuses before reading it.
+        t = s.trial
+        trial = None if t is None else (t, t.same_boot and any(n[0] == t.row for n in s.restoring))
+        value = {'outcome-pending': s.journal, 'layout-pending': trial,
                  'layout-repair': s.repairs}.get(record, 'fixed')
         # Other private inputs are fixed by Driver.install; title depends only
         # on the rows/running/stage already in the root key. Writes during a call
@@ -46,7 +50,7 @@ class Executions:
         # Restart is a host event and reads the chosen /etc as well as the
         # running /etc at finalize. Both, the trial and journal must be keyed.
         host_inputs = ()
-        if event[0] in ('restart', 'power-off', 'fresh-login'):
+        if event[0] in ('restart', 'power-off', 'fresh-login', 'original-login'):
             host_inputs = (None if s.journal is None else s.journal.same_boot,
                            None if s.trial is None else (s.trial.same_boot, s.trial.fresh), s.loaded)
         key = s.bundle, s.rows, s.running, s.stage, event, host_inputs

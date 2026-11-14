@@ -2149,6 +2149,11 @@ class Tools:
             self.save('layout-pending', value)
             return ['Fresh second-console login and physical typing passed', 'Return to the original console; use layout finish']
         require(action == 'finish' and profile is None, 'Choose begin, proof, revert or finish')
+        # Restoration is an exclusive phase (review 2): once abandon has saved its restoration
+        # intent, only abandon writes this trial's settings again. A renewed finish, also from
+        # the original login, would write a pair that intent does not authorize.
+        require('restoring' not in value, 'Layout abandon has begun restoring the settings from before this trial: '
+            'from a fresh physical administrator login run ' + typed('layout', 'abandon') + ' to complete it; nothing changed')
         require(current == value['administrator'] and value['proof'], 'Keep the original session open and complete the second-console proof first')
         require(self.keyboard() == value['old'], 'Finished system settings changed after proof')
         title = self.title()

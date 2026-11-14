@@ -1,8 +1,10 @@
 """Independent reference rules for 22c B2. No owner-tool or fake-host imports.
 
 The ledger records events that happened, including interrupted commands. Boot age
-and trial session are equivalence classes, never literal ids. Profiles stay literal:
-all three supported console/X11 profiles are explored, including mixed settings.
+and trial session are equivalence classes, never literal ids: the trial's own
+login, or a fresh one; in the trial's boot the owner can go back to its own login,
+which is still open. Profiles stay literal: all three supported console/X11
+profiles are explored, including mixed settings.
 """
 from dataclasses import dataclass, replace
 
@@ -105,6 +107,10 @@ def transition(s, event):
         return Result(replace(s, loaded=s.keyboard()[0]))
     if word == 'fresh-login':
         return Result(replace(s, trial=replace(t, fresh=True)) if t else s)
+    if word == 'original-login':
+        # Back to the trial's own administrator login, still open in this boot (review 2).
+        assert t and t.same_boot, 'the original login does not survive a restart'
+        return Result(replace(s, trial=replace(t, fresh=False)))
 
     archives = []
     # All list-reading commands resolve first, even when their own side/preflight refuses.
@@ -204,6 +210,9 @@ def transition(s, event):
             return result(stop='Missing private layout-pending')
         if not t.same_boot:
             return result(stop='crossed a reboot')
+        if word == 'finish' and any(n[0] == t.row for n in s.restoring):
+            # Restoration is an exclusive phase (review 2): abandon completes it, from any login.
+            return result(stop='layout abandon')
         if word == 'proof':
             if s.keyboard() != (t.old, t.old):
                 return result(stop='settings changed')
@@ -293,6 +302,9 @@ def steps(s):
     if s.trial:
         if not s.trial.fresh:
             event = 'fresh-login', 'full'
+            yield event, transition(s, event)
+        elif s.trial.same_boot:
+            event = 'original-login', 'full'
             yield event, transition(s, event)
         for word in ('proof', 'revert'):
             event = word, 'full'
@@ -418,9 +430,17 @@ def reduced(s):
     first restoration. Reverse partial pairs are reachable only with intent.
     Retain full intent evidence in representatives and actual execution checks;
     quotient only the history of which authorized pair began the restoration.
+    WHETHER a restoration began is state for a trial still in its own boot: finish
+    then refuses (review 2: restoration is an exclusive phase), also from the
+    original login. Once the trial crossed a boot, finish refuses before that.
     """
     j, t = s.journal, s.trial
     journal = None if j is None else (j.mode, j.word, j.phase, j.target, j.same_boot, s.outcome())
-    trial = t if t is None or t.same_boot else (t.row, t.old, t.new, t.finishing)
+    if t is None:
+        trial = None
+    elif t.same_boot:
+        trial = t, any(n[0] == t.row for n in s.restoring)
+    else:
+        trial = t.row, t.old, t.new, t.finishing
     repairs = tuple(n for n in s.repairs if n[0] in s.rows)
     return s.bundle, s.rows, s.running, s.stage, journal, trial, repairs, s.settings, s.loaded

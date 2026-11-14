@@ -142,6 +142,16 @@ class RuleRevertsTest(unittest.TestCase):
             self.detected_by(focused.DestinationTest('test_outside_reorder_before_the_script_closes_the_intent_and_every_way_back_works'),
                              'the refused intent is still open')
 
+    def test_review2_2_restoration_is_an_exclusive_phase(self):
+        change = mutated(owner.Tools.layout, "require('restoring' not in value,", 'require(True,')
+        with model.driver() as d:
+            s = model.RevertTest().path(d, starts()[2], model.RevertTest.EXCLUSIVE)
+            with patch.object(owner.Tools, 'layout', change):
+                self.ledger_detects(d, s, ('finish', 'full'), 'accept/refuse')
+        with patch.object(owner.Tools, 'layout', change):
+            self.detected_by(focused.LayoutTest('test_restoration_is_exclusive_and_finish_from_the_original_login_names_abandon'),
+                             'Stop not raised')
+
     def test_b3_cleanup_must_remove_unpinned_preceding_rows(self):
         real = model.Host.mutate
         def only_stage(host, *command, **kwargs):

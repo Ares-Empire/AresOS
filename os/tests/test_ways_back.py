@@ -875,6 +875,48 @@ class LayoutTest(Unchanged, unittest.TestCase):
             self.assertEqual(host.keyboard(), PROFILES['de'])
             self.assertEqual(tools.repair_notes(), [])
 
+    def test_restoration_is_exclusive_and_finish_from_the_original_login_names_abandon(self):
+        """Review 2, finding 2, with the original administrator login kept open: German to US proved;
+        finish cut after its console write (US console, German X11); abandon from a fresh second login
+        records that pair as its restoration intent and is cut after its console write (both German,
+        the trial remains). Back in the original login, finish must refuse and name abandon: a renewed
+        finish would write US/US, which that intent does not authorize, and strand the abandon."""
+        with laptop(listed((R21, R13, 'S'), R21), host_class=KeyboardMachine) as (tools, host, store), keyboard_sessions(tools, host) as current:
+            admin = copy.deepcopy(current[0])
+            tools.layout('begin', 'us')
+            self.fresh(tools, current, 'tty4')
+            tools.layout('proof')
+            current[0] = admin
+            host.cut_keyboard = True
+            with self.assertRaises(PowerCut):
+                tools.layout('finish')
+            self.assertEqual(host.keyboard(), dict(base.DE, VConsoleKeymap='us'))
+            self.fresh(tools, current)
+            host.cut_keyboard = True
+            with self.assertRaises(PowerCut):
+                tools.layout('abandon')
+            self.assertEqual(host.keyboard(), base.DE)
+            self.assertEqual(tools.load('layout-pending')['restoring'], dict(base.DE, VConsoleKeymap='us'))
+            current[0] = admin  # the original login, still open
+            before = copy.deepcopy(host.settings)
+            self.unchanged(host, lambda: tools.layout('finish'), 'Layout abandon has begun restoring the settings from before '
+                'this trial: from a fresh physical administrator login run sudo /var/lib/ares/at layout abandon to complete it; nothing changed')
+            self.assertEqual(host.settings, before)
+            self.assertIn('restoring', tools.load('layout-pending'))
+            # The review's next steps: restart and abandon. Abandon completes, and a new trial works.
+            self.boot(tools, host, current, R21)
+            tools.layout('abandon')
+            self.assertEqual((host.keyboard(), host.loaded), (base.DE, 'de'))
+            self.assertFalse((store / 'layout-pending.json').exists())
+            self.assertEqual(tools.repair_notes(), [])
+            admin = copy.deepcopy(current[0])
+            tools.layout('begin', 'us')
+            self.fresh(tools, current, 'tty4')
+            tools.layout('proof')
+            current[0] = admin
+            tools.layout('finish')
+            self.assertEqual(host.keyboard(), PROFILES['us'])
+
     def test_duplicate_note_transfer_is_detected_by_the_same_cut_regression(self):
         source = textwrap.dedent(inspect.getsource(owner.Tools.layout))
         line = "notes[:] = [n for n in notes if n['deployment_identity'] != note['deployment_identity']]"

@@ -23,7 +23,8 @@
     "22c review fixes 1: survey installed lifecycle before login verify switch and prepare refusals",
     "22c review fixes 1: prove restoration provenance equivalence and pin expanded closure",
     "22c review fixes 1: replace repair notes by identity across interrupted transfers",
-    "22c review fixes 2: a refusal of start-next before set-default closes its intent"
+    "22c review fixes 2: a refusal of start-next before set-default closes its intent",
+    "22c review fixes 2: layout restoration is an exclusive phase; finish refuses"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -76,15 +77,15 @@
       "path": "os/owner-tools/history.json"
     },
     {
-      "sha256": "b207cda0609ac1c1236324ca90a43bd8cfa480e240ea199f19688d8a21b45aab",
+      "sha256": "9f4f918a04ed619c1f0616d8ce32fa2c6b631bca0bce5a44a684e3789d0b0764",
       "path": "os/owner-tools/owner.py"
     },
     {
-      "sha256": "3ddcc27ba71b2f9de38c57be9c9914258f81ffac6aea00462778b18d7902c240",
+      "sha256": "924d80dc5ee7ff3d5b812197db90e18f07090004772298dfcccba855a29ae72e",
       "path": "os/owner-tools/payload/SHA256.json"
     },
     {
-      "sha256": "91d2b5cf8c673405822050efd17e0b49da697e37a505593eb14179341ca251d0",
+      "sha256": "5869d519787f998bbe4a24027a3ebae2e30678daed4b98985eb9d5f5c955f1d9",
       "path": "os/owner-tools/payload/SHA256SUMS"
     },
     {
@@ -92,7 +93,7 @@
       "path": "os/owner-tools/payload/history.json"
     },
     {
-      "sha256": "b207cda0609ac1c1236324ca90a43bd8cfa480e240ea199f19688d8a21b45aab",
+      "sha256": "9f4f918a04ed619c1f0616d8ce32fa2c6b631bca0bce5a44a684e3789d0b0764",
       "path": "os/owner-tools/payload/owner.py"
     },
     {

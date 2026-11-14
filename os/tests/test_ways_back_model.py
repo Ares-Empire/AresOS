@@ -227,6 +227,9 @@ class Driver:
                     self.session = dict(tty='tty3', session='fresh', boot='boot-3', started_us=1)
                 elif word == 'fresh-login':
                     self.session = dict(tty='tty3', session='fresh', boot='boot-2', started_us=20)
+                elif word == 'original-login':
+                    # The trial's own administrator login, still open in this boot (review 2).
+                    self.session = dict(tty='tty3', session='original', boot=tools.boot[0], started_us=1)
                 elif word in ('begin', 'proof', 'revert', 'finish', 'abandon'):
                     if word == 'proof':
                         original = self.session
@@ -486,6 +489,26 @@ class RevertTest(unittest.TestCase):
                     self.assertFalse(s.trial or s.repairs or s.restoring)
                     self.assertEqual(s.keyboard('27'), ('de', 'de'))
 
+    # Review 2, finding 2: finish cut after its console write, abandon from a fresh login cut after
+    # its console write (both settings old again), then back to the original login, still open.
+    EXCLUSIVE = [('begin', 'us'), ('proof', 'full'), ('finish', 'console'), ('fresh-login', 'full'),
+                 ('abandon', 'console'), ('original-login', 'full')]
+
+    def test_restoration_is_exclusive_also_from_the_original_login(self):
+        with driver() as d:
+            s = self.path(d, starts()[2], self.EXCLUSIVE)
+            self.assertEqual((s.keyboard(), s.restoring, s.trial.fresh), (('de', 'de'), (('27', 'us', 'de'),), False))
+            self.assertEqual(transition(s, ('finish', 'full')).stop, 'layout abandon')
+            for phase in ('intent', 'console', 'persistent'):
+                self.assertFalse(transition(s, ('finish', phase)).cut)  # nothing to cut: it refuses first
+            # The STOP's next step: abandon from a fresh login completes the restoration.
+            s = self.path(d, s, [('finish', 'full'), ('fresh-login', 'full'), ('abandon', 'full'), ('title', 'full')])
+            self.assertFalse(s.trial or s.repairs or s.restoring)
+            self.assertEqual(s.keyboard('27'), ('de', 'de'))
+            # The owner can then try again from the start.
+            s = self.path(d, s, [('begin', 'us'), ('proof', 'full'), ('finish', 'full')])
+            self.assertEqual((s.trial, s.keyboard('27')), (None, ('us', 'us')))
+
     def test_rejecting_reverse_partial_restoration_fails_pending_and_note_regressions(self):
         source = textwrap.dedent(inspect.getsource(owner.Tools.layout))
         needle = "if 'restoring' in value:\n                    require"
@@ -653,6 +676,9 @@ class EquivalenceTest(unittest.TestCase):
         self.assertEqual(len({reduced(waiting), reduced(applied), reduced(confirmed)}), 3)
         self.assertNotEqual(reduced(base_state), reduced(replace(base_state, repairs=(('13', 'de', 'us'),))))
         self.assertNotEqual(reduced(base_state), reduced(base_state.setting('13', 'us', 'de')))
+        # In the trial's own boot a begun restoration makes finish refuse (review 2): not provenance there.
+        trial = replace(base_state, trial=Trial('27', 'de', 'us', proof=True, finishing=True))
+        self.assertNotEqual(reduced(trial), reduced(replace(trial, restoring=(('27', 'us', 'us'),))))
 
 
 class ModelTest(unittest.TestCase):
@@ -725,8 +751,8 @@ class ModelTest(unittest.TestCase):
         print('22c outcomes: ' + repr(dict(sorted(outcomes.items()))), flush=True)
         print('22c command edges: ' + repr(dict(sorted(commands.items()))), flush=True)
         print('22c menu-only destinations: ' + repr(sorted(menu_only)), flush=True)
-        self.assertEqual(len(parents), 879291)
-        self.assertEqual(edges, 23108154)
+        self.assertEqual(len(parents), 963003)
+        self.assertEqual(edges, 25257042)
         self.assertEqual(set(outcomes), {'none', 'retry', 'complete', 'waiting', 'not-applied',
                                         'selection-applied', 'target-boot-confirmed', 'in-place-not-started'})
 
