@@ -12,6 +12,7 @@ from ..common import Refused, canonical, digest, visible, require_question
 from ..definitions import BY_NAME
 from ..paging import fragment_window, ordered_page
 from ..warnings import check_result
+from . import confirm
 from .bridge import Bridge
 from .committed import Projection
 from .exclusions import owner_hosts
@@ -41,6 +42,10 @@ def typed_label(label, limit=80):
 def frame_site(url):
     parts=urlsplit(url)
     return f"{parts.scheme}://{parts.netloc.rpartition('@')[2]}" if parts.netloc else url.split(':',1)[0]+':'
+
+
+def owner_refusal(message):
+    return {'ok':False,'error':{'code':'permission_denied','message':message}}
 
 
 def view_identity(facts):
@@ -99,6 +104,8 @@ class Chrome:
         self.hosts = HOSTS
         self.read_owner_hosts = owner_hosts
         self.upload_dir = Path("/run/aresos-tools/uploads")
+        # Loosening over chrome.sock waits for the owner's polkit password (F7).
+        self.pkcheck, self.confirm_timeout, self.confirmation = confirm.PKCHECK, confirm.TIMEOUT, None
         if build is None:
             installed = RUNTIME / 'chrome' / 'build-id.json'
             if installed.exists():
@@ -123,17 +130,76 @@ class Chrome:
                     operation.update(state='failed', reason='Control ended; prepared input was dropped without dispatch.', notice=True)
                     self.store.write({key:operation}, 'chrome_operation_cancel', 'Chrome control ended; operation dropped', operation['id'])
         elif event.get('event') == 'owner_sites':
-            try:
-                result = self.engine.request({'v':1,'method':'call','action':'chrome_sites','arguments':event['arguments']},admin=True)
-            except Exception:
-                result = {'ok':False,'error':{'code':'refused','message':'Owner list unavailable; use the admin command.'}}
-            if self.bridge.connection:
-                from ..protocol import send
-                send(self.bridge.connection, {'owner_reply':event['request_id'],'result':result})
+            self.owner_sites(event.get('request_id'), event.get('arguments'))
         elif event.get('event') == 'audit':
             sink = getattr(self.bridge, 'audit_sink', None)
             if sink is not None:
                 sink(event.get('data'))
+
+    # The details page reaches the owner-only list through chrome.sock, which any
+    # process of the owner's user can open. Listing, revoking and read-only on go
+    # straight through; every other change waits for the owner's password.
+    def owner_sites(self, request_id, arguments):
+        if not confirm.loosening(arguments):
+            return self.owner_reply(request_id, self.owner_request(arguments))
+        try:
+            change = self.owner_change(arguments)
+        except Exception as exc:
+            return self.owner_reply(request_id, owner_refusal(str(exc) if isinstance(exc, Refused) else 'Owner list unavailable; use the admin command.'))
+        if self.confirmation is not None:
+            return self.owner_reply(request_id, owner_refusal("Another change is waiting for the owner's password; answer that dialog first."))
+        ask, reason = confirm.start(getattr(self.bridge, 'peer', None), change, self.pkcheck, self.confirm_timeout)
+        if ask is None:
+            return self.owner_reply(request_id, owner_refusal(f'Nothing changed: {reason}. Use sudo aresos admin chrome sites.'))
+        self.confirmation = {'request_id':request_id,'arguments':copy.deepcopy(arguments),'change':change,
+                             'connection':self.bridge.connection_identity,'ask':ask}
+
+    def owner_change(self, arguments):
+        """Check a loosening change and name it for the dialog, before anything is written."""
+        from ..common import validate
+        validate(arguments, BY_NAME['chrome_sites'].input)
+        if arguments['command'] == 'allow':
+            _, entry, operation = self.allow_entry(arguments)
+            adapter = entry['adapter']
+            parameters = '; '.join(f"{name} {', '.join(map(str, value)) if isinstance(value, list) else value}"
+                                   for name, value in sorted((adapter.get('parameters') or {}).items()) if value)
+            site = frame_site(operation['payload']['binding']['frame_url'])
+            return confirm.shown(f"Don't ask again: {adapter['kind']} as {adapter.get('account')} on {site}"
+                                 + (f' ({parameters})' if parameters else ''), 300)
+        if arguments['command'] == 'readonly':
+            return confirm.shown('Read-only off for ' + hostname(self.allowed_url(arguments['site'])), 300)
+        raise Refused('invalid_input', 'Unknown owner list change.')
+
+    def poll_confirmation(self):
+        """Called by the service loop. Writes only the change this one yes was given for."""
+        pending = self.confirmation
+        if pending is None:
+            return
+        if self.bridge.connection_identity != pending['connection']:
+            # Nobody is left to answer; a later host can't inherit this dialog.
+            pending['ask'].cancel()
+            self.confirmation = None
+            return
+        outcome = pending['ask'].outcome()
+        if outcome is None:
+            return
+        self.confirmation = None
+        granted, reason = outcome
+        if not granted:
+            return self.owner_reply(pending['request_id'], owner_refusal(f'Nothing changed: {reason}.'))
+        # The stored copy is the confirmed change; the owner-only path checks it again.
+        self.owner_reply(pending['request_id'], self.owner_request(pending['arguments']))
+
+    def owner_request(self, arguments):
+        try:
+            return self.engine.request({'v':1,'method':'call','action':'chrome_sites','arguments':arguments},admin=True)
+        except Exception:
+            return owner_refusal('Owner list unavailable; use the admin command.')
+
+    def owner_reply(self, request_id, result):
+        if self.bridge.connection:
+            from ..protocol import send
+            send(self.bridge.connection, {'owner_reply':request_id,'result':result})
 
     def mode(self, acting=False):
         if not self.bridge.version:
@@ -801,13 +867,16 @@ class Chrome:
             entry['revoked'] = True
             self.store.write({key:entry},'chrome_sites','Owner revoked Chrome permission')
             return {'revoked':args['id']}
+        key, entry, _ = self.allow_entry(args)
+        self.store.write({'chrome:allow:' + key:entry},'chrome_sites','Owner allowed an exact Chrome kind')
+        return {'id':key}
+
+    def allow_entry(self, args):
         operation = self.engine.operation(args['operation_id'],'chrome')
         adapter = operation['payload'].get('adapter')
         if operation['state'] != 'done' or operation['action'] != 'chrome_submit' or not adapter or not adapter.get('trusted'):
             raise Refused('refused','Only a recently approved eligible adapter kind may be allowed; deleting, paying and WhatsApp always ask.')
-        key = self.allow_id(operation)
-        self.store.write({'chrome:allow:' + key:{'adapter':adapter,'kind_hash':adapter['kind_hash'],'revoked':False}},'chrome_sites','Owner allowed an exact Chrome kind')
-        return {'id':key}
+        return self.allow_id(operation), {'adapter':adapter,'kind_hash':adapter['kind_hash'],'revoked':False}, operation
 
     def call(self, verb, args):
         if verb=='read_typed_fields':

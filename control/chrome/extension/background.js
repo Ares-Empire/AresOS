@@ -3,6 +3,8 @@ import {POLICY} from './policy.js';
 const session = crypto.randomUUID();
 const controlled = new Map(), used = new Set(), dialogs = new Map();
 const defaultBlock='https://aresos-hold.invalid/';
+// The service's polkit wait is 120 s; the details page hears its outcome, never a guess.
+const LOOSEN_WAIT_MS=150000;
 const networkHolds=new Map();let ruleUpdates=Promise.resolve();
 function holdDefaults(tab,nonce){networkHolds.set(tab,{nonce});return rules();}
 function expireDefaults(tab,nonce,delay=POLICY.holdMs){
@@ -1077,7 +1079,9 @@ chrome.runtime.onMessage.addListener((message,sender,reply)=>{
     const request_id=crypto.randomUUID();
     ownerRequests.set(request_id,reply);
     port?.postMessage({event:'owner_sites',request_id,arguments:message.arguments});
-    setTimeout(()=>{if(ownerRequests.has(request_id)){ownerRequests.delete(request_id);reply({ok:false,error:{message:'Service unavailable; use the admin command.'}});}},10000);
+    // Loosening waits for the owner's password in a polkit dialog; the service gives up first (confirm.TIMEOUT).
+    const args=message.arguments||{},loosening=!(args.command==='list'||args.command==='revoke'||args.command==='readonly'&&(Object.hasOwn(args,'enabled')?args.enabled:true)===true);
+    setTimeout(()=>{if(ownerRequests.has(request_id)){ownerRequests.delete(request_id);reply({ok:false,error:{message:'Service unavailable; use the admin command.'}});}},loosening?LOOSEN_WAIT_MS:10000);
     return true;
   }
 });

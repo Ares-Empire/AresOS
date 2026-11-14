@@ -7620,7 +7620,7 @@ Result data:
 
 `aresos admin chrome sites`; effect **change**; owner-only **True**.
 
-Owner lists or changes read-only sites and exact adapter-kind permissions. allow names a recently approved operation; revoke names the entry id. Requires sudo on admin.sock. Effect: change.
+Owner lists or changes read-only sites and exact adapter-kind permissions. allow names a recently approved operation; revoke names the entry id. Requires sudo on admin.sock. The owner's Chrome details page lists, revokes and marks sites read-only directly; its allow and read-only off ask for his password in a polkit dialog, once for each change. Effect: change.
 
 Input:
 ```json

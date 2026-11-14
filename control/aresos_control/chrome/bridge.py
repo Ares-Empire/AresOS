@@ -16,6 +16,9 @@ class Bridge:
     def __init__(self):
         self.connection = None
         self.session = self.version = self.connection_identity = None
+        # pid, uid and start time of the process that connected (SO_PEERCRED and
+        # /proc), the polkit subject for the owner's password (F7).
+        self.peer = None
         self.buffer = b''
         self.events = []
         self.on_event = lambda event: self.events.append(event)
@@ -31,7 +34,7 @@ class Bridge:
         line, self.buffer = self.buffer.split(b'\n', 1)
         return strict_json_loads(line)
 
-    def accept(self, connection):
+    def accept(self, connection, peer=None):
         if self.connection is not None:
             try:
                 readable, _, _ = select.select([self.connection], [], [], 0)
@@ -55,6 +58,7 @@ class Bridge:
             raise Refused('permission_denied', 'Native host must identify one Chrome session and full version.') from exc
         self.session, self.version = hello['session'], hello['version']
         self.connection_identity = uuid.uuid4().hex
+        self.peer = peer
 
     def call(self, name, **arguments):
         if self.connection is None:
@@ -114,5 +118,5 @@ class Bridge:
         if self.connection is not None:
             self.connection.close()
         self.connection = None
-        self.session = self.version = self.connection_identity = None
+        self.session = self.version = self.connection_identity = self.peer = None
         self.buffer = b''

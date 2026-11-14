@@ -14,6 +14,24 @@ and native_host.py beside it with mode 0644. Its only endpoint is chrome.sock; t
 checks Linux SO_PEERCRED against the configured owner, independently of mode bits.
 A same-named user-level host is an accepted decision-24 residual.
 
+Install `org.aresos.control.chrome-loosen.policy` root-owned, mode 0644, at
+`/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy`, and make sure
+the image has polkit's `pkcheck` at `/usr/bin/pkcheck` (the `polkit` package) and a
+polkit authentication agent in the owner's desktop session. Chrome's details page
+reaches the owner-only list through chrome.sock, which any process of the owner's
+user can open; so allowing a kind without asking, or turning read-only off, makes
+the service run `pkcheck --allow-user-interaction` against the process that
+connected (pid, start time and uid). The owner's agent then asks for the admin
+password, once for each change: the action is `auth_admin`, never
+`auth_admin_keep`. Listing, revoking and turning read-only on need no password.
+The policy's `org.freedesktop.policykit.owner` annotation names the service's user
+(`unix-user:aresos-tools`, from `aresos-toold.service`); polkit refuses the
+service's check for another user's process without it. Without the file, pkcheck
+or an agent, those two buttons refuse and `sudo aresos admin chrome sites` still
+works. The real-polkit check of this file runs in
+`.github/workflows/control-chrome-polkit.yml`; the image's own check with the
+owner's real session agent is linux-tools' 18c-b image test.
+
 The image must install `/etc/aresos/control/chrome-excluded-sites.json` with
 `{"format":1,"hosts":[]}` (or the owner's private DNS host list). Each entry
 covers its host and subdomains; names are lowercase and contain no scheme,

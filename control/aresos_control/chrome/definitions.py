@@ -79,5 +79,6 @@ def actions(Action):
     add('notice_ack', 'change', OP, 'Acknowledge one warning occurrence. Unresolved actions remain pending.')
     add('sites', 'change', obj({'command': {'type': 'string', 'enum': ['list', 'readonly', 'allow', 'revoke']},
          'site': string(), 'operation_id': string(80), 'id': string(80), 'enabled': {'type': 'boolean'}, **PAGE['properties']}, ['command']),
-        'Owner lists or changes read-only sites and exact adapter-kind permissions. allow names a recently approved operation; revoke names the entry id. Requires sudo on admin.sock.', True)
+        'Owner lists or changes read-only sites and exact adapter-kind permissions. allow names a recently approved operation; revoke names the entry id. Requires sudo on admin.sock. '
+        "The owner's Chrome details page lists, revokes and marks sites read-only directly; its allow and read-only off ask for his password in a polkit dialog, once for each change.", True)
     return result

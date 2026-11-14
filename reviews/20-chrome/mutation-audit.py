@@ -419,6 +419,24 @@ case('post18d-sparse-expiry-diagnostic','control/chrome/ci/latency-check.py','va
 case('post18dg-round3-latency-cost','control/chrome/ci/latency-check.py','if regression or target_miss:failures.append','if False:failures.append','test_latency.LatencyGate.test_round3_measured_cost_removal_probe_fails_the_production_ci_command',True)
 case('post18dg-dialog-reload-settle','control/chrome/ci/review-matrices.mjs','previous=current;return settled?current:false;','previous=current;return current;',node('review-reload','preexisting dialog fixture waits through delayed parser revisions'))
 
+# Final fixes F7: owner authority over chrome.sock waits for the owner's polkit password.
+C='control/aresos_control/chrome/confirm.py'
+T='test_owner_confirm.Confirmation.'
+case('final-f7-loosening-gate',A,"        if not confirm.loosening(arguments):\n","        if True:\n",T+'test_final_f7_spoofed_allow_and_readonly_off_write_nothing_without_a_success',True)
+case('final-f7-readonly-off',C,"    return not (command == 'readonly' and arguments.get('enabled', True) is True)","    return command == 'allow'",T+'test_final_f7_spoofed_allow_and_readonly_off_write_nothing_without_a_success',True)
+case('final-f7-clear-yes',C,"        if code == 0:","        if code in {0, 1, 2, 3}:",T+'test_final_f7_spoofed_allow_and_readonly_off_write_nothing_without_a_success',True)
+case('final-f7-timeout',C,"            if self.clock() < self.deadline:\n                return None","            if True:\n                return None",T+'test_final_f7_timeout_missing_polkit_and_unknown_process_refuse',True)
+case('final-f7-subject',C,"    subject = f\"{int(peer['pid'])},{int(peer['start'])},{int(peer['uid'])}\"","    subject = f\"{int(peer['pid'])}\"",T+'test_final_f7_success_writes_exactly_the_confirmed_change_for_the_connected_process',True)
+case('final-f7-dialog-names-change',C,"'--allow-user-interaction', '--detail', 'change', change]","'--allow-user-interaction']",T+'test_final_f7_success_writes_exactly_the_confirmed_change_for_the_connected_process',True)
+case('final-f7-cached',C,"            if any(key in output for key in CACHED):","            if False:",T+'test_final_f7_cached_or_replayed_success_is_refused',True)
+case('final-f7-connection-bound',A,"        if self.bridge.connection_identity != pending['connection']:","        if False:",T+'test_final_f7_cached_or_replayed_success_is_refused',True)
+case('final-f7-one-dialog',A,"        if self.confirmation is not None:\n            return self.owner_reply","        if False:\n            return self.owner_reply",T+'test_final_f7_one_dialog_at_a_time',True)
+case('final-f7-daemon-peer','control/aresos_control/daemon.py',"self.register_chrome_host(connection, chrome_peer(pid, uid))","self.register_chrome_host(connection)",T+'test_final_f7_the_subject_is_the_process_that_connected',True)
+case('final-f7-policy-no-keep','control/chrome/packaging/org.aresos.control.chrome-loosen.policy',"<allow_active>auth_admin</allow_active>","<allow_active>auth_admin_keep</allow_active>",'test_owner_confirm.Policy.test_final_f7_policy_asks_the_admin_password_every_time_and_names_the_service_user',True)
+case('final-f7-policy-owner','control/chrome/packaging/org.aresos.control.chrome-loosen.policy','    <annotate key="org.freedesktop.policykit.owner">unix-user:aresos-tools</annotate>\n','','test_owner_confirm.Policy.test_final_f7_policy_asks_the_admin_password_every_time_and_names_the_service_user',True)
+case('final-f7-details-pending','control/chrome/extension/details.js',"statusLine.textContent=change?'Waiting for your password in the system dialog: '+change:'';","statusLine.textContent='';",node('details','final F7 the details page names the pending change'))
+case('final-f7-extension-wait',B,"loosening?LOOSEN_WAIT_MS:10000","10000",node('details','final F7 the extension waits past'))
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']
