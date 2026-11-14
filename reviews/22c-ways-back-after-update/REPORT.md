@@ -1570,3 +1570,294 @@ Cleanup: every temporary file this round made under `/var/home/ares/pkg22c-work/
 one-off scripts, run logs and test lists) was removed. `.work/` holds no file over 500 MB; no
 download was made. No builder-started test or watch process remains, and no Gradle daemon was
 started. PR #46 is open and draft; nothing was merged or pushed to main.
+
+## Stage 1b, step 1
+
+Builder: a Claude agent on Opus 5.5 (`briefs/22c-stage-1b-additions.md`, step 1). Additions 1 and 2,
+section D (bundle, pins, the waiting list), B9's payload test, F, B12 and addition 3's start block are
+built, each pushed after its part. Section C (the guides) is step 2. No VM was dispatched, nothing was
+merged or pushed to main, and no owner tool, deployment binary or keyboard command ran on the laptop.
+Tested head: **`464f92b4`**; the closing commit changes this report only.
+
+**Two things did not fit the briefs** (details under PLAN-GAP): the tools update itself still requires the
+stick, so the folder start block hands over to an `at install` that STOPs `Tools USB label not found` until
+the integrator changes that rule (PLAN-GAP 1); and one guide test stays red for step 2, because the guide
+quotes a STOP that rule 5 removed (PLAN-GAP 4).
+
+### What is built, per part
+
+**Addition 1: a bounded slice in every checks run, the full model when its sources change**
+(`97787831`, `464f92b4`).
+- `test_ways_back_model.explore(budget)` is the old exploration loop, unchanged, with an optional state
+  budget. `ModelTest.test_reachable_state_space` reads `ARESOS_MODEL_SCOPE`: `full` (the default when
+  unset) keeps the pins 963003 states / 25257042 edges; `slice` processes the first **120,000** states in
+  the same breadth-first order from `starts()` (each with its invariants and every edge executed against
+  the tools) and pins **173,476 discovered states and 3,043,109 edges**. It reaches all eight journal
+  outcomes, now asserted for both scopes. The order has no randomness: the pins held locally under two
+  hash seeds and on the hosted runner.
+- `os/ci/model_scope.py` (new) prints `scope=full` or `scope=slice` from the diff between the merge base
+  with `origin/main` and the checkout (`--no-renames`, so both sides of a rename count). Dependencies:
+  `os/owner-tools/**`, `os/release/**`, `os/manifest/release.json`, `os/manifest/releases/**`, every
+  non-Python file under `os/tests/` (fixtures and anything else beside the tests), the classifier itself,
+  and the model's import closure: every module `test_ways_back_model` imports from `os/tests` or `os/ci`,
+  recursively, including imports inside functions, also when the file was deleted or a new file would
+  shadow the name. That closure is conservative: through `test_owner_update`'s lazy imports it holds most
+  of the VM harness (`owner_vm`, `registry_auth`, …), so harness changes select the full model too.
+  Anything uncertain (git fails, no merge base, a module that does not parse) selects `full`. On this
+  branch it selects `full` (26 dependency paths changed since `16a0c886`).
+- The workflow: a new input `full_model` (boolean) forces the full model. The `regressions` job runs the
+  whole suite with `ARESOS_MODEL_SCOPE: slice` and its limit is back at **25** minutes (from 40). A new
+  `model` job, with the same condition, runs beside it: it classifies, and only when the result is `full`
+  installs the two Python packages and runs the one test with `ARESOS_MODEL_SCOPE: full`
+  (`unittest discover -s os/tests -p test_ways_back_model.py -k test_reachable_state_space`), limit
+  **35** minutes. 22c's ledger bound for an unaccountable checks job follows the larger limit (15 → 35).
+  `test_ways_back_probe` and `test_release27` now name both jobs for a checks-only dispatch.
+- `ScopeTest` (4 tests): a change to each listed path (also a deleted imported module, a shadowing file,
+  a non-Python test file) selects `full` and changes elsewhere (guides, the mod, the report, other tests,
+  the waiting list, CI shell scripts) select `slice`; in a fixture git repository the merge base decides
+  (main moving on with a model change does not count), a rename lists the old import, the input forces,
+  and a missing ref or a missing `.git` select `full`; a child process with an audit hook on every file
+  open runs a 2,000-state exploration and every tracked repository file it opens must be a dependency;
+  the workflow wiring (input, both jobs' steps, scopes, limits, full history, the ledger bound).
+
+**Addition 2: the namespace step in the image and rehearsal jobs** (`1d3619a3`). 27c's step
+(`sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`, `unshare -Urm true`) now also stands
+before the image job's `Install tools on disposable runner` and before the rehearsal job's
+`Qualify tools, regressions, …` step. Both suites explore the slice (`ARESOS_MODEL_SCOPE: slice`): the
+rehearsal's qualification step has 35 minutes, and the suite with the full model took 32 to 33 minutes
+on its own. `SuiteJobsTest` holds every job that runs `unittest discover -s os/tests -v` to the step,
+before the suite, unconditional, and to the slice; there are exactly three such jobs.
+
+**D, B9 and F** (`314062a2`).
+- `bundle.py`: `rollback.sh`, `default-stock.sh` and `previous.sh` left the payload (`start-next.sh` was
+  already in); `os/release/` keeps all three byte-identical. `bundle.py --refresh` printed
+  `PASS bundle manifest SHA256 ba4c2bb4acd75693836455e1302182a9da6b6510ea418fc26e1ae99d6d074bef`.
+- The 15f stand-in bundle of `ToolsUpdateTest` no longer drops `release/previous.sh` (it is gone from the
+  payload); it keeps dropping `history.json` and `release/update.sh`.
+- B9: `test_shell_assertions.ShellAssertionTest.test_payload_no_longer_carries_the_three_old_scripts_and_their_repository_copies_stay`
+  replaces the old "payload `default-stock.sh` equals the repository copy" lines: none of the three is in
+  the payload's `SHA256.json`, `SHA256SUMS` or folder, `start-next.sh` is, and each repository copy keeps
+  the SHA-256 version 2's payload recorded for it.
+- Bindings: `rebind.py pending` could not express a bound file that no longer exists (two of the deleted
+  payload copies were bound by package 27's tables; `checkout_sources` asserts on a missing file). It now
+  lists such paths under `removed` in the waiting list; `record` is unchanged. `test_checkout_sources`
+  holds the list (bound, absent, never also waiting, not twice; a deleted bound file that is not listed
+  fails) and the dda72ed record test leaves out exactly those two gone files and still refuses on its
+  CRLF row. The host walk names them under `no_longer_bound`.
+- F: `test_invariant_one_working_toolset_after_any_interruption_and_any_refusal` now runs each of the 70
+  cells through `refusal_cell` against two tables in the test: the journal phase each cut leaves (asserted
+  after the cut) and the cuts at which each injected check runs. Where it runs, both attempts raise the
+  exact refusal text (anchored), the phase stays, and the entry reaches the previous tools before
+  publication and the new ones after. Where it does not run, the first run completes the update (or, at
+  cut 10, says `Tools already installed; nothing changed`), the next run says
+  `Tools already installed; nothing changed`, and the new tools answer. The empty `staged bundle` row is
+  now `unpublished bundle`: a changed `tools-<fingerprint>/owner.py` while the journal is at copy or
+  publish. `test_revert_proof_without_the_layout_check_the_invariant_fails_where_it_runs` executes
+  `update_tools` with the layout-trial line removed and requires the layout row to fail at exactly the
+  cuts the table names.
+
+  | Refusal | Cuts where its check runs | Exact refusal |
+  |---|---|---|
+  | layout trial | 1–7 (copy, publish, and retire through `system_ready(resolve=True)`) | `Layout trial is unfinished; prove it or revert first` |
+  | transaction | 1–7 | `Deployment transaction active or unknown` |
+  | preflight error (`observations`) | 1–7 | `Read failed: rpm-ostree status --json` |
+  | unexpected exception (`installed_commands`) | 1–5 (`exclusive()` only) | `unexpected` (RuntimeError) |
+  | disk record | 1–10 | `Wrong or ambiguous target disk serial` |
+  | resume identity (the stick's UUID in the journal) | 1–9 (not compared once complete) | `Interrupted tools update does not exactly match this bundle/stick; get help` |
+  | unpublished bundle | 2–5 (cut 1 dies before the copy; from 6 it is published) | `Bundle hash mismatch: owner.py` |
+
+  Phases: copy after renames 1–2, publish 3–5, retire 6–7, records 8–9, complete 10, as the integrator
+  read them. The integrator's reading of the checks differed in one point: `system_ready` also runs at
+  retire, so the layout-trial, transaction and observation rows refuse at cuts 6 and 7 too, and the
+  revert proof fails at cuts **1 to 7**, not 1 to 5 (PLAN-GAP 2).
+
+**Addition 3: the folder start block** (`c2dcc8e1`). `bootstrap.py` generates two blocks that differ in
+exactly their source lines (lines 4–6 of the stick block, lines 4–5 of the folder block). The stick
+block is byte for byte what it was (`command(fingerprint)` keeps its default, so `commands.json` and
+`owner_vm` are unchanged). The folder block takes `/var/home/ares/ares-tools`, copies it with the same
+`cp -R --no-preserve=mode,ownership` into a fresh `mktemp -d /run/ares-bootstrap.XXXXXX`, and then runs
+the shared tail. Tests: every tamper case runs for both sources (changed `at`, changed `owner.py`, an
+extra file, a missing file, the folder itself a link, a link inside it whose target has the right bytes,
+a FIFO in a listed file's place, a wrong fingerprint), nothing executes before verification, the source
+is left untouched, and the folder block calls no `mount`; a structure test holds the two blocks to their
+source lines; `test_owner_equality` accepts a quoted folder block only byte-equal to the generated one
+(each of its 12 lines changed refuses) and an `install-folder` command only equal to it.
+
+### The fingerprint and its pins
+
+`ba4c2bb4acd75693836455e1302182a9da6b6510ea418fc26e1ae99d6d074bef` (tools version 3, this package's
+bundle). Pinned in: `docs/INSTALL.md` (both `PASS tools manifest SHA256` copy checks and the fingerprint
+line of both bootstrap blocks: four places), `os/owner-tools/commands.json` (`install`),
+`docs/INSTALL-STATUS.md` (the update row: "Package 22c's bundle (tools version 3; built, **not on the
+laptop**)"; the row's old full `851eb742…` became that short form, still named as the laptop's tools) and
+this report. `test_owner_equality.fingerprint_documents()` now treats this report as the current one
+(package 27's becomes history); its two intermediate payload fingerprints from stage 1a are shortened to
+`d2b40b50…` and `610e1b27…`, as package 27's report shortened its own.
+
+### Slice against the full model
+
+| | States processed / discovered | Edges | Local (nice 10) | Hosted |
+|---|---|---|---|---|
+| Slice | 120,000 / 173,476 | 3,043,109 | 139.0 s (twice, two hash seeds) | 174.6 s and 159.5 s (runs 43552726228, 43554331874) |
+| Full model | 963,003 / 963,003 | 25,257,042 | 911 s (review fixes 2; not rerun here) | 999.4 s and 1271.2 s (model job of the same runs) |
+
+The slice is 12.5 % of the processed states and 12 % of the edges, at 15 % (local) to 17.5 % (hosted) of
+the time. Its menu-only destinations and outcome counts are printed in the job log. The model job has
+13 minutes of room over the slowest full model seen (1275 s); the checks-only job about 11 over 13m34s.
+
+### Verified
+
+Local, each from the worktree with `TMPDIR=/var/home/ares/pkg22c-work`, at nice 10, one at a time, with
+at least 4500 MB available (`free -m` showed 8,500 to 10,000 MB):
+
+| Command | Result |
+|---|---|
+| `ARESOS_MODEL_SCOPE=slice python3 -B -m unittest discover -s os/tests -p test_ways_back_model.py` | 25 tests in 155.8 s, OK |
+| `ARESOS_MODEL_SCOPE=slice PYTHONHASHSEED=12345 … test_ways_back_model.ModelTest.test_reachable_state_space` | 1 test in 139.0 s, OK |
+| `python3 -m unittest discover -s os/tests -p test_ways_back_model.py -k ScopeTest` (with bytecode, as hosted) | 4 tests, OK |
+| `… -p test_owner_bootstrap.py` | 8 tests in 0.4 s, OK |
+| `… -p test_owner_equality.py` | 10 tests in 27.7 s, OK |
+| `… -p test_checkout_sources.py`, `test_owner_step_limits.py`, `test_owner_abandon.py`, `test_owner_entry.py`, `test_owner_tools.py` | 5, 4, 6, 3, 13 tests, OK |
+| `… -p test_owner_walk.py` | 27 tests in 104.4 s, OK |
+| `… -p test_ways_back_probe.py` | 41 tests in 25.0 s, OK |
+| `… -p test_owner_path.py` | 39 tests, 1 failure: the update route test (PLAN-GAP 4) |
+| `… -p test_owner_retained.py`, `test_owner_commands.py` | 1 and 5 errors, local only: a mocked `glob` gets Python 3.14's `case_sensitive` argument; both pass hosted (Python 3.12) and neither was changed |
+| workflow guards: `test_release27.DispatchMatrixTest`, `test_ci_api_permissions`, `test_ci_step_environment`, `test_owner_guard`, `test_rehearsal_budget`, `test_build_tools`, `test_ways_back_probe.DispatchTest`/`SuiteJobsTest`/`JobGatesTest` | 35 tests, OK |
+| B9 alone: `test_shell_assertions.ShellAssertionTest.test_payload_no_longer_carries_…` | OK (the rest of that module runs bash fixtures and was left to the hosted run) |
+
+The full model was not run locally in this step. `test_owner_update` ran only hosted. After every bound
+change `python3 -B reviews/22c-ways-back-after-update/walk-host.py` ran first (last:
+`PASS package 22c host walks (reorder-probe): 255 sources; no VM started`), then
+`python3 -B reviews/27-first-update-release/rebind.py pending "<note>"` (last:
+`pending: 33 bound files differ from the active bindings, 2 removed`). `git diff --check` passed.
+
+Hosted, each `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`, then
+one `gh run watch <id> --exit-status --interval 60`:
+
+| Hosted run | Head | Regressions job | Model job | Result |
+|---|---|---|---|---|
+| [43552726228](https://github.com/Ares-Empire/AresOS/actions/runs/43552726228) | `1d3619a3` (additions 1 and 2) | 15m57s: **1085 tests in 931.1 s, 5 failures, 0 errors, 0 skipped** | 17m31s: full model, 1 test in 1001.6 s, OK | The four stage-1b pins, plus the audit test's sanity set, which named `owner.py`'s source (the runner had its compiled copy); fixed in `464f92b4`. Watch exit 1. |
+| **[43554331874](https://github.com/Ares-Empire/AresOS/actions/runs/43554331874)** | **`464f92b4`** (all four parts) | **13m34s: 1090 tests, 1 failure, 0 errors, 0 skipped** | **21m39s: full model, 1 test in 1273.4 s, OK** | The one failure is PLAN-GAP 4's guide test. Watch exit 1. |
+
+Run 43554331874's regressions log has no unittest summary line: the failing assertion prints all of
+`owner.py` as its message and the hosted log ends inside it. The counts above come from the verbose result
+lines: 1089 `ok` (1080 `... ok`, 9 `ok` after printed output), 1 `FAIL`, no `ERROR`, no `skipped`. That is
+run 43552726228's 1085 plus this head's five new tests (F's revert proof, B9's payload test, two bootstrap
+tests, the folder-quote test). F's invariant test, its revert proof (so the layout row fails at exactly
+cuts 1 to 7 without the check), every new bootstrap, equality, scope and suite-jobs test, and every
+`test_owner_update` test passed there. The slice explored 173,476 states / 3,043,109 edges again
+(159.5 s); the model job's full model matched its pins (1271.2 s on that runner). Both jobs ran side by
+side: the run took 21m39s instead of 32m53s (run 43547375701).
+
+### JUDGMENT-CALL
+
+1. **The full model runs in its own job beside the checks.** Chosen: a parallel `model` job (35 minutes)
+   that classifies and runs only the full model; the checks-only job always explores the slice (25
+   minutes). Rejected: classifying inside the checks-only job and running the full model there, which
+   needs a limit that depends on a step's output (a second job anyway) and runs 33 minutes in a row;
+   raising only the limit. Cost of changing later: one job and a few test lines. A branch that changes the
+   model's sources now uses two runners per checks run (on this branch about 16 + 17.5 runner minutes
+   instead of 33 on one), counted by the minute ledger.
+2. **The image and rehearsal suites explore the slice.** The rehearsal runs on a head whose checks-only
+   run explored the full model when its sources changed; the full model would not fit the rehearsal's
+   35-minute qualification step. Changing it back is one environment line per job.
+3. **Two blocks, not one, and the folder `/var/home/ares/ares-tools`.** Two literal blocks that differ in
+   their source lines keep the stick block byte-identical (its tamper tests, `commands.json`, `owner_vm`
+   and the laptop's guide stay as reviewed) and give the owner a block with no argument to fill in; one
+   block with the source as an argument would put a branch and an untrusted parameter into the trusted
+   start. The folder is a fixed literal in the ares home, outside `/var/tmp` (no other account can
+   pre-create it), and named like the stick's folder, so the shared lines stay the same. `/var` is shared
+   by every deployment, so the path is the same on R27, R13 and stock. Changing the path later means a new
+   generated block and its guide quotes.
+
+### PLAN-GAP
+
+1. **The tools update requires the stick (addition 3 cannot work with the start block alone).** The
+   bootstrap ends in `bash ./at install`, which on the laptop is a tools update: `install()` →
+   `update_tools()` calls `tools_stick()` first (`os/owner-tools/owner.py`, `update_tools`, and
+   `tools_stick`), which requires exactly one `ARESTOOLS` USB, mounted once, exFAT, holding a bundle equal
+   to the private copy, and the `tools-update1` journal and its receipt record the stick's
+   `tools_volume_uuid` and compare it on every resume. From the folder block, `at install` would STOP
+   `Tools USB label not found` with nothing changed (the private copy stays in `/run` until restart). The
+   change belongs to the owner tools' rules (reviewed SAFE in stage 1a) and to rule 9's journal fields,
+   which version 2's `settle_tools` reads until publication; this step was told not to change a rule, so
+   it did not. The integrator decides: for example, accept a source that is either the stick or the folder
+   and journal which one (a folder's identity in place of the volume UUID), with tests that version 2's
+   `settle_tools` still reads the journal at every cut before publication. The F table's resume-identity
+   row would change with it.
+2. **F, the integrator's reading.** `system_ready` runs in copy and publish **and at retire**
+   (`system_ready(resolve=True)` before the old tools retire), so three rows refuse at cuts 1–7 and the
+   layout revert proof fails at cuts 1–7. `installed_commands` runs in copy and publish only, the disk
+   record at every cut, the stick identity comparison at cuts 1–9, as read. The staged-bundle injection was
+   indeed empty at every cut; it is now the new directory before publication (cuts 2–5).
+3. **Deleted bound files.** D deletes payload files that package 27's tables bind, and neither
+   `rebind.py pending` nor `checkout_sources` could express that. `pending` now writes `removed`; stage 2's
+   record step must move `removed` into the `rebound` history with the rest and empty it.
+4. **One guide test stays red for step 2.** `test_owner_path.OwnerPathTest.test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns`
+   now passes its fingerprint pin and stops at the next assertion: the update route quotes
+   **did not finish at the restart** (`docs/INSTALL.md` update route, `docs/EMERGENCY.md` "Failed or bad
+   update"), and the test requires that STOP text in `owner.py`; rule 5 removed it. Rewriting those
+   sentences is section C; the test's quote list is one of B9's expectations that change on purpose.
+5. **E's route in the 22c host walk.** D and B12 ask for the walk regenerated for E's route, which needs
+   E's mode in `owner_vm` (the rehearsal harness) and the guide's tools-only route (step 2). Neither was in
+   this step's list; the walk still covers the probe route and was regenerated after every bound change.
+6. **The ledger's checks cap.** `os/ci/rehearsal-packages.json` allows 12 checks-only dispatches for 22c;
+   the branch now has 18 since its first dispatch (16 before this step). `rehearsal_guard.budget` asserts
+   that cap when stage 2 dispatches its rehearsal, so it will STOP there until the integrator raises the
+   cap (a budget decision; not changed here).
+7. `os/ci/model_scope.py` is a new file outside the original brief's file list; addition 1 needs it.
+
+### Open questions
+
+- PLAN-GAP 1 needs an integrator decision before the guides promise the folder route.
+- PLAN-GAP 6 needs a ledger decision before stage 2.
+
+### For step 2
+
+**Tool lines** (Claude on the laptop, as `ares`, never as root; `<commit>` is the announced commit):
+
+```bash
+git -C /var/home/ares/AresOS fetch origin
+rm -rf /var/home/ares/ares-tools
+git -C /var/home/ares/AresOS archive --prefix=ares-tools/ <commit>:os/owner-tools/payload | tar -x -C /var/home/ares
+sha256sum /var/home/ares/ares-tools/SHA256SUMS
+```
+
+The last line must print `ba4c2bb4acd75693836455e1302182a9da6b6510ea418fc26e1ae99d6d074bef` (the block
+checks it again). `git archive` takes the committed payload, whatever the checkout's working tree holds.
+The folder must hold nothing else: an extra file refuses. Then the owner approves the password prompt of
+this block, the exact text the guide must quote (`bootstrap.command(fingerprint, 'folder')`):
+
+```bash
+sudo bash -c 'set -euo pipefail
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin; umask 077
+trap "echo STOP bootstrap: verification or install refused" ERR
+p=$(mktemp -d /run/ares-bootstrap.XXXXXX)
+cd "$p"; cp -R --no-preserve=mode,ownership /var/home/ares/ares-tools .; test ! -L ares-tools; cd ares-tools
+test -z "$(find . ! -type d ! -type f -print -quit)"
+echo "ba4c2bb4acd75693836455e1302182a9da6b6510ea418fc26e1ae99d6d074bef  SHA256SUMS" | sha256sum -c --strict
+cmp -s \
+  <(find . -type f -printf "%P\n" | sort) \
+  <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
+sha256sum -c --strict SHA256SUMS
+bash ./at install'
+```
+
+It prints what the stick block prints after its source lines: sha256sum's `SHA256SUMS: OK` and one `: OK`
+per file, then `at install`'s lines. Until PLAN-GAP 1 is resolved, `at install` STOPs there with
+`Tools USB label not found`, so the guide must not present the folder route as working yet. The stick
+block stays as it is (`commands.json` `install`, two copies in `docs/INSTALL.md`).
+
+What the tests expect from step 2:
+- A quoted folder block must be byte-equal to the generated one (`check_bootstrap` already enforces this
+  and returns how many the guide quotes). Add it to `commands.json` as `install-folder` (the check holds
+  that key to the generated block); then `test_every_owner_command_equals_the_command_physically_typed_by_ci`
+  requires it in the guides and typed by a CI walk, or listed under `unwalked_commands` in the waiting
+  list, which `rebind.py` does not write.
+- Add the route assertions (the folder way first, the stick as the fallback) to `test_owner_path`.
+- PLAN-GAP 4: rewrite the **did not finish at the restart** sentences and that test's quote list.
+- The fingerprint pins are done; keep `851eb742…` short wherever it names the laptop's tools.
+
+Cleanup: the run logs under `/var/home/ares/pkg22c-work/` were removed with the folder. `.work/` holds no
+file over 500 MB; no download was made. No builder-started test or watch process remains, and no Gradle
+daemon was started. PR #46 is open and draft; nothing was merged or pushed to main.
