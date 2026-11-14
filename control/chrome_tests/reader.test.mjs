@@ -558,6 +558,18 @@ test('post18d typed field additions relabelling credential changes and document 
   }
 });
 
+test('final discard_unsaved report names fields by label, never their values, editor text or a label holding an editor',()=>{
+  const secret={nodeType:3,textContent:'EDITOR-TEXT-XYZZY',parentElement:null};
+  const f=fixture([{attrs:{'aria-label':'Subject'}},{attrs:{placeholder:'Say "hi"'}},{tagName:'DIV',isContentEditable:true,attrs:{role:'textbox','aria-label':'Message body'},childNodes:[secret]},
+    {tagName:'DIV',isContentEditable:true,attrs:{role:'textbox'},childNodes:[secret]},{type:'password',forbidden:true,attrs:{'aria-label':'Password'}},{attrs:{'aria-label':'L'.repeat(200)}}]);
+  f.nodes[1].labels=[new f.Element({tagName:'LABEL',childNodes:[secret],querySelector:()=>({})})];
+  f.nodes.push(new f.Element({tagName:'SPAN',isContentEditable:true,parentElement:f.nodes[2],childNodes:[secret]}));
+  const state=f.command({command:'reload_state'});assert.equal(state.ok,true,JSON.stringify(state));
+  assert.deepEqual(JSON.parse(JSON.stringify(state.data.fields)),['field "Subject"',"field \"Say 'hi'\"",'editor "Message body"','an unlabelled editor','password field "Password"','field "'+'L'.repeat(80)+'…"']);
+  assert.equal(state.data.unsaved,true);assert.doesNotMatch(JSON.stringify(state),/safe visible text|EDITOR-TEXT-XYZZY/);
+  const late=fixture([{attrs:{'aria-label':'Draft'},forbidden:true}],{watched:false}).command({command:'reload_state'});
+  assert.deepEqual(JSON.parse(JSON.stringify(late.data.fields)),['field "Draft"']);
+});
 test('post18d late reload warning never extracts unapproved typed text to compare defaults',()=>{
   const f=fixture([{type:'text',forbidden:true}],{watched:false});
   const state=f.command({command:'reload_state'});assert.equal(state.ok,true,JSON.stringify(state));assert.equal(state.data.unsaved,true);assert.equal(f.calls(),0);

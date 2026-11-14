@@ -989,13 +989,16 @@
   },
   {
     "name": "close_tab",
-    "description": "Close only a Claude tab; prepared work is dropped. Effect: change.",
+    "description": "Close only a Claude tab; prepared work is dropped. Unsaved typing or playing media is reported first; discard_unsaved=true closes anyway. Effect: change.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "tab": {
           "type": "integer",
           "minimum": 0
+        },
+        "discard_unsaved": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -1216,7 +1219,7 @@
   },
   {
     "name": "navigate",
-    "description": "Navigate a Claude tab by address or one history direction. Only http, https and about:blank; settings and approval pages refuse. reload never reloads a form-loaded document and reports unsaved text or playing media as reload_required until repeated with reload_taken_tab=true. Effect: change.",
+    "description": "Navigate a Claude tab by address or one history direction. Only http, https and about:blank; settings and approval pages refuse. reload never reloads a form-loaded document. reload and an address report unsaved typing or playing media as reload_required until repeated with discard_unsaved=true. Effect: change.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -1237,7 +1240,7 @@
             "reload"
           ]
         },
-        "reload_taken_tab": {
+        "discard_unsaved": {
           "type": "boolean"
         }
       },
@@ -1942,7 +1945,7 @@
         "expected": {
           "type": "object"
         },
-        "reload_taken_tab": {
+        "discard_unsaved": {
           "type": "boolean"
         }
       },
@@ -2104,7 +2107,7 @@
           "type": "string",
           "maxLength": 20000
         },
-        "reload_taken_tab": {
+        "discard_unsaved": {
           "type": "boolean"
         }
       },
@@ -2268,7 +2271,7 @@
           "minLength": 1,
           "maxLength": 4096
         },
-        "reload_taken_tab": {
+        "discard_unsaved": {
           "type": "boolean"
         }
       },
@@ -2430,7 +2433,7 @@
         "checked": {
           "type": "boolean"
         },
-        "reload_taken_tab": {
+        "discard_unsaved": {
           "type": "boolean"
         }
       },
@@ -2594,7 +2597,7 @@
           "minLength": 1,
           "maxLength": 64
         },
-        "reload_taken_tab": {
+        "discard_unsaved": {
           "type": "boolean"
         }
       },
@@ -2759,7 +2762,7 @@
         "y": {
           "type": "integer"
         },
-        "reload_taken_tab": {
+        "discard_unsaved": {
           "type": "boolean"
         }
       },
@@ -2960,7 +2963,7 @@
           ],
           "additionalProperties": false
         },
-        "reload_taken_tab": {
+        "discard_unsaved": {
           "type": "boolean"
         }
       },
@@ -3124,7 +3127,7 @@
               "expected": {
                 "type": "object"
               },
-              "reload_taken_tab": {
+              "discard_unsaved": {
                 "type": "boolean"
               },
               "text": {

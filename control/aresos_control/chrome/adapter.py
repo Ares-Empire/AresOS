@@ -675,7 +675,7 @@ class Chrome:
         submitting = target.get('submit') and (verb in {'click','check','select'} or verb == 'press' and key in {'Enter','Space',' '}) or verb == 'press' and key == 'Enter' and target.get('editable')
         if frame.get('form') and (kind or hold or submitting):refuse_withheld_form(frame)
         if facts.get('needs_reload'):
-            self.free('prepare_control', tab=args['reference']['tab'], reload_taken_tab=args.get('reload_taken_tab', False))
+            self.free('prepare_control', tab=args['reference']['tab'], discard_unsaved=args.get('discard_unsaved', False))
             raise Refused('stale_reference', 'The taken tab reloaded to install its page guard. Every old reference is stale; read again.')
         if hold:
             kind = 'form'
@@ -717,7 +717,8 @@ class Chrome:
                 op['stages']['created_tab']=copy.deepcopy(reply)
                 self.store.write({'op:'+op_id:op},op['action'],'Created tab identity committed before address navigation',op_id)
                 if arguments['url']!='about:blank':
-                    self.bridge.call('navigate',tab=reply['tab'],url=arguments['url'])
+                    # The tab was created a moment ago and holds nothing to lose.
+                    self.bridge.call('navigate',tab=reply['tab'],url=arguments['url'],discard_unsaved=True)
         except Refused as exc:
             certain=exc.code in {'stale_reference','stale_approval','reload_required','owner_signin','refused','permission_denied','chrome_unavailable'}
             op.update(state='failed' if certain else 'unknown',reason=('Nothing dispatched: ' if certain else 'Input may have run: ')+str(exc))

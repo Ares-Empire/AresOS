@@ -497,21 +497,40 @@
       attachments:fields.filter(node=>node.matches('[aria-label^="Attachment:"]')).map(node=>({label:name(node),text:text(node)})),target:target ? name(target):null};
   }
   guard.reader({protected:node=>protectedFields.has(node),protectPeers:()=>remember(document),document:documentId,id,clipboard:(route,generation)=>{chrome.runtime.sendMessage({event:'clipboard_write',document:documentId,route,generation}).catch(()=>{});},element:key=>elements.get(key),target:targetFacts,form:(element,submitter)=>formFacts(element.form || (element.tagName==='FORM' ? element:null),submitter || element),report:(step,generation)=>{chrome.runtime.sendMessage({event:'held_step',step,generation}).catch(()=>{});},dialog:(phase,token,generation,nonce,kind)=>{chrome.runtime.sendMessage({event:'native_dialog_boundary',phase,token,generation,nonce,kind,document:documentId}).catch(()=>{});},dispose:()=>{revisionObserver.disconnect();files.clear();elements.clear();traces.length=0;chrome.runtime.onMessage.removeListener(onMessage);}});
+  // The unsaved-typing report names a field by its label, never by anything it
+  // holds: no value, no editor text, no labelling node that is or holds an
+  // editor. Each label is quoted and capped, so one can't pass for several.
+  function unsavedLabel(element){
+    const editor=node=>node.isContentEditable||!!node.querySelector?.('[contenteditable]');
+    const root=element.getRootNode();
+    const from=nodes=>nodes.length&&!nodes.some(editor)?nodes.map(node=>text(node,true)).join(' '):'';
+    const labelled=(element.getAttribute('aria-labelledby')||'').split(/\s+/).map(key=>root.getElementById?.(key)).filter(Boolean);
+    // name()'s order: aria-labelledby, aria-label, <label>, then hints.
+    const label=from(labelled)||element.getAttribute('aria-label')||from([...(element.labels||[])])||
+      element.getAttribute('placeholder')||element.getAttribute('aria-placeholder')||element.getAttribute('title')||'';
+    const kind=element.isContentEditable?'editor':html(element,HTMLTextAreaElement,'textarea')?'text area':html(element,HTMLSelectElement,'select')?'list':
+      password(element)?'password field':{hidden:'hidden field',checkbox:'checkbox',radio:'radio button'}[element.type]||'field';
+    const clean=label.replace(/\s+/g,' ').trim();
+    return clean?kind+' "'+clean.slice(0,80).replace(/"/g,"'")+(clean.length>80?'…':'')+'"':'an unlabelled '+kind;
+  }
   function reloadState(){
-    let unsaved=document.designMode?.toLowerCase()==='on';
+    const fields=document.designMode?.toLowerCase()==='on'?['the whole page (design mode)']:[];
     for(const element of all()){
       if(element.matches('input,textarea,select,[contenteditable]')){
-        if(password(element)){unsaved=true;continue;}
-        if(!watched&&(typedField(element)||html(element,HTMLInputElement,'input')&&element.type==='hidden')){unsaved=true;continue;}
+        let changed;
+        if(password(element))changed=true;
+        else if(!watched&&(typedField(element)||html(element,HTMLInputElement,'input')&&element.type==='hidden'))changed=true;
         // There is no native defaultValue for rich text. A late reader cannot
-        // prove it unchanged, including an editor the owner emptied.
-        if(element.isContentEditable){unsaved=true;continue;}
-        if(html(element,HTMLSelectElement,'select'))unsaved ||= [...element.options].some(option=>option.selected!==option.defaultSelected);
-        else if(['checkbox','radio'].includes(element.type))unsaved ||= element.checked!==element.defaultChecked;
-        else unsaved ||= element.value!==element.defaultValue;
+        // prove it unchanged, including an editor the owner emptied. An editor
+        // inside another is part of it and named once.
+        else if(element.isContentEditable){if(element.parentElement?.isContentEditable)continue;changed=true;}
+        else if(html(element,HTMLSelectElement,'select'))changed=[...element.options].some(option=>option.selected!==option.defaultSelected);
+        else if(['checkbox','radio'].includes(element.type))changed=element.checked!==element.defaultChecked;
+        else changed=element.value!==element.defaultValue;
+        if(changed)fields.push(unsavedLabel(element));
       }
     }
-    return {unsaved,playing:all().some(element=>['AUDIO','VIDEO'].includes(element.tagName)&&!element.paused&&!element.ended)};
+    return {unsaved:fields.length>0,fields,playing:all().some(element=>['AUDIO','VIDEO'].includes(element.tagName)&&!element.paused&&!element.ended)};
   }
   function onMessage(message, sender, reply, filesReady=false) {
     if (sender.id !== chrome.runtime.id || !message || typeof message.command !== 'string') return;

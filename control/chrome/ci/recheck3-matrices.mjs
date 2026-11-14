@@ -30,7 +30,7 @@ export async function recheck3Matrices({check,nav,call,target,approval,receiverE
       if(route==='ping'){await eventually(()=>receiverEvidence('ping-'+id,'approved ping once').count===1,'approved hyperlink ping');assert.equal(receiverEvidence('ping-'+id,'repeat never pings again').count,1);}
       if(route==='blank'){
         const child=await eventually(async()=>(await allTabs(call)).items.find(row=>row.tab!==getTab()&&row.url?.includes('/receive?case='+id)&&row.controlled),'approved target joins control');
-        await call('close_tab',{tab:child.tab});
+        await call('close_tab',{tab:child.tab,discard_unsaved:true});
       }
       evidence.defaults.push({id,kind,route,stopped});await closeNativeDonor();
     }

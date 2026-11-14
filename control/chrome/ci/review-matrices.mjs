@@ -8,7 +8,7 @@ import fs from 'node:fs';
 
 export async function guardedHandoffClick({rpc,call,target,eventually,receiverEvidence,id}){
   const before=await target('Ready');
-  const first=await rpc('click',{...before,reload_taken_tab:true});
+  const first=await rpc('click',{...before,discard_unsaved:true});
   assert.equal(first.ok,false);assert.equal(first.error.code,'stale_reference');
   assert.match(first.error.message,/reloaded to install its page guard/);
   // The new document can still be parsing after the reload has committed.
@@ -146,12 +146,12 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       await call('click',await eventually(childTarget,'guarded other tab'));
       if(outside)await call('release_tab',{tab:child.tab});
       await call('click',await target('Continue'));
-      if(outside){await eventually(()=>counts(id)===1,'outside document takes native path');await call('take_tab',{tab:child.tab});await call('close_tab',{tab:child.tab});}
+      if(outside){await eventually(()=>counts(id)===1,'outside document takes native path');await call('take_tab',{tab:child.tab});await call('close_tab',{tab:child.tab,discard_unsaved:true});}
       else{
         assert.equal(counts(id),0,'the other controlled document cannot take the source native path');
         await call('read',{tab:child.tab});let cursor,prepared;
         do{const pending=await rpc('control_pending',{limit:10,...(cursor?{cursor}:{})});assert.equal(pending.ok,true);for(const row of pending.data.items){if(row.app!=='chrome'||row.state!=='reserved')continue;const status=await call('operation_status',{operation_id:row.operation_id});if(status.operation.approval?.description?.untrusted_content?.page_state?.url?.includes(id))prepared=status.operation.approval;}cursor=pending.data.cursor;}while(cursor&&!prepared);
-        assert.ok(prepared);await approval({approval:prepared},id);await call('close_tab',{tab:child.tab});
+        assert.ok(prepared);await approval({approval:prepared},id);await call('close_tab',{tab:child.tab,discard_unsaved:true});
       }
     }
   });
@@ -228,7 +228,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       await eventually(()=>counts('loaded-'+id)===1,'owner page loaded');
       if(mode!=='blank-editor'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'detached playback started');await delay(500);}
       await call('take_tab',{tab});const before=await target('Continue');const first=await rpc('click',before);assert.equal(first.ok,false);assert.equal(first.error.code,'reload_required');assert.equal(counts('loaded-'+id),1);
-      const repeat=await rpc('click',{...before,reload_taken_tab:true});assert.equal(repeat.ok,false);assert.equal(repeat.error.code,'stale_reference');await eventually(()=>counts('loaded-'+id)===2,'explicit guarded reload');
+      const repeat=await rpc('click',{...before,discard_unsaved:true});assert.equal(repeat.ok,false);assert.equal(repeat.error.code,'stale_reference');await eventually(()=>counts('loaded-'+id)===2,'explicit guarded reload');
     }
     // Final F6: chrome_navigate direction=reload in a taken tab gives the same
     // report, reloads only on the explicit repeat, and a clean tab just reloads.
@@ -239,10 +239,44 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       await call('take_tab',{tab});
       if(mode!=='clean'){
         const first=await rpc('navigate',{tab,direction:'reload'});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-        assert.match(first.error.message,mode==='dirty'?/unsaved text/:/playing media/);await delay(500);assert.equal(counts('loaded-'+id),1,'the owner page stays until the explicit repeat');
+        assert.match(first.error.message,mode==='dirty'?/Reloading this tab would lose unsaved typing in field "Draft"/:/media that is playing/);assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id),1,'the owner page stays until the explicit repeat');
       }
-      const reloaded=await rpc('navigate',{tab,direction:'reload',...(mode==='clean'?{}:{reload_taken_tab:true})});assert.equal(reloaded.ok,true,JSON.stringify(reloaded));
+      const reloaded=await rpc('navigate',{tab,direction:'reload',...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(reloaded.ok,true,JSON.stringify(reloaded));
       await eventually(()=>counts('loaded-'+id)===2,'navigate reload '+mode);
+    }
+    // discard_unsaved (lead, 2026-11-14): chrome_navigate to an address gives
+    // the same report in a taken tab and goes only with the flag.
+    for(const mode of ['dirty','web-audio','clean']){
+      const id='final-discard-navigate-url-'+mode,next=id+'-next',tab=getTab();await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode);
+      await eventually(()=>counts('loaded-'+id)===1,'owner page loaded');
+      if(mode==='web-audio'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
+      await call('take_tab',{tab});const url='http://fixture.test:8765/?case=take-state&id='+next+'&mode=clean';
+      if(mode!=='clean'){
+        // Before its first reload a taken tab's text fields count as unsaved.
+        const first=await rpc('navigate',{tab,url});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
+        assert.match(first.error.message,/Navigating this tab away would lose unsaved typing in field "Draft"/);assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');
+        if(mode==='web-audio')assert.match(first.error.message,/media that is playing/);
+        await delay(500);assert.equal(counts('loaded-'+next),0,'the owner page stays until the explicit repeat');
+      }
+      const moved=await rpc('navigate',{tab,url,...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(moved.ok,true,JSON.stringify(moved));
+      await eventually(()=>counts('loaded-'+next)===1,'navigate to an address '+mode);
+    }
+    // discard_unsaved: chrome_close_tab gives the same report in a tab Claude
+    // opened, whose reader watched from the start, and closes only with the flag.
+    const main=getTab();
+    for(const mode of ['dirty','web-audio','clean']){
+      const id='final-discard-close-tab-'+mode,opened=await call('open',{url:'http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode}),tab=opened.untrusted_content?.tab??opened.tab;
+      await eventually(()=>counts('loaded-'+id)===1,'Claude tab loaded');setTab(tab);
+      try{
+        if(mode==='web-audio'){await call('click',await target('Play media'));await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
+        if(mode!=='clean'){
+          const first=await rpc('close_tab',{tab});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
+          assert.match(first.error.message,mode==='dirty'?/Closing this tab would lose unsaved typing in field "Draft"\./:/Closing this tab would lose media that is playing\./);assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');
+          await delay(300);assert.ok((await allTabs(call)).items.some(row=>row.tab===tab&&row.controlled),'the tab stays open and controlled until the explicit repeat');
+        }
+        const closed=await rpc('close_tab',{tab,...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(closed.ok,true,JSON.stringify(closed));
+        await eventually(async()=>!(await allTabs(call)).items.some(row=>row.tab===tab),'close_tab '+mode);
+      }finally{setTab(main);}
     }
   });
   await check('GROUP 8 REVIEW script-started POST documents in tabs and popups never reload',async()=>{
@@ -253,7 +287,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     await nav('review-page&mode=script-popup&id=review-script-popup');await call('click',await target('Open window'));await eventually(()=>counts('review-script-popup')===1,'popup script POST');
     const child=await eventually(async()=>(await allTabs(call)).items.find(row=>row.url?.includes('/post-document?case=review-script-popup')),'POST popup exists');
     const page=await call('read',{tab:child.tab});const row=page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Continue');assert.ok(row);
-    const popupRefused=await rpc('click',{reference:row.reference,expected:row.expected});assert.equal(popupRefused.ok,false);assert.match(popupRefused.error.message,/form submission|request method/);assert.equal(counts('review-script-popup'),1);await call('close_tab',{tab:child.tab});
+    const popupRefused=await rpc('click',{reference:row.reference,expected:row.expected});assert.equal(popupRefused.ok,false);assert.match(popupRefused.error.message,/form submission|request method/);assert.equal(counts('review-script-popup'),1);await call('close_tab',{tab:child.tab,discard_unsaved:true});
   });
   await check('GROUP 8 REVIEW no-op checks and isolated choices leave the owner tab selected',async()=>{
     const tab=getTab();await nav('features&id=review-noop');await call('check',{...await target('Tick'),checked:true});
@@ -262,7 +296,7 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     const result=await call('check',{...await target('Tick'),checked:true});assert.equal(result.untrusted_content.no_change,true);assert.equal(result.untrusted_content.dispatched,false);assert.equal(await active(),owner);
     await call('select',{...await target('Choice'),value:'b'});assert.equal(await active(),owner,'isolated selection cannot take focus');
     assert.equal((await allTabs(call)).items.find(row=>row.tab===tab).active,false);
-    await call('take_tab',{tab:owner});await call('close_tab',{tab:owner});
+    await call('take_tab',{tab:owner});await call('close_tab',{tab:owner,discard_unsaved:true});
   });
   await check('GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup',async()=>{
     const tab=getTab();await nav('review-page&mode=frozen-stop&id=review-stop-blocks');await call('click',await target('Continue'));await lifecycle({fixture:'stop'});

@@ -69,7 +69,7 @@ class Operations(unittest.TestCase):
             if name=='prepare_control':
                 committed=[operation for _,operation in self.engine.store.iter_items('op:') if operation['action']=='chrome_prepare_control']
                 self.assertEqual(len(committed),1);self.assertEqual(committed[0]['state'],'submitting')
-                self.assertEqual(args,{'tab':1,'reload_taken_tab':False})
+                self.assertEqual(args,{'tab':1,'discard_unsaved':False})
                 self.browser.facts['needs_reload']=False
                 self.browser.facts['frames'][0]['document']='new-document'
                 self.browser.dispatched.append((name,args));return {'reloaded':True}
@@ -87,14 +87,14 @@ class Operations(unittest.TestCase):
         def request(name,**args):
             if name=='prepare_control':
                 attempts.append(args)
-                if not args.get('reload_taken_tab'):raise Refused('reload_required','Unsaved text and playing media; explicit repeat required.')
+                if not args.get('discard_unsaved'):raise Refused('reload_required','Unsaved text and playing media; explicit repeat required.')
                 self.browser.facts['needs_reload']=False;return {'reloaded':True}
             return original(name,**args)
         self.browser.call=request
         result=self.call('click',self.target());self.assertEqual(result['error']['code'],'reload_required');self.assertEqual(self.browser.dispatched,[])
         operations=[operation for _,operation in self.engine.store.iter_items('op:') if operation['action']=='chrome_prepare_control']
         self.assertEqual(operations[0]['state'],'failed')
-        result=self.call('click',{**self.target(),'reload_taken_tab':True});self.assertEqual(result['error']['code'],'stale_reference');self.assertTrue(attempts[-1]['reload_taken_tab'])
+        result=self.call('click',{**self.target(),'discard_unsaved':True});self.assertEqual(result['error']['code'],'stale_reference');self.assertTrue(attempts[-1]['discard_unsaved'])
         self.browser.facts['needs_reload']=True
         self.engine.store.write({'chrome:readonly:fixture.test':True},'chrome_test_readonly','Synthetic read-only restriction')
         result=self.call('click',self.target());self.assertFalse(result['ok']);self.assertEqual(len(attempts),2)
@@ -211,6 +211,8 @@ class Operations(unittest.TestCase):
         self.browser.call=checked
         result=self.call('open',{'url':'https://fixture.test/'});self.assertTrue(result['ok'],result)
         self.assertEqual([name for name,_ in self.browser.dispatched],['open','navigate'])
+        # The tab was just created, so its address navigation has nothing to report.
+        self.assertEqual(self.browser.dispatched[1][1],{'tab':2,'url':'https://fixture.test/','discard_unsaved':True})
 
     def test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch(self):
         original=self.engine.store.ledger.admit

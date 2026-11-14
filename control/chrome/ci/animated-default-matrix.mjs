@@ -15,7 +15,7 @@ export async function animatedDefaultMatrix({check,nav,call,target,approval,rece
       await approval(await call('click',await target('Delete')),id);
       if(route==='blank'){
         const child=await eventually(async()=>(await allTabs(call)).items.find(row=>row.tab!==getTab()&&row.url?.includes('/receive?case='+id)&&row.controlled),'approved animated target joins control');
-        await call('close_tab',{tab:child.tab});
+        await call('close_tab',{tab:child.tab,discard_unsaved:true});
       }
       evidence.push({id,kind,route,before,stopped,after});await closeNativeDonor();
     }

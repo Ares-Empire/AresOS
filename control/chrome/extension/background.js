@@ -585,14 +585,28 @@ async function reloadIdentity(tab){
   rememberGet(tab,tree.frameTree.frame.loaderId);
   return {loaderId:tree.frameTree.frame.loaderId,frameId:tree.frameTree.frame.id||null,frames:frames.map(frame=>[frame.frameId,frame.documentId,frame.url])};
 }
-async function reloadChecked(tab,initial,requireClean=false){
+// One report for every act that drops a Claude tab's document: the first
+// input's guarded reload, navigate (reload or address) and close_tab. It names
+// fields by label, never their values, says whether media is playing, and
+// does nothing unless the call says discard_unsaved=true.
+async function requireDiscard(tab,command,act,frames,uninspected=0){
+  if(command.discard_unsaved===true)return;
+  const fields=[];let playing=!!(await chrome.tabs.get(tab)).audible;
+  for(const frame of frames){
+    try{const state=await content(tab,frame.frameId,'reload_state');fields.push(...(state.fields||[]));if(state.unsaved&&!state.fields?.length)fields.push('editable content');playing ||= state.playing;}
+    // A tab Claude just opened shows about:blank with no reader; it holds nothing.
+    catch(error){if(!(error.readerUnavailable&&frame.frameId===0&&frame.url==='about:blank'))uninspected++;}
+  }
+  const found=[];
+  if(fields.length)found.push('unsaved typing in '+fields.slice(0,10).join(', ')+(fields.length>10?' and '+(fields.length-10)+' more fields':''));
+  if(uninspected)found.push(uninspected+(uninspected===1?' frame':' frames')+' that could not be inspected and may hold unsaved typing');
+  if(playing)found.push('media that is playing');
+  if(found.length)throw Error('reload_required: '+act+' would lose '+found.join('; and ')+'. Nothing was done. If any of it may be the owner\'s, tell him and get his OK in the chat, then repeat with discard_unsaved=true');
+}
+async function reloadChecked(tab,initial,command){
   const current=await reloadIdentity(tab);
   if(initial&&stable(current)!==stable(initial))throw Error('stale_reference: the document changed before its guarded reload; read again');
-  if(requireClean){
-    const nativeTab=await chrome.tabs.get(tab);let unsaved=false,playing=!!nativeTab.audible;
-    for(const [frameId]of current.frames){try{const value=await content(tab,frameId,'reload_state');unsaved ||= value.unsaved;playing ||= value.playing;}catch{unsaved=true;}}
-    if(unsaved||playing)throw Error('reload_required: this taken tab '+[unsaved?'may have unsaved text or editable content':null,playing?'is playing media':null].filter(Boolean).join(' and ')+'; tell the owner, then repeat with reload_taken_tab=true only when the reload is wanted');
-  }
+  await requireDiscard(tab,command,'Reloading this tab',current.frames.map(([frameId,,url])=>({frameId,url})));
   const owner=controlled.get(tab),pending={frameId:current.frameId,document:current.frames.find(frame=>frame[0]===0)?.[1]};owner.getReload=pending;
   try{await cdp(tab,'Page.reload',{loaderId:current.loaderId});owner.popupNeedsReload=false;}catch(error){if(owner.getReload===pending)delete owner.getReload;throw error;}
 }
@@ -916,17 +930,16 @@ async function dispatch(command) {
     const current=await facts(tab);
     if(!current.needs_reload)return {ready:true};
     const initial=await reloadIdentity(tab);
-    let unsaved=!!current.uncovered?.length,playing=!!(await chrome.tabs.get(tab)).audible;
-    for(const frame of current.frames){try{const state=await content(tab,frame.frame,'reload_state');unsaved ||= state.unsaved;playing ||= state.playing;}catch{unsaved=true;}}
-    if((unsaved||playing)&&command.reload_taken_tab!==true)throw Error('reload_required: this taken tab '+[unsaved?'may have unsaved text or editable content':null,playing?'is playing media':null].filter(Boolean).join(' and ')+'; tell the owner, then repeat with reload_taken_tab=true only when the reload is wanted');
-    await reloadChecked(tab,initial,command.reload_taken_tab!==true);
+    // Frames the reader couldn't cover count as possibly unsaved.
+    await requireDiscard(tab,command,'The guarded reload before this first input',current.frames.map(frame=>({frameId:frame.frame,url:frame.url})),current.uncovered?.length||0);
+    await reloadChecked(tab,initial,command);
     return {reloaded:true,message:'The taken tab reloaded to install its page guard before page scripts. Every old reference is stale; read again.'};
   }
-  if (command.name === 'close_tab') { await release(tab); await chrome.tabs.remove(tab); return {closed:tab}; }
+  if (command.name === 'close_tab') { await requireDiscard(tab,command,'Closing this tab',await chrome.webNavigation.getAllFrames({tabId:tab})||[]); await release(tab); await chrome.tabs.remove(tab); return {closed:tab}; }
   if (command.name === 'navigate') {
-    if (command.url) { safeURL(command.url);const navigated=await cdp(tab,'Page.navigate',{url:command.url});rememberGet(tab,navigated?.loaderId); }
+    if (command.url) { safeURL(command.url);await requireDiscard(tab,command,'Navigating this tab away',await chrome.webNavigation.getAllFrames({tabId:tab})||[]);const navigated=await cdp(tab,'Page.navigate',{url:command.url});rememberGet(tab,navigated?.loaderId); }
     // Same unsaved-typing and playing-media report as the first input's reload.
-    else if (command.direction === 'reload') await reloadChecked(tab,null,command.reload_taken_tab!==true);
+    else if (command.direction === 'reload') await reloadChecked(tab,null,command);
     else {
       const history = await cdp(tab,'Page.getNavigationHistory');
       const entry = history.entries[history.currentIndex + (command.direction === 'back' ? -1:1)];

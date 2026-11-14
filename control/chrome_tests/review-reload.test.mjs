@@ -12,7 +12,7 @@ function scenario({inputError,initialError}={}){
     async target(label){assert.equal(label,'Ready');return reads++===0?before:revisions.shift();},
     async rpc(action,args){
       assert.equal(action,'click');requests.push(args);
-      if(args.reload_taken_tab)return {ok:false,error:{code:'stale_reference',message:initialError||'The taken tab reloaded to install its page guard. Every old reference is stale; read again.'}};
+      if(args.discard_unsaved)return {ok:false,error:{code:'stale_reference',message:initialError||'The taken tab reloaded to install its page guard. Every old reference is stale; read again.'}};
       assert.deepEqual(args,before);return {ok:false,error:{code:'stale_reference',message:'Document changed'}};
     },
     async eventually(check){for(let index=0;index<8;index++){assert.equal(inputs,0,'No input may run while the parser/view settles');const result=await check();if(result)return result;}throw Error('Fixture failed to settle');},

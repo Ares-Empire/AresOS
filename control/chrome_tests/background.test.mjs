@@ -122,22 +122,50 @@ test('Stop during blocked native cleanup returns pending and preserves handles u
 test('final F6 navigate reload in a taken tab gives the same unsaved and playing report and never reloads a POST',async()=>{
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({needs_reload:true,frames:[{frame:0}]});globalThis.reloaded=0;globalThis.reloadChecks=0;content=async()=>{reloadChecks++;return {unsaved:true,playing:true}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'}]};cdp=async(tab,method,parameters)=>{if(method==='Page.getFrameTree')return {frameTree:{frame:{loaderId:'loader',url:'http://fixture.test/'}}};assertedMethod=method;reloaded++;globalThis.reloadParameters=parameters;};globalThis.assertedMethod=null;");
   f.run("observation=async()=>({});documentMethods.set('[7,0]',{document:'doc',method:'GET'})");
-  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload'})"),/reload_required: this taken tab may have unsaved text or editable content and is playing media; tell the owner, then repeat with reload_taken_tab=true/);
+  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload'})"),/reload_required: Reloading this tab would lose unsaved typing in editable content; and media that is playing\. Nothing was done\. If any of it may be the owner's, tell him and get his OK in the chat, then repeat with discard_unsaved=true/);
   assert.equal(f.run('reloaded'),0);assert.equal(f.run('reloadChecks'),1);
-  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload',reload_taken_tab:false})"),/reload_required/);assert.equal(f.run('reloaded'),0);
+  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload',discard_unsaved:false})"),/reload_required/);assert.equal(f.run('reloaded'),0);
   f.run("content=async()=>{reloadChecks++;return {unsaved:false,playing:false}};chrome.tabs.get=async()=>({audible:true})");
-  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload'})"),/reload_required: this taken tab is playing media/);assert.equal(f.run('reloaded'),0);
+  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload'})"),/reload_required: Reloading this tab would lose media that is playing\./);assert.equal(f.run('reloaded'),0);
   f.run("chrome.tabs.get=async()=>({audible:false})");
   assert.equal((await f.run("dispatch({name:'navigate',tab:7,direction:'reload'})")).navigated,true,'a clean tab reloads without the flag');assert.equal(f.run('reloaded'),1);
   f.run("content=async()=>{reloadChecks++;return {unsaved:true,playing:false}}");
-  assert.equal((await f.run("dispatch({name:'navigate',tab:7,direction:'reload',reload_taken_tab:true})")).navigated,true);assert.equal(f.run('reloaded'),2);assert.equal(f.run('assertedMethod'),'Page.reload');
+  assert.equal((await f.run("dispatch({name:'navigate',tab:7,direction:'reload',discard_unsaved:true})")).navigated,true);assert.equal(f.run('reloaded'),2);assert.equal(f.run('assertedMethod'),'Page.reload');
   f.run("documentMethods.set('[7,0]',{document:'doc',method:'POST'})");
-  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload',reload_taken_tab:true})"),/form submission/);assert.equal(f.run('reloaded'),2);
+  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload',discard_unsaved:true})"),/form submission/);assert.equal(f.run('reloaded'),2);
+});
+
+test('final discard_unsaved navigate to an address and close_tab give the first input report and act only with the flag',async()=>{
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.navigations=0;globalThis.closed=0;globalThis.inspected=0;content=async()=>{inspected++;return {unsaved:true,fields:['field \\\"Comment\\\"','editor \\\"Message\\\"'],playing:false}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'}]};cdp=async(tab,method)=>{if(method==='Page.navigate'){navigations++;return {loaderId:'next'};}};observation=async()=>({});release=async()=>({released:7});chrome.tabs.get=async()=>({audible:true});chrome.tabs.remove=async()=>{closed++;};");
+  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,url:'http://fixture.test/next'})"),/^Error: reload_required: Navigating this tab away would lose unsaved typing in field "Comment", editor "Message"; and media that is playing\. Nothing was done\..*discard_unsaved=true$/);
+  assert.equal(f.run('navigations'),0);
+  for(const flag of ['',',discard_unsaved:false',',discard_unsaved:1']){
+    await assert.rejects(f.run("dispatch({name:'close_tab',tab:7"+flag+"})"),/reload_required: Closing this tab would lose unsaved typing in field "Comment"/);
+    await assert.rejects(f.run("dispatch({name:'navigate',tab:7,url:'http://fixture.test/next'"+flag+"})"),/reload_required/);
+  }
+  assert.equal(f.run('closed'),0);assert.equal(f.run('navigations'),0);
+  const inspected=f.run('inspected');
+  assert.equal((await f.run("dispatch({name:'navigate',tab:7,url:'http://fixture.test/next',discard_unsaved:true})")).navigated,true);assert.equal(f.run('navigations'),1);
+  assert.equal(JSON.stringify(await f.run("dispatch({name:'close_tab',tab:7,discard_unsaved:true})")),'{"closed":7}');assert.equal(f.run('closed'),1);
+  assert.equal(f.run('inspected'),inspected,'the flag discards without reading the tab again');
+  f.run("content=async()=>({unsaved:false,fields:[],playing:false});chrome.tabs.get=async()=>({audible:false})");
+  assert.equal((await f.run("dispatch({name:'navigate',tab:7,url:'http://fixture.test/clean'})")).navigated,true,'a clean tab needs no flag');assert.equal(f.run('navigations'),2);
+  assert.equal(JSON.stringify(await f.run("dispatch({name:'close_tab',tab:7})")),'{"closed":7}');assert.equal(f.run('closed'),2);
+  // A tab Claude just opened has no reader on about:blank and holds nothing;
+  // any other frame without an answer may hold typing.
+  f.run("chrome.webNavigation.getAllFrames=async()=>[{frameId:0,url:'about:blank'}];content=async()=>{const error=Error('Could not establish connection. Receiving end does not exist.');error.readerUnavailable=true;throw error;}");
+  assert.equal((await f.run("dispatch({name:'navigate',tab:7,url:'http://fixture.test/from-blank'})")).navigated,true);assert.equal(f.run('navigations'),3);
+  f.run("chrome.webNavigation.getAllFrames=async()=>[{frameId:0,url:'http://fixture.test/'},{frameId:3,url:'about:blank'}]");
+  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,url:'http://fixture.test/next'})"),/would lose 2 frames that could not be inspected and may hold unsaved typing\./);
+  await assert.rejects(f.run("dispatch({name:'close_tab',tab:7})"),/would lose 2 frames that could not be inspected/);assert.equal(f.run('navigations'),3);assert.equal(f.run('closed'),2);
+  f.run("chrome.webNavigation.getAllFrames=async()=>[{frameId:0,url:'http://fixture.test/'}];content=async()=>({unsaved:true,fields:Array.from({length:12},(_,index)=>'field \\\"F'+index+'\\\"'),playing:false})");
+  await assert.rejects(f.run("dispatch({name:'close_tab',tab:7})"),/field "F9" and 2 more fields\./);
 });
 
 test('a POST document arriving during reload inspection is never reloaded',async()=>{
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({needs_reload:true,frames:[{frame:0}]});globalThis.topDocument='get';globalThis.reloads=0;documentMethods.set('[7,0]',{document:'get',method:'GET'});chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:topDocument,url:'http://fixture.test/'}]};cdp=async(tab,method)=>{if(method==='Page.getFrameTree')return {frameTree:{frame:{url:'http://fixture.test/',loaderId:topDocument}}};reloads++};content=async()=>{topDocument='post';documentMethods.set('[7,0]',{document:'post',method:'POST'});return {unsaved:false,playing:false};};");
-  await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7,reload_taken_tab:true})"),/form submission/);assert.equal(f.run('reloads'),0);
+  // discard_unsaved=true skips the inspection, so the unflagged call is the one with this window.
+  await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/form submission/);assert.equal(f.run('reloads'),0);
   await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload'})"),/form submission/);assert.equal(f.run('reloads'),0);
 });
 
@@ -240,12 +268,12 @@ test('startup evaluates only fixed bundles in authenticated private contexts bef
 
 test('taken-tab first input defers dirty or playing GET documents and refuses POST without a request',async()=>{
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({needs_reload:true,frames:[{frame:0}]});globalThis.reloaded=0;globalThis.reloadChecks=0;content=async()=>{reloadChecks++;return {unsaved:true,playing:true}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'}]};cdp=async(tab,method,parameters)=>{if(method==='Page.getFrameTree')return {frameTree:{frame:{loaderId:'loader',url:'http://fixture.test/'}}};assertedMethod=method;reloaded++;globalThis.reloadParameters=parameters;};globalThis.assertedMethod=null;");
-  await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7,reload_taken_tab:true})"),/request method is unknown/);
+  await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7,discard_unsaved:true})"),/request method is unknown/);
   f.run("documentMethods.set('[7,0]',{document:'doc',method:'POST'})");
-  await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7,reload_taken_tab:true})"),/form submission/);assert.equal(f.run('reloaded'),0);assert.equal(f.run('reloadChecks'),0);
+  await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7,discard_unsaved:true})"),/form submission/);assert.equal(f.run('reloaded'),0);assert.equal(f.run('reloadChecks'),0);
   f.run("documentMethods.set('[7,0]',{document:'doc',method:'GET'})");
   await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/reload_required:.*unsaved.*playing/);assert.equal(f.run('reloaded'),0);
-  assert.equal((await f.run("dispatch({name:'prepare_control',tab:7,reload_taken_tab:true})")).reloaded,true);assert.equal(f.run('reloaded'),1);assert.equal(f.run('assertedMethod'),'Page.reload');
+  assert.equal((await f.run("dispatch({name:'prepare_control',tab:7,discard_unsaved:true})")).reloaded,true);assert.equal(f.run('reloaded'),1);assert.equal(f.run('assertedMethod'),'Page.reload');
   assert.equal(f.run('reloadParameters.loaderId'),'loader');
   f.run('facts=async()=>({needs_reload:false})');assert.equal((await f.run("dispatch({name:'prepare_control',tab:7})")).ready,true);assert.equal(f.run('reloaded'),1);
 });
@@ -705,13 +733,13 @@ test('ending control during missing-reader installation cannot publish a snapsho
 test('P24 final identity query finishes before the last dirty and audible check',async()=>{
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({needs_reload:true,frames:[{frame:0}]});globalThis.identityCalls=0;globalThis.dirty=false;globalThis.reloads=0;chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'}]};documentMethods.set('[7,0]',{document:'doc',method:'GET'});cdp=async(tab,method)=>{if(method==='Page.getFrameTree'){if(++identityCalls===2)dirty=true;return {frameTree:{frame:{url:'http://fixture.test/',loaderId:'loader'}}};}reloads++;};content=async()=>({unsaved:dirty,playing:false});");
   await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/reload_required/);assert.equal(f.run('reloads'),0);
-  f.run('dirty=false;identityCalls=0;chrome.tabs.get=async()=>({audible:true})');await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/playing media/);assert.equal(f.run('reloads'),0);
+  f.run('dirty=false;identityCalls=0;chrome.tabs.get=async()=>({audible:true})');await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/media that is playing/);assert.equal(f.run('reloads'),0);
 });
 test('P24 uncovered and unreadable frames count as possibly unsaved before both reload boundaries',async()=>{
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({needs_reload:true,frames:[{frame:0}],uncovered:[{frame:1}]});reloadIdentity=async()=>({loaderId:'loader',frameId:'top',frames:[[0,'top'],[1,'unreadable']]});globalThis.reloads=0;globalThis.unreadable=false;cdp=async()=>reloads++;content=async(tab,frame)=>{if(unreadable&&frame===1)throw Error('reader unavailable');return {unsaved:false,playing:false}};");
   await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/possibly|unsaved/);assert.equal(f.run('reloads'),0);
   f.run('unreadable=true');
-  await assert.rejects(f.run('reloadChecked(7,undefined,true)'),/possibly|unsaved/);assert.equal(f.run('reloads'),0);
+  await assert.rejects(f.run('reloadChecked(7,undefined,{})'),/1 frame that could not be inspected and may hold unsaved typing/);assert.equal(f.run('reloads'),0);
   f.run("facts=async()=>({needs_reload:true,frames:[{frame:0},{frame:1}]})");
   await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7})"),/possibly|unsaved/);assert.equal(f.run('reloads'),0);
 });

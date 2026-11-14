@@ -429,14 +429,21 @@ class Questions(unittest.TestCase):
         self.assertIn('(200 characters); frame 4 (http://second.test:8766): "Inner"?',question)
         self.assertEqual(reads,[])
 
-    def test_final_navigate_reload_carries_the_taken_tab_report_choice_to_the_browser(self):
-        for args in [{'tab':1,'direction':'reload'},{'tab':1,'direction':'reload','reload_taken_tab':True},{'tab':1,'direction':'reload','reload_taken_tab':False}]:
+    def test_final_discard_unsaved_reaches_the_browser_for_navigate_and_close_tab(self):
+        # One flag for every act that drops a Claude tab's document; the browser decides with the report.
+        for verb,args in [('navigate',{'tab':1,'direction':'reload'}),('navigate',{'tab':1,'direction':'reload','discard_unsaved':True}),('navigate',{'tab':1,'direction':'reload','discard_unsaved':False}),
+                          ('navigate',{'tab':1,'url':'https://fixture.test/next'}),('navigate',{'tab':1,'url':'https://fixture.test/next','discard_unsaved':True}),
+                          ('close_tab',{'tab':1}),('close_tab',{'tab':1,'discard_unsaved':True})]:
             self.browser.dispatched.clear()
-            result=self.call('navigate',args);self.assertTrue(result['ok'],result)
-            self.assertEqual(self.browser.dispatched,[('navigate',args)])
-        self.assertFalse(self.call('navigate',{'tab':1,'direction':'reload','reload_taken_tab':'yes'})['ok'],'the choice is a boolean')
+            result=self.call(verb,args);self.assertTrue(result['ok'],result)
+            self.assertEqual(self.browser.dispatched,[(verb,args)])
+        for verb,args in [('navigate',{'tab':1,'direction':'reload','discard_unsaved':'yes'}),('close_tab',{'tab':1,'discard_unsaved':1})]:
+            self.assertFalse(self.call(verb,args)['ok'],'the choice is a boolean')
         from aresos_control.chrome.definitions import SHARED
-        self.assertIn('chrome_navigate direction=reload reports the same way',SHARED)
+        from aresos_control.definitions import instructions_for
+        self.assertIn('chrome_navigate (reload or an address) and chrome_close_tab on any Claude tab first report unsaved typing, by field label, and playing media',SHARED)
+        self.assertNotIn('reload_taken_tab',instructions_for('chrome'))
+        self.assertIn("When a report lists the owner's unsaved typing or playing media, tell him and get his OK in the chat before setting discard_unsaved.",instructions_for('chrome'))
         self.assertIn('refuses its submit before that first-input reload runs',SHARED)
 
     def test_post18df_form_with_withheld_values_refuses_before_reload_or_preparation(self):

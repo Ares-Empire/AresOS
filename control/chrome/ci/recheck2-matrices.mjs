@@ -41,7 +41,7 @@ export async function recheck2Matrices({check,nav,call,target,approval,receiverE
       if(variant==='ping'){await eventually(()=>receiverEvidence('ping-'+id,'approved ping observed').count===1,'one approved ping');assert.equal(receiverEvidence('ping-'+id,'approved ping remains once').count,1);}
       if(variant==='blank'||variant==='form-blank'){
         const child=await eventually(async()=>(await allTabs(call)).items.find(row=>row.tab!==getTab()&&row.url?.includes('/receive?case='+id)&&row.controlled),'approved native target joins control');
-        await call('close_tab',{tab:child.tab});
+        await call('close_tab',{tab:child.tab,discard_unsaved:true});
       }
       await closeNativeDonor();
     }
@@ -92,7 +92,7 @@ export async function recheck2Matrices({check,nav,call,target,approval,receiverE
       const row={id,mode,capability,alone,clicked,added_transient_activation:!alone.atHandler.active&&clicked.atHandler.active,result,status};observations.push(row);
       console.log('RECHECK2B LIMIT',JSON.stringify({id,added_transient_activation:row.added_transient_activation,alone:alone.outcome,clicked:clicked.outcome}));
       await delay(150);
-      for(const child of (await allTabs(call)).items.filter(row=>row.tab!==getTab()&&row.url?.includes('mode=activation-popup&id='+id))){assert.equal(child.controlled,true);await call('close_tab',{tab:child.tab});}
+      for(const child of (await allTabs(call)).items.filter(row=>row.tab!==getTab()&&row.url?.includes('mode=activation-popup&id='+id))){assert.equal(child.controlled,true);await call('close_tab',{tab:child.tab,discard_unsaved:true});}
       await closeNativeDonor();
     }
     fs.writeFileSync('/out/all-native-limit.json',JSON.stringify(observations,null,2));

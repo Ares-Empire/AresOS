@@ -94,12 +94,12 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       await call('take_tab',{tab});const before=await target('Continue');await read();await read();assert.equal(counts('loaded-'+id),1,'taking and reading never reload');
       const first=await rpc('click',before);assert.equal(first.ok,false);
       if(mode==='clean')assert.equal(first.error.code,'stale_reference');
-      else{assert.equal(first.error.code,'reload_required');assert.equal(counts('loaded-'+id),1,'dirty and playing pages are preserved until explicit repeat');const repeated=await rpc('click',{...before,reload_taken_tab:true});assert.equal(repeated.ok,false);assert.equal(repeated.error.code,'stale_reference');}
+      else{assert.equal(first.error.code,'reload_required');assert.equal(counts('loaded-'+id),1,'dirty and playing pages are preserved until explicit repeat');const repeated=await rpc('click',{...before,discard_unsaved:true});assert.equal(repeated.ok,false);assert.equal(repeated.error.code,'stale_reference');}
       await eventually(()=>counts('loaded-'+id)===2,'only first input reloads');const fresh=await target('Continue');assert.notEqual(fresh.reference.document,before.reference.document);assert.equal((await rpc('click',before)).ok,false,'every old reference stays stale');await call('click',fresh);assert.equal(counts('loaded-'+id),2,'later input never repeats the reload');
     }
     await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-post');ownerKey();
     await eventually(()=>counts('taken-post')===1,'one native POST loaded the document');await call('take_tab',{tab});const denied=await rpc('click',await target('Continue'));assert.equal(denied.ok,false);assert.match(denied.error.message,/form submission|request method/);await delay(150);assert.equal(counts('taken-post'),1,'refusal must not resubmit POST');
-    await call('navigate',{tab,url:'http://fixture.test:8765/?case=features&id=post-history'});await eventually(async()=>String((await call('read',{tab})).untrusted_content.url).includes('id=post-history'),'GET after POST');assert.equal((await rpc('navigate',{tab,direction:'back'})).ok,false);assert.equal(counts('taken-post'),1,'history must not resubmit POST');
+    await call('navigate',{tab,url:'http://fixture.test:8765/?case=features&id=post-history',discard_unsaved:true});await eventually(async()=>String((await call('read',{tab})).untrusted_content.url).includes('id=post-history'),'GET after POST');assert.equal((await rpc('navigate',{tab,direction:'back'})).ok,false);assert.equal(counts('taken-post'),1,'history must not resubmit POST');
   });
   if(runs('adapters'))results.push(...await collectSiteResults(()=>(import('./sites/matrices.mjs').then(({siteMatrices})=>siteMatrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,lifecycle})))));
   await check('GROUP 1 submit compose deletion and free-input matrix',async()=>{
@@ -308,7 +308,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
     await nav('popup-excluded');await call('click',await target('Continue'));await delay(250);
     const tabs=await allTabs(call);const excludedPopups=tabs.items.filter(item=>item.url?.includes('approval.test'));assert.equal(excludedPopups.length,1,'excluded popup must exist');for(const item of excludedPopups){const result=await rpc('take_tab',{tab:item.tab});assert.equal(result.ok,false);}
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
-    await call('navigate',{tab,url:'http://fixture.test:8765/?case=redirect'});await delay(400);const redirected=await rpc('read',{tab});assert.equal(redirected.ok,false);
+    await call('navigate',{tab,url:'http://fixture.test:8765/?case=redirect',discard_unsaved:true});await delay(400);const redirected=await rpc('read',{tab});assert.equal(redirected.ok,false);
     await ownerNavigate('http://approval.test:8765/?case=excluded');assert.equal((await rpc('take_tab',{tab})).ok,false);
     await ownerNavigate('http://fixture.test:8765/?case=compose');await call('take_tab',{tab});
     const back=await rpc('navigate',{tab,direction:'back'});assert.equal(back.ok,false);assert.doesNotMatch(JSON.stringify(await read()),/EXCLUDED_PAGE_SENTINEL_20/);
@@ -356,7 +356,7 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
       const result=await rpc('submit',prepared.approval);assert.ok(!result.ok||result.data.operation.state==='failed');assert.equal(counts('compose'),before);
       if(action==='release_tab')await call('take_tab',{tab});
     }
-    const opened=await call('open',{url:'http://fixture.test:8765/?case=compose'});await call('close_tab',{tab:opened.untrusted_content.tab || opened.tab});
+    const opened=await call('open',{url:'http://fixture.test:8765/?case=compose'});await call('close_tab',{tab:opened.untrusted_content.tab || opened.tab,discard_unsaved:true});
   });
   await check('GROUP 3 changed read-only preview reasks with its changed content',async()=>{
     await nav('binding&mode=sibling&id=preview-residual');const prepared=await call('click',await target('Send'));
