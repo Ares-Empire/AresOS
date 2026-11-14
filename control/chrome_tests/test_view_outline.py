@@ -110,7 +110,8 @@ class Format(unittest.TestCase):
                  node(12, "listitem", 1, states=["current"]), node(13, "link", 12, name="Here", href=SITE + "/f"),
                  node(14, "listitem", 1), node(15, None, 14), node(16, "button", 15, name="Wrapped"),
                  node(17, "listitem", 1, text=[" \n "]), node(18, "list", 17), node(19, "listitem", 18),
-                 node(20, "p", 19, text=["Nested"])]
+                 node(20, "p", 19, text=["Nested"]),
+                 node(21, "listitem", 1), node(22, "text", 21, text=["Apples"])]          # <li><div>Apples</div></li>
         self.assertEqual(outline(nodes), """list "L" kqtvm1
   link "Alone" kqtvm2
   listitem "Own text"
@@ -124,7 +125,8 @@ class Format(unittest.TestCase):
     link "Here" kqtvm7
   button "Wrapped" kqtvm8
   list kqtvm9
-    p "Nested\"""")
+    p "Nested"
+  text "Apples\"""")
 
     def test_elements_moved_up_from_list_items_fold_as_neighbours(self):
         nodes = [node(1, "list")]
