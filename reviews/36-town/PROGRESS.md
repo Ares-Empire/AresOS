@@ -1,680 +1,230 @@
-# 36: The town builds itself, progress
+# 36: The town builds itself: report
 
-Brief: `briefs/36-town.md`. Steps 1 to 4, one fresh builder per step. The last step deletes this file.
+Brief: `briefs/36-town.md`. Built in four steps by Claude agents: steps 1 to 3 on Opus 5.5 (places, records, keeping in
+step, roads, rebuild), step 4 on Fable 5.2 (the pictures, the tuning, the docs). This file is the report: a Claude
+builder's file tool cannot create `REPORT.md`, so the orchestrator renames it.
 
-## Where it stands
+## Done
 
-**2026-11-14, the orchestrator (read this first; it replaces what the step-1 text below says about the build):**
+- **One notion of a group** (`catalogue/AppGroup`): which group an app belongs to (HUB.md 2.2, or the group he chose by
+  hand) and everything about a group (title, colour, concrete, direction, letter, key). `hub/HubLayout.Group` and
+  `zone/GateGroup` are gone; a hand-built gate takes its doormat and plain front from the app's real group.
+- **Places** (`hub/Place`): `N0L0` and back, a group's places nearest first (rows 0 to 63), from a place to the gate's
+  plan (HUB.md 3.2). **Who stands where** (`hub/Assignment`): a pure function from his apps, their saved places and the
+  blocked places to an assignment; nothing that has a place moves.
+- **The logo's picture** comes from `AppIcons` (his own icon path first, otherwise the helper's picture within its limits).
+- **Saved with the apps:** `place` and `group` as optional fields of schema 4 (`AppsConfig.spots`, `AresOs.saveSpots`).
+  **Saved with the world:** the standing logos in `data/aresos/town.dat` (`HubData.Logo`: app, place, the hash of the
+  blocks, the converter's version, the name and short name on the sign, the zone, every block placed); `hub.dat` keeps
+  package 32's shape.
+- **One function for every block the hub places or removes** (`zone/Placing`), used by the pad, the roads and the gates.
+- **The town** (`hub/Town`, `hub/TownKeeper`): one pass compares what should stand with what stands, takes down, builds,
+  renews, saves the places, paves the roads on and writes the counts; it runs when the host enters, when a complete
+  program list arrives and when My apps changes, retries every 5 seconds while a place or a road is not loaded, and
+  says its lines to the host (`hub/TownLines`: one line for more than five changes).
+- **Protection:** the town's blocks like the pad's in Live mode, with a refusal that names the logo; explosions never
+  break a logo. **`/aresos hub rebuild`** (`hub/HubCommands`). `/aresos zone remove` and `logo remove` leave the town alone.
+- **Step 4:** `TownPicturesClientGameTest` (last in the list) and thirteen pictures; two things tuned from the pictures
+  (below); `mod/README.md` ("The town"), `README.md`'s status line, HUB.md's corrections.
 
-- Step 1 compiles and its tests pass on GitHub: Mod run 43524445082 on `c346e617` (the laptop refused all evening
-  because the owner's game ran). Nothing of "First thing for whoever continues" below is open any more.
-- Package 35's branch (`pkg/35-slash-names` at `aeb82bec`: schema 4 with `names` and `absent`) and `origin/main`
-  are merged in (`27874445`, `0797c409`). One conflict, `GateBuilder.planInFrontOf`: package 35's main short name
-  on the sign, this package's group concrete. Mod run 43535095427 on `0797c409` passed (build, unit and server
-  tests, jar reproduced).
-- The brief's step 2 changed accordingly (schema 4, `absent` programs are not wanted, which three files of package
-  35 to stay out of). Step 2 starts from here.
+### What step 4 tuned, and why
 
-**2026-11-14, step 3 (Opus 5.5): step 3 is done and green** (the brief's six points and the orchestrator's two
-decisions). Step 4 starts from "Done in step 3", "Decisions step 3 took" and "What is left, in order" (step 4) below.
+1. **The count on a group name was cut off.** In the first pictures "SYSTEM & TOOLS · 2" touched the front logo and
+   "SYSTEM & TOOLS · 14" read "· 1" from the pad. With its count a name is up to 103 text pixels wide: 7.7 blocks at
+   scale 3, in the 7 blocks between the two front logos, and it hangs in the logos' front layer. `HubLayout.NAME_SCALE`
+   is now 2.5 (6.4 blocks). A name that an earlier version built takes the new scale when its count is written
+   (`mixin/DisplayAccess`, one more private setter). `HubLayoutTest` and `FlatHomeGameTests` pinned 3 and now pin 2.5.
+2. **A new program got two lines that both begin "Spotify is new":** My apps' ("… is new and joined My apps.") and the
+   town's. Where the town speaks (`TownKeeper.speaks`: a flat home and a complete list) `MyAppsGame` drops its own line;
+   in AresOS worlds without a town it says it as before. The pictures test checks that no "joined My apps" line is said.
+3. **Only in the test** (how the pictures are taken, nothing he sees): the pictures wait until the game has loaded the
+   new item icons (the first forty-apps picture had the loading bar over it); nearer cameras for three pictures; the
+   name of the held item fades before the picture after a mode switch.
 
-**2026-11-14, step 2b (Opus 5.5): step 2 is done and green.** The orchestrator's three decisions (the logos in their
-own `town.dat`, his lights, the refusal that names the logo) and points 4 and 5 (keeping in step, protection). Step 3
-starts from "Done in step 2b", "What step 3 and package 37 call" and "What is left, in order" below.
-
-**2026-11-14, step 2a (Opus 5.5): points 1 to 3 of step 2 are done and green** (the saved fields, the town's record,
-the one function). Points 4 and 5 (keeping in step, protection) are step 2b: read "Done in step 2a" and "What step 2b
-calls" below, then "What is left, in order".
-
-
-**Step 1 is written but not yet built** (Opus 5.5, 2026-11-13): places, groups and the logo's picture, as pure
-functions with unit tests. The build could not run (the owner's game was open the whole time; see "Verified"), so
-step 1 ends when `mod/dev/build.sh` passes. Nothing is built in a world yet. Commits on `pkg/36-town`:
-
-- `36: one notion of a group`
-- `36: places, their order and their gates`
-- `36: who stands where`
-- `36: the logo's picture through AppIcons`
-
-Build: not run yet, see "Verified" below.
-
-## Done in step 1
-
-1. **One notion of a group** (`catalogue/AppGroup.java`). The enum that already sorted an app into its group (HUB.md
-   2.2's first-fit rule, unchanged) now carries everything about a group: `title()`, `look()` (item), `outward()` and
-   `right()` (its avenue, as `Direction`s), `yaw()`, `letter()` (N, E, S, W), `concrete()`, `colour()`, and
-   `block(home, outward, sideways, height)` (HUB.md 3.2's "outward a, sideways b"). `AppGroup.ofLetter(char)` and
-   `AppGroup.clockwise()` (N, E, S, W) were added. Nothing it had was renamed. `hub/HubLayout.Group` and
-   `zone/GateGroup.java` are gone; `FlatHub` and the game tests use `AppGroup`. `/aresos logo` takes its doormat and
-   plain front from `AppGroup.of(app)`, so every app has its group's colour (the light grey "unknown group" is gone).
-   `HubLayout`'s gate numbers (`SIZE`, `DEPTH`, the door, `EXIT`) now come from `GateNumbers`: one place for them.
-2. **Places** (`hub/Place.java`): record `Place(AppGroup group, int row, Side side, int k)`, `Side { L, R }`, rows 0
-   to 63. `name()` / `toString()` give `N0L0`; `Place.parse(String)` gives `Optional<Place>` (one spelling only).
-   `Place.inOrder(group)` lists a group's places nearest first: row, then `k`, then L before R. `front()` (a0),
-   `sideways()` (column 0's b), `origin(home)`, `facing()` and `plan(picture, dimension, home, name, shortName)`,
-   which is `GatePlan.of` with the group's concrete as the doormat. `GatePlan` itself is unchanged.
-3. **Who stands where** (`hub/Assignment.java`): `Assignment.of(List<Assignment.App>, Predicate<Place> blocked)`,
-   pure. See "Decisions" for its exact rules.
-4. **The logo's picture through `AppIcons`**: `GateBuilder.picture(app, size)` reads `AppIcons.read(app)` (the
-   owner's own path first, otherwise the helper's picture within its limits) and falls back to a plain front in the
-   group's concrete. `GatePalette.name(id)` turns `minecraft:yellow_concrete` into the gate's `yellow_concrete`.
-
-Tests (unit, `mod/src/test`):
-- `hub/PlaceTest`: names both ways and the names that are refused; the order (HUB.md 3.3's list for north, 42
-  places in rows 0 to 5, 4160 in all); the five day-one places and `W1R1` against HUB.md 3.2's table (box, niche,
-  exit, yaw, pitch, sign, and on N0L0 the lights and doormat); "places never collide" for rows 0 to 5 of all four
-  groups: no two gates share a block of their spaces, floor, doormat ring, walkway, lights or exit, none reaches the
-  pad or a road paved to row 5, no name hangs into another gate, two names never come within turning reach of each
-  other, and every exit has five clear blocks before the row in front.
-- `hub/AssignmentTest`: day one (the design's table), pinned first, a new app (and a pinned newcomer that takes no
-  saved place away), a removed app's place staying free and taken back, a place taken while its app was away, two
-  apps with one saved place, a saved place of another group, blocked places skipped and named (each place asked
-  once), a group with nothing free, forty apps with fourteen in one group (and one leaving, one joining).
-- `zone/GatePictureSourceTest`: a drawn picture at a helper-style path becomes the logo; the owner's own path wins
-  (also a BMP over 512 pixels, as before); a helper picture over the limits or not a PNG, a missing file, or none
-  gives the plain front in the group's concrete.
-- `catalogue/AppGroupTest`, `hub/HubLayoutTest`: the table reached from an app's group, letters, clockwise order.
-- Game tests changed only where they named the old types (`FlatHomeGameTests`), and one client-test expectation:
-  `GateLogoClientGameTest`'s "gate-tree" app (no categories) now gets a yellow doormat, not light grey. Client
-  tests were not run in step 1.
+Looked at and left as it is: the signs (readable from the pad, none hidden), the road lines (clear from the pad and
+from above), the drawn logos at arrival distance, the removal's two lines (the command's answer, then the town's), the
+new app's line, which wraps by one word in Work & Media and System & Tools, and day one's five lines (JUDGMENT-CALL 3).
 
 ## Verified
 
-**Nothing yet: step 1 has not been compiled or run.** `mod/dev/build.sh` refused with exit 75 eighteen times over
-about 45 minutes (2026-11-13 to 14), every time with "The owner's Minecraft (Lunar Client) is running". No `--force`,
-no Gradle by hand.
+All on the laptop under AresOS, 2026-11-14, through the dev scripts only.
 
-**First thing for whoever continues (before step 2):** run `mod/dev/build.sh` and fix what it shows, in this order of
-likelihood:
-- compile errors in the new code (it was checked by reading only);
-- `PlaceTest` calls `Bootstrap.bootStrap()` in plain JUnit; if that does not work outside the game, move the
-  GatePlan-based tests (`dayOneAndW1R1...`, `placesNeverCollide...`) into a server game test next to
-  `GateGameTests.planMatchesTheWorkedExamplesOfTheDesign` and keep the rest as unit tests;
-- `AppGroup` now loads `net.minecraft.core.Direction`; its static initialiser needs no registries (checked with
-  `javap`), so the unit tests that load `AppGroup` without bootstrap should still run;
-- `FlatHomeGameTests` checks the group names in the order N, E, S, W; `AppGroup.clockwise()` relies on
-  `Direction.Plane.HORIZONTAL` being in that order.
+- `mod/dev/build.sh` on the final code (the tree that became `8a4727ce`): exit 0, "All 92 required tests passed :)",
+  `BUILD SUCCESSFUL in 1m 29s`. Before it in this step: twice green on the way (`in 1m 28s`, `in 1m 3s`). The unit
+  test count was not read in this step (step 3: 202 run, 6 skipped, 0 failed; this step changed one expectation).
+- `mod/dev/client-test.sh`, five runs:
+  - run A: **exit 1** after 9 min 27 s (`BUILD FAILED in 9m 25s`). Every earlier test passed; the new test timed out
+    in the test API's `waitForChunksRender`, because it entered the world at render distance 12. Cause in the test,
+    fixed: the distance is raised after the world has opened, and the pictures wait for the renderer's own
+    `hasRenderedAllSections`.
+  - run B: exit 0, `BUILD SUCCESSFUL in 9m 5s` (9 min 6 s), 15 "client checks passed" lines and "36 pictures taken".
+    The first pictures.
+  - run C, **final code**: exit 0, `BUILD SUCCESSFUL in 9m 10s` (9 min 12 s). The pictures after tuning 1, committed.
+  - the private run (`ARESOS_TOWN_LOOK=<scratch folder> mod/dev/client-test.sh`): exit 0, `BUILD SUCCESSFUL in 8m 32s`
+    (8 min 33 s); `git status` afterwards showed nothing of it.
+  - run F, **final code**: exit 0, `BUILD SUCCESSFUL in 9m 15s` (9 min 16 s), 15 "client checks passed" lines and "36
+    pictures taken". Its thirteen pictures were compared with the committed ones of run C pixel by pixel (a
+    difference of more than 40 of 255 counts): eleven are the same, `0064` differs in one pixel and `0065` in 62 on
+    the horizon line. The committed ones stay.
+- The pictures test also checks: day one's places (Chrome and Discord in row 0 north, Lunar Client at `E0L0`, Notepad
+  and Terminal in row 0 south); Spotify at `W0L0` with the brief's line; after `/aresos app remove spotify` the grass
+  of `W0L0` back and `WORK & MEDIA · 0`; Mail at `N1R0` with "N1L0 is blocked by something of yours, so Mail stands at
+  N1R0." and his hut untouched; forty logos after 34 more programs in one list, "The town changed: 34 logos built. …",
+  the counts `INTERNET · 10`, `GAMES · 8`, `SYSTEM & TOOLS · 14`, `WORK & MEDIA · 8`. So a list that arrives while he
+  is in the world, which step 3 had not exercised, is exercised three times.
+- Earlier steps (their notes, shortened): step 1 on GitHub (Mod run 43524445082); steps 2a to 3 `mod/dev/build.sh`
+  green after each commit ("All 85", "87", "91", "92 required tests passed"); step 3 one full client pass, exit 0,
+  `BUILD SUCCESSFUL in 8m 14s`.
 
-## Decisions step 1 took (not settled by the brief or HUB.md)
+### The pictures (`reviews/36-town/screenshots/`, 960 x 540: half his screen, the game's scale 2)
 
-- **One enum, not two tables.** `HubLayout.Group`'s data moved into `AppGroup` instead of keeping a look-table keyed
-  by `AppGroup`: two four-value enums kept in step is what the brief asked to remove. If a second look (the Nether)
-  ever lays the groups out differently, the direction moves into that look; today it is one table.
-- **`concrete()` is the full block ID** (`minecraft:light_blue_concrete`), the form the hub records and the registry
-  uses. A gate names its blocks without the namespace (`GatePicture.at`), so the gate converts with
-  `GatePalette.name`. Letter and yaw are derived from the avenue's direction, not stored a second time.
-- **The pad iterates `AppGroup.clockwise()`** (N, E, S, W) rather than `AppGroup.values()`, so the group names are
-  built and saved in the same order as before; `AppGroup`'s constant order was left alone (package 35 may rely on it).
-- **Rows end at 63** (`Place.ROWS = 64`). The brief says "without end"; a bound keeps coordinates small and keeps the
-  search finite when every place of a group is blocked. It is 4160 places a group, 900 blocks out.
-- **Place names have one spelling:** upper case, no leading zeros, `k <= row`. Anything else parses as no place
-  (step 2: treat a saved place that does not parse as no saved place).
-- **Assignment rules**, in this order:
-  1. A wanted app keeps its saved place if that place belongs to its group, no app before it in the list kept the
-     same place, and it is not blocked. All of these are settled before anyone looks for a new place, so a
-     newcomer (even a pinned one, listed first) never takes a saved place away.
-  2. A saved place of another group is ignored: the app stands in its own group. (Package 37 writes `group` and
-     `place` together, so this only matters when the categories changed.)
-  3. Every other wanted app, in list order, takes the first place of its group that is neither taken nor blocked.
-  4. An app that is not wanted holds no place: its place is free for others. Its saved place stays in `saved()`
-     until another app stands there, then it is dropped, so a returning app takes its place back only "if the
-     place is still free" (HUB.md 2.5). Two absent apps with the same place: the first keeps it.
-  5. A wanted app with nowhere to go (every place of its group blocked) is in `unplaced()`, gets no logo, and keeps
-     its saved place in `saved()`.
-  6. `skipped()` lists, per app, the blocked places it passed, its own saved place first. Two apps that pass the
-     same blocked place both list it; the chat can name each blocked place once.
-  7. `blocked` is asked at most once a place and only about places no app has taken yet.
-- **`Place.plan` refuses a picture whose size is not `HubLayout.SIZE`**: the places are laid out for that size.
-- **`PlaceTest` bootstraps the game** (`SharedConstants.tryDetectVersion()`, `Bootstrap.bootStrap()`), because a
-  `GatePlan` holds its exit as a `NetherHome.Home`, whose codec initialises `Level`. The other new tests need no
-  bootstrap.
-- **The owner's own icon path now has `AppIcons`' 3-second read limit** too (it was an unbounded `ImageIO.read`);
-  the formats it accepts are the same.
+Every icon in them is the test's own drawing (a figure on a tile or a disc, or a bare shape), not a real app's icon.
 
-## What step 2 calls
+| Picture | What it shows | Against the design |
+|---|---|---|
+| `0063_town-first-arrival` | Day one as the world opens: the two front logos, and five chat lines over the lower left | Matches section 1, plus the five lines (JUDGMENT-CALL 3) |
+| `0064_town-arrival` | Chrome's logo left and Discord's right of the north road, their signs with `/chrome` and `/discord`, `INTERNET · 2` between them, the road with its light blue line | Matches. The item in his hand hides the right logo's lower corner (PLAN-GAP) |
+| `0065_town-east` | Lunar Client left of the east road, `GAMES · 1`, the red line | Matches |
+| `0066_town-south` | Notepad left and Terminal right of the south road, `SYSTEM & TOOLS · 2` whole between them | Matches, except that the two stand the other way round than HUB.md 3.2's table (PLAN-GAP) |
+| `0067_town-west` | The purple road, `WORK & MEDIA · 0`, nothing built | Matches |
+| `0068_town-join` | Spotify's logo at `W0L0` with its sign, `WORK & MEDIA · 1`, one chat line | Matches section 1's "Later" |
+| `0069_town-removal` | The same view after `/aresos app remove spotify`: grass, `· 0`, the command's answer and the town's line | Matches |
+| `0070_town-above-build` | Build mode, straight down from 50 blocks: the cross, five logos with their fronts and doormats | Matches "a small town in the shape of a cross" |
+| `0071_town-blocked` | From the air: his hut behind Chrome's logo in `N1L0`, Mail's logo one place on at `N1R0`, the two lines | Matches 2.5 |
+| `0072_town-forty-above` | Forty apps straight down: rows 0 to 2 in every group, row 3 south (its two logos touch the lower edge of the picture), his hut in the north | Matches the plan drawing |
+| `0073_town-forty-from-the-air` | Forty apps from the south-east: the town as a cluster of fronts, signs over each | Matches |
+| `0074_town-forty-south` | From the pad along the south road: the front two, `SYSTEM & TOOLS · 14` whole, row 1's outer logos and one sign showing beside and between | Matches 2.2: the rows behind are mostly hidden |
+| `0075_town-forty-south-past-row-0` | Standing behind row 0: row 1's two inner logos large left and right, rows 2 and 3 along the road, no sign in view | Shows the design's cost: this close a sign is above the screen (PLAN-GAP) |
 
-```java
-AppGroup AppGroup.of(AppDefinition app)                   // the group by the rules; step 2 uses the saved `group` when there is one
-String   group.concrete() / title() / int colour() / float yaw() / char letter()
-Direction group.outward() / right()
-BlockPos group.block(BlockPos home, int outward, int sideways, int height)
-List<AppGroup> AppGroup.clockwise()                       // N, E, S, W
-Optional<AppGroup> AppGroup.ofLetter(char)
+### The town with the real three (not in the repo)
 
-record Place(AppGroup group, int row, Place.Side side, int k)
-Optional<Place> Place.parse(String name)                  // "N0L0"; empty for anything else
-String   place.name()
-Stream<Place> Place.inOrder(AppGroup group)               // nearest first, rows 0..63
-BlockPos place.origin(BlockPos home); Direction place.facing(); int place.front(); int place.sideways()
-GatePlan place.plan(GatePicture picture, ResourceKey<Level> dimension, BlockPos home, String name, String shortName)
+A private run put the laptop's own icons of Chrome, Discord and Lunar Client in the fake helper's list. The two
+pictures are in `/tmp/claude-1001/-var-home-ares/500f3f9b-4339-4371-a04c-ee0f7b10c35d/scratchpad/pkg36-real/screenshots/`
+(`0063_town-arrival.png`, `0064_town-east.png`); the icons and a sheet of them are one folder up.
 
-record Assignment.App(String id, AppGroup group, Place saved /* nullable */, boolean wanted)
-Assignment Assignment.of(List<Assignment.App> apps /* pinned first, then file order */, Predicate<Place> blocked)
-  Map<String, Place>       standing()   // wanted app -> where its logo stands, in list order
-  Map<String, Place>       saved()      // every app's `place` after this run; missing = write no place
-  Map<String, List<Place>> skipped()    // blocked places each app passed, for the chat
-  List<String>             unplaced()   // wanted apps with no place: no logo, one chat line
+- **Chrome** is unmistakable from the pad: a round build, red on top, yellow right, green left, a blue middle with a
+  pale ring. Two flaws: the red is red mushroom block, whose white spots show at this distance, and the white ring is
+  a mix of grey stone-like blocks, so it reads grey and rough.
+- **Discord** is recognisable: a dark blue front with a pale face and two eyes. The cells on the face's edge are
+  light blue, grey and two amethyst blocks: a fringe that makes the face look frayed.
+- **Lunar Client** is the weak one: a black front with a grey-white arch and a pale shape low on the left. The moon
+  cannot be made out; it needs its sign. Its thin white lines on black average into four or five greys.
+- What the converter (package 33) should do better: (1) for an icon with a plate, decide for each cell whether it is
+  figure or plate and paint it in one of the icon's two or three main colours, instead of the average of what falls
+  into the cell; that removes the fringe on Discord and the greys on Lunar Client; (2) prefer plain blocks over
+  spotted or bricked ones of nearly the same colour (red concrete before red mushroom block, one white block for the
+  whole ring). Nothing of this was changed here: the converter is not this package's.
 
-GatePicture GateBuilder.picture(AppDefinition app, int size)   // AppIcons first, else the group's plain front
-String      GatePalette.name(String blockId)                   // "minecraft:x" -> "x"
-```
+## Not verified
 
-How step 2 should feed it (advice, not built):
-- `wanted` = in My apps and installed by a **complete** list. Apps of My apps that are not installed go in with
-  `wanted = false` and their saved place, so the "remembered until taken" rule works.
-- `blocked(place)` = the place is loaded and `GateBuilder` would refuse there (HUB.md 3.3's three spaces, ground
-  that is grass or the mod's). A place where a town logo stands is **not** blocked: its app keeps it, or, if that
-  app moved or left, step 2 takes it down before building. An unloaded place is not blocked either: its build
-  stays pending, and if it turns out refused once loaded, the next run moves the app on.
-- Write `saved()` back into the apps file (and clear `place` for apps not in it).
+- **The real app helper** (package 30, merged to `main` while this was built): every test uses the fake helper. No
+  run with the laptop's real program list, and real icons were seen only for the three above.
+- **Walking into a town logo's doorway in the real client.** The zone and exit are server-tested; the client tests
+  walk only into hand-built gates.
+- **A place or road that is not loaded, in the real client** (the 5-second retry): server-tested only; every place of
+  the forty stood on loaded ground.
+- **A group name of an older flat home taking scale 2.5:** the code runs on every pass, but no test builds a name at
+  the old scale first.
+- **"The town is built: 40 logos. /apps lists them."** in the real client: unit-tested; the client test reaches forty
+  through a later list ("The town changed: …").
+- His screen (1920 x 1080), his shader pack, and Windows (no helper, so no town: by reading, not by a run).
+- The hosted "Mod" run for the final commits was not watched.
 
-## Done in step 2a
+## Known limits
 
-Commits on `pkg/36-town`, one per point, each built green:
+- The town needs a complete program list of this game session and runs only while the host is in the world. After a
+  restart with the helper down nothing is built or taken down, and `hub rebuild` refuses.
+- A new program whose first free place is on ground that is not loaded (very far out) gets no chat line until he comes
+  near: in a flat home My apps no longer says its own line.
+- A road or a place on ground he never visits keeps a cheap pass running every 5 seconds while he is in the world.
+- Blocked is decided with a full front: next to his build a sparse logo that would just fit goes one place on.
+- A logo that cannot come down (something of his hangs on it) holds its place; the app meant for that place waits.
+- `/aresos logo remove here` at a town logo answers only when he stands in front of its door.
+- `hub rebuild` uses the pictures read in this session; an icon file changed under the same path is read at the next
+  list or change of My apps.
+- A mod of packages 33 to 35 opened on this world sees the town's zones as plain zones and does not protect the
+  town's blocks.
+- Closer than about 14 blocks to a logo its sign is above the top of the screen at the arrival pitch.
+- The kept server test world remembers a failed run (`mod/build/run/gameTest/world`); deleting it resets it.
 
-- `d6b647dc` **A test that package 35's parser reads `place` and `group` and keeps them**, committed before any parser
-  change, so on that commit it tests package 35's own parser: fixture `mod/src/test/resources/apps/schema-4-town.json`,
-  `AppsConfigTest.aSchema4FileWithPlacesAndGroupsIsReadAndEveryEditKeepsThem`. GitHub run 43537089294 on `d6b647dc`
-  passed (both checkouts: "All 85 required tests passed", that test PASSED).
-- `ba903460` **Point 1, saved with the apps.** `AppDefinition` gains `place` and `group` (raw text, null for none;
-  `withSpot`). `AppsConfig` reads both and `AppsConfig.spots(file, Map<id, Spot>)` writes exactly the given pair per
-  listed app (null removes the field), editing the file in place like every other edit. `AresOs.saveSpots` keeps the
-  list in memory in step (only these two fields, as `assignNames` does for names). `AppGroup.key()` / `ofKey(String)`;
-  `AppGroup.of(app)` now returns the group he chose by hand when `group` names one, else the rules.
-  **No new schema number:** package 35's parser ignores fields it does not know, and all of its edits (pins, My apps,
-  merge, names) change the parsed JSON in place, so it keeps `place` and `group`. The only path that writes from records
-  (`AppsConfig.save`) runs when there is no file yet (and in tests). So the brief's expectation "when it saves, the
-  places are dropped" does not happen: a package-35 mod keeps them; nothing is given out again.
-- `b9ac38ca` **Point 2, saved with the world.** `HubData.Logo(app, place, picture, converter, name, shortName, zone,
-  gate)`, `gate` being package 33's `AppZone.Gate` (every block `{pos, block}`, the doormat's ground, the sign's ID, the
-  grass under it). `hub.dat` gains `logos` (optional: a file of packages 32 to 35 loads with none). The record's block
-  index covers the logos, so `holds`, `blockChanged`/forget and `protectsFrom` work for them as for the pad: a block he
-  changes leaves its logo's record at once. A zone of `zones.dat` is the town's while a logo names its ID
-  (`HubData.town(server, zone)`); `/aresos zone remove`, `zone list` (`| town`) and `/aresos logo remove <app>|here`
-  leave such zones and their logos alone and say "The logo of X belongs to the town and stays: /aresos app remove <id>
-  takes it down." `Neighbors` counts the hub's blocks and the town's signs as the mod's own. `GatePicture.CONVERTER`
-  (1) and `GatePicture.hash()` (SHA-256 of the size and every cell's block).
-- `b7ba13a7` **Point 3, one function.** `zone/Placing.set(level, pos, recorded, next[, flags])`: where the record holds
-  nothing (`recorded == null`) it places only on untouched ground (air, or grass or dirt with air above); where it holds
-  a block it changes it only while that block is still there (`Placing.still`: same block; a light only at level 15 and
-  dry). Returns `Optional<Placing.Change(pos, block, before)>`, empty = not the mod's to change, nothing happened.
-  `FlatHub.place` goes through it (still grass only, still `UPDATE_CLIENTS`). `GateBuilder` is split: `prepare` (every
-  refusal, nothing changed; `GateBuilder.NotLoaded extends IOException` when not loaded), `place` (every block through
-  `Placing`, undone through it if the world changed since `prepare`), `takeDown` (through `Placing`); `build` and
-  `remove` for hand-built gates are these plus `zones.dat`, behaviour unchanged. `HubData.holds` uses `Placing.still`.
-  `hub/Town.java`: `check`, `build`, `remove`, `plan` for the town's logos (below). Tests: `TownGameTests` (batch
-  `aresos-test:town`, alone: builds a flat home 15000 blocks from its plot, holds its chunks with its own ticket, puts
-  the server's previous hub record back): Discord at N0R0 built and checked block by block against the plan, the
-  record, the sign, the zone (no gate, no blocks, `town` true; a zone of his false), the codec round trip, refusals
-  that change nothing (same app twice, a taken place), a blocked place (his planks in N0L0, not `NotLoaded`), the
-  ground rule (stone under N1L0's way in), a block he changes leaving the record, and the removal (world as before but
-  his block, no sign, zone or record). `theOneFunctionChangesOnlyUntouchedGroundOrTheBlockItRecorded` (desktop batch,
-  own plot) checks `Placing`'s rule cell by cell. Unit: `HubDataTest`, `AppGroupTest`, `AppsConfigTest`,
-  `GatePictureTest` additions.
+## JUDGMENT-CALL
 
-**Verified:** `mod/dev/build.sh` at `b9ac38ca`: exit 0, "All 85 required tests passed", unit 195 run, 6 skipped (the
-Windows-only ones), 0 failed. At `b7ba13a7`, twice: exit 0, "All 87 required tests passed" (the town batch "1 tests",
-desktop "39 tests"), `BUILD SUCCESSFUL in 1m 9s` and `in 43s`. Earlier tries refused with exit 75 (memory under 6 GB).
-Packages 32 and 33's tests pass unchanged; no existing test was edited. Client tests not run (step 3).
+For the owner before merge (how it feels, or hard to undo):
 
-## Decisions step 2a took (not settled by the brief)
+1. **Group names at scale 2.5 instead of 3** (step 4). Chosen because the count must be readable from the pad and a
+   text scale is the smallest change. Rejected: hanging the name one block nearer to home (it would lie over the
+   logos' edges), the count on a second line (another look than `INTERNET · 2`). Changing it later: one number; names
+   follow at the next pass.
+2. **One line for a new program in a flat home, the town's** (step 4). Rejected: both lines (three rows of chat for
+   one event), rewording the town's line (the design gives its words). Cost: one line in `MyAppsGame.tick`; the limit
+   about a place that is not loaded, above.
+3. **Day one says five lines** (`0063`). The orchestrator's threshold stands: up to five changes are said one by one,
+   and day one on the laptop is exactly five apps, so the first arrival has seven rows of chat over the lower left for
+   ten seconds. One line ("The town is built: 5 logos. /apps lists them.") would be calmer and say less. Changing it:
+   `TownLines.FEW`, or a rule that a first build is always one line.
+4. **The count** is the apps that have their place in the group, also one whose logo waits; an empty group says `· 0`
+   (step 3). Rejected: counting only standing logos, hiding `· 0`.
+5. **`hub rebuild` builds only the logos again;** the pad, roads and names stay. It refuses before a complete list
+   (step 3).
+6. **"A complete program list" is one that arrived in this game session,** and the town runs only while the host is in
+   the world (step 2b). Rejected: trusting the apps file's last list across restarts.
+7. **The logos in their own `town.dat`,** `hub.dat` in package 32's shape (the orchestrator, step 2b); `group` saved
+   as the group's key; no new schema number (step 2a).
+8. **A light he changed does not hold a logo up;** the refusal in Live mode names the logo (the orchestrator, step 2b).
+9. **Rows end at 63;** place names have one spelling (step 1).
+10. **The pictures:** 960 x 540; the render distance raised to the game's own 12 after the world opens; forty reached
+    in the same world by one list of 34 more programs; four pictures more than the brief lists (the first arrival, west,
+    from the air, behind row 0); `TownClientGameTest`'s four helpers opened to the new test instead of copied.
+11. **Six pictures of packages 33 and 34 are committed anew** (the orchestrator's point 4). After the final run their
+    differences were cut out and looked at: `0052`, `0055` and `0056` (the Apps screen) differ only by package 35's gold
+    short names in the rows; `0049` and `0050` only by `/notepad` on the "No Picture" gate's sign; `0043` by that
+    sign line and by the neighbouring tree gate's doormat, yellow since step 1 (the reason step 3 committed `0044`).
+    Every other earlier picture went back; the renumbered copies were removed.
 
-- **`group` is saved as the group's key** (`internet`, `games`, `work_media`, `system_tools`), not the letter: a
-  letter is the flat look's direction, a group he chose must mean the same in another look. Package 37 writes it with
-  `AppsConfig.spots` / `AresOs.saveSpots`.
-- **Lenient values, strict types:** `place` or `group` text that names nothing means none (the app stands by the
-  rules), so a later mod's file is never refused for it; a value that is not text refuses the file, as every field does.
-- **`AppGroup.of(app)` honours the saved group everywhere**: the town, a hand-built gate's doormat, the `/apps` line.
-- **"Marked as the hub's" is the logo record naming the zone's ID**, not a field in `zones.dat`: one fact in one file,
-  so an older mod rewriting either file cannot make them disagree. The town's zone in `zones.dat` has no gate and no
-  `blocks`; its blocks are protected through `hub.dat`. A mod of packages 33 to 35 sees a plain zone: walking in works,
-  its `logo remove` finds no logo there, it does not protect the town's blocks.
-- **The picture's hash is of the cells as built**, not of the icon file: what stands is what is compared, a plain
-  front (no icon) has a hash too, and an icon change that draws the same blocks rebuilds nothing.
-- **The logo also records the name and short name on its sign** (not in the brief's list), so step 2b can tell a
-  changed name without the sign's chunk loaded.
-- **Untouched ground for the one function is air, or grass or dirt with air above**: package 33's doormat goes on dirt
-  too and its tests stay unchanged. Callers may ask for less: the pad grass only, the town's floor grass or the hub's
-  own (HUB.md 3.3, in `Town`).
-- **`Town` refuses unless `hub.dat`'s look is `flat-1`**: places are laid out for those rules.
-- **`Town.build` takes the picture as an argument** and reads no icon, so step 2b can read icons off the server
-  thread (`AppIcons.read` may wait 3 seconds an app).
+Smaller decisions of steps 1 to 3 (assignment rules, refresh as take down and build, rounds, the road paved on from
+its last recorded block, "loaded" meaning loaded with entities) are in the code's comments and in the history of this
+file (`git log -p reviews/36-town/PROGRESS.md`).
 
-## What step 2b calls
+## PLAN-GAP
 
-```java
-// The apps file (config)
-String app.place() / app.group()                         // raw text or null; Place.parse(app.place()) for the place
-AppGroup AppGroup.of(app)                                // the group he chose, else the rules: feed Assignment.App with it
-void AresOs.saveSpots(Map<String, AppsConfig.Spot> spots) // record Spot(String place, String group); exact pair, null = none
-List<AppDefinition> AppsConfig.spots(Path file, Map<String, AppsConfig.Spot> spots)
+- **HUB.md 3.2's day-one table:** on a fresh AresOS Notepad is pinned, and pinned apps go first, so Notepad stands at
+  `S0L0` and Terminal at `S0R0`. Recorded in HUB.md's corrections.
+- **The item in his hand** (package 34's pixel icon as a held item) covers the lower right of the view and a corner
+  of the right-hand logo in every picture from the pad. Not this package's; an empty first hotbar slot or a smaller
+  held item would clear the arrival view.
+- **The converter** with real icons: see "The town with the real three".
+- **Signs from close by:** standing behind a row he sees the next row's logos but not their names (`0075`).
+- **Many programs at once:** in AresOS worlds without a town My apps still says one line a program (34 lines for 34).
+- **The test API's `waitForChunksRender`** does not end when a world is entered at render distance 12; the test
+  default is 5. Later client tests that want the game's own distance must raise it after the world has opened.
+- **`README.md`'s status** still says the tests "run on Windows, not in CI"; that predates the dev scripts and
+  `mod.yml` and was left alone.
+- The brief expected a package-35 mod to drop `place` when it saves; it keeps it (step 2a, tested).
 
-// The town (hub/Town.java); every call does it all or changes nothing
-void         Town.check(MinecraftServer, AppDefinition, Place, GatePicture) throws IOException
-             // returns: buildable now; throws GateBuilder.NotLoaded: not loaded (pending, not blocked);
-             // any other IOException: blocked, its message names what is in the way
-HubData.Logo Town.build(MinecraftServer, AppDefinition, Place, GatePicture) throws IOException   // same refusals
-GateBuilder.Removal Town.remove(MinecraftServer, String appId) throws IOException
-             // NotLoaded: pending; other IOException: something of his hangs on it, leave it standing
-GatePlan     Town.plan(HubData, AppDefinition, Place, GatePicture)
+## Try this
 
-// The record (hub/HubData.java)
-HubData HubData.get(server)            // null: not a flat home; hub.look() is "flat-1" for this town
-List<Logo> hub.logos(); Optional<Logo> hub.logo(appId); Optional<Logo> hub.logoOfZone(zoneId)
-Optional<Logo> hub.logoAt(level, pos)  // the logo whose record holds this block (for explosions in Build mode)
-boolean hub.holds(level, pos); static boolean HubData.town(server, zone); Set<UUID> hub.signs()
-record Logo(String app, String place, String picture, int converter, String name, Optional<String> shortName,
-            String zone, AppZone.Gate gate)
+In the development game on AresOS with the app helper running (the orchestrator starts it):
 
-// Pictures (zone)
-GatePicture GateBuilder.picture(app, HubLayout.SIZE)    // reads AppIcons: up to 3 s an app
-String picture.hash(); int GatePicture.CONVERTER
+1. On the title screen click **AresOS**, then **New AresOS world…** if a world exists, leave **Home: Flat**, create.
+   You stand on the gold block and look north. Left of the road stands Chrome's logo, right of it Discord's, each with
+   its name and command above it, and `INTERNET · 2` hangs between them. The chat says one line for each of your five
+   apps. Turn right: Lunar Client and `GAMES · 1`. Behind you: Notepad and Terminal. To your left: `WORK & MEDIA · 0`
+   and an empty road.
+2. Install a program for your user (a Flatpak) while the game runs, or type `/aresos app add <id>` (Tab completes).
+   Within a few seconds its logo stands in the nearest free place of its group and the chat says, for example,
+   "Spotify is new. It stands in Work & Media, west. /spotify opens it."
+3. Type `/aresos app remove <id>`. The logo is gone, the grass is back, the number on the group's name is one lower.
+4. Hit a logo's block: "The logo of Discord is part of the town and protected. Press G for Build mode."
+5. Press **G**, fly up and look down: the cross with your apps. Build something 34 blocks north of the pad, left of
+   the road (behind Chrome's logo), then add another Internet program: its logo stands right of the road instead, and
+   the chat says "N1L0 is blocked by something of yours, so … stands at N1R0." Your build is untouched.
+6. Change a block of a logo in Build mode, then type `/aresos hub rebuild`: "The town was rebuilt from the rules: …"
+   Your block is still there; because it is now in the way of that logo, the logo stands one place further out and
+   the chat names the blocked place.
+7. Walk into a doorway: the app opens. Close it: you stand a few steps in front of the door.
 
-// The one function, for roads in step 3 (zone/Placing.java)
-Optional<Placing.Change> Placing.set(ServerLevel, BlockPos, String recorded /* null: none */, BlockState next[, int flags])
-boolean Placing.still(BlockState, String recorded); BlockState Placing.state(String id); String Placing.id(BlockState)
-```
+## Open questions
 
-Refresh (HUB.md 3.4.4) needs nothing new: compare `logo.picture()` with `picture.hash()`, `logo.converter()` with
-`GatePicture.CONVERTER`, `logo.name()` / `logo.shortName()` with `app.name()` / `NameRules.mainName(app)`; then
-`Town.remove` and `Town.build` in the same place (a sign-only rewrite is an optimisation, not needed).
-
-## Done in step 2b
-
-Commits on `pkg/36-town`:
-
-- `a8d6472a` **The orchestrator's three decisions.**
-  1. **The logos have their own file.** `hub.dat` is package 32's shape again (`look`, `numbers`, `home`, `fixed`;
-     `HubData.CODEC`); the standing logos are in `data/aresos/town.dat` (`HubData.TownFile`: `home` and `logos`, the same
-     `HubData.Logo` record). In memory it is still one `HubData` with one block index: `HubData.get(server)` joins the
-     record to the server's `town.dat` of the same home the first time it is asked (`attach`), and `HubData.store`
-     does the same, so storing a `hub.dat` again (a new instance read from package 32's shape) loses no logo. A
-     `town.dat` of another home is never read into a hub: the hub starts an empty town file of its own (this also keeps
-     test towns apart). A logo added, removed or forgotten marks `town.dat` dirty, a pad block `hub.dat`. Tests:
-     `HubDataTest.hubDatKeepsPackage32sShapeSoAnOlderModsRewriteLosesNothingOfTheTown` (hub.dat's keys are exactly the
-     four; a hub read back from a rewritten hub.dat plus town.dat knows every logo, block and sign; a town file of
-     another home is refused), `standingLogosRoundTripThroughTownDatWithEverythingPlacedForThem`; the town game test now
-     stores a hub read from package 32's shape and finds the logo, its block and its sign; the keeping test does it in
-     the middle of a town and checks that the next pass changes nothing (no logo built twice one place on).
-  2. **His light does not hold a logo up.** `Neighbors.stableOnRemoval` accepts every light block: a light needs no
-     support, so nothing hangs on its neighbours. A light he changed (level or water) stays as his; the logo comes
-     down around it. Tested in the keeping test (a light set to level 3, the record lets go of it, the app leaves My
-     apps: the logo comes down, the light stays at level 3, every other cell of the place is as before the town).
-  3. **The Live-mode refusal names what he hit:** `HubData.protection(player, pos)` / `hub.refusal(level, pos)`:
-     "The logo of Discord is part of the town and protected. Press G for Build mode." for a town logo's block, the
-     pad's sentence for the pad and roads (`WalkInZones` uses it; `protectsFrom` stays as `protection != null`).
-  Also point 5's explosion rule: `HubData.sparesFromExplosion(level, pos, buildMode)`: a town logo's block always (as
-  package 33's gates), the pad and roads only outside Build mode; `LogoExplosionMixin` calls it.
-- `a8a4f874` **Point 4, keeping in step** (`hub/TownKeeper.java`), and `Town.check(server, place)`:
-  - `keep(server, Programs, pictures, spots)` is one pass on the server thread. Nothing on an incomplete list or where
-    `hub.dat` is missing or not `flat-1`. Every app of the file goes into `Assignment.of` (pinned first, then file
-    order; group `AppGroup.of(app)`; saved place `Place.parse(app.place())`, or the place its logo stands in when the
-    file has none; wanted = `mine && !absent`). Then, in this order: changed places are saved through `spots` (keeping
-    each app's `group` text), logos that should not stand (or not there) come down, missing logos are built, standing
-    ones whose picture hash, converter, name or short name changed are taken down and built again in place. One chat
-    line a change: "Spotify is new. It stands in Work & Media, west. /spotify opens it." (the command part only with a
-    short name), "Chrome moved to Internet, north.", "Far stands in Internet, north." (built in its saved place: a
-    return or a fresh world), "The logo of Spotify Music was renewed.", "Mail left My apps. Its logo came down.",
-    "Chrome is no longer installed. Its logo came down; its place is kept for its return.", "N1L0 is blocked by
-    something of yours, so Mail stands at N1R0.", "The logo of Chrome stays: <GateBuilder's reason> The town tries again
-    later.", "Mail has no free place in Internet: every place there is blocked."
-  - **Blocked** = `Town.check(server, place)` refuses with anything but `NotLoaded`. It plans the place with a full
-    front in the group's concrete (name "?"), so it does not depend on which app asks; every picture's blocks are a
-    subset of it, so any app's logo builds where it passes. Only a longer name needs more air above the sign: a build
-    refused there marks the place blocked for the session (`refused`) and the next pass moves the app on with the line.
-  - **Not loaded** = neither blocked nor built: the app keeps (and saves) the place, `Pass.pending` is true, and the
-    scheduler runs the pass again every 5 seconds (100 ticks) while the host is in the world, which covers "when he
-    comes near". A takedown that is not loaded waits the same way.
-  - **A place held by the town's own logo is never blocked**: its app keeps it, or that logo comes down first and the
-    new one is built in the same pass (swap tested). If that logo cannot come down (not loaded, or refused), the new
-    app waits for the place, it does not move on. An app whose old logo could not come down is not built elsewhere.
-  - **A refused removal** leaves the logo standing with one line; the line is said once per run he started (`said` is
-    cleared when a fresh run is asked for, not on the 5-second retries); it is tried again at every pass.
-  - **The scheduler** (static part): `register()` (server tick, host join, server stop), `listed()` (a complete list:
-    sets `complete`, asks), `ask()` (any thread). On a tick with work: if `hub.dat` is not `flat-1`, it drops the work;
-    it waits until the host is online (the lines are his, and a run before he joins would lose them); an asked run
-    first reads every wanted app's picture on the "AresOS town pictures" daemon thread (`GateBuilder.picture`, which
-    may wait 3 s an app), then passes on the server thread. Pictures are cached per app with the icon path and group
-    they were read for; the 5-second retries reuse them.
-  - **Hooks:** `MyAppsGame.listed` calls `TownKeeper.listed()` (only complete lists reach it); `AresOs.saveMine` calls
-    `TownKeeper.ask()` (covers `/aresos app add` and `remove`, the Apps screen and `/aresos give`); the host's join asks.
-    `item/AppCommands.java`, `names/OwnedNodes.java` and its mixin are untouched.
-  - Test `TownGameTests.theTownKeepsInStepWithHisApps` (batch `aresos-test:town_keep`, alone, 17000 blocks from its
-    plot, its own tickets; puts back the server's hub record and lets its chunks go): an incomplete list and a town of
-    other rules change nothing; the first build puts pinned Chrome at N0L0 before Discord (N0R0) with two exact lines,
-    saves the places and keeps the group text; an absent app's remembered place and a far app's place (N40L0, not
-    loaded) stay saved and the pass is pending; a second pass changes, says and saves nothing; hub.dat rewritten
-    (decision 1); the refusal texts and what explosions spare; a newcomer (Spotify at W0L0, the brief's line); his
-    planks in N1L0: Mail stands at N1R0 (the place the absent app remembered, which it then loses) with the blocked
-    line, the planks stay; Chrome and Mail swap places in one pass; a new picture and name renew Spotify in place (one
-    line, new hash, new name, a sign); his torch on Chrome's doormat refuses its removal (one line, said once, the logo
-    and torch stay), then without the torch it comes down and its place stays remembered; his light (decision 2); the
-    far place loaded with the test's own ticket: built with "Far stands in Internet, north."; everything leaves My
-    apps: three lines, no logo and no zone left.
-
-**Verified:** `mod/dev/build.sh` on the working tree that became `a8a4f874`: the first run failed one unit test
-(`HubDataTest.theRecordKnowsEveryLogoByAppZoneBlockAndSign` asserted that hub.dat is marked dirty when a logo is added;
-now town.dat is, so the test asserts exactly that and that hub.dat is not), its game tests already "All 91 required
-tests passed"; the second run: exit 0, "All 91 required tests passed :)", `BUILD SUCCESSFUL in 1m 20s`; a third run on `a8a4f874`
-plus this note (no code change): exit 0, "All 91 required tests passed :)", `BUILD SUCCESSFUL in 53s`, unit tests 196
-run, 6 skipped (the Windows-only ones), 0 failed. The batch
-`aresos-test:town_keep` ran before `aresos-test:town` both times, so the town file of another home is not read into
-the town test's hub. Only `a8a4f874` was built; `a8d6472a` alone was not (it is a subset: no new code depends on the
-second commit). Client tests not run (step 3).
-
-## Decisions step 2b took (not settled by the brief)
-
-- **JUDGMENT-CALL: "a complete program list" means one arrived from the system in this game** (`TownKeeper.complete`,
-  set by `MyAppsGame.listed`, which only the helper's complete lists reach). After a restart with the helper down the
-  town does nothing until the helper answers, also nothing new is built. On Windows discovery (no presence, no
-  complete list) there is no town at all. Alternative rejected: trusting the apps file's last complete list (its
-  `absent` marks) across restarts; it would build and tear down while the system says nothing.
-- **JUDGMENT-CALL: blocked is decided with a full front, not the app's own picture.** A place is a place for every app
-  (HUB.md 3.3 speaks of the place), and `Assignment` asks once a place. Cost: next to his build a sparse picture that
-  would just fit is not built there; the app goes one place on.
-- **JUDGMENT-CALL: the town runs only while the host is in the world** (the singleplayer host online). Runs asked for
-  before he joins (a list at start-up) wait for him, so their lines reach him.
-- **The place its logo stands in counts as the app's saved place when the file has none** (a file from another machine,
-  or one an old mod wrote from records): nothing that stands moves. A place text this mod cannot read is never erased
-  unless the app gets a place.
-- **Chat lines:** the brief's line for a new app; "moved to" for an app whose logo came down and stood up elsewhere in
-  the same pass; "stands in" for an app built in its saved place (a return or a fresh world); lines about lasting
-  conditions (a logo that stays, an app with no place, a blocked place, a failed save) once per run he started. No cap:
-  a first build of forty apps says forty lines (see "Found on the way").
-- **Renewing is take down, then build** in the same place; a build refused after the takedown (only a longer new name
-  could do that) leaves the place blocked and the app moves on at the next pass, with a line.
-- **Retry every 5 seconds** while work is pending; no chunk event is hooked.
-- **Every light is stable on removal** (decision 2), also a waterlogged one: its water already runs out on its open
-  sides; package 33 already accepted its own lights so.
-
-## What step 3 and package 37 call
-
-```java
-// hub/TownKeeper.java
-static void TownKeeper.ask()                          // any thread: bring the town in step soon, pictures read afresh
-static TownKeeper.Pass TownKeeper.run(MinecraftServer) // server thread: one pass now with the pictures at hand, lines to the host
-static boolean TownKeeper.complete()                  // a complete program list arrived in this game
-static void TownKeeper.listed()                       // a complete list arrived (MyAppsGame.listed calls it)
-TownKeeper.Pass keeper.keep(MinecraftServer, TownKeeper.Programs(List<AppDefinition> apps, boolean complete),
-        Function<AppDefinition, Optional<GatePicture>> pictures, TownKeeper.Spots spots)   // the one pass; tests use it
-record Pass(List<String> lines, boolean pending, Set<String> pictures)   // pictures: app IDs it needed and lacked
-interface Spots { void save(Map<String, AppsConfig.Spot> spots) throws IOException; }   // AresOs::saveSpots
-
-// hub/Town.java
-static void Town.check(MinecraftServer, Place) throws IOException   // a place for any app: NotLoaded / blocked (message)
-static void Town.check(MinecraftServer, AppDefinition, Place, GatePicture) throws IOException
-static HubData.Logo Town.build(MinecraftServer, AppDefinition, Place, GatePicture) throws IOException
-static GateBuilder.Removal Town.remove(MinecraftServer, String appId) throws IOException
-
-// hub/HubData.java (new or changed in 2b)
-static String HubData.protection(ServerPlayer, BlockPos)   // the Live-mode refusal, or null
-String hub.refusal(ServerLevel, BlockPos)                  // "The logo of X is part of the town..." / the pad's / null
-boolean hub.sparesFromExplosion(ServerLevel, BlockPos, boolean buildMode)
-```
-
-- **Package 37, `swap a b` / `move app dir`:** write the new pair with `AresOs.saveSpots(Map.of(a, new Spot(placeB,
-  groupA), b, new Spot(placeA, groupB)))` (for `move`: the new group's key and `null` place, or the place it found), then
-  `TownKeeper.run(server)` and show its lines (or `ask()` and let the lines come). The pass takes both down, then builds
-  both; nothing is copied.
-- **Step 3, `/aresos hub rebuild`:** take every standing logo down with `Town.remove` (a refusal or `NotLoaded` leaves
-  that one; say so), then `TownKeeper.run(server)`: every app is built again in its saved place. Its one summary line
-  can be made from the lines of the pass.
-- **Step 3, roads and counts:** HUB.md 3.4's point 5 belongs at the end of `keep`, after the builds (marked there); the
-  farthest row in use per group is in `assignment.standing()` (and the standing logos). Put road blocks through
-  `Placing.set` and the fixed record (`hub.dat`), never through `town.dat`.
-- **Step 3, a better converter re-renders by itself:** already so: `keep` renews a logo whose `converter` differs from
-  `GatePicture.CONVERTER`; step 3 only needs its test.
-- **Step 3, the sign's second line:** already `NameRules.mainName(app)` on the sign and compared in `keep` (a changed
-  main short name renews the logo); step 3 needs its test.
-
-## Done in step 3
-
-Commits on `pkg/36-town`: `3389ea0b` (roads, counts, `hub rebuild`, one line for a big change, server and unit
-tests), `a84c2799` (the client check, package 33's gate-tree picture), then this note.
-
-- **Roads grow with their group** (point 1, HUB.md 3.4 point 5). At the end of every pass `TownKeeper.roads` takes each
-  group's farthest row in use (the places of `assignment.standing()` and the logos that still stand) and calls
-  `FlatHub.pave(level, hub, group, row)`: it paves on from the farthest road block the record holds (never less than
-  package 32's `avenueEnd(0)` = 24) to `avenueEnd(row)`, a whole row of five at a time, nearest first, through the same
-  `FlatHub.place` as the first build (untouched grass with air above only, `Placing.set`), and records the blocks in
-  `hub.dat`'s fixed blocks (`HubData.pave`). It never unpaves. It stops at the first row whose ground is not loaded
-  with its entities and the pass stays pending (the 5-second retry), so no chunk is loaded for a road.
-- **The counts on the group names** (point 2): `FlatHub.count` writes `INTERNET · 2` on each name after every pass
-  (the number of apps that have their place in the group, so also one whose build waits for its place to load), through
-  an invoker for the text display's private `setText` (`mixin/TextDisplayAccess`, in `aresos.mixins.json`). A name whose
-  chunk is not loaded with its entities waits (pending); a name that is gone (only `/kill` can do that) stays gone. A new
-  flat home shows the bare names until the town's first pass (`FlatHub.title(group, null)`); after it, an empty group
-  says `GAMES · 0`.
-- **`/aresos hub rebuild`** (point 3, `hub/HubCommands.java`, registered in `AresOs`): `.requires(AppCommands::allowed)`
-  where it is parsed (as `/aresos app`), the host checked again when it runs; it refuses (changing nothing) outside a
-  flat home, in a town of other rules, and before a complete program list arrived in this game. It calls
-  `TownKeeper.rebuild(server)`: every standing logo goes into `renew`, `said` and `refused` are cleared, and one pass
-  renews them (take down through `Town.remove`, build again in the app's saved place) with the pictures already read.
-  A block he changed in a logo stays his: the takedown leaves it; where it is in the way the build is refused, the
-  place counts as blocked and **the same pass** moves the app one place on (see "rounds" below). A logo whose place
-  is not loaded stays in `renew` and is built again when it is; one that something of his hangs on stays as it was
-  with its line and is tried again at every pass. The pad, the roads and the names are not taken down (the same rules
-  give the same blocks; a road is never unpaved).
-- **Rounds:** a build refused in a place that looked free (a longer name, or his block left in a renewed logo) used to
-  wait for the next pass; now `keep` runs the assignment again at once, at most three rounds, each only after a new
-  refusal. `cameDown` spans the rounds, so such an app's line says "moved to".
-- **A big change is said in one line** (the orchestrator's decision 1, `hub/TownLines.java`): every line of a pass has
-  a kind (built, moved, renewed, taken down, or "in his way"). More than five of the ordinary kinds give one line:
-  "The town is built: 12 logos. /apps lists them." (no logo stood before and every line is a build), otherwise "The
-  town changed: 7 logos built, 2 moved, 1 renewed, 3 taken down. /apps lists where your apps stand." A rebuild always
-  says one line: "The town was rebuilt from the rules: 5 logos built again, 1 moved." (+ " 2 more are built again when
-  you come near." for logos whose place is not loaded). Lines about his things in the way (a blocked place, a removal
-  refused, no free place, a failed save, a logo that cannot stand again) follow one by one.
-- **Points 4 and 5** needed no new code (step 2b's `keep` already renews on a converter or main short name change);
-  they are tested now.
-
-Tests:
-- Unit `hub/TownLinesTest` (6): five lines one by one; six as one line (first build and later); forty on a first build
-  plus two "in his way" lines one by one; every kind counted; a rebuild's line (with waiting logos, with none, singular);
-  nothing changed says nothing.
-- Server game test `TownGameTests.roadsCountsRenewalsAndRebuildInAFreshFlatHome` (batch `aresos-test:town_rebuild`,
-  alone, 19000 blocks from its plot, ±80 blocks held with its own ticket, the server's hub record put back): a fresh flat
-  home whose apps file brings places of another world (Discord N0L0 left of pinned Chrome N0R0, Lunar Client E1L0, ...)
-  builds every app in its place, says "The town is built: 6 logos. /apps lists them." and saves nothing; the counts
-  (`INTERNET · 2`, `GAMES · 1`, `SYSTEM & TOOLS · 2`, `WORK & MEDIA · 1`); the east road paved and recorded to row 1's
-  end (38) and not one row more, the north road still ending at 24; Mail joins at N2L1: the north road grows to 52 over
-  grass but not under his cobblestone, the count follows; Mail leaves: the road stays, the count follows; a logo
-  recorded with converter `CONVERTER - 1` is renewed in place; a new main short name renews Chrome's sign
-  (`Chrome\n/chrome` to `Chrome\n/web`); a pass in step says nothing; his glass in place of a block of Discord's logo,
-  then a rebuild: one line "The town was rebuilt from the rules: 5 logos built again, 1 moved." plus the two lines about
-  N0L0, the glass and his cobblestone stay, Discord stands (and is saved) at N1L0, every other app in its place with a
-  new zone; everything leaves: "The town changed: 6 logos taken down. ..." and every count `· 0`.
-- `theTownKeepsInStepWithHisApps` changed in one expectation: when the far place N40L0 has loaded and its logo stands,
-  the pass is **still pending**, because the north road to row 40 runs through ground nobody loaded (checked: the
-  ground half way is not loaded); after everything leaves My apps nothing is pending any more (new check).
-- Both town tests now remove their own apps' zones first and when they fail (`Fake.clearZones`): the test world is kept
-  between runs, and my two failed runs had left `keep-discord` and `keep-spotify` zones in `zones.dat`, which made the
-  unrelated `ZoneSafetyGameTests.disjointZoneWallCannotObstructSavedExit` fail (it expects zones.dat to hold only its own
-  zone). The next run cleared them and everything passed.
-- Client test `TownClientGameTest`, **last** in the client list, no screenshots: a fake helper (`FakeHelper`, wired with
-  `AppsTestAccess.aresos$startHelper` as AresOs wires its own) sends a complete list of five programs; day one makes them
-  his; a new flat home is made through the title screen ("Keep old & continue", "aresos.home.create"); after the host
-  joins it waits for five standing logos (Chrome and Discord in row 0 north, Lunar Client at E0L0, Notepad and Terminal
-  in row 0 south), the counts `INTERNET · 2`, `GAMES · 1`, `SYSTEM & TOOLS · 2`, `WORK & MEDIA · 0`, the places saved in
-  the apps file, and the five "is new" lines in his chat; then `/aresos app remove discord` typed as he types it (the
-  logo comes down, "Discord left My apps. Its logo came down.", `INTERNET · 1`) and `/aresos hub rebuild` ("The town was
-  rebuilt from the rules: 4 logos built again.").
-
-**Verified:** `mod/dev/build.sh` failed four times on the way (all fixed: the keep test's far
-place pending, then the road paved through ground only scheduled to load, then leftover zones from those failed runs
-in the kept test world, which failed `ZoneSafetyGameTests.disjointZoneWallCannotObstructSavedExit` once), then passed
-twice: on `3389ea0b` exit 0, "All 92 required tests passed :)", `BUILD SUCCESSFUL in 1m 27s`; on the final code (the
-client test added, a comment) exit 0, "All 92 required tests passed :)", `BUILD SUCCESSFUL in 1m 27s`, unit tests 202
-run, 6 skipped (the Windows-only ones), 0 failed.
-
-**Client pass:** `mod/dev/client-test.sh` once on the final code: exit 0, `BUILD SUCCESSFUL in 8m 14s`, every client
-test passed (the last line "36 client checks passed: ..."). **The scheduler's first run:** the complete list set
-`complete`; the host's join asked; the picture thread read five pictures; the pass built five logos and said five lines
-at 03:08:56, within the first seconds after the world opened; `app remove` (through `AresOs.saveMine` → `ask()`) read
-the pictures again and took Discord's logo down within a second; the rebuild said its line at once. No problem showed.
-**Not exercised:** the 5-second retry (no place of day one was unloaded, so no pass was pending) and a list arriving
-while he is already in the world.
-
-**Earlier packages' pictures after the client pass:** 25 tracked pictures were rewritten and 25 renumbered copies
-appeared (old numbering in the tracked names). Compared pixel by pixel: package 32's seven (arrival, east, south,
-west, above, rejoin, missing data) are unchanged (no pixel differs by more than 40 of 255): rerun only, put back.
-Kept one: `reviews/33-gate-logo/screenshots/0044_gate-tree-from-20.png`, whose doormat is now yellow (step 1: every
-app has its group's colour; "Tall Tree" has no categories, so System & Tools). It also shows package 35's `/notepad` on
-the "No Picture" gate's sign. Put back although they differ for a reason that is not this package's: package 33's
-`0043`, `0049`, `0050` (only the `/notepad` sign line of package 35) and package 34's Apps screen `0052`, `0055`,
-`0056` (package 35's short names in the rows); package 35's PR did not re-record them, so step 4 or the orchestrator
-may. Put back as rerun noise: package 09's two (an emerald's angle, the helper-unavailable chat line caught by
-timing), the other 33, 34 and 35 pictures. The renumbered copies were deleted; `git status --short reviews/` shows only
-`0044` and this file.
-
-**Earlier packages' client tests and the town (the orchestrator's decision 2):** no earlier client test meets the town,
-so none was changed and no tracked picture changed because of it. The town needs `TownKeeper.complete`, which only a
-complete list from a helper sets (`MyAppsGame.listed`); the client runs have discovery off (`aresos.disableDiscovery`),
-and the only test with a helper list before mine is `MyAppsClientGameTest` (14th), which runs after every test that
-makes a flat home (`HomeChoice`, `FlatHome`, `GateLogo`); `MyApps` and `SlashNames` make normal worlds (no `hub.dat`).
-So package 32's arrival views, pad and roads are pictured without a town, as before. If the test order ever changes,
-or `complete` (static for the game) is set earlier, those tests would meet the town: they would then need a run with
-no apps in My apps or before a complete list.
-
-## Decisions step 3 took (not settled by the brief)
-
-- **JUDGMENT-CALL: the count is the apps that have their place in the group**, including one whose build waits for its
-  place to load, and an empty group says `· 0` once the town has run (`INTERNET · 0`). Alternatives: count only standing
-  logos (the number would jump while he walks), or hide `· 0` (a missing count reads like a missing feature). Changing
-  it is one line in `TownKeeper.roads` / `FlatHub.title`.
-- **JUDGMENT-CALL: one line for more than five ordinary lines** (the orchestrator's threshold); a first build says "The
-  town is built: N logos. /apps lists them.", later passes "The town changed: ...". Lines about his things in the way
-  are never folded. `TownLines.FEW` is the number.
-- **JUDGMENT-CALL: `hub rebuild` renews only the logos;** the pad, roads and names are not taken down and built again
-  (the same rules give the same blocks, a road is never unpaved, and a road block he changed is his). It uses the
-  pictures already read in this session (a rebuild right after start-up has them: the host's join reads every wanted
-  app's picture); an icon file changed under the same path is read at the next asked run, not by the rebuild.
-- **JUDGMENT-CALL: a rebuild refuses before a complete list arrived** ("The town waits for the system's list of
-  programs. Nothing was rebuilt; try again in a moment.") instead of taking logos down it could not build again.
-- **The road is paved on from the farthest road block the record holds**, not from every unrecorded block up to the
-  end: a road block he changed in the middle (for example to grass) is never paved again; only when he changed the very
-  last row back to untouched grass can it be paved there again. Rows his builds block entirely are skipped once a
-  later row is paved.
-- **"Loaded" for roads and names is the gate's notion:** the chunk is there and its entities are loaded
-  (`hasChunkAt && areEntitiesLoaded`). `hasChunkAt` alone is true for a chunk the server has only scheduled, and reading
-  a block of it loads it on the spot: with it, the first version paved the whole north road to row 40 in the keep test
-  (found by the test, fixed before the commit).
-- **A road that waits keeps the pass pending,** so the 5-second retry runs while he is in the world until the road
-  is done or the group shrinks; it costs one cheap pass every 5 seconds (no `Town.check` for apps that keep their
-  places).
-- **A build refused after a takedown moves the app on in the same pass** (rounds, at most three) instead of on the
-  next pass 5 seconds later: `/aresos hub rebuild` then says its one line about a finished town.
-
-## What is left, in order
-
-**Step 2b** (points 4 and 5 of the brief's step 2; **done in step 2b**, see above; kept as the brief for it):
-1. Keeping in step (HUB.md 3.4): a runner on the server thread, triggered when the host enters the flat home, when a
-   complete program list arrives (`AresOs.takeIn` / `MyAppsGame.listed`), and after `/aresos app add` and `remove`
-   (without touching `item/AppCommands.java`, `names/OwnedNodes.java` or its mixin: hook where My apps changes, e.g.
-   `AresOs.saveMine`, or `MyAppsGame`). Only when `HubData.get` is non-null with look `flat-1`, only on a complete list.
-   Wanted = `mine && !absent`; feed every app of the file to `Assignment.of` (pinned first, then file order), with
-   `AppGroup.of(app)` and `Place.parse(app.place())`; `blocked` = `Town.check` throws something other than `NotLoaded`.
-   Take down logos whose app is not wanted or whose place changed, build the missing ones, refresh changed ones; write
-   `saved()` back with `AresOs.saveSpots` (keep each app's `group`). `NotLoaded` work stays pending and is retried every
-   few seconds while he is in the world and when he comes near; no forced chunks. One chat line per change, none when
-   nothing changed.
-2. Protection: town blocks in Live mode already follow `hub.holds` (`HubData.protectsFrom`, the Live break check in
-   `WalkInZones`, whose message still says "The home pad and roads are protected"); explosions must spare a town logo's
-   blocks in Build mode too (`LogoExplosionMixin`: `hub.logoAt(level, pos).isPresent()`); signs are text displays and
-   cannot be hit.
-3. Server tests for both, with a fake program list and drawn pictures; `mod/dev/build.sh` twice; commit, push.
-
-**Step 3:** roads grow with their group (never shrink); `INTERNET · 2` counts; `/aresos hub rebuild`; re-render on a
-new converter version; the sign's second line with package 35's short name; a new world gets the same town; one
-full client-test pass.
-
-Step 3 in order, as step 2b leaves it (see "What step 3 and package 37 call"):
-1. Roads and counts at the end of `TownKeeper.keep` (HUB.md 3.4 point 5), through `Placing.set` and `hub.dat`'s fixed
-   record; server tests (a road never unpaved, never shorter than package 32's; the counts follow a join and a leave).
-2. `/aresos hub rebuild`: `Town.remove` every standing logo, then `TownKeeper.run`; one summary line; a server test
-   (his blocks and changed blocks stay).
-3. Tests only: a converter version change renews a logo in place; a changed main short name renews the sign; a fresh
-   flat home with saved places builds every app in its place ("stands in" lines). All three already work in `keep`.
-4. The client pass: the first run of the scheduler with a host and the fake helper (the triggers, the picture thread,
-   the 5-second retry); expect package 32's flat-home client tests to meet the town (see "Found on the way").
-5. If the chat floods on a big first build, a summary line beyond a few (a JUDGMENT-CALL for the report).
-
-**Step 3:** done (see "Done in step 3").
-
-**Step 4 (Fable), in order:**
-1. Client screenshots under `reviews/36-town/screenshots/` (the brief's list), in a new client test placed **after**
-   `TownClientGameTest` (or by extending it; it takes no screenshots today, so no picture is renumbered either way).
-   Copy its set-up: a fake helper with a complete list, `AppsTestAccess.aresos$startHelper`, a flat home through the
-   title screen, then wait for `HubData.get(server).logos()` (the scheduler needs the host in the world). Forty apps
-   from above: a first build of forty says one line ("The town is built: 40 logos. /apps lists them.").
-2. The real three for the builder's eyes only (nothing in the repo).
-3. Docs: `mod/README.md` (the town, `/aresos hub rebuild` and its one line, the counts, what he can and cannot change:
-   a road block or logo block he changes is his; the roads only grow), `README.md`'s status lines, HUB.md corrections
-   (the logos are in `town.dat`, not `hub.dat`; the correction "an older mod never rewrites hub.dat" is wrong for
-   packages 32 to 35; the counts include apps whose logo waits for its place; an empty group says `· 0`; rebuild does
-   not take the pad and roads down; a big change is one chat line).
-4. The report (with this step's JUDGMENT-CALLs above and step 2b's), delete this file, merge `origin/main`,
-   `mod/dev/build.sh` once and `mod/dev/client-test.sh` twice on the final code, push, `gh pr create`.
-
-## Found on the way (for steps 2 to 4)
-
-- **Name spaces overlap at the corners, harmlessly.** `GatePlan.signSpace()` is a square of ±6.1 blocks around a
-  name. Diagonal neighbours across a lane (for example N0R0 and E0L0, Discord and Lunar Client on day one, and
-  `N(r)R(r)` with `E(r)L(r)` in every row) share a few of those cells at heights 76 and up. The space only has to be
-  air, and the names' turning circles stay 14.8 blocks apart (more than the 12.2 they need), so nothing collides;
-  but step 2 must not treat a gate's sign space as its own (in a "blocked" check or in the record).
-- **HUB.md 3.3 asks for grass or the mod's ground under all three spaces;** `GateBuilder.build` today checks only
-  that the walkway is sturdy and the exit safe, and paves the doormat only when its ring is grass or dirt. Step 2
-  decides whether "blocked" adds the ground check.
-- **The picture's hash** (step 2's `hub.dat`): `GatePicture` has no `equals`/`hashCode`, and `GateBuilder.picture`
-  does not return the icon's bytes. Hash the icon's bytes from `AppIcons.read` (an icon change) and keep the
-  converter's version separately, or hash the 12 x 12 cells.
-- **`AppIcons.read` can wait up to 3 seconds per app** on the calling thread; `GateBuilder.picture` runs on the
-  server thread. A first build of forty apps with a hanging file system could stall; step 2 may read pictures off
-  the server thread.
-- **Client test expectation changed** (`GateLogoClientGameTest`, the "gate-tree" doormat is yellow now). Step 3's
-  client run checks it; its screenshot of that gate changes colour at the doormat.
-
-- **(Step 2a) A town light he changes blocks the logo's removal.** Changing a light's level or waterlogging it is his
-  edit, so the record forgets it; `Neighbors.checkRemoval` then refuses because a light that is not the mod's is not
-  "inert" (package 33 accepts only its own lights, which hand-built gates keep in their record). The logo then stays
-  with a chat line every run. Step 2b may accept any dry light as stable on removal in `Neighbors` (its comment's
-  reasoning holds for every dry light) or keep it as "leave the logo standing".
-- **(Step 2a) A mod of packages 32 to 35 rewrites `hub.dat`** (when a pad or road block changes) and drops `logos`; HUB.md's
-  correction "an older mod never rewrites hub.dat" holds only for mods before package 32. After going back to such a
-  mod and changing the pad, the newer mod no longer knows the standing logos: their places look blocked and the apps
-  move on. Step 4 should put this in HUB.md's corrections; a separate file for the logos would avoid it.
-- **(Step 2a) `/aresos logo remove here` at a town logo** uses the zone's area (the niche to the exit), so he must stand
-  in front of the door, as for a hand-built gate.
-
-- **(Step 2b) Client tests will now see the town.** In a client test with a fake helper whose list reaches
-  `MyAppsGame.listed`, entering a flat home builds every wanted app's logo along the roads. Package 32's flat-home
-  client tests (screenshots, explosions near the roads, walking routes) may change or need room; step 3's client pass
-  is the first to show it.
-- **(Step 2b) A big first build says many lines** (one a logo: forty apps, forty lines). Step 4 sees it in the forty-
-  apps picture; if it floods the chat, summarise beyond a few lines in `keep` (e.g. "and 32 more logos").
-- **(Step 2b) The scheduler is not covered by server tests:** a server game test has no host and no complete list, so
-  `TownKeeper.tick` never runs there; the pass itself (`keep`) is tested. Step 3's client run (a host, the fake helper)
-  is the first to run the real triggers, the picture reading thread and the 5-second retry.
-- **(Step 2b) HUB.md 3.5 says the standing logos are saved in `hub.dat`;** they are in `data/aresos/town.dat` now
-  (decision 1), and the correction "an older mod never rewrites hub.dat" is wrong for packages 32 to 35 (they do; the
-  town is safe because it is not in that file). Step 4 writes both into HUB.md's corrections.
-- **(Step 2b) A place where the town's logo cannot come down holds up the app assigned there** (it waits, it does not
-  move on), as the brief says for a place changing hands. With a refused removal that can last until he clears what
-  hangs on the old logo; the line about the old logo says why.
-
-- **(Step 3) The kept test world remembers a failed run.** A server game test that fails half way leaves what it made
-  in `build/run/gameTest/world` for the next run. The town tests now clear their own zones, but other tests that expect
-  an empty `zones.dat` (`ZoneSafetyGameTests.disjointZoneWallCannotObstructSavedExit`) still fail after any other
-  test leaves zones behind; deleting `mod/build/run/gameTest/world` resets it.
-- **(Step 3) `hub rebuild` with no picture read yet** (only if he types it in the first ticks after joining) renews the
-  logos whose picture is at hand at once and the others a few ticks later, each with its own "was renewed" line.
-- **(Step 3) A road through ground he never visits keeps the town pending** (a retry every 5 seconds while he is in the
-  world). Only an app placed very far out (row 10 and more, after many blocked places, or a place saved in another
-  world) causes it.
-
-## Dead ends
-
-- None that cost time. Considered and dropped: a three-state "free / blocked / not loaded" input to `Assignment`
-  (treating an unloaded place as not blocked gives the same result with less code), and reordering `AppGroup`'s
-  constants to N, E, S, W (could change what package 35 sees).
+- JUDGMENT-CALL 3: five lines on day one, or one?
+- Should the converter get the two changes named above before the town reaches the laptop? Lunar Client is the one
+  logo of the three that does not read without its sign.
