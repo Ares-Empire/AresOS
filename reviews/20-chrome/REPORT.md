@@ -2,42 +2,32 @@
 # Handover
 
 - **Round:** final fixes ([brief](../../briefs/20-final-fixes.md)), answering
-  [REVIEW-FINAL](REVIEW-FINAL.md) and [SECURITY-FINAL](SECURITY-FINAL.md). Claude agents build it in steps (owner,
-  board #222); the sections below record each step. Progress and what is left: [PROGRESS.md](PROGRESS.md) (kept: the
-  round isn't done).
-- **Steps 1 to 7 are built. STOP, for the lead: one browser row is still red after step 7's three runs**
-  (`final-discard-close-tab-web-audio`, GROUP 8 of the review shard, both installs). Everything else the lead listed
-  passed in run `43584711126`: every core row after GROUP 6, the clean reload row with its audible-tail wait, the
-  drop-down fix, GROUP 8's `review-taken-*`, `final-navigate-reload-*`, `final-discard-navigate-url-*`,
-  `final-discard-close-tab-dirty`, and **latency at fresh, 1,000 and 4,000 under every ceiling in both profiles**
-  (three runs in a row). Not reached, because the shard stops at its first failure: `final-discard-close-tab-clean`,
-  `final-discard-history-*`, `-editor-*`, both React rows and the four review checks after GROUP 8, and the aggregates
-  with their audits. The row's three attempts (Claude's click on "Play media" in a tab fresh from `chrome_open`; the
-  owner's Tab+Return there; the owner loading and playing in the released tab, then Claude taking it) each stopped
-  one step later; the last one is a `chrome_close_tab` without `discard_unsaved` that closed a taken tab with Web
-  Audio playing instead of refusing. Whether that is a product gap (Chrome's `audible` flag not set for that tab at
-  that moment) or a harness premise can't be told without a browser; details and the two observations are in
-  "Step 7". A fourth run was not started (the step's allowance).
-- **Step 7 (Fable 5.2)** built the lead's latency decision and the stricter retake rule, then made the one batched
-  browser run:
-  - **Partial index `operation_open`** on `k` alone over the unresolved operations (open states, malformed state
-    headers, unacknowledged notices, open sent-copy checks), one definition (`OPEN_OPERATIONS`) for the index's WHERE
-    and every selective query's term; no shape sorts, a full disk still reads, and a store that can't add the index
-    opens without it. Mail re-measured: every call at or below main at every history, fresh store included; cases
-    36,490 (×1.29 main). Details: "Step 7".
-  - **Retake rule:** after a release and a retake without a reload every non-empty text field counts (KNOWN-LIMITS
-    line 27 now states the rule and what remains).
-  - **Runs `43575571819`, `43580466542`, `43584711126`** (all three of the step's allowance; the last on `c1173b0b`).
-    Latency at fresh, 1,000 and 4,000 under every ceiling in both profiles in all three (worst median / p95 in the
-    last: read 17.2 / 18.4 against 35 / 60, navigate 43.6 / 51.6 against 100 / 150, asking_click 24.7 / 25.1 against
-    60 / 100, approval_to_done 584.4 / 597.8 against 700 / 850). Receipts: [`records/final-step7/`](records/final-step7/).
-- **Code head:** **`c1173b0b`** (records and this report on top). The full local preflight passes:
-  **297 Python, 405 Node and 411 mutations** (Python shards 53/56/46/142; the Linux-only socket case is skipped on the Mac and runs in CI), every
+  [REVIEW-FINAL](REVIEW-FINAL.md) and [SECURITY-FINAL](SECURITY-FINAL.md). Claude agents built it in eight steps
+  (owner, board #222); the sections below record each step. PROGRESS.md is deleted: everything a later reader needs
+  is in the step sections, each with its "What the code doesn't show".
+- **Fix round done; next: the lead's scoped re-check, then the final pair** (and every Control workflow twice),
+  after it. The batched run **`43593989287`** (`f4a3fba9`) passed everything: every browser row in both installs
+  (the red row `final-discard-close-tab-web-audio` included, with its own tab `audible:true` logged just before
+  `chrome_close_tab` refused), both aggregates with the four independent audits (round 3's 92 named cases within
+  98 named passes, group 12, the word matrix, the latency profiles), the four Python shards (F7's Linux-only
+  socket case ran), and **latency at fresh, 1,000 and 4,000 under every ceiling in both profiles** (worst median /
+  p95: read 20.2 / 20.9 against 35 / 60, navigate 63.2 / 67.0 against 100 / 150, asking_click 33.1 / 36.8 against 60 / 100, approval_to_done 613.2 / 616.6 against 700 / 850). Receipts: [`records/final-step8/`](records/final-step8/).
+- **Step 8 (Fable 5.1)** read the code first, as the lead asked: the red row was the **harness**, not the discard
+  guard. The owner helper closes over the driver's own current tab (`browser.mjs:111`), while `matrices.mjs` handed
+  the review rows a `setTab` that rebinds only its own parameter; so in run `43584711126` the owner played in the
+  driver's tab and `chrome_close_tab` rightly closed the row's fresh, clean tab. The product's one report path
+  (`requireDiscard`) is shared by close_tab, navigate (address, reload, back, forward) and the first act, and reads
+  `audible` fresh for the named tab. Fix: the owner helper takes the tab a row names, every `setTab` reaches the
+  driver, and both Web Audio rows log the tab's `audible`/`muted` before the act; for that, `chrome_tabs` rows now
+  carry Chrome's `audible` and `muted` flags (small, additive; the lead may veto). One stale pin in the independent
+  audit (the withheld-form refusal's step-2 wording) was found at the first complete run and fixed. Details, the
+  side question (Claude's click and Web Audio in a fresh tab: an observation, KNOWN-LIMITS line 5) and the runs:
+  "Step 8".
+- **Code head:** **`f4a3fba9`** (records and this report on top). The full local preflight passes:
+  **297 Python, 407 Node and 415 mutations** (Python shards 53/56/46/142; the Linux-only socket case is skipped on the Mac and runs in CI), every
   baseline passing, plus the generator, diff and exact-unit checks (unit byte-identical to `8b7e799c`).
-- **Budget:** **260 / about 280** `control-chrome.yml` runs (step 7 used three: `43575571819`, `43580466542`, `43584711126`). Steps
+- **Budget:** **262 / about 280** `control-chrome.yml` runs (step 8 used two: `43590715581`, `43593989287`). Steps
   3 and 5 each started one `control-chrome-check.yml` run for polkit only (`43556395889`, `43561341511`).
-- **Next:** (1) the lead decides the red row (a fourth run on a decided row, or the row's premise); (2) records, then
-  delete PROGRESS.md; (3) the lead's scoped re-check; (4) the final pair and every Control workflow twice.
 - **For linux-aresos at merge:** install `control/chrome/packaging/org.aresos.control.chrome-loosen.policy` at
   `/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy`; the owner's own agent and seat are
   linux-tools' 18c-b image test. **For linux-tools' 18c-b image:** the plan and timing tests
@@ -881,6 +871,154 @@ Worst of both profiles per call and history, against the ceiling (median / p95 m
 - **The Mail record's fresh-store numbers** show the step-1 per-result constant gone (read 0.513 → 0.508 ms). The
   per-request operation queries now read the index in a fresh store too, which is of the same order; the record
   doesn't claim more than the measurement.
+
+## Step 8: the red row was the harness; one audit pin; the batched run that passes everything
+
+Built on Fable 5.1 (the lead's choice: the problem had resisted three runs and concerns the discard guard). The lead's
+instruction was to read the code before any run and to treat the row as a possible product gap until the code showed
+otherwise. It did.
+
+**The cause (harness, not product).** The fixture driver keeps one "current tab" that every owner helper acts on:
+`ownerUI({call,currentTab:()=>tab,…})` in `control/chrome/ci/browser.mjs:111` closes over that file's module-level
+`let tab` (`browser.mjs:31`). `matrices.mjs` receives `tab` as a destructured **parameter** (`matrices.mjs:22`) and
+handed every sub-matrix `setTab:value=>{tab=value}`, which rebinds only that parameter. So a row that opens its own
+tab and calls `setTab(tab)` (the close_tab rows, `review-matrices.mjs:281`) changed the matrix's copy and never the
+driver's. In run `43584711126` the sequence was therefore: `chrome_open` (fresh tab A, the clean `-opened` page),
+`release_tab(A)`, `ownerNavigate(web-audio page)` → the helper selected and navigated **the driver's tab M** (the
+`select` and `navigate` assertions check "the exact tab", but the exact tab they were given was M), the owner's
+Tab+Return played the sound in M (`playing-…` counted), `take_tab(A)`, `close_tab(A)` without the flag → A held a
+clean page (`mode=clean`: a `<select>` "Draft", no sound), so `requireDiscard` found nothing and closed it. The two
+missing signals in the result point the same way: the web-audio page also holds `<input aria-label="Draft"
+value="Saved">`, which the passing navigate-url row reported as unsaved typing in an owner-loaded document; the
+close_tab result carried neither "Draft" nor "media", because it never looked at that document.
+
+The product paths are one path. `chrome_close_tab`, `chrome_navigate` to an address, back and forward
+(`background.js:943–953`) and the reload paths (`reloadChecked`, `prepare_control`) all call the same
+`requireDiscard(tab,…)`, which reads `(await chrome.tabs.get(tab)).audible` fresh for the named tab and asks every
+frame's reader for `reload_state` (fields, and `playing` for media elements; Web Audio is visible only through
+`audible`). Nothing in it depends on whether the tab was the owner's first or Claude's released and retaken;
+`take()` resets no media state. The lead's four candidates (an old snapshot or another tab object; a media check
+only for owner-first tabs; a retake resetting state; timing before `audible` turns true) are each ruled out by that
+one function, and run `43593989287` shows the same path refusing `close_tab` on the retaken tab once the owner
+played in it.
+
+**The fix** (`02d152ea`; harness, with one small additive product change for the evidence).
+- `control/chrome/ci/owner-ui.mjs`: `navigate(url,{tab,…})` takes the tab a row names; the driver's current tab is
+  only the default, and a non-integer tab is refused before any key is sent. Node test
+  `owner navigation goes to the tab the row names, not the driver's current tab` (fails on the old code: the option
+  was ignored and the driver's tab changed); probes `step8-owner-navigate-named-tab` and
+  `step8-owner-navigate-exact-tab`, both rejected.
+- `control/chrome/ci/matrices.mjs` takes `setTab` from `browser.mjs` and forwards every sub-matrix's `setTab` to
+  it (`browser.mjs` passes `setTab:value=>{tab=value}`), so the implicit current tab can't drift again for rows that
+  rely on the default (`nativeDonor`, `restoreControl` and the popup control already updated the driver's copy and
+  returned the value; the review rows' own `setTab` was the one route that didn't).
+- `control/chrome/ci/review-matrices.mjs`: both Web Audio rows tell the owner helper the row's tab; the close_tab
+  row also asserts that the owner's page loaded in that tab before the key is sent. The row's purpose and
+  assertions are unchanged: a taken tab with media playing makes `chrome_close_tab` refuse with the media report
+  (`reload_required`, "media that is playing"), and the tab stays open and controlled until the explicit repeat.
+- **Evidence in the run.** Just before the act, both Web Audio rows log the tab's `chrome_tabs` row (`audible`,
+  `muted`, url, controlled, active). For that, `chrome_tabs` rows now carry Chrome's own `audible` and `muted` flags
+  (`background.js`, `collection`), the same `audible` the report reads; `definitions.py` names them and the generated
+  files are regenerated. This is a product change, additive and small: Claude can see sound before closing or
+  navigating a tab. Node test `tab catalogue reports Chrome's own audible and muted flags`; probes
+  `step8-tabs-audible` and `step8-tabs-muted-reason`, both rejected. The lead can drop it if the result shape matters
+  more than the view; the rows would then need a CI-only route to the flag.
+
+**The runs** (this step's two, the lead's allowance). Records in [`records/final-step8/`](records/final-step8/)
+(metadata only; no profile member read).
+- **Run `43590715581`** (`ff70b28f`): **every fixture shard passed in both installs**, the review shards included.
+  `final-discard-close-tab-web-audio` passed, and so did everything it had hidden: `final-discard-close-tab-clean`,
+  `final-discard-history-*`, `-editor-*`, both React rows and the four review checks after GROUP 8. Both latency
+  gates and the four Python shards passed. Both aggregates failed in their last step,
+  `reviews/20-chrome/audit-review-evidence.mjs:114`: the independent audit still expected the withheld-form
+  refusal's old wording ("let Claude reload the tab first"); step 2 reworded it to name `chrome_navigate
+  direction=reload`, and the audit had not run since (a shard was missing in every earlier run). Fixed (`f4a3fba9`):
+  the pin now matches the current text, and the audit rerun locally on the downloaded aggregate metadata of both
+  installs passed (98 named cases, group 12).
+- **Run `43593989287`** (`f4a3fba9`): **every job passed** (28 of 28): every browser shard in both installs (core, review, adapters, recheck2, recheck3, the four word shards; the review shard with the red row and everything after it), native precedence, the four Python shards (297 tests; F7's Linux-only socket case `... ok`), both latency gates with no stat over a ceiling, and both aggregates with their four independent audits: round 3's 92 named cases all present among 98 named passes, group 12 real, the complete word inventory (999 cells), and the latency profiles; the audit rerun locally on the downloaded aggregate metadata agrees with CI's (`independent_audit_local: passed`). Longest job 1,712 s. Chrome 157.0.8103.78. Receipts: `chrome-43593989287-summary.json`, the jobs, artifacts, shards, qualification and audit files per install, the precedence and Python-shard records, and the four latency summaries with both gates.
+
+**The `audible` evidence** (from the review shard logs; the row logs the tab's `chrome_tabs` row just before the act;
+in every case the row's url was the row's own page, loaded by the owner into that tab, and `controlled` and `active`
+were true):
+
+| Row | Install | Run `43590715581` | Run `43593989287` |
+|---|---|---|---|
+| `final-discard-navigate-url-web-audio` | external | tab 967321812: audible true, muted false | tab 1105440313: audible true, muted false |
+| `final-discard-navigate-url-web-audio` | policy | tab 907350265: audible true, muted false | tab 454827883: audible true, muted false |
+| `final-discard-close-tab-web-audio` | external | tab 967321816: audible true, muted false | tab 1105440317: audible true, muted false |
+| `final-discard-close-tab-web-audio` | policy | tab 907350269: audible true, muted false | tab 454827887: audible true, muted false |
+
+In both runs and both installs the retaken tab was `audible:true, muted:false` before the act, `chrome_navigate(url)`
+refused with "Draft" and "media that is playing", and `chrome_close_tab` refused with "media that is playing". That
+is the product doing what the flag exists for, and the harness now playing the sound in the tab it then closes.
+
+**Latency against the lead's ceilings** (run `43593989287`, client median / p95 ms; a median or p95 over the ceiling
+fails; the `ab7aba92` column is the old runtime the pair measures for comparison, same service).
+
+| History | Call | Ceiling (median / p95) | Plain | Instrumented | Old runtime `ab7aba92`, plain |
+|---|---|---|---|---|---|
+| fresh | read | 35 / 60 | 10.9 / 14.0 | 7.3 / 11.0 | 13.3 / 17.9 |
+| fresh | navigate | 100 / 150 | 47.0 / 67.0 | 35.6 / 54.7 | 38.9 / 46.0 |
+| fresh | free_click | 650 / 750 | 570.7 / 582.7 | 567.2 / 578.3 | 572.5 / 584.0 |
+| fresh | fill | 650 / 750 | 574.6 / 575.8 | 560.6 / 571.7 | 568.2 / 584.7 |
+| fresh | asking_click | 60 / 100 | 19.0 / 20.1 | 13.2 / 14.0 | 25.7 / 32.2 |
+| fresh | approval_to_done | 700 / 850 | 592.2 / 608.3 | 577.3 / 594.5 | 587.8 / 600.1 |
+| 1,000 | read | 35 / 60 | 11.5 / 13.0 | 9.2 / 10.8 | 174.1 / 183.6 |
+| 1,000 | navigate | 100 / 150 | 49.2 / 52.5 | 37.9 / 41.5 | 258.9 / 268.6 |
+| 1,000 | free_click | 650 / 750 | 574.5 / 578.5 | 566.5 / 571.4 | 783.2 / 792.0 |
+| 1,000 | fill | 650 / 750 | 571.5 / 573.6 | 557.7 / 564.2 | 781.0 / 791.7 |
+| 1,000 | asking_click | 60 / 100 | 22.1 / 24.3 | 15.6 / 19.1 | 240.5 / 244.8 |
+| 1,000 | approval_to_done | 700 / 850 | 602.9 / 607.6 | 572.7 / 587.6 | 804.9 / 817.0 |
+| 4,000 | read | 35 / 60 | 20.2 / 20.9 | 13.6 / 15.3 | 643.5 / 659.6 |
+| 4,000 | navigate | 100 / 150 | 63.2 / 65.4 | 43.7 / 48.1 | 878.6 / 894.5 |
+| 4,000 | free_click | 650 / 750 | 586.6 / 596.0 | 570.3 / 579.2 | 1406.7 / 1443.7 |
+| 4,000 | fill | 650 / 750 | 578.0 / 579.8 | 569.8 / 571.2 | 1406.5 / 1437.3 |
+| 4,000 | asking_click | 60 / 100 | 33.1 / 36.8 | 20.3 / 26.5 | 858.4 / 872.4 |
+| 4,000 | approval_to_done | 700 / 850 | 613.2 / 616.6 | 580.5 / 590.4 | 1422.1 / 1448.4 |
+
+Worst of both profiles per call and history, against the ceiling (median / p95 ms):
+
+| Call | Ceiling | fresh | 1,000 | 4,000 |
+|---|---|---|---|---|
+| read | 35 / 60 | 10.9 / 14.0 | 11.5 / 13.0 | 20.2 / 20.9 |
+| navigate | 100 / 150 | 47.0 / 67.0 | 49.2 / 52.5 | 63.2 / 65.4 |
+| free_click | 650 / 750 | 570.7 / 582.7 | 574.5 / 578.5 | 586.6 / 596.0 |
+| fill | 650 / 750 | 574.6 / 575.8 | 571.5 / 573.6 | 578.0 / 579.8 |
+| asking_click | 60 / 100 | 19.0 / 20.1 | 22.1 / 24.3 | 33.1 / 36.8 |
+| approval_to_done | 700 / 850 | 592.2 / 608.3 | 602.9 / 607.6 | 613.2 / 616.6 |
+
+**The side question: why Claude's click didn't start the `AudioContext` in a tab fresh from `chrome_open` (run
+`43575571819`).** A short reading doesn't settle it. The click is the browser's own input (`Input.dispatchMouseEvent`
+mousePressed/mouseReleased, `background.js:1016–1017`), which grants user activation as the popup and clipboard
+probes measured; the guard's capture handler (`guard.js:307–326`) only records the input and stops a click on an
+*asking* control, so a free click on "Play media" reaches the page's handler as the trusted event, with activation.
+The fixture's handler then calls `audio.resume()` and reports `playing-…` only when that promise resolves; the
+report never arrived, so either the context stayed suspended (no activation seen by the autoplay policy) or the
+click never reached the button (the tab from `chrome_open` is created at `about:blank`, taken, then navigated; its
+window and focus state differ from the driver's tab). The owner's Tab+Return in that tab didn't start it either
+(run `43580466542`), while his Return on the same page loaded through the address bar did at once (every Web Audio
+row), which points at where Chrome leaves focus and activation after a tab created by an extension rather than at
+the dispatched click. Not diagnosed further: no browser runs locally and the step's runs were for the row. KNOWN-
+LIMITS line 5 now says that the activation claim rests on the popup and clipboard probes, not on Web Audio, and
+names this observation; the row itself no longer depends on it.
+
+**Verified locally** on `f4a3fba9`: the full preflight (`.work/post18d/final-local.py`): **297 Python, 407 Node and 415 mutations**, plus the
+generator, diff and exact-unit checks (unit byte-identical to `8b7e799c`).
+
+### What the code doesn't show (step 8)
+
+- **Two copies of the current tab in the driver.** `browser.mjs` and `matrices.mjs` each hold a `tab`; they now stay
+  equal because every setter forwards to the driver's. A row that opens its own tab should still name it to the
+  owner helpers (`ownerNavigate(url,{tab})`), as the Web Audio rows do; `ownerKey` and `ownerType` send keys to the
+  active window, which `select` has just made the named tab.
+- **The independent audit runs only in the aggregates,** which run only when every shard finished. A pin in
+  `audit-review-evidence.mjs` on a product string can go stale unnoticed until then; this round changed one such string
+  (the withheld-form refusal) and the pin was found at the first complete run. `save.py` reruns the audit locally on
+  the downloaded aggregate metadata, which is the quick way to check a pin without a run.
+- **`.work/final-step8/fetch.py` and `save.py`** are step 7's scripts with the folder renamed; `save.py` needs a run
+  whose aggregates exist.
+- **Run 1 of this step** has no `summary.json` (its aggregates have no `independent-audit.json`); its receipts are
+  the jobs file and `chrome-43590715581-failed.json`, which also carries the `audible` evidence.
 
 # Post-18d integration — final repetitions pending
 
