@@ -283,6 +283,16 @@ public final class TownGameTests {
         HubData previous;
         BlockPos home, planks;
         Set<Long> far = Set.of();
+        /** The start of every app ID of this test's town. */
+        String prefix = "keep-";
+
+        /**
+         * Removes the trigger zones of this test's apps. The test world is kept between runs, and a run that failed
+         * half way leaves its town's zones in it; other tests expect zones.dat to hold only their own.
+         */
+        void clearZones(MinecraftServer server) { ZoneData.get(server).remove(zone -> zone.app().startsWith(prefix)); }
+
+        boolean zoneLeft(MinecraftServer server) { return ZoneData.get(server).zones().stream().anyMatch(zone -> zone.app().startsWith(prefix)); }
 
         TownKeeper.Pass pass(MinecraftServer server) { return pass(server, true); }
 
@@ -335,6 +345,7 @@ public final class TownGameTests {
             throw new AssertionError(error.getMessage(), error);
         } finally {
             if (last || !done) {
+                if (!done) fake.clearZones(level.getServer());
                 if (fake.previous != null) HubData.store(level.getServer(), fake.previous);
                 hold(level, near, false);
                 hold(level, fake.far, false);
@@ -348,6 +359,7 @@ public final class TownGameTests {
         BlockPos home = new BlockPos(column.getX(), level.getHeight(Heightmap.Types.WORLD_SURFACE, column.getX(), column.getZ()), column.getZ());
         check(level.getBlockState(home.below()).is(Blocks.GRASS_BLOCK) && level.getBlockState(home).isAir(), "Fixture: no grass surface at " + home);
         fake.home = home;
+        fake.clearZones(server);
         var hub = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), FlatHub.build(level, home));
         HubData.store(server, hub);
         var before = snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2));
@@ -474,15 +486,170 @@ public final class TownGameTests {
     private static void keepingFar(Fake fake, ServerLevel level) {
         var server = level.getServer();
         var far = fake.pass(server);
-        check(far.lines().equals(List.of("Far stands in Internet, north.")) && !far.pending() && place(server, "keep-far").equals("N40L0"),
-                "When its place is loaded: " + far.lines() + " pending " + far.pending());
+        // Its logo stands; the north road to it (step 3) still waits for the ground between, which nobody loaded.
+        var hub = HubData.get(server);
+        int middle = (HubLayout.avenueEnd(5) + HubLayout.avenueEnd(38)) / 2;
+        BlockPos road = AppGroup.INTERNET.block(hub.home().pos(), middle, 0, -1);
+        boolean between = level.hasChunkAt(road) && level.areEntitiesLoaded(ChunkPos.pack(road));
+        check(far.lines().equals(List.of("Far stands in Internet, north.")) && far.pending() && !between && place(server, "keep-far").equals("N40L0"),
+                "When its place is loaded: " + far.lines() + " pending " + far.pending() + ", the road's ground between loaded " + between
+                        + ", hub blocks " + hub.fixed().blocks().size());
 
-        // Everything leaves My apps: the town comes down and nothing of it is left.
+        // Everything leaves My apps: the town comes down and nothing of it is left; no road waits any more.
         fake.apps.replaceAll(app -> app.withMine(false));
         var empty = fake.pass(server);
-        check(empty.lines().size() == 3 && HubData.get(server).logos().isEmpty(), "Taking the town down: " + empty.lines());
-        check(ZoneData.get(server).zones().stream().noneMatch(zone -> zone.app().startsWith("keep-")), "A zone of the town stayed");
+        check(empty.lines().size() == 3 && !empty.pending() && HubData.get(server).logos().isEmpty(), "Taking the town down: " + empty.lines());
+        check(!fake.zoneLeft(server), "A zone of the town stayed");
         level.setBlockAndUpdate(fake.planks, Blocks.AIR.defaultBlockState());
+    }
+
+    private static final String REBUILD_BATCH = "aresos-test:town_rebuild";
+
+    /**
+     * Step 3 in one town of its own: a fresh flat home whose apps file already holds places (another world's) gets
+     * that town, said in one line; roads that grow with their group and never shrink, and only over untouched grass;
+     * the counts on the group names; a logo drawn by an older converter and a changed short name, renewed in place;
+     * and {@code hub rebuild} with a block he changed inside a logo.
+     */
+    @GameTest(environment = REBUILD_BATCH, maxTicks = LOAD_TICKS)
+    public void roadsCountsRenewalsAndRebuildInAFreshFlatHome(GameTestHelper helper) {
+        var level = helper.getLevel();
+        BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(19000, 0, 0);
+        var near = chunks(column.offset(-80, 0, -80), column.offset(80, 0, 80));
+        var fake = new Fake();
+        fake.prefix = "re-";
+        hold(level, near, true);
+        helper.startSequence()
+                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenExecute(() -> keeping(fake, level, near, true, () -> stepThree(fake, level, column)))
+                .thenSucceed();
+    }
+
+    private static String text(ServerLevel level, java.util.UUID entity) {
+        return ((dev.aresos.mixin.TextDisplayAccess) level.getEntity(entity)).aresos$text().getString();
+    }
+
+    private static List<String> names(ServerLevel level, HubData hub) {
+        return hub.fixed().names().stream().map(id -> text(level, id)).toList();
+    }
+
+    /** Whether the avenue of a group is paved and recorded at this outward index, all five blocks. */
+    private static boolean paved(ServerLevel level, HubData hub, AppGroup group, int outward) {
+        for (int sideways = -2; sideways <= 2; sideways++) {
+            var pos = group.block(hub.home().pos(), outward, sideways, -1);
+            if (!Placing.id(level.getBlockState(pos)).equals(sideways == 0 ? group.concrete() : HubLayout.PAVING) || !hub.holds(level, pos)) return false;
+        }
+        return true;
+    }
+
+    private static boolean grass(ServerLevel level, HubData hub, AppGroup group, int outward) {
+        for (int sideways = -2; sideways <= 2; sideways++)
+            if (!level.getBlockState(group.block(hub.home().pos(), outward, sideways, -1)).is(Blocks.GRASS_BLOCK)) return false;
+        return true;
+    }
+
+    private static void stepThree(Fake fake, ServerLevel level, BlockPos column) throws IOException {
+        var server = level.getServer();
+        fake.previous = HubData.get(server);
+        BlockPos home = new BlockPos(column.getX(), level.getHeight(Heightmap.Types.WORLD_SURFACE, column.getX(), column.getZ()), column.getZ());
+        check(level.getBlockState(home.below()).is(Blocks.GRASS_BLOCK) && level.getBlockState(home).isAir(), "Fixture: no grass surface at " + home);
+        fake.clearZones(server);
+        var hub = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), FlatHub.build(level, home));
+        HubData.store(server, hub);
+        check(names(level, hub).equals(List.of("INTERNET", "GAMES", "SYSTEM & TOOLS", "WORK & MEDIA")), "A new flat home's names: " + names(level, hub));
+
+        // Point 6: a new world gets the same town. The apps file brings places from another world, not the ones a first
+        // build would give (Discord left of Chrome, Lunar Client in the second row). Six changes are said in one line.
+        fake.apps.addAll(List.of(
+                app("re-chrome", "Chrome", "chrome", AppGroup.INTERNET, true, true).withSpot("N0R0", "internet"),
+                app("re-discord", "Discord", "discord", AppGroup.INTERNET, false, true).withSpot("N0L0", "internet"),
+                app("re-lunar", "Lunar Client", "lunar", AppGroup.GAMES, false, true).withSpot("E1L0", "games"),
+                app("re-terminal", "Terminal", "terminal", AppGroup.SYSTEM_TOOLS, true, true).withSpot("S0R0", "system_tools"),
+                app("re-notepad", "Notepad", null, AppGroup.SYSTEM_TOOLS, false, true).withSpot("S0L0", "system_tools"),
+                app("re-spotify", "Spotify", "spotify", AppGroup.WORK_MEDIA, false, true).withSpot("W0R0", "work_media"),
+                app("re-mail", "Mail", "mail", AppGroup.INTERNET, false, false).withSpot("N2L1", "internet")));
+        var first = fake.pass(server);
+        check(first.lines().equals(List.of("The town is built: 6 logos. /apps lists them.")) && !first.pending(), "A fresh home: " + first.lines());
+        for (var app : fake.apps) if (app.mine()) check(place(server, app.id()).equals(app.place()), app.id() + " stands at " + place(server, app.id()));
+        check(fake.saves.isEmpty(), "A place was given out again: " + fake.saves);
+
+        // Point 2: the counts. Point 1: the east road reaches row 1; the others end where package 32 ended them.
+        check(names(level, hub).equals(List.of("INTERNET \u00b7 2", "GAMES \u00b7 1", "SYSTEM & TOOLS \u00b7 2", "WORK & MEDIA \u00b7 1")),
+                "The counts: " + names(level, hub));
+        for (int outward = 3; outward <= HubLayout.avenueEnd(1); outward++) check(paved(level, hub, AppGroup.GAMES, outward), "East road at " + outward);
+        check(grass(level, hub, AppGroup.GAMES, HubLayout.avenueEnd(1) + 1), "The east road is paved too far");
+        check(paved(level, hub, AppGroup.INTERNET, 24) && grass(level, hub, AppGroup.INTERNET, 25), "The north road changed without a reason");
+
+        // A road grows with its group, over untouched grass only: his cobblestone on the way stays, its grass unpaved.
+        BlockPos cobble = AppGroup.INTERNET.block(home, 30, 1, 0);
+        level.setBlockAndUpdate(cobble, Blocks.COBBLESTONE.defaultBlockState());
+        fake.change("re-mail", app -> app.withMine(true));
+        var joined = fake.pass(server);
+        check(joined.lines().equals(List.of("Mail stands in Internet, north. /mail opens it.")) && place(server, "re-mail").equals("N2L1"), "Mail: " + joined.lines());
+        for (int outward = 25; outward <= HubLayout.avenueEnd(2); outward++)
+            if (outward != 30) check(paved(level, hub, AppGroup.INTERNET, outward), "North road at " + outward);
+        check(level.getBlockState(cobble).is(Blocks.COBBLESTONE) && level.getBlockState(cobble.below()).is(Blocks.GRASS_BLOCK) && !hub.holds(level, cobble.below()),
+                "The road went under his cobblestone");
+        check(grass(level, hub, AppGroup.INTERNET, HubLayout.avenueEnd(2) + 1), "The north road is paved too far");
+        check(text(level, hub.fixed().names().getFirst()).equals("INTERNET \u00b7 3"), "A join is not counted");
+
+        // ... and never shrinks: Mail leaves, its road stays.
+        fake.change("re-mail", app -> app.withMine(false));
+        var left = fake.pass(server);
+        check(left.lines().equals(List.of("Mail left My apps. Its logo came down.")), "Mail left: " + left.lines());
+        for (int outward = 25; outward <= HubLayout.avenueEnd(2); outward++)
+            if (outward != 30) check(paved(level, hub, AppGroup.INTERNET, outward), "The north road shrank at " + outward);
+        check(text(level, hub.fixed().names().getFirst()).equals("INTERNET \u00b7 2"), "A leave is not counted");
+
+        // Point 4: a logo drawn by another converter is renewed in place by itself.
+        var chrome = hub.logo("re-chrome").orElseThrow();
+        hub.remove("re-chrome");
+        hub.add(new HubData.Logo(chrome.app(), chrome.place(), chrome.picture(), GatePicture.CONVERTER - 1, chrome.name(), chrome.shortName(),
+                chrome.zone(), chrome.gate()));
+        var converted = fake.pass(server);
+        check(converted.lines().equals(List.of("The logo of Chrome was renewed.")) && hub.logo("re-chrome").orElseThrow().converter() == GatePicture.CONVERTER
+                && place(server, "re-chrome").equals("N0R0"), "Another converter: " + converted.lines());
+
+        // Point 5: the sign's second line follows the main short name.
+        check(text(level, hub.logo("re-chrome").orElseThrow().gate().sign().orElseThrow()).equals("Chrome\n/chrome"), "Chrome's sign");
+        fake.change("re-chrome", app -> app.withNames(List.of("web", "chrome")));
+        var renamed = fake.pass(server);
+        var signed = hub.logo("re-chrome").orElseThrow();
+        check(renamed.lines().equals(List.of("The logo of Chrome was renewed.")) && signed.shortName().equals(Optional.of("web"))
+                && text(level, signed.gate().sign().orElseThrow()).equals("Chrome\n/web") && signed.place().equals("N0R0"), "A new short name: " + renamed.lines());
+        check(fake.pass(server).lines().isEmpty(), "A pass in step changed something");
+
+        // Point 3: hub rebuild. His glass in place of a block of Discord's logo stays his; Discord cannot stand in N0L0
+        // again and goes one place on; every other logo is built again where it stood; his cobblestone stays.
+        var discord = hub.logo("re-discord").orElseThrow();
+        var plan = Town.plan(hub, fake.get("re-discord"), Place.parse("N0L0").orElseThrow(), fake.ring);
+        BlockPos glass = plan.blocks().keySet().stream().filter(pos -> pos.getY() == home.getY() + 6).findFirst().orElseThrow();
+        level.setBlockAndUpdate(glass, Blocks.GLASS.defaultBlockState());
+        check(!hub.holds(level, glass) && discord.gate().placed().stream().anyMatch(block -> block.pos().equals(glass)), "Fixture: the glass");
+        var zones = hub.logos().stream().map(HubData.Logo::zone).toList();
+        var rebuilt = fake.keeper.rebuild(server, new TownKeeper.Programs(fake.apps, true), app -> Optional.of(fake.ring), spots -> {
+            fake.saves.add(spots);
+            fake.apps.replaceAll(app -> spots.containsKey(app.id()) ? app.withSpot(spots.get(app.id()).place(), spots.get(app.id()).group()) : app);
+        });
+        check(rebuilt.lines().size() == 3 && rebuilt.lines().get(0).equals("The town was rebuilt from the rules: 5 logos built again, 1 moved.")
+                && rebuilt.lines().get(1).startsWith("The logo of Discord came down to be renewed but cannot stand at N0L0 again: ")
+                && rebuilt.lines().get(2).equals("N0L0 is blocked by something of yours, so Discord stands at N1L0."), "Rebuild: " + rebuilt.lines());
+        check(level.getBlockState(glass).is(Blocks.GLASS) && level.getBlockState(cobble).is(Blocks.COBBLESTONE), "His glass or cobblestone went");
+        check(place(server, "re-discord").equals("N1L0") && "N1L0".equals(fake.get("re-discord").place()), "Discord one place on");
+        for (var app : List.of("re-chrome", "re-lunar", "re-terminal", "re-notepad", "re-spotify"))
+            check(place(server, app).equals(fake.get(app).place()), app + " moved in the rebuild");
+        check(hub.logos().stream().map(HubData.Logo::zone).noneMatch(zones::contains), "A logo was not built again");
+        check(text(level, hub.fixed().names().getFirst()).equals("INTERNET \u00b7 2"), "The rebuild's count");
+
+        // The town comes down: one line for six, and nothing of it is left but his things.
+        fake.apps.replaceAll(app -> app.withMine(false));
+        var empty = fake.pass(server);
+        check(empty.lines().equals(List.of("The town changed: 6 logos taken down. /apps lists where your apps stand.")) && hub.logos().isEmpty(),
+                "Taking the town down: " + empty.lines());
+        check(!fake.zoneLeft(server), "A zone of the town stayed");
+        check(names(level, hub).equals(List.of("INTERNET \u00b7 0", "GAMES \u00b7 0", "SYSTEM & TOOLS \u00b7 0", "WORK & MEDIA \u00b7 0")), "Empty: " + names(level, hub));
+        level.setBlockAndUpdate(glass, Blocks.AIR.defaultBlockState());
+        level.setBlockAndUpdate(cobble, Blocks.AIR.defaultBlockState());
     }
 
     private interface Action { void run() throws IOException; }

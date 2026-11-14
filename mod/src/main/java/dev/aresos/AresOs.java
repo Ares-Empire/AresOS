@@ -207,6 +207,7 @@ public final class AresOs implements ModInitializer {
                         .then(dev.aresos.zone.ZoneCommands.zone())
                         .then(dev.aresos.zone.ZoneCommands.logo())
                         .then(dev.aresos.item.AppCommands.app())
+                        .then(dev.aresos.hub.HubCommands.hub())
                         .then(Commands.literal("desktop")
                                 .then(Commands.literal("on").executes(context -> desktop(context.getSource(), true)))
                                 .then(Commands.literal("off").executes(context -> desktop(context.getSource(), false))))

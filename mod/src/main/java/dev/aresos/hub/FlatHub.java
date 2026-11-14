@@ -3,6 +3,7 @@ package dev.aresos.hub;
 import com.mojang.math.Transformation;
 import dev.aresos.AresOs;
 import dev.aresos.catalogue.AppGroup;
+import dev.aresos.mixin.TextDisplayAccess;
 import dev.aresos.zone.Placing;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -16,6 +17,7 @@ import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.storage.TagValueInput;
@@ -28,7 +30,11 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Builds the fixed things of a flat home (docs/design/HUB.md 3.2): the home pad, the four avenues and their names. */
+/**
+ * Builds the fixed things of a flat home (docs/design/HUB.md 3.2): the home pad, the four avenues and their names.
+ * The town keeps them in step later ({@link #pave}, {@link #count}): an avenue grows with its group and is never
+ * unpaved, and a group's name shows how many apps stand in it.
+ */
 public final class FlatHub {
     private FlatHub() { }
 
@@ -55,6 +61,77 @@ public final class FlatHub {
     }
 
     /**
+     * Paves a group's avenue on to outward {@code avenueEnd(row)} (HUB.md 3.2), never back: it goes on from the
+     * farthest road block the record holds, or from where package 32 ended it, through the same {@link #place} as the
+     * first build, so it covers only untouched grass and records every block in {@code hub.dat}. It paves whole rows,
+     * nearest first, and stops at the first row whose ground is not loaded; no chunk is loaded for it.
+     *
+     * @return false when part of the road waits for its ground to be loaded
+     */
+    public static boolean pave(ServerLevel level, HubData hub, AppGroup group, int row) {
+        BlockPos home = hub.home().pos();
+        int side = HubLayout.ROAD / 2;
+        var placed = new ArrayList<HubData.Placed>();
+        boolean loaded = true;
+        for (int outward = Math.max(HubLayout.avenueEnd(0), reach(hub, group)) + 1; outward <= HubLayout.avenueEnd(row); outward++) {
+            for (int sideways = -side; sideways <= side; sideways++) loaded &= loaded(level, group.block(home, outward, sideways, -1));
+            if (!loaded) break;
+            for (int sideways = -side; sideways <= side; sideways++)
+                place(level, group.block(home, outward, sideways, -1), sideways == 0 ? group.concrete() : HubLayout.PAVING, placed);
+        }
+        hub.pave(placed);
+        return loaded;
+    }
+
+    /**
+     * Whether a block's chunk is loaded now, with its entities, as a gate asks it. A chunk the server has only
+     * scheduled says it is there too, and reading a block of it would load it on the spot.
+     */
+    private static boolean loaded(ServerLevel level, BlockPos pos) {
+        return level.hasChunkAt(pos) && level.areEntitiesLoaded(ChunkPos.pack(pos));
+    }
+
+    /**
+     * The farthest outward index of this group's avenue that the record holds. A road block he changed has left the
+     * record; where it was the last one, the road may be paved there again only if he left untouched grass.
+     */
+    private static int reach(HubData hub, AppGroup group) {
+        var home = hub.home().pos();
+        var out = group.outward();
+        var right = group.right();
+        int reach = 0;
+        for (var block : hub.fixed().blocks()) {
+            var at = block.pos().subtract(home);
+            if (at.getY() != -1) continue;
+            int outward = at.getX() * out.getStepX() + at.getZ() * out.getStepZ();
+            int sideways = at.getX() * right.getStepX() + at.getZ() * right.getStepZ();
+            if (outward >= HubLayout.AVENUE_START && Math.abs(sideways) <= HubLayout.ROAD / 2) reach = Math.max(reach, outward);
+        }
+        return reach;
+    }
+
+    /**
+     * Writes how many apps stand in a group on its name: {@code INTERNET · 2} (HUB.md 2.6).
+     *
+     * @return false when the name's ground or its entities are not loaded yet, so it could not be written now
+     */
+    public static boolean count(ServerLevel level, HubData hub, AppGroup group, int apps) {
+        int index = AppGroup.clockwise().indexOf(group);
+        if (index >= hub.fixed().names().size()) return true;
+        BlockPos at = group.block(hub.home().pos(), HubLayout.NAME_OUTWARD, 0, HubLayout.NAME_HEIGHT);
+        if (!loaded(level, at)) return false;
+        // A name that is gone (only a command can remove one) stays gone; there is nothing to write on.
+        if (level.getEntity(hub.fixed().names().get(index)) instanceof Display.TextDisplay name)
+            ((TextDisplayAccess) name).aresos$setText(title(group, apps));
+        return true;
+    }
+
+    /** A group's name as it hangs over its avenue; with the count once the town has stood up. */
+    public static Component title(AppGroup group, Integer apps) {
+        return Component.literal(group.title().toUpperCase(Locale.ROOT) + (apps == null ? "" : " \u00b7 " + apps)).withColor(group.colour());
+    }
+
+    /**
      * Paves one block through {@link Placing}, the one way the mod changes a block, and records what it placed. The
      * pad and roads go on the untouched grass only, with nothing standing on it; anything else is his, or another
      * build's, and stays. No neighbour updates: paving the ground changes nothing around it.
@@ -72,7 +149,7 @@ public final class FlatHub {
         // A display's settings have no public setters; its saved form is the one /summon takes.
         var tag = new CompoundTag();
         tag.store(Display.TextDisplay.TAG_TEXT, ComponentSerialization.CODEC, level.registryAccess().createSerializationContext(NbtOps.INSTANCE),
-                Component.literal(group.title().toUpperCase(Locale.ROOT)).withColor(group.colour()));
+                title(group, null));
         tag.store(Display.TAG_BILLBOARD, Display.BillboardConstraints.CODEC, Display.BillboardConstraints.VERTICAL);
         tag.store(Display.TAG_BRIGHTNESS, Brightness.CODEC, Brightness.FULL_BRIGHT);
         tag.putFloat(Display.TAG_VIEW_RANGE, HubLayout.NAME_VIEW_RANGE);

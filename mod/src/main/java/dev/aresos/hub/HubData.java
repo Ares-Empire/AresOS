@@ -244,6 +244,21 @@ public final class HubData extends SavedData {
         town.setDirty();
     }
 
+    /**
+     * Records road blocks the town just paved. They are fixed things like the pad and the first stretch of road, so
+     * they are saved in {@code hub.dat}, where an older mod keeps protecting them.
+     */
+    public void pave(List<Placed> blocks) {
+        if (blocks.isEmpty()) return;
+        for (var block : blocks)
+            if (placed.containsKey(block.pos())) throw new IllegalArgumentException("Recorded twice: " + block.pos().toShortString());
+        var all = new ArrayList<>(fixed.blocks());
+        all.addAll(blocks);
+        fixed = new Fixed(List.copyOf(all), fixed.names());
+        for (var block : blocks) placed.put(block.pos(), block.block());
+        setDirty();
+    }
+
     /** Forgets a logo that was taken down; what was left of it is his. */
     public Optional<Logo> remove(String app) {
         var logo = logo(app);

@@ -14,10 +14,12 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -76,6 +78,8 @@ public final class TownKeeper {
     private static final int RETRY_TICKS = 100;
     /** How many blocked places one chat line names. */
     private static final int NAMED_PLACES = 3;
+    /** The most rounds one pass makes: each further round follows a build refused in a place that looked free. */
+    private static final int ROUNDS = 3;
     private static final AtomicBoolean ASKED = new AtomicBoolean();
     private static volatile boolean complete;
     // Server thread only, like the servers themselves.
@@ -95,6 +99,8 @@ public final class TownKeeper {
     /** Lines about lasting conditions (a logo that stays, an app with no place): said once a run he started. */
     private final Set<String> said = new HashSet<>();
     private final Map<String, Read> pictures = new HashMap<>();
+    /** Apps whose logo {@code hub rebuild} asked to be built again and that still stand as they were. */
+    private final Set<String> renew = new HashSet<>();
     private CompletableFuture<Map<String, Read>> reading;
     private boolean stale, due, pending;
     private long retryAt;
@@ -165,8 +171,21 @@ public final class TownKeeper {
         runNow(server);
     }
 
+    /**
+     * Server thread: {@code /aresos hub rebuild} now, with the pictures already read; its line goes to the host's
+     * chat. The caller checks first that there is a town and a complete list (otherwise nothing happens).
+     */
+    public static Pass rebuild(MinecraftServer server) {
+        var keeper = keeper(server);
+        return keeper.tell(server, keeper.rebuild(server, new Programs(AresOs.apps(), complete), keeper::picture, AresOs::saveSpots));
+    }
+
     private Pass runNow(MinecraftServer server) {
-        var pass = keep(server, new Programs(AresOs.apps(), complete), this::picture, AresOs::saveSpots);
+        return tell(server, keep(server, new Programs(AresOs.apps(), complete), this::picture, AresOs::saveSpots));
+    }
+
+    /** Says a pass's lines to the host and schedules what it left: a retry, pictures to read. */
+    private Pass tell(MinecraftServer server, Pass pass) {
         var host = host(server);
         for (var line : pass.lines()) {
             AresOs.LOGGER.info("Town: {}", line);
@@ -204,19 +223,67 @@ public final class TownKeeper {
     }
 
     /**
-     * One pass on the server thread (HUB.md 3.4, points 1 to 4 and 6). Does nothing on an incomplete list or outside a
-     * flat home of these rules. Saves each app's place through {@code spots} when it changed (keeping its group), then
-     * takes down, builds and renews, in that order.
+     * One pass on the server thread (HUB.md 3.4). Does nothing on an incomplete list or outside a flat home of these
+     * rules. Saves each app's place through {@code spots} when it changed (keeping its group), then takes down, builds
+     * and renews, in that order; then paves the avenues on to their groups' farthest rows and writes the counts on the
+     * groups' names.
      *
      * @param pictures the picture of an app's logo, or empty when it has not been read yet
      */
     public Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots) {
+        return keep(server, programs, pictures, spots, false);
+    }
+
+    /**
+     * {@code /aresos hub rebuild} (HUB.md 2.5) as one pass: every standing logo is taken down and built again from
+     * the rules, in the place saved with its app. What he changed in a logo is his and stays; where it is in the way
+     * the logo stands one place on, as for any blocked place. A logo whose place is not loaded is built again when it
+     * is; one he hangs something on stays as it was until he takes that away. Says one line, plus a line for each
+     * thing of his in the way. Changes nothing on an incomplete list or outside a flat home of these rules.
+     */
+    public Pass rebuild(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots) {
+        var hub = HubData.get(server);
+        if (!programs.complete() || hub == null || !HubLayout.LOOK.equals(hub.look())) return Pass.NOTHING;
+        for (var logo : hub.logos()) renew.add(logo.app());
+        said.clear();
+        refused.clear();
+        return keep(server, programs, pictures, spots, true);
+    }
+
+    private Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots, boolean rebuilt) {
         if (!programs.complete()) return Pass.NOTHING;
         var hub = HubData.get(server);
-        if (hub == null || !HubLayout.LOOK.equals(hub.look()) || server.getLevel(hub.home().dimension()) == null) return Pass.NOTHING;
+        if (hub == null || !HubLayout.LOOK.equals(hub.look())) return Pass.NOTHING;
+        var level = server.getLevel(hub.home().dimension());
+        if (level == null) return Pass.NOTHING;
 
         var apps = new LinkedHashMap<String, AppDefinition>();
         for (var app : programs.apps()) apps.putIfAbsent(app.id(), app);
+        boolean first = hub.logos().isEmpty();
+        var lines = new TownLines();
+        var need = new LinkedHashSet<String>();
+        var cameDown = new HashSet<String>();
+        Round round;
+        // A build refused in a place that looked free blocks that place, and the app goes on to its group's next
+        // place in this same pass: a few more rounds, each only after a new refusal.
+        for (int rounds = 1; ; rounds++) {
+            int refusals = refused.size();
+            round = round(server, hub, apps, pictures, spots, lines, cameDown);
+            need.addAll(round.need());
+            if (refused.size() == refusals || rounds == ROUNDS) break;
+        }
+        renew.retainAll(hub.logos().stream().map(HubData.Logo::app).collect(Collectors.toSet()));
+        // 5. Roads and names.
+        boolean roads = roads(level, hub, round.assignment());
+        return new Pass(lines.said(first, rebuilt, round.waiting()), round.pending() || !roads, need);
+    }
+
+    /** What one round of a pass left: who stands where, work that waits, pictures it lacked, rebuilt logos that wait. */
+    private record Round(Assignment assignment, boolean pending, Set<String> need, int waiting) { }
+
+    /** Points 1 to 4 and 6 of HUB.md 3.4, once. */
+    private Round round(MinecraftServer server, HubData hub, Map<String, AppDefinition> apps,
+                        Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots, TownLines lines, Set<String> cameDown) {
         var occupied = new HashSet<Place>();
         for (var logo : hub.logos()) Place.parse(logo.place()).ifPresent(occupied::add);
         // HUB.md 3.3: pinned apps first, then the others in the order of the apps file.
@@ -232,14 +299,13 @@ public final class TownKeeper {
         }
         var assignment = Assignment.of(input, place -> blocked(server, place, occupied));
 
-        var lines = new ArrayList<String>();
         save(apps.values(), assignment, spots, lines);
         boolean pending = false;
+        int waiting = 0;
 
         // 2. Take down what should not stand, or not there.
-        var cameDown = new HashSet<String>();
         var stays = new HashSet<String>();
-        var waiting = new HashSet<Place>();
+        var waitingFor = new HashSet<Place>();
         for (var logo : hub.logos()) {
             var target = assignment.standing().get(logo.app());
             var at = Place.parse(logo.place());
@@ -247,16 +313,16 @@ public final class TownKeeper {
             try {
                 Town.remove(server, logo.app());
                 cameDown.add(logo.app());
-                if (target == null) lines.add(gone(apps.get(logo.app()), logo));
+                if (target == null) lines.add(TownLines.Kind.DOWN, gone(apps.get(logo.app()), logo));
             } catch (IOException refusal) {
                 stays.add(logo.app());
-                at.ifPresent(waiting::add);
+                at.ifPresent(waitingFor::add);
                 if (refusal instanceof GateBuilder.NotLoaded) pending = true;
                 else once(lines, "The logo of " + logo.name() + " stays: " + refusal.getMessage() + " The town tries again later.");
             }
         }
 
-        // 3. and 4. Build what is missing, renew what changed.
+        // 3. and 4. Build what is missing, renew what changed or what a rebuild asked for.
         var need = new LinkedHashSet<String>();
         for (var entry : assignment.standing().entrySet()) {
             var app = apps.get(entry.getKey());
@@ -265,35 +331,43 @@ public final class TownKeeper {
             if (stays.contains(app.id())) continue;
             var standing = hub.logo(app.id());
             // The town's logo that stands there comes down first.
-            if (standing.isEmpty() && waiting.contains(place)) continue;
+            if (standing.isEmpty() && waitingFor.contains(place)) continue;
             var picture = pictures.apply(app);
             if (picture.isEmpty()) {
                 need.add(app.id());
                 continue;
             }
             if (standing.isPresent()) {
-                if (!changed(standing.get(), app, picture.get())) continue;
+                if (!changed(standing.get(), app, picture.get()) && !renew.contains(app.id())) continue;
                 try {
                     Town.remove(server, app.id());
                 } catch (IOException refusal) {
-                    if (refusal instanceof GateBuilder.NotLoaded) pending = true;
-                    else once(lines, "The logo of " + app.name() + " stays as it was: " + refusal.getMessage() + " The town tries again later.");
+                    if (refusal instanceof GateBuilder.NotLoaded) {
+                        pending = true;
+                        if (renew.contains(app.id())) waiting++;
+                    } else once(lines, "The logo of " + app.name() + " stays as it was: " + refusal.getMessage() + " The town tries again later.");
                     continue;
                 }
             }
             try {
                 Town.build(server, app, place, picture.get());
-                lines.add(standing.isPresent() ? "The logo of " + app.name() + " was renewed."
-                        : built(app, place, saved.get(app.id()), cameDown.contains(app.id())));
+                renew.remove(app.id());
+                boolean moved = cameDown.contains(app.id());
+                if (standing.isPresent()) lines.add(TownLines.Kind.RENEWED, "The logo of " + app.name() + " was renewed.");
+                else lines.add(moved ? TownLines.Kind.MOVED : TownLines.Kind.BUILT, built(app, place, saved.get(app.id()), moved));
             } catch (GateBuilder.NotLoaded notLoaded) {
                 pending = true;
             } catch (IOException refusal) {
-                // It looked free with a full front, but this app's logo needs more (a longer name above the sign).
-                // The place is blocked from now on, and the next pass moves the app on and says so.
+                // It looked free with a full front, but this app's logo cannot stand there: a longer name needs more
+                // air above the sign, or a block he changed in its old logo stayed his. The place is blocked from now
+                // on; the next round moves the app on and says so.
                 refused.add(place);
                 pending = true;
-                if (standing.isPresent()) lines.add("The logo of " + app.name() + " came down to be renewed but cannot stand at "
-                        + place.name() + " again: " + refusal.getMessage());
+                if (standing.isPresent()) {
+                    cameDown.add(app.id());
+                    lines.add(TownLines.Kind.WAY, "The logo of " + app.name() + " came down to be renewed but cannot stand at "
+                            + place.name() + " again: " + refusal.getMessage());
+                }
             }
         }
 
@@ -309,8 +383,29 @@ public final class TownKeeper {
         }
         for (var id : assignment.unplaced())
             once(lines, apps.get(id).name() + " has no free place in " + AppGroup.of(apps.get(id)).title() + ": every place there is blocked.");
-        // 5. (roads and the groups' counts) is step 3's.
-        return new Pass(lines, pending, need);
+        return new Round(assignment, pending, need, waiting);
+    }
+
+    /**
+     * HUB.md 3.4, point 5: each avenue paved on to its group's farthest row in use (an app placed there, or a logo
+     * that still stands), never back; and on each group's name the number of apps that have their place in it.
+     *
+     * @return false when part of it waits for its ground to be loaded
+     */
+    private static boolean roads(ServerLevel level, HubData hub, Assignment assignment) {
+        var farthest = new EnumMap<AppGroup, Integer>(AppGroup.class);
+        var counts = new EnumMap<AppGroup, Integer>(AppGroup.class);
+        for (var place : assignment.standing().values()) {
+            farthest.merge(place.group(), place.row(), Math::max);
+            counts.merge(place.group(), 1, Integer::sum);
+        }
+        for (var logo : hub.logos()) Place.parse(logo.place()).ifPresent(place -> farthest.merge(place.group(), place.row(), Math::max));
+        boolean done = true;
+        for (var group : AppGroup.clockwise()) {
+            done &= FlatHub.pave(level, hub, group, farthest.getOrDefault(group, 0));
+            done &= FlatHub.count(level, hub, group, counts.getOrDefault(group, 0));
+        }
+        return done;
     }
 
     /** The place saved with the app; when the file has none, the place its logo stands in, so it does not move. */
@@ -336,7 +431,7 @@ public final class TownKeeper {
     }
 
     /** Saves the places that changed. A place text this mod cannot read stays as it is unless the app gets a place. */
-    private void save(Iterable<AppDefinition> apps, Assignment assignment, Spots spots, List<String> lines) {
+    private void save(Iterable<AppDefinition> apps, Assignment assignment, Spots spots, TownLines lines) {
         var changes = new LinkedHashMap<String, AppsConfig.Spot>();
         for (var app : apps) {
             var now = assignment.saved().get(app.id());
@@ -352,8 +447,9 @@ public final class TownKeeper {
         }
     }
 
-    private void once(List<String> lines, String line) {
-        if (said.add(line)) lines.add(line);
+    /** A line about something in his way or a lasting condition: said once a run he started. */
+    private void once(TownLines lines, String line) {
+        if (said.add(line)) lines.add(TownLines.Kind.WAY, line);
     }
 
     /** Whether a standing logo shows something else than the app's logo would now (HUB.md 3.4, point 4). */

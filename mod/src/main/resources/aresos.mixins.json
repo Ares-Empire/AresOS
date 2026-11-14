@@ -16,7 +16,8 @@
     "PendingPickupMixin",
     "PendingInventoryMixin",
     "CommandNodeAccess",
-    "CommandNodeMergeMixin"
+    "CommandNodeMergeMixin",
+    "TextDisplayAccess"
   ],
   "injectors": {
     "defaultRequire": 1
