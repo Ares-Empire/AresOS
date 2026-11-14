@@ -254,13 +254,16 @@ guard that emits Python's output only on success and always exits 0, covering
 interpreter startup failures before Python code can run. A different
 `hook_event_name` is malformed.
 No transcript, current directory or prompt path from hook input is opened. Input
-is read in full, including long prompts and final assistant messages. The fields a
-hook knows keep their types; fields it doesn't read are accepted and ignored,
-because Claude Code adds input fields between versions (2.1.319 sends `prompt_id`,
-which a closed list refused in every turn; found by brief 18c's VM test). `Stop` keeps
-its explicit service-failure reminder and malformed-input stderr feedback with
-exit 2, once: when `stop_hook_active` is already true it ends quietly, so a failing
-hook never holds a turn open until Claude Code's own limit. `UserPromptSubmit` exits 0 with no output on any failure, including unreadable
+is read in full, including long prompts and final assistant messages. A hook reads
+only `hook_event_name` and `stop_hook_active` and checks their types; every other
+field is accepted and never read, because Claude Code adds and changes input fields
+between versions (2.1.319 sends `prompt_id`, which a closed list refused in every
+turn; found by brief 18c's VM test). `Stop` reminds when the service can't be reached
+(a `block` decision that says so) and reports malformed input or its own failure on
+stderr with exit 2. Both block a stop once: when the input parses and
+`stop_hook_active` is already true, it ends quietly. Input it can't parse (over the
+size limit, not strict JSON) exits 2 at every stop, up to Claude Code's own limit on
+blocked stops. `UserPromptSubmit` exits 0 with no output on any failure, including unreadable
 or malformed input, service failure, and installation/configuration errors, so
 it never discards the owner's prompt. Valid prompt input still adds the pending
 reminder. Hooks are reminders; service expiry is the safety net during interrupts,

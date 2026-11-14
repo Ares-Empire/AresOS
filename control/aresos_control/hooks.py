@@ -10,12 +10,11 @@ from .definitions import obj
 from .protocol import Client
 
 
-# The fields a hook may read, with their types. Claude Code adds input fields between versions (2.1.319 already
-# sends `prompt_id`), so any other field is accepted and never read; the input as a whole stays bounded strict JSON.
-EVENT = {**obj({**{key: {'type': 'string', 'maxLength': WIRE_LIMIT} for key in (
-    'session_id', 'transcript_path', 'cwd', 'permission_mode', 'last_assistant_message', 'prompt')},
-    'hook_event_name': {'type': 'string', 'enum': ['Stop', 'UserPromptSubmit']},
-    'stop_hook_active': {'type': 'boolean'}}, ['hook_event_name']), 'additionalProperties': True}
+# The two fields a hook reads, with their types. Claude Code adds and changes input fields between versions (2.1.319
+# already sends `prompt_id`), so every other field is accepted and never read; the input as a whole stays bounded
+# strict JSON.
+EVENT = {**obj({'hook_event_name': {'type': 'string', 'enum': ['Stop', 'UserPromptSubmit']},
+                'stop_hook_active': {'type': 'boolean'}}, ['hook_event_name']), 'additionalProperties': True}
 
 
 def output(event, pending):

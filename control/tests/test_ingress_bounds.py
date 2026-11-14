@@ -84,8 +84,10 @@ class IngressBounds(unittest.TestCase):
     def test_hook_explicit_payload_schema_refuses_wrong_types(self):
         for event in ({'hook_event_name': 'Stop', 'stop_hook_active': 1},
                       {'hook_event_name': 'Stop', 'stop_hook_active': 'true', 'prompt_id': 'p'},
-                      {'hook_event_name': 'Stop', 'prompt': []},
-                      {'hook_event_name': 'Stop', 'session_id': None, 'extra': 'field'}):
+                      {'hook_event_name': 7, 'stop_hook_active': False},
+                      {'hook_event_name': 'SessionStart'},
+                      {'hook_event_name': 'UserPromptSubmit', 'stop_hook_active': False},
+                      {'stop_hook_active': False, 'extra': 'field'}):
             with self.subTest(event=event), patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), \
                     patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
                 with self.assertRaises(SystemExit) as error:
@@ -95,12 +97,13 @@ class IngressBounds(unittest.TestCase):
 
     def test_hook_accepts_and_ignores_fields_it_does_not_read(self):
         # Claude Code 2.1.319 sends `prompt_id` and more than the documented fields; a closed list broke every turn.
-        extra = {'prompt_id': 'prompt-marker-7', 'unknown_later_field': {'nested': [1, None]}, 'agent_id': 'a'}
+        # Fields it doesn't read may change type too (a later version sending null must not break every turn).
+        extra = {'prompt_id': 'prompt-marker-7', 'unknown_later_field': {'nested': [1, None]}, 'agent_id': 'a',
+                 'session_id': None, 'transcript_path': 7}
         pending = {'total': 1, 'operations': [{'operation_id': 'op-1', 'state': 'held'}]}
         for name in ('Stop', 'UserPromptSubmit'):
-            event = {'hook_event_name': name, 'session_id': 's', 'transcript_path': '/unused', 'cwd': '/unused',
-                     'permission_mode': 'default', **extra,
-                     **({'stop_hook_active': False} if name == 'Stop' else {'prompt': 'owner text'})}
+            event = {'hook_event_name': name, 'cwd': '/unused', 'permission_mode': 'default', **extra,
+                     **({'stop_hook_active': False, 'last_assistant_message': ['x']} if name == 'Stop' else {'prompt': None})}
             stdout = io.StringIO()
             with self.subTest(event=name), patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), \
                     patch.object(hooks, 'Client') as client, redirect_stdout(stdout), redirect_stderr(io.StringIO()):
@@ -120,7 +123,7 @@ class IngressBounds(unittest.TestCase):
         for active, broken in ((False, 'service'), (True, 'service'), (False, 'input'), (True, 'input'), ('yes', 'input')):
             event = {'hook_event_name': 'Stop', 'stop_hook_active': active, 'prompt_id': 'p'}
             if broken == 'input':
-                event['prompt'] = ['not text']
+                event['hook_event_name'] = 'UserPromptSubmit'  # valid fields, but not the launcher's event
             stderr = io.StringIO()
             with self.subTest(active=active, broken=broken), \
                     patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), \
