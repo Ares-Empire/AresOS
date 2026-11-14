@@ -24,8 +24,11 @@ public abstract class LogoExplosionMixin {
             if (zone.dimension().equals(level.dimension())) protectedBlocks.addAll(zone.blocks());
         // Explosions are never an edit gesture, including while the owner is building.
         affected.removeIf(protectedBlocks::contains);
-        // The flat home's pad and roads follow their own rule: Build mode may change anything (brief 32).
+        // The town's logos are spared like the gates above; the pad and roads only outside Build mode (brief 32).
         var hub = HubData.get(level.getServer());
-        if (hub != null && HubData.protectsFromExplosions(level.getServer())) affected.removeIf(pos -> hub.holds(level, pos));
+        if (hub != null) {
+            boolean buildMode = !HubData.protectsFromExplosions(level.getServer());
+            affected.removeIf(pos -> hub.sparesFromExplosion(level, pos, buildMode));
+        }
     }
 }

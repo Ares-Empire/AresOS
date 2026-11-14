@@ -124,6 +124,11 @@ final class Neighbors {
     }
 
     private static boolean stableOnRemoval(BlockState state) {
+        // A light needs no support and survives anywhere, so nothing hangs on its neighbours: a gate's light that he
+        // changed (its level, or water in it) is his and stays, and it must not hold the gate up (package 36). Water he
+        // put in it already runs out on its open sides and only reaches the freed cells too; package 33 treats the
+        // lights it still owns the same way (inert, below).
+        if (state.is(Blocks.LIGHT)) return true;
         return state.getFluidState().isEmpty() && !state.hasBlockEntity() && !state.isSignalSource()
                 && !state.isRandomlyTicking() && !(state.getBlock() instanceof Fallable)
                 && STABLE_ON_REMOVAL.get(state.getBlock().getClass());

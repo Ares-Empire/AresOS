@@ -154,8 +154,14 @@ public final class TownGameTests {
             var corner = plan.at(0, 0, 11);
             check(hub.logoAt(level, corner).equals(Optional.of(logo)) && hub.logoAt(level, home.below()).isEmpty(), "logoAt does not find the logo's block");
             check(hub.holds(level, corner) && hub.fixed().blocks().size() == fixed.blocks().size(), "The pad's record changed");
-            var saved = HubData.CODEC.parse(NbtOps.INSTANCE, HubData.CODEC.encodeStart(NbtOps.INSTANCE, hub).getOrThrow()).getOrThrow();
-            check(saved.logos().equals(hub.logos()), "The logo did not round-trip through hub.dat");
+            // hub.dat written again in package 32's shape (as an older mod does) loses nothing: the logos are in town.dat.
+            var hubDat = (net.minecraft.nbt.CompoundTag)HubData.CODEC.encodeStart(NbtOps.INSTANCE, hub).getOrThrow();
+            check(!hubDat.contains("logos"), "hub.dat holds the logos: " + hubDat.keySet());
+            var rewritten = HubData.CODEC.parse(NbtOps.INSTANCE, hubDat).getOrThrow();
+            HubData.store(server, rewritten);
+            check(HubData.get(server) == rewritten && rewritten.logos().equals(hub.logos()) && rewritten.holds(level, corner)
+                    && rewritten.signs().equals(hub.signs()), "The logo did not survive hub.dat being written again");
+            HubData.store(server, hub);
 
             // zones.dat: the trigger zone and exit, no gate and no blocks of its own; it is the town's and nothing else is.
             var zones = ZoneData.get(server).zones().stream().filter(zone -> zone.app().equals("town-discord")).toList();

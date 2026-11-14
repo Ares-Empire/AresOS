@@ -19,7 +19,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** The town's part of hub.dat (HUB.md 3.5): what a standing logo records, and files written before the town. */
+/** The town's record (HUB.md 3.5): hub.dat as package 32 made it, the standing logos in town.dat, and files written before the town. */
 class HubDataTest {
     private static final BlockPos HOME = new BlockPos(0, 64, 0);
 
@@ -52,18 +52,46 @@ class HubDataTest {
         assertEquals(Map.of(HOME.below(), "minecraft:gold_block"), loaded.blocks(Level.OVERWORLD));
     }
 
-    @Test void standingLogosRoundTripWithEverythingPlacedForThem() {
+    @Test void standingLogosRoundTripThroughTownDatWithEverythingPlacedForThem() {
         var discord = logo("discord", "N0R0", new BlockPos(9, 64, -20), "zone-discord");
         var lunar = new HubData.Logo("lunar", "E0L0", "cd".repeat(32), 1, "Lunar Client", Optional.empty(), "zone-lunar",
                 new AppZone.Gate(List.of(new AppZone.Placed(new BlockPos(20, 64, -9), "minecraft:black_concrete")), List.of(), Optional.empty()));
-        var saved = (CompoundTag)HubData.CODEC.encodeStart(NbtOps.INSTANCE, hub(List.of(discord, lunar))).getOrThrow();
-        var loaded = HubData.CODEC.parse(NbtOps.INSTANCE, saved).getOrThrow();
-        assertEquals(List.of(discord, lunar), loaded.logos());
-        assertEquals(saved, HubData.CODEC.encodeStart(NbtOps.INSTANCE, loaded).getOrThrow(), "saved again it is the same file");
+        var file = new HubData.TownFile(GlobalPos.of(Level.OVERWORLD, HOME), List.of(discord, lunar));
+        var saved = (CompoundTag)HubData.TownFile.CODEC.encodeStart(NbtOps.INSTANCE, file).getOrThrow();
+        var loaded = HubData.TownFile.CODEC.parse(NbtOps.INSTANCE, saved).getOrThrow();
+        assertEquals(List.of(discord, lunar), loaded.logos);
+        assertEquals(saved, HubData.TownFile.CODEC.encodeStart(NbtOps.INSTANCE, loaded).getOrThrow(), "saved again it is the same file");
         var first = saved.getListOrEmpty("logos").getCompoundOrEmpty(0);
         for (String field : List.of("app", "place", "picture", "converter", "name", "short_name", "zone", "gate"))
             assertTrue(first.contains(field), "a logo saves " + field);
         assertFalse(saved.getListOrEmpty("logos").getCompoundOrEmpty(1).contains("short_name"), "no short name, no field");
+        assertTrue(saved.contains("home"), "town.dat names the home it belongs to");
+    }
+
+    /**
+     * The orchestrator's decision 1: a mod of packages 32 to 35 rewrites hub.dat in its own shape and drops what it
+     * does not know. hub.dat holds nothing of the town, so the hub read back from such a file, joined to town.dat,
+     * knows every logo and every block of it.
+     */
+    @Test void hubDatKeepsPackage32sShapeSoAnOlderModsRewriteLosesNothingOfTheTown() {
+        var discord = logo("discord", "N0R0", new BlockPos(9, 64, -20), "zone-discord");
+        var hub = hub(List.of(discord));
+        var hubDat = (CompoundTag)HubData.CODEC.encodeStart(NbtOps.INSTANCE, hub).getOrThrow();
+        assertEquals(Set.of("look", "numbers", "home", "fixed"), hubDat.keySet(), "hub.dat is package 32's shape");
+        var townDat = HubData.TownFile.CODEC.encodeStart(NbtOps.INSTANCE, new HubData.TownFile(hub.home(), hub.logos())).getOrThrow();
+
+        // The older mod reads hub.dat and writes it again (a pad block changed): only the four fields it knows.
+        var rewritten = HubData.CODEC.parse(NbtOps.INSTANCE, hubDat).getOrThrow();
+        var reloaded = HubData.CODEC.parse(NbtOps.INSTANCE, HubData.CODEC.encodeStart(NbtOps.INSTANCE, rewritten).getOrThrow()).getOrThrow();
+        reloaded.adopt(HubData.TownFile.CODEC.parse(NbtOps.INSTANCE, townDat).getOrThrow());
+        assertEquals(List.of(discord), reloaded.logos());
+        assertEquals(hub.blocks(Level.OVERWORLD), reloaded.blocks(Level.OVERWORLD), "every block of the town is still the mod's");
+        assertEquals(Optional.of(discord), reloaded.logoOfZone("zone-discord"));
+        assertEquals(hub.signs(), reloaded.signs());
+
+        // A town file of another home is never read into this hub.
+        var elsewhere = new HubData.TownFile(GlobalPos.of(Level.OVERWORLD, HOME.east(5000)), List.of(discord));
+        assertThrows(IllegalArgumentException.class, () -> hub(List.of()).adopt(elsewhere));
     }
 
     @Test void theRecordKnowsEveryLogoByAppZoneBlockAndSign() {
@@ -85,11 +113,12 @@ class HubDataTest {
         assertThrows(IllegalArgumentException.class, () -> hub.add(logo("chrome", "N0L0", HOME, "zone-4")),
                 "a block of the pad");
         assertEquals(List.of(discord), hub.logos());
-        assertFalse(hub.isDirty());
+        assertFalse(hub.isDirty() || hub.townChanged());
 
         var chrome = logo("chrome", "N0L0", new BlockPos(-10, 64, -20), "zone-chrome");
         hub.add(chrome);
-        assertTrue(hub.isDirty());
+        assertTrue(hub.townChanged(), "town.dat is written for a new logo");
+        assertFalse(hub.isDirty(), "hub.dat is not: it holds nothing of the town");
         assertEquals(List.of(discord, chrome), hub.logos());
         assertEquals(7, hub.blocks(Level.OVERWORLD).size());
         assertEquals(Optional.of(discord), hub.remove("discord"));

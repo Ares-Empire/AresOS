@@ -33,10 +33,13 @@ import java.util.stream.Collectors;
  * the pad, the avenues and the group names ({@link Fixed}) and the town's standing logos ({@link Logo}). A changed
  * block permanently leaves the record, even if he later puts the original material back.
  *
- * <p>The town's gates are recorded here and not in the zones file, so an older mod that saves the zones file cannot
- * orphan them. Their trigger zones stay in {@code zones.dat} without a gate of their own; a zone is the town's while
- * a logo here names its ID ({@link #logoOfZone}). A mod of packages 32 to 35 rewrites this file when one of the
- * pad's blocks changes and then drops the logos: going back to such a mod and changing the pad loses the record.
+ * <p>{@code hub.dat} keeps the shape package 32 gave it (look, numbers, home, the fixed things). The standing logos
+ * are saved beside it in {@code data/aresos/town.dat}, a file no mod of packages 32 to 35 knows or writes: such a mod
+ * rewrites {@code hub.dat} when a pad block changes and drops every field it does not know, so after going back to
+ * one, logos kept in {@code hub.dat} would be lost and stand there as nobody's. In memory it is one record with one
+ * block index ({@link #holds}). The town's gates are recorded here and not in the zones file, so an older mod that
+ * saves the zones file cannot orphan them either. Their trigger zones stay in {@code zones.dat} without a gate of
+ * their own; a zone is the town's while a logo here names its ID ({@link #logoOfZone}).
  */
 public final class HubData extends SavedData {
     /** One block the mod placed; the block as its ID, for example "minecraft:gold_block". */
@@ -86,26 +89,47 @@ public final class HubData extends SavedData {
         }
     }
 
-    /** The contents of {@code hub.dat}. A file written before the town (packages 32 to 35) has no logos. */
+    /** The contents of {@code hub.dat}, as package 32 wrote it. The logos are in {@code town.dat} ({@link TownFile}). */
     public static final Codec<HubData> CODEC = RecordCodecBuilder.create(i -> i.group(
             Codec.STRING.fieldOf("look").forGetter(HubData::look),
             Codec.unboundedMap(Codec.STRING, Codec.INT).fieldOf("numbers").forGetter(HubData::numbers),
             GlobalPos.CODEC.fieldOf("home").forGetter(HubData::home),
-            Fixed.CODEC.fieldOf("fixed").forGetter(HubData::fixed),
-            Logo.CODEC.listOf().optionalFieldOf("logos", List.of()).forGetter(HubData::logos)).apply(i, HubData::new));
+            Fixed.CODEC.fieldOf("fixed").forGetter(HubData::fixed)).apply(i, HubData::new));
     // Only a new flat home writes this file. A default here would let a missing or unreadable record be replaced
     // by an empty one, and the mod would then no longer know its own blocks.
     private static final SavedDataType<HubData> TYPE = new SavedDataType<>(AresOs.id("hub"), () -> {
         throw new IllegalStateException("hub.dat is written only when a flat home is created");
     }, CODEC, null);
 
+    /**
+     * {@code data/aresos/town.dat}: the standing logos of the town at {@code home}. The home ties the file to its
+     * hub: a town file of another home is not this hub's and is never read into it.
+     */
+    static final class TownFile extends SavedData {
+        static final Codec<TownFile> CODEC = RecordCodecBuilder.create(i -> i.group(
+                GlobalPos.CODEC.fieldOf("home").forGetter(file -> file.home),
+                Logo.CODEC.listOf().fieldOf("logos").forGetter(file -> List.copyOf(file.logos))).apply(i, TownFile::new));
+        // A world without the file has no town yet; the hub makes one for its home when it first needs it.
+        static final SavedDataType<TownFile> TYPE = new SavedDataType<>(AresOs.id("town"), () -> {
+            throw new IllegalStateException("town.dat is made by its hub");
+        }, CODEC, null);
+        final GlobalPos home;
+        final List<Logo> logos;
+
+        TownFile(GlobalPos home, List<Logo> logos) { this.home = home; this.logos = new ArrayList<>(logos); }
+    }
+
     private final String look;
     private final Map<String, Integer> numbers;
     private final GlobalPos home;
     private Fixed fixed;
-    private final List<Logo> logos = new ArrayList<>();
+    /** The logos, saved in town.dat; the server's own file once {@link #attach}ed. */
+    private TownFile town;
+    private boolean attached;
     /** Every block of the record, the fixed things' and the logos': where, and which block. */
     private final Map<BlockPos, String> placed = new HashMap<>();
+    /** Which logo each of the logos' blocks belongs to, by app. */
+    private final Map<BlockPos, String> logoBlocks = new HashMap<>();
 
     public HubData(String look, Map<String, Integer> numbers, GlobalPos home, Fixed fixed) {
         this(look, numbers, home, fixed, List.of());
@@ -117,19 +141,50 @@ public final class HubData extends SavedData {
         this.home = home;
         this.fixed = new Fixed(List.copyOf(fixed.blocks()), List.copyOf(fixed.names()));
         for (Placed block : this.fixed.blocks()) placed.put(block.pos(), block.block());
+        this.town = new TownFile(home, List.of());
         for (Logo logo : logos) index(logo);
     }
 
     /** The record of this save's hub, or null: not a flat home, or its record is missing or unreadable. */
     public static HubData get(MinecraftServer server) {
-        return server.getDataStorage().get(TYPE);
+        var hub = server.getDataStorage().get(TYPE);
+        if (hub != null && !hub.attached) hub.attach(server.getDataStorage());
+        return hub;
     }
 
-    /** Called once, when a new flat home has been built. */
+    /**
+     * Called once, when a new flat home has been built (and by tests, to put a record back). The town of the same
+     * home in {@code town.dat} stays this hub's: storing a {@code hub.dat} again loses no logo.
+     */
     public static void store(MinecraftServer server, HubData data) {
         server.getDataStorage().set(TYPE, data);
         data.setDirty();
+        data.attach(server.getDataStorage());
     }
+
+    /** Joins this record to the server's town file of the same home, or makes that file from this record's logos. */
+    private void attach(net.minecraft.world.level.storage.SavedDataStorage storage) {
+        var file = attached ? town : storage.get(TownFile.TYPE);
+        if (file != null && file != town && home.equals(file.home)) adopt(file);
+        else {
+            storage.set(TownFile.TYPE, town);
+            if (!town.logos.isEmpty()) town.setDirty();
+        }
+        attached = true;
+    }
+
+    /** Takes the logos of a town file as this hub's, in place of its own: the file is this record's from now on. */
+    void adopt(TownFile file) {
+        if (!home.equals(file.home)) throw new IllegalArgumentException("The town file belongs to another home: " + file.home);
+        for (var logo : town.logos) for (var block : logo.gate().placed()) { placed.remove(block.pos()); logoBlocks.remove(block.pos()); }
+        var logos = List.copyOf(file.logos);
+        file.logos.clear();
+        town = file;
+        for (var logo : logos) index(logo);
+    }
+
+    /** Whether town.dat has changes to write. */
+    boolean townChanged() { return town.isDirty(); }
 
     public String look() { return look; }
     public Map<String, Integer> numbers() { return numbers; }
@@ -137,22 +192,31 @@ public final class HubData extends SavedData {
     public GlobalPos home() { return home; }
     public Fixed fixed() { return fixed; }
     /** The town's standing logos, in the order they were built. */
-    public List<Logo> logos() { return List.copyOf(logos); }
+    public List<Logo> logos() { return List.copyOf(town.logos); }
 
     /** The logo of an app that stands in the town. */
     public Optional<Logo> logo(String app) {
-        return logos.stream().filter(logo -> logo.app().equals(app)).findFirst();
+        return town.logos.stream().filter(logo -> logo.app().equals(app)).findFirst();
     }
 
     /** The logo whose trigger zone in {@code zones.dat} has this ID: such a zone is the town's, not his. */
     public Optional<Logo> logoOfZone(String zone) {
-        return logos.stream().filter(logo -> logo.zone().equals(zone)).findFirst();
+        return town.logos.stream().filter(logo -> logo.zone().equals(zone)).findFirst();
     }
 
     /** The logo whose record holds the block at this position, while it is still the recorded one. */
     public Optional<Logo> logoAt(ServerLevel level, BlockPos pos) {
         if (!holds(level, pos)) return Optional.empty();
-        return logos.stream().filter(logo -> logo.gate().placed().stream().anyMatch(block -> block.pos().equals(pos))).findFirst();
+        var app = logoBlocks.get(pos);
+        return app == null ? Optional.empty() : logo(app);
+    }
+
+    /**
+     * Whether an explosion leaves this block alone: a block of a town logo always, as package 33 has it for gates
+     * ("explosions are never an edit gesture"); the pad and roads unless the host is in Build mode (package 32).
+     */
+    public boolean sparesFromExplosion(ServerLevel level, BlockPos pos, boolean buildMode) {
+        return holds(level, pos) && (!buildMode || logoBlocks.containsKey(pos));
     }
 
     /** Whether a zone of {@code zones.dat} belongs to the town of this world. False where there is no flat home. */
@@ -168,7 +232,7 @@ public final class HubData extends SavedData {
 
     /** The entity IDs of the town's signs. */
     public Set<UUID> signs() {
-        return logos.stream().flatMap(logo -> logo.gate().sign().stream()).collect(Collectors.toUnmodifiableSet());
+        return town.logos.stream().flatMap(logo -> logo.gate().sign().stream()).collect(Collectors.toUnmodifiableSet());
     }
 
     /** Records a logo that was just built. One logo an app, and no block in two records. */
@@ -177,23 +241,23 @@ public final class HubData extends SavedData {
         for (var block : logo.gate().placed())
             if (placed.containsKey(block.pos())) throw new IllegalArgumentException("Recorded twice: " + block.pos().toShortString());
         index(logo);
-        setDirty();
+        town.setDirty();
     }
 
     /** Forgets a logo that was taken down; what was left of it is his. */
     public Optional<Logo> remove(String app) {
         var logo = logo(app);
         logo.ifPresent(gone -> {
-            logos.remove(gone);
-            for (var block : gone.gate().placed()) placed.remove(block.pos());
-            setDirty();
+            town.logos.remove(gone);
+            for (var block : gone.gate().placed()) { placed.remove(block.pos()); logoBlocks.remove(block.pos()); }
+            town.setDirty();
         });
         return logo;
     }
 
     private void index(Logo logo) {
-        logos.add(logo);
-        for (var block : logo.gate().placed()) placed.put(block.pos(), block.block());
+        town.logos.add(logo);
+        for (var block : logo.gate().placed()) { placed.put(block.pos(), block.block()); logoBlocks.put(block.pos(), logo.app()); }
     }
 
     /** True while the block at this position is still the one the mod placed there. */
@@ -214,20 +278,36 @@ public final class HubData extends SavedData {
 
     private void forget(BlockPos pos) {
         if (placed.remove(pos) == null) return;
-        if (fixed.blocks().stream().anyMatch(block -> block.pos().equals(pos)))
+        if (fixed.blocks().stream().anyMatch(block -> block.pos().equals(pos))) {
             fixed = new Fixed(fixed.blocks().stream().filter(block -> !block.pos().equals(pos)).toList(), fixed.names());
-        for (int i = 0; i < logos.size(); i++) {
-            var logo = logos.get(i);
-            if (logo.gate().placed().stream().anyMatch(block -> block.pos().equals(pos))) logos.set(i, logo.without(Set.of(pos)));
+            setDirty();
         }
-        setDirty();
+        var app = logoBlocks.remove(pos);
+        if (app == null) return;
+        for (int i = 0; i < town.logos.size(); i++) {
+            var logo = town.logos.get(i);
+            if (logo.app().equals(app)) town.logos.set(i, logo.without(Set.of(pos)));
+        }
+        town.setDirty();
     }
 
     /** In Live mode he cannot break the hub's own blocks by hand. */
     public static boolean protectsFrom(ServerPlayer player, BlockPos pos) {
-        if (!LiveMode.isLive(player)) return false;
+        return protection(player, pos) != null;
+    }
+
+    /** What the action bar says when he tries to break one of the hub's blocks in Live mode; null when he may. */
+    public static String protection(ServerPlayer player, BlockPos pos) {
+        if (!LiveMode.isLive(player)) return null;
         HubData hub = get(player.level().getServer());
-        return hub != null && hub.holds(player.level(), pos);
+        return hub == null ? null : hub.refusal(player.level(), pos);
+    }
+
+    /** Names what protects the block: a logo of the town, or the pad and roads. Null for a block that isn't the hub's. */
+    public String refusal(ServerLevel level, BlockPos pos) {
+        if (!holds(level, pos)) return null;
+        return logoAt(level, pos).map(logo -> "The logo of " + logo.name() + " is part of the town and protected. Press G for Build mode.")
+                .orElse("The home pad and roads are protected. Press G for Build mode.");
     }
 
     /** Only the singleplayer host chooses the explosion policy; LAN guests cannot disable protection. */
