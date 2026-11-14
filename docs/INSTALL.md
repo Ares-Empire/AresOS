@@ -215,17 +215,17 @@ If order changes: repeat step 1's encryption check, **F2** (or **Fn+F2**) → **
 
 Tools stick: insert only after Linux is up and you are signed in; export → SAFE TO REMOVE → unplug before every shutdown/restart. If forgotten at power-on, do not select it; unplug and continue. Text over prompt → Enter. Backup stock keeps **German**, even after a later AresOS layout change.
 
-Later work is outside this installation path: [update to a new release](#update-aresos-to-a-new-release), [layout trial](INSTALL-PROCEDURES.md#later-layout), [rollback/keep-stock and recovery menu](INSTALL-PROCEDURES.md#recovery-menu), [optional removal/erasure](INSTALL-PROCEDURES.md#optional-removal-or-erasure). Each has its own checks and return destination; **Return to step 8** after a completed later procedure. No guessed GRUB positions, firmware resets, TPM clear, entry deletion or boot repair.
+Later work is outside this installation path: [update to a new release](#update-aresos-to-a-new-release), [layout trial](INSTALL-PROCEDURES.md#later-layout), [rollback/keep-stock and recovery menu](INSTALL-PROCEDURES.md#recovery-menu), [back to AresOS from plain Bazzite](INSTALL-PROCEDURES.md#back-to-aresos-from-stock), [optional removal/erasure](INSTALL-PROCEDURES.md#optional-removal-or-erasure). Each has its own checks and return destination; **Return to step 8** after a completed later procedure. No guessed GRUB positions, firmware resets, TPM clear, entry deletion or boot repair.
 
 **Record:** current boot order, latest stock title, future procedure result. **STOP → go to the [symptom card](EMERGENCY.md)**, then [Help](INSTALL-REFERENCE.md#help) if unresolved; return to step 8 after resolution. When permanently leaving AresOS, continue to [step 9](#9-retire-access-and-return-to-windows).
 
 ### Update AresOS to a new release
 
-**Update gate: require STEP 5 COMPLETE and a checked running AresOS before authentication or updating.** Use this route only when the maintainer announces a newer release and this guide carries its tools fingerprint. If the marker, step 7's record or the announcement is missing, STOP → [Help](INSTALL-REFERENCE.md#help).
+**Update gate: require STEP 5 COMPLETE and a checked running AresOS before authentication or updating.** Step 7's record is that check; it also covers the last box, **Forward again, or back from plain Bazzite**, which needs no announcement, stick, login or network. New tools or a new release need the maintainer's announcement, and this guide must carry their tools fingerprint. If the marker, step 7's record or a needed announcement is missing, STOP → [Help](INSTALL-REFERENCE.md#help).
 
-An update keeps Windows the firmware default, the **current AresOS as rollback** and the **corrected stock pinned**. After the first update there are three deployments; the stock rollback, keep-stock, recovery-menu and layout-trial procedures then refuse, and the way back is the **previous** box below or **F12 → Windows → Help**. Run one owner command at a time: a second one STOPs with **Another owner command is running**; let the first finish.
+After the first update three systems are installed: the **newer AresOS**, the **older AresOS** and **plain Bazzite** (the corrected stock). An update keeps Windows the firmware default, the **current AresOS as rollback** and the **corrected stock pinned**, and removes the other AresOS when it finishes at shutdown. With the current tools (this guide's fingerprint) each command names where the next start goes, works from every installed system and never creates or deletes one: **update** the newest AresOS (also forward again after **previous**, and back from plain Bazzite), **previous** the older AresOS, **rollback** (on an AresOS) and **keep-stock** (on plain Bazzite) plain Bazzite. Layout trials work on an AresOS that starts next. Every title names what runs, what starts next and the boot menu's rows: [rollback, keep-stock and the boot menu](INSTALL-PROCEDURES.md#recovery-menu), [what you notice on each system](INSTALL-PROCEDURES.md#what-you-notice-on-each-system). **Older tools** (before package 22c) STOP these after an update with **Expected exact stock/AresOS pair**: that line means **install the current tools first**, with the Windows box, the tools box and the tools-only box below. Run one owner command at a time: a second one STOPs with **Another owner command is running**; let the first finish.
 
-- [ ] **Windows side** (the maintainer runs it): PowerShell 7 in the reviewed repository at the announced release, only ARESTOOLS connected; replace `T` with its actual D–Z letter, never C:. The first line keeps the old bundle under a dated name (skip it on a stick without `ares-tools`):
+- [ ] **Windows side** (the maintainer runs it, for new tools and for a new release): PowerShell 7 in the reviewed repository at the announced commit, only ARESTOOLS connected; replace `T` with its actual D–Z letter, never C:. The first line keeps the old bundle under a dated name (skip it on a stick without `ares-tools`):
 
 ```powershell
 Rename-Item -LiteralPath T:\ares-tools -NewName ('ares-tools-replaced-' + (Get-Date -Format yyyyMMdd-HHmm))
@@ -255,13 +255,22 @@ bash ./at install'
 
 Require `SHA256SUMS: OK`, every listed file's OK and `PASS install` with **Tools updated from version** and the same fingerprint (a repeat says **Tools already installed; nothing changed**). It asks no serials, keeps every record, keeps the replaced tools privately and refuses older tools (a downgrade) with nothing changed. Keep every other console idle: it STOPs while anything uses the installed tools, and for a moment the owner commands are unavailable; a STOP always leaves working tools in place. Any STOP → [A tools command stopped](EMERGENCY.md#a-tools-command-stopped); Return to this update route only after Help.
 
-- [ ] **Stage the new release:**
+- [ ] **Tools only** (the announcement brings new tools and no new release): finish here, in the same root session:
+
+```bash
+sudo /var/lib/ares/at check
+sudo /var/lib/ares/at title
+```
+
+Require `PASS check` and `PASS title`. The title's first line names what runs and what starts next, normally **newer AresOS … runs and starts next**; its line **Boot menu at the next start:** names each boot-menu row by its number `(ostree:N)` and its system. Save that title; older titles are INVALID. The block has already unmounted ARESTOOLS: unplug it. Nothing else changes: no stage, no restart. **Record:** the fingerprint and both PASS lines; then [Return to step 8](#8-everyday-boot-and-recovery). A STOP → [A tools command stopped](EMERGENCY.md#a-tools-command-stopped). For a new release, go on with the next box instead.
+
+- [ ] **Stage the new release:** only on the AresOS that runs and starts next (its title says **… runs and starts next**).
 
 ```bash
 sudo /var/lib/ares/at update
 ```
 
-Require `PASS update`, **Signed exact release staged** with the announced release, **Running release stays as rollback** and **pin yes; transaction idle**. Before staging it checks the saved registry login, the signature, identity and digest; a pending deployment, queued rollback, running updater, unfinished layout trial or a release that is not newer STOPs with nothing changed. **If it STOPs with `Registry login missing, expired or unreachable`:** make a new **read:packages-only** token as in step 6 (record its note/expiry privately, never the secret), then:
+Require `PASS update`, **Signed exact release staged** with the announced release, **Running release stays as rollback** and **pin yes; transaction idle**. It also names the AresOS that goes when the update finishes at shutdown: **… is removed when the update finishes at shutdown** (the other AresOS, whichever it is; your files stay). Run from the older AresOS (after **previous**), a second line follows: **The new release starts with this system's settings (Wi-Fi, passwords, layout), not …'s**: the newer release goes, with the settings made there (for example the `ares` password). Before staging it checks the saved registry login, the signature, identity and digest; a staged deployment, a change that waits for the restart, a running updater, an unfinished layout trial or a half-written layout STOPs with nothing changed. On plain Bazzite, or on an AresOS that does not start next, it stages nothing: **Newest installed AresOS starts next** and the next step it names (restart, then this box again). If the update is cut off before its PASS (power, closed window), the next command in the same start STOPs with **interrupted before its result was recorded; do not reboot**: run update once more to continue it, or get Help. **If it STOPs with `Registry login missing, expired or unreachable`:** make a new **read:packages-only** token as in step 6 (record its note/expiry privately, never the secret), then:
 
 ```bash
 sudo /var/lib/ares/at login
@@ -277,7 +286,7 @@ sudo /var/lib/ares/at title
 sudo /var/lib/ares/at export
 ```
 
-Require `PASS title`, `PASS export` and **SAFE TO REMOVE ARESTOOLS**; unplug. Save the new title as **provisional** with its state and time; every older title is INVALID.
+Require `PASS title`, `PASS export` and **SAFE TO REMOVE ARESTOOLS**; unplug. Save the new title as **provisional** with its state and time; every older title is INVALID. Its line **Boot menu after the update finishes at shutdown (expected):** names the rows the next start will show; the [failed-update card](EMERGENCY.md#failed-or-bad-update) uses it.
 
 - [ ] **Restart into the new release:**
 
@@ -285,7 +294,7 @@ Require `PASS title`, `PASS export` and **SAFE TO REMOVE ARESTOOLS**; unplug. Sa
 sudo /var/lib/ares/at reboot
 ```
 
-Require `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear). The update finishes during shutdown: a hang uses the [10-minute rule](INSTALL-REFERENCE.md#hung-shutdown-or-restart), never an immediate power hold. At power-on **F12** (or **Fn+F12**) → **Bazzite**. The new AresOS not starting, or the old one or stock returning → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); never a guessed GRUB title or a repeated update.
+Require `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start` (screen may disappear). The update finishes during shutdown: a hang uses the [10-minute rule](INSTALL-REFERENCE.md#hung-shutdown-or-restart), never an immediate power hold. At power-on **F12** (or **Fn+F12**) → **Bazzite**. The new AresOS not starting, or the old one or stock returning → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); in the boot menu take only a row your last title named, and never repeat the update without Help.
 
 - [ ] **Check:** [tty3 → sudo -i](INSTALL-REFERENCE.md#console), then Return to this update route:
 
@@ -295,7 +304,10 @@ sudo /var/lib/ares/at title
 sudo /var/lib/ares/at records
 ```
 
-Require `PASS check` with **Update to … confirmed after the restart**, then `PASS title` and `PASS records`: the new release booted, the previous AresOS as rollback, the corrected stock still pinned, labwc and foot running and the daily account exactly as this release's record says. Save the refreshed title; the provisional one is INVALID. Prove console and foot typing of `yz-/!ü` and fresh password sudo as in step 7. A STOP saying the update **did not finish at the restart** (old release running, or still pending) or was **interrupted before its result was recorded** → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); the tools refuse to confirm it, and Help decides each repeat.
+Require `PASS check` with **Update to … confirmed after the restart**, then `PASS title` and `PASS records`: the new release booted, the previous AresOS beside it, the corrected stock still pinned, the title's first line **newer AresOS … runs and starts next** and its **Boot menu at the next start:** line with all three rows, labwc and foot running and the daily account exactly as this release's record says. Save the refreshed title; the provisional one is INVALID. Prove console and foot typing of `yz-/!ü` and fresh password sudo as in step 7. Instead of the confirmation:
+  - **Update to … was not applied: the deployments are as before it, and nothing is waiting**: the update did not finish at shutdown and the old release runs; nothing is lost. → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); Help decides each repeat.
+  - **Update to … is in place and has not started yet**, with **this start was not the default**: another boot-menu row was taken. Restart with no choice and check again.
+  - A STOP **… did not finish as recorded** → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); never repeat it without Help.
 
 - [ ] **Administrator password, once:** on the first update to a release whose announcement says `ares` is an administrator, set its password in this root session with `sudo passwd ares`. Type a long, unique passphrase twice yourself, by the every-install rule: only **lowercase a–x and top-row digits 0–9**, so it types the same in German, US International and US. Require the line ending **updated successfully**. Never photograph, record or send it; keep it private. Then in foot as `ares`, run `sudo -v` and require that password to be accepted.
 
@@ -306,7 +318,16 @@ sudo /var/lib/ares/at previous
 sudo /var/lib/ares/at title
 ```
 
-Require `PASS previous`, **Previous AresOS queued for the next start** and `PASS title`; save that title, old titles are INVALID. Then `sudo /var/lib/ares/at reboot`, requiring `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`, **F12** (or **Fn+F12**) → **Bazzite**, and repeat the check box: the previous release must be booted and `PASS check` must show **Return to … confirmed after the restart**. Tell the maintainer; the newer release stays beside it until the next update.
+Require `PASS previous`, **Previous AresOS queued for the next start** and `PASS title` with **… runs; older AresOS … starts next, after the restart**; save that title, old titles are INVALID. Then `sudo /var/lib/ares/at reboot`, requiring `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`, **F12** (or **Fn+F12**) → **Bazzite**, and repeat the check box: the previous release must be booted and `PASS check` must show **Return to … confirmed after the restart**. Tell the maintainer; the newer release stays installed beside it. To go **forward again** later, use the last box: **update** makes the newer release the next start again, with no download. If the older release misbehaves too: [rollback to plain Bazzite](INSTALL-PROCEDURES.md#rollback-from-running-aresos); if nothing works, **F12** → **Windows Boot Manager** → Help.
+
+- [ ] **Forward again, or back from plain Bazzite** (no new release): on the older AresOS after **previous**, or on plain Bazzite, [enter tty3 and become administrator](INSTALL-REFERENCE.md#console) (on Bazzite as `ares-recovery` with the installer's German layout), then Return to this update route:
+
+```bash
+sudo /var/lib/ares/at update
+sudo /var/lib/ares/at title
+```
+
+Require `PASS update` with **Newest AresOS starts next** and the release, then `PASS title` with **… runs; newer AresOS … starts next, after the restart**. No stick, no login and no network: that release is installed already. Save the title; older titles are INVALID. **… already starts next; nothing changed** means nothing was needed: **It runs now**, or **It does not run yet: it starts at the next restart**. **Newest installed AresOS starts next** with **The release of these tools is newer still** names its next step: follow it. Then `sudo /var/lib/ares/at reboot`, requiring `PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`, **F12** (or **Fn+F12**) → **Bazzite**, no boot-menu choice, and repeat the check box: `PASS check` must show **Update to … confirmed after the restart**. From plain Bazzite, **previous** goes to the older AresOS the same way and its check shows **Return to … confirmed after the restart**. A STOP → [A tools command stopped](EMERGENCY.md#a-tools-command-stopped); Return to this update route only after Help.
 
 **Record:** tools fingerprint, every PASS line, staged and booted release, titles with times, whether the password was set (never the password). **STOP → go to [Help](INSTALL-REFERENCE.md#help)**; Return to this update route after resolution. When the check passes, [Return to step 8](#8-everyday-boot-and-recovery).
 
