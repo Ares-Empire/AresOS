@@ -740,6 +740,13 @@ model double's string results (step 2b).
 4. `linux-aresos` reads the `os/` diff (agreed change 16), now including `os/ci/control/` and the workflow's limits.
 5. The last step deletes this file.
 
+Lead, 2026-11-14 (after step 2c): the report is assembled once, by the lead, after the Chrome follow-up and before
+the reviews (Codex from 2026-11-17: a package review and a high-stakes security review of the whole package). Check
+6's question is with the owner (board #254); its answer goes into the service-fix brief (board #233, #235, #237), not
+this branch. Before `linux-aresos` reads the section below, bring it up to date: `check-resolve.sh` is back to main's
+(`gh` is in 18c-b), and `os-image.yml`, `os/ci/control/`, `os/ci/overlay/checks.py` and `os/ci/check-build.sh` did
+change (step 2a on).
+
 ## The `os/` diff for `linux-aresos`
 
 - `os/Containerfile`: aresos stage copies `/source/control` from the existing source stage and runs `build.sh control`
