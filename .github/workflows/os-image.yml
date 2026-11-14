@@ -602,8 +602,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
-          # The full ways-back model would not fit this step; the checks-only run on the
-          # same head explored it when its sources changed (22c stage 1b, addition 1).
+          # The full ways-back model would not fit this step. When its sources changed, the
+          # guard (rehearsal_guard.model_gate) already required a checks-only run on this
+          # head whose model job passed it (22c stage 1b, addition 1; review 4).
           ARESOS_MODEL_SCOPE: slice
         run: |
           set -euo pipefail

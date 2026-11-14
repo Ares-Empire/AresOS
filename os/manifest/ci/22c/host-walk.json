@@ -58,7 +58,7 @@
       "path": ".gitattributes"
     },
     {
-      "sha256": "da2151ca86960ab914bcf3b357864c65bad4b0c692b4b3e0cd08da03adfefaa2",
+      "sha256": "947c8ee73e8436d39181d2fc3a23bdcbca3962e0c1c1bbe7f408a969b313c95b",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -186,7 +186,7 @@
       "path": "os/ci/rehearsal-packages.json"
     },
     {
-      "sha256": "ab383b43f0f186e54f5fe529d97bdbb724756f682a61ce7797bd7806e61cb41e",
+      "sha256": "bc77a5185663fe7f7e87b689895eb5e4d0f31eac2e14576141943697b1269c08",
       "path": "os/ci/rehearsal_guard.py"
     },
     {
@@ -822,7 +822,7 @@
       "path": "os/tests/test_checkout_sources.py"
     },
     {
-      "sha256": "c488b3a78c260296117bea9ac82fa3472d3bcf0770f82d9bcbd8128698d3cde8",
+      "sha256": "f61605426a07b0eedd1d9429c923d36147203320eb31125092ccc5d8478ef87c",
       "path": "os/tests/test_ci_api_permissions.py"
     },
     {
@@ -1050,7 +1050,7 @@
       "path": "os/tests/test_serial_staging.py"
     },
     {
-      "sha256": "9e2e2d7236ae8d06724611193c34a9130c857ee06fd552069c87847fb55b521b",
+      "sha256": "f2a44ff7f85ba106e25fa23ff0b41bc9cfe4969db33cf5f3f92e1a3f9965e470",
       "path": "os/tests/test_ways_back_probe.py"
     },
     {

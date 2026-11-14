@@ -28,6 +28,9 @@ RUN_HISTORY_PATH = f'actions/runs?branch={BRANCH}&per_page=100'
 HISTORY_PAGE_LIMIT = 20
 PUBLISH_STEP = 'Publish the tested private release and sign with GitHub OIDC'
 NATIVE_STEP = 'Qualify tools, regressions, rewritten release identity and private access'
+# Package 22c: the job and step of a checks-only dispatch that explore the full ways-back model.
+MODEL_JOB = 'Full ways-back model when its sources changed (no image build or VM)'
+MODEL_STEP = 'Run the full ways-back model'
 ACCOUNTING_POLICY = '14zz-job-interval-ordered-span-full-bound-v1'
 OWNER_QUALIFICATION_BOUND = 240
 # Packages whose ledger counts every dispatch by its run title.
@@ -453,6 +456,35 @@ def native_gate(kind, mode, result, sha, current_run=None):
     return probe_native(api('actions/runs/'+str(probes[0]['run'])),sha)
 
 
+def model_gate(result, sha):
+    """Package 22c's VM dispatches: when the head changed the full model's sources, that model must
+    have passed on the same head (review 4, finding 4).
+
+    The rehearsal job's suite explores only the bounded slice; the full model runs in the model job
+    of a checks-only dispatch, and only when model_scope.py selects it. So a VM dispatch reads
+    GitHub's completed step of that job in a passing checks-only run on this head. When the sources
+    did not change (scope `slice`), nothing is required. Uncertain counts as changed (model_scope).
+    """
+    import model_scope
+    scope, reasons = model_scope.decide()
+    if scope != 'full':
+        return dict(status='not-needed', scope=scope, reasons=reasons)
+    checks = [r for r in result['runs'] if r['title'] == SETTINGS['titles']['checks']
+              and r['sha'] == sha and r['conclusion'] == 'success']
+    for record in checks:
+        response = api(f'actions/runs/{record["run"]}/jobs?per_page=100')
+        assert response['total_count'] == len(response['jobs']) <= 100, 'STOP: incomplete model job listing'
+        for job in response['jobs']:
+            if job['name'] != MODEL_JOB or job['head_sha'] != sha:
+                continue
+            steps = [s for s in job['steps'] if s['name'] == MODEL_STEP]
+            if len(steps) == 1 and steps[0]['status'] == 'completed' and steps[0]['conclusion'] == 'success':
+                return dict(status='passed', scope='full', sha=sha, run=record['run'], job=MODEL_JOB, step=MODEL_STEP,
+                            reasons=reasons, source='GitHub completed full-model step of a checks-only dispatch')
+    raise AssertionError('STOP: the full ways-back model has not passed on this head, and its sources changed ('
+                         + str(len(reasons)) + ' paths, first ' + reasons[0] + '); dispatch checks_only on this head first')
+
+
 def main():
     configure(os.environ.get('REHEARSAL_PACKAGE', '11c'))
     mode = sys.argv[1]
@@ -501,6 +533,9 @@ def main():
         if kind in ('probe', 'keyboard', 'owner-tools', 'update') or own_native(kind):
             sha=os.environ.get('GITHUB_SHA') or subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
             result['native']=native_gate(kind,mode,result,sha,run if ci else None)
+            if PACKAGE == '22c' and own_native(kind):
+                # Checked at the budget step already, so a dispatch without it stops before its minutes.
+                result['model']=model_gate(result,sha)
     if mode == 'part-b':
         assert result['part_b_dispatched'] < PART_B_CAP, 'STOP: no Part B qualification dispatch remains'
     if (mode == 'ci' and os.environ.get('REHEARSAL_MODE') in ('part-b', 'keyboard', 'owner-tools') or

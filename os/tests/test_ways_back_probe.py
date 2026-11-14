@@ -22,6 +22,7 @@ import yaml
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'os/ci'))
+import model_scope
 import owner_media
 import owner_vm
 import registry_auth
@@ -277,19 +278,112 @@ class LedgerTest(unittest.TestCase):
         environment = dict(REHEARSAL_PACKAGE='22c', REHEARSAL_MODE='reorder-probe', GITHUB_RUN_ID='11', GITHUB_SHA='a' * 40,
                            GITHUB_REF_NAME=BRANCH)
         proof = dict(complete=True, ids_count=1, total_count=1)
+        # The model's sources unchanged (the full-model gate has its own tests below).
         with tempfile.TemporaryDirectory() as folder, contextlib.chdir(folder), patch.dict(os.environ, environment, clear=True), \
                 patch.object(sys, 'argv', ['rehearsal_guard.py', 'probe-budget-ci', '345']), patch('builtins.print'), \
                 patch.object(guard, 'api', side_effect=lambda path: dict(workflow_runs=[run], history=proof)
-                             if path.startswith('actions/runs?') else run):
+                             if path.startswith('actions/runs?') else run), \
+                patch.object(model_scope, 'decide', return_value=('slice', ['unchanged'])):
             guard.main()
             written = json.loads(pathlib.Path('evidence/22c-dispatch-authorization.json').read_text())
         self.assertEqual((written['allowance'], written['reserved_minutes'], written['native']['status']), ('22c', 345, 'pending'))
         self.assertEqual(written['dispatch_counts']['reorder-probe'], 1)
+        self.assertEqual(written['model'], dict(status='not-needed', scope='slice', reasons=['unchanged']))
         with patch.dict(os.environ, dict(environment, REHEARSAL_MODE='checks'), clear=True), \
                 patch.object(sys, 'argv', ['rehearsal_guard.py', 'probe-budget-ci', '345']), patch.object(guard, 'budget') as budget:
             budget.return_value = dict(history=proof, runs=[], dispatch_counts={})
             with self.assertRaisesRegex(AssertionError, 'native deferral is only for probe budget reservation'):
                 guard.main()
+
+    # Review 4, finding 4: changed model sources need the full model passed on the same head.
+    SHA = 'a' * 40
+    T0, T1 = '2026-11-13T18:00:00Z', '2026-11-13T18:20:00Z'
+    FULL = ('full', ['os/owner-tools/owner.py', 'os/tests/ways_back_ledger.py'])
+
+    def job(self, name, steps, sha=SHA):
+        return dict(name=name, head_sha=sha, conclusion='success', started_at=self.T0, completed_at=self.T1,
+                    steps=[dict(name=step, status='completed', conclusion=conclusion, started_at=self.T0, completed_at=self.T1)
+                           for step, conclusion in steps])
+
+    def checks_jobs(self, full='success', sha=SHA, name=guard.MODEL_JOB):
+        """A checks-only run's two jobs; the model job's full step passed, was skipped (the slice) or failed."""
+        regressions = self.job('Regression checks only (no image build or VM)', [('Run regression and syntax checks', 'success')], sha)
+        model = self.job(name, [('Decide between the full model and the bounded slice', 'success'), (guard.MODEL_STEP, full)], sha)
+        return dict(total_count=2, jobs=[regressions, model])
+
+    def test_the_model_gate_reads_the_model_jobs_full_step_by_its_workflow_names(self):
+        model = WORKFLOW['jobs']['model']
+        self.assertEqual(model['name'], guard.MODEL_JOB)
+        step, = [s for s in model['steps'] if s.get('name') == guard.MODEL_STEP]
+        self.assertEqual(step['if'], "steps.scope.outputs.scope == 'full'")
+        self.assertEqual(step['env'], {'ARESOS_MODEL_SCOPE': 'full'})
+        self.assertIn('-k test_reachable_state_space', step['run'])
+        # The comment beside the rehearsal's slice names the gate that now enforces it.
+        native, = [s for s in JOB['steps'] if s.get('name') == guard.NATIVE_STEP]
+        self.assertEqual(native['env']['ARESOS_MODEL_SCOPE'], 'slice')
+        self.assertIn('rehearsal_guard.model_gate', (ROOT / '.github/workflows/os-image.yml').read_text())
+
+    def test_changed_model_sources_need_the_full_model_passed_on_the_same_head(self):
+        checks = dict(title=LEDGER['titles']['checks'], sha=self.SHA, conclusion='success', run=7)
+        path = 'actions/runs/7/jobs?per_page=100'
+
+        def gate(runs, jobs, scope=self.FULL):
+            with patch.object(model_scope, 'decide', return_value=scope), \
+                    patch.object(guard, 'api', side_effect=lambda p: jobs[p]) as api:
+                return guard.model_gate(dict(runs=runs), self.SHA), api
+
+        # Unchanged sources: nothing required and nothing read.
+        result, api = gate([], {}, ('slice', ['no dependency of the full model changed']))
+        self.assertEqual(result['status'], 'not-needed')
+        api.assert_not_called()
+        # Changed: a passing checks-only run on this head whose model job passed the full step.
+        result, _ = gate([checks], {path: self.checks_jobs()})
+        self.assertEqual((result['status'], result['scope'], result['run'], result['job'], result['step']),
+                         ('passed', 'full', 7, guard.MODEL_JOB, guard.MODEL_STEP))
+        self.assertEqual(result['reasons'], self.FULL[1])
+        for case, runs, jobs in (
+                ('no checks-only run', [], {}),
+                ('the slice was chosen there', [checks], {path: self.checks_jobs('skipped')}),
+                ('the full model failed', [checks], {path: self.checks_jobs('failure')}),
+                ('another head', [dict(checks, sha='b' * 40)], {}),
+                ('a failed checks-only run', [dict(checks, conclusion='failure')], {}),
+                ('the job of another head', [checks], {path: self.checks_jobs(sha='b' * 40)}),
+                ('a step of that name in another job', [checks], {path: self.checks_jobs(name='Regression checks only (no image build or VM)')})):
+            with self.subTest(case), self.assertRaisesRegex(AssertionError, 'STOP: the full ways-back model has not passed on this head'):
+                gate(runs, jobs)
+
+    def test_a_direct_vm_dispatch_stops_before_its_minutes_and_its_vm_without_the_full_model(self):
+        """The reviewer's case: a VM dispatch with no checks-only run on its head. Its own native step
+        used to be enough; now both guard steps (the budget and the gate before any VM) stop while the
+        head changed the model's sources, and pass with unchanged sources or the full model passed."""
+        current = self.run_row(11, 'reorder-probe', status='in_progress', conclusion=None, head_branch=BRANCH,
+                               path='.github/workflows/os-image.yml')
+        native = dict(total_count=1, jobs=[self.job('Pinned live ISO inspection and two-disk rehearsal', [(guard.NATIVE_STEP, 'success')])])
+        checks = self.run_row(7, 'checks', head_branch=BRANCH)
+
+        def main(mode, runs, scope):
+            environment = dict(REHEARSAL_PACKAGE='22c', REHEARSAL_MODE='reorder-probe', GITHUB_RUN_ID='11', GITHUB_SHA=self.SHA,
+                               GITHUB_REF_NAME=BRANCH)
+            answers = {'actions/runs/11': current, 'actions/runs/11/jobs?per_page=100': native,
+                       'actions/runs/7/jobs?per_page=100': self.checks_jobs()}
+            proof = dict(complete=True, ids_count=len(runs), total_count=len(runs))
+            api = lambda path: dict(workflow_runs=runs, history=proof) if path.startswith('actions/runs?') else answers[path]
+            with tempfile.TemporaryDirectory() as folder, contextlib.chdir(folder), patch.dict(os.environ, environment, clear=True), \
+                    patch.object(sys, 'argv', ['rehearsal_guard.py', mode, '345']), patch('builtins.print'), \
+                    patch.object(guard, 'api', side_effect=api), patch.object(model_scope, 'decide', return_value=scope):
+                guard.main()
+                return json.loads(pathlib.Path('evidence/22c-dispatch-authorization.json').read_text())
+
+        for mode, native_status in (('probe-budget-ci', 'pending'), ('ci', 'passed')):
+            with self.subTest(mode=mode):
+                with self.assertRaisesRegex(AssertionError, 'STOP: the full ways-back model has not passed on this head'):
+                    main(mode, [current], self.FULL)
+                # Unchanged sources: the direct dispatch passes as before (in ci through its own native step).
+                written = main(mode, [current], ('slice', ['unchanged']))
+                self.assertEqual((written['native']['status'], written['model']['status']), (native_status, 'not-needed'))
+                # Changed sources and a passing full model on this head: it passes, naming that run.
+                written = main(mode, [current, checks], self.FULL)
+                self.assertEqual((written['model']['status'], written['model']['run']), ('passed', 7))
 
 
 class RunnerTest(unittest.TestCase):
