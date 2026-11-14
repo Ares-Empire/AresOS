@@ -38,7 +38,8 @@
     "22c review fixes 3, fix 4: a VM dispatch needs the full model passed on its head when its sources changed",
     "22c review fixes 3: the status row names the new card route and review 4",
     "22c review fixes 4, fix 1: forward again takes the newer AresOS's row first; update only where the running system does not start next",
-    "22c review fixes 4, fix 2: the failed-update card keeps the result of a check just run"
+    "22c review fixes 4, fix 2: the failed-update card keeps the result of a check just run",
+    "22c one word per meaning, step 1: update only stages and names forward; forward selects the newest installed AresOS; tests and model (bundle, pins and guides follow in step 2)"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -99,7 +100,7 @@
       "path": "os/owner-tools/bundle.py"
     },
     {
-      "sha256": "a2f35c0e52fc8375b56955286528a679d2deba9d8a338f0572686ead149ac43b",
+      "sha256": "a7a25d9057a6b4ae214ada3537a55f614a2b600e9cb0b8e43be556692993c32e",
       "path": "os/owner-tools/commands.json"
     },
     {
@@ -107,7 +108,7 @@
       "path": "os/owner-tools/history.json"
     },
     {
-      "sha256": "9f4f918a04ed619c1f0616d8ce32fa2c6b631bca0bce5a44a684e3789d0b0764",
+      "sha256": "f98c1f0227392f8e4aa3c3d5daabbf339a7c0cad7d1912efc03b1dd02798ed45",
       "path": "os/owner-tools/owner.py"
     },
     {
@@ -153,6 +154,10 @@
     {
       "sha256": "1878da535d481636f91306dd492fdb0c34a6fc3e957cea509fa263f205a50357",
       "path": "os/tests/test_owner_devices_native.py"
+    },
+    {
+      "sha256": "528e0d76bef561f300feae3ef4cc212849e84b57bac6eb2a7ef2000f3982b789",
+      "path": "os/tests/test_owner_entry.py"
     },
     {
       "sha256": "e5dc539a9a49cd27a4b46000acd1dc6a5c34f8dad339e30ce186dda37186a044",

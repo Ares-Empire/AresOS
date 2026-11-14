@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 import test_ways_back as focused
 import test_ways_back_model as model
+import ways_back_ledger as ledger
 from ways_back_ledger import starts, transition
 
 owner = model.owner
@@ -119,6 +120,67 @@ class RuleRevertsTest(unittest.TestCase):
     def test_a11_one_command_spelling(self):
         with patch.object(owner, 'typed', lambda *words: 'at ' + ' '.join(words)):
             self.detected_by(focused.ShapeTest('test_one_helper_spells_every_command_as_commands_json_does'))
+
+    # One word per meaning (briefs/22c-forward-command.md): the two new invariants.
+    def test_one_word_update_never_selects_an_installed_system(self):
+        returned = replace(starts()[2], rows=('13', '27', 'S'), running='13')  # after previous and a restart
+        # 1. The reorder put back where the tools' release is installed.
+        installed = mutated(owner.Tools.update, 'raise Stop(RELEASE_INSTALLED)',
+                            "return self.select('update', before, shape, settled, installed, 'Newest AresOS starts next ' + target)")
+        # 2. The reorder put back where update may not stage (stock runs, or the running AresOS is not first).
+        elsewhere = mutated(owner.Tools.update, '    self.may_stage(before, shape, settled)\n    stored_login(target)',
+                            "    if booted is shape['stock'] or rows[0] is not booted:\n"
+                            "        return self.select('update', before, shape, settled, newest(shape), 'Newest installed AresOS starts next')\n"
+                            '    self.may_stage(before, shape, settled)\n    stored_login(target)')
+        for change, state in ((installed, returned), (elsewhere, replace(starts()[3], rows=('S', '27', '13'), running='S'))):
+            with self.subTest(state=state.rows + (state.bundle, state.running)), patch.object(owner.Tools, 'update', change):
+                with model.driver() as d:
+                    # The driver's own judgment of the fake's state, before any comparison with the ledger.
+                    self.ledger_detects(d, state, ('update', 'full'), 'update selected an installed system')
+                self.detected_by(focused.DestinationTest('test_update_never_selects_an_installed_system'))
+
+    def test_one_word_forward_never_stages_or_changes_the_set_of_deployments(self):
+        real = owner.Tools.forward
+        def stages(tools):
+            # The old update under the new word: it stages where the bundle's release is not installed.
+            state, shape, settled = tools.survey()
+            if tools.tools_release(shape) is None and state['rpm']['deployments'][0] is shape['booted'] is not shape['stock']:
+                return tools.update()
+            return real(tools)
+        def removes(tools):
+            lines = real(tools)
+            tools.host.mutate('rpm-ostree', 'cleanup', '--pending')  # deletes every unpinned row before the running one
+            return lines
+        with model.driver() as d:
+            with patch.object(owner.Tools, 'forward', stages):
+                self.ledger_detects(d, starts()[3], ('forward', 'full'), 'forward staged or changed the set of deployments')
+            with patch.object(owner.Tools, 'forward', removes):
+                self.ledger_detects(d, replace(starts()[2], rows=('13', '27', 'S'), running='13'), ('forward', 'full'),
+                                    'forward staged or changed the set of deployments')
+        with patch.object(owner.Tools, 'forward', removes):
+            self.detected_by(focused.DestinationTest('test_forward_selects_the_newest_installed_aresos_from_anywhere_and_never_stages'))
+
+    def test_one_word_each_installed_system_is_one_command_away(self):
+        """B2's destination invariant at its original strength: without forward's reorder from
+        the older AresOS that runs and starts next, R27 is no command away with a bundle for R28."""
+        def old_rule(tools):
+            # update's old condition for a reorder, under the new word: not from a running AresOS that is first.
+            state, shape, settled = tools.survey()
+            if tools.tools_release(shape) is None and state['rpm']['deployments'][0] is shape['booted'] is not shape['stock']:
+                raise owner.Stop('Forward selects only where update may not stage')
+            return owner.Tools.select(tools, 'forward', state, shape, settled, owner.newest(shape), 'Newest installed AresOS starts next')
+        state = replace(starts()[3], rows=('13', '27', 'S'), running='13')
+        self.assertEqual(dict(model.destinations(state)), {'27': ('forward', 'full'), 'S': ('rollback', 'full')})
+        with model.driver() as d, patch.object(owner.Tools, 'forward', old_rule):
+            self.ledger_detects(d, state, ('forward', 'full'), 'accept/refuse')
+        # The same narrowing in the reference rules themselves fails the invariant, not only the comparison.
+        def narrowed(s, event):
+            if event[0] == 'forward' and s.bundle not in s.rows and s.rows[0] == s.running != 'S':
+                return ledger.Result(s, stop='update')
+            return transition(s, event)
+        ledger.invariants(state)
+        with patch.object(ledger, 'transition', narrowed), self.assertRaisesRegex(AssertionError, 'destination refuses'):
+            ledger.invariants(state)
 
     def test_review2_1_only_a_refusal_before_the_change_closes_the_intent(self):
         branch = 'if failure.code != REFUSED_BEFORE_CHANGE:'

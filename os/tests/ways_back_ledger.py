@@ -1,5 +1,9 @@
 """Independent reference rules for 22c B2. No owner-tool or fake-host imports.
 
+One word per meaning (briefs/22c-forward-command.md): update stages the bundle's
+release or changes nothing; forward selects the newest installed AresOS and never
+stages. Each installed system is one command away again.
+
 The ledger records events that happened, including interrupted commands. Boot age
 and trial session are equivalence classes, never literal ids: the trial's own
 login, or a fresh one; in the trial's boot the owner can go back to its own login,
@@ -241,7 +245,7 @@ def transition(s, event):
                 return result(s, cut=True, confirm=confirmed)
         return result(replace(s, trial=None), confirm=confirmed)
 
-    assert word in ('update', 'previous', 'rollback', 'keep-stock'), word
+    assert word in ('update', 'forward', 'previous', 'rollback', 'keep-stock'), word
     if word == 'rollback' and s.running == 'S':
         return result(stop='keep-stock')
     if word == 'keep-stock' and s.running != 'S':
@@ -249,19 +253,29 @@ def transition(s, event):
     releases = [r for r in s.rows if r != 'S' and r != s.stage]
     if word == 'previous' and len(releases) != 2:
         return result(stop='Only one AresOS')
-    stage = word == 'update' and s.bundle not in releases and s.running != 'S' and s.rows[0] == s.running
-    target = s.bundle if stage else max(releases) if word == 'update' else min(releases) if word == 'previous' else 'S'
-    if outcome == 'complete':
-        s = replace(s, journal=replace(j, phase='recorded'))
-        return result(s, cut=phase == 'record')
-    if not stage and s.rows[0] == target:
-        return result()
+    # update is the only word that stages, and staging is all it does: it never reorders.
+    stage = word == 'update'
+    if stage:
+        if outcome == 'complete':
+            s = replace(s, journal=replace(j, phase='recorded'))
+            return result(s, cut=phase == 'record')
+        if s.bundle in releases:
+            # Nothing to install. Nothing to do where it runs and starts next; otherwise the
+            # refusal names the word that selects an installed system.
+            return result() if s.rows[0] == s.bundle == s.running else result(stop='at forward')
+        target = s.bundle
+    else:
+        target = max(releases) if word == 'forward' else min(releases) if word == 'previous' else 'S'
+        if s.rows[0] == target:
+            return result()
     if t:
         return result(stop='Layout trial')
     if outcome == 'waiting':
         return result(stop='restart first')
     if s.stage:
         return result(stop='staged')
+    if stage and (s.running == 'S' or s.rows[0] != s.running):
+        return result(stop='at forward')
     if stage and any(n[0] == s.running for n in s.repairs):
         return result(stop='layout abandon')
     archived = {'target-boot-confirmed': 'confirmed', 'selection-applied': 'applied-not-restarted',
@@ -285,10 +299,10 @@ def transition(s, event):
 
 def steps(s):
     """Compute each candidate once; events and the exploration share these predictions."""
-    for word in ('check', 'title', 'records', 'reboot', 'update', 'previous', 'rollback', 'keep-stock', 'abandon'):
+    for word in ('check', 'title', 'records', 'reboot', 'update', 'forward', 'previous', 'rollback', 'keep-stock', 'abandon'):
         event = word, 'full'
         yield event, transition(s, event)
-    for word in ('update', 'previous', 'rollback', 'keep-stock', 'abandon'):
+    for word in ('update', 'forward', 'previous', 'rollback', 'keep-stock', 'abandon'):
         for phase in (('intent', 'console', 'persistent') if word == 'abandon' else ('intent', 'primitive', 'record')):
             # A refused/no-op command never reaches a phase to cut. Its full event
             # above still runs; omit only these physically nonexistent cut points.
@@ -325,32 +339,62 @@ def events(s):
     return (event for event, result in steps(s))
 
 
-def destination_paths(s):
-    """The integrator's B2 exception: boot-menu/newest-installed/update, then confirm.
+def resting(s):
+    """Nothing staged, nothing waiting (an interrupted staging included) and no active layout trial."""
+    return not (s.stage or s.outcome() in ('waiting', 'retry', 'complete') or s.trial)
 
-    Repairs still prohibit staging (A6); they never prohibit this reorder path.
-    A5's interrupted staging intent needs update before destination commands.
-    """
-    if s.stage or s.outcome() in ('waiting', 'retry', 'complete') or s.trial:
+
+def destinations(s):
+    """B2 at its original strength: from every resting state, each installed system that does
+    not start next, with the ONE command that makes it the next start. No boot-menu path."""
+    if not resting(s):
         return
-    releases = sorted(r for r in s.rows if r != 'S')
-    for row in s.rows:
-        if row == s.rows[0]:
-            continue
-        word = ('keep-stock' if s.running == 'S' else 'rollback') if row == 'S' else 'update' if row == releases[-1] else 'previous'
-        menu_only = (s.bundle not in releases and s.running != 'S' and s.running == s.rows[0]
-                     and row != 'S' and row > s.running)
-        path = [('restart', row)] if menu_only else []
-        path.append((word, 'full'))
-        yield row, menu_only, tuple(path)
+    newest = max(r for r in s.rows if r != 'S')
+    for row in s.rows[1:]:
+        yield row, ((('keep-stock' if s.running == 'S' else 'rollback') if row == 'S' else
+                     'forward' if row == newest else 'previous'), 'full')
 
 
 def invariants(s, predicted=None):
-    """Assert the reference rules, including the narrowed destination invariant."""
+    """Assert the reference rules: the destination invariant and one word per meaning."""
     def step(state, event):
         if state is s and predicted is not None and event in predicted:
             return predicted[event]
         return transition(state, event)
+
+    # One word per meaning, over every phase of both words (full, and each cut that exists).
+    installed = tuple(r for r in s.rows if r != s.stage)
+    newest = max(r for r in installed if r != 'S')
+    for (word, phase), result in (predicted if predicted is not None else dict(steps(s))).items():
+        after = result.state
+        if word == 'update':
+            # It never selects an installed system: the installed rows keep their order, and the
+            # only row it may add is the bundle's release, staged in front.
+            assert tuple(r for r in after.rows if r != after.stage) == installed and after.stage in (s.stage, s.bundle), \
+                ('update selected an installed system', s, after)
+            assert not (after.journal and after.journal.word == 'update' and after.journal.mode != 'staging'), \
+                ('update journalled a reorder', s, after)
+        if word == 'forward':
+            # It never stages and never changes the set of deployments; where it changes the
+            # order, the newest installed AresOS moves to the front and nothing else moves.
+            assert sorted(after.rows) == sorted(s.rows) and after.stage == s.stage, ('forward changed the deployments', s, after)
+            assert after.rows in (s.rows, (newest,) + tuple(r for r in s.rows if r != newest)), ('forward selected another system', s, after)
+            assert not (after.journal and after.journal.word == 'forward' and after.journal.mode != 'reorder'), \
+                ('forward journalled a staging', s, after)
+    update = step(s, ('update', 'full'))
+    if resting(s):
+        if update.stop == 'at forward':
+            # The refusal names the right word: forward then puts the newest installed AresOS first.
+            forward = step(s, ('forward', 'full'))
+            assert not forward.stop and forward.state.rows[0] == newest and not forward.state.stage, ('update named a word that refuses', s, forward)
+        if s.bundle not in installed and s.running != 'S' and s.running == s.rows[0]:
+            # Staging keeps today's rule (A6), also from the older AresOS beside a newer one: it
+            # names the other release, which goes at shutdown. A repair note still refuses it.
+            if any(n[0] == s.running for n in s.repairs):
+                assert update.stop == 'layout abandon', ('staged from a system with a repair note', s, update)
+            else:
+                assert update.state.stage == s.bundle and update.announcement == next((r for r in installed if r not in ('S', s.running)), ''), \
+                    ('update must stage the bundle', s, update)
 
     for role, console, x11 in s.settings:
         if console != x11:
@@ -392,23 +436,10 @@ def invariants(s, predicted=None):
                 assert not proof.stop
                 finished = step(proof.state, ('finish', 'full'))
                 assert not finished.stop and not finished.state.trial, 'proof/finish cannot end trial'
-    for row, menu_only, path in destination_paths(s):
-        selected = s
-        for event in path:
-            result = step(selected, event)
-            assert not result.stop, ('destination refuses', row, s, result)
-            selected = result.state
-        assert selected.rows[0] == row and not selected.stage, ('destination missing', row, s)
-        if menu_only:
-            assert selected.outcome() == 'selection-applied'
-            restarted = step(selected, ('restart', 'default')).state
-            confirmed = step(restarted, ('title', 'full'))
-            assert confirmed.confirmation and confirmed.state.journal is None, 'menu path not confirmed'
-            update = step(s, ('update', 'full'))
-            if any(n[0] == s.running for n in s.repairs):
-                assert update.stop == 'layout abandon'  # A6's repair lock still applies.
-            else:
-                assert update.state.stage == s.bundle and update.announcement == row, 'update must stage the bundle'
+    for row, event in destinations(s):
+        selected = step(s, event)
+        assert not selected.stop, ('destination refuses', row, s, selected)
+        assert selected.state.rows[0] == row and not selected.state.stage, ('destination missing', row, s)
 
 
 def reduced(s):

@@ -558,7 +558,7 @@
       "path": "os/owner-tools/bundle.py"
     },
     {
-      "sha256": "a2f35c0e52fc8375b56955286528a679d2deba9d8a338f0572686ead149ac43b",
+      "sha256": "a7a25d9057a6b4ae214ada3537a55f614a2b600e9cb0b8e43be556692993c32e",
       "path": "os/owner-tools/commands.json"
     },
     {
@@ -570,7 +570,7 @@
       "path": "os/owner-tools/media.py"
     },
     {
-      "sha256": "9f4f918a04ed619c1f0616d8ce32fa2c6b631bca0bce5a44a684e3789d0b0764",
+      "sha256": "f98c1f0227392f8e4aa3c3d5daabbf339a7c0cad7d1912efc03b1dd02798ed45",
       "path": "os/owner-tools/owner.py"
     },
     {
@@ -910,7 +910,7 @@
       "path": "os/tests/test_owner_diagnostics.py"
     },
     {
-      "sha256": "4504189cb631115881d025dc051545e1338b91cedb3249bd258d600994016f11",
+      "sha256": "528e0d76bef561f300feae3ef4cc212849e84b57bac6eb2a7ef2000f3982b789",
       "path": "os/tests/test_owner_entry.py"
     },
     {

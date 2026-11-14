@@ -1,6 +1,9 @@
 """B2/B3/B10/B11: independent ledger vs real Tools entry points and captured ostree.
 
-B2 includes the integrator's boot-menu exception for a newer uninstalled bundle.
+B2 holds at its original strength (briefs/22c-forward-command.md): each installed system
+is one command away. The driver also judges "one word per meaning" on every executed
+edge, by the fake's state before and after: update never selects an installed system;
+forward never stages and never changes the set of deployments.
 
 Only the environment is replaced: files, host processes, login sessions and time.
 Expected results are computed BEFORE executing a command. Nothing returned by Tools
@@ -30,7 +33,7 @@ import test_owner_update as base  # library only; never runs that module's tests
 from ways_back_keyboard import PowerCut, PROFILES, identity
 from ways_back_host import Host, status, compact
 from ways_back_memo import Executions
-from ways_back_ledger import Ledger, Journal, Trial, Result, starts, transition, events, steps, invariants, destination_paths, reduced
+from ways_back_ledger import Ledger, Journal, Trial, Result, starts, transition, events, steps, invariants, destinations, reduced
 
 owner = base.owner
 ROOT = base.ROOT
@@ -247,7 +250,7 @@ class Driver:
                     else:
                         lines = tools.layout(word, self.phase if word == 'begin' else None)
                 else:
-                    method = {'update': tools.update, 'previous': tools.previous, 'rollback': tools.recover,
+                    method = {'update': tools.update, 'forward': tools.forward, 'previous': tools.previous, 'rollback': tools.recover,
                               'keep-stock': lambda: tools.recover(True), 'check': tools.check, 'title': tools.title,
                               'records': tools.records, 'reboot': tools.reboot}[word]
                     lines = method()
@@ -256,6 +259,20 @@ class Driver:
             except PowerCut:
                 cut = True
         self.reads, self.dependencies = self.dependencies, None
+        # One word per meaning (briefs/22c-forward-command.md), judged by the fake's state before
+        # and after, and before anything is compared with the ledger: whatever the ledger
+        # expects, update never selects an installed system (no set-default; the installed rows
+        # as before, in their order), and forward never stages and never changes the set of
+        # deployments (the same rows with the same flags and pins; nothing but the reorder).
+        after_rows = host.state['rpm']['deployments']
+        if word == 'update':
+            assert (not any(isinstance(c, str) and c.startswith('ostree admin set-default ') for c in host.changes)
+                    and [r for r in after_rows if not r.get('staged')] == [r for r in before_rows if not r.get('staged')]), \
+                ('update selected an installed system', event, host.changes)
+        if word == 'forward':
+            assert (sorted(after_rows, key=identity) == sorted(before_rows, key=identity)
+                    and all(isinstance(c, str) and (c == 'sync' or c.startswith('ostree admin set-default ')) for c in host.changes)), \
+                ('forward staged or changed the set of deployments', event, host.changes)
         assert bool(error) == bool(expected.stop), ('accept/refuse', event, expected.stop, error)
         if error:
             assert expected.stop.lower() in error.lower(), ('STOP next step', event, expected.stop, error)
@@ -688,8 +705,10 @@ class EquivalenceTest(unittest.TestCase):
 
 
 class ModelTest(unittest.TestCase):
-    def test_new_bundle_stages_and_the_newer_installed_release_has_a_walked_menu_path(self):
-        """The follow-up keeps A4/A6 and supplies the formerly missing B2 path."""
+    def test_new_bundle_stages_and_forward_selects_the_newer_installed_release_in_one_command(self):
+        """The state of briefs/22c-b2-destination-invariant.md, [R13*, R27, S] with a bundle for
+        R28: update still stages R28 (A6), and forward now selects R27 in one command, so B2's
+        destination invariant holds without the boot-menu exception."""
         s = starts()[3]
         with driver() as d:
             for event in (('previous', 'full'), ('restart', 'default'), ('title', 'full')):
@@ -697,21 +716,22 @@ class ModelTest(unittest.TestCase):
                 d.step(s, event, expected)
                 s = expected.state
             self.assertEqual((s.rows, s.running, s.outcome()), (('13', '27', 'S'), '13', 'none'))
-            destinations = {}
-            for word in ('update', 'previous', 'rollback', 'keep-stock'):
+            first = {}
+            for word in ('update', 'forward', 'previous', 'rollback', 'keep-stock'):
                 expected = transition(s, (word, 'full'))
                 found = d.step(s, (word, 'full'), expected)
-                destinations[word] = 'STOP' if expected.stop else found.rows[0]
-            self.assertEqual(destinations, dict(update='28', previous='13', rollback='S', **{'keep-stock': 'STOP'}))
-            self.assertNotIn('27', destinations.values())
+                first[word] = 'STOP' if expected.stop else found.rows[0]
+            self.assertEqual(first, dict(update='28', forward='27', previous='13', rollback='S', **{'keep-stock': 'STOP'}))
             invariants(s)
-            row, menu_only, path = next(p for p in destination_paths(s) if p[0] == '27')
-            self.assertTrue(menu_only)
-            selected = RevertTest().path(d, s, path)
-            self.assertEqual(selected.outcome(), 'selection-applied')
-            confirmed = RevertTest().path(d, selected, [('restart', 'default'), ('title', 'full')])
-            self.assertEqual(confirmed.rows[0], row)
-            self.assertIsNone(confirmed.journal)
+            self.assertEqual(dict(destinations(s)), {'27': ('forward', 'full'), 'S': ('rollback', 'full')})
+            # The one command, then the three states in order: applied and waiting, then confirmed.
+            selected = RevertTest().path(d, s, [('forward', 'full')])
+            self.assertEqual((selected.rows, selected.stage, selected.outcome()), (('27', '13', 'S'), '', 'waiting'))
+            restarted = RevertTest().path(d, selected, [('restart', 'default')])
+            self.assertEqual(restarted.outcome(), 'target-boot-confirmed')
+            confirmed = RevertTest().path(d, restarted, [('title', 'full')])
+            self.assertTrue(transition(restarted, ('title', 'full')).confirmation)
+            self.assertEqual((confirmed.rows[0], confirmed.running, confirmed.journal), ('27', '27', None))
 
     def test_reachable_state_space(self):
         # Addition 1 of stage 1b: every checks-only run explores the bounded slice;
@@ -726,8 +746,8 @@ class ModelTest(unittest.TestCase):
             self.assertEqual((found.discovered, found.edges), SLICE_COUNTS)
         else:
             self.assertEqual(found.processed, found.discovered)
-            self.assertEqual(found.discovered, 963003)
-            self.assertEqual(found.edges, 25257042)
+            self.assertEqual(found.discovered, 967215)
+            self.assertEqual(found.edges, 26519328)
 
 
 # The full model by default; the hosted checks-only job sets `slice` and its model
@@ -738,7 +758,7 @@ SCOPE = os.environ.get('ARESOS_MODEL_SCOPE', 'full')
 # The order is fixed (starts() and steps() enumerate in code order), so the same
 # states are explored every time; the counts below pin that.
 SLICE = 120000
-SLICE_COUNTS = (173476, 3043109)  # discovered states, executed edges
+SLICE_COUNTS = (173130, 3185862)  # discovered states, executed edges
 
 
 def explore(budget=None):
@@ -749,7 +769,7 @@ def explore(budget=None):
     parents = {reduced(s): None for s in queue}
     edges = 0
     processed = 0
-    outcomes, commands, menu_only = Counter(), Counter(), set()
+    outcomes, commands = Counter(), Counter()
     with driver() as d:
         executions = Executions(d)
         while queue and (budget is None or processed < budget):
@@ -759,9 +779,6 @@ def explore(budget=None):
                 predictions = dict(steps(s))
                 invariants(s, predictions)
                 outcomes[s.outcome()] += 1
-                for row, is_menu, path in destination_paths(s):
-                    if is_menu:
-                        menu_only.add((s.bundle, s.rows, s.running, row))
                 for event, expected in predictions.items():
                     executions.step(s, event, expected)
                     edges += 1
@@ -786,7 +803,6 @@ def explore(budget=None):
              'queue exhausted' if not queue else '%d processed (budget), %d queued' % (processed, len(queue))), flush=True)
     print(label.replace('model', 'outcomes') + ': ' + repr(dict(sorted(outcomes.items()))), flush=True)
     print(label.replace('model', 'command edges') + ': ' + repr(dict(sorted(commands.items()))), flush=True)
-    print(label.replace('model', 'menu-only destinations') + ': ' + repr(sorted(menu_only)), flush=True)
     return SimpleNamespace(discovered=len(parents), edges=edges, processed=processed, outcomes=outcomes,
                            seconds=time.perf_counter() - began)
 
