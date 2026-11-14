@@ -95,6 +95,14 @@ class PicturePassTest(IconBase, Base):
         self.assertTrue(os.path.isfile(self.icon('one')))
         self.assertNotEqual(self.icon('one'), first)
 
+    def test_a_cleared_picture_cache_asks_for_exactly_one_pass(self):
+        self.ticks(2)
+        made = self.icon('one')
+        os.unlink(made)
+        self.assertEqual(self.ticks(10), [True] + [False] * 9)
+        self.assertEqual(self.icon('one'), made)
+        self.assertTrue(os.path.isfile(made))
+
     def test_a_changed_catalogue_asks_for_exactly_one_pass(self):
         self.ticks(2)
         self.desktop('three', 'app-one')

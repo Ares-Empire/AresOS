@@ -1664,8 +1664,8 @@ class IconCache:
 
         A pass looks up and converts every program's picture again (about 228 ms of processor time with 59 programs on
         the laptop), so it runs only when the catalogue's revision changed, when anything the last complete pass looked
-        at changed (its signature: the icon roots, theme folders, indexes, the folders it listed and the pictures it
-        chose), or when the last pass did not finish (review fixes 3). Checking the signature only stats.
+        at changed (its signature: the icon roots, theme folders, indexes, the folders it listed, the pictures it
+        chose and those it made), or when the last pass did not finish (review fixes 3). Checking it only stats.
         """
         if self.finished is not None and self.finished[0] == revision and all(
                 icon_stat(path) == info for path, info in self.finished[1].items()):
@@ -1687,6 +1687,8 @@ class IconCache:
                 LOG.debug('icon for %s skipped: %s', app.id, error)
             if path:
                 pictures.add(os.path.basename(path))
+                # The made picture too: a cleared cache is made again, as the pass on every request used to.
+                lookup.note(path)
             try:
                 self.results.put_nowait((revision, app.id, app.icon_name, path))
             except queue.Full:
