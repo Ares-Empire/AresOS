@@ -237,6 +237,10 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       await eventually(()=>counts('loaded-'+id)===1,'owner page loaded');
       if(mode==='web-audio'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
       await call('take_tab',{tab});
+      // Chrome keeps a tab audible for about two seconds after its sound stops
+      // (tabs.Tab.audible, "over the past couple of seconds"), and the Web
+      // Audio row just played in this same tab: a clean tab waits that out.
+      if(mode==='clean')await delay(3500);
       if(mode!=='clean'){
         const first=await rpc('navigate',{tab,direction:'reload'});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
         assert.match(first.error.message,mode==='dirty'?/Reloading this tab would lose unsaved typing in field "Draft"/:/media that is playing/);assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id),1,'the owner page stays until the explicit repeat');
@@ -251,6 +255,8 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       await eventually(()=>counts('loaded-'+id)===1,'owner page loaded');
       if(mode==='web-audio'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
       await call('take_tab',{tab});const url='http://fixture.test:8765/?case=take-state&id='+next+'&mode=clean';
+      // As above: the Web Audio row just played in this tab.
+      if(mode==='clean')await delay(3500);
       if(mode!=='clean'){
         // Before its first reload a taken tab's text fields count as unsaved.
         const first=await rpc('navigate',{tab,url});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
