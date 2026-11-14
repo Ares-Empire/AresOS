@@ -224,6 +224,8 @@ class App:
     app_id_prefixes: tuple = ()
     # Why it cannot start now (None: it can), worked out when its catalogue was built (review 2, FIX 1).
     unavailable: str = None
+    # The exact window identities a reviewed hint gave it: they rank above discovered candidates (review 2, finding 3).
+    hint_ids: tuple = ()
 
 
 ENTRY_KEYS = {'schema', 'id', 'name', 'argv', 'desktop_entry', 'working_directory', 'window', 'replaces', 'gpu'}
@@ -906,11 +908,18 @@ def discovered_app(desktop_id, path, values, executable):
                **desktop_details(desktop_id, values))
 
 
+def prefixed(identity, prefixes):
+    """True when a reviewed prefix claims identity: it must be longer than the prefix (steam_app_ itself is no game)."""
+    return any(identity.startswith(prefix) and len(identity) > len(prefix) for prefix in prefixes)
+
+
 def apply_hints(apps, hints):
     """Reviewed hints give an installed discovered program more window identities (review 1, finding 1).
 
-    They beat discovered guesses, never a registry entry's identity (valid or not) or the desktop's. A hint for a
-    program that is not installed, or that a registry entry replaces, changes nothing.
+    They beat discovered candidates, exact identities and prefixes alike (review 2, finding 3): another discovered
+    program loses each identity a hint names or a hint's prefix covers. They never take a registry entry's identity
+    (valid or not) or the desktop's. A hint for a program that is not installed, or that a registry entry replaces,
+    changes nothing.
     """
     apps = dict(apps)
     reviewed = {identity for app in apps.values() if not app.discovered for identity in app.app_ids} | DESKTOP_APP_IDS
@@ -919,12 +928,16 @@ def apply_hints(apps, hints):
         if hint is None:
             continue
         extra = tuple(identity for identity in hint.app_ids if identity not in reviewed)
+
+        def claimed(identity):
+            return identity in extra or prefixed(identity, hint.app_id_prefixes)
+
         for other_key, other in list(apps.items()):
-            if other.discovered and other_key != key and set(other.app_ids) & set(extra):
+            if other.discovered and other_key != key and any(map(claimed, other.app_ids)):
                 apps[other_key] = dataclasses.replace(
-                    other, app_ids=tuple(identity for identity in other.app_ids if identity not in extra))
+                    other, app_ids=tuple(identity for identity in other.app_ids if not claimed(identity)))
         apps[key] = dataclasses.replace(apps[key], app_ids=tuple(dict.fromkeys((*apps[key].app_ids, *extra))),
-                                        app_id_prefixes=hint.app_id_prefixes)
+                                        app_id_prefixes=hint.app_id_prefixes, hint_ids=extra)
     return apps
 
 
@@ -2062,14 +2075,23 @@ class Windows:
         self.closed = []
         self.owners = {}
         self.prefixes = ()
+        self.candidates = {}
         self.reserved_ids = set(DESKTOP_APP_IDS)
 
     def set_registry(self, apps):
-        """The programs whose windows can be told apart: an exact identity or a reviewed hint's prefix, no guess."""
-        self.reserved_ids = {identity for app in apps.values() for identity in app.app_ids} | DESKTOP_APP_IDS
-        self.owners = {window_id: app.id for app in apps.values() if not app.invalid for window_id in app.app_ids}
-        self.prefixes = tuple((prefix, app.id) for app in apps.values() if not app.invalid
-                              for prefix in app.app_id_prefixes)
+        """The programs whose windows can be told apart: an exact identity or a reviewed hint's prefix, no guess.
+
+        Ownership goes in this order (review 2, finding 3): the desktop's window and the registry's identities, then
+        reviewed hints (exact, then prefix), then discovered programs' own candidates.
+        """
+        valid = [app for app in apps.values() if not app.invalid]
+        reviewed = {identity for app in apps.values() if not app.discovered for identity in app.app_ids}
+        self.reserved_ids = reviewed | {identity for app in valid for identity in app.hint_ids} | DESKTOP_APP_IDS
+        self.owners = {window_id: app.id for app in valid if app.discovered for window_id in app.hint_ids}
+        self.owners.update({window_id: app.id for app in valid if not app.discovered for window_id in app.app_ids})
+        self.prefixes = tuple((prefix, app.id) for app in valid for prefix in app.app_id_prefixes)
+        self.candidates = {window_id: app.id for app in valid if app.discovered for window_id in app.app_ids
+                           if window_id not in self.reserved_ids}
         # A dialog's inherited owner goes with its program (e.g. a 1.0 desktop: discovered programs own nothing).
         valid = {app.id for app in apps.values() if not app.invalid}
         for toplevel in self.toplevels.values():
@@ -2132,14 +2154,16 @@ class Windows:
         if toplevel.app_id in self.owners:
             return self.owners[toplevel.app_id]
         if toplevel.app_id in self.reserved_ids:
+            # An unusable reviewed entry's identity: never a prefix's or a discovered program's.
             if toplevel.launch_owner is not None:
                 return None
         else:
-            # A reviewed hint's prefix (Steam's games, steam_app_<n>); exact and reserved identities come first.
-            owner = next((app for prefix, app in self.prefixes
-                          if toplevel.app_id.startswith(prefix) and len(toplevel.app_id) > len(prefix)), None)
+            # A reviewed hint's prefix (Steam's games, steam_app_<n>) beats a discovered program's own candidate.
+            owner = next((app for prefix, app in self.prefixes if prefixed(toplevel.app_id, (prefix,))), None)
             if owner is not None:
                 return owner
+            if toplevel.app_id in self.candidates:
+                return self.candidates[toplevel.app_id]
         # Dialogs belong to their parent's app, so closing one never looks like the app closing.
         parent = self.toplevels.get(toplevel.parent)
         if parent is not None and parent.handle not in seen:

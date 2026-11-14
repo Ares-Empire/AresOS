@@ -3,6 +3,7 @@
 Everything is synthetic: no real program, window or compositor. Time moves through the tests' own clock; a stalled
 mount is a stand-in check that never answers until the test ends.
 """
+import dataclasses
 import os
 import pathlib
 import resource
@@ -391,3 +392,59 @@ class LateSwitchTest(WindowsBase):
         self.window(6, 'aresos.terminal')  # compositor news, but no switch: the pick stays in front
         self.assertEqual(self.activations, [1])
         self.assertEqual(self.focus_events(self.before), [('foreground', 'app_closed', 'lunarclient')])
+
+
+class PrefixPrecedenceTest(OwnershipBase):
+    """Package review fix 3 (REVIEW-2 finding 3): a reviewed prefix beats a discovered program's exact identity."""
+
+    def start(self, tracked=True, journal=None, windows=None):
+        apps, revision = shell.load_registry(REGISTRY)
+        apps.update({app_id: self.app(app_id) for app_id in ('lunarclient', 'discord', 'steam')})
+        # A program of his own whose entry names a Steam game's window identity.
+        apps['cyberpunk'] = self.app('cyberpunk', StartupWMClass='steam_app_1086940')
+        apps = shell.apply_hints(apps, shell.load_hints(str(REGISTRY / 'hints')))
+        self.windows = windows or shell.Windows(clock=self.clock)
+        self.helper_ = shell.Helper(str(REGISTRY), INSTANCE, NONCE, journal or self.journal,
+                                    registry=(apps, revision), launcher=self.launcher(), windows=self.windows,
+                                    activate=self.activate, clock=self.clock, executable=lambda path: True)
+        self.addCleanup(self.helper_.watcher.stop)
+        self.conn = self.connect(self.helper_)
+        return self.helper_
+
+    def test_the_discovered_entry_loses_the_identity_and_steam_keeps_its_game(self):
+        self.open('steam', 'o-s')
+        self.window(2, 'steam', active=True)
+        self.later(20)
+        self.window(3, 'steam_app_1086940', active=True)
+        self.assertEqual(self.windows.toplevels[3].owner, 'steam')
+        self.later(shell.HANDOFF / 5)
+        self.close(2)  # the launcher closes right after the game took the focus
+        self.later(shell.HANDOFF * 4)
+        self.assertEqual((self.activations, self.state('o-s'), self.helper_.shell), ([], 'focused', 'background'))
+        self.later(600)
+        self.close(3)
+        self.later(shell.HANDOFF + 0.01)
+        self.assertEqual((self.activations, self.state('o-s')), ([1], 'closed'))
+        self.assertEqual(self.focus_events()[-1], ('foreground', 'app_closed', 'steam'))
+        self.assertEqual(self.helper_.apps['cyberpunk'].app_ids, ('cyberpunk',))  # its own identity stays
+
+    def test_windows_rank_registry_then_hints_exact_then_prefix_then_discovered_candidates(self):
+        steam = dataclasses.replace(self.app('steam'), app_id_prefixes=('steam_app_',))
+        lunar = dataclasses.replace(self.app('lunarclient'), app_ids=('lunarclient', 'com.mojang.minecraft'),
+                                    hint_ids=('com.mojang.minecraft',))
+        # Candidates that apply_hints would have removed, as a program kept from an older catalogue may still hold.
+        game = self.app('cyberpunk', StartupWMClass='steam_app_1086940')
+        other = self.app('prism', StartupWMClass='com.mojang.minecraft')
+        terminal = self.app('fake-terminal', StartupWMClass='aresos.terminal')
+        registry, _ = shell.load_registry(REGISTRY)
+        expected = {'steam_app_1086940': 'steam', 'com.mojang.minecraft': 'lunarclient', 'aresos.terminal': 'terminal',
+                    'cyberpunk': 'cyberpunk', 'prism': 'prism', 'aresos-desktop': shell.Windows.SHELL}
+        for order in ((game, other, terminal, steam, lunar), (steam, lunar, game, other, terminal)):
+            with self.subTest(first=order[0].id):
+                windows = shell.Windows()
+                windows.set_registry({app.id: app for app in order} | registry)
+                for handle, identity in enumerate(expected, 1):
+                    windows.new(handle)
+                    windows.app_id(handle, identity)
+                    windows.done(handle)
+                self.assertEqual({t.app_id: t.owner for t in windows.toplevels.values()}, expected)
