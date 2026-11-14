@@ -1257,6 +1257,15 @@ def resolve_icon(name, directories, deployments=None):
     return IconLookup(directories, deployments).resolve(name)
 
 
+def icon_stat(path):
+    """What a picture pass's signature keeps of a path. Like the catalogue's, it follows links and reads nothing."""
+    try:
+        info = os.stat(path)
+    except OSError:
+        return None
+    return info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+
+
 def read_icon_index(path, roots):
     """(folder, size, scalable) for each folder an icon theme's index.theme lists, in its order (review fixes 3).
 
@@ -1310,6 +1319,9 @@ class IconLookup:
     fixed layout. A folder is listed, and a file chosen, only where it really lies inside its own icon root or inside
     a Flatpak deployment: a Flatpak export's icons are links into its deployment (review 1, FIX 5). The pass lists at
     most ICON_LOOKUP_ENTRIES folder entries in all.
+
+    seen holds every root, folder, index and picture the pass looked at, with its stat from before it was read: the
+    pass's signature. Anything that could change a lookup's answer changes one of them.
     """
 
     THEMES = ('hicolor', 'breeze')
@@ -1319,15 +1331,23 @@ class IconLookup:
         deployments = tuple(os.path.realpath(path)
                             for path in (flatpak_deployments() if deployments is None else deployments))
         self.roots = {folder: (os.path.realpath(folder), *deployments) for folder in self.directories}
+        self.seen = {}
         self.listings = {}
         self.orders = {}
         self.entries = 0
+        for folder in self.directories:
+            self.note(folder)
+
+    def note(self, path):
+        if path not in self.seen:
+            self.seen[path] = icon_stat(path)
 
     def listing(self, folder, *parts):
         """{name: is a real folder} of a folder under the root folder."""
         path = os.path.join(folder, *parts)
         if path in self.listings:
             return self.listings[path]
+        self.note(path)
         names = {}
         if self.entries < ICON_LOOKUP_ENTRIES:
             try:
@@ -1351,6 +1371,7 @@ class IconLookup:
         for folder in self.directories:
             if 'index.theme' in self.listing(folder, theme):
                 path = os.path.join(folder, theme, 'index.theme')
+                self.note(path)
                 try:
                     index = read_icon_index(path, self.roots[folder])
                 except (OSError, ValueError) as error:
@@ -1399,6 +1420,7 @@ class IconLookup:
         path = os.path.join(folder, *parts)
         real = os.path.realpath(path)
         if within(real, self.roots[folder]) and os.path.isfile(real):
+            self.note(path)
             return real
         return None
 
@@ -1406,6 +1428,7 @@ class IconLookup:
         if not name or '\0' in name:
             return None
         if os.path.isabs(name):
+            self.note(name)
             return name
         if '/' in name or '..' in name or len(name) > 255:
             return None
@@ -1571,8 +1594,9 @@ def icons_revision(apps, base_revision):
 class IconCache:
     """One background worker, one bounded converter at a time; requests and results never do file IO.
 
-    Step 4 calls request() after a catalogue rescan and take() on its normal tick. It lists the returned Apps
+    The helper calls request() every CATALOGUE_CHECK seconds and take() on its normal tick. It lists the returned Apps
     and revision, and announces a changed revision only to 1.1 clients. No lookup/probe/conversion is on that path.
+    The worker runs a picture pass for a request only when something changed since the last complete pass (step()).
     """
 
     def __init__(self, environ=None, directories=None, timeout=ICON_TIMEOUT, magick=MAGICK, bwrap=BWRAP,
@@ -1592,6 +1616,10 @@ class IconCache:
         self.thread = None
         self.svg_checked = False
         self.failed = set()
+        # The newest request's revision: only a changed catalogue cuts a running pass short.
+        self.latest = None
+        # (revision, signature) of the last complete pass; None while a pass is due.
+        self.finished = None
 
     def request(self, apps, revision):
         if self.stopping.is_set():
@@ -1602,6 +1630,7 @@ class IconCache:
             self.pending.get_nowait()
         except queue.Empty:
             pass
+        self.latest = revision
         self.pending.put_nowait((dict(apps), revision))
         if self.thread is None:
             self.thread = threading.Thread(target=self.loop, name='aresos-icons', daemon=True)
@@ -1624,30 +1653,45 @@ class IconCache:
                 apps, revision = self.pending.get(timeout=0.1)
             except queue.Empty:
                 continue
-            # One lookup per pass: each theme's layout is worked out, and each folder listed, once for all programs.
-            lookup = IconLookup(self.directories, self.deployments)
-            roots = tuple(os.path.realpath(folder) for folder in (*self.directories, *self.deployments))
-            pictures, complete = set(), True
-            for app in apps.values():
-                if self.stopping.is_set() or not self.pending.empty():
-                    complete = False
-                    break  # the latest rescan supersedes queued work
-                path = None
-                try:
-                    if source := lookup.resolve(app.icon_name):
-                        # A named icon is read only from inside its folders; an absolute Icon path as written.
-                        path = self.convert(source) if os.path.isabs(app.icon_name) else self.convert(source, roots)
-                except (OSError, ValueError, subprocess.SubprocessError) as error:
-                    LOG.debug('icon for %s skipped: %s', app.id, error)
-                if path:
-                    pictures.add(os.path.basename(path))
-                try:
-                    self.results.put_nowait((revision, app.id, app.icon_name, path))
-                except queue.Full:
-                    complete = False
-                    break  # bounded even if the event loop stops taking answers
-            if complete:
-                self.prune(pictures)
+            self.step(apps, revision)
+
+    def step(self, apps, revision):
+        """One request on the worker; True when it ran a picture pass.
+
+        A pass looks up and converts every program's picture again (about 228 ms of processor time with 59 programs on
+        the laptop), so it runs only when the catalogue's revision changed, when anything the last complete pass looked
+        at changed (its signature: the icon roots, theme folders, indexes, the folders it listed and the pictures it
+        chose), or when the last pass did not finish (review fixes 3). Checking the signature only stats.
+        """
+        if self.finished is not None and self.finished[0] == revision and all(
+                icon_stat(path) == info for path, info in self.finished[1].items()):
+            return False
+        self.finished = None
+        lookup = IconLookup(self.directories, self.deployments)
+        roots = tuple(os.path.realpath(folder) for folder in (*self.directories, *self.deployments))
+        pictures, complete = set(), True
+        for app in apps.values():
+            if self.stopping.is_set() or self.latest != revision:
+                complete = False
+                break  # the latest rescan supersedes this pass
+            path = None
+            try:
+                if source := lookup.resolve(app.icon_name):
+                    # A named icon is read only from inside its folders; an absolute Icon path as written.
+                    path = self.convert(source) if os.path.isabs(app.icon_name) else self.convert(source, roots)
+            except (OSError, ValueError, subprocess.SubprocessError) as error:
+                LOG.debug('icon for %s skipped: %s', app.id, error)
+            if path:
+                pictures.add(os.path.basename(path))
+            try:
+                self.results.put_nowait((revision, app.id, app.icon_name, path))
+            except queue.Full:
+                complete = False
+                break  # bounded even if the event loop stops taking answers
+        if complete:
+            self.prune(pictures)
+            self.finished = (revision, lookup.seen)
+        return True
 
     def prepare(self):
         # Never follow either private cache component to another location.
