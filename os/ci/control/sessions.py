@@ -115,12 +115,20 @@ def saved(folder, pattern='*'):
     return sorted(found)
 
 
-def ours_on_screen(folder, first, last):
-    """Lines of the screens saved during one turn that show our hooks or our name."""
-    lines = []
+def ours_on_screen(folder, first, last, prompt):
+    """Lines of the screens saved during one turn that show our hooks or our name. A screen still shows the earlier
+    turns above this turn's prompt (run 43572578699: turn 2's reminder counted again in turns 3 and 5), so only the
+    lines from the first one holding the prompt on count. Screens before the prompt shows (the driver saves one
+    before typing it) are the previous turn's; once it has shown, a screen without it has scrolled past it."""
+    lines, shown = [], False
     for number, path in saved(folder):
         if first < number <= last:
-            for line in path.read_text().splitlines():
+            screen = path.read_text().splitlines()
+            start = next((index for index, line in enumerate(screen) if prompt in line), None)
+            if start is None and not shown:
+                continue
+            shown = True
+            for line in screen[start or 0:]:
                 line = line.strip()
                 if ('AresOS' in line or 'hook' in line.lower()) and line not in lines:
                     lines.append(line)
@@ -194,7 +202,7 @@ def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180)
                                   stop_continuations=len(model.script.continuations) - first_continuation,
                                   operation_id=approval and approval.get('operation_id'), question=question,
                                   tool_result=result, on_screen=ours_on_screen(screens, first_screen,
-                                                                               terminal.sequence)))
+                                                                               terminal.sequence, step['prompt'])))
                 (evidence / 'turns.json').write_text(json.dumps(turns, indent=2) + '\n')
             final = terminal.screen()
     actions = screens / 'actions.jsonl'

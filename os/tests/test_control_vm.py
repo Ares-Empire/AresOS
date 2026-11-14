@@ -205,6 +205,19 @@ class EvidencePackingTest(unittest.TestCase):
         self.assertTrue(sizes['1.tar.gz'] < 10_000 and sizes['2.tar.gz'] < 10_000, sizes)
         self.assertEqual(errors, [])
 
+    def test_a_turn_sees_only_its_own_lines_on_screen(self):
+        # Run 43572578699: the screens of turn 3 still showed turn 2's reminder above turn 3's prompt.
+        earlier = ['❯ TURN_2', '● Ran 1 stop hook', '⎿ Stop hook error: AresOS held/unfinished work']
+        screens = self.folder / 'screens'
+        screens.mkdir()
+        for number, name, lines in ((5, 'settled-2', earlier), (6, 'owner-prompt', earlier),
+                                    (7, 'wait-prompt-or-done-3', earlier + ['❯ TURN_3', '✶ (running Stop hook)']),
+                                    (8, 'settled-3', ['● INTERACTIVE_DONE_3', '⎿ AresOS scrolled into view'])):
+            (screens / f'{number:03d}-{name}.txt').write_text('\n'.join(lines))
+        self.assertEqual(self.sessions.ours_on_screen(screens, 5, 8, 'TURN_3'),
+                         ['✶ (running Stop hook)', '⎿ AresOS scrolled into view'])
+        self.assertEqual(self.sessions.ours_on_screen(screens, 4, 5, 'TURN_2'), earlier[1:])
+
     def test_only_the_transcripts_a_case_wrote_are_copied(self):
         source = self.folder / 'projects/work'
         source.mkdir(parents=True)

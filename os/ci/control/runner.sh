@@ -121,6 +121,26 @@ PY
         done
         docker rm -f "$greenmail" "$dovecot" > /dev/null 2>&1 || true
         if [[ -f $fixtures/password ]]; then
+            # GreenMail runs with auth disabled: it creates the account at the first login and its own log names the
+            # password it was given (runs 43568250360 and 43572578699 lost greenmail.txt to the check below). The
+            # servers' logs are redacted here, the password read from its file, never from a command line; the
+            # check below still guards every other evidence file.
+            python3 -I - "$fixtures/password" "$evidence/greenmail.txt" "$evidence/dovecot.txt" \
+                > "$evidence/redacted.txt" <<'REDACT'
+import pathlib
+import sys
+
+secret = pathlib.Path(sys.argv[1]).read_text().strip()
+assert len(secret) >= 16, 'the fixture password file is not a password'
+for name in sys.argv[2:]:
+    path = pathlib.Path(name)
+    if not path.exists():
+        continue
+    text = path.read_text(errors='replace')
+    path.write_text(text.replace(secret, '[fixture password redacted]'))
+    print(f'{path.name}: {text.count(secret)} occurrences of the fixture password redacted')
+REDACT
+            cat "$evidence/redacted.txt"
             # The password never leaves the runner: no evidence file may hold it.
             leaked=$(sudo grep -rlF -f "$fixtures/password" evidence || true)
             if [[ -n $leaked ]]; then

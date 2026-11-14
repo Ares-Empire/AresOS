@@ -733,6 +733,16 @@ def ordinary(request):
             run(['systemctl', 'start', UNIT])
     hooks = sessions.hook_lines(log)
     turns = [turn for case in cases.values() for turn in case['turns']]
+    # His Stop hook per turn: his log in order, each turn from its UserPromptSubmit line to the next one; each run
+    # recorded by the stop_hook_active it was given. Run 43572578699: in a turn our hook blocks once, his runs only on
+    # the attempt that ends the turn (true), not on the blocked one.
+    own_stops, current = {}, None
+    for line in hooks:
+        if line['event'] == 'UserPromptSubmit':
+            current = next((number for number, turn in enumerate(turns, 1)
+                            if turn['prompt'] in line['input'].get('prompt', '')), None)
+        elif line['event'] == 'Stop':
+            own_stops.setdefault(current, []).append(line['input'].get('stop_hook_active'))
     rows = []
     for number, turn in enumerate(turns, 1):
         result = turn['tool_result'] or {}
@@ -740,11 +750,13 @@ def ordinary(request):
                    and turn['prompt'] in line['input'].get('prompt', '')]
         row = dict(turn=number, service=service.get(number, {}).get('state'), **turn_record(turn),
                    own_tool_ran=not result.get('is_error') and f'OWN_NOTE turn{number}' in json.dumps(result),
-                   own_user_prompt_submit_lines=len(prompts),
+                   own_user_prompt_submit_lines=len(prompts), own_stop_runs=own_stops.get(number, []),
                    extra_model_requests=turn['model_requests'] - 2)
         rows.append(row)
         try:
             assert row['own_tool_ran'] and row['own_user_prompt_submit_lines'] == 1, row
+            # His Stop hook ran in every turn, at most once per stop attempt.
+            assert 1 <= len(row['own_stop_runs']) <= 1 + row['stop_continuations'], row
             assert row['extra_model_requests'] == row['stop_continuations'], row
             if row['service'] in ('healthy', 'started again', 'recovered'):
                 assert row['stop_continuations'] == 0 and not any('AresOS' in line for line in row['on_screen']), row
@@ -752,15 +764,16 @@ def ordinary(request):
                 assert row['stop_continuations'] <= 1, ('the Stop guard did not hold', row)
         except AssertionError:
             errors.append(traceback.format_exc())
-    stops = [line for line in hooks if line['event'] == 'Stop']
-    if len(stops) != sum(1 + turn['stop_continuations'] for turn in turns) or len(turns) != 5:
-        errors.append(f'his Stop hook ran {len(stops)} times over {len(turns)} turns')
+    if len(turns) != 5 or None in own_stops:
+        errors.append(f'{len(turns)} turns; his Stop hook outside a turn: {own_stops.get(None)}')
     after, _ = wait_sockets()
     if after['total']:
         errors.append(f'pending after check 6: {after}')
     summary = dict(turns=[{key: row[key] for key in ('turn', 'service', 'model_requests', 'extra_model_requests',
-                                                     'stop_continuations', 'seconds', 'on_screen', 'own_tool_ran')}
-                          for row in rows], own_stop_lines=len(stops), pending_after=after['total'])
+                                                     'stop_continuations', 'own_stop_runs', 'seconds', 'on_screen',
+                                                     'own_tool_ran')}
+                          for row in rows], own_stop_lines=sum(map(len, own_stops.values())),
+                   pending_after=after['total'])
     files = {'ordinary/summary.json': dict(summary, rows=rows, service=service, settings=settings),
              'ordinary/own-hooks.jsonl': log.read_text() if log.exists() else ''}
     sizes = packed(files, {f'ordinary/{name}.tar.gz': out / name for name in cases}, errors)
@@ -826,12 +839,19 @@ def find_key(value, key):
 
 
 def arrivals_in_receiver(op_id):
+    """How often the operation's message arrived. testapp's receiver stores one row per recipient (MESSAGE has three),
+    so one send is one row for each of them; the container's pin counts sends (one POST each). Run 43572578699
+    compared rows with it (3 against 1)."""
     connection = sqlite3.connect(f'file:{RECEIVER}?mode=ro', uri=True)
     try:
-        return [connection.execute(query, args).fetchone()[0] for query, args in (
-            ('SELECT count(*) FROM arrivals WHERE op=?', (op_id,)), ('SELECT count(*) FROM arrivals', ()))]
+        per_recipient = dict(connection.execute(
+            'SELECT recipient, count(*) FROM arrivals WHERE op=? GROUP BY recipient', (op_id,)).fetchall())
+        total = connection.execute('SELECT count(*) FROM arrivals').fetchone()[0]
     finally:
         connection.close()
+    # A send reaches every recipient or none of them (no failure is configured in these cases).
+    assert set(per_recipient) in (set(), set(MESSAGE['to'] + MESSAGE['cc'] + MESSAGE['bcc'])), per_recipient
+    return max(per_recipient.values(), default=0), per_recipient, total
 
 
 # (case, mode, extra user allow rules, user PermissionRequest hook, answer): brief B2 check 9's table.
@@ -879,7 +899,8 @@ def interactive(request):
                     shutil.copyfile(log, out / case / 'permission-hook.jsonl')
             turn = result['turns'][0]
             op_id = turn['operation_id']
-            send_arrivals, receiver_total = arrivals_in_receiver(op_id)
+            send_arrivals, per_recipient, receiver_total = arrivals_in_receiver(op_id)
+            row['receiver_rows_per_recipient'] = per_recipient
             status = operation(op_id)
             reminder = [index for index, request_ in enumerate(json.loads(
                 (out / case / 'model/requests.json').read_text())) if REMINDER in json.dumps(request_['messages'])]
@@ -899,6 +920,8 @@ def interactive(request):
                 row['notice_ack'] = cli('ares', 'testapp', 'notice_ack', value={'operation_id': op_id})['json']
             row['pending_after_cleanup'] = answered(cli('ares', 'control', 'pending'))['data']['total']
             assert row['pending_after_cleanup'] == 0, ('no clean baseline after', case)
+            # Both counts agree: the service's own record names the same recipients the receiver holds.
+            assert sorted(row['status_arrivals'] or []) == sorted(per_recipient), row
             if answer == 'hook':
                 observed = {key: row[key] for key in ('send_arrivals', 'hook_calls', 'owner_answers')}
                 pinned = request['expected']['normal-permission-user']
