@@ -111,6 +111,7 @@ tasks.named('runClientGameTest') {
     systemProperty 'aresos.homeReviewDir', file('../reviews/04-nether-home/screenshots').absolutePath
     systemProperty 'aresos.hubReviewDir', file('../reviews/32-flat-home/screenshots').absolutePath
     systemProperty 'aresos.townReviewDir', file('../reviews/36-town/screenshots').absolutePath
+    systemProperty 'aresos.goReviewDir', file('../reviews/37-getting-around/screenshots').absolutePath
     systemProperty 'aresos.seedReviewDir', file('../reviews/04-nether-home/seeds').absolutePath
     timeout = Duration.ofMinutes(20)
 }
