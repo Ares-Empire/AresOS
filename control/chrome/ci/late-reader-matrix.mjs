@@ -21,6 +21,7 @@ export async function lateReaderMatrix({check,nav,call,rpc,read,target,fixture,e
       assert.equal(rows.find(row=>row.expected.name==='Safe editor').expected.value,'PUBLIC_EDITOR_20');
       for(const label of ['Previous search','Previous email','Previous url','Long value']){const row=rows.find(row=>row.expected.name===label);assert.ok(row,label);assert.equal(row.expected.value,undefined);if(watched)assert.equal(row.expected.password,true);else assert.equal(row.expected.value_status,'filled');}
       assert.doesNotMatch(JSON.stringify(rows),/PRIVATE_REVEALED/);
+      for(const term of ['Distanz','Tank']){const row=rows.find(row=>row.expected.name===term);assert.ok(row,term);assert.equal(row.expected.password,undefined,term);if(watched)assert.equal(row.expected.value,'PUBLIC_ORDINARY_'+term+'_20');else assert.equal(row.expected.value_status,'filled');}
       const form=await call('read_form',{tab:getTab(),reference:(await target('Type text')).reference});assert.doesNotMatch(JSON.stringify(form),/SENTINEL_PRIVATE_PASSWORD_20/);
       if(!watched){
         for(const label of [...lateTypedTypes.map(type=>'Type '+type),'Safe textarea','Long value','Previous search','Previous email','Previous url'])assert.equal(form.untrusted_content.form.fields.find(field=>field.label===label).value,undefined,label);

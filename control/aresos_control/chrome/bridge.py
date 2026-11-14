@@ -6,7 +6,7 @@ import select
 import socket
 import uuid
 
-from ..common import Refused, strict_json_loads, canonical
+from ..common import Refused, strict_json_loads, canonical, visible
 from .qualification import version
 
 LIMIT = 1024 * 1024
@@ -103,7 +103,8 @@ class Bridge:
                     raw = reply.get('error','refused: Chrome refused input')
                     code, separator, message = raw.partition(':')
                     if not separator: message = raw
-                    raise Refused(code if code in {'stale_reference','stale_approval','reload_required','owner_signin','refused','permission_denied','unknown','transport_error'} else 'refused', message.strip())
+                    # Extension errors are literals today; escape them anyway, like page text.
+                    raise Refused(code if code in {'stale_reference','stale_approval','reload_required','owner_signin','refused','permission_denied','unknown','transport_error'} else 'refused', visible(message.strip()))
                 return reply['data']
         except (OSError, ValueError, binascii.Error, TypeError) as exc:
             self.close()

@@ -375,14 +375,67 @@ for(const [source,config] of [
 });
 
 test('post18d destination target and formtarget inherit the live base target',()=>{
-  const f=fixture([]),base=new f.Element({tagName:'BASE',attrs:{target:'first'}}),link=new f.Element({tagName:'A',attrs:{href:'delete'}});f.nodes.push(base,link);
+  const f=fixture([]),base=new f.Element({...HTML_BASE,attrs:{target:'first'}}),link=new f.Element({tagName:'A',attrs:{href:'delete'}});f.nodes.push(base,link);
   const form={tagName:'FORM',elements:[],action:'https://fixture.test/delete',method:'post',enctype:'application/x-www-form-urlencoded',target:'',querySelector(){return null;}};
   const submitter=new f.Element({tagName:'BUTTON',type:'submit',form,attrs:{}});
   assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'first');assert.equal(f.form(form,submitter).browsing_target,'first');
   base.attrs.target='second';assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'second');assert.equal(f.form(form,submitter).browsing_target,'second');
   submitter.attrs.formtarget='explicit';submitter.formTarget='explicit';assert.equal(f.form(form,submitter).browsing_target,'explicit');
   submitter.attrs.formtarget='';submitter.formTarget='';form.target='ignored';assert.equal(f.form(form,submitter).browsing_target,'second');
-  base.attrs.target='unsafe\nname';assert.equal(f.form(form,submitter).browsing_target,'_blank');
+  base.attrs.target='unsafe\n<name';assert.equal(f.form(form,submitter).browsing_target,'_blank');
+});
+
+const HTML_BASE={tagName:'BASE',localName:'base',namespaceURI:'http://www.w3.org/1999/xhtml'};
+const SVG='http://www.w3.org/2000/svg';
+function targetPage(f,{base=null,decoy=null,link={},svg=null,form=null}={}){
+  const nodes={};
+  if(decoy!==null)f.nodes.push(nodes.decoy=new f.Element({tagName:'base',localName:'base',namespaceURI:SVG,attrs:{target:decoy}}));
+  if(base!==null)f.nodes.push(nodes.base=new f.Element({...HTML_BASE,attrs:{target:base}}));
+  nodes.link=svg?new f.Element({tagName:'a',localName:'a',namespaceURI:SVG,attrs:{href:'delete',...svg}}):new f.Element({tagName:'A',attrs:{href:'delete',...link}});f.nodes.push(nodes.link);
+  nodes.form={tagName:'FORM',elements:[],action:'https://fixture.test/delete',method:'post',enctype:'application/x-www-form-urlencoded',target:form??'',attrs:form===null?{}:{target:form},querySelector(){return null;}};
+  nodes.submitter=new f.Element({tagName:'BUTTON',type:'submit',form:nodes.form,attrs:{}});
+  nodes.linkTarget=()=>f.read().data.rows.find(row=>row.role==='link').browsing_target;
+  nodes.formTarget=()=>f.form(nodes.form,nodes.submitter).browsing_target;
+  return nodes;
+}
+test('final F3 a non-HTML base is never the document base target',()=>{
+  const f=fixture([]),page=targetPage(f,{decoy:'sink-first',base:'sink-first'});
+  assert.equal(page.linkTarget(),'sink-first');assert.equal(page.formTarget(),'sink-first');
+  page.base.attrs.target='sink-second';assert.equal(page.linkTarget(),'sink-second','the HTML base decides, not a decoy placed first');assert.equal(page.formTarget(),'sink-second');
+  page.decoy.attrs.target='decoy-changed';assert.equal(page.linkTarget(),'sink-second');
+  delete page.base.attrs.target;assert.equal(page.linkTarget(),'_self','a decoy alone is no base target');assert.equal(page.formTarget(),'_self');
+});
+test('final F3 base and explicit targets are sanitised exactly as HTML defines',()=>{
+  for(const [value,expected] of [['sink\nfirst','sink\nfirst'],['sink\tfirst','sink\tfirst'],['sink\rfirst','sink\rfirst'],['sink<first','sink<first'],['sink\n<first','_blank'],['sink\t<first','_blank'],['sink<\rfirst','_blank']]){
+    const base=fixture([]),fromBase=targetPage(base,{base:value});assert.equal(fromBase.linkTarget(),expected,JSON.stringify(value));assert.equal(fromBase.formTarget(),expected);
+    const own=fixture([]),explicit=targetPage(own,{base:'sink-other',link:{target:value},form:value});assert.equal(explicit.linkTarget(),expected,'link '+JSON.stringify(value));assert.equal(explicit.formTarget(),expected,'form '+JSON.stringify(value));
+    explicit.submitter.attrs.formtarget=value;explicit.submitter.formTarget=value;assert.equal(explicit.formTarget(),expected,'formtarget '+JSON.stringify(value));
+  }
+  const changing=fixture([]),page=targetPage(changing,{base:'a\nb'});const before=page.linkTarget();page.base.attrs.target='c\nd';assert.notEqual(page.linkTarget(),before,'two names with newlines stay distinct');
+});
+test('final F3 SVG xlink show new opens a new window only for an empty SVG target',()=>{
+  const f=fixture([]),page=targetPage(f,{base:'sink-first',svg:{'xlink:show':'new'}});
+  assert.equal(page.linkTarget(),'_blank');delete page.link.attrs['xlink:show'];assert.equal(page.linkTarget(),'_self','toggling xlink:show changes the bound target');
+  page.link.attrs['xlink:show']='replace';assert.equal(page.linkTarget(),'_self');page.link.attrs['xlink:show']='New';assert.equal(page.linkTarget(),'_self','Chrome compares xlink:show exactly');
+  page.link.attrs['xlink:show']='new';page.link.currentTarget='named';assert.equal(page.linkTarget(),'named','an own SVG target wins over xlink:show');
+  page.link.currentTarget='';assert.equal(page.linkTarget(),'_blank','an empty animated target with xlink:show new is a new window');
+  page.link.attrs.target='sink-second';page.link.currentTarget='sink-second';assert.equal(page.linkTarget(),'sink-second','a plain SVG target change is bound');
+});
+test('final F3 an empty target falls back to the base target as Chrome does',()=>{
+  const f=fixture([]),page=targetPage(f,{base:'sink-first',link:{target:''},form:''});
+  assert.equal(page.linkTarget(),'sink-first');assert.equal(page.formTarget(),'sink-first');
+  page.base.attrs.target='sink-second';assert.equal(page.linkTarget(),'sink-second','a base change behind target="" re-asks');assert.equal(page.formTarget(),'sink-second');
+  page.submitter.attrs.formtarget='';page.submitter.formTarget='';page.form.target='form-own';page.form.attrs.target='form-own';assert.equal(page.formTarget(),'sink-second','formtarget="" falls back to the base, not the form target');
+  const none=fixture([]),bare=targetPage(none,{link:{target:''},form:''});assert.equal(bare.linkTarget(),'_self');assert.equal(bare.formTarget(),'_self');
+});
+test('final F3 area links and form owners bind their own browsing targets',()=>{
+  const f=fixture([]),base=new f.Element({...HTML_BASE,attrs:{target:'sink-first'}}),area=new f.Element({tagName:'AREA',attrs:{href:'delete'}});f.nodes.push(base,area);
+  const target=()=>f.read().data.rows.find(row=>row.role==='link').browsing_target;
+  assert.equal(target(),'sink-first');area.attrs.target='sink-second';assert.equal(target(),'sink-second');
+  const first={tagName:'FORM',elements:[],action:'https://fixture.test/first/receive',method:'post',enctype:'application/x-www-form-urlencoded',target:'',querySelector(){return null;}};
+  const third={...first,target:'sink-second'},submitter=new f.Element({tagName:'BUTTON',type:'submit',form:first,attrs:{}});
+  assert.equal(f.form(first,submitter).browsing_target,'sink-first');submitter.form=third;
+  assert.equal(f.form(third,submitter).browsing_target,'sink-second','a new form owner brings its own target');assert.equal(f.form(third,submitter).action,'https://fixture.test/first/receive');
 });
 
 for(const source of ['form-action','button-formaction','input-formaction'])test('post18d destination '+source+' uses the native resolved action',()=>{
@@ -401,6 +454,63 @@ for(const signal of ['name','id','autocomplete','aria-label','placeholder','labe
     if(signal==='label')f.nodes[0].labels=[new f.Element({tagName:'LABEL',childNodes:[{nodeType:3,textContent:term}]})];
     const row=f.read().data.rows[0];assert.equal(row.password,true,signal+' '+term);assert.equal(f.calls(),0);
     f.nodes[0].attrs={};f.nodes[0].labels=[];assert.equal(f.read().data.rows[0].password,true,'credential exclusion is sticky');
+  }
+});
+
+// Final F2: one row per added name or token. Labels are what the owner sees;
+// identifiers are the name/id spellings pages use for the same field.
+const FINAL_F2_CREDENTIALS=[
+  ['CVC','cvc'],['CVV','cvv2'],['CSC','card_csc'],['CVN','cvn'],['Card security code','cardSecurityCode'],['Card verification value','cardVerification'],['Card code','card_code'],
+  ['TAN','tan'],['mTAN','mtan'],['SMS-TAN','sms_tan'],['pushTAN','pushTan'],['chipTAN','chip-tan'],['TAN-Nummer','tanNummer'],['Transaktionsnummer','transaktionsnummer'],
+  ['Geheimzahl','geheimzahl'],['Geheimnummer','geheimNummer'],['Kartenprüfnummer','kartenpruefnummer'],['Prüfnummer','pruef_nummer'],
+  ['Pincode','pincode'],['PIN-Nummer','pinNummer'],['Online-Banking-PIN','onlineBankingPin'],['One-time PIN','oneTimePin'],['PUK','puk2'],
+  ['PWD','pwd'],['Passwd','passwd'],['PW','user_pw'],['User pass','user_pass'],['Passphrase','passphrase'],['Secret','client_secret'],
+  ['Verification code','verificationCode'],['Verify code','verify_code'],['Verifizierungscode','verifizierungscode'],['Verifikationscode','verifikations-code'],
+  ['Authentifizierungscode','authentifizierungscode'],['Authentisierungscode','authentisierungsCode'],['Authentication code','authenticationCode'],['Auth code','authcode'],
+  ['Bestätigungscode','bestaetigungscode'],['OTP code','otpcode'],['TOTP','totp'],['HOTP','hotp'],['2FA code','2fa_code'],['MFA','mfa'],
+  ['Access code','accessCode'],['Login code','login_code'],['SMS code','smsCode'],['Recovery code','recoveryCode'],['Backup code','backup-code'],['Activation code','activationCode'],
+  ['Aktivierungscode','aktivierungscode'],['Wiederherstellungscode','wiederherstellungscode'],['Freigabecode','freigabeCode'],['Anmeldecode','anmeldecode'],['Sicherungscode','sicherungscode'],
+  ['Security answer','securityAnswer'],['Sicherheitsantwort','sicherheitsantwort'],
+];
+function credentialField(form,value,watched){
+  const f=fixture([{type:'text',forbidden:true,attrs:form==='label'?{}:{[form]:value}}],{watched});
+  if(form==='label')f.nodes[0].labels=[new f.Element({tagName:'LABEL',childNodes:[{nodeType:3,textContent:value}]})];
+  return f;
+}
+for(const form of ['label','name','id'])test('final F2 every added credential name is withheld in its '+form+' form',()=>{
+  for(const watched of [false,true])for(const [label,identifier] of FINAL_F2_CREDENTIALS){
+    const value=form==='label'?label:identifier,f=credentialField(form,value,watched);
+    const row=f.read().data.rows[0];assert.equal(row.password,true,form+' '+value+' watched='+watched);assert.equal(row.value,undefined);assert.equal(f.calls(),0,value);
+    assert.equal(f.command({command:'typed_fields'}).data.fields.length,0,'never offered for an asking read: '+value);
+  }
+});
+test('final F2 the card security code autocomplete token is withheld now and after it is removed',()=>{
+  for(const watched of [false,true]){
+    const f=credentialField('autocomplete','cc-csc',watched);assert.equal(f.read().data.rows[0].password,true);assert.equal(f.calls(),0);
+    const late=fixture([{}],{watched});late.read();const before=late.calls();late.nodes[0].forbidden=true;
+    late.mutations().push({type:'attributes',attributeName:'autocomplete',oldValue:'cc-csc',target:late.nodes[0]});assert.equal(late.read().data.rows[0].password,true,'cc-csc history is sticky');assert.equal(late.calls(),before);
+  }
+});
+test('final F2 a credential label split inside a word or between words is withheld',()=>{
+  const text=value=>({nodeType:3,textContent:value});
+  for(const watched of [false,true])for(const parts of [['P',['a'],'sswort'],['Pass',['wort']],[['Ken'],'nwort'],['T',['A'],'N'],['Security ',['code']],['Kartenpr',['ü'],'fnummer'],['C',['V'],'C']]){
+    for(const route of ['label','aria-labelledby']){
+      const f=fixture([{type:'text',forbidden:true,attrs:route==='label'?{}:{'aria-labelledby':'split'}}],{watched});
+      const childNodes=parts.map(part=>Array.isArray(part)?new f.Element({tagName:'B',childNodes:[text(part[0])]}):text(part));
+      const label=new f.Element({tagName:route==='label'?'LABEL':'SPAN',childNodes});
+      if(route==='label')f.nodes[0].labels=[label];else f.nodes[0].getRootNode().getElementById=key=>key==='split'?label:null;
+      assert.equal(f.read().data.rows[0].password,true,route+' '+JSON.stringify(parts));assert.equal(f.calls(),0);
+    }
+  }
+});
+test('final F2 short credential tokens never withhold ordinary fields that contain them',()=>{
+  for(const watched of [false,true])for(const value of ['Distanz','Tank','Tante','Standort','Titan','Tango','Spin count','Shipping','Opinion','Pinterest','Secretary','Passport number','Pass-Nr.','Promo code','Gutscheincode','Postleitzahl','Country code','Zip code','Optionen','PWA','Captain','Kompass']){
+    for(const form of ['label','name','aria-label']){
+      const f=fixture([{type:'text',attrs:form==='label'?{}:{[form]:value}}],{watched});
+      if(form==='label')f.nodes[0].labels=[new f.Element({tagName:'LABEL',childNodes:[{nodeType:3,textContent:value}]})];
+      const row=f.read().data.rows[0];assert.equal(row.password,undefined,form+' '+value);
+      if(watched)assert.equal(row.value,'safe visible text',value);else assert.equal(row.value_status,'filled',value);
+    }
   }
 });
 
@@ -494,7 +604,7 @@ test('post18d SVG animated target uses the native current window before every ac
 });
 
 test('post18d SVG empty native target stays self despite an HTML base target',()=>{
-  const f=fixture([]),base=new f.Element({tagName:'BASE',attrs:{target:'sink'}}),node=new f.Element({tagName:'a',localName:'a',namespaceURI:'http://www.w3.org/2000/svg',attrs:{href:'delete'}});f.nodes.push(base,node);
+  const f=fixture([]),base=new f.Element({...HTML_BASE,attrs:{target:'sink'}}),node=new f.Element({tagName:'a',localName:'a',namespaceURI:'http://www.w3.org/2000/svg',attrs:{href:'delete'}});f.nodes.push(base,node);
   assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'_self');base.attrs.target='changed';
   assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'_self');node.currentTarget='explicit';
   assert.equal(f.read().data.rows.find(row=>row.role==='link').browsing_target,'explicit');

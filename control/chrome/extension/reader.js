@@ -30,12 +30,29 @@
   const svgLink=element=>element.namespaceURI==='http://www.w3.org/2000/svg'&&element.localName==='a';
   const nodeBase=nativeGetter(globalThis.Node,'baseURI');
   const baseURI=node=>nodeBase?nodeBase.call(node):node.baseURI;
+  const xlinkNamespace='http://www.w3.org/1999/xlink',elementAttributeNS=Element.prototype.getAttributeNS;
+  const documentQueryAll=globalThis.Document?.prototype.querySelectorAll;
+  // Chrome reads the base target only from the first HTML <base> that has one;
+  // a <base> in SVG or another namespace is an ordinary element to it.
+  const htmlBase=node=>isElement(node)&&node.namespaceURI==='http://www.w3.org/1999/xhtml'&&node.localName==='base';
+  function documentBaseTarget(){
+    for(const base of documentQueryAll?documentQueryAll.call(document,'base[target]'):document.querySelectorAll?.('base[target]')||[]){
+      const target=htmlBase(base)?elementAttribute.call(base,'target'):null;
+      if(target!==null)return target;
+    }
+    return null;
+  }
   function browsingTarget(element,attribute,explicit=element.getAttribute(attribute)) {
-    if(attribute==='target'&&svgLink(element))return svgTarget&&animatedValue?animatedValue.call(svgTarget.call(element))||'_self':explicit||'_self';
-    if(explicit!==null&&explicit!=='')return explicit;
-    const base=document.querySelector?.('base[target]');
-    const fallback=base?.getAttribute('target')||'_self';
-    return /[\n\r\t<]/.test(fallback)?'_blank':fallback;
+    if(attribute==='target'&&svgLink(element)){
+      // Chrome's SVG link uses its own (animated) target and never the base
+      // target; an empty one opens a new window only with xlink:show="new".
+      const own=svgTarget&&animatedValue?animatedValue.call(svgTarget.call(element)):explicit||'';
+      return own||(elementAttributeNS.call(element,xlinkNamespace,'show')==='new'?'_blank':'_self');
+    }
+    // Chrome treats an empty target like a missing one, then sanitises the
+    // result as HTML does: a tab or newline together with "<" means _blank.
+    const target=explicit||documentBaseTarget()||'';
+    return /[\t\n\r]/.test(target)&&target.includes('<')?'_blank':target||'_self';
   }
   const formQuery=(form,selector)=>Element.prototype.querySelector?Element.prototype.querySelector.call(form,selector):form.querySelector(selector);
   const shadow=element=>html(element,HTMLElement) ? chrome.dom.openOrClosedShadowRoot(element):null;
@@ -63,7 +80,7 @@
     if(!privacy.observed.has(root)){privacy.observed.add(root);observer.observe(root,{subtree:true,attributes:true,attributeOldValue:true,attributeFilter:['type','autocomplete','style']});}
   }
   function protect(changes) {
-    for(const change of changes)if(change.type==='attributes' && (change.attributeName==='type' && (change.oldValue||'').toLowerCase()==='password' || change.attributeName==='autocomplete' && /(?:password|one-time-code)/i.test(change.oldValue||'') || change.attributeName==='style' && /-webkit-text-security\s*:\s*(?!none\b)/i.test(change.oldValue||'')))protectNode(change.target);
+    for(const change of changes)if(change.type==='attributes' && (change.attributeName==='type' && (change.oldValue||'').toLowerCase()==='password' || change.attributeName==='autocomplete' && /(?:password|one-time-code|cc-csc)/i.test(change.oldValue||'') || change.attributeName==='style' && /-webkit-text-security\s*:\s*(?!none\b)/i.test(change.oldValue||'')))protectNode(change.target);
   }
   function ownPassword(element) {
     if(protectedFields.has(element)||Object.getOwnPropertyDescriptor(element,protectedKey)?.value===true)return true;
@@ -76,21 +93,28 @@
     if (unsafe) protectNode(element);
     return unsafe;
   }
+  // A word heuristic, English and German (KNOWN-LIMITS). Stems match inside
+  // longer words; short names must stand alone as a token, so "Distanz",
+  // "Tank" or "Spin count" stay ordinary fields.
+  const credentialStems=String.raw`pass[\s_-]*(?:word|wort|code|phrase)|passwd|kennwort|sicherheits[\s_-]*(?:code|antwort)|einmal[\s_-]*(?:code|kennwort|passwort)|best(?:ä|ae)tigungs[\s_-]*code|zugangs[\s_-]*code|one[\s_-]*time[\s_-]*(?:code|password)|security[\s_-]*(?:code|answer)|card[\s_-]*(?:verification|code)|pr(?:ü|ue)f[\s_-]*nummer|kartenpr(?:ü|ue)f|geheim[\s_-]*(?:zahl|nummer|code|wort)|transaktions[\s_-]*nummer|(?:verification|verify|authentication|auth|access|activation|recovery|backup|login|sms)[\s_-]*code|(?:verifizierungs|verifikations|authentifizierungs|authentisierungs|aktivierungs|wiederherstellungs|freigabe|anmelde|sicherungs)[\s_-]*code`;
+  const credentialTokens=String.raw`pin(?:[\s_-]?(?:code|nummer|number))?\d*|otp(?:code|pin)?|[th]otp|2fa|mfa|pwd?\d*|passwd\d*|secret|puk\d*|cvc\d*|cvv\d*|csc|cvn|(?:sms|push|chip|photo|foto|app|mobile|m)?[\s_-]?tans?|user[\s_-]*pass`;
+  const credentialWords=new RegExp(`${credentialStems}|(?:^|[^\\p{L}\\p{N}])(?:${credentialTokens})(?:$|[^\\p{L}\\p{N}])`,'u');
   function credentialLike(element) {
-    const labelText=node=>{
+    // Text is joined twice: with spaces between nodes for words in separate
+    // elements, and without for a word split by markup (P<b>a</b>sswort).
+    const labelText=(node,joiner)=>{
       if(node.nodeType===Node.TEXT_NODE)return node.textContent;
       if(!isElement(node)||['INPUT','TEXTAREA','SELECT'].includes(node.tagName)||node.isContentEditable)return '';
-      return [...node.childNodes].map(labelText).join(' ');
+      return [...node.childNodes].map(child=>labelText(child,joiner)).join(joiner);
     };
     const signals=['name','id','autocomplete','aria-label','placeholder'].map(key=>element.getAttribute(key)||'');
     const root=element.getRootNode();
     const referenced=(element.getAttribute('aria-labelledby')||'').split(/\s+/).map(key=>root.getElementById?.(key)).filter(Boolean);
-    signals.push(referenced.map(labelText).join(' '));
-    signals.push([...element.labels||[]].map(labelText).join(' '));
-    return signals.some(value=>{
-      const words=value.replace(/([a-z])([A-Z])/g,'$1 $2').normalize('NFKC').toLowerCase();
-      return /pass[\s_-]*(?:word|wort|code)|kennwort|sicherheits[\s_-]*code|einmal[\s_-]*(?:code|kennwort|passwort)|bestätigungs[\s_-]*code|zugangs[\s_-]*code|one[\s_-]*time[\s_-]*(?:code|password)|security[\s_-]*code|(?:^|[^\p{L}\p{N}])(?:pin|otp)(?:$|[^\p{L}\p{N}])/u.test(words);
-    });
+    for(const joiner of [' ','']){
+      signals.push(referenced.map(node=>labelText(node,joiner)).join(' '));
+      signals.push([...element.labels||[]].map(node=>labelText(node,joiner)).join(' '));
+    }
+    return signals.some(value=>credentialWords.test(value.replace(/([a-z])([A-Z])/g,'$1 $2').normalize('NFKC').toLowerCase()));
   }
   function password(element) {
     if(observer?.takeRecords)protect(observer.takeRecords());
@@ -227,8 +251,6 @@
   }
   function typedField(element) {
     // This shared predicate controls normal reads, approval scope and reload warnings.
-    // Editable areas remain readable under board #216; extending this predicate
-    // will include their identities in the same prepared asking-read binding.
     return html(element,HTMLTextAreaElement,'textarea')||html(element,HTMLInputElement,'input')&&!['hidden','password','checkbox','radio','date','datetime-local','month','week','time','range','color','file','button','submit','reset','image'].includes(element.type);
   }
   function filledStatus(element) {
@@ -250,7 +272,7 @@
     return {document:documentId,reader:readerInstance,fields:current.fields.map(field=>{
       const element=elements.get(field.element);
       if(password(element)||!typedField(element))throw Error('stale_approval: typed field became a credential; ask again');
-      return {...field,value:html(element,HTMLInputElement,'input')||html(element,HTMLTextAreaElement,'textarea')?element.value:editableText(element).replace(/\n$/,'')};
+      return {...field,value:element.value};
     })};
   }
   function role(element) {

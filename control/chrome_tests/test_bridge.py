@@ -132,6 +132,22 @@ class FragmentedReplies(unittest.TestCase):
         self.assertIn('reply',bridge.call('tabs'))
 
 
+class ExtensionErrors(unittest.TestCase):
+    def test_final_extension_error_text_is_escaped_like_page_text(self):
+        import json
+        from aresos_control.chrome.bridge import Bridge
+        class Peer:
+            def __init__(self,error):self.buffer=b'';self.error=error
+            def sendall(self,data):
+                identity=json.loads(data)['id'];self.buffer+=(json.dumps({'id':identity,'ok':False,'error':self.error})+'\n').encode()
+            def recv(self,size):value=self.buffer[:size];self.buffer=self.buffer[size:];return value
+            def close(self):pass
+        for raw,code,message in [('reload_required: unsaved\u202etext\nnext','reload_required','unsaved\\u202etext\\u000anext'),('page said \u2066hidden','refused','page said \\u2066hidden'),('refused: plain','refused','plain')]:
+            bridge=Bridge();bridge.connection=Peer(raw)
+            with self.assertRaises(Refused) as error:bridge.call('read',tab=1)
+            self.assertEqual(error.exception.code,code);self.assertEqual(str(error.exception),message)
+
+
 class ConnectionDelivery(unittest.TestCase):
     def test_retired_selector_connection_cannot_close_its_replacement(self):
         bridge=Bridge();old,old_client=socket.socketpair();current,client=socket.socketpair();bridge.connection=current

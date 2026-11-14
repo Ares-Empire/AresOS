@@ -22,9 +22,25 @@ from .sites import recognize, KINDS, recipients
 RUNTIME = Path(__file__).resolve().parents[2]
 
 
+WITHHELD_FORM=('This form holds unread typed text; send it yourself, or reload the tab first with chrome_navigate direction=reload '
+               '(it reports unsaved text first), then read it again.')
+
+
 def refuse_withheld_form(state):
     if any(field.get('unknown_history') for field in (state.get('form') or {}).get('fields',[])):
-        raise Refused('refused','This form holds unread typed text; send it yourself, or let Claude reload the tab first.')
+        raise Refused('refused',WITHHELD_FORM)
+
+
+def typed_label(label, limit=80):
+    # Each label sits in double quotes it can't contain, and long ones are cut,
+    # so one hostile label can't pass for several fields.
+    shown='"'+label[:limit].replace('"',"'")+('…' if len(label)>limit else '')+'"'
+    return shown+(f' ({len(label)} characters)' if len(label)>limit else '')
+
+
+def frame_site(url):
+    parts=urlsplit(url)
+    return f"{parts.scheme}://{parts.netloc.rpartition('@')[2]}" if parts.netloc else url.split(':',1)[0]+':'
 
 
 def view_identity(facts):
@@ -295,7 +311,8 @@ class Chrome:
     def prepare(self, verb, payload):
         if verb=='read_typed_fields':
             state=self.typed_binding(payload['tab'])
-            labels=[f"frame {frame['frame']}: {field['label']}" for frame in state['frames'] for field in frame['fields']]
+            labels=[f"frame {frame['frame']} ({frame_site(frame.get('effective_url',frame['url']))}): "+', '.join(typed_label(field['label']) for field in frame['fields'])
+                    for frame in state['frames'] if frame['fields']]
             if not labels:raise Refused('refused','No text fields or textareas in unwatched documents need approval; use the normal read.')
             question=f"On {state['url']}, tab '{state['title']}', read the typed text once from these fields, as the page shows them: "+'; '.join(labels)+'?'
             return question,{'action':'chrome_read_typed_fields','untrusted_content':{'fields':state}},{'typed_read':True,'process_session':self.process_session,'read_connection':self.bridge.connection_identity,'binding':state}

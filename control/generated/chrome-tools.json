@@ -1216,7 +1216,7 @@
   },
   {
     "name": "navigate",
-    "description": "Navigate a Claude tab by address or one history direction. Only http, https and about:blank; settings and approval pages refuse. Effect: change.",
+    "description": "Navigate a Claude tab by address or one history direction. Only http, https and about:blank; settings and approval pages refuse. reload never reloads a form-loaded document and reports unsaved text or playing media as reload_required until repeated with reload_taken_tab=true. Effect: change.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -1236,6 +1236,9 @@
             "forward",
             "reload"
           ]
+        },
+        "reload_taken_tab": {
+          "type": "boolean"
         }
       },
       "required": [

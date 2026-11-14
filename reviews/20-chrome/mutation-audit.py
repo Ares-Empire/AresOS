@@ -283,7 +283,7 @@ for source in ['form-action','button-formaction','input-formaction']:
     before="action: button?.hasAttribute('formaction') ? button.formAction : formProperty(form,'action'),"
     after="action: new URL('delete',location.href).href,"
     case('post18d-'+source,R,before,after,node('reader','post18d destination '+source+' uses'))
-case('post18d-target',R,"const fallback=base?.getAttribute('target')||'_self';","const fallback='_self';",node('reader','post18d destination target and formtarget'))
+case('post18d-target',R,"const target=explicit||documentBaseTarget()||'';","const target=explicit||'';",node('reader','post18d destination target and formtarget'))
 case('post18d-formtarget',R,"browsingTarget(button,'formtarget')","'_self'",node('reader','post18d destination target and formtarget'))
 case('post18d-destination-service',A,"if destination(fresh)!=destination(state):","if False:",'test_questions.Questions.test_post18d_destination_changes_reask_before_input_and_on_final_refusal',True)
 case('post18d-destination-final',A,"if destination(fresh)!=destination(payload['binding']):","if False:",'test_questions.Questions.test_post18d_destination_changes_reask_before_input_and_on_final_refusal',True)
@@ -296,7 +296,7 @@ for signal in ['name','id','autocomplete','aria-label','placeholder']:
     before="['name','id','autocomplete','aria-label','placeholder']"
     after=repr([key for key in ['name','id','autocomplete','aria-label','placeholder'] if key!=signal])
     case('post18d-credential-'+signal,R,before,after,node('reader','post18d credential signal '+signal+' excludes'))
-case('post18d-credential-label',R,"signals.push([...element.labels||[]].map(labelText).join(' '));",'',node('reader','post18d credential signal label excludes'))
+case('post18d-credential-label',R,"signals.push([...element.labels||[]].map(node=>labelText(node,joiner)).join(' '));",'',node('reader','post18d credential signal label excludes'))
 case('post18d-late-mask',R,"if(!watched&&typedField(element))","if(false&&typedField(element))",node('reader','post18d late single-line values'))
 for kind in ['text','tel','number','unknown','email','url','search']:
     case('post18d-late-type-'+kind,R,"html(element,HTMLInputElement,'input')&&!['hidden'",f"html(element,HTMLInputElement,'input')&&element.type!={kind!r}&&!['hidden'",node('reader','post18d late single-line values'))
@@ -321,15 +321,15 @@ case('post18d-readable-editor',R,"else if (element.isContentEditable) value = ed
 case('post18d-credential-mask',R,"getComputedStyle(element).webkitTextSecurity !== 'none'",'false',node('reader','group7 protected values never reach'))
 case('post18d-late-reload-privacy',R,"if(!watched&&(typedField(element)||html(element,HTMLInputElement,'input')&&element.type==='hidden')){unsaved=true;continue;}",'',node('reader','post18d late reload warning never extracts'))
 
-case('post18d-credential-aria-labelledby',R,"signals.push(referenced.map(labelText).join(' '));",'',node('reader','post18d credential aria-labelledby labels'))
+case('post18d-credential-aria-labelledby',R,"signals.push(referenced.map(node=>labelText(node,joiner)).join(' '));",'',node('reader','post18d credential aria-labelledby labels'))
 
-case('post18d-credential-combined-labels',R,"signals.push([...element.labels||[]].map(labelText).join(' '));","signals.push(...[...element.labels||[]].map(labelText));",node('reader','post18d combined associated credential labels'))
+case('post18d-credential-combined-labels',R,"signals.push([...element.labels||[]].map(node=>labelText(node,joiner)).join(' '));","signals.push(...[...element.labels||[]].map(node=>labelText(node,joiner)));",node('reader','post18d combined associated credential labels'))
 
 for source in ['href','xlink:href']:
     case('post18d-svg-animated-'+source,R,"svgHref&&animatedValue?animatedValue.call(svgHref.call(element)):",'',node('reader','post18d SVG animated '+source+' is the native destination'))
-case('post18d-svg-animated-target',R,"if(attribute==='target'&&svgLink(element))return svgTarget&&animatedValue?animatedValue.call(svgTarget.call(element))||'_self':explicit||'_self';",'',node('reader','post18d SVG animated target uses the native'))
+case('post18d-svg-animated-target',R,"const own=svgTarget&&animatedValue?animatedValue.call(svgTarget.call(element)):explicit||'';","const own=explicit||'';",node('reader','post18d SVG animated target uses the native'))
 
-case('post18d-svg-empty-target',R,"if(attribute==='target'&&svgLink(element))return svgTarget&&animatedValue?animatedValue.call(svgTarget.call(element))||'_self':explicit||'_self';",'',node('reader','post18d SVG empty native target stays self'))
+case('post18d-svg-empty-target',R,"if(attribute==='target'&&svgLink(element)){","if(false){",node('reader','post18d SVG empty native target stays self'))
 
 for source in ['href','xlink:href']:
     case('post18d-svg-native-default-'+source,G,"const animations=hyperlink?stopSVGAnimations(node):[];","const animations=[];",node('page','post18d uncancellable SVG '+source+' animation loses native authority'))
@@ -366,6 +366,43 @@ case('final-f1-forced-index-plans','control/aresos_control/storage.py',F1_LOOP,F
 case('final-f1-forced-index-full-disk','control/aresos_control/storage.py',F1_LOOP,F1_FORCED,'test_full_disk_reads.FullDiskReads.test_mail_read_search_and_pending_answer_on_a_full_disk_with_retained_history',True)
 case('final-f1-no-index','control/aresos_control/storage.py',F1_LOOP,F1_FORCED,'test_full_disk_reads.FullDiskReads.test_store_creates_no_operation_header_index',True)
 case('final-f1-unary-plus','control/aresos_control/storage.py',"""clauses.append("+json_extract(v,'$.app')=?")""","""clauses.append("json_extract(v,'$.app')=?")""",'test_full_disk_reads.FullDiskReads.test_every_operation_query_shape_reads_in_key_order_without_a_sort',True)
+
+# Final fixes F2: credential names. The word list goes back to the reviewed
+# one, its stems or tokens alone, the token boundary, the joined label text
+# and the cc-csc history.
+F2_WORDS=next(line.strip() for line in (ROOT/R).read_text().splitlines() if line.strip().startswith('const credentialWords='))
+F2_OLD_WORDS=r"const credentialWords=/pass[\s_-]*(?:word|wort|code)|kennwort|sicherheits[\s_-]*code|einmal[\s_-]*(?:code|kennwort|passwort)|bestätigungs[\s_-]*code|zugangs[\s_-]*code|one[\s_-]*time[\s_-]*(?:code|password)|security[\s_-]*code|(?:^|[^\p{L}\p{N}])(?:pin|otp)(?:$|[^\p{L}\p{N}])/u;"
+for form in ['label','name','id']:
+    case('final-f2-words-'+form,R,F2_WORDS,F2_OLD_WORDS,node('reader','final F2 every added credential name is withheld in its '+form+' form'))
+F2_STEMS=next(line.strip() for line in (ROOT/R).read_text().splitlines() if line.strip().startswith('const credentialStems='))
+F2_TOKENS=next(line.strip() for line in (ROOT/R).read_text().splitlines() if line.strip().startswith('const credentialTokens='))
+case('final-f2-stems',R,F2_STEMS,r"const credentialStems=String.raw`pass[\s_-]*(?:word|wort|code)|kennwort|sicherheits[\s_-]*code|einmal[\s_-]*(?:code|kennwort|passwort)|bestätigungs[\s_-]*code|zugangs[\s_-]*code|one[\s_-]*time[\s_-]*(?:code|password)|security[\s_-]*code`;",node('reader','final F2 every added credential name is withheld in its label form'))
+case('final-f2-tokens',R,F2_TOKENS,"const credentialTokens=String.raw`pin|otp`;",node('reader','final F2 every added credential name is withheld in its name form'))
+case('final-f2-token-boundary',R,F2_WORDS,'const credentialWords=new RegExp(`${credentialStems}|${credentialTokens}`,\'u\');',node('reader','final F2 short credential tokens never withhold'))
+case('final-f2-split-word',R,"for(const joiner of [' ',''])","for(const joiner of [' '])",node('reader','final F2 a credential label split inside a word'))
+case('final-f2-cc-csc-history',R,"/(?:password|one-time-code|cc-csc)/i.test(change.oldValue||'')","/(?:password|one-time-code)/i.test(change.oldValue||'')",node('reader','final F2 the card security code autocomplete token'))
+
+# Final fixes F3: the browsing target. Each route goes back to its old form,
+# and the new browser rows leave the destination suite.
+case('final-f3-decoy-base',R,"const target=htmlBase(base)?elementAttribute.call(base,'target'):null;","const target=elementAttribute.call(base,'target');",node('reader','final F3 a non-HTML base is never'))
+case('final-f3-sanitize-broad',R,"/[\\t\\n\\r]/.test(target)&&target.includes('<')?'_blank'","/[\\n\\r\\t<]/.test(target)?'_blank'",node('reader','final F3 base and explicit targets are sanitised'))
+case('final-f3-sanitize-missing',R,"/[\\t\\n\\r]/.test(target)&&target.includes('<')?'_blank'","false?'_blank'",node('reader','final F3 base and explicit targets are sanitised'))
+case('final-f3-xlink-show',R,"(elementAttributeNS.call(element,xlinkNamespace,'show')==='new'?'_blank':'_self')","'_self'",node('reader','final F3 SVG xlink show new'))
+case('final-f3-empty-target',R,"const target=explicit||documentBaseTarget()||'';","const target=explicit??documentBaseTarget()??'';",node('reader','final F3 an empty target falls back'))
+case('final-f3-form-own-target',R,"browsingTarget(form,'target',formProperty(form,'target'))","browsingTarget(form,'target','')",node('reader','final F3 area links and form owners'))
+case('final-f3-browser-rows','control/chrome/ci/destination-fixtures.mjs','    .concat(finalTargetRows())','',node('destination-evidence','final F3 browser rows for every target route are collected'))
+case('final-f3-svg-target-row','control/chrome/ci/destination-fixtures.mjs',""":change==='target'&&source.startsWith('svg')?"node.setAttribute('target','sink-second');":""",':',node('destination-evidence','final F3 destination pages build each route'))
+
+# Final fixes F6 and the reader/adapter notes.
+case('final-f6-navigate-report',B,"await reloadChecked(tab,null,command.reload_taken_tab!==true);","await reloadChecked(tab);",node('background','final F6 navigate reload in a taken tab'))
+case('final-f6-navigate-schema','control/aresos_control/chrome/definitions.py',"'enum': ['back', 'forward', 'reload']}, **RELOAD}","'enum': ['back', 'forward', 'reload']}}",'test_questions.Questions.test_final_navigate_reload_carries_the_taken_tab_report_choice_to_the_browser',True)
+case('final-notes-reload-tool-text','control/aresos_control/chrome/definitions.py',"'reload with chrome_navigate direction=reload, then read again. '","''",'test_questions.Questions.test_final_navigate_reload_carries_the_taken_tab_report_choice_to_the_browser',True,extra=[('control/aresos_control/chrome/definitions.py',"'A form holding unread typed text refuses its submit before that first-input reload runs, so reload_taken_tab=true on the same input refuses again: '","''")])
+case('final-notes-withheld-form-service',A,"WITHHELD_FORM=('This form holds unread typed text; send it yourself, or reload the tab first with chrome_navigate direction=reload '","WITHHELD_FORM=('This form holds unread typed text; send it yourself, or let Claude reload the tab first. '",'test_questions.Questions.test_post18df_form_with_withheld_values_refuses_before_reload_or_preparation',True)
+case('final-notes-withheld-form-extension',B,"const WITHHELD_FORM='this form holds unread typed text; send it yourself, or reload the tab first with chrome_navigate direction=reload","const WITHHELD_FORM='this form holds unread typed text; send it yourself, or let Claude reload the tab first",node('background','post18df final native boundary refuses forms'))
+case('final-notes-typed-label-quote',A,"""shown='"'+label[:limit].replace('"',"'")""","""shown='"'+label[:limit]""",'test_questions.Questions.test_final_typed_read_question_quotes_and_caps_each_label_and_names_each_frame_site',True)
+case('final-notes-typed-label-cap',A,'def typed_label(label, limit=80):','def typed_label(label, limit=100000):','test_questions.Questions.test_final_typed_read_question_quotes_and_caps_each_label_and_names_each_frame_site',True)
+case('final-notes-typed-frame-site',A,""" ({frame_site(frame.get('effective_url',frame['url']))}): ""","""): ""","test_questions.Questions.test_final_typed_read_question_quotes_and_caps_each_label_and_names_each_frame_site",True)
+case('final-notes-extension-error-visible','control/aresos_control/chrome/bridge.py',"visible(message.strip()))","message.strip())",'test_bridge.ExtensionErrors.test_final_extension_error_text_is_escaped_like_page_text',True)
 
 case('post18d-retained-terminal-pins','control/aresos_control/retention.py','current.update(store.operation_hashes())','pass','test_latency.OperationHeaders.test_completed_operation_keeps_both_old_blob_stores_and_archival_releases_them',True)
 case('post18d-active-retention-pins','control/aresos_control/retention.py',"operations = [op for _, op in store.iter_operations(states=OPEN) if op['state'] in OPEN]",'operations = []','test_latency.OperationHeaders.test_active_operation_protects_old_composition_and_import_metadata',True)

@@ -119,6 +119,22 @@ test('Stop during blocked native cleanup returns pending and preserves handles u
   f.run('unblockCleanup({})');await spin(f,"releasing.size===0");assert.equal(f.run("lifecycleCalls.includes('detach')"),true);assert.equal(f.run("lifecycleCalls.includes('ungroup')"),true);
 });
 
+test('final F6 navigate reload in a taken tab gives the same unsaved and playing report and never reloads a POST',async()=>{
+  const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({needs_reload:true,frames:[{frame:0}]});globalThis.reloaded=0;globalThis.reloadChecks=0;content=async()=>{reloadChecks++;return {unsaved:true,playing:true}};chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:'doc',url:'http://fixture.test/'}]};cdp=async(tab,method,parameters)=>{if(method==='Page.getFrameTree')return {frameTree:{frame:{loaderId:'loader',url:'http://fixture.test/'}}};assertedMethod=method;reloaded++;globalThis.reloadParameters=parameters;};globalThis.assertedMethod=null;");
+  f.run("observation=async()=>({});documentMethods.set('[7,0]',{document:'doc',method:'GET'})");
+  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload'})"),/reload_required: this taken tab may have unsaved text or editable content and is playing media; tell the owner, then repeat with reload_taken_tab=true/);
+  assert.equal(f.run('reloaded'),0);assert.equal(f.run('reloadChecks'),1);
+  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload',reload_taken_tab:false})"),/reload_required/);assert.equal(f.run('reloaded'),0);
+  f.run("content=async()=>{reloadChecks++;return {unsaved:false,playing:false}};chrome.tabs.get=async()=>({audible:true})");
+  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload'})"),/reload_required: this taken tab is playing media/);assert.equal(f.run('reloaded'),0);
+  f.run("chrome.tabs.get=async()=>({audible:false})");
+  assert.equal((await f.run("dispatch({name:'navigate',tab:7,direction:'reload'})")).navigated,true,'a clean tab reloads without the flag');assert.equal(f.run('reloaded'),1);
+  f.run("content=async()=>{reloadChecks++;return {unsaved:true,playing:false}}");
+  assert.equal((await f.run("dispatch({name:'navigate',tab:7,direction:'reload',reload_taken_tab:true})")).navigated,true);assert.equal(f.run('reloaded'),2);assert.equal(f.run('assertedMethod'),'Page.reload');
+  f.run("documentMethods.set('[7,0]',{document:'doc',method:'POST'})");
+  await assert.rejects(f.run("dispatch({name:'navigate',tab:7,direction:'reload',reload_taken_tab:true})"),/form submission/);assert.equal(f.run('reloaded'),2);
+});
+
 test('a POST document arriving during reload inspection is never reloaded',async()=>{
   const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});facts=async()=>({needs_reload:true,frames:[{frame:0}]});globalThis.topDocument='get';globalThis.reloads=0;documentMethods.set('[7,0]',{document:'get',method:'GET'});chrome.webNavigation={getAllFrames:async()=>[{frameId:0,documentId:topDocument,url:'http://fixture.test/'}]};cdp=async(tab,method)=>{if(method==='Page.getFrameTree')return {frameTree:{frame:{url:'http://fixture.test/',loaderId:topDocument}}};reloads++};content=async()=>{topDocument='post';documentMethods.set('[7,0]',{document:'post',method:'POST'});return {unsaved:false,playing:false};};");
   await assert.rejects(f.run("dispatch({name:'prepare_control',tab:7,reload_taken_tab:true})"),/form submission/);assert.equal(f.run('reloads'),0);
@@ -1137,6 +1153,6 @@ test('post18df final native boundary refuses forms holding withheld content even
   for(const late of [false,true]){
     const f=fixture();f.run("excludedHosts=[];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({});globalThis.effects=[];globalThis.snapshot={tab:7,frames:[{frame:0,document:'doc',target:{element:'e1',name:'Send',submit:true},form:{element:'f1',action:'http://fixture.test/receive',method:'post',fields:[]}}]};facts=async()=>snapshot;content=async(tab,frame,name)=>{if(name==='arm'&&globalThis.late)snapshot.frames[0].form.fields.push({unknown_history:true,value_status:'filled'});return {finished:true}};pointer=async()=>({x:1,y:1});chrome.tabs={get:async()=>({active:true})};chrome.webNavigation={getAllFrames:async()=>[{frameId:0}]};chrome.debugger={sendCommand:async()=>effects.push('input')};globalThis.approved=JSON.parse(JSON.stringify(binding(snapshot,{frame:0},'send',false)));");
     f.run(`globalThis.late=${late};${late?'':"snapshot.frames[0].form.fields.push({unknown_history:true,value_status:'filled'});"}`);
-    await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'send',binding:approved})"),/send it yourself, or let Claude reload the tab first/);assert.equal(f.run('effects.length'),0);
+    await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'send',binding:approved})"),/send it yourself, or reload the tab first with chrome_navigate direction=reload/);assert.equal(f.run('effects.length'),0);
   }
 });

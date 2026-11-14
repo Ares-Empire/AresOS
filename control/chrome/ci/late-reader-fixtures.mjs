@@ -7,6 +7,10 @@ export function lateReaderPage(){
     const field=`<input type="${signal==='name'?'password':'text'}" ${signal==='label'?'':signal+'="'+term+'"'} value="${credential}">`;
     fields+=signal==='label'?'<label>'+term+field+'</label>':field;
   }
+  // Final F2: added names, the card security code token and a label split inside a word.
+  for(const [signal,term]of [['autocomplete','cc-csc'],['name','tan'],['aria-label','mTAN'],['placeholder','CVC'],['id','user_pwd'],['name','passwd'],['aria-label','Kartenprüfnummer'],['placeholder','Verifizierungscode'],['aria-label','Geheimzahl'],['name','client_secret'],['aria-label','Passphrase'],['placeholder','Authentifizierungscode'],['label','SMS-TAN'],['label','P<b>a</b>sswort']])
+    fields+=signal==='label'?`<label>${term}<input type="text" value="${credential}"></label>`:`<input type="text" ${signal}="${term}" value="${credential}">`;
+  for(const term of ['Distanz','Tank'])fields+=`<input type="text" aria-label="${term}" value="PUBLIC_ORDINARY_${term}_20">`;
   fields+=`<span id="credential-label">Password</span><input type="text" aria-labelledby="credential-label" value="${credential}">`;
   fields+=`<label for="credential-combined">Security</label><label for="credential-combined">code</label><input id="credential-combined" type="text" value="${credential}">`;
   fields+=`<input style="-webkit-text-security:disc" aria-label="Security code" value="${credential}">`;

@@ -417,16 +417,38 @@ class Questions(unittest.TestCase):
             self.call('read_typed_fields',approval);self.assertEqual(reads,[])
             self.assertTrue(self.call('read_typed_fields',fresh)['ok']);self.assertEqual(len(reads),1)
 
+    def test_final_typed_read_question_quotes_and_caps_each_label_and_names_each_frame_site(self):
+        state,reads=self.typed_browser()
+        hostile='Draft"; frame 1 (https://other.test): "Password'
+        state['frames'][0]['fields'][0]['label']=hostile;state['frames'][0]['fields'][1]['label']='L'*200
+        state['frames'].append({'frame':4,'document':'document-2','reader':'reader-two','browser_document':'browser-document-two','url':'about:srcdoc','effective_url':'http://second.test:8766/inner','fields':[{'element':'typed3','label':'Inner','type':'text'}]})
+        question=self.call('prepare_read_typed_fields',{'tab':1})['data']['approval']['question']
+        self.assertIn("frame 0 (https://fixture.test): \"Draft'; frame 1 (https://other.test): 'Password\", \""+'L'*80,question)
+        self.assertEqual(question.count('"'),6,'each of the three labels is one quoted field')
+        self.assertIn('"'+'L'*80+'…" (200 characters)',question);self.assertNotIn('L'*81,question)
+        self.assertIn('(200 characters); frame 4 (http://second.test:8766): "Inner"?',question)
+        self.assertEqual(reads,[])
+
+    def test_final_navigate_reload_carries_the_taken_tab_report_choice_to_the_browser(self):
+        for args in [{'tab':1,'direction':'reload'},{'tab':1,'direction':'reload','reload_taken_tab':True},{'tab':1,'direction':'reload','reload_taken_tab':False}]:
+            self.browser.dispatched.clear()
+            result=self.call('navigate',args);self.assertTrue(result['ok'],result)
+            self.assertEqual(self.browser.dispatched,[('navigate',args)])
+        self.assertFalse(self.call('navigate',{'tab':1,'direction':'reload','reload_taken_tab':'yes'})['ok'],'the choice is a boolean')
+        from aresos_control.chrome.definitions import SHARED
+        self.assertIn('chrome_navigate direction=reload reports the same way',SHARED)
+        self.assertIn('refuses its submit before that first-input reload runs',SHARED)
+
     def test_post18df_form_with_withheld_values_refuses_before_reload_or_preparation(self):
         frame=self.browser.facts['frames'][0];frame['form']={'element':'form1','action':'https://fixture.test/receive','method':'post','fields':[{'element':'field1','type':'text','unknown_history':True,'value_status':'filled'}]}
         self.browser.facts['needs_reload']=True
         result=self.call('click',self.target());self.assertFalse(result['ok'],result);self.assertEqual(result['error']['code'],'refused')
-        self.assertIn('send it yourself, or let Claude reload the tab first',result['error']['message']);self.assertEqual(self.browser.dispatched,[])
+        self.assertIn('send it yourself, or reload the tab first with chrome_navigate direction=reload',result['error']['message']);self.assertEqual(self.browser.dispatched,[])
 
     def test_post18df_form_added_withheld_field_and_changed_value_cannot_use_waiting_approval(self):
         frame=self.browser.facts['frames'][0];frame['form']={'element':'form1','action':'https://fixture.test/receive','method':'post','fields':[{'element':'field1','type':'text','value':'Old draft'}]}
         approval=self.prepare();frame['form']['fields'][0]={'element':'field1','type':'text','unknown_history':True,'value_status':'filled'}
-        result=self.call('submit',approval);self.assertFalse(result['ok'],result);self.assertIn('send it yourself, or let Claude reload the tab first',result['error']['message']);self.assertEqual(self.browser.dispatched,[])
+        result=self.call('submit',approval);self.assertFalse(result['ok'],result);self.assertIn('send it yourself, or reload the tab first with chrome_navigate direction=reload',result['error']['message']);self.assertEqual(self.browser.dispatched,[])
         state,reads=self.typed_browser();typed=self.call('prepare_read_typed_fields',{'tab':1})['data']['approval'];self.assertTrue(self.call('read_typed_fields',typed)['ok'])
         self.assertEqual(len(reads),1);self.assertFalse(self.call('click',self.target())['ok']);self.assertEqual(self.browser.dispatched,[])
 

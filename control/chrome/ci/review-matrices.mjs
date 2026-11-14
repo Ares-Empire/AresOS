@@ -230,6 +230,20 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       await call('take_tab',{tab});const before=await target('Continue');const first=await rpc('click',before);assert.equal(first.ok,false);assert.equal(first.error.code,'reload_required');assert.equal(counts('loaded-'+id),1);
       const repeat=await rpc('click',{...before,reload_taken_tab:true});assert.equal(repeat.ok,false);assert.equal(repeat.error.code,'stale_reference');await eventually(()=>counts('loaded-'+id)===2,'explicit guarded reload');
     }
+    // Final F6: chrome_navigate direction=reload in a taken tab gives the same
+    // report, reloads only on the explicit repeat, and a clean tab just reloads.
+    for(const mode of ['dirty','web-audio','clean']){
+      const id='final-navigate-reload-'+mode,tab=getTab();await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode);
+      await eventually(()=>counts('loaded-'+id)===1,'owner page loaded');
+      if(mode==='web-audio'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
+      await call('take_tab',{tab});
+      if(mode!=='clean'){
+        const first=await rpc('navigate',{tab,direction:'reload'});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
+        assert.match(first.error.message,mode==='dirty'?/unsaved text/:/playing media/);await delay(500);assert.equal(counts('loaded-'+id),1,'the owner page stays until the explicit repeat');
+      }
+      const reloaded=await rpc('navigate',{tab,direction:'reload',...(mode==='clean'?{}:{reload_taken_tab:true})});assert.equal(reloaded.ok,true,JSON.stringify(reloaded));
+      await eventually(()=>counts('loaded-'+id)===2,'navigate reload '+mode);
+    }
   });
   await check('GROUP 8 REVIEW script-started POST documents in tabs and popups never reload',async()=>{
     const tab=getTab(),id='review-script-post';await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=review-page&mode=script-post&variant=after-owner-navigation&id='+id);

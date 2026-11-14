@@ -126,8 +126,9 @@ remains draft.
 **Done:**
 
 - All supported destination sources use their native effective base at action
-  time. Questions bind absolute destinations and native browsing targets;
-  changes re-ask. Native SVG animation/default, clobbering and restoration fixes
+  time. Questions bind absolute destinations and the browsing target. The target
+  is not read from a native getter: the reader resolves it in script by
+  Chromium's rules (corrected in the final fixes, F3; KNOWN-LIMITS); changes re-ask. Native SVG animation/default, clobbering and restoration fixes
   retain the original strict receiver checks.
 - Credential-like fields are excluded before value/status access everywhere.
   Unwatched text-capable inputs and textareas show filled/empty; the separately
@@ -379,8 +380,11 @@ and form-owner changes retire the old operation and prepare a fresh question,
 also when the final extension check catches the change. A held submission keeps
 its original resume kind. Questions show absolute destinations and targets.
 
-**Tests added:** 60 receiver sequences cover each URL source, base/attribute/target
-mutations and form-owner changes, in top, blank and srcdoc documents. Each requires
+**Tests added:** 60 receiver sequences, in top, blank and srcdoc documents, cover a base
+and an attribute change for each of the seven URL sources, a target change for `a` and the
+three form sources, and a form-owner change for formaction buttons and inputs only. They had
+no target change on `area` or SVG links and no owner change for a plain submit button; the
+final fixes (F3) add those rows and the target routes (96 sequences). Each requires
 zero arrivals through a stale approval and exactly one after the fresh question,
 including replay. The independent auditor rejects missing or altered evidence.
 Local reader, service, final-dispatch and removal probes accompany these cases.

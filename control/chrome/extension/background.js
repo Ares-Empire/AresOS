@@ -710,11 +710,12 @@ async function typedFacts(tab) {
       return {frame:frame.frame,document:frame.document,browser_document:frame.browser_document,reader:frame.typed_fields.reader,url:frame.url,effective_url:frame.effective_url||frame.url,fields:frame.typed_fields.fields};
     })};
 }
+const WITHHELD_FORM='this form holds unread typed text; send it yourself, or reload the tab first with chrome_navigate direction=reload (it reports unsaved text first), then read it again';
 function refuseWithheldSubmission(snapshot,reference,command){
   const frame=snapshot.frames.find(frame=>frame.frame===reference.frame),target=frame?.target;
   const verb=command.input?.verb,key=command.input?.key?.split('+').at(-1);
   const submitting=target?.submit&&(['click','check','select'].includes(verb)||verb==='press'&&['Enter','Space',' '].includes(key))||verb==='press'&&key==='Enter'&&target?.editable;
-  if((command.kind||command.name==='resume'||submitting)&&frame?.form?.fields.some(field=>field.unknown_history))throw Error('refused: this form holds unread typed text; send it yourself, or let Claude reload the tab first');
+  if((command.kind||command.name==='resume'||submitting)&&frame?.form?.fields.some(field=>field.unknown_history))throw Error('refused: '+WITHHELD_FORM);
 }
 function binding(facts, reference, kind, adapter) {
   const frame = facts.frames.find(frame=>frame.frame === reference.frame);
@@ -922,7 +923,8 @@ async function dispatch(command) {
   if (command.name === 'close_tab') { await release(tab); await chrome.tabs.remove(tab); return {closed:tab}; }
   if (command.name === 'navigate') {
     if (command.url) { safeURL(command.url);const navigated=await cdp(tab,'Page.navigate',{url:command.url});rememberGet(tab,navigated?.loaderId); }
-    else if (command.direction === 'reload') await reloadChecked(tab);
+    // Same unsaved-typing and playing-media report as the first input's reload.
+    else if (command.direction === 'reload') await reloadChecked(tab,null,command.reload_taken_tab!==true);
     else {
       const history = await cdp(tab,'Page.getNavigationHistory');
       const entry = history.entries[history.currentIndex + (command.direction === 'back' ? -1:1)];
