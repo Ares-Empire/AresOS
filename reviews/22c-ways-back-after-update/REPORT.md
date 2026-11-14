@@ -1861,3 +1861,187 @@ What the tests expect from step 2:
 Cleanup: the run logs under `/var/home/ares/pkg22c-work/` were removed with the folder. `.work/` holds no
 file over 500 MB; no download was made. No builder-started test or watch process remains, and no Gradle
 daemon was started. PR #46 is open and draft; nothing was merged or pushed to main.
+
+## Stage 1b, step 2: the guides
+
+Builder: a Claude agent on Opus 5.5 (`briefs/22c-stage-1b-additions.md`, step 2, and its "Decision after step 1").
+Section C is written against step 1's lines; the guides keep the stick route and no guide routes to the folder
+block (package 22d). Nothing else in the owner tools changed. No VM was dispatched, nothing was merged or pushed to
+main, and no owner tool, deployment binary or start block ran on the laptop. Tested heads: `45059edf` (hosted run 1) and the final head (hosted run 2, below); the closing commit changes this report only.
+
+### What changed, per guide
+
+**`docs/INSTALL.md`, update route** (`51fa6868`, one wording fix in `898ac0d4`).
+- The gate line keeps its pinned sentence and adds that step 7's record also covers the new last box (forward
+  again, or back from plain Bazzite: no announcement, stick, login or network), while new tools or a new release
+  still need the announcement and this guide's fingerprint.
+- The paragraph on three deployments now says what works: three installed systems (newer AresOS, older AresOS,
+  plain Bazzite); each command names where the next start goes, works from every installed system and never creates
+  or deletes one (update the newest, previous the older, rollback on an AresOS and keep-stock on plain Bazzite the
+  stock); layout trials on an AresOS that starts next; titles with the boot menu's rows; links to the boot menu and
+  the notice list. **Older tools STOP these with `Expected exact stock/AresOS pair`: install the current tools first.**
+- New box **Tools only** after the tools box: `check` and `title` in the same root session, then unplug (the block
+  has unmounted the stick), record, return to step 8. Nothing else: no stage, no restart. This is the route E step 1
+  rehearses and the laptop session will follow.
+- Stage box: only on the AresOS that runs and starts next; rule 6's two lines (the AresOS removed at shutdown,
+  whichever it is; from the older AresOS the settings line); the refusals as v3 has them (a change waiting for the
+  restart, a half-written layout, no more "queued rollback" or "not newer"); on stock or a non-first AresOS it stages
+  nothing and names the next step; the same-boot interrupted STOP moved here (it can only appear before a restart).
+- Title box: the provisional title's **Boot menu after the update finishes at shutdown (expected):** line, which the
+  card uses. Restart box: "take only a row your last title named" replaces "never a guessed GRUB title".
+- Check box: the confirmation plus rule 5's other outcomes: **was not applied** (finalize did not happen; nothing
+  lost; Help decides a repeat), **is in place and has not started yet** with **this start was not the default**
+  (another row taken: restart with no choice), and the STOP **did not finish as recorded**.
+- Misbehaves box: previous as before, then forward again (the last box) and, if the older release misbehaves too,
+  rollback, then Windows.
+- New last box **Forward again, or back from plain Bazzite**: `update` and `title`, no stick/login/network; the
+  three answers (**Newest AresOS starts next**, **… already starts next; nothing changed** with **It runs now** or
+  **It does not run yet: …**, **Newest installed AresOS starts next** with its next step); restart with no choice;
+  check **Update to … confirmed after the restart**; from plain Bazzite previous the same way.
+- Step 8's list of later work links the new "Back to AresOS from stock".
+
+**`docs/EMERGENCY.md`, "Failed or bad update"** (`2a79c65d`). New order: not starting → F12 → Bazzite → the boot-menu
+row the last (provisional) title named for the AresOS before the update → previous → title → reboot → check
+**Return to … confirmed after the restart**. Misbehaving → previous first, then rollback, then Windows. The old
+AresOS returning by itself → `check` first; **Update to … was not applied** means nothing is lost and previous must
+**not** run (it would go one release further back). "Choose the row the last title named"; without a title any row
+is safe. The removed STOP is replaced (PLAN-GAP 4 of step 1): **did not finish as recorded** / **interrupted before
+its result was recorded** → export, Help. The "they refuse with three deployments" sentence is gone; the old
+tools' line means install the current tools first. Also: the stale-title card says it holds until AresOS has started
+once; the layout card quotes rule 7's new abandon refusal.
+
+**`docs/INSTALL-PROCEDURES.md`** (`16eb2e92`).
+- Later layout: each installed system keeps its own layout; a trial only on a running AresOS that starts next; on
+  plain Bazzite it refuses (quoted); with old tools, install the current ones first.
+- Abandoned trial: the repeat's refusal is now `No layout trial and no half-written layout to abandon on this
+  system; nothing changed`; the repair note (rule 7) is explained: run abandon once on the system it names.
+- Recovery menu: rows **Bazzite (ostree:N)** that differ only in the number; take the row the last title's
+  **Boot menu at the next start:** line named; a wrong choice is harmless (check names what runs and what starts
+  next, every command works, a restart with no choice starts the default). First switch and pre-AresOS stale titles
+  keep Windows → Help. With the old tools, do not use the menu after an update.
+- Rollback and keep-stock beside two releases, each with the lines the tools print and the side refusal.
+- New **Back to AresOS from stock**: update (or previous) through the update route's last box; no stick, login or
+  network. New **What you notice on each system** (the notice list).
+- "Keep stock", "Back to AresOS from stock" and the notice list carry, word for word: **Never start a Bazzite update
+  while AresOS is installed: it deletes both AresOS versions at the next shutdown.** "until the owner chooses stock
+  permanently" is deleted; choosing plain Bazzite for good links to step 9. Rule 10's WARNING line and its STOP
+  are named with their next step.
+
+**`docs/INSTALL-REFERENCE.md`** (`a14caf27`): the hung-restart note quotes `Unknown deployment beside AresOS and the
+saved stock; get help` in place of version 2's `Final pair has extra/missing deployments` (gone from `owner.py`);
+the console's return list names "back to AresOS from stock".
+
+**`docs/INSTALL-STATUS.md`** (`07d4dfad`): a new row **Ways back after an update (package 22c)** — BUILT AND
+REVIEWED (the state machine, review 3; the stage 1b review follows); NOT REHEARSED YET; NOT ON THE LAPTOP; the
+laptop's tools stay `851eb742…` until the owner installs these; the full fingerprint `ba4c2bb4…`; what must happen
+before it may say "on the laptop" (the rehearsal, the install through the tools-only update, then the owner's calm
+test); LOQ shortcuts and recovery menu stays OPEN. The update row keeps 27b's pinned record word for word and now
+names `851eb742…` as the laptop's tools until 22c's are installed. The owner-path documents row names 22c's rewrite.
+
+**What he will notice**, now in the guides: plain Bazzite has no `ares` account and keeps German; the AresOS from
+before an update has no `ares` password and no administrator rights; his files stay; each system keeps its own
+passwords, Wi-Fi and layout; once releases carry My apps (packages 34 and 35), the app list stays empty after going
+back to an older release until he goes forward again, nothing lost.
+
+### The tool lines the guides quote
+
+Every bold or code quote below is checked against `owner.py` by `test_owner_path` (literal source fragments);
+`Expected exact stock/AresOS pair` against version 2's code at `41b06513` (`git show`, as
+`test_ways_back_compatibility` does).
+
+| Where | Quoted line (… = a name or reference the tools fill in) |
+|---|---|
+| Titles | `… runs and starts next`, `… runs; … starts next, after the restart`, `… runs; … starts next; this start was not the default`, `… runs and now starts next; no restart is waiting`, `Boot menu at the next start:`, `Boot menu after the update finishes at shutdown (expected):`, `WARNING: … Bazzite must not update while AresOS is installed` |
+| Rule 5 | `Update to / Return to / Rollback to / Change to … confirmed after the restart`, `… was not applied: the deployments are as before it, and nothing is waiting`, `… is in place and has not started yet`, STOPs `… did not finish as recorded`, `… was interrupted before its result was recorded; do not reboot` |
+| Destinations | `Newest AresOS starts next`, `Newest installed AresOS starts next`, `The release of these tools is newer still`, `… already starts next; nothing changed` with `It runs now` / `It does not run yet: it starts at the next restart`, `Saved stock rollback queued`, `Saved stock is default`, `Previous AresOS queued for the next start`, `Plain Bazzite runs here: use … keep-stock` |
+| Rule 6 | `… is removed when the update finishes at shutdown`, `The new release starts with this system's settings (Wi-Fi, passwords, layout), not …'s` |
+| Rule 7 | `Plain Bazzite keeps the installer's German layout: no layout trial here`, `No layout trial and no half-written layout to abandon on this system; nothing changed`, `The trial began on another system and its finish had started`, `This system's half-written layout is restored to the settings before its trial` |
+| Rule 10 | `A Bazzite update is waiting. Do not restart`, `Bazzite must not update while AresOS is installed` |
+| Gone | `did not finish at the restart` (rule 5), `Missing private layout-pending record` (rule 7), `Final pair has extra/missing deployments` (rule 1); each is asserted absent from the guides it was in |
+
+### Test expectations changed on purpose (B9, guides)
+
+All in `os/tests/test_owner_path.py`; no test was deleted or skipped.
+
+| Test | Old expectation | New expectation | Rule |
+|---|---|---|---|
+| `test_update_route_orders_…` | 8 boxes; intro says three deployments refuse, the previous box or Windows; quotes "did not finish at the restart"; "never a guessed GRUB title" | 10 boxes (tools only third, forward again last) in order; intro says what works and what the old tools' STOP means; rule 5's outcomes, rule 6's lines and both new boxes in order; every quote found in `owner.py`; the old phrases absent | C, A4–A6, A8 |
+| `test_failed_update_card_returns_to_previous_aresos_or_windows_never_a_grub_title` → `test_failed_update_card_takes_the_titled_row_then_previous_rollback_and_windows` | Windows before previous; "Never choose a guessed GRUB title"; "they refuse with three deployments"; recovery menu and later layout say "three deployments" | The titled row, then previous; misbehaving: previous, rollback, Windows in that order; "choose the row the last title named", any row safe; was-not-applied → no previous; recovery menu and later layout say what works now | C, A5, A8 |
+| `test_hung_restart_…` | `Final pair has extra/missing deployments` | `Unknown deployment beside AresOS and the saved stock; get help`, found in `owner.py`; the old line absent there and in the guide | A1 |
+| `abandon_card_route`, `test_card_clears_real_pending_state_…` | `Missing private layout-pending record` | `NO_TRIAL` (the exact rule 7 refusal, anchored) in the guide, the route and the handler | A7 |
+| new `test_stock_procedures_go_back_to_aresos_and_never_update_bazzite` | — | the Bazzite sentence in keep-stock, back-to-AresOS and the notice list; no fenced update outside the gated route; rollback/keep-stock lines beside two releases; the notice list's facts | C, A10 |
+| new `test_status_names_22c_built_not_rehearsed_and_not_on_the_laptop` | — | the 22c row's status, fingerprint (equal to the payload's), `851eb742…`, the conditions for "on the laptop"; the recovery-menu gate OPEN | C |
+
+### The checks-only cap
+
+`os/ci/rehearsal-packages.json`, 22c: `dispatch_caps.checks` **12 → 30** (`45059edf`), with the reason in the ledger's
+`budget` text. Why: the ledger (read-only, `rehearsal_guard.budget` against the API on 2026-11-14) showed **18 checks
+runs and 1 probe, 446 of 1200 minutes**, so `budget()` already STOPped with `checks dispatch allowance exhausted` and
+stage 2's dispatch could not start. Each checks run now costs about 35 runner minutes on this branch (the full model
+job runs beside the checks while its sources differ from main). After one rehearsal reservation (345) about 11
+more checks runs fit in 1200 minutes, so 30 (12 more) lets the minute cap stay the real bound, which is what the cap
+is for: it stops a runaway dispatch loop, not spending (standard runners are free for this public repository). The
+minute cap and the four-VM cap are unchanged. Stage 2 should know the minutes are the tighter limit now: every
+further checks run costs about 35 of the remaining minutes (721 after hosted run 1: the ledger read 19 checks runs, 1 probe and 479 of 1200 minutes).
+
+### Verified
+
+Local, from the worktree, `TMPDIR=/var/home/ares/pkg22c-work`, `nice -n 10`, one module at a time:
+
+| Command | Result |
+|---|---|
+| `python3 -B -m unittest discover -s os/tests -p test_owner_path.py` | 41 tests, OK (first run: 2 failures, both in my edits, fixed: a quoted fragment and the stage box's pinned lead) |
+| `… -p test_owner_entry.py`, `test_owner_equality.py`, `test_owner_bootstrap.py`, `test_grub_bls.py` | 3, 10, 8, 6 tests, OK |
+| `… -p test_ways_back_probe.py` | 41 tests, OK after the host walk was regenerated |
+| `… -p test_checkout_sources.py` | 5 tests, OK |
+| `python3 -B reviews/22c-ways-back-after-update/walk-host.py` | `PASS package 22c host walks (reorder-probe): 255 sources; no VM started` |
+| `python3 -B reviews/27-first-update-release/rebind.py pending "<note>"` | `pending: 34 bound files differ from the active bindings, 2 removed` (`docs/EMERGENCY.md` joins the list) |
+
+`test_owner_update` did not run locally. `git diff --check` passed before each commit.
+
+Hosted:
+
+Each `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`, then one
+`gh run watch <id> --exit-status --interval 60`. Totals from the regressions log's own summary line.
+
+| Hosted run | Head | Regressions job | Model job | Result |
+|---|---|---|---|---|
+| [43557895861](https://github.com/Ares-Empire/AresOS/actions/runs/43557895861) | `45059edf` (all five guides, the route tests, the cap, the bindings) | 13m52s: **`Ran 1092 tests in 764.752s` / `OK`: 0 failures, 0 errors, 0 skipped**; the slice 173,476 states / 3,043,109 edges (154.8 s) | 18m38s: full model, 963,003 states / 25,257,042 edges, 1 test in 1090.7 s, OK | Watch exit 0. 1092 = step 1's 1090 + the two new route tests; PLAN-GAP 4's test passes. |
+| Run 2 | the final head (precision fixes and this report) | recorded by the closing commit | | |
+
+### JUDGMENT-CALL
+
+1. **The way back from plain Bazzite is the update route's last box, behind its gate.** The walk test treats a fenced
+   `at update` line as an update and allows it only inside the gated route; a fenced one in INSTALL-PROCEDURES fails
+   it, and an inline one there would only slip past it. So the box sits at the end of the route, the gate line says
+   step 7's record covers it, and "Back to AresOS from stock" links to the route's start (the walk enters through the
+   gate). Cost: on the phone he scrolls to the last box. Changing it means a second gated section and a walk change.
+2. **The tools-only box unplugs the stick without `at export`.** The brief says check and title, nothing else; the
+   block unmounts the stick on exit (step 4 already says so). Adding export later is one line.
+3. **The card's "old AresOS returns by itself" branch** says check first and never previous after **was not
+   applied**: previous would go one release further back. The brief's card did not name this case.
+4. **The notice list's password fact names release 13.** The brief's "the AresOS from before the update has no
+   `ares` password" is true on the laptop (R13 is not wheel; the password was set on R27). After a later update from
+   R27 the older system would be R27, with its password. The list says "the AresOS from before your first update
+   (release 13)" and that a later update starts the new release with the running system's settings (`898ac0d4`).
+
+### PLAN-GAP
+
+1. The STEP8_RECORD clause in the INSTALL-STATUS update row ("… refuse … until package 22c") is pinned word for word
+   as 27b's record; it stays, and is still true for the laptop's version 2 tools. Rewrite it with the record step
+   when 22c reaches the laptop.
+2. The 22c host walk still covers only the probe route; E's route and its regeneration are stage 2's (step 1,
+   PLAN-GAP 5). The tools-only box is the guide text E step 1 must type.
+3. `test_owner_path` now runs `git show 41b06513:…` (the old tools' STOP); every job checks out full history
+   (`fetch-depth: 0`), as `test_ways_back_compatibility` already needs.
+4. `os/tests/ways_back_ledger.py` still labels a model stop `Missing private layout-pending`: the model's own word,
+   not a guide quote; left alone (the model must not change for the guides).
+
+### For the reviewer of the guides (read in this order)
+
+1. `docs/EMERGENCY.md` "Failed or bad update": the order, and the was-not-applied branch.
+2. `docs/INSTALL.md` "Update AresOS to a new release": the gate line, the intro, the tools-only box, the check box's
+   outcomes, the last box.
+3. `docs/INSTALL-PROCEDURES.md`: recovery menu, rollback, keep-stock, back to AresOS from stock, what you notice.
+4. `docs/INSTALL-STATUS.md`: the 22c row (does it claim more than built and reviewed?).
+5. `os/tests/test_owner_path.py`: the two rewritten and two new tests, and that each quote is bound to `owner.py`.
