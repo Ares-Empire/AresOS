@@ -2,7 +2,11 @@
   "implementation": "05fb2a927dc9bc5776b92733c6ac246022c87dad",
   "hosted": {
     "run": 43530837211,
-    "status": "in progress"
+    "status": "cancelled",
+    "reason": "25-minute regression job limit reached during the expanded model",
+    "full_totals_available": false,
+    "last_model_states_processed": 680000,
+    "errors_or_failures_from_partial_log": "no complete summary; not acceptance evidence"
   },
   "local": {
     "focused": {

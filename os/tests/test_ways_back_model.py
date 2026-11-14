@@ -561,23 +561,24 @@ class RevertTest(unittest.TestCase):
 
 
 class EquivalenceTest(unittest.TestCase):
+    def restoration_variants(self):
+        for old in PROFILES:
+            for new in PROFILES:
+                if old == new:
+                    continue
+                for trial in (True, False):
+                    for current in ((old, old), (new, old), (new, new)):
+                        s = starts()[2].setting('27', *current)
+                        s = replace(s, trial=Trial('27', old, new, same_boot=False, fresh=True, proof=True, finishing=True) if trial else None,
+                                    repairs=() if trial else (('27', old, new),))
+                        for c, x in ((new, old), (new, new)):
+                            if current != (old, old) and current != (c, x):
+                                continue
+                            yield s, replace(s, restoring=(('27', c, x),))
+
     def test_saved_restoration_intent_has_identical_future_commands(self):
         with driver() as d:
-            variants = []
-            for old in PROFILES:
-                for new in PROFILES:
-                    if old == new:
-                        continue
-                    for trial in (True, False):
-                        for current in ((old, old), (new, old), (new, new)):
-                            s = starts()[2].setting('27', *current)
-                            s = replace(s, trial=Trial('27', old, new, same_boot=False, fresh=True, proof=True, finishing=True) if trial else None,
-                                        repairs=() if trial else (('27', old, new),))
-                            for c, x in ((new, old), (new, new)):
-                                if current != (old, old) and current != (c, x):
-                                    continue
-                                variants.append((s, replace(s, restoring=(('27', c, x),))))
-            for left, right in variants:
+            for left, right in self.restoration_variants():
                 self.assertEqual(reduced(left), reduced(right))
                 self.assertEqual(list(events(left)), list(events(right)))
                 for event in events(left):
@@ -586,6 +587,20 @@ class EquivalenceTest(unittest.TestCase):
                     self.assertEqual((a.stop, a.cut, a.archives, a.confirmation), (b.stop, b.cut, b.archives, b.confirmation), event)
                     d.step(left, event, a)
                     d.step(right, event, b)
+
+    def test_execution_reuse_frames_exact_restoration_intents(self):
+        with driver() as d:
+            memo = Executions(d)
+            for left, right in self.restoration_variants():
+                # Also frame an unrelated, still-live repair intent.
+                left = replace(left, repairs=tuple(sorted((*left.repairs, ('13', 'de', 'us')))))
+                right = replace(right, repairs=tuple(sorted((*right.repairs, ('13', 'de', 'us')))),
+                                restoring=tuple(sorted((*right.restoring, ('13', 'us', 'de')))))
+                for event in events(left):
+                    for state in (left, right):
+                        expected = transition(state, event)
+                        self.assertEqual(memo.step(state, event, expected), d.step(state, event, expected))
+            self.assertGreater(memo.reused, 0)
 
     def test_provenance_quotient_preserves_every_successor_and_actual_command(self):
         applied = Journal('previous', 'reorder', 'recorded', '13', '27', ('27', '13', 'S'), False)

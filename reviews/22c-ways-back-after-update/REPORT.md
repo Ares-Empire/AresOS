@@ -1320,3 +1320,30 @@ The two menu-only destination cases are unchanged. This full run includes the
 new intent-save and reverse-partial acceptance revert proofs and the execution
 of every successor in the restoration equivalence test. No module was skipped
 or weakened. The hosted run remains in progress at this checkpoint.
+
+### Hosted time limit and execution reuse
+
+Run **43530837211** reached the regression job's unchanged **25-minute limit**
+and was cancelled. Its single `gh run watch ... --exit-status` returned 1.
+It stopped during the expanded model at 680000 processed states (881.803s in
+that model); **there are no full suite totals, so this run is not acceptance**.
+The previously recorded local 19-test full model remains passing evidence.
+
+**PLAN-GAP (verification cost, no rule change):** the extra cut events exceeded
+the hosted time budget when the execution trie keyed every literal restoration
+snapshot. The existing equivalence proof already establishes the relevant
+reachable histories have identical future behavior. The trie now reuses those
+actual executions while framing exact restoration intent values through, like
+unrelated `/etc` values. It preserves a retry's original snapshot, adds an
+intent only when absent, and clears it whenever its trial/note is removed,
+including when the first execution had no intent to clear. It still compares
+the full literal ledger against the independently predicted result on every
+cache hit; no state, edge, assertion, cut or test is removed. The harness,
+workflow budget and owner implementation are unchanged by this optimization.
+
+`EquivalenceTest.test_execution_reuse_frames_exact_restoration_intents` compares
+cached and uncached execution for both sides of all 48 equivalence pairs and
+all their events, including an unrelated live repair intent. The targeted
+local equivalence class passed **5 tests in 1.816s**, after a 10570 MB gate.
+The full 20-test model and another hosted checks-only run follow. The new test
+adds one to the expected suite count; the state/edge pins remain unchanged.

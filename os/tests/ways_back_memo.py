@@ -33,10 +33,14 @@ class Executions:
         # can cause further reads; recording the initial input overapproximates.
         if operation == 'exists':
             return bool(value)
-        if record in ('layout-pending', 'layout-repair'):
-            roles = (s.trial.row,) if record == 'layout-pending' and s.trial else tuple(n[0] for n in s.repairs) if record == 'layout-repair' else ()
-            return value, tuple(n for n in s.restoring if n[0] in roles)
+        # The restoration equivalence test executes both sides: on reachable
+        # settings, a pre-existing intent and the same newly saved intent have
+        # the same effects. Frame its literal provenance below, just like /etc.
         return value
+
+    @staticmethod
+    def owners(s):
+        return {n[0] for n in s.repairs} | ({s.trial.row} if s.trial else set())
 
     def step(self, s, event, expected):
         # Restart is a host event and reads the chosen /etc as well as the
@@ -56,7 +60,7 @@ class Executions:
         if 'effect' not in node:
             found = self.driver.step(s, event, expected)
             changes = {f.name: getattr(found, f.name) for f in fields(s)
-                       if f.name != 'settings' and getattr(found, f.name) != getattr(s, f.name)}
+                       if f.name not in ('settings', 'restoring') and getattr(found, f.name) != getattr(s, f.name)}
             if host_inputs:
                 # The simulated boot changes ages, not record contents. Frame
                 # the unobserved fields through, just like nonrunning /etc.
@@ -69,8 +73,14 @@ class Executions:
             after = {p[0]: p[1:] for p in found.settings}
             writes = {r: p for r, p in after.items() if before.get(r) != p}
             removed = tuple(r for r in before if r not in after)
+            before_intents = {p[0]: p[1:] for p in s.restoring}
+            after_intents = {p[0]: p[1:] for p in found.restoring}
+            intents = {r: p for r, p in after_intents.items() if before_intents.get(r) != p}
+            # Removing a trial/note clears its intent even when this execution
+            # started without one. A cache hit may carry that extra provenance.
+            cleared = (set(before_intents) - set(after_intents)) | (self.owners(s) - self.owners(found))
             _, error, cut, archives, text = self.driver.observed
-            effect = changes, writes, removed, error, cut, archives, text
+            effect = changes, writes, removed, intents, cleared, error, cut, archives, text
             node = root
             for name in self.driver.reads:
                 if 'read' not in node:
@@ -83,16 +93,21 @@ class Executions:
             self.executed += 1
             return found
         self.reused += 1
-        changes, writes, removed, error, cut, archives, text = node['effect']
-        if not changes and not writes and not removed:
+        changes, writes, removed, intents, cleared, error, cut, archives, text = node['effect']
+        if not changes and not writes and not removed and not intents and not cleared:
             found = s
         else:
             settings = {p[0]: p[1:] for p in s.settings if p[0] not in removed}
             settings.update(writes)
+            restoring = {p[0]: p[1:] for p in s.restoring if p[0] not in cleared}
+            for role, pair in intents.items():
+                # A retry republishes the original snapshot, never replaces it.
+                restoring.setdefault(role, pair)
             if host_inputs:
                 changes = {name: replace(getattr(s, name), **value) if name in ('journal', 'trial') and isinstance(value, dict)
                            else value for name, value in changes.items()}
-            found = replace(s, **changes, settings=tuple(sorted((r, *p) for r, p in settings.items())))
+            found = replace(s, **changes, settings=tuple(sorted((r, *p) for r, p in settings.items())),
+                            restoring=tuple(sorted((r, *p) for r, p in restoring.items())))
         assert bool(error) == bool(expected.stop), ('cached accept/refuse', event, expected.stop, error)
         if error:
             assert expected.stop.lower() in error.lower(), ('cached STOP next step', error)
