@@ -5,6 +5,7 @@ set -euo pipefail
 # in two of the Containerfile's stages that every image build runs (and
 # os/ci/build-mod.sh, which sets or renews the pin, builds the same two):
 #   source  in the pinned base (it has curl): fetch that commit, keep only mod/
+#           (and control/ for package 18c's control mode below)
 #   mod     in the digest-pinned JDK, which has no curl or wget: Gradle only
 # minecraft/builder-tools.txt lists what the JDK image has; the tests run the
 # mod mode with exactly those tools. The image's configure step accepts the
@@ -23,8 +24,10 @@ if [[ $1 == source ]]; then
     curl -fsSL --proto '=https' --tlsv1.2 --retry 3 -o "$work/source.tar.gz" \
         "https://codeload.github.com/Ares-Empire/AresOS/tar.gz/$revision"
     mkdir -p "$out"
-    tar -xzf "$work/source.tar.gz" -C "$out" --strip-components=1 --wildcards '*/mod/*'
+    # Package 18c: the same fetch keeps control/ too, named exactly (docs/control/ is not it).
+    tar -xzf "$work/source.tar.gz" -C "$out" --strip-components=1 --wildcards '*/mod/*' "AresOS-$revision/control"
     test -x "$out/mod/gradlew"
+    test -f "$out/control/launch.py"
     echo "MOD_SOURCE $revision $(sha256sum "$work/source.tar.gz" | cut -d' ' -f1)"
     rm -rf "$work"
     exit 0
@@ -42,6 +45,223 @@ if [[ $1 == mod ]]; then
     cp "build/libs/aresos-$version.jar" "$out/aresos.jar"
     echo "MOD_JAR_BUILT $(sha256sum "$out/aresos.jar" | cut -d' ' -f1) from $revision"
     rm -rf "$work"
+    exit 0
+fi
+
+# Package 18c: the Control tool service, its commands and Claude Code's managed
+# files, from control/ of the build commit (the source stage keeps it; the
+# Containerfile copies it to /tmp/aresos/control). The aresos stage runs
+# `control` before `configure`, which runs the updater audit and removes
+# /tmp/aresos. `control-tree OS CONTROL DEST` is the install map alone, into
+# any folder, without pip or root: os/ci/check-image.sh recomputes from the
+# checkout what the image must carry, and os/tests run it.
+if [[ $1 == control || $1 == control-tree ]]; then
+    if [[ $1 == control ]]; then
+        os_dir=/tmp/aresos control_dir=/tmp/aresos/control dest=/ report=/tmp/ares-control/pip-report.json
+        vendor=/usr/lib/aresos-control/vendor
+        test ! -e /usr/lib/aresos-control
+        mkdir -p /tmp/ares-control
+        # The MCP SDK and its complete closure, wheels only and each one's SHA-256
+        # pinned (pip refuses any other), never into Python's own site-packages.
+        env -i PATH=/usr/bin:/bin LANG=C.UTF-8 HOME=/tmp/ares-control /usr/bin/python3 -I -m pip install --quiet \
+            --disable-pip-version-check --root-user-action=ignore --no-cache-dir --no-compile --require-hashes \
+            --only-binary=:all: --target "$vendor" --report "$report" \
+            -r "$control_dir/requirements.lock"
+        # Bytecode that stays valid on the deployed system, where every file's
+        # mtime is 0: checked against the source's hash, compiled in place.
+        env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I -m compileall -q \
+            --invalidation-mode checked-hash "$vendor"
+    else
+        os_dir=${2-} control_dir=${3-} dest=${4-} report=
+        [[ -d $os_dir && -d $control_dir && -n $dest ]]
+    fi
+    python3 - "$os_dir" "$control_dir" "$dest" $report <<'PY'
+import hashlib, json, os, pathlib, re, shlex, stat, sys
+os_dir, control, dest = (pathlib.Path(arg) for arg in sys.argv[1:4])
+# The image build passes pip's report of the wheels it installed; control-tree passes none.
+report = pathlib.Path(sys.argv[4]) if len(sys.argv) > 4 else None
+# The folders his tools may take files from and save files to (owner, board #203).
+FOLDERS = ('Downloads', 'Documents')
+# Installed exactly where control/launch.py and the unit look for them.
+CODE, VENDOR, CONFIG = 'usr/libexec/aresos-control', 'usr/lib/aresos-control/vendor', 'usr/share/aresos/control'
+DEPENDENCIES = VENDOR.rsplit('/', 1)[0]
+UNIT = 'usr/lib/systemd/system/aresos-toold.service'
+TREES = {f'{CODE}/aresos_control': 'aresos_control', f'{CODE}/generated': 'generated'}
+FILES = {
+    f'{CODE}/launch.py': ('launch.py', 0o644),
+    'usr/bin/aresos': ('packaging/aresos', 0o755),
+    'usr/bin/aresos-mcp': ('packaging/aresos-mcp', 0o755),
+    'usr/bin/aresos-toold': ('packaging/aresos-toold', 0o755),
+    UNIT: ('packaging/aresos-toold.service', 0o644),
+    'usr/lib/sysusers.d/aresos-tools.conf': ('packaging/aresos-tools.sysusers', 0o644),
+    'usr/lib/tmpfiles.d/aresos-tools.conf': ('packaging/aresos-tools.tmpfiles', 0o644),
+    # Claude Code reads its managed files from this fixed path; no managed-mcp.json.
+    'etc/claude-code/managed-settings.json': ('settings/managed-settings.draft.json', 0o644),
+    'etc/claude-code/CLAUDE.md': ('settings/CLAUDE.md', 0o644),
+    f'{CONFIG}/user-mcp.json': ('settings/user-mcp.json', 0o644),
+}
+# Folders that belong to Control alone; the record lists everything under them.
+# The vendored dependencies (DEPENDENCIES) are recorded on their own.
+OWN = (CODE, CONFIG, 'etc/claude-code')
+
+# The owner values follow the image's own account declaration, never a second literal.
+declaration = os_dir / 'config/usr/lib/sysusers.d/aresos.conf'
+lines = [shlex.split(line) for line in declaration.read_text().splitlines() if line.strip() and not line.startswith('#')]
+users = [line for line in lines if line[0] == 'u']
+assert len(users) == 1, f'{declaration} declares {len(users)} accounts; Control needs exactly one owner'
+_, owner, ids, _, home, _ = users[0]
+uid, gid = (int(n) for n in ids.split(':'))
+assert uid >= 1000 and ['g', owner, str(gid)] in lines, users[0]
+# The file policy opens every component without following links, and /home is one on Fedora Atomic.
+assert re.fullmatch(r'/var/home/[a-z][a-z0-9-]*', home) and home.endswith('/' + owner), home
+
+
+def settings(name, **values):
+    draft = json.loads((control / 'settings' / name).read_text())
+    assert set(values) <= set(draft), (name, sorted(values))
+    # The drafts' _comment calls them drafts; no code reads it.
+    return json.dumps({**{k: v for k, v in draft.items() if k != '_comment'}, **values}, indent=2) + '\n'
+
+
+folders = [f'{home}/{name}' for name in FOLDERS]
+DERIVED = {
+    f'{CONFIG}/service.json': (settings('service.json', owner_uid=uid),
+                               'control/settings/service.json; owner_uid from os/config/usr/lib/sysusers.d/aresos.conf'),
+    f'{CONFIG}/proxy.json': (settings('proxy.json', home=home, folders=folders),
+                             'control/settings/proxy.json; home and folders from os/config/usr/lib/sysusers.d/aresos.conf'),
+    # Made at boot when missing; ':' leaves a folder he already has with its own mode and owner.
+    'usr/lib/tmpfiles.d/aresos-control-folders.conf': (
+        '# Package 18c: the folders the Control tools take files from and save files to\n'
+        '# (the owner chose them, board #203). Created for the daily account when missing;\n'
+        "# ':' leaves an existing folder's mode and owner as they are.\n"
+        + ''.join(f'd {folder} :0700 :{owner} :{owner} -\n' for folder in folders),
+        'package 18c: FOLDERS in os/build.sh; owner from os/config/usr/lib/sysusers.d/aresos.conf'),
+}
+
+
+def target(rel):
+    path = dest / rel
+    assert not path.exists() and not path.is_symlink(), f'/{rel} exists already'
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
+
+
+def write(rel, data, mode):
+    path = target(rel)
+    path.write_bytes(data)
+    path.chmod(mode)
+
+
+for rel, (source, mode) in FILES.items():
+    write(rel, (control / source).read_bytes(), mode)
+for rel, source in TREES.items():
+    for path in sorted((control / source).rglob('*')):
+        if path.is_symlink():
+            raise SystemExit(f'Unexpected link {path} in control/{source}')
+        # A commit has no bytecode; a checkout where tests ran may.
+        if path.is_file() and '__pycache__' not in path.parts:
+            write(f'{rel}/{path.relative_to(control / source)}', path.read_bytes(), 0o644)
+for rel, (text, _) in DERIVED.items():
+    write(rel, text.encode(), 0o644)
+# Enabled the way `systemctl enable` does it, from the unit's own [Install] line.
+wanted = re.findall(r'^WantedBy=(\S+)$', (dest / UNIT).read_text(), re.M)
+assert wanted == ['multi-user.target'], wanted
+link = f'etc/systemd/system/{wanted[0]}.wants/aresos-toold.service'
+target(link).symlink_to('/' + UNIT)
+
+
+def walk(*roots):
+    for root in roots:
+        top = dest / root
+        if top.is_symlink():
+            raise SystemExit(f'Unexpected link /{root}')
+        if top.exists():
+            yield top
+        if top.is_dir():
+            yield from sorted(top.rglob('*'))
+
+
+def sha256(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+sources = {**{rel: f'control/{source}' for rel, (source, _) in FILES.items()},
+           **{rel: origin for rel, (_, origin) in DERIVED.items()}}
+# The lock the vendored wheels must come from (checked below in the image build).
+record = dict(format=1, files={}, directories={}, links={'/' + link: '/' + UNIT},
+              requirements_lock=sha256(control / 'requirements.lock'))
+for path in walk(*OWN, *FILES, *DERIVED):
+    rel = path.relative_to(dest).as_posix()
+    if path.is_symlink():
+        raise SystemExit(f'Unexpected link /{rel}')
+    if path.is_dir():
+        path.chmod(0o755)
+        record['directories']['/' + rel] = '0755'
+    else:
+        tree = next((f'control/{source}/' + rel[len(top) + 1:] for top, source in TREES.items()
+                     if rel.startswith(top + '/')), None)
+        record['files']['/' + rel] = dict(mode=f'{stat.S_IMODE(path.stat().st_mode):04o}', sha256=sha256(path),
+                                          source=sources.get(rel, tree))
+record['directories'] = dict(sorted(record['directories'].items()))
+record['files'] = dict(sorted(record['files'].items()))
+
+if report:
+    revision = os.environ.get('ARESOS_SOURCE_REVISION', '')
+    assert re.fullmatch('[0-9a-f]{40}', revision), f'Control is recorded with its exact commit (got {revision!r})'
+    # Every wheel pip installed, against requirements.lock: the same set, each with one of its pinned hashes.
+    normal = lambda name: re.sub(r'[-_.]+', '-', name).lower()
+    lock, current = {}, None
+    for line in (control / 'requirements.lock').read_text().splitlines():
+        if match := re.match(r'^([A-Za-z0-9._-]+)==(\S+) \\$', line):
+            current = (normal(match[1]), match[2])
+            lock[current] = set()
+        elif match := re.match(r'^\s+--hash=sha256:([0-9a-f]{64})', line):
+            lock[current].add(match[1])
+    installed = json.loads(report.read_text())['install']
+    wheels = sorted((dict(name=normal(item['metadata']['name']), version=item['metadata']['version'],
+                          file=item['download_info']['url'].rsplit('/', 1)[1],
+                          sha256=item['download_info']['archive_info']['hashes']['sha256'])
+                     for item in installed), key=lambda wheel: wheel['name'])
+    assert {(w['name'], w['version']) for w in wheels} == set(lock), 'the installed wheels are not requirements.lock'
+    assert all(w['sha256'] in lock[(w['name'], w['version'])] and w['file'].endswith('.whl') for w in wheels), wheels
+    vendor = {}
+    for path in walk(DEPENDENCIES):
+        rel = '/' + path.relative_to(dest).as_posix()
+        if path.is_symlink():
+            raise SystemExit(f'Unexpected link {rel}')
+        # pip honours the umask; keep the launcher's rule: nothing group- or world-writable.
+        mode = 0o755 if path.is_dir() or path.stat().st_mode & 0o111 else 0o644
+        path.chmod(mode)
+        vendor[rel] = dict(mode=f'{mode:04o}', sha256=None if path.is_dir() else sha256(path))
+    record = dict(record, source_revision=revision, wheels=wheels, vendor=vendor)
+manifest = dest / 'usr/share/aresos/manifest/control.json'
+manifest.parent.mkdir(parents=True, exist_ok=True)
+manifest.write_text(json.dumps(record, indent=1) + '\n')
+print(f'CONTROL_INSTALLED {len(record["files"])} files' +
+      (f', {len(record["wheels"])} wheels, {len(record["vendor"])} vendored paths from {record["source_revision"]}'
+       if report else ''))
+PY
+    if [[ $1 == control-tree ]]; then
+        exit 0
+    fi
+    # Self-checks: a broken tree fails the build here. The installed launcher
+    # (root-owned, no symlinks, nothing writable: launch.py checks all of it)...
+    /usr/bin/aresos --help > /tmp/ares-control/help.txt
+    grep -q '^usage: aresos ' /tmp/ares-control/help.txt
+    # ...and the shipped generated files equal what control/'s definitions generate
+    # (control/generate.py; its docs/control/TOOLS.md is not in the image and
+    # control-base checks it on every pull request).
+    env -i PATH=/usr/bin:/bin LANG=C.UTF-8 /usr/bin/python3 -I - "$control_dir" <<'PY'
+import pathlib, sys
+sys.path.insert(0, sys.argv[1])
+import generate
+root = pathlib.Path(sys.argv[1]).parent
+shipped = {name: content for name, content in generate.generated().items() if name.startswith('control/')}
+drift = [name for name, content in shipped.items() if (root / name).read_text() != content]
+assert not drift, f'Generated files drifted: {drift}'
+print(f'CONTROL_GENERATED_MATCH {len(shipped)} files')
+PY
+    rm -rf /tmp/ares-control
     exit 0
 fi
 
