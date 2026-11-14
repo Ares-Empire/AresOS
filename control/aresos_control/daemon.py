@@ -91,7 +91,7 @@ class Daemon:
 
 def main():
     parser = argparse.ArgumentParser(description="AresOS Unix-only tool service")
-    parser.add_argument("--config", default="/etc/aresos-control/service.json")
+    parser.add_argument("--config", default="/usr/share/aresos/control/service.json")
     args = parser.parse_args()
     with open(args.config) as stream:
         config = strict_json_loads(stream.read())

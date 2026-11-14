@@ -20,6 +20,13 @@ def strings(value):
             yield from strings(child)
 
 
+def texts(content):
+    """A tool result's text: Claude Code sends a real MCP server's result as one string, a fixture's as blocks."""
+    if isinstance(content, str):
+        return [content]
+    return [block.get('text', '') for block in content if isinstance(block, dict)]
+
+
 def tool(name, inputs, identifier):
     return {'type': 'tool_use', 'id': identifier, 'name': name, 'input': inputs}
 
@@ -59,8 +66,7 @@ class Script:
             if step.get('prepare'):
                 result = self.results[prepare_id]
                 assert not result.get('is_error'), result
-                payloads = [json.loads(s) for b in result['content'] for s in [b.get('text', '')]
-                            if s.startswith('{')]
+                payloads = [json.loads(s) for s in texts(result['content']) if s.startswith('{')]
                 approvals = [p['data']['approval'] for p in payloads if p.get('ok') and 'approval' in p.get('data', {})]
                 assert len(approvals) == 1, payloads
                 approval = approvals[0]

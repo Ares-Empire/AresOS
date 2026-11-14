@@ -19,6 +19,18 @@ expect_failure() {
 # --- The everyday account: wheel, a password it does not have yet.
 systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos.conf
 test -d /var/home/ares
+# Package 18c: the image does not make the Control service user or his two
+# folders at build; sysusers and tmpfiles make them at boot (checked below).
+for database in passwd group; do
+    for key in aresos-tools 250; do
+        if getent "$database" "$key"; then
+            echo "The image already has $database entry $key for the Control service"
+            exit 1
+        fi
+    done
+done
+test ! -e /var/home/ares/Downloads
+test ! -e /var/home/ares/Documents
 getent group wheel
 id -nG ares | grep -qw wheel
 pass 'ares is in wheel'
@@ -697,6 +709,167 @@ rm -rf /tmp/pkg31-home
 printf '%s\n' "$layout"
 test "$layout" = "'appmenu:minimize,maximize,close'"
 pass 'Ares-Crown files installed; compiled AresOS default gives apps all three buttons'
+
+# --- Package 18c: the Control tools (the tool service, its commands, Claude
+# Code's managed files). Every path the image records in control.json is here
+# with its mode and content, root-owned with root-owned parents and no links,
+# and nothing else is under Control's own folders. check-image.sh holds the
+# record itself to this checkout and its requirements.lock.
+python3 - <<'PY'
+import hashlib, json, os, pathlib, re, stat
+record = json.loads(pathlib.Path('/usr/share/aresos/manifest/control.json').read_text())
+assert record['format'] == 1 and re.fullmatch('[0-9a-f]{40}', record['source_revision']), record.get('source_revision')
+assert record['wheels'] and record['vendor'], 'no vendored dependencies recorded'
+entries = {**record['files'], **record['vendor'],
+           **{name: dict(mode=mode, sha256=None) for name, mode in record['directories'].items()}}
+for name, entry in sorted(entries.items()):
+    path = pathlib.Path(name)
+    for part in (path, *path.parents):
+        info = part.lstat()
+        assert not stat.S_ISLNK(info.st_mode), f'{part} is a link'
+        assert (info.st_uid, info.st_gid) == (0, 0) and not info.st_mode & 0o022, (str(part), oct(info.st_mode))
+    info = path.lstat()
+    assert f'{stat.S_IMODE(info.st_mode):04o}' == entry['mode'], (name, oct(info.st_mode), entry['mode'])
+    if entry['sha256'] is None:
+        assert stat.S_ISDIR(info.st_mode), name
+    else:
+        assert stat.S_ISREG(info.st_mode), name
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == entry['sha256'], f'{name} differs from control.json'
+for root in ('/usr/libexec/aresos-control', '/usr/lib/aresos-control', '/usr/share/aresos/control', '/etc/claude-code'):
+    extra = sorted(str(path) for path in pathlib.Path(root).rglob('*') if str(path) not in entries)
+    assert not extra, f'not recorded in control.json: {extra[:20]}'
+for link, target in record['links'].items():
+    assert os.readlink(link) == target, (link, os.readlink(link))
+print(f'CONTROL_FILES_RECORDED {len(record["files"])} files, {len(record["vendor"])} vendored paths, '
+      f'{len(record["wheels"])} wheels from {record["source_revision"]}')
+PY
+pass 'Control: every file, folder and vendored path control.json records is in the image as recorded, root-owned, no links, nothing extra'
+# Agreed change 7: Claude Code fixes /etc/claude-code; its two files are the
+# image's (recorded above), and there is no exclusive MCP file.
+test -f /etc/claude-code/managed-settings.json
+test -f /etc/claude-code/CLAUDE.md
+test ! -e /etc/claude-code/managed-mcp.json
+test ! -L /etc/claude-code/managed-mcp.json
+pass 'Claude Code managed files: managed-settings.json and CLAUDE.md as recorded; no managed-mcp.json'
+
+# Agreed change 6: enabled through multi-user.target, Type=simple, and nothing
+# else (no login, session, display or recovery unit) requires it, wants it or
+# orders itself after it, so a broken service never costs him his session.
+test "$(systemctl --root=/ is-enabled aresos-toold.service)" = enabled
+grep -qx 'Type=simple' /usr/lib/systemd/system/aresos-toold.service
+python3 - <<'PY'
+import json, os, pathlib
+naming, links = [], []
+for root in ('/usr/lib/systemd', '/usr/local/lib/systemd', '/etc/systemd', '/run/systemd'):
+    for path in sorted(pathlib.Path(root).rglob('*')) if os.path.isdir(root) else ():
+        if path.is_symlink():
+            if 'aresos-toold' in path.name + os.readlink(path):
+                links.append(str(path))
+        elif path.is_file() and b'aresos-toold' in path.read_bytes():
+            naming.append(str(path))
+# The unit itself need not contain its own name; no other unit file may name it.
+assert set(naming) <= {'/usr/lib/systemd/system/aresos-toold.service'}, naming
+assert links == ['/etc/systemd/system/multi-user.target.wants/aresos-toold.service'], links
+# Agreed change 3: the updater audit of build.sh configure saw the unit and passed it.
+rows = [row for row in json.load(open('/usr/share/aresos/manifest/updaters.json'))
+        if row['scope'] == 'system' and row['name'] == 'aresos-toold.service']
+assert len(rows) == 1 and rows[0]['state'] == 'enabled' and not rows[0]['suspicious'], rows
+PY
+pass 'aresos-toold.service is enabled by multi-user.target only, Type=simple; no other unit names it; the updater audit saw it'
+
+# Agreed change 5: sysusers makes the service user at boot (it ran above for
+# the polkit check, as at boot) with its fixed numbers; nothing else has them.
+systemd-sysusers /usr/lib/sysusers.d/aresos-tools.conf
+test "$(getent passwd aresos-tools)" = 'aresos-tools:x:250:250:AresOS tool service:/var/lib/aresos-tools:/usr/sbin/nologin'
+test "$(getent group aresos-tools | cut -d: -f1-3)" = 'aresos-tools:x:250'
+test "$(getent passwd | awk -F: '$3 == 250 || $4 == 250 {print $1}')" = aresos-tools
+test "$(getent group | awk -F: '$3 == 250 {print $1}')" = aresos-tools
+case $(getent shadow aresos-tools | cut -d: -f2) in '!'* | '*'*) ;; *) echo 'aresos-tools has a password'; exit 1 ;; esac
+pass 'aresos-tools: UID and GID 250, no login shell, no password; no other account or group uses 250'
+
+# tmpfiles at boot: the service's runtime and state folders, and his two
+# folders (agreed change 11), made when missing and left alone when present.
+systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos-tools.conf /usr/lib/tmpfiles.d/aresos-control-folders.conf
+test "$(stat -c '%a %U %G' /run/aresos-tools)" = '711 aresos-tools aresos-tools'
+test "$(stat -c '%a %U %G' /var/lib/aresos-tools)" = '700 aresos-tools aresos-tools'
+test "$(stat -c '%a %U %G' /var/lib/aresos-operation-evidence)" = '700 aresos-tools aresos-tools'
+for folder in Downloads Documents; do
+    test "$(stat -c '%a %U %G' "/var/home/ares/$folder")" = '700 ares ares'
+done
+chmod 0755 /var/home/ares/Downloads
+chown root:root /var/home/ares/Documents
+systemd-tmpfiles --create /usr/lib/tmpfiles.d/aresos-control-folders.conf
+test "$(stat -c '%a %U %G' /var/home/ares/Downloads)" = '755 ares ares'
+test "$(stat -c '%a %U %G' /var/home/ares/Documents)" = '700 root root'
+chmod 0700 /var/home/ares/Downloads
+chown ares:ares /var/home/ares/Documents
+pass 'tmpfiles: /run/aresos-tools 0711, both state folders 0700 for aresos-tools; Downloads and Documents 0700 for ares when missing, kept as they are when present'
+
+# Agreed change 7: the config follows the image's own account declaration.
+python3 - <<'PY'
+import json, pwd
+owner = pwd.getpwnam('ares')
+service = json.load(open('/usr/share/aresos/control/service.json'))
+proxy = json.load(open('/usr/share/aresos/control/proxy.json'))
+assert (service['owner_uid'], proxy['home']) == (owner.pw_uid, owner.pw_dir) == (1001, '/var/home/ares'), (service, proxy)
+assert proxy['folders'] == ['/var/home/ares/Downloads', '/var/home/ares/Documents'], proxy
+assert '_comment' not in service and '_comment' not in proxy
+PY
+pass 'Control config in /usr/share/aresos/control: owner_uid 1001 and home /var/home/ares are the ares account; folders Downloads and Documents'
+
+# The installed launcher checks its whole tree before it runs anything.
+/usr/bin/aresos --help > /tmp/pkg18c-help-root.txt
+grep -q '^usage: aresos ' /tmp/pkg18c-help-root.txt
+runuser -u ares -- /usr/bin/aresos --help > /tmp/pkg18c-help-ares.txt
+cmp /tmp/pkg18c-help-root.txt /tmp/pkg18c-help-ares.txt
+/usr/bin/python3 -I -c 'import importlib.util; assert importlib.util.find_spec("mcp") is None, "mcp in site-packages"'
+pass "aresos --help runs through the installed launcher as root and as ares; Python's own site-packages has no MCP SDK"
+
+# Agreed change 9: without the CI layer the image trusts no fixture CA and
+# names no fixture server. The non-recursive bind mount shows the image's own
+# /etc/hosts, not the one podman mounts over it. The same scan must find a
+# planted fixture CA and hosts line, or it could not see one.
+image_root=$(mktemp -d)
+mount --bind / "$image_root"
+planted=$(mktemp -d)
+mkdir -p "$planted/etc/pki/ca-trust/source/anchors"
+printf '10.0.2.2 greenmail dovecot\n' > "$planted/etc/hosts"
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -keyout /dev/null -days 1 \
+    -subj '/CN=mail-fixture.invalid' -out "$planted/etc/pki/ca-trust/source/anchors/fixture.pem" 2> /dev/null
+python3 - "$image_root" "$planted" <<'PY'
+import pathlib, re, subprocess, sys
+# The fixture servers' names and address in the CI guest (control/ci/mail uses mail-fixture.invalid).
+FIXTURE = re.compile(r'fixture|\.invalid\b|greenmail|dovecot|badmail', re.I)
+PEM = re.compile(rb'-----BEGIN CERTIFICATE-----.+?-----END CERTIFICATE-----', re.S)
+
+
+def traces(root):
+    found = []
+    hosts = root / 'etc/hosts'
+    for line in (hosts.read_text().splitlines() if hosts.is_file() else []):
+        fields = line.split('#', 1)[0].split()
+        if fields and (fields[0] == '10.0.2.2' or any(FIXTURE.search(name) for name in fields[1:])):
+            found.append(f'hosts: {line}')
+    stores = ('etc/pki/ca-trust/source', 'usr/share/pki/ca-trust-source', 'etc/pki/ca-trust/extracted')
+    for path in sorted(p for store in stores for p in (root / store).rglob('*') if p.is_file() and not p.is_symlink()):
+        data = path.read_bytes()
+        names = [subprocess.run(['openssl', 'x509', '-noout', '-subject', '-issuer'], input=pem,
+                                capture_output=True).stdout.decode(errors='replace') for pem in PEM.findall(data)]
+        # Text outside the certificates (p11-kit labels, comments) is searched as it is.
+        names.append(PEM.sub(b'', data).decode(errors='replace') if b'\0' not in data else '')
+        found += [f'{path.relative_to(root)}: {name.strip()}' for name in names if FIXTURE.search(name)]
+    return found
+
+
+image, planted = (pathlib.Path(arg) for arg in sys.argv[1:])
+assert (image / 'etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem').is_file(), 'no system trust bundle to scan'
+assert len(traces(planted)) == 2, traces(planted)
+assert traces(image) == [], traces(image)
+print('NO_FIXTURE_TRACES: the image trust store and /etc/hosts name no fixture CA or server')
+PY
+umount "$image_root"
+rm -rf "$image_root" "$planted"
+pass 'no fixture CA in the trust store and no fixture names in /etc/hosts (a planted fixture CA and hosts line are found)'
 
 set +x
 echo IMAGE_CHECKS_PASSED

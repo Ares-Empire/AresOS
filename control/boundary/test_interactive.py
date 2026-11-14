@@ -197,5 +197,22 @@ class Evidence(unittest.TestCase):
                 check_case_evidence(case, row, {})
 
 
+class RealToolResultTest(unittest.TestCase):
+    """Package 18c, B2: in the VM the real proxy's result arrives as one string, not as text blocks."""
+
+    def test_the_approval_is_copied_from_a_string_result(self):
+        from interactive_model import Script
+        approval = {'question': 'Send this fixture message?', 'operation_id': 'op-1', 'description': {}}
+        step = {'prompt': 'P1', 'prepare': {'name': 'prepare', 'input': {}}, 'send': 'send'}
+        script = Script([step])
+        first = script.respond({'messages': [{'role': 'user', 'content': 'P1'}]})
+        self.assertEqual(first[0]['id'], 'prepare-0')
+        result = {'type': 'tool_result', 'tool_use_id': 'prepare-0',
+                  'content': json.dumps({'ok': True, 'data': {'approval': approval}})}
+        second = script.respond({'messages': [{'role': 'user', 'content': 'P1'},
+                                              {'role': 'user', 'content': [result]}]})
+        self.assertEqual((second[0]['name'], second[0]['input']), ('send', approval))
+
+
 if __name__ == '__main__':
     unittest.main()

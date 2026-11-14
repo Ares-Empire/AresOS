@@ -1,4 +1,6 @@
 """Fixed checks in a disposable test layer; no shell prompt or keyboard login."""
+import functools
+import importlib.util
 import json
 import os
 import pathlib
@@ -421,7 +423,25 @@ def check(action, request):
         assert config['returncode'] == 0, config
         return dict(returncode=0, journal_unit='aresos-ci-journal.service', after_cursor=cursor,
                     boot_id=boot_id, persistent_files=files, journald_config=config['stdout'])
+    layer = layer_actions()
+    if action in layer:
+        return layer[action](request)
     raise ValueError(f'Unknown check: {action}')
+
+
+@functools.cache
+def layer_actions():
+    """Package 18c (agreed change 8): a test layer above this one adds its own
+    actions as files in actions.d, each with ACTIONS = {name: function(request)}.
+    The fixed actions above come first; a layer can add actions, never replace one."""
+    actions = {}
+    for path in sorted((HERE / 'actions.d').glob('*.py')):
+        spec = importlib.util.spec_from_file_location(f'aresos_ci_layer_{path.stem}', path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        assert not actions.keys() & module.ACTIONS.keys(), f'{path} repeats an action'
+        actions.update(module.ACTIONS)
+    return actions
 
 
 def main():

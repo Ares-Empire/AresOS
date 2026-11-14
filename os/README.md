@@ -106,6 +106,25 @@ instance or world, and starts the hub; `aresos-desktop status|retry|forget-hub|
 reset-instance` are the owner's commands. Its states, restart policy and files
 are described at the top of `config/usr/libexec/aresos-desktop`.
 
+**The Control tools (package 18c).** The image carries the tool service from
+`control/` of the build commit (the source stage keeps it beside `mod/`):
+`build.sh control` runs before `configure` and installs, root-owned and without
+links, the code in `/usr/libexec/aresos-control`, the MCP SDK's pinned closure
+from `control/requirements.lock` (pip with `--require-hashes`, wheels only) in
+`/usr/lib/aresos-control/vendor`, the `aresos`, `aresos-mcp` and `aresos-toold`
+commands, the unit `aresos-toold.service` (enabled through `multi-user.target`,
+`Type=simple`, nothing else waits for it), the service user `aresos-tools`
+(UID and GID 250, made by sysusers at boot) and its folders, Claude Code's
+managed files in `/etc/claude-code/` (no `managed-mcp.json`), and
+`/usr/share/aresos/control/` with `user-mcp.json` and the service's config.
+The config's owner UID and home come from `ares`'s `sysusers.d` line; the tools
+may use `~/Downloads` and `~/Documents`, which tmpfiles makes at boot when they
+are missing and leaves alone when they exist. `/usr/share/aresos/manifest/control.json`
+records the commit, every installed file's mode and SHA-256, every wheel and
+every vendored file; `ci/image-checks.sh` holds the image to that record and
+`ci/check-image.sh` holds the record to the checkout (`build.sh control-tree`
+recomputes it). Claude Code itself is not in the image.
+
 The `ares` account is UID 1001 and, since the owner's 2026-11-09 decision
 ("Like Windows", package 21), a member of `wheel` behind its own password. The
 image sets no password, so `sudo` fails until the owner sets one; sudo asks for

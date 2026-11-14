@@ -32,7 +32,7 @@ on:
       check_build:
         description: 'Throwaway image (package 21): resolve inputs or build and check this ref; never pushes, signs or publishes'
         type: choice
-        options: ['', resolve, build]
+        options: ['', resolve, build, control]
         default: ''
 
 permissions:
@@ -136,7 +136,9 @@ jobs:
     name: Throwaway image build and checks (never pushed, signed or published)
     if: github.event_name == 'workflow_dispatch' && github.ref_name != 'pkg/16-staged-release' && inputs.check_build != '' && !inputs.rehearsal && !inputs.release_13 && !inputs.release_27 && !inputs.checks_only && !inputs.switch_from_run
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    # check_build=control adds its own VM step (below) after the build step:
+    # tools 20 + build 80 + Control VM pass 10 + 15.
+    timeout-minutes: ${{ inputs.check_build == 'control' && 125 || 120 }}
     # Read-only on purpose: no packages/id-token permission and no secrets, so
     # this job cannot push, sign or publish the image it builds.
     permissions:
@@ -167,6 +169,14 @@ jobs:
         env:
           CHECK_BUILD_MODE: ${{ inputs.check_build }}
         run: bash os/ci/check-build.sh "$CHECK_BUILD_MODE"
+      - name: Control VM pass (check_build=control only)
+        if: inputs.check_build == 'control'
+        # About 1.5 times a full pass: 6 min 21 s (run 43572578699), 6 min 54 s (run 43568250360).
+        timeout-minutes: 10
+        run: bash os/ci/check-build.sh control-pass
+      - name: Stop the Control fixture servers (check_build=control only)
+        if: always() && inputs.check_build == 'control'
+        run: bash os/ci/control/runner.sh stop
       - name: Bound evidence
         if: always()
         run: |

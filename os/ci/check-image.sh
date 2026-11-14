@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Check packages 21 and 23 on a locally built image (never pushed).
+# Check packages 21, 23 and 18c on a locally built image (never pushed).
 set -euo pipefail
 image=$1
 # release or throwaway, as check-build.sh built it (build.sh configure, the mod jar).
@@ -71,4 +71,29 @@ for name, reviewed in (('packages.lock.json', json.loads(pathlib.Path('os/packag
     assert json.loads((manifest / name).read_text()) == reviewed, name
 print('Image manifest locks equal the reviewed locks')
 PY
+# Package 18c: the Control files the image records (image-checks.sh proved the
+# image holds exactly them) are what this checkout installs: build.sh's own
+# install map recomputes them here. The build commit is this one, and the build
+# took the vendored wheels from this checkout's requirements.lock (build.sh
+# checked every wheel's SHA-256 against it; image-checks.sh the installed bytes).
+expected=$(mktemp -d)
+bash os/build.sh control-tree os control "$expected/root" | tee "$out/control-tree.txt"
+python3 - "$out/manifest/control.json" "$expected/root/usr/share/aresos/manifest/control.json" "$(git rev-parse HEAD)" <<'PY'
+import json, sys
+image, expected = (json.load(open(path)) for path in sys.argv[1:3])
+revision = sys.argv[3]
+assert image['source_revision'] == revision, f'Control in the image is from {image["source_revision"]}, not {revision}'
+for key in ('format', 'requirements_lock', 'links', 'directories', 'files'):
+    if image[key] != expected[key]:
+        if isinstance(expected[key], dict):
+            changed = sorted(name for name in image[key].keys() | expected[key].keys()
+                             if image[key].get(name) != expected[key].get(name))
+            print(f'control.json {key} differs at: {changed[:20]}', file=sys.stderr)
+        raise SystemExit(f'control.json {key} is not what this checkout installs')
+assert image['wheels'] and all(name == '/usr/lib/aresos-control' or name.startswith('/usr/lib/aresos-control/')
+                               for name in image['vendor']), 'vendored paths outside /usr/lib/aresos-control'
+print(f'Control in the image is this checkout: {len(image["files"])} files from {revision}, '
+      f'{len(image["wheels"])} wheels from requirements.lock (sha256 {image["requirements_lock"]})')
+PY
+rm -rf "$expected"
 echo CHECK_BUILD_PASSED

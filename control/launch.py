@@ -10,7 +10,7 @@ import sys
 
 PREFIX = Path("/usr/libexec/aresos-control")
 VENDOR = Path("/usr/lib/aresos-control/vendor")
-CONFIG = Path("/etc/aresos-control")
+CONFIG = Path("/usr/share/aresos/control")
 
 
 def protected(path):
