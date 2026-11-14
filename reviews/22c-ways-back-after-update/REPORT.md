@@ -2717,3 +2717,246 @@ update's refusal has `stop == 'at forward'`, and `destinations(s)` replaces `des
 Cleanup: the logs and helper scripts under `/var/home/ares/pkg22c-work/` are removed with the folder; `.work/` holds
 no file over 500 MB; no download was made; no builder-started test or watch process remains; no Gradle daemon was
 started. PR #46 stays draft; nothing was merged or pushed to main.
+
+## One word per meaning, step 2
+
+Builder: a Claude agent on Opus 5.5 (`briefs/22c-forward-command.md`, step 2 of 2: bundle, pins and guides, and one
+tools message). Three commits, each pushed after its part: `142cde43` (part 3, the login line), `d4cc11d9` (part 1,
+the bundle, pins, host walk and waiting list), `5aaeedf2` (part 2, the guides and their tests). Part 3 came first
+because the fingerprint covers `owner.py`: done the other way round, the bundle and every pin would have been
+refreshed twice. **Tested head: `5aaeedf2`**; the closing commit changes this report only. No VM was dispatched,
+nothing was merged or pushed to main, and no owner tool, start block, `rpm-ostree`, `bootc`, `ostree admin` or
+`systemctl reboot` ran on the laptop. Tools version stays 3.
+
+### Part 3: login on plain Bazzite names forward (`os/owner-tools/owner.py`)
+
+Step 1's PLAN-GAP 1: on plain Bazzite beside an installed AresOS, `login` kept the first switch's refusal
+**Stock list/pin/pending/BLS changed before switch**, which names no next step. Now `login` takes the first switch's
+path only when no AresOS is installed (as before for a first install); with one installed it runs update's own checks,
+plain Bazzite included, and refuses with update's line: **The release of these tools is installed already, so update
+has nothing to install: run … forward …; nothing changed** where the tools' release is installed, otherwise **Update
+installs a new release only from a running AresOS that starts next: run … forward …, then run this command again;
+nothing changed** (a waiting change, a staged row or a busy system STOP first, as for update). No new wording: the
+lines are `RELEASE_INSTALLED` and `FORWARD_FIRST` beside `typed()`. The "is an AresOS installed" test that
+`survey_installed` already made is now one method, `installed_aresos`, used by both (unchanged there). Nothing else
+in the tools changed.
+
+Test: `test_ways_back.DestinationTest.test_login_refuses_where_update_would_refuse_or_has_nothing_to_install` (B9:
+its plain-Bazzite row expected the first switch's line) now has four plain-Bazzite rows (stock first or not, the
+tools' release installed or not) and asserts that update refuses with the same line in every row where it refuses.
+The first install's refusal stays pinned by `test_install_survey_leaves_prepared_and_first_switch_checks_in_charge`.
+Revert proof: with the old condition (`== BASE` alone) the test fails in exactly its four plain-Bazzite subtests.
+
+### The fingerprint and its pins
+
+`bundle.py --refresh`: **`PASS bundle manifest SHA256 2084c786c29d691a0d8c6ca450c59ef524751e5f6c475de0491f200a80765a3a`**
+(tools version 3; step 1's rules and part 3's login line in the payload copy of `owner.py`). Pinned where `ba4c2bb4…`
+was: `docs/INSTALL.md` (both `PASS tools manifest SHA256` copy checks and the fingerprint line of both stick blocks: four
+places), `os/owner-tools/commands.json` (`install`), the 22c row of `docs/INSTALL-STATUS.md`, and this report. The
+earlier full `ba4c2bb4…` in this report's stage 1b sections is now that short form (history, as with `d2b40b50…` and
+`610e1b27…`). Then `python3 -B reviews/22c-ways-back-after-update/walk-host.py` (**PASS package 22c host walks
+(reorder-probe): 255 sources; no VM started**) and `python3 -B reviews/27-first-update-release/rebind.py pending
+"<note>"` (**pending: 36 bound files differ from the active bindings, 2 removed**), after part 1 and again after part 2.
+
+`os/manifest/ci/16/pending-rebind.json`: `unwalked_commands` is `["forward"]`, and `unwalked_rule` says forward waits
+for stage 2's rehearsal, which walks it from plain Bazzite and after previous and removes it there
+(`test_owner_equality` refuses a listed command once a walk types it). `rebind.py pending` keeps both fields.
+
+### What changed, per guide
+
+Shorter than before: `docs/INSTALL.md` 6,603 → 6,420 words (the last box 558 → 313), `docs/INSTALL-PROCEDURES.md`
+3,456 → 3,416 ("Back to AresOS from stock" 266 → 227); the card and the status row each grow by about ten words.
+
+**`docs/INSTALL.md`, update route.**
+- Intro: **forward** the newest installed AresOS (forward again after **previous**, back from plain Bazzite),
+  **previous**, **rollback**, **keep-stock**; "A new release comes only through **update** (the stage box)."
+- Stage box: where update may not stage it changes nothing and names forward. Both lines are quoted: **Update installs
+  a new release only from a running AresOS that starts next** (plain Bazzite, or an AresOS that does not start next:
+  export and unplug the stick as in the next box, take the last box, then come back to this box) and **The release of
+  these tools is installed already** (nothing to install: the last box makes it the next start). It said **Newest
+  installed AresOS starts next**, update's old reorder.
+- Misbehaves box: forward again later with **forward** (it said update); the record's confirmation that allows
+  previous is the update's own, and "a **Forward to …** confirmation is a return, not this".
+- Last box, **Forward again, or back from plain Bazzite**: entered on the older AresOS after previous, on plain
+  Bazzite, or on any system the boot menu started; "This box runs **forward**: it makes the newest installed AresOS the
+  next start from every system, never installs a release, removes nothing and needs no stick, login or network."
+  `forward` and `title`, then two outcomes: **Newest installed AresOS starts next** (the title **… starts next, after
+  the restart**, or on that AresOS itself **… runs and now starts next; no restart is waiting**) → reboot, no
+  boot-menu choice, check **Forward to … confirmed after the restart**; **… already starts next; nothing changed** with
+  **It runs now** or **It does not run yet: it starts at the next restart** (unchanged completion). Gone: the
+  check-first dispatch on check's running line, the boot-menu two-step path, the sentence about the tools' release, and
+  the **newer still** bullet. Previous from plain Bazzite and the STOP line stay. The gate line is unchanged (it already
+  said the box needs no announcement, stick, login or network).
+
+**`docs/EMERGENCY.md`, "Failed or bad update".** The card never returned with update: it returns with previous, a
+restart with no choice, rollback and Windows, and forward there would be wrong (a failed update's not-applied case must
+end on the AresOS from before the update, which is not always the newest). Its three **Update to …** branches now come
+only from a staging, since a return's journal says **Forward to …**. One clause in the confirmed branch, as in the
+misbehaves box: "a **Forward to …** confirmation is a return, not this" (review 5's case was exactly a return's
+confirmation read as the update's). The one return by update in the failed-update path was the misbehaves box's
+forward-again sentence, now forward (above).
+
+**`docs/INSTALL-PROCEDURES.md`.** "Back to AresOS from stock": **forward** the newest AresOS, **previous** the older
+one; "Neither installs a release, and neither needs a stick, login or network"; PASS with **Forward to … confirmed
+after the restart**; the "newer still, do not follow it" sentence is gone. Later layout: layout begin on an AresOS that
+does not start next names forward or previous (it said update or previous). The notice list: the app list stays empty
+"until you go forward again (**forward**)".
+
+**`docs/INSTALL-REFERENCE.md`.** No change: it quotes none of the changed lines and names update only for the update
+route (the console's return list, which holds the forward box, and the hung-restart note's "after an update").
+
+**`docs/INSTALL-STATUS.md`, the 22c row.** One word per destination with the brief's link: `at forward` to the newest
+installed AresOS from every system, `at update` only installs a new release; the box is `at forward`; reviews: the
+state machine SAFE (review 3), the guides SAFE (review 6), forward beside update follows review 6 and its review
+follows; the calm test is "previous, restart, forward, restart, then rollback, restart, forward, restart" (it took the
+newer AresOS from the boot menu, then update). The new full fingerprint.
+
+### The tool lines the guides quote, at `5aaeedf2`
+
+Each is a literal in `owner.py` that `test_owner_path` checks: **Newest installed AresOS starts next** (forward's change
+line), **Forward to … confirmed after the restart** (`'forward to '` + `' confirmed after the restart'`), **Update
+installs a new release only from a running AresOS that starts next** (`FORWARD_FIRST`), **The release of these tools is
+installed already** (`RELEASE_INSTALLED`), **… starts next, after the restart**, **… runs and now starts next; no restart
+is waiting**, **… already starts next; nothing changed**, **It runs now**, **It does not run yet: it starts at the next
+restart**, the layout begin refusal **This AresOS does not start next: make it the next start first (** and the
+Bazzite warning's `BACK_TO_ARESOS`. Asserted absent from the update route and from `owner.py`: **Newest AresOS starts
+next** and **newer still**; from the box and "Back to AresOS from stock": the update command, check, the boot-menu
+step and the tools' release.
+
+### Traced cases (`os/tests/ways_back_ledger.py`)
+
+As in the earlier rounds: the reference rules the full model holds to the tools on every reachable edge, so a route
+followed in the ledger is what the tools do. The space is `destination_space`: every state that update, **forward**,
+previous, rollback, keep-stock, title, each restart and each lost finish reach from the model's starts, **758 states**.
+It gained forward because update no longer reorders: without forward it reaches only 427. Each table is a test
+assertion in `test_owner_path`, so every checks run traces it again.
+
+**The last box** (`test_forward_and_back_box_never_installs_a_release`; 751 entries, every state with nothing staged and
+no layout trial). forward, title; after a change a restart with no choice and check; after nothing changed a restart
+only for **It does not run yet**:
+
+| forward runs on | forward does | States | Ends on |
+|---|---|---|---|
+| plain Bazzite, first | change | 88 | the newest installed AresOS runs and starts next, **Forward to … confirmed** |
+| plain Bazzite, not first (taken in the boot menu) | change | 58 | the same |
+| older AresOS, first (after previous) | change | 74 | the same |
+| older AresOS, not first | change | 56 | the same |
+| newest AresOS, not first (taken in the boot menu) | change (**no restart is waiting**) | 126 | the same |
+| newest AresOS, first already | nothing changed, **It runs now** | 100 | there already (63 confirm an earlier change at check) |
+| another system, the newest AresOS first already | nothing changed, **It does not run yet** | 181 | after the restart (154 confirm an earlier change) |
+| a change waits for its restart | STOP **… waits for the restart: restart first** | 68 | nothing changed; the box's STOP line → Help |
+
+forward never stages and never changes the set of deployments in any of them. In 55 of these states update would have
+staged at once (the class reviews 4 and 5 found); the box never runs it. From plain Bazzite previous never stages.
+
+**The stage box's refusal** (`test_stage_box_names_forward_and_the_last_box_leads_back_to_it`, new; the 647 resting
+states): update stages in 55 and has nothing to do in 65; in 143 it names forward with **Update installs a new release
+only from …**, and after the last box (forward, title, restart where needed, check) update stages the bundle's release;
+in 384 it names forward with **The release of these tools is installed already**, and the last box ends on that release
+running and starting next, where update has nothing to do.
+
+**Review 5's connected sequence** (`test_forward_again_after_a_failed_update_a_stock_return_and_previous_never_stages`):
+tools of 28, its finish lost (27, 13, plain Bazzite); rollback; on plain Bazzite update names forward; forward to 27 is
+journalled as forward, so its confirmation reads **Forward to … confirmed**, never **Update to …**; previous to 13;
+forward again: 27 runs and starts next, confirmed, 28 never staged. update on 13 would have staged 28 and its shutdown
+would have removed 27.
+
+**A return that changes nothing** (`test_a_return_that_changes_nothing_completes_without_a_confirmation`, the resting
+states): forward 402 confirmed, 64 nothing changed with no confirmation, 181 nothing changed where an earlier open change
+confirms; previous 395 / 46 / 144; rollback 297 / 20 / 104; keep-stock 138 / 32 / 56. In every case the command's system
+then runs and starts next and check passes.
+
+**The failed-update card**: its routes did not change, and its two traced tests pass as before (37 cases, every one
+ending on the AresOS from before the update or the new release; 29 linked entries, each lost finish shown once).
+
+### Test expectations changed on purpose (B9)
+
+All in `os/tests/test_owner_path.py` except the first; no test was deleted or skipped.
+
+| Test | Old expectation | New expectation | Rule |
+|---|---|---|---|
+| `test_ways_back…test_login_refuses_where_update_would_refuse_or_has_nothing_to_install` | on plain Bazzite: the first switch's **Stock list/pin/pending/BLS changed before switch** | update's line there (`RELEASE_INSTALLED` or `FORWARD_FIRST`), four rows, and update says the same | L, W |
+| `destination_space` | update, previous, rollback, keep-stock, title: 750 states | forward too: 758 (427 without it) | F |
+| `test_update_route_orders_…` | the box's check-first dispatch, `update` and `title`, **Newest AresOS starts next**, **newer still**; the intro's update; the stage box's **Newest installed AresOS starts next** | the box's `forward` and `title`, **Forward to … confirmed**; the intro's forward and "a new release comes only through update"; the stage box's two lines naming forward; the old lines absent from the route and `owner.py`; one fenced update | F, U |
+| `test_forward_and_back_box_never_installs_a_release` | the dispatch on check's running line over 750 states | forward from every state (751 entries), the table above; no update, check, boot-menu step or tools' release in the box | F |
+| new `test_stage_box_names_forward_and_the_last_box_leads_back_to_it` | — | the stage box's refusal followed through the last box (647 states) | U, F |
+| `test_forward_again_after_a_failed_update_…` | the two-step path, then update | forward; the return confirms as **Forward to …** | F |
+| `test_a_return_that_changes_nothing_…` | update's change bullet and update in the trace | forward's change bullet, **Forward to … confirmed**, forward in the trace | F |
+| `test_failed_update_card_checks_first_…` | — | the card and the misbehaves box: "a **Forward to …** confirmation is a return, not this"; no update command on the card | W |
+| `test_stock_procedures_…` | **update** the newest AresOS; **Update to … confirmed**; "forward again with update"; the warning's `'. … installed: run '` | **forward**; **Forward to … confirmed**; "(**forward**)"; layout begin names forward or previous; `BACK_TO_ARESOS` and the layout begin literal | F, W |
+| `test_status_names_22c_…` | — | one word per destination, `at forward`, `at update` only installs, the review to come, the calm test with forward; "`at update` goes to" absent | F |
+
+`test_owner_path` grows from 46 to 47 tests; `running_line` is gone with the dispatch.
+
+### Verified
+
+Local, from the worktree, `TMPDIR=/var/home/ares/pkg22c-work`, `nice -n 10`, one module at a time:
+
+| Command | Result |
+|---|---|
+| `python3 -B -m unittest discover -s os/tests -p test_ways_back.py` (after part 3) | 52 tests, OK |
+| the login test with the old condition put back | 4 failures (the four plain-Bazzite rows); restored |
+| `bundle.py --refresh`, `walk-host.py`, `rebind.py pending` (after parts 1 and 2) | the fingerprint above; 255 sources; 36 bound files, 2 removed |
+| after part 1: `… -p test_owner_bootstrap.py`, `test_checkout_sources.py`, `test_ways_back_probe.py`, `test_owner_walk.py` | 8, 5, 44, 27 tests, OK; `test_owner_equality`: 2 failures, both guide tests (forward in no guide yet) |
+| after part 2: `… -p test_owner_path.py`, `test_owner_entry.py`, `test_owner_equality.py`, `test_owner_session.py`, `test_checkout_sources.py`, `test_ways_back_probe.py`, `test_grub_bls.py`, `test_owner_bootstrap.py` | 47, 3, 10, 16, 5, 44, 6, 8 tests, OK |
+| after part 2: `… -p test_ways_back_reverts.py`, `test_ways_back_compatibility.py`, `test_owner_walk.py`, `test_owner_tools.py`, `test_owner_step_limits.py`, `test_owner_abandon.py` | 20, 21, 27, 13, 4, 6 tests, OK |
+
+`test_owner_update` and the model did not run locally (the model does not drive login; `owner.py` changed, so the
+hosted model job explores the full model). `git diff --check` passed before each commit; each push went through the
+privacy check.
+
+Hosted: `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`, then
+`gh run watch <id> --exit-status --interval 60`.
+
+| Hosted run | Head | Regressions job | Model job |
+|---|---|---|---|
+| **[43574400158](https://github.com/Ares-Empire/AresOS/actions/runs/43574400158)** | **`5aaeedf2`** | **14m04s: `Ran 1109 tests in 788.553s` / `OK`: 0 failures, 0 errors, 0 skipped**; the slice 173,130 states / 3,185,862 edges (165.2 s) | **22m40s: scope `full` (31 dependency paths), 967,215 states / 26,519,328 edges, 820,691 executions, `Ran 1 test in 1330.697s` / `OK`** |
+
+Watch exit 0; the log ends with the unittest summary line and has no `... FAIL`, `... ERROR` or `... skipped` result
+line. 1109 = step 1's 1108 + the new stage-box test. Every test step 1 named as step 2's passed. By this report's
+count it is the branch's 25th checks run (cap 30), about 37 runner minutes; I did not read the ledger from the API.
+
+### JUDGMENT-CALL
+
+1. **login with an AresOS installed runs update's checks, plain Bazzite included**, rather than a new login-only line on
+   plain Bazzite. It then says exactly what update says there (and the same STOPs first), the wording stays in one place,
+   and "login refuses when update would refuse" holds by construction. Changing it is the one condition in `login`.
+2. **The forward box stays the update route's last box, behind the update gate**, although forward needs no gate (it
+   is not one of the walk's sensitive commands). One place for the procedure, its links and its tests; "Back to AresOS
+   from stock" and the misbehaves box lead to it as before. Moving it into its own procedure would shorten the update
+   route further: a section move, its links and the box tests.
+3. **After a change the box restarts even when the title says no restart is waiting** (the newest AresOS taken from the
+   boot menu), as before: the confirmation comes only from a later start, and one completion rule is simpler to follow.
+4. **The stage box follows update's own next step** (forward, then the stage box again) instead of sending its refusal
+   to Help: forward never stages, so the detour cannot install anything. The stick is exported and unplugged first,
+   because reboot refuses with it attached.
+5. **forward's "restart first" STOP leads to Help** (68 traced states, a change waiting for its restart) through the
+   box's STOP line, rather than a bullet of its own: rare in practice, and the box stays short.
+
+### PLAN-GAP
+
+1. **The failed-update card had no return by update** (the brief's "uses forward where it returned with update"). The
+   card's routes are right as they are, forward would be wrong in its not-applied branch, and the one return by update
+   in the failed-update path was the misbehaves box. The card gained one clause (above).
+2. `destination_space` (the guides' traced space) reached its states through update's reorder; with one word per
+   meaning it needs forward among its events (427 states without, 758 with).
+3. Stage 2's rehearsal walks forward (from plain Bazzite, after previous) instead of update for those steps and then
+   removes `forward` from `unwalked_commands`; package 27's rehearsal code (`os/ci/owner_vm.py`,
+   `previous-13-update-refused`) still expects version 2's text (step 1's PLAN-GAP 3).
+4. The board item for a short `aresos <word>` command (#195) is not touched; the words it would wrap are now
+   `forward`, `update`, `previous`, `rollback` and `keep-stock`, one meaning each.
+
+### For the reviewer (read in this order)
+
+1. `os/owner-tools/owner.py` `login` and `installed_aresos` (`git diff 9f39e187 -- os/owner-tools/owner.py`), and the
+   login test.
+2. `docs/INSTALL.md` "Update AresOS to a new release": the intro, the stage box's refusal sentence, the misbehaves box,
+   the last box.
+3. `docs/INSTALL-PROCEDURES.md` "Back to AresOS from stock", later layout, the notice list; `docs/EMERGENCY.md` the
+   confirmed branch; the 22c row of `docs/INSTALL-STATUS.md`.
+4. `os/tests/test_owner_path.py`: `destination_space`, `forward_box`, the box test, the new stage-box test, the
+   connected sequence.
+
+Cleanup: the run logs and helper scripts under `/var/home/ares/pkg22c-work/` are removed with the folder; `.work/` is
+empty (no file over 500 MB); no download was made; no builder-started test or watch process remains; no Gradle daemon
+was started. PR #46 stays draft; nothing was merged or pushed to main.
