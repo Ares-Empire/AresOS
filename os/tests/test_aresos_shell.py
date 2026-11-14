@@ -244,10 +244,11 @@ class ProtocolTest(Base):
         helper.connected(conn)
         reply = self.request(helper, conn, 'hello', 'h-1', major=1, minor=7, capabilities=ALL,
                              requires=['open_app'], instance=INSTANCE, nonce=NONCE, future_field={'x': 1})
-        self.assertEqual(reply['protocol'], 'aresos-shell/1.0')
-        self.assertEqual((reply['id'], reply['ok'], reply['major'], reply['minor']), ('h-1', True, 1, 0))
+        self.assertEqual(reply['protocol'], 'aresos-shell/1.1')
+        self.assertEqual((reply['id'], reply['ok'], reply['major'], reply['minor']), ('h-1', True, 1, 1))
         # Without a compositor there is no window tracking, so no shell_focus.
-        self.assertEqual(set(reply['capabilities']), {'list_apps', 'open_app', 'app_state', 'world_ready', 'heartbeat'})
+        self.assertEqual(set(reply['capabilities']), {'list_apps', 'open_app', 'app_state', 'world_ready', 'heartbeat',
+                                                    'app_details', 'apps_changed', 'list_paging'})
         self.assertIs(helper.desktop, conn)
         again = self.request(helper, conn, 'hello', 'h-2', major=1, minor=0, instance=INSTANCE, nonce=NONCE)
         self.assertEqual(again['error'], 'invalid_state')
@@ -437,7 +438,8 @@ class LaunchTest(Base):
         argv, options = self.popen.call_args.args[0], self.popen.call_args.kwargs
         self.assertEqual(argv, ['/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--collect', '--slice=app.slice',
                                 f'--unit=app-aresos-terminal-{reply["launch_id"]}.scope',
-                                '--description=AresOS app: Terminal', '--', '/usr/bin/foot', '--app-id=aresos.terminal',
+                                '--description=AresOS app: Terminal', '--expand-environment=no', '--',
+                                '/usr/bin/foot', '--app-id=aresos.terminal',
                                 '/usr/bin/bash', '--rcfile', '/usr/share/aresos/bashrc', '-i'])
         self.assertEqual(options['cwd'], '/var/home/ares')
         self.assertTrue(options['start_new_session'])
@@ -1381,8 +1383,16 @@ class StartupTest(Base):
                 return shell.ForeignToplevels.connect(windows, {'WAYLAND_DISPLAY': 'wayland-1',
                                                                 'XDG_RUNTIME_DIR': '/run/user/1001'})
 
-        helper, wayland = shell.build(str(REGISTRY), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
-                                      clock=self.clock, connect=connect)
+        # Review fixes 3, point 4: a HOME and application folder of the test's own, no icon worker, and the discovery
+        # thread stopped, so build() never scans the laptop's real folders or leaves a thread behind.
+        home = pathlib.Path(self.folder.name) / 'home'
+        (home / 'applications').mkdir(parents=True)
+        with mock.patch.object(shell, 'desktop_directories', return_value=(str(home / 'applications'),)), \
+                mock.patch.object(shell, 'IconCache', return_value=mock.Mock(**{
+                    'take.side_effect': lambda apps, revision: (apps, shell.icons_revision(apps, revision))})):
+            helper, wayland = shell.build(str(REGISTRY), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
+                                          clock=self.clock, connect=connect, environ={'HOME': str(home)})
+        self.addCleanup(helper.catalogue.stop)
         # build() starts the scope watcher; left running, its subprocess waits disturbed
         # later tests that patch time.sleep (rehearsal run 8).
         self.addCleanup(helper.watcher.stop)
