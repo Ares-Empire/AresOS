@@ -720,12 +720,21 @@ def open_confined(path, roots, directory=False):
         os.close(pinned)
 
 
-def confined_listing(path, roots):
-    """(name, is a real folder) for each entry of a folder whose real location was checked before listing."""
+def confined_listing(path, roots, limit):
+    """{name: is a real folder} for each entry of a folder whose real location was checked before listing.
+
+    A folder of more than limit entries raises ScanLimit as soon as it shows one too many, so a huge folder is never
+    held in memory.
+    """
     descriptor = open_confined(path, roots, directory=True)
     try:
+        listing = {}
         with os.scandir(descriptor) as entries:
-            return [(entry.name, entry.is_dir(follow_symlinks=False)) for entry in entries]
+            for entry in entries:
+                if len(listing) >= limit:
+                    raise ScanLimit(f'more than {limit} folder entries')
+                listing[entry.name] = entry.is_dir(follow_symlinks=False)
+        return listing
     finally:
         os.close(descriptor)
 
@@ -1240,6 +1249,14 @@ ICON_ADDRESS_SPACE = 256 * 1024 * 1024
 ICON_CACHE_FILES = 2 * MAX_APPS
 ICON_CACHE_BYTES = 32 * 1024 * 1024
 ICON_FILE = re.compile(r'[0-9a-f]{64}\.png\Z')
+# A theme's index.theme (review fixes 3). The laptop's largest, hicolor's, has 55,507 bytes and 649 folders (337 at
+# scale 1); Breeze's has 19,534 bytes and 47 folders.
+ICON_INDEX_BYTES = 256 * 1024
+ICON_INDEX_FOLDERS = 2048
+# Sized folders up to 256 pixels are used first; larger ones, up to this, only when a theme has nothing else.
+ICON_LARGEST = 1024
+# Folder entries one picture pass may list in all: every icon folder on the laptop, all of them listed, has 20,277.
+ICON_LOOKUP_ENTRIES = 131072
 PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
 ICON_LIMITS = ('-limit', 'memory', '64MiB', '-limit', 'map', '0', '-limit', 'disk', '0',
                '-limit', 'time', '2', '-limit', 'thread', '1', '-limit', 'width', str(ICON_SIDE),
@@ -1272,59 +1289,264 @@ def icon_cache_directory(environ=None):
 
 
 def resolve_icon(name, directories, deployments=None):
-    """Lookup at fixed theme/size/context depths.
+    """One lookup on its own; a picture pass shares one IconLookup between all its programs."""
+    return IconLookup(directories, deployments).resolve(name)
 
-    A folder is listed, and a file chosen, only where it really lies inside its own icon root or inside a Flatpak
-    deployment: a Flatpak export's icons are links into its deployment (review 1, FIX 5).
+
+def icon_stat(path, is_folder=False, folder=None, roots=()):
+    """What a picture pass's signature keeps of path. Like the catalogue's, it reads nothing.
+
+    Without folder, path was the pass's to read or list: its stat through links, so a Flatpak update that switches its
+    active link is seen. Of something refused for its kind (a FIFO, a device, a folder where a file belongs or the other
+    way round) only its inode and kind, which change when it is replaced, not while it is used.
+
+    With folder, path resolves outside roots, the real folders allowed to its icon root folder, and was refused
+    (review 4, FIX 1): the lstat of each folder and link on the way from folder to the first step out of roots, and
+    nothing behind it. Replacing the link is seen; a link onto something that keeps changing (a log, or the helper's
+    own picture cache, which a pass changes) never asks for a pass.
     """
-    if not name or '\0' in name:
-        return None
-    if os.path.isabs(name):
-        return name
-    if '/' in name or '..' in name or len(name) > 255:
-        return None
-    names = (name,) if name.endswith(('.png', '.svg')) else (name + '.png', name + '.svg', name)
-    deployments = tuple(os.path.realpath(path)
-                        for path in (flatpak_deployments() if deployments is None else deployments))
-    roots = {folder: (os.path.realpath(folder), *deployments) for folder in directories}
-
-    def listing(folder, *parts):
+    if folder is None:
         try:
-            return confined_listing(os.path.join(folder, *parts), roots[folder])
-        except ValueError as error:
-            LOG.debug('icon folder %s skipped: %s', os.path.join(folder, *parts), error)
+            info = os.stat(path)
         except OSError:
-            pass
-        return []
+            return None
+        if not (stat.S_ISDIR if is_folder else stat.S_ISREG)(info.st_mode):
+            return info.st_ino, stat.S_IFMT(info.st_mode)
+        return info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+    way, links = [], 0
+    current, parts = os.path.realpath(folder), os.path.relpath(path, folder).split(os.sep)
+    while parts:
+        part = parts.pop(0)
+        if part in ('', '.'):
+            continue
+        step = os.path.dirname(current) if part == '..' else os.path.join(current, part)
+        if not within(step, roots):
+            break
+        try:
+            info = os.lstat(step)
+        except OSError:
+            way.append(None)
+            break
+        way.append((info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns))
+        if stat.S_ISLNK(info.st_mode) and links < 40:
+            links += 1
+            try:
+                target = os.readlink(step)
+            except OSError:
+                break
+            parts[:0] = target.split(os.sep)
+            if os.path.isabs(target):
+                current = os.sep
+        elif stat.S_ISDIR(info.st_mode):
+            current = step
+        else:
+            break
+    return tuple(way)
 
-    def candidate(folder, *parts):
-        real = os.path.realpath(os.path.join(folder, *parts))
-        if within(real, roots[folder]) and os.path.isfile(real):
-            return real
+
+def read_icon_index(path, roots):
+    """(folder, size, scalable) for each folder an icon theme's index.theme lists, in its order (review fixes 3).
+
+    Read like a desktop entry: through the checked, pinned descriptor, at most ICON_INDEX_BYTES and
+    ICON_INDEX_FOLDERS folders. A folder at a Scale over 1, or without a Size from 1 to ICON_LARGEST, is left out; a
+    folder name that is not a plain relative path refuses the whole index, and so does an index without an
+    [Icon Theme] group whose Directories names a folder (review 4, SHOULD 4: an empty or garbage file is broken).
+    """
+    with os.fdopen(open_confined(path, roots), 'rb') as handle:
+        if os.fstat(handle.fileno()).st_size > ICON_INDEX_BYTES:
+            raise ValueError(f'index.theme exceeds {ICON_INDEX_BYTES} bytes')
+        raw = handle.read(ICON_INDEX_BYTES + 1)
+    if len(raw) > ICON_INDEX_BYTES:
+        raise ValueError(f'index.theme exceeds {ICON_INDEX_BYTES} bytes')
+    if b'\0' in raw:
+        raise ValueError('NUL in index.theme')
+    groups, group = {}, None
+    for line in raw.decode('utf-8', 'replace').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        if line.startswith('['):
+            if not line.endswith(']'):
+                raise ValueError('invalid group header in index.theme')
+            group = groups.setdefault(line[1:-1], {})
+        elif group is not None and '=' in line:
+            key, _, value = line.partition('=')
+            group.setdefault(key.strip(), value.strip())
+    if 'Directories' not in groups.get('Icon Theme', {}):
+        raise ValueError('index.theme has no [Icon Theme] group with Directories')
+    names = [name.strip() for name in groups['Icon Theme']['Directories'].split(',')]
+    names = list(dict.fromkeys(name for name in names if name))
+    if not names:
+        raise ValueError('index.theme lists no folders')
+    if len(names) > ICON_INDEX_FOLDERS:
+        raise ValueError(f'index.theme lists more than {ICON_INDEX_FOLDERS} folders')
+    folders = []
+    for name in names:
+        if name.startswith('/') or len(name) > 255 or any(part in ('', '.', '..') for part in name.split('/')):
+            raise ValueError(f'index.theme lists the folder {name[:40]!r}')
+        values = groups.get(name, {})
+        size, scale = values.get('Size', ''), values.get('Scale', '1')
+        if (re.fullmatch(r'\d{1,4}', size, re.ASCII) and re.fullmatch(r'\d{1,4}', scale, re.ASCII)
+                and int(scale) == 1 and 0 < int(size) <= ICON_LARGEST):
+            folders.append((name, int(size), values.get('Type', 'Threshold') == 'Scalable'))
+    return folders
+
+
+class IconLookup:
+    """One picture pass's view of the icon folders: each theme's layout is worked out, and each folder listed, at most
+    once however many programs ask (review fixes 3).
+
+    A root whose theme folder holds an index.theme uses the theme's index; the first root that has one speaks for all
+    of them, as the icon theme specification says. A root without one (the home folder, Flatpak exports) keeps the
+    fixed layout <N>x<N>/<context> and scalable/<context>. A broken or oversized index leaves the whole theme on the
+    fixed layout. A folder is listed, and a file chosen, only where it really lies inside its own icon root or inside
+    a Flatpak deployment: a Flatpak export's icons are links into its deployment (review 1, FIX 5). The pass lists at
+    most ICON_LOOKUP_ENTRIES folder entries in all.
+
+    seen holds every root, folder, index and picture the pass looked at, as {path: (how, icon_stat(path, *how))}, taken
+    before it was read: the pass's signature. Anything that could change a lookup's answer changes one of them; what
+    resolved outside its root is kept by the links that lead there, never by what they lead to (review 4, FIX 1).
+    warned ({index path: its signature entry}) is the IconCache's, so each broken index is warned about once for each
+    helper run while it stays as it is.
+    """
+
+    THEMES = ('hicolor', 'breeze')
+
+    def __init__(self, directories, deployments=None, warned=None):
+        self.directories = tuple(directories)
+        deployments = tuple(os.path.realpath(path)
+                            for path in (flatpak_deployments() if deployments is None else deployments))
+        self.roots = {folder: (os.path.realpath(folder), *deployments) for folder in self.directories}
+        self.seen = {}
+        self.warned = {} if warned is None else warned
+        self.listings = {}
+        self.orders = {}
+        self.entries = 0
+        for folder in self.directories:
+            self.note(folder, is_folder=True)
+
+    def note(self, path, folder=None, is_folder=False):
+        """path into the signature before it is read or listed; folder is its icon root when it may lead outside."""
+        if path not in self.seen:
+            how = (is_folder,)
+            if folder is not None and not within(os.path.realpath(path), self.roots[folder]):
+                how = (is_folder, folder, self.roots[folder])
+            self.seen[path] = how, icon_stat(path, *how)
+
+    def listing(self, folder, *parts):
+        """{name: is a real folder} of a folder under the root folder."""
+        path = os.path.join(folder, *parts)
+        if path in self.listings:
+            return self.listings[path]
+        self.note(path, folder, is_folder=True)
+        names = {}
+        if self.entries < ICON_LOOKUP_ENTRIES:
+            try:
+                names = confined_listing(path, self.roots[folder], ICON_LOOKUP_ENTRIES - self.entries)
+            except ScanLimit:
+                LOG.warning('icon lookup stopped after %d folder entries; the programs left keep the fallback look',
+                            ICON_LOOKUP_ENTRIES)
+                self.entries = ICON_LOOKUP_ENTRIES
+            except ValueError as error:
+                LOG.debug('icon folder %s skipped: %s', path, error)
+            except OSError:
+                pass
+        self.entries += len(names)
+        self.listings[path] = names
+        return names
+
+    def layout(self, theme):
+        """(root's position, root, folder under the theme, size, scalable) for each folder that may hold theme's
+        pictures."""
+        index = None
+        for folder in self.directories:
+            if 'index.theme' in self.listing(folder, theme):
+                path = os.path.join(folder, theme, 'index.theme')
+                self.note(path, folder)
+                try:
+                    index = read_icon_index(path, self.roots[folder])
+                except (OSError, ValueError) as error:
+                    # A pass that runs again for another reason does not repeat it (review 4, FIX 1).
+                    if self.warned.get(path) != self.seen[path]:
+                        self.warned[path] = self.seen[path]
+                        LOG.warning('icon theme index %s not used, %s keeps the fixed layout: %s', path, theme, error)
+                break
+        folders = []
+        for position, folder in enumerate(self.directories):
+            names = self.listing(folder, theme)
+            if index is not None and 'index.theme' in names:
+                folders.extend((position, folder, name, size, scalable) for name, size, scalable in index)
+                continue
+            for size_name in sorted(name for name, is_folder in names.items() if is_folder):
+                match = re.fullmatch(r'(\d{1,4})x\1', size_name)
+                if size_name != 'scalable' and not (match and 0 < int(match[1]) <= ICON_LARGEST):
+                    continue
+                size = int(match[1]) if match else 0
+                contexts = self.listing(folder, theme, size_name)
+                folders.extend((position, folder, f'{size_name}/{context}', size, size_name == 'scalable')
+                               for context in sorted(name for name, is_folder in contexts.items() if is_folder))
+        return folders
+
+    def order(self, theme):
+        """theme's folders in lookup order, each with the kinds of file it may give.
+
+        PNGs by size up to 256, largest first, as before, whatever the folder's Type (hicolor's index calls its
+        256x256/apps Scalable); then SVGs, scalable folders first, then sized ones up to 256, largest first; then PNGs
+        over 256, the smallest first. The fixed layout's scalable/ has no size: as before, it gives any kind of file
+        among the scalable folders. Within a step roots break ties, then the folder's place in its index or layout.
+        """
+        if theme not in self.orders:
+            ranked = []
+            for position, folder, name, size, scalable in self.layout(theme):
+                if 0 < size <= 256:
+                    ranked.append(((0, -size, position), folder, name, ('png', 'bare')))
+                elif size > 256:
+                    ranked.append(((3, size, position), folder, name, ('png', 'bare')))
+                if scalable:
+                    ranked.append(((1, 0, position), folder, name, ('svg',) if size else ('png', 'svg', 'bare')))
+                elif size <= 256:
+                    ranked.append(((2, -size, position), folder, name, ('svg',)))
+            ranked.sort(key=lambda item: item[0])
+            self.orders[theme] = [item[1:] for item in ranked]
+        return self.orders[theme]
+
+    def candidate(self, folder, *parts):
+        path = os.path.join(folder, *parts)
+        real = os.path.realpath(path)
+        if not within(real, self.roots[folder]):
+            return None  # the folder that holds it is in the signature, so replacing it is seen
+        if os.path.lexists(path):
+            # Also a link whose file is not there yet: only it shows when that file appears (review 4, SHOULD 2).
+            self.note(path)
+        return real if os.path.isfile(real) else None
+
+    def resolve(self, name):
+        if not name or '\0' in name:
+            return None
+        if os.path.isabs(name):
+            self.note(name)
+            return name
+        if '/' in name or '..' in name or len(name) > 255:
+            return None
+        if name.endswith(('.png', '.svg')):
+            files = ((name, name[-3:]),)
+        else:
+            files = ((name + '.png', 'png'), (name + '.svg', 'svg'), (name, 'bare'))
+        # Theme precedence applies across roots, then the order above. Only listed folders are looked into.
+        for theme in self.THEMES:
+            for folder, relative, kinds in self.order(theme):
+                wanted = [filename for filename, kind in files if kind in kinds]
+                if not wanted:
+                    continue
+                names = self.listing(folder, theme, relative)
+                for filename in wanted:
+                    if filename in names and (path := self.candidate(folder, theme, relative, filename)):
+                        return path
+        for folder in self.directories:
+            for filename, _ in files:
+                if path := self.candidate(folder, filename):
+                    return path
         return None
-
-    # Theme precedence applies across roots, then size, then folder precedence. Fixed depths avoid walking trees.
-    for theme in ('hicolor', 'breeze'):
-        sizes = set()
-        for folder in directories:
-            for size, is_folder in listing(folder, theme):
-                match = re.fullmatch(r'(\d{1,3})x\1', size)
-                if match and 0 < int(match[1]) <= 256 and is_folder:
-                    sizes.add(int(match[1]))
-        for size in [f'{n}x{n}' for n in sorted(sizes, reverse=True)] + ['scalable']:
-            for folder in directories:
-                contexts = sorted(context for context, is_folder in listing(folder, theme, size) if is_folder)
-                for context in contexts:
-                    for filename in names:
-                        if size != 'scalable' and filename.endswith('.svg'):
-                            continue
-                        if path := candidate(folder, theme, size, context, filename):
-                            return path
-    for folder in directories:
-        for filename in names:
-            if path := candidate(folder, filename):
-                return path
-    return None
 
 
 def sniff_icon(raw):
@@ -1468,8 +1690,9 @@ def icons_revision(apps, base_revision):
 class IconCache:
     """One background worker, one bounded converter at a time; requests and results never do file IO.
 
-    Step 4 calls request() after a catalogue rescan and take() on its normal tick. It lists the returned Apps
+    The helper calls request() every CATALOGUE_CHECK seconds and take() on its normal tick. It lists the returned Apps
     and revision, and announces a changed revision only to 1.1 clients. No lookup/probe/conversion is on that path.
+    The worker runs a picture pass for a request only when something changed since the last complete pass (step()).
     """
 
     def __init__(self, environ=None, directories=None, timeout=ICON_TIMEOUT, magick=MAGICK, bwrap=BWRAP,
@@ -1489,6 +1712,18 @@ class IconCache:
         self.thread = None
         self.svg_checked = False
         self.failed = set()
+        # The newest request's revision: only a changed catalogue cuts a running pass short.
+        self.latest = None
+        # (revision, signature) of the last complete pass; None while a pass is due.
+        self.finished = None
+        # Broken theme indexes already warned about (IconLookup.warned).
+        self.warned = {}
+        # Whether the running pass had a picture refused for the cache's budget.
+        self.crowded = False
+        # Once at start rather than once per picture (review fixes 3): without these no picture can be made.
+        missing = [path for path in (bwrap, magick, prlimit) if not os.access(path, os.X_OK)]
+        if missing:
+            LOG.warning('%s missing: programs show without pictures', ', '.join(missing))
 
     def request(self, apps, revision):
         if self.stopping.is_set():
@@ -1499,6 +1734,7 @@ class IconCache:
             self.pending.get_nowait()
         except queue.Empty:
             pass
+        self.latest = revision
         self.pending.put_nowait((dict(apps), revision))
         if self.thread is None:
             self.thread = threading.Thread(target=self.loop, name='aresos-icons', daemon=True)
@@ -1521,28 +1757,51 @@ class IconCache:
                 apps, revision = self.pending.get(timeout=0.1)
             except queue.Empty:
                 continue
-            roots = tuple(os.path.realpath(folder) for folder in (*self.directories, *self.deployments))
-            pictures, complete = set(), True
-            for app in apps.values():
-                if self.stopping.is_set() or not self.pending.empty():
-                    complete = False
-                    break  # the latest rescan supersedes queued work
-                path = None
-                try:
-                    if source := resolve_icon(app.icon_name, self.directories, self.deployments):
-                        # A named icon is read only from inside its folders; an absolute Icon path as written.
-                        path = self.convert(source) if os.path.isabs(app.icon_name) else self.convert(source, roots)
-                except (OSError, ValueError, subprocess.SubprocessError) as error:
-                    LOG.debug('icon for %s skipped: %s', app.id, error)
-                if path:
-                    pictures.add(os.path.basename(path))
-                try:
-                    self.results.put_nowait((revision, app.id, app.icon_name, path))
-                except queue.Full:
-                    complete = False
-                    break  # bounded even if the event loop stops taking answers
-            if complete:
-                self.prune(pictures)
+            self.step(apps, revision)
+
+    def step(self, apps, revision):
+        """One request on the worker; True when it ran a picture pass.
+
+        A pass looks up and converts every program's picture again (about 228 ms of processor time with 59 programs on
+        the laptop), so it runs only when the catalogue's revision changed, when anything the last complete pass looked
+        at changed (its signature: the icon roots, theme folders, indexes, the folders it listed, the pictures it
+        chose and those it made), or when the last pass did not finish (review fixes 3). Checking it only stats.
+        """
+        if self.finished is not None and self.finished[0] == revision and all(
+                icon_stat(path, *how) == info for path, (how, info) in self.finished[1].items()):
+            return False
+        self.finished = None
+        self.crowded = False
+        lookup = IconLookup(self.directories, self.deployments, self.warned)
+        roots = tuple(os.path.realpath(folder) for folder in (*self.directories, *self.deployments))
+        pictures, complete = set(), True
+        for app in apps.values():
+            if self.stopping.is_set() or self.latest != revision:
+                complete = False
+                break  # the latest rescan supersedes this pass
+            path = None
+            try:
+                if source := lookup.resolve(app.icon_name):
+                    # A named icon is read only from inside its folders; an absolute Icon path as written.
+                    path = self.convert(source) if os.path.isabs(app.icon_name) else self.convert(source, roots)
+            except (OSError, ValueError, subprocess.SubprocessError) as error:
+                LOG.debug('icon for %s skipped: %s', app.id, error)
+            if path:
+                pictures.add(os.path.basename(path))
+                # The made picture too: a cleared cache is made again, as the pass on every request used to.
+                lookup.note(path)
+            try:
+                self.results.put_nowait((revision, app.id, app.icon_name, path))
+            except queue.Full:
+                complete = False
+                break  # bounded even if the event loop stops taking answers
+        if complete:
+            freed = self.prune(pictures)
+            # Pictures the full cache refused get one more pass once pruning made room (review 4, SHOULD 3). A cache
+            # full of pictures still in use frees nothing, so it is not asked again.
+            if not (self.crowded and freed):
+                self.finished = (revision, lookup.seen)
+        return True
 
     def prepare(self):
         # Never follow either private cache component to another location.
@@ -1556,7 +1815,9 @@ class IconCache:
             info = os.lstat(path)
             if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
                 raise ValueError('unsafe icon cache directory')
-            os.chmod(path, 0o700, follow_symlinks=False)
+            # Only when needed: every chmod changes the folder, and this runs for each picture, cached or not (review 4).
+            if stat.S_IMODE(info.st_mode) != 0o700:
+                os.chmod(path, 0o700, follow_symlinks=False)
 
     def command(self, work, *arguments, identify=False):
         # Mount runtime libraries, not /usr or the home tree. The only input image is a bounded snapshot.
@@ -1737,6 +1998,7 @@ class IconCache:
         if files < ICON_CACHE_FILES and total + size <= ICON_CACHE_BYTES:
             self.full_logged = False
             return True
+        self.crowded = True
         if not self.full_logged:
             self.full_logged = True
             LOG.warning('icon cache budget (%d files, %d bytes) is used up; new pictures keep the fallback look',
@@ -1745,12 +2007,13 @@ class IconCache:
 
     def prune(self, keep):
         """After a complete pass: remove pictures no listed program uses (removed programs, older generations,
-        earlier runs) and leftovers of interrupted writes."""
+        earlier runs) and leftovers of interrupted writes. Whether it removed a file, which room() counts."""
         try:
             with os.scandir(self.directory) as listing:
                 entries = [(entry.name, entry.is_dir(follow_symlinks=False)) for entry in listing]
         except OSError:
-            return
+            return False
+        freed = False
         for name, is_folder in entries:
             path = os.path.join(self.directory, name)
             try:
@@ -1758,10 +2021,12 @@ class IconCache:
                     shutil.rmtree(path)
                 elif not is_folder and name not in keep and (ICON_FILE.match(name) or name.startswith('.icon-')):
                     os.unlink(path)
+                    freed = True
             except OSError:
                 pass
         self.generations = {source: target for source, target in self.generations.items()
                             if os.path.basename(target) in keep}
+        return freed
 
     @staticmethod
     def normalized(raw):

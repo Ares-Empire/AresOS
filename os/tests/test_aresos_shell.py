@@ -1383,8 +1383,16 @@ class StartupTest(Base):
                 return shell.ForeignToplevels.connect(windows, {'WAYLAND_DISPLAY': 'wayland-1',
                                                                 'XDG_RUNTIME_DIR': '/run/user/1001'})
 
-        helper, wayland = shell.build(str(REGISTRY), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
-                                      clock=self.clock, connect=connect)
+        # Review fixes 3, point 4: a HOME and application folder of the test's own, no icon worker, and the discovery
+        # thread stopped, so build() never scans the laptop's real folders or leaves a thread behind.
+        home = pathlib.Path(self.folder.name) / 'home'
+        (home / 'applications').mkdir(parents=True)
+        with mock.patch.object(shell, 'desktop_directories', return_value=(str(home / 'applications'),)), \
+                mock.patch.object(shell, 'IconCache', return_value=mock.Mock(**{
+                    'take.side_effect': lambda apps, revision: (apps, shell.icons_revision(apps, revision))})):
+            helper, wayland = shell.build(str(REGISTRY), INSTANCE, NONCE, self.journal, launcher=self.launcher(),
+                                          clock=self.clock, connect=connect, environ={'HOME': str(home)})
+        self.addCleanup(helper.catalogue.stop)
         # build() starts the scope watcher; left running, its subprocess waits disturbed
         # later tests that patch time.sleep (rehearsal run 8).
         self.addCleanup(helper.watcher.stop)
