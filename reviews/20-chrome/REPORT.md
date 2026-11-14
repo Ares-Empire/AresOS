@@ -2,38 +2,38 @@
 # Handover
 
 - **Round:** final fixes ([brief](../../briefs/20-final-fixes.md)), answering
-  [REVIEW-FINAL](REVIEW-FINAL.md) and [SECURITY-FINAL](SECURITY-FINAL.md). Claude agents build it in four steps
+  [REVIEW-FINAL](REVIEW-FINAL.md) and [SECURITY-FINAL](SECURITY-FINAL.md). Claude agents build it in five steps
   (owner, board #222). Progress, what is left in order and what the code doesn't show:
   [PROGRESS.md](PROGRESS.md).
-- **Step 1 (Mail and storage) is done:** F1, the Mail sweep changes, F5 and the stale receipt. Commits `b72c81fa`,
-  `b7f58bc6`, `2e5eb35e`.
-- **Step 2 (reader, target, reload, notes) is done:** F2, F3, F6 and the reader and adapter notes; see "Step 2"
-  below. Code commits `f177314b` and `831feceb` (the newline-name row expects the escaped question text).
-- **Step 3 (F7, polkit) is done:** loosening over `chrome.sock` asks the owner's polkit password; see "Step 3"
-  below for the change, the `chrome.sock` message table and the sandboxing reasoning. Commits `f01ef04c` (code, tests,
-  probes) and `5f18ff60` (real-polkit CI case).
-  - **Real polkitd passed:** run `43556395889` (Fedora 45, polkit 127, `pkttyagent`, the unit's sandboxing emulated),
-    all six cases, through `control-chrome-check.yml -f polkit=true`.
+- **Steps 1 to 3 are done:** F1, the Mail sweep, F5 and the stale receipt (`b72c81fa`, `b7f58bc6`, `2e5eb35e`); F2,
+  F3, F6 and the reader and adapter notes (`f177314b`, `831feceb`); F7, polkit confirmation for loosening over
+  `chrome.sock` (`f01ef04c`, `5f18ff60`; real polkitd passed in run `43556395889`).
   - **For linux-aresos at merge:** install `control/chrome/packaging/org.aresos.control.chrome-loosen.policy` at
     `/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy`. The owner's own agent and seat are
     linux-tools' 18c-b image test.
-- **Code head:** **`5f18ff60`**. The full local preflight passes:
-  - **286 Python, 390 Node and 358 mutations**, every mutation baseline passing (Python shards 50/43/100/93; one
-    Linux-only case is skipped on the Mac and runs in CI);
+- **Step 4 is done** (`90f8f720`, `6a948248`; see "Step 4" below):
+  - F4: a call misses the lead's latency ceilings when its median **or** its p95 is over them;
+  - `discard_unsaved` replaces `reload_taken_tab`: the first act, navigate (reload or an address) and close_tab on any
+    Claude tab report unsaved typing by field label, never values, and playing media, and do nothing without it;
+  - the two stale doc notes, and both unit pin tests pin the whole file, comments included;
+  - REPORT's Mail paragraph in the lead's words.
+- **Code head:** **`f850ec7d`** (code `6a948248`, probes `f850ec7d`). The full local preflight passes:
+  - **288 Python, 392 Node and 373 mutations** (Python shards 50/43/100/95), every mutation baseline passing (one Linux-only case is skipped on the Mac and runs in CI);
   - the generator, diff and exact-unit checks (unit byte-identical to `8b7e799c`).
-  - No browser run in steps 1 to 3. The new browser rows (30 destination rows, 3 navigate-reload rows, 14 credential
-    fields) run first in step 4's batched run; they are listed in PROGRESS.md. F7 adds none.
-- **For the lead (F3, security NOTE 1):** an explicit `target=""` keeps Chromium's behaviour (the base target), not
-  HTML's "current navigable". Chromium's anchor and form code falls back to the base target for an empty target,
-  so the spec reading would make the question say `_self` while Chrome uses the base target, the unsafe direction.
-  The browser row `post18d-destination-*-top-empty-target` settles it on the installed Chrome. If it shows the spec
-  behaviour, the change is one line in `browsingTarget` (mutation `final-f3-empty-target` is that line).
-- **Next:**
-  - step 4: F4, the stale doc notes (`managed-settings.draft.comments.md`, `control/README.md`), the unit pin-test
-    comments, one batched browser run, the final preflight and the records.
+- **Next: step 5, one batched browser run** (`gh workflow run control-chrome.yml --ref pkg/20-chrome`). PROGRESS.md
+  lists every row it must see pass: F2, F3 and F6 from step 2; the six new `final-discard-*` rows; the four
+  `*-top-empty-target` rows (follow what Chrome does; the one-line fix is marked by probe `final-f3-empty-target`);
+  F7's Linux-only socket case in the Python shards; latency at 1,000 and 4,000 against the ceilings without the
+  `operation_headers` index.
   - Then the lead's scoped re-check, and only after it the final pair and every Control workflow twice.
-- **Budget:** **255 / about 280** `control-chrome.yml` runs; steps 1 to 3 started none. Step 3 started one
-  `control-chrome-check.yml` run (`43556395889`, polkit only, its browser job skipped).
+- **For the lead (not blocking):**
+  - F3, security NOTE 1: an explicit `target=""` keeps Chromium's behaviour (the base target); the empty-target rows
+    decide it on the installed Chrome.
+  - discard_unsaved: the error code stays `reload_required` for all four acts; back and forward still have no report
+    (the brief lists reload, an address and close); the report also lists text Claude typed and any rich-text
+    editor, since it uses the existing predicate. Details in PROGRESS.md.
+- **Budget:** **255 / about 280** `control-chrome.yml` runs; steps 1 to 4 started none. Step 3 started one
+  `control-chrome-check.yml` run (`43556395889`, polkit only).
 - **Earlier head `a4143586`** (before this round): its Chrome pair, base, boundary and qualification passed. Mail
   `43539458146` passed attempt 1. They are history now: the code has changed, so the final pair reruns everything.
   Never merge the PR or main, and never force-push.
@@ -114,14 +114,15 @@ plain runs averaged; [record](records/post18d/mail-sweep-after-f1.json),
 | 1,000 | 102 → 91 | 105 → 95 | 147 → 109 | 192 → 145 | 154 → 115 | 46 → 11.5 |
 | 4,000 | 402 → 358 | 409 → 363 | 563 → 393 | 756 → 559 | 599 → 431 | 189 → 37 |
 
-- **With history, every call is at or below main** (0.19× to 0.90×).
+- **Mail's calls are at or below main** (the lead accepted this reading on 2026-11-14).
+  - **With history,** every call is at or below main (0.19× to 0.90×).
+  - **In a fresh store,** the roughly 0.1 ms per-result constant (read +0.095 ms; search +0.115 ms, 1.03×; file
+    +0.05 ms, 1.01×) is the accepted cost of a named safety property. Since `f3cfd5b1`, Chrome's open checks and
+    unknown-outcome inputs stay visible in every app's results, read from the committed journal even when SQLite
+    fails. "At or below main" covers it.
+  - It is a constant per result, not growth. The analyst's pre-F1 record shows the same pattern (read +0.07, search
+    +0.09, file +0.10 ms), so F1 and the sweep change did not add it.
 - **Expiry lost the index and still beats main** by 4×–5×.
-- **In a fresh store,** read is +0.095 ms, search +0.115 ms and file +0.05 ms (1.01×–1.03× for search and file).
-  - This is the same per-result Chrome warning check as the accepted read cost.
-  - The analyst's pre-F1 record shows the same pattern: read +0.07, search +0.09, file +0.10 ms.
-  - So this step changed none of it.
-  - It is a constant 0.1 ms per result, not growth. Removing it would remove the safety property above, so it stays
-    unless the lead decides otherwise.
 - **Time per sweep case** on this Mac (`case_cost.py`), main → final:
   - maintenance 11.5 → 12.9 ms (it was 20.2 before);
   - status 37.1 → 42.8 ms;
@@ -337,6 +338,84 @@ seat0 and `allow_active` from the policy's defaults rather than the CI rule; pol
 native host, which runs in a systemd user scope rather than in the login session (polkit then falls back to the
 user's display session); and how his agent shows the message.
 
+## Step 4: latency ceilings, one flag for unsaved typing, doc notes and the unit pins
+
+**F4, the latency ceilings** (`90f8f720`, `control/chrome/ci/latency-check.py`).
+- A call misses the lead's ceilings when its median **or** its p95 is over the ceiling, times the common runner
+  slowdown, as before. The comparison with the frozen reference keeps "both must cross", against runner noise.
+- The `policy` string in `latency-check.json` says so.
+- Tests (`test_latency.LatencyGate`), on the real `latency-reference.json` and `latency-targets.json`:
+  - a median-only breach (read 50/55 ms against 35/60; asking click 65/70 against 60/100) and a p95-only breach
+    (read 30/65; asking click 50/110) each fail alone, as a ceiling miss without a reference regression;
+  - a navigate median over its reference threshold (85 ms) but under its 100 ms ceiling still passes;
+  - the tail-spike test now puts the p95 over the reference threshold but under the ceiling (140 against 150 ms).
+    A p95 over the ceiling now fails: that is the lead's rule.
+  - Round 3's cost-restoration probe still fails all six history-4000 calls through the production command.
+- Probes: `final-f4-median-or-p95-ceiling` (back to "both") and `final-f4-reference-both-cross` (the reference
+  comparison on "either"). Both are rejected.
+
+**One flag for the owner's unsaved typing** (the lead's decision, 2026-11-14; `6a948248`).
+- `discard_unsaved=true` replaces `reload_taken_tab` everywhere: the tool definitions, the adapter, the extension,
+  the generated files, `docs/control/TOOLS.md`, the tests and the CI matrices.
+- It is used by four acts on any Claude tab, through one function (`requireDiscard` in `background.js`):
+  - the first input's guarded reload of a taken tab;
+  - `chrome_navigate direction=reload`;
+  - `chrome_navigate` to an address;
+  - `chrome_close_tab` (its schema gains the flag).
+- **Without the flag** each returns the same `reload_required` report and does nothing. The report:
+  - names each field by its label, never its value: aria-labelledby, aria-label, `<label>`, then placeholder or
+    title, quoted and cut at 80 characters. A labelling node that is or holds an editor is skipped, so no editor
+    text appears, and an unlabelled one is "an unlabelled editor";
+  - lists at most ten fields and counts the rest, counts frames that couldn't be inspected, and says whether media
+    is playing;
+  - names the act ("Reloading this tab", "Navigating this tab away", "Closing this tab", "The guarded reload before
+    this first input") and fits every Claude tab, not only a taken one.
+- **With the flag** the act goes ahead without reading the tab again.
+- **Unchanged:** a POST-loaded or unknown-method document never reloads; the first-act rule stays GET only, first
+  act only, report first. What counts as unsaved is the existing predicate: before a taken tab's first reload every
+  text field and hidden field, in a watched document a changed value, and always an editor or design mode.
+- A tab Claude has just opened shows `about:blank` with no reader and holds nothing, so it isn't counted; the
+  service's own navigation of a new tab passes the flag.
+- The instructions gain one sentence: "When a report lists the owner's unsaved typing or playing media, tell him and
+  get his OK in the chat before setting discard_unsaved."
+- Tests:
+  - Python: the flag reaches the browser for navigate (reload and address) and close_tab and must be a boolean; the
+    instruction sentence; the service's navigation of a new tab passes it.
+  - Node: navigate to an address and close_tab give the report without the flag, refuse with `false` or `1`, act
+    with `true` without reading again, and act without it on a clean tab; a new tab's `about:blank` holds nothing,
+    other frames without an answer count; ten fields and a count. The reader names fields by label and never a value,
+    editor text or a label holding an editor, and caps long labels.
+- Probes: 11 `final-discard-*` (the address check, the close check, the flag only on `true`, the new-tab exception,
+  the first act's uncovered frames, labels not values, no editor text in a label, the cap, the close schema, the
+  instruction, the new tab's flag). Eight earlier probes now point at the shared report: `final-f6-*`,
+  `final-notes-reload-tool-text`, `P24-last-check`, `P24-audible`, `P24-uncovered`, `P24-unreadable` and
+  `post18d-late-reload-privacy`. All are rejected.
+- **Browser rows for step 5** (`GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload` in
+  `control/chrome/ci/review-matrices.mjs`, next to `final-navigate-reload-*`):
+  - `final-discard-navigate-url-{dirty,web-audio,clean}` in a taken tab: the report names `field "Draft"` and not its
+    value, the page stays, and the flag moves on; the clean tab moves without it;
+  - `final-discard-close-tab-{dirty,web-audio,clean}` in a tab Claude opened (Claude's click starts the Web Audio):
+    the report, the tab stays controlled, and the flag closes it.
+- **CI harness:** `nav()`, the two direct navigations in `matrices.mjs` and every cleanup `close_tab` abandon their
+  own state, so they pass the flag, which keeps their earlier behaviour. The latency fixture's Send clears its draft
+  after sending, as a compose page does, so the measured navigate runs the report on a clean page in both runtimes.
+
+**Doc notes.** `control/settings/managed-settings.draft.comments.md` says eight asking rules, names Chrome's two, and
+says `user-mcp.json` installs `chrome`, `control` and `mail`. `control/README.md` says `chrome.sock` accepts the
+configured owner uid, mode 0666, and that loosening asks for his polkit password once for each change.
+
+**Unit pins.** `control/tests/test_unit.py` and `control/chrome_tests/test_unit.py` pin the whole unit file, comments
+and blank lines included. The unit is unchanged (byte-identical to `8b7e799c`). Probes
+`final-notes-unit-comment-pin` and `final-notes-unit-header-pin` change one comment each and are rejected.
+
+**Full local preflight on `f850ec7d`:** 288 Python (shards 50/43/100/95; the Linux-only socket case is skipped on the
+Mac), 392 Node and 373 mutations, every baseline passing, plus the generator, diff and exact-unit checks. The first
+run on `6a948248` stopped at four earlier probes that named the replaced inline check; `f850ec7d` points them at the
+shared report.
+
+**Mail.** The per-call paragraph in Step 1 says it the lead's way: at or below main, with the fresh-store constant
+named as the cost of its safety property.
+
 # Post-18d integration — final repetitions pending
 
 **Current status:** the base-URL/SVG class, credential/late-reader work, slim
@@ -403,7 +482,12 @@ asking click 60/100 and approval-to-done 700/850 ms. `latency-targets.json` is
 rebuilt 11-10 baseline `ab7aba92`.
 
 The fixed 525 ms input wait remains; the accepted click/fill ceilings
-allow runner variation without hiding a new history-dependent scan. The relative
+allow runner variation without hiding a new history-dependent scan. **Since the
+final fixes (F4), a call misses the lead's ceilings when its median or its p95 is
+over the ceiling** (times the common runner slowdown); against the frozen
+reference both must still cross, so one tail spike from runner noise alone doesn't
+fail. Before F4 both had to cross the ceilings too, so a read at 50/55 ms against
+35/60 passed; it now fails. The relative
 check also compares work after subtracting each sample's own fixed wait and
 scales against the paired old runtime, so the absolute ceilings are not the only
 regression check. The production gate passes both optimized profiles and fails

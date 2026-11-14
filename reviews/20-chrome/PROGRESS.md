@@ -1,6 +1,6 @@
 # Package 20, final fixes: progress
 
-Brief: [`briefs/20-final-fixes.md`](../../briefs/20-final-fixes.md). Claude agents build it in four steps, one fresh
+Brief: [`briefs/20-final-fixes.md`](../../briefs/20-final-fixes.md). Claude agents build it in five steps, one fresh
 agent each. The last step deletes this file.
 
 ## Done
@@ -86,32 +86,54 @@ Commits `f01ef04c` (code, tests, probes) and `5f18ff60` (real-polkit CI case); d
 - **Full local preflight on `5f18ff60`:** 286 Python (shards 50/43/100/93; the Linux-only real-socket case is
   skipped on the Mac), 390 Node and 358 mutations, plus the generator, diff and unit-pin checks, all green.
 
+### Step 4 (latency ceilings, discard_unsaved, doc notes, unit pins), Claude Opus 5.5, 2026-11-14
+
+Commits `90f8f720` (F4) and `6a948248` (the flag, doc notes, unit pins); details in REPORT.md, "Step 4".
+- **F4:** a call misses the lead's ceilings when its median or its p95 is over the ceiling; the reference comparison
+  keeps "both must cross". Probes `final-f4-*`.
+- **discard_unsaved** (the lead's decision) replaces `reload_taken_tab` everywhere. The first act, navigate reload,
+  navigate to an address and close_tab on any Claude tab share one report (`requireDiscard`): fields by label,
+  never values, frames that couldn't be inspected, playing media. Without the flag nothing happens. One sentence in
+  `instructions_for('chrome')`. Probes `final-discard-*` (11) plus eight earlier ones repointed (`f850ec7d` for four of them).
+- **Doc notes** (`managed-settings.draft.comments.md`, `control/README.md`) and **unit pins** (whole file,
+  comments included; probes `final-notes-unit-*`).
+- **Mail paragraph** in REPORT's Step 1 in the lead's words, with the table from `mail-sweep-after-f1.json`.
+- **Full local preflight on `f850ec7d`:** 288 Python (shards 50/43/100/95; the Linux-only socket case is skipped on
+  the Mac), 392 Node and 373 mutations, plus the generator, diff and unit-pin checks, all green.
+
 ## Left, in order
 
-1. **Step 4:**
-   - F4 (latency ceilings fail on median or p95);
-   - the stale doc notes: `control/settings/managed-settings.draft.comments.md` (eight rules, not six) and
-     `control/README.md:31` (`chrome.sock` accepts the owner's user id);
-   - the service-unit pin-test comments (`control/tests/test_unit.py:10`, `control/chrome_tests/test_unit.py:10`);
-   - **one batched browser run** (`gh workflow run control-chrome.yml --ref pkg/20-chrome`) for the rows of F2, F3,
-     F6 and F7. F7 adds no browser row: the details page's logic runs in `details.test.mjs` against an in-memory
-     DOM, and the dialog itself is polkit's (CI case above, the owner's real agent in 18c-b). The run's Python
-     shards also run `test_owner_confirm.py`'s Linux-only case (a real spoofing process on a real socket), skipped
-     on the Mac. Step 2's rows are already wired into the suite and need no further change:
-     - **F3:** 30 rows in `GROUP 3 POST18D absolute destinations inherited bases targets and form owners`
-       (`control/chrome/ci/destination-fixtures.mjs`, `finalTargetRows`; 96 rows in all, audited by
-       `destination-evidence.mjs`). Ids: `post18d-destination-{area,svg-href,svg-xlink}-{top,blank,srcdoc}-target`,
-       `post18d-destination-form-action-{top,blank,srcdoc}-owner`, and in the top document `…-owner-target`,
-       `…-decoy-target`, `…-sanitize-newline-target`, `…-sanitize-bracket-target`, `…-xlink-show`, `…-empty-target`.
-     - **F6:** three rows (`final-navigate-reload-{dirty,web-audio,clean}`) at the end of `GROUP 8 REVIEW iframe
-       drafts and detached or Web Audio report before reload` (`control/chrome/ci/review-matrices.mjs`).
-     - **F2:** 14 credential fields and two ordinary ones (`Distanz`, `Tank`) on the late-reader page
-       (`control/chrome/ci/late-reader-fixtures.mjs`), checked by `GROUP 7 POST18D credentials and revealed passwords
-       stay unreadable before take reload` and `GROUP 7 POST18D typed field reads require exact one-call approval`.
-     - The withheld-form text check in `control/chrome/ci/late-binding-matrix.mjs` matches the new refusal text.
-   - the final preflight;
-   - the records, the Handover and KNOWN-LIMITS;
-   - deleting this file.
+1. **Step 5: one batched browser run**, `gh workflow run control-chrome.yml --ref pkg/20-chrome` (budget: 255 of
+   about 280 used; steps 1 to 4 started none). Every row below must pass; the whole suite runs in it.
+   - **F2:** 14 credential fields and two ordinary ones (`Distanz`, `Tank`) on the late-reader page
+     (`control/chrome/ci/late-reader-fixtures.mjs`), checked by `GROUP 7 POST18D credentials and revealed passwords
+     stay unreadable before take reload` and `GROUP 7 POST18D typed field reads require exact one-call approval`.
+     The withheld-form text check in `control/chrome/ci/late-binding-matrix.mjs` matches the refusal text.
+   - **F3:** 30 rows in `GROUP 3 POST18D absolute destinations inherited bases targets and form owners`
+     (`control/chrome/ci/destination-fixtures.mjs`, `finalTargetRows`; 96 rows in all, audited by
+     `destination-evidence.mjs`): `post18d-destination-{area,svg-href,svg-xlink}-{top,blank,srcdoc}-target`,
+     `post18d-destination-form-action-{top,blank,srcdoc}-owner`, and in the top document `…-owner-target`,
+     `…-decoy-target`, `…-sanitize-newline-target`, `…-sanitize-bracket-target`, `…-xlink-show`, `…-empty-target`.
+   - **The four `*-top-empty-target` rows: follow what Chrome does** (the lead). If Chrome treats an empty target as
+     missing (the base target), keep the code and record that. If it follows the spec literally (the current
+     navigable), apply the one-line fix the probe `final-f3-empty-target` marks in `browsingTarget` (an explicit
+     empty string is `_self`), flip the row expectation in `destinationExpectation`, and record what was observed.
+   - **F6 and discard_unsaved,** all in `GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload`
+     (`control/chrome/ci/review-matrices.mjs`):
+     - `final-navigate-reload-{dirty,web-audio,clean}` (now with `discard_unsaved` and the new report text);
+     - `final-discard-navigate-url-{dirty,web-audio,clean}` (a taken tab; the report names `field "Draft"`, the page
+       stays, the flag moves on);
+     - `final-discard-close-tab-{dirty,web-audio,clean}` (a tab Claude opened; Claude's click starts the Web Audio;
+       the tab stays controlled until the flag closes it).
+   - **F7:** `test_owner_confirm.py`'s Linux-only case (a real spoofing process on a real socket) in the CI Python
+     shards; it is skipped on the Mac. F7 has no browser row.
+   - **Latency:** Chrome's latency at the 1,000 and 4,000 histories against the ceilings, now without the
+     `operation_headers` index and with F4's rule (median or p95). The measured navigate now runs the unsaved
+     report (one reader query per frame).
+   - If a row fails, fix the cause, not the assertion; every new browser rule (F3's target rules, the report text)
+     comes from Chromium's source or the Node fixtures, not yet from a browser.
+2. **Records:** the run's receipts, REPORT's Handover, KNOWN-LIMITS for anything the run shows; then delete this
+   file. Then the lead's scoped re-check, and only after it the final pair and every Control workflow twice.
 
 ## What the code doesn't show
 
@@ -151,10 +173,20 @@ Commits `f01ef04c` (code, tests, probes) and `5f18ff60` (real-polkit CI case); d
   rule and use `xlink:show="new"` only for an empty own target; an iframe name keeps a newline. Step 4's rows check
   them; the `xlink-show` rows check removing `xlink:show` (the `_blank` binding before it is checked only by the
   reader tests), so no extra tab opens during the suite.
-- **Open for the lead (security FIX 1's side note, not in the brief):** `chrome_navigate(url)` and
-  `chrome_close_tab` on a taken tab before its first reload still drop unsaved text without a report.
-- **F6 covers every Claude tab:** a navigate reload in a tab Claude opened also reports unsaved text (for example
-  text Claude typed) and needs `reload_taken_tab=true`. The message keeps the words "this taken tab".
+- **discard_unsaved, for the lead** (none of these blocks step 5):
+  - The error code stays `reload_required` for all four acts, so the code and the report stay one pattern. The
+    name doesn't fit navigating to an address or closing; the report text names the act. A rename (for example
+    `unsaved_changes`) is a small separate change if wanted.
+  - **Back and forward** still drop a document without the report: the brief lists reload, an address and close.
+    They are the last members of the class; adding them is one `requireDiscard` call each, plus browser rows.
+  - The report uses the existing predicate, so in a Claude tab it also lists text Claude typed itself, and it
+    always lists a rich-text editor (there is no native default to compare). Claude repeats with the flag for its
+    own typing; for an editor it can't tell apart, the instructions send it to the owner. Telling his typing from
+    Claude's would need a per-field record of what Claude's input left, which is a new design.
+  - `chrome_close_tab` while a native dialog is open can't query the frame, so it counts as not inspected and needs
+    the flag.
+  - CI harness: `nav()`, two direct navigations in `matrices.mjs` and every cleanup `close_tab` pass the flag; the
+    latency fixture's Send clears its draft after sending (both runtimes see the same page).
 - **Credential false positives:** a control named only by a short credential word (a "PIN" or "Secret" button) is
   withheld and refused for input, as "PIN" already was. KNOWN-LIMITS says so.
 - **Generated files changed:** `control/generated/chrome-tools.json`, `chrome-instructions.txt` and
