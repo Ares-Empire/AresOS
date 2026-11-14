@@ -724,8 +724,9 @@ How the icon becomes blocks (`docs/design/HUB.md`, section 3.6):
   block for each, three blocks deep. A cell takes the main colour that covers
   most of it, never a mix of two, so an edge is clean; a thin line of another
   main colour is kept as a line one cell wide, and a speck smaller than a cell
-  is left out. An icon with more than six main colours (a photo, many hues)
-  keeps a colour of its own in each cell.
+  is not drawn as a line: it shows only where it covers most of a cell. An
+  icon with more than six main colours (a photo, many hues) keeps a colour of
+  its own in each cell.
 - The blocks are picked from 60: the wall's 48 plus red mushroom block,
   emerald, lapis, amethyst, snow, iron, polished diorite, smooth stone, smooth
   sandstone, honeycomb, prismarine bricks and blue ice. The nearest block is
@@ -738,9 +739,11 @@ How the icon becomes blocks (`docs/design/HUB.md`, section 3.6):
   (`./gradlew measureBlockColours` prints them); only the numbers are in this
   repo.
 - These are the rules of converter 2 (package 39). A town logo that an older
-  converter drew is drawn again where it stands, the next time the town runs;
-  a gate built with `/aresos logo` keeps its blocks until it is removed and
-  built again.
+  converter drew is drawn again where it stands, the next time the town runs,
+  with two exceptions: a logo whose place is not loaded is drawn again when you
+  come near, and a logo with a block of yours in it moves one place on, as with
+  `hub rebuild` (your block stays). A gate built with `/aresos logo` keeps its
+  blocks until it is removed and built again.
 - The doorway is cut out. Its back is black concrete, and so are the posts
   beside it and the bar above it wherever the icon has no block there.
 - An app without a readable icon gets a plain front in its group's colour.

@@ -65,9 +65,10 @@ public final class GateBuilder {
 
     /**
      * How far a light block melts: ice goes at block light 11 and snow at 12, and a level-15 light block still
-     * gives 11 four cells away.
+     * gives 11 four cells away. The farthest a build or a removal looks around a gate's cells: the town's tests hold
+     * ground that reaches this far around every logo they build.
      */
-    private static final int LIGHT_MELTS = 4;
+    public static final int LIGHT_MELTS = 4;
 
     private GateBuilder() { }
 
