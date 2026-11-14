@@ -470,21 +470,34 @@ public final class TownGameTests {
         check(gone.lines().equals(List.of("Chrome is no longer installed. Its logo came down; its place is kept for its return.")), "Chrome gone: " + gone.lines());
         check(place(server, "keep-chrome").equals("none") && "N1R0".equals(fake.get("keep-chrome").place()), "Chrome's place is not remembered");
 
-        // A light he changed is his and stays, and it does not hold the logo up (the orchestrator's decision 2).
+        // A light he changed is his and stays, however he changed it and even when he changed it back (review fixes 1,
+        // step B, point 1): the record lets go of it the moment its state changes, without anyone asking. One light
+        // goes 15 -> 3 -> 15, the other wet -> dry; both are as the mod placed them again when Mail leaves. Neither holds
+        // the logo up (the orchestrator's decision 2).
         var mailPlan = Town.plan(HubData.get(server), fake.get("keep-mail"), Place.parse("N0L0").orElseThrow(), fake.ring);
-        BlockPos light = mailPlan.lights().getFirst();
-        level.setBlockAndUpdate(light, Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, 3));
-        check(!HubData.get(server).holds(level, light), "A light he changed is still the mod's");
+        BlockPos light = mailPlan.lights().getFirst(), wet = mailPlan.lights().getLast();
+        var full = Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, 15);
+        level.setBlockAndUpdate(light, full.setValue(LightBlock.LEVEL, 3));
+        level.setBlockAndUpdate(light, full);
+        level.setBlockAndUpdate(wet, full.setValue(LightBlock.WATERLOGGED, true));
+        level.setBlockAndUpdate(wet, full);
+        var mailRecord = HubData.get(server).logo("keep-mail").orElseThrow().gate().placed();
+        check(!wet.equals(light) && mailRecord.stream().noneMatch(placed -> placed.pos().equals(light) || placed.pos().equals(wet))
+                && !HubData.get(server).blocks(level.dimension()).containsKey(light) && !HubData.get(server).blocks(level.dimension()).containsKey(wet),
+                "A light he changed and changed back is still in the record");
         fake.change("keep-mail", app -> app.withMine(false));
         var left = fake.pass(server);
         check(left.lines().equals(List.of("Mail left My apps. Its logo came down.")), "Mail left: " + left.lines());
-        check(level.getBlockState(light).is(Blocks.LIGHT) && level.getBlockState(light).getValue(LightBlock.LEVEL) == 3, "His light did not stay");
+        check(level.getBlockState(light).equals(full) && level.getBlockState(wet).equals(full), "His lights did not stay: " + level.getBlockState(light) + ", " + level.getBlockState(wet));
         var area = new HashSet<BlockPos>(mailPlan.space());
         area.addAll(mailPlan.floor());
         area.addAll(mailPlan.doormat());
         area.addAll(mailPlan.blocks().keySet());
         area.remove(light);
+        area.remove(wet);
         for (var pos : area) check(level.getBlockState(pos).equals(before.get(pos)), "After Mail left " + pos.subtract(home) + " is " + level.getBlockState(pos));
+        level.setBlockAndUpdate(light, Blocks.AIR.defaultBlockState());
+        level.setBlockAndUpdate(wet, Blocks.AIR.defaultBlockState());
 
         // The far place: still waiting. Its chunks are loaded next, with a ticket of this test's own.
         var farPlan = Town.plan(HubData.get(server), fake.get("keep-far"), Place.parse("N40L0").orElseThrow(), fake.ring);
