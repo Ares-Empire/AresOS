@@ -73,7 +73,12 @@ import static dev.aresos.test.ModeInventoryFixtures.registerStateReceiver;
 public final class GettingAroundGameTests {
     private static final String TOWN = "aresos-test:go_town";
     private static final String NO_TOWN = "aresos-test:go_no_town";
-    private static final int LOAD_TICKS = 400_000;
+    /**
+     * How long a test may wait for its far-off chunks. The test server ticks without pause while tests wait (400,000
+     * ticks passed in 8 seconds on the laptop while another build ran, too short to load a town on new ground), so this
+     * is counted generously: it only says how long a test waits before it fails.
+     */
+    private static final int LOAD_TICKS = 4_000_000;
 
     private static void check(boolean condition, String message) { if (!condition) throw new AssertionError(message); }
 
