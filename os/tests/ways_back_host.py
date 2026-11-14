@@ -165,11 +165,16 @@ class Host(KeyboardMachine):
             assert argv in (['rpm-ostree', 'status', '--json'], ['bootc', 'status', '--json']), argv
             return json.dumps(self.state['rpm' if argv[0] == 'rpm-ostree' else 'bootc'])
         # Real script assertions run before we log any mutation or invoke the primitive.
-        with patch('subprocess.check_output', side_effect=read), patch('subprocess.run', side_effect=run), contextlib.redirect_stdout(io.StringIO()):
+        with patch('subprocess.check_output', side_effect=read), patch('subprocess.run', side_effect=run), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             try:
                 exec(code, {})
             except AssertionError as error:
-                raise base.owner.Stop('Shared step failed: ' + name) from error
+                # python3 ends an uncaught assertion with exit status 1.
+                raise base.owner.Failed('Shared step failed: ' + name, 1) from error
+            except SystemExit as error:
+                # The script's own exit status, as owner.Host.script reports it.
+                raise base.owner.Failed('Shared step failed: ' + name, error.code if isinstance(error.code, int) else 1) from error
         if name == 'update':
             line, = [line for line in tail.splitlines() if line.startswith('bootc switch --retain ')]
             reference = line.split()[-1]

@@ -19,6 +19,7 @@ import subprocess
 import unittest
 import time
 import textwrap
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import test_owner_update as base
@@ -251,9 +252,20 @@ class ScriptTest(unittest.TestCase):
                     raise subprocess.CalledProcessError(1, argv)
                 index = int(argv[3])
                 model['rows'] = after if after is not None else [model['rows'][index], *[r for i, r in enumerate(model['rows']) if i != index]]
+        self.stderr = io.StringIO()
         with patch('subprocess.check_output', side_effect=read), patch('subprocess.run', side_effect=run), \
-                contextlib.redirect_stdout(io.StringIO()):
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(self.stderr):
             exec(compile(source, 'start-next.sh', 'exec'), {})
+
+    def refused(self, rows, expected=None):
+        """A refusal before any change: exit status 3 (review 2), one read, no ostree call."""
+        with self.assertRaises(SystemExit) as caught:
+            self.run_script(rows, expected=expected)
+        self.assertEqual(caught.exception.code, owner.REFUSED_BEFORE_CHANGE)
+        self.assertEqual(self.calls, ['read'])
+        self.assertTrue(self.stderr.getvalue().startswith('STOP: '), self.stderr.getvalue())
+        self.assertTrue(self.stderr.getvalue().endswith('; nothing was changed\n'), self.stderr.getvalue())
+        return self.stderr.getvalue()
 
     def others(self):
         return [dict(self.TARGET, checksum='c' * 64, serial=0, pinned=False, booted=True), dict(self.TARGET, checksum='d' * 64, serial=0, pinned=False)]
@@ -274,9 +286,8 @@ class ScriptTest(unittest.TestCase):
                  'other reference': [a, dict(self.TARGET, **{'container-image-reference': 'ostree-image-signed:docker://example/other:stable'}), b],
                  'staged row': [dict(b, staged=True), a, self.TARGET], 'already first': [self.TARGET, a, b]}
         for name, rows in cases.items():
-            with self.subTest(name=name), self.assertRaises(AssertionError):
-                self.run_script(rows)
-            self.assertEqual(self.calls, ['read'])
+            with self.subTest(name=name):
+                self.refused(rows)
 
     def test_fresh_read_must_equal_the_callers_snapshot_before_any_mutation(self):
         a, b = self.others()
@@ -285,25 +296,50 @@ class ScriptTest(unittest.TestCase):
                  [a, dict(b, serial=9), self.TARGET], [dict(a, booted=False), dict(b, booted=True), self.TARGET],
                  [dict(a, **{'requested-packages': ['outside-change']}), b, self.TARGET])
         for rows in cases:
-            with self.subTest(rows=rows), self.assertRaisesRegex(AssertionError, 'changed outside the tools'):
-                self.run_script(rows, expected=expected)
-            self.assertEqual(self.calls, ['read'])
+            with self.subTest(rows=rows):
+                self.assertIn('changed outside the tools', self.refused(rows, expected=expected))
 
     def test_removing_snapshot_guard_fails_the_outside_writer_regression(self):
         real = pathlib.Path.read_text
         def without_snapshot(path, *args, **kwargs):
             text = real(path, *args, **kwargs)
             if path.name == 'start-next.sh':
-                before = "assert before == json.loads(bytes.fromhex('@BEFORE@')), \\\n    'STOP: deployment list changed outside the tools since the intent; nothing was changed; get help'"
+                before = ("if before != json.loads(bytes.fromhex('@BEFORE@')):\n"
+                          "    refuse('deployment list changed outside the tools since the intent')")
                 self.assertEqual(text.count(before), 1)
                 return text.replace(before, 'pass')
             return text
         result = unittest.TestResult()
         with patch.object(pathlib.Path, 'read_text', without_snapshot):
-            DestinationTest('test_outside_reorder_between_intent_and_script_does_not_add_an_owner_mutation').run(result)
+            DestinationTest('test_outside_reorder_before_the_script_closes_the_intent_and_every_way_back_works').run(result)
         self.assertEqual(result.errors, [])
-        self.assertEqual(len(result.failures), 1)
-        self.assertIn('ostree admin set-default 2', result.failures[0][1])
+        # One failure per boot choice of the regression, each where the owner's reorder ran anyway.
+        self.assertEqual(len(result.failures), 4)
+        for _, failure in result.failures:
+            self.assertIn('ostree admin set-default 2', failure)
+
+    def test_the_host_reports_a_steps_own_exit_status(self):
+        """owner.Host.script: a non-zero exit status travels with the STOP (Failed.code), so that
+        start_next can tell the script's refusal before any change from every other failure."""
+        class Ended:
+            def __init__(self, reason, code):
+                self.reason, self.process, self.stdout = reason, SimpleNamespace(returncode=code), ''
+            def wait(self, timeout):
+                return self.reason
+            def stop(self):
+                return True
+            def record(self, *unused):
+                return {}
+        host = owner.Host()
+        for reason, code, kind in (('failed', owner.REFUSED_BEFORE_CHANGE, owner.Failed), ('failed', 1, owner.Failed),
+                                   ('failed', -9, owner.Failed), ('failed', 0, owner.Stop), ('timed out', None, owner.Stop)):
+            with self.subTest(reason=reason, code=code), patch.object(host, 'start', lambda text, name: Ended(reason, code)), \
+                    self.assertRaises(owner.Stop) as caught:
+                host.script('', 'start-next')
+            self.assertIs(type(caught.exception), kind)
+            if kind is owner.Failed:
+                self.assertEqual(caught.exception.code, code)
+                self.assertEqual(str(caught.exception), 'Shared step failed: start-next; preserve diagnostics and do not reboot')
 
     def test_a_wrong_list_afterwards_or_a_failed_call_fails(self):
         a, b = self.others()
@@ -344,21 +380,78 @@ class DestinationTest(Unchanged, unittest.TestCase):
                         self.assertEqual(value['word'], {'stock': 'keep-stock' if running == 'S' else 'rollback'}.get(word, word))
                         self.assertEqual(tools.load('title')['state'], host.state)
 
-    def test_outside_reorder_between_intent_and_script_does_not_add_an_owner_mutation(self):
-        with laptop(listed((R21, R13, 'S'), R21)) as (tools, host, store):
-            original = copy.deepcopy(host.state['rpm']['deployments'])
-            script = host.script
-            drifted = listed((R13, R21, 'S'), R21)
-            def drift(text, name, mutation=True):
-                self.assertEqual(name, 'start-next')
-                self.assertEqual(journal(store)['before'], [list(owner.key(r)) for r in original])
-                host.state = copy.deepcopy(drifted)
-                return script(text, name, mutation)
-            with patch.object(host, 'script', drift), self.assertRaises(owner.Stop):
-                tools.recover()
-            self.assertEqual(host.changes, [])
-            self.assertEqual(host.state, drifted)
-            self.assertEqual(journal(store)['status'], 'intent')
+    def test_outside_reorder_before_the_script_closes_the_intent_and_every_way_back_works(self):
+        """Review 2, finding 1: rollback journals [R27*, R13, S] -> [S, R27*, R13]; an outside writer
+        makes the list [R13, R27*, S] before the script reads it. The script refuses before
+        set-default, which is certain, so the intent is closed. Then every command surveys the list
+        as it is: at once, and after a restart on each boot choice."""
+        drifted = listed((R13, R21, 'S'), R21)
+        for choice in (None, 0, 1, 2):  # no restart yet; then a start of each row of the drifted list
+            with self.subTest(choice=choice), laptop(listed((R21, R13, 'S'), R21)) as (tools, host, store):
+                original = copy.deepcopy(host.state['rpm']['deployments'])
+                script = host.script
+                def drift(text, name, mutation=True):
+                    self.assertEqual(name, 'start-next')
+                    self.assertEqual(journal(store)['before'], [list(owner.key(r)) for r in original])
+                    host.state = copy.deepcopy(drifted)
+                    return script(text, name, mutation)
+                with patch.object(host, 'script', drift), self.assertRaises(owner.Stop) as caught:
+                    tools.recover()
+                self.assertEqual(host.changes, [])
+                self.assertEqual(host.state, drifted)
+                self.assertIsNone(journal(store), 'the refused intent is still open')
+                self.assertEqual(archived(store), ['refused-before-change'])
+                self.assertEqual(str(caught.exception), 'The deployment list changed outside the tools before the rollback to '
+                    + owner.image_reference(row('S')) + '; nothing was changed and the change is closed; '
+                    'run sudo /var/lib/ares/at check to see what runs and what starts next')
+                if choice is not None:
+                    restart(tools, host, choice)
+                order, running = roles(host)
+                lines = tools.title()
+                self.assertEqual(tools.notes, [])  # nothing is left to resolve
+                self.assertEqual(lines[0].endswith(' runs and starts next'), running == R13)
+                tools.reboot()
+                # Every destination is one command away, each from the same state.
+                for destination, method in (('S', lambda: tools.recover(running == 'S')), (R13, tools.previous), (R21, tools.update)):
+                    kept = (copy.deepcopy(host.state), {q.name: q.read_bytes() for q in store.iterdir()})
+                    method()
+                    self.assertEqual(roles(host), ([destination, *[r for r in order if r != destination]], running))
+                    host.state = kept[0]
+                    for q in store.iterdir():
+                        q.unlink()
+                    for name, raw in kept[1].items():
+                        (store / name).write_bytes(raw)
+                # Recovery: the refused change typed again goes through, and its own target's start confirms it.
+                tools.recover(running == 'S')
+                self.assertEqual(roles(host), (['S', *[r for r in order if r != 'S']], running))
+                restart(tools, host)
+                self.assertEqual(roles(host)[1], 'S')
+                self.assertTrue(any(line.endswith(' confirmed after the restart') for line in tools.title()))
+                self.assertEqual(archived(store), ['confirmed', 'refused-before-change'])
+
+    def test_a_script_failure_that_may_follow_the_change_keeps_the_intent_open(self):
+        """Only exit status 3 closes the intent. Every other failure of the script (set-default,
+        sync, the postcondition, a kill) may follow the change: the journal stays open, and rule 5
+        resolves it from the list at the next command."""
+        for made, code in ((True, 1), (False, 1), (True, -9), (False, owner.REFUSED_BEFORE_CHANGE + 1)):
+            with self.subTest(made=made, code=code), laptop(listed((R21, R13, 'S'), R21)) as (tools, host, store):
+                def failing(text, name, mutation=True):
+                    self.assertEqual(name, 'start-next')
+                    if made:
+                        host.state = listed(('S', R21, R13), R21)  # set-default ran; what failed came after it
+                    raise owner.Failed('Shared step failed: start-next; preserve diagnostics and do not reboot', code)
+                with patch.object(host, 'script', failing), self.assertRaises(owner.Stop) as caught:
+                    tools.recover()
+                self.assertEqual(archived(store), [])
+                self.assertEqual(journal(store)['status'], 'intent')
+                self.assertEqual((type(caught.exception), caught.exception.code), (owner.Failed, code))  # the step's STOP, unchanged
+                tools.title()
+                if made:
+                    self.assertIn('had made its change; it is recorded now', tools.notes[0])
+                    self.assertEqual((journal(store)['status'], archived(store)), ('recorded', []))
+                else:
+                    self.assertIn('was not applied', tools.notes[0])
+                    self.assertEqual((journal(store), archived(store)), (None, ['not-applied']))
 
     def test_rollback_and_keep_stock_keep_their_sides_and_name_the_other_word(self):
         with laptop(listed((R21, R13, 'S'), 'S')) as (tools, host, store):

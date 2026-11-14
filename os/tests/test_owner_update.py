@@ -249,11 +249,16 @@ class Machine(owner.Host):
                 self.interrupt = None
                 raise owner.Stop('Shared step failed: ' + name + '; injected after the change')
         with patch('subprocess.check_output', side_effect=answer), patch('subprocess.run', side_effect=run), \
-                contextlib.redirect_stdout(io.StringIO()):
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
             try:
                 exec(compile(body, name, 'exec'), {'__name__': 'owner_shared_step'})
             except AssertionError:
-                raise owner.Stop('Shared step failed: ' + name + '; preserve diagnostics and do not reboot') from None
+                # python3 ends an uncaught assertion with exit status 1.
+                raise owner.Failed('Shared step failed: ' + name + '; preserve diagnostics and do not reboot', 1) from None
+            except SystemExit as error:
+                # The script's own exit status, as owner.Host.script reports it.
+                raise owner.Failed('Shared step failed: ' + name + '; preserve diagnostics and do not reboot',
+                                   error.code if isinstance(error.code, int) else 1) from None
         if name == 'start-next':
             if self.interrupt == (name, 'observe'):
                 self.interrupt = 'reading'

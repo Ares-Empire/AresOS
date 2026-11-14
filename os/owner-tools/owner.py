@@ -91,6 +91,20 @@ class Stop(ValueError):
     pass
 
 
+class Failed(Stop):
+    """A release step that ended with a non-zero exit status of its own. Only a caller that
+    knows the step reads the status (start-next.sh: REFUSED_BEFORE_CHANGE); for every
+    other caller it is the same STOP as before."""
+
+    def __init__(self, message, code):
+        super().__init__(message)
+        self.code = code
+
+
+# start-next.sh exits with this status only when its own checks refused before set-default.
+REFUSED_BEFORE_CHANGE = 3
+
+
 def require(condition, message):
     if not condition:
         raise Stop(message)
@@ -293,6 +307,9 @@ class Host:
         if reason == 'timed out':
             raise Stop('Shared step timed out: ' + name + ' (stopped after ' + str(SCRIPT_TIMEOUT // 60)
                        + ' minutes); preserve diagnostics and do not reboot')
+        if step.process.returncode:
+            # The step's own exit status; a step that exited 0 but left a process behind has none.
+            raise Failed('Shared step failed: ' + name + '; preserve diagnostics and do not reboot', step.process.returncode)
         raise Stop('Shared step failed: ' + name + '; preserve diagnostics and do not reboot')
 
 
@@ -1558,9 +1575,21 @@ class Tools:
         require(len([d for d in rows if key(d) == key(target)]) == 1 and re.fullmatch('[A-Za-z0-9:/.@_-]+', reference),
             'Target deployment missing or ambiguous; nothing changed; get help')
         self.intend(word, state, settled, target)
-        self.script('start-next', {'CHECKSUM': target['checksum'], 'SERIAL': str(target['serial']),
-            'DIGEST': target['container-image-reference-digest'], 'REFERENCE': reference,
-            'BEFORE': json.dumps(rows).encode().hex()})
+        try:
+            self.script('start-next', {'CHECKSUM': target['checksum'], 'SERIAL': str(target['serial']),
+                'DIGEST': target['container-image-reference-digest'], 'REFERENCE': reference,
+                'BEFORE': json.dumps(rows).encode().hex()})
+        except Failed as failure:
+            if failure.code != REFUSED_BEFORE_CHANGE:
+                raise  # it may have followed set-default: the intent stays open for rule 5
+            # Certain, not inferred: the script's own checks refused before set-default ran.
+            # They passed here on the journalled list, so its fresh read differed from it.
+            # Close the intent durably, so that the next command surveys the list as it is
+            # instead of stopping on an intent that matches neither list (review 2).
+            value = self.load(OUTCOME)
+            self.archive('refused-before-change', value)
+            raise Stop('The deployment list changed outside the tools before the ' + self.change(value) + '; nothing was changed '
+                'and the change is closed; run ' + typed('check') + ' to see what runs and what starts next') from None
         after = observations(self.host)
         qualified_state(after, self.load('prepared'), self.release['reference'], self.known())
         # The same identities and flags, the target first, the others in their old order.

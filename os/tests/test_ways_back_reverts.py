@@ -27,11 +27,14 @@ def mutated(function, before, after):
 
 
 class RuleRevertsTest(unittest.TestCase):
-    def detected_by(self, case):
+    def detected_by(self, case, mention=None):
         result = unittest.TestResult()
         case.run(result)
         self.assertEqual(result.errors, [], 'an unrelated exception is not a revert proof')
         self.assertTrue(result.failures, case.id() + ' did not detect the removed rule')
+        if mention is not None:
+            for _, failure in result.failures:
+                self.assertIn(mention, failure)
 
     def ledger_detects(self, d, s, event, message='accept/refuse|ledger differs'):
         expected = transition(s, event)
@@ -116,6 +119,28 @@ class RuleRevertsTest(unittest.TestCase):
     def test_a11_one_command_spelling(self):
         with patch.object(owner, 'typed', lambda *words: 'at ' + ' '.join(words)):
             self.detected_by(focused.ShapeTest('test_one_helper_spells_every_command_as_commands_json_does'))
+
+    def test_review2_1_only_a_refusal_before_the_change_closes_the_intent(self):
+        branch = 'if failure.code != REFUSED_BEFORE_CHANGE:'
+        # Never closing: the refused intent stays open and matches neither list (the review's dead end).
+        with patch.object(owner.Tools, 'start_next', mutated(owner.Tools.start_next, branch, 'if True:')):
+            self.detected_by(focused.DestinationTest('test_outside_reorder_before_the_script_closes_the_intent_and_every_way_back_works'),
+                             'the refused intent is still open')
+        # Closing on every failure: a journal whose change may be on disk would be discarded.
+        with patch.object(owner.Tools, 'start_next', mutated(owner.Tools.start_next, branch, 'if False:')):
+            self.detected_by(focused.DestinationTest('test_a_script_failure_that_may_follow_the_change_keeps_the_intent_open'),
+                             'refused-before-change')
+        # The script's side: a refusal that exits like any other failure cannot be told apart.
+        real = pathlib.Path.read_text
+        def generic_exit(path, *args, **kwargs):
+            source = real(path, *args, **kwargs)
+            if path.name == 'start-next.sh':  # the tools render their bundle's copy
+                self.assertEqual(source.count('sys.exit(3)'), 1)
+                return source.replace('sys.exit(3)', 'sys.exit(1)')
+            return source
+        with patch.object(pathlib.Path, 'read_text', generic_exit):
+            self.detected_by(focused.DestinationTest('test_outside_reorder_before_the_script_closes_the_intent_and_every_way_back_works'),
+                             'the refused intent is still open')
 
     def test_b3_cleanup_must_remove_unpinned_preceding_rows(self):
         real = model.Host.mutate

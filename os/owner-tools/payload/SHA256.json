@@ -12,7 +12,7 @@
     "path": "media.py"
   },
   {
-    "sha256": "9d6255e411724b0595f2ff77f9176de701667b748fd7a286478288da4c382079",
+    "sha256": "b207cda0609ac1c1236324ca90a43bd8cfa480e240ea199f19688d8a21b45aab",
     "path": "owner.py"
   },
   {
@@ -40,7 +40,7 @@
     "path": "release/rollback.sh"
   },
   {
-    "sha256": "a71be96326bc038939614b58b9fa57079df28c8cbad0808d481b63444264c75d",
+    "sha256": "120cdafc2a2e18faf305d37448fef5ddb7bf65df1add3e2a0e899749495d40b7",
     "path": "release/start-next.sh"
   },
   {
