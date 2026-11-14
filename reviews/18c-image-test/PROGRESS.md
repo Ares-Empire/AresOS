@@ -1,4 +1,4 @@
-# 18c image part: progress (Part A, step 1; B2, step 2a)
+# 18c image part: progress (Part A, step 1; B2, steps 2a to 2c)
 
 Branch `pkg/18c-image`, draft PR #58. Step 1 builds Part A of `briefs/18c-image-test.md` as amended by the sixteen
 changes agreed with `linux-aresos` and by `briefs/18c-image-start.md`. It has no VM test (B2), no `os-image.yml` change
@@ -69,7 +69,7 @@ has only `git-core`. See "gh" below.
 | 3 Lists that pin enabled units | done as far as `main` has them: no list pins enabled units or users except release 27's `ci/release_diff.py` (the next release extends its own diff); image check proves the updater audit saw the unit; polkit unaffected (no rules) |
 | 4 `gh` | check-resolve step done, resolve run done; **install open** (stop rule, below) |
 | 5 Fixed UID/GID | done (250) |
-| 6 Enabled, never holds the session | image side done; the failed-service session check is B2 check 6 (step 2) |
+| 6 Enabled, never holds the session | done: B2 check 6 green with the service stopped and failed (step 2c, run 43577034725) |
 | 7 Config in `/usr/share/aresos/control` | done; image check done; booted-guest check `control-claude-code-files` (step 2a) |
 | 8 `checks.py` hook | done (step 2a): `actions.d` |
 | 9 Fixture servers, negative check | negative check done; fixture servers and CI layer done (step 2a) |
@@ -78,7 +78,7 @@ has only `git-core`. See "gh" below.
 | 12 Rehearsal check actions | done (step 2a): `os/ci/control/release_checks.py` |
 | 13 Reserved words test | done |
 | 14 Idle footprint | measured (step 2a): ~32 MB, 10 wake-ups/s, 0.35–0.67 % of one CPU |
-| 15 `os-image.yml` additive, lead first | done (step 2a): one option, own commit `1ee81d1b` |
+| 15 `os-image.yml` additive, lead first | done: one option (`1ee81d1b`), the VM pass's own step (`0af04070`), its limits sized (`2d1ad22f`); each its own commit |
 | 16 `linux-aresos` reads the `os/` diff | before merge |
 
 ## gh (agreed change 4): PLAN-GAP and stop
@@ -536,20 +536,209 @@ Control step), `a4c9ac11` (check 8's encoded forms); later fixes are listed unde
 5. `check_build=control` green twice on the final head (the second by rerunning the same run), then PROGRESS.md with
    both runs' lines.
 
-## Left, in order (step 2b on)
+## Step 2c (B2): check 9's evidence, run 3, the time limits, two greens
 
-0. **Step 2b is under way** (above): checks 6 to 9 are built; 7 and 8 are green (run 43568250360); 6 waits for a run
-   with the hook fix; 9 needs its evidence packing fixed. Continue with "What the next step does, in order".
-1. Step 2b: B2 checks 6 (ordinary session, service stopped and failed by a CI drop-in under `/run/systemd/system`),
-   7 (Mail flows in `control/ci/image/`), 8 (passwords), 9 (the four interactive asks with B1's driver), as actions
-   in `os/ci/control/actions.py` and lines in `control_vm.py`'s `CHECKS` (Mail and the asks after check 5, which
-   installs Claude Code; check 2's SELinux scan should move or repeat after them). On the runner the password is
-   `$RUNNER_TEMP/aresos-control-fixtures/password` (0600; never into evidence); the guest reaches `greenmail:3993`,
-   `greenmail:3465` and `dovecot:993` through the system trust store. Seeding and reading arrivals run on the runner
-   against `127.0.0.1`. Mind PLAN-GAPs 2 and 3.
-2. `check_build=control` green twice on the final head (rerun of the same run).
-3. The Chrome follow-up after PR #27: two map entries, their checks, `SOCKET_MODES` from the merged `daemon.py`.
-4. The reviews (the lead's job): a package review and a high-stakes security review of the whole package.
+Built by a Claude agent on Opus 5.5 (2026-11-14). Commits `3096c7f2` (check 9's packing), `20f85155` (fixes after
+run 3), `2d1ad22f` (the workflow's limits, own commit, `rebind.py pending`).
+
+### Done
+
+- **Check 9's evidence can't lose its record** (`3096c7f2`). Each case copies only the transcripts its session wrote
+  (size and mtime against a snapshot taken before it) into `interactive/<case>-transcripts.tar.gz`, beside
+  `interactive/<case>.tar.gz`, and his `PermissionRequest` hook's lines into the case folder. `packed()` makes every
+  tar of an action within one channel frame (1 MB a tar, 2.4 MB in all, since the 4 MiB frame carries base64): a tar
+  that can't be made or doesn't fit is left out and named in the errors, so the check fails but still returns its
+  summary and the `permission_request` record. Checks 6 and 7 pack the same way; each result carries
+  `evidence_bytes`. Run 4: one case's transcript is about 600 KB, 146 KB as a tar; all eight tars of check 9 together
+  768 KB.
+- **Fixes after run 3** (`20f85155`), all in the checks, none in Control:
+  - Check 9 compared receiver **rows** with the container's pin. testapp's receiver stores one row per recipient, and
+    the fixture message has three (`alpha`, `beta`, `hidden`), so one send was 3 rows against the pin's 1 send (B1
+    counts one POST per send). It now counts sends (the most rows any recipient has; a send reaches all three or
+    none) and requires `operation_status` to name the same recipients as the receiver.
+  - Check 6 read a turn's whole screen, which still shows the earlier turns above its prompt: turn 2's reminder
+    counted again in turns 3 and 5. Now only the lines from the turn's own prompt on count; screens saved before the
+    prompt shows (the driver saves one before typing it) are skipped.
+  - His Stop hook: the check now requires 1 to 1 + continuations runs per turn and records each run's
+    `stop_hook_active` (see "His own Stop hook" below).
+  - `runner.sh stop`: GreenMail runs with auth disabled and logs `Created user login ci-owner for address ci-owner
+    with password <it> because it didn't exist before.`, so the leak check deleted `greenmail.txt` and failed the
+    step **in runs 43568250360 and 43572578699** (step 2b's record didn't say). The fixture servers' logs are now
+    redacted first (the password read from its file, never from a command line; counts in
+    `fixtures/redacted.txt`: run 4 greenmail 1, dovecot 0); the check still guards every other evidence file.
+- **Time limits** (`2d1ad22f`): the Control VM pass's step from the provisional 40 to **10 minutes** (about 1.5 times a
+  full pass: 6 min 21 s in run 3, 6 min 13 s in run 4, 6 min 54 s in run 43568250360); the job's limit for
+  `check_build=control` from 160 to **125 minutes** (tools 20 + build 80 + the pass 10 + 15, linux-aresos's rule);
+  every other mode keeps 120. Purely additive for the other modes; `rebind.py pending` recorded the workflow's new
+  bytes with a note.
+- `os/tests/test_control_vm.py`: 17 tests (4 new: the packing budget twice, a turn's own screen lines, only a case's
+  own transcripts).
+
+### Runs (step 2c; budget 5 `check_build=control` in steps 2b and 2c, 3 left at its start)
+
+- **run 43572578699** (`control`, head `3096c7f2`, ~50 min: build step 40 min 4 s, Control VM step 6 min 21 s, the
+  pass 380.4 s from QEMU's start): failure, but every check ran to its end. Green: every line of run 43568250360 plus
+  check 7 and 8 again and `CONTROL_PERMISSION_REQUEST_RECORDED {"normal-permission-user": {"hook_calls": 1,
+  "owner_answers": 0, "prompt_shown": true, "send_arrivals": 3}}` (the record now survives). Failed:
+  `control-ordinary` (turns 3 and 5: turn 2's and 4's reminder still on screen above the new prompt, and the Stop
+  count per attempt), `control-interactive` (`normal-yes` and `normal-permission-user`: 3 rows for one send), and the
+  fixture stop step (GreenMail's log). Fixed in `20f85155`; nothing in Control.
+- **run 43577034725** (`control`, head `2d1ad22f`, attempt 1; tools 08:42:50 to 08:44:28, build step 08:44:33 to
+  09:23:54 = 39 min 21 s, Control VM step 09:23:54 to 09:30:07 = 6 min 13 s, the pass 372.7 s): **success**, every
+  line: `CLAUDE_CODE_PINNED 2.1.319 sha512-FO4Sd23B…oOQ== dabafec8…`, `CONTROL_INSTALLED 57 files, 28 wheels, 2024
+  vendored paths from 2d1ad22f…`, `CONTROL_GENERATED_MATCH`, `CONTROL_FILES_RECORDED`, `CHECK_BUILD_PASSED`,
+  `CHECK_BUILD_CONTROL_DISK_READY`, `CONTROL_IMAGE_FILES_PASS`, `CONTROL_ETC_CLAUDE_CODE_PASS`,
+  `CONTROL_RELEASE_CHECKS_PASS`, `CONTROL_IDLE_FOOTPRINT_RECORDED` (32.3 MB, 616 switches in 60 s = 10.3 wake-ups/s,
+  0.75 % of one CPU), `CONTROL_FIXTURES_REACHABLE`, `CONTROL_ENTRY_POINTS_PASS`, `CONTROL_PRECONDITION_PASS`,
+  `CONTROL_USER_MCP_INSTALL_PASS`, `CONTROL_SERVICE_SANDBOX_PASS`, `CONTROL_ORDINARY_SESSION_PASS {…}`,
+  `CONTROL_MAIL_FLOWS_PASS`, `CONTROL_PERMISSION_REQUEST_RECORDED {"normal-permission-user": {"hook_calls": 1,
+  "owner_answers": 0, "prompt_shown": true, "send_arrivals": 1}}`, `CONTROL_INTERACTIVE_ASK_PASS`,
+  `CONTROL_PASSWORDS_PRIVATE_PASS` (the password in exactly 1 file, not in the journal; the runner: 54 evidence files,
+  none holding it), `CONTROL_SELINUX_AFTER_CHECKS_PASS`, `CONTROL_SERVICE_RESTART_PASS`, `CONTROL_VM_POWEROFF_CLEAN`,
+  `CHECK_BUILD_CONTROL_PASSED`; the fixture stop step green. Times (s): boot to channel 39.5, files 3.2, idle 59.4,
+  entry points 2.7, precondition 1.8, user MCP 8.0, check 6 110.7, check 7 34.9, check 9 107.0, check 8 0.3,
+  restart 1.5.
+- **run 43577034725 attempt 2** (`gh run rerun`, head `2d1ad22f`; job 09:33:55 to 10:24:51, build step 09:37:15 to
+  10:18:35 = 41 min 20 s, Control VM step 10:18:35 to 10:24:46 = 6 min 11 s, the pass 370.6 s): **success**, the same
+  lines as attempt 1 in the same order, with the same `CONTROL_PERMISSION_REQUEST_RECORDED {"normal-permission-user":
+  {"hook_calls": 1, "owner_answers": 0, "prompt_shown": true, "send_arrivals": 1}}`; check 6 the same numbers (2, 3,
+  2, 3, 2 model requests; 0, 1, 0, 1, 0 continuations; his Stop hook once per turn, on the second attempt in turns 2
+  and 4; the reminder on screen only in turns 2 and 4); idle 32.0 MB, 749 switches in 60 s = 12.5 wake-ups/s,
+  1.46 % of one CPU; GreenMail's log 1 redaction; the fixture stop step green.
+- **run 43581194306** (`build`, head `2d1ad22f`; job 10:24:53 to 11:08:06 = 43 min 13 s, build step 10:28:30 to
+  11:08:01 = 39 min 31 s, the Control VM step skipped as it should be in this mode): **success**, `CONTROL_INSTALLED 57
+  files, 28 wheels, 2024 vendored paths from 2d1ad22f…`, `CHECK_BUILD_PASSED`, `CHECK_BUILD_VM_PASSED`.
+
+Step 2c is done: `check_build=control` green twice on the final head `2d1ad22f` (run 43577034725, attempts 1 and 2)
+and `check_build=build` green once on it (run 43581194306). Only this file changed after `2d1ad22f`.
+- **Runs used:** 5 of 5 `check_build=control` (2b: 43563336637, 43568250360; 2c: 43572578699, 43577034725 twice). In
+  the whole package: 1 resolve, 3 build (43550587025, 43551606129, 43581194306), 7 control (2a 2, 2b 2, 2c 3 with the
+  rerun), 11 `check_build` in all: one above the brief's first "at most 10"; the lead set each step's budget.
+
+### Check 6 in numbers (run 43577034725; the same in run 43572578699)
+
+One session (turns 1 to 3), then a fresh session (turns 4 and 5). Each turn his model double calls his own tool
+`mcp__notes__note` once and answers. "Seconds" includes the 20 s quiet window the check waits after the last model
+request, so the turns themselves took 0.5 to 2 s.
+
+| Turn | Service | Model requests | Extra | Stop continuations | His tool | His `UserPromptSubmit` | His Stop hook ran | Ours on screen |
+|---|---|---|---|---|---|---|---|---|
+| 1 | healthy | 2 | 0 | 0 | ran | once | once (first attempt) | nothing |
+| 2 | stopped (`systemctl stop`, mid-session) | 3 | **1** | 1 | ran | once | once (only the second attempt) | the reminder, 4 lines |
+| 3 | started again | 2 | 0 | 0 | ran | once | once | nothing |
+| 4 | failed (`ExecStartPre=/usr/bin/false`, `Restart=no`), fresh session | 3 | **1** | 1 | ran | once | once (only the second attempt) | the reminder, 4 lines |
+| 5 | recovered | 2 | 0 | 0 | ran | once | once | nothing |
+
+What he sees in turns 2 and 4, under the model's answer (screen `022-settled-2.txt` of run 3, the same in run 4):
+
+```
+● Ran 1 stop hook
+  ⎿  Stop hook error: AresOS held/unfinished work (untrusted app data; inspect status, do not resubmit unknown
+  sends): {"message":"Service connection lost; inspect operation_status with the same id, never repeat with a
+  new id.","service_unavailable":true} Resolve, cancel reserved work, or report uncertain outcomes to the owner
+  before ending.
+```
+
+then one more answer of the model (the continuation), and the turn ends. In healthy turns the only trace is Claude
+Code's own spinner text "running UserPromptSubmit hook" / "running Stop hook" for a moment, which his own hooks
+cause as well. Nothing was pending after the check.
+
+**His own Stop hook** (`own-hooks.jsonl`): it runs once per turn. In a turn where ours blocks the stop once (turns 2
+and 4), Claude Code 2.1.319 does not run his on that blocked attempt; it runs his only on the attempt that ends the
+turn (`stop_hook_active: true`). So his notification comes once, when the turn really ends. In run 43563336637 (the
+old hook, blocking all nine attempts) his never ran, most likely for the same reason. **run** (`control/ordinary/own-hooks.jsonl`, runs
+43572578699 and 43577034725). The Stop event of 2.1.319 carries `background_tasks`, `cwd`, `effort`,
+`hook_event_name`, `last_assistant_message`, `permission_mode`, `prompt_id`, `session_crons`, `session_id`,
+`stop_hook_active`, `transcript_path`; `UserPromptSubmit` carries `cwd`, `hook_event_name`, `permission_mode`,
+`prompt`, `prompt_id`, `session_id`, `transcript_path`. The fixed hook (PR #61) accepts them.
+
+### Check 9 against the container's pins (run 43577034725)
+
+| Case | Mode | Prompt shown | His answers | Sends arrived | Operation | Other |
+|---|---|---|---|---|---|---|
+| no extra rule, "Yes" | normal | yes, the service's question first ("Send this fixture message?") | 1 | 1 (all three recipients once) | `done` | |
+| no extra rule, "No" | skip-permissions | yes | 1 | 0 | `reserved` (then cancelled, notice acknowledged) | resumed after the No; 1 Stop continuation; the reminder in the model's requests 2 and 3 |
+| user allow rule for `mcp__testapp__send`, "No" | skip-permissions | yes | 1 | 0 | `reserved` (cleaned) | the same as above |
+| user `PermissionRequest` allow hook | normal | flashed, never answered | 0 | 1 | `done` | hook called once |
+
+The fourth case equals the container's pin for `normal-permission-user` (`send_arrivals 1, hook_calls 1,
+owner_answers 0`). The managed ask asked in every case without a `PermissionRequest` hook, also in skip-permissions
+mode and with his allow rule for the send: no stop rule applies. The managed-level and skip-mode `PermissionRequest`
+cases stay in the container (the managed files are not edited in the VM), where B1 pinned all four as approving with
+one send.
+
+### Findings for the lead (step 2c; `control/aresos_control/` is out of reach, nothing changed there)
+
+- **The stopped-service reminder's text misleads.** With the service simply stopped or failed and nothing pending,
+  the Stop hook's reminder carries the client's "Service connection lost; inspect operation_status with the same id,
+  never repeat with a new id." There is no operation to inspect. It is the same text as the start-up gap (step 2a).
+  Claude Code labels any blocking reason "Stop hook error", which reads as if something broke.
+- The earlier ones stand: active before the sockets exist, `aresos admin` as `ares` without a `sudo` hint, about 10
+  wake-ups/s idle (run 43577034725: 10.3/s and 0.75 % of one CPU; its rerun 12.5/s and 1.46 %), endless restart without the CI drop-in's `Restart=no`, the
+  outside-folder refusal naming Desktop (run 4 again: "choose Documents, Downloads, Desktop or an owner-configured
+  folder").
+
+### For the report: B2 (append to `reviews/18c-image-test/REPORT.md`)
+
+**PermissionRequest, in plain words.** A `PermissionRequest` allow hook of his own, at user level, approves the
+managed ask interactively in normal mode: the prompt flashes, nobody answers, the send goes out once. That is the
+accepted residual, and it equals the container's pin for that case. **run** 43577034725, `CONTROL_PERMISSION_REQUEST_RECORDED
+{"normal-permission-user": {"hook_calls": 1, "owner_answers": 0, "prompt_shown": true, "send_arrivals": 1}}`. The
+managed-level and skip-mode variants are proven in the container only (B1's pin: all four approve, one send each);
+the VM doesn't edit the managed files. Without such a hook the ask asked every time, also in skip-permissions mode
+and with his user allow rule for the send. B1 found the container's result equal to 18d's print-mode approval on
+2.1.319 (**read** `REPORT.md`, run 43444623151); the VM case agrees with both. The prompt's flash is timing
+dependent (B1); in the VM it showed in runs 43572578699 and 43577034725 and is recorded, not pinned.
+
+**Done.** B2's checks 1 to 9 except the Chrome lines and `gh` (moved to 18c-b), as actions of the Control test layer
+(`os/ci/control/`), run by `check_build=control` in its own workflow step after the build; the fixture servers
+(GreenMail, Dovecot) on the runner's loopback, Claude Code 2.1.319 from the boundary's lock, B1's driver and model
+double unchanged in the guest.
+
+**Verified** (all **run**, head `2d1ad22f`, run 43577034725, attempts 1 and 2; log lines as printed):
+`CONTROL_IMAGE_FILES_PASS` (check 1), `CONTROL_ETC_CLAUDE_CODE_PASS` (change 7), `CONTROL_RELEASE_CHECKS_PASS` (change
+12), `CONTROL_IDLE_FOOTPRINT_RECORDED` (change 14), `CONTROL_FIXTURES_REACHABLE`, `CONTROL_ENTRY_POINTS_PASS` (check
+3), `CONTROL_PRECONDITION_PASS` (check 4), `CONTROL_USER_MCP_INSTALL_PASS` (check 5), `CONTROL_SERVICE_SANDBOX_PASS`
+(check 2), `CONTROL_ORDINARY_SESSION_PASS` (check 6), `CONTROL_MAIL_FLOWS_PASS` (check 7),
+`CONTROL_PERMISSION_REQUEST_RECORDED {…}` and `CONTROL_INTERACTIVE_ASK_PASS` (check 9),
+`CONTROL_PASSWORDS_PRIVATE_PASS` (check 8), `CONTROL_SELINUX_AFTER_CHECKS_PASS` (check 2's scan again),
+`CONTROL_SERVICE_RESTART_PASS`, `CONTROL_VM_POWEROFF_CLEAN`, `CHECK_BUILD_CONTROL_PASSED`; `check_build=build` on the
+same head: run 43581194306 (`CHECK_BUILD_PASSED`, `CHECK_BUILD_VM_PASSED`). Evidence: the `check-build-evidence`
+artifact of each run (3 days).
+
+**Check 6 for the owner (JUDGMENT-CALL, agreed change 10).** With the service healthy, an ordinary Claude Code turn
+costs nothing extra and shows nothing of ours. While the service is stopped or has failed, each turn ends with one
+extra model reply and a four-line "Stop hook error: AresOS held/unfinished work ... Service connection lost ..." under
+the answer; his prompt, his own tool and his own hooks still work, and his own Stop hook runs once per turn, at its
+real end. Once the service is back the next turn is clean. Question for the owner: should a session that never used
+our tools get that reminder at all? Options: (a) keep it as it is: one extra reply (tokens) and four lines per turn
+for as long as the service is down; (b) stay quiet when the service is unavailable unless this session used our tools
+(the hook needs to know that, a change in `control/aresos_control/hooks.py`); (c) always stay quiet when the service
+is unavailable, which loses the reminder in the one case it exists for: a send in flight when the service died.
+The builder's lean: (b), with a reminder text that says "AresOS tools are not running" instead of "connection lost".
+Changing later: a hook change and its container tests; the image stays the same.
+
+**Not verified.** Real model cost (the double answers instantly; with a real model the extra reply costs one more
+response); the Chrome lines (18c-b); `gh` (18c-b); the update path from release 27 (the next release's rehearsal);
+his own Stop hook's behaviour on other Claude Code versions.
+
+**PLAN-GAPs** (B2): the receiver counts per recipient while B1's pin counts sends (fixed in the check); GreenMail
+logs the fixture password (fixed in `runner.sh stop`); `chrome.sock` 0600 in today's `daemon.py` (step 2a); the
+model double's string results (step 2b).
+
+**Measured times** (run 43577034725 attempt 1): tools 1 min 38 s, build to disk 39 min 21 s, Control VM step 6 min
+13 s (boot to channel 39.5 s, the pass 372.7 s from QEMU's start: idle 59.4, check 6 110.7, check 9 107.0, check 7
+34.9, the rest under 10 s each); the job 48 min 19 s (attempt 2: 50 min 56 s). Run 3: build 40 min 4 s, VM step 6 min 21 s.
+
+## Left, in order (step 2c on)
+
+1. The lead: append the "For the report: B2" text above to `reviews/18c-image-test/REPORT.md` (a Claude builder
+   can't create that file name), with Part A's section and the JUDGMENT-CALLs; take check 6's question to the owner.
+2. The Chrome follow-up after PR #27: two map entries (`chrome/qualification.json`, `chrome/build-id.json`), their
+   checks, `SOCKET_MODES` from the merged `daemon.py`, and one more `check_build=control` run (a new budget).
+3. The reviews (the lead's job): a package review and a high-stakes security review of the whole package.
+4. `linux-aresos` reads the `os/` diff (agreed change 16), now including `os/ci/control/` and the workflow's limits.
+5. The last step deletes this file.
 
 ## The `os/` diff for `linux-aresos`
 
