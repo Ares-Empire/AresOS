@@ -1,0 +1,155 @@
+{
+  "run": "43564715596",
+  "attempt": 1,
+  "head": "8fefbba0547a1085c7ce5ce890907a0a7a6519d7",
+  "event": "workflow_dispatch",
+  "conclusion": "failure",
+  "jobs": [
+    {
+      "name": "package",
+      "conclusion": "success"
+    },
+    {
+      "name": "native-precedence",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (0)",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "latency (plain)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "latency (audit)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (external, word-3)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (external, review)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (external, recheck3)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (external, recheck2)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (policy, recheck2)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (external, word-1)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (external, word-2)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (external, core)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (external, adapters)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (policy, review)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (policy, recheck3)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (external, word-0)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (policy, word-0)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (policy, word-3)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (policy, adapters)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (policy, core)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (policy, word-1)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (policy, word-2)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "aggregate (external)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "aggregate (policy)",
+      "conclusion": "failure"
+    }
+  ],
+  "failure_causes": {
+    "fixtures (policy, review)": "extension native connection: undefined",
+    "fixtures (policy, adapters)": "extension native connection: undefined",
+    "fixtures (external, adapters)": "extension native connection: undefined",
+    "fixtures (policy, recheck2)": "extension native connection: undefined",
+    "fixtures (external, recheck3)": "extension native connection: undefined",
+    "fixtures (policy, word-3)": "extension native connection: undefined",
+    "fixtures (external, recheck2)": "extension native connection: undefined",
+    "fixtures (external, review)": "extension native connection: undefined",
+    "fixtures (policy, word-0)": "extension native connection: undefined",
+    "fixtures (external, word-3)": "extension native connection: undefined",
+    "latency (plain)": "extension native connection: undefined",
+    "latency (audit)": "extension native connection: undefined",
+    "fixtures (policy, core)": "extension native connection: undefined",
+    "fixtures (external, word-0)": "extension native connection: undefined",
+    "fixtures (policy, word-2)": "extension native connection: undefined",
+    "fixtures (external, core)": "extension native connection: undefined",
+    "fixtures (policy, recheck3)": "extension native connection: undefined",
+    "fixtures (external, word-2)": "extension native connection: undefined",
+    "fixtures (external, word-1)": "extension native connection: undefined",
+    "fixtures (policy, word-1)": "native detached file picker opens"
+  },
+  "diagnosis": "Step 3 (final F7) made the daemon call bridge.accept(connection, peer); the CI service wrapper control/chrome/ci/service.py still defined accept(connection). Every native host handshake raised TypeError, which accept_chrome turned into a refusal before reading the hello (chrome.txt: the native host saw a reset connection). Fixed in f3853eb1 with test_bridge.CIServiceWrapper and probe step6-ci-service-accept-peer.",
+  "other_failure": "fixtures (policy, word-1) stopped earlier, in the extension-free native baseline (compatibility.mjs withoutExtension, before any extension or service code runs): the GTK file chooser did not become the active window within 20 s. The same runner flake was seen on 2026-11-09 (runs 42697121563, 42708068219, 42708079021).",
+  "python_shards_passed": [
+    "python-shards (2)",
+    "python-shards (0)",
+    "python-shards (1)",
+    "python-shards (3)"
+  ],
+  "f7_linux_socket_case": [
+    "test_final_f7_a_real_spoofing_process_on_the_socket_gets_nothing (test_owner_confirm.Confirmation.test_final_f7_a_real_spoofing_process_on_the_socket_gets_nothing) ... ok"
+  ],
+  "artifacts_downloaded": "one job artifact (external, core) for the diagnosis; logs zip and jobs once each"
+}

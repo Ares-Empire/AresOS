@@ -2,45 +2,43 @@
 # Handover
 
 - **Round:** final fixes ([brief](../../briefs/20-final-fixes.md)), answering
-  [REVIEW-FINAL](REVIEW-FINAL.md) and [SECURITY-FINAL](SECURITY-FINAL.md). Claude agents build it in six steps
-  (owner, board #222). Progress, what is left in order and what the code doesn't show:
-  [PROGRESS.md](PROGRESS.md).
-- **Steps 1 to 4 are done:** F1, the Mail sweep, F5 and the stale receipt (`b72c81fa`, `b7f58bc6`, `2e5eb35e`); F2,
-  F3, F6 and the reader and adapter notes (`f177314b`, `831feceb`); F7, polkit confirmation for loosening over
-  `chrome.sock` (`f01ef04c`, `5f18ff60`); F4, `discard_unsaved`, the doc notes and unit pins (`90f8f720`,
-  `6a948248`, `f850ec7d`).
-  - **For linux-aresos at merge:** install `control/chrome/packaging/org.aresos.control.chrome-loosen.policy` at
-    `/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy`. The owner's own agent and seat are
-    linux-tools' 18c-b image test.
-- **Step 5 is done** (`529d5fe8`, `2f633a8d`, `3a2ec7c4`; see "Step 5" below):
-  - the real-polkit check asserts that every dialog names its change; run **`43561341511`** passed, so polkit
-    carries `$(change)` for the service's caller;
-  - `control-chrome-polkit.yml` runs on pull-request pushes; the dispatch shim is gone; only the real policy ships;
-  - back and forward get the unsaved report and `discard_unsaved`;
-  - an editor counts as unsaved only after input since load; each field is marked "typed by the owner" or "typed by
-    Claude", and Claude may discard only his own typing without asking;
-  - KNOWN-LIMITS: the spoofer-first availability line and the typing-mark race.
-- **Code head:** **`3a2ec7c4`**. The full local preflight passes:
-  - **291 Python, 399 Node and 392 mutations** (Python shards 53/43/100/95), every mutation baseline passing (one
-    Linux-only case is skipped on the Mac and runs in CI);
-  - the generator, diff and exact-unit checks (unit byte-identical to `8b7e799c`).
-- **Next: step 6, one batched browser run** (`gh workflow run control-chrome.yml --ref pkg/20-chrome`). PROGRESS.md
-  lists every row it must see pass: F2, F3 and F6 from step 2; the `final-discard-*` rows from step 4; step 5's
-  history and editor rows; the four `*-top-empty-target` rows (follow what Chrome does; the one-line fix is marked by
-  probe `final-f3-empty-target`); F7's Linux-only socket case in the Python shards; latency at 1,000 and 4,000
-  against the ceilings without the `operation_headers` index.
-  - Then the records, then the lead's scoped re-check, and only after it the final pair and every Control workflow
-    twice.
-- **For the lead (not blocking):**
-  - F3, security NOTE 1: an explicit `target=""` keeps Chromium's behaviour (the base target); the empty-target rows
-    decide it on the installed Chrome.
-  - React-controlled plain fields: the kept plain-field rule (a value different from the default) misses typing in
-    a field whose page keeps the default in step, as React does; the fix shape and its cost are in PROGRESS.md.
-- **Budget:** **255 / about 280** `control-chrome.yml` runs; steps 1 to 5 started none. Steps 3 and 5 each started one
+  [REVIEW-FINAL](REVIEW-FINAL.md) and [SECURITY-FINAL](SECURITY-FINAL.md). Claude agents build it in steps (owner,
+  board #222). Progress and what is left: [PROGRESS.md](PROGRESS.md) (kept: the round isn't done).
+- **Steps 1 to 5 are done** (see their sections below). **Step 6 STOPPED for the lead's decision** on Chrome's latency
+  with history; everything else it found is fixed locally.
+- **STOP, for the lead: Chrome's latency with history misses the ceilings** (run `43566651314`, both profiles). Fresh
+  is within every ceiling; at 1,000 and 4,000 retained operations every call regressed, e.g. read 389 ms median
+  (ceiling 35, `a4143586` 21.8), navigate 466 (100, 52.2), approval to done 1,005 (700, 591). Cause: step 1's F1, as
+  prescribed (unary `+`, `operation_headers` dropped), turned the three per-request `iter_operations` shapes into
+  scans that `json_extract` every retained operation (locally 12–14 ms each at 4,000 against 0.1–0.5 ms through the
+  old index). The fix needs a decision the brief doesn't make. **Recommendation:** a partial index on `k` alone over
+  open or unacknowledged-notice operations, used by those shapes in key order (no `TEMP B-TREE`, so F1's full-disk
+  property holds), then F1's Mail re-measure and sweep counts again. Details: "Step 6", Failure 2.
+- **Step 6 built and pushed:**
+  - **React-controlled plain fields** (`8fefbba0`): a plain field also counts when the guard saw trusted input in it
+    since load and it still holds text, marked by whose typing it is; a field emptied again doesn't count. The latency
+    page's Send empties value and default (run `43566651314`: the measured navigate still reports nothing).
+  - **CI service wrapper** (`f3853eb1`): forwards the peer step 3 added; run `43564715596` failed on it everywhere.
+  - **Audible tail** (`a777c178`): the same-tab clean rows wait out Chrome's ~2 s `audible` tail (harness premise).
+  - **Lists** (`aafeffe9`): a select counts only when it differs from HTML's reset state; an untouched drop-down
+    whose page marks no option no longer reports as the owner's typing.
+  - **Browser evidence so far** (`43566651314`): F3's 96 destination rows (Chrome uses the base target for
+    `target=""`, so the code stays), F2's credential checks, word shards, recheck2/3, adapters, native precedence and
+    all Python shards (F7's Linux-only spoofing-socket case runs and passes) passed.
+  - **Not yet run in a browser:** everything after GROUP 6 in core and after `final-navigate-reload-clean` in review,
+    including `final-discard-navigate-url-*`, `-close-tab-*`, `-history-*`, `-editor-*` and both React rows.
+- **Code head:** **`aafeffe9`** (records on top of it). The full local preflight passes: **292 Python, 404 Node and 398 mutations** (Python shards 54/43/100/95; the Linux-only socket case is skipped on the Mac and runs in CI), every baseline passing, plus the generator, diff and exact-unit checks (unit byte-identical to `8b7e799c`).
+- **Next:** (1) the lead decides the latency fix; (2) a fresh step builds it and makes **one** batched run that must
+  pass everything above; (3) records, then delete PROGRESS.md; (4) the lead's scoped re-check; (5) the final pair and
+  every Control workflow twice.
+- **Budget:** **257 / about 280** `control-chrome.yml` runs (step 6 used two: `43564715596`, `43566651314`; a third
+  was kept back because latency would fail it by construction). Steps 3 and 5 each started one
   `control-chrome-check.yml` run for polkit only (`43556395889`, `43561341511`).
-- **Earlier head `a4143586`** (before this round): its Chrome pair, base, boundary and qualification passed. Mail
-  `43539458146` passed attempt 1. They are history now: the code has changed, so the final pair reruns everything.
-  Never merge the PR or main, and never force-push.
+- **For linux-aresos at merge:** install `control/chrome/packaging/org.aresos.control.chrome-loosen.policy` at
+  `/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy`; the owner's own agent and seat are
+  linux-tools' 18c-b image test.
+- **Earlier head `a4143586`** (before this round) passed its Chrome pair, base, boundary, qualification and Mail; that
+  is history now. Never merge the PR or main, and never force-push.
 
 # Final fixes round (2026-11-14)
 
@@ -497,6 +495,178 @@ Without `discard_unsaved=true` nothing moves; with it, it goes without reading t
   - `final-discard-editor-typed-by-claude`: after Claude fills the editor, the report names `editor "Notes" (typed by
     Claude)`, ends with "All of it is Claude's own typing", never shows the text, and the flag moves on;
   - `final-discard-close-tab-dirty` now expects `field "Draft" (typed by the owner)`.
+
+## Step 6: React-controlled fields, two browser runs, and a stop for the lead (latency)
+
+**React-controlled plain fields** (the lead's decision; `reader.js`, `reloadState`).
+- **What was wrong.** A plain input or textarea counted as unsaved only when its value differed from the page's
+  default. React keeps a controlled field's default (the `value` attribute, `defaultValue`) in step with what is
+  typed, so in a Claude tab typing there was never reported, and navigate, close, reload, back or forward dropped the
+  owner's draft without a question.
+- **The fix.** A plain field also counts when the guard saw trusted input in it since load (step 5's typing record)
+  and it still holds text. It is marked "(typed by the owner)" or "(typed by Claude)" as in step 5, so Claude's own
+  typing may still go without asking. A field emptied again (value and default both empty, as React leaves it after
+  a reset) holds nothing of anyone's and isn't reported. The rule applies to every plain field in the last branch,
+  so a slider or colour the owner touched in a watched document now counts too: that errs toward asking.
+- **The latency page.** Its Send now empties both the value and the default of its draft (before, it reset the value
+  to the non-empty default, which the new rule would report as Claude's typing). Both runtimes of the latency pair see
+  the same page; the measured navigate still passes no flag. Run `43566651314` confirms it reports nothing: both
+  runtimes completed all 360 measured calls in both profiles (a report would have stopped the probe).
+- **A harness gap closed on the way.** The site matrices' alternate-origin page (`fresh(site,'',8766)`) navigated
+  without `discard_unsaved`, after a page whose `to` field a script had changed. Since step 4 that navigate reports
+  (script-made changes count as the owner's), so the adapter shard would have failed. It now passes the flag like
+  `nav()`, which abandons its own state the same way.
+- **Tests.**
+  - Node (`reader.test.mjs`): a React-style field (value equal to the default) typed by the owner is reported as the
+    owner's, typed by Claude as Claude's (`claude_only`), nobody's typing is not reported, typing seen before a
+    release still counts; a field emptied again isn't reported, while emptying a field with a saved default still is.
+    Step 5's plain-field test now pins the new rule (equal to the default and nobody typed: not reported).
+  - Node (`fixture.test.mjs`): the latency page's Send leaves value and default empty and the measured navigate
+    passes no flag; the React-style page keeps its default in step and Continue empties both.
+  - Probes (4): `step6-react-typed-plain-field` (the new clause gone), `step6-react-holds-text` (the "still holds
+    text" test gone), `step6-latency-send-empties` (Send back to the default), `step6-react-fixture-default-in-step`
+    (the fixture stops moving the default). All rejected.
+  - Browser rows (GROUP 8, after `final-discard-editor-*`; **not run yet**, see the runs below):
+    - `final-discard-react-typed-by-claude`: in a tab Claude opened, Claude fills a React-style field; the page keeps
+      the default in step; navigating away reports `field "Headline" (typed by Claude)` and "All of it is Claude's own
+      typing", never the text, and the page stays; after the page empties value and default, navigate goes without
+      the flag;
+    - `final-discard-react-typed-by-owner`: in a taken tab after its guarded reload, the owner types into the field
+      (real keystrokes, `xdotool type`; the page confirms trusted input and a synced default); navigating away reports
+      `field "Headline" (typed by the owner)` and "Tell the owner", and the flag moves on. This is also the first
+      browser row for the owner's mark on his own trusted typing (step 5 had it in Node only).
+
+**The browser runs: two of three used, stopped before the third.** Records in
+[`records/final-step6/`](records/final-step6/).
+- **Run `43564715596`** (`8fefbba0`): every browser and latency job stopped at "extension native connection". Step 3
+  made the daemon call `bridge.accept(connection, peer)`; the CI service wrapper (`control/chrome/ci/service.py`, CI
+  only, never run locally) still took one argument, so every handshake raised `TypeError` and was refused before the
+  hello was read. Fixed in `f3853eb1`: the wrapper forwards whatever the daemon passes (the latency pair's historical
+  runtime still passes one argument); `test_bridge.CIServiceWrapper` runs the real wrapper code through
+  `register_chrome_host`, probe `step6-ci-service-accept-peer`. The four Python shards passed, F7's Linux-only
+  spoofing-socket case included (`... ok`). One job (policy, word-1) failed earlier, in the extension-free native
+  baseline (the GTK file chooser didn't become active within 20 s), a runner flake seen before on 2026-11-09.
+- **Run `43566651314`** (`f3853eb1`): failed in six jobs: both review shards (failure 1), both core shards (failure 3), both latency jobs (failure 2); the two aggregates then refused for missing shards, so no independent audit ran. **Passed:** all eight word shards (the word matrix), recheck2 and recheck3, adapters (both installs, now with the alternate-origin flag), native precedence and all four Python shards (F7's Linux-only spoofing-socket case `... ok` again). Before stopping, core passed 36 checks, among them `GROUP 3 POST18D absolute destinations inherited bases targets and form owners` (all 96 destination rows: F3's 30 target rows and the four `*-top-empty-target` rows), `GROUP 7 POST18D credentials and revealed passwords stay unreadable before take reload` (F2's credential fields) and `GROUP 7 POST18D typed field reads require exact one-call approval`. Review passed 25 checks, and in GROUP 8 the `review-taken-*` rows and `final-navigate-reload-dirty` and `-web-audio` before `-clean` failed.
+- **Not started: a third run.** Two failures remain, and one of them needs the lead's decision (below). A third run
+  would fail on latency by construction, so I kept it for the step that fixes it (budget: **257 / about 280** used).
+
+**Failure 1, a harness premise (fixed, `a777c178`, not yet run).** `final-navigate-reload-clean` reported "media that
+is playing" on a clean page. It runs in the same tab right after the Web Audio row, and Chrome's `tabs.Tab.audible`
+stays true for about two seconds after sound stops ("produced sound over the past couple of seconds"). The clean
+reload and navigate-to-address rows now wait 3.5 s before acting; the assertion is unchanged. The product keeps the
+tail (Web Audio and detached media are only visible through that flag); KNOWN-LIMITS says so. Because a failed check
+ends its shard, nothing after that row in the review shard has run yet: `final-discard-navigate-url-*`,
+`final-discard-close-tab-*`, `final-discard-history-*`, `final-discard-editor-*`, both React rows and the four
+review checks after GROUP 8.
+
+**Failure 3, a list counted as changed (fixed, `aafeffe9`, not yet run).** Both core shards failed `GROUP 6 schemes
+links and forward routes`: reloading a clean page reported `list "Choice" (typed by the owner)`. The page's `<select>`
+marks no option selected, so Chrome shows the first option while every `defaultSelected` is false, and the old rule
+(`selected !== defaultSelected`) called the untouched drop-down changed. Since step 4 the report runs on every Claude
+tab, so any ordinary drop-down would have made reload, navigate, close, back and forward ask. A list now compares
+with HTML's reset state: the marked options (the last for a single choice), or with none marked a one-row
+drop-down's first enabled option. Node tests for drop-downs, list boxes and multiple lists; probe
+`step6-list-reset-state`. Nothing after GROUP 6 in the core shards has run yet.
+
+**`target=""`: Chrome uses the base target.** The four `*-top-empty-target` rows passed on Chrome 157.0.8103.78 in
+both installs: an empty `target` or `formtarget` behind a base target change navigated the named frame the base
+named, not the current document. The code keeps Chromium's rule (an empty target is a missing one), and the
+`final-f3-empty-target` probe's alternative stays unapplied.
+
+**Failure 2, Chrome's latency with history: STOP, for the lead.** Both latency jobs failed the gate. Fresh is within
+every ceiling; with history every call regressed and most miss the lead's ceilings (plain profile, client median /
+p95 in ms, against the ceiling; `a4143586` median for comparison):
+
+| History | Call | Ceiling (median / p95) | Plain | Instrumented | `a4143586` plain median |
+|---|---|---|---|---|---|
+| fresh | read | 35 / 60 | 12.8 / 20.8 | 13 / 15.2 | 7.4 |
+| fresh | navigate | 100 / 150 | 48 / 60.1 | 50 / 60.9 | 35.7 |
+| fresh | free_click | 650 / 750 | 572.8 / 590.7 | 578.5 / 590 | 560.7 |
+| fresh | fill | 650 / 750 | 570.5 / 573.6 | 571.6 / 574.1 | 559.5 |
+| fresh | asking_click | 60 / 100 | 21.8 / 24.7 | 22.8 / 25.6 | 13.6 |
+| fresh | approval_to_done | 700 / 850 | 594.9 / 600.4 | 594 / 604 | 572.8 |
+| 1000 | read | 35 / 60 | **107.4 / 111.3** | **108.1 / 113.5** | 10.7 |
+| 1000 | navigate | 100 / 150 | **158.7 / 163.2** | **162 / 171.1** | 37.4 |
+| 1000 | free_click | 650 / 750 | **680.1 / 685.7** | **683.6 / 690.1** | 569.4 |
+| 1000 | fill | 650 / 750 | **673.2 / 677.9** | **675.2 / 686.3** | 555.8 |
+| 1000 | asking_click | 60 / 100 | **126.4 / 131.9** | **128.4 / 132.1** | 17.2 |
+| 1000 | approval_to_done | 700 / 850 | 700 / 707.9 | **701.5 / 710.9** | 583 |
+| 4000 | read | 35 / 60 | **389.4 / 395.2** | **386.5 / 392.1** | 21.8 |
+| 4000 | navigate | 100 / 150 | **466.2 / 470.4** | **467 / 477** | 52.2 |
+| 4000 | free_click | 650 / 750 | **984.6 / 993.1** | **984.2 / 989.7** | 586.7 |
+| 4000 | fill | 650 / 750 | **980.3 / 994.1** | **980.1 / 986.4** | 576.6 |
+| 4000 | asking_click | 60 / 100 | **431.9 / 441.8** | **434.5 / 438.9** | 30.8 |
+| 4000 | approval_to_done | 700 / 850 | **1004.8 / 1013.7** | **1004.5 / 1017.1** | 591.1 |
+
+- **Cause (step 1, F1).** Every Chrome request runs about three `iter_operations` shapes: `_expire`
+  (`states={'reserved'}`), `retention.expire` (`states=OPEN`) and `_pending` (`exclude_app='chrome'`). With the forced
+  `operation_headers` index these were index lookups; F1, as the brief prescribed (unary `+`, index dropped), made each
+  a scan that runs `json_extract` over every retained operation's JSON. Measured locally (no browser) with 4,000
+  completed Chrome operations through the real store: each shape takes 12–14 ms as a scan against 0.1–0.5 ms through
+  the old index, and `engine.pending()` alone 65 ms. CI adds up to about 95 µs per retained operation per call.
+- **Why I stopped.** No harness change can fix it, and the fix needs a decision the brief doesn't make: F1 says to
+  drop the `operation_headers` index and keep every filter off expression indexes, while the ceilings need the
+  per-request shapes to touch only the few open operations.
+- **Recommended fix (for the lead to decide):** a **partial index on `k` alone**, over operations that are open or
+  carry an unacknowledged notice, for example `CREATE INDEX operation_open ON kv(k) WHERE substr(k,1,3)='op:' AND
+  (<open-or-notice header expression>)`. The three per-request shapes (and `legacy_open`) add that exact expression to
+  their WHERE, so SQLite walks only open rows **in key order**: no `TEMP B-TREE`, nothing to spill on a full disk,
+  which is F1's safety property and the brief's "an index whose order matches ORDER BY k". Mail's `app='mail'` scans
+  stay as they are. Costs to weigh: index maintenance on writes only when a row enters or leaves the open set (fewer
+  extra Mail sweep cases than the old header index), creating it on an existing store (tolerate a full disk as the old
+  `_index_operation_headers` did), the plan and full-disk tests and probes from step 1 extended to it, and F1's Mail
+  re-measure and sweep counts redone. The alternatives are a separate header table (schema change and migration) or
+  reconsidering the ceilings.
+
+### What the code doesn't show (copied from PROGRESS.md for later readers)
+
+- **F7, for linux-aresos at merge:** install the policy file root-owned at
+  `/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy`; the image needs `/usr/bin/pkcheck` and a
+  polkit agent in the owner's session. linux-tools' 18c-b image test should press "Allow editing" once with his real
+  agent: the dialog must name the site, and a cancelled dialog must leave the site read-only.
+- **F7, what CI can't show:** `allow_active` from the policy's defaults on seat0 (CI uses a stand-in rule), and
+  polkit's session lookup for Chrome's native host, which runs in a systemd user scope (polkit falls back to the
+  user's display session). Both are 18c-b.
+- **F7, the new workflow:** `control-chrome-polkit.yml` can be dispatched by hand (`workflow_dispatch`) only after it
+  reaches main; GitHub answers 404 for a workflow file that exists only on a branch. Before that it runs only on a
+  pull-request push that touches its paths, as in the final pair. The dispatch shim is gone.
+- **F7, the refactor:** the chrome branch of `Daemon.serve` moved into `Daemon.accept_chrome` unchanged, apart from
+  reading the pid; `Bridge.accept` takes the peer.
+- **The mutation audit's copy** now includes `.github/workflows` (step 5), so workflow probes run in the disposable
+  copy like code probes.
+- **A database an earlier build of this branch created** may still carry the old `operation_headers` index. Nothing
+  reads it: the unary `+` keeps every filter off it, and the plan test checks that. It still costs one page per
+  changed `op:` row. No released build ever created it, so there is no migration that drops it. (PROGRESS.md said
+  Chrome's latency without the index would be measured "in step 4's browser run"; no step before this one started a
+  browser run, so step 6's run is that measurement.)
+- **Dropping the index** means the selective `states` and `legacy_open` scans (expiry, recovery) read every retained
+  operation's header in SQL instead of an index range. The measured expiry time is in the step 1 record and still
+  beats main.
+- **In the CI Mail sweep,** `cancel` stays at its forced-miss size. Every other flow drops the repeated journal
+  re-reads, and with them most cleanup pairs. The CI Mail workflow measures the real per-job times in the final pair.
+- **Step 1's local measurement** used CPython 3.14.6 with the worktree's `.work/20-chrome/python-deps` (jsonschema
+  4.26.0), the analyst's harness unchanged, and detached worktrees at `b2b51107`, `b72c81fa` and the measured head,
+  removed afterwards.
+- **The other F3 rules come from Chromium's source:** SVG links skip the sanitising rule and use `xlink:show="new"`
+  only for an empty own target; an iframe name keeps a newline. Step 6's run checked them against the installed
+  Chrome (the 30 target rows); the `xlink-show` rows check removing `xlink:show` (the `_blank` binding before it is
+  checked only by the reader tests), so no extra tab opens during the suite.
+- **discard_unsaved** (the lead's decisions, kept as they are):
+  - the error code stays `reload_required` for all six acts (brief 28 reshapes these tools);
+  - `chrome_close_tab` while a native dialog is open can't query the frame, so it counts as not inspected and needs
+    the flag.
+- **Whose typing, how it is decided:** trusted `input` events only; Claude's when `inFlight` and in the field Claude
+  aimed at (`arm`'s target, or its editing host). Claude's `select`/`check` through the reader mark it explicitly. An
+  upload is not marked (no test fixture stages files), so an uploaded file counts as the owner's and Claude asks. The
+  record sits on a document-lifetime symbol in the isolated world (`aresos.chrome.typing.v1`), like the password
+  tracker: no extension storage.
+- **CI harness and the flag:** `nav()`, the site matrices' alternate-origin page, two direct navigations in
+  `matrices.mjs` and every cleanup `close_tab` abandon their own state, so they pass `discard_unsaved`. The latency
+  fixture's Send empties its draft's value and default, so the measured navigate (no flag) runs the report on a clean
+  page in both runtimes.
+- **Generated files changed in this round:** `control/generated/chrome-tools.json`, `chrome-instructions.txt` and
+  `docs/control/TOOLS.md` (navigate and close_tab schemas, shared text). The extension's runtime hash changes with
+  `reader.js` and `background.js`, so step 6's run measured a new build.
 
 # Post-18d integration — final repetitions pending
 
