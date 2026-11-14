@@ -3090,6 +3090,20 @@ that takes its key. For 22c, after a passing rehearsal: `rebind.py rebind 22c <a
 3.14's `case_sensitive` argument, and a private-directory check reads this machine's temp folder; neither was changed.
 `test_owner_update` and the model did not run locally.
 
+### Runs and budget
+
+| Run | Kind | Head | Result | Minutes |
+|---|---|---|---|---|
+| [43579843181](https://github.com/Ares-Empire/AresOS/actions/runs/43579843181) | checks-only, `full_model=true` | `fe4a03d4` | **passed.** Regressions: `Ran 1121 tests in 1044.269s` / `OK` (1109 + this step's 12; the slice 173,130 states / 3,185,862 edges). Model job: full model, 967,215 states / 26,519,328 edges, `Ran 1 test in 1025.012s` / `OK` | 18 wall (two jobs, 36 runner minutes) |
+| [43581458429](https://github.com/Ares-Empire/AresOS/actions/runs/43581458429) | `ways-back`, VM dispatch 2 of 4 | `fe4a03d4` | dispatched 2026-11-14 09:37 UTC; result below once it ends | |
+
+Before the dispatch the guard ran here read-only (`REHEARSAL_PACKAGE=22c python3 os/ci/rehearsal_guard.py ways-back 345`,
+exit 0): the budget fits, the native step is proved by run 43579843181, and the model gate reads that run's full-model
+step. The ledger (the guard's own accounting): 665 minutes before this step, about 701 after the checks-only run, 345
+reserved for the rehearsal, cap 1200; 26 of 30 checks-only runs, 2 of 4 VM dispatches. **A third VM dispatch fits the
+1200 minutes only if this run used less than about 154 of them**: a run that reaches the late steps leaves no room for
+another, and the integrator has to raise the minute cap before step 2 dispatches again.
+
 ### JUDGMENT-CALL
 
 1. **The mode's name is `ways-back`** and its result file `ways-back-rehearsal-result.json` (`collect.py` already
@@ -3119,8 +3133,9 @@ that takes its key. For 22c, after a passing rehearsal: `rebind.py rebind 22c <a
    stays proved by the model and the tools' tests, and in a VM only with version 2 over a pair (package 27's route).
    A staging rehearsal needs a newer signed release (package 23 or 21b).
 2. **E4's "`keep-stock` changes nothing"** and E6's `keep-stock` are different cases; both are walked.
-3. **`collect.py` is not yet adapted to the rehearsal's result** (its menu frames are per choice, a tools reorder has no
-   `-set-default.json`, the transcript must be checked like the captures). Step 2 does it with the first artifact.
+3. **`collect.py` is prepared for the rehearsal's result but has not run on one** (menu files and frames per choice, no
+   `-set-default.json` for a tools reorder, the cut's proof; the transcript is inside the result file and so goes
+   through the same token and identifier checks). Step 2 runs it on the first artifact that holds a result file.
 4. **The workflow's evidence bound** was not named in the brief (JUDGMENT-CALL 5).
 5. The older reviewed-decision note for the probe (`package == '27'`: "package 22c does so in stage 2") is now true
    in code: the rehearsal records `22c-bound-sources`.
