@@ -1,14 +1,14 @@
 name: Control Chrome polkit
 # Final fixes F7: real polkitd and a password agent check the Chrome loosening action
 # (control/chrome/ci/polkit-check.py). No browser; it is not a control-chrome.yml run.
-# control-chrome-check.yml calls it with -f polkit=true while this file isn't on main yet.
+# It runs on every pull-request push that touches this code. GitHub dispatches it by
+# hand (workflow_dispatch) only once this file is on main.
 on:
   pull_request:
     branches: [main]
     paths: ['control/aresos_control/chrome/confirm.py', 'control/chrome/packaging/org.aresos.control.chrome-loosen.policy',
             'control/chrome/ci/polkit-check.py', 'control/packaging/aresos-toold.service', '.github/workflows/control-chrome-polkit.yml']
   workflow_dispatch:
-  workflow_call:
 permissions:
   contents: read
 jobs:

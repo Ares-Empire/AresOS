@@ -7,21 +7,13 @@ on:
         description: Run the one 10-minute hold (final verification only)
         type: boolean
         default: false
-      polkit:
-        description: Run only the real-polkit check of the Chrome loosening action (package 20, final F7)
-        type: boolean
-        default: false
 permissions:
   contents: read
 concurrency:
   group: chrome-check-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  polkit:
-    if: ${{ inputs.polkit }}
-    uses: ./.github/workflows/control-chrome-polkit.yml
   chrome:
-    if: ${{ !inputs.polkit }}
     runs-on: ${{ github.ref_name == 'pkg/17e-chrome-checkpoint' && 'ubuntu-24.04' || 'ubuntu-latest' }}
     timeout-minutes: 30
     strategy:

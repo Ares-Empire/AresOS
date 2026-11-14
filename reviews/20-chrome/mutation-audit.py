@@ -460,6 +460,9 @@ case('final-f7-dialog-shown',K,"    if prompted and not messages:\n        retur
 case('final-f7-install-tree-ci',"control/chrome/build.py","'chrome/extension', 'chrome/packaging']","'chrome/extension', 'chrome/packaging', 'chrome/ci']",T.replace('Confirmation','Policy')+'test_final_f7_only_the_real_policy_reaches_the_install_tree',True)
 case('final-f7-install-tree-readme',"control/chrome/packaging/README.md","`/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy`, and make sure","`/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy` (CI adds `/usr/share/polkit-1/rules.d/10-aresos-ci.rules`), and make sure",T.replace('Confirmation','Policy')+'test_final_f7_only_the_real_policy_reaches_the_install_tree',True)
 
+case('final-f7-polkit-pull-request','.github/workflows/control-chrome-polkit.yml',"  pull_request:\n    branches: [main]\n","  push:\n    branches: [pkg/20-chrome-polkit]\n",T.replace('Confirmation','Policy')+'test_final_f7_the_real_polkit_check_runs_on_pull_requests_and_the_shim_is_gone',True)
+case('final-f7-polkit-shim-back','.github/workflows/control-chrome-check.yml',"permissions:\n","  # polkit: the dispatch shim\npermissions:\n",T.replace('Confirmation','Policy')+'test_final_f7_the_real_polkit_check_runs_on_pull_requests_and_the_shim_is_gone',True)
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']
@@ -470,6 +473,7 @@ def run():
     with tempfile.TemporaryDirectory(dir=WORK) as temporary:
         target=Path(temporary)
         shutil.copytree(ROOT/'control',target/'control',ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
+        shutil.copytree(ROOT/'.github/workflows',target/'.github/workflows')
         (target/'.work/20-chrome').mkdir(parents=True)
         environment={**os.environ,'PYTHONDONTWRITEBYTECODE':'1','PYTHONPATH':str(target/'control')+':'+str(target/'control/chrome_tests')}
         baselines={}

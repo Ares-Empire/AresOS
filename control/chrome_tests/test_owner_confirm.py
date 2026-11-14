@@ -396,6 +396,20 @@ class Policy(unittest.TestCase):
         # Every case goes through the dialog check.
         self.assertIn("problems += dialog_problems(result, result['change'], prompted)", inspect.getsource(check.main))
 
+    def test_final_f7_the_real_polkit_check_runs_on_pull_requests_and_the_shim_is_gone(self):
+        workflows = ROOT / '.github/workflows'
+        polkit = (workflows / 'control-chrome-polkit.yml').read_text()
+        trigger = polkit.split('\non:\n', 1)[1].split('\npermissions:', 1)[0]
+        self.assertRegex(trigger, r'^  pull_request:\n    branches: \[main\]\n    paths: \[')
+        paths = set(re.findall(r"'([^']+)'", trigger.split('workflow_dispatch')[0]))
+        self.assertLessEqual({'control/aresos_control/chrome/confirm.py', 'control/chrome/packaging/org.aresos.control.chrome-loosen.policy',
+                              'control/chrome/ci/polkit-check.py', '.github/workflows/control-chrome-polkit.yml'}, paths)
+        for path in paths:
+            self.assertTrue((ROOT / path).is_file(), path)
+        self.assertNotIn('workflow_call', polkit)
+        # The dispatch shim in control-chrome-check.yml served only until this run was green.
+        self.assertNotIn('polkit', (workflows / 'control-chrome-check.yml').read_text())
+
     def test_final_f7_dialog_text_is_one_bounded_line_without_markup(self):
         self.assertEqual(confirm.shown('a\n<b>x</b> & $(y)\u202e'), 'a ?b?x?/b? ? ?(y)?')
         self.assertEqual(len(confirm.shown('x' * 500, 300)), 301)
