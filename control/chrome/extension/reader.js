@@ -514,9 +514,12 @@
     return clean?kind+' "'+clean.slice(0,80).replace(/"/g,"'")+(clean.length>80?'…':'')+'"':'an unlabelled '+kind;
   }
   // Who typed (guard.js): only typing the guard saw Claude do, and nobody
-  // else, is Claude's. Anything else, including a change no one typed, counts
-  // as the owner's, so Claude asks him.
-  const typist=node=>{const marks=guard.typedBy?.(node);return marks?.claude&&!marks.owner?'Claude':'the owner';};
+  // else, is Claude's, and only while that is certain. A mark made before the
+  // latest release isn't: the owner may have edited the field while no guard
+  // listened. Nor is one from a dispatch whose finish hasn't come: the
+  // owner's keystrokes in that field got Claude's mark too. Anything else,
+  // including a change no one typed, counts as the owner's, so Claude asks him.
+  const typist=node=>{const marks=guard.typedBy?.(node);return marks?.claude&&!marks.owner&&marks.release===guard.typingReleases&&guard.typingUnconfirmed?.(node)===false?'Claude':'the owner';};
   function reloadState(){
     const fields=[];let claudeOnly=true;
     const add=(label,node)=>{const by=typist(node);if(by!=='Claude')claudeOnly=false;fields.push(label+' (typed by '+by+')');};
@@ -555,7 +558,8 @@
         // (React does for controlled fields) hides typing from the first
         // rule; a field emptied again holds nothing of anyone's. After a
         // retake every non-empty text field counts, as editors do after a
-        // gap: typing in the gap was unseen, and whoever typed, it's the owner's.
+        // gap: typing in the gap was unseen, and whoever typed, it's the
+        // owner's (typist: a release voids Claude's earlier marks).
         else{const value=element.value;changed=value!==element.defaultValue||(gotInput(element)||retaken&&typedField(element))&&value!=='';}
         if(changed)add(unsavedLabel(element),element);
       }

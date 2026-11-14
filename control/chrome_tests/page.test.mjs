@@ -105,8 +105,11 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   const globals={window,document,...(svgAnimations?{Document,SVGAElement,SVGAnimatedString,SVGAnimationElement,SVGSVGElement}:{}),...(clipboard?{Clipboard,navigator:{clipboard:clipboardObject}}:{}),performance:{now:()=>now},setTimeout,MessageChannel,Symbol,Event,CustomEvent,EventTarget,Node,DocumentFragment:Node,Element,HTMLElement,SVGElement,HTMLInputElement,HTMLFormElement,DOMException,URL,TextDecoder,Uint8Array,...(relay?{AbstractRange,StaticRange,InputEvent}:{}),...(nativeShadows?{Document,ShadowRoot:Node,chrome:{dom:{openOrClosedShadowRoot:host=>{if(!(host instanceof HTMLElement))throw TypeError('chrome.dom requires an HTMLElement');return hostShadows.get(host);}}}}:browserDOM?{Document}:{})};
   const dialogCalls=[],dialogReports=[],dialogValues=[],dialogValue=value=>value===undefined?'':`${value}`;if(dialogs)Object.assign(globals,{alert:({alert(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogValues.push([dialogValue(value),dialogValue(initial)]);dialogCalls.push('prompt');return 'native response';}}).prompt});const nativeDialogs=dialogs?{alert:globals.alert,confirm:globals.confirm,prompt:globals.prompt}:{};
   let guard;const isolated=vm.createContext({...globals,fixtureDialogPause:()=>onDialogBoundary(guard)});
-  vm.runInContext(fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();'),isolated);
+  const guardSource=fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();');
+  vm.runInContext(guardSource,isolated);
   guard=vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",isolated);
+  // A retake installs a new guard in the same document's isolated world.
+  const retake=()=>{vm.runInContext(guardSource,isolated);return vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",isolated);};
   document.defaultView={[Symbol.for('aresos.chrome.guard.v2')]:guard};
   const ids=new Map(), elements=new Map();let sequence=0;
   function id(node){if(!ids.has(node)){const key='e'+(++sequence);ids.set(node,key);elements.set(key,node);}return ids.get(node);}
@@ -123,7 +126,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   assert.equal(vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",main),undefined);
   function arm(target,form,operation=null,conservative=false){guard.arm({generation:'epoch',config:{...policy,conservative},target:id(target),form:form ? id(form):null,operation,primary_submission:false});}
   const api={...guard,resume:(id,operation)=>{const step=reports.find(item=>item.id===id);return guard.resume(id,operation,step?.submitter||step?.element,step?.element);}};
-  return {api,guard,clipboard:clipboardObject,nativeClipboard,clipboardCalls,clipboardOutcome,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,pause:value=>{document.fixturePaused=value;},wire(other,key,value,node=other.factory.relay){installed.identify('data-fixture-source',sourceIdentity);assert.equal(other.guard.source(installed.relay,'data-fixture-source',sourceIdentity),true);return installed.link(node,key,value);},Node,SVGElement,SVGAElement,SVGAnimationElement,SVGSVGElement,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,nativeAttach,nativeAppend,nativeListen,nativeHTMLSetter,arm,main,id,advance:milliseconds=>{now+=milliseconds;}};
+  return {api,guard,clipboard:clipboardObject,nativeClipboard,clipboardCalls,clipboardOutcome,arrivals,dialogCalls,dialogReports,dialogValues,nativeDialogs,bridgeDetails,cleanup,nativeStrings,nativeFunctions,factory:relay?installed:null,pause:value=>{document.fixturePaused=value;},wire(other,key,value,node=other.factory.relay){installed.identify('data-fixture-source',sourceIdentity);assert.equal(other.guard.source(installed.relay,'data-fixture-source',sourceIdentity),true);return installed.link(node,key,value);},Node,SVGElement,SVGAElement,SVGAnimationElement,SVGSVGElement,EventTarget,get reports(){reports.push(...guard.steps());return reports;},document,HTMLFormElement,HTMLElement,HTMLInputElement,Event,CustomEvent,originalDispatch,originalRequestSubmit,nativeAttach,nativeAppend,nativeListen,nativeHTMLSetter,arm,main,id,retake,advance:milliseconds=>{now+=milliseconds;}};
 }
 
 test('private factory creation changes no prototype before its cleanup handle can be retained',()=>{
@@ -1060,11 +1063,48 @@ test('step 5 the guard records typing since load and whose it is',async()=>{
   f.arm(mine,null);
   f.originalDispatch.call(mine,new f.Event('input',{isTrusted:true}));
   f.originalDispatch.call(other,new f.Event('input',{isTrusted:true}));
-  assert.equal(marks(mine),'{"owner":false,"claude":true}','Claude\'s dispatch into the field he aimed at');
+  assert.equal(marks(mine),'{"owner":false,"claude":true,"release":0}','Claude\'s dispatch into the field he aimed at');
   assert.equal(marks(other),'{"owner":true,"claude":false}','typing elsewhere during Claude\'s dispatch stays the owner\'s');
   await f.api.finish('epoch');
   f.originalDispatch.call(mine,new f.Event('input',{isTrusted:true}));
-  assert.equal(marks(mine),'{"owner":true,"claude":true}','after the dispatch the next typing is the owner\'s');
-  assert.equal(marks(f.document),'{"owner":true,"claude":true}','the document keeps both, for a design-mode frame');
+  assert.equal(marks(mine),'{"owner":true,"claude":true,"release":0}','after the dispatch the next typing is the owner\'s');
+  assert.equal(marks(f.document),'{"owner":true,"claude":true,"release":0}','the document keeps both, for a design-mode frame');
   f.guard.dispose();assert.equal(f.guard.typingGap,true,'a disposed guard leaves a gap');
+});
+// Fixes b, G1: a release voids Claude's earlier marks. The guard counts
+// releases in the document's typing record, and each Claude mark keeps the
+// count it was made at; the retake's guard shares that record.
+test('fixes b G1 the guard counts releases and stamps Claude\'s marks with the count',async()=>{
+  const f=fixture(),mine=new f.HTMLInputElement(),marks=(guard,node)=>JSON.stringify(guard.typedBy(node));
+  assert.equal(f.guard.typingReleases,0);
+  f.arm(mine,null);f.originalDispatch.call(mine,new f.Event('input',{isTrusted:true}));await f.api.finish('epoch');
+  assert.equal(marks(f.guard,mine),'{"owner":false,"claude":true,"release":0}');
+  f.guard.dispose();assert.equal(f.guard.typingReleases,1,'a disposed guard counts a release');assert.equal(f.guard.typingGap,true);
+  const retaken=f.retake();
+  assert.notEqual(retaken,f.guard);assert.equal(retaken.typingReleases,1);assert.equal(retaken.typingGap,true);
+  assert.equal(marks(retaken,mine),'{"owner":false,"claude":true,"release":0}','the mark from before the release keeps its count');
+  retaken.typedByClaude(mine);assert.equal(marks(retaken,mine),'{"owner":false,"claude":true,"release":1}','Claude\'s mark after the retake takes the new count');
+  retaken.dispose();assert.equal(retaken.typingReleases,2);
+});
+// Fixes b, G2: Claude's marks wait for their dispatch's finish. If it never
+// comes, the owner's keystrokes in that field got Claude's mark too, so they
+// count as his: in the report while the dispatch is open, and as an owner
+// mark once Claude's next dispatch starts.
+test('fixes b G2 Claude\'s typing marks wait for the finish, and a lost finish leaves them the owner\'s',async()=>{
+  const f=fixture(),message=new f.HTMLInputElement(),subject=new f.HTMLInputElement(),marks=node=>JSON.stringify(f.guard.typedBy(node));
+  f.arm(message,null);f.originalDispatch.call(message,new f.Event('input',{isTrusted:true}));
+  assert.equal(f.guard.typingUnconfirmed(message),true,'not yet certain while the dispatch is open');assert.equal(f.guard.typingUnconfirmed(f.document),true);
+  await f.api.finish('epoch');
+  assert.equal(f.guard.typingUnconfirmed(message),false,'the finish confirms it');assert.equal(f.guard.typingUnconfirmed(f.document),false);
+  assert.equal(marks(message),'{"owner":false,"claude":true,"release":0}');
+  // Claude types into Subject; its finish is lost and the owner keeps typing there.
+  f.arm(subject,null);f.originalDispatch.call(subject,new f.Event('input',{isTrusted:true}));f.originalDispatch.call(subject,new f.Event('input',{isTrusted:true}));
+  assert.equal(marks(subject),'{"owner":false,"claude":true,"release":0}','in flight, his keystrokes look like Claude\'s');
+  assert.equal(f.guard.typingUnconfirmed(subject),true,'so the report calls the field his');
+  // Claude's next dispatch, elsewhere, ends the lost one: its marks become the owner's.
+  f.arm(message,null);
+  assert.equal(marks(subject),'{"owner":true,"claude":true,"release":0}');assert.equal(f.guard.typingUnconfirmed(subject),false);
+  assert.equal(marks(message),'{"owner":false,"claude":true,"release":0}','a field whose dispatch finished stays Claude\'s');
+  assert.equal(marks(f.document),'{"owner":true,"claude":true,"release":0}');
+  f.guard.dispose();
 });

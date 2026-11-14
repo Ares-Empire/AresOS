@@ -119,10 +119,19 @@
   const clipboardRoutes=new Set();
   // Typing since load, per field and whose; the unsaved report reads it
   // (reader.js). It lives as long as the document. Typing while no guard
-  // listens (after a release) is unseen, so a disposed guard leaves a gap.
-  const typing=globalThis[Symbol.for('aresos.chrome.typing.v1')]??={fields:new WeakMap(),gap:false};
+  // listens (after a release) is unseen: a disposed guard counts a release,
+  // and each Claude mark keeps the count it was made at, so the report can
+  // tell a mark from before the latest release (the owner may have edited
+  // that field since) from one made after it.
+  const typing=globalThis[Symbol.for('aresos.chrome.typing.v1')]??={fields:new WeakMap(),releases:0};
   let typingTarget=null;
-  function noteTyping(node,claude){const marks=typing.fields.get(node)||{owner:false,claude:false};marks[claude?'claude':'owner']=true;typing.fields.set(node,marks);}
+  // Claude's marks from the dispatch in flight. Its finish confirms them. If
+  // the finish never comes (a lost finish), the owner's keystrokes in that
+  // field also got Claude's mark, so they count as his: in the report while
+  // the dispatch is open, and as an owner mark once the next dispatch starts.
+  const unconfirmed=new Set();
+  function noteTyping(node,claude){const marks=typing.fields.get(node)||{owner:false,claude:false};if(claude){marks.claude=true;marks.release=typing.releases;}else marks.owner=true;typing.fields.set(node,marks);}
+  function settleUnconfirmed(){for(const node of unconfirmed)noteTyping(node,false);unconfirmed.clear();}
   // A trusted input event during Claude's own dispatch, in the field Claude
   // aimed at, is Claude's; every other trusted one is the owner's.
   function typed(event,element){
@@ -131,6 +140,7 @@
       let field=element;while(field.isContentEditable&&field.parentElement?.isContentEditable)field=field.parentElement;
       const claude=inFlight&&!!typingTarget&&(field===typingTarget||field.contains(typingTarget));
       noteTyping(field,claude);noteTyping(ownDocument,claude);
+      if(claude){unconfirmed.add(field);unconfirmed.add(ownDocument);}
     }catch{}
   }
   function noteClipboard(route){if(generation!==null&&['write','writeText','copy'].includes(route)){clipboardRoutes.add(route);try{reader?.clipboard?.(route,generation);}catch{}}}
@@ -490,6 +500,7 @@
     privateRelay(key,value){const node=document.createElement('div');node.appendChild(document.createElement('span'));setAttribute.call(node,key,value);this.relay(node,false);relayMarker=key;return node;},
     reader(value) { reader=value;privacyCheck=value.protected; }, watch,
     arm(value) {
+      settleUnconfirmed();
       generation=value.generation;dispatchNonce=value.dispatch_nonce;config={...value.config,words:value.config.words.map(word=>word.toLowerCase())};inFlight=true;owner=null;until=performance.now()+config.holdMs;
       const target=reader.element(value.target),implicit=reader.element(value.implicit);typingTarget=target||null;
       mark=value.operation ? {id:value.operation,target,form:reader.element(value.form),implicit,submitter:implicit||(value.primary_submission&&reader.target(target).submit?target:null),keydown:false,expected_key:value.key_input,expected_form:value.approved_form,input:false,primary:!value.primary_submission,consequential:!value.primary_submission,further:false} : null;
@@ -499,13 +510,15 @@
     async finish(epoch,nonce) {
       // A private message plus a later browser task over-covers the synchronous input handlers.
       await new Promise(resolve=>setTimeout(resolve,0));
-      if (generation===epoch && dispatchNonce===nonce) { until=Math.max(until,performance.now()+config.holdMs);inFlight=false;mark=null;typingTarget=null; }
+      if (generation===epoch && dispatchNonce===nonce) { until=Math.max(until,performance.now()+config.holdMs);inFlight=false;mark=null;typingTarget=null;unconfirmed.clear(); }
     },
     clear() { peers.clear();clipboardRoutes.clear();generation=null;until=0;inFlight=false;mark=null;owner=null;typingTarget=null;held.clear(); },
     typedBy(node){return typing.fields.get(node)||null;},
     typedByClaude(node){noteTyping(node,true);},
-    get typingGap(){return typing.gap;},
-    dispose() { let restored=true;if(relayNode&&relayMarker)removeAttribute.call(relayNode,relayMarker);relayNode=null;relayMarker=null;if(relayControl){if(relayMain)restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;reader?.protectPeers?.();this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;typing.gap=true;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
+    get typingGap(){return typing.releases>0;},
+    get typingReleases(){return typing.releases;},
+    typingUnconfirmed(node){return unconfirmed.has(node);},
+    dispose() { let restored=true;if(relayNode&&relayMarker)removeAttribute.call(relayNode,relayMarker);relayNode=null;relayMarker=null;if(relayControl){if(relayMain)restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;reader?.protectPeers?.();this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;typing.releases++;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
     steps() { const result=[...held.values()].filter(step=>!step.reported).map(step=>{step.reported=true;return {id:step.id,kind:step.kind,document:step.document,label:step.label,element:step.element,submitter:step.submitter,cancellable:step.cancellable};});return result; },
     resume(id,operation,element,form) {
       const step=held.get(id);

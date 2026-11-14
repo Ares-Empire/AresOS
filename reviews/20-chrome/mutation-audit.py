@@ -470,11 +470,11 @@ case('step5-ask-for-media-and-frames',B,"(ownerTyping||uninspected||playing?","(
 case('step5-editor-since-load',R,"changed=!sinceLoad||gotInput(element);}","changed=true;}",node('reader','step 5 an editor counts only once'))
 case('step5-design-mode-since-load',R,"(!sinceLoad||gotInput(document))","true",node('reader','step 5 a rich-text frame'))
 case('step5-gap-counts',R,"const sinceLoad=watched&&guard.typingGap===false;","const sinceLoad=watched;",node('reader','step 5 an editor counts only once'))
-case('step5-typist-claude-only',R,"return marks?.claude&&!marks.owner?'Claude'","return marks?.claude?'Claude'",node('reader','step 5 an editor counts only once'))
+case('step5-typist-claude-only',R,"return marks?.claude&&!marks.owner&&","return marks?.claude&&",node('reader','step 5 an editor counts only once'))
 case('step5-claude-select-check',R,"        guard.typedByClaude?.(element);\n        element.dispatchEvent","        element.dispatchEvent",node('reader','step 5 Claude'))
 case('step5-guard-aimed-field',G,"const claude=inFlight&&!!typingTarget&&(field===typingTarget||field.contains(typingTarget));","const claude=inFlight;",node('page','step 5 the guard records typing'))
 case('step5-guard-trusted',G,"if(type(event)!=='input'||!event.isTrusted||!isElement(element))return;","if(type(event)!=='input'||!isElement(element))return;",node('page','step 5 the guard records typing'))
-case('step5-guard-gap',G,"reader=null;typing.gap=true;","reader=null;",node('page','step 5 the guard records typing'))
+case('step5-guard-gap',G,"reader=null;typing.releases++;","reader=null;",node('page','step 5 the guard records typing'))
 case('step5-guard-listens',G,"    typed(event,element);\n","",node('page','step 5 the guard records typing'))
 F='control/chrome/ci/fixture.mjs'
 case('step6-react-typed-plain-field',R,"changed=value!==element.defaultValue||(gotInput(element)||retaken&&typedField(element))&&value!=='';","changed=value!==element.defaultValue;",node('reader','step 6 a React-style controlled field'))
@@ -516,6 +516,23 @@ case('step8-tabs-audible',B,",audible:tab.audible===true,muted:tab.mutedInfo?.mu
 case('step8-tabs-muted-reason',B,"muted:tab.mutedInfo?.muted===true","muted:tab.mutedInfo!==undefined",node('background','audible and muted flags'))
 case('step8-owner-navigate-named-tab','control/chrome/ci/owner-ui.mjs',"async navigate(url,{tab=currentTab(),...options}={}){","async navigate(url,{tab:named,...options}={}){const tab=currentTab();",node('owner-ui','the tab the row names'))
 case('step8-owner-navigate-exact-tab','control/chrome/ci/owner-ui.mjs',"assert.ok(Number.isInteger(tab),'the owner navigates an exact tab');","",node('owner-ui','the tab the row names'))
+
+# Fixes b, G1 (package FIX-1): a release voids Claude's earlier typing marks.
+# The probes restore the old typist, drop its release check, stop the guard
+# counting releases, and stamp every Claude mark with the first count.
+TYPIST=next(line for line in (ROOT/R).read_text().splitlines() if line.strip().startswith('const typist='))
+case('fixesb-g1-old-typist',R,TYPIST,"  const typist=node=>{const marks=guard.typedBy?.(node);return marks?.claude&&!marks.owner?'Claude':'the owner';};",node('reader','fixes b G1 after a release and a retake'))
+case('fixesb-g1-typist-release',R,"&&marks.release===guard.typingReleases","",node('reader','fixes b G1 after a release and a retake'))
+case('fixesb-g1-guard-counts',G,"reader=null;typing.releases++;","reader=null;",node('page','fixes b G1 the guard counts releases'))
+case('fixesb-g1-guard-stamp',G,"if(claude){marks.claude=true;marks.release=typing.releases;}","if(claude){marks.claude=true;marks.release=0;}",node('page','fixes b G1 the guard counts releases'))
+# Fixes b, G2 (security KNOWN LIMIT 2): Claude's marks wait for their
+# dispatch's finish. The probes drop the typist's check, stop collecting the
+# dispatch's marks, stop settling a lost finish's marks at the next arm, and
+# stop the finish confirming them.
+case('fixesb-g2-typist-unconfirmed',R,"&&guard.typingUnconfirmed?.(node)===false","",node('reader','fixes b G2 a Claude mark whose dispatch'))
+case('fixesb-g2-guard-collect',G,"if(claude){unconfirmed.add(field);unconfirmed.add(ownDocument);}","",node('page','fixes b G2 Claude'))
+case('fixesb-g2-guard-settle',G,"      settleUnconfirmed();\n      generation=value.generation;","      generation=value.generation;",node('page','fixes b G2 Claude'))
+case('fixesb-g2-guard-confirm',G,"typingTarget=null;unconfirmed.clear(); }","typingTarget=null; }",node('page','fixes b G2 Claude'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

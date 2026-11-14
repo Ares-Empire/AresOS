@@ -49,7 +49,9 @@ function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false,wat
     [Symbol.for('aresos.chrome.document-start.v1')]:watched,
     [Symbol.for('aresos.chrome.guard.v2')]:{protectedPeer,clipboard(take){const value=clipboardInfo;if(take)clipboardInfo=null;return value;},watch(){},reader(value){readerAPI=value;},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];},
       // guard.js's typing record; without one, input since load is unknown.
-      typedBy(node){return typing?.marks.get(node)||null;},typedByClaude(node){typing?.marks.set(node,{owner:false,...typing.marks.get(node),claude:true});},get typingGap(){return typing?typing.gap:undefined;},direct(){}},
+      // A mark set here without a release count was made before any release.
+      typedBy(node){const marks=typing?.marks.get(node);return marks?{release:0,...marks}:null;},typedByClaude(node){typing?.marks.set(node,{owner:false,...typing.marks.get(node),claude:true,release:typing.releases});},
+      get typingGap(){return typing?typing.releases>0:undefined;},get typingReleases(){return typing?.releases;},typingUnconfirmed(node){return !!typing?.unconfirmed?.has(node);},direct(){}},
     origin:'https://fixture.test',location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
   function read(){let result;listener({command:'read'},{id:'fixture'},value=>result=value);assert.equal(result.ok,true,JSON.stringify(result));return result;}
@@ -575,7 +577,7 @@ test('final discard_unsaved report names fields by label, never their values, ed
 
 const unsavedState=f=>JSON.parse(JSON.stringify(f.command({command:'reload_state'}).data));
 test('step 5 an editor counts only once it got input since load, marked by who typed it',()=>{
-  const typing={gap:false,marks:new Map()};
+  const typing={releases:0,marks:new Map()};
   const f=fixture([{tagName:'DIV',isContentEditable:true,attrs:{role:'textbox','aria-label':'Body'}}],{typing});const editor=f.nodes[0];f.generic(editor);
   assert.deepEqual(unsavedState(f),{unsaved:false,fields:[],claude_only:false,playing:false},'an untouched editor holds nothing');
   typing.marks.set(editor,{owner:false,claude:true});
@@ -584,20 +586,20 @@ test('step 5 an editor counts only once it got input since load, marked by who t
   assert.deepEqual(unsavedState(f),{unsaved:true,fields:['editor "Body" (typed by the owner)'],claude_only:false,playing:false});
   typing.marks.set(editor,{owner:true,claude:false});assert.equal(unsavedState(f).claude_only,false);
   // Where input since load isn't known, every editor still counts, as the owner's.
-  typing.marks.clear();typing.gap=true;
+  typing.marks.clear();typing.releases=1;
   assert.deepEqual(unsavedState(f).fields,['editor "Body" (typed by the owner)'],'a release left a gap');
-  const late=fixture([{tagName:'DIV',isContentEditable:true,attrs:{'aria-label':'Body'}}],{watched:false,typing:{gap:false,marks:new Map()}});late.generic(late.nodes[0]);
+  const late=fixture([{tagName:'DIV',isContentEditable:true,attrs:{'aria-label':'Body'}}],{watched:false,typing:{releases:0,marks:new Map()}});late.generic(late.nodes[0]);
   assert.deepEqual(unsavedState(late).fields,['editor "Body" (typed by the owner)'],'a late reader');
 });
 test('step 5 a rich-text frame counts only once it got input since load',()=>{
-  const typing={gap:false,marks:new Map()};const f=fixture([],{typing});f.designMode('on');
+  const typing={releases:0,marks:new Map()};const f=fixture([],{typing});f.designMode('on');
   assert.equal(unsavedState(f).unsaved,false,'an untouched design-mode frame holds nothing');
   typing.marks.set(f.document,{owner:true,claude:false});
   assert.deepEqual(unsavedState(f).fields,['the whole page in design mode (typed by the owner)']);
-  const late=fixture([],{watched:false,typing:{gap:false,marks:new Map()}});late.designMode('on');assert.equal(unsavedState(late).unsaved,true,'a late reader');
+  const late=fixture([],{watched:false,typing:{releases:0,marks:new Map()}});late.designMode('on');assert.equal(unsavedState(late).unsaved,true,'a late reader');
 });
 test('step 5 plain fields count when changed from the default, and carry whose typing it is',()=>{
-  const typing={gap:false,marks:new Map()};
+  const typing={releases:0,marks:new Map()};
   const f=fixture([{attrs:{'aria-label':'Kept'}},{attrs:{'aria-label':'Typed'}}],{typing});const [kept,typed]=f.nodes;
   for(const node of f.nodes)node.defaultValue='safe visible text';
   assert.equal(unsavedState(f).unsaved,false,'equal to the default and nobody typed');
@@ -612,7 +614,7 @@ test('step 5 plain fields count when changed from the default, and carry whose t
 // still holds text.
 const holds=(node,text)=>Object.defineProperty(node,'value',{configurable:true,get:()=>text});
 test('step 6 a React-style controlled field typed since load counts while it holds text, marked by who typed it',()=>{
-  const typing={gap:false,marks:new Map()};
+  const typing={releases:0,marks:new Map()};
   const f=fixture([{attrs:{'aria-label':'Headline'}},{attrs:{'aria-label':'Story'}},{attrs:{'aria-label':'Untouched'}}],{typing});const [owner,claude]=f.nodes;f.textarea(claude);
   for(const node of f.nodes)node.defaultValue='safe visible text';
   assert.equal(unsavedState(f).unsaved,false,'nobody typed and the value is the default: nothing to lose');
@@ -622,12 +624,14 @@ test('step 6 a React-style controlled field typed since load counts while it hol
   const state=unsavedState(f);
   assert.deepEqual(state,{unsaved:true,fields:['field "Headline" (typed by the owner)','text area "Story" (typed by Claude)'],claude_only:false,playing:false});
   assert.doesNotMatch(JSON.stringify(state),/safe visible text/,'labels only, never values');
-  // Typing seen before a release still counts after it; after the gap the
-  // untouched field holding text counts too, as the owner's (step 7).
-  typing.gap=true;assert.deepEqual(unsavedState(f).fields,[...state.fields,'field "Untouched" (typed by the owner)']);
+  // Typing seen before a release still counts after it, but as the owner's:
+  // he may have edited it while no guard listened (fixes b, G1). After the
+  // gap the untouched field holding text counts too, as his (step 7).
+  typing.releases=1;
+  assert.deepEqual(unsavedState(f),{unsaved:true,fields:['field "Headline" (typed by the owner)','text area "Story" (typed by the owner)','field "Untouched" (typed by the owner)'],claude_only:false,playing:false});
 });
 test('step 6 a field emptied again is not reported, whoever typed it',()=>{
-  const typing={gap:false,marks:new Map()};
+  const typing={releases:0,marks:new Map()};
   const f=fixture([{attrs:{'aria-label':'Headline'}},{attrs:{'aria-label':'Draft'}}],{typing});const [owner,claude]=f.nodes;f.textarea(claude);
   typing.marks.set(owner,{owner:true,claude:false});typing.marks.set(claude,{owner:false,claude:true});
   // React's reset, and the latency page's Send: value and default both empty.
@@ -642,29 +646,64 @@ test('step 6 a field emptied again is not reported, whoever typed it',()=>{
 // does after a gap, and as the owner's. A page that keeps the default in step
 // with typing (React) would otherwise hide a draft typed in that gap.
 test('step 7 after a retake every non-empty text field counts as the owner\'s, empty and non-text fields do not',()=>{
-  const typing={gap:false,marks:new Map()};
+  const typing={releases:0,marks:new Map()};
   const f=fixture([{attrs:{'aria-label':'Headline'}},{attrs:{'aria-label':'Story'}},{attrs:{'aria-label':'Blank'}},{type:'range',attrs:{'aria-label':'Volume'}},{type:'color',attrs:{'aria-label':'Tone'}}],{typing});
   const [headline,story,blank,volume,tone]=f.nodes;f.textarea(story);
   for(const node of [headline,story])node.defaultValue='safe visible text';
   holds(blank,'');blank.defaultValue='';
   holds(volume,'50');volume.defaultValue='50';holds(tone,'#000000');tone.defaultValue='#000000';
   assert.equal(unsavedState(f).unsaved,false,'no gap, nobody typed, values equal the defaults');
-  typing.gap=true;
+  typing.releases=1;
   const state=unsavedState(f);
   assert.deepEqual(state,{unsaved:true,fields:['field "Headline" (typed by the owner)','text area "Story" (typed by the owner)'],claude_only:false,playing:false});
   assert.doesNotMatch(JSON.stringify(state),/safe visible text/,'labels only, never values');
-  // Claude's own typing seen before the release stays his; the gap adds the rest as the owner's.
-  typing.marks.set(story,{owner:false,claude:true});
-  assert.deepEqual(unsavedState(f).fields,['field "Headline" (typed by the owner)','text area "Story" (typed by Claude)']);
+  // Claude's typing seen before the release counts as the owner's too: he
+  // may have edited it during the release (fixes b, G1). Claude's typing
+  // after the retake is his again.
+  typing.marks.set(story,{owner:false,claude:true,release:0});
+  assert.deepEqual(unsavedState(f),state);
+  typing.marks.set(story,{owner:false,claude:true,release:1});
+  assert.deepEqual(unsavedState(f),{unsaved:true,fields:['field "Headline" (typed by the owner)','text area "Story" (typed by Claude)'],claude_only:false,playing:false});
   // A late reader (unwatched document) keeps its own rule for text fields and never counts a slider.
-  const late=fixture([{type:'range',attrs:{'aria-label':'Volume'}}],{watched:false,typing:{gap:false,marks:new Map()}});
+  const late=fixture([{type:'range',attrs:{'aria-label':'Volume'}}],{watched:false,typing:{releases:0,marks:new Map()}});
   holds(late.nodes[0],'50');late.nodes[0].defaultValue='50';assert.equal(unsavedState(late).unsaved,false);
+});
+// Fixes b, G1 (package FIX-1): a release voids Claude's earlier marks. The
+// owner presses Stop to review Claude's draft and edits it while no guard
+// listens. At the retake the report must call that field his; otherwise it
+// says the draft is all Claude's and may go without asking.
+test('fixes b G1 after a release and a retake a field, an editor and a design-mode page Claude typed before count as the owner\'s',()=>{
+  const typing={releases:0,marks:new Map()};
+  const f=fixture([{attrs:{'aria-label':'Draft'}},{tagName:'DIV',isContentEditable:true,attrs:{role:'textbox','aria-label':'Body'}}],{typing});
+  const [draft,editor]=f.nodes;f.generic(editor);draft.defaultValue='';f.designMode('on');
+  const claude=release=>{for(const node of [f.document,draft,editor])typing.marks.set(node,{owner:false,claude:true,release});};
+  const fields=by=>['the whole page in design mode','field "Draft"','editor "Body"'].map(field=>field+' (typed by '+by+')');
+  claude(0);
+  assert.deepEqual(unsavedState(f),{unsaved:true,fields:fields('Claude'),claude_only:true,playing:false},'before the release: Claude\'s own draft');
+  typing.releases=1;
+  assert.deepEqual(unsavedState(f),{unsaved:true,fields:fields('the owner'),claude_only:false,playing:false},'after the retake: the owner may have edited it');
+  claude(1);
+  assert.deepEqual(unsavedState(f),{unsaved:true,fields:fields('Claude'),claude_only:true,playing:false},'Claude\'s typing after the retake is his again');
+  typing.releases=2;
+  assert.equal(unsavedState(f).claude_only,false,'and the next release voids it in turn');
+});
+// Fixes b, G2 (security KNOWN LIMIT 2): until Claude's dispatch finishes, the
+// owner's keystrokes in Claude's field get Claude's mark too. A lost finish
+// leaves the dispatch open, so its marks count as the owner's.
+test('fixes b G2 a Claude mark whose dispatch has not finished counts as the owner\'s',()=>{
+  const typing={releases:0,marks:new Map(),unconfirmed:new Set()};
+  const f=fixture([{attrs:{'aria-label':'Message'}},{attrs:{'aria-label':'Subject'}}],{typing});const [message,subject]=f.nodes;
+  for(const node of f.nodes){node.defaultValue='';typing.marks.set(node,{owner:false,claude:true,release:0});}
+  typing.unconfirmed.add(message);
+  assert.deepEqual(unsavedState(f),{unsaved:true,fields:['field "Message" (typed by the owner)','field "Subject" (typed by Claude)'],claude_only:false,playing:false});
+  typing.unconfirmed.clear();
+  assert.deepEqual(unsavedState(f),{unsaved:true,fields:['field "Message" (typed by Claude)','field "Subject" (typed by Claude)'],claude_only:true,playing:false},'its finish confirms Claude\'s typing');
 });
 // Step 6 (run 43566651314): a drop-down whose page marks no option selected
 // shows its first enabled option; nobody changed it.
 test('step 6 a list counts only when it differs from HTML\'s reset state',()=>{
   const state=(config,picks)=>{
-    const f=fixture([],{typing:{gap:false,marks:new Map()}});
+    const f=fixture([],{typing:{releases:0,marks:new Map()}});
     const options=config.options.map(([marked,disabled],index)=>new f.Element({tagName:'OPTION',defaultSelected:marked,disabled:!!disabled,selected:picks.includes(index)}));
     f.nodes.push(new f.Element({tagName:'SELECT',namespaceURI:'http://www.w3.org/1999/xhtml',localName:'select',attrs:{'aria-label':'Choice'},options,multiple:!!config.multiple,size:config.size||0}));
     return unsavedState(f).fields;
@@ -680,7 +719,7 @@ test('step 6 a list counts only when it differs from HTML\'s reset state',()=>{
   assert.deepEqual(state({options:[[true],[false],[true]],multiple:true},[0]),['list "Choice" (typed by the owner)']);
 });
 test('step 5 Claude\'s own check marks the field as his',()=>{
-  const typing={gap:false,marks:new Map()};
+  const typing={releases:0,marks:new Map()};
   const f=fixture([{type:'checkbox',checked:false,defaultChecked:false,attrs:{'aria-label':'Tick'}}],{typing});f.read();
   f.command({command:'set_control',generation:'g'});
   const result=f.command({command:'check',generation:'g',element:'e1',checked:true});assert.equal(result.ok,true,JSON.stringify(result));
