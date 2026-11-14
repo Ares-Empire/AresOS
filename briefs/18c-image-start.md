@@ -74,3 +74,20 @@ branch, never merge, never push to `main`, never force-push, never `--no-verify`
 data, no real mail addresses or provider names, no secrets.
 
 **Model:** a Claude agent on Opus 5.5, as the brief says; the lead moves it to Fable 5.2 if the VM work resists.
+
+## Amendment, 2026-11-14 (after step 1): `gh` moves to 18c-b
+
+`linux-aresos` decided, and the lead agrees: nothing in 18c calls `gh`; only Chrome's daily record refresh does. So
+`gh` leaves this package and comes with Chrome's files in brief 18c-b. Step 1 found Fedora 44's `gh` too old (2.97.0)
+and GitHub's release RPM requiring `git`, which the base doesn't have.
+
+- Remove the `gh` step that step 1 added to `os/ci/check-resolve.sh`, so `check-resolve.sh` is as package 23 left it,
+  and drop every `gh` line from this package's checks and tests. Change 4 of the agreed list and B2's check 10 are
+  out of 18c.
+- For 18c-b (not built here): only `/usr/bin/gh` is taken out of the pinned release RPM, after its bytes and its
+  signature are checked; gh's licence text is shipped beside it in `/usr/share/licenses/gh/`; the binary's own SHA-256
+  is in the lock and in `control.json`; the image check runs `/usr/bin/gh --version` and compares the binary with the
+  record; the release diff explains it from the lock. Not `rpm --nodeps`, not Fedora's `git`.
+- Agreed change 12's check actions for the release rehearsal must include: `aresos-tools`'s UID and GID after the
+  update (250) and the owner of its state folders. On the laptop sysusers runs at the first boot of the new release,
+  where a taken 250 would quietly become another number; only the rehearsal can see that.
