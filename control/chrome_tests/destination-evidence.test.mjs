@@ -53,5 +53,6 @@ test('final F3 destination pages build each route the reader must resolve like C
   assert.match(page(rows['post18d-destination-svg-href-top-target']).script,/node\.setAttribute\('target','sink-second'\)/,'a plain SVG target change, not the base');
   assert.match(page(rows['post18d-destination-form-action-srcdoc-owner']).script,/node\.setAttribute\('form','second'\)/);
   assert.deepEqual(destinationExpectation(rows['post18d-destination-svg-href-top-xlink-show']),{before:{path:'/first/receive',target:'_blank'},after:{path:'/first/receive',target:'_self'},top:true,sink:null});
+  assert.deepEqual(destinationExpectation(rows['post18d-destination-a-top-sanitize-newline-target']),{before:{path:'/first/receive',target:'sink\\u000afirst'},after:{path:'/first/receive',target:'sink\\u000asecond'},top:false,sink:'sink\nsecond'},'questions show the escaped name; Chrome keeps the raw one');
   assert.deepEqual(destinationExpectation(rows['post18d-destination-form-action-top-owner']),{before:{path:'/first/receive',target:'sink-first'},after:{path:'/second/receive',target:'sink-first'},top:false,sink:'sink-first'});
 });

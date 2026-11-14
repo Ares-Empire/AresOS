@@ -33,11 +33,14 @@ export function sinkNames(change){
 }
 // What the question must bind before and after the page's change, and where
 // Chrome then navigates. An empty target follows Chrome: the base target.
+// Approval descriptions pass through visible(), which escapes a newline;
+// Chrome's own window name (sink) stays raw.
 export function destinationExpectation({change}){
   const names=sinkNames(change),targetChange=change.endsWith('target')||change==='xlink-show';
   const before=change==='svg-self'?'_self':change==='xlink-show'?'_blank':names.first;
   const after=['svg-self','xlink-show'].includes(change)?'_self':targetChange?names.second:names.first;
-  return {before:{path:'/first/receive',target:before},after:{path:targetChange?'/first/receive':'/second/receive',target:after},top:after==='_self',sink:after==='_self'?null:after};
+  const shown=value=>value.replace(/\n/g,'\\u000a');
+  return {before:{path:'/first/receive',target:shown(before)},after:{path:targetChange?'/first/receive':'/second/receive',target:shown(after)},top:after==='_self',sink:after==='_self'?null:after};
 }
 const attribute=value=>value.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/\n/g,'&#10;');
 export function destinationPage(url){
