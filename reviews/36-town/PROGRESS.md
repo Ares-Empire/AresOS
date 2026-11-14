@@ -15,6 +15,10 @@ Brief: `briefs/36-town.md`. Steps 1 to 4, one fresh builder per step. The last s
 - The brief's step 2 changed accordingly (schema 4, `absent` programs are not wanted, which three files of package
   35 to stay out of). Step 2 starts from here.
 
+**2026-11-14, step 2a (Opus 5.5): points 1 to 3 of step 2 are done and green** (the saved fields, the town's record,
+the one function). Points 4 and 5 (keeping in step, protection) are step 2b: read "Done in step 2a" and "What step 2b
+calls" below, then "What is left, in order".
+
 
 **Step 1 is written but not yet built** (Opus 5.5, 2026-11-13): places, groups and the logo's picture, as pure
 functions with unit tests. The build could not run (the owner's game was open the whole time; see "Verified"), so
@@ -157,15 +161,135 @@ How step 2 should feed it (advice, not built):
   stays pending, and if it turns out refused once loaded, the next run moves the app on.
 - Write `saved()` back into the apps file (and clear `place` for apps not in it).
 
+## Done in step 2a
+
+Commits on `pkg/36-town`, one per point, each built green:
+
+- `d6b647dc` **A test that package 35's parser reads `place` and `group` and keeps them**, committed before any parser
+  change, so on that commit it tests package 35's own parser: fixture `mod/src/test/resources/apps/schema-4-town.json`,
+  `AppsConfigTest.aSchema4FileWithPlacesAndGroupsIsReadAndEveryEditKeepsThem`. GitHub run 43537089294 on `d6b647dc`
+  passed (both checkouts: "All 85 required tests passed", that test PASSED).
+- `ba903460` **Point 1, saved with the apps.** `AppDefinition` gains `place` and `group` (raw text, null for none;
+  `withSpot`). `AppsConfig` reads both and `AppsConfig.spots(file, Map<id, Spot>)` writes exactly the given pair per
+  listed app (null removes the field), editing the file in place like every other edit. `AresOs.saveSpots` keeps the
+  list in memory in step (only these two fields, as `assignNames` does for names). `AppGroup.key()` / `ofKey(String)`;
+  `AppGroup.of(app)` now returns the group he chose by hand when `group` names one, else the rules.
+  **No new schema number:** package 35's parser ignores fields it does not know, and all of its edits (pins, My apps,
+  merge, names) change the parsed JSON in place, so it keeps `place` and `group`. The only path that writes from records
+  (`AppsConfig.save`) runs when there is no file yet (and in tests). So the brief's expectation "when it saves, the
+  places are dropped" does not happen: a package-35 mod keeps them; nothing is given out again.
+- `b9ac38ca` **Point 2, saved with the world.** `HubData.Logo(app, place, picture, converter, name, shortName, zone,
+  gate)`, `gate` being package 33's `AppZone.Gate` (every block `{pos, block}`, the doormat's ground, the sign's ID, the
+  grass under it). `hub.dat` gains `logos` (optional: a file of packages 32 to 35 loads with none). The record's block
+  index covers the logos, so `holds`, `blockChanged`/forget and `protectsFrom` work for them as for the pad: a block he
+  changes leaves its logo's record at once. A zone of `zones.dat` is the town's while a logo names its ID
+  (`HubData.town(server, zone)`); `/aresos zone remove`, `zone list` (`| town`) and `/aresos logo remove <app>|here`
+  leave such zones and their logos alone and say "The logo of X belongs to the town and stays: /aresos app remove <id>
+  takes it down." `Neighbors` counts the hub's blocks and the town's signs as the mod's own. `GatePicture.CONVERTER`
+  (1) and `GatePicture.hash()` (SHA-256 of the size and every cell's block).
+- `b7ba13a7` **Point 3, one function.** `zone/Placing.set(level, pos, recorded, next[, flags])`: where the record holds
+  nothing (`recorded == null`) it places only on untouched ground (air, or grass or dirt with air above); where it holds
+  a block it changes it only while that block is still there (`Placing.still`: same block; a light only at level 15 and
+  dry). Returns `Optional<Placing.Change(pos, block, before)>`, empty = not the mod's to change, nothing happened.
+  `FlatHub.place` goes through it (still grass only, still `UPDATE_CLIENTS`). `GateBuilder` is split: `prepare` (every
+  refusal, nothing changed; `GateBuilder.NotLoaded extends IOException` when not loaded), `place` (every block through
+  `Placing`, undone through it if the world changed since `prepare`), `takeDown` (through `Placing`); `build` and
+  `remove` for hand-built gates are these plus `zones.dat`, behaviour unchanged. `HubData.holds` uses `Placing.still`.
+  `hub/Town.java`: `check`, `build`, `remove`, `plan` for the town's logos (below). Tests: `TownGameTests` (batch
+  `aresos-test:town`, alone: builds a flat home 15000 blocks from its plot, holds its chunks with its own ticket, puts
+  the server's previous hub record back): Discord at N0R0 built and checked block by block against the plan, the
+  record, the sign, the zone (no gate, no blocks, `town` true; a zone of his false), the codec round trip, refusals
+  that change nothing (same app twice, a taken place), a blocked place (his planks in N0L0, not `NotLoaded`), the
+  ground rule (stone under N1L0's way in), a block he changes leaving the record, and the removal (world as before but
+  his block, no sign, zone or record). `theOneFunctionChangesOnlyUntouchedGroundOrTheBlockItRecorded` (desktop batch,
+  own plot) checks `Placing`'s rule cell by cell. Unit: `HubDataTest`, `AppGroupTest`, `AppsConfigTest`,
+  `GatePictureTest` additions.
+
+**Verified:** `mod/dev/build.sh` at `b9ac38ca`: exit 0, "All 85 required tests passed", unit 195 run, 6 skipped (the
+Windows-only ones), 0 failed. At `b7ba13a7`, twice: exit 0, "All 87 required tests passed" (the town batch "1 tests",
+desktop "39 tests"), `BUILD SUCCESSFUL in 1m 9s` and `in 43s`. Earlier tries refused with exit 75 (memory under 6 GB).
+Packages 32 and 33's tests pass unchanged; no existing test was edited. Client tests not run (step 3).
+
+## Decisions step 2a took (not settled by the brief)
+
+- **`group` is saved as the group's key** (`internet`, `games`, `work_media`, `system_tools`), not the letter: a
+  letter is the flat look's direction, a group he chose must mean the same in another look. Package 37 writes it with
+  `AppsConfig.spots` / `AresOs.saveSpots`.
+- **Lenient values, strict types:** `place` or `group` text that names nothing means none (the app stands by the
+  rules), so a later mod's file is never refused for it; a value that is not text refuses the file, as every field does.
+- **`AppGroup.of(app)` honours the saved group everywhere**: the town, a hand-built gate's doormat, the `/apps` line.
+- **"Marked as the hub's" is the logo record naming the zone's ID**, not a field in `zones.dat`: one fact in one file,
+  so an older mod rewriting either file cannot make them disagree. The town's zone in `zones.dat` has no gate and no
+  `blocks`; its blocks are protected through `hub.dat`. A mod of packages 33 to 35 sees a plain zone: walking in works,
+  its `logo remove` finds no logo there, it does not protect the town's blocks.
+- **The picture's hash is of the cells as built**, not of the icon file: what stands is what is compared, a plain
+  front (no icon) has a hash too, and an icon change that draws the same blocks rebuilds nothing.
+- **The logo also records the name and short name on its sign** (not in the brief's list), so step 2b can tell a
+  changed name without the sign's chunk loaded.
+- **Untouched ground for the one function is air, or grass or dirt with air above**: package 33's doormat goes on dirt
+  too and its tests stay unchanged. Callers may ask for less: the pad grass only, the town's floor grass or the hub's
+  own (HUB.md 3.3, in `Town`).
+- **`Town` refuses unless `hub.dat`'s look is `flat-1`**: places are laid out for those rules.
+- **`Town.build` takes the picture as an argument** and reads no icon, so step 2b can read icons off the server
+  thread (`AppIcons.read` may wait 3 seconds an app).
+
+## What step 2b calls
+
+```java
+// The apps file (config)
+String app.place() / app.group()                         // raw text or null; Place.parse(app.place()) for the place
+AppGroup AppGroup.of(app)                                // the group he chose, else the rules: feed Assignment.App with it
+void AresOs.saveSpots(Map<String, AppsConfig.Spot> spots) // record Spot(String place, String group); exact pair, null = none
+List<AppDefinition> AppsConfig.spots(Path file, Map<String, AppsConfig.Spot> spots)
+
+// The town (hub/Town.java); every call does it all or changes nothing
+void         Town.check(MinecraftServer, AppDefinition, Place, GatePicture) throws IOException
+             // returns: buildable now; throws GateBuilder.NotLoaded: not loaded (pending, not blocked);
+             // any other IOException: blocked, its message names what is in the way
+HubData.Logo Town.build(MinecraftServer, AppDefinition, Place, GatePicture) throws IOException   // same refusals
+GateBuilder.Removal Town.remove(MinecraftServer, String appId) throws IOException
+             // NotLoaded: pending; other IOException: something of his hangs on it, leave it standing
+GatePlan     Town.plan(HubData, AppDefinition, Place, GatePicture)
+
+// The record (hub/HubData.java)
+HubData HubData.get(server)            // null: not a flat home; hub.look() is "flat-1" for this town
+List<Logo> hub.logos(); Optional<Logo> hub.logo(appId); Optional<Logo> hub.logoOfZone(zoneId)
+Optional<Logo> hub.logoAt(level, pos)  // the logo whose record holds this block (for explosions in Build mode)
+boolean hub.holds(level, pos); static boolean HubData.town(server, zone); Set<UUID> hub.signs()
+record Logo(String app, String place, String picture, int converter, String name, Optional<String> shortName,
+            String zone, AppZone.Gate gate)
+
+// Pictures (zone)
+GatePicture GateBuilder.picture(app, HubLayout.SIZE)    // reads AppIcons: up to 3 s an app
+String picture.hash(); int GatePicture.CONVERTER
+
+// The one function, for roads in step 3 (zone/Placing.java)
+Optional<Placing.Change> Placing.set(ServerLevel, BlockPos, String recorded /* null: none */, BlockState next[, int flags])
+boolean Placing.still(BlockState, String recorded); BlockState Placing.state(String id); String Placing.id(BlockState)
+```
+
+Refresh (HUB.md 3.4.4) needs nothing new: compare `logo.picture()` with `picture.hash()`, `logo.converter()` with
+`GatePicture.CONVERTER`, `logo.name()` / `logo.shortName()` with `app.name()` / `NameRules.mainName(app)`; then
+`Town.remove` and `Town.build` in the same place (a sign-only rewrite is an optimisation, not needed).
+
 ## What is left, in order
 
-**Step 2** (starts when package 35 is on `main`; the orchestrator says when): `place` and `group` in the apps file
-(schema 3, no new number, test that package 34's parser reads such a file); the standing logos in `hub.dat` with
-every block, grass, doormat ground, sign and zone IDs, picture hash and converter version; the town's zones in
-`zones.dat` marked as the hub's; one function for every block the hub places or removes (`FlatHub` and
-`GateBuilder` go through it); keeping in step (HUB.md 3.4's six points: flat-1 worlds only, complete lists only,
-take down / build / refresh, blocked places, refused removals, unloaded places pending, pinned first on the first
-build, one chat line per change); protection in Live mode; server tests for all of it.
+**Step 2b** (points 4 and 5 of the brief's step 2):
+1. Keeping in step (HUB.md 3.4): a runner on the server thread, triggered when the host enters the flat home, when a
+   complete program list arrives (`AresOs.takeIn` / `MyAppsGame.listed`), and after `/aresos app add` and `remove`
+   (without touching `item/AppCommands.java`, `names/OwnedNodes.java` or its mixin: hook where My apps changes, e.g.
+   `AresOs.saveMine`, or `MyAppsGame`). Only when `HubData.get` is non-null with look `flat-1`, only on a complete list.
+   Wanted = `mine && !absent`; feed every app of the file to `Assignment.of` (pinned first, then file order), with
+   `AppGroup.of(app)` and `Place.parse(app.place())`; `blocked` = `Town.check` throws something other than `NotLoaded`.
+   Take down logos whose app is not wanted or whose place changed, build the missing ones, refresh changed ones; write
+   `saved()` back with `AresOs.saveSpots` (keep each app's `group`). `NotLoaded` work stays pending and is retried every
+   few seconds while he is in the world and when he comes near; no forced chunks. One chat line per change, none when
+   nothing changed.
+2. Protection: town blocks in Live mode already follow `hub.holds` (`HubData.protectsFrom`, the Live break check in
+   `WalkInZones`, whose message still says "The home pad and roads are protected"); explosions must spare a town logo's
+   blocks in Build mode too (`LogoExplosionMixin`: `hub.logoAt(level, pos).isPresent()`); signs are text displays and
+   cannot be hit.
+3. Server tests for both, with a fake program list and drawn pictures; `mod/dev/build.sh` twice; commit, push.
 
 **Step 3:** roads grow with their group (never shrink); `INTERNET · 2` counts; `/aresos hub rebuild`; re-render on a
 new converter version; the sign's second line with package 35's short name; a new world gets the same town; one
@@ -193,6 +317,18 @@ only, docs (`mod/README.md`, `README.md`, HUB.md corrections), the report, delet
   the server thread.
 - **Client test expectation changed** (`GateLogoClientGameTest`, the "gate-tree" doormat is yellow now). Step 3's
   client run checks it; its screenshot of that gate changes colour at the doormat.
+
+- **(Step 2a) A town light he changes blocks the logo's removal.** Changing a light's level or waterlogging it is his
+  edit, so the record forgets it; `Neighbors.checkRemoval` then refuses because a light that is not the mod's is not
+  "inert" (package 33 accepts only its own lights, which hand-built gates keep in their record). The logo then stays
+  with a chat line every run. Step 2b may accept any dry light as stable on removal in `Neighbors` (its comment's
+  reasoning holds for every dry light) or keep it as "leave the logo standing".
+- **(Step 2a) A mod of packages 32 to 35 rewrites `hub.dat`** (when a pad or road block changes) and drops `logos`; HUB.md's
+  correction "an older mod never rewrites hub.dat" holds only for mods before package 32. After going back to such a
+  mod and changing the pad, the newer mod no longer knows the standing logos: their places look blocked and the apps
+  move on. Step 4 should put this in HUB.md's corrections; a separate file for the logos would avoid it.
+- **(Step 2a) `/aresos logo remove here` at a town logo** uses the zone's area (the niche to the exit), so he must stand
+  in front of the door, as for a hand-built gate.
 
 ## Dead ends
 
