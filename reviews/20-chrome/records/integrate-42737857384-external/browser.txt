@@ -1,0 +1,277 @@
+dbus-daemon[514]: [session uid=1000 pid=514] Activating service name='org.a11y.Bus' requested by ':1.2' (uid=1000 pid=551 comm="/opt/google/chrome/chrome --user-data-dir=/tmp/are" label="chrome (unconfined)")
+dbus-daemon[514]: [session uid=1000 pid=514] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[514]: [session uid=1000 pid=514] Activating service name='ca.desrt.dconf' requested by ':1.4' (uid=1000 pid=551 comm="/opt/google/chrome/chrome --user-data-dir=/tmp/are" label="chrome (unconfined)")
+dbus-daemon[514]: [session uid=1000 pid=514] Successfully activated service 'ca.desrt.dconf'
+GROUP 1 what asks PASS: zero before approval, one after, no replay
+GROUP 2 stopped page steps PASS native
+GROUP 2 stopped page steps PASS event
+GROUP 2 wrapped non-cancellable activation PASS: no delivery and never resumed
+GROUP 7 password presence and show-password PASS
+GROUP 13 residual ordinary-click fetch OBSERVED, NOT HELD
+Preliminary core smoke cases passed; acceptance is not complete
+GROUP 8 owner input evidence {"ownerInput":"X keyboard Tab then Return, outside the tool","ownerDelayMs":114,"ownerArrivals":1,"scheduledArrivals":0,"result":{"operation_id":"8aa61aa653c74eb6afaa59d69c2a5b08:84fb49c56ded488ba8804147693ee0ce","untrusted_content":{"checked":true,"dispatched":true,"steps":[{"id":"h7","kind":"native_submit","document":"82041153beeec3ab3b9d7fd3a394378b","label":"","element":"e10","submitter":null,"cancellable":true,"frame":0}],"dialog":null,"uncertain_finish":false,"confirmations":[],"page":"Input dispatched once; inspect a fresh read for what the page shows."},"followups":[{"approval":{"question":"On http://fixture.test:8765/?case=owner-input, as the page shows it, activate 'resume native_submit' to http://fixture.test:8765/receive?case=scheduled-input (post, 1 fields, 1 hidden)?","operation_id":"8aa61aa653c74eb6afaa59d69c2a5b08:3bbadbf07f8e4537aa96f53b6c411065","description":{"action":"chrome_submit","untrusted_content":{"page_state":{"session":"eca4eb63-2379-4194-8caa-2e88350b6dcf","tab":452401090,"control":"008094d2-d4b0-488e-8b88-b3ef09337e69","url":"http://fixture.test:8765/?case=owner-input","document":"82041153beeec3ab3b9d7fd3a394378b","frame":0,"frame_url":"http://fixture.test:8765/?case=owner-input","target":{"element":"e10","role":"form","name":"","label":"","title":"","href":null,"states":{"checked":false,"selected":false,"disabled":false,"required":false,"invalid":false,"expanded":null},"editable":false,"search":false,"submit":false,"page_dialog":null},"form":{"element":"e10","action":"http://fixture.test:8765/receive?case=scheduled-input","method":"post","encoding":"application/x-www-form-urlencoded","target":"sink","search":false,"fields":[{"element":"e11","name":"source","label":"","type":"hidden","hidden":true,"checked":false,"disabled":false,"multiple":false,"readOnly":false,"value":"scheduled"}]},"editable":null,"item":null,"adapter":null,"dialog":null},"input":{"verb":"resume_submission","kind":"native_submit"},"resume_kind":"native_submit","file":null,"confirmation":null},"adapter_action":null,"expires_at":1794276792.7473347}},"state":"reserved"}]}}
+GROUP 8 owner input PASS
+GROUP 7 page forgery PASS page-forgery receiver: 0 before, 1 after, 1 after replay
+GROUP 7 page forgery PASS hostile receiver: 0 before, 1 after, 1 after replay
+GROUP 7 page forgery PASS relay-hostile receiver: 0 before, 1 after, 1 after replay
+GROUP 2 first-script natives are guarded in pages and frames PASS
+GROUP 8 popups preserve opener flow and guard first input without moving windows FAIL AssertionError [ERR_ASSERTION]: popup window, name and opener remain intact
++ actual - expected
+
+  {
+    name: 'popup-popup-clean',
+    opener: true,
++   outerHeight: 514,
++   outerWidth: 620
+-   outerHeight: 0,
+-   outerWidth: 0
+  }
+
+    at file:///workspace/control/chrome/ci/popups.mjs:35:85
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async check (file:///workspace/control/chrome/ci/matrices.mjs:13:10)
+    at async popupMatrices (file:///workspace/control/chrome/ci/popups.mjs:26:3)
+    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:47:3)
+    at async file:///workspace/control/chrome/ci/browser.mjs:138:24
+GROUP 8 POST popups never resubmit and ordinary openers stay untouched FAIL AssertionError [ERR_ASSERTION]: {"ok":false,"error":{"code":"refused","message":"452401090."},"pending":{"items":[{"operation_id":"8aa61aa653c74eb6afaa59d69c2a5b08:3bbadbf07f8e4537aa96f53b6c411065","app":"chrome","state":"reserved","reason":"Browser or service session changed; drop this preparation and prepare again.","validity":"refused","refusal_code":"stale_approval"}],"total":1,"cursor":null,"restore_required":false,"notices":[{"operation_id":"f3e845d62efe7e7ccb8fac44a0806cefd742db3fa48b1aa50b7c0dda45e3ca08","app":"chrome","state":"unknown","untrusted_content":{"intent_key":"intent:chrome:f3e845d62efe7e7ccb8fac44a0806cefd742db3fa48b1aa50b7c0dda45e3ca08","reason":"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.","recovery_warning":true}},{"operation_id":"e40180e60620c33b371f0ba558a0e42c87af4488e9b425a3d61e297d39162bda","app":"chrome","state":"unknown","untrusted_content":{"intent_key":"intent:chrome:e40180e60620c33b371f0ba558a0e42c87af4488e9b425a3d61e297d39162bda","reason":"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.","recovery_warning":true}},{"operation_id":"cc581fdf2c61ae1a638638f499c89c86492c0debc426b949669566976c1b25bf","app":"chrome","state":"unknown","untrusted_content":{"intent_key":"intent:chrome:cc581fdf2c61ae1a638638f499c89c86492c0debc426b949669566976c1b25bf","reason":"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.","recovery_warning":true}}],"notices_more":{"count":9,"action":"control_notices"}}}
+    at call (file:///workspace/control/chrome/ci/browser.mjs:27:80)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file:///workspace/control/chrome/ci/popups.mjs:43:17
+    at async check (file:///workspace/control/chrome/ci/matrices.mjs:13:10)
+    at async popupMatrices (file:///workspace/control/chrome/ci/popups.mjs:41:3)
+    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:47:3)
+    at async file:///workspace/control/chrome/ci/browser.mjs:138:24
+GROUP 7 native compatibility inside and outside Claude tabs PASS
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+GROUP 8 Stop under a native modal revokes input before deferred cleanup PASS
+GROUP 8 taken tabs preserve reads and guard the first input reload PASS
+ADAPTER RECEIVER adapters-gmail-1:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-2:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-3:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-4:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-5:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-6:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-7:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-8:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-9:Send:first 0 before, 1 after, 1 after repeat
+GROUP 10 ADAPTER Gmail full compose and every bound field PASS
+ADAPTER RECEIVER adapters-gmail-10:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-10:Send:second 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-11:Delete shortcut:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-12:Enter:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-13:Enter:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-14:Delete shortcut:first 0 before, 1 after, 1 after repeat
+GROUP 10 ADAPTER two Gmail compose windows and inbox shortcut PASS
+ADAPTER RECEIVER adapters-gmail-15:Send:first 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-gmail-16:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-17:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-18:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-19:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-20:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-21:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-22:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-23:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-24:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-25:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-26:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-27:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-28:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-29:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-30:Send:first 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-gmail-32:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gmail-33:Send:first 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-gmail-34:Send:first 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+GROUP 11 ADAPTER Gmail exact To Cc Bcc roles account revocation and widening PASS
+ADAPTER RECEIVER adapters-whatsapp-35:Enter:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-whatsapp-36:Send:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-whatsapp-37:Send:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-whatsapp-38:Send:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-whatsapp-39:Send:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-whatsapp-40:Send:main 0 before, 1 after, 1 after repeat
+GROUP 10 ADAPTER WhatsApp every message chat text attachments and free activity PASS
+ADAPTER RECEIVER adapters-github-41:Comment:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-42:Submit review:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-43:Approve review:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-44:Request changes:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-45:Merge pull request:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-46:Close issue:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-47:Close pull request:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-48:Delete branch:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-49:Delete tag:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-50:Delete repository:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-51:Save settings:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-52:Unstar:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-54:Comment:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-55:Comment:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-56:Comment:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-57:Comment:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-58:Comment:main 0 before, 1 after, 1 after repeat
+GROUP 10 ADAPTER GitHub actions and all named confirmations PASS
+ADAPTER RECEIVER adapters-github-59:Squash and merge:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-60:Rebase and merge:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-61:Confirm merge:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-62:Close this issue:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-63:Update settings:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-64:Add comment:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-65:Unstar repository:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gemini-66:Share conversation:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gemini-67:Share:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gemini-68:Delete conversation:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-69:Share album:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-70:Share artist:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-71:Share to a contact:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-72:Unlike track:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-73:Unfollow artist:main 0 before, 1 after, 1 after repeat
+GROUP 10 ADAPTER clear merge settings and sharing variants stay guarded PASS
+ADAPTER RECEIVER adapters-github-78:Merge pull request:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-84:Close issue:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-90:Close pull request:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-92:Delete branch:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-93:Delete branch:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-94:Delete branch:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-95:Delete branch:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-96:Delete branch:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-97:Delete branch:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-98:Delete tag:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-99:Delete tag:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-100:Delete tag:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-101:Delete tag:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-102:Delete tag:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-103:Delete tag:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-104:Delete repository:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-105:Delete repository:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-106:Delete repository:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-107:Delete repository:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-108:Delete repository:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-109:Delete repository:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-114:Save settings:main 0 before, 1 after, 1 after repeat
+GROUP 4 ADAPTER every named GitHub confirmation mismatch PASS
+ADAPTER RECEIVER adapters-gemini-116:Send:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gemini-117:Delete chat:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-gemini-118:Share chat:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-gemini-119:Send:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gemini-120:Send:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gemini-121:Send:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gemini-122:Send:main 0 before, 1 after, 1 after repeat
+GROUP 10 ADAPTER Gemini question content and always asking chat changes PASS
+ADAPTER RECEIVER adapters-gemini-123:Enter:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-gemini-124:Delete chat:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gemini-125:Share chat:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gemini-126:Send:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gemini-127:Send:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gemini-128:Send:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-gemini-129:Send:main 0 before, 1 after, 1 after repeat
+GROUP 11 ADAPTER Gemini exact account owner entry and revocation PASS
+ADAPTER RECEIVER adapters-deezer-142:Unlike:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-143:Unfollow:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-144:Remove from playlist:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-145:Remove from favorites:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-146:Remove from favourites:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-147:Delete playlist:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-148:Post comment:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-149:Share track:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-150:Share playlist:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-151:Pay:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-152:Subscribe:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-154:Play:main 0 before, 1 after, 1 after repeat
+GROUP 10 ADAPTER Deezer playback additions removals posts shares and payments PASS
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+GROUP 10 ADAPTER bank owner restriction all inputs and positive reads links scroll PASS
+ADAPTER RECEIVER adapters-gmail-157:Send:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-gmail-158:Send:first 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-whatsapp-159:Send:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-whatsapp-160:Send:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-github-161:Send:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-github-162:Comment:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-gemini-163:Send:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-gemini-164:Send:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-deezer-165:Send:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-deezer-166:Post comment:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+ADAPTER RECEIVER adapters-gmail-167:Send:first 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-whatsapp-168:Send:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-github-169:Comment:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-gemini-170:Send:main 0 before, 1 after, 1 after repeat
+ADAPTER RECEIVER adapters-deezer-171:Post comment:main 0 before, 1 after, 1 after repeat
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+GROUP 10 ADAPTER unfamiliar pages and qualification fallback on all sites PASS
+GROUP 10 ADAPTER Gemini question uses its required semantic name PASS
+GROUP 10 ADAPTER Gmail question names its attachments PASS
+GROUP 10 ADAPTER Gmail deletion shortcut question names the deletion PASS
+GROUP 1 submit compose deletion and free-input matrix PASS
+GROUP 1 WORD_PROGRESS 81 strict receiver cases passed
+GROUP 1 WORD_PROGRESS 162 strict receiver cases passed
+GROUP 1 WORD_PROGRESS 243 strict receiver cases passed
+GROUP 1 WORD_PROGRESS 324 strict receiver cases passed
+GROUP 1 WORD_PROGRESS 405 strict receiver cases passed
+GROUP 1 WORD_PROGRESS 486 strict receiver cases passed
+GROUP 1 WORD_PROGRESS 567 strict receiver cases passed
+GROUP 1 WORD_PROGRESS 648 strict receiver cases passed
+GROUP 1 WORD_PROGRESS 729 strict receiver cases passed
+GROUP 1 WORD_PROGRESS 810 strict receiver cases passed
+GROUP 1 WORD_PROGRESS 891 strict receiver cases passed
+GROUP 1 WORD_PROGRESS 972 strict receiver cases passed
+GROUP 1 what asks word/label/key matrix PASS
+GROUP 1 Unicode word matching agrees across service and guard PASS
+GROUP 2 stopped page steps handler/resume matrix PASS
+GROUP 2 script activations never replay PASS
+GROUP 2 loop with uncancelled enclosing submit sends once PASS
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+GROUP 2 delayed submission stays held after slow frame arming PASS
+GROUP 2 nested validation and fresh-frame fallback PASS
+GROUP 2 owner synchronous task delayed work and in-flight interleavings PASS
+GROUP 2 owner defaults never exempt timer forms submitters or validation repairs PASS
+GROUP 2 unknown activation survives navigation of its source document PASS
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+GROUP 3 binding every form fact and generic sibling draft PASS
+GROUP 4 page confirmations bind their full text and ask independently PASS
+GROUP 3 cross-frame adapter empty and oversized drafts PASS
+GROUP 4 exact native confirmation and mismatch matrix PASS
+GROUP 4 a native-dialog handler submission is prepared separately PASS
+GROUP 5 question fields, hidden values, password label, upload path and hash PASS
+GROUP 6 exclusions through frame, popup, redirect, taking and history FAIL AssertionError [ERR_ASSERTION]: {"ok":false,"error":{"code":"refused","message":"approval/settings pages and non-web addresses belong to the owner"},"pending":{"items":[{"operation_id":"8aa61aa653c74eb6afaa59d69c2a5b08:3bbadbf07f8e4537aa96f53b6c411065","app":"chrome","state":"failed","reason":"expired: nothing submitted"},{"operation_id":"8aa61aa653c74eb6afaa59d69c2a5b08:5c7c434c6dac456bb331811d9560239c","app":"chrome","state":"failed","reason":"Control ended; prepared input was dropped without dispatch."},{"operation_id":"8aa61aa653c74eb6afaa59d69c2a5b08:dfa9506cd7e646e8bdc16238e5ed7b25","app":"chrome","state":"unknown","reason":"The page is still handling input behind a dialog. Inspect and answer it separately; never replay the input."},{"operation_id":"8aa61aa653c74eb6afaa59d69c2a5b08:28aa4c0116874a3a9c7ebacaa7d06b69","app":"chrome","state":"failed","reason":"cancelled: nothing submitted"},{"operation_id":"8aa61aa653c74eb6afaa59d69c2a5b08:8f9d51630b4d45acbdc19582559a089c","app":"chrome","state":"unknown","reason":"The page is still handling input behind a dialog. Inspect and answer it separately; never replay the input."}],"total":64,"cursor":"4b565cfd2be888f2d14bfd7ac980e8b07baacaa718f086e526318810116412e0:WzE3OTQyNzYwNTEuNzI5MzkyNSwiOGFhNjFhYTY1M2M3NGViNmFmYWE1OWQ2OWMyYTViMDg6OGY5ZDUxNjMwYjRkNDVhY2JkYzE5NTgyNTU5YTA4OWMiXQ==","restore_required":false,"notices":[{"operation_id":"8aa61aa653c74eb6afaa59d69c2a5b08:57fb64a7cd34433db52dda8326e0052a","app":"chrome","state":"failed","untrusted_content":{"reason":"Control ended; prepared input was dropped without dispatch."}},{"operation_id":"c4a61747ded5c5391405c943bb3144f9c6f215ed8a95cd0583ee86b7bf7b0458","app":"chrome","state":"unknown","untrusted_content":{"intent_key":"intent:chrome:c4a61747ded5c5391405c943bb3144f9c6f215ed8a95cd0583ee86b7bf7b0458","reason":"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.","recovery_warning":true}},{"operation_id":"recovery-8aa61aa653c74eb6afaa59d69c2a5b08:a303672d75a1445b8b10337b60fe3670","app":"chrome","state":"unknown","untrusted_content":{"reason":"Chrome input has an unfinished committed outcome; it may have run. Never replay it.","operation_id":"8aa61aa653c74eb6afaa59d69c2a5b08:a303672d75a1445b8b10337b60fe3670"}}],"notices_more":{"count":130,"action":"control_notices"}}}
+    at call (file:///workspace/control/chrome/ci/browser.mjs:27:80)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file:///workspace/control/chrome/ci/matrices.mjs:285:67
+    at async check (file:///workspace/control/chrome/ci/matrices.mjs:13:10)
+    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:278:3)
+    at async file:///workspace/control/chrome/ci/browser.mjs:138:24
+GROUP 7 all password kinds across open closed and cross-site roots PASS
+GROUP 6 schemes links and forward routes PASS
+GROUP 8 drop release close and stale references never dispatch prepared work PASS
+GROUP 13 changed read-only preview is a stated residual PASS
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+GROUP 8 deadline and tabs outside the group PASS
+GROUP 10 adapter gmail PASS
+GROUP 10 adapter whatsapp PASS
+GROUP 10 adapter github PASS
+GROUP 10 adapter gemini PASS
+GROUP 10 adapter deezer PASS
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+GROUP 10 read-only bank PASS
+GROUP 10 adapter shortcuts and account-specific questions PASS
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution
+sudo: unable to resolve host 4d4df9109069: Temporary failure in name resolution

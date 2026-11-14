@@ -1,0 +1,15 @@
+[
+  {
+    "item": "post18dg-dialog-reload-settle",
+    "baseline": "pass",
+    "mutation_failed": true,
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "preexisting dialog fixture waits through delayed parser revisions",
+      "control/chrome_tests/review-reload.test.mjs"
+    ],
+    "output": "\u2716 preexisting dialog fixture waits through delayed parser revisions before one guarded input (1.061583ms)\n\u2139 tests 1\n\u2139 suites 0\n\u2139 pass 0\n\u2139 fail 1\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 34.225584\n\n\u2716 failing tests:\n\ntest at control/chrome_tests/review-reload.test.mjs:25:1\n\u2716 preexisting dialog fixture waits through delayed parser revisions before one guarded input (1.061583ms)\n  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n  \n  'old' !== 'new'\n  \n      at call (file://<mutation-worktree>/control/chrome_tests/review-reload.test.mjs:20:74)\n      at guardedHandoffClick (file://<mutation-worktree>/control/chrome/ci/review-matrices.mjs:24:9)\n      at async TestContext.<anonymous> (file://<mutation-worktree>/control/chrome_tests/review-reload.test.mjs:26:26)\n      at async Test.run (node:internal/test_runner/test:1389:7)\n      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {\n    generatedMessage: true,\n    code: 'ERR_ASSERTION',\n    actual: 'old',\n    expected: 'new',\n    operator: 'strictEqual',\n    diff: 'simple'\n  }\n"
+  }
+]

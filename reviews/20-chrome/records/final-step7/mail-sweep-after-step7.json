@@ -1,0 +1,2066 @@
+{
+ "analyst_before": {
+  "ci_cases": {
+   "branch": 110065,
+   "main": 28519
+  },
+  "local_cases": {
+   "cases_ci": {
+    "branch": {
+     "cases": 110065,
+     "pairs": 96917,
+     "persistent": 6574,
+     "single": 6574
+    },
+    "main": {
+     "cases": 28519,
+     "pairs": 15915,
+     "persistent": 6302,
+     "single": 6302
+    },
+    "ratio": 3.859
+   },
+   "local_reproduction": {
+    "cases": {
+     "branch": 109519,
+     "branch-realstat": 35819,
+     "main": 28321
+    },
+    "chrome_share_of_extra_pairs": 0.9926,
+    "extra_pairs": 80654,
+    "extra_pairs_at_chrome_journal_reader": 80054,
+    "flows_differing_by_mac_only_steps": [
+     "archive",
+     "attachment_export",
+     "export_rollback",
+     "testapp_export"
+    ],
+    "flows_matching_ci_exactly": 19
+   },
+   "mail_call_latency_plain": {
+    "0": {
+     "compose": {
+      "branch": {
+       "median_ms": 4.074,
+       "p95_ms": 4.591,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.921,
+      "main": {
+       "median_ms": 4.422,
+       "p95_ms": 5.184,
+       "rounds": 2
+      }
+     },
+     "expiry": {
+      "branch": {
+       "median_ms": 2.558,
+       "p95_ms": 2.654,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.718,
+      "main": {
+       "median_ms": 3.562,
+       "p95_ms": 3.633,
+       "rounds": 2
+      }
+     },
+     "file": {
+      "branch": {
+       "median_ms": 7.987,
+       "p95_ms": 10.215,
+       "rounds": 2
+      },
+      "branch_over_main_median": 1.013,
+      "main": {
+       "median_ms": 7.883,
+       "p95_ms": 10.213,
+       "rounds": 2
+      }
+     },
+     "prepare_send": {
+      "branch": {
+       "median_ms": 6.593,
+       "p95_ms": 8.486,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.803,
+      "main": {
+       "median_ms": 8.212,
+       "p95_ms": 11.25,
+       "rounds": 2
+      }
+     },
+     "read": {
+      "branch": {
+       "median_ms": 0.613,
+       "p95_ms": 0.646,
+       "rounds": 2
+      },
+      "branch_over_main_median": 1.121,
+      "main": {
+       "median_ms": 0.547,
+       "p95_ms": 0.591,
+       "rounds": 2
+      }
+     },
+     "search": {
+      "branch": {
+       "median_ms": 4.339,
+       "p95_ms": 4.659,
+       "rounds": 2
+      },
+      "branch_over_main_median": 1.02,
+      "main": {
+       "median_ms": 4.252,
+       "p95_ms": 4.571,
+       "rounds": 2
+      }
+     }
+    },
+    "1000": {
+     "compose": {
+      "branch": {
+       "median_ms": 140.443,
+       "p95_ms": 150.232,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.675,
+      "main": {
+       "median_ms": 208.103,
+       "p95_ms": 214.889,
+       "rounds": 2
+      }
+     },
+     "expiry": {
+      "branch": {
+       "median_ms": 3.714,
+       "p95_ms": 3.797,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.077,
+      "main": {
+       "median_ms": 48.408,
+       "p95_ms": 53.461,
+       "rounds": 2
+      }
+     },
+     "file": {
+      "branch": {
+       "median_ms": 104.637,
+       "p95_ms": 119.959,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.647,
+      "main": {
+       "median_ms": 161.767,
+       "p95_ms": 167.345,
+       "rounds": 2
+      }
+     },
+     "prepare_send": {
+      "branch": {
+       "median_ms": 109.527,
+       "p95_ms": 116.603,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.663,
+      "main": {
+       "median_ms": 165.203,
+       "p95_ms": 172.389,
+       "rounds": 2
+      }
+     },
+     "read": {
+      "branch": {
+       "median_ms": 89.696,
+       "p95_ms": 97.358,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.797,
+      "main": {
+       "median_ms": 112.531,
+       "p95_ms": 116.835,
+       "rounds": 2
+      }
+     },
+     "search": {
+      "branch": {
+       "median_ms": 94.45,
+       "p95_ms": 105.261,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.805,
+      "main": {
+       "median_ms": 117.354,
+       "p95_ms": 120.177,
+       "rounds": 2
+      }
+     }
+    },
+    "4000": {
+     "compose": {
+      "branch": {
+       "median_ms": 541.301,
+       "p95_ms": 566.534,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.656,
+      "main": {
+       "median_ms": 825.494,
+       "p95_ms": 865.756,
+       "rounds": 2
+      }
+     },
+     "expiry": {
+      "branch": {
+       "median_ms": 5.351,
+       "p95_ms": 5.588,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.026,
+      "main": {
+       "median_ms": 202.138,
+       "p95_ms": 212.346,
+       "rounds": 2
+      }
+     },
+     "file": {
+      "branch": {
+       "median_ms": 373.081,
+       "p95_ms": 386.131,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.61,
+      "main": {
+       "median_ms": 611.415,
+       "p95_ms": 639.081,
+       "rounds": 2
+      }
+     },
+     "prepare_send": {
+      "branch": {
+       "median_ms": 414.482,
+       "p95_ms": 441.696,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.628,
+      "main": {
+       "median_ms": 659.755,
+       "p95_ms": 676.138,
+       "rounds": 2
+      }
+     },
+     "read": {
+      "branch": {
+       "median_ms": 357.038,
+       "p95_ms": 381.823,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.806,
+      "main": {
+       "median_ms": 442.922,
+       "p95_ms": 456.357,
+       "rounds": 2
+      }
+     },
+     "search": {
+      "branch": {
+       "median_ms": 361.856,
+       "p95_ms": 393.943,
+       "rounds": 2
+      },
+      "branch_over_main_median": 0.801,
+      "main": {
+       "median_ms": 451.644,
+       "p95_ms": 463.73,
+       "rounds": 2
+      }
+     }
+    }
+   },
+   "ms_per_case_ci": {
+    "branch_median": 103.945,
+    "branch_runs": [
+     128.26,
+     98.41,
+     109.48,
+     94.37
+    ],
+    "identical_count_flows": {
+     "maintenance": {
+      "branch_ms_per_case_median": 68.36,
+      "main_ms_per_case_median": 44.36
+     },
+     "restart_index": {
+      "branch_ms_per_case_median": 61.144999999999996,
+      "main_ms_per_case_median": 36.08
+     },
+     "restart_tail": {
+      "branch_ms_per_case_median": 43.31,
+      "main_ms_per_case_median": 39.32
+     }
+    },
+    "main_median": 90.79,
+    "main_runs": [
+     99.82,
+     90.79,
+     76.47
+    ],
+    "ratio": 1.145
+   },
+   "primaries_without_header_index_equal_main": true
+  }
+ },
+ "case_cost_ms": {
+  "final": {
+   "cancel": {
+    "cases": 67,
+    "total_median_ms": 23.88
+   },
+   "maintenance": {
+    "cases": 60,
+    "total_median_ms": 13.16
+   },
+   "restart_index": {
+    "cases": 20,
+    "total_median_ms": 10.0
+   },
+   "status": {
+    "cases": 151,
+    "total_median_ms": 42.25
+   }
+  },
+  "main": {
+   "cancel": {
+    "cases": 63,
+    "total_median_ms": 16.89
+   },
+   "maintenance": {
+    "cases": 60,
+    "total_median_ms": 11.0
+   },
+   "restart_index": {
+    "cases": 20,
+    "total_median_ms": 8.27
+   },
+   "status": {
+    "cases": 143,
+    "total_median_ms": 35.99
+   }
+  }
+ },
+ "cases_local": {
+  "f1": {
+   "per_flow": {
+    "archive": {
+     "cases": 5746,
+     "pairs": 5144,
+     "persistent": 301,
+     "single": 301
+    },
+    "attachment_export": {
+     "cases": 5400,
+     "pairs": 4914,
+     "persistent": 243,
+     "single": 243
+    },
+    "cancel": {
+     "cases": 1000,
+     "pairs": 874,
+     "persistent": 63,
+     "single": 63
+    },
+    "delete_permanent": {
+     "cases": 6017,
+     "pairs": 5259,
+     "persistent": 379,
+     "single": 379
+    },
+    "delete_trash": {
+     "cases": 4017,
+     "pairs": 3511,
+     "persistent": 253,
+     "single": 253
+    },
+    "expiry": {
+     "cases": 237,
+     "pairs": 111,
+     "persistent": 63,
+     "single": 63
+    },
+    "export_rollback": {
+     "cases": 8330,
+     "pairs": 7836,
+     "persistent": 247,
+     "single": 247
+    },
+    "filing_copy": {
+     "cases": 5400,
+     "pairs": 4722,
+     "persistent": 339,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 5382,
+     "pairs": 4706,
+     "persistent": 338,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 3485,
+     "pairs": 3047,
+     "persistent": 219,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "pairs": 108,
+     "persistent": 60,
+     "single": 60
+    },
+    "password": {
+     "cases": 1892,
+     "pairs": 1654,
+     "persistent": 119,
+     "single": 119
+    },
+    "repair": {
+     "cases": 5308,
+     "pairs": 4640,
+     "persistent": 334,
+     "single": 334
+    },
+    "restart_index": {
+     "cases": 102,
+     "pairs": 62,
+     "persistent": 20,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "pairs": 68,
+     "persistent": 22,
+     "single": 22
+    },
+    "restore": {
+     "cases": 1046,
+     "pairs": 914,
+     "persistent": 66,
+     "single": 66
+    },
+    "send": {
+     "cases": 12725,
+     "pairs": 11131,
+     "persistent": 797,
+     "single": 797
+    },
+    "send_duplicate": {
+     "cases": 13998,
+     "pairs": 12244,
+     "persistent": 877,
+     "single": 877
+    },
+    "settlement": {
+     "cases": 2291,
+     "pairs": 2003,
+     "persistent": 144,
+     "single": 144
+    },
+    "status": {
+     "cases": 2274,
+     "pairs": 1988,
+     "persistent": 143,
+     "single": 143
+    },
+    "testapp_export": {
+     "cases": 2586,
+     "pairs": 2350,
+     "persistent": 118,
+     "single": 118
+    },
+    "unsubscribe_https": {
+     "cases": 5000,
+     "pairs": 4370,
+     "persistent": 315,
+     "single": 315
+    },
+    "unsubscribe_mailto": {
+     "cases": 12759,
+     "pairs": 11161,
+     "persistent": 799,
+     "single": 799
+    }
+   },
+   "total": {
+    "cases": 105335,
+    "pairs": 92817,
+    "persistent": 6259,
+    "single": 6259
+   }
+  },
+  "final": {
+   "per_flow": {
+    "archive": {
+     "cases": 2545,
+     "pairs": 1919,
+     "persistent": 313,
+     "single": 313
+    },
+    "attachment_export": {
+     "cases": 2299,
+     "pairs": 1813,
+     "persistent": 243,
+     "single": 243
+    },
+    "cancel": {
+     "cases": 1064,
+     "pairs": 930,
+     "persistent": 67,
+     "single": 67
+    },
+    "delete_permanent": {
+     "cases": 1966,
+     "pairs": 1160,
+     "persistent": 403,
+     "single": 403
+    },
+    "delete_trash": {
+     "cases": 1312,
+     "pairs": 774,
+     "persistent": 269,
+     "single": 269
+    },
+    "expiry": {
+     "cases": 253,
+     "pairs": 119,
+     "persistent": 67,
+     "single": 67
+    },
+    "export_rollback": {
+     "cases": 2480,
+     "pairs": 1986,
+     "persistent": 247,
+     "single": 247
+    },
+    "filing_copy": {
+     "cases": 1669,
+     "pairs": 991,
+     "persistent": 339,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 1662,
+     "pairs": 986,
+     "persistent": 338,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 1074,
+     "pairs": 636,
+     "persistent": 219,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "pairs": 108,
+     "persistent": 60,
+     "single": 60
+    },
+    "password": {
+     "cases": 576,
+     "pairs": 338,
+     "persistent": 119,
+     "single": 119
+    },
+    "repair": {
+     "cases": 1732,
+     "pairs": 1024,
+     "persistent": 354,
+     "single": 354
+    },
+    "restart_index": {
+     "cases": 102,
+     "pairs": 62,
+     "persistent": 20,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "pairs": 68,
+     "persistent": 22,
+     "single": 22
+    },
+    "restore": {
+     "cases": 338,
+     "pairs": 198,
+     "persistent": 70,
+     "single": 70
+    },
+    "send": {
+     "cases": 4196,
+     "pairs": 2506,
+     "persistent": 845,
+     "single": 845
+    },
+    "send_duplicate": {
+     "cases": 4609,
+     "pairs": 2751,
+     "persistent": 929,
+     "single": 929
+    },
+    "settlement": {
+     "cases": 745,
+     "pairs": 441,
+     "persistent": 152,
+     "single": 152
+    },
+    "status": {
+     "cases": 739,
+     "pairs": 437,
+     "persistent": 151,
+     "single": 151
+    },
+    "testapp_export": {
+     "cases": 948,
+     "pairs": 712,
+     "persistent": 118,
+     "single": 118
+    },
+    "unsubscribe_https": {
+     "cases": 1633,
+     "pairs": 963,
+     "persistent": 335,
+     "single": 335
+    },
+    "unsubscribe_mailto": {
+     "cases": 4208,
+     "pairs": 2514,
+     "persistent": 847,
+     "single": 847
+    }
+   },
+   "total": {
+    "cases": 36490,
+    "pairs": 23436,
+    "persistent": 6527,
+    "single": 6527
+   }
+  },
+  "main": {
+   "per_flow": {
+    "archive": {
+     "cases": 2134,
+     "pairs": 1532,
+     "persistent": 301,
+     "single": 301
+    },
+    "attachment_export": {
+     "cases": 2060,
+     "pairs": 1574,
+     "persistent": 243,
+     "single": 243
+    },
+    "cancel": {
+     "cases": 244,
+     "pairs": 118,
+     "persistent": 63,
+     "single": 63
+    },
+    "delete_permanent": {
+     "cases": 1469,
+     "pairs": 711,
+     "persistent": 379,
+     "single": 379
+    },
+    "delete_trash": {
+     "cases": 981,
+     "pairs": 475,
+     "persistent": 253,
+     "single": 253
+    },
+    "expiry": {
+     "cases": 237,
+     "pairs": 111,
+     "persistent": 63,
+     "single": 63
+    },
+    "export_rollback": {
+     "cases": 2240,
+     "pairs": 1746,
+     "persistent": 247,
+     "single": 247
+    },
+    "filing_copy": {
+     "cases": 1332,
+     "pairs": 654,
+     "persistent": 339,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 1326,
+     "pairs": 650,
+     "persistent": 338,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 857,
+     "pairs": 419,
+     "persistent": 219,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "pairs": 108,
+     "persistent": 60,
+     "single": 60
+    },
+    "password": {
+     "cases": 464,
+     "pairs": 226,
+     "persistent": 119,
+     "single": 119
+    },
+    "repair": {
+     "cases": 1300,
+     "pairs": 632,
+     "persistent": 334,
+     "single": 334
+    },
+    "restart_index": {
+     "cases": 102,
+     "pairs": 62,
+     "persistent": 20,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "pairs": 68,
+     "persistent": 22,
+     "single": 22
+    },
+    "restore": {
+     "cases": 254,
+     "pairs": 122,
+     "persistent": 66,
+     "single": 66
+    },
+    "send": {
+     "cases": 3161,
+     "pairs": 1567,
+     "persistent": 797,
+     "single": 797
+    },
+    "send_duplicate": {
+     "cases": 3474,
+     "pairs": 1720,
+     "persistent": 877,
+     "single": 877
+    },
+    "settlement": {
+     "cases": 563,
+     "pairs": 275,
+     "persistent": 144,
+     "single": 144
+    },
+    "status": {
+     "cases": 558,
+     "pairs": 272,
+     "persistent": 143,
+     "single": 143
+    },
+    "testapp_export": {
+     "cases": 834,
+     "pairs": 598,
+     "persistent": 118,
+     "single": 118
+    },
+    "unsubscribe_https": {
+     "cases": 1220,
+     "pairs": 590,
+     "persistent": 315,
+     "single": 315
+    },
+    "unsubscribe_mailto": {
+     "cases": 3171,
+     "pairs": 1573,
+     "persistent": 799,
+     "single": 799
+    }
+   },
+   "total": {
+    "cases": 28321,
+    "pairs": 15803,
+    "persistent": 6259,
+    "single": 6259
+   }
+  }
+ },
+ "commits": {
+  "f1": "b72c81fa (F1 only; old per-stat journal stamps, no build-id fixture)",
+  "final": "c5810bb0",
+  "main": "b2b51107"
+ },
+ "coverage": {
+  "final_vs_f1": {
+   "clean_sites_missing_per_flow": {},
+   "cleanup_sites_missing_in_final": [],
+   "distinct_cleanup_sites": [
+    81,
+    81
+   ],
+   "distinct_primary_sites": [
+    47,
+    47
+   ],
+   "primary_sites_missing_in_final": []
+  },
+  "final_vs_main": {
+   "clean_sites_missing_per_flow": {},
+   "cleanup_sites_missing_in_final": [
+    "sqlite.main.close @ storage.py:iter_items [export refusal report]",
+    "sqlite.main.close @ storage.py:iter_items [syscall]",
+    "sqlite.main.fsync @ storage.py:iter_items [export refusal report]",
+    "sqlite.main.truncate @ storage.py:iter_items [syscall]",
+    "sqlite.main.unlink @ storage.py:iter_items [export refusal report]",
+    "sqlite.main.unlink @ storage.py:iter_items [syscall]",
+    "sqlite.main.write @ storage.py:iter_items [export refusal report]"
+   ],
+   "distinct_cleanup_sites": [
+    79,
+    81
+   ],
+   "distinct_primary_sites": [
+    47,
+    47
+   ],
+   "primary_sites_missing_in_final": []
+  }
+ },
+ "full_disk_read": {
+  "final": {
+   "0": {
+    "mail_read": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    },
+    "mail_search": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    }
+   },
+   "1000": {
+    "mail_read": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 1
+    },
+    "mail_search": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    }
+   },
+   "300": {
+    "mail_read": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 1
+    },
+    "mail_search": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    }
+   },
+   "4000": {
+    "mail_read": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 1
+    },
+    "mail_search": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    }
+   },
+   "500": {
+    "mail_read": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 1
+    },
+    "mail_search": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    }
+   },
+   "700": {
+    "mail_read": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 1
+    },
+    "mail_search": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    }
+   }
+  },
+  "main": {
+   "0": {
+    "mail_read": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    },
+    "mail_search": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    }
+   },
+   "1000": {
+    "mail_read": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    },
+    "mail_search": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    }
+   },
+   "300": {
+    "mail_read": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    },
+    "mail_search": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    }
+   },
+   "4000": {
+    "mail_read": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    },
+    "mail_search": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    }
+   },
+   "500": {
+    "mail_read": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    },
+    "mail_search": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    }
+   },
+   "700": {
+    "mail_read": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    },
+    "mail_search": {
+     "error": null,
+     "first_failure": [],
+     "ok": true,
+     "points": 0
+    }
+   }
+  }
+ },
+ "mail_call_latency_ms": {
+  "instrumented": {
+   "final": {
+    "0": {
+     "compose": {
+      "median_ms": 3.973,
+      "p95_ms": 4.519,
+      "runs_median_ms": [
+       3.973
+      ]
+     },
+     "expiry": {
+      "median_ms": 2.64,
+      "p95_ms": 3.009,
+      "runs_median_ms": [
+       2.64
+      ]
+     },
+     "file": {
+      "median_ms": 8.387,
+      "p95_ms": 10.593,
+      "runs_median_ms": [
+       8.387
+      ]
+     },
+     "prepare_send": {
+      "median_ms": 6.979,
+      "p95_ms": 9.26,
+      "runs_median_ms": [
+       6.979
+      ]
+     },
+     "read": {
+      "median_ms": 0.535,
+      "p95_ms": 0.569,
+      "runs_median_ms": [
+       0.535
+      ]
+     },
+     "search": {
+      "median_ms": 3.976,
+      "p95_ms": 4.649,
+      "runs_median_ms": [
+       3.976
+      ]
+     }
+    },
+    "1000": {
+     "compose": {
+      "median_ms": 11.426,
+      "p95_ms": 12.387,
+      "runs_median_ms": [
+       11.426
+      ]
+     },
+     "expiry": {
+      "median_ms": 3.816,
+      "p95_ms": 4.221,
+      "runs_median_ms": [
+       3.816
+      ]
+     },
+     "file": {
+      "median_ms": 17.691,
+      "p95_ms": 19.958,
+      "runs_median_ms": [
+       17.691
+      ]
+     },
+     "prepare_send": {
+      "median_ms": 24.565,
+      "p95_ms": 27.214,
+      "runs_median_ms": [
+       24.565
+      ]
+     },
+     "read": {
+      "median_ms": 4.617,
+      "p95_ms": 4.733,
+      "runs_median_ms": [
+       4.617
+      ]
+     },
+     "search": {
+      "median_ms": 8.054,
+      "p95_ms": 8.751,
+      "runs_median_ms": [
+       8.054
+      ]
+     }
+    },
+    "4000": {
+     "compose": {
+      "median_ms": 18.529,
+      "p95_ms": 19.881,
+      "runs_median_ms": [
+       18.529
+      ]
+     },
+     "expiry": {
+      "median_ms": 5.146,
+      "p95_ms": 5.762,
+      "runs_median_ms": [
+       5.146
+      ]
+     },
+     "file": {
+      "median_ms": 27.325,
+      "p95_ms": 30.772,
+      "runs_median_ms": [
+       27.325
+      ]
+     },
+     "prepare_send": {
+      "median_ms": 65.067,
+      "p95_ms": 67.4,
+      "runs_median_ms": [
+       65.067
+      ]
+     },
+     "read": {
+      "median_ms": 8.48,
+      "p95_ms": 8.616,
+      "runs_median_ms": [
+       8.48
+      ]
+     },
+     "search": {
+      "median_ms": 11.944,
+      "p95_ms": 12.734,
+      "runs_median_ms": [
+       11.944
+      ]
+     }
+    }
+   },
+   "main": {
+    "0": {
+     "compose": {
+      "median_ms": 4.407,
+      "p95_ms": 5.252,
+      "runs_median_ms": [
+       4.407
+      ]
+     },
+     "expiry": {
+      "median_ms": 3.428,
+      "p95_ms": 3.783,
+      "runs_median_ms": [
+       3.428
+      ]
+     },
+     "file": {
+      "median_ms": 8.827,
+      "p95_ms": 11.254,
+      "runs_median_ms": [
+       8.827
+      ]
+     },
+     "prepare_send": {
+      "median_ms": 7.955,
+      "p95_ms": 10.485,
+      "runs_median_ms": [
+       7.955
+      ]
+     },
+     "read": {
+      "median_ms": 0.536,
+      "p95_ms": 0.698,
+      "runs_median_ms": [
+       0.536
+      ]
+     },
+     "search": {
+      "median_ms": 3.953,
+      "p95_ms": 4.683,
+      "runs_median_ms": [
+       3.953
+      ]
+     }
+    },
+    "1000": {
+     "compose": {
+      "median_ms": 194.777,
+      "p95_ms": 204.172,
+      "runs_median_ms": [
+       194.777
+      ]
+     },
+     "expiry": {
+      "median_ms": 46.786,
+      "p95_ms": 53.764,
+      "runs_median_ms": [
+       46.786
+      ]
+     },
+     "file": {
+      "median_ms": 151.004,
+      "p95_ms": 158.657,
+      "runs_median_ms": [
+       151.004
+      ]
+     },
+     "prepare_send": {
+      "median_ms": 158.868,
+      "p95_ms": 166.298,
+      "runs_median_ms": [
+       158.868
+      ]
+     },
+     "read": {
+      "median_ms": 103.989,
+      "p95_ms": 107.541,
+      "runs_median_ms": [
+       103.989
+      ]
+     },
+     "search": {
+      "median_ms": 107.343,
+      "p95_ms": 110.135,
+      "runs_median_ms": [
+       107.343
+      ]
+     }
+    },
+    "4000": {
+     "compose": {
+      "median_ms": 767.108,
+      "p95_ms": 798.079,
+      "runs_median_ms": [
+       767.108
+      ]
+     },
+     "expiry": {
+      "median_ms": 189.779,
+      "p95_ms": 201.709,
+      "runs_median_ms": [
+       189.779
+      ]
+     },
+     "file": {
+      "median_ms": 570.496,
+      "p95_ms": 597.715,
+      "runs_median_ms": [
+       570.496
+      ]
+     },
+     "prepare_send": {
+      "median_ms": 612.319,
+      "p95_ms": 631.424,
+      "runs_median_ms": [
+       612.319
+      ]
+     },
+     "read": {
+      "median_ms": 403.023,
+      "p95_ms": 422.403,
+      "runs_median_ms": [
+       403.023
+      ]
+     },
+     "search": {
+      "median_ms": 411.512,
+      "p95_ms": 426.937,
+      "runs_median_ms": [
+       411.512
+      ]
+     }
+    }
+   }
+  },
+  "plain": {
+   "final": {
+    "0": {
+     "compose": {
+      "median_ms": 3.702,
+      "p95_ms": 4.74,
+      "runs_median_ms": [
+       3.728,
+       3.675
+      ]
+     },
+     "expiry": {
+      "median_ms": 2.569,
+      "p95_ms": 2.644,
+      "runs_median_ms": [
+       2.584,
+       2.554
+      ]
+     },
+     "file": {
+      "median_ms": 7.76,
+      "p95_ms": 15.206,
+      "runs_median_ms": [
+       7.91,
+       7.61
+      ]
+     },
+     "prepare_send": {
+      "median_ms": 6.782,
+      "p95_ms": 9.134,
+      "runs_median_ms": [
+       6.876,
+       6.687
+      ]
+     },
+     "read": {
+      "median_ms": 0.508,
+      "p95_ms": 0.536,
+      "runs_median_ms": [
+       0.508,
+       0.509
+      ]
+     },
+     "search": {
+      "median_ms": 3.87,
+      "p95_ms": 4.165,
+      "runs_median_ms": [
+       3.867,
+       3.873
+      ]
+     }
+    },
+    "1000": {
+     "compose": {
+      "median_ms": 11.078,
+      "p95_ms": 13.014,
+      "runs_median_ms": [
+       11.014,
+       11.142
+      ]
+     },
+     "expiry": {
+      "median_ms": 3.76,
+      "p95_ms": 3.867,
+      "runs_median_ms": [
+       3.773,
+       3.746
+      ]
+     },
+     "file": {
+      "median_ms": 17.877,
+      "p95_ms": 20.529,
+      "runs_median_ms": [
+       18.22,
+       17.533
+      ]
+     },
+     "prepare_send": {
+      "median_ms": 23.809,
+      "p95_ms": 25.972,
+      "runs_median_ms": [
+       23.572,
+       24.045
+      ]
+     },
+     "read": {
+      "median_ms": 4.601,
+      "p95_ms": 4.71,
+      "runs_median_ms": [
+       4.577,
+       4.625
+      ]
+     },
+     "search": {
+      "median_ms": 8.002,
+      "p95_ms": 8.307,
+      "runs_median_ms": [
+       7.985,
+       8.018
+      ]
+     }
+    },
+    "4000": {
+     "compose": {
+      "median_ms": 18.175,
+      "p95_ms": 21.169,
+      "runs_median_ms": [
+       18.102,
+       18.247
+      ]
+     },
+     "expiry": {
+      "median_ms": 4.975,
+      "p95_ms": 5.155,
+      "runs_median_ms": [
+       4.998,
+       4.952
+      ]
+     },
+     "file": {
+      "median_ms": 27.261,
+      "p95_ms": 31.067,
+      "runs_median_ms": [
+       27.205,
+       27.317
+      ]
+     },
+     "prepare_send": {
+      "median_ms": 65.079,
+      "p95_ms": 67.526,
+      "runs_median_ms": [
+       64.699,
+       65.459
+      ]
+     },
+     "read": {
+      "median_ms": 8.45,
+      "p95_ms": 8.694,
+      "runs_median_ms": [
+       8.431,
+       8.469
+      ]
+     },
+     "search": {
+      "median_ms": 11.905,
+      "p95_ms": 12.204,
+      "runs_median_ms": [
+       11.852,
+       11.959
+      ]
+     }
+    }
+   },
+   "main": {
+    "0": {
+     "compose": {
+      "median_ms": 4.205,
+      "p95_ms": 4.976,
+      "runs_median_ms": [
+       4.259,
+       4.151
+      ]
+     },
+     "expiry": {
+      "median_ms": 3.381,
+      "p95_ms": 3.518,
+      "runs_median_ms": [
+       3.372,
+       3.391
+      ]
+     },
+     "file": {
+      "median_ms": 7.922,
+      "p95_ms": 9.965,
+      "runs_median_ms": [
+       8.057,
+       7.787
+      ]
+     },
+     "prepare_send": {
+      "median_ms": 7.574,
+      "p95_ms": 9.911,
+      "runs_median_ms": [
+       7.653,
+       7.495
+      ]
+     },
+     "read": {
+      "median_ms": 0.513,
+      "p95_ms": 0.556,
+      "runs_median_ms": [
+       0.515,
+       0.511
+      ]
+     },
+     "search": {
+      "median_ms": 3.881,
+      "p95_ms": 4.254,
+      "runs_median_ms": [
+       3.917,
+       3.846
+      ]
+     }
+    },
+    "1000": {
+     "compose": {
+      "median_ms": 194.859,
+      "p95_ms": 228.115,
+      "runs_median_ms": [
+       196.213,
+       193.505
+      ]
+     },
+     "expiry": {
+      "median_ms": 46.919,
+      "p95_ms": 51.858,
+      "runs_median_ms": [
+       46.564,
+       47.273
+      ]
+     },
+     "file": {
+      "median_ms": 149.326,
+      "p95_ms": 156.354,
+      "runs_median_ms": [
+       148.041,
+       150.61
+      ]
+     },
+     "prepare_send": {
+      "median_ms": 158.659,
+      "p95_ms": 166.75,
+      "runs_median_ms": [
+       159.564,
+       157.754
+      ]
+     },
+     "read": {
+      "median_ms": 104.669,
+      "p95_ms": 107.605,
+      "runs_median_ms": [
+       104.223,
+       105.116
+      ]
+     },
+     "search": {
+      "median_ms": 108.014,
+      "p95_ms": 111.88,
+      "runs_median_ms": [
+       108.237,
+       107.791
+      ]
+     }
+    },
+    "4000": {
+     "compose": {
+      "median_ms": 768.084,
+      "p95_ms": 817.168,
+      "runs_median_ms": [
+       770.626,
+       765.542
+      ]
+     },
+     "expiry": {
+      "median_ms": 191.163,
+      "p95_ms": 199.522,
+      "runs_median_ms": [
+       192.997,
+       189.33
+      ]
+     },
+     "file": {
+      "median_ms": 568.408,
+      "p95_ms": 593.877,
+      "runs_median_ms": [
+       571.113,
+       565.702
+      ]
+     },
+     "prepare_send": {
+      "median_ms": 611.371,
+      "p95_ms": 632.73,
+      "runs_median_ms": [
+       611.412,
+       611.331
+      ]
+     },
+     "read": {
+      "median_ms": 408.312,
+      "p95_ms": 432.091,
+      "runs_median_ms": [
+       413.768,
+       402.855
+      ]
+     },
+     "search": {
+      "median_ms": 413.618,
+      "p95_ms": 427.865,
+      "runs_median_ms": [
+       414.341,
+       412.895
+      ]
+     }
+    }
+   }
+  }
+ },
+ "method": "The analyst harness in records/post18d/mail-sweep unchanged (discover.py --singles, latency.py plain ABBA + instrumented, 50 samples, case_cost.py, fulldisk_read.py), same Mac, detached worktrees, CPython 3.14.6 with jsonschema 4.26.0. Cases = 2 x primaries + pairs, as the sweep counts them.",
+ "plain_median_final_not_slower_than_main": {
+  "0": {
+   "compose": true,
+   "expiry": true,
+   "file": true,
+   "prepare_send": true,
+   "read": true,
+   "search": true
+  },
+  "1000": {
+   "compose": true,
+   "expiry": true,
+   "file": true,
+   "prepare_send": true,
+   "read": true,
+   "search": true
+  },
+  "4000": {
+   "compose": true,
+   "expiry": true,
+   "file": true,
+   "prepare_send": true,
+   "read": true,
+   "search": true
+  }
+ },
+ "question": "Final fixes step 7 (partial index operation_open): case counts and Mail per-call times against main b2b51107, next to the step-1 record mail-sweep-after-f1.json.",
+ "step1_local_cases": {
+  "f1": {
+   "per_flow": {
+    "archive": {
+     "cases": 5746,
+     "pairs": 5144,
+     "persistent": 301,
+     "single": 301
+    },
+    "attachment_export": {
+     "cases": 5400,
+     "pairs": 4914,
+     "persistent": 243,
+     "single": 243
+    },
+    "cancel": {
+     "cases": 1000,
+     "pairs": 874,
+     "persistent": 63,
+     "single": 63
+    },
+    "delete_permanent": {
+     "cases": 6017,
+     "pairs": 5259,
+     "persistent": 379,
+     "single": 379
+    },
+    "delete_trash": {
+     "cases": 4017,
+     "pairs": 3511,
+     "persistent": 253,
+     "single": 253
+    },
+    "expiry": {
+     "cases": 237,
+     "pairs": 111,
+     "persistent": 63,
+     "single": 63
+    },
+    "export_rollback": {
+     "cases": 8330,
+     "pairs": 7836,
+     "persistent": 247,
+     "single": 247
+    },
+    "filing_copy": {
+     "cases": 5400,
+     "pairs": 4722,
+     "persistent": 339,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 5382,
+     "pairs": 4706,
+     "persistent": 338,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 3485,
+     "pairs": 3047,
+     "persistent": 219,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "pairs": 108,
+     "persistent": 60,
+     "single": 60
+    },
+    "password": {
+     "cases": 1892,
+     "pairs": 1654,
+     "persistent": 119,
+     "single": 119
+    },
+    "repair": {
+     "cases": 5308,
+     "pairs": 4640,
+     "persistent": 334,
+     "single": 334
+    },
+    "restart_index": {
+     "cases": 102,
+     "pairs": 62,
+     "persistent": 20,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "pairs": 68,
+     "persistent": 22,
+     "single": 22
+    },
+    "restore": {
+     "cases": 1046,
+     "pairs": 914,
+     "persistent": 66,
+     "single": 66
+    },
+    "send": {
+     "cases": 12725,
+     "pairs": 11131,
+     "persistent": 797,
+     "single": 797
+    },
+    "send_duplicate": {
+     "cases": 13998,
+     "pairs": 12244,
+     "persistent": 877,
+     "single": 877
+    },
+    "settlement": {
+     "cases": 2291,
+     "pairs": 2003,
+     "persistent": 144,
+     "single": 144
+    },
+    "status": {
+     "cases": 2274,
+     "pairs": 1988,
+     "persistent": 143,
+     "single": 143
+    },
+    "testapp_export": {
+     "cases": 2586,
+     "pairs": 2350,
+     "persistent": 118,
+     "single": 118
+    },
+    "unsubscribe_https": {
+     "cases": 5000,
+     "pairs": 4370,
+     "persistent": 315,
+     "single": 315
+    },
+    "unsubscribe_mailto": {
+     "cases": 12759,
+     "pairs": 11161,
+     "persistent": 799,
+     "single": 799
+    }
+   },
+   "total": {
+    "cases": 105335,
+    "pairs": 92817,
+    "persistent": 6259,
+    "single": 6259
+   }
+  },
+  "final": {
+   "per_flow": {
+    "archive": {
+     "cases": 2433,
+     "pairs": 1831,
+     "persistent": 301,
+     "single": 301
+    },
+    "attachment_export": {
+     "cases": 2299,
+     "pairs": 1813,
+     "persistent": 243,
+     "single": 243
+    },
+    "cancel": {
+     "cases": 1000,
+     "pairs": 874,
+     "persistent": 63,
+     "single": 63
+    },
+    "delete_permanent": {
+     "cases": 1846,
+     "pairs": 1088,
+     "persistent": 379,
+     "single": 379
+    },
+    "delete_trash": {
+     "cases": 1232,
+     "pairs": 726,
+     "persistent": 253,
+     "single": 253
+    },
+    "expiry": {
+     "cases": 237,
+     "pairs": 111,
+     "persistent": 63,
+     "single": 63
+    },
+    "export_rollback": {
+     "cases": 2480,
+     "pairs": 1986,
+     "persistent": 247,
+     "single": 247
+    },
+    "filing_copy": {
+     "cases": 1669,
+     "pairs": 991,
+     "persistent": 339,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 1662,
+     "pairs": 986,
+     "persistent": 338,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 1074,
+     "pairs": 636,
+     "persistent": 219,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "pairs": 108,
+     "persistent": 60,
+     "single": 60
+    },
+    "password": {
+     "cases": 576,
+     "pairs": 338,
+     "persistent": 119,
+     "single": 119
+    },
+    "repair": {
+     "cases": 1632,
+     "pairs": 964,
+     "persistent": 334,
+     "single": 334
+    },
+    "restart_index": {
+     "cases": 102,
+     "pairs": 62,
+     "persistent": 20,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "pairs": 68,
+     "persistent": 22,
+     "single": 22
+    },
+    "restore": {
+     "cases": 318,
+     "pairs": 186,
+     "persistent": 66,
+     "single": 66
+    },
+    "send": {
+     "cases": 3956,
+     "pairs": 2362,
+     "persistent": 797,
+     "single": 797
+    },
+    "send_duplicate": {
+     "cases": 4349,
+     "pairs": 2595,
+     "persistent": 877,
+     "single": 877
+    },
+    "settlement": {
+     "cases": 705,
+     "pairs": 417,
+     "persistent": 144,
+     "single": 144
+    },
+    "status": {
+     "cases": 699,
+     "pairs": 413,
+     "persistent": 143,
+     "single": 143
+    },
+    "testapp_export": {
+     "cases": 948,
+     "pairs": 712,
+     "persistent": 118,
+     "single": 118
+    },
+    "unsubscribe_https": {
+     "cases": 1533,
+     "pairs": 903,
+     "persistent": 315,
+     "single": 315
+    },
+    "unsubscribe_mailto": {
+     "cases": 3968,
+     "pairs": 2370,
+     "persistent": 799,
+     "single": 799
+    }
+   },
+   "total": {
+    "cases": 35058,
+    "pairs": 22540,
+    "persistent": 6259,
+    "single": 6259
+   }
+  },
+  "main": {
+   "per_flow": {
+    "archive": {
+     "cases": 2134,
+     "pairs": 1532,
+     "persistent": 301,
+     "single": 301
+    },
+    "attachment_export": {
+     "cases": 2060,
+     "pairs": 1574,
+     "persistent": 243,
+     "single": 243
+    },
+    "cancel": {
+     "cases": 244,
+     "pairs": 118,
+     "persistent": 63,
+     "single": 63
+    },
+    "delete_permanent": {
+     "cases": 1469,
+     "pairs": 711,
+     "persistent": 379,
+     "single": 379
+    },
+    "delete_trash": {
+     "cases": 981,
+     "pairs": 475,
+     "persistent": 253,
+     "single": 253
+    },
+    "expiry": {
+     "cases": 237,
+     "pairs": 111,
+     "persistent": 63,
+     "single": 63
+    },
+    "export_rollback": {
+     "cases": 2240,
+     "pairs": 1746,
+     "persistent": 247,
+     "single": 247
+    },
+    "filing_copy": {
+     "cases": 1332,
+     "pairs": 654,
+     "persistent": 339,
+     "single": 339
+    },
+    "filing_move": {
+     "cases": 1326,
+     "pairs": 650,
+     "persistent": 338,
+     "single": 338
+    },
+    "filing_rename": {
+     "cases": 857,
+     "pairs": 419,
+     "persistent": 219,
+     "single": 219
+    },
+    "maintenance": {
+     "cases": 228,
+     "pairs": 108,
+     "persistent": 60,
+     "single": 60
+    },
+    "password": {
+     "cases": 464,
+     "pairs": 226,
+     "persistent": 119,
+     "single": 119
+    },
+    "repair": {
+     "cases": 1300,
+     "pairs": 632,
+     "persistent": 334,
+     "single": 334
+    },
+    "restart_index": {
+     "cases": 102,
+     "pairs": 62,
+     "persistent": 20,
+     "single": 20
+    },
+    "restart_tail": {
+     "cases": 112,
+     "pairs": 68,
+     "persistent": 22,
+     "single": 22
+    },
+    "restore": {
+     "cases": 254,
+     "pairs": 122,
+     "persistent": 66,
+     "single": 66
+    },
+    "send": {
+     "cases": 3161,
+     "pairs": 1567,
+     "persistent": 797,
+     "single": 797
+    },
+    "send_duplicate": {
+     "cases": 3474,
+     "pairs": 1720,
+     "persistent": 877,
+     "single": 877
+    },
+    "settlement": {
+     "cases": 563,
+     "pairs": 275,
+     "persistent": 144,
+     "single": 144
+    },
+    "status": {
+     "cases": 558,
+     "pairs": 272,
+     "persistent": 143,
+     "single": 143
+    },
+    "testapp_export": {
+     "cases": 834,
+     "pairs": 598,
+     "persistent": 118,
+     "single": 118
+    },
+    "unsubscribe_https": {
+     "cases": 1220,
+     "pairs": 590,
+     "persistent": 315,
+     "single": 315
+    },
+    "unsubscribe_mailto": {
+     "cases": 3171,
+     "pairs": 1573,
+     "persistent": 799,
+     "single": 799
+    }
+   },
+   "total": {
+    "cases": 28321,
+    "pairs": 15803,
+    "persistent": 6259,
+    "single": 6259
+   }
+  }
+ }
+}

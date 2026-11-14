@@ -1,0 +1,953 @@
+"""Chrome on the shared Adapter/Engine: prepare first, dispatch once, never replay."""
+import base64
+import copy
+import json
+from pathlib import Path
+import time
+import uuid
+from urllib.parse import urlsplit
+
+from ..adapters import NothingLeft
+from ..common import Refused, canonical, digest, visible, require_question
+from ..definitions import BY_NAME
+from ..paging import fragment_window, ordered_page
+from ..warnings import check_result
+from . import confirm
+from .bridge import Bridge
+from .committed import Projection
+from .exclusions import owner_hosts
+from .policy import allowed_url, classify, HOSTS, hostname, canonical_key, key_input, explicit_effect
+from .qualification import Qualification, switches
+from .sites import recognize, KINDS, recipients
+
+RUNTIME = Path(__file__).resolve().parents[2]
+
+
+WITHHELD_FORM=('This form holds unread typed text; send it yourself, or reload the tab first with chrome_navigate direction=reload '
+               '(it reports unsaved text first), then read it again.')
+
+
+def refuse_withheld_form(state):
+    if any(field.get('unknown_history') for field in (state.get('form') or {}).get('fields',[])):
+        raise Refused('refused',WITHHELD_FORM)
+
+
+def typed_label(label, limit=80):
+    # Each label sits in double quotes it can't contain, and long ones are cut,
+    # so one hostile label can't pass for several fields.
+    shown='"'+label[:limit].replace('"',"'")+('…' if len(label)>limit else '')+'"'
+    return shown+(f' ({len(label)} characters)' if len(label)>limit else '')
+
+
+def frame_site(url):
+    parts=urlsplit(url)
+    return f"{parts.scheme}://{parts.netloc.rpartition('@')[2]}" if parts.netloc else url.split(':',1)[0]+':'
+
+
+def owner_refusal(message):
+    return {'ok':False,'error':{'code':'permission_denied','message':message}}
+
+
+def view_identity(facts):
+    return digest([facts.get('control'),[{k: frame.get(k) for k in ['frame','document','revision','url','title','scroll','rows','editable']}
+                   for frame in facts['frames']]])
+
+
+def binding(facts, reference, kind, adapter):
+    frame = next(frame for frame in facts['frames'] if frame['frame'] == reference['frame'])
+    target = frame['target']
+    generic_draft = not adapter and (kind == 'confirmation' or kind == 'send' and not frame.get('form'))
+    if generic_draft and any(item.get('eligible',True) for item in facts.get('uncovered', [])):
+        raise Refused('refused', 'A complete draft binding needs every frame; a frame could not be inspected.')
+    keys = ['element','role','name','label','title','href','browsing_target','value','rich','password','states','editable','search','submit','page_dialog','options','implicit_submitter']
+    return {'session':facts['session'],'tab':facts['tab'],'control':facts.get('control'),'url':facts['url'],'title':facts.get('title', ''),'document':frame['document'],
+            'frame':frame['frame'],'frame_url':frame['url'],'frame_title':frame.get('title',''),'effective_url':frame.get('effective_url',frame['url']),'target':{key:target[key] for key in keys if key in target},
+            'form':frame.get('form'),
+            'compose':frame.get('compose') if not adapter and kind in {'send','confirmation','form'} else None,
+            'selected_files':[{'frame':item['frame'],'document':item['document'],'fields':item.get('selected_files',[])} for item in facts['frames']],
+            'editable':[{'frame':item['frame'],'document':item['document'],'url':item['url'],'fields':item['editable']} for item in facts['frames']]
+                if generic_draft else None,
+            'item':frame['item'] if kind in {'delete','pay','item','activation','confirmation'} else None,
+            'item_fields':frame.get('item_fields',[]) if kind in {'delete','pay','item','activation','confirmation'} else None,
+            'adapter':frame['adapter'] if adapter else None,'dialog':facts.get('dialog')}
+
+
+def destination(state):
+    target=state.get('target') or {}
+    form=state.get('form') or {}
+    return [target.get('href'),target.get('browsing_target'),
+            {key:form.get(key) for key in ['element','action','target','browsing_target']}]
+
+
+class Chrome:
+    app = 'chrome'
+
+    def submission_context(self,operation):
+        from ..action_context import context
+        payload=operation['payload'];state=payload['binding']
+        return context(self.store,operation['action'],state['url'],
+            identities=[{'tab':state['tab'],'document':state.get('document'),'control':state.get('control')}],
+            destination=destination(state),arguments={'operation_id':operation['id'],'binding_sha256':digest(state),'input':payload.get('input')},
+            authorization=payload.get('authorization'))
+
+    def require_trusted_send(self,verb,operation):
+        return verb=='submit_trusted' and self.trusted(operation) is True
+
+    def __init__(self, engine, build=None, record=None):
+        self.engine, self.store, self.blobs = engine, engine.store, engine.blobs
+        self.process_session = uuid.uuid4().hex
+        self.committed = self.store.chrome_state
+        self.bridge = Bridge()
+        self.bridge.on_event = self.event
+        self.trusted_context = False
+        self.refresh_qualification = True
+        self.hosts = HOSTS
+        self.read_owner_hosts = owner_hosts
+        self.upload_dir = Path("/run/aresos-tools/uploads")
+        # Loosening over chrome.sock waits for the owner's polkit password (F7).
+        self.pkcheck, self.confirm_timeout, self.confirmation = confirm.PKCHECK, confirm.TIMEOUT, None
+        if build is None:
+            installed = RUNTIME / 'chrome' / 'build-id.json'
+            if installed.exists():
+                build = json.loads(installed.read_text())['build']
+            else:
+                from importlib.util import spec_from_file_location, module_from_spec
+                spec = spec_from_file_location('aresos_chrome_build', RUNTIME / 'chrome' / 'build.py')
+                module = module_from_spec(spec); spec.loader.exec_module(module)
+                build = module.build_hash()
+        shipped = record if record is not None else json.loads((RUNTIME / 'chrome' / 'qualification.json').read_text())
+        self.qualification = Qualification(self.store, build, shipped)
+
+    def event(self, event):
+        if event.get('event') == 'held_step':
+            if event.get('session')!=self.bridge.session or type(event.get('tab')) is not int or not isinstance(event.get('step'),dict):
+                raise Refused('invalid_input','Invalid private Chrome step observation.')
+            self.observe_step(event['step'],event['tab'])
+        elif event.get('event') == 'released':
+            for key, operation in self.store.iter_items('op:'):
+                context = operation.get('payload', {}).get('binding', {})
+                if operation['app'] == 'chrome' and operation['state'] == 'reserved' and context.get('session') == event.get('session') and context.get('tab') == event.get('tab'):
+                    operation.update(state='failed', reason='Control ended; prepared input was dropped without dispatch.', notice=True)
+                    self.store.write({key:operation}, 'chrome_operation_cancel', 'Chrome control ended; operation dropped', operation['id'])
+        elif event.get('event') == 'owner_sites':
+            self.owner_sites(event.get('request_id'), event.get('arguments'))
+        elif event.get('event') == 'audit':
+            sink = getattr(self.bridge, 'audit_sink', None)
+            if sink is not None:
+                sink(event.get('data'))
+
+    # The details page reaches the owner-only list through chrome.sock, which any
+    # process of the owner's user can open. Listing, revoking and read-only on go
+    # straight through; every other change waits for the owner's password.
+    def owner_sites(self, request_id, arguments):
+        if not confirm.loosening(arguments):
+            return self.owner_reply(request_id, self.owner_request(arguments))
+        try:
+            change = self.owner_change(arguments)
+        except Exception as exc:
+            return self.owner_reply(request_id, owner_refusal(str(exc) if isinstance(exc, Refused) else 'Owner list unavailable; use the admin command.'))
+        if self.confirmation is not None:
+            return self.owner_reply(request_id, owner_refusal("Another change is waiting for the owner's password; answer that dialog first."))
+        ask, reason = confirm.start(getattr(self.bridge, 'peer', None), change, self.pkcheck, self.confirm_timeout)
+        if ask is None:
+            return self.owner_reply(request_id, owner_refusal(f'Nothing changed: {reason}. Use sudo aresos admin chrome sites.'))
+        self.confirmation = {'request_id':request_id,'arguments':copy.deepcopy(arguments),'change':change,
+                             'connection':self.bridge.connection_identity,'ask':ask}
+
+    def owner_change(self, arguments):
+        """Check a loosening change and name it for the dialog, before anything is written."""
+        from ..common import validate
+        validate(arguments, BY_NAME['chrome_sites'].input)
+        if arguments['command'] == 'allow':
+            _, entry, operation = self.allow_entry(arguments)
+            adapter = entry['adapter']
+            parameters = '; '.join(f"{name} {', '.join(map(str, value)) if isinstance(value, list) else value}"
+                                   for name, value in sorted((adapter.get('parameters') or {}).items()) if value)
+            site = frame_site(operation['payload']['binding']['frame_url'])
+            return confirm.shown(f"Don't ask again: {adapter['kind']} as {adapter.get('account')} on {site}"
+                                 + (f' ({parameters})' if parameters else ''), 300)
+        if arguments['command'] == 'readonly':
+            return confirm.shown('Read-only off for ' + hostname(self.allowed_url(arguments['site'])), 300)
+        raise Refused('invalid_input', 'Unknown owner list change.')
+
+    def poll_confirmation(self):
+        """Called by the service loop. Writes only the change this one yes was given for."""
+        pending = self.confirmation
+        if pending is None:
+            return
+        if self.bridge.connection_identity != pending['connection']:
+            # Nobody is left to answer; a later host can't inherit this dialog.
+            pending['ask'].cancel()
+            self.confirmation = None
+            return
+        outcome = pending['ask'].outcome()
+        if outcome is None:
+            return
+        self.confirmation = None
+        granted, reason = outcome
+        if not granted:
+            return self.owner_reply(pending['request_id'], owner_refusal(f'Nothing changed: {reason}.'))
+        # The stored copy is the confirmed change; the owner-only path checks it again.
+        self.owner_reply(pending['request_id'], self.owner_request(pending['arguments']))
+
+    def owner_request(self, arguments):
+        try:
+            return self.engine.request({'v':1,'method':'call','action':'chrome_sites','arguments':arguments},admin=True)
+        except Exception:
+            return owner_refusal('Owner list unavailable; use the admin command.')
+
+    def owner_reply(self, request_id, result):
+        if self.bridge.connection:
+            from ..protocol import send
+            send(self.bridge.connection, {'owner_reply':request_id,'result':result})
+
+    def mode(self, acting=False):
+        if not self.bridge.version:
+            raise Refused('chrome_unavailable', 'Chrome is not connected; start normal Chrome with the installed extension.')
+        hosts = self.read_owner_hosts()
+        if getattr(self, '_configured_exclusions', None) != (self.bridge.session, hosts):
+            self.bridge.call('configure', excluded_hosts=hosts)
+            self._configured_exclusions = (self.bridge.session, hosts)
+        self.maintenance()
+        mode = switches(self.qualification.record(), self.qualification.build, self.bridge.version)
+        groups = ['classification','page_script','binding','password_exclusion'] if acting else ['password_exclusion']
+        for group in groups:
+            if not mode['core'][group]:
+                raise Refused('qualification_failed', f'Chrome {self.bridge.version}: {group} failed qualification; this action is off until fixed.')
+        return mode
+
+    def maintenance(self):
+        if not isinstance(self.bridge, Bridge):return
+        from .uploads import prune
+        prune(self, admit=False)
+        if not self.refresh_qualification or not isinstance(self.bridge, Bridge) or not self.bridge.version:
+            return
+        identity = (self.bridge.session, self.bridge.version)
+        uncovered = not any(item['build'] == self.qualification.build and item['version'] == self.bridge.version
+                            for item in self.qualification.record()['entries'])
+        force = uncovered and getattr(self, '_refresh_attempted', None) != identity
+        self._refresh_attempted = identity
+        self.qualification.refresh(force=force)
+
+    def pending_state(self, operation, projection=False):
+        payload = operation.get('payload', {})
+        state = payload.get('binding', {})
+        try:
+            if projection:self.committed.sync()
+            if operation.get('generation')!=(self.committed.generation if projection else self.store.generation):
+                raise Refused('stale_approval','Restore invalidated this earlier-generation preparation; drop and prepare again.')
+            if operation.get('expires',0)<=time.time():
+                raise Refused('stale_approval','The approval deadline passed; nothing can run from this preparation.')
+            if payload.get('process_session') != self.process_session or state.get('session') != self.bridge.session:
+                raise Refused('stale_approval', 'Browser or service session changed; drop this preparation and prepare again.')
+            if projection:
+                self.read_owner_hosts()
+                mode=switches(self.committed.get('chrome:qualification',self.qualification.shipped),self.qualification.build,self.bridge.version)
+                if not all(mode['core'].values()):raise Refused('qualification_failed','Chrome core qualification currently refuses this operation.')
+                if not payload.get('typed_read'):self.check_readonly(payload,self.committed.get)
+            else:
+                mode=self.mode(acting=True)
+                if not payload.get('typed_read'):self.check_readonly(payload)
+            if payload.get('typed_read'):
+                current=self.typed_binding(payload['binding']['tab'])
+                if payload.get('read_connection')!=self.bridge.connection_identity or current!=payload['binding']:raise Refused('stale_approval','The typed-field list changed; prepare a fresh question.')
+                return {'validity':'current'}
+            site_adapter=payload.get('adapter')
+            if site_adapter and not mode['adapters'].get(site_adapter['site']):
+                raise Refused('stale_approval','The site adapter is no longer qualified; prepare again under the generic rules.')
+            live = self.bridge.call('validity', reference=payload['reference'])
+            if live.get('document') != state.get('document') or live.get('control') != state.get('control') or live.get('element_present') is not True:
+                raise Refused('stale_approval', 'Tab control or document changed; drop and prepare again.')
+            return {'validity':'current'}
+        except Refused as exc:
+            return {'validity':'refused', 'reason':str(exc), 'refusal_code':exc.code}
+
+    def notice_rows(self):
+        self.committed.sync()
+        for key,notice,created in self.committed.rows('notice:'):
+            if not notice.get('ack'):
+                yield (notice.get('created_at',int(created*1_000_000_000)),notice['id']),notice
+        for key,source,created in self.committed.rows('intent:chrome:',{'started','unknown'}):
+            existing=self.committed.get('notice:'+source['id'])
+            if existing and not existing.get('ack'):continue
+            identifier=('check-'+digest(key)[:32]) if existing else source['id']
+            yield (int(created*1_000_000_000),identifier),{'id':identifier,'app':'chrome','state':'unknown','ack':False,'check_only':True,
+                'untrusted_content':{'reason':'A page-step check has no committed result; inspect the page before repeating.','intent_key':key,'check_open':True}}
+        for key,operation,created in self.committed.rows('op:',{'submitting','unknown','partial','failed'}):
+            if operation['state']=='failed':
+                if operation.get('notice') and not operation.get('ack'):
+                    yield (int(created*1_000_000_000),operation['id']),{'id':operation['id'],'app':'chrome','state':'failed','ack':False,'untrusted_content':{'reason':operation['reason']}}
+                continue
+            identifier='recovery-'+operation['id']
+            if self.committed.get('notice:'+identifier) is not None:continue
+            yield (int(created*1_000_000_000),identifier),{'id':identifier,'app':'chrome','state':'unknown','ack':False,
+                'untrusted_content':{'reason':'Chrome input has an unfinished committed outcome; it may have run. Never replay it.','operation_id':operation['id']}}
+        if self.committed.legacy:
+            identifier='chrome-legacy-owner-state'
+            yield (0,identifier),{'id':identifier,'app':'chrome','state':'unknown','ack':False,'check_only':True,
+                'untrusted_content':{'reason':'Older Chrome history lacks committed check and acknowledgement metadata. Its owner state is not fully checked; inspect the original log before relying on an empty list.'}}
+
+    def notice_page(self,args=None):
+        from ..mail.filing import public_notice
+        page=ordered_page(self.notice_rows,args,['chrome','committed_notices'],3,newest=True)
+        page['items']=[public_notice(self.store,notice) for notice in page['items']]
+        return page
+
+    def pending_rows(self):
+        for _,operation,created in self.committed.rows('op:',{'reserved','submitting','unknown','partial','failed'}):
+            if operation['state']=='failed' and not (operation.get('notice') and not operation.get('ack')):continue
+            row={'operation_id':operation['id'],'app':'chrome','state':operation['state'],'reason':operation['reason']}
+            if operation['state']=='reserved':row.update(self.pending_state(operation,projection=True))
+            yield (created,operation['id']),row
+
+    def pending_projection(self,args=None):
+        return ordered_page(self.pending_rows,args,['chrome','committed_pending'])
+
+    def allowed_url(self, address):
+        return allowed_url(address, self.read_owner_hosts())
+
+    def facts(self, reference):
+        self.mode()
+        facts = self.bridge.call('facts', reference=reference)
+        self.allowed_url(facts['url'])
+        for frame in facts['frames']:
+            self.allowed_url(frame.get('effective_url',frame['url']))
+        if reference.get('view') and view_identity(facts) != reference['view']:
+            raise Refused('stale_reference', 'Page changed; read again before acting.')
+        frame = next((frame for frame in facts['frames'] if frame['frame'] == reference['frame']), None)
+        if frame is None or frame['document'] != reference['document'] or not frame.get('target'):
+            raise Refused('stale_reference', 'Document, frame or element changed; read again.')
+        return facts, frame
+
+    def read(self, verb, args):
+        mode = self.mode()
+        facts = self.bridge.call('read', tab=args['tab'])
+        self.allowed_url(facts['url'])
+        if not facts.get('dialog'):
+            queued=self.bridge.call('queued_steps',tab=args['tab'])
+            self.reconcile_checks(facts,queued)
+            self.steps(queued,args['tab'])
+        token = view_identity(facts)
+        condition_met=True
+        if verb == 'wait':
+            deadline=time.monotonic()+args.get('timeout_ms',1000)/1000
+            previous=None;stable=0
+            while True:
+                rows=[row for frame in facts['frames'] for row in frame['rows']]
+                text_ok=not args.get('text') or args['text'] in canonical(rows)
+                element=args.get('element')
+                element_ok=not element or any(all(row.get(key)==value for key,value in element.items()) for row in rows)
+                stable=stable+1 if token==previous else 0
+                condition_met=text_ok and element_ok and (bool(args.get('text') or element) or stable>=2)
+                if condition_met or time.monotonic()>=deadline:break
+                previous=token;time.sleep(.05)
+                facts=self.bridge.call('read',tab=args['tab']);token=view_identity(facts)
+        rows = []
+        for frame in facts['frames']:
+            self.allowed_url(frame.get('effective_url',frame['url']))
+            if verb == 'read_form':
+                reference = args['reference']
+                if reference['view'] != token:
+                    raise Refused('stale_reference', 'Page changed; read again.')
+                if frame['frame'] != reference['frame']:
+                    continue
+                single = self.bridge.call('facts', reference=reference)
+                selected = next(f for f in single['frames'] if f['frame'] == reference['frame'])
+                encoded = canonical(visible(selected['form']))
+                offset,end,cursor,status = fragment_window(digest([token,'form',selected['form']]),len(encoded),args.get('cursor'),16000)
+                if status:raise Refused('stale_reference','Form changed; read again without the cursor.')
+                content={'form':visible(selected['form'])} if len(encoded)<=16000 else {'form_json_fragment':encoded[offset:end]}
+                return {'untrusted_content':content,'characters':len(encoded),'offset':offset,'cursor':cursor,'version_notice':mode['notice']}
+            for row in frame['rows']:
+                if verb == 'find' and args['text'].casefold() not in canonical(row).casefold():
+                    continue
+                reference = {'session':facts['session'],'tab':facts['tab'],'frame':frame['frame'],'document':frame['document'],'view':token,'element':row['element']}
+                rows.append({'reference':reference,'expected':{k:v for k,v in row.items() if k != 'text'},'text':row.get('text','')})
+        lines = [canonical(visible(row)) for row in rows]
+        tree = '\n'.join(lines) or '(empty readable page)'
+        cursor_token=digest([token,verb,args.get('text')])
+        offset, end, cursor, status = fragment_window(cursor_token, len(tree), args.get('cursor'), 16000)
+        # Unlike catalogue paging, a page-view cursor must never silently restart.
+        if status:
+            raise Refused('stale_reference', 'Page changed; read again without the cursor.')
+        return {'tab':facts['tab'],'document':[(frame['frame'],frame['document']) for frame in facts['frames']],
+                'untrusted_content':{'url':visible(facts['url']),'title':visible(facts['title']),'tree':tree[offset:end],'dialog':visible(facts.get('dialog'))},
+                'view':token,'characters':len(tree),'offset':offset,'cursor':cursor,'version_notice':mode['notice'],**({'condition_met':condition_met} if verb=='wait' else {})}
+
+    def prepare(self, verb, payload):
+        if verb=='read_typed_fields':
+            state=self.typed_binding(payload['tab'])
+            labels=[f"frame {frame['frame']} ({frame_site(frame.get('effective_url',frame['url']))}): "+', '.join(typed_label(field['label']) for field in frame['fields'])
+                    for frame in state['frames'] if frame['fields']]
+            if not labels:raise Refused('refused','No text fields or textareas in unwatched documents need approval; use the normal read.')
+            question=f"On {state['url']}, tab '{state['title']}', read the typed text once from these fields, as the page shows them: "+'; '.join(labels)+'?'
+            return question,{'action':'chrome_read_typed_fields','untrusted_content':{'fields':state}},{'typed_read':True,'process_session':self.process_session,'read_connection':self.bridge.connection_identity,'binding':state}
+        state = payload['binding']
+        refuse_withheld_form(state)
+        if payload.get('adapter', {}).get('confirmation') if payload.get('adapter') else False:
+            payload = copy.deepcopy(payload)
+            payload['confirmation'] = {**payload['adapter']['confirmation'], 'frame':state['frame']}
+        description = {'action':'chrome_submit','untrusted_content':{'page_state':state,'input':payload['input'],
+                       'kind':payload.get('kind'),'resume_kind':payload.get('resume_kind'),'file':payload.get('file'),
+                       'confirmation':payload.get('confirmation')}}
+        if payload.get('changed_compose'):
+            description['untrusted_content']['changed_compose']=payload['changed_compose']
+        # Only service recognition chooses the action; reader text cannot name a kind.
+        semantic = payload.get('adapter') or {}
+        description['adapter_action'] = {
+            'gemini_question': 'Gemini: ask a question', 'gmail_send': 'Gmail: send a mail',
+            'gmail_delete': 'Gmail: delete the selected message',
+            'whatsapp_message': 'WhatsApp: send a message',
+        }.get(semantic.get('kind'))
+        question = self.question(verb, description)
+        return question, description, copy.deepcopy(payload)
+
+    def typed_binding(self,tab):
+        self.mode()
+        state=self.bridge.call('typed_fields',tab=tab)
+        if not self.bridge.connection_identity:raise Refused('stale_reference','The browser connection is not prepared; read and prepare again.')
+        if state.get('session')!=self.bridge.session:raise Refused('stale_reference','The browser session changed; prepare again.')
+        self.allowed_url(state['url'])
+        for frame in state['frames']:self.allowed_url(frame.get('effective_url',frame['url']))
+        return state
+
+    def changed_typed_fields(self,operation):
+        operation.update(state='failed',reason='The typed-field list changed; the previous approval was stopped before reading.',notice=True)
+        self.store.write({'op:'+operation['id']:operation},'chrome_typed_fields_changed',operation['reason'],operation['id'])
+        return {'operation':self.engine.public_operation(operation)}|self.engine.reserve('chrome','read_typed_fields',{'tab':operation['payload']['binding']['tab']})
+
+    def question(self, verb, description):
+        data = description['untrusted_content']
+        state = data['page_state']
+        def bounded(value, kind='name', position=1):
+            value=str(value)
+            return value if len(visible(value))<=120 else f'{kind} {position}, a {len(value)}-character name'
+        def recipient_summary(value):
+            values=recipients(value, ordered=True)
+            if values is None:
+                if len(visible(value))>180:raise Refused('asking_input_too_large', 'This recipient list cannot be counted exactly; prepare a smaller list or use the owner click.')
+                return value
+            shown=[]
+            for index,value in enumerate(values):
+                part=bounded(value, 'recipient', index+1)
+                if len(visible(','.join(shown+[part])))>180:break
+                shown.append(part)
+            remaining=len(values)-len(shown)
+            return ','.join(shown)+(f' and {remaining} more' if remaining else '')
+        if state.get('dialog') and data['input']['verb']=='dialog':
+            dialog=state['dialog']
+            if dialog.get('unguarded'):
+                answer=state['answer']
+                chosen=('accept' if answer['accept'] else 'dismiss')+(f" with prompt text '{answer['text']}'" if 'text' in answer else '')
+                return f"On {state['url']}, page '{bounded(state.get('title',''))}', as the page shows it, {chosen} {dialog['kind']} '{dialog['text']}' from frame {dialog['frame']}? This dialog used a native function outside the page guard; its continuation isn't held."
+            return f"On {state['url']}, page '{bounded(state.get('title',''))}', as the page shows it, {'accept' if data['input'].get('accept') else 'dismiss'} {dialog['kind']} '{dialog['text']}' from frame {dialog['frame']}?"
+        target = state.get('target', {})
+        site = state.get('frame_url', state.get('url', ''))
+        label = ('resume '+data['resume_kind'] if data.get('resume_kind') else target.get('name') or data['input'].get('key') or data['input']['verb'])
+        action = description.get('adapter_action')
+        kind=data.get('kind')
+        generic={'delete':'delete', 'pay':'pay for', 'item':'unsubscribe from', 'send':'send', 'confirmation':'confirm sending', 'form':'submit', 'upload':'upload to'}.get(kind, 'activate')
+        summary = f"On {site}, page '{bounded(state.get('title',''))}', as the page shows it, " + (f"{action} (control '{bounded(label)}')" if action else f"{generic} '{bounded(state.get('item') or label)}'")
+        if data['input'].get('key'):summary += f" using {data['input']['key']}"
+        if target.get('page_dialog'):
+            summary += f" in {target['page_dialog']['kind']} '{target['page_dialog']['text']}'"
+        adapter = state.get('adapter')
+        if adapter:
+            if payload_kind := adapter.get('target'):
+                summary += f" ('{bounded(payload_kind)}')"
+            if adapter.get('context'):
+                summary += f" for '{bounded(adapter['context'], 'context')}'"
+            if adapter.get('account'):
+                summary += f" as '{bounded(adapter['account'], 'account')}'"
+            if adapter.get('chat'):
+                summary += f" in chat '{bounded(adapter['chat'], 'chat')}'"
+            if adapter.get('to') is not None:
+                summary += f" to '{recipient_summary(adapter['to'])}', Cc '{recipient_summary(adapter.get('cc',''))}', hidden Bcc '{recipient_summary(adapter.get('bcc',''))}', subject '{bounded(adapter.get('subject',''))}'"
+            if adapter.get('text') is not None:
+                summary += f" with {len(adapter['text'])} characters"
+                if action == 'Gemini: ask a question':
+                    summary += f": '{adapter['text']}'"
+            if isinstance(adapter.get('attachments'), list):
+                attachments = adapter['attachments']
+                summary += f", {len(attachments)} attachment{'s' if len(attachments) != 1 else ''}"
+                if attachments:
+                    summary += ': ' + '; '.join(f"'{bounded(item.get('label', ''), 'attachment', index+1)}' ({bounded(item.get('text', ''), 'attachment details', index+1)})" for index,item in enumerate(attachments[:3])) + (f' and {len(attachments)-3} more' if len(attachments)>3 else '')
+        form = state.get('form')
+        if form:
+            fields = form['fields']
+            summary += f" to {form['action']} ({form['method']}, {len(fields)} fields, {sum(bool(field.get('hidden')) for field in fields)} hidden)"
+            summary += f" in target '{form.get('browsing_target') or form.get('target') or '_self'}'"
+        elif target.get('href'):
+            summary += f" to {target['href']} in target '{target.get('browsing_target') or '_self'}'"
+        elif data['input']['verb'] != 'dialog':
+            summary += "; where the page sends this isn't visible to the tool"
+        if data.get('file'):
+            summary += f" with file '{data['file']['real_path']}' ({data['file']['size']} bytes, sha256 {data['file']['sha256']})"
+        selected=[file for frame in state.get('selected_files',[]) for field in frame['fields'] if not field.get('password') for file in field.get('value',[])]
+        if selected:
+            summary += '; selected files: '+ '; '.join(f"'{bounded(file['name'], 'file', index+1)}' ({file['size']} bytes, sha256 {file['sha256']})" for index,file in enumerate(selected[:3]))
+            if len(selected)>3:summary += f' and {len(selected)-3} more (full digests below)'
+        if data.get('confirmation'):
+            summary += f" and confirm '{data['confirmation']['text']}'"
+        changed=data.get('changed_compose')
+        if state.get('compose') is not None and not changed:
+            summary += f"; text next to Send: '{state['compose']['text']}'"
+        if changed:
+            summary += f"; text next to Send changed from '{changed['before']}' to '{changed['after']}'"
+        return summary + '?'
+
+    def revalidate(self, operation):
+        mode = self.mode(acting=True)
+        if operation['payload'].get('process_session') != self.process_session:
+            raise Refused('stale_approval', 'Chrome service restarted; drop this preparation, read and prepare again.')
+        if operation['payload'].get('typed_read'):
+            if operation['payload'].get('read_connection')!=self.bridge.connection_identity or self.typed_binding(operation['payload']['binding']['tab'])!=operation['payload']['binding']:
+                return self.changed_typed_fields(operation)
+            return
+        site_adapter = operation['payload'].get('adapter')
+        if site_adapter and not mode['adapters'].get(site_adapter['site']):
+            raise Refused('stale_approval', 'The site adapter is no longer qualified; prepare again under the generic rules.')
+        if self.trusted_context and not self.trusted(operation):
+            raise Refused('refused', 'The owner entry no longer covers this exact kind, account and parameters; use chrome_submit to ask.')
+        # The decisive fresh comparison is in the extension, immediately before input.
+        if operation['payload']['binding']['session'] != self.bridge.session:
+            raise Refused('stale_approval', 'Chrome session changed; read and prepare again.')
+        self.check_readonly(operation['payload'])
+        state=operation['payload']['binding']
+        refuse_withheld_form(state)
+        if state.get('compose') is not None or state.get('form') or state.get('target',{}).get('href'):
+            facts=self.bridge.call('facts',reference=operation['payload']['reference'])
+            fresh=binding(facts,operation['payload']['reference'],operation['payload']['kind'],site_adapter)
+            refuse_withheld_form(fresh)
+            if destination(fresh)!=destination(state):
+                return self.changed_destination(operation,facts)
+            if fresh.get('compose')!=state.get('compose'):
+                return self.changed_compose(operation,facts,fresh)
+
+    def changed_destination(self,operation,facts):
+        payload=operation['payload']
+        reason='The destination or browsing target changed; the previous approval was stopped before input.'
+        operation.update(state='failed',reason=reason,notice=True)
+        self.store.write({'op:'+operation['id']:operation},'chrome_destination_changed',reason,operation['id'])
+        reference={**payload['reference'],'view':view_identity(facts)}
+        if payload.get('resume_kind'):
+            replacement=copy.deepcopy(payload)
+            replacement.update(reference=reference,binding=binding(facts,reference,payload['kind'],payload.get('adapter')))
+            self.check_readonly(replacement)
+        else:
+            replacement,_=self.payload(payload['input']['verb'],{**{key:value for key,value in payload['input'].items() if key!='verb'},'reference':reference})
+        return {'operation':self.engine.public_operation(operation)}|self.engine.reserve('chrome','submit',replacement)
+
+    def changed_compose(self,operation,facts,fresh):
+        payload=operation['payload']
+        reason='The text next to Send keeps changing; nothing was sent. Ask the owner to send it himself.' if payload.get('compose_reasked') else 'Text next to Send changed; the previous approval was stopped before input.'
+        operation.update(state='failed',reason=reason,notice=True)
+        self.store.write({'op:'+operation['id']:operation},'chrome_compose_changed',reason,operation['id'])
+        result={'operation':self.engine.public_operation(operation)}
+        if payload.get('compose_reasked'):return result
+        reference={**payload['reference'],'view':view_identity(facts)}
+        replacement,_=self.payload(payload['input']['verb'],{**{key:value for key,value in payload['input'].items() if key!='verb'},'reference':reference})
+        replacement['compose_reasked']=True
+        replacement['changed_compose']={'before':payload['binding']['compose']['text'],'after':(replacement['binding'].get('compose') or {}).get('text','')}
+        return result|self.engine.reserve('chrome','submit',replacement)
+
+    def check_readonly(self, payload, get=None):
+        get = get or self.committed.get
+        state = payload['binding']
+        addresses = [state['url'], state.get('effective_url') or state.get('frame_url') or state.get('dialog', {}).get('frame_url', state['url'])]
+        for address in addresses:
+            self.allowed_url(address)
+        if state.get('form'):
+            self.allowed_url(state['form']['action'])
+        readonly = any(get('chrome:readonly:' + hostname(address), False) for address in addresses)
+        if readonly:
+            if payload.get('native_dialog') or payload.get('resume_kind'):
+                raise Refused('readonly_site', 'This site is now read-only; the prepared action was refused before dispatch.')
+            classify(payload['input']['verb'], payload['input'], {'target':state['target'], 'form':state.get('form')}, readonly=True)
+
+    def has_submission_evidence(self, operation_id):
+        return False
+
+    def evidence(self, operation_id):
+        operation = self.committed.get('op:' + operation_id)
+        return {'untrusted_content':{'stages':visible(operation.get('stages', {}) if operation else {})},
+                'meaning':'Only dispatched input and page observations; no network-delivery claim.'}
+
+    def drop(self, operation):
+        # No replayable traffic exists in the bridge. An unused main-world hold stays stopped.
+        pass
+
+    def repair(self, operation, which):
+        raise Refused('refused', 'Chrome has no replay repair. Inspect the page with the owner; never submit again.')
+
+    def repaired_outcome(self, operation):
+        return operation['state'], operation['reason']
+
+    def execute(self, operation, stage):
+        payload = operation['payload']
+        self.mode(acting=True)
+        if payload.get('typed_read'):
+            if payload.get('read_connection')!=self.bridge.connection_identity:raise NothingLeft('The prepared browser connection changed; prepare a fresh read.')
+            try:
+                values=self.bridge.call('read_typed_fields',tab=payload['binding']['tab'],binding=payload['binding'],approved=True,operation=operation['id'])
+            except Refused as exc:
+                if exc.code=='stale_approval':
+                    stopped=NothingLeft('The typed-field list changed before reading; ask again.')
+                    stopped.replacement=self.changed_typed_fields(operation)
+                    raise stopped from exc
+                raise NothingLeft(str(exc)) from exc
+            stage('checked','The approved field list matched immediately before the one-call read.')
+            self.typed_result=values
+            return 'done','Approved fields read once; ordinary reads remain filled/empty.'
+        self.check_readonly(payload)
+        command = self.command(payload, operation['id'], approved=True)
+        path = None
+        try:
+            if payload.get('file'):
+                from .uploads import copy_for_browser
+                data, path = copy_for_browser(self, payload['file'])
+                for offset in range(0,len(data),512*1024):
+                    self.bridge.call('stage_file',reference=payload['reference'],token=operation['id'],offset=offset,
+                                     bytes=base64.b64encode(data[offset:offset+512*1024]).decode(),file=payload['file'])
+                if not data:
+                    self.bridge.call('stage_file',reference=payload['reference'],token=operation['id'],offset=0,bytes='',file=payload['file'])
+                command['upload'] = {'token':operation['id'],'file':payload['file']}
+            reply = self.bridge.call(**command)
+        except Refused as exc:
+            if exc.code in {'stale_reference','stale_approval','owner_signin','refused'}:
+                if exc.code=='stale_approval' and not payload.get('native_dialog'):
+                    facts=self.bridge.call('facts',reference=payload['reference'])
+                    fresh=binding(facts,payload['reference'],payload['kind'],payload.get('adapter'))
+                    if destination(fresh)!=destination(payload['binding']):
+                        stopped=NothingLeft('Destination changed before input; nothing was sent.')
+                        stopped.replacement=self.changed_destination(operation,facts)
+                        raise stopped from exc
+                    if fresh.get('compose')!=payload['binding'].get('compose'):
+                        stopped=NothingLeft('Text next to Send changed before input; nothing was sent.')
+                        stopped.replacement=self.changed_compose(operation,facts,fresh)
+                        raise stopped from exc
+                raise NothingLeft(str(exc)) from exc
+            raise
+        finally:
+            from .uploads import release
+            release(self, path)
+        stage('checked', 'Page matched the bound approval immediately before input.')
+        if reply.get('no_change'):stage('unchanged', 'The requested state was already present; no input was dispatched.')
+        else:stage('dispatched', 'Input or same-kind submission dispatched once; delivery is not proven.')
+        if reply.get('confirmations'):
+            stage('confirmation', canonical(visible(reply['confirmations'])))
+        stage('page', canonical(visible(reply)))
+        self.steps(reply.get('steps', []), operation['payload']['reference']['tab'])
+        if any(step['kind']=='activation_unknown' for step in reply.get('steps',[])):
+            return 'unknown', 'Input ran, but a page activation may have happened; inspect the page and never replay.'
+        if reply.get('dialog'):
+            return 'unknown','The page is still handling input behind a dialog. Inspect and answer it separately; never replay the input.'
+        if reply.get('uncertain_finish'):
+            return 'unknown','Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.'
+        if reply.get('no_change'):return 'done', 'The requested state was already present; no input was dispatched.'
+        return 'done', 'Dispatched once, as the page shows it; this does not prove what the site did.'
+
+    def command(self, payload, operation=None, approved=False):
+        if payload.get('native_dialog'):
+            return {'name':'dialog','tab':payload['reference']['tab'],'binding':payload['binding'],'input':payload['input'],'operation':operation,'conservative':payload.get('conservative',False),'approved':approved}
+        return {'name':'resume' if payload.get('resume_kind') else 'input',
+                'reference':payload['reference'],'tab':payload['reference']['tab'],'input':payload['input'],
+                'kind':payload['kind'],'conservative':payload.get('conservative',False),'adapter':bool(payload.get('adapter')),'binding':payload['binding'],
+                'operation':operation,'approved':approved,'confirmation':payload.get('confirmation'),'primary_submission':bool(payload['binding'].get('form') and (payload['binding']['target'].get('submit') or payload['input'].get('verb')=='press' and payload['input'].get('key','').split('+')[-1]=='Enter' and payload['binding']['target'].get('editable'))),**({'hold':payload['hold']} if payload.get('hold') else {})}
+
+    def payload(self, verb, args, *, hold=None):
+        mode = self.mode(acting=True)
+        if verb == 'press':
+            args = {**args, 'key':canonical_key(args['key']), 'key_input':key_input(args['key'])}
+        facts, frame = self.facts(args['reference'])
+        if args.get('expected') is not None and args['expected'] != visible(frame['target']):
+            raise Refused('stale_reference', 'Element no longer holds its expected state; read again.')
+        readonly = any(self.store.get('chrome:readonly:' + hostname(url), False) for url in [facts['url'],frame.get('effective_url',frame['url'])])
+        href=frame['target'].get('href')
+        if href and not href.startswith('javascript:') and (verb=='click' or verb=='press' and args.get('key','').split('+')[-1] in {'Enter','Space'}):
+            self.allowed_url(href)
+        adapter = recognize(frame.get('effective_url',frame['url']), frame['adapter'], frame['target'], verb, args, self.hosts, mode['adapters'])
+        kind = classify(verb,args,frame,conservative=mode['conservative'],readonly=readonly,adapter=adapter)
+        if adapter and kind in {'delete', 'pay', 'item'} and kind != adapter['effect']:
+            adapter = None
+        key = args.get('key','').split('+')[-1]
+        target = frame['target']
+        submitting = target.get('submit') and (verb in {'click','check','select'} or verb == 'press' and key in {'Enter','Space',' '}) or verb == 'press' and key == 'Enter' and target.get('editable')
+        if frame.get('form') and (kind or hold or submitting):refuse_withheld_form(frame)
+        if facts.get('needs_reload'):
+            self.free('prepare_control', tab=args['reference']['tab'], discard_unsaved=args.get('discard_unsaved', False))
+            raise Refused('stale_reference', 'The taken tab reloaded to install its page guard. Every old reference is stale; read again.')
+        if hold:
+            kind = 'form'
+        state = binding(facts,args['reference'],kind,adapter)
+        if state['form'] and (hold or kind or submitting):
+            self.allowed_url(state['form']['action'])
+        if kind == 'send' and not state['form'] and not adapter:
+            fields = [field for document in state['editable'] for field in document['fields']]
+            if not state.get('compose') and not any(isinstance(field.get('value'),str) and field['value'] and field.get('type') not in {'checkbox','radio','select-one','select-multiple'} for field in fields):
+                raise Refused('refused', "Can't tell what this sends: no editable text. Use an adapter or the owner's own click.")
+        if state.get('item') is not None and len(state['item']) > 8000:
+            raise Refused('asking_input_too_large', 'The affected item is too large to show whole; use a smaller item or the owner.')
+        result = {'process_session':self.process_session, 'reference':args['reference'],'input':{'verb':verb,**{k:v for k,v in args.items() if k not in {'reference','expected','file','path'}}},
+                  'kind':kind,'conservative':mode['conservative'],'adapter':adapter,'binding':state}
+        if hold:
+            result.update(hold=hold['id'],resume_kind=hold['kind'],input={'verb':'resume_submission','kind':hold['kind']})
+        if verb == 'upload':
+            file = args.get('file')
+            if not file or self.store.get('blob:' + digest(file)) != file:
+                raise Refused('proxy_required', 'Upload must import a caller-side file snapshot through the proxy.')
+            self.blobs.require_origin(file['sha256'], 'caller_import')
+            result['file'] = file
+        return result, facts
+
+    def free(self, verb, payload=None, **arguments):
+        # Even free changes have a committed operation/context before any dispatch (R2).
+        op_id = self.store.generation + ':' + uuid.uuid4().hex
+        context = payload['binding'] if payload else {**arguments, **({'before':self.bridge.call('tab_context',tab=arguments['tab'])} if 'tab' in arguments else {})}
+        description = {'action':'chrome_' + verb,'untrusted_content':{'page_state':context,'input':payload['input'] if payload else arguments}}
+        op = {'id':op_id,'generation':self.store.generation,'app':'chrome','action':'chrome_' + verb,
+              'input_hash':digest(description),'approval':{'description':visible(description)},'payload':payload or context,
+              'state':'submitting','expires':0,'stages':{},'reason':'Free input may start; no replay after an interruption.'}
+        self.store.write({'op:' + op_id:op},op['action'],'Chrome free-input context committed',op_id)
+        self.store.checkpoint('chrome_before_dispatch')
+        try:
+            reply = self.bridge.call(**self.command(payload, op_id)) if payload else self.bridge.call(verb,**arguments)
+            if verb=='open':
+                op['payload']['created_tab']=copy.deepcopy(reply)
+                op['stages']['created_tab']=copy.deepcopy(reply)
+                self.store.write({'op:'+op_id:op},op['action'],'Created tab identity committed before address navigation',op_id)
+                if arguments['url']!='about:blank':
+                    # The tab was created a moment ago and holds nothing to lose.
+                    self.bridge.call('navigate',tab=reply['tab'],url=arguments['url'],discard_unsaved=True)
+        except Refused as exc:
+            certain=exc.code in {'stale_reference','stale_approval','reload_required','owner_signin','refused','permission_denied','chrome_unavailable'}
+            op.update(state='failed' if certain else 'unknown',reason=('Nothing dispatched: ' if certain else 'Input may have run: ')+str(exc))
+            self.store.write({'op:'+op_id:op},op['action'],'Chrome input refused before effect' if certain else 'Chrome input outcome unknown',op_id)
+            raise
+        op['stages'] = {('unchanged' if reply.get('no_change') else 'dispatched'):('The requested state was already present; no input was dispatched.' if reply.get('no_change') else 'Input dispatched once; delivery not proven.'),'page':visible(reply)}
+        op.update(state='done',reason='The requested state was already present; no input was dispatched.' if reply.get('no_change') else 'Free input dispatched once, as the page shows it.')
+        if reply.get('cleanup_pending'):
+            op.update(state='unknown',notice=True,reason='Input authority ended; native cleanup is still pending. Close the page dialog and inspect tabs before taking it again; never replay this operation.')
+        followups=self.steps(reply.get('steps', []),payload['reference']['tab']) if payload else []
+        if any(step['kind']=='activation_unknown' for step in reply.get('steps',[])):
+            op.update(state='unknown',reason='Input ran, but a page activation may have happened; inspect the page and never replay.')
+        if reply.get('dialog'):
+            op.update(state='unknown',reason='The page is still handling input behind a dialog. Inspect and answer it separately; never replay the input.')
+        if reply.get('uncertain_finish'):
+            op.update(state='unknown',reason='Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.')
+        self.store.write({'op:' + op_id:op},op['action'],'Chrome free input recorded',op_id)
+        return {'operation_id':op_id,'untrusted_content':visible(reply),'followups':followups}
+
+    def observe_step(self,step,tab):
+        source_id=digest([self.bridge.session,tab,step]);key='intent:chrome:'+source_id
+        source=self.committed.get(key)
+        if source is None:source=self.committed.historical(key)
+        if source is None:
+            from .. import retention
+            count=self.store.db.execute("SELECT count(*) FROM kv WHERE substr(k,1,7)='intent:'").fetchone()[0]
+            if count>=retention.FILING_COUNT-32:retention.retire_chrome(self.store)
+            source={'id':source_id,'app':'chrome','state':'started','step':step,'tab':tab,'session':self.bridge.session}
+            self.store.write({key:source},'chrome_page_step','Page step check open',outcome='started')
+        return key,source
+
+    def reconcile_checks(self, facts, queued):
+        # A lost extension queue cannot drive steps(). Resolve from committed
+        # identity plus live facts instead; this path has no input command.
+        for key,source,_ in self.committed.rows('intent:chrome:',{'started','unknown'}):
+            session_changed=source.get('session')!=self.bridge.session
+            if not session_changed and source['tab']!=facts['tab']:continue
+            if not session_changed and any(step==source['step'] for step in queued):continue
+            source.update(state='done',result='stale',resumable=False,
+                reason='Stopped step is absent from the live session or queue; no resumption is possible.')
+            changes={}
+            if source['step']['kind']=='activation_unknown':
+                text='An activation in the lost page context may have happened. Inspect the page with the owner; never replay.'
+                changes,_=check_result(self.store,source,key,'page_activation',source['step'],{'reason':text,'warning':text})
+            self.store.write({key:source,**changes},'chrome_page_step','Lost page step resolved without dispatch',recovery=True)
+
+    def reconcile_open_checks(self):
+        if not self.bridge.session:return
+        queues={}
+        for _,source,_ in self.committed.rows('intent:chrome:',{'started','unknown'}):
+            tab=source['tab']
+            if source.get('session')!=self.bridge.session:
+                self.reconcile_checks({'tab':None},[])
+                continue
+            if tab not in queues:
+                try:queues[tab]=self.bridge.call('queued_steps',tab=tab)
+                except Refused as exc:
+                    if exc.code not in {'chrome_unavailable','transport_error'}:raise
+                    # Losing contact proves neither a clean result nor a lost
+                    # hold. Keep the committed open check readable offline.
+                    continue
+                # Queue identity is enough to prove that a stopped step cannot
+                # resume, even after its tab was released or reading is gated.
+                self.reconcile_checks({'tab':tab},queues[tab])
+
+    def steps(self, steps, tab):
+        followups=[]
+        for step in steps:
+            key,source=self.observe_step(step,tab)
+            if source['state']=='done':
+                if source.get('resumable') is False:
+                    self.bridge.call('ack_steps',tab=tab,steps=[step]);continue
+                if step['kind'] in {'native_submit','submit_event'} and source.get('prepared_operation'):
+                    self.bridge.call('ack_steps',tab=tab,steps=[step]);continue
+                source.update(state='started',step=step,tab=tab)
+                self.store.write({key:source},'chrome_page_step','Page step recheck open',outcome='started')
+            facts = self.bridge.call('read',tab=tab)
+            if facts.get('dialog'):
+                followups.append({'pending':True,'reason':'A native dialog still blocks the step identity check; the committed check remains open.'})
+                continue
+            frame = next((item for item in facts['frames'] if item['frame'] == step['frame']),None)
+            if not frame or not step.get('document') or frame['document']!=step['document']:
+                source.update(state='done',result='stale',resumable=False,reason='The stopped step document changed; no resumption is possible.')
+                changes={}
+                if step['kind']=='activation_unknown':
+                    text='An activation in the previous document may have happened. Never resume it; inspect the page with the owner.'
+                    changes,_=check_result(self.store,source,key,'page_activation',step,{'reason':text,'warning':text})
+                self.store.write({key:source,**changes},'chrome_page_step','Stale page step result committed without dispatch')
+                self.bridge.call('ack_steps',tab=tab,steps=[step])
+                followups.append({'dropped':True,'reason':source['reason']})
+                continue
+            reference = {'session':facts['session'],'tab':tab,'frame':frame['frame'],'document':frame['document'],
+                         'view':view_identity(facts),'element':step.get('submitter') or step['element']}
+            if step['kind'] in {'native_submit','submit_event'}:
+                payload, _ = self.payload('click',{'reference':reference},hold=step)
+                prepared=self.engine.reserve('chrome','submit',payload);followups.append(prepared)
+                source.update(state='done',reference=reference,prepared_operation=prepared['approval']['operation_id'])
+                self.store.write({key:source},'chrome_page_step','Stopped submission preparation committed')
+            else:
+                source['reference'] = reference
+                label=visible(step.get('label') or 'an unnamed control')
+                text = f"The page activated '{label}' by itself; it may have happened. Never resume this activation." if step['kind'] == 'activation_unknown' else f"The page tried to activate '{label}' by itself; it was stopped. Act on the current control to prepare fresh asking input if wanted."
+                if step['kind']=='activation' and step.get('cancellable') is False:text += ' Its non-cancellable default was stopped by neutralising the destination or disabling the submitter.'
+                changes, _ = check_result(self.store,source,key,'page_activation',step,{'reason':text,'warning':text,'reference':reference})
+                source['state'] = 'done'
+                self.store.write({key:source,**changes},'chrome_page_step','Page activation result committed',untrusted_content={'warning':text})
+                followups.append({'stopped':step['kind']!='activation_unknown','unknown':step['kind']=='activation_unknown','untrusted_content':{'reason':text}})
+            self.bridge.call('ack_steps',tab=tab,steps=[step])
+        return followups
+
+    def trusted(self, operation):
+        mode = self.mode(acting=True)
+        adapter = operation['payload'].get('adapter')
+        payload = operation['payload']
+        state = payload['binding']
+        if payload.get('unguarded_dialog'):
+            return False
+        forbidden = payload.get('kind') in {'delete', 'pay'} or explicit_effect({'target':state.get('target', {}), 'form':state.get('form')}) in {'delete', 'pay'} or adapter and (adapter.get('site') == 'whatsapp' or adapter.get('effect') in {'delete', 'pay'})
+        if forbidden or mode['conservative'] or not adapter or not adapter.get('trusted') or not mode['adapters'].get(adapter['site']):
+            return False
+        entry = self.committed.get('chrome:allow:' + self.allow_id(operation), {})
+        return bool(entry and entry.get('kind_hash') == digest(KINDS.get(adapter['kind'])) and not entry.get('revoked'))
+
+    def allow_id(self, operation):
+        payload = operation['payload']; adapter = payload['adapter']
+        return digest([payload['binding']['frame_url'].split('/',3)[:3],adapter['account'],adapter['kind'],adapter['parameters']])
+
+    def sites(self, args):
+        command = args['command']
+        if command == 'list':
+            def rows():
+                for prefix,kind in [('chrome:readonly:','readonly'),('chrome:allow:','allowed')]:
+                    for key,value,_ in self.committed.rows(prefix):
+                        yield ((0,key), {'kind':kind,'id':key[len(prefix):],'value':visible(value)})
+                for key,op,_ in self.committed.rows('op:'):
+                    if op['app']=='chrome' and op['state']=='done' and op['action']=='chrome_submit':
+                        yield ((1,key),{'kind':'recent','operation_id':op['id'],'question':op['approval'].get('question'),
+                            'eligible':bool((op['payload'].get('adapter') or {}).get('trusted'))})
+            return ordered_page(rows,args,['chrome','sites']) | {'untrusted_content':True}
+        if command == 'readonly':
+            address = self.allowed_url(args['site']); host = hostname(address)
+            self.store.write({'chrome:readonly:' + host:args.get('enabled',True)},'chrome_sites','Owner changed read-only site')
+            return {'readonly':host,'enabled':args.get('enabled',True)}
+        if command == 'revoke':
+            key = 'chrome:allow:' + args['id']; entry = self.committed.get(key)
+            if not entry: raise Refused('stale_reference','Entry not found; list allowed kinds.')
+            entry['revoked'] = True
+            self.store.write({key:entry},'chrome_sites','Owner revoked Chrome permission')
+            return {'revoked':args['id']}
+        key, entry, _ = self.allow_entry(args)
+        self.store.write({'chrome:allow:' + key:entry},'chrome_sites','Owner allowed an exact Chrome kind')
+        return {'id':key}
+
+    def allow_entry(self, args):
+        operation = self.engine.operation(args['operation_id'],'chrome')
+        adapter = operation['payload'].get('adapter')
+        if operation['state'] != 'done' or operation['action'] != 'chrome_submit' or not adapter or not adapter.get('trusted'):
+            raise Refused('refused','Only a recently approved eligible adapter kind may be allowed; deleting, paying and WhatsApp always ask.')
+        return self.allow_id(operation), {'adapter':adapter,'kind_hash':adapter['kind_hash'],'revoked':False}, operation
+
+    def call(self, verb, args):
+        if verb=='read_typed_fields':
+            require_question(args)
+            # Values belong only to this response, never the replayable operation.
+            self.typed_result=None
+            try:
+                result=self.engine.submit(BY_NAME['chrome_read_typed_fields'],args)
+                if self.typed_result is not None and result.get('operation',{}).get('state')=='done':
+                    result['untrusted_content']={'typed_fields':visible(self.typed_result)}
+                return result
+            finally:self.typed_result=None
+        if verb == 'sites': return self.sites(args)
+        if verb == 'submit_trusted':
+            require_question(args)
+            operation = self.engine.operation(args['operation_id'],'chrome')
+            if self.require_trusted_send(verb,operation) is not True:
+                raise Refused('refused','No current owner entry covers this exact kind, account and parameters; call chrome_submit to ask.')
+            # The trusted decision is checked again immediately before dispatch.
+            operation['payload']['authorization']={'route':'owner_rule','entry_id':self.allow_id(operation),'kind_hash':operation['payload']['adapter']['kind_hash']}
+            self.store.write({'op:' + operation['id']:operation},'chrome_submit_trusted','Trusted-kind revalidation',operation['id'])
+            self.trusted_context=True
+            try:
+                return self.engine.submit(BY_NAME['chrome_submit'],args)
+            finally:
+                self.trusted_context=False
+        if verb == 'notices':
+            self.reconcile_open_checks()
+            return self.notice_page(args)
+        if verb in {'read','read_form','find','wait'}: return self.read(verb,args)
+        if verb in {'tabs','downloads','bookmarks','history'}:
+            self.mode()
+            reply = self.bridge.call(verb,**args)
+            return visible(reply) | {'untrusted_content':True}
+        if verb == 'fill_form':
+            for field in args['fields']:
+                self.payload('fill',field)
+            completed=[]
+            for index,field in enumerate(args['fields']):
+                try:
+                    current=self.bridge.call('facts',reference=field['reference'])
+                    frame=next(frame for frame in current['frames'] if frame['frame']==field['reference']['frame'])
+                    expected={**field['expected'],'box':frame['target']['box'],'onscreen':frame['target']['onscreen']}
+                    fresh={**field,'reference':{**field['reference'],'view':view_identity(current)},'expected':expected}
+                    result=self.call('fill',fresh);completed.append(result)
+                    if result.get('approval') or result.get('followups'):break
+                except Refused as exc:
+                    return {'state':'partial' if completed else 'refused','completed':completed,'next_field':index,'reason':str(exc)}
+            return {'completed':completed,'remaining':len(args['fields'])-len(completed)}
+        if verb in {'open','navigate','take_tab','release_tab','close_tab'}:
+            self.mode(acting=True)
+            if 'url' in args: self.allowed_url(args['url'])
+            return self.free(verb,**args)
+        if verb == 'dialog':
+            mode=self.mode(acting=True)
+            facts=self.bridge.call('dialog_facts',tab=args['tab'])
+            if facts['dialog'] != args['expected']:
+                raise Refused('stale_approval','Dialog or opener changed; read and prepare again.')
+            readonly=any(self.store.get('chrome:readonly:'+hostname(url),False) for url in [facts['url'],facts.get('effective_url',facts['dialog']['frame_url'])])
+            if readonly:
+                raise Refused('readonly_site','This site is read-only; the owner must answer its dialogs.')
+            kind=classify('dialog',args,{'dialog':facts['dialog']},conservative=mode['conservative'])
+            unguarded=bool(facts['dialog'].get('unguarded'))
+            if unguarded:
+                kind='confirmation'
+                facts={**facts,'answer':{'accept':args['accept'],**({'text':args['text']} if 'text' in args else {})}}
+            payload={'process_session':self.process_session,'reference':{'tab':args['tab']},'input':{'verb':'dialog',**args},'binding':facts,'kind':kind,'adapter':None,'native_dialog':True,'conservative':mode['conservative']}
+            if unguarded:payload['unguarded_dialog']=True
+        else:
+            payload, _ = self.payload(verb,args)
+        if payload['kind']:
+            return self.engine.reserve('chrome','submit',payload)
+        return self.free(verb,payload)

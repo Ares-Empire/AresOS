@@ -1,0 +1,73 @@
+{
+  "browser_free": true,
+  "exact_mail_harness": false,
+  "meaning": "Independent production Engine probe with the same public assertions; exact schema-checked Mail test remains for Linux CI",
+  "fault_calls": 3,
+  "result": {
+    "ok": false,
+    "data": {
+      "items": [],
+      "total": 0,
+      "cursor": null,
+      "restore_required": false,
+      "notices": [
+        {
+          "operation_id": "fresh",
+          "app": "mail",
+          "state": "partial",
+          "untrusted_content": {
+            "reason": "Nothing was deleted. Check Target."
+          }
+        },
+        {
+          "operation_id": "old",
+          "app": "mail",
+          "state": "partial",
+          "untrusted_content": {
+            "reason": "Earlier filing needs inspection."
+          }
+        }
+      ],
+      "unavailable": "Other app state is a storage snapshot. Chrome warnings below are current; recover storage and inspect other app state before proceeding."
+    },
+    "pending": {
+      "items": [],
+      "total": 0,
+      "cursor": null,
+      "restore_required": false,
+      "notices": [
+        {
+          "operation_id": "fresh",
+          "app": "mail",
+          "state": "partial",
+          "untrusted_content": {
+            "reason": "Nothing was deleted. Check Target."
+          }
+        },
+        {
+          "operation_id": "old",
+          "app": "mail",
+          "state": "partial",
+          "untrusted_content": {
+            "reason": "Earlier filing needs inspection."
+          }
+        }
+      ],
+      "unavailable": "Other app state is a storage snapshot. Chrome warnings below are current; recover storage and inspect other app state before proceeding."
+    },
+    "error": {
+      "code": "storage_limit",
+      "message": "Disk full or storage quota exhausted; free storage and check the recorded request or operation before retrying."
+    },
+    "observations": {
+      "stages": {},
+      "evidence": {
+        "fresh": {
+          "filing_warning": {
+            "reason": "Nothing was deleted. Check Target."
+          }
+        }
+      }
+    }
+  }
+}

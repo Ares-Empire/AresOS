@@ -1,0 +1,33 @@
+import json,os,pathlib,shutil,stat
+workspace=pathlib.Path.cwd()
+closing=workspace/'reviews/20-chrome/records/recheck/closing'
+audit=json.loads((closing/'receiver-audit.json').read_text())
+fixed=json.loads((closing/'fixed-case-audit.json').read_text())
+assert len(audit)==4 and all(row['named_passes']==82 and row['password_audit']['password_sentinel_absent'] for row in audit)
+assert len(fixed)==4 and all(row['result']=='PASS' for row in fixed)
+cache=workspace/'.work/recheck-diagnostic/artifacts'
+deleted=[]
+if cache.exists():
+ assert not cache.is_symlink() and cache.resolve().is_relative_to(workspace/'.work/recheck-diagnostic')
+ shutil.rmtree(cache)
+ deleted.append(str(cache.relative_to(workspace)))
+files=[];pruned=[];total=0
+for directory,dirs,names in os.walk(workspace/'.work',followlinks=False):
+ keep=[]
+ for name in dirs:
+  lower=name.casefold()
+  if 'profile' in lower or 'user-data' in lower or lower in {'google chrome','chromium','chrome.app','google chrome.app'}:
+   pruned.append(str((pathlib.Path(directory)/name).relative_to(workspace)))
+  else:keep.append(name)
+ dirs[:]=keep
+ for name in names:
+  path=pathlib.Path(directory)/name
+  info=path.lstat()
+  if not stat.S_ISREG(info.st_mode):continue
+  total+=info.st_size
+  if info.st_size>500000000:files.append({'path':str(path.relative_to(workspace)),'bytes':info.st_size})
+result={'scope':'.work/ regular files; no followed symlinks; profile directories uninspected','threshold_bytes':500000000,'files':sorted(files,key=lambda row:row['path']),'total_regular_file_bytes':total,'uninspected_profile_directories':pruned,'removed_own_superseded_diagnostic_cache':deleted,'final_artifacts_retained_once':True}
+(closing/'work-inventory.json').write_text(json.dumps(result,indent=2)+'\n')
+print('Worktree files over500 MB:',len(files))
+for row in result['files']:print(row['path'],row['bytes'])
+if pruned:print('Profile directories intentionally uninspected:',pruned)

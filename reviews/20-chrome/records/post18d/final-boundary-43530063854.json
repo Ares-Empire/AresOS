@@ -1,0 +1,244 @@
+{
+  "head": "7d9c0b952aafd587d1f600f30846aa342c146850",
+  "run": "43530063854",
+  "workflow": "boundary",
+  "both_passed": true,
+  "attempts": [
+    {
+      "metadata": {
+        "attempt": 1,
+        "conclusion": "success",
+        "event": "pull_request",
+        "headSha": "7d9c0b952aafd587d1f600f30846aa342c146850",
+        "jobs": [
+          {
+            "completedAt": "2026-11-13T23:53:13Z",
+            "conclusion": "success",
+            "databaseId": 132245248255,
+            "name": "hostile",
+            "startedAt": "2026-11-13T23:50:31Z",
+            "status": "completed",
+            "steps": [
+              {
+                "completedAt": "2026-11-13T23:50:32Z",
+                "conclusion": "success",
+                "name": "Set up job",
+                "number": 1,
+                "startedAt": "2026-11-13T23:50:32Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-13T23:50:40Z",
+                "conclusion": "success",
+                "name": "Run actions/checkout@v4",
+                "number": 2,
+                "startedAt": "2026-11-13T23:50:32Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-13T23:51:16Z",
+                "conclusion": "success",
+                "name": "Build pinned disposable Linux environment",
+                "number": 3,
+                "startedAt": "2026-11-13T23:50:40Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-13T23:51:16Z",
+                "conclusion": "success",
+                "name": "Permit unprivileged namespaces on this disposable runner",
+                "number": 4,
+                "startedAt": "2026-11-13T23:51:16Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-13T23:52:13Z",
+                "conclusion": "success",
+                "name": "Hostile programs with and without seccomp",
+                "number": 5,
+                "startedAt": "2026-11-13T23:51:16Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-13T23:53:09Z",
+                "conclusion": "success",
+                "name": "Interactive managed asks (native terminal, no model)",
+                "number": 6,
+                "startedAt": "2026-11-13T23:52:13Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-13T23:53:09Z",
+                "conclusion": "success",
+                "name": "Run identity",
+                "number": 7,
+                "startedAt": "2026-11-13T23:53:09Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-13T23:53:09Z",
+                "conclusion": "success",
+                "name": "Restore runner namespace policy",
+                "number": 8,
+                "startedAt": "2026-11-13T23:53:09Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-13T23:53:11Z",
+                "conclusion": "success",
+                "name": "Run actions/upload-artifact@v4",
+                "number": 9,
+                "startedAt": "2026-11-13T23:53:09Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-13T23:53:11Z",
+                "conclusion": "success",
+                "name": "Post Run actions/checkout@v4",
+                "number": 18,
+                "startedAt": "2026-11-13T23:53:11Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-13T23:53:12Z",
+                "conclusion": "success",
+                "name": "Complete job",
+                "number": 19,
+                "startedAt": "2026-11-13T23:53:11Z",
+                "status": "completed"
+              }
+            ],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43530063854/job/132245248255"
+          }
+        ],
+        "status": "completed",
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43530063854",
+        "workflowName": "Control boundary"
+      },
+      "log_sha256": "4dc791c61161828caf13095cd6945c5e38cbd65bb37596a0299fc5f8e4c08f94",
+      "log_bytes": 862427,
+      "test_summary_lines": [
+        "#14 0.183 Ran 20 tests in 0.017s",
+        "CONTROL_INTERACTIVE_ASK_PASS cases=17"
+      ]
+    },
+    {
+      "metadata": {
+        "attempt": 2,
+        "conclusion": "success",
+        "event": "pull_request",
+        "headSha": "7d9c0b952aafd587d1f600f30846aa342c146850",
+        "jobs": [
+          {
+            "completedAt": "2026-11-14T00:10:21Z",
+            "conclusion": "success",
+            "databaseId": 132246606441,
+            "name": "hostile",
+            "startedAt": "2026-11-14T00:07:28Z",
+            "status": "completed",
+            "steps": [
+              {
+                "completedAt": "2026-11-14T00:07:30Z",
+                "conclusion": "success",
+                "name": "Set up job",
+                "number": 1,
+                "startedAt": "2026-11-14T00:07:29Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T00:07:39Z",
+                "conclusion": "success",
+                "name": "Run actions/checkout@v4",
+                "number": 2,
+                "startedAt": "2026-11-14T00:07:30Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T00:08:11Z",
+                "conclusion": "success",
+                "name": "Build pinned disposable Linux environment",
+                "number": 3,
+                "startedAt": "2026-11-14T00:07:39Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T00:08:11Z",
+                "conclusion": "success",
+                "name": "Permit unprivileged namespaces on this disposable runner",
+                "number": 4,
+                "startedAt": "2026-11-14T00:08:11Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T00:09:14Z",
+                "conclusion": "success",
+                "name": "Hostile programs with and without seccomp",
+                "number": 5,
+                "startedAt": "2026-11-14T00:08:11Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T00:10:15Z",
+                "conclusion": "success",
+                "name": "Interactive managed asks (native terminal, no model)",
+                "number": 6,
+                "startedAt": "2026-11-14T00:09:14Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T00:10:15Z",
+                "conclusion": "success",
+                "name": "Run identity",
+                "number": 7,
+                "startedAt": "2026-11-14T00:10:15Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T00:10:15Z",
+                "conclusion": "success",
+                "name": "Restore runner namespace policy",
+                "number": 8,
+                "startedAt": "2026-11-14T00:10:15Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T00:10:19Z",
+                "conclusion": "success",
+                "name": "Run actions/upload-artifact@v4",
+                "number": 9,
+                "startedAt": "2026-11-14T00:10:15Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T00:10:19Z",
+                "conclusion": "success",
+                "name": "Post Run actions/checkout@v4",
+                "number": 18,
+                "startedAt": "2026-11-14T00:10:19Z",
+                "status": "completed"
+              },
+              {
+                "completedAt": "2026-11-14T00:10:19Z",
+                "conclusion": "success",
+                "name": "Complete job",
+                "number": 19,
+                "startedAt": "2026-11-14T00:10:19Z",
+                "status": "completed"
+              }
+            ],
+            "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43530063854/job/132246606441"
+          }
+        ],
+        "status": "completed",
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43530063854",
+        "workflowName": "Control boundary"
+      },
+      "log_sha256": "373c2b956fb4b683679a2152477e9fe61d8d6db44d7962ba84d754f1179992dd",
+      "log_bytes": 864857,
+      "test_summary_lines": [
+        "#14 0.229 Ran 20 tests in 0.026s",
+        "CONTROL_INTERACTIVE_ASK_PASS cases=17"
+      ]
+    }
+  ]
+}

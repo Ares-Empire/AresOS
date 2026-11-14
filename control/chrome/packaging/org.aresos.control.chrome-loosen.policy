@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+  Install root-owned, mode 0644, at
+  /usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy
+
+  The AresOS tool service asks this action before a change made from Chrome's
+  details page loosens a rule: a "don't ask again" entry, or read-only off for a
+  site. The subject is the process that connected to chrome.sock. Every change
+  needs the admin password again: never use auth_admin_keep here, because a kept
+  authorization would let a same-user process posing as the native host pass
+  silently inside the keep window.
+
+  The owner annotation names the service's user from aresos-toold.service
+  (User=aresos-tools). Without it polkit refuses the service's check for another
+  user's process ("Only trusted callers ..."), and every such button would refuse.
+-->
+<policyconfig>
+  <vendor>AresOS</vendor>
+  <action id="org.aresos.control.chrome-loosen">
+    <description>Loosen a Chrome rule for Claude</description>
+    <message>Claude's Chrome tools: confirm this change with your password. $(change)</message>
+    <defaults>
+      <allow_any>no</allow_any>
+      <allow_inactive>no</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.owner">unix-user:aresos-tools</annotate>
+  </action>
+</policyconfig>

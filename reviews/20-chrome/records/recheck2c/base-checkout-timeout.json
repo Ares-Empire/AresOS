@@ -1,0 +1,92 @@
+{
+  "source": "5c4e4add2b867f6e439f496a12320aea67c03f4b",
+  "id": 43320698770,
+  "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43320698770",
+  "conclusion": "cancelled",
+  "cause": "The checkout git fetch stalled until the20-minute job limit. No test command started. A fresh-runner retry preserves all tests and assertions.",
+  "replacement": {
+    "workflow": "control-base.yml",
+    "workflow_run_id": 43324347900,
+    "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43324347900",
+    "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43324347900"
+  },
+  "jobs": [
+    {
+      "id": 131540284076,
+      "run_id": 43320698770,
+      "workflow_name": "Control base",
+      "head_branch": "pkg/20-chrome",
+      "run_url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/runs/43320698770",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVgsTJ88AAAAeoGlyrA",
+      "head_sha": "5c4e4add2b867f6e439f496a12320aea67c03f4b",
+      "url": "https://api.github.com/repos/Ares-Empire/AresOS/actions/jobs/131540284076",
+      "html_url": "https://github.com/Ares-Empire/AresOS/actions/runs/43320698770/job/131540284076",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "created_at": "2026-11-12T22:31:37Z",
+      "started_at": "2026-11-12T22:31:44Z",
+      "completed_at": "2026-11-12T22:51:47Z",
+      "name": "containers",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-12T22:31:45Z",
+          "completed_at": "2026-11-12T22:31:46Z"
+        },
+        {
+          "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "number": 2,
+          "started_at": "2026-11-12T22:31:46Z",
+          "completed_at": "2026-11-12T22:51:45Z"
+        },
+        {
+          "name": "Test inside Fedora 45 container (no model or real account)",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 3,
+          "started_at": "2026-11-12T22:51:45Z",
+          "completed_at": "2026-11-12T22:51:45Z"
+        },
+        {
+          "name": "Upload exact test output",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-12T22:51:45Z",
+          "completed_at": "2026-11-12T22:51:45Z"
+        },
+        {
+          "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-12T22:51:45Z",
+          "completed_at": "2026-11-12T22:51:45Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-12T22:51:45Z",
+          "completed_at": "2026-11-12T22:51:45Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/Ares-Empire/AresOS/check-runs/131540284076",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "runner_id": 1000005733,
+      "runner_name": "GitHub Actions 1000005733",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ],
+  "log_sha256": "837ecfe8a5a192c3de4548677d5d80405c1737792d47a53f5d0a21a45ac46210"
+}

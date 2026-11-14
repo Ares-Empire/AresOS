@@ -1,0 +1,133 @@
+{
+  "samples_per_call": 60,
+  "latency_jobs": {
+    "latency (audit)": {
+      "conclusion": "success",
+      "minutes": 20.6
+    },
+    "latency (plain)": {
+      "conclusion": "success",
+      "minutes": 19.8
+    }
+  },
+  "profiles": {
+    "plain": {
+      "gate_passed": true,
+      "runner_factors": {
+        "fresh": 1.225,
+        "history-1000": 1.038,
+        "history-4000": 0.876
+      },
+      "failures_at_allowance_1": [],
+      "fresh_old_runtime_factor_like_for_like": {
+        "free_click": {
+          "first_20": 0.842,
+          "all_60": 1.185
+        },
+        "fill": {
+          "first_20": 0.964,
+          "all_60": 1.205
+        },
+        "approval_to_done": {
+          "first_20": 0.806,
+          "all_60": 1.081
+        }
+      },
+      "paired_work_ms_per_sample_drift": {
+        "ab7aba92": {
+          "fresh": {
+            "free_click": 0.51,
+            "fill": 0.33,
+            "approval_to_done": 0.73
+          },
+          "history-1000": {
+            "free_click": 0.93,
+            "fill": 1.08,
+            "approval_to_done": 0.99
+          },
+          "history-4000": {
+            "free_click": -0.35,
+            "fill": -0.56,
+            "approval_to_done": -1.21
+          }
+        },
+        "current": {
+          "fresh": {
+            "free_click": 0.18,
+            "fill": -0.01,
+            "approval_to_done": 0.28
+          },
+          "history-1000": {
+            "free_click": -0.06,
+            "fill": -0.0,
+            "approval_to_done": -0.02
+          },
+          "history-4000": {
+            "free_click": -0.01,
+            "fill": -0.02,
+            "approval_to_done": 0.01
+          }
+        }
+      }
+    },
+    "audit": {
+      "gate_passed": true,
+      "runner_factors": {
+        "fresh": 1.222,
+        "history-1000": 1.191,
+        "history-4000": 1.09
+      },
+      "failures_at_allowance_1": [],
+      "fresh_old_runtime_factor_like_for_like": {
+        "free_click": {
+          "first_20": 0.833,
+          "all_60": 1.185
+        },
+        "fill": {
+          "first_20": 0.857,
+          "all_60": 1.139
+        },
+        "approval_to_done": {
+          "first_20": 0.778,
+          "all_60": 0.985
+        }
+      },
+      "paired_work_ms_per_sample_drift": {
+        "ab7aba92": {
+          "fresh": {
+            "free_click": 0.59,
+            "fill": 0.57,
+            "approval_to_done": 0.53
+          },
+          "history-1000": {
+            "free_click": 0.8,
+            "fill": 0.5,
+            "approval_to_done": 0.65
+          },
+          "history-4000": {
+            "free_click": 0.93,
+            "fill": 0.85,
+            "approval_to_done": 0.78
+          }
+        },
+        "current": {
+          "fresh": {
+            "free_click": -0.08,
+            "fill": -0.01,
+            "approval_to_done": -0.03
+          },
+          "history-1000": {
+            "free_click": -0.04,
+            "fill": 0.01,
+            "approval_to_done": 0.25
+          },
+          "history-4000": {
+            "free_click": 0.09,
+            "fill": 0.02,
+            "approval_to_done": 0.27
+          }
+        }
+      }
+    }
+  }
+}

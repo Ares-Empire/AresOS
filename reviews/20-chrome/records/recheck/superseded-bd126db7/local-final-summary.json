@@ -1,0 +1,56 @@
+{
+  "source": "bd126db705a4aa6113d33fb6549fbe83a4f13987",
+  "runtime_build_hash": "ae40ca236eaa152613e768119676841bb9f858c3fdc738eccb9b492cff00d783",
+  "python": {
+    "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s control/chrome_tests -v",
+    "tests": 223,
+    "seconds": 562.812,
+    "result": "OK"
+  },
+  "node": {
+    "command": "node --test control/chrome_tests/*.test.mjs",
+    "tests": 251,
+    "pass": 251,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "page_mutations": {
+    "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck/page-mutations.json",
+    "count": 139,
+    "all_baselines_pass": true,
+    "all_mutations_rejected": true
+  },
+  "state_removal_tests": [
+    "STATE MUTATION KILLED S1 restore test_state_fixes.StateFixes.test_s1_restore_reconciles_revocation_readonly_and_qualification_offline",
+    "STATE MUTATION KILLED S1 qualification test_state_fixes.StateFixes.test_s1_readable_policy_rollback_cannot_hide_committed_qualification",
+    "STATE MUTATION KILLED S1 large qualification test_state_fixes.StateFixes.test_s1_large_qualification_history_restores_without_a_large_rewrite",
+    "STATE MUTATION KILLED S2 status test_state_fixes.StateFixes.test_s2_failed_completion_marker_never_reports_uncommitted_done",
+    "STATE MUTATION KILLED S2 pending test_state_fixes.StateFixes.test_s2_readable_rollback_pending_uses_committed_reservation",
+    "STATE MUTATION KILLED S3 terminal test_state_fixes.StateFixes.test_s3_cancel_and_expiry_ack_survive_rollback_restore_archive_restart",
+    "STATE MUTATION KILLED S4 retirement test_state_fixes.StateFixes.test_s4_more_than_512_completed_checks_leave_room_for_chrome_and_mail",
+    "STATE MUTATION KILLED S4 receipts test_state_fixes.StateFixes.test_s4_retirement_keeps_warning_ack_and_dedup_identity_in_history",
+    "STATE MUTATION KILLED S4 archive admission test_state_fixes.StateFixes.test_s4_archive_retires_checks_even_above_the_shared_history_quota",
+    "STATE MUTATION KILLED S5 live check test_state_fixes.StateFixes.test_s5_clean_stopped_submission_has_no_interruption_warning",
+    "STATE MUTATION KILLED S5 startup test_state_crashes.CrashCuts.test_s11_actual_process_cuts_before_and_after_input_keep_every_committed_view",
+    "STATE MUTATION KILLED S6 lost queue test_state_fixes.StateFixes.test_s6_lost_queue_resolves_native_check_and_preserves_uncertain_occurrence",
+    "STATE MUTATION KILLED S6 stale queue returns test_state_fixes.StateFixes.test_s6_a_stale_step_cannot_be_prepared_if_the_same_queue_entry_returns",
+    "STATE MUTATION KILLED S6 read-gated queue loss test_state_fixes.StateFixes.test_s6_notices_and_pending_resolve_lost_queues_without_page_reads",
+    "STATE MUTATION KILLED S6 unavailable queue test_state_fixes.StateFixes.test_s6_unavailable_queue_keeps_its_committed_open_check_readable",
+    "STATE MUTATION KILLED S7 admission test_state_fixes.StateFixes.test_s7_drop_spends_cancel_reservation_at_history_and_physical_boundaries",
+    "STATE MUTATION KILLED S8 public archive test_state_fixes.StateFixes.test_s8_archive_remains_publicly_reachable_above_index_bound_and_after_restart",
+    "STATE MUTATION KILLED S8 Mail preservation test_state_fixes.StateFixes.test_s8_index_bound_keeps_readable_mail_warnings_and_their_continuation",
+    "STATE MUTATION KILLED S9 Mail continuation test_state_fixes.StateFixes.test_s9_mail_only_and_mixed_fallback_keep_all_remaining_counts",
+    "STATE MUTATION KILLED S10 chronology test_state_fixes.StateFixes.test_s10_mixed_notice_pages_use_nanosecond_chronology",
+    "STATE MUTATION KILLED S11 oracle test_state_oracle.Oracle.test_s11_r1_missing_warning_and_extra_live_interruption_both_fail",
+    "STATE MUTATION KILLED S11 journal read close test_state_exhaustion.Exhaustion.test_s11_persistent_write_exhaustion_retains_exact_committed_disclosure",
+    "STATE MUTATION KILLED S12 dialog test_state_fixes.StateFixes.test_s12_every_page_text_copy_is_inside_untrusted_content",
+    "STATE MUTATION KILLED S12 stages test_state_fixes.StateFixes.test_s12_every_page_text_copy_is_inside_untrusted_content"
+  ],
+  "output_sha256": {
+    "local-python-final.txt": "418eaea17cbd93a4e0a7be42e638ebf8e2ca4ff1e0d12b4a9a175a16cc05a261",
+    "local-node-final.txt": "f7c7974a361497074b2a459b869484c2df607a7b5c0ff5fa61d9076fa97a1de0",
+    "page-mutations-final.txt": "06388af6ec3d272c8633d9fb87bfba1f42ceff1b3d2b81c02d5f0f6bc5d7a13b",
+    "audit-streams-final.txt": "6cbae3d6889866a416c5b42daa80772edde0c3f9ab5ee6e558bf726ed25b45bb"
+  }
+}

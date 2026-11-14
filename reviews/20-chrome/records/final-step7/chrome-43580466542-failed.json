@@ -1,0 +1,122 @@
+{
+  "run": "43580466542",
+  "head": "d12b2c24b8122e96e146bc9015e61d94dec065a7",
+  "conclusion": "failure",
+  "metadata_only": true,
+  "profiles_accessed": false,
+  "jobs": [
+    {
+      "name": "native-precedence",
+      "conclusion": "success"
+    },
+    {
+      "name": "package",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (0)",
+      "conclusion": "success"
+    },
+    {
+      "name": "latency (audit)",
+      "conclusion": "success"
+    },
+    {
+      "name": "latency (plain)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-0)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, recheck3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, adapters)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, core)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, recheck2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, core)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, recheck2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, adapters)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, review)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (external, review)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (policy, word-0)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, recheck3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "aggregate (policy)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "aggregate (external)",
+      "conclusion": "failure"
+    }
+  ],
+  "failure": "Both review shards stopped again at final-discard-close-tab-web-audio: the owner's Tab+Return in the tab fresh from `open` did not start the sound either (eventually 15 s, \"Web Audio playback started\"). Everything else passed, latency gates included. The row now runs its Web Audio case as every other Web Audio row does: the owner loads the page and plays in a released tab (ownerNavigate selects and focuses that exact tab), then Claude takes it."
+}

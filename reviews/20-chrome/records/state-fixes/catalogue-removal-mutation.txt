@@ -1,0 +1,28 @@
+Local worktree path prefix replaced with <worktree>.
+✖ active catalogue paging outlives five minutes without changing its captured rows (7.353959ms)
+✔ idle catalogue snapshots still expire after five minutes (0.720584ms)
+✔ invalid cursors cannot renew a snapshot and retained snapshots stay bounded (0.986625ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 221.895334
+
+✖ failing tests:
+
+test at control/chrome_tests/state-catalogues.test.mjs:18:1
+✖ active catalogue paging outlives five minutes without changing its captured rows (7.353959ms)
+  Error: stale_reference: list snapshot changed; read without the cursor
+      at collection (evalmachine.<anonymous>:6:147)
+      at evalmachine.<anonymous>:1:1
+      at Script.runInContext (node:vm:150:12)
+      at Object.runInContext (node:vm:302:6)
+      at Object.read (file://<worktree>/.work/state-mutations/tmpbztj94a7/control/chrome_tests/state-catalogues.test.mjs:14:28)
+      at TestContext.<anonymous> (file://<worktree>/.work/state-mutations/tmpbztj94a7/control/chrome_tests/state-catalogues.test.mjs:27:20)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+STATE MUTATION KILLED active catalogue snapshot renewal

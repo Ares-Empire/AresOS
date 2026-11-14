@@ -1,0 +1,33 @@
+Diagnostic copy: local paths are redacted; trailing spaces on blank lines were removed.
+Redacted input SHA-256 before whitespace normalization: 4f5cc883b8ed0466a1915c262401b91bdbe116a6b0d46f693865024a7248ff85
+
+✖ recheck slotted affected items include native rows hidden by closed-slot ancestry (4.309667ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 46.156292
+
+✖ failing tests:
+
+test at control/chrome_tests/reader.test.mjs:222:1
+✖ recheck slotted affected items include native rows hidden by closed-slot ancestry (4.309667ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Invoice A/. Input:
+
+  'Delete'
+
+      at TestContext.<anonymous> (file://<worktree>/control/chrome_tests/reader.test.mjs:229:86)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Delete',
+    expected: /Invoice A/,
+    operator: 'match',
+    diff: 'simple'
+  }

@@ -1,0 +1,119 @@
+{
+  "attack": "relay-hostile",
+  "arrivalsBefore": 0,
+  "result": {
+    "operation_id": "0dbef42b034642a28b5eec2156d0be14:38de680672024075bdbf773a4e305ebb",
+    "untrusted_content": {
+      "checked": true,
+      "dispatched": true,
+      "steps": [
+        {
+          "id": "h1",
+          "kind": "activation",
+          "document": "5924580d9783e22141df2036e0f0f06a",
+          "label": "Delete",
+          "element": "e7",
+          "submitter": null,
+          "cancellable": true,
+          "frame": 0
+        },
+        {
+          "id": "h2",
+          "kind": "native_submit",
+          "document": "5924580d9783e22141df2036e0f0f06a",
+          "label": "",
+          "element": "e8",
+          "submitter": null,
+          "cancellable": true,
+          "frame": 0
+        }
+      ],
+      "dialog": null,
+      "uncertain_finish": false,
+      "confirmations": [],
+      "page": "Input dispatched once; inspect a fresh read for what the page shows."
+    },
+    "followups": [
+      {
+        "stopped": true,
+        "unknown": false,
+        "reason": "The page tried to activate 'Delete' by itself; it was stopped. Act on the current control to prepare fresh asking input if wanted."
+      },
+      {
+        "approval": {
+          "question": "On http://fixture.test:8765/?case=relay-hostile, as the page shows it, activate 'resume native_submit' to http://fixture.test:8765/receive?case=relay-hostile (post, 1 fields, 0 hidden)?",
+          "operation_id": "0dbef42b034642a28b5eec2156d0be14:b01e304fab7c4740a19069daea0adb5d",
+          "description": {
+            "action": "chrome_submit",
+            "untrusted_content": {
+              "page_state": {
+                "session": "72daaea6-1927-465f-ae09-e920639cb850",
+                "tab": 30412631,
+                "control": "9f2f3d7d-cc43-439e-bc75-8fbb4622baea",
+                "url": "http://fixture.test:8765/?case=relay-hostile",
+                "document": "5924580d9783e22141df2036e0f0f06a",
+                "frame": 0,
+                "frame_url": "http://fixture.test:8765/?case=relay-hostile",
+                "target": {
+                  "element": "e8",
+                  "role": "form",
+                  "name": "",
+                  "label": "",
+                  "title": "",
+                  "href": null,
+                  "states": {
+                    "checked": false,
+                    "selected": false,
+                    "disabled": false,
+                    "required": false,
+                    "invalid": false,
+                    "expanded": null
+                  },
+                  "editable": false,
+                  "search": false,
+                  "submit": false,
+                  "page_dialog": null
+                },
+                "form": {
+                  "element": "e8",
+                  "action": "http://fixture.test:8765/receive?case=relay-hostile",
+                  "method": "post",
+                  "encoding": "application/x-www-form-urlencoded",
+                  "target": "sink",
+                  "search": false,
+                  "fields": [
+                    {
+                      "element": "e9",
+                      "name": "draft",
+                      "label": "",
+                      "type": "text",
+                      "hidden": false,
+                      "checked": false,
+                      "disabled": false,
+                      "multiple": false,
+                      "readOnly": false,
+                      "value": "Saved"
+                    }
+                  ]
+                },
+                "editable": null,
+                "item": null,
+                "adapter": null,
+                "dialog": null
+              },
+              "input": {
+                "verb": "resume_submission",
+                "kind": "native_submit"
+              },
+              "resume_kind": "native_submit",
+              "file": null,
+              "confirmation": null
+            },
+            "expires_at": 1794264362.579475
+          }
+        },
+        "state": "reserved"
+      }
+    ]
+  }
+}

@@ -1,0 +1,82 @@
+[
+  {
+    "run": 43384844084,
+    "source": "bc90cdbd",
+    "artifact": "control-chrome-43384844084-1-external",
+    "last_snapshot": {
+      "id": "recheck3-mix-1-open-false-before-foreign",
+      "phase": "mixed handler held",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794554540876,
+          "url": "/receive?case=recheck3-mix-1-open-false-before-foreign",
+          "method": "POST",
+          "body": "mixed handler",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    "matrix": [
+      {
+        "name": "GROUP 2 first-script natives are guarded in pages and frames",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 0\n\n    at file:///workspace/control/chrome/ci/recheck3-matrices.mjs:16:73\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async recheck3Matrices (file:///workspace/control/chrome/ci/recheck3-matrices.mjs:11:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:55:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+      }
+    ],
+    "native_private_peer_export_results": [
+      false,
+      false
+    ],
+    "sha256": {
+      "browser.txt": "43bca8891394e0bc6c342beffbf7f883c9a4bff93fd0f0b51f2139b7e550d8fc",
+      "receiver.jsonl": "8f57a30ba3a241ca36f1f2d0a48fca0bf6256d3772724e4bbc98d8a3857eb902",
+      "page-receiver.jsonl": "5aa8e8e403c8fb652d8d1822fdfc587f451ea9dbc536a5c73483d1dae43c66fc",
+      "browser-boundary.jsonl": "13b26a52014e72cb5b6da1e6990a1d19bbf723057d4f2bba6c9f3bb8d778f988"
+    }
+  },
+  {
+    "run": 43384844084,
+    "source": "bc90cdbd",
+    "artifact": "control-chrome-43384844084-1-policy",
+    "last_snapshot": {
+      "id": "recheck3-mix-1-open-false-before-foreign",
+      "phase": "mixed handler held",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794554565167,
+          "url": "/receive?case=recheck3-mix-1-open-false-before-foreign",
+          "method": "POST",
+          "body": "mixed handler",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    "matrix": [
+      {
+        "name": "GROUP 2 first-script natives are guarded in pages and frames",
+        "passed": true
+      },
+      {
+        "name": "GROUP 2 RECHECK3 every single wrapped step holds across roots events and registration order",
+        "passed": false,
+        "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\n1 !== 0\n\n    at file:///workspace/control/chrome/ci/recheck3-matrices.mjs:16:73\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:21:10)\n    at async recheck3Matrices (file:///workspace/control/chrome/ci/recheck3-matrices.mjs:11:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:55:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:145:24"
+      }
+    ],
+    "native_private_peer_export_results": [
+      false,
+      false
+    ],
+    "sha256": {
+      "browser.txt": "3e8a244922fb249ac0bba818b0210aba231bd71353c397cbe3f552c8a478063b",
+      "receiver.jsonl": "ffc7f4e597eb38122d39ab594f20b79f8d2505cda550d7d53d674287537267a9",
+      "page-receiver.jsonl": "9f6a28b367ae6ba218829d09b8d49c9c2d4068fd6e1a1f3f30b01835d9356c92",
+      "browser-boundary.jsonl": "5799a83b4b61ef9554b54e83c9a3071623ce45680cf94008edac5abefe0b66b9"
+    }
+  }
+]

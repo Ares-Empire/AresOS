@@ -1,0 +1,26 @@
+{
+  "run": 42818344133,
+  "mode": "policy",
+  "source": "f3a4abc68773c54786b0eb90f8697bc5efd6dfb9",
+  "acceptance": false,
+  "named_cases": [
+    {
+      "name": "GROUP 2 first-script natives are guarded in pages and frames",
+      "passed": true
+    },
+    {
+      "name": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"refused\",\"message\":\"the dialog cannot be answered with complete private guard coverage; leave it to the owner\"},\"pending\":{\"items\":[{\"operation_id\":\"d33159cfcd014f5bb057b4840fc18c77:df14b9a54b8644179d261e2d859c9b8e\",\"app\":\"chrome\",\"state\":\"reserved\",\"reason\":\"a native dialog blocks this frame query; inspect and answer the dialog before checking prepared elements\",\"validity\":\"refused\",\"refusal_code\":\"refused\"},{\"operation_id\":\"d33159cfcd014f5bb057b4840fc18c77:ddbf0d57dae2448bb0bfe829a69a1ebd\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input dispatched, but a page handler completion could not be confirmed. Inspect the page and never replay.\"}],\"total\":2,\"cursor\":null,\"restore_required\":false,\"notices\":[{\"operation_id\":\"recovery-d33159cfcd014f5bb057b4840fc18c77:ddbf0d57dae2448bb0bfe829a69a1ebd\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"reason\":\"Chrome input has an unfinished committed outcome; it may have run. Never replay it.\",\"operation_id\":\"d33159cfcd014f5bb057b4840fc18c77:ddbf0d57dae2448bb0bfe829a69a1ebd\"}},{\"operation_id\":\"bffdca1fc2143d5aed96ba6501ef19e26a5842f7af1e9f7deb9fa46cc79ebdae\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:bffdca1fc2143d5aed96ba6501ef19e26a5842f7af1e9f7deb9fa46cc79ebdae\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}},{\"operation_id\":\"2da2afe95b635b48a9146c8a93e4581670817e9b56a015be42dc9f3bd9ab2054\",\"app\":\"chrome\",\"state\":\"unknown\",\"untrusted_content\":{\"intent_key\":\"intent:chrome:2da2afe95b635b48a9146c8a93e4581670817e9b56a015be42dc9f3bd9ab2054\",\"reason\":\"A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.\",\"recovery_warning\":true}}],\"notices_more\":{\"count\":10,\"action\":\"control_notices\"}}}\n    at call (file:///workspace/control/chrome/ci/browser.mjs:28:80)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async file:///workspace/control/chrome/ci/review-matrices.mjs:13:20\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)\n    at async reviewMatrices (file:///workspace/control/chrome/ci/review-matrices.mjs:7:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:53:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+    }
+  ],
+  "native_failure_line": 18,
+  "native_dialog_receiver_snapshots": [
+    {
+      "id": "review-dialog-alert-claude-true",
+      "phase": "native dialog open",
+      "count": 0,
+      "arrivals": []
+    }
+  ]
+}

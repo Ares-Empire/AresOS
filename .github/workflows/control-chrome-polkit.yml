@@ -1,0 +1,36 @@
+name: Control Chrome polkit
+# Final fixes F7: real polkitd and a password agent check the Chrome loosening action
+# (control/chrome/ci/polkit-check.py). No browser; it is not a control-chrome.yml run.
+# It runs on every pull-request push that touches this code. GitHub dispatches it by
+# hand (workflow_dispatch) only once this file is on main.
+on:
+  pull_request:
+    branches: [main]
+    paths: ['control/aresos_control/chrome/confirm.py', 'control/chrome/packaging/org.aresos.control.chrome-loosen.policy',
+            'control/chrome/ci/polkit-check.py', 'control/packaging/aresos-toold.service', '.github/workflows/control-chrome-polkit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  polkit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Real polkitd and pkttyagent in a disposable Fedora 45 container
+        run: |
+          set -euo pipefail
+          mkdir -p .work/polkit
+          docker run --rm --privileged -v "$PWD:/workspace" -w /workspace registry.fedoraproject.org/fedora:45-x86_64@sha256:79dd6556b8fe1a559051fad5159d4987ead218f1914e7a5bd20350d9ea0f9e52 \
+            bash -euc 'dnf install -y -q polkit dbus-daemon python3 util-linux shadow-utils procps-ng >/dev/null; python3 -I control/chrome/ci/polkit-check.py' \
+            2>&1 | tee .work/polkit/check.log
+      - name: Upload the check record
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: control-chrome-polkit-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .work/polkit/
+          retention-days: 14
+          if-no-files-found: error

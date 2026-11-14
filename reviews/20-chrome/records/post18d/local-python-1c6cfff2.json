@@ -1,0 +1,96 @@
+{
+  "browser_free": true,
+  "shards": [
+    {
+      "index": 0,
+      "count": 4,
+      "head": "1c6cfff2",
+      "run": null,
+      "modules": [
+        "test_bridge",
+        "test_exclusions",
+        "test_publisher",
+        "test_questions",
+        "test_state_fixes",
+        "test_storage"
+      ],
+      "tests": 95,
+      "successful": true,
+      "output": "local-python-1c6cfff2-0.txt"
+    },
+    {
+      "index": 1,
+      "count": 4,
+      "head": "1c6cfff2",
+      "run": null,
+      "modules": [
+        "test_build",
+        "test_fault_surface",
+        "test_qualification",
+        "test_sites",
+        "test_state_mutations",
+        "test_unit"
+      ],
+      "tests": 54,
+      "successful": true,
+      "output": "local-python-1c6cfff2-1.txt"
+    },
+    {
+      "index": 2,
+      "count": 4,
+      "head": "1c6cfff2",
+      "run": null,
+      "modules": [
+        "test_committed",
+        "test_latency",
+        "test_qualification_service",
+        "test_state_crashes",
+        "test_state_oracle"
+      ],
+      "tests": 48,
+      "successful": true,
+      "output": "local-python-1c6cfff2-2.txt"
+    },
+    {
+      "index": 3,
+      "count": 4,
+      "head": "1c6cfff2",
+      "run": null,
+      "modules": [
+        "test_engine",
+        "test_policy",
+        "test_qualification_shards",
+        "test_state_exhaustion",
+        "test_state_sweeps"
+      ],
+      "tests": 56,
+      "successful": false,
+      "output": "local-python-1c6cfff2-3.txt"
+    }
+  ],
+  "total_initial": 253,
+  "initial_successful": false,
+  "failure": "Shard3 fixture inherited RUNTIME_COMMIT inconsistent with its synthetic GITHUB_SHA; assertion retained, fixture now supplies both identities",
+  "replacement": {
+    "index": 3,
+    "count": 4,
+    "head": "64313f7b",
+    "run": null,
+    "modules": [
+      "test_engine",
+      "test_policy",
+      "test_qualification_shards",
+      "test_state_exhaustion",
+      "test_state_sweeps"
+    ],
+    "tests": 56,
+    "successful": true
+  },
+  "replacement_output": "local-python-shard3-replacement.txt",
+  "later_changed_module": {
+    "module": "test_latency",
+    "passed": 14,
+    "output": "local-latency-gate-14.txt"
+  },
+  "final_head_discovery": "pending"
+}

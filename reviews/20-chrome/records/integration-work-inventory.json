@@ -1,0 +1,6 @@
+{
+  "bytes": 666531157,
+  "files": 1392,
+  "over_500_MB": [],
+  "note": "Snapshot before closing report; retained CI data only, no local browser/profile, ISO, image layer or extracted squashfs."
+}

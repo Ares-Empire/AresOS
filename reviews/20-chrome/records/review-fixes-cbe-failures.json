@@ -1,0 +1,140 @@
+{
+  "run": 42803248244,
+  "mode": "external",
+  "source": "cbe641a8f4ec3daea269422330e85a7b59091f3d",
+  "named_cases": 74,
+  "passed": 48,
+  "acceptance": false,
+  "failures": [
+    {
+      "name": "GROUP 2 REVIEW inherited and newly created frames hold submissions",
+      "first_error": "Error: Continue: undefined",
+      "browser_line": 18
+    },
+    {
+      "name": "GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document",
+      "first_error": "Error: Open window: undefined",
+      "browser_line": 26
+    },
+    {
+      "name": "GROUP 11 REVIEW explicit pay and delete evidence overrides an owner allowed adapter",
+      "first_error": "Error: Send: undefined",
+      "browser_line": 34
+    },
+    {
+      "name": "GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held",
+      "first_error": "Error: Continue: undefined",
+      "browser_line": 42
+    },
+    {
+      "name": "GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones",
+      "first_error": "Error: Continue: undefined",
+      "browser_line": 50
+    },
+    {
+      "name": "GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names",
+      "first_error": "Error: lo\u0308schen: undefined",
+      "browser_line": 58
+    },
+    {
+      "name": "GROUP 3 REVIEW item confirmation file rich text and title mutations refuse",
+      "first_error": "Error: Delete: undefined",
+      "browser_line": 66
+    },
+    {
+      "name": "GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work",
+      "first_error": "Error: Continue: undefined",
+      "browser_line": 74
+    },
+    {
+      "name": "GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload",
+      "first_error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:",
+      "browser_line": 82
+    },
+    {
+      "name": "GROUP 8 REVIEW script-started POST documents in tabs and popups never reload",
+      "first_error": "Error: script POST: undefined",
+      "browser_line": 94
+    },
+    {
+      "name": "GROUP 4 REVIEW independent native dialogs arm before accept or dismiss or stay with owner",
+      "first_error": "Error: Mutation fixture stream is not connected: review-independent-dialog-false",
+      "browser_line": 101
+    },
+    {
+      "name": "GROUP 8 REVIEW Stop removes navigation blocks while a frozen wrapper awaits cleanup",
+      "first_error": "Error: Continue: undefined",
+      "browser_line": 108
+    },
+    {
+      "name": "GROUP 5 REVIEW page outcome records the actual post-input notice",
+      "first_error": "Error: Continue: undefined",
+      "browser_line": 116
+    },
+    {
+      "name": "GROUP 8 closing or releasing an opener ends popup control and clears badges",
+      "first_error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"unknown\",\"message\":\"Input may have started; inspect status and the page, never retry. Cannot access contents of url \\\"about:blank\\\". Extension manifest must request permission to access this host.\"},\"pending\":{\"items\":[{\"operation_id\":\"2ce8fa62ca0a4e3387403406688e26b3:e7624b214ab64903b687995c93ccb8bd\",\"app\":\"chrome\",\"state\":\"reserved\",\"reason\":\"Browser or service session changed; drop this preparation and prepare again.\",\"validity\":\"re",
+      "browser_line": 130
+    },
+    {
+      "name": "GROUP 4 ADAPTER every named GitHub confirmation mismatch",
+      "first_error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"refused\",\"message\":\"private guards could not be armed while this dialog is open; leave it to the owner\"},\"pending\":{\"items\":[{\"operation_id\":\"2ce8fa62ca0a4e3387403406688e26b3:e7624b214ab64903b687995c93ccb8bd\",\"app\":\"chrome\",\"state\":\"reserved\",\"reason\":\"Browser or service session changed; drop this preparation and prepare again.\",\"validity\":\"refused\",\"refusal_code\":\"stale_approval\"},{\"operation_id\":\"2ce8fa62ca0a4e3387403406688e26b3:2c8f",
+      "browser_line": 225
+    },
+    {
+      "name": "GROUP 2 nested validation and fresh-frame fallback",
+      "first_error": "AssertionError [ERR_ASSERTION]: native donor parent must be fully released",
+      "browser_line": 302
+    },
+    {
+      "name": "GROUP 2 unknown activation survives navigation of its source document",
+      "first_error": "AssertionError [ERR_ASSERTION]: native donor parent must be fully released",
+      "browser_line": 311
+    },
+    {
+      "name": "GROUP 4 page confirmations bind their full text and ask independently",
+      "first_error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"refused\",\"message\":\"Can't tell what this sends: no editable text. Use an adapter or the owner's own click.\"},\"pending\":{\"items\":[{\"operation_id\":\"2ce8fa62ca0a4e3387403406688e26b3:e7624b214ab64903b687995c93ccb8bd\",\"app\":\"chrome\",\"state\":\"failed\",\"reason\":\"expired: nothing submitted\"},{\"operation_id\":\"2ce8fa62ca0a4e3387403406688e26b3:2c8f7f3a9e2841969642176c0d5ed3b2\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input may have run: Input ma",
+      "browser_line": 319
+    },
+    {
+      "name": "GROUP 4 exact native confirmation and mismatch matrix",
+      "first_error": "Error: one receiver arrival confirm-text-Delete branch: undefined",
+      "browser_line": 327
+    },
+    {
+      "name": "GROUP 4 a native-dialog handler submission is prepared separately",
+      "first_error": "AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:",
+      "browser_line": 334
+    },
+    {
+      "name": "GROUP 5 question fields, hidden values, password label, upload path and hash",
+      "first_error": "Error: one receiver arrival upload-bytes: undefined",
+      "browser_line": 343
+    },
+    {
+      "name": "GROUP 6 exclusions through frame, popup, redirect, taking and history",
+      "first_error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"invalid_input\",\"message\":\"input.limit: integer outside the allowed range.\"},\"pending\":{\"items\":[{\"operation_id\":\"2ce8fa62ca0a4e3387403406688e26b3:e7624b214ab64903b687995c93ccb8bd\",\"app\":\"chrome\",\"state\":\"failed\",\"reason\":\"expired: nothing submitted\"},{\"operation_id\":\"2ce8fa62ca0a4e3387403406688e26b3:2c8f7f3a9e2841969642176c0d5ed3b2\",\"app\":\"chrome\",\"state\":\"unknown\",\"reason\":\"Input may have run: Input may have started; inspect status an",
+      "browser_line": 350
+    },
+    {
+      "name": "GROUP 7 all password kinds across open closed and cross-site roots",
+      "first_error": "Error: one receiver arrival password-cross-0: undefined",
+      "browser_line": 357
+    },
+    {
+      "name": "GROUP 6 schemes links and forward routes",
+      "first_error": "Error: owner navigation committed in the exact tab: undefined",
+      "browser_line": 364
+    },
+    {
+      "name": "GROUP 8 drop release close and stale references never dispatch prepared work",
+      "first_error": "AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"unknown\",\"message\":\"Input may have started; inspect status and the page, never retry. Cannot access contents of url \\\"about:blank\\\". Extension manifest must request permission to access this host.\"},\"pending\":{\"items\":[{\"operation_id\":\"2ce8fa62ca0a4e3387403406688e26b3:e7624b214ab64903b687995c93ccb8bd\",\"app\":\"chrome\",\"state\":\"failed\",\"reason\":\"expired: nothing submitted\"},{\"operation_id\":\"2ce8fa62ca0a4e3387403406688e26b3:2c8f7f3a9e28419",
+      "browser_line": 371
+    },
+    {
+      "name": "GROUP 13 autosave and after-limit submissions are not held",
+      "first_error": "Error: Continue: undefined",
+      "browser_line": 398
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "as_of_utc": "2026-11-13T02:31:16.074169+00:00",
+  "regular_files": 14661,
+  "bytes": 8561378893,
+  "over_500_MB": [],
+  "browser_profiles_exported": false,
+  "note": "CI exports /out logs, JSON evidence and PNGs only; browser profiles stay in the Linux containers. No ISO or image layer was downloaded locally. Each retained CI artifact has one local copy."
+}

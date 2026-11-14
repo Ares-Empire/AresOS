@@ -1,0 +1,1230 @@
+{
+  "head": "7706829c8851287c1a079e6e3a5b8d1645c87c2f",
+  "run": "43539458133",
+  "install": "policy",
+  "shards": [
+    {
+      "shard": "adapters",
+      "baseline": {
+        "native": {
+          "functions": [
+            "function submit() { [native code] }",
+            "function requestSubmit() { [native code] }",
+            "function click() { [native code] }",
+            "function dispatchEvent() { [native code] }",
+            "function addEventListener() { [native code] }",
+            "function appendChild() { [native code] }",
+            "function append() { [native code] }",
+            "function set innerHTML() { [native code] }"
+          ],
+          "shapes": [
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            }
+          ],
+          "fingerprint": "function click() { [native code] }",
+          "preventReturn": "undefined",
+          "busReturn": false,
+          "busCount": 1,
+          "windowReturn": true,
+          "windows": 1,
+          "shadows": [
+            {
+              "mode": "open",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            },
+            {
+              "mode": "closed",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            }
+          ],
+          "cloneKinds": [
+            10,
+            2
+          ],
+          "inert": [
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            }
+          ],
+          "replacements": 1,
+          "downloadReturn": "undefined",
+          "fileReturn": "undefined",
+          "filePicker": "Open File"
+        },
+        "isolation": true,
+        "residual": true,
+        "owner": true,
+        "forgery": true
+      },
+      "adapters": {},
+      "head": "7706829c8851287c1a079e6e3a5b8d1645c87c2f",
+      "run": "43539458133",
+      "install": "policy"
+    },
+    {
+      "shard": "core",
+      "baseline": {
+        "native": {
+          "functions": [
+            "function submit() { [native code] }",
+            "function requestSubmit() { [native code] }",
+            "function click() { [native code] }",
+            "function dispatchEvent() { [native code] }",
+            "function addEventListener() { [native code] }",
+            "function appendChild() { [native code] }",
+            "function append() { [native code] }",
+            "function set innerHTML() { [native code] }"
+          ],
+          "shapes": [
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            }
+          ],
+          "fingerprint": "function click() { [native code] }",
+          "preventReturn": "undefined",
+          "busReturn": false,
+          "busCount": 1,
+          "windowReturn": true,
+          "windows": 1,
+          "shadows": [
+            {
+              "mode": "open",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            },
+            {
+              "mode": "closed",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            }
+          ],
+          "cloneKinds": [
+            10,
+            2
+          ],
+          "inert": [
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            }
+          ],
+          "replacements": 1,
+          "downloadReturn": "undefined",
+          "fileReturn": "undefined",
+          "filePicker": "Open File"
+        },
+        "isolation": true,
+        "residual": true,
+        "owner": true,
+        "forgery": true
+      },
+      "adapters": {
+        "gmail": true,
+        "whatsapp": true,
+        "github": true,
+        "gemini": true,
+        "deezer": true,
+        "bank": true
+      },
+      "head": "7706829c8851287c1a079e6e3a5b8d1645c87c2f",
+      "run": "43539458133",
+      "install": "policy"
+    },
+    {
+      "shard": "recheck2",
+      "baseline": {
+        "native": {
+          "functions": [
+            "function submit() { [native code] }",
+            "function requestSubmit() { [native code] }",
+            "function click() { [native code] }",
+            "function dispatchEvent() { [native code] }",
+            "function addEventListener() { [native code] }",
+            "function appendChild() { [native code] }",
+            "function append() { [native code] }",
+            "function set innerHTML() { [native code] }"
+          ],
+          "shapes": [
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            }
+          ],
+          "fingerprint": "function click() { [native code] }",
+          "preventReturn": "undefined",
+          "busReturn": false,
+          "busCount": 1,
+          "windowReturn": true,
+          "windows": 1,
+          "shadows": [
+            {
+              "mode": "open",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            },
+            {
+              "mode": "closed",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            }
+          ],
+          "cloneKinds": [
+            10,
+            2
+          ],
+          "inert": [
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            }
+          ],
+          "replacements": 1,
+          "downloadReturn": "undefined",
+          "fileReturn": "undefined",
+          "filePicker": "Open File"
+        },
+        "isolation": true,
+        "residual": true,
+        "owner": true,
+        "forgery": true
+      },
+      "adapters": {},
+      "head": "7706829c8851287c1a079e6e3a5b8d1645c87c2f",
+      "run": "43539458133",
+      "install": "policy"
+    },
+    {
+      "shard": "recheck3",
+      "baseline": {
+        "native": {
+          "functions": [
+            "function submit() { [native code] }",
+            "function requestSubmit() { [native code] }",
+            "function click() { [native code] }",
+            "function dispatchEvent() { [native code] }",
+            "function addEventListener() { [native code] }",
+            "function appendChild() { [native code] }",
+            "function append() { [native code] }",
+            "function set innerHTML() { [native code] }"
+          ],
+          "shapes": [
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            }
+          ],
+          "fingerprint": "function click() { [native code] }",
+          "preventReturn": "undefined",
+          "busReturn": false,
+          "busCount": 1,
+          "windowReturn": true,
+          "windows": 1,
+          "shadows": [
+            {
+              "mode": "open",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            },
+            {
+              "mode": "closed",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            }
+          ],
+          "cloneKinds": [
+            10,
+            2
+          ],
+          "inert": [
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            }
+          ],
+          "replacements": 1,
+          "downloadReturn": "undefined",
+          "fileReturn": "undefined",
+          "filePicker": "Open File"
+        },
+        "isolation": true,
+        "residual": true,
+        "owner": true,
+        "forgery": true
+      },
+      "adapters": {},
+      "head": "7706829c8851287c1a079e6e3a5b8d1645c87c2f",
+      "run": "43539458133",
+      "install": "policy"
+    },
+    {
+      "shard": "review",
+      "baseline": {
+        "native": {
+          "functions": [
+            "function submit() { [native code] }",
+            "function requestSubmit() { [native code] }",
+            "function click() { [native code] }",
+            "function dispatchEvent() { [native code] }",
+            "function addEventListener() { [native code] }",
+            "function appendChild() { [native code] }",
+            "function append() { [native code] }",
+            "function set innerHTML() { [native code] }"
+          ],
+          "shapes": [
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            }
+          ],
+          "fingerprint": "function click() { [native code] }",
+          "preventReturn": "undefined",
+          "busReturn": false,
+          "busCount": 1,
+          "windowReturn": true,
+          "windows": 1,
+          "shadows": [
+            {
+              "mode": "open",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            },
+            {
+              "mode": "closed",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            }
+          ],
+          "cloneKinds": [
+            10,
+            2
+          ],
+          "inert": [
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            }
+          ],
+          "replacements": 1,
+          "downloadReturn": "undefined",
+          "fileReturn": "undefined",
+          "filePicker": "Open File"
+        },
+        "isolation": true,
+        "residual": true,
+        "owner": true,
+        "forgery": true
+      },
+      "adapters": {},
+      "head": "7706829c8851287c1a079e6e3a5b8d1645c87c2f",
+      "run": "43539458133",
+      "install": "policy"
+    },
+    {
+      "shard": "word-0",
+      "baseline": {
+        "native": {
+          "functions": [
+            "function submit() { [native code] }",
+            "function requestSubmit() { [native code] }",
+            "function click() { [native code] }",
+            "function dispatchEvent() { [native code] }",
+            "function addEventListener() { [native code] }",
+            "function appendChild() { [native code] }",
+            "function append() { [native code] }",
+            "function set innerHTML() { [native code] }"
+          ],
+          "shapes": [
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            }
+          ],
+          "fingerprint": "function click() { [native code] }",
+          "preventReturn": "undefined",
+          "busReturn": false,
+          "busCount": 1,
+          "windowReturn": true,
+          "windows": 1,
+          "shadows": [
+            {
+              "mode": "open",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            },
+            {
+              "mode": "closed",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            }
+          ],
+          "cloneKinds": [
+            10,
+            2
+          ],
+          "inert": [
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            }
+          ],
+          "replacements": 1,
+          "downloadReturn": "undefined",
+          "fileReturn": "undefined",
+          "filePicker": "Open File"
+        },
+        "isolation": true,
+        "residual": true,
+        "owner": true,
+        "forgery": true
+      },
+      "adapters": {},
+      "head": "7706829c8851287c1a079e6e3a5b8d1645c87c2f",
+      "run": "43539458133",
+      "install": "policy"
+    },
+    {
+      "shard": "word-1",
+      "baseline": {
+        "native": {
+          "functions": [
+            "function submit() { [native code] }",
+            "function requestSubmit() { [native code] }",
+            "function click() { [native code] }",
+            "function dispatchEvent() { [native code] }",
+            "function addEventListener() { [native code] }",
+            "function appendChild() { [native code] }",
+            "function append() { [native code] }",
+            "function set innerHTML() { [native code] }"
+          ],
+          "shapes": [
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            }
+          ],
+          "fingerprint": "function click() { [native code] }",
+          "preventReturn": "undefined",
+          "busReturn": false,
+          "busCount": 1,
+          "windowReturn": true,
+          "windows": 1,
+          "shadows": [
+            {
+              "mode": "open",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            },
+            {
+              "mode": "closed",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            }
+          ],
+          "cloneKinds": [
+            10,
+            2
+          ],
+          "inert": [
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            }
+          ],
+          "replacements": 1,
+          "downloadReturn": "undefined",
+          "fileReturn": "undefined",
+          "filePicker": "Open File"
+        },
+        "isolation": true,
+        "residual": true,
+        "owner": true,
+        "forgery": true
+      },
+      "adapters": {},
+      "head": "7706829c8851287c1a079e6e3a5b8d1645c87c2f",
+      "run": "43539458133",
+      "install": "policy"
+    },
+    {
+      "shard": "word-2",
+      "baseline": {
+        "native": {
+          "functions": [
+            "function submit() { [native code] }",
+            "function requestSubmit() { [native code] }",
+            "function click() { [native code] }",
+            "function dispatchEvent() { [native code] }",
+            "function addEventListener() { [native code] }",
+            "function appendChild() { [native code] }",
+            "function append() { [native code] }",
+            "function set innerHTML() { [native code] }"
+          ],
+          "shapes": [
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            }
+          ],
+          "fingerprint": "function click() { [native code] }",
+          "preventReturn": "undefined",
+          "busReturn": false,
+          "busCount": 1,
+          "windowReturn": true,
+          "windows": 1,
+          "shadows": [
+            {
+              "mode": "open",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            },
+            {
+              "mode": "closed",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            }
+          ],
+          "cloneKinds": [
+            10,
+            2
+          ],
+          "inert": [
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            }
+          ],
+          "replacements": 1,
+          "downloadReturn": "undefined",
+          "fileReturn": "undefined",
+          "filePicker": "Open File"
+        },
+        "isolation": true,
+        "residual": true,
+        "owner": true,
+        "forgery": true
+      },
+      "adapters": {},
+      "head": "7706829c8851287c1a079e6e3a5b8d1645c87c2f",
+      "run": "43539458133",
+      "install": "policy"
+    },
+    {
+      "shard": "word-3",
+      "baseline": {
+        "native": {
+          "functions": [
+            "function submit() { [native code] }",
+            "function requestSubmit() { [native code] }",
+            "function click() { [native code] }",
+            "function dispatchEvent() { [native code] }",
+            "function addEventListener() { [native code] }",
+            "function appendChild() { [native code] }",
+            "function append() { [native code] }",
+            "function set innerHTML() { [native code] }"
+          ],
+          "shapes": [
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            },
+            {
+              "keys": [
+                "length",
+                "name"
+              ],
+              "prototype": false
+            }
+          ],
+          "fingerprint": "function click() { [native code] }",
+          "preventReturn": "undefined",
+          "busReturn": false,
+          "busCount": 1,
+          "windowReturn": true,
+          "windows": 1,
+          "shadows": [
+            {
+              "mode": "open",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            },
+            {
+              "mode": "closed",
+              "count": 1,
+              "data": 7,
+              "dispatched": false
+            }
+          ],
+          "cloneKinds": [
+            10,
+            2
+          ],
+          "inert": [
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            },
+            {
+              "count": 2,
+              "dispatched": false,
+              "clicked": "undefined"
+            }
+          ],
+          "replacements": 1,
+          "downloadReturn": "undefined",
+          "fileReturn": "undefined",
+          "filePicker": "Open File"
+        },
+        "isolation": true,
+        "residual": true,
+        "owner": true,
+        "forgery": true
+      },
+      "adapters": {},
+      "head": "7706829c8851287c1a079e6e3a5b8d1645c87c2f",
+      "run": "43539458133",
+      "install": "policy"
+    }
+  ],
+  "word_cases": 999
+}

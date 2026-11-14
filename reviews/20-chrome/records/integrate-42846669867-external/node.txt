@@ -1,0 +1,916 @@
+TAP version 13
+# Subtest: tab catalogue reports native position and distinguishes active tabs from focused windows
+ok 1 - tab catalogue reports native position and distinguishes active tabs from focused windows
+  ---
+  duration_ms: 4.532345
+  type: 'test'
+  ...
+# Subtest: removing a frame during bootstrap does not poison the still-controlled parent
+ok 2 - removing a frame during bootstrap does not poison the still-controlled parent
+  ---
+  duration_ms: 3.02608
+  type: 'test'
+  ...
+# Subtest: a cancelled old bootstrap cannot poison or resume the replacement document pause
+ok 3 - a cancelled old bootstrap cannot poison or resume the replacement document pause
+  ---
+  duration_ms: 2.604838
+  type: 'test'
+  ...
+# Subtest: a real live bootstrap failure refuses until its native document ends
+ok 4 - a real live bootstrap failure refuses until its native document ends
+  ---
+  duration_ms: 2.302569
+  type: 'test'
+  ...
+# Subtest: Stop cancels a tab admission still awaiting attach without grouping it
+ok 5 - Stop cancels a tab admission still awaiting attach without grouping it
+  ---
+  duration_ms: 2.672038
+  type: 'test'
+  ...
+# Subtest: a popup admission pending after Stop cannot resurrect control
+ok 6 - a popup admission pending after Stop cannot resurrect control
+  ---
+  duration_ms: 2.780914
+  type: 'test'
+  ...
+# Subtest: popup admission preserves its window and uses a private group and tab badge
+ok 7 - popup admission preserves its window and uses a private group and tab badge
+  ---
+  duration_ms: 4.259167
+  type: 'test'
+  ...
+# Subtest: ordinary openers and an opener dragged out before notification never admit popups
+ok 8 - ordinary openers and an opener dragged out before notification never admit popups
+  ---
+  duration_ms: 1.829735
+  type: 'test'
+  ...
+# Subtest: popup reads revoke control when its opener no longer belongs to the group
+ok 9 - popup reads revoke control when its opener no longer belongs to the group
+  ---
+  duration_ms: 2.017546
+  type: 'test'
+  ...
+# Subtest: a popup moved to another native window loses control and a form-target GET cannot reload
+ok 10 - a popup moved to another native window loses control and a form-target GET cannot reload
+  ---
+  duration_ms: 3.415723
+  type: 'test'
+  ...
+# Subtest: Stop during blocked native cleanup returns pending and preserves handles until restoration
+ok 11 - Stop during blocked native cleanup returns pending and preserves handles until restoration
+  ---
+  duration_ms: 2.541993
+  type: 'test'
+  ...
+# Subtest: a POST document arriving during reload inspection is never reloaded
+ok 12 - a POST document arriving during reload inspection is never reloaded
+  ---
+  duration_ms: 2.918021
+  type: 'test'
+  ...
+# Subtest: a failed live native restoration stays grouped until that context is destroyed
+ok 13 - a failed live native restoration stays grouped until that context is destroyed
+  ---
+  duration_ms: 2.461454
+  type: 'test'
+  ...
+# Subtest: only exact current-document completion or trusted address/link navigation establishes GET
+ok 14 - only exact current-document completion or trusted address/link navigation establishes GET
+  ---
+  duration_ms: 2.156312
+  type: 'test'
+  ...
+# Subtest: detaching a replaced iframe session preserves its parent and retires only a natively removed frame
+ok 15 - detaching a replaced iframe session preserves its parent and retires only a natively removed frame
+  ---
+  duration_ms: 4.627597
+  type: 'test'
+  ...
+# Subtest: release rechecks a detached iframe target that disappeared after its notification
+ok 16 - release rechecks a detached iframe target that disappeared after its notification
+  ---
+  duration_ms: 3.770595
+  type: 'test'
+  ...
+# Subtest: an old popup detach cannot release a replacement control epoch after target lookup
+ok 17 - an old popup detach cannot release a replacement control epoch after target lookup
+  ---
+  duration_ms: 2.040228
+  type: 'test'
+  ...
+# Subtest: a detached target disappearing after the release snapshot still finishes cleanup
+ok 18 - a detached target disappearing after the release snapshot still finishes cleanup
+  ---
+  duration_ms: 3.758044
+  type: 'test'
+  ...
+# Subtest: a destroyed child target wakes failed-restoration cleanup while a live detach stays pending
+ok 19 - a destroyed child target wakes failed-restoration cleanup while a live detach stays pending
+  ---
+  duration_ms: 7.071155
+  type: 'test'
+  ...
+# Subtest: owner exclusions are mandatory and the private audit switch needs no page access
+ok 20 - owner exclusions are mandatory and the private audit switch needs no page access
+  ---
+  duration_ms: 3.024361
+  type: 'test'
+  ...
+# Subtest: startup evaluates only fixed bundles in authenticated private contexts before resuming
+ok 21 - startup evaluates only fixed bundles in authenticated private contexts before resuming
+  ---
+  duration_ms: 2.486862
+  type: 'test'
+  ...
+# Subtest: taken-tab first input defers dirty or playing GET documents and refuses POST without a request
+ok 22 - taken-tab first input defers dirty or playing GET documents and refuses POST without a request
+  ---
+  duration_ms: 9.377303
+  type: 'test'
+  ...
+# Subtest: oversize browser replies distinguish a refused read from an unknown input outcome
+ok 23 - oversize browser replies distinguish a refused read from an unknown input outcome
+  ---
+  duration_ms: 410.862196
+  type: 'test'
+  ...
+# Subtest: native dialog reading refuses an excluded opener before returning its text
+ok 24 - native dialog reading refuses an excluded opener before returning its text
+  ---
+  duration_ms: 2.466211
+  type: 'test'
+  ...
+# Subtest: keyboard events carry native codes and printable text for letters and shortcuts
+ok 25 - keyboard events carry native codes and printable text for letters and shortcuts
+  ---
+  duration_ms: 21.897132
+  type: 'test'
+  ...
+# Subtest: a child modal interrupts a blocked finish without letting a later dispatch reuse its completion
+ok 26 - a child modal interrupts a blocked finish without letting a later dispatch reuse its completion
+  ---
+  duration_ms: 1.447367
+  type: 'test'
+  ...
+# Subtest: Stop during finish keeps the handler completion uncertain
+ok 27 - Stop during finish keeps the handler completion uncertain
+  ---
+  duration_ms: 1.123476
+  type: 'test'
+  ...
+# Subtest: a modal from focus refuses the rest of an input instead of blocking the serial queue
+ok 28 - a modal from focus refuses the rest of an input instead of blocking the serial queue
+  ---
+  duration_ms: 1.229591
+  type: 'test'
+  ...
+# Subtest: overlapping private dialog waits wake independently and dispose only themselves
+ok 29 - overlapping private dialog waits wake independently and dispose only themselves
+  ---
+  duration_ms: 6.792563
+  type: 'test'
+  ...
+# Subtest: a stale approved dialog opening never accepts the different dialog that replaced it
+ok 30 - a stale approved dialog opening never accepts the different dialog that replaced it
+  ---
+  duration_ms: 4.006316
+  type: 'test'
+  ...
+# Subtest: a keydown modal stops the remaining CDP input instead of waiting for a lost opening wake
+ok 31 - a keydown modal stops the remaining CDP input instead of waiting for a lost opening wake
+  ---
+  duration_ms: 1.97405
+  type: 'test'
+  ...
+# Subtest: answering a dialog collects a resumed handler submission without sending it
+ok 32 - answering a dialog collects a resumed handler submission without sending it
+  ---
+  duration_ms: 543.524803
+  type: 'test'
+  ...
+# Subtest: a private unknown activation survives its source document and is forwarded once
+ok 33 - a private unknown activation survives its source document and is forwarded once
+  ---
+  duration_ms: 528.888223
+  type: 'test'
+  ...
+# Subtest: private step notifications and later polling deduplicate by source document and frame
+ok 34 - private step notifications and later polling deduplicate by source document and frame
+  ---
+  duration_ms: 528.372377
+  type: 'test'
+  ...
+# Subtest: step observations require the extension sender and current tab generation
+ok 35 - step observations require the extension sender and current tab generation
+  ---
+  duration_ms: 2.39042
+  type: 'test'
+  ...
+# Subtest: combined queued and polled steps stay capped with one truthful overflow warning
+ok 36 - combined queued and polled steps stay capped with one truthful overflow warning
+  ---
+  duration_ms: 539.406485
+  type: 'test'
+  ...
+# Subtest: a modal retains page steps through collection until an explicit private acknowledgement
+ok 37 - a modal retains page steps through collection until an explicit private acknowledgement
+  ---
+  duration_ms: 1580.57086
+  type: 'test'
+  ...
+# Subtest: a retired control accepts late observations without authorizing input and expires within its bound
+ok 38 - a retired control accepts late observations without authorizing input and expires within its bound
+  ---
+  duration_ms: 7.586228
+  type: 'test'
+  ...
+# Subtest: headed input arms all frames before activation and rechecks binding before dispatch
+ok 39 - headed input arms all frames before activation and rechecks binding before dispatch
+  ---
+  duration_ms: 528.395405
+  type: 'test'
+  ...
+# Subtest: release wakes pending input and detaches before a bounded blocked clear
+ok 40 - release wakes pending input and detaches before a bounded blocked clear
+  ---
+  duration_ms: 2.569123
+  type: 'test'
+  ...
+# Subtest: late tab updates use fresh tab state and cannot release a replacement control
+ok 41 - late tab updates use fresh tab state and cannot release a replacement control
+  ---
+  duration_ms: 1.75314
+  type: 'test'
+  ...
+# Subtest: late detach notifications probe the current attachment and preserve replacement controls
+ok 42 - late detach notifications probe the current attachment and preserve replacement controls
+  ---
+  duration_ms: 1.661413
+  type: 'test'
+  ...
+# Subtest: navigated iframe cleanup preserves queued holds and distinguishes an uncertain surviving reader
+ok 43 - navigated iframe cleanup preserves queued holds and distinguishes an uncertain surviving reader
+  ---
+  duration_ms: 528.006954
+  type: 'test'
+  ...
+# Subtest: input replies propagate uncertain completion while retaining observed steps
+ok 44 - input replies propagate uncertain completion while retaining observed steps
+  ---
+  duration_ms: 526.859749
+  type: 'test'
+  ...
+# Subtest: Stop during the selected-tab read cannot activate the released owner tab
+ok 45 - Stop during the selected-tab read cannot activate the released owner tab
+  ---
+  duration_ms: 2.267454
+  type: 'test'
+  ...
+# Subtest: form destinations changed to an excluded host during arming refuse input and resume without a binding
+ok 46 - form destinations changed to an excluded host during arming refuse input and resume without a binding
+  ---
+  duration_ms: 5.533683
+  type: 'test'
+  ...
+# Subtest: an allowed GET search destination reaches native input without a binding
+ok 47 - an allowed GET search destination reaches native input without a binding
+  ---
+  duration_ms: 527.050431
+  type: 'test'
+  ...
+# Subtest: validity refuses an already open modal without contacting the renderer
+ok 48 - validity refuses an already open modal without contacting the renderer
+  ---
+  duration_ms: 2.104717
+  type: 'test'
+  ...
+# Subtest: a modal opening during ready promptly refuses validity and disposes its private waiter
+ok 49 - a modal opening during ready promptly refuses validity and disposes its private waiter
+  ---
+  duration_ms: 1.768398
+  type: 'test'
+  ...
+# Subtest: validity returns the same no-modal ready facts without dispatching input
+ok 50 - validity returns the same no-modal ready facts without dispatching input
+  ---
+  duration_ms: 1.504628
+  type: 'test'
+  ...
+# Subtest: a modal during native frame lookup refuses validity before starting ready
+ok 51 - a modal during native frame lookup refuses validity before starting ready
+  ---
+  duration_ms: 1.492728
+  type: 'test'
+  ...
+# Subtest: popup opener badges are distinct, clear on Stop, and never open or focus a window
+ok 52 - popup opener badges are distinct, clear on Stop, and never open or focus a window
+  ---
+  duration_ms: 2.115982
+  type: 'test'
+  ...
+# Subtest: a stale popup Stop cannot end a replacement epoch or an ordinary tab
+ok 53 - a stale popup Stop cannot end a replacement epoch or an ordinary tab
+  ---
+  duration_ms: 1.245586
+  type: 'test'
+  ...
+# Subtest: popup Stop revokes input and clears opener badge before blocked document cleanup completes
+ok 54 - popup Stop revokes input and clears opener badge before blocked document cleanup completes
+  ---
+  duration_ms: 1.952432
+  type: 'test'
+  ...
+# Subtest: queued slow badge writes cannot resurrect a stopped popup badge
+ok 55 - queued slow badge writes cannot resurrect a stopped popup badge
+  ---
+  duration_ms: 1.648426
+  type: 'test'
+  ...
+# Subtest: only the exact extension action popup can list or stop a controlled popup
+ok 56 - only the exact extension action popup can list or stop a controlled popup
+  ---
+  duration_ms: 1.437449
+  type: 'test'
+  ...
+# Subtest: the extension has no companion window creation or focusing path
+ok 57 - the extension has no companion window creation or focusing path
+  ---
+  duration_ms: 0.45416
+  type: 'test'
+  ...
+# Subtest: opener tab removal and native group removal revoke children and clear badges without another tool read
+ok 58 - opener tab removal and native group removal revoke children and clear badges without another tool read
+  ---
+  duration_ms: 3.231189
+  type: 'test'
+  ...
+# Subtest: manual popup taking requires and binds a currently controlled native opener
+ok 59 - manual popup taking requires and binds a currently controlled native opener
+  ---
+  duration_ms: 5.367053
+  type: 'test'
+  ...
+# Subtest: a failed fixture click is recorded without an unhandled rejection aborting later matrices
+ok 60 - a failed fixture click is recorded without an unhandled rejection aborting later matrices
+  ---
+  duration_ms: 2.191438
+  type: 'test'
+  ...
+# Subtest: popup fixtures compile for clean dirty and POST opener flows
+ok 61 - popup fixtures compile for clean dirty and POST opener flows
+  ---
+  duration_ms: 0.983793
+  type: 'test'
+  ...
+# Subtest: favicon and unrelated requests preserve mutation channels; applied mutations require acknowledgement
+ok 62 - favicon and unrelated requests preserve mutation channels; applied mutations require acknowledgement
+  ---
+  duration_ms: 44.11773
+  type: 'test'
+  ...
+# Subtest: popup state probe uses the receiver mutation protocol and preserves document identity
+ok 63 - popup state probe uses the receiver mutation protocol and preserves document identity
+  ---
+  duration_ms: 4.466927
+  type: 'test'
+  ...
+# Subtest: owner navigation selects the exact native tab after restoration changes its index
+ok 64 - owner navigation selects the exact native tab after restoration changes its index
+  ---
+  duration_ms: 2.828661
+  type: 'test'
+  ...
+# Subtest: missing native position refuses before typing into any tab
+ok 65 - missing native position refuses before typing into any tab
+  ---
+  duration_ms: 1.008618
+  type: 'test'
+  ...
+# Subtest: popup comparison waits for positive mapped geometry and retains native window identity
+ok 66 - popup comparison waits for positive mapped geometry and retains native window identity
+  ---
+  duration_ms: 1.400644
+  type: 'test'
+  ...
+# Subtest: popup cases use the recovered opener rather than a captured retired tab
+ok 67 - popup cases use the recovered opener rather than a captured retired tab
+  ---
+  duration_ms: 0.647189
+  type: 'test'
+  ...
+# Subtest: per-popup Stop compares focus after the owner opens its toolbar popup
+ok 68 - per-popup Stop compares focus after the owner opens its toolbar popup
+  ---
+  duration_ms: 0.491413
+  type: 'test'
+  ...
+# Subtest: closing an opener returns the actual wrapped replacement tab and closes only the opener
+ok 69 - closing an opener returns the actual wrapped replacement tab and closes only the opener
+  ---
+  duration_ms: 0.372409
+  type: 'test'
+  ...
+# Subtest: an invalid open result refuses before closing the opener
+ok 70 - an invalid open result refuses before closing the opener
+  ---
+  duration_ms: 0.295504
+  type: 'test'
+  ...
+# Subtest: signed CRX3 keeps key-derived identity; packaging starts no browser
+ok 71 - signed CRX3 keeps key-derived identity; packaging starts no browser
+  ---
+  duration_ms: 86.481937
+  type: 'test'
+  ...
+# Subtest: private factory creation changes no prototype before its cleanup handle can be retained
+ok 72 - private factory creation changes no prototype before its cleanup handle can be retained
+  ---
+  duration_ms: 5.536851
+  type: 'test'
+  ...
+# Subtest: a failed private activation restores every earlier native mutation
+ok 73 - a failed private activation restores every earlier native mutation
+  ---
+  duration_ms: 2.968224
+  type: 'test'
+  ...
+# Subtest: real browser startup and late readers never accept the public primitive report bridge
+ok 74 - real browser startup and late readers never accept the public primitive report bridge
+  ---
+  duration_ms: 1.800314
+  type: 'test'
+  ...
+# Subtest: missing native relay support fails before any real-browser prototype mutation
+ok 75 - missing native relay support fails before any real-browser prototype mutation
+  ---
+  duration_ms: 2.101232
+  type: 'test'
+  ...
+# Subtest: private permit keeps native Event identity and payload without exposing a carrier
+ok 76 - private permit keeps native Event identity and payload without exposing a carrier
+  ---
+  duration_ms: 3.274906
+  type: 'test'
+  ...
+# Subtest: held and failed private requests never disclose a relay or accept a forged cleanup
+ok 77 - held and failed private requests never disclose a relay or accept a forged cleanup
+  ---
+  duration_ms: 2.871575
+  type: 'test'
+  ...
+# Subtest: private options never run inherited getters, patched enumeration or array iterators
+ok 78 - private options never run inherited getters, patched enumeration or array iterators
+  ---
+  duration_ms: 2.096364
+  type: 'test'
+  ...
+# Subtest: cleanup preserves a site seal and reports a frozen wrapper without abandoning the other natives
+ok 79 - cleanup preserves a site seal and reports a frozen wrapper without abandoning the other natives
+  ---
+  duration_ms: 3.456335
+  type: 'test'
+  ...
+# Subtest: native behavior outside the own composed document includes detached and inert targets
+ok 80 - native behavior outside the own composed document includes detached and inert targets
+  ---
+  duration_ms: 2.424996
+  type: 'test'
+  ...
+# Subtest: native root check cannot be replaced and private cleanup restores the four natives
+ok 81 - native root check cannot be replaced and private cleanup restores the four natives
+  ---
+  duration_ms: 2.273257
+  type: 'test'
+  ...
+# Subtest: group2 native submit resumes without checks or submit events
+ok 82 - group2 native submit resumes without checks or submit events
+  ---
+  duration_ms: 1.856129
+  type: 'test'
+  ...
+# Subtest: group2 event resume checks fields, handles submit once, and has one further same-form pass
+ok 83 - group2 event resume checks fields, handles submit once, and has one further same-form pass
+  ---
+  duration_ms: 3.277369
+  type: 'test'
+  ...
+# Subtest: group2 nested requestSubmit cannot regain either consumed allowance
+ok 84 - group2 nested requestSubmit cannot regain either consumed allowance
+  ---
+  duration_ms: 1.737772
+  type: 'test'
+  ...
+# Subtest: group2 wrapped click and non-cancellable dispatch never deliver or resume
+ok 85 - group2 wrapped click and non-cancellable dispatch never deliver or resume
+  ---
+  duration_ms: 1.888214
+  type: 'test'
+  ...
+# Subtest: group2 free input in a form has no primary or further submission allowance
+ok 86 - group2 free input in a form has no primary or further submission allowance
+  ---
+  duration_ms: 1.795642
+  type: 'test'
+  ...
+# Subtest: group2 an approved change has only one same-form consequential submission
+ok 87 - group2 an approved change has only one same-form consequential submission
+  ---
+  duration_ms: 1.475371
+  type: 'test'
+  ...
+# Subtest: group1 GET searches stay free but a POST submitter override is held
+ok 88 - group1 GET searches stay free but a POST submitter override is held
+  ---
+  duration_ms: 1.572486
+  type: 'test'
+  ...
+# Subtest: review1 external accessible labels ask in both wrappers and capture fallback
+ok 89 - review1 external accessible labels ask in both wrappers and capture fallback
+  ---
+  duration_ms: 8.600091
+  type: 'test'
+  ...
+# Subtest: group7 public controls and forged identity/report events cannot relax isolated holds
+ok 90 - group7 public controls and forged identity/report events cannot relax isolated holds
+  ---
+  duration_ms: 1.337963
+  type: 'test'
+  ...
+# Subtest: group2 owner task exempts exactly its form once and never delayed or in-flight input
+ok 91 - group2 owner task exempts exactly its form once and never delayed or in-flight input
+  ---
+  duration_ms: 13.28535
+  type: 'test'
+  ...
+# Subtest: group2 owner default after event dispatch is exact-form exact-submitter and one-use
+ok 92 - group2 owner default after event dispatch is exact-form exact-submitter and one-use
+  ---
+  duration_ms: 3.19638
+  type: 'test'
+  ...
+# Subtest: owner marks cannot make cancelled defaults, keyup or a timer native submit count as owner input
+ok 93 - owner marks cannot make cancelled defaults, keyup or a timer native submit count as owner input
+  ---
+  duration_ms: 7.983491
+  type: 'test'
+  ...
+# Subtest: owner defaults require an enabled submitter or an actual one-field implicit submission
+ok 94 - owner defaults require an enabled submitter or an actual one-field implicit submission
+  ---
+  duration_ms: 2.12044
+  type: 'test'
+  ...
+# Subtest: validation-suppressed owner defaults never exempt property-repaired timer requests
+ok 95 - validation-suppressed owner defaults never exempt property-repaired timer requests
+  ---
+  duration_ms: 3.424413
+  type: 'test'
+  ...
+# Subtest: group7 preparation cannot grant a page a submission before trusted dispatch
+ok 96 - group7 preparation cannot grant a page a submission before trusted dispatch
+  ---
+  duration_ms: 1.965417
+  type: 'test'
+  ...
+# Subtest: group2 a further native submit cancels the resumed event default even without page cancellation
+ok 97 - group2 a further native submit cancels the resumed event default even without page cancellation
+  ---
+  duration_ms: 1.661451
+  type: 'test'
+  ...
+# Subtest: group7 replay of a formerly trusted owner event cannot reuse the owner exemption
+ok 98 - group7 replay of a formerly trusted owner event cannot reuse the owner exemption
+  ---
+  duration_ms: 5.132141
+  type: 'test'
+  ...
+# Subtest: group1 capitalized shipped Papierkorb holds wrappers and capture equally
+ok 99 - group1 capitalized shipped Papierkorb holds wrappers and capture equally
+  ---
+  duration_ms: 4.743422
+  type: 'test'
+  ...
+# Subtest: group7 replacing public wrapper prototypes and call intrinsics only adds holds
+ok 100 - group7 replacing public wrapper prototypes and call intrinsics only adds holds
+  ---
+  duration_ms: 1.731658
+  type: 'test'
+  ...
+# Subtest: conservative mode holds ordinary page-script activations after free input
+ok 101 - conservative mode holds ordinary page-script activations after free input
+  ---
+  duration_ms: 4.320169
+  type: 'test'
+  ...
+# Subtest: approved field Enter allows only its bound trusted implicit submitter and effective destination
+ok 102 - approved field Enter allows only its bound trusted implicit submitter and effective destination
+  ---
+  duration_ms: 1.84149
+  type: 'test'
+  ...
+# Subtest: a resumed event with no submitter cannot add a successful button through its further allowance
+ok 103 - a resumed event with no submitter cannot add a successful button through its further allowance
+  ---
+  duration_ms: 1.706272
+  type: 'test'
+  ...
+# Subtest: a page-induced reader exception in submit capture can only add a hold
+ok 104 - a page-induced reader exception in submit capture can only add a hold
+  ---
+  duration_ms: 1.543876
+  type: 'test'
+  ...
+# Subtest: slow frame arming cannot consume the post-input hold window
+ok 105 - slow frame arming cannot consume the post-input hold window
+  ---
+  duration_ms: 5.958992
+  type: 'test'
+  ...
+# Subtest: service and isolated guard agree on frozen Unicode folding and whole-word boundaries
+ok 106 - service and isolated guard agree on frozen Unicode folding and whole-word boundaries
+  ---
+  duration_ms: 124.748447
+  type: 'test'
+  ...
+# Subtest: opaque event hints cannot deliver an original click or forge trusted ownership
+ok 107 - opaque event hints cannot deliver an original click or forge trusted ownership
+  ---
+  duration_ms: 6.657008
+  type: 'test'
+  ...
+# Subtest: opaque data getters finish before classification and are skipped for password targets
+ok 108 - opaque data getters finish before classification and are skipped for password targets
+  ---
+  duration_ms: 2.029645
+  type: 'test'
+  ...
+# Subtest: dispatch wrappers reject recursive reuse of an event
+ok 109 - dispatch wrappers reject recursive reuse of an event
+  ---
+  duration_ms: 1.812539
+  type: 'test'
+  ...
+# Subtest: an old delayed finish cannot clear a newly armed private dispatch
+ok 110 - an old delayed finish cannot clear a newly armed private dispatch
+  ---
+  duration_ms: 3.460831
+  type: 'test'
+  ...
+# Subtest: flat lazy primitive fields replay keyboard data as a fresh untrusted event
+ok 111 - flat lazy primitive fields replay keyboard data as a fresh untrusted event
+  ---
+  duration_ms: 2.12061
+  type: 'test'
+  ...
+# Subtest: flat input payload remains lazy for a protected target
+ok 112 - flat input payload remains lazy for a protected target
+  ---
+  duration_ms: 1.723695
+  type: 'test'
+  ...
+# Subtest: flat primitive getter mutations complete before the final activation decision
+ok 113 - flat primitive getter mutations complete before the final activation decision
+  ---
+  duration_ms: 1.735726
+  type: 'test'
+  ...
+# Subtest: MAIN reports carry no Event or submitter objects and preserve receiver validation
+ok 114 - MAIN reports carry no Event or submitter objects and preserve receiver validation
+  ---
+  duration_ms: 1.900691
+  type: 'test'
+  ...
+# Subtest: fresh script events preserve prior cancellation and never acquire trust
+ok 115 - fresh script events preserve prior cancellation and never acquire trust
+  ---
+  duration_ms: 1.71674
+  type: 'test'
+  ...
+# Subtest: a descriptor getter protecting the target prevents every later payload read
+ok 116 - a descriptor getter protecting the target prevents every later payload read
+  ---
+  duration_ms: 1.651236
+  type: 'test'
+  ...
+# Subtest: GET search cannot bypass private excluded destinations or unsafe URLs
+ok 117 - GET search cannot bypass private excluded destinations or unsafe URLs
+  ---
+  duration_ms: 5.813116
+  type: 'test'
+  ...
+# Subtest: action popup lists every controlled popup using text and sends an individual epoch-bound Stop
+ok 118 - action popup lists every controlled popup using text and sends an individual epoch-bound Stop
+  ---
+  duration_ms: 2.093639
+  type: 'test'
+  ...
+# Subtest: unchanged polling preserves the focused Stop node and the global Stop remains available
+ok 119 - unchanged polling preserves the focused Stop node and the global Stop remains available
+  ---
+  duration_ms: 1.490106
+  type: 'test'
+  ...
+# Subtest: a stale individual Stop reports changed control and refreshes an enabled current Stop
+ok 120 - a stale individual Stop reports changed control and refreshes an enabled current Stop
+  ---
+  duration_ms: 0.783404
+  type: 'test'
+  ...
+# Subtest: QUALIFICATION completion distinguishes final aggregate assertions from crash or cleanup errors
+ok 121 - QUALIFICATION completion distinguishes final aggregate assertions from crash or cleanup errors
+  ---
+  duration_ms: 0.859108
+  type: 'test'
+  ...
+# Subtest: QUALIFICATION observer preserves process failures and distinguishes completed failures from interrupted suites
+ok 122 - QUALIFICATION observer preserves process failures and distinguishes completed failures from interrupted suites
+  ---
+  duration_ms: 124.8218
+  type: 'test'
+  ...
+# Subtest: QUALIFICATION completion binds actual result and matrix bytes, and requires both
+ok 123 - QUALIFICATION completion binds actual result and matrix bytes, and requires both
+  ---
+  duration_ms: 5.108845
+  type: 'test'
+  ...
+# Subtest: QUALIFICATION conservative reader excludes unknown safety: missing style property
+ok 124 - QUALIFICATION conservative reader excludes unknown safety: missing style property
+  ---
+  duration_ms: 3.007061
+  type: 'test'
+  ...
+# Subtest: QUALIFICATION conservative reader excludes unknown safety: throwing style getter
+ok 125 - QUALIFICATION conservative reader excludes unknown safety: throwing style getter
+  ---
+  duration_ms: 1.773496
+  type: 'test'
+  ...
+# Subtest: group7 protected values never reach a getter, source attribute, trace or binding
+ok 126 - group7 protected values never reach a getter, source attribute, trace or binding
+  ---
+  duration_ms: 5.696263
+  type: 'test'
+  ...
+# Subtest: group7 before every read, a newly protected field is excluded and stays excluded
+ok 127 - group7 before every read, a newly protected field is excluded and stays excluded
+  ---
+  duration_ms: 1.338344
+  type: 'test'
+  ...
+# Subtest: group3 every field records checked, disabled and multiple state
+ok 128 - group3 every field records checked, disabled and multiple state
+  ---
+  duration_ms: 1.835809
+  type: 'test'
+  ...
+# Subtest: isolated arm and resume messages reach the guard without falling through dispatch
+ok 129 - isolated arm and resume messages reach the guard without falling through dispatch
+  ---
+  duration_ms: 0.812781
+  type: 'test'
+  ...
+# Subtest: group7 password-to-text transitions in one task are excluded before observer delivery
+ok 130 - group7 password-to-text transitions in one task are excluded before observer delivery
+  ---
+  duration_ms: 1.720658
+  type: 'test'
+  ...
+# Subtest: group7 uppercase historical password attributes stay excluded
+ok 131 - group7 uppercase historical password attributes stay excluded
+  ---
+  duration_ms: 2.836784
+  type: 'test'
+  ...
+# Subtest: group7 mutation API never requests old source values or character data
+ok 132 - group7 mutation API never requests old source values or character data
+  ---
+  duration_ms: 0.782621
+  type: 'test'
+  ...
+# Subtest: group5 interrupted partial uploads expire instead of occupying both slots forever
+ok 133 - group5 interrupted partial uploads expire instead of occupying both slots forever
+  ---
+  duration_ms: 0.692575
+  type: 'test'
+  ...
+# Subtest: form binding uses normalized native getters for present-empty and invalid submitter overrides
+ok 134 - form binding uses normalized native getters for present-empty and invalid submitter overrides
+  ---
+  duration_ms: 1.227703
+  type: 'test'
+  ...
+# Subtest: a completed adapter failure reaches final failing matrix while independent adapters remain eligible
+ok 135 - a completed adapter failure reaches final failing matrix while independent adapters remain eligible
+  ---
+  duration_ms: 2.164268
+  type: 'test'
+  ...
+# Subtest: adapter crashes missing rows duplicated rows and nonboolean outcomes never become completed evidence
+ok 136 - adapter crashes missing rows duplicated rows and nonboolean outcomes never become completed evidence
+  ---
+  duration_ms: 0.598969
+  type: 'test'
+  ...
+# Subtest: adapter fixture scripts compile for every site and confirmation mismatch
+ok 137 - adapter fixture scripts compile for every site and confirmation mismatch
+  ---
+  duration_ms: 30.407396
+  type: 'test'
+  ...
+# Subtest: actual extension confirmation handler compares each field and consumes a match once
+ok 138 - actual extension confirmation handler compares each field and consumes a match once
+  ---
+  duration_ms: 3.234518
+  type: 'test'
+  ...
+# Subtest: active catalogue paging outlives five minutes without changing its captured rows
+ok 139 - active catalogue paging outlives five minutes without changing its captured rows
+  ---
+  duration_ms: 7.666397
+  type: 'test'
+  ...
+# Subtest: idle catalogue snapshots still expire after five minutes
+ok 140 - idle catalogue snapshots still expire after five minutes
+  ---
+  duration_ms: 0.881726
+  type: 'test'
+  ...
+# Subtest: invalid cursors cannot renew a snapshot and retained snapshots stay bounded
+ok 141 - invalid cursors cannot renew a snapshot and retained snapshots stay bounded
+  ---
+  duration_ms: 0.901973
+  type: 'test'
+  ...
+# Subtest: qualification never turns missing or failed named cases into passing groups
+ok 142 - qualification never turns missing or failed named cases into passing groups
+  ---
+  duration_ms: 6.479919
+  type: 'test'
+  ...
+# Subtest: failed support suites and owner trust checks cannot publish adapter or core passes
+ok 143 - failed support suites and owner trust checks cannot publish adapter or core passes
+  ---
+  duration_ms: 0.24889
+  type: 'test'
+  ...
+# Subtest: strict owner false hold remains a failing page-script result
+ok 144 - strict owner false hold remains a failing page-script result
+  ---
+  duration_ms: 0.134661
+  type: 'test'
+  ...
+# Subtest: every mandatory failure reaches a recorded core or adapter switch, not only the unused group map
+ok 145 - every mandatory failure reaches a recorded core or adapter switch, not only the unused group map
+  ---
+  duration_ms: 3.463012
+  type: 'test'
+  ...
+# Subtest: duplicate or nonboolean case evidence cannot qualify
+ok 146 - duplicate or nonboolean case evidence cannot qualify
+  ---
+  duration_ms: 0.208075
+  type: 'test'
+  ...
+# Subtest: unmapped additional checks fail closed until explicitly assigned to recorded groups
+ok 147 - unmapped additional checks fail closed until explicitly assigned to recorded groups
+  ---
+  duration_ms: 0.138605
+  type: 'test'
+  ...
+# Subtest: every named core popup and adapter case is in the exact required inventory
+ok 148 - every named core popup and adapter case is in the exact required inventory
+  ---
+  duration_ms: 0.99163
+  type: 'test'
+  ...
+# Subtest: one adapter failure preserves all independent adapter verdicts
+ok 149 - one adapter failure preserves all independent adapter verdicts
+  ---
+  duration_ms: 2.045781
+  type: 'test'
+  ...
+# Subtest: multi-adapter matrices preserve sites outside their actual fixture coverage
+ok 150 - multi-adapter matrices preserve sites outside their actual fixture coverage
+  ---
+  duration_ms: 0.571747
+  type: 'test'
+  ...
+# Subtest: shared binding classification isolation and owner prerequisites disable dependent adapters
+ok 151 - shared binding classification isolation and owner prerequisites disable dependent adapters
+  ---
+  duration_ms: 0.414292
+  type: 'test'
+  ...
+1..151
+# tests 151
+# suites 0
+# pass 151
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6463.259633

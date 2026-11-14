@@ -1,0 +1,70 @@
+[
+  {
+    "run": "42773242428",
+    "mode": "external",
+    "passed_named_cases": 61,
+    "adapter_approval_sequences_0_1_1": 135,
+    "independent_free_dialog_sequences": 20,
+    "same_popup_document_and_native_windows_after_stop": true,
+    "post_popup_requests": 1,
+    "group12": false,
+    "view": {
+      "characters": 221477,
+      "utf8_bytes": 221477,
+      "pages": 14,
+      "milliseconds": 8716,
+      "token_estimate": 55370
+    }
+  },
+  {
+    "run": "42773242428",
+    "mode": "policy",
+    "passed_named_cases": 61,
+    "adapter_approval_sequences_0_1_1": 135,
+    "independent_free_dialog_sequences": 20,
+    "same_popup_document_and_native_windows_after_stop": true,
+    "post_popup_requests": 1,
+    "group12": false,
+    "view": {
+      "characters": 221195,
+      "utf8_bytes": 221195,
+      "pages": 14,
+      "milliseconds": 8783,
+      "token_estimate": 55299
+    }
+  },
+  {
+    "run": "42773249076",
+    "mode": "external",
+    "passed_named_cases": 61,
+    "adapter_approval_sequences_0_1_1": 135,
+    "independent_free_dialog_sequences": 20,
+    "same_popup_document_and_native_windows_after_stop": true,
+    "post_popup_requests": 1,
+    "group12": false,
+    "view": {
+      "characters": 221477,
+      "utf8_bytes": 221477,
+      "pages": 14,
+      "milliseconds": 6915,
+      "token_estimate": 55370
+    }
+  },
+  {
+    "run": "42773249076",
+    "mode": "policy",
+    "passed_named_cases": 61,
+    "adapter_approval_sequences_0_1_1": 135,
+    "independent_free_dialog_sequences": 20,
+    "same_popup_document_and_native_windows_after_stop": true,
+    "post_popup_requests": 1,
+    "group12": false,
+    "view": {
+      "characters": 221195,
+      "utf8_bytes": 221195,
+      "pages": 14,
+      "milliseconds": 11536,
+      "token_estimate": 55299
+    }
+  }
+]

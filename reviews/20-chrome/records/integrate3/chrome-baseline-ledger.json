@@ -1,0 +1,29 @@
+{
+  "run_count": 168,
+  "latest": [
+    {
+      "conclusion": "cancelled",
+      "createdAt": "2026-11-11T03:37:36Z",
+      "databaseId": 42953996489,
+      "event": "pull_request",
+      "headSha": "b7d78784a4c884639fec648ca3c55df8718596ef",
+      "status": "completed"
+    },
+    {
+      "conclusion": "cancelled",
+      "createdAt": "2026-11-11T03:37:33Z",
+      "databaseId": 42953990307,
+      "event": "push",
+      "headSha": "b7d78784a4c884639fec648ca3c55df8718596ef",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-11-11T01:06:43Z",
+      "databaseId": 42936511958,
+      "event": "pull_request",
+      "headSha": "df9b3fc5c8c268de5bf724f663fce03a5443bb20",
+      "status": "completed"
+    }
+  ]
+}

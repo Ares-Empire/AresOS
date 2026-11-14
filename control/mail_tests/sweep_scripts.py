@@ -175,6 +175,13 @@ def _reject_ambient_sources():
         yield
 
 
+# Flows whose journal stamp changes on every stat, so Chrome's committed
+# projection misses its cache and re-reads the journal at each call site. One
+# small flow keeps that cache-miss path under faults; every other flow stamps
+# the journal like production's cache key and re-reads it only after it changed.
+PER_STAT_JOURNAL_FLOWS = frozenset({'cancel'})
+
+
 class SweepScripts:
     SOURCES = {'clock': r'^time\.time$', 'nanoseconds': r'^time\.time_ns$',
                'localtime': r'^time\.localtime$', 'gmtime': r'^time\.gmtime$',
@@ -190,6 +197,8 @@ class SweepScripts:
         self.reads, self.phase_reads = set(), {}
         self.phase = 'setup'
         self.contexts, self.stamps = {}, {}
+        self.journal_per_stat = flow in PER_STAT_JOURNAL_FLOWS
+        self.journal_stamp = None
 
     @contextmanager
     def install(self):
@@ -324,6 +333,18 @@ class SweepScripts:
                 # A fresh logical revision forces a real decode; no kernel time
                 # enters its record, and no same-size commit can be hidden.
                 stamp = self.consumed('timestamps', self.chronology.read)()
+                if path == engine.store.evidence_dir / 'operations.jsonl' and not self.journal_per_stat:
+                    # Chrome's projection keys its cache on (inode, size, mtime).
+                    # The journal only grows or truncates back after a failed
+                    # append, so its stamp changes exactly when production's
+                    # mtime would: when inode or size differ from the last stat.
+                    # The Driver still decodes every time (the database stamps
+                    # above stay fresh per stat).
+                    raw = raw_stat(value)
+                    identity = (raw.st_dev, raw.st_ino, raw.st_size)
+                    if self.journal_stamp is None or self.journal_stamp[0] != identity:
+                        self.journal_stamp = (identity, stamp)
+                    stamp = self.journal_stamp[1]
                 return stamp if name.endswith('_ns') else stamp / 1_000_000_000
             value = raw_stat(value)
             stamp = self.stamps.get(fingerprint(value))

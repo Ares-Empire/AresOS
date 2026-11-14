@@ -1,0 +1,16 @@
+test_accepted_connection_refreshes_before_any_tool_and_rejected_replacement_does_not (test_bridge.ConnectionDelivery.test_accepted_connection_refreshes_before_any_tool_and_rejected_replacement_does_not) ... ok
+test_daemon_drains_complete_buffered_events_without_waiting_for_socket_readiness (test_bridge.ConnectionDelivery.test_daemon_drains_complete_buffered_events_without_waiting_for_socket_readiness) ... ok
+test_partial_unsolicited_observation_is_buffered_without_blocking_the_daemon (test_bridge.ConnectionDelivery.test_partial_unsolicited_observation_is_buffered_without_blocking_the_daemon) ... ok
+test_retired_selector_connection_cannot_close_its_replacement (test_bridge.ConnectionDelivery.test_retired_selector_connection_cannot_close_its_replacement) ... ok
+test_stale_selector_readiness_never_closes_a_host_drained_by_a_tool (test_bridge.ConnectionDelivery.test_stale_selector_readiness_never_closes_a_host_drained_by_a_tool) ... ok
+test_failed_owner_event_drains_its_reply_before_the_next_command (test_bridge.FragmentedReplies.test_failed_owner_event_drains_its_reply_before_the_next_command) ... ok
+test_large_multibyte_page_reassembles_before_paging_and_rejects_wrong_offsets (test_bridge.FragmentedReplies.test_large_multibyte_page_reassembles_before_paging_and_rejects_wrong_offsets) ... ok
+test_invalid_chrome_handshake_leaves_descriptor_for_daemon_refusal (test_bridge.Handshake.test_invalid_chrome_handshake_leaves_descriptor_for_daemon_refusal) ... ok
+test_invalid_full_version_also_refuses_and_resets_session (test_bridge.Handshake.test_invalid_full_version_also_refuses_and_resets_session) ... ok
+test_invalid_replacement_removes_eof_peer_and_next_host_can_connect (test_bridge.Handshake.test_invalid_replacement_removes_eof_peer_and_next_host_can_connect) ... ok
+test_transport_closed_outside_selector_can_reconnect_on_reused_descriptor (test_bridge.Handshake.test_transport_closed_outside_selector_can_reconnect_on_reused_descriptor) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.063s
+
+OK

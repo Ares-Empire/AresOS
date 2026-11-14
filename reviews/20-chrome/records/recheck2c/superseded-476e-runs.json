@@ -1,0 +1,68 @@
+{
+  "reason": "The first time-budget correction missed the matching qualification workflow budget. Only runs started by this agent were cancelled before restarting with both budgets aligned. Completed passes are preserved; none of these runs is final-head acceptance.",
+  "runs": [
+    {
+      "id": 43312270346,
+      "source": "476e6caecdbdc0d0364e8f39979693a317417287",
+      "workflow": "Control Chrome",
+      "conclusion": "cancelled",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43312270346"
+    },
+    {
+      "id": 43312486255,
+      "source": "476e6caecdbdc0d0364e8f39979693a317417287",
+      "workflow": "Control Chrome",
+      "conclusion": "cancelled",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43312486255"
+    },
+    {
+      "id": 43312490826,
+      "source": "476e6caecdbdc0d0364e8f39979693a317417287",
+      "workflow": "Control base",
+      "conclusion": "success",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43312490826"
+    },
+    {
+      "id": 43312495453,
+      "source": "476e6caecdbdc0d0364e8f39979693a317417287",
+      "workflow": "Control boundary",
+      "conclusion": "success",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43312495453"
+    },
+    {
+      "id": 43312500035,
+      "source": "476e6caecdbdc0d0364e8f39979693a317417287",
+      "workflow": "Control Chrome qualification",
+      "conclusion": "success",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43312500035"
+    },
+    {
+      "id": 43312504897,
+      "source": "476e6caecdbdc0d0364e8f39979693a317417287",
+      "workflow": "Control Mail",
+      "conclusion": "cancelled",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43312504897"
+    },
+    {
+      "id": 43313247998,
+      "source": "476e6caecdbdc0d0364e8f39979693a317417287",
+      "workflow": "Control base",
+      "conclusion": "cancelled",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43313247998"
+    },
+    {
+      "id": 43313251321,
+      "source": "476e6caecdbdc0d0364e8f39979693a317417287",
+      "workflow": "Control boundary",
+      "conclusion": "success",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43313251321"
+    },
+    {
+      "id": 43313256324,
+      "source": "476e6caecdbdc0d0364e8f39979693a317417287",
+      "workflow": "Control Chrome qualification",
+      "conclusion": "success",
+      "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43313256324"
+    }
+  ]
+}

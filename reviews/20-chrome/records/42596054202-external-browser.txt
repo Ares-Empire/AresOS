@@ -1,0 +1,28 @@
+dbus-daemon[74]: [session uid=1000 pid=74] Activating service name='org.a11y.Bus' requested by ':1.2' (uid=1000 pid=111 comm="/opt/google/chrome/chrome --user-data-dir=/tmp/are" label="chrome (unconfined)")
+dbus-daemon[74]: [session uid=1000 pid=74] Successfully activated service 'org.a11y.Bus'
+GROUP 1 what asks PASS: zero before approval, one after, no replay
+GROUP 2 stopped page steps PASS native
+GROUP 2 stopped page steps PASS event
+GROUP 2 wrapped non-cancellable activation PASS: no delivery and never resumed
+GROUP 7 password presence and show-password PASS
+GROUP 13 residual ordinary-click fetch OBSERVED, NOT HELD
+Chrome fixture smoke PASS
+GROUP 8 owner input evidence {"ownerInput":"X keyboard Tab then Return, outside the tool","ownerDelayMs":122,"ownerArrivals":0,"scheduledArrivals":0,"result":{"operation_id":"ec2ddbc95e874dc9854026a961d423f2:bd921aa1469b4a7d82583575180a8281","untrusted_content":{"checked":true,"dispatched":true,"steps":[{"id":"h1","kind":"activation","element":"e9","submitter":null,"cancellable":true,"frame":0},{"id":"h2","kind":"native_submit","element":"e10","submitter":null,"cancellable":true,"frame":0}],"page":"Input dispatched once; inspect a fresh read for what the page shows."},"followups":[{"stopped":true,"unknown":false,"reason":"The page tried to activate an asking control by itself; it was stopped. Act on the current control to prepare fresh asking input if wanted."},{"approval":{"question":"On http://fixture.test:8765/?case=owner-input, as the page shows it, activate 'resume native_submit' to http://fixture.test:8765/receive?case=scheduled-input (post, 1 fields, 1 hidden)?","operation_id":"ec2ddbc95e874dc9854026a961d423f2:55400545df5148e28a7f73f55ed321db","description":{"action":"chrome_submit","untrusted_content":{"page_state":{"session":"b8092a3d-31d5-4788-9e86-5be827fad0fd","tab":499466228,"control":"527159a0-6d4c-4434-b62c-9bd7dca009b3","url":"http://fixture.test:8765/?case=owner-input","document":"2a06d9bfc1abb1b266a56ebcd2fe9414","frame":0,"frame_url":"http://fixture.test:8765/?case=owner-input","target":{"element":"e10","role":"form","name":"","label":"","title":"","href":null,"states":{"checked":false,"selected":false,"disabled":false,"required":false,"invalid":false,"expanded":null},"editable":false,"search":false,"submit":false},"form":{"element":"e10","action":"http://fixture.test:8765/receive?case=scheduled-input","method":"post","encoding":"application/x-www-form-urlencoded","target":"sink","search":false,"fields":[{"element":"e11","name":"source","label":"","type":"hidden","hidden":true,"checked":false,"disabled":false,"multiple":false,"readOnly":false,"value":"scheduled"}]},"editable":null,"item":null,"adapter":null,"dialog":null},"input":{"verb":"resume_submission","kind":"native_submit"},"resume_kind":"native_submit","file":null,"confirmation":null},"expires_at":1794218759.4116602}},"state":"reserved"}]}}
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Owner submission must run normally while a Claude task is pending
+
+0 !== 1
+
+    at file:///workspace/control/chrome/ci/browser.mjs:74:10 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: 0,
+  expected: 1,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.23.4

@@ -1,0 +1,189 @@
+{
+  "run": "43620235847",
+  "head": "07c05de006b8a604b3d6b9fad50b8ed7aeca23c7",
+  "check": "GROUP 8 popups preserve opener flow and guard first input without moving windows",
+  "failed_row": "typed-late",
+  "assertion": {
+    "at": "control/chrome/ci/popups.mjs:76 (await call('take_tab',{tab}))",
+    "via": "control/chrome/ci/browser.mjs:29 call() asserts result.ok"
+  },
+  "installs": {
+    "external": {
+      "job": "fixtures (external, recheck2)",
+      "rows_passed": [
+        {
+          "id": "popup-clean",
+          "phase": "guarded 0/1/1 and opener complete"
+        },
+        {
+          "id": "popup-dirty",
+          "phase": "guarded 0/1/1 and opener complete"
+        },
+        {
+          "id": "popup-typed-clean",
+          "phase": "guarded 0/1/1 and opener complete on the late path"
+        },
+        {
+          "id": "popup-typed-early",
+          "phase": "guarded 0/1/1 and opener complete on the document_start path"
+        }
+      ],
+      "popup_install_records": [
+        {
+          "popup": "popup-typed-clean",
+          "tab": 785362958,
+          "installs": [
+            {
+              "tab": 785362958,
+              "install": "late",
+              "ready": false,
+              "document_sha256": "c309c850e8135a94"
+            },
+            {
+              "tab": 785362958,
+              "install": "late",
+              "ready": false,
+              "document_sha256": "61103fa7aa5fbeba"
+            }
+          ]
+        },
+        {
+          "popup": "popup-typed-early",
+          "tab": 785362960,
+          "installs": [
+            {
+              "tab": 785362960,
+              "install": "document_start",
+              "ready": true,
+              "document_sha256": "1c10742dd3219d33"
+            },
+            {
+              "tab": 785362960,
+              "install": "document_start",
+              "ready": true,
+              "document_sha256": "785799e1dae28333"
+            }
+          ]
+        }
+      ],
+      "typed_late": {
+        "failed_call": "take_tab of the opener tab (popups.mjs:76), before the popup take",
+        "error": {
+          "code": "unknown",
+          "message": "Input may have started; inspect status and the page, never retry. Tabs can only be moved to and from normal windows."
+        },
+        "tabs_just_before": [
+          {
+            "tab": 785362952,
+            "window": 785362874,
+            "active": true,
+            "focused": false,
+            "url": "http://fixture.test:8765/?case=popup-opener&id=popup-typed-late&mode=typed-late",
+            "controlled": false
+          },
+          {
+            "tab": 785362962,
+            "window": 785362963,
+            "active": true,
+            "focused": true,
+            "url": "http://popup.test:8766/?case=popup-child&id=popup-typed-late&mode=typed-late",
+            "controlled": false
+          }
+        ]
+      },
+      "check_line": "GROUP 8 popups preserve opener flow and guard first input without moving windows FAIL AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"unknown\",\"message\":\"Input may have started; inspect status and the page, never retry. Tabs can only be moved to and from normal windows.\"},\"pending\":{\"items\":[{\"operation_id\":\"71be5d55d741419fa863afee0b547457:b9a2a76704c84020b05f2a0b0f2546e6\",\"app\":\"chr"
+    },
+    "policy": {
+      "job": "fixtures (policy, recheck2)",
+      "rows_passed": [
+        {
+          "id": "popup-clean",
+          "phase": "guarded 0/1/1 and opener complete"
+        },
+        {
+          "id": "popup-dirty",
+          "phase": "guarded 0/1/1 and opener complete"
+        },
+        {
+          "id": "popup-typed-clean",
+          "phase": "guarded 0/1/1 and opener complete on the late path"
+        },
+        {
+          "id": "popup-typed-early",
+          "phase": "guarded 0/1/1 and opener complete on the document_start path"
+        }
+      ],
+      "popup_install_records": [
+        {
+          "popup": "popup-typed-clean",
+          "tab": 447837936,
+          "installs": [
+            {
+              "tab": 447837936,
+              "install": "late",
+              "ready": false,
+              "document_sha256": "ffd0f6835383803b"
+            },
+            {
+              "tab": 447837936,
+              "install": "late",
+              "ready": false,
+              "document_sha256": "f71c0dfae13a951d"
+            }
+          ]
+        },
+        {
+          "popup": "popup-typed-early",
+          "tab": 447837938,
+          "installs": [
+            {
+              "tab": 447837938,
+              "install": "document_start",
+              "ready": true,
+              "document_sha256": "ed5f31aaf08bbf52"
+            },
+            {
+              "tab": 447837938,
+              "install": "document_start",
+              "ready": true,
+              "document_sha256": "65540a8b81c52c48"
+            }
+          ]
+        }
+      ],
+      "typed_late": {
+        "failed_call": "take_tab of the opener tab (popups.mjs:76), before the popup take",
+        "error": {
+          "code": "unknown",
+          "message": "Input may have started; inspect status and the page, never retry. Tabs can only be moved to and from normal windows."
+        },
+        "tabs_just_before": [
+          {
+            "tab": 447837930,
+            "window": 447837852,
+            "active": true,
+            "focused": false,
+            "url": "http://fixture.test:8765/?case=popup-opener&id=popup-typed-late&mode=typed-late",
+            "controlled": false
+          },
+          {
+            "tab": 447837940,
+            "window": 447837941,
+            "active": true,
+            "focused": true,
+            "url": "http://popup.test:8766/?case=popup-child&id=popup-typed-late&mode=typed-late",
+            "controlled": false
+          }
+        ]
+      },
+      "check_line": "GROUP 8 popups preserve opener flow and guard first input without moving windows FAIL AssertionError [ERR_ASSERTION]: {\"ok\":false,\"error\":{\"code\":\"unknown\",\"message\":\"Input may have started; inspect status and the page, never retry. Tabs can only be moved to and from normal windows.\"},\"pending\":{\"items\":[{\"operation_id\":\"69d12414f5484d3aaafbaca520e9094b:508491e2e0d746098ebab257b51c518e\",\"app\":\"chr"
+    }
+  },
+  "reading": "typed-clean (the race row) and typed-early passed in both installs, each with the answer of the path the extension recorded: typed-clean late (reload_required), typed-early document_start (stale_reference). typed-late failed before its popup was taken: Claude re-took the opener while the owner's popup window held focus. The opener had been the only controlled tab, so its release set groupId=null (background.js release), and the re-take created a new Claude group with chrome.tabs.group({tabIds:[tab]}) without a window (background.js admitTab). Chrome puts a new group in the current, last-focused window, the popup, and refuses: \"Tabs can only be moved to and from normal windows\". The take is recorded as unknown (Input may have started).",
+  "metadata_only": true,
+  "profiles_accessed": false,
+  "shard_artifacts_zip_sha256": {
+    "external": "b7f9712d7d01022b3532427af92c4619cc5fefa24d6b7ca09b711707003a18ce",
+    "policy": "218aca15c17b34e3ff52c381b040759479422b46727dcd2c43aa8ffb16b8d81d"
+  }
+}
