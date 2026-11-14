@@ -25,6 +25,13 @@ class AppSearchTest {
         return AppSearch.find(APPS, query).stream().map(AppDefinition::id).toList();
     }
 
+    @Test void savedShortNamesAreSearchableEvenWhenTheyAreNotPartOfTheName() {
+        var discord = app("discord", "Discord", "Messenger").withMine(true).withNames(List.of("chat", "dc"));
+        assertEquals(List.of(discord), AppSearch.find(List.of(discord), "DC"));
+        assertEquals(List.of(discord), AppSearch.find(List.of(discord), "chat"));
+        assertEquals(List.of(), AppSearch.find(List.of(discord), "chatdc"));
+    }
+
     @Test void anEmptySearchListsEveryProgramByName() {
         assertEquals(List.of("ark", "kmail", "notes", "okular", "thunderbird"), found(""));
         assertEquals(found(""), found("   "));

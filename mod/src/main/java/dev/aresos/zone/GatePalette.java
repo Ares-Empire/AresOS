@@ -63,6 +63,17 @@ public final class GatePalette {
         return BLOCKS.get(best).block();
     }
 
+    /**
+     * A vanilla block ID as a gate names its blocks: without the {@code minecraft:} namespace. The groups' concretes
+     * are written as full IDs ({@link dev.aresos.catalogue.AppGroup#concrete()}), as the hub records its blocks.
+     */
+    public static String name(String id) {
+        String vanilla = "minecraft:";
+        String name = id.startsWith(vanilla) ? id.substring(vanilla.length()) : id;
+        if (name.isEmpty() || name.indexOf(':') >= 0) throw new IllegalArgumentException("Not a vanilla block: " + id);
+        return name;
+    }
+
     /** Plain Oklab distance between two sRGB colours. */
     public static double distance(int first, int second) {
         double[] a = oklab(first), b = oklab(second);

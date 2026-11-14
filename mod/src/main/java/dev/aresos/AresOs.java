@@ -65,11 +65,52 @@ public final class AresOs implements ModInitializer {
 
     public static synchronized void saveMine(java.util.Map<String, Boolean> changes) throws IOException {
         apps = AppsConfig.mine(configPath(), changes);
+        // `/aresos app add` and `remove`, the Apps screen and `/aresos give`: the town follows My apps.
+        dev.aresos.hub.TownKeeper.ask();
     }
 
-    /** One complete program list from the helper goes into the apps file; My apps follows (item/MyAppsGame). */
+    public static synchronized void assignNames(Set<String> reserved) throws IOException {
+        var saved = AppsConfig.assignNames(configPath(), reserved);
+        // This operation only edits names. Do not reload launch definitions or replace a newer in-memory list.
+        var byId = saved.stream().collect(java.util.stream.Collectors.toMap(AppDefinition::id, AppDefinition::names));
+        var updated = apps.stream().map(app -> byId.containsKey(app.id()) ? app.withNames(byId.get(app.id())) : app).toList();
+        if (apps.equals(updated)) return;
+        apps = updated;
+        // A main name that changed by itself (a new or displaced name): the town's signs follow.
+        dev.aresos.hub.TownKeeper.ask();
+    }
+
+    /** `/aresos app name`: saved, then the town's signs follow (package 36, review fixes 1, step B, point 4). */
+    public static synchronized void name(String id, String name, Set<String> reserved) throws IOException {
+        apps = AppsConfig.name(configPath(), id, name, reserved);
+        dev.aresos.hub.TownKeeper.ask();
+    }
+
+    /** `/aresos app unname`: saved, then the town's signs follow. */
+    public static synchronized void unname(String name) throws IOException {
+        apps = AppsConfig.unname(configPath(), name);
+        dev.aresos.hub.TownKeeper.ask();
+    }
+
+    /**
+     * Saves where apps stand in the flat home (HUB.md 3.5): {@code place} and {@code group}, exactly as given per app.
+     * Like the names, only these two fields follow into the list in memory.
+     */
+    public static synchronized void saveSpots(java.util.Map<String, AppsConfig.Spot> spots) throws IOException {
+        var saved = AppsConfig.spots(configPath(), spots);
+        var byId = saved.stream().collect(java.util.stream.Collectors.toMap(AppDefinition::id, app -> app));
+        var updated = apps.stream().map(app -> byId.containsKey(app.id())
+                ? app.withSpot(byId.get(app.id()).place(), byId.get(app.id()).group()) : app).toList();
+        if (!apps.equals(updated)) apps = updated;
+    }
+
+    /**
+     * One complete program list from the helper goes into the apps file; My apps follows (item/MyAppsGame). The helper
+     * owns every launch here, so what it does not name is marked absent: no command, no /open, until it returns.
+     */
     private static synchronized void takeIn(ShellClient.AppList listed) throws IOException {
-        var merged = AppsConfig.merge(configPath(), LinuxAppCatalogue.definitions(listed.apps()), listed.detailed(), java.time.LocalDate.now());
+        var merged = AppsConfig.merge(configPath(), LinuxAppCatalogue.definitions(listed.apps()), listed.detailed(),
+                java.time.LocalDate.now(), true);
         apps = merged.apps();
         dev.aresos.item.MyAppsGame.listed(merged);
     }
@@ -141,6 +182,10 @@ public final class AresOs implements ModInitializer {
         LiveMode.register();
         NetherHome.register();
         dev.aresos.zone.WalkInZones.register();
+        dev.aresos.zone.PictureReader.register();
+        dev.aresos.zone.ZoneCommands.register();
+        dev.aresos.hub.TownKeeper.register();
+        dev.aresos.hub.TownSeal.register();
         PayloadTypeRegistry.serverboundPlay().register(ToggleModePayload.TYPE, ToggleModePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(dev.aresos.mode.ModeSwitchStatePayload.TYPE, dev.aresos.mode.ModeSwitchStatePayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(dev.aresos.mode.ModeSwitchAckPayload.TYPE, dev.aresos.mode.ModeSwitchAckPayload.CODEC);
@@ -152,6 +197,7 @@ public final class AresOs implements ModInitializer {
                         dev.aresos.mode.ModeInventories.of(context.player()).rejectToggle(context.player());
                 });
         AppInventory.register();
+        dev.aresos.names.SlashCommands.register();
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             dev.aresos.mode.ModeInventories.of(handler.player).reportLoginError(handler.player);
             if (!dev.aresos.mode.ModeInventories.of(handler.player).restoredForLogin()) AppInventory.populate(handler.player);
@@ -165,11 +211,13 @@ public final class AresOs implements ModInitializer {
         });
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             if (!environment.includeIntegrated) return;
+            dev.aresos.names.ProgramCommands.register(dispatcher);
             dispatcher.register(Commands.literal("aresos")
                         .then(dev.aresos.world.HomeCommands.command())
                         .then(dev.aresos.zone.ZoneCommands.zone())
                         .then(dev.aresos.zone.ZoneCommands.logo())
                         .then(dev.aresos.item.AppCommands.app())
+                        .then(dev.aresos.hub.HubCommands.hub())
                         .then(Commands.literal("desktop")
                                 .then(Commands.literal("on").executes(context -> desktop(context.getSource(), true)))
                                 .then(Commands.literal("off").executes(context -> desktop(context.getSource(), false))))

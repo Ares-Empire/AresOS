@@ -192,7 +192,7 @@ class AppsConfigTest {
 
         // The file is the old one plus the schema number and "mine" per app; nothing else moved or went missing.
         var moved = tree(file);
-        assertEquals(3, moved.get("schemaVersion").getAsInt());
+        assertEquals(AppsConfig.SCHEMA, moved.get("schemaVersion").getAsInt());
         for (var app : moved.getAsJsonArray("apps")) assertNotNull(app.getAsJsonObject().remove("mine"));
         moved.addProperty("schemaVersion", 2);
         assertEquals(com.google.gson.JsonParser.parseString(SCHEMA_2), moved);
@@ -207,7 +207,7 @@ class AppsConfigTest {
         AppsConfig.mine(file, java.util.Map.of("calc", true));
         Path retained = AppsConfig.restoreLegacy(file, loaded.migrationBackup());
         assertEquals(SCHEMA_2, Files.readString(file));
-        assertTrue(retained.getFileName().toString().startsWith("apps.json.schema-3-before-downgrade-"));
+        assertTrue(retained.getFileName().toString().startsWith("apps.json.schema-4-before-downgrade-"));
         assertEquals(List.of("notepad", "paint", "calc"), mine(AppsConfig.load(retained).apps()));
         assertEquals(loaded.apps(), AppsConfig.load(file).apps());
         assertThrows(java.io.IOException.class, () -> AppsConfig.restoreLegacy(file, retained));
@@ -218,7 +218,7 @@ class AppsConfigTest {
         Path file = directory.resolve("apps.json");
         String duplicate = SCHEMA_2.replace("\"id\": \"calc\"", "\"id\": \"paint\"");
         for (String broken : List.of(duplicate, SCHEMA_2.replace("\"pinned\": true", "\"pinned\": \"true\""),
-                SCHEMA_2.replace("\"name\": \"Paint\", ", ""), SCHEMA_2.replace("\"schemaVersion\": 2", "\"schemaVersion\": 4"),
+                SCHEMA_2.replace("\"name\": \"Paint\", ", ""), SCHEMA_2.replace("\"schemaVersion\": 2", "\"schemaVersion\": 5"),
                 SCHEMA_2.replace("\"schemaVersion\": 2", "\"schemaVersion\": \"2\""),
                 SCHEMA_2.replace("\"ownerExtra\": 42", "\"mine\": \"yes\""),
                 SCHEMA_2.replace("\"schemaVersion\": 2", "\"schemaVersion\": 3, \"baseline\": \"tomorrow\""),
@@ -359,5 +359,84 @@ class AppsConfigTest {
         Files.createDirectory(file);
         assertThrows(java.io.IOException.class, () -> AppsConfig.load(file));
         assertTrue(Files.isDirectory(file));
+    }
+
+    /**
+     * Package 36 saves {@code place} and {@code group} with schema 4 and no new number (HUB.md 3.5). This test was
+     * first committed and run on package 35's parser unchanged, where both are fields it does not know: it reads the
+     * file and every edit it makes keeps them where they are, so a mod of package 35 neither refuses nor loses them.
+     */
+    @Test
+    void aSchema4FileWithPlacesAndGroupsIsReadAndEveryEditKeepsThem() throws Exception {
+        Path file = directory.resolve("apps.json");
+        try (var fixture = getClass().getResourceAsStream("/apps/schema-4-town.json")) { Files.copy(fixture, file); }
+        var places = java.util.Map.of("discord", "N0R0", "spotify", "E0R0", "gimp", "W0L0", "calc", "S0R0");
+        var loaded = AppsConfig.load(file, true);
+        assertNull(loaded.migrationBackup(), "a schema-4 file is not moved to another schema");
+        assertEquals(List.of("discord", "spotify", "gimp", "calc"), loaded.apps().stream().map(AppDefinition::id).toList());
+        assertEquals(List.of("discord", "spotify", "gimp"), mine(loaded.apps()));
+        assertTrue(loaded.apps().get(2).absent());
+
+        // Every edit the mod makes while it runs: pins, My apps, a complete program list, short names.
+        AppsConfig.pins(file, java.util.Map.of("spotify", true));
+        AppsConfig.mine(file, java.util.Map.of("calc", true));
+        AppsConfig.merge(file, List.of(listed("discord", "Discord", "flatpak-user"), listed("spotify", "Spotify", "flatpak-user"),
+                listed("calc", "Calculator", "system"), listed("newapp", "New App", "user")), true, java.time.LocalDate.of(2026, 11, 14), true);
+        AppsConfig.assignNames(file, java.util.Set.of("help"));
+        AppsConfig.name(file, "discord", "chat", java.util.Set.of("help"));
+        AppsConfig.unname(file, "chat");
+        AppsConfig.mine(file, java.util.Map.of("discord", false));
+
+        var saved = tree(file);
+        assertEquals(4, saved.get("schemaVersion").getAsInt());
+        var byId = new java.util.HashMap<String, com.google.gson.JsonObject>();
+        for (var app : saved.getAsJsonArray("apps")) byId.put(app.getAsJsonObject().get("id").getAsString(), app.getAsJsonObject());
+        places.forEach((id, place) -> assertEquals(place, byId.get(id).get("place").getAsString(), id + " lost its place"));
+        assertEquals("games", byId.get("spotify").get("group").getAsString());
+        assertFalse(byId.get("discord").has("group") || byId.get("newapp").has("place"));
+        // The edits themselves happened.
+        var after = AppsConfig.load(file, true).apps();
+        assertEquals(List.of("spotify", "gimp", "calc", "newapp"), mine(after));
+        assertTrue(after.stream().filter(app -> app.id().equals("gimp")).findFirst().orElseThrow().absent());
+        assertFalse(after.stream().filter(app -> app.id().equals("discord")).findFirst().orElseThrow().pinned());
+    }
+
+    @Test
+    void placesAndGroupsAreReadAndSavedAsGivenAndNothingElseMoves() throws Exception {
+        Path file = directory.resolve("apps.json");
+        try (var fixture = getClass().getResourceAsStream("/apps/schema-4-town.json")) { Files.copy(fixture, file); }
+        var apps = AppsConfig.load(file, true).apps();
+        assertEquals(java.util.Arrays.asList("N0R0", "E0R0", "W0L0", "S0R0"), apps.stream().map(AppDefinition::place).toList());
+        assertEquals(java.util.Arrays.asList(null, "games", null, null), apps.stream().map(AppDefinition::group).toList());
+
+        var before = tree(file);
+        // Spotify goes back to its group by the rules, Discord moves by hand, GIMP's remembered place is cleared.
+        var saved = AppsConfig.spots(file, java.util.Map.of("spotify", new AppsConfig.Spot("W0L0", null),
+                "discord", new AppsConfig.Spot("E1R0", "games"), "gimp", new AppsConfig.Spot(null, null)));
+        assertEquals(java.util.Arrays.asList("E1R0", "W0L0", null, "S0R0"), saved.stream().map(AppDefinition::place).toList());
+        assertEquals(java.util.Arrays.asList("games", null, null, null), saved.stream().map(AppDefinition::group).toList());
+        assertEquals(saved, AppsConfig.load(file, true).apps());
+        var after = tree(file);
+        for (int i = 0; i < 4; i++) {
+            var was = before.getAsJsonArray("apps").get(i).getAsJsonObject().deepCopy();
+            var now = after.getAsJsonArray("apps").get(i).getAsJsonObject().deepCopy();
+            for (String field : List.of("place", "group")) { was.remove(field); now.remove(field); }
+            assertEquals(was, now, "spots changed another field");
+        }
+        assertFalse(after.getAsJsonArray("apps").get(2).getAsJsonObject().has("place"));
+
+        // An unknown app changes nothing; a place that is not text refuses the file, as any field of the wrong type does.
+        String once = Files.readString(file);
+        assertThrows(java.io.IOException.class, () -> AppsConfig.spots(file, java.util.Map.of("nobody", new AppsConfig.Spot("N0L0", null))));
+        assertEquals(once, Files.readString(file));
+        Files.writeString(file, once.replace("\"place\": \"E1R0\"", "\"place\": 7"));
+        assertThrows(java.io.IOException.class, () -> AppsConfig.load(file, true));
+
+        // Written from records too (the first start and the tests), and read back the same; none means no field.
+        var listed = List.of(apps.get(0), apps.get(1).withSpot(null, null));
+        Path written = directory.resolve("written.json");
+        AppsConfig.save(written, listed);
+        assertEquals(listed, AppsConfig.load(written, true).apps());
+        assertFalse(tree(written).getAsJsonArray("apps").get(1).getAsJsonObject().has("place"));
     }
 }

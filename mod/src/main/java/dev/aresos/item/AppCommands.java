@@ -16,6 +16,7 @@ import java.io.IOException;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
+import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
 
 /** {@code /aresos app add|remove|list}: My apps by command. The host only, in an AresOS world. */
 public final class AppCommands {
@@ -24,10 +25,24 @@ public final class AppCommands {
     private AppCommands() { }
 
     public static LiteralArgumentBuilder<CommandSourceStack> app() {
-        return Commands.literal("app")
+        // Brigadier checks a requirement while parsing, against the source that typed the command, so
+        // "execute as <host> run ..." from a command block, a function or another operator reaches no branch of
+        // /aresos app. Every branch checks the host again when it runs.
+        return Commands.literal("app").requires(AppCommands::allowed)
                 .then(Commands.literal("add").then(argument(false).executes(c -> change(c.getSource(), getString(c, "app"), MyAppsGame::add))))
                 .then(Commands.literal("remove").then(argument(true).executes(c -> change(c.getSource(), getString(c, "app"), MyAppsGame::remove))))
-                .then(Commands.literal("list").executes(c -> list(c.getSource())));
+                .then(Commands.literal("list").executes(c -> list(c.getSource())))
+                // The click target of /apps and /open rows: the stable ID, through AresOS's own command, so a
+                // foreign /open can never receive it and two programs with one name stay apart.
+                .then(Commands.literal("open").requires(AppCommands::allowed).then(Commands.argument("app", word())
+                        .executes(c -> dev.aresos.names.SlashCommands.launch(c.getSource(), getString(c, "app")))))
+                .then(Commands.literal("name").requires(AppCommands::allowed).then(argument(true).then(Commands.argument("name", greedyString())
+                        .executes(c -> name(c.getSource(), getString(c, "app"), getString(c, "name"))))))
+                .then(Commands.literal("unname").requires(AppCommands::allowed).then(Commands.argument("name", word()).suggests((c, b) -> {
+                    if (allowed(c.getSource())) for (var app : AresOs.apps()) for (String name : app.names())
+                        if (name.startsWith(b.getRemainingLowerCase())) b.suggest(name);
+                    return b.buildFuture();
+                }).executes(c -> unname(c.getSource(), getString(c, "name")))));
     }
 
     /** Completion over the right list: programs that are not his for add, his apps for remove. */
@@ -41,6 +56,15 @@ public final class AppCommands {
     }
 
     public static boolean allowed(CommandSourceStack source) {
+        // Minecraft marks a node "restricted" for the client when its requirement fails for a probe without a server
+        // and with the PermissionSet.NO_PERMISSIONS singleton (Commands.createCompilationContext); the client then
+        // asks before running a clicked /apps row. The probe never runs anything.
+        // The game's only other source without a server is the function loader's (ServerFunctionLibrary, for plain
+        // lines at load and macro lines when instantiated): the same factory with the server's function permissions,
+        // which is always one of the five LevelBasedPermissionSet constants and never that singleton (integrated
+        // server GAMEMASTER, game test server OWNER, dedicated server its function-permission-level 0 to 4, clamped).
+        // So no function can hold these commands. Every source that runs a command has a server: checked in full below.
+        if (source.getServer() == null) return source.permissions() == net.minecraft.server.permissions.PermissionSet.NO_PERMISSIONS;
         var player = source.getPlayer();
         return player != null && DesktopWorld.isHost(source.getServer(), player) && DesktopWorld.isEnabled(source.getServer());
     }
@@ -69,6 +93,27 @@ public final class AppCommands {
             source.sendFailure(Component.literal(MyAppsGame.failure(error)));
             return 0;
         }
+    }
+
+    private static int name(CommandSourceStack source, String id, String name) throws CommandSyntaxException {
+        if (host(source) == null) return 0;
+        try {
+            dev.aresos.names.SlashCommands.refresh(source.getServer());
+            AresOs.name(id, name, dev.aresos.names.SlashCommands.reserved(source.getServer()));
+            dev.aresos.names.SlashCommands.refresh(source.getServer());
+            source.sendSuccess(() -> Component.literal("/" + name + " is now the main name of " + AresOs.app(id).name() + "."), false);
+            return 1;
+        } catch (IOException | RuntimeException error) { source.sendFailure(Component.literal(error.getMessage())); return 0; }
+    }
+
+    private static int unname(CommandSourceStack source, String name) throws CommandSyntaxException {
+        if (host(source) == null) return 0;
+        try {
+            AresOs.unname(name);
+            dev.aresos.names.SlashCommands.refresh(source.getServer());
+            source.sendSuccess(() -> Component.literal("Removed /" + name + "."), false);
+            return 1;
+        } catch (IOException | RuntimeException error) { source.sendFailure(Component.literal(error.getMessage())); return 0; }
     }
 
     private static int list(CommandSourceStack source) throws CommandSyntaxException {
