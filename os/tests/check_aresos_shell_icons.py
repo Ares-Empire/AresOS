@@ -1,7 +1,8 @@
 """Explicit AresOS converter smoke tests; Ubuntu's unit runner has no ImageMagick 7.
 
 Run: python3 -m unittest discover -s os/tests -p 'check_aresos_shell_icons.py' -v
-These checks require the actual Fedora sandbox route. No compositor or GUI is involved.
+These checks require the actual Fedora sandbox route. No compositor or GUI is involved. RealThemeTest reads the
+machine's own icon folders and the image's desktop entries, read-only, and converts nothing.
 """
 import os
 import pathlib
@@ -113,4 +114,14 @@ class IconRealRouteTest(IconBase):
             path = self.cache.convert(str(FIXTURES / 'drawn.png'))
         self.assertEqual(renamed, [path])
 
+class RealThemeTest(unittest.TestCase):
+    """Review fixes 3, point 2: with the real icon folders, read-only and without converting, the image's programs that
+    ship Breeze pictures only resolve to Breeze's own files (OS lead, defect 2)."""
 
+    def test_konsole_system_settings_and_system_monitor_resolve_to_breeze_files(self):
+        for desktop_id in ('org.kde.konsole', 'systemsettings', 'org.kde.plasma-systemmonitor'):
+            with self.subTest(desktop_id=desktop_id):
+                values = shell.read_desktop_entry(f'/usr/share/applications/{desktop_id}.desktop')
+                path = shell.resolve_icon(values['Icon'], shell.icon_directories())
+                self.assertIsNotNone(path)
+                self.assertTrue(path.startswith('/usr/share/icons/breeze/') and path.endswith('.svg'), path)

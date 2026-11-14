@@ -19,6 +19,8 @@ from test_aresos_shell import shell, ROOT, REGISTRY, Base
 FIXTURES = ROOT / 'os/tests/fixtures/installed-programs'
 PNG = (FIXTURES / 'drawn.png').read_bytes()
 SVG = (FIXTURES / 'drawn.svg').read_bytes()
+# Written for these tests in the form of Breeze's own index.theme (review fixes 3).
+BREEZE_INDEX = (FIXTURES / 'breeze-index.theme').read_bytes()
 
 
 def normalized_fixture():
@@ -96,6 +98,16 @@ class IconBase(unittest.TestCase):
     def resolve(self, name='app'):
         return shell.resolve_icon(name, self.folders)
 
+    def index(self, folder=4, raw=BREEZE_INDEX, theme='breeze'):
+        return self.write(self.folders[folder] / theme / 'index.theme', raw)
+
+    def breeze(self, directory='apps/48', name='app.svg', raw=SVG, folder=4):
+        """A picture where Breeze really keeps it (breeze/apps/48/); the root gets the fixture's index.theme unless it
+        has one. Root 4 stands for /usr/share/icons."""
+        if not (self.folders[folder] / 'breeze/index.theme').exists():
+            self.index(folder)
+        return self.write(self.folders[folder] / 'breeze' / directory / name, raw)
+
 
 class IconLookupTest(IconBase):
     def test_folders_and_cache_default_and_absolute_xdg_override(self):
@@ -123,7 +135,7 @@ class IconLookupTest(IconBase):
         self.themed(1, size='256x256')
         self.themed(0, size='128x128')
         self.themed(0, size='scalable', name='app.svg', raw=SVG)
-        self.themed(0, theme='breeze', size='256x256')
+        self.breeze('apps/64', 'app.png', PNG)
         self.assertEqual(self.resolve(), str(self.folders[1] / 'hicolor/256x256/apps/app.png'))
         (self.folders[1] / 'hicolor/256x256/apps/app.png').unlink()
         self.assertEqual(self.resolve(), str(self.folders[0] / 'hicolor/128x128/apps/app.png'))
@@ -131,9 +143,9 @@ class IconLookupTest(IconBase):
         self.assertEqual(self.resolve(), str(self.folders[0] / 'hicolor/scalable/apps/app.svg'))
 
     def test_roots_break_ties_and_breeze_is_the_second_theme(self):
-        later = self.themed(5, theme='breeze')
+        later = self.breeze(folder=5)
         self.assertEqual(self.resolve(), str(later))
-        earlier = self.themed(0, theme='breeze')
+        earlier = self.breeze(folder=0)
         self.assertEqual(self.resolve(), str(earlier))
         hicolor = self.themed(5, theme='hicolor', size='16x16')
         self.assertEqual(self.resolve(), str(hicolor))
@@ -149,12 +161,21 @@ class IconLookupTest(IconBase):
         target = self.write(self.folders[0] / 'extensionless', PNG)
         self.assertEqual(self.resolve('extensionless'), str(target))
 
-    def test_non_square_oversize_and_svg_in_a_raster_directory_are_not_selected(self):
-        self.themed(size='256x128')
-        self.themed(size='999x999')
-        self.themed(size='0x0')
-        self.themed(size='128x128', name='app.svg', raw=SVG)
+    def test_non_square_zero_and_over_1024_size_folders_are_not_selected(self):
+        for size in ('256x128', '0x0', '2048x2048', '12345x12345'):
+            self.themed(size=size)
         self.assertIsNone(self.resolve())
+
+    def test_png_folders_over_256_serve_only_when_the_theme_has_nothing_else_the_smallest_first(self):
+        huge = self.themed(4, size='1024x1024')
+        self.assertEqual(self.resolve(), str(huge))
+        large = self.themed(4, size='999x999')
+        self.assertEqual(self.resolve(), str(large))
+        # An SVG in a sized folder, skipped before review fixes 3, comes before them.
+        svg = self.themed(4, size='48x48', name='app.svg', raw=SVG)
+        self.assertEqual(self.resolve(), str(svg))
+        png = self.themed(4, size='16x16')
+        self.assertEqual(self.resolve(), str(png))
 
     def test_file_and_directory_symlinks_cannot_escape_any_icon_folder(self):
         outside = self.write(self.root / 'outside/app.png')
@@ -182,6 +203,145 @@ class IconLookupTest(IconBase):
         self.assertIsNone(apps['drawn'].icon)
         path.write_text(text + 'second\n')
         self.assertNotEqual(shell.load_catalogue(str(registry), entry_dirs=[entries], executable=lambda p: True)[1], first)
+
+
+class IconThemeIndexTest(IconBase):
+    """Review fixes 3, point 2: a theme's own index.theme says where its pictures are, as Breeze needs."""
+
+    def test_breeze_pictures_are_found_where_breeze_keeps_them(self):
+        terminal = self.breeze(name='utilities-terminal.svg')
+        self.assertEqual(self.resolve('utilities-terminal'), str(terminal))
+        # The fixed layout alone does not know <context>/<size> folders: the index is what finds it.
+        (self.folders[4] / 'breeze/index.theme').unlink()
+        self.assertIsNone(self.resolve('utilities-terminal'))
+
+    def test_svgs_come_from_scalable_folders_first_then_sized_ones_largest_first(self):
+        scalable = self.breeze('apps/48')
+        large = self.breeze('apps/64')
+        small = self.breeze('apps/32')
+        self.breeze('apps/16')
+        self.assertEqual(self.resolve(), str(scalable))
+        scalable.unlink()
+        self.assertEqual(self.resolve(), str(large))
+        large.unlink()
+        self.assertEqual(self.resolve(), str(small))
+
+    def test_pngs_by_size_come_before_svgs_whatever_the_folder_type(self):
+        svg = self.breeze('apps/48')
+        png = self.breeze('apps/32', 'app.png', PNG)
+        self.assertEqual(self.resolve(), str(png))
+        # A Scalable folder's PNGs rank by its Size too (hicolor's index calls 256x256/apps Scalable).
+        larger = self.breeze('places/64', 'app.png', PNG)
+        self.assertEqual(self.resolve(), str(larger))
+        larger.unlink()
+        png.unlink()
+        self.assertEqual(self.resolve(), str(svg))
+
+    def test_scaled_folders_and_folders_without_a_usable_size_are_left_out(self):
+        self.breeze('apps/32@2x', 'app.png', PNG)
+        self.assertIsNone(self.resolve())
+        self.breeze('apps/48')
+        for group in (b'Size=48\nScale=2', b'Size=48\nScale=0', b'Size=abc', b'Size=+48', b'Size=2048', b''):
+            with self.subTest(group=group):
+                self.index(raw=b'[Icon Theme]\nDirectories=apps/48\n[apps/48]\nType=Scalable\n' + group + b'\n')
+                self.assertIsNone(self.resolve())
+        self.index(raw=b'[Icon Theme]\nDirectories=apps/48\n[apps/48]\nType=Scalable\nSize=48\n')
+        self.assertIsNotNone(self.resolve())
+
+    def test_a_root_without_an_index_keeps_the_fixed_layout_and_the_first_index_speaks_for_all_roots(self):
+        home = self.themed(0, theme='breeze', size='48x48')
+        system = self.breeze('apps/48')
+        self.assertEqual(self.resolve(), str(home))
+        home.unlink()
+        self.assertEqual(self.resolve(), str(system))
+        # Root 3 comes first and has an index of its own: it speaks for root 4, whose own index lists apps/48.
+        self.index(3, b'[Icon Theme]\nDirectories=apps/64\n[apps/64]\nSize=64\nType=Fixed\n')
+        self.assertIsNone(self.resolve())
+        listed = self.breeze('apps/64')
+        self.assertEqual(self.resolve(), str(listed))
+
+    def test_a_broken_or_oversized_index_leaves_the_theme_on_the_fixed_layout_with_one_log_line(self):
+        fixed = self.themed(4, theme='breeze', size='48x48', name='other.png')
+        self.breeze('apps/48')
+        outside = self.write(self.root / 'outside/index.theme', BREEZE_INDEX)
+        cases = {
+            'huge': BREEZE_INDEX + b'#' * shell.ICON_INDEX_BYTES,
+            'endless': b'[Icon Theme]\nDirectories=' + b','.join(
+                b'apps/%d' % n for n in range(shell.ICON_INDEX_FOLDERS + 1)) + b'\n',
+            'parent folder': b'[Icon Theme]\nDirectories=apps/48,../../outside\n[apps/48]\nSize=48\nType=Scalable\n',
+            'absolute folder': b'[Icon Theme]\nDirectories=/outside\n[/outside]\nSize=48\n',
+            'NUL': BREEZE_INDEX + b'\0',
+            'group header': b'[Icon Theme\nDirectories=apps/48\n',
+            'link out of the root': None,
+            'FIFO': None,
+        }
+        for case, raw in cases.items():
+            with self.subTest(case=case):
+                index = self.folders[4] / 'breeze/index.theme'
+                index.unlink()
+                if case == 'link out of the root':
+                    index.symlink_to(outside)
+                elif case == 'FIFO':
+                    os.mkfifo(index)
+                else:
+                    index.write_bytes(raw)
+                with mock.patch.object(shell.LOG, 'disabled', False), \
+                        self.assertLogs(shell.LOG, 'WARNING') as logs:
+                    lookup = shell.IconLookup(self.folders)
+                    self.assertIsNone(lookup.resolve('app'))
+                    self.assertEqual(lookup.resolve('other'), str(fixed))
+                    self.assertIsNone(lookup.resolve('missing'))
+                self.assertEqual(len(logs.records), 1, logs.output)
+                self.assertIn('fixed layout', logs.output[0])
+        # A control: the fixture's own index finds the same picture.
+        (self.folders[4] / 'breeze/index.theme').unlink()
+        self.index()
+        self.assertIsNotNone(self.resolve())
+
+    def test_one_pass_lists_at_most_its_budget_of_folder_entries_and_says_so_once(self):
+        for n in range(10):
+            self.themed(4, size='48x48', name=f'filler-{n}.png')
+        self.breeze('apps/48')
+        with mock.patch.object(shell, 'ICON_LOOKUP_ENTRIES', 8), mock.patch.object(shell.LOG, 'disabled', False), \
+                self.assertLogs(shell.LOG, 'WARNING') as logs:
+            lookup = shell.IconLookup(self.folders)
+            # hicolor/ and 48x48/ show one entry each; apps/ shows a seventh entry and is refused unkept.
+            self.assertIsNone(lookup.resolve('filler-1'))
+            self.assertEqual(lookup.listings[str(self.folders[4] / 'hicolor/48x48/apps')], {})
+            self.assertIsNone(lookup.resolve('app'))
+        self.assertEqual(len(logs.records), 1, logs.output)
+        # A control: the real budget finds both.
+        self.assertIsNotNone(self.resolve('filler-1'))
+        self.assertIsNotNone(self.resolve())
+
+    def test_a_hostile_index_never_lists_or_opens_anything_outside_the_root(self):
+        outside = self.root / 'outside'
+        self.write(outside / 'app.svg', SVG)
+        self.write(outside / 'deep/app.svg', SVG)
+        inside = self.breeze('apps/48', name='other.svg')
+        (self.folders[4] / 'breeze/apps/link').symlink_to(outside, target_is_directory=True)
+        self.index(raw=b'[Icon Theme]\nDirectories=apps/link,apps/link/deep,apps/48\n[apps/link]\nSize=48\n'
+                       b'Type=Scalable\n[apps/link/deep]\nSize=48\nType=Scalable\n[apps/48]\nSize=48\nType=Scalable\n')
+        listed, opened, scandir, os_open = [], [], os.scandir, os.open
+
+        def listing(path='.'):
+            listed.append(os.readlink(f'/proc/self/fd/{path}') if isinstance(path, int) else os.path.realpath(path))
+            return scandir(path)
+
+        def readable(path, flags, *args, **kwargs):
+            descriptor = os_open(path, flags, *args, **kwargs)
+            if not flags & os.O_PATH:
+                opened.append(os.readlink(f'/proc/self/fd/{descriptor}'))
+            return descriptor
+
+        with mock.patch.object(shell.os, 'scandir', side_effect=listing), \
+                mock.patch.object(shell.os, 'open', side_effect=readable):
+            lookup = shell.IconLookup(self.folders)
+            self.assertIsNone(lookup.resolve('app'))
+            self.assertEqual(lookup.resolve('other'), str(inside))
+        self.assertTrue(listed)
+        self.assertIn(str(self.folders[4] / 'breeze/index.theme'), opened)
+        self.assertEqual([path for path in listed + opened if path.startswith(str(outside))], [])
 
 
 class IconSniffTest(IconBase):
@@ -412,7 +572,7 @@ class IconAsyncTest(IconBase):
             return '/source'
 
         apps = {'one': self.app()}
-        with mock.patch.object(shell, 'resolve_icon', side_effect=lookup), \
+        with mock.patch.object(shell.IconLookup, 'resolve', side_effect=lookup), \
                 mock.patch.object(self.cache, 'convert', return_value='/cache/one.png'):
             start = time.monotonic()
             self.cache.request(apps, 'base')

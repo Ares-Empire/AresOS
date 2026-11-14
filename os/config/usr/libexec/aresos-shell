@@ -687,12 +687,21 @@ def open_confined(path, roots, directory=False):
         os.close(pinned)
 
 
-def confined_listing(path, roots):
-    """(name, is a real folder) for each entry of a folder whose real location was checked before listing."""
+def confined_listing(path, roots, limit):
+    """{name: is a real folder} for each entry of a folder whose real location was checked before listing.
+
+    A folder of more than limit entries raises ScanLimit as soon as it shows one too many, so a huge folder is never
+    held in memory.
+    """
     descriptor = open_confined(path, roots, directory=True)
     try:
+        listing = {}
         with os.scandir(descriptor) as entries:
-            return [(entry.name, entry.is_dir(follow_symlinks=False)) for entry in entries]
+            for entry in entries:
+                if len(listing) >= limit:
+                    raise ScanLimit(f'more than {limit} folder entries')
+                listing[entry.name] = entry.is_dir(follow_symlinks=False)
+        return listing
     finally:
         os.close(descriptor)
 
@@ -1204,6 +1213,14 @@ ICON_ADDRESS_SPACE = 256 * 1024 * 1024
 ICON_CACHE_FILES = 2 * MAX_APPS
 ICON_CACHE_BYTES = 32 * 1024 * 1024
 ICON_FILE = re.compile(r'[0-9a-f]{64}\.png\Z')
+# A theme's index.theme (review fixes 3). The laptop's largest, hicolor's, has 55,507 bytes and 649 folders (337 at
+# scale 1); Breeze's has 19,534 bytes and 47 folders.
+ICON_INDEX_BYTES = 256 * 1024
+ICON_INDEX_FOLDERS = 2048
+# Sized folders up to 256 pixels are used first; larger ones, up to this, only when a theme has nothing else.
+ICON_LARGEST = 1024
+# Folder entries one picture pass may list in all: every icon folder on the laptop, all of them listed, has 20,277.
+ICON_LOOKUP_ENTRIES = 131072
 PNG_SIGNATURE = b'\x89PNG\r\n\x1a\n'
 ICON_LIMITS = ('-limit', 'memory', '64MiB', '-limit', 'map', '0', '-limit', 'disk', '0',
                '-limit', 'time', '2', '-limit', 'thread', '1', '-limit', 'width', str(ICON_SIDE),
@@ -1236,59 +1253,181 @@ def icon_cache_directory(environ=None):
 
 
 def resolve_icon(name, directories, deployments=None):
-    """Lookup at fixed theme/size/context depths.
+    """One lookup on its own; a picture pass shares one IconLookup between all its programs."""
+    return IconLookup(directories, deployments).resolve(name)
 
-    A folder is listed, and a file chosen, only where it really lies inside its own icon root or inside a Flatpak
-    deployment: a Flatpak export's icons are links into its deployment (review 1, FIX 5).
+
+def read_icon_index(path, roots):
+    """(folder, size, scalable) for each folder an icon theme's index.theme lists, in its order (review fixes 3).
+
+    Read like a desktop entry: through the checked, pinned descriptor, at most ICON_INDEX_BYTES and
+    ICON_INDEX_FOLDERS folders. A folder at a Scale over 1, or without a Size from 1 to ICON_LARGEST, is left out; a
+    folder name that is not a plain relative path refuses the whole index.
     """
-    if not name or '\0' in name:
-        return None
-    if os.path.isabs(name):
-        return name
-    if '/' in name or '..' in name or len(name) > 255:
-        return None
-    names = (name,) if name.endswith(('.png', '.svg')) else (name + '.png', name + '.svg', name)
-    deployments = tuple(os.path.realpath(path)
-                        for path in (flatpak_deployments() if deployments is None else deployments))
-    roots = {folder: (os.path.realpath(folder), *deployments) for folder in directories}
+    with os.fdopen(open_confined(path, roots), 'rb') as handle:
+        if os.fstat(handle.fileno()).st_size > ICON_INDEX_BYTES:
+            raise ValueError(f'index.theme exceeds {ICON_INDEX_BYTES} bytes')
+        raw = handle.read(ICON_INDEX_BYTES + 1)
+    if len(raw) > ICON_INDEX_BYTES:
+        raise ValueError(f'index.theme exceeds {ICON_INDEX_BYTES} bytes')
+    if b'\0' in raw:
+        raise ValueError('NUL in index.theme')
+    groups, group = {}, None
+    for line in raw.decode('utf-8', 'replace').splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        if line.startswith('['):
+            if not line.endswith(']'):
+                raise ValueError('invalid group header in index.theme')
+            group = groups.setdefault(line[1:-1], {})
+        elif group is not None and '=' in line:
+            key, _, value = line.partition('=')
+            group.setdefault(key.strip(), value.strip())
+    names = [name.strip() for name in groups.get('Icon Theme', {}).get('Directories', '').split(',')]
+    names = list(dict.fromkeys(name for name in names if name))
+    if len(names) > ICON_INDEX_FOLDERS:
+        raise ValueError(f'index.theme lists more than {ICON_INDEX_FOLDERS} folders')
+    folders = []
+    for name in names:
+        if name.startswith('/') or len(name) > 255 or any(part in ('', '.', '..') for part in name.split('/')):
+            raise ValueError(f'index.theme lists the folder {name[:40]!r}')
+        values = groups.get(name, {})
+        size, scale = values.get('Size', ''), values.get('Scale', '1')
+        if (re.fullmatch(r'\d{1,4}', size, re.ASCII) and re.fullmatch(r'\d{1,4}', scale, re.ASCII)
+                and int(scale) == 1 and 0 < int(size) <= ICON_LARGEST):
+            folders.append((name, int(size), values.get('Type', 'Threshold') == 'Scalable'))
+    return folders
 
-    def listing(folder, *parts):
-        try:
-            return confined_listing(os.path.join(folder, *parts), roots[folder])
-        except ValueError as error:
-            LOG.debug('icon folder %s skipped: %s', os.path.join(folder, *parts), error)
-        except OSError:
-            pass
-        return []
 
-    def candidate(folder, *parts):
-        real = os.path.realpath(os.path.join(folder, *parts))
-        if within(real, roots[folder]) and os.path.isfile(real):
+class IconLookup:
+    """One picture pass's view of the icon folders: each theme's layout is worked out, and each folder listed, at most
+    once however many programs ask (review fixes 3).
+
+    A root whose theme folder holds an index.theme uses the theme's index; the first root that has one speaks for all
+    of them, as the icon theme specification says. A root without one (the home folder, Flatpak exports) keeps the
+    fixed layout <N>x<N>/<context> and scalable/<context>. A broken or oversized index leaves the whole theme on the
+    fixed layout. A folder is listed, and a file chosen, only where it really lies inside its own icon root or inside
+    a Flatpak deployment: a Flatpak export's icons are links into its deployment (review 1, FIX 5). The pass lists at
+    most ICON_LOOKUP_ENTRIES folder entries in all.
+    """
+
+    THEMES = ('hicolor', 'breeze')
+
+    def __init__(self, directories, deployments=None):
+        self.directories = tuple(directories)
+        deployments = tuple(os.path.realpath(path)
+                            for path in (flatpak_deployments() if deployments is None else deployments))
+        self.roots = {folder: (os.path.realpath(folder), *deployments) for folder in self.directories}
+        self.listings = {}
+        self.orders = {}
+        self.entries = 0
+
+    def listing(self, folder, *parts):
+        """{name: is a real folder} of a folder under the root folder."""
+        path = os.path.join(folder, *parts)
+        if path in self.listings:
+            return self.listings[path]
+        names = {}
+        if self.entries < ICON_LOOKUP_ENTRIES:
+            try:
+                names = confined_listing(path, self.roots[folder], ICON_LOOKUP_ENTRIES - self.entries)
+            except ScanLimit:
+                LOG.warning('icon lookup stopped after %d folder entries; the programs left keep the fallback look',
+                            ICON_LOOKUP_ENTRIES)
+                self.entries = ICON_LOOKUP_ENTRIES
+            except ValueError as error:
+                LOG.debug('icon folder %s skipped: %s', path, error)
+            except OSError:
+                pass
+        self.entries += len(names)
+        self.listings[path] = names
+        return names
+
+    def layout(self, theme):
+        """(root's position, root, folder under the theme, size, scalable) for each folder that may hold theme's
+        pictures."""
+        index = None
+        for folder in self.directories:
+            if 'index.theme' in self.listing(folder, theme):
+                path = os.path.join(folder, theme, 'index.theme')
+                try:
+                    index = read_icon_index(path, self.roots[folder])
+                except (OSError, ValueError) as error:
+                    LOG.warning('icon theme index %s not used, %s keeps the fixed layout: %s', path, theme, error)
+                break
+        folders = []
+        for position, folder in enumerate(self.directories):
+            names = self.listing(folder, theme)
+            if index is not None and 'index.theme' in names:
+                folders.extend((position, folder, name, size, scalable) for name, size, scalable in index)
+                continue
+            for size_name in sorted(name for name, is_folder in names.items() if is_folder):
+                match = re.fullmatch(r'(\d{1,4})x\1', size_name)
+                if size_name != 'scalable' and not (match and 0 < int(match[1]) <= ICON_LARGEST):
+                    continue
+                size = int(match[1]) if match else 0
+                contexts = self.listing(folder, theme, size_name)
+                folders.extend((position, folder, f'{size_name}/{context}', size, size_name == 'scalable')
+                               for context in sorted(name for name, is_folder in contexts.items() if is_folder))
+        return folders
+
+    def order(self, theme):
+        """theme's folders in lookup order, each with the kinds of file it may give.
+
+        PNGs by size up to 256, largest first, as before, whatever the folder's Type (hicolor's index calls its
+        256x256/apps Scalable); then SVGs, scalable folders first, then sized ones up to 256, largest first; then PNGs
+        over 256, the smallest first. The fixed layout's scalable/ has no size: as before, it gives any kind of file
+        among the scalable folders. Within a step roots break ties, then the folder's place in its index or layout.
+        """
+        if theme not in self.orders:
+            ranked = []
+            for position, folder, name, size, scalable in self.layout(theme):
+                if 0 < size <= 256:
+                    ranked.append(((0, -size, position), folder, name, ('png', 'bare')))
+                elif size > 256:
+                    ranked.append(((3, size, position), folder, name, ('png', 'bare')))
+                if scalable:
+                    ranked.append(((1, 0, position), folder, name, ('svg',) if size else ('png', 'svg', 'bare')))
+                elif size <= 256:
+                    ranked.append(((2, -size, position), folder, name, ('svg',)))
+            ranked.sort(key=lambda item: item[0])
+            self.orders[theme] = [item[1:] for item in ranked]
+        return self.orders[theme]
+
+    def candidate(self, folder, *parts):
+        path = os.path.join(folder, *parts)
+        real = os.path.realpath(path)
+        if within(real, self.roots[folder]) and os.path.isfile(real):
             return real
         return None
 
-    # Theme precedence applies across roots, then size, then folder precedence. Fixed depths avoid walking trees.
-    for theme in ('hicolor', 'breeze'):
-        sizes = set()
-        for folder in directories:
-            for size, is_folder in listing(folder, theme):
-                match = re.fullmatch(r'(\d{1,3})x\1', size)
-                if match and 0 < int(match[1]) <= 256 and is_folder:
-                    sizes.add(int(match[1]))
-        for size in [f'{n}x{n}' for n in sorted(sizes, reverse=True)] + ['scalable']:
-            for folder in directories:
-                contexts = sorted(context for context, is_folder in listing(folder, theme, size) if is_folder)
-                for context in contexts:
-                    for filename in names:
-                        if size != 'scalable' and filename.endswith('.svg'):
-                            continue
-                        if path := candidate(folder, theme, size, context, filename):
-                            return path
-    for folder in directories:
-        for filename in names:
-            if path := candidate(folder, filename):
-                return path
-    return None
+    def resolve(self, name):
+        if not name or '\0' in name:
+            return None
+        if os.path.isabs(name):
+            return name
+        if '/' in name or '..' in name or len(name) > 255:
+            return None
+        if name.endswith(('.png', '.svg')):
+            files = ((name, name[-3:]),)
+        else:
+            files = ((name + '.png', 'png'), (name + '.svg', 'svg'), (name, 'bare'))
+        # Theme precedence applies across roots, then the order above. Only listed folders are looked into.
+        for theme in self.THEMES:
+            for folder, relative, kinds in self.order(theme):
+                wanted = [filename for filename, kind in files if kind in kinds]
+                if not wanted:
+                    continue
+                names = self.listing(folder, theme, relative)
+                for filename in wanted:
+                    if filename in names and (path := self.candidate(folder, theme, relative, filename)):
+                        return path
+        for folder in self.directories:
+            for filename, _ in files:
+                if path := self.candidate(folder, filename):
+                    return path
+        return None
 
 
 def sniff_icon(raw):
@@ -1485,6 +1624,8 @@ class IconCache:
                 apps, revision = self.pending.get(timeout=0.1)
             except queue.Empty:
                 continue
+            # One lookup per pass: each theme's layout is worked out, and each folder listed, once for all programs.
+            lookup = IconLookup(self.directories, self.deployments)
             roots = tuple(os.path.realpath(folder) for folder in (*self.directories, *self.deployments))
             pictures, complete = set(), True
             for app in apps.values():
@@ -1493,7 +1634,7 @@ class IconCache:
                     break  # the latest rescan supersedes queued work
                 path = None
                 try:
-                    if source := resolve_icon(app.icon_name, self.directories, self.deployments):
+                    if source := lookup.resolve(app.icon_name):
                         # A named icon is read only from inside its folders; an absolute Icon path as written.
                         path = self.convert(source) if os.path.isabs(app.icon_name) else self.convert(source, roots)
                 except (OSError, ValueError, subprocess.SubprocessError) as error:

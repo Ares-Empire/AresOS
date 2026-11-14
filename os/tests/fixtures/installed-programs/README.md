@@ -18,8 +18,13 @@ The SVG draws two green columns and two half-transparent gold columns on the sam
 Both deliberately have a 2:1 aspect and partial alpha so the tests can verify scaling, padding and transparency.
 Hostile icons, FIFOs, symlinks, converter scripts and oversized files are generated in private test scratch.
 
-`test_aresos_shell_icons.py` is the portable helper unit module. The six real ImageMagick 7/bubblewrap
-checks are in `check_aresos_shell_icons.py`, run explicitly on AresOS with
+`breeze-index.theme` (review fixes 3) was written for the tests, not copied from KDE: an index.theme in the form of
+Breeze's own (`<context>/<size>` folders described by `Size`, `Type` Fixed or Scalable, `Scale`), with a few folders
+of each type and one scaled folder listed among the plain ones. The tests copy it into a temporary icon root and put
+the drawings above at `breeze/apps/48/` and `breeze/apps/64/`, where Breeze keeps application pictures.
+
+`test_aresos_shell_icons.py` is the portable helper unit module. The real ImageMagick 7/bubblewrap
+checks are in `check_aresos_shell_icons.py` (with one read-only lookup in the machine's real icon folders), run explicitly on AresOS with
 `python3 -m unittest discover -s os/tests -p 'check_aresos_shell_icons.py' -v`.
 They fail if the route is missing; they do not skip. Ubuntu's ordinary regression job has no Fedora
 ImageMagick 7/runtime layout and runs the unit module without requiring that conversion route.
