@@ -1,18 +1,45 @@
-# 37: Getting around the town: progress
+# 37: Getting around the town: report
 
-Brief: `briefs/37-getting-around.md`. Built in steps by fresh Claude agents (Opus 5.5). This file is kept up to date
-after each step; the last step turns it into the report.
+Brief: `briefs/37-getting-around.md` (empire board brief 287; HUB.md section 6, row 6, the last piece of home screen
+version 1). Built in three steps by fresh Claude agents (Opus 5.5), one per step, on branch `pkg/37-getting-around`.
 
-## Step 1: `/go`, `/home`, the H key, places in `/apps` (done, 2026-11-14)
+**What he sees.** In his flat home:
+
+- **`/go steam`** (any name `/open` takes, among his apps first; Tab completes them) puts him on the ground in front of
+  Steam's door, looking at it; one step and he is in. Arriving opens nothing and changes no block. A logo whose ground is
+  not loaded yet is built as he arrives; if his own build stands where he would arrive, he arrives at the nearest free
+  spot on the way in.
+- **H**, or **`/home`**, puts him back home (the pad, facing north, unless `/aresos home set` moved it), from any
+  dimension.
+- **`/apps`** says where every logo stands ("Lunar Client: /lunar. Games, east, front row, left") or why one has none.
+- **`/aresos app swap chrome discord`** makes two logos change places; **`/aresos app move steam west`** puts Steam among
+  Work & Media, and it stays there. Both are all or nothing: when anything is in the way (his torch on a logo, a place
+  that is not loaded), nothing changes and one line says what is in the way and what he can do.
+
+**Try this** (a new flat home in a game whose app helper lists his programs, so the town stands):
+
+1. `/apps`: every row says where its logo stands. Click a row: the app opens.
+2. `/go discord` (or `/go dc`): he stands at Discord's door. Look up for its sign. One step forward: Discord opens.
+3. Walk away, press **H**: back on the pad, facing north. `/home` does the same.
+4. `/aresos app swap chrome lunar`: Chrome's logo stands on the east road with a red doormat, Lunar Client's on the north
+   road with a light blue one; the counts over the roads stay. `/apps` says the new places. Swap them back: both stand
+   where they stood, and `config/aresos/apps.json` holds no hand-set `group` for them.
+5. `/aresos app move notepad west`: Notepad stands on the west road and `WORK & MEDIA` counts one more.
+   `/aresos app move notepad south` brings it back.
+6. Press G, put a torch on a logo's doormat, press G again and swap that app with another: one red line ("Nothing was
+   swapped: … cannot come down. Logo could disturb neighboring minecraft:torch at …"), and nothing changed. Break the
+   torch (Build mode) and swap again: it works.
+
+## Done
+
+### Step 1: `/go`, `/home`, the H key, places in `/apps`
 
 Commits on `pkg/37-getting-around` (on `df82fabc`):
 
 - `8ff8f426` 37: step 1: a place in words, and its exit point
 - `be5d87bf` 37: step 1: /apps says where each logo stands
 - `235794e0` 37: step 1: /go, /home and the H key
-- `37: step 1: the /apps row in package 35's client test, and PROGRESS.md` (this file)
-
-### Done
+- `daf7ee66` 37: step 1: the /apps row in package 35's client test, and PROGRESS.md
 
 1. **A place in words** (`hub/Place.words()`): the one function from a place to words. Group title, direction,
    "front row" for `r = 0` and "row N" (counted from 1) after it, "left" or "right" as he sees it walking out from
@@ -62,100 +89,14 @@ Commits on `pkg/37-getting-around` (on `df82fabc`):
    singleplayer world (`acceptsAppCommands`). The server checks the host and the AresOS world again and does what
    `/aresos home` does; a refusal ("No readable AresOS home …") shows above the hotbar.
 
-### Tests
-
-- Unit (`PlaceTest`): `aPlaceInWordsAsHeReadsItInTheChat` (the five of day one, `W1R1`, `N2L2`, `E1L0`, `S4R3`, the
-  ordinals 11th to 13th, 21st, 22nd, 64th); `theExitPointOfAPlaceIsTheTablesExitPoint` (HUB.md 3.2's six exits from a
-  home block that is not the origin, yaw, pitch -10).
-- Server game tests (`GettingAroundGameTests`, two batches of their own, `go_town` and `go_no_town`):
-  - `goPutsHimInFrontOfHisAppsDoors`: a town on new ground with four logos built by `Town.build`. `/apps` rows
-    (standing, second row, a place not loaded, no list yet). `/go chr` → (H − 9.0, H, H − 13.5), yaw 180, pitch -10,
-    no line. Ten ticks later nothing was opened; stepping into the niche then does open it (the check can see a
-    launch). `/go Notes` (`W1R1`) → (H − 27.5, H, H − 23.0), yaw 90; `/go lunar client` → (H + 14.5, H, H − 9.0),
-    yaw -90. His stone at Discord's exit → one block nearer the door, no block changed. His stone on the whole way in
-    → no move, the line, no block changed. `/go stranger` → the add line. `/go far` (`N40L0`, not loaded, `WAITS`) →
-    (H − 9.0, H, H − 573.5), yaw 180, and its line.
-  - `goWithoutATownAndHomeFromTheNether`: a hub of other rules (`flat-0`) stands in for a world without a town (the
-    server's hub record cannot be taken away; `Whereabouts` treats both alike, checked). `/go bare` → "Bare has no
-    logo here."; two hand-made zones → the nearer one's exit; `/go other` → the add line; `/home` from the Nether →
-    the home spot in the Overworld, yaw 180, pitch -8; the same through `HomeCommands.key` (the H key's server half).
-- Client (`FlatHomeClientGameTest.assertHomeCommands`, no new picture): after `/aresos home`, from 30 blocks away
-  `/home`, then the H key pressed through the test input, each back on the pad facing north.
-
-### What ran (from the worktree root, 2026-11-14)
-
-| Run | Exit | What it printed |
-|---|---|---|
-| `mod/dev/build.sh` | 1 | `BUILD FAILED in 20s`: my test expected Newcomer (no group given) in Internet; it is in System & Tools. Test fixed. |
-| `mod/dev/build.sh` | 1 | `BUILD FAILED in 28s`: "The far line: []": the test's own failure messages called `lines()`, which drains the chat, so the line was eaten before it was checked. Test fixed (`Host.ran`); the code was right. |
-| `mod/dev/build.sh` | 0 | "All 96 required tests passed :)", `BUILD SUCCESSFUL in 1m 57s`; unit tests 213 run, 6 skipped (Windows), 0 failed |
-| `mod/dev/client-test.sh` (run 1, 07:32 to 07:47, waited for another builder's run first) | 1 | `BUILD FAILED in 8m 12s`. Every test up to package 34 passed ("09c" … "34 client checks passed"), including `FlatHomeClientGameTest` ("32 client checks passed") with the new `/home` and H key checks. `SlashNamesClientGameTest` failed at line 118: it looked for the `/apps` row starting "Discord " and the row now starts "Discord: ". Its assertion follows the new row ("Discord: "); it still clicks the server's own row. |
-| `mod/dev/client-test.sh` (run 2, started 07:48, ended 08:06) | 0 | `BUILD SUCCESSFUL in 9m 18s`; 15 "client checks passed" lines, among them "32 client checks passed" (with `/home` and H) and "35 client checks passed" (the `/apps` row clicked), and "36 pictures taken" |
-
-After each client run the tracked pictures were put back (`git checkout -- reviews/`) and the run's untracked
-renumbered pictures removed; this step commits no picture. Package 35's picture of `/apps` in the chat
-(`reviews/35-slash-names/screenshots/0059_35-apps-chat.png`) now shows the new rows ("Discord: /discord, /dc. Internet: no town in this world" in that test's
-world without a town); step 3 retakes the pictures.
-
-### Decisions (JUDGMENT-CALL)
-
-- **1-1. `/go` looks among his apps first.** The keys are `/open`'s, but a program that is not his never hides one
-  that is (`/go st` with Steam his and Stellarium not goes to Steam). Only when none of his apps matches does it look
-  at the rest, to say how to add one. Rejected: `/open`'s result filtered afterwards (an exact match of a stranger
-  would hide a prefix of his own).
-- **1-2. Arrival checks may load a chunk.** To check the exit point of a place that is not loaded, its blocks are
-  read before the teleport, which loads that chunk synchronously (the same chunk the teleport loads anyway a tick
-  later). No ticket is added and nothing is held. Rejected: moving him unchecked (into a wall, against "If unsure");
-  refusing for an unloaded place (against the brief's "it also works while the logo is not built yet").
-- **1-3. `/go` refuses for a loaded place with no logo yet (`BUILDING`)** with "… is not built yet. Try again in a
-  moment." The brief names only the not-loaded case as one to go to; a loaded place without a logo means the town is
-  still at work (a picture being read, an old logo to take down first), so he is told instead of being put in front
-  of nothing.
-- **1-4. `/home` and `/go` exist only for the host of an AresOS world**, like `/open` and `/apps` (`AppCommands.allowed`
-  as the requirement), and only where no other mod has the name. So in a normal world `/home` is an unknown command,
-  where `/aresos home` says "Not an AresOS world"; everything else is `/aresos home`'s own path.
-- **1-5. A refused town file:** a logo "stands in its recorded place" when `zones.dat` holds the app's doorway at its
-  saved place (the box the town makes), since the refused records are not read. Without that doorway, one line.
-- **1-6. Words:** the row is counted from 1 for him ("row 2" is `r = 1`), and an absent app's `/apps` row stays as
-  package 35 had it.
-- **1-7. Feedback:** `/go` to a standing logo says nothing (he sees the door); a `WAITS` arrival says one line,
-  because he arrives in front of nothing for a moment.
-
-### Not verified
-
-- The town building a not-loaded logo as he arrives by `/go`: that is package 36's pending retry, tested there
-  (`keepingFar`); here the test checks only where he arrives.
-- `/go` in a frozen town and with a refused town file: by reading only (no server test; the brief's list has none).
-- F3+H in the real client (the debug-modifier check is in the code; no client check, because F3+H writes to the chat
-  and toggles advanced tooltips, which the next picture of that test would show).
-- H with a screen open, and H in a non-AresOS world: by reading only.
-- `NO_PLACE` with an app whose old saved place is blocked: the assignment keeps such a place saved, so `/apps` says
-  "being built" for it while every place of its group is blocked (needs 4160 blocked places).
-
-### For step 2
-
-- **Place to words:** `Place.words()` (`hub/Place.java`). Use it for the lines of `swap` and `move`.
-- **How `/go` finds the exit point:** `Place.exit(hub.home().dimension(), hub.home().pos())`, the exit of the
-  `GatePlan` of that place with a plain front, the same point the town's zone returns him to. The arrival search is
-  `GettingAround.arrival(level, place, exit)`: the exit point, then each block nearer the door up to the layer in
-  front of the logo, the first one `HomeSites.isSafe` passes.
-- **Which place an app has:** `Whereabouts.of(server, app, TownKeeper.complete())`; `STANDS` gives the record's
-  place. After a `swap` or `move` the saved places change first and the record follows with the pass, so `/apps` and
-  `/go` follow the record (where the logo really stands) until then.
-- `/apps` shows the group a place belongs to, so a move across groups shows there by itself.
-- The server tests own the hub record in their own batches (`go_town`, `go_no_town`); step 2's tests need batches of
-  their own too. `Host.lines()` drains the chat: never call it inside a failure message (use `Host.ran`).
-
-## Step 2: `swap` and `move` (done, 2026-11-14)
+### Step 2: `swap` and `move`
 
 Commits on `pkg/37-getting-around` (on `daf7ee66`):
 
 - `a6a2eb26` 37: step 2: the checks before a swap or move use the town's own functions
 - `3c0323ae` 37: step 2: /aresos app swap and move
 - `107970ea` 37: step 2: server tests for swap and move; step 1's Nether test leaves no home record
-- `37: step 2: a longer wait for far-off chunks, and PROGRESS.md` (this file)
-
-### Done
+- `66d16f81` 37: step 2: a longer wait for far-off chunks, and PROGRESS.md
 
 1. **`/aresos app swap <a> <b>`** and **`/aresos app move <app> <north|east|south|west>`** (`item/AppCommands`, logic in
    `hub/TownMoves`). Host-only like the rest of `/aresos app`. Names are `/go`'s: `GettingAround.his` (shared now, the
@@ -203,7 +144,7 @@ Commits on `pkg/37-getting-around` (on `daf7ee66`):
    every group change needed a new read, and a check's read for the new group would have been read over by the next
    pass for the old one: a cross-group swap of an app without an icon would have said "try again" forever.
 
-### How the checks and the pass are kept from disagreeing
+**How the checks and the pass are kept from disagreeing.**
 
 Each check is the function the pass itself uses, asked before the pass does it; nothing runs between them.
 
@@ -224,7 +165,84 @@ Each check is the function the pass itself uses, asked before the pass does it; 
 - **If they still disagree** (something no check foresees), the command says so in one line instead of its own, and
   the pass's lines say what happened; the places stay saved and the town's pending work goes on.
 
-### Tests
+### Step 3: the pictures, the docs and the pull request
+
+Commits on `pkg/37-getting-around` (on `66d16f81`):
+
+- `1365c286` 37: step 3: README, mod README and HUB.md for getting around
+- `00a6aec9` 37: step 3: client test with pictures of getting around
+<<STEP3_COMMITS>>
+
+1. **`GettingAroundClientGameTest`**, last in the client list; its pictures go to `reviews/37-getting-around/screenshots`
+   (`aresos.goReviewDir` in `mod/build.gradle`). A fake helper lists day one with Mail (Internet's third app, so the
+   second row) and Spotify (Work & Media), with the icons package 36's picture test draws; a new flat home is made
+   through the title screen and the town builds seven logos ("The town is built: 7 logos. /apps lists them."). Each step
+   is typed or pressed as he does it:
+   - `/go mail`: he stands at Mail's exit point (N1L0), yaw 180, pitch -10; ten ticks on the spot open nothing and no
+     line is said. A picture; then from the same spot looking up (pitch -45), a picture of the sign.
+   - The H key (through the test input): back at (0.5, 64, 0.5), yaw 180, pitch -8, nothing said or opened. A picture.
+   - `/apps`: "My apps: 7. Click one to open it." and one row per app, each its name, its commands and `Place.words()` of
+     its place (Mail's is "Mail: /mail. Internet, north, row 2, left"). A picture with the chat.
+   - Build mode, from above: the counts are INTERNET · 3, GAMES · 1, SYSTEM & TOOLS · 2, WORK & MEDIA · 1. A picture.
+     Then `/aresos app swap chrome lunar`: Chrome stands at E0L0 and Lunar Client at N0L0, with one line ("Chrome now
+     stands at Games, east, front row, left, and Lunar Client at Internet, north, front row, left."); every other app
+     stands where it stood, the counts are unchanged, the doormats are red and light blue, and the apps file holds
+     `group` "games" and "internet". A picture.
+   - Live mode, `/go discord`, his torch on Discord's doormat (set as his own blocks are, not through the town's record),
+     `/aresos app swap discord spotify`: one line, "Nothing was swapped: Discord's logo at Internet, north, front row,
+     right cannot come down. Logo could disturb neighboring minecraft:torch at …"; the town's places, the torch and both
+     apps' entries are unchanged. Looking down at the torch, a picture with the line.
+   - With `ARESOS_TOWN_LOOK` set it skips itself with a log line (3-2).
+2. **`TownPicturesClientGameTest`** (package 36): its programs, drawings and its helpers for standing, hovering, switching
+   modes and taking a picture are package-wide now (only `private` dropped; 3-1). Its comment no longer says it is last.
+3. **Package 35's picture of `/apps`** (`reviews/35-slash-names/screenshots/0059_35-apps-chat.png`) is committed anew from
+   the final run: it shows the new rows ("Discord: /discord, /dc. Internet: no town in this world", in that test's world
+   without a town).
+4. **Docs.** `mod/README.md`: `/home` and H beside `/aresos home`; under "The town" which group an app has once moved,
+   **Getting around** (`/go`, `/home`, H, `/apps`) and **Arranging the town** (`swap`, `move`, the saved `group`, what they
+   refuse); `/apps` and the reserved names under "Short app commands". `README.md`: the status line. `docs/design/HUB.md`:
+   "Corrections from getting around (package 37)", eight points (the Apps screen shows no group, a place in words, `/go`'s
+   arrival, home, all or nothing, a town logo that cannot come down, "it stays there", the town's pictures).
+5. This report (in `PROGRESS.md`, since a Claude agent cannot create `REPORT.md`).
+
+## Verified
+
+### Step 1
+
+- Unit (`PlaceTest`): `aPlaceInWordsAsHeReadsItInTheChat` (the five of day one, `W1R1`, `N2L2`, `E1L0`, `S4R3`, the
+  ordinals 11th to 13th, 21st, 22nd, 64th); `theExitPointOfAPlaceIsTheTablesExitPoint` (HUB.md 3.2's six exits from a
+  home block that is not the origin, yaw, pitch -10).
+- Server game tests (`GettingAroundGameTests`, two batches of their own, `go_town` and `go_no_town`):
+  - `goPutsHimInFrontOfHisAppsDoors`: a town on new ground with four logos built by `Town.build`. `/apps` rows
+    (standing, second row, a place not loaded, no list yet). `/go chr` → (H − 9.0, H, H − 13.5), yaw 180, pitch -10,
+    no line. Ten ticks later nothing was opened; stepping into the niche then does open it (the check can see a
+    launch). `/go Notes` (`W1R1`) → (H − 27.5, H, H − 23.0), yaw 90; `/go lunar client` → (H + 14.5, H, H − 9.0),
+    yaw -90. His stone at Discord's exit → one block nearer the door, no block changed. His stone on the whole way in
+    → no move, the line, no block changed. `/go stranger` → the add line. `/go far` (`N40L0`, not loaded, `WAITS`) →
+    (H − 9.0, H, H − 573.5), yaw 180, and its line.
+  - `goWithoutATownAndHomeFromTheNether`: a hub of other rules (`flat-0`) stands in for a world without a town (the
+    server's hub record cannot be taken away; `Whereabouts` treats both alike, checked). `/go bare` → "Bare has no
+    logo here."; two hand-made zones → the nearer one's exit; `/go other` → the add line; `/home` from the Nether →
+    the home spot in the Overworld, yaw 180, pitch -8; the same through `HomeCommands.key` (the H key's server half).
+- Client (`FlatHomeClientGameTest.assertHomeCommands`, no new picture): after `/aresos home`, from 30 blocks away
+  `/home`, then the H key pressed through the test input, each back on the pad facing north.
+
+From the worktree root, 2026-11-14:
+
+| Run | Exit | What it printed |
+|---|---|---|
+| `mod/dev/build.sh` | 1 | `BUILD FAILED in 20s`: my test expected Newcomer (no group given) in Internet; it is in System & Tools. Test fixed. |
+| `mod/dev/build.sh` | 1 | `BUILD FAILED in 28s`: "The far line: []": the test's own failure messages called `lines()`, which drains the chat, so the line was eaten before it was checked. Test fixed (`Host.ran`); the code was right. |
+| `mod/dev/build.sh` | 0 | "All 96 required tests passed :)", `BUILD SUCCESSFUL in 1m 57s`; unit tests 213 run, 6 skipped (Windows), 0 failed |
+| `mod/dev/client-test.sh` (run 1, 07:32 to 07:47, waited for another builder's run first) | 1 | `BUILD FAILED in 8m 12s`. Every test up to package 34 passed ("09c" … "34 client checks passed"), including `FlatHomeClientGameTest` ("32 client checks passed") with the new `/home` and H key checks. `SlashNamesClientGameTest` failed at line 118: it looked for the `/apps` row starting "Discord " and the row now starts "Discord: ". Its assertion follows the new row ("Discord: "); it still clicks the server's own row. |
+| `mod/dev/client-test.sh` (run 2, started 07:48, ended 08:06) | 0 | `BUILD SUCCESSFUL in 9m 18s`; 15 "client checks passed" lines, among them "32 client checks passed" (with `/home` and H) and "35 client checks passed" (the `/apps` row clicked), and "36 pictures taken" |
+
+After each client run the tracked pictures were put back (`git checkout -- reviews/`) and the run's untracked
+renumbered pictures removed; this step commits no picture. Package 35's picture of `/apps` in the chat
+(`reviews/35-slash-names/screenshots/0059_35-apps-chat.png`) now shows the new rows ("Discord: /discord, /dc. Internet: no town in this world" in that test's
+world without a town); step 3 retakes the pictures.
+
+### Step 2
 
 - Server game tests in `GettingAroundGameTests`, two batches of their own (`go_swap`, `go_move`), each its own town on
   new ground, the host's own apps file, a `TownKeeper` of the test, the drawn ring picture:
@@ -247,7 +265,7 @@ Each check is the function the pass itself uses, asked before the pass does it; 
     is not loaded. Stand at home and try again.", world, file and records unchanged).
 - Step 1's `goWithoutATownAndHomeFromTheNether` now takes away the home record it made (see 2-5).
 
-### What ran (from the worktree root, 2026-11-14)
+From the worktree root, 2026-11-14:
 
 | Run | Exit | What it printed |
 |---|---|---|
@@ -261,7 +279,70 @@ Each check is the function the pass itself uses, asked before the pass does it; 
 
 `mod/dev/client-test.sh` was not run: step 2 changes nothing a client test covers.
 
-### Decisions (JUDGMENT-CALL)
+### Step 3
+
+<<STEP3_VERIFIED>>
+
+## Not verified
+
+From step 1:
+
+- The town building a not-loaded logo as he arrives by `/go`: that is package 36's pending retry, tested there
+  (`keepingFar`); here the test checks only where he arrives.
+- `/go` in a frozen town and with a refused town file: by reading only (no server test; the brief's list has none).
+- F3+H in the real client (the debug-modifier check is in the code; no client check, because F3+H writes to the chat
+  and toggles advanced tooltips, which the next picture of that test would show).
+- H with a screen open, and H in a non-AresOS world: by reading only.
+- `NO_PLACE` with an app whose old saved place is blocked: the assignment keeps such a place saved, so `/apps` says
+  "being built" for it while every place of its group is blocked (needs 4160 blocked places).
+
+From step 2:
+
+- The "town did not finish" line: no test makes the pass disagree with the checks (that would need the world to change
+  between them, which one tick does not allow).
+- A swap or move refused for a logo whose own place is not loaded (`Town.checkRemove` → `NotLoaded`): by reading; the
+  test covers a new place not loaded and (by `Whereabouts`) an app whose place is not loaded.
+- Frozen town and refused town file for swap and move: by reading (the same lines and checks as `hub rebuild`).
+- The typed commands with a complete program list in a real game (the test server has none unless another test gave
+  one; then the typed part with the town's line is skipped and only the "nothing matches" line is checked).
+- That a reload is what registers `/aresos` on the game test server: inferred from the batch order of two runs.
+
+From step 3:
+
+- His own screen: the pictures come from the headless compositor at 960 x 540, the window package 36's pictures use as half
+  his 1920 x 1080 screen at the game's scale; colours and legibility on his screen are inferred from that.
+- `move` has no picture (the brief asks for none); step 2's server tests cover it.
+- The doormats' colours from above are two small blocks each: the test checks them block by block; the picture only
+  shows them.
+- The H key on his own keyboard and with F3 held (step 1).
+
+## JUDGMENT-CALL
+
+From step 1:
+
+- **1-1. `/go` looks among his apps first.** The keys are `/open`'s, but a program that is not his never hides one
+  that is (`/go st` with Steam his and Stellarium not goes to Steam). Only when none of his apps matches does it look
+  at the rest, to say how to add one. Rejected: `/open`'s result filtered afterwards (an exact match of a stranger
+  would hide a prefix of his own).
+- **1-2. Arrival checks may load a chunk.** To check the exit point of a place that is not loaded, its blocks are
+  read before the teleport, which loads that chunk synchronously (the same chunk the teleport loads anyway a tick
+  later). No ticket is added and nothing is held. Rejected: moving him unchecked (into a wall, against "If unsure");
+  refusing for an unloaded place (against the brief's "it also works while the logo is not built yet").
+- **1-3. `/go` refuses for a loaded place with no logo yet (`BUILDING`)** with "… is not built yet. Try again in a
+  moment." The brief names only the not-loaded case as one to go to; a loaded place without a logo means the town is
+  still at work (a picture being read, an old logo to take down first), so he is told instead of being put in front
+  of nothing.
+- **1-4. `/home` and `/go` exist only for the host of an AresOS world**, like `/open` and `/apps` (`AppCommands.allowed`
+  as the requirement), and only where no other mod has the name. So in a normal world `/home` is an unknown command,
+  where `/aresos home` says "Not an AresOS world"; everything else is `/aresos home`'s own path.
+- **1-5. A refused town file:** a logo "stands in its recorded place" when `zones.dat` holds the app's doorway at its
+  saved place (the box the town makes), since the refused records are not read. Without that doorway, one line.
+- **1-6. Words:** the row is counted from 1 for him ("row 2" is `r = 1`), and an absent app's `/apps` row stays as
+  package 35 had it.
+- **1-7. Feedback:** `/go` to a standing logo says nothing (he sees the door); a `WAITS` arrival says one line,
+  because he arrives in front of nothing for a moment.
+
+From step 2:
 
 - **2-1. The command's line replaces the town's "moved" lines** for the apps it moved (`TownKeeper.keep(..., quiet)`).
   Otherwise one swap says three lines about two logos. The pass's other lines (other apps, his things in the way)
@@ -291,31 +372,47 @@ Each check is the function the pass itself uses, asked before the pass does it; 
   and carries the game's own reason, which already says what to do ("Move it away, then retry", "Leave two cells clear
   …"). Moving to its own group is a refusal line (red), like `hub trust` when nothing is frozen.
 
-### Not verified
+From step 3:
 
-- The "town did not finish" line: no test makes the pass disagree with the checks (that would need the world to change
-  between them, which one tick does not allow).
-- A swap or move refused for a logo whose own place is not loaded (`Town.checkRemove` → `NotLoaded`): by reading; the
-  test covers a new place not loaded and (by `Whereabouts`) an app whose place is not loaded.
-- Frozen town and refused town file for swap and move: by reading (the same lines and checks as `hub rebuild`).
-- The typed commands with a complete program list in a real game (the test server has none unless another test gave
-  one; then the typed part with the town's line is skipped and only the "nothing matches" line is checked).
-- That a reload is what registers `/aresos` on the game test server: inferred from the batch order of two runs.
+- **3-1. The new test shares package 36's helpers** (its programs, drawings, `look`, `hover`, `mode`, `picture`) by dropping
+  `private`, rather than copying them: one place to change how a picture is taken. Rejected: a copy of about 150 lines;
+  a new shared class (a bigger change to package 36's file than this needs).
+- **3-2. The test skips itself when `ARESOS_TOWN_LOOK` is set.** Package 36's opt-in puts real icons into the shared
+  drawings, and this test's pictures go into the repo: with it set they would be pictures made from real icons.
+  Rejected: changing `entry` to ignore the variable (that would change package 36's opt-in).
+- **3-3. Seven apps:** day one plus Mail (Internet's third app, so a second row) and Spotify (every group has a logo in the
+  view from above, and the refused swap goes across groups). Rejected: forty apps (package 36 pictures those; one swap
+  is hard to find among them from above).
+- **3-4. The sign at `/go`'s arrival (tuned, picture only).** The first picture after `/go mail` showed the door and no
+  sign: at the exit point, 6 blocks out at pitch -10 (both decided: HUB.md 3.2 and the brief), the sign of a logo 12
+  tall is about 58 degrees up, above the top of the screen, as package 36's correction for 2.2 says. The arrival was not
+  changed; a second picture from the same spot, looking up, shows the sign he reads there. Changing the arrival later
+  is one number (the exit's pitch or its distance); see Open questions.
+- **3-5. The refused swap's picture looks down at the torch (tuned).** At the arrival pitch the torch was behind the five
+  lines of the chat; looking down 15 degrees from the same spot shows the torch, the doorway and the line together.
+- **3-6. The picture after the swap has no chat:** from above, the chat covers the south-west, where Spotify stands. The
+  test checks the line word for word, and the README quotes it.
 
-### For step 3
+## PLAN-GAP
 
-- **Pictures to take:** the town from above before and after a swap across two groups (e.g. Chrome N0L0 with Lunar
-  Client E0L0: doormats change colour, counts stay); the chat line of a refused swap (his torch on a doormat:
-  "Nothing was swapped: Discord's logo at Internet, north, front row, left cannot come down. Logo could disturb
-  neighboring minecraft:torch at …"). Client tests reach the town's own keeper through the typed command, which needs a
-  complete program list in that client world (the fake helper gives one).
-- **`mod/README.md`:** `/aresos app swap <a> <b>`, `/aresos app move <app> <north|east|south|west>`; what they refuse
-  (frozen or refused town, no list yet, a logo the town is still moving or has not built, a picture not read yet, a
-  logo of the town that cannot come down because something of his hangs on it, a place not loaded: "Stand at home and
-  try again", a new place his build blocks for this logo); that a swap across groups and a move set the hand-set group,
-  and moving back removes it.
-- **`docs/design/HUB.md` corrections:** the Apps screen shows no group (the brief's point 4 assumed one); the town
-  keeps icon-or-plain pictures, not per group; a town logo that cannot come down makes a swap or move refuse, while the
-  town's own pass keeps the new app waiting at that place.
-- Known limit: the test world is kept between runs, so a test that leaves saved data behind breaks the next run, not its
-  own (2-5); `mod/dev/build.sh` twice is what catches it.
+- **The Apps screen shows no group** (brief, step 2, point 4, "the group shown in `/apps` and in the Apps screen"): its
+  rows show icon, name, kind and main short name. Nothing there follows a move; HUB.md's corrections now say so.
+- **HUB.md 2.6, "Home … puts him on the pad, facing north":** `/home` and H do exactly what `/aresos home` does (the
+  brief's rule), so they go to his home spot, which `/aresos home set` can move off the pad. HUB.md's corrections say so.
+- **Step 3's "/go to an app in a second row (the door in front of him, the sign readable)"** cannot be one picture at the
+  decided arrival: 6 blocks out at pitch -10 the sign is above the screen (3-4).
+- **The test world is kept between runs** (2-5): a test that leaves saved data behind breaks the next run, not its own.
+  Running `mod/dev/build.sh` twice is what catches it; nothing in the build does.
+- **Package 35's committed picture of `/apps`** (`0059_35-apps-chat.png`) showed the rows as they were before this
+  package; step 3 commits it anew.
+
+## Open questions
+
+- **Should `/go` show the sign on arrival?** At the exit point (HUB.md 3.2), 6 blocks out at pitch -10, the door fills the
+  view and the sign is above the screen (pictures `0076` and `0077`). He typed the name, so the door is enough, and one
+  step takes him in: I would keep it. The alternatives: arrive about 14 blocks out (sign and door in view, eight more
+  steps), or arrive looking up (the door at the bottom edge of the screen).
+
+Nothing else holds up the merge. The judgment calls above go to the owner before merge; the ones that change how it
+feels are 1-3 (`/go` refuses a loaded place whose logo is not built yet), 1-7 (`/go` to a standing logo says nothing),
+2-1 (the command's own line replaces the town's lines about the apps it moved) and 2-8 (the refusal wording).
