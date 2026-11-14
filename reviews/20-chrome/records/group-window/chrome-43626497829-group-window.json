@@ -1,0 +1,480 @@
+{
+  "run": "43626497829",
+  "head": "6e8cf12b624ef417404ab61581bdaf0440619684",
+  "runner_factors": {
+    "plain": {
+      "fresh": 1.293,
+      "history-1000": 1.122,
+      "history-4000": 1.081
+    },
+    "audit": {
+      "fresh": 0.868,
+      "history-1000": 0.99,
+      "history-4000": 0.993
+    }
+  },
+  "samples_per_call": {
+    "plain": {
+      "current": 60,
+      "ab7aba92": 20,
+      "reference": 20
+    },
+    "audit": {
+      "current": 60,
+      "ab7aba92": 20,
+      "reference": 20
+    }
+  },
+  "latency_job_minutes": {
+    "latency (audit)": 11.2,
+    "latency (plain)": 12.3
+  },
+  "popup_rows": {
+    "external": {
+      "rows_passed": [
+        {
+          "id": "popup-clean",
+          "phase": "guarded 0/1/1 and opener complete"
+        },
+        {
+          "id": "popup-dirty",
+          "phase": "guarded 0/1/1 and opener complete"
+        },
+        {
+          "id": "popup-typed-clean",
+          "phase": "guarded 0/1/1 and opener complete on the late path"
+        },
+        {
+          "id": "popup-typed-early",
+          "phase": "guarded 0/1/1 and opener complete on the document_start path"
+        },
+        {
+          "id": "popup-typed-late",
+          "phase": "guarded 0/1/1 and opener complete on the late path"
+        },
+        {
+          "id": "popup-stop",
+          "phase": "per-popup Stop preserves document and refuses later input"
+        },
+        {
+          "id": "popup-opener-release",
+          "phase": "opener release refuses later input without reload"
+        },
+        {
+          "id": "popup-opener-close",
+          "phase": "opener close refuses later input without reload"
+        },
+        {
+          "id": "popup-post",
+          "phase": "POST refusal"
+        },
+        {
+          "id": "popup-outside",
+          "phase": "ordinary opener untouched"
+        }
+      ],
+      "install_records": [
+        {
+          "popup": "popup-typed-clean",
+          "tab": 108866914,
+          "installs": [
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "f4bcaa490da7722f"
+            },
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "04bffcc68e468ee2"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": true
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        },
+        {
+          "popup": "popup-typed-early",
+          "tab": 108866916,
+          "installs": [
+            {
+              "install": "document_start",
+              "ready": true,
+              "document_sha256": "03ecc92f3ce732fc"
+            },
+            {
+              "install": "document_start",
+              "ready": true,
+              "document_sha256": "0c87f74cb2f3ce8c"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": true
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        },
+        {
+          "popup": "popup-typed-late",
+          "tab": 108866918,
+          "installs": [
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "b05717ebc803b2e1"
+            },
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "930237b1a899ec9a"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": true
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        },
+        {
+          "popup": "popup-stop",
+          "tab": 108866920,
+          "installs": [
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "2c8304e939c494d9"
+            },
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "5446e6d426a9752f"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": true
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        },
+        {
+          "popup": "popup-stop",
+          "tab": 108866920,
+          "installs": [
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "2c8304e939c494d9"
+            },
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "5446e6d426a9752f"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": false
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        },
+        {
+          "popup": "popup-opener-release",
+          "tab": 108866922,
+          "installs": [
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "a1f271f5babba0d0"
+            },
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "bfff799030766212"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": true
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        },
+        {
+          "popup": "popup-opener-close",
+          "tab": 108866924,
+          "installs": [
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "181d9a22a04a25a0"
+            },
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "b2cb5c8142f8064d"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": true
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        }
+      ],
+      "opener_in_one_normal_window_every_row": true,
+      "normal_windows_seen": 1
+    },
+    "policy": {
+      "rows_passed": [
+        {
+          "id": "popup-clean",
+          "phase": "guarded 0/1/1 and opener complete"
+        },
+        {
+          "id": "popup-dirty",
+          "phase": "guarded 0/1/1 and opener complete"
+        },
+        {
+          "id": "popup-typed-clean",
+          "phase": "guarded 0/1/1 and opener complete on the late path"
+        },
+        {
+          "id": "popup-typed-early",
+          "phase": "guarded 0/1/1 and opener complete on the document_start path"
+        },
+        {
+          "id": "popup-typed-late",
+          "phase": "guarded 0/1/1 and opener complete on the late path"
+        },
+        {
+          "id": "popup-stop",
+          "phase": "per-popup Stop preserves document and refuses later input"
+        },
+        {
+          "id": "popup-opener-release",
+          "phase": "opener release refuses later input without reload"
+        },
+        {
+          "id": "popup-opener-close",
+          "phase": "opener close refuses later input without reload"
+        },
+        {
+          "id": "popup-post",
+          "phase": "POST refusal"
+        },
+        {
+          "id": "popup-outside",
+          "phase": "ordinary opener untouched"
+        }
+      ],
+      "install_records": [
+        {
+          "popup": "popup-typed-clean",
+          "tab": 2037182274,
+          "installs": [
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "9ccc598d2fe37b71"
+            },
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "e860bb79ce240e65"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": true
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        },
+        {
+          "popup": "popup-typed-early",
+          "tab": 2037182276,
+          "installs": [
+            {
+              "install": "document_start",
+              "ready": true,
+              "document_sha256": "55acd5a3a42743ee"
+            },
+            {
+              "install": "document_start",
+              "ready": true,
+              "document_sha256": "80ba9364697d8a3b"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": true
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        },
+        {
+          "popup": "popup-typed-late",
+          "tab": 2037182278,
+          "installs": [
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "90534dec746fa053"
+            },
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "bd3cb1077ff57e4e"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": true
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        },
+        {
+          "popup": "popup-stop",
+          "tab": 2037182280,
+          "installs": [
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "c31f748caa9c8ea9"
+            },
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "f6436084dfcb867b"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": true
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        },
+        {
+          "popup": "popup-stop",
+          "tab": 2037182280,
+          "installs": [
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "c31f748caa9c8ea9"
+            },
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "f6436084dfcb867b"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": false
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        },
+        {
+          "popup": "popup-opener-release",
+          "tab": 2037182282,
+          "installs": [
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "a1627c06308a7872"
+            },
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "3dbff24118349c0b"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": true
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        },
+        {
+          "popup": "popup-opener-close",
+          "tab": 2037182284,
+          "installs": [
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "b76f66d24073a678"
+            },
+            {
+              "install": "late",
+              "ready": false,
+              "document_sha256": "2020cdb964dd0a2a"
+            }
+          ],
+          "popup_window": {
+            "type": "popup",
+            "focused": true
+          },
+          "opener_window": {
+            "type": "normal",
+            "focused": false
+          },
+          "opener_badge": "POP"
+        }
+      ],
+      "opener_in_one_normal_window_every_row": true,
+      "normal_windows_seen": 1
+    }
+  }
+}

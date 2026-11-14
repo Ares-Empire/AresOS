@@ -1,30 +1,29 @@
 <!-- POST18D CURRENT START -->
 # Handover
 
-- **Round:** the lead's two decisions after run `43613647256` (mac-aresos-control, 2026-11-14): the popup rows take
-  their install path from the extension's own record, and the old runtime keeps 20 latency samples. "Gate: old runtime
-  at 20; popup rows" below has both, their tests and probes, and the run.
-- **Stopped after the verify run.** Run **`43620235847`** (`07c05de0`) failed in one row of one check, in both
-  installs: the new forced-late popup row `typed-late` could not re-take its opener (`take_tab` returned `unknown`,
-  "Tabs can only be moved to and from normal windows"). The cause is in tab-group handling, which this step was told
-  not to change, so it was not fixed. The other two typed rows passed in both installs with the path the extension
-  recorded (`typed-clean` late, `typed-early` document start), and every other job passed except the two aggregates,
-  which stopped for the missing shards.
-- **Next: the lead decides the `typed-late` fix** (options and a recommendation under "The run" below), **then one
-  run; then both reviewers re-check the gate change and the popup rows; then the final pair** (and every Control
-  workflow twice).
-- **Latency in run `43620235847`** (worst of both profiles, median / p95 ms against the ceilings): no stat over a
-  ceiling and both gates passed, also with no runner credit. At 4,000: read 28.4 / 31.6 against 35 / 60, navigate
-  70.1 / 77.2 against 100 / 150, free_click 593.6 / 602.4 and fill 589.4 / 593.3 against 650 / 750, asking_click
-  40.5 / 43.6 against 60 / 100, approval_to_done 616.2 / 623.7 against 700 / 850. Runner factors plain 1.07 / 1.08 /
-  1.04, instrumented 1.24 / 1.48 / 1.44 (fresh / 1,000 / 4,000). Latency jobs **11.9 and 12.9 minutes** (19.8 and
-  20.6 before). Records: [`records/gate60b/`](records/gate60b/).
-- **Heads:** run head `07c05de0` (the popup rows in `90ff22d9`, the old runtime at 20 in `07c05de0`). The full local
-  preflight passes on it: **305 Python, 426 Node and 459 mutations** (Python shards 53/56/49/147; the Linux-only socket
-  case is skipped on the Mac and passed in CI), every baseline passing, plus the generator, diff and exact-unit checks
-  ([record](records/gate60b/final-local-07c05de0.json)). After the run one test-only commit silences the popup test's
-  stand-in evidence lines (they printed in CI's node output like a browser run's).
-- **Budget:** **265 / about 280** `control-chrome.yml` runs (this step used one: `43620235847`).
+- **Round:** the lead's decision after run `43620235847` (mac-aresos-control, 2026-11-14): a new Claude tab group is
+  created in the taken tab's own window, never the focused one. "Group in the tab's own window" below has the bug, the
+  fix, the test, the probes and the run. The gate change and the popup rows before it are in "Gate: old runtime at 20;
+  popup rows".
+- **Verify run passed.** Run **`43626497829`** (`6e8cf12b`): **all 28 jobs passed**, both aggregates with their four
+  independent audits (round 3's 92 named cases among 98 named passes, group 12, the 999-cell word matrix, the latency
+  profiles; the local re-run of the audit on the downloaded metadata agrees in both installs). The popup rows passed in
+  both installs on the path the extension recorded: `typed-early` document start, `typed-late` late (its re-take of
+  the opener, made with the owner's popup focused, now succeeds), `typed-clean` late.
+- **Next: both reviewers re-check the gate change, the popup rows and the group fix; then the final pair** (and every
+  Control workflow twice).
+- **Latency in run `43626497829`** (worst of both profiles, median / p95 ms against the ceilings): no stat over a
+  ceiling and both gates passed. At 4,000: read 22.6 / 24.4 against 35 / 60, navigate 67.0 / 71.3 against 100 / 150,
+  free_click 593.0 / 599.3 and fill 589.9 / 592.8 against 650 / 750, asking_click 35.5 / 39.7 against 60 / 100,
+  approval_to_done 610.2 / 625.0 against 700 / 850. Runner factors plain 1.29 / 1.12 / 1.08, instrumented 0.87 / 0.99
+  / 0.99 (fresh / 1,000 / 4,000). Latency jobs **12.3 and 11.2 minutes**. Records:
+  [`records/group-window/`](records/group-window/).
+- **Heads:** the fix `53ecc91b`, run head `6e8cf12b` (the preflight record). The full local preflight passes on
+  `53ecc91b`: **305 Python, 428 Node and 461 mutations** (Python shards 53/56/49/147; the Linux-only socket case is
+  skipped on the Mac and passed in CI), every baseline passing, plus the generator, diff and exact-unit checks
+  ([record](records/group-window/final-local-53ecc91b.json)). After the run: `9551a0f4` strips a trailing space in
+  two preflight logs (the package re-check's note), then the receipts and this report.
+- **Budget:** **266 / about 280** `control-chrome.yml` runs (this step used one: `43626497829`).
 - **For linux-tools at merge:** the 4,096-character rule for every app's tool instructions ("Latency gate: 60
   samples"); the lead passes it on.
 - **For linux-aresos at merge:** install `control/chrome/packaging/org.aresos.control.chrome-loosen.policy` at
@@ -32,9 +31,100 @@
   linux-tools' 18c-b image test. **For linux-tools' 18c-b image:** the plan and timing tests
   (`control/chrome_tests/test_full_disk_reads.py`, `test_open_index_timing.py`) must also pass on AresOS's own SQLite
   (see "Step 7", SQLite versions).
-- **Earlier heads:** `b3d6e4f2` failed run `43613647256` (the `typed-clean` race, which led to these decisions);
-  fixes b's `e654baff` failed run `43603381599`; the final fixes round's `f4a3fba9` passed everything in run
-  `43593989287`. Never merge the PR or main, and never force-push.
+- **Earlier heads:** `07c05de0` failed run `43620235847` (`typed-late`, which led to this fix); `b3d6e4f2` failed run
+  `43613647256` (the `typed-clean` race); fixes b's `e654baff` failed run `43603381599`; the final fixes round's
+  `f4a3fba9` passed everything in run `43593989287`. Never merge the PR or main, and never force-push.
+
+# Group in the tab's own window (2026-11-14)
+
+Built by a Claude agent (Opus 5.5) from the lead's decision after run `43620235847` (mac-aresos-control, 2026-11-14),
+option (a) under "The run" in the next section. Fix, test and probes in `53ecc91b`.
+
+**The bug.** In run `43620235847`, `typed-late` released its opener, the only controlled tab, so `groupId=null`. The
+re-take then made a new Claude group with `chrome.tabs.group({tabIds:[tab]})` and no window. Chrome creates such a
+group in the last-focused window. That was the owner's popup, so Chrome refused ("Tabs can only be moved to and from
+normal windows") and the take came back `unknown`. This is a product bug, not only a test one: a take failed whenever
+no Claude group existed and a popup or app window had focus, and with another normal window focused the owner's tab
+would have moved into that window.
+
+**The fix.** `control/chrome/extension/background.js`, `admitTab`, the only call that can create a group: when
+`groupId === null` it is now `chrome.tabs.group({tabIds:[tab],createProperties:{windowId:current.windowId}})`, where
+`current` is the taken tab's own `chrome.tabs.get` result at the start of the admission (the value the admission also
+records as `original.window`, and whose window it has just checked is `normal`). With a Claude group in place the
+call is unchanged (`{tabIds:[tab],groupId}`). Nothing else about tab groups changed: name, colour, collapse,
+membership and release are as before.
+
+**Every other call site, checked:**
+- `restoreTab` (`background.js`) puts a released tab back only into the owner's own earlier group
+  (`groupId:original.group`, and only when `original.group>=0`). It never creates a group. Unchanged.
+- The `open` command creates its blank tab with `chrome.tabs.create` and takes it through the same `admitTab`, so a
+  first group made there now goes in that tab's own window too. No change of its own.
+- Popups never join a Chrome group (`virtualGroup`), so they make no group call.
+- The CI harness (`control/chrome/ci/`) makes no group call. The feasibility checks under `control/checks/17*-chrome/`
+  still group without a window. They are frozen experiments run by another workflow ("never product security claims",
+  their README), not the product, so they were left alone.
+
+**Test.** `control/chrome_tests/background.test.mjs` `group-window a new Claude group is created in the taken tab's
+own window, never the focused one: …`, two cases, **a focused popup** and **another focused normal window**. A fake
+`chrome.tabs` follows Chrome's rule: a new group without `createProperties.windowId` goes in the last-focused window
+and moves the tab there, and only normal windows hold groups. Each case runs the real `take`, `release` and `take`
+again: the first take groups the tab in its own window, the release leaves `groupId=null`, the owner focuses the other
+window, and the re-take must create the group in the tab's own window with `createProperties:{windowId:1}`. A second
+tab then joins the existing group by id, as before, and no tab ever moves to another window. **On the old code both
+cases fail:** the popup case with "Tabs can only be moved to and from normal windows", the normal-window case with
+the new group in window 3. In the browser, the existing `typed-late` row covers it in both installs.
+
+**Probes (both rejected):** `group-window-drop-window-id` (the lead's: `createProperties:{}`) and
+`group-window-no-create-properties` (the call as it was before the fix).
+
+**The run: `43626497829`** (`6e8cf12b`), **all 28 jobs passed.** Records in
+[`records/group-window/`](records/group-window/) (metadata only; no profile member read). 266 of about 280 runs are now
+used.
+- Every fixture shard in both installs (core, review, adapters, recheck2, recheck3, the four word shards), the four
+  Python shards (53/56/49/147 = 305; F7's Linux-only socket case `... ok`), `native-precedence`, both latency
+  profiles, the package, and **both aggregates with their four independent audits**: in each install 98 named passes
+  with all 92 of round 3's named cases present, group 12 real, 999 word cells; the local re-run of the audit on the
+  downloaded metadata agrees with CI's. Chrome 157.0.8103.78. Longest job `fixtures (external, core)`, 30.2 minutes.
+- **The popup rows, both installs** ([receipt](records/group-window/chrome-43626497829-group-window.json), with the
+  `installs` records read through `control_status`): `clean` and `dirty` as before; `typed-clean` on the late path
+  (record `late`, `reload_required`, then one guarded reload); **`typed-early` on the document-start path** (record
+  `document_start`, `stale_reference`); **`typed-late` on the late path** (record `late`, `reload_required`, then one
+  guarded reload). In `typed-late` Claude re-took the opener while the owner's popup had focus, the case that failed
+  before, and the take succeeded. Across all popup rows the opener stayed in the same single normal window, and every
+  popup stayed in its own popup window. The rest of GROUP 8 (per-popup Stop, opener release and close, POST popups,
+  the owner's own popup) passed too.
+
+**Latency** (run `43626497829`, client median / p95 ms; current runtime 60 samples per call and phase, old runtime 20
+at positions 0–19, as the reference; no stat over a ceiling and both gates passed):
+
+| History | Call | Ceiling (median / p95) | Plain | Instrumented | Worst of both |
+|---|---|---|---|---|---|
+| fresh | read | 35 / 60 | 10.4 / 11.4 | 7.4 / 9.9 | 10.4 / 11.4 |
+| fresh | navigate | 100 / 150 | 46.6 / 60.2 | 33.4 / 37.3 | 46.6 / 60.2 |
+| fresh | free_click | 650 / 750 | 571.0 / 583.0 | 560.8 / 567.7 | 571.0 / 583.0 |
+| fresh | fill | 650 / 750 | 574.1 / 575.3 | 559.5 / 560.8 | 574.1 / 575.3 |
+| fresh | asking_click | 60 / 100 | 18.8 / 21.3 | 13.2 / 14.3 | 18.8 / 21.3 |
+| fresh | approval_to_done | 700 / 850 | 591.6 / 621.6 | 573.0 / 574.8 | 591.6 / 621.6 |
+| 1,000 | read | 35 / 60 | 12.1 / 13.2 | 10.3 / 11.5 | 12.1 / 13.2 |
+| 1,000 | navigate | 100 / 150 | 51.6 / 57.0 | 38.0 / 40.3 | 51.6 / 57.0 |
+| 1,000 | free_click | 650 / 750 | 574.0 / 586.7 | 567.1 / 571.3 | 574.0 / 586.7 |
+| 1,000 | fill | 650 / 750 | 570.2 / 572.1 | 555.8 / 571.8 | 570.2 / 572.1 |
+| 1,000 | asking_click | 60 / 100 | 23.2 / 26.2 | 17.1 / 18.2 | 23.2 / 26.2 |
+| 1,000 | approval_to_done | 700 / 850 | 600.2 / 603.5 | 582.8 / 585.7 | 600.2 / 603.5 |
+| 4,000 | read | 35 / 60 | 22.6 / 24.4 | 20.2 / 21.5 | 22.6 / 24.4 |
+| 4,000 | navigate | 100 / 150 | 67.0 / 71.3 | 51.1 / 54.3 | 67.0 / 71.3 |
+| 4,000 | free_click | 650 / 750 | 593.0 / 599.3 | 576.5 / 588.0 | 593.0 / 599.3 |
+| 4,000 | fill | 650 / 750 | 589.9 / 592.8 | 578.8 / 580.6 | 589.9 / 592.8 |
+| 4,000 | asking_click | 60 / 100 | 35.5 / 39.7 | 28.3 / 29.3 | 35.5 / 39.7 |
+| 4,000 | approval_to_done | 700 / 850 | 610.2 / 625.0 | 594.6 / 597.0 | 610.2 / 625.0 |
+
+**Runner factors** (the old runtime at the reference's 20 positions): plain 1.293 fresh, 1.122 at 1,000, 1.081 at
+4,000; instrumented 0.868, 0.990 and 0.993. This time the plain job's runner was the slower one (its numbers sit above
+the instrumented job's in every row), the reverse of run `43620235847`. Latency jobs `latency (plain)` **12.3
+minutes** and `latency (audit)` **11.2 minutes**.
+([summary](records/group-window/chrome-43626497829-summary.json),
+[gates](records/group-window/latency-43626497829-plain-gate.json),
+[audit gate](records/group-window/latency-43626497829-audit-gate.json))
 
 # Gate: old runtime at 20; popup rows (2026-11-14)
 
