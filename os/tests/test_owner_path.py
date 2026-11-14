@@ -1249,7 +1249,7 @@ class OwnerPathTest(unittest.TestCase):
         start = route.index('- [ ] **Forward again, or back from plain Bazzite**')
         box = route[start:route.index('**Record:**', start)]
         for value in ('This box only chooses between installed systems; it never installs a release',
-                      'From plain Bazzite it always works',
+                      'On plain Bazzite update never stages',
                       '**Forward again** only when the last update route you followed finished: its check showed '
                       '**Update to … confirmed after the restart**, or it was the tools-only box',
                       'update would stage the release of your newer tools without its announcement → '
@@ -1318,6 +1318,92 @@ class OwnerPathTest(unittest.TestCase):
         self.assertEqual(set(traced), {'update from plain Bazzite', 'previous from plain Bazzite', 'update from the older AresOS',
                                        'previous from the older AresOS', 'stages: forward again before the route finished',
                                        'newer still: following it stages'}, traced)
+
+    def test_a_return_that_changes_nothing_completes_without_a_confirmation(self):
+        """Review 4, finding 3: when the system a command names already starts next, the tools write no
+        journal (rule 4), so no "… confirmed after the restart" can follow. The guides tell the two apart:
+        after a change, the confirmation; after nothing to do, PASS check with that system running and
+        starting next. Traced in the reference ledger for update, previous, rollback and keep-stock."""
+        import ways_back_ledger as ledger
+        texts = documents()
+        route = section(texts['INSTALL.md'], UPDATE)
+        start = route.index('- [ ] **Forward again, or back from plain Bazzite**')
+        box = route[start:route.index('**Record:**', start)]
+        change = next(line for line in box.splitlines() if line.startswith('  - **Newest AresOS starts next**'))
+        nothing = next(line for line in box.splitlines() if line.startswith('  - **… already starts next; nothing changed**'))
+        self.assertIn('`PASS check` must show **Update to … confirmed after the restart**', change)
+        for value in ('nothing was recorded, so no confirmation line is needed (one can still appear for an earlier change)',
+                      '**It runs now**',
+                      '**It does not run yet: it starts at the next restart**', 'no boot-menu choice',
+                      '`PASS check` whose first line names that AresOS with **… runs and starts next**'):
+            self.assertIn(value, nothing)
+        self.assertNotIn('confirmed after the restart', nothing)
+        self.assertNotIn('no confirmation line follows', texts['INSTALL.md'] + texts['INSTALL-PROCEDURES.md'])
+        self.assertIn('**Previous AresOS queued for the next start**, and after the restart its check shows '
+                      '**Return to … confirmed after the restart**; or **… already starts next; nothing changed**, '
+                      'complete as above', box)
+        procedures = texts['INSTALL-PROCEDURES.md']
+        back = section(procedures, 'back-to-aresos-from-stock')
+        self.assertIn('When the command changed nothing (**… already starts next; nothing changed**), nothing was recorded '
+                      'and no confirmation is needed: **PASS** is then `PASS check` whose first line names that AresOS with '
+                      '**… runs and starts next**', back)
+        rollback = section(procedures, 'rollback-from-running-aresos')
+        for value in ('**Plain Bazzite … already starts next; nothing changed**', '**It does not run yet: it starts at the next restart**',
+                      'no confirmation line is needed', '`PASS check` with **plain Bazzite … runs and starts next**',
+                      '(after nothing changed, no confirmation is needed'):
+            self.assertIn(value, rollback)
+        keep = section(procedures, 'keep-stock')
+        self.assertIn('(after a boot-menu choice with **Change to … confirmed after the restart**)', keep)
+        source = (ROOT/'os/owner-tools/owner.py').read_text()
+        for value in ("' already starts next; nothing changed'", "'It runs now'", "'It does not run yet: it starts at the next restart'",
+                      "' runs and starts next'", "'plain Bazzite'", 'Already first: nothing changes and no journal is written'):
+            self.assertIn(value, source)
+
+        reached, todo = set(), list(ledger.starts())
+        while todo:
+            state = todo.pop()
+            if state in reached:
+                continue
+            reached.add(state)
+            restarts = (state.stage, state.running, 'S') if state.stage else state.rows
+            events = [(word, 'full') for word in ('update', 'previous', 'rollback', 'keep-stock', 'title')]
+            events += [('restart', row) for row in ('default', *restarts)]
+            events += [('power-off', row) for row in ('default', *state.rows[1:])] if state.stage else []
+            todo += [result.state for result in (ledger.transition(state, e) for e in events) if not result.stop and not result.cut]
+        traced = collections.Counter()
+        for state in reached:
+            if state.stage or state.trial or state.outcome() in ('waiting', 'retry', 'complete'):
+                continue
+            releases = [row for row in state.rows if row != 'S']
+            # An earlier change still open (in place, not started) may confirm itself at that start.
+            open_change = state.outcome() not in ('none', 'not-applied')
+            for word, target in (('update', max(releases)), ('previous', min(releases)), ('rollback', 'S'), ('keep-stock', 'S')):
+                result = ledger.transition(state, (word, 'full'))
+                if result.stop or result.state.stage:
+                    continue  # a refusal with nothing changed, or (update) the gated stage box
+                with self.subTest(state=state, word=word):
+                    after = result.state
+                    unchanged = after.rows == state.rows and (after.journal is None if state.outcome() == 'not-applied'
+                                                              else after.journal == state.journal)
+                    if not unchanged:
+                        self.assertEqual(after.journal.word, word)
+                    # A change: always the restart with no choice. Nothing changed: a restart only for
+                    # "It does not run yet"; "It runs now" is there already.
+                    if not unchanged or after.running != after.rows[0]:
+                        after = ledger.transition(after, ('restart', 'default')).state
+                    titled = ledger.transition(after, ('title', 'full'))
+                    self.assertFalse(ledger.transition(after, ('check', 'full')).stop)
+                    self.assertEqual((after.running, after.rows[0]), (target, target))
+                    if unchanged:
+                        # Only an earlier change that is still open can confirm itself here.
+                        self.assertTrue(open_change or not titled.confirmation)
+                        traced[word + ': nothing changed' + ('' if titled.confirmation else ', no confirmation')] += 1
+                    else:
+                        self.assertTrue(titled.confirmation)
+                        traced[word + ': confirmed'] += 1
+        for word in ('update', 'previous', 'rollback', 'keep-stock'):
+            self.assertGreater(traced[word + ': confirmed'], 0, traced)
+            self.assertGreater(traced[word + ': nothing changed, no confirmation'], 0, traced)
 
     def test_stock_procedures_go_back_to_aresos_and_never_update_bazzite(self):
         """22c, C: rollback and keep-stock beside two releases, the new way back from stock, and the

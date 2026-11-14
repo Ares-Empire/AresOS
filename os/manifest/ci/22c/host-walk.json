@@ -70,11 +70,11 @@
       "path": "briefs/14zze-checkout-bytes.md"
     },
     {
-      "sha256": "cc722002e5e392b6482bddf4e08c5450b88ebf1d60969b225f93c39504bf48a3",
+      "sha256": "adececb1504236f890c8e3d794b710df0611ce9943d74a40c151189712d385f8",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "d16fcd72f4866493f1ba27e59f9ff5990c7956859e96e67eeff971379335d374",
+      "sha256": "291f435197998a9da260baee9761007adcaebc546f2a9152286d38b5f8f17d09",
       "path": "docs/INSTALL.md"
     },
     {
@@ -958,7 +958,7 @@
       "path": "os/tests/test_owner_media.py"
     },
     {
-      "sha256": "8cc89cc950805d86034c3592f578bdc0f65fd15be169b12e266fbfbed0a8580d",
+      "sha256": "fdc1dcfae0259488da9e9905ea9426a9e34a9ad560695864a088edd871967138",
       "path": "os/tests/test_owner_path.py"
     },
     {

@@ -33,7 +33,8 @@
     "22c stage 1b addition 3: bootstrap.py generates the folder start block beside the stick block; tests run both",
     "22c stage 1b step 2: the guides for three installed systems (INSTALL.md update route, EMERGENCY failed-update card, INSTALL-PROCEDURES, INSTALL-REFERENCE, INSTALL-STATUS), their route tests, and the checks-only cap raised to 30",
     "22c review fixes 3, fix 1: the failed-update card checks first; previous only where the update is in place",
-    "22c review fixes 3, fix 2: the forward/back box never installs a release"
+    "22c review fixes 3, fix 2: the forward/back box never installs a release",
+    "22c review fixes 3, fix 3: a return that changes nothing has its own completion"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -42,11 +43,11 @@
       "path": ".github/workflows/os-image.yml"
     },
     {
-      "sha256": "cc722002e5e392b6482bddf4e08c5450b88ebf1d60969b225f93c39504bf48a3",
+      "sha256": "adececb1504236f890c8e3d794b710df0611ce9943d74a40c151189712d385f8",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "d16fcd72f4866493f1ba27e59f9ff5990c7956859e96e67eeff971379335d374",
+      "sha256": "291f435197998a9da260baee9761007adcaebc546f2a9152286d38b5f8f17d09",
       "path": "docs/INSTALL.md"
     },
     {
@@ -154,7 +155,7 @@
       "path": "os/tests/test_owner_guard.py"
     },
     {
-      "sha256": "8cc89cc950805d86034c3592f578bdc0f65fd15be169b12e266fbfbed0a8580d",
+      "sha256": "fdc1dcfae0259488da9e9905ea9426a9e34a9ad560695864a088edd871967138",
       "path": "os/tests/test_owner_path.py"
     },
     {
