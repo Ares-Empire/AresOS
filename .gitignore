@@ -19,6 +19,7 @@ run/
 
 # Logs and local scratch
 *.log
+*.log.gz
 .env
 
 # Local development research

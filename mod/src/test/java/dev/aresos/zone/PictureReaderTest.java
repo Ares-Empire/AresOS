@@ -24,6 +24,9 @@ class PictureReaderTest {
             var caller = Thread.currentThread();
             var read = reader.read(List.of(app("a"), app("b")), app -> app.id() + (Thread.currentThread() != caller));
             assertEquals(Map.of("a", "atrue", "b", "btrue"), read.get(5, SECONDS));
+            // The read's own clean-up runs on the reader's thread right after it completes the result, which may wake
+            // get() first (review fixes 2, point 3): wait until that thread has done everything before this barrier.
+            executor.submit(() -> { }).get(5, SECONDS);
             assertEquals(0, reader.waiting());
         } finally {
             executor.shutdownNow();
