@@ -12,6 +12,7 @@ import dev.aresos.world.DesktopWorld;
 import dev.aresos.zone.AppZone;
 import dev.aresos.zone.GatePalette;
 import dev.aresos.zone.GatePicture;
+import dev.aresos.zone.GatePlan;
 import dev.aresos.zone.Placing;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
@@ -344,10 +345,13 @@ public final class HubData extends SavedData {
         return holds(level, pos) && (!buildMode || logoBlocks.containsKey(pos));
     }
 
-    /** Whether a zone of {@code zones.dat} belongs to the town of this world. False where there is no flat home. */
+    /**
+     * Whether a zone of {@code zones.dat} belongs to the town of this world: a logo names its ID and it is still the
+     * zone the town made for that logo ({@link #made}). False where there is no flat home.
+     */
     public static boolean town(MinecraftServer server, AppZone zone) {
         HubData hub = get(server);
-        return hub != null && zone.dimension().equals(hub.home.dimension()) && hub.logoOfZone(zone.id()).isPresent();
+        return hub != null && hub.logoOfZone(zone.id()).filter(logo -> hub.made(logo, zone)).isPresent();
     }
 
     /** Every block the record holds in this dimension, by position: what the mod built here and owns. */
@@ -409,7 +413,7 @@ public final class HubData extends SavedData {
      * the lights, the doormat and the ground around it, the floor, the way in), whatever its picture.
      */
     private BoundingBox footprint(Place place) {
-        var plan = place.plan(GatePicture.plain(GatePalette.name(place.group().concrete()), HubLayout.SIZE), home.dimension(), home.pos(), "?", null);
+        var plan = plan(place, "?", null);
         var all = new ArrayList<BlockPos>(plan.space());
         all.addAll(plan.blocks().keySet());
         all.addAll(plan.lights());
@@ -417,6 +421,36 @@ public final class HubData extends SavedData {
         all.addAll(plan.doormatSurround());
         all.addAll(plan.floor());
         return BoundingBox.encapsulatingPositions(all).orElseThrow();
+    }
+
+    /** The gate the town plans in a place of this home, with a full front: its blocks, zone, exit and sign do not depend on the picture. */
+    private GatePlan plan(Place place, String name, String shortName) {
+        return place.plan(GatePicture.plain(GatePalette.name(place.group().concrete()), HubLayout.SIZE), home.dimension(), home.pos(), name, shortName);
+    }
+
+    /**
+     * The trigger zone the town makes for a logo: its ID and app, in this home's dimension, the niche of its place as
+     * the box and the exit in front of its door. Empty for a place that is no place (a checked record has none).
+     */
+    public Optional<AppZone> zone(Logo logo) {
+        return Place.parse(logo.place()).map(place -> {
+            var plan = plan(place, logo.name(), null);
+            return new AppZone(logo.zone(), logo.app(), home.dimension(), plan.nicheMin(), plan.nicheMax(), plan.exit(), List.of());
+        });
+    }
+
+    /**
+     * Whether a zone of {@code zones.dat} is still the one the town made for this logo (review fixes 1, step B, point
+     * 2): the same ID, app, dimension and box, and no gate of its own. A zone of his that took the ID is not.
+     */
+    public boolean made(Logo logo, AppZone zone) {
+        return zone(logo).filter(made -> made.id().equals(zone.id()) && made.app().equals(zone.app()) && made.dimension().equals(zone.dimension())
+                && made.min().equals(zone.min()) && made.max().equals(zone.max()) && !zone.isGate()).isPresent();
+    }
+
+    /** The sign the town made for a logo: where it stands and what it says. Empty for a place that is no place. */
+    public Optional<GatePlan.Sign> sign(Logo logo) {
+        return Place.parse(logo.place()).map(place -> plan(place, logo.name(), logo.shortName().orElse(null)).sign());
     }
 
     /**

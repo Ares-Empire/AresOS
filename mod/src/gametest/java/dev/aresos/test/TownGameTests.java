@@ -27,7 +27,15 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.TicketType;
+import dev.aresos.mixin.TextDisplayAccess;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.Display;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LightBlock;
@@ -232,6 +240,42 @@ public final class TownGameTests {
             check(hub.logos().isEmpty() && !HubData.town(server, zone) && !hub.blocks(level.dimension()).containsKey(plan.at(1, 1, 1)), "The record stayed");
             refused(() -> Town.remove(server, "town-discord"), "No logo");
             level.setBlockAndUpdate(corner, Blocks.AIR.defaultBlockState());
+
+            // Review fixes 1, step B, point 2: a sign or a zone is taken down only while it is what the town made. He
+            // edits the sign's text: it is his and stays; the logo's blocks and its zone still come down.
+            var signed = Town.build(server, discord, place, picture);
+            var edited = (Display.TextDisplay)level.getEntity(signed.gate().sign().orElseThrow());
+            ((TextDisplayAccess)edited).aresos$setText(Component.literal("Discord\n/mine"));
+            var withHisSign = Town.remove(server, "town-discord");
+            check(withHisSign.removed() == expected.size() && !edited.isRemoved() && hub.logos().isEmpty()
+                    && ZoneData.get(server).zones().stream().noneMatch(other -> other.id().equals(signed.zone())),
+                    "His edited sign: " + withHisSign + ", taken away " + edited.isRemoved());
+            for (var pos : expected.keySet()) check(level.getBlockState(pos).equals(before.get(pos)), "Around his sign " + pos.subtract(home) + " is " + level.getBlockState(pos));
+            edited.discard();
+
+            // Reused IDs: a zone of hisDisplay took the logo's zone ID (its box, another app) and a text display of hisDisplay, higher
+            // up, the sign's ID. Neither is the town's; both stay, and the logo's blocks come down.
+            var reused = Town.build(server, discord, place, picture);
+            var townZone = ZoneData.get(server).zones().stream().filter(other -> other.id().equals(reused.zone())).findFirst().orElseThrow();
+            check(HubData.town(server, townZone), "The rebuilt logo's zone is not the town's");
+            ZoneData.get(server).remove(other -> other.id().equals(reused.zone()));
+            var hisZone = new AppZone(reused.zone(), "his-app", townZone.dimension(), townZone.min(), townZone.max(), townZone.exit(), List.of());
+            ZoneData.get(server).add(hisZone);
+            check(!HubData.town(server, hisZone), "A zone of his with the logo's zone ID counts as the town's");
+            var signId = reused.gate().sign().orElseThrow();
+            var townSign = level.getEntity(signId);
+            townSign.discard();
+            var hisDisplay = EntityType.create(EntityTypes.TEXT_DISPLAY, TagValueInput.create(ProblemReporter.DISCARDING, level.registryAccess(), new CompoundTag()),
+                    level, EntitySpawnReason.COMMAND).orElseThrow();
+            hisDisplay.setUUID(signId);
+            hisDisplay.snapTo(townSign.getX(), townSign.getY() + 4, townSign.getZ(), 0, 0);
+            check(level.addFreshEntity(hisDisplay) && level.getEntity(signId) == hisDisplay, "Fixture: his display with the sign's ID");
+            var withHisIds = Town.remove(server, "town-discord");
+            boolean stayed = !hisDisplay.isRemoved() && ZoneData.get(server).zones().contains(hisZone);
+            ZoneData.get(server).remove(other -> other.equals(hisZone));
+            hisDisplay.discard();
+            check(stayed && withHisIds.removed() == expected.size() && hub.logos().isEmpty(), "His zone or display with the logo's IDs: " + withHisIds + ", stayed " + stayed);
+            for (var pos : expected.keySet()) check(level.getBlockState(pos).equals(before.get(pos)), "With his IDs " + pos.subtract(home) + " is " + level.getBlockState(pos));
         });
     }
 

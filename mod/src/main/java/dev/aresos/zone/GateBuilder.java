@@ -3,6 +3,7 @@ package dev.aresos.zone;
 import dev.aresos.catalogue.AppGroup;
 import dev.aresos.config.AppDefinition;
 import dev.aresos.icon.AppIcons;
+import dev.aresos.mixin.TextDisplayAccess;
 import dev.aresos.world.HomeSites;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -17,6 +18,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.ProblemReporter;
+import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
@@ -202,11 +204,8 @@ public final class GateBuilder {
      * saved one has. It has no hit box and takes no damage, in any mode.
      */
     private static Entity sign(ServerLevel level, GatePlan.Sign sign) throws IOException {
-        var text = Component.literal(sign.name()).withStyle(ChatFormatting.WHITE);
-        if (sign.shortName() != null && !sign.shortName().isBlank())
-            text.append(Component.literal("\n/" + sign.shortName()).withStyle(ChatFormatting.GOLD));
         var tag = new CompoundTag();
-        tag.put("text", ComponentSerialization.CODEC.encodeStart(level.registryAccess().createSerializationContext(NbtOps.INSTANCE), text).getOrThrow());
+        tag.put("text", ComponentSerialization.CODEC.encodeStart(level.registryAccess().createSerializationContext(NbtOps.INSTANCE), text(sign)).getOrThrow());
         tag.putInt("line_width", GateNumbers.SIGN_LINE_WIDTH);
         tag.putInt("background", GateNumbers.SIGN_BACKGROUND);
         // Turns around the upright axis only.
@@ -225,6 +224,28 @@ public final class GateBuilder {
                 level, EntitySpawnReason.COMMAND).orElseThrow(() -> new IOException("The gate's sign could not be made. No blocks changed."));
         entity.snapTo(sign.position().x, sign.position().y, sign.position().z, 0, 0);
         return entity;
+    }
+
+    /** What a gate's sign says: the app's name in white and, on a second line, its main short name in gold. */
+    private static Component text(GatePlan.Sign sign) {
+        var text = Component.literal(sign.name()).withStyle(ChatFormatting.WHITE);
+        if (sign.shortName() != null && !sign.shortName().isBlank())
+            text.append(Component.literal("\n/" + sign.shortName()).withStyle(ChatFormatting.GOLD));
+        return text;
+    }
+
+    /**
+     * Whether an entity is still the sign the mod made (review fixes 1, step B, point 2): a text display, and, where
+     * the record knows them ({@code made}), at its place with its text, compared in its saved form. Anything else is
+     * his: an entity of his that took the recorded ID, or a sign whose text he edited.
+     */
+    private static boolean made(ServerLevel level, Entity entity, GatePlan.Sign made) {
+        if (!(entity instanceof Display.TextDisplay display)) return false;
+        if (made == null) return true;
+        if (entity.position().distanceToSqr(made.position()) > 1.0E-6) return false;
+        var ops = level.registryAccess().createSerializationContext(NbtOps.INSTANCE);
+        var shown = ComponentSerialization.CODEC.encodeStart(ops, ((TextDisplayAccess)display).aresos$text()).result();
+        return shown.isPresent() && shown.equals(ComponentSerialization.CODEC.encodeStart(ops, text(made)).result());
     }
 
     /**
@@ -256,7 +277,8 @@ public final class GateBuilder {
         if (level == null) throw new IOException("The gate's dimension does not exist.");
         Removal removal;
         try {
-            removal = takeDown(level, gate);
+            // A hand-built gate's record holds no place or text of its sign: it is taken down while it is a text display.
+            removal = takeDown(level, gate, null);
         } catch (NotLoaded notLoaded) {
             throw new NotLoaded("The gate of " + zone.app() + " isn't loaded. Go to it and use /aresos logo remove here. Nothing changed.");
         }
@@ -266,11 +288,13 @@ public final class GateBuilder {
 
     /**
      * Takes down what a gate placed, through {@link Placing}: each recorded block that is still that block (the
-     * doormat goes back to the ground it replaced), the grass under it where it turned to dirt, and the sign. Its
-     * record and zone are the caller's. Refuses, changing nothing, while the place is not loaded ({@link NotLoaded})
-     * or when something of his could fall or break with it.
+     * doormat goes back to the ground it replaced), the grass under it where it turned to dirt, and the sign while it
+     * is still the one the mod made ({@code sign}: where it stands and what it says, or null when the record does not
+     * know; then any text display with its ID is). A sign that is not is his and stays. Its record and zone are the
+     * caller's. Refuses, changing nothing, while the place is not loaded ({@link NotLoaded}) or when something of his
+     * could fall or break with it.
      */
-    public static Removal takeDown(ServerLevel level, AppZone.Gate gate) throws IOException {
+    public static Removal takeDown(ServerLevel level, AppZone.Gate gate, GatePlan.Sign sign) throws IOException {
         var recorded = gate.placed().stream().map(AppZone.Placed::pos).collect(java.util.stream.Collectors.toSet());
         recorded.addAll(gate.grass());
         var inspection = Neighbors.footprint(recorded, 2);
@@ -294,7 +318,7 @@ public final class GateBuilder {
         // Refuse the whole operation before touching the sign, the record or any block.
         Neighbors.checkRemoval(level, back.keySet());
         back.forEach((pos, state) -> Placing.set(level, pos, expected.get(pos), state));
-        gate.sign().map(level::getEntity).ifPresent(Entity::discard);
+        gate.sign().map(level::getEntity).filter(entity -> made(level, entity, sign)).ifPresent(Entity::discard);
         return new Removal(gate.placed().size() - kept, kept);
     }
 }

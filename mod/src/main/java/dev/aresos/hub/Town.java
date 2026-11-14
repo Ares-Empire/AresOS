@@ -67,7 +67,7 @@ public final class Town {
         try {
             ZoneData.get(server).add(zone);
         } catch (IllegalArgumentException conflict) {
-            GateBuilder.takeDown(level, gate);
+            GateBuilder.takeDown(level, gate, prepared.plan().sign());
             throw new IOException(conflict.getMessage());
         }
         var sign = prepared.plan().sign();
@@ -80,15 +80,17 @@ public final class Town {
     /**
      * Takes an app's logo down: each of its blocks that is still the recorded one (the doormat goes back to the ground
      * it replaced, grass that turned to dirt under it back to grass), its sign, its zone and its record. A block he
-     * changed is his and stays. Refuses, changing nothing, while its place is not loaded ({@link
-     * GateBuilder.NotLoaded}) or when something of his hangs on it.
+     * changed is his and stays. So is a sign or zone that is no longer what the town made (review fixes 1, step B,
+     * point 2): a sign he edited, an entity or zone of his that took the recorded ID. Those stay and leave the record
+     * with the logo, whose removal still counts as done. Refuses, changing nothing, while its place is not loaded
+     * ({@link GateBuilder.NotLoaded}) or when something of his hangs on it.
      */
     public static GateBuilder.Removal remove(MinecraftServer server, String app) throws IOException {
         var hub = hub(server);
         var logo = hub.logo(app).orElseThrow(() -> new IOException("No logo of " + app + " stands in the town."));
         if (hub.frozen(app)) throw new IOException("The logo of " + logo.name() + " is frozen: " + TownKeeper.FROZEN);
-        var removal = GateBuilder.takeDown(level(server, hub), logo.gate());
-        ZoneData.get(server).remove(zone -> zone.id().equals(logo.zone()));
+        var removal = GateBuilder.takeDown(level(server, hub), logo.gate(), hub.sign(logo).orElseThrow());
+        ZoneData.get(server).remove(zone -> hub.made(logo, zone));
         hub.remove(app);
         return removal;
     }
