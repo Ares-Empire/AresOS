@@ -5,8 +5,41 @@
   "name": "AresOS tests",
   "environment": "*",
   "entrypoints": {
-    "fabric-gametest": ["dev.aresos.test.AresOsGameTests", "dev.aresos.test.NetherHomeGameTests", "dev.aresos.test.FlatHomeGameTests", "dev.aresos.test.ZoneGameTests", "dev.aresos.test.ZoneSafetyGameTests", "dev.aresos.test.GateGameTests", "dev.aresos.test.ModeInventoryGameTests", "dev.aresos.test.MyAppsGameTests"],
-    "fabric-client-gametest": ["dev.aresos.test.ModeProtocolClientGameTest", "dev.aresos.test.ModeSwitchSafetyClientGameTest", "dev.aresos.test.ModeInventoriesClientGameTest", "dev.aresos.test.WalkInFixesClientGameTest", "dev.aresos.test.ShellFocusClientGameTest", "dev.aresos.test.WalkInLogosClientGameTest", "dev.aresos.test.RealAppsFixesClientGameTest", "dev.aresos.test.RealAppsClientGameTest", "dev.aresos.test.HomeSitesClientGameTest", "dev.aresos.test.AresOsClientGameTest", "dev.aresos.test.NetherHomeClientGameTest", "dev.aresos.test.HomeChoiceClientGameTest", "dev.aresos.test.FlatHomeClientGameTest", "dev.aresos.test.GateLogoClientGameTest", "dev.aresos.test.MyAppsClientGameTest"]
+    "fabric-gametest": [
+      "dev.aresos.test.AresOsGameTests",
+      "dev.aresos.test.NetherHomeGameTests",
+      "dev.aresos.test.FlatHomeGameTests",
+      "dev.aresos.test.ZoneGameTests",
+      "dev.aresos.test.ZoneSafetyGameTests",
+      "dev.aresos.test.GateGameTests",
+      "dev.aresos.test.ModeInventoryGameTests",
+      "dev.aresos.test.MyAppsGameTests",
+      "dev.aresos.test.SlashNamesGameTests"
+    ],
+    "fabric-client-gametest": [
+      "dev.aresos.test.ModeProtocolClientGameTest",
+      "dev.aresos.test.ModeSwitchSafetyClientGameTest",
+      "dev.aresos.test.ModeInventoriesClientGameTest",
+      "dev.aresos.test.WalkInFixesClientGameTest",
+      "dev.aresos.test.ShellFocusClientGameTest",
+      "dev.aresos.test.WalkInLogosClientGameTest",
+      "dev.aresos.test.RealAppsFixesClientGameTest",
+      "dev.aresos.test.RealAppsClientGameTest",
+      "dev.aresos.test.HomeSitesClientGameTest",
+      "dev.aresos.test.AresOsClientGameTest",
+      "dev.aresos.test.NetherHomeClientGameTest",
+      "dev.aresos.test.HomeChoiceClientGameTest",
+      "dev.aresos.test.FlatHomeClientGameTest",
+      "dev.aresos.test.GateLogoClientGameTest",
+      "dev.aresos.test.MyAppsClientGameTest",
+      "dev.aresos.test.SlashNamesClientGameTest"
+    ]
   },
-  "mixins": ["aresos.test.mixins.json", {"config": "aresos.test.client.mixins.json", "environment": "client"}]
+  "mixins": [
+    "aresos.test.mixins.json",
+    {
+      "config": "aresos.test.client.mixins.json",
+      "environment": "client"
+    }
+  ]
 }

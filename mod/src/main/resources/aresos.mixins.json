@@ -2,6 +2,23 @@
   "required": true,
   "package": "dev.aresos.mixin",
   "compatibilityLevel": "JAVA_25",
-  "mixins": ["PlayerListHomeMixin", "ServerPlayerHomeMixin", "GameModeAccess", "AppInventoryMixin", "AppDropMixin", "LogoExplosionMixin", "HubBlockChangeMixin", "ModeInventoryMixin", "ExternalModeMixin", "ModeSwitchPacketMixin", "PendingPickupMixin", "PendingInventoryMixin"],
-  "injectors": {"defaultRequire": 1}
+  "mixins": [
+    "PlayerListHomeMixin",
+    "ServerPlayerHomeMixin",
+    "GameModeAccess",
+    "AppInventoryMixin",
+    "AppDropMixin",
+    "LogoExplosionMixin",
+    "HubBlockChangeMixin",
+    "ModeInventoryMixin",
+    "ExternalModeMixin",
+    "ModeSwitchPacketMixin",
+    "PendingPickupMixin",
+    "PendingInventoryMixin",
+    "CommandNodeAccess",
+    "CommandNodeMergeMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
 }

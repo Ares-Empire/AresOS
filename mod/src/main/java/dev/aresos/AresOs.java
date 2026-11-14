@@ -67,9 +67,29 @@ public final class AresOs implements ModInitializer {
         apps = AppsConfig.mine(configPath(), changes);
     }
 
-    /** One complete program list from the helper goes into the apps file; My apps follows (item/MyAppsGame). */
+    public static synchronized void assignNames(Set<String> reserved) throws IOException {
+        var saved = AppsConfig.assignNames(configPath(), reserved);
+        // This operation only edits names. Do not reload launch definitions or replace a newer in-memory list.
+        var byId = saved.stream().collect(java.util.stream.Collectors.toMap(AppDefinition::id, AppDefinition::names));
+        var updated = apps.stream().map(app -> byId.containsKey(app.id()) ? app.withNames(byId.get(app.id())) : app).toList();
+        if (!apps.equals(updated)) apps = updated;
+    }
+
+    public static synchronized void name(String id, String name, Set<String> reserved) throws IOException {
+        apps = AppsConfig.name(configPath(), id, name, reserved);
+    }
+
+    public static synchronized void unname(String name) throws IOException {
+        apps = AppsConfig.unname(configPath(), name);
+    }
+
+    /**
+     * One complete program list from the helper goes into the apps file; My apps follows (item/MyAppsGame). The helper
+     * owns every launch here, so what it does not name is marked absent: no command, no /open, until it returns.
+     */
     private static synchronized void takeIn(ShellClient.AppList listed) throws IOException {
-        var merged = AppsConfig.merge(configPath(), LinuxAppCatalogue.definitions(listed.apps()), listed.detailed(), java.time.LocalDate.now());
+        var merged = AppsConfig.merge(configPath(), LinuxAppCatalogue.definitions(listed.apps()), listed.detailed(),
+                java.time.LocalDate.now(), true);
         apps = merged.apps();
         dev.aresos.item.MyAppsGame.listed(merged);
     }
@@ -152,6 +172,7 @@ public final class AresOs implements ModInitializer {
                         dev.aresos.mode.ModeInventories.of(context.player()).rejectToggle(context.player());
                 });
         AppInventory.register();
+        dev.aresos.names.SlashCommands.register();
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             dev.aresos.mode.ModeInventories.of(handler.player).reportLoginError(handler.player);
             if (!dev.aresos.mode.ModeInventories.of(handler.player).restoredForLogin()) AppInventory.populate(handler.player);
@@ -165,6 +186,7 @@ public final class AresOs implements ModInitializer {
         });
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             if (!environment.includeIntegrated) return;
+            dev.aresos.names.ProgramCommands.register(dispatcher);
             dispatcher.register(Commands.literal("aresos")
                         .then(dev.aresos.world.HomeCommands.command())
                         .then(dev.aresos.zone.ZoneCommands.zone())
