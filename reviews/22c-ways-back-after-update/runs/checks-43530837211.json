@@ -1,0 +1,43 @@
+{
+  "implementation": "05fb2a927dc9bc5776b92733c6ac246022c87dad",
+  "hosted": {
+    "run": 43530837211,
+    "status": "in progress"
+  },
+  "local": {
+    "focused": {
+      "tests": 42,
+      "seconds": 22.456,
+      "result": "OK",
+      "available_mb_at_start": 7303
+    },
+    "model": {
+      "tests": 19,
+      "seconds": 1188.656,
+      "result": "OK",
+      "available_mb_at_start": 6990,
+      "states": 879291,
+      "edges": 23108154,
+      "executions": 1385183,
+      "reuses": 21722971,
+      "exploration_seconds": 1184.688,
+      "queue_exhausted": true,
+      "outcomes": {
+        "complete": 333,
+        "in-place-not-started": 135720,
+        "none": 175704,
+        "not-applied": 277098,
+        "retry": 333,
+        "selection-applied": 108672,
+        "target-boot-confirmed": 91956,
+        "waiting": 89475
+      },
+      "abandon_cuts": 1077696
+    }
+  },
+  "verification_limits": [
+    "No owner operations on the laptop",
+    "No VM or mod run",
+    "Stage 1b pins remain deferred"
+  ]
+}

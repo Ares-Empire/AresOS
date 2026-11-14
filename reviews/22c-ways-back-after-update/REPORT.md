@@ -1309,3 +1309,14 @@ The final local full model command is
 `cd os/tests && TMPDIR=/var/home/ares/pkg22c-work nice -n 10 python3 -B -m unittest test_ways_back_model`,
 started with **6990 MB available**; its result is still pending. The report-only
 checkpoint does not change the implementation being tested.
+
+**Final local full model:** `Ran 19 tests in 1188.656s` / **`OK`**.
+It exhausted exactly **879291 states / 23108154 edges**, with **1385183 actual
+executions / 21722971 reuses**, in 1184.688s. The added abandon events include
+**1077696 interruption edges**. All eight journal outcomes remain separate;
+counts and the test receipt are in
+[runs/checks-43530837211.json](runs/checks-43530837211.json).
+The two menu-only destination cases are unchanged. This full run includes the
+new intent-save and reverse-partial acceptance revert proofs and the execution
+of every successor in the restoration equivalence test. No module was skipped
+or weakened. The hosted run remains in progress at this checkpoint.
