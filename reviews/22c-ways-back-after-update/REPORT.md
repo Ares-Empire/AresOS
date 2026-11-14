@@ -1,8 +1,16 @@
 # 22c: every way back works after an update — builder report
 
 Brief: `briefs/22c-ways-back-after-update.md`. Branch `pkg/22c-ways-back-after-update`, cut from main `6cca14b6`.
-PR #46 (draft). Stage 0 is captured; step 2b closed the model under the destination follow-up.
-Stage 1a is complete at the checkpoint below: only four stage-1b fingerprint pins fail. Stages 1b and 2 are not started. Shorthand: R27 the newer AresOS, R13 the older one, S the pinned stock.
+PR #46 (draft).
+
+**Where the package stands (2026-11-14):** every stage is built. Stage 0 (the reorder probe), stage 1a (the state
+machine and the model), stage 1b (bundle, pins and guides), the follow-up "one word per meaning" (`forward` beside
+`update`, `briefs/22c-forward-command.md`) and stage 2 (the VM rehearsal, its record step and the B10 replay).
+VM rehearsal run 43597505549 passed on `f84041bf`. The final review, `REVIEW-8.md` (Fable), says SAFE on `e0d446c3`.
+Two things wait before merge: one checks-only run on the final head with the whole suite green and nothing skipped,
+and the owner's calls (the section "Before merge: the owner's calls" near the end, before the "try this" note). The
+sections below follow the work in order; what each one says is open or next was true when it was written. Shorthand: R27 the newer AresOS, R13 the
+older one, S the pinned stock.
 
 ## Stage 0 (P): the reorder probe
 
@@ -3769,3 +3777,165 @@ Mutations, made by hand and restored from git (not committed):
 2. **The final review on Fable**, as above (item 3 of the record step's list): also this step's commits and the frozen
    receipt.
 3. Then items 4 and 5 of the record step's list: the owner's judgment calls, then the merge by the integrator.
+
+## Follow-ups (not this branch)
+
+From review 8. None is fixed here: on this branch a fix would change the rehearsed bundle, a bound test or a reviewed
+guide, for no gain in safety on the laptop.
+
+- **Finding 2, tools version 4:** an update that stops cleanly leaves its record open, so in that start `check`,
+  `title`, `reboot`, `forward`, `previous` and `rollback` STOP although the stop routine said nothing changes. Archive
+  the intent when the stop routine ends with no errors (as `start_next` does) and test that `check`, `title` and
+  `reboot` pass in that start.
+- **Finding 3, the next package that touches these tests (`test_checkout_sources`, the waiting list):** nothing
+  mechanical keeps a tool or guide file off the waiting list while the status row says VM REHEARSAL PASSED, and no test
+  compares the run's `tools_version_3` with the payload's fingerprint. One test for both.
+- **Finding 5, tools version 4:** "Layout trial is unfinished; prove it or revert first" also answers `forward`,
+  `keep-stock` and `reboot` after a restart, where only `layout abandon` works. For a trial from an earlier boot, name
+  `layout abandon` from a fresh login.
+- **Finding 6, the next guide change:** `docs/EMERGENCY.md` (line 57) and `docs/INSTALL-PROCEDURES.md` (line 107)
+  send him only to keep-stock after abandoning a trial on plain Bazzite. Offer "Back to AresOS from stock" beside it,
+  as the recovery-menu section does.
+- **Finding 7, the next guide change:** `docs/INSTALL.md` (line 273) says a cut-off update (power, closed window)
+  STOPs the next command "in the same start". After a power cut there is no same start; the next check says **was not
+  applied**.
+- **Finding 8, tools version 4:** the same system is "newer AresOS" in the provisional title, "the AresOS that ran
+  before the update" on the failed-update card and "older AresOS" afterwards. Marking its row "runs now" in the title
+  removes the matching step.
+
+## Before merge: the owner's calls
+
+Every JUDGMENT-CALL in this report, in report order (review 8, finding 4). Numbers restart in later sections, so the
+first column names the section. **Status:** *stands* (built and still true), *superseded* (by what) or *closed*.
+**Laptop:** **asked A** or **asked B** where the call changes what the owner types or where his laptop ends up, in a
+way he can picture and might want otherwise; those two calls are put to him below. *seen* where he meets it in a
+printed line or a guide box, but it is wording, or an order a review made safe: the integrator decided those. *no*
+for the harness, the tests, CI and the model.
+
+| Section, call | What it decided | Status | Laptop |
+|---|---|---|---|
+| Stage 0, 1 | The probe's plain commands run in the harness's root shell on the serial console, not typed on tty3 | Stands for the probe; stage 2 types every owner command on tty3 | no |
+| Stage 0, 2 | The VM's network is down from the first restart after the confirmation | Stands (stage 2, call 6 does the same) | no |
+| Stage 0, 3 | One job bound for both modes of this branch, keyed on the branch name | Stands | no |
+| Stage 0, 4 | The probe records contradictions and goes on | Stands for the probe; the rehearsal stops at the first (stage 2, call 2) | no |
+| Stage 0, 5 | Committed captures: filesystem UUID and boot ids replaced by fixed words | Stands | no |
+| Stage 0, 6 | No second probe run for a green job | Closed: integrator, 2026-11-13. Since the record step another 22c VM dispatch needs its own decision about the frozen receipt | no |
+| Stage 1a step 1, 7 | Owner decision 5: `update` from the older AresOS removes the newer one and prints both facts before the restart | Stands (`owner.py`, `update`; `docs/INSTALL.md`, the stage box). Live only from the next release's tools: with these, `update` has nothing to install | **asked A** |
+| Stage 1a step 1, 8 | Owner decision 1: `update` goes to the newest installed AresOS from anywhere | Superseded by `forward` (`briefs/22c-forward-command.md`, 2026-11-14): `forward` does that, `update` only installs | **asked B** |
+| Stage 1a step 1, 9 | The Bazzite-update STOP names "the installed AresOS" when only one is installed | Stands | seen (his laptop has two) |
+| Stage 1a step 1, 10 | The old PASS lines of `rollback`, `keep-stock` and `previous` stay word for word | Stands | no (nothing changes) |
+| Stage 1a step 1, 11 | A note that an earlier change was resolved prints before the command's own result, also before a STOP | Stands | seen |
+| Stage 1a step 2, 12 | No rule widened to satisfy B2's one-command invariant; the conflict went to the integrator | Closed: the destination follow-up (call 16) settled it, then `forward` restored B2 at full strength | no |
+| Stage 1a step 2, 13 | The removal notice is printed before staging, besides the completion lines | Stands (**At shutdown, this update removes …**) | **asked A** (part of it) |
+| Stage 1a step 2, 14 | `finish_proof` keeps the authorization an interrupted layout finish earned | Stands | no |
+| Stage 1a step 2, 15 | `layout abandon` may clear another system's trial to repair the running one in the same call | Stands | no (a rare repair; the same command now succeeds) |
+| Stage 1a step 2b, 16 | With a newer bundle installed while the older release runs, `update` stages it (integrator's decision) | Stands, narrowed by "one word per meaning" step 1, call 4: only when the older AresOS also starts next | **asked A** (part of it) |
+| Stage 1a step 2b, 17 | Future-equivalence and execution reuse make the full model practical | Stands | no |
+| Stage 1a step 3 (one call) | Tools-update readiness is a read-only preview until the new tools are published | Stands | no |
+| Review fixes 1 and 2 | None added | — | — |
+| Stage 1b step 1, 1 | The full model runs in its own CI job beside the checks | Stands | no |
+| Stage 1b step 1, 2 | The image and rehearsal suites explore the slice | Stands | no |
+| Stage 1b step 1, 3 | Two start blocks (stick and folder); the folder is `/var/home/ares/ares-tools` | Stands, unrouted: the guides keep the stick (integrator, 2026-11-14); the stick-free route is package 22d's | no (not in the guides) |
+| Stage 1b step 2, 1 | The way back from plain Bazzite is the update route's last box, behind its gate | Stands (kept by "one word per meaning" step 2, call 2); the box now runs `forward` | seen (guide layout) |
+| Stage 1b step 2, 2 | The tools-only box unplugs the stick without `at export` (the block unmounts it) | Stands (`docs/INSTALL.md`, the tools-only box) | seen |
+| Stage 1b step 2, 3 | The card's "old AresOS returns by itself" branch says check first, never `previous` after **was not applied** | Stands (`docs/EMERGENCY.md`, failed-update card) | seen (safety order) |
+| Stage 1b step 2, 4 | The password fact names release 13 ("the AresOS from before your first update") | Stands (`docs/INSTALL-PROCEDURES.md`, what you notice) | seen |
+| Review fixes 3, 1 | `previous` where check shows the update in place, not only where the newer release runs (review 4) | Stands (`docs/EMERGENCY.md`, failed-update card) | seen (safety order) |
+| Review fixes 3, 2 | Forward again guarded by the guide, not by the tools | Superseded by `forward`, which never installs anything | no (gone) |
+| Review fixes 3, 3 | The full-model requirement sits in the rehearsal guard | Stands (`rehearsal_guard.model_gate`) | no |
+| Review fixes 4, 1 | Every forward again takes the two-step path (boot-menu row, then `update`) | Superseded by `forward`: one command, one restart, no boot-menu choice | no (gone) |
+| One word per meaning step 1, 1 | Where the tools' release runs and starts next, `update` passes with **… already starts next; nothing changed**, **It runs now** | Stands | seen |
+| One word per meaning step 1, 2 | `update` names `forward` wherever the newest AresOS is not the system that runs and starts next | Stands | **asked B** (part of it) |
+| One word per meaning step 1, 3 | `forward` says nothing about a newer tools release; the old "update again" hint is gone | Stands | seen |
+| One word per meaning step 1, 4 | With a newer bundle, `update` on an older AresOS that does not start next names only `forward`; to update from the older one: `previous` there (it applies at once), then `update` | Stands | **asked A** (part of it) |
+| One word per meaning step 1, 5 | One change line for `forward`: **Newest installed AresOS starts next** | Stands | seen |
+| One word per meaning step 2, 1 | `login` with an AresOS installed runs update's checks and says what `update` says | Stands | seen |
+| One word per meaning step 2, 2 | The forward box stays the update route's last box, behind the update gate | Stands | seen (guide layout) |
+| One word per meaning step 2, 3 | After a change the box restarts even when the title says no restart is waiting | Stands | seen |
+| One word per meaning step 2, 4 | The stage box follows update's own next step (`forward`, then the stage box again), stick exported first | Stands | **asked B** (part of it) |
+| One word per meaning step 2, 5 | `forward`'s "restart first" STOP leads to Help through the box's STOP line | Stands | seen |
+| Stage 2 step 1, 1 | The mode is `ways-back`, its result `ways-back-rehearsal-result.json` | Stands | no |
+| Stage 2 step 1, 2 | The first contradiction stops the rehearsal | Stands | no |
+| Stage 2 step 1, 3 | The cut is not repeated inside the run | Stands | no |
+| Stage 2 step 1, 4 | The watcher stops only the tools' main process (`SIGSTOP`) | Stands | no |
+| Stage 2 step 1, 5 | The evidence bound is 450 MB for this mode | Stands | no |
+| Stage 2 step 1, 6 | Network down from the walk's second start | Stands | no |
+| Stage 2 step 1, 7 | `sudo -v` is proved twice | Stands | no |
+| Stage 2 step 1, 8 | `records` is not typed in the walk | Stands | no |
+| Stage 2 step 1, 9 | The oracle models neither the layout commands nor check's keyboard reads | Stands (the B10 replay leaves them out too, its call 3) | no |
+| Stage 2 step 2, 1 | The tools' folder is read before each command, not kept in the route | Stands | no |
+| Stage 2 step 2, 2 | `owner_reader` has no default folder | Stands | no |
+| Stage 2 step 2, 3 | The layout proof is also held to the installed tools version | Stands | no |
+| Stage 2 step 2, 4 | `dispatch_caps.ways-back` is 5 | Stands | no |
+| Stage 2 step 2, 5 | The walk's observers get a moving clock | Stands | no |
+| Stage 2 step 2, 6 | `collect.py` searches a JSON capture as stored and as read; the password pattern | Stands | no |
+| Stage 2 step 2, 7 | The serial fixture answers the entry program with a stand-in | Stands | no |
+| Record step, 1 | The status row and its bound test changed after the rebind, so a test file waits | Closed: accepted by the integrator (2026-11-14); since the fix after run 43619559359 two test files wait | no |
+| Record step, 2 | The minutes come from the guard's `budget()` | Stands | no |
+| B10 replay, 1 | The replay's reorders run through the tools, not a captured index | Stands | no |
+| B10 replay, 2 | The printed lines are not compared in the test | Stands | no |
+| B10 replay, 3 | The layout commands are not replayed | Stands | no |
+
+### Put to the owner
+
+Two calls. The *seen* rows need no answer from him: they follow from these two or from a review.
+
+**A. `update` on the older AresOS** (owner decision 5; calls 7, 13 and 16; "one word per meaning" step 1, call 4).
+Recommendation: keep it.
+
+> Say you went back to the older AresOS with `previous` and restarted, and then a new AresOS version comes out. If
+> you type `update` there, it installs the new version and, at your next shutdown or restart, deletes the newer
+> AresOS you left (your files stay), not the older one you are on; the new version starts with the older one's
+> Wi-Fi, passwords and keyboard layout. Before you restart, `update` says so on screen: **At shutdown, this update
+> removes newer AresOS …**, then **Newer AresOS … is removed when the update finishes at shutdown** and **The new
+> release starts with this system's settings (Wi-Fi, passwords, layout), not …'s**. To keep the newer one instead,
+> type `forward`, restart, then `update`.
+
+Checked against `os/owner-tools/owner.py` (`update`: the removal line before the step runs, the two lines after it,
+then the title) and `docs/INSTALL.md` (the stage box). It cannot happen with these tools: their own release (R27) is
+installed, so `update` has nothing to install and names `forward` (the rehearsal typed it on R13: refused, nothing
+changed). It applies from the next release's tools, if they keep the rule. On an older AresOS taken in the boot menu
+(it runs but does not start next) `update` refuses and names `forward`. If he says no: `update` on the older AresOS
+refuses and names `forward`, so an update always replaces the older one; a change for tools version 4.
+
+**B. `forward`, one word for going back to the newest AresOS** (replaces owner decision 1, call 8; "one word per
+meaning" step 1, call 2 and step 2, call 4). Recommendation: keep it.
+
+> After `previous` (the older AresOS) or `rollback` (plain Bazzite), you type `forward`, restart once, and you are
+> back on the newest AresOS you already have. It says **Newest installed AresOS starts next**, and after the restart
+> `check` says **Forward to … confirmed after the restart**. Nothing is downloaded, and it needs no USB stick, login
+> or internet. `update` now does one thing only: fetch and install a new AresOS version. Where it has nothing to
+> install, or cannot install from where you are, it changes nothing and tells you to type `forward` (or that you are
+> there already).
+
+Checked against `owner.py` (`forward`; `update`'s refusals `RELEASE_INSTALLED` and `FORWARD_FIRST`, which name
+`forward`), `docs/INSTALL.md` (the overview before the Windows box, the misbehaves box, the forward box),
+`docs/INSTALL-PROCEDURES.md` ("Back to AresOS from stock") and `docs/EMERGENCY.md` (its returns use `previous` and
+`rollback`; it never sends him to `update` to go back). The rehearsal typed `forward` six times. The short form he
+asked for (`aresos forward`, board #195) comes later; the words are kept in one place for it.
+
+## Try this (after the tools are on the laptop)
+
+The calm test (owner decisions 2 and 3), once these tools are on the laptop through the tools-only update. The brief's
+note said `update` for the way back; since the "one word per meaning" follow-up it is `forward`, as the guides and the
+status row say. Type each command in the tty3 administrator session. **Restart** means
+`sudo /var/lib/ares/at reboot` (**PASS reboot**), then **F12** → **Bazzite**, no boot-menu choice. After each command
+and each restart also type `sudo /var/lib/ares/at title` and save it; older titles are invalid.
+
+1. **Look, change nothing** (about 10 minutes).
+   - `sudo /var/lib/ares/at check`: **PASS check**. The title's first line: **newer AresOS … runs and starts next**;
+     its line **Boot menu at the next start:** names three rows.
+   - Restart, but this once open the boot menu (**Esc** if it is hidden), read its three **Bazzite (ostree:N)** rows
+     against that line, and start the row it says starts next. `check` and `title` read as before.
+2. **Every way back, with his OK** (it changes which system starts on his disk; about half an hour).
+   - `sudo /var/lib/ares/at previous`: **Previous AresOS queued for the next start**. Restart. On the older AresOS log
+     in on tty3 as `ares-recovery` (it has no `ares` password). `check`: **Return to … confirmed after the restart**.
+   - `sudo /var/lib/ares/at forward`: **Newest installed AresOS starts next**. Restart. `check`: **Forward to …
+     confirmed after the restart**.
+   - `sudo /var/lib/ares/at rollback`: **Saved stock rollback queued**. Restart. On plain Bazzite log in as
+     `ares-recovery` with the installer's German layout. `check`: **Rollback to … confirmed after the restart**.
+   - `sudo /var/lib/ares/at forward`: **Newest installed AresOS starts next**. Restart. `check`: **Forward to …
+     confirmed after the restart**, and the title's first line is **newer AresOS … runs and starts next** again.
+
+A STOP or any other line: stop there, keep the screen, and follow `docs/EMERGENCY.md`, "A tools command stopped".
+None of these commands deletes a system.
