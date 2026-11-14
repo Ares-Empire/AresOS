@@ -477,9 +477,69 @@ Control step), `a4c9ac11` (check 8's encoded forms); later fixes are listed unde
   `control-mail` (runner: `Time2Internaldate(None)`), `control-interactive` (the double's string result; the case's
   reserved operation then spoiled the other three baselines, as designed), `control-passwords` (no account, 0 files),
   `control-restart` (that reserved operation). Fixed in `10ef9df0` except the Stop hook.
+- **run 43568250360** (`control`, head `10ef9df0`, **before** the hook fix of PR #61; 46 min: build step 06:53:41 to
+  07:32:33 = 39 min, Control VM step 07:32:33 to 07:39:27 = 7 min, the pass 413 s from QEMU's start): failure, two
+  checks. Per check:
+  - Checks 1, 7 (change), 12, 14, fixtures, 3, 4, 5, 2: `CONTROL_IMAGE_FILES_PASS`, `CONTROL_ETC_CLAUDE_CODE_PASS`,
+    `CONTROL_RELEASE_CHECKS_PASS`, `CONTROL_IDLE_FOOTPRINT_RECORDED` (31.9 MB, 10.05 wake-ups/s, 1.62 % CPU this
+    time), `CONTROL_FIXTURES_REACHABLE`, `CONTROL_ENTRY_POINTS_PASS`, `CONTROL_PRECONDITION_PASS`,
+    `CONTROL_USER_MCP_INSTALL_PASS`, `CONTROL_SERVICE_SANDBOX_PASS`.
+  - **Check 6, `CONTROL_CHECK_FAILED control-ordinary`** (123 s): the old hook, as expected on this head. Every one of
+    the 5 turns: 10 model requests, 8 Stop continuations, "Stop hook error ... unknown fields are refused" and "A hook
+    blocked the turn from ending 9 consecutive times" on screen; healthy, stopped, started again, failed (now really
+    `failed`: `Restart=no` worked) and recovered alike. His tool ran in every turn. Evidence
+    `control/ordinary/{summary.json,own-hooks.jsonl,stopped-mid-session.tar.gz,failed-fresh-session.tar.gz}`.
+  - **Check 7, `CONTROL_MAIL_FLOWS_PASS`** (41.5 s): onboarding with the password typed at the prompt (ready after
+    `sent_policy: client`); read (untrusted, flags `[]` before and after, also `[]` on Dovecot itself); send from the
+    CLI `done`, its Sent copy in `Posta`; delete into `Cestino` (gone from INBOX on Dovecot); the attachment from
+    `~/Downloads` arrived byte for byte (6400 B, `1bd9d5f3…`); the received one saved as
+    `~/Downloads/seeded-attachment.bin`, `ares`, 0600, hash equal; `~/outside-ci.bin` refused `file_refused`; the send
+    through Claude Code: prompt shown, one answer "Yes", `done`. GreenMail: exactly one arrival for each of
+    `first@`, `second@` (one attachment), `third@mail.invalid`, plus onboarding's self-send. Nothing pending after.
+    That session also shows the old hook's 8 continuations. Evidence `control/mail-flows.json`, `mail-runner.json`,
+    `mail-onboarding-screens.txt`, `mail-claude.tar.gz`.
+  - **Check 9, `CONTROL_CHECK_FAILED control-interactive`** (120 s): failed **while packing its evidence**:
+    `transcripts: 1057224 bytes even without the intermediate screens` (`tree_out` of `~/.claude/projects`, which by
+    then holds the transcripts of checks 6, 7 and 9, over the 1 MB cap). The exception left the action before it
+    returned, so the four cases' outcomes and the `CONTROL_PERMISSION_REQUEST_RECORDED` line are **not known** for this
+    run; the later restart check found nothing pending, so the baselines were cleaned. Evidence only
+    `control/vm/control-interactive-result.json` (the traceback).
+  - **Check 8, `CONTROL_PASSWORDS_PRIVATE_PASS`**: `ls` of the state folder and the password folder and `cat` of the
+    file refused for `ares` (Permission denied); folder 0700, file 0600, both 250:250; the password in exactly
+    `/var/lib/aresos-tools/mail-passwords/ef173e6e…` and nowhere else (871 files in his home, 264 in `/var/tmp`, 477
+    in `/run`, 14 in the state folder, journal export of all boots, `operations.jsonl`), no encoded form anywhere;
+    the runner: 44 evidence files, none holding it. Hash in `control/passwords.json`.
+  - `CONTROL_SELINUX_AFTER_CHECKS_PASS` (Enforcing, no denial naming the service over all its PIDs),
+    `CONTROL_SERVICE_RESTART_PASS` (Mail account still ready, nothing pending), `CONTROL_VM_POWEROFF_CLEAN`.
+- **Runs used: 2 of 5** `check_build=control` in step 2b.
+- A text finding for the lead: the outside-folder refusal says "choose Documents, Downloads, Desktop or an
+  owner-configured folder", while the image's `proxy.json` configures only Downloads and Documents.
+
+### What the next step does, in order
+
+1. **Check 9's evidence:** pack only what check 9 made: the transcripts whose files changed after the check began,
+   one tar per case (or beside each case's tar), and make every packing failure return the summary, the
+   `permission_request` record and `returncode 1` instead of raising past them (build the summary first, pack inside
+   a try). Keep the 1 MB cap per tar and the 4 MiB frame in mind (`tree_out` in `actions.py`).
+2. **Run 3 on a head with the hook fix** (the branch already merged `origin/main` with PR #61: `71a0e8d4`; `be435031`
+   adds `forward` to the reserved words). Expected now: healthy, started-again and recovered turns 2 requests and 0
+   continuations, nothing of ours on screen; stopped and failed turns 1 continuation each (the Stop hook's "service
+   unavailable" block once, then `stop_hook_active` ends it) and that reason on screen. Record those numbers for the
+   owner (agreed change 10, JUDGMENT-CALL). **Note in the evidence whether his own Stop hook now runs beside ours**
+   (`own-hooks.jsonl`, `own_stop_lines`; the check requires one Stop line per stop attempt).
+3. Check 9's four cases against the container's pin (`normal-permission-user`: `hook_calls 1, send_arrivals 1,
+   owner_answers 0`); a difference is the brief's stop-and-report.
+4. **Size the Control VM step** from the first full pass: run 2's pass took 413 s with check 6 at 123 s (the old
+   hook's 9 blocks per turn); set the step's `timeout-minutes` to about 1.5 times the step's measured time (likely
+   15) and the job's control limit to cover tools (≤ 20) + build (80) + that step + about 15, in one commit with
+   `rebind.py pending`.
+5. `check_build=control` green twice on the final head (the second by rerunning the same run), then PROGRESS.md with
+   both runs' lines.
 
 ## Left, in order (step 2b on)
 
+0. **Step 2b is under way** (above): checks 6 to 9 are built; 7 and 8 are green (run 43568250360); 6 waits for a run
+   with the hook fix; 9 needs its evidence packing fixed. Continue with "What the next step does, in order".
 1. Step 2b: B2 checks 6 (ordinary session, service stopped and failed by a CI drop-in under `/run/systemd/system`),
    7 (Mail flows in `control/ci/image/`), 8 (passwords), 9 (the four interactive asks with B1's driver), as actions
    in `os/ci/control/actions.py` and lines in `control_vm.py`'s `CHECKS` (Mail and the asks after check 5, which
