@@ -214,4 +214,26 @@ class GatePictureTest {
         assertDoor(defaultPicture);
         assertEquals(3, GateNumbers.DEPTH);
     }
+
+    @Test
+    void theHashFollowsTheBlocksAndNothingElse() {
+        var ring = GatePicture.of(ring(), 12);
+        assertEquals(ring.hash(), GatePicture.of(ring(), 12).hash(), "the same icon gives the same hash");
+        // The same picture from another file: a copy twice the size cuts and scales to the same cells.
+        var bigger = new BufferedImage(240, 240, BufferedImage.TYPE_INT_ARGB);
+        var paint = bigger.createGraphics();
+        paint.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        paint.drawImage(ring(), 0, 0, 240, 240, null);
+        paint.dispose();
+        var same = GatePicture.of(bigger, 12);
+        boolean sameCells = true;
+        for (int v = 0; v < 12; v++) for (int u = 0; u < 12; u++) sameCells &= java.util.Objects.equals(ring.at(u, v), same.at(u, v));
+        assertEquals(sameCells, ring.hash().equals(same.hash()));
+        var hashes = new java.util.HashSet<String>();
+        for (int size : SIZES) hashes.add(GatePicture.plain("yellow_concrete", size).hash());
+        hashes.add(GatePicture.plain("red_concrete", 12).hash());
+        hashes.add(ring.hash());
+        assertEquals(SIZES.length + 2, hashes.size(), "size, block and picture each change the hash");
+        assertTrue(ring.hash().matches("[0-9a-f]{64}"));
+    }
 }

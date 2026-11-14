@@ -119,7 +119,7 @@ public final class GateBuilder {
                 List.copyOf(placed.keySet()), Optional.empty());
         String conflict = data.conflict(zone);
         if (conflict != null) throw new IOException(conflict);
-        if (Neighbors.occupant(level, solid.keySet(), data.signs()) != null)
+        if (Neighbors.occupant(level, solid.keySet(), Neighbors.signs(level.getServer())) != null)
             throw new IOException("An entity occupies the gate's place. Move it away, then retry.");
         Neighbors.check(level, placed.keySet(), solid.keySet(), 2);
         if (doormat.isPresent()) Neighbors.check(level, placed.keySet(), plan.doormat(), 2);

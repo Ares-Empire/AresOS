@@ -83,8 +83,8 @@ final class Neighbors {
     }
 
     private static void check(ServerLevel level, Set<BlockPos> changing, Collection<BlockPos> around, int reach, boolean removal) throws IOException {
-        var signs = ZoneData.get(level.getServer()).signs();
-        var owned = ZoneData.get(level.getServer()).gateBlocks(level.dimension());
+        var signs = signs(level.getServer());
+        var owned = owned(level);
         for (var cell : around) {
             var entities = level.getEntities((Entity)null, new AABB(cell).inflate(1), entity -> !signs.contains(entity.getUUID())
                     && (entity instanceof BlockAttachedEntity || standsOn(entity, cell)));
@@ -105,6 +105,22 @@ final class Neighbors {
             throw new IOException("Logo could disturb neighboring " + BuiltInRegistries.BLOCK.getKey(state.getBlock()) + " at " + pos.toShortString()
                     + ". No blocks changed. Leave two cells clear of plants, circuits, fluids and blocks with special behavior, then retry.");
         }
+    }
+
+    /** The signs of every gate the mod built: by hand ({@code zones.dat}) and in the town ({@code hub.dat}). */
+    static Set<UUID> signs(net.minecraft.server.MinecraftServer server) {
+        var signs = new HashSet<>(ZoneData.get(server).signs());
+        var hub = dev.aresos.hub.HubData.get(server);
+        if (hub != null) signs.addAll(hub.signs());
+        return signs;
+    }
+
+    /** Every block the mod recorded in this dimension: gates built by hand, and the flat home's pad, roads and town. */
+    private static java.util.Map<BlockPos, String> owned(ServerLevel level) {
+        var owned = ZoneData.get(level.getServer()).gateBlocks(level.dimension());
+        var hub = dev.aresos.hub.HubData.get(level.getServer());
+        if (hub != null) owned.putAll(hub.blocks(level.dimension()));
+        return owned;
     }
 
     private static boolean stableOnRemoval(BlockState state) {

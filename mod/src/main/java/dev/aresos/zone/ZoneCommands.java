@@ -3,6 +3,7 @@ package dev.aresos.zone;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.aresos.AresOs;
+import dev.aresos.hub.HubData;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.world.HomeSites;
 import net.minecraft.commands.CommandSourceStack;
@@ -91,16 +92,18 @@ public final class ZoneCommands {
                 message = "Zone saved for " + target + ". Your current position is its exit, facing the zone.";
             } else if (action.equals("remove")) {
                 java.util.function.Predicate<AppZone> named = z -> target.equals("here") ? z.dimension().equals(player.level().dimension()) && z.box().intersects(player.getBoundingBox()) : z.app().equals(target);
-                // A gate's zone goes with its blocks and its sign, never alone.
+                // A gate's zone goes with its blocks and its sign, never alone; the town's go with their logos.
+                var town = data.zones().stream().filter(named).filter(z -> HubData.town(source.getServer(), z)).toList();
                 long gates = data.zones().stream().filter(named).filter(AppZone::isGate).count();
-                int removed = data.remove(z -> named.test(z) && !z.isGate());
+                int removed = data.remove(z -> named.test(z) && !z.isGate() && !town.contains(z));
                 message = "Removed " + removed + " zone(s). Logo blocks remain; removed zones no longer protect them."
-                        + (gates > 0 ? " " + gates + " gate(s) stay: /aresos logo remove takes a gate down." : "");
+                        + (gates > 0 ? " " + gates + " gate(s) stay: /aresos logo remove takes a gate down." : "")
+                        + town.stream().map(z -> " " + townLogo(z.app())).collect(java.util.stream.Collectors.joining());
             } else {
                 source.sendSuccess(() -> Component.literal("AresOS zones: " + data.zones().size()), false);
                 for (var zone : data.zones()) source.sendSuccess(() -> Component.literal(zone.app() + " | " + zone.dimension().identifier()
                         + " | " + zone.min().toShortString() + " to " + zone.max().toShortString()
-                        + " | exit " + zone.exit().position() + (zone.isGate() ? " | gate" : "")), false);
+                        + " | exit " + zone.exit().position() + (zone.isGate() ? " | gate" : HubData.town(source.getServer(), zone) ? " | town" : "")), false);
                 return 1;
             }
             source.sendSuccess(() -> Component.literal(message), false); return 1;
@@ -126,9 +129,15 @@ public final class ZoneCommands {
         var player = host(source); if (player == null) return 0;
         var data = ZoneData.get(source.getServer());
         boolean here = target.equals("here");
+        var town = data.zones().stream().filter(zone -> HubData.town(source.getServer(), zone))
+                .filter(zone -> !here ? zone.app().equals(target) : zone.dimension().equals(player.level().dimension())
+                        && zone.area().intersects(player.getBoundingBox())).toList();
+        // The town's logos are the town's: this command leaves them standing and says what takes one down.
+        for (var zone : town) source.sendFailure(Component.literal(townLogo(zone.app())));
         var logos = data.zones().stream().filter(zone -> zone.isGate() || !zone.blocks().isEmpty())
                 .filter(zone -> !here ? zone.app().equals(target) : zone.dimension().equals(player.level().dimension())
                         && (zone.isGate() ? zone.area() : zone.box()).intersects(player.getBoundingBox())).toList();
+        if (logos.isEmpty() && !town.isEmpty()) return 0;
         if (logos.isEmpty()) {
             source.sendFailure(Component.literal(here ? "No logo here. Stand at its door, or name the app." : "No logo of " + target + " stands in this world."));
             return 0;
@@ -149,6 +158,13 @@ public final class ZoneCommands {
             } catch (IOException | RuntimeException error) { source.sendFailure(Component.literal(error.getMessage())); }
         }
         return done;
+    }
+
+    /** What he is told when a zone command meets a logo of the town. */
+    static String townLogo(String app) {
+        var definition = AresOs.app(app);
+        return "The logo of " + (definition == null ? app : definition.name()) + " belongs to the town and stays: /aresos app remove "
+                + app + " takes it down.";
     }
 
     private static int build(CommandSourceStack source, String id, boolean floor) throws CommandSyntaxException {

@@ -1,0 +1,101 @@
+package dev.aresos.hub;
+
+import dev.aresos.zone.AppZone;
+import net.minecraft.SharedConstants;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.level.Level;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+/** The town's part of hub.dat (HUB.md 3.5): what a standing logo records, and files written before the town. */
+class HubDataTest {
+    private static final BlockPos HOME = new BlockPos(0, 64, 0);
+
+    @BeforeAll static void bootstrap() {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+    }
+
+    private static HubData.Fixed pad() {
+        return new HubData.Fixed(List.of(new HubData.Placed(HOME.below(), "minecraft:gold_block")), List.of(UUID.randomUUID()));
+    }
+
+    private static HubData.Logo logo(String app, String place, BlockPos at, String zone) {
+        var gate = new AppZone.Gate(List.of(new AppZone.Placed(at, "minecraft:red_concrete"), new AppZone.Placed(at.above(), "minecraft:light"),
+                new AppZone.Placed(at.below(), "minecraft:yellow_concrete")),
+                List.of(new AppZone.Placed(at.below(), "minecraft:grass_block")), Optional.of(UUID.randomUUID()), List.of(at.below().east()));
+        return new HubData.Logo(app, place, "ab".repeat(32), 1, app.toUpperCase(), Optional.of(app), zone, gate);
+    }
+
+    private static HubData hub(List<HubData.Logo> logos) {
+        return new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(Level.OVERWORLD, HOME), pad(), logos);
+    }
+
+    @Test void aFileWrittenBeforeTheTownLoadsWithoutLogos() {
+        var old = (CompoundTag)HubData.CODEC.encodeStart(NbtOps.INSTANCE, hub(List.of())).getOrThrow();
+        old.remove("logos");
+        var loaded = HubData.CODEC.parse(NbtOps.INSTANCE, old).getOrThrow();
+        assertEquals(List.of(), loaded.logos());
+        assertEquals(pad().blocks(), loaded.fixed().blocks());
+        assertEquals(Map.of(HOME.below(), "minecraft:gold_block"), loaded.blocks(Level.OVERWORLD));
+    }
+
+    @Test void standingLogosRoundTripWithEverythingPlacedForThem() {
+        var discord = logo("discord", "N0R0", new BlockPos(9, 64, -20), "zone-discord");
+        var lunar = new HubData.Logo("lunar", "E0L0", "cd".repeat(32), 1, "Lunar Client", Optional.empty(), "zone-lunar",
+                new AppZone.Gate(List.of(new AppZone.Placed(new BlockPos(20, 64, -9), "minecraft:black_concrete")), List.of(), Optional.empty()));
+        var saved = (CompoundTag)HubData.CODEC.encodeStart(NbtOps.INSTANCE, hub(List.of(discord, lunar))).getOrThrow();
+        var loaded = HubData.CODEC.parse(NbtOps.INSTANCE, saved).getOrThrow();
+        assertEquals(List.of(discord, lunar), loaded.logos());
+        assertEquals(saved, HubData.CODEC.encodeStart(NbtOps.INSTANCE, loaded).getOrThrow(), "saved again it is the same file");
+        var first = saved.getListOrEmpty("logos").getCompoundOrEmpty(0);
+        for (String field : List.of("app", "place", "picture", "converter", "name", "short_name", "zone", "gate"))
+            assertTrue(first.contains(field), "a logo saves " + field);
+        assertFalse(saved.getListOrEmpty("logos").getCompoundOrEmpty(1).contains("short_name"), "no short name, no field");
+    }
+
+    @Test void theRecordKnowsEveryLogoByAppZoneBlockAndSign() {
+        var discord = logo("discord", "N0R0", new BlockPos(9, 64, -20), "zone-discord");
+        var hub = hub(List.of(discord));
+        assertEquals(Optional.of(discord), hub.logo("discord"));
+        assertEquals(Optional.of(discord), hub.logoOfZone("zone-discord"));
+        assertEquals(Optional.empty(), hub.logoOfZone("zone-of-his-own"));
+        assertEquals(Set.of(discord.gate().sign().orElseThrow()), hub.signs());
+        var blocks = hub.blocks(Level.OVERWORLD);
+        assertEquals(4, blocks.size(), "the pad's block and the logo's three");
+        assertEquals("minecraft:light", blocks.get(new BlockPos(9, 65, -20)));
+        assertFalse(blocks.containsKey(new BlockPos(10, 63, -20)), "the grass under a logo is not the mod's block");
+        assertEquals(Map.of(), hub.blocks(Level.NETHER));
+
+        // One logo an app, and no block in two records; a refusal changes nothing.
+        assertThrows(IllegalArgumentException.class, () -> hub.add(logo("discord", "N1L0", new BlockPos(30, 64, -40), "zone-2")));
+        assertThrows(IllegalArgumentException.class, () -> hub.add(logo("chrome", "N0L0", new BlockPos(9, 64, -20), "zone-3")));
+        assertThrows(IllegalArgumentException.class, () -> hub.add(logo("chrome", "N0L0", HOME, "zone-4")),
+                "a block of the pad");
+        assertEquals(List.of(discord), hub.logos());
+        assertFalse(hub.isDirty());
+
+        var chrome = logo("chrome", "N0L0", new BlockPos(-10, 64, -20), "zone-chrome");
+        hub.add(chrome);
+        assertTrue(hub.isDirty());
+        assertEquals(List.of(discord, chrome), hub.logos());
+        assertEquals(7, hub.blocks(Level.OVERWORLD).size());
+        assertEquals(Optional.of(discord), hub.remove("discord"));
+        assertEquals(Optional.empty(), hub.remove("discord"));
+        assertEquals(List.of(chrome), hub.logos());
+        assertEquals(4, hub.blocks(Level.OVERWORLD).size());
+        assertFalse(hub.blocks(Level.OVERWORLD).containsKey(new BlockPos(9, 64, -20)));
+    }
+}
