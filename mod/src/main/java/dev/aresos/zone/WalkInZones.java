@@ -17,7 +17,6 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.phys.Vec3;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +45,8 @@ public final class WalkInZones {
             for (var player : server.getPlayerList().getPlayers()) tick(player);
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(STATES::remove);
+        // The respawn: the mod picks where he arrives (his exact home, ServerPlayerHomeMixin).
+        net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents.AFTER_RESPAWN.register((before, after, alive) -> arrived(after));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             var state = STATES.get(server);
             if (state != null) { state.inside.remove(handler.player.getUUID()); state.pending.remove(handler.player.getUUID()); }
@@ -64,14 +65,32 @@ public final class WalkInZones {
                 .anyMatch(zone -> zone.dimension().equals(player.level().dimension()) && zone.blocks().contains(pos));
     }
 
+    /**
+     * He was just moved by the mod (package 37, review fixes 1, point 1): a zone he touches where he arrives is not
+     * walked into. He opens it by stepping out and in again, as after joining inside one. Every teleport the mod makes
+     * marks its arrival here: the shared teleport ({@code HomeCommands.teleport}: home, {@code /home}, H, {@code /go},
+     * the return in front of a doorway), void recovery, the spawn on joining and the respawn.
+     */
+    public static void arrived(ServerPlayer player) {
+        var state = STATES.get(player.level().getServer());
+        if (state != null) state.inside.put(player.getUUID(), membership(touching(player)));
+    }
+
+    private static java.util.List<AppZone> touching(ServerPlayer player) {
+        return ZoneData.get(player.level().getServer()).zones().stream().filter(zone -> zone.dimension().equals(player.level().dimension())
+                && zone.box().intersects(player.getBoundingBox())).toList();
+    }
+
+    private static Set<String> membership(java.util.List<AppZone> touching) {
+        return touching.stream().map(AppZone::id).collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
     private static void tick(ServerPlayer player) {
         var server = player.level().getServer();
         if (!DesktopWorld.isHost(server, player)) return;
         var state = STATES.computeIfAbsent(server, ignored -> new State());
-        var touching = ZoneData.get(server).zones().stream().filter(zone -> zone.dimension().equals(player.level().dimension())
-                && zone.box().intersects(player.getBoundingBox())).toList();
-        var membership = touching.stream().map(AppZone::id).collect(java.util.stream.Collectors.toUnmodifiableSet());
-        var previous = state.inside.put(player.getUUID(), membership);
+        var touching = touching(player);
+        var previous = state.inside.put(player.getUUID(), membership(touching));
         // Joining inside is not an entry. Tracking Build movement also prevents a launch when switching mode inside.
         if (previous == null || !LiveMode.isLive(player)) return;
         var entered = touching.stream().filter(zone -> !previous.contains(zone.id())).toList();
@@ -109,9 +128,7 @@ public final class WalkInZones {
             player.sendSystemMessage(Component.literal("Logo exit is obstructed. Clear it in Build mode; return teleport was refused."));
             return;
         }
-        player.stopRiding();
-        player.teleportTo(level, exit.position().x, exit.position().y, exit.position().z, Set.of(), exit.yaw(), exit.pitch(), false);
-        player.setDeltaMovement(Vec3.ZERO); player.fallDistance = 0; player.clearFire();
-        state.inside.put(player.getUUID(), Set.of());
+        // The shared teleport marks the arrival: a hand-made zone whose exit lies in its own box opens nothing.
+        dev.aresos.world.HomeCommands.teleport(player, level, exit.position(), exit.yaw(), exit.pitch());
     }
 }

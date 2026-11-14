@@ -57,7 +57,8 @@ import java.util.stream.Collectors;
  * scale 4), so the chat and the hotbar are as large in the picture as on his screen.
  *
  * Every icon is this test's own drawing: a plain figure on a tile or a disc, or a bare shape. No real app's icon.
- * Last in the list, so no other package's pictures are renumbered.
+ * Its programs, drawings and ways of standing and picturing are package-wide, for package 37's
+ * {@link GettingAroundClientGameTest}, which runs after it.
  */
 public final class TownPicturesClientGameTest implements FabricClientGameTest {
     /**
@@ -68,15 +69,15 @@ public final class TownPicturesClientGameTest implements FabricClientGameTest {
     private static final String LOOK = System.getenv("ARESOS_TOWN_LOOK");
     private static final Map<String, String> REAL = Map.of("browser", "chrome.png", "discord", "discord.png", "lunar-client", "lunar-client.png");
 
-    private static final Vec3 SPOT = new Vec3(0.5, 64, 0.5);
+    static final Vec3 SPOT = new Vec3(0.5, 64, 0.5);
     /** His own build in the place N1L0, whose logo would fill x -15 to -4 and z -36 to -34 (HUB.md 3.2). */
     private static final BlockPos HUT_MIN = new BlockPos(-12, 64, -37), HUT_MAX = new BlockPos(-8, 68, -33);
     /** The game's own render distance. The test client starts with 5 chunks, which fogs the far rows and the view from above. */
-    private static final int DISTANCE = 12;
+    static final int DISTANCE = 12;
 
-    private enum Plate { TILE, DISC, BARE }
+    enum Plate { TILE, DISC, BARE }
 
-    private enum Figure {
+    enum Figure {
         STAR, BUBBLE, PROMPT, PAGE, NOTE, ENVELOPE, COMPASS, RING, PLAY, PLUS, BARS, DIAMOND, HEART, CLOUD, FOLDER, GEAR, BOLT,
         CLOCK, CAMERA, CHECKER, PAWN, GRID, SHIELD, ARROW, MOUNTAIN, DICE, LETTER, CODE, CHART, LOCK, GLOBE
     }
@@ -85,17 +86,17 @@ public final class TownPicturesClientGameTest implements FabricClientGameTest {
      * A program of the fixture: what the system says about it, and its drawn icon. On a tile or a disc the figure is
      * {@code fore} on {@code back}; a bare figure is {@code fore} with details in {@code back}.
      */
-    private record Program(String id, String name, String source, String category, Plate plate, int back, Figure figure, int fore) { }
+    record Program(String id, String name, String source, String category, Plate plate, int back, Figure figure, int fore) { }
 
     /** Day one (HUB.md 2.4): the three starters and the two programs he installed himself. */
-    private static final List<Program> DAY_ONE = List.of(
+    static final List<Program> DAY_ONE = List.of(
             new Program("terminal", "Terminal", "image", "System", Plate.TILE, 0x263238, Figure.PROMPT, 0x69f0ae),
             new Program("notepad", "Notepad", "image", "Utility", Plate.BARE, 0xd84315, Figure.PAGE, 0xfff3c4),
             new Program("browser", "Chrome", "image", "Network", Plate.BARE, 0x43a047, Figure.GLOBE, 0x1e88e5),
             new Program("lunar-client", "Lunar Client", "user", "Game", Plate.TILE, 0x161a2e, Figure.STAR, 0xffd54f),
             new Program("discord", "Discord", "flatpak-user", "Network", Plate.TILE, 0x3949ab, Figure.BUBBLE, 0xffffff));
-    private static final Program SPOTIFY = new Program("spotify", "Spotify", "flatpak-user", "AudioVideo", Plate.DISC, 0xad1457, Figure.NOTE, 0xffffff);
-    private static final Program MAIL = new Program("mail", "Mail", "flatpak-user", "Network", Plate.TILE, 0x29b6f6, Figure.ENVELOPE, 0xffffff);
+    static final Program SPOTIFY = new Program("spotify", "Spotify", "flatpak-user", "AudioVideo", Plate.DISC, 0xad1457, Figure.NOTE, 0xffffff);
+    static final Program MAIL = new Program("mail", "Mail", "flatpak-user", "Network", Plate.TILE, 0x29b6f6, Figure.ENVELOPE, 0xffffff);
     /** With day one and Mail these make forty: 10 Internet, 8 Games, 8 Work & Media, 14 System & Tools (HUB.md 2.2). */
     private static final List<Program> MORE = List.of(
             new Program("messenger", "Messenger", "flatpak-user", "Network", Plate.DISC, 0x00897b, Figure.BUBBLE, 0xffffff),
@@ -330,7 +331,7 @@ public final class TownPicturesClientGameTest implements FabricClientGameTest {
     }
 
     /** The system lists more programs: the helper's list grows and it says so, as after an install. */
-    private static void list(FakeHelper helper, List<JsonObject> listed, Path icons, List<Program> more, String revision) throws IOException {
+    static void list(FakeHelper helper, List<JsonObject> listed, Path icons, List<Program> more, String revision) throws IOException {
         for (var program : more) listed.add(entry(program, icons));
         helper.entries = List.copyOf(listed);
         helper.revision = revision;
@@ -341,14 +342,14 @@ public final class TownPicturesClientGameTest implements FabricClientGameTest {
      * The new programs' pictures also become pixel icons, a moment after the list (at most one loading every five
      * seconds), and the game then loads its resources again with a loading bar: wait until that has come and gone.
      */
-    private static void icons(ClientGameTestContext context, List<Program> programs) {
+    static void icons(ClientGameTestContext context, List<Program> programs) {
         var ids = programs.stream().map(Program::id).toList();
         context.waitFor(client -> AresOs.generatedIcons.containsAll(ids), 600);
         context.waitTicks(20);
         context.waitFor(client -> client.gui.overlay() == null, 600);
     }
 
-    private static JsonObject entry(Program program, Path icons) throws IOException {
+    static JsonObject entry(Program program, Path icons) throws IOException {
         var entry = FakeHelper.entry(program.id(), program.name(), null, program.source());
         var categories = new JsonArray();
         categories.add(program.category());
@@ -364,12 +365,12 @@ public final class TownPicturesClientGameTest implements FabricClientGameTest {
 
     // What the town is.
 
-    private static List<String> mine() {
+    static List<String> mine() {
         return AresOs.apps().stream().filter(AppDefinition::mine).map(AppDefinition::id).sorted().toList();
     }
 
     /** Every standing logo: app to place. */
-    private static Map<String, String> places(MinecraftServer server) {
+    static Map<String, String> places(MinecraftServer server) {
         return HubData.get(server).logos().stream().collect(Collectors.toMap(HubData.Logo::app, HubData.Logo::place, (first, second) -> first, TreeMap::new));
     }
 
@@ -386,7 +387,7 @@ public final class TownPicturesClientGameTest implements FabricClientGameTest {
 
     // Where he stands and what the picture shows.
 
-    private static void look(ClientGameTestContext context, TestSingleplayerContext world, Vec3 position, float yaw, float pitch) {
+    static void look(ClientGameTestContext context, TestSingleplayerContext world, Vec3 position, float yaw, float pitch) {
         world.getServer().runOnServer(server -> world.getConnection().getServerPlayer()
                 .teleportTo(server.overworld(), position.x, position.y, position.z, Set.of(), yaw, pitch, false));
         context.waitFor(client -> client.player.position().distanceToSqr(position) < 1.0e-4
@@ -395,7 +396,7 @@ public final class TownPicturesClientGameTest implements FabricClientGameTest {
     }
 
     /** In Build mode, flying in place. Up first, then flying: a flying player on the ground is landed again by his own client. */
-    private static void hover(ClientGameTestContext context, TestSingleplayerContext world, Vec3 position, float yaw, float pitch) {
+    static void hover(ClientGameTestContext context, TestSingleplayerContext world, Vec3 position, float yaw, float pitch) {
         world.getServer().runOnServer(server -> {
             var player = world.getConnection().getServerPlayer();
             player.teleportTo(server.overworld(), position.x, position.y, position.z, Set.of(), yaw, pitch, false);
@@ -408,7 +409,7 @@ public final class TownPicturesClientGameTest implements FabricClientGameTest {
         context.waitTicks(5);
     }
 
-    private static void mode(ClientGameTestContext context, TestSingleplayerContext world, GameType mode) {
+    static void mode(ClientGameTestContext context, TestSingleplayerContext world, GameType mode) {
         world.getServer().runOnServer(server -> world.getConnection().getServerPlayer().setGameMode(mode));
         context.waitFor(client -> client.gameMode.getPlayerMode() == mode);
         TownClientGameTest.waitForServer(context, world, server -> {
@@ -417,7 +418,7 @@ public final class TownPicturesClientGameTest implements FabricClientGameTest {
         }, "The switch to " + mode + " did not finish", 200);
     }
 
-    private static void clearChat(ClientGameTestContext context, List<String> messages) {
+    static void clearChat(ClientGameTestContext context, List<String> messages) {
         context.runOnClient(client -> client.gui.hud.getChat().clearMessages(true));
         messages.clear();
     }
@@ -427,7 +428,7 @@ public final class TownPicturesClientGameTest implements FabricClientGameTest {
      * said. A list with new pictures makes the game load its item icons again a moment later, with a loading bar:
      * the picture waits until that has come and gone, and until the action bar is empty.
      */
-    private static void picture(ClientGameTestContext context, Path folder, String name, boolean chat) {
+    static void picture(ClientGameTestContext context, Path folder, String name, boolean chat) {
         context.waitTicks(chat ? 30 : 10);
         context.waitFor(client -> client.gui.overlay() == null && ((HudTestAccess) client.gui.hud).aresos$overlayTime() == 0, 600);
         // The renderer's own word that everything loaded is drawn; the test API's wait for chunks did not end at

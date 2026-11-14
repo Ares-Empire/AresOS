@@ -4,5 +4,6 @@
   "aresos.home.create": "Create AresOS world",
   "item.aresos.app": "App",
   "key.aresos.switch_mode": "Switch Build/Live mode",
+  "key.aresos.home": "Home",
   "key.category.aresos.aresos": "AresOS"
 }

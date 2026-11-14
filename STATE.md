@@ -235,7 +235,11 @@ Updated 2026-11-13. The live truth is `git log`, `gh pr list` and `git worktree 
        (PR #43, `1108fc30`): the service's unit may reach the network (Mail couldn't under the real unit before), and
        17 cases prove in interactive Claude Code that the send question holds with allow rules, a `PreToolUse` allow
        hook, "don't ask again" and skip-permissions; a `PermissionRequest` allow hook approves, the accepted residual,
-       now pinned for the interactive case. The image part (Part A and B2) waits for package 23 and PR #27 on main.
+       now pinned for the interactive case. The image part (Part A and B2) is being built on draft PR #58 without
+       Chrome (start note `briefs/18c-image-start.md`); Chrome's files follow after PR #27. Its first Control VM run
+       found the managed hooks failing in every turn on Claude Code 2.1.319 (a closed input-field list refused
+       `prompt_id`); fixed on main by PR #61 (2026-11-14). Service fixes it found (start order, idle wake-ups, endless
+       restart, `aresos admin` without sudo) wait for a small brief after PR #27 (board #233, #235).
        Part A merges only after the owner's yes to a release carrying Control (a background service, two managed
        hooks in every Claude Code session). Owner answer: the tools use `Downloads` and `Documents` (board #203).
      - **The Chrome capability briefs** (branch `briefs/28-chrome-capability`, not merged): 28 (reading: outline,
