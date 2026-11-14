@@ -19,9 +19,9 @@ def later(path):
     os.utime(path, ns=(info.st_atime_ns, info.st_mtime_ns + 1_000_000_000))
 
 
-class PicturePassTest(IconBase, Base):
-    """Point 1 (OS lead, defect 1): the helper asks every CATALOGUE_CHECK seconds; a pass runs only when the catalogue,
-    the icon folders or a chosen picture changed, or when the last pass did not finish."""
+class PicturePasses(IconBase, Base):
+    """A real Catalogue and IconCache whose worker steps the test runs after each of the helper's ticks (no tests of
+    its own; review fixes 4 uses it too)."""
 
     def setUp(self):
         IconBase.setUp(self)
@@ -66,6 +66,11 @@ class PicturePassTest(IconBase, Base):
 
     def icon(self, app_id):
         return self.helper_.apps[app_id].icon
+
+
+class PicturePassTest(PicturePasses):
+    """Point 1 (OS lead, defect 1): the helper asks every CATALOGUE_CHECK seconds; a pass runs only when the catalogue,
+    the icon folders or a chosen picture changed, or when the last pass did not finish."""
 
     def test_an_idle_minute_of_ticks_asks_for_no_pass_after_the_first(self):
         self.assertEqual(self.ticks(20), [True] + [False] * 19)

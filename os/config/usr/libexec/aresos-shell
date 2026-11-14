@@ -1257,13 +1257,55 @@ def resolve_icon(name, directories, deployments=None):
     return IconLookup(directories, deployments).resolve(name)
 
 
-def icon_stat(path):
-    """What a picture pass's signature keeps of a path. Like the catalogue's, it follows links and reads nothing."""
-    try:
-        info = os.stat(path)
-    except OSError:
-        return None
-    return info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+def icon_stat(path, is_folder=False, folder=None, roots=()):
+    """What a picture pass's signature keeps of path. Like the catalogue's, it reads nothing.
+
+    Without folder, path was the pass's to read or list: its stat through links, so a Flatpak update that switches its
+    active link is seen. Of something refused for its kind (a FIFO, a device, a folder where a file belongs or the other
+    way round) only its inode and kind, which change when it is replaced, not while it is used.
+
+    With folder, path resolves outside roots, the real folders allowed to its icon root folder, and was refused
+    (review 4, FIX 1): the lstat of each folder and link on the way from folder to the first step out of roots, and
+    nothing behind it. Replacing the link is seen; a link onto something that keeps changing (a log, or the helper's
+    own picture cache, which a pass changes) never asks for a pass.
+    """
+    if folder is None:
+        try:
+            info = os.stat(path)
+        except OSError:
+            return None
+        if not (stat.S_ISDIR if is_folder else stat.S_ISREG)(info.st_mode):
+            return info.st_ino, stat.S_IFMT(info.st_mode)
+        return info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns
+    way, links = [], 0
+    current, parts = os.path.realpath(folder), os.path.relpath(path, folder).split(os.sep)
+    while parts:
+        part = parts.pop(0)
+        if part in ('', '.'):
+            continue
+        step = os.path.dirname(current) if part == '..' else os.path.join(current, part)
+        if not within(step, roots):
+            break
+        try:
+            info = os.lstat(step)
+        except OSError:
+            way.append(None)
+            break
+        way.append((info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns))
+        if stat.S_ISLNK(info.st_mode) and links < 40:
+            links += 1
+            try:
+                target = os.readlink(step)
+            except OSError:
+                break
+            parts[:0] = target.split(os.sep)
+            if os.path.isabs(target):
+                current = os.sep
+        elif stat.S_ISDIR(info.st_mode):
+            current = step
+        else:
+            break
+    return tuple(way)
 
 
 def read_icon_index(path, roots):
@@ -1320,34 +1362,42 @@ class IconLookup:
     a Flatpak deployment: a Flatpak export's icons are links into its deployment (review 1, FIX 5). The pass lists at
     most ICON_LOOKUP_ENTRIES folder entries in all.
 
-    seen holds every root, folder, index and picture the pass looked at, with its stat from before it was read: the
-    pass's signature. Anything that could change a lookup's answer changes one of them.
+    seen holds every root, folder, index and picture the pass looked at, as {path: (how, icon_stat(path, *how))}, taken
+    before it was read: the pass's signature. Anything that could change a lookup's answer changes one of them; what
+    resolved outside its root is kept by the links that lead there, never by what they lead to (review 4, FIX 1).
+    warned ({index path: its signature entry}) is the IconCache's, so each broken index is warned about once for each
+    helper run while it stays as it is.
     """
 
     THEMES = ('hicolor', 'breeze')
 
-    def __init__(self, directories, deployments=None):
+    def __init__(self, directories, deployments=None, warned=None):
         self.directories = tuple(directories)
         deployments = tuple(os.path.realpath(path)
                             for path in (flatpak_deployments() if deployments is None else deployments))
         self.roots = {folder: (os.path.realpath(folder), *deployments) for folder in self.directories}
         self.seen = {}
+        self.warned = {} if warned is None else warned
         self.listings = {}
         self.orders = {}
         self.entries = 0
         for folder in self.directories:
-            self.note(folder)
+            self.note(folder, is_folder=True)
 
-    def note(self, path):
+    def note(self, path, folder=None, is_folder=False):
+        """path into the signature before it is read or listed; folder is its icon root when it may lead outside."""
         if path not in self.seen:
-            self.seen[path] = icon_stat(path)
+            how = (is_folder,)
+            if folder is not None and not within(os.path.realpath(path), self.roots[folder]):
+                how = (is_folder, folder, self.roots[folder])
+            self.seen[path] = how, icon_stat(path, *how)
 
     def listing(self, folder, *parts):
         """{name: is a real folder} of a folder under the root folder."""
         path = os.path.join(folder, *parts)
         if path in self.listings:
             return self.listings[path]
-        self.note(path)
+        self.note(path, folder, is_folder=True)
         names = {}
         if self.entries < ICON_LOOKUP_ENTRIES:
             try:
@@ -1371,11 +1421,14 @@ class IconLookup:
         for folder in self.directories:
             if 'index.theme' in self.listing(folder, theme):
                 path = os.path.join(folder, theme, 'index.theme')
-                self.note(path)
+                self.note(path, folder)
                 try:
                     index = read_icon_index(path, self.roots[folder])
                 except (OSError, ValueError) as error:
-                    LOG.warning('icon theme index %s not used, %s keeps the fixed layout: %s', path, theme, error)
+                    # A pass that runs again for another reason does not repeat it (review 4, FIX 1).
+                    if self.warned.get(path) != self.seen[path]:
+                        self.warned[path] = self.seen[path]
+                        LOG.warning('icon theme index %s not used, %s keeps the fixed layout: %s', path, theme, error)
                 break
         folders = []
         for position, folder in enumerate(self.directories):
@@ -1620,6 +1673,8 @@ class IconCache:
         self.latest = None
         # (revision, signature) of the last complete pass; None while a pass is due.
         self.finished = None
+        # Broken theme indexes already warned about (IconLookup.warned).
+        self.warned = {}
         # Once at start rather than once per picture (review fixes 3): without these no picture can be made.
         missing = [path for path in (bwrap, magick, prlimit) if not os.access(path, os.X_OK)]
         if missing:
@@ -1668,10 +1723,10 @@ class IconCache:
         chose and those it made), or when the last pass did not finish (review fixes 3). Checking it only stats.
         """
         if self.finished is not None and self.finished[0] == revision and all(
-                icon_stat(path) == info for path, info in self.finished[1].items()):
+                icon_stat(path, *how) == info for path, (how, info) in self.finished[1].items()):
             return False
         self.finished = None
-        lookup = IconLookup(self.directories, self.deployments)
+        lookup = IconLookup(self.directories, self.deployments, self.warned)
         roots = tuple(os.path.realpath(folder) for folder in (*self.directories, *self.deployments))
         pictures, complete = set(), True
         for app in apps.values():
@@ -1711,7 +1766,9 @@ class IconCache:
             info = os.lstat(path)
             if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid():
                 raise ValueError('unsafe icon cache directory')
-            os.chmod(path, 0o700, follow_symlinks=False)
+            # Only when needed: every chmod changes the folder, and this runs for each picture, cached or not (review 4).
+            if stat.S_IMODE(info.st_mode) != 0o700:
+                os.chmod(path, 0o700, follow_symlinks=False)
 
     def command(self, work, *arguments, identify=False):
         # Mount runtime libraries, not /usr or the home tree. The only input image is a bounded snapshot.
