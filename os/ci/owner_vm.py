@@ -410,6 +410,15 @@ else: raise SystemExit('Owner command did not finish')
 '''.replace('@BEFORE@', repr(before)).replace('@COMMAND@', command).replace('@TIMEOUT@', repr(timeout))
 
 
+# The installed toolset, found the way os/owner-tools/at finds it: the entry's resolved path
+# (readlink -f), then that path's folder.
+ENTRY = r'''import json,subprocess
+entry='/var/lib/ares/at'
+resolved=subprocess.check_output(['/usr/bin/readlink','-f','--',entry],text=True).rstrip('\n')
+print(json.dumps(dict(entry=entry,resolved=resolved)))
+'''
+
+
 class Console:
     def __init__(self, guest, tty='tty3', commands=None):
         self.guest, self.tty = guest, tty
@@ -421,6 +430,24 @@ class Console:
         self.pending_hidden = None
         self.last_hidden = None
         self.login_prepared = None
+        # The installed toolset's folder; read in the guest before each command the tools read input for.
+        self.tools = None
+
+    def toolset(self, stage):
+        """The folder the installed tools run from, resolved in the guest as os/owner-tools/at
+        resolves it. It is /var/lib/ares/tools after the first install and tools-<fingerprint>
+        after a tools update (run 43581458429); it is read here, never derived from what the
+        route believes it installed."""
+        value = self.guest.capture_json(stage + '-toolset', sw.framed('python3 -c ' + shlex.quote(ENTRY)))
+        folder, _, name = value['resolved'].rpartition('/')
+        assert value['entry'] == '/var/lib/ares/at' and name == 'at', 'STOP: the installed entry does not resolve to a toolset'
+        owner_hidden.owner_reader(folder, [])  # refuses anything but an installed toolset's folder
+        self.tools = folder
+        return folder
+
+    def owner_reader(self, args):
+        """The tools' own process for a command typed in this console; None before a toolset was read."""
+        return None if self.tools is None else owner_hidden.owner_reader(self.tools, args)
 
     def select(self):
         self.guest.keys(['ctrl', 'alt', 'f' + self.tty[3:]])
@@ -494,7 +521,7 @@ class Console:
             raise AssertionError('No verified hidden prompt')
         assert value['reader'] and value['prompt_at_cursor'] and value['reader_echo_enabled'] is False
         self.pending_hidden = dict(stage=stage, expected=expected, reader=value['reader'], epoch=epoch,
-            token=expected == owner_hidden.owner_reader(['login']) and prompt.rstrip() == TOKEN_PROMPT)
+            token=expected == self.owner_reader(['login']) and prompt.rstrip() == TOKEN_PROMPT)
         if prepared is not None:self.pending_hidden['login_prepared']=prepared
 
     def input_guard(self, pending, phase):
@@ -582,7 +609,7 @@ class Console:
         assert getattr(self.guest, 'owner_input_epoch', 0) == pending['epoch'], 'Input revoked hidden reader authority'
         assert not expect_rejection or pending['expected']['kind'] == 'login'
         if public_inputs:
-            assert pending['expected']['kind'] == 'sudo' and pending['expected']['next'] == owner_hidden.owner_reader(['layout','proof'])
+            assert pending['expected']['kind'] == 'sudo' and pending['expected']['next'] == self.owner_reader(['layout','proof'])
             assert all(prompt == LAYOUT_PROMPT and not hidden for prompt, _, hidden in public_inputs), 'Unwalked hidden-read continuation'
         pending['sent'] = True
         self.guest.screenshot_safe = False
@@ -796,19 +823,22 @@ class Console:
         self.select()
         self.prompt(stage + '-ready')
         before = self.records()
-        self.visible(self.commands[name] + '\n',stage+'-command')
         args = self.commands[name].split('/at ', 1)[-1].split()
         hidden_input = password is not None
+        if password is not None or any(hidden for _, _, hidden in inputs):
+            # The process that reads is the tools' own, from the toolset the entry resolves to now.
+            self.toolset(stage)
+        self.visible(self.commands[name] + '\n',stage+'-command')
         if password is not None:
             assert all(not hidden for _, _, hidden in inputs), 'Unwalked hidden continuation after sudo'
-            self.hidden(stage + '-sudo-hidden', owner_hidden.sudo_reader(['/var/lib/ares/at', *args], owner_hidden.owner_reader(args)), SUDO_PROMPT)
+            self.hidden(stage + '-sudo-hidden', owner_hidden.sudo_reader(['/var/lib/ares/at', *args], self.owner_reader(args)), SUDO_PROMPT)
             self.guest.screenshot_safe = False
             self.send_hidden(password, public_inputs=inputs)
             inputs = ()
         for prompt, value, hidden in inputs:
             if hidden:
                 hidden_input = True
-                self.hidden(stage + '-hidden-input', owner_hidden.owner_reader(args), prompt.rstrip())
+                self.hidden(stage + '-hidden-input', self.owner_reader(args), prompt.rstrip())
                 self.guest.screenshot_safe = False
             else:
                 wait_tty(self.guest, self.tty, 'line.endswith('+repr(prompt.rstrip())+')', stage + '-input-ready')
@@ -1881,6 +1911,8 @@ class WaysBack:
                               .removeprefix('ostree-unverified-registry:').removeprefix('ostree-image-signed:docker://'))
         self.transcript, self.menus, self.stock_starts, self.cut_proof, self.updater_states = [], [], [], None, None
         self.boot_stage = 'release-27'
+        # The folder of the toolset this walk installed (version 3); every layout proof must be read from it.
+        self.toolset = None
 
     def checked(self, stage):
         missed = self.probe.contradicted()
@@ -2040,6 +2072,8 @@ class WaysBack:
         second = Console(guest, 'tty4')
         second.login(self.password, begin + '-login')
         self.run(second, 'layout-proof', begin + '-proof', inputs=((LAYOUT_PROMPT, TEXT, False),), password=self.password)
+        # The folder was read in the guest before the proof (Console.toolset); it is this walk's version 3.
+        assert second.tools == self.toolset, 'STOP: the proof was not read by the tools this walk installed'
         second.logout(begin + '-logout')
         console.select()
         self.run(console, 'layout-finish', begin + '-finish')
@@ -2110,6 +2144,8 @@ def ways_back_rehearsal(audit, media, password, hashed, ares_password, version_2
         installed = walk.run(console, 'install', 'tools-3-install', record='tools-update')
         assert installed['manifest'] == media.fingerprint and installed['previous_manifest'] == TOOLS_V2
         assert (installed['previous_version'], installed['tools_version']) == (2, 3)
+        # A tools update publishes its toolset as tools-<fingerprint> (owner.py, installed_update).
+        walk.toolset = '/var/lib/ares/tools-' + installed['manifest']
         walk.check(console, 'tools-3')
         media.detach(guest, 'tools-3')
         # E2: a layout trial to US International, then the restart.
@@ -2218,6 +2254,7 @@ def ways_back_rehearsal(audit, media, password, hashed, ares_password, version_2
     result = probe.result(commit=os.environ['GITHUB_SHA'], order='protected-second',
         starting_state="package 27's route: corrected pinned stock, release 13 by the laptop tools (15f), release 27 by tools version 2",
         laptop_tools=LAPTOP_TOOLS, tools_version_2=TOOLS_V2, tools_version_2_commit=TOOLS_V2_COMMIT, tools_version_3=media.fingerprint,
+        tools_version_3_folder=walk.toolset, layout_proofs_read_from_that_folder=True,
         previous_release=old, release=new, names=walk.name, references=walk.reference, network_after_release_27=False,
         deployments={role: list(identity) for identity, role in probe.roles.items()},
         transcript=walk.transcript, typed={name: typed.count(COMMANDS[name]) for name in COMMANDS if name != 'install'},

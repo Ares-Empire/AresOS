@@ -13,8 +13,17 @@ import time
 from owner_console import interactive_shell, process_snapshot, screen, foreground_observation
 
 
-def owner_reader(args):
-    return dict(kind='owner', argv=['/usr/bin/python3', '-I', '-B', '/var/lib/ares/tools/owner.py', *args])
+# An installed toolset's folder (owner.py, TOOLSET): tools after the first install,
+# tools-<fingerprint> after every tools update.
+TOOLSET = r'/var/lib/ares/(?:tools|tools-[0-9a-f]{64})'
+
+
+def owner_reader(toolset, args):
+    """The tools' own process, as os/owner-tools/at starts it: python3 on owner.py in the folder
+    the entry resolves to. toolset is that folder, read in the guest (owner_vm.Console.toolset)
+    and never assumed: run 43581458429 expected the first install's folder after a tools update."""
+    assert isinstance(toolset, str) and re.fullmatch(TOOLSET, toolset), 'STOP: not an installed toolset folder'
+    return dict(kind='owner', argv=['/usr/bin/python3', '-I', '-B', toolset + '/owner.py', *args])
 
 
 def sudo_reader(args, next_reader):

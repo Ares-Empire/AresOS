@@ -35,6 +35,10 @@ RealPath=pathlib.Path
 root=RealPath(os.environ['SERIAL_FIXTURE_ROOT'])
 source=sys.argv[2].replace("/var/lib/ares/tools/owner.py", str(root/"mock-login.py"))
 guard_mode='# hidden-input-guard' in source
+# The fixture's tools are a first install: its entry resolves to tools/ (the reader's folder above).
+# The real entry program runs in the host walk (owner_console_shim.InstalledTools.resolve).
+if "entry='/var/lib/ares/at'" in source:
+ source='import json; print(json.dumps(dict(entry="/var/lib/ares/at",resolved="/var/lib/ares/tools/at")))'
 # Explicit stand-in for new guest-only evdev access. Transport/ACK/SHA still run.
 if '# hidden-key-counter' in source:
  if 'print(json.dumps(start()))' in source:

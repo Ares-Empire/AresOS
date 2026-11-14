@@ -101,7 +101,7 @@ class Driver:
 class ReliableTypingTest(unittest.TestCase):
     def run_hidden(self,case='pass',value='aa',chunked=False,token=True):
         guest=Driver(case);console=vm.Console(guest)
-        console.pending_hidden=dict(stage='fixture',expected=hidden.owner_reader(['login']),reader={},epoch=0,token=token)
+        console.pending_hidden=dict(stage='fixture',expected=hidden.owner_reader('/var/lib/ares/tools', ['login']),reader={},epoch=0,token=token)
         saved=[]
         def save(name,value):
             saved.append((name,copy.deepcopy(value)))
@@ -191,15 +191,15 @@ class ReliableTypingTest(unittest.TestCase):
         self.assertIsInstance(result,AssertionError);self.assertEqual(guest.events,[])
 
     def test_actual_guard_accepts_only_unchanged_canonical_reader_in_read(self):
-        rows=nested(1027,136*256+2,40,hidden.owner_reader(['login'])['argv'])
+        rows=nested(1027,136*256+2,40,hidden.owner_reader('/var/lib/ares/tools', ['login'])['argv'])
         # Match the Proc fixture's actual executable symlink and start tick.
         for row in rows:row.update(start='12345',exe=row.get('exe','/usr/bin/'+row['comm']))
         receipt=dict(hidden.identity(rows[-1]),physical=1027,tty_path='/dev/pts/2',origin_chain=[hidden.identity(r) for r in rows[1:]])
-        source=hidden.guard_source('tty3',hidden.owner_reader(['login']),receipt,for_clear=True)
+        source=hidden.guard_source('tty3',hidden.owner_reader('/var/lib/ares/tools', ['login']),receipt,for_clear=True)
         self.assertTrue(execute_guard(source)['ready'])
         for change in (dict(canonical=False),dict(kill=3),dict(syscall=1),dict(state='R')):
             self.assertFalse(execute_guard(source,**change)['ready'])
-        normal=hidden.guard_source('tty3',hidden.owner_reader(['login']),receipt)
+        normal=hidden.guard_source('tty3',hidden.owner_reader('/var/lib/ares/tools', ['login']),receipt)
         self.assertTrue(execute_guard(normal,canonical=False)['ready'])
 
     def test_real_canonical_getpass_ctrl_u_discards_previous_value_before_enter(self):
