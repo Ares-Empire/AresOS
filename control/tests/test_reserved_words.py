@@ -10,8 +10,8 @@ import unittest
 from aresos_control.boundary_policy import user_mcp
 from aresos_control.definitions import APPS
 
-RESERVED = frozenset({'update', 'previous', 'rollback', 'keep-stock', 'check', 'title', 'records', 'export', 'login',
-                      'verify', 'switch', 'install', 'prepare', 'layout', 'reboot', 'logs'})
+RESERVED = frozenset({'update', 'forward', 'previous', 'rollback', 'keep-stock', 'check', 'title', 'records', 'export',
+                      'login', 'verify', 'switch', 'install', 'prepare', 'layout', 'reboot', 'logs'})
 # cli.main's own words before an app name: `aresos admin <app> <action>` and `aresos log`.
 CLI_WORDS = frozenset({'admin', 'log'})
 HELP = Path(__file__).resolve().parents[1] / 'generated/cli-help.txt'
