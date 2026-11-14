@@ -81,15 +81,61 @@ class IngressBounds(unittest.TestCase):
                         hooks.main({}, event)
                     client.assert_not_called()
 
-    def test_hook_explicit_payload_schema_refuses_wrong_types_and_unknown_fields(self):
+    def test_hook_explicit_payload_schema_refuses_wrong_types(self):
         for event in ({'hook_event_name': 'Stop', 'stop_hook_active': 1},
+                      {'hook_event_name': 'Stop', 'stop_hook_active': 'true', 'prompt_id': 'p'},
                       {'hook_event_name': 'Stop', 'prompt': []},
-                      {'hook_event_name': 'Stop', 'extra': 'field'}):
+                      {'hook_event_name': 'Stop', 'session_id': None, 'extra': 'field'}):
             with self.subTest(event=event), patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), \
                     patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-                with self.assertRaises(SystemExit):
+                with self.assertRaises(SystemExit) as error:
                     hooks.main({}, 'Stop')
+                self.assertEqual(error.exception.code, 2)
                 client.assert_not_called()
+
+    def test_hook_accepts_and_ignores_fields_it_does_not_read(self):
+        # Claude Code 2.1.319 sends `prompt_id` and more than the documented fields; a closed list broke every turn.
+        extra = {'prompt_id': 'prompt-marker-7', 'unknown_later_field': {'nested': [1, None]}, 'agent_id': 'a'}
+        pending = {'total': 1, 'operations': [{'operation_id': 'op-1', 'state': 'held'}]}
+        for name in ('Stop', 'UserPromptSubmit'):
+            event = {'hook_event_name': name, 'session_id': 's', 'transcript_path': '/unused', 'cwd': '/unused',
+                     'permission_mode': 'default', **extra,
+                     **({'stop_hook_active': False} if name == 'Stop' else {'prompt': 'owner text'})}
+            stdout = io.StringIO()
+            with self.subTest(event=name), patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), \
+                    patch.object(hooks, 'Client') as client, redirect_stdout(stdout), redirect_stderr(io.StringIO()):
+                client.return_value.call.return_value = {'ok': True, 'data': pending}
+                hooks.main({'act_socket': '/unused'}, name)
+                client.return_value.call.assert_called_once_with('control_pending', {})
+                result = json.loads(stdout.getvalue())
+                if name == 'Stop':
+                    self.assertEqual(result['decision'], 'block')
+                    self.assertIn('op-1', result['reason'])
+                else:
+                    self.assertIn('op-1', result['hookSpecificOutput']['additionalContext'])
+                self.assertNotIn('prompt-marker-7', stdout.getvalue())
+                self.assertNotIn('unknown_later_field', stdout.getvalue())
+
+    def test_stop_failure_blocks_once_and_honours_the_continuation_guard(self):
+        for active, broken in ((False, 'service'), (True, 'service'), (False, 'input'), (True, 'input'), ('yes', 'input')):
+            event = {'hook_event_name': 'Stop', 'stop_hook_active': active, 'prompt_id': 'p'}
+            if broken == 'input':
+                event['prompt'] = ['not text']
+            stderr = io.StringIO()
+            with self.subTest(active=active, broken=broken), \
+                    patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), \
+                    patch.object(hooks, 'Client') as client, redirect_stdout(io.StringIO()) as stdout, redirect_stderr(stderr):
+                client.return_value.call.return_value = {'unexpected': 'reply'}
+                if active is True:
+                    hooks.main({'act_socket': '/unused'}, 'Stop')
+                    self.assertEqual((stdout.getvalue(), stderr.getvalue()), ('', ''))
+                else:
+                    with self.assertRaises(SystemExit) as error:
+                        hooks.main({'act_socket': '/unused'}, 'Stop')
+                    self.assertEqual(error.exception.code, 2)
+                    self.assertIn('AresOS hook failed', stderr.getvalue())
+                if broken == 'input':
+                    client.assert_not_called()
 
     def test_real_mcp_binary_stdio_bounds_refuse_without_dispatch_and_stream_recovers(self):
         from aresos_control.definitions import tools_for
