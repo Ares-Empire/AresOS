@@ -107,10 +107,12 @@ blocks up over it, 20 blocks out: north light blue (INTERNET), east red
 (GAMES), south yellow (SYSTEM & TOOLS), west purple (WORK & MEDIA). The world
 spawn is the home block. The numbers and the group table are data in
 `hub/HubLayout.java`; the design is `docs/design/HUB.md`. The logos along the
-roads come with later packages.
+roads are the town ("The town" below).
 
-The pad, the roads and the names are built once, with the new world, and never
-again. The mod paves only untouched grass with air above it; anything else
+The pad, the first 24 blocks of each road and the names are built once, with
+the new world. After that the town paves a road on when its group grows and
+writes the number of apps on each name ("The town" below); nothing else of
+them is built again. The mod paves only untouched grass with air above it; anything else
 stays. What it placed is saved as `data/aresos/hub.dat`: every block as
 `{pos, block}`, the IDs of the four names (text displays), the layout's name
 `flat-1`, its numbers and the home block. In Live mode a recorded block that is
@@ -328,6 +330,7 @@ system lists is still there to pick from ("All programs"), but has no item.
   Flatpaks installed for your user). That day is saved as `baseline`.
 - **Later.** A program that newly appears and did not come with the system joins
   My apps by itself, and the chat says so: "Spotify is new and joined My apps."
+  (In a flat home the town says it instead, with the place of the new logo.)
   Programs that come with a new AresOS image, or whose origin the system does not
   say, never join by themselves.
 - **Windows, or an older helper (1.0).** Nothing joins by itself: yours are the
@@ -453,6 +456,107 @@ On return, it closes only the pause screen created by that focus loss. An Esc
 menu, a replacement screen, and focus loss without a launch stay untouched.
 Each launch owns its focus tracking, so an older launch failing cannot cancel a
 newer launch's return.
+
+## The town
+
+In a flat home every app of My apps that the system lists as installed has a
+logo along the road of its group. The mod builds them by itself; you place
+nothing. A logo is the gate described under "The gate" below: 12 blocks wide,
+12 tall and 3 thick, a doorway at the bottom middle that opens the app, and
+above it the app's name in white and its main short name (`/chrome`) in gold.
+
+**What you see.** On day one Chrome and Discord stand left and right of the
+north road, 20 blocks from the pad; Lunar Client stands on the east road,
+Notepad and Terminal on the south road. Every logo faces the pad. Over each
+road hangs the group's name with the number of its apps: `INTERNET · 2`,
+`WORK & MEDIA · 0`. With more apps a group grows in rows: row 0 has one place
+on each side of its road, row 1 two, row 2 three, 14 blocks from row to row.
+A place has a name such as `N1R0`: north, row 1, right of the road as you look
+outward from the pad, first from the road. From the pad you see the front row;
+the rows behind it show when you walk past the row in front.
+
+**Which group.** The first that fits the program's categories: `Game` is Games
+(east), `Network` is Internet (north), office, development, education, science,
+graphics, audio and video are Work & Media (west), everything else is System &
+Tools (south).
+
+**Which place.** A new app takes the nearest free place of its group (by row,
+then by distance from the road, left before right). The place is saved with the
+app (`place` in `config/aresos/apps.json`) and kept when the app leaves My
+apps, so it comes back where it stood if the place is still free, and a new
+AresOS world builds the same town. Nothing that stands moves by itself. On the
+first build pinned apps go first (on a fresh AresOS that is Notepad).
+
+**When it changes.** The town is brought in step when you enter the world, when
+the system's program list changes, and after `/aresos app add` and
+`/aresos app remove` (the Apps screen included). The chat says what changed:
+
+| What happened | The line |
+|---|---|
+| A program was installed, or you added one | "Spotify is new. It stands in Work & Media, west. /spotify opens it." |
+| You removed one from My apps | "Spotify left My apps. Its logo came down." |
+| The system no longer lists one | "Chrome is no longer installed. Its logo came down; its place is kept for its return." |
+| One is back, or the world is new | "Chrome stands in Internet, north." |
+| Its icon, its name or its main short name changed | "The logo of Chrome was renewed." |
+| Something of yours is in its place | "N1L0 is blocked by something of yours, so Mail stands at N1R0." |
+| Every place of its group is blocked | "Mail has no free place in Internet: every place there is blocked." |
+| Something of yours hangs on a logo that should come down | "The logo of Chrome stays: … The town tries again later." |
+| More than five changes at once | One line: "The town is built: 12 logos. /apps lists them.", or "The town changed: 7 logos built, 2 moved, 1 renewed, 3 taken down. /apps lists where your apps stand." |
+
+In a flat home this is the only line about a new program; My apps' own line
+("… is new and joined My apps.") is for AresOS worlds without a town.
+
+**Roads** are paved on to 4 blocks past the farthest row in use. A road is
+never taken up again when its group shrinks.
+
+**What you can and cannot change.**
+
+- In Live mode the town's blocks cannot be broken, like the pad and the roads:
+  "The logo of Discord is part of the town and protected. Press G for Build
+  mode." Explosions never break a logo, in either mode. Signs and group names
+  cannot be hit.
+- In Build mode you can change any block. A block you change is yours from
+  then on: the town never puts its own block back and never removes yours,
+  also when the logo around it comes down or is built again.
+- The town builds only where nothing is. A place counts as blocked when its
+  space is not air or its ground is neither untouched grass nor the mod's own
+  paving: the app stands one place on and the chat names the blocked place. So
+  you can build between the rows or in a free place, and the town grows around
+  it. A road is paved around your blocks in the same way.
+- A logo that something of yours hangs on (a torch on its doormat) is not
+  taken down until that is gone. A light you changed does not hold it up.
+- You cannot move a logo, choose its place or edit a group's name; moving and
+  swapping come with a later package. `/aresos zone remove` and
+  `/aresos logo remove` leave the town's logos alone and say that
+  `/aresos app remove <app>` takes one down. Logos and zones you made by hand
+  stay yours.
+
+**`/aresos hub rebuild`** (the host, in a flat home) takes every logo down and
+builds it again from the rules, each app in its saved place, and says one
+line: "The town was rebuilt from the rules: 5 logos built again." What you
+changed or built stays; where a block of yours is in the way of its logo, the
+app moves one place on and a line says so. The pad, the roads and the names
+are not built again.
+
+**What it needs.** The system's complete program list of this game session:
+while the AresOS app helper is away nothing is built and nothing is taken
+down, and `hub rebuild` refuses. On Windows, where no helper lists the
+programs, there is no town. The town works only while you are in the world. A
+place or a stretch of road whose ground is not loaded waits and is tried again
+every five seconds; no chunk is loaded for it.
+
+**What is saved.** The standing logos are in the world's
+`data/aresos/town.dat`: for each its app, its place, the hash of its 12 x 12
+blocks, the converter's version, the name and short name on its sign, its
+zone, and every block placed for it. The pad, the roads and the names stay in
+`data/aresos/hub.dat` in the shape package 32 gave it, so an older mod that
+writes `hub.dat` again loses nothing of the town. A logo's doorway and exit
+are a zone in `zones.dat`, like a hand-built gate's.
+
+**Known limits.** A group name's count is written at scale 2.5 so that
+"SYSTEM & TOOLS · 14" fits between the two front logos. Closer than about 14
+blocks to a logo its sign is above the top of the screen unless you look up.
+On the first arrival of day one the chat says five lines, one for each app.
 
 ## Walk-in app logos
 
@@ -612,4 +716,5 @@ the last complete list stays in force, also across a restart. Windows discovery
 marks nothing absent. A newly reserved real command forces
 an alternative app name. Apps… shows the main name beside each of My apps and
 searches all saved names. Newly built gates show `/mainname` on the second sign
-line; standing gates keep the text they were built with.
+line; standing gates keep the text they were built with. The town's logos follow:
+a changed main name renews the logo in place.
