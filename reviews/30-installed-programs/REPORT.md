@@ -851,3 +851,150 @@ Both started once on `ee716aa2`, the commit before this report-only commit (it a
 - `check_build=build`: [43539828600](https://github.com/Ares-Empire/AresOS/actions/runs/43539828600)
 
 Their results are recorded by the orchestrator.
+
+## Review fixes 4
+
+Brief: `briefs/30-review-fixes-4.md`. The fix check of round 3 at `a215c15e` (`REVIEW-4.md`, gpt-6-astra, high) said
+CHANGES-NEEDED: one FIX and three SHOULD, all in the picture code round 3 added; all four were accepted. Built by one
+Claude agent (Opus 5.5) in one step on 2026-11-14, one commit per fix.
+
+`os/` files touched: `config/usr/libexec/aresos-shell` (picture code only: `icon_stat`, `IconLookup`,
+`read_icon_index`, `IconCache.step`, `prepare`, `room`, `prune`); tests `test_aresos_shell_icons.py` (five cases),
+`test_aresos_shell_review_fixes_3.py` (its pass setup moved into `PicturePasses`, no test changed), new
+`test_aresos_shell_review_fixes_4.py`. Nothing of package 30b's (`parse_hint`, `Hint`, `apply_hints`, the launcher's
+`environment`); nothing under `mod/`, so the `shell-1.1` examples are unchanged.
+
+### FIX 1: a refused link never drives the signature (commit `9ebe1911`)
+
+Every path that enters the signature, and what the pass does with it:
+
+| Path | What the pass does with it | Kept in the signature as |
+|---|---|---|
+| each icon root | lists theme folders in it | its stat through links, as before |
+| a theme folder; a size, context or index folder | lists it through `confined_listing` (not once the listing budget is spent) | inside its root: stat through links; a file or FIFO in its place: inode and kind; leading out of its root: the way to it |
+| a theme's first `index.theme` | reads it through `open_confined` | the same, with a regular file as the expected kind |
+| a picture the lookup chose; a link inside the root whose file is missing (SHOULD 2) | converts it through `open_confined` | stat through links (missing: none) |
+| a picture link out of its root | refuses it | not kept: the listed folder that holds it is, so replacing it is seen |
+| an absolute `Icon=` | reads it as written | stat through links; not a regular file (a folder, a FIFO): inode and kind |
+| a picture the pass made | its own cache file | its stat, as before |
+
+- **The way to a refused path:** `icon_stat(path, folder=…, roots=…)` walks from the icon root down the path, following
+  links only while each step stays inside the root's allowed real folders, and keeps the lstat of each folder and link
+  on the way, up to the first step out. So the link that leads out and the folders that hold it are kept, and what lies
+  behind it is never looked at, by the pass's signature or by the idle check. Replacing the link changes the link and
+  its folder.
+- Which way a path is kept is decided before it is read (`IconLookup.note`: `os.path.realpath` and `within` against its
+  root's allowed folders); the idle check takes each entry again the same way.
+- **`prepare()`** (the brief's question): it ran `chmod` on both cache folders for every picture, cached or not, and
+  each `chmod` changes the folder's ctime. It now sets the mode only when it differs; its check that refuses a link or a
+  foreign owner still runs before every use.
+- **Warnings** (the brief's question): `IconCache.warned` keeps each rejected index with its signature entry; a pass
+  that runs again for another reason does not repeat the warning, a changed index warns again. The listing-budget
+  warning stays one per pass that runs (it is about the pass, not a path).
+
+Tests (`SettledSignatureTest`; a real `Catalogue` and `IconCache` whose steps run after each tick, as in round 3's
+`PicturePassTest`, whose setup is now the shared `PicturePasses`):
+
+- The review's scenario: `hicolor/index.theme` in the home root linked onto the picture cache, the converter stand-in
+  moving the cache folder's times as a real conversion does: the first pass with one warning, then 20 ticks (a minute)
+  without a pass or a log line.
+- The property, for every kind of path: links into the cache and its parent from an index, two theme folders, the way
+  to an index's folder, a picture and a pixmap, and an absolute `Icon=` naming the cache. Before each of 20 ticks the
+  cache and its parent are changed as passes change them (`chmod`, a work folder made and removed, a file written,
+  times moved): no pass, no warning.
+- Refused things that change on every tick: an index link onto a file outside, rewritten each tick; a theme-folder link
+  onto a folder outside that gets a file each tick; an index that is a FIFO whose times change (moved with `utime`;
+  nothing opens it). No pass after the first, no warning after the first two.
+- Replacing a refused index link by a good index: exactly one pass, and a Breeze picture is found.
+- Replacing a refused link on the way to an index's folder (`extra/link/deep`; the pass never lists `extra/`) by a real
+  folder: exactly one pass, and the picture is found.
+- A cached picture runs no `chmod`; a changed mode is still set back (control).
+- A pass for another reason (a new picture) gives no second warning for the unchanged index; another link in its place
+  gives one.
+- **Without the change** (tests run against a copy of the helper with one part undone): round 3's helper fails 5 of
+  the 7 tests (the scenario, the property, the changing things, the warning, the `chmod`). With only the way-out rule
+  undone, the property and changing-things tests fail; with only the kind rule undone, the same two fail (the absolute
+  `Icon=` naming the cache folder, the FIFO index). Without the warning memory the warning test fails; with the
+  unconditional `chmod` the `chmod` test fails. The review's own scenario (a link onto a folder) is caught by either
+  rule, so it fails only with both undone. **Controls:** the two replacement tests. They pass at round 3's helper,
+  which followed links, and would fail for a fix that kept nothing of a refused path.
+
+### SHOULD 2: a picture whose link target appears later is found (commit `9b082bad`)
+
+`IconLookup.candidate` now records a candidate that resolves inside its root whenever its name exists (`lexists`),
+also when the file it leads to is missing, so that file appearing is a change. A name that does not exist is still
+covered by the folder that holds it, and a link out of the root is still not followed. Tests (`LaterPictureTest`): the
+target is created in a folder of the root that the lookup does not list, without touching the link, its folder or the
+root: exactly one pass in 10 ticks, and the program has its picture (fails without the change: no pass). Control: a
+link out of the root whose file appears asks for no pass.
+
+### SHOULD 3: pictures refused for a full cache get their pass once room is made (commit `bcb16dbb`)
+
+Of the brief's two ways, the follow-up pass: `room()` notes a refusal during the pass (`IconCache.crowded`), `prune()`
+returns whether it removed a file that `room()` counts, and `step()` does not count the pass as finished when both
+happened, so the next request runs one more pass. A cache full of pictures still in use frees nothing, so it is not
+asked again. Each follow-up needs `prune` to remove a file no listed program uses, so follow-ups are bounded. Tests
+(`FullCacheTest`, budget patched to two files): two old pictures fill the cache, both programs' pictures are refused,
+then made by exactly one follow-up pass (`[True, True]`, then 8 ticks without a pass), and only the two in use are left
+(fails without the change: the pictures stay missing). Control: three programs and room for two ask for one pass in 20
+ticks (with a follow-up after every refusal, whether or not pruning freed anything, this control fails).
+
+### SHOULD 4: an index without its structure is broken (commit `9d8ce507`)
+
+`read_icon_index` refuses an index without an `[Icon Theme]` group, without its `Directories` key, or whose
+`Directories` names no folder; the theme keeps the fixed layout with one log line, as for the other broken indexes.
+Folders with an unusable Size or Scale are still only left out
+(`test_scaled_folders_and_folders_without_a_usable_size_are_left_out`, unchanged, is the control). Tests: five cases
+added to `test_a_broken_or_oversized_index_leaves_the_theme_on_the_fixed_layout_with_one_log_line`: an empty file,
+plain text, no `[Icon Theme]` group, no `Directories` key, and `Directories` naming nothing. All five fail without the
+change (the fixed-layout picture was not found and nothing was logged); the eight earlier cases pass either way.
+
+### JUDGMENT-CALL (review fixes 4)
+
+- **A refused path is kept by its way, not by the link's own lstat alone.** The walk follows links while it stays
+  inside the root's allowed folders, so a link inside the root that leads to the folder holding the outbound link is
+  covered too. Rejected: the lstat of the path (it follows every link before the last part, so it would be the
+  target's metadata), and keeping nothing of refused paths (a replaced link under a folder the pass never lists would
+  go unseen; a replacement test covers that).
+- **Something refused for its kind keeps only its inode and kind** (a FIFO, device or socket; a folder where an index
+  or picture belongs; a file where a folder belongs). Its times change while it is used; replacing it changes its
+  inode. This holds for an absolute `Icon=` too: a folder or FIFO there is kept by inode and kind, while a regular file
+  there is still kept by its times, since it is the program's picture.
+- **One `realpath` per noted path during a pass** decides which way a path is kept: a lookup of all programs went from
+  42 to 55 ms of processor time (measured side by side, below). Passes run only after a change, and the idle check
+  costs the same as before. Rejected: deciding after the read, which would miss a link replaced in between.
+- **The follow-up pass, not pruning first** (SHOULD 3): smaller, and it needs no cache key before converting. The cost:
+  with a cache full of old pictures, the pictures come one request (3 s) later.
+- **`Directories` naming no folder counts as broken**, like a missing key (the brief names only the header and the
+  key): such an index finds nothing, and the fixed layout finds what it found before round 3.
+- **One warning per rejected index per helper run while the index stays the same**, remembered by its signature entry.
+  The listing-budget warning stays one per pass.
+
+### Verified (review fixes 4)
+
+On the laptop, 2026-11-14:
+
+- `TMPDIR="$PWD/.work/30-installed-programs/tmp" python3 -m unittest discover -s os/tests -p 'test_aresos_shell*.py'`
+  → before the round (`c22ecd87`) **Ran 292 tests, OK**; after FIX 1 299, after SHOULD 2 301, after SHOULD 3 and
+  SHOULD 4 (`9d8ce507`) **Ran 303 tests, OK** (11 new tests and 5 new subtests).
+- Same TMPDIR, `-p 'check_aresos_shell_icons.py'` → **Ran 8 tests, OK**.
+- As GitHub's runner sees them (inline Python from the worktree root: `os.path.isfile` answers no for `/usr/bin/foot`,
+  `/usr/bin/google-chrome` and `/usr/bin/kwrite`, then `unittest.defaultTestLoader.discover('os/tests',
+  pattern='test_aresos_shell*.py')`) → **303 run, 0 failures, 0 errors, 0 skipped**.
+- The "without the change" results above come from running each fix's tests against a copy of the helper with that
+  change undone (round 3's helper or the commit before the fix, plus single parts undone for FIX 1 and SHOULD 3), from
+  a copy of the tests outside the worktree.
+- **Laptop numbers** (a scratch script loading both helpers, read-only, nothing converted, counts only): 56 programs in
+  the catalogue, all with an icon name; **56 of 56 with a picture** (round 3's helper the same day: 56; 0 programs get a
+  different file). One lookup of all programs: **55 ms** of processor time (round 3's helper, measured alternately in
+  the same run: 42 ms). The idle check: **820** signature paths (made pictures not included), none of them kept by the
+  way out (no refused link on the laptop); median **1.8 ms** of processor time per check, at most 2.3 ms wall in 200
+  runs. Every 3 s that is about 0.06 % of one core, as in round 3.
+
+### Not verified (review fixes 4)
+
+- The real helper in a session with the idle check running for minutes (as in round 3, its cost is measured by a
+  script over the real folders).
+- A refused link on the laptop's real folders: there is none, so the walk is exercised only by the tests.
+- The headless check: not run, as the brief says (nothing it exercises changed).
+- The hosted runs: the orchestrator starts them.
