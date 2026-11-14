@@ -100,7 +100,8 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
   adds the listed page to what it holds (item 3; finding (c)).
 - A tab he has clicked or typed in is never known clean: a take asks him through `reload_required`, and a close
   keeps it with no override (item 4a; the re-check's remaining fix 6).
-- `reload: true` doesn't override a frame that doesn't answer (item 4; package re-check 2, N8).
+- Reloading a tab of his that isn't known clean asks him through `chrome_take_reload`, a managed ask (lead,
+  2026-11-14: losing his typing is data loss). It is never offered for a frame that doesn't answer (item 4; N8).
 - `chrome_open` with `tab` opens the address the list showed, wherever his tab has gone since (item 2; N4).
 - No marker watches his tabs; the reader a read installs keeps its passive observers (item 3; N5).
 
@@ -246,7 +247,8 @@ compute a name), stop and report.
 
 ### 4. Taking a tab, in one step
 
-`chrome_take` (input `tab`, `seen`, `reload`, `request`) becomes the one step before acting in one of his tabs.
+`chrome_take` (input `tab`, `seen`, `request`) becomes the one step before acting in one of his tabs. The `reload`
+input brief 28a gave it is removed; the reload he must agree to is `chrome_take_reload` (item 4).
 
 **Why the reload moves into the take.** Brief 20 takes a tab without reloading it and reloads at the first input,
 because there a take was also the way to look. Here looking needs no take, so a take is only ever followed by an
@@ -266,11 +268,26 @@ keep brief 20's rule and say so (PLAN-GAP).
    the tool can't see whether it holds unsaved work".
 3. **Otherwise take it, where it stands:** attach, mark it (item 4b), reload it once as brief 20 does, wait for the
    load, and return the new page's outline (brief 28a's result shape, with `"whose": "taken"`).
-4. **`reload: true` is his decision, passed on by Claude.** It takes and reloads a tab that isn't known clean. It
-   never overrides four things: a dialog that is open; a load or a form submission that is still under way; a
-   page that a form submission loaded; and a frame that doesn't answer the check. His decision rests on what the
-   tool told him it found, and for a frame that doesn't answer it found nothing: the page may be stuck or behind
-   a dialog. The result says so, and he looks at the tab himself.
+4. **Reloading a tab of his that isn't known clean asks him, in Claude Code's prompt** (lead, 2026-11-14). Losing
+   what he typed in his own tab is data loss, so it gets the same managed question as a delete, not a flag Claude
+   sets after asking in the chat. (For Claude's own tabs, PR #27 keeps its `discard_unsaved` flag; those tabs rarely
+   hold his typing.) So `reload: true` isn't an input of `chrome_take`. Instead:
+   - `chrome_take` without it answers `reload_required` as above, with what it found;
+   - a separate tool, `chrome_take_reload` (input `tab`, `seen`, `request`), sits under the managed ask rules like
+     `chrome_submit`. The service prepares it from the check it just ran and the question shows, first: which tab
+     (title and short address), that the reload throws away what the page holds, and what the check found (the
+     labels of the changed fields, never their values; playing media; "work the page may keep in its memory").
+     The approval is bound to that tab, its document and what the check found, is used once, and the take refuses
+     if the page changed since the question (a new document, more fields changed): it answers `reload_required`
+     again with the new findings.
+   - It never overrides four things: a dialog that is open; a load or a form submission that is still under way; a
+     page that a form submission loaded; and a frame that doesn't answer the check. For those there is no question
+     at all: the tool found nothing to show him, the page may be stuck or behind a dialog, the result says so, and
+     he looks at the tab himself.
+   Tests: the question names the tab and the changed fields' labels and no value; an allow rule, a `PreToolUse`
+   allow hook and skip-permissions don't skip it (as for `chrome_submit`); a changed page after the question asks
+   again; a refused question changes nothing in the tab; the four cases above never ask. Generated files, the tool
+   list and its size budgets count one more asking tool.
 5. Popups keep brief 20's rule (a reload before the first input in the popup, through `chrome_do`'s result).
 
 ### 4a. Before the tool reloads or closes one of his tabs
@@ -311,7 +328,7 @@ Text in a field of a page that is fresh and not used came with the page, so it n
 canvas, a wizard and every other page that keeps work in its script's memory are covered by point 4.
 
 **What follows for a used tab.** A take answers `reload_required` with the reason "you have used this page and
-the tool can't see whether it holds unsaved work", and `reload: true` is his decision (item 4). A close keeps
+the tool can't see whether it holds unsaved work", and `chrome_take_reload` asks him (item 4). A close keeps
 the tab: there is no override, and the result tells him which tabs were kept and why (item 5).
 
 **Can a content script read that mark reliably?** PR #27 reads it nowhere (its `reloadState` looks only at
@@ -559,8 +576,9 @@ owner with real keys and clicks (`owner-ui.mjs`). Every new rule gets a test tha
   changed, is kept on a close and answers `reload_required` on a take, whichever way the measurement came out
   (through the mark, or through the drop-and-paste record of item 4a); the same for text dropped in from another
   window and for a paste from Chrome's menu.
-  `reload: true` takes every tab of the first list except the one with a frame that doesn't answer, the load and
-  the submission under way, which stay refused (item 4, point 4). The check is the last thing before the reload:
+  `chrome_take_reload`, approved, takes every tab of the first list except the one with a frame that doesn't
+  answer, the load and the submission under way, which are never offered (item 4). The check is the last thing
+  before the reload:
   he types into a field while the take is running (the test holds the command right before its check), and the
   tab isn't reloaded.
   A page loaded by a form submission is refused. An untaken tab answers `take_first` to `chrome_do`, `chrome_go`
@@ -650,7 +668,8 @@ List every changed assertion in `reviews/28b-chrome-his-tabs/HARNESS-MAP.md`, ol
   never reloads it, and a take of a known clean tab reloads it exactly once. "Only the first input reloads"
   becomes: the first input after a take doesn't reload again. For a tab that isn't known clean, `reload_required`
   comes from the take instead of the first input, and the tab isn't attached or grouped. The explicit repeat is
-  `chrome_take` with `reload: true`. The tab's group after a take, where brief 20's tests compare it with one
+  `chrome_take_reload`, after his approval. The tab's group after a take, where brief 20's tests compare it with
+  one
   group id.
 - **Never changed:** the receiver's counts (a page loaded by a form submission is never loaded again, so the
   fixture counts one POST); every old reference stale after the reload; the refusal of a form-loaded page and of

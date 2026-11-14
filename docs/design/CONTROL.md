@@ -576,9 +576,11 @@ the front when he should look at it or sign in there.
   - **The tab reloads once before Claude's first input.** The page script that stops a page's own submissions
     (below) has to be in place before the page's scripts run, and a reload is the only way to get it there.
   - **Whatever could be lost is reported first.** Unless the tool knows that nothing of his is lost (next point),
-    `chrome_take` changes nothing and answers `reload_required` with what it found. Claude tells him. Only
-    `reload: true`, passed when he agrees, reloads such a tab. It doesn't override an open dialog, a load or a
-    form submission under way, or a frame that doesn't answer: there the tool found nothing to tell him.
+    `chrome_take` changes nothing and answers `reload_required` with what it found. Only `chrome_take_reload`
+    reloads such a tab, and it asks him in Claude Code's prompt like a delete: the question names the tab and what
+    the check found (field labels, never values), and the approval is bound to that page and used once. It isn't
+    offered for an open dialog, a load or a form submission under way, or a frame that doesn't answer: there the
+    tool found nothing to show him.
   - **A page loaded by a form submission is never reloaded,** because Chrome might submit it again. Claude opens its
     address fresh in a Claude tab instead.
   - `chrome_take` returns the reloaded page's outline, so the next call can act.
@@ -602,7 +604,7 @@ the front when he should look at it or sign in there.
   - there is no editable area, no chosen file, no password field, and no field that differs from its default.
 
   In every other case the tab is left as it is and the result says what the tool found, with the labels of
-  fields and never their values. For a take, `reload: true` is then his decision. For a close there is no
+  fields and never their values. For a take, `chrome_take_reload` then asks him. For a close there is no
   override: the tab stays open, and the result tells him which tabs were kept and why. The check runs in his tab
   without a debugger, as the last thing before the reload or the close. If Chrome itself asks "Leave site?",
   that question is his and the tool never answers it.
@@ -634,7 +636,8 @@ asking.
 
 **Until brief 28b merges** the tool does what brief 20 built: Claude reads and acts only inside the group. Looking at
 one of his tabs needs `chrome_take` first, which moves the tab and keeps its page; the first input then reloads it,
-and unsaved typing or playing media stops that reload until `chrome_take` is called with `reload: true`. The check
+and unsaved typing or playing media stops that reload until `chrome_take` is called with `reload: true` (brief
+28a; brief 28b replaces that flag by `chrome_take_reload`, which asks him). The check
 before that reload is still brief 20's, with the gaps named above, so briefs 28 and 28a alone don't go onto his
 laptop. Brief 28a already stops two things brief 20 allowed: closing a taken tab, and navigating one before its
 reload without that check.
@@ -1137,7 +1140,7 @@ merges (28 at `8b7e799c`, and the asking read for typed fields).
 | `chrome_upload` | change | prepare putting a local file into a file field (it asks through `chrome_submit`) | the same |
 | `chrome_show` | change | bring a tab and its window to the front, for him | new |
 | `chrome_close` | change | close Claude tabs; one of his only when he asked (`request`) and the tab is known clean; never a taken tab | `chrome_close_tab` |
-| `chrome_take`, `chrome_release` | change | take one of his tabs for acting (it reloads once; `reload: true`, when he agrees, where the tool can't rule out a loss; never a page of the fixed list); give it back to its place | `chrome_take_tab`, `chrome_release_tab` |
+| `chrome_take`, `chrome_release` | change | take one of his tabs for acting (it reloads once; where the tool can't rule out a loss, `chrome_take_reload` asks him first; never a page of the fixed list); give it back to its place | `chrome_take_tab`, `chrome_release_tab` |
 | `chrome_library` | read | his downloads (and where Chrome saved them), bookmarks or history, to find pages: titles, addresses in the short form, and a reference per entry to open it | `chrome_downloads`, `chrome_bookmarks`, `chrome_history` |
 | `chrome_submit` | **send** | run one prepared operation, by id and hash, after the page-state check | the same |
 | `chrome_submit_trusted` | send, free | as `chrome_submit`, only for a kind he set to "don't ask again" | the same |
@@ -1611,9 +1614,9 @@ itself instead of the first input (brief 28b).
       used, a wizard whose finished step lives only in its script's memory, any other page he clicked or typed
       in, playing media, fields restored after Back, a frame that doesn't answer, a load or a submission under
       way; a fresh tab he never clicked or typed in is taken, also when he scrolled it;
-      `reload: true` takes the others, except while a load, a submission, a dialog or a frame that doesn't
-      answer is in the way; a page loaded by a form submission is refused; `chrome_do` on one of his tabs that
-      isn't taken is refused;
+      `chrome_take_reload`, approved by him, takes the others, except while a load, a submission, a dialog or a
+      frame that doesn't answer is in the way; a page loaded by a form submission is refused; `chrome_do` on one
+      of his tabs that isn't taken is refused;
       `chrome_release`, **Give back**, dragging out and **Stop** each restore the window, the place, his group and
       the pin;
     - marked in place: a taken tab keeps its window and its place and shows a Claude group around it, also when
