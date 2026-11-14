@@ -842,3 +842,12 @@ On the laptop, 2026-11-14 (step A at `4e22930b`, step B at `be9e9eec`; step B ch
   `desktop_activated`. The helper's return is covered by the unit tests.
 - A Flatpak program that hands its window to an already running instance, and one that keeps running without a window
   (a tray): only the unit tests' model of a process without a window.
+
+### Hosted runs (review fixes 3)
+
+Both started once on `ee716aa2`, the commit before this report-only commit (it adds only these lines):
+
+- `checks_only=true`: [43539825033](https://github.com/Ares-Empire/AresOS/actions/runs/43539825033)
+- `check_build=build`: [43539828600](https://github.com/Ares-Empire/AresOS/actions/runs/43539828600)
+
+Their results are recorded by the orchestrator.
