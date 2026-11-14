@@ -54,7 +54,7 @@ class GatePictureTest {
         for (int v = picture.size() - 1; v >= 0; v--) {
             for (int u = 0; u < picture.size(); u++) {
                 String block = picture.at(u, v);
-                text.append(block == null ? '.' : block.equals("red_mushroom_block") ? 'R' : block.equals(GatePalette.BLACK) ? '#' : '?');
+                text.append(block == null ? '.' : block.equals("red_wool") ? 'R' : block.equals(GatePalette.BLACK) ? '#' : '?');
             }
             text.append('\n');
         }
@@ -82,7 +82,7 @@ class GatePictureTest {
             assertDoor(picture);
             for (int corner : new int[]{0, size - 1}) { assertNull(picture.at(corner, 0)); assertNull(picture.at(corner, size - 1)); }
             assertNull(picture.at(size / 2, size / 2), "the hole stays open");
-            assertEquals("red_mushroom_block", picture.at(size / 2, size - 1));
+            assertEquals("red_wool", picture.at(size / 2, size - 1));
             for (int v = 0; v < size; v++) for (int u = 0; u < size; u++)
                 assertEquals(picture.at(u, v), picture.at(size - 1 - u, v), "mirror at " + u + "," + v);
         }
@@ -181,8 +181,8 @@ class GatePictureTest {
             });
             var picture = GatePicture.of(icon, size);
             assertNull(picture.at(size - 1, size - 1), "the loose cell");
-            assertEquals("red_mushroom_block", picture.at(4, 4), "the cell touching at a corner");
-            assertEquals("red_mushroom_block", picture.at(0, 0));
+            assertEquals("red_wool", picture.at(4, 4), "the cell touching at a corner");
+            assertEquals("red_wool", picture.at(0, 0));
             assertNull(picture.at(5, 5));
             assertDoor(picture);
         }

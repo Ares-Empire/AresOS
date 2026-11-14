@@ -288,7 +288,7 @@ public final class GateLogoClientGameTest implements FabricClientGameTest {
 
     private static String id(ServerLevel level, BlockPos pos) { return BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).toString(); }
 
-    private static void stand(ClientGameTestContext context, TestSingleplayerContext world, Vec3 point, float yaw, float pitch) {
+    static void stand(ClientGameTestContext context, TestSingleplayerContext world, Vec3 point, float yaw, float pitch) {
         world.getServer().runOnServer(server -> {
             var player = world.getConnection().getServerPlayer();
             player.teleportTo(player.level(), point.x, point.y, point.z, Set.of(), yaw, pitch, false);
@@ -302,7 +302,7 @@ public final class GateLogoClientGameTest implements FabricClientGameTest {
         shot(context, world, point, yaw, pitch, Path.of(System.getProperty("aresos.gateReviewDir")), name);
     }
 
-    private static void shot(ClientGameTestContext context, TestSingleplayerContext world, Vec3 point, float yaw, float pitch, Path folder, String name) {
+    static void shot(ClientGameTestContext context, TestSingleplayerContext world, Vec3 point, float yaw, float pitch, Path folder, String name) {
         stand(context, world, point, yaw, pitch);
         world.getConnection().waitForChunksRender(); context.waitTicks(8);
         context.waitFor(client -> ((HudTestAccess)client.gui.hud).aresos$overlayTime() == 0);

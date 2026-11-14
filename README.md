@@ -9,14 +9,15 @@ game, and closing one puts you back where you stood.
 AresOS is installed on the owner's laptop, on its own SSD next to Windows. It starts into a minimal desktop with a
 terminal; the game and the apps aren't in it yet.
 
-- **The mod** works in Minecraft's development client on Windows. Right-click an app item and the installed Windows app
+- **The mod** works in Minecraft's development client, on Windows and on AresOS. Right-click an app item and the installed Windows app
   or website opens. Walk into a block logo and its app opens. The flat home world (the Nether home stays as a choice), Live mode (you
   can't die) and Build mode (creative), each with its own inventory, work. On AresOS, where the system lists the installed
   programs, the flat home builds a town by itself: each of your apps gets its logo in a fixed place along one of four
   roads, and the town follows when a program is installed or removed (tested with a stand-in for the system's list).
   `/go steam` puts you in front of an app's door, H or `/home` takes you home, `/apps` says where every logo stands,
   and `/aresos app swap` and `move` rearrange the logos. Unit tests, server game tests and client game tests cover it; they
-  run on Windows, not in CI.
+  run on Windows and on AresOS (`mod/dev/build.sh`, `mod/dev/client-test.sh`), and the unit and server game tests also
+  on GitHub (the `Mod` workflow).
 - **The OS image** is a Bazzite derivative (`bazzite-nvidia-open`) that starts into a minimal labwc session with a
   terminal. GitHub Actions builds it, boots it in virtual machines, and tests the recovery login, the switch from stock
   Bazzite and the rollback. A signed release exists; it is private for now.

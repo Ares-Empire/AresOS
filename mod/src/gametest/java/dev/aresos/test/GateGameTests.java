@@ -40,7 +40,6 @@ import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
-import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -318,11 +317,16 @@ public final class GateGameTests {
         }
     }
 
-    /** Red mushroom, amethyst and blue ice side by side: the three palette blocks that are not plain. */
+    /**
+     * Red mushroom, amethyst and blue ice side by side: the three palette blocks with a class of their own. The
+     * cells are given: since package 39 the converter builds red wool where the mushroom block's red is wanted
+     * (HUB.md 3.6), and a gate drawn before that may still hold the mushroom block.
+     */
     private static GatePicture stripes(int size) {
-        var icon = new BufferedImage(90, 90, BufferedImage.TYPE_INT_ARGB);
-        for (int y = 0; y < 90; y++) for (int x = 0; x < 90; x++) icon.setRGB(x, y, x < 30 ? 0xffc82f2d : x < 60 ? 0xff8662bf : 0xff74a8fd);
-        return GatePicture.of(icon, size);
+        var cells = new String[size * size];
+        for (int v = 0; v < size; v++) for (int u = 0; u < size; u++)
+            cells[v * size + u] = 3 * u < size ? "red_mushroom_block" : 3 * u < 2 * size ? "amethyst_block" : "blue_ice";
+        return GatePicture.ofBlocks(cells, size);
     }
 
     /**

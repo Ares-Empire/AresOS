@@ -3,6 +3,9 @@ package dev.aresos.zone;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.TreeMap;
 
 /**
  * HUB.md 3.6: an icon becomes size x size cells, each one kind of block or empty, with the doorway cut out.
@@ -13,8 +16,9 @@ public final class GatePicture {
     /**
      * The version of these rules. A standing logo records the version that drew it, so a logo drawn by older rules
      * is noticed and drawn again (HUB.md 2.5). Raise it with every change that can draw a different picture.
+     * 2: a logo is built from its icon's main colours, one block each, plain blocks first (package 39).
      */
-    public static final int CONVERTER = 1;
+    public static final int CONVERTER = 2;
     /** A pixel counts as visible from 12% opacity. */
     private static final double VISIBLE = 0.12;
     /**
@@ -29,8 +33,39 @@ public final class GatePicture {
     // and the other empty.
     private static final double HALF = 0.5 - 1e-9;
 
+    /** The colours are looked at in samples of an eighth of a cell: 64 to a cell. */
+    static final int FINE = 8;
+    /**
+     * Main colours. A colour within JOIN of a more common one (plain Oklab distance) belongs to it, and two groups
+     * of colours whose averages end up within NEARLY of each other are one. A group that covers less than MAIN_SHARE
+     * of the picture (about a cell and a half of 144) is no main colour. An icon with more than MAIN_MOST is
+     * many-coloured: its main colours get no block each, and every cell keeps a colour of its own (the average of
+     * the main colour that covers most of it).
+     */
+    private static final double JOIN = 0.10, NEARLY = 0.07, MAIN_SHARE = 0.01;
+    private static final int MAIN_MOST = 6;
+    /**
+     * The colour of a smoothed edge is no main colour: one that lies between two others (at most BLEND_OFF beside
+     * the straight line from one to the other) and covers at most BLEND_SMALLER of what the smaller of the two covers.
+     */
+    private static final double BLEND_OFF = 0.06, BLEND_SMALLER = 0.5;
+    /** Two main colours farther apart than this never share a block; the smaller one takes its next nearest. */
+    private static final double SAME_BLOCK = 0.15;
+    /**
+     * Thin lines. A part of one colour is thin where it is narrower than a cell and more than LINE_FAR samples away
+     * from every part of that colour a cell wide. A cell can show a thin part that covers at least LINE_SHARE of it.
+     */
+    private static final int LINE_FAR = 3;
+    private static final double LINE_SHARE = 0.10;
+
     /** A plain plate's colour, and the square around its figure in the cut icon's pixels. */
     record Plate(int rgb, double left, double top, double side) { }
+
+    /** One of the icon's main colours and the share of the picture that has it. */
+    record Main(int rgb, double share) { }
+
+    /** The part of the icon that becomes the picture, as samples: FINE to a cell's side, rows from the top. */
+    private record Samples(int across, int[] rgb, double[] covered) { }
 
     private final int size;
     private final String[] cells;
@@ -63,6 +98,19 @@ public final class GatePicture {
         GateNumbers.checkSize(size);
         var cells = new String[size * size];
         Arrays.fill(cells, block);
+        door(cells, size);
+        return new GatePicture(size, cells, false);
+    }
+
+    /**
+     * A picture of cells that are chosen already (row by row from the ground, null for none), with the doorway.
+     * The converter builds no red mushroom block any more; the game tests still build and remove one this way,
+     * as a gate drawn by version 1 may hold it.
+     */
+    public static GatePicture ofBlocks(String[] blocks, int size) {
+        GateNumbers.checkSize(size);
+        if (blocks.length != size * size) throw new IllegalArgumentException(blocks.length + " cells for a picture of " + size);
+        var cells = blocks.clone();
         door(cells, size);
         return new GatePicture(size, cells, false);
     }
@@ -136,8 +184,9 @@ public final class GatePicture {
         int width = maxX - minX + 1, height = maxY - minY + 1;
         if (count < FIGURE_SHARE * n * n || width > FIGURE_FILLS * n || height > FIGURE_FILLS * n) return null;
         int square = (int)Math.min(n, Math.round(Math.max(width, height) * (1 + 2 * FIGURE_MARGIN)));
-        long x = Math.clamp(Math.round((minX + maxX + 1) / 2.0 - square / 2.0), 0, n - square);
-        long y = Math.clamp(Math.round((minY + maxY + 1) / 2.0 - square / 2.0), 0, n - square);
+        // Centred on the figure to the half pixel: a figure that is the same left and right stays so in the cells.
+        double x = Math.clamp((minX + maxX + 1) / 2.0 - square / 2.0, 0, n - square);
+        double y = Math.clamp((minY + maxY + 1) / 2.0 - square / 2.0, 0, n - square);
         return new Plate(colour, left + x * step, top + y * step, square * step);
     }
 
@@ -158,7 +207,8 @@ public final class GatePicture {
     /**
      * Steps 3 and 4: each cell's block, or null. Without a plate the icon keeps its proportions, is centred
      * sideways and stands on the ground, and a cell is solid when at least half of it is covered. With a plate
-     * the figure's square fills the whole picture, on the plate's colour.
+     * the figure's square fills the whole picture, on the plate's colour. A solid cell is painted in one of the
+     * icon's main colours, each of which is one block for the whole picture.
      */
     static String[] blocks(BufferedImage cut, Plate plate, int size) {
         double side = plate != null ? plate.side : Math.max(cut.getWidth(), cut.getHeight());
@@ -166,16 +216,332 @@ public final class GatePicture {
         double top = plate != null ? plate.top : cut.getHeight() - side;
         double step = side / size;
         var cells = new String[size * size];
+        var means = new double[size * size][];
         for (int v = 0; v < size; v++) for (int u = 0; u < size; u++) {
             int row = size - 1 - v;
-            double[] mean = average(cut, left + u * step, top + row * step, left + (u + 1) * step, top + (row + 1) * step);
-            if (plate != null) {
-                double covered = Math.min(1, mean[0]);
-                cells[v * size + u] = GatePalette.nearest(pack(over(mean[1], plate.rgb >> 16 & 255, covered),
-                        over(mean[2], plate.rgb >> 8 & 255, covered), over(mean[3], plate.rgb & 255, covered)));
-            } else if (mean[0] >= HALF) cells[v * size + u] = GatePalette.nearest(pack(mean[1], mean[2], mean[3]));
+            means[v * size + u] = average(cut, left + u * step, top + row * step, left + (u + 1) * step, top + (row + 1) * step);
         }
+        var samples = samples(cut, plate, left, top, side, size * FINE);
+        var mains = mainColours(samples);
+        int across = samples.across;
+        // Which main colour each sample belongs to: its nearest.
+        var mainLabs = mains.stream().map(main -> GatePalette.oklab(main.rgb)).toArray(double[][]::new);
+        int[] main = new int[across * across];
+        for (int i = 0; i < main.length; i++) main[i] = samples.covered[i] > 0 ? nearestMain(mainLabs, samples.rgb[i]) : -1;
+        if (mains.size() > MAIN_MOST) {
+            // Many-coloured, photo-like: no few colours to give one block each, so each cell keeps a colour of its
+            // own. Not the mix of all that falls into it, though: the average of the main colour that covers most
+            // of it, so a cell on the edge between two colours takes one side here too.
+            for (int cell = 0; cell < cells.length; cell++) {
+                if (plate == null && means[cell][0] < HALF) continue;
+                var sums = new double[mains.size()][4];
+                int u = cell % size, row = size - 1 - cell / size, most = 0;
+                for (int y = row * FINE; y < (row + 1) * FINE; y++) for (int x = u * FINE; x < (u + 1) * FINE; x++) {
+                    int i = y * across + x, rgb = samples.rgb[i];
+                    if (main[i] < 0) continue;
+                    double weight = samples.covered[i];
+                    double[] sum = sums[main[i]];
+                    sum[0] += weight;
+                    sum[1] += weight * (rgb >> 16 & 255); sum[2] += weight * (rgb >> 8 & 255); sum[3] += weight * (rgb & 255);
+                }
+                for (int m = 1; m < sums.length; m++) if (sums[m][0] > sums[most][0]) most = m;
+                cells[cell] = GatePalette.nearest(pack(sums[most][1] / sums[most][0], sums[most][2] / sums[most][0], sums[most][3] / sums[most][0]));
+            }
+            return cells;
+        }
+
+        // One block for each main colour; main colours that got the same block are one from here on.
+        String[] blocks = blocksFor(mains);
+        var kinds = Arrays.stream(blocks).distinct().toList();
+        int[] kind = new int[across * across];
+        for (int i = 0; i < kind.length; i++) kind[i] = main[i] < 0 ? -1 : kinds.indexOf(blocks[main[i]]);
+        // Per cell: how much of it each kind covers, and how much of it is a thin part of each kind.
+        int count = kinds.size();
+        var weight = new double[size * size][count];
+        var thinCount = new int[size * size][count];
+        for (int k = 0; k < count; k++) {
+            var shape = new boolean[kind.length];
+            for (int i = 0; i < kind.length; i++) shape[i] = kind[i] == k && samples.covered[i] >= 0.5;
+            var thin = thin(shape, across);
+            for (int i = 0; i < kind.length; i++) if (thin[i]) thinCount[(size - 1 - i / across / FINE) * size + i % across / FINE][k]++;
+        }
+        for (int i = 0; i < kind.length; i++) if (kind[i] >= 0) weight[(size - 1 - i / across / FINE) * size + i % across / FINE][kind[i]] += samples.covered[i];
+        // The colour that covers most of the cell.
+        var most = new int[size * size];
+        Arrays.fill(most, -1);
+        for (int cell = 0; cell < most.length; cell++) {
+            if (plate == null && means[cell][0] < HALF) continue;
+            most[cell] = 0;
+            for (int k = 1; k < count; k++) if (weight[cell][k] > weight[cell][most[cell]]) most[cell] = k;
+        }
+        // Unless a thin line of another colour runs through it: of two such lines the one that covers more.
+        var pick = most.clone();
+        var widest = new int[size * size];
+        for (int k = 0; k < count; k++) {
+            var line = line(most, thinCount, k, size);
+            for (int cell = 0; cell < line.length; cell++) {
+                if (!line[cell] || thinCount[cell][k] <= widest[cell]) continue;
+                pick[cell] = k;
+                widest[cell] = thinCount[cell][k];
+            }
+        }
+        for (int cell = 0; cell < cells.length; cell++) if (pick[cell] >= 0) cells[cell] = kinds.get(pick[cell]);
         return cells;
+    }
+
+    /** The icon's main colours, largest first: what {@link #blocks} paints with. For the tests. */
+    static List<Main> mainColours(BufferedImage icon, int size) {
+        var cut = cut(icon);
+        if (cut == null) return List.of();
+        var plate = plate(cut);
+        double side = plate != null ? plate.side : Math.max(cut.getWidth(), cut.getHeight());
+        return mainColours(samples(cut, plate, plate != null ? plate.left : (cut.getWidth() - side) / 2,
+                plate != null ? plate.top : cut.getHeight() - side, side, size * FINE));
+    }
+
+    /** The square that becomes the picture as across x across samples; on a plate each sample lies on the plate's colour. */
+    private static Samples samples(BufferedImage cut, Plate plate, double left, double top, double side, int across) {
+        double step = side / across;
+        int[] rgb = new int[across * across];
+        double[] covered = new double[across * across];
+        for (int y = 0; y < across; y++) for (int x = 0; x < across; x++) {
+            double[] mean = average(cut, left + x * step, top + y * step, left + (x + 1) * step, top + (y + 1) * step);
+            covered[y * across + x] = plate != null ? 1 : Math.min(1, mean[0]);
+            rgb[y * across + x] = plate != null ? onPlate(mean, plate) : pack(mean[1], mean[2], mean[3]);
+        }
+        return new Samples(across, rgb, covered);
+    }
+
+    /**
+     * The main colours, largest first, found the same way every time. The colours that occur (in steps of 8 a
+     * channel) are taken from the most common down: one within JOIN of an earlier one belongs to it, any other
+     * starts a new group; three rounds then move each group to the average of its colours and each colour to its
+     * nearest group. Small groups and the colours of smoothed edges are dropped.
+     */
+    private static List<Main> mainColours(Samples samples) {
+        // Per colour step: how much it covers, and the sums of its Oklab and sRGB values.
+        var steps = new TreeMap<Integer, double[]>();
+        double total = 0;
+        for (int i = 0; i < samples.rgb.length; i++) {
+            double weight = samples.covered[i];
+            if (weight <= 0) continue;
+            int rgb = samples.rgb[i];
+            double[] lab = GatePalette.oklab(rgb);
+            double[] sum = steps.computeIfAbsent((rgb >> 19 & 31) << 10 | (rgb >> 11 & 31) << 5 | rgb >> 3 & 31, key -> new double[7]);
+            sum[0] += weight;
+            for (int c = 0; c < 3; c++) sum[1 + c] += weight * lab[c];
+            sum[4] += weight * (rgb >> 16 & 255); sum[5] += weight * (rgb >> 8 & 255); sum[6] += weight * (rgb & 255);
+            total += weight;
+        }
+        if (steps.isEmpty()) return List.of();
+        // Most common first; equally common ones in the order of their colour, so the result never depends on chance.
+        var colours = new ArrayList<>(steps.values());
+        for (double[] colour : colours) for (int c = 1; c < 7; c++) colour[c] /= colour[0];
+        colours.sort(Comparator.comparingDouble((double[] colour) -> -colour[0]));
+        var groups = new ArrayList<double[]>();
+        for (double[] colour : colours) {
+            boolean near = false;
+            for (double[] group : groups) near |= apart(group, colour) <= JOIN;
+            if (!near) groups.add(colour.clone());
+        }
+        for (int round = 0; round < 3; round++) {
+            var sums = new double[groups.size()][7];
+            for (double[] colour : colours) {
+                int nearest = 0;
+                for (int g = 1; g < groups.size(); g++) if (apart(groups.get(g), colour) < apart(groups.get(nearest), colour)) nearest = g;
+                sums[nearest][0] += colour[0];
+                for (int c = 1; c < 7; c++) sums[nearest][c] += colour[0] * colour[c];
+            }
+            groups.clear();
+            for (double[] sum : sums) {
+                if (sum[0] <= 0) continue;
+                for (int c = 1; c < 7; c++) sum[c] /= sum[0];
+                groups.add(sum);
+            }
+        }
+        // Groups the rounds moved within NEARLY of each other are one colour (two shades of one white): the nearest two first.
+        while (groups.size() > 1) {
+            int first = 0, second = 1;
+            for (int i = 0; i < groups.size(); i++) for (int j = i + 1; j < groups.size(); j++)
+                if (apart(groups.get(i), groups.get(j)) < apart(groups.get(first), groups.get(second))) { first = i; second = j; }
+            if (apart(groups.get(first), groups.get(second)) >= NEARLY) break;
+            double[] into = groups.get(first), from = groups.remove(second);
+            for (int c = 1; c < 7; c++) into[c] = (into[0] * into[c] + from[0] * from[c]) / (into[0] + from[0]);
+            into[0] += from[0];
+        }
+        groups.sort(Comparator.comparingDouble((double[] group) -> -group[0]));
+        double enough = MAIN_SHARE * total;
+        groups.removeIf(group -> group[0] < enough);
+        // From the smallest up: a colour between two larger ones is the smoothed edge between them.
+        for (int g = groups.size() - 1; g >= 2; g--) if (blend(groups, g)) groups.remove(g);
+        var mains = new ArrayList<Main>();
+        for (double[] group : groups) mains.add(new Main(pack(group[4], group[5], group[6]), group[0] / total));
+        return List.copyOf(mains);
+    }
+
+    /** Plain Oklab distance between two colours of {@link #mainColours(Samples)}. */
+    private static double apart(double[] first, double[] second) {
+        double l = first[1] - second[1], a = first[2] - second[2], b = first[3] - second[3];
+        return Math.sqrt(l * l + a * a + b * b);
+    }
+
+    private static boolean blend(List<double[]> groups, int index) {
+        double[] colour = groups.get(index);
+        for (int i = 0; i < groups.size(); i++) for (int j = i + 1; j < groups.size(); j++) {
+            double[] from = groups.get(i), to = groups.get(j);
+            if (i == index || j == index || colour[0] > BLEND_SMALLER * Math.min(from[0], to[0])) continue;
+            double length = apart(from, to), along = 0;
+            for (int c = 1; c < 4; c++) along += (colour[c] - from[c]) * (to[c] - from[c]);
+            along /= length * length;
+            if (along <= 0 || along >= 1) continue;
+            double off = 0;
+            for (int c = 1; c < 4; c++) off += Math.pow(colour[c] - from[c] - along * (to[c] - from[c]), 2);
+            if (Math.sqrt(off) <= BLEND_OFF) return true;
+        }
+        return false;
+    }
+
+    /** The main colour (given as Oklab) nearest to a colour, by plain Oklab distance; of equally near ones the larger. */
+    private static int nearestMain(double[][] mains, int rgb) {
+        double[] lab = GatePalette.oklab(rgb);
+        int nearest = 0;
+        double least = Double.MAX_VALUE;
+        for (int m = 0; m < mains.length; m++) {
+            double l = mains[m][0] - lab[0], a = mains[m][1] - lab[1], b = mains[m][2] - lab[2], apart = l * l + a * a + b * b;
+            if (apart < least) { least = apart; nearest = m; }
+        }
+        return nearest;
+    }
+
+    /**
+     * One block for each main colour, largest first: its nearest block, or the next nearest when a main colour
+     * that is not nearly the same already has that block.
+     */
+    static String[] blocksFor(List<Main> mains) {
+        var blocks = new String[mains.size()];
+        for (int m = 0; m < blocks.length; m++) {
+            int colour = mains.get(m).rgb, index = m;
+            blocks[m] = GatePalette.nearestFirst(colour).stream().filter(block -> {
+                for (int earlier = 0; earlier < index; earlier++)
+                    if (blocks[earlier].equals(block) && GatePalette.distance(colour, mains.get(earlier).rgb) > SAME_BLOCK) return false;
+                return true;
+            }).findFirst().orElseThrow();
+        }
+        return blocks;
+    }
+
+    /**
+     * The thin parts of a shape, as samples: what is narrower than a cell (no FINE x FINE square fits there) and
+     * more than LINE_FAR samples from every place where such a square fits. The rim of a wide part is not thin.
+     * A thin part that hangs together (sides and corners) and is shorter than a cell both ways is a speck, not a
+     * line, and is left out: a star beside a line would otherwise lengthen that line by a cell.
+     */
+    private static boolean[] thin(boolean[] shape, int across) {
+        var wide = new boolean[shape.length];
+        for (int y = 0; y + FINE <= across; y++) for (int x = 0; x + FINE <= across; x++) {
+            boolean fits = true;
+            for (int dy = 0; dy < FINE && fits; dy++) for (int dx = 0; dx < FINE && fits; dx++) fits = shape[(y + dy) * across + x + dx];
+            if (!fits) continue;
+            for (int dy = 0; dy < FINE; dy++) for (int dx = 0; dx < FINE; dx++) wide[(y + dy) * across + x + dx] = true;
+        }
+        var thin = new boolean[shape.length];
+        for (int y = 0; y < across; y++) for (int x = 0; x < across; x++) {
+            if (!shape[y * across + x]) continue;
+            boolean near = false;
+            for (int ny = Math.max(0, y - LINE_FAR); ny <= Math.min(across - 1, y + LINE_FAR) && !near; ny++)
+                for (int nx = Math.max(0, x - LINE_FAR); nx <= Math.min(across - 1, x + LINE_FAR) && !near; nx++) near = wide[ny * across + nx];
+            thin[y * across + x] = !near;
+        }
+        // Specks: each thin part is walked once, and one whose box is under a cell wide and high is taken out again.
+        var seen = new boolean[shape.length];
+        var part = new ArrayList<Integer>();
+        for (int start = 0; start < thin.length; start++) {
+            if (!thin[start] || seen[start]) continue;
+            part.clear();
+            part.add(start);
+            seen[start] = true;
+            int minX = across, minY = across, maxX = -1, maxY = -1;
+            for (int next = 0; next < part.size(); next++) {
+                int x = part.get(next) % across, y = part.get(next) / across;
+                minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+                minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+                for (int ny = Math.max(0, y - 1); ny <= Math.min(across - 1, y + 1); ny++)
+                    for (int nx = Math.max(0, x - 1); nx <= Math.min(across - 1, x + 1); nx++) {
+                        if (!thin[ny * across + nx] || seen[ny * across + nx]) continue;
+                        seen[ny * across + nx] = true;
+                        part.add(ny * across + nx);
+                    }
+            }
+            if (maxX - minX + 1 < FINE && maxY - minY + 1 < FINE) for (int sample : part) thin[sample] = false;
+        }
+        return thin;
+    }
+
+    /**
+     * The cells that show kind k's thin parts: one cell wide and connected where the part is. Every solid cell
+     * that is not k's already and has a thin part of k over at least LINE_SHARE of it may show it. From the one
+     * with the least of it up, a cell is dropped again while the cells of k around it stay connected without it
+     * (a line that lies across two rows of cells is shown in one). At last a single cell goes that neither
+     * continues a line nor joins two parts of k: a speck, or the tip of a wide part.
+     */
+    private static boolean[] line(int[] most, int[][] thinCount, int k, int size) {
+        var line = new boolean[most.length];
+        var has = new boolean[most.length];
+        var order = new ArrayList<Integer>();
+        for (int cell = 0; cell < most.length; cell++) {
+            line[cell] = most[cell] >= 0 && most[cell] != k && thinCount[cell][k] >= LINE_SHARE * FINE * FINE;
+            has[cell] = line[cell] || most[cell] == k;
+            if (line[cell]) order.add(cell);
+        }
+        order.sort(Comparator.comparingInt((Integer cell) -> thinCount[cell][k]));
+        boolean dropped = true;
+        while (dropped) {
+            dropped = false;
+            for (int cell : order) {
+                if (!line[cell] || !spare(has, size, cell)) continue;
+                line[cell] = has[cell] = false;
+                dropped = true;
+                break;
+            }
+        }
+        var shown = line.clone();
+        for (int cell : order) {
+            if (!line[cell]) continue;
+            var around = around(has, size, cell);
+            boolean continues = false;
+            for (int[] other : around) continues |= line[other[1] * size + other[0]];
+            if (!continues && (around.size() < 2 || connected(around))) shown[cell] = false;
+        }
+        return shown;
+    }
+
+    /** True when a cell has two or more cells of its colour around it and they are connected without it. */
+    private static boolean spare(boolean[] has, int size, int cell) {
+        var around = around(has, size, cell);
+        return around.size() >= 2 && connected(around);
+    }
+
+    /** True when the cells of a list, each {column, row}, hang together, touching at sides or corners. */
+    private static boolean connected(List<int[]> around) {
+        var reached = new boolean[around.size()];
+        reached[0] = true;
+        for (boolean grew = true; grew; ) {
+            grew = false;
+            for (int i = 0; i < reached.length; i++) for (int j = 0; j < reached.length && !reached[i]; j++) {
+                if (!reached[j] || Math.abs(around.get(i)[0] - around.get(j)[0]) > 1 || Math.abs(around.get(i)[1] - around.get(j)[1]) > 1) continue;
+                reached[i] = grew = true;
+            }
+        }
+        for (boolean each : reached) if (!each) return false;
+        return true;
+    }
+
+    /** The cells of the colour among a cell's eight neighbours, each as {column, row}. */
+    private static List<int[]> around(boolean[] has, int size, int cell) {
+        var around = new ArrayList<int[]>();
+        for (int v = cell / size - 1; v <= cell / size + 1; v++) for (int u = cell % size - 1; u <= cell % size + 1; u++)
+            if (u >= 0 && v >= 0 && u < size && v < size && v * size + u != cell && has[v * size + u]) around.add(new int[]{u, v});
+        return around;
     }
 
     /** Step 5: a solid cell that touches no other solid cell, not even at a corner, is dropped. */
@@ -221,6 +587,13 @@ public final class GatePicture {
         }
         if (alpha == 0) return new double[4];
         return new double[]{alpha / ((x1 - x0) * (y1 - y0)), r / alpha, g / alpha, b / alpha};
+    }
+
+    /** A mean of {@link #average} laid on the plate's colour. */
+    private static int onPlate(double[] mean, Plate plate) {
+        double covered = Math.min(1, mean[0]);
+        return pack(over(mean[1], plate.rgb >> 16 & 255, covered), over(mean[2], plate.rgb >> 8 & 255, covered),
+                over(mean[3], plate.rgb & 255, covered));
     }
 
     private static double over(double figure, int plate, double covered) { return figure * covered + plate * (1 - covered); }

@@ -1,7 +1,9 @@
 package dev.aresos.zone;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.IntStream;
 
 /**
  * The 60 blocks a gate is built from (HUB.md 2.3): the wall's 48 and twelve more, each with the average colour
@@ -13,7 +15,20 @@ public final class GatePalette {
     /** The niche's back, the door posts and the bar over the door. */
     public static final String BLACK = "black_concrete";
     public static final List<LogoPixels.Color> BLOCKS;
+    /**
+     * Plain blocks first (HUB.md 3.6): a block with spots, bricks, a frame or a pattern shows its texture from the
+     * pad (the red mushroom block's white spots did). Where it would be chosen, the plain block nearest to its own
+     * colour is built in its place, when that one is within this distance of it; the patterned block stays in the
+     * table as the colour to aim at (no plain block is as red as the mushroom block, and red wool stands in for it).
+     */
+    static final double PATTERN = 0.06;
+    /** The plain blocks: the dyed 48 (concrete, wool, terracotta) and three of the twelve that have one flat colour. */
+    private static final int PLAIN_DYED = 48;
+    private static final java.util.Set<String> PLAIN_MORE = java.util.Set.of("snow_block", "blue_ice", "smooth_sandstone");
     private static final double[][] OKLAB;
+    private static final boolean[] PLAIN;
+    /** For each block the block that is built: itself, or the plain block that stands in for it. */
+    private static final int[] BUILT;
     static {
         String[] dyes = {"white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray",
                 "light_gray", "cyan", "purple", "blue", "brown", "green", "red", "black"};
@@ -43,24 +58,55 @@ public final class GatePalette {
         blocks.add(new LogoPixels.Color("blue_ice", 0x74a8fd));
         BLOCKS = List.copyOf(blocks);
         OKLAB = BLOCKS.stream().map(color -> oklab(color.rgb())).toArray(double[][]::new);
+        PLAIN = new boolean[BLOCKS.size()];
+        for (int i = 0; i < PLAIN.length; i++) PLAIN[i] = i < PLAIN_DYED || PLAIN_MORE.contains(BLOCKS.get(i).block());
+        BUILT = new int[PLAIN.length];
+        for (int i = 0; i < BUILT.length; i++) {
+            BUILT[i] = i;
+            if (PLAIN[i]) continue;
+            int nearest = 0;
+            for (int j = 1; j < PLAIN.length; j++) if (PLAIN[j] && away(OKLAB[i], j) < away(OKLAB[i], nearest)) nearest = j;
+            if (away(OKLAB[i], nearest) <= PATTERN) BUILT[i] = nearest;
+        }
     }
 
     private GatePalette() { }
 
     /**
-     * The block nearest to a colour: Oklab distance with lightness counted half, so the right hue wins over the
-     * right brightness. Plain RGB distance turned a bright red orange.
+     * The block for a colour: the nearest of the 60, or the plain block that stands in for it. Distance is Oklab
+     * with lightness counted half, so the right hue wins over the right brightness (plain RGB distance turned a
+     * bright red orange).
      */
     public static String nearest(int rgb) {
         double[] wanted = oklab(rgb);
         int best = 0;
-        double distance = Double.MAX_VALUE;
-        for (int i = 0; i < OKLAB.length; i++) {
-            double l = 0.5 * (wanted[0] - OKLAB[i][0]), a = wanted[1] - OKLAB[i][1], b = wanted[2] - OKLAB[i][2];
-            double d = l * l + a * a + b * b;
-            if (d < distance) { distance = d; best = i; }
-        }
-        return BLOCKS.get(best).block();
+        for (int i = 1; i < OKLAB.length; i++) if (away(wanted, i) < away(wanted, best)) best = i;
+        return BLOCKS.get(BUILT[best]).block();
+    }
+
+    /** The blocks that can be built for a colour: the one {@link #nearest} picks first, then the next best, and so on. */
+    public static List<String> nearestFirst(int rgb) {
+        double[] wanted = oklab(rgb);
+        // A stable sort: blocks equally far keep the palette's order, as nearest() takes the first.
+        return IntStream.range(0, OKLAB.length).boxed().sorted(Comparator.comparingDouble(i -> away(wanted, i)))
+                .map(i -> BLOCKS.get(BUILT[i]).block()).distinct().toList();
+    }
+
+    /** The block that is built where this one is the nearest: itself, or the plain block that stands in for it. */
+    public static String built(String block) {
+        for (int i = 0; i < BUILT.length; i++) if (BLOCKS.get(i).block().equals(block)) return BLOCKS.get(BUILT[i]).block();
+        throw new IllegalArgumentException("Not a palette block: " + block);
+    }
+
+    /** True for a block of one flat colour; false for one with spots, bricks or a pattern. */
+    public static boolean plain(String block) {
+        for (int i = 0; i < PLAIN.length; i++) if (BLOCKS.get(i).block().equals(block)) return PLAIN[i];
+        throw new IllegalArgumentException("Not a palette block: " + block);
+    }
+
+    private static double away(double[] wanted, int block) {
+        double l = 0.5 * (wanted[0] - OKLAB[block][0]), a = wanted[1] - OKLAB[block][1], b = wanted[2] - OKLAB[block][2];
+        return Math.sqrt(l * l + a * a + b * b);
     }
 
     /**
