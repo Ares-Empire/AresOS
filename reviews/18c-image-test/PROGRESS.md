@@ -368,6 +368,116 @@ folders too). The VM test runs the same file the same way (`control-release`).
 Step 2a is done: checks 1 to 5 and agreed changes 7, 12 and 14 green once (run 43558438408). Two of the four
 `check_build=control` runs were used.
 
+## Step 2b (B2, second half): checks 6 to 9, the clean baseline, check 2's SELinux scan again
+
+Built by a Claude agent on Opus 5.5 (2026-11-14). Commits `d5d98d2f` (checks 6 to 9), `0af04070` (the workflow's own
+Control step), `a4c9ac11` (check 8's encoded forms); later fixes are listed under "Runs (step 2b)".
+
+### Done
+
+- `os/ci/control/actions.py`: `control-ordinary` (check 6), `control-mail` (check 7), `control-interactive` (check 9),
+  `control-passwords` (check 8), `control-selinux` (check 2's AVC scan again, over every PID the unit had in the
+  boot), and `control-restart` now also requires the Mail account still ready. Order in `control_vm.py`'s `CHECKS`:
+  1, 7 (change), 12, 14, fixtures, 3, 4, 5, 2, **6, 7, 9, 8**, 2 again, restart.
+- `os/ci/control/sessions.py`: Claude Code sessions as `ares` with B1's `interactive_driver.py` and
+  `interactive_model.py` unchanged (copied into the layer). tmux socket in `/tmp/aresos-ci-tmux` (0700 `ares`), work
+  folder `~/ci-work`, `~/.claude.json` seeded as 18d does (onboarding, the synthetic key's last 20 characters, the
+  folder trusted) on top of what check 5 wrote; the API address and synthetic key come from the session's
+  environment, so the managed files stay as shipped. Each turn: wait for the prompt or the done marker, answer by
+  text, resume after a native No (B1's marker), then **settle**: the turn is over when no model request came for 20
+  s (the managed Stop hook's 15 s timeout plus 5 s). Per turn it records the model requests, the Stop continuations,
+  the prompt shown or not, and every line of the turn's screens that names `AresOS` or a hook.
+- `os/ci/control/own-hook.py`: his hooks (`Stop`, `UserPromptSubmit`: log a line; `PermissionRequest`: log and allow).
+- `control/ci/image/mail_flows.py` (guest) and `control/ci/image/mail_fixture.py` (runner), as the brief puts new
+  flows in `control/ci/image/`. The runner seeds three unread messages into Dovecot's INBOX before check 7 (one with a
+  6 KiB binary attachment holding every byte value) and afterwards reads GreenMail's mailboxes and the read message's
+  flags on Dovecot itself.
+- `os/ci/control/control_vm.py`: per-action arguments built only when sent (the password stays in memory, no request
+  is written anywhere), runner-side verification after checks 7 and 8, `CONTROL_PERMISSION_REQUEST_RECORDED {json}`
+  printed whenever check 9 returns its record, check 6's numbers printed with its PASS line.
+- **Workflow (linux-aresos's answer, 2026-11-14):** `check-build.sh control` ends with the disk
+  (`CHECK_BUILD_CONTROL_DISK_READY`); a new step "Control VM pass" runs `check-build.sh control-pass` with its own
+  `timeout-minutes`; an `always()` step stops the fixture servers (`runner.sh stop`, which also fails on a password in
+  evidence); the job's limit is `${{ inputs.check_build == 'control' && 160 || 120 }}`. The build step keeps 80
+  minutes for every mode. Record regenerated with `rebind.py pending` (own commit `0af04070`).
+- `os/tests/test_control_vm.py`: 13 tests (3 new: his hooks, the layer's session pieces, the seeded attachment).
+
+### Decisions the code doesn't show (JUDGMENT-CALLs for the report)
+
+9. **Check 6's cases.** One session: turn 1 healthy, then `systemctl stop` (in the middle of the session, MCP proxies
+   already connected), turn 2, then `systemctl start`, turn 3 (must be clean). Then the failed service: the drop-in
+   `/run/systemd/system/aresos-toold.service.d/aresos-ci-fail.conf` (`ExecStartPre=/usr/bin/false`, the unit's own
+   `Restart=on-failure` left as is, so it ends `failed` after its restarts), armed before a **fresh** session: turn 4,
+   then the drop-in removed, `reset-failed`, start, turn 5 (must be clean). His tool is `mcp__notes__note`, allowed by
+   his own user rule. Alternatives: a separate session per state (more starts, same numbers).
+10. **Check 9 before check 8**, so the password scan also covers the asks' transcripts.
+11. **The password is typed through a tmux paste buffer**: `tmux load-buffer -` reads it from stdin, `paste-buffer
+    -d` types it into the pane where `getpass` reads it, and deletes the buffer. It is never on a command line or in a
+    process's arguments. Root runs the onboarding in tmux (root stands in for his `sudo`).
+12. **Check 8 searches** `/var/lib/aresos-tools`, `/var/lib/aresos-operation-evidence`, `~ares` (with Claude Code's
+    transcripts), `/tmp` (with the services' private tmp folders), `/var/tmp` (the guest's own evidence folders),
+    `/var/log`, `/run` and `/root`, every regular file, plus `journalctl -o export` of all boots, for the password and
+    the three base64 forms Mail's scrubber knows (password; `\0user\0password`; `user\0user\0password`). The password
+    must be in exactly its one file, the encoded forms nowhere. The runner searches the evidence written so far.
+13. **Evidence per session is one gzip tar** (`control/ordinary/<case>.tar.gz`, `control/interactive/<case>.tar.gz`,
+    `control/mail-claude.tar.gz`): the channel's frames are bounded at 4 MiB and the driver saves every changed
+    screen. Model requests after the first keep only digests of the system prompt and tool list. A tar over 1 MB is
+    rebuilt without the driver's intermediate `wait-` frames (the screens it acted on stay).
+14. **Mail account values:** id `ci`, address `owner@mail.invalid`, login `ci-owner`, Dovecot for IMAP (993), GreenMail
+    for SMTP (3465, implicit TLS); one distinct recipient per send (`first@`, `second@`, `third@mail.invalid`), so
+    "exactly one arrival" is per send.
+
+### Findings for the lead (step 2b; `control/aresos_control/` is out of reach, nothing changed there)
+
+- **The managed Stop hook fails in every interactive session on Claude Code 2.1.319** (run 43563336637,
+  `control/ordinary/stopped-mid-session.tar.gz`, screen `012-settled-1.txt` and `model/requests.json`):
+  `Stop hook error: [... launch.py hook Stop]: AresOS hook failed; inspect pending work before continuing: hook: unknown
+  fields are refused.` `hooks.main` validates the event against a closed field list (`session_id`, `transcript_path`,
+  `cwd`, `permission_mode`, `last_assistant_message`, `prompt`, `hook_event_name`, `stop_hook_active`); 2.1.319 sends
+  more. For `UserPromptSubmit` the extra field is **`prompt_id`** (his own hook logged the full input,
+  `control/ordinary/own-hooks.jsonl`); the Stop event's extra field is not recorded (see the next point). Effects,
+  with the service **healthy and nothing pending**:
+  - every turn ends only through Claude Code's own cap: the Stop hook exits 2 nine times, the model gets **8 extra
+    requests per turn** (each with one more "Stop hook feedback" block), and the screen shows the error four lines at
+    a time, then "A hook blocked the turn from ending 9 consecutive times — overriding and ending turn. ... Set
+    CLAUDE_CODE_STOP_HOOK_BLOCK_CAP to raise this limit." (`stop_hook_active` cannot help: validation fails first);
+  - the `UserPromptSubmit` hook fails the same way and, by design, stays silent: **no pending reminder ever reaches the
+    model** on a prompt;
+  - so check 6 cannot pass, and check 9's "the Stop hook's reminder reaches the model" (case 2) cannot either.
+  B1's container never ran the real hook (its notification stand-in replaces it) and 18d's print mode passes fewer
+  fields, so neither saw it. A fix in `hooks.py` (accept and ignore unknown fields, or add `prompt_id` and the Stop
+  event's field) is the lead's.
+- **His own Stop hook did not run** in run 43563336637 (0 Stop lines; his `UserPromptSubmit` hook ran every turn;
+  the screen says "Ran 1 stop hook"). Most likely Claude Code drops the other Stop hooks once one exits 2 with a
+  blocking error; to be confirmed once the managed hook no longer fails.
+- **A persistently failing service restarts without end:** with a CI drop-in `ExecStartPre=/usr/bin/false`, the
+  unit's `Restart=on-failure` restarted it 41 times in 90 s and it never reached `failed` (the start limit never
+  tripped). For a laptop, a broken service loops every ~2 s for good. The check's drop-in now also sets `Restart=no`.
+
+### PLAN-GAPs (step 2b)
+
+4. **B1's model double read a preparation's result only as text blocks.** Claude Code passes a real MCP server's
+   result as one string, so against the real service the double failed (500, ten retries, check 9's first case out of
+   time, run 43563336637). The container never exercised it (fixed approvals). Fixed in
+   `control/boundary/interactive_model.py` (`texts()`) with a regression test in `test_interactive.py`; the container
+   cases don't use that path.
+5. **The time limits (linux-aresos's answer):** the build step (now ending with the disk) took 44 min in run 1
+   (05:54:45 to 06:39:03), within its 80; the Control VM pass's step was 8 min with checks 6 to 9 cut short by the
+   failures above. The step's 40 minutes stay provisional until a full pass is measured.
+
+### Runs (step 2b; budget 5 `check_build=control`)
+
+- **run 43563336637** (`control`, head `0af04070`, 58 min): failure. Green: `CLAUDE_CODE_PINNED 2.1.319 …`,
+  `CONTROL_INSTALLED …`, `CHECK_BUILD_PASSED`, `CHECK_BUILD_CONTROL_DISK_READY`, `CONTROL_IMAGE_FILES_PASS`,
+  `CONTROL_ETC_CLAUDE_CODE_PASS`, `CONTROL_RELEASE_CHECKS_PASS`, `CONTROL_IDLE_FOOTPRINT_RECORDED` (31.8 MB, 600
+  switches in 60 s, 0.68 % CPU), `CONTROL_FIXTURES_REACHABLE`, `CONTROL_ENTRY_POINTS_PASS`,
+  `CONTROL_PRECONDITION_PASS`, `CONTROL_USER_MCP_INSTALL_PASS`, `CONTROL_SERVICE_SANDBOX_PASS`,
+  `CONTROL_SELINUX_AFTER_CHECKS_PASS`, `CONTROL_VM_POWEROFF_CLEAN`. Failed: `control-ordinary` (the Stop hook
+  finding: 10 model requests and 8 continuations in every turn, also healthy; and the failed state never reached),
+  `control-mail` (runner: `Time2Internaldate(None)`), `control-interactive` (the double's string result; the case's
+  reserved operation then spoiled the other three baselines, as designed), `control-passwords` (no account, 0 files),
+  `control-restart` (that reserved operation). Fixed in `10ef9df0` except the Stop hook.
+
 ## Left, in order (step 2b on)
 
 1. Step 2b: B2 checks 6 (ordinary session, service stopped and failed by a CI drop-in under `/run/systemd/system`),
