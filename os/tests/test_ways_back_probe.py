@@ -15,6 +15,7 @@ import shlex
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import Mock, patch
 
@@ -186,6 +187,14 @@ REVIEWED = {
 }
 
 
+# The same for stage 2's rehearsal: it leaves the shared route where the probe does, records its
+# bound sources as package 27 did, and takes its own way from release 27 confirmed.
+REVIEWED_REHEARSAL = {key: reason for key, reason in REVIEWED.items() if key[1] != "mode == 'reorder-probe'"}
+REVIEWED_REHEARSAL[('os/ci/owner_vm.py', "package == '27'")] = "package 27 recorded its bound sources under its own key; package 22c's rehearsal does below"
+REVIEWED_REHEARSAL[('os/ci/owner_vm.py', "mode == 'ways-back'")] = \
+    "the rehearsal records its bound sources (22c-bound-sources) and walks brief E's route after release 27 is confirmed"
+
+
 class DecisionsTest(unittest.TestCase):
     def test_the_probe_decides_like_package_27s_update_rehearsal_except_where_reviewed(self):
         probe = dict(REHEARSAL_PACKAGE='22c', REHEARSAL_MODE='reorder-probe', GITHUB_REF_NAME=BRANCH,
@@ -193,6 +202,14 @@ class DecisionsTest(unittest.TestCase):
         differing, used, paths = base.differing_decisions([probe, base.WORLDS['update']], REVIEWED)
         self.assertEqual(differing, [])
         self.assertEqual(sorted(set(REVIEWED) - used), [], 'stale reviewed decisions')
+        self.assertIn('os/ci/reorder_probe.py', paths)
+
+    def test_the_rehearsal_decides_like_package_27s_update_rehearsal_except_where_reviewed(self):
+        rehearsal = dict(REHEARSAL_PACKAGE='22c', REHEARSAL_MODE='ways-back', GITHUB_REF_NAME=BRANCH,
+                         argv=['os/ci/owner_vm.py', 'ways-back'])
+        differing, used, paths = base.differing_decisions([rehearsal, base.WORLDS['update']], REVIEWED_REHEARSAL)
+        self.assertEqual(differing, [])
+        self.assertEqual(sorted(set(REVIEWED_REHEARSAL) - used), [], 'stale reviewed decisions')
         self.assertIn('os/ci/reorder_probe.py', paths)
 
 
@@ -229,16 +246,13 @@ class LedgerTest(unittest.TestCase):
             runs.append(self.run_row(5, 'reorder-probe'))
             with self.assertRaisesRegex(AssertionError, 'reorder-probe dispatch allowance exhausted'):
                 guard.budget(0)
-        # A second VM mode (stage 2's rehearsal) shares the same four.
-        second = dict(LEDGER, dispatch_caps=dict(LEDGER['dispatch_caps'], rehearsal=4),
-                      titles=dict(LEDGER['titles'], rehearsal='Two-disk rehearsal (rehearsal)'),
-                      job_bounds=dict(LEDGER['job_bounds'], rehearsal=345))
-        runs = [self.run_row(1, 'reorder-probe'), self.run_row(2, 'reorder-probe'),
-                dict(self.run_row(3, 'checks'), display_title='Two-disk rehearsal (rehearsal)'),
-                dict(self.run_row(4, 'checks'), display_title='Two-disk rehearsal (rehearsal)')]
-        with patch.object(guard, 'SETTINGS', second), self.history(runs):
-            self.assertEqual(guard.budget(0)['dispatch_counts'], dict(checks=0, rehearsal=2, **{'reorder-probe': 2}))
-            runs.append(dict(self.run_row(5, 'checks'), display_title='Two-disk rehearsal (rehearsal)'))
+        # The second VM mode (stage 2's rehearsal) shares the same four: the probe used one, three remain.
+        self.assertEqual(VM_MODES, ('reorder-probe', 'ways-back'))
+        self.assertEqual(LEDGER['dispatch_caps']['ways-back'], 3)
+        runs = [self.run_row(1, 'reorder-probe'), self.run_row(2, 'ways-back'), self.run_row(3, 'ways-back'), self.run_row(4, 'ways-back')]
+        with self.history(runs):
+            self.assertEqual(guard.budget(0)['dispatch_counts'], {'checks': 0, 'reorder-probe': 1, 'ways-back': 3})
+            runs.append(self.run_row(5, 'reorder-probe'))
             with self.assertRaisesRegex(AssertionError, 'VM dispatch allowance exhausted'):
                 guard.budget(0)
 
@@ -432,10 +446,12 @@ class RunnerTest(unittest.TestCase):
         # The runner check refuses first; the driver's own check refuses too (shown with the runner check set aside).
         for package, mode, branch, message in (
                 ('27', 'reorder-probe', 'pkg/27-first-update-release', 'the update rehearsal is package 27 only'),
-                ('14', 'reorder-probe', 'pkg/14-owner-tools', 'the reorder probe is package 22c only'),
+                ('14', 'reorder-probe', 'pkg/14-owner-tools', 'are package 22c only'),
+                ('27', 'ways-back', 'pkg/27-first-update-release', 'the update rehearsal is package 27 only'),
+                ('14', 'ways-back', 'pkg/14-owner-tools', 'are package 22c only'),
                 ('22c', 'update', BRANCH, 'the update rehearsal is package 27 only'),
-                ('22c', 'owner-tools', BRANCH, 'the reorder probe is package 22c only'),
-                ('22c', 'probe', BRANCH, 'the reorder probe is package 22c only')):
+                ('22c', 'owner-tools', BRANCH, 'are package 22c only'),
+                ('22c', 'probe', BRANCH, 'are package 22c only')):
             with self.subTest(package=package, mode=mode):
                 with self.assertRaises(AssertionError):
                     self.main(package, mode, branch)
@@ -444,8 +460,9 @@ class RunnerTest(unittest.TestCase):
 
     def test_the_probe_reads_package_22cs_host_walk_and_refuses_a_stale_one(self):
         # With a fresh receipt the driver passes every gate and reaches its first host work.
-        with self.assertRaisesRegex(RuntimeError, 'past the gates'):
-            self.main('22c', 'reorder-probe', BRANCH)
+        for mode in VM_MODES:
+            with self.subTest(mode=mode), self.assertRaisesRegex(RuntimeError, 'past the gates'):
+                self.main('22c', mode, BRANCH)
         walk_path = 'os/manifest/ci/22c/host-walk.json'
         receipt = json.loads((ROOT / walk_path).read_text())
         receipt['sources'][0] = dict(receipt['sources'][0], sha256='0' * 64)
@@ -459,12 +476,16 @@ class HostWalkReceiptTest(unittest.TestCase):
     def test_the_receipt_is_this_packages_and_binds_the_probe(self):
         receipt = json.loads(self.PATH.read_text())
         self.assertEqual((receipt['status'], receipt['stick_across_reboot']), ('passed', False))
-        self.assertEqual(receipt['stages']['reorder-probe'], walk.PROBE_STAGES)
+        self.assertEqual(receipt['stages'], {'reorder-probe': walk.PROBE_STAGES, 'ways-back': walk.WAYS_BACK_STAGES})
+        self.assertEqual(set(receipt['set_default_indexes']), set(VM_MODES))
         paths = [row['path'] for row in receipt['sources']]
         self.assertEqual(paths, sorted(set(paths)))
         for needed in ('os/ci/reorder_probe.py', 'os/ci/owner_vm.py', 'os/ci/grub_bls.py', 'os/ci/keyboard_entries.py',
                        'os/tests/test_owner_walk.py', 'os/tests/test_ways_back_probe.py', '.github/workflows/os-image.yml',
-                       'os/ci/rehearsal-packages.json', 'reviews/22c-ways-back-after-update/walk-host.py'):
+                       'os/ci/rehearsal-packages.json', 'reviews/22c-ways-back-after-update/walk-host.py',
+                       # The rehearsal route's answers come from the tools over test_ways_back's machine.
+                       'os/owner-tools/owner.py', 'os/release/start-next.sh', 'os/tests/test_ways_back.py',
+                       'os/tests/test_owner_update.py', 'os/tests/ways_back_keyboard.py'):
             self.assertIn(needed, paths)
         previous = json.loads((ROOT / 'os/manifest/ci/27/host-walk.json').read_text())
         self.assertLessEqual({row['path'] for row in previous['sources'] if (ROOT / row['path']).is_file()}, set(paths))
@@ -1009,6 +1030,294 @@ class ToolsFromHistoryTest(unittest.TestCase):
         source = inspect.getsource(owner_media.Media.replace)
         self.assertIn("bundle_module('owner').checked_bundle(payload)", source)
         self.assertIn('assert fingerprint != old', source)
+
+
+class RehearsalWalkTest(unittest.TestCase):
+    """Stage 2 (brief E, briefs/22c-stage-2-additions.md): the local walk of the rehearsal. From tools
+    version 3 on, every way-back command the walk types is answered by the owner tools themselves
+    (test_owner_walk.Oracle), so the lines the harness requires are the lines the tools print."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.result = walk.walk(route='ways-back')
+        cls.commands = json.loads((ROOT / 'os/owner-tools/commands.json').read_text())
+        cls.rows = cls.result['result']['transcript']
+        cls.words = {command: name for name, command in cls.commands.items()}
+
+    def word(self, row):
+        return self.words.get(row['command'], 'install')
+
+    def test_the_route_is_the_laptops_history_then_version_3_from_the_stick(self):
+        result, commands = self.result, self.commands
+        self.assertEqual(result['stages'], walk.WAYS_BACK_STAGES)
+        self.assertEqual(result['result']['status'], 'passed')
+        typed = [text.rstrip('\n') for text, profile in result['visible_blocks']]
+        version_2 = owner_vm.bundle_module('bootstrap').command(owner_vm.TOOLS_V2)
+        blocks = [owner_vm.laptop_commands()['install'], version_2, commands['install']]
+        self.assertEqual(len(set(blocks)), 3)
+        self.assertEqual([typed.count(block) for block in blocks], [1, 1, 1])
+        self.assertEqual(sorted(typed.index(block) for block in blocks), [typed.index(block) for block in blocks])
+        checks = result['checks']
+        for earlier, later in (('update-windows-copy-windows-copy', 'update-tools-hotplug'), ('update-tools-detach', 'tools-3-windows-copy'),
+                               ('tools-3-windows-copy', 'tools-3-hotplug'), ('tools-3-hotplug', 'tools-3-detach'),
+                               ('tools-3-detach', 'release-27-owner-reboot-tools-absent')):
+            self.assertLess(checks.index(earlier), checks.index(later), (earlier, later))
+        # The administrator password is set once, before the tools change; his sudo passes then and after the returns.
+        self.assertEqual(typed.count('sudo passwd ares'), 1)
+        self.assertEqual(typed.count('sudo -v'), 2)
+        self.assertLess(typed.index('sudo passwd ares'), typed.index(commands['install']))
+        self.assertEqual(result['markers'][-2:], ['final-unattended-windows', 'final-detached-windows'])
+        self.assertEqual(result['result']['tools_version_3'], walk.common.bundle.check(ROOT / 'os/owner-tools/payload'))
+
+    def test_forward_where_the_walk_returns_and_update_only_where_it_names_forward(self):
+        rows, commands = self.rows, self.commands
+        typed = [text.rstrip('\n') for text, profile in self.result['visible_blocks']]
+        # update: package 27's staging with tools version 2, then once on the older AresOS, refused.
+        self.assertEqual(typed.count(commands['update']), 2)
+        update, = [row for row in rows if self.word(row) == 'update']
+        self.assertEqual((update['boot'], update['system'], update['status']), ('back-13', 'R13', 'stopped'))
+        self.assertTrue(update['error'].startswith('The release of these tools is installed already'), update['error'])
+        self.assertIn(commands['forward'], update['error'])
+        self.assertTrue(update['error'].endswith('nothing changed'))
+        after = rows[rows.index(update) + 1]
+        self.assertEqual((self.word(after), after['status'], after['system']), ('forward', 'passed', 'R13'))
+        # Every return to the newest AresOS is forward: from the older AresOS (twice), from plain Bazzite
+        # (by order, after keep-stock, after the cut) and on the newer AresOS itself taken in the boot menu.
+        self.assertEqual([(row['boot'], row['system']) for row in rows if self.word(row) == 'forward'],
+                         [('back-13', 'R13'), ('stock-1', 'S'), ('back-13b', 'R13'), ('menu-27', 'R27'), ('stock-2', 'S'), ('cut-stock', 'S')])
+        self.assertEqual([(row['boot'], row['system']) for row in rows if self.word(row) == 'previous'],
+                         [('abandon-27', 'R27'), ('forward-27b', 'R27'), ('forward-27c', 'R27')])
+        self.assertEqual([(row['boot'], row['status'][:3]) for row in rows if self.word(row) == 'rollback'],
+                         [('forward-27', 'pas'), ('stock-1', 'sto'), ('forward-27e', 'cut')])
+        self.assertEqual([(row['boot'], row['lines'][0]) for row in rows if self.word(row) == 'keep-stock'],
+                         [('stock-1', self.result['result']['names']['S'].replace('plain', 'Plain') + ' already starts next; nothing changed'),
+                          ('menu-stock', 'Saved stock is default')])
+        self.assertEqual(self.result['result']['typed']['forward'], 6)
+        # forward is walked now: it left the waiting list (test_owner_equality refuses a listed command that is typed).
+        waiting = json.loads((ROOT / 'os/manifest/ci/16/pending-rebind.json').read_text())
+        self.assertNotIn('forward', waiting['unwalked_commands'])
+
+    def test_the_guides_order_check_first_and_a_fresh_title_before_every_restart(self):
+        rows = self.rows
+        for stage in walk.WAYS_BACK_STAGES[5:]:
+            boot = [self.word(row) for row in rows if row['boot'] == stage]
+            with self.subTest(boot=stage):
+                # After every start: check, then title (an abandoned trial is cleared first, from its fresh login).
+                first = boot[1:3] if stage == 'abandon-27' else boot[:2]
+                self.assertEqual(first, ['check', 'title'])
+                self.assertEqual(boot[0], 'layout-abandon' if stage == 'abandon-27' else 'check')
+                # check before previous, also after a boot-menu choice (review fixes 3).
+                if 'previous' in boot:
+                    self.assertLess(boot.index('check'), boot.index('previous'))
+                if 'reboot' in boot:
+                    self.assertEqual(boot[-2:], ['title', 'reboot'])
+        # A return that the restart confirms says so once, in the check, never in the title after it.
+        said = [(row['boot'], self.word(row), line.split(' to ')[0]) for row in rows for line in row['lines'] if line.endswith('confirmed after the restart')]
+        self.assertEqual(said, [('back-13', 'check', 'Return'), ('forward-27', 'check', 'Forward'), ('stock-1', 'check', 'Rollback'),
+                                ('forward-27b', 'check', 'Forward'), ('back-13b', 'check', 'Return'), ('forward-27c', 'check', 'Forward'),
+                                ('forward-27d', 'check', 'Forward'), ('stock-2', 'check', 'Change'), ('forward-27e', 'check', 'Forward'),
+                                ('cut-stock', 'check', 'Rollback'), ('final-27', 'check', 'Forward')])
+
+    def test_the_two_menu_rows_the_cut_and_the_lists_by_identity(self):
+        result = self.result['result']
+        self.assertEqual([(m['stage'], m['system'], m['row'], m['choice']['keys']) for m in result['menus']],
+                         [('menu-27', 'R27', 1, ['home', 'down', 'ret']), ('menu-stock', 'S', 2, ['home', 'down', 'down', 'ret'])])
+        table = {row['stage']: row for row in result['stages']}
+        # The restart that lands elsewhere: the newer AresOS runs while the older one starts next; then applied, nothing waits.
+        self.assertEqual((table['menu-27']['order'], table['menu-27']['running']), (['R13', 'R27', 'S'], 'R27'))
+        elsewhere = [row['lines'] for row in self.rows if row['stage'] == 'menu-27-check'][0]
+        names = result['names']
+        self.assertIn(names['R27'] + ' runs; ' + names['R13'] + ' starts next; this start was not the default', elsewhere)
+        self.assertIn('Return to ' + result['previous_release'] + ' is in place and has not started yet', elsewhere)
+        applied = [row['lines'] for row in self.rows if row['stage'] == 'owner-forward-4'][0]
+        self.assertIn(names['R27'] + ' runs and now starts next; no restart is waiting', applied)
+        self.assertFalse([line for line in applied if 'confirmed' in line or 'not finished' in line])
+        # The boot menu without a record: the neutral line and no cause.
+        neutral = [row['lines'] for row in self.rows if row['stage'] == 'menu-stock-check'][0]
+        self.assertIn(names['S'] + ' runs; ' + names['R27'] + ' starts next; this start was not the default', neutral)
+        self.assertFalse([line for line in neutral if 'confirmed' in line or 'in place' in line or 'not applied' in line])
+        # The cut: the reorder in place, the journal still the intent, one hard reset; the check on stock records and confirms it.
+        cut = result['cut']
+        self.assertEqual((cut['order'], cut['running'], cut['journal_holds'], cut['journal']['word'], cut['journal']['status']),
+                         (['S', 'R27', 'R13'], 'R27', 'the intent', 'rollback', 'intent'))
+        self.assertIn('forward-27e-QMP-system-reset', self.result['checks'])
+        self.assertIn('trial-27-QMP-system-reset', self.result['checks'])
+        recorded = [row['lines'] for row in self.rows if row['stage'] == 'cut-stock-check'][0]
+        self.assertEqual(recorded[0], 'The interrupted rollback to ' + result['references']['S'] + ' had made its change; it is recorded now')
+        self.assertIn('Rollback to ' + result['references']['S'] + ' confirmed after the restart', recorded)
+        self.assertEqual(table['cut-stock-recorded']['order'], ['S', 'R27', 'R13'])
+        # Twelve reorders, each one list write; the stock runs four times; the walk ends on the newer AresOS.
+        self.assertEqual(len(result['swaps']), 12)
+        self.assertEqual(self.result['disk'].sets, [1, 1, 2, 1, 2, 1, 1, 1, 2, 1, 1, 1])
+        self.assertEqual(result['stock_starts'], ['stock-1', 'menu-stock', 'stock-2', 'cut-stock'])
+        self.assertEqual((result['stages'][-1]['order'], result['stages'][-1]['running']), (['R27', 'S', 'R13'], 'R27'))
+        self.assertEqual(result['expectations']['contradicted'], [])
+        self.assertEqual(table['forward-27b']['order'], ['R27', 'S', 'R13'])
+
+    def test_the_walk_also_passes_with_the_ps2_health_checks(self):
+        result = walk.walk(ps2=True, route='ways-back')
+        self.assertEqual(result['stages'], walk.WAYS_BACK_STAGES)
+        self.assertEqual([row['command'] for row in result['result']['transcript']], [row['command'] for row in self.rows])
+        names = [name for name, source in result['commands']]
+        for stage in ('stock-1', 'menu-27', 'cut-stock', 'final-27'):
+            self.assertTrue(any(name.startswith(stage) and name.endswith('-xhci-health') for name in names), stage)
+
+
+class RehearsalHarnessTest(unittest.TestCase):
+    """The rehearsal's own checks stop the walk: a wrong row map, a cut that did not happen, a cut that was not tested."""
+    NAMES = dict(R27='newer AresOS 111111111111', R13='older AresOS 222222222222', S='plain Bazzite 333333333333')
+
+    def walk(self):
+        value = object.__new__(owner_vm.WaysBack)
+        value.name, value.transcript, value.boot_stage, value.cut_proof = self.NAMES, [], 'forward-27e', None
+        return value
+
+    def facts(self, order, running):
+        return dict(order=list(order), running=running, entries=[dict(role=role, title_index=place) for place, role in enumerate(order)])
+
+    def test_the_first_line_and_the_row_map_are_required_exactly(self):
+        value, names = self.walk(), self.NAMES
+        menu = 'Boot menu at the next start: (ostree:0) %s, starts next; (ostree:1) %s; (ostree:2) %s' % (names['R13'], names['R27'], names['S'])
+        facts = self.facts(('R13', 'R27', 'S'), 'R27')
+        value.standing([names['R27'] + ' runs; ' + names['R13'] + ' starts next, after the restart', menu], facts, 'pending')
+        value.standing([names['R27'] + ' runs; ' + names['R13'] + ' starts next; this start was not the default', menu], facts)
+        with self.assertRaisesRegex(AssertionError, 'the tools do not say'):
+            value.standing([names['R27'] + ' runs; ' + names['R13'] + ' starts next, after the restart', menu], facts)
+        swapped = menu.replace('(ostree:1)', '(ostree:9)')
+        with self.assertRaisesRegex(AssertionError, "row map differs from the boot entries"):
+            value.standing([names['R27'] + ' runs; ' + names['R13'] + ' starts next, after the restart', swapped], facts, 'pending')
+        first = self.facts(('S', 'R27', 'R13'), 'S')
+        menu = 'Boot menu at the next start: (ostree:0) %s, starts next; (ostree:1) %s; (ostree:2) %s' % (names['S'], names['R27'], names['R13'])
+        value.standing([names['S'] + ' runs and now starts next; no restart is waiting', menu], first, 'applied')
+        with self.assertRaisesRegex(AssertionError, 'the tools do not say'):
+            value.standing([names['S'] + ' runs and starts next', menu], first, 'applied')
+
+    def cut(self, watcher, intent, order=('S', 'R27', 'R13')):
+        value = self.walk()
+        stock = ('s' * 64, 0, 'default')
+        value.probe = Mock(roles={stock: 'S', ('n' * 64, 0, 'default'): 'R27', ('o' * 64, 0, 'default'): 'R13'})
+        value.probe.journal.return_value = []
+        value.probe.tool_move.return_value = (dict(order=list(order), running='R27'), None)
+        value.probe.contradicted.return_value = []
+        answers = iter([dict(status='watching'), watcher, intent])
+        guest = Mock(capture_json=Mock(side_effect=lambda name, source: next(answers)))
+        console = Mock(guest=guest, tty='tty3', commands=owner_vm.COMMANDS)
+        with patch.object(owner_vm.td, 'save'), patch.object(owner_vm.owner_xhci, 'checkpoint'):
+            try:
+                value.cut(console, 'cut-rollback')
+            except AssertionError as error:
+                return guest, console, str(error)
+        return guest, console, None
+
+    def test_the_reset_follows_only_a_proved_cut(self):
+        frozen = dict(status='frozen', pid=7, state='T', release_step_ended=True)
+        intent = dict(word='rollback', status='intent', mode='reorder', target=['s' * 64, 0, 'default'])
+        guest, console, error = self.cut(frozen, intent)
+        self.assertIsNone(error)
+        guest.hard_reset.assert_called_once_with('cut-rollback')
+        console.visible.assert_called_once_with(owner_vm.COMMANDS['rollback'] + '\n', 'cut-rollback-command')
+        # The watcher is started and answers before the command is typed.
+        self.assertEqual([call.args[0] for call in guest.capture_json.call_args_list], ['cut-rollback-armed', 'cut-rollback-frozen', 'cut-rollback-intent'])
+        order = [call[0] for call in guest.mock_calls]
+        self.assertEqual(guest.command.call_args.args[0], 'cut-rollback-watch')
+        self.assertLess(order.index('command'), order.index('capture_json'))
+        self.assertLess(order.index('capture_json'), order.index('hard_reset'))
+        for label, watcher, journal, order, message in (
+                ('the record is already written', frozen, dict(intent, status='recorded'), ('S', 'R27', 'R13'), 'the cut was not tested; repeat it'),
+                ('no reorder was seen', dict(status='no reorder seen'), intent, ('S', 'R27', 'R13'), 'was not stopped after its reorder'),
+                ('the tools were not stopped', dict(frozen, state='S'), intent, ('S', 'R27', 'R13'), 'was not stopped after its reorder'),
+                ('another journal', frozen, dict(intent, word='forward'), ('S', 'R27', 'R13'), 'unexpected journal before the reset'),
+                ('the list is as before', frozen, intent, ('R27', 'S', 'R13'), 'not in place before the reset')):
+            with self.subTest(label):
+                guest, console, error = self.cut(watcher, journal, order)
+                self.assertIn(message, error)
+                guest.hard_reset.assert_not_called()
+
+    def test_the_guest_programs_compile_and_the_run_records_package_22cs_bound_sources(self):
+        for name, source in (('cut watch', owner_vm.CUT_WATCH), ('cut intent', owner_vm.CUT_INTENT),
+                             ('updaters', owner_vm.UPDATERS.replace('@NAMES@', repr(('uupd.timer',)))),
+                             ('cut wait', owner_vm.cut_wait("value['status']!='watching'", 5))):
+            compile(source, name, 'exec')
+        self.assertIn("argv'][4]==b'rollback'", owner_vm.CUT_WATCH)
+        self.assertIn('signal.SIGSTOP', owner_vm.CUT_WATCH)
+        self.assertNotIn('SIGCONT', owner_vm.CUT_WATCH)
+        # No test-only switch in the bundle: the payload does not know the watcher or its file.
+        for path in (ROOT / 'os/owner-tools/payload').rglob('*'):
+            if path.is_file():
+                self.assertNotIn(b'aresos-cut', path.read_bytes(), path)
+        receipt = json.loads((ROOT / 'os/manifest/ci/22c/host-walk.json').read_text())
+        with contextlib.chdir(ROOT), patch.dict(os.environ, GITHUB_SHA='a' * 40):
+            bound = owner_vm.bound_sources(receipt['sources'], '22c', '27')
+        earlier = json.loads((ROOT / 'os/manifest/ci/27/source-bindings.json').read_text())
+        self.assertEqual((bound['package'], bound['commit']), ('22c', 'a' * 40))
+        self.assertEqual([table['name'] for table in bound['tables']],
+                         ['package22c host walk'] + [table['name'].replace('package27', 'package22c') for table in earlier['tables'][1:]])
+        self.assertEqual([row['path'] for row in bound['tables'][0]['sources']], [row['path'] for row in receipt['sources']])
+        gone = json.loads((ROOT / 'os/manifest/ci/16/pending-rebind.json').read_text())['removed']
+        for before, after in zip(earlier['tables'][1:], bound['tables'][1:]):
+            self.assertEqual([row['path'] for row in before['sources'] if row['path'] not in gone], [row['path'] for row in after['sources']])
+        # The record step accepts exactly this shape (test_checkout_sources runs it on a repository of its own).
+        self.assertIn("td.save('22c-bound-sources', bound_sources(walk['sources'], '22c', '27'))", (ROOT / 'os/ci/owner_vm.py').read_text())
+
+
+@unittest.skipUnless(pathlib.Path('/usr/bin/python3').exists() and pathlib.Path('/proc/self/stat').exists(), 'needs /usr/bin/python3 and /proc')
+class CutWatchTest(unittest.TestCase):
+    """Brief E7's window, with real processes: the watcher stops a stand-in for the tools as soon as the
+    link under the deployment folder is swapped; the stand-in's release step ends, and it never writes its record."""
+    STAND_IN = ('import pathlib,subprocess,sys,time\n'
+                'root=pathlib.Path(sys.argv[2])\n'
+                'time.sleep(.6)\n'
+                "step='import os,time; os.symlink(\"boot.0.0\",\"boot.new\"); os.replace(\"boot.new\",\"boot.0\"); time.sleep(.5)'\n"
+                "subprocess.run([sys.executable,'-c',step],cwd=root/'ostree',check=True)\n"
+                "(root/'record').write_text('recorded')\n")
+
+    def run_watch(self, with_tools):
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            ostree = root / 'ostree'
+            for name in ('boot.0.0', 'boot.0.1'):
+                (ostree / name).mkdir(parents=True)
+            (ostree / 'boot.0').symlink_to('boot.0.1')
+            (root / 'owner.py').write_text(self.STAND_IN)
+            header = "OSTREE,OUT='/sysroot/ostree','/run/aresos-cut.json'"
+            self.assertEqual(owner_vm.CUT_WATCH.count(header), 1)
+            program = owner_vm.CUT_WATCH.replace(header, 'OSTREE,OUT=%r,%r' % (str(ostree), str(root / 'cut.json')))
+            watcher = subprocess.Popen([sys.executable, '-c', program], stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True)
+            tools = None
+            try:
+                for attempt in range(200):
+                    if (root / 'cut.json').exists():
+                        break
+                    time.sleep(.05)
+                self.assertEqual(json.loads((root / 'cut.json').read_text())['status'], 'watching')
+                if with_tools:
+                    # Started as the tools are (os/owner-tools/at): /usr/bin/python3 -I -B <folder>/owner.py rollback
+                    tools = subprocess.Popen(['/usr/bin/python3', '-I', '-B', str(root / 'owner.py'), 'rollback', str(root)])
+                else:
+                    os.symlink('boot.0.0', ostree / 'boot.new')
+                    os.replace(ostree / 'boot.new', ostree / 'boot.0')
+                code = watcher.wait(timeout=30)
+                value = json.loads((root / 'cut.json').read_text())
+                time.sleep(1)  # the stand-in would have written its record by now
+                return code, value, (root / 'record').exists(), watcher.stderr.read()
+            finally:
+                for process in (watcher, tools):
+                    if process is not None and process.poll() is None:
+                        process.kill()
+                    if process is not None:
+                        process.wait(timeout=10)
+                        if process.stderr:
+                            process.stderr.close()
+
+    def test_the_tools_are_stopped_after_the_swap_and_never_write_their_record(self):
+        code, value, recorded, errors = self.run_watch(with_tools=True)
+        self.assertEqual((code, value['status'], value['state'], value['release_step_ended']), (0, 'frozen', 'T', True), errors)
+        self.assertEqual((value['links_before'], value['links_after']), ([['boot.0', 'boot.0.1']], [['boot.0', 'boot.0.0']]))
+        self.assertFalse(recorded)
+
+    def test_a_swap_without_the_tools_process_is_reported_and_nothing_is_stopped(self):
+        code, value, recorded, errors = self.run_watch(with_tools=False)
+        self.assertEqual((code, value['status']), (1, 'reorder seen without the tools process'), errors)
 
 
 if __name__ == '__main__':

@@ -196,9 +196,11 @@ class EqualityTest(unittest.TestCase):
     def test_every_owner_command_equals_the_command_physically_typed_by_ci(self):
         commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
         result=walk.walk()
-        # Package 27's update route types update and previous on top of the qualification.
+        # Package 27's update route types update and previous on top of the qualification;
+        # package 22c's rehearsal (stage 2) types forward, from plain Bazzite and after previous.
         update=walk.walk(route='update')
-        typed={text.rstrip('\n') for text,profile in result['visible_blocks']+update['visible_blocks']}
+        ways_back=walk.walk(route='ways-back')
+        typed={text.rstrip('\n') for text,profile in result['visible_blocks']+update['visible_blocks']+ways_back['visible_blocks']}
         guide='\n'.join((ROOT/name).read_text() for name in
             ('docs/INSTALL.md', 'docs/INSTALL-PROCEDURES.md'))
         waiting=unwalked_commands()
@@ -215,8 +217,9 @@ class EqualityTest(unittest.TestCase):
         for block in re.findall(r'```bash\n(.*?)\n```',guide,re.S):
             if block not in allowed:
                 for line in block.splitlines(): self.assertIn(line, allowed)
-        for run in (result, update):
+        for run in (result, update, ways_back):
             self.assertEqual(sum(text.rstrip('\n')==commands['install'] for text,profile in run['visible_blocks']),1)
+        self.assertIn(commands['forward'],{text.rstrip('\n') for text,profile in ways_back['visible_blocks']})
         self.assertIn('layout-reset-trial-QMP-system-reset',result['checks'])
         self.assertIn(commands['layout-abandon'],typed)
         for name in OWNER_PAGES:

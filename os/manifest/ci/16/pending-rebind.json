@@ -41,12 +41,13 @@
     "22c review fixes 4, fix 2: the failed-update card keeps the result of a check just run",
     "22c one word per meaning, step 1: update only stages and names forward; forward selects the newest installed AresOS; tests and model (bundle, pins and guides follow in step 2)",
     "22c one word per meaning, step 2: login on plain Bazzite names forward; bundle refreshed (2084c786…); forward waits under unwalked_commands for stage 2's rehearsal",
-    "22c one word per meaning, step 2: the guides say forward for every way back (the forward-again and back-from-stock box runs forward; no check-first dispatch, boot-menu step or tools' release); update only installs a new release"
+    "22c one word per meaning, step 2: the guides say forward for every way back (the forward-again and back-from-stock box runs forward; no check-first dispatch, boot-menu step or tools' release); update only installs a new release",
+    "22c stage 2, step 1: the rehearsal mode ways-back (os-image.yml, the ledger, the mode lists, owner_vm.py, reorder_probe.py), its local walk answered by the tools themselves, the record step (rebind.py rebind, checkout_sources.active_tables), forward typed by a walk"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "947c8ee73e8436d39181d2fc3a23bdcbca3962e0c1c1bbe7f408a969b313c95b",
+      "sha256": "a567f295e21b833dc7201497de6b9f40d3bea2d5d1c5ce1e97fa45cbd83aa894",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -58,31 +59,35 @@
       "path": "docs/INSTALL.md"
     },
     {
+      "sha256": "83a1f48fe99f0a4704ff65fb91e3125b41dfaccffb4ccd1c54e43795670760c4",
+      "path": "os/ci/checkout_sources.py"
+    },
+    {
       "sha256": "ba439f07383368b67092d91b0a4ed7fce2f4b6569cf32043d63911b26851a210",
       "path": "os/ci/installer_webui.py"
     },
     {
-      "sha256": "6b79707f2533afb6d9b3bf81c4a7207cc9f3a9a7e1de8bb01674505edf23bf4c",
+      "sha256": "e72fbf6e21f2110232ce931da6148ebdb6569cb23b7172c6695554ae62459ffa",
       "path": "os/ci/owner_capabilities.py"
     },
     {
-      "sha256": "819cef38705d5fbfe5b7bcdb5fd70bc570fda6e6ae3d212a9c2bbf8305dbb961",
+      "sha256": "bd47cfd7e15b0c9a4359849f3cdd102bacc3417100b53ac994381f539aa2a883",
       "path": "os/ci/owner_devices.py"
     },
     {
-      "sha256": "5fd94b1df701a100804df0e6b71e31f95b3379cdcb34ace1010bc4331ff4e667",
+      "sha256": "45f3912e52c84153ab382dd80ad67a7bc0e6574ddbd34f6e55c0bbd35e932d2f",
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "840654185ab60d7ca374b11b062e78409ee24739353a5a2c7dfaaa11d8fe292a",
+      "sha256": "df50888fe68efcce62300d24b6a6e78c0f951e8a95ab269e349cc681719204ef",
       "path": "os/ci/owner_vm.py"
     },
     {
-      "sha256": "ab246d3989be1bffca0f55b27669d525453306cba61f3f928c3a58c956ec83a8",
+      "sha256": "516eb3b806be7d131f1e28c19786b3158dad680f1535e79898e11b7d7cccf8fe",
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "c278f5ffb39803b61c783d9fb2bda8ca13fbdc49dc7044db111958afd5cecd75",
+      "sha256": "be51c7c243916644aec94588e2613ffcae547314f70ea63d12042c18319651c0",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -130,7 +135,7 @@
       "path": "os/owner-tools/payload/owner.py"
     },
     {
-      "sha256": "abaf6b6709a0e6d794248269eb2b9dc28882397364ea1d5b8d2fa26f6bb8ff20",
+      "sha256": "5336482e320e04e0e325cd13f7512cdcbb9adc9d9871718694805e436abe50f4",
       "path": "os/tests/test_checkout_sources.py"
     },
     {
@@ -162,7 +167,7 @@
       "path": "os/tests/test_owner_entry.py"
     },
     {
-      "sha256": "e5dc539a9a49cd27a4b46000acd1dc6a5c34f8dad339e30ce186dda37186a044",
+      "sha256": "4b4e30cd9cdbe5b0a0fb341b736c485c22e307f0f9a01f2cfe21403736ed5c9a",
       "path": "os/tests/test_owner_equality.py"
     },
     {
@@ -182,7 +187,7 @@
       "path": "os/tests/test_owner_step_limits.py"
     },
     {
-      "sha256": "68257a10fc920e3813813d12462b2829cfdd30554c305e5184e3426707833061",
+      "sha256": "2189448fcb3d1808d848ef43c2d97d022a193d43846d27038e52baf203672afb",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -190,10 +195,8 @@
       "path": "os/tests/test_rehearsal_budget.py"
     }
   ],
-  "unwalked_commands": [
-    "forward"
-  ],
-  "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) waits for package 22c's stage 2 rehearsal, which walks it from plain Bazzite and after previous and removes it here; test_owner_equality refuses a listed command once it is typed.",
+  "unwalked_commands": [],
+  "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) is typed by the local walk of package 22c's rehearsal (route ways-back: from plain Bazzite, after previous, and on the newer AresOS taken in the boot menu) and left this list in stage 2; test_owner_equality refuses a listed command once it is typed.",
   "rebound": [
     {
       "status": "rebound by package 27's update rehearsal",

@@ -29,6 +29,9 @@ FORBIDDEN = (r'gh[pousr]_[A-Za-z0-9]{20,}', r'github_pat_', r'x-access-token', r
 PER_STAGE = ('-deployments.json', '-layout.json', '-observed.json')
 PER_MOVE = ('-set-default.json', '-journal-before.json', '-journal-after.json', '-swap.json')
 MENU = ('menu-bls-entries.json', 'menu-recorded-stock-entry.json', 'b-grub-menu-ocr-proof.json', 'b-grub-selection.json')
+# Stage 2's rehearsal (ways-back): one set of menu files per boot-menu choice, the cut's proof, the stock's updaters.
+REHEARSAL = ('*-menu-bls-entries.json', '*-menu-recorded-stock-entry.json', '*-grub-menu-ocr-proof.json', '*-grub-selection.json',
+             'cut-rollback-proof.json', 'cut-rollback-watcher.json', '*-stock-updaters.json')
 
 
 def main():
@@ -42,11 +45,15 @@ def main():
     for row in result['stages']:
         names += [row['stage'] + suffix for suffix in PER_STAGE]
         if row.get('bootconfig_swap') is not None or (evidence / (row['stage'] + '-swap.json')).exists():
-            names += [row['stage'] + suffix for suffix in PER_MOVE]
+            # A reorder by the owner tools has no output of its own: the tools keep it in their private record.
+            names += [row['stage'] + suffix for suffix in PER_MOVE
+                      if suffix != '-set-default.json' or (evidence / (row['stage'] + suffix)).exists()]
     names += [name for name in MENU if (evidence / name).exists()]
-    frame = ((result.get('menu') or {}).get('choice') or {}).get('frame')
-    if frame:
-        names.append(frame + '-ocr.txt')
+    if kind == 'ways-back-rehearsal':
+        names += sorted({path.name for pattern in REHEARSAL for path in evidence.glob(pattern)} - set(names))
+    frames = [((result.get('menu') or {}).get('choice') or {}).get('frame')]
+    frames += [(row.get('choice') or {}).get('frame') for row in result.get('menus', [])]
+    names += [frame + '-ocr.txt' for frame in frames if frame]
     missing = [name for name in names if not (evidence / name).is_file()]
     assert not missing, 'The artifact lacks captures: ' + ', '.join(missing)
     texts = {name: (evidence / name).read_text(encoding='utf-8') for name in names}

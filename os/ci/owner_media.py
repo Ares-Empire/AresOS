@@ -37,9 +37,9 @@ def require_runner():
             ('pkg/16-staged-release','16','probe') or
             (os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE'),os.environ.get('REHEARSAL_MODE')) ==
             ('pkg/27-first-update-release','27','update') or
-            # Package 22c: its reorder probe (stage 2 adds its rehearsal mode here).
+            # Package 22c: its reorder probe and (stage 2) the rehearsal of every way back.
             (os.environ.get('GITHUB_REF_NAME'),os.environ.get('REHEARSAL_PACKAGE')) ==
-            ('pkg/22c-ways-back-after-update','22c') and os.environ.get('REHEARSAL_MODE') in ('reorder-probe',))
+            ('pkg/22c-ways-back-after-update','22c') and os.environ.get('REHEARSAL_MODE') in ('reorder-probe', 'ways-back'))
 
 
 class Media:
@@ -118,7 +118,8 @@ Copy-AresToolsPayload -Source $Source -Destination $Destination -Drive $drive
         """
         assert not self.attached and self.fingerprint
         old = self.fingerprint
-        payload = td.WORK / 'owner-payload-update'
+        # One folder per replacement: package 22c's rehearsal replaces the bundle twice (version 2, then 3).
+        payload = td.WORK / ('owner-payload-update' if stage == 'update-windows-copy' else 'owner-payload-' + stage)
         assert not payload.exists()
         if source is None:
             fingerprint = bundle_module('bundle').build(payload)

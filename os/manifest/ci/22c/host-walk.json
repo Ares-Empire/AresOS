@@ -17,10 +17,34 @@
       "walk-6-booted",
       "menu-stock",
       "after-menu-booted"
+    ],
+    "ways-back": [
+      "stock",
+      "tools-stock",
+      "corrected-stock",
+      "release-13",
+      "release-27",
+      "intl-27",
+      "trial-27",
+      "abandon-27",
+      "back-13",
+      "forward-27",
+      "stock-1",
+      "forward-27b",
+      "back-13b",
+      "forward-27c",
+      "menu-27",
+      "forward-27d",
+      "menu-stock",
+      "stock-2",
+      "forward-27e",
+      "cut-stock",
+      "final-27"
     ]
   },
   "checks": {
-    "reorder-probe": 144
+    "reorder-probe": 144,
+    "ways-back": 428
   },
   "markers": {
     "reorder-probe": [
@@ -29,13 +53,22 @@
       "prepared-unattended-windows",
       "final-unattended-windows",
       "final-detached-windows"
+    ],
+    "ways-back": [
+      "offline-roundtrip-unattended-windows",
+      "offline-roundtrip-detached-windows",
+      "prepared-unattended-windows",
+      "final-unattended-windows",
+      "final-detached-windows"
     ]
   },
   "command_count": {
-    "reorder-probe": 589
+    "reorder-probe": 589,
+    "ways-back": 2104
   },
   "typed_count": {
-    "reorder-probe": 417
+    "reorder-probe": 417,
+    "ways-back": 1415
   },
   "set_default_indexes": {
     "reorder-probe": [
@@ -45,6 +78,20 @@
       2,
       1,
       2
+    ],
+    "ways-back": [
+      1,
+      1,
+      2,
+      1,
+      2,
+      1,
+      1,
+      1,
+      2,
+      1,
+      1,
+      1
     ]
   },
   "inherited_from": "os/manifest/ci/27/host-walk.json",
@@ -58,7 +105,7 @@
       "path": ".gitattributes"
     },
     {
-      "sha256": "947c8ee73e8436d39181d2fc3a23bdcbca3962e0c1c1bbe7f408a969b313c95b",
+      "sha256": "a567f295e21b833dc7201497de6b9f40d3bea2d5d1c5ce1e97fa45cbd83aa894",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -82,7 +129,7 @@
       "path": "docs/install-tools/OwnerTools.psm1"
     },
     {
-      "sha256": "6566f2efc06e79d3190ded48cdb119c4fc79f4ed5fc6ef784babc52438fb8223",
+      "sha256": "83a1f48fe99f0a4704ff65fb91e3125b41dfaccffb4ccd1c54e43795670760c4",
       "path": "os/ci/checkout_sources.py"
     },
     {
@@ -118,7 +165,7 @@
       "path": "os/ci/offline_webui.py"
     },
     {
-      "sha256": "6b79707f2533afb6d9b3bf81c4a7207cc9f3a9a7e1de8bb01674505edf23bf4c",
+      "sha256": "e72fbf6e21f2110232ce931da6148ebdb6569cb23b7172c6695554ae62459ffa",
       "path": "os/ci/owner_capabilities.py"
     },
     {
@@ -130,7 +177,7 @@
       "path": "os/ci/owner_counter_kernel.py"
     },
     {
-      "sha256": "819cef38705d5fbfe5b7bcdb5fd70bc570fda6e6ae3d212a9c2bbf8305dbb961",
+      "sha256": "bd47cfd7e15b0c9a4359849f3cdd102bacc3417100b53ac994381f539aa2a883",
       "path": "os/ci/owner_devices.py"
     },
     {
@@ -154,7 +201,7 @@
       "path": "os/ci/owner_login.py"
     },
     {
-      "sha256": "5fd94b1df701a100804df0e6b71e31f95b3379cdcb34ace1010bc4331ff4e667",
+      "sha256": "45f3912e52c84153ab382dd80ad67a7bc0e6574ddbd34f6e55c0bbd35e932d2f",
       "path": "os/ci/owner_media.py"
     },
     {
@@ -162,7 +209,7 @@
       "path": "os/ci/owner_read_diagnostics.py"
     },
     {
-      "sha256": "840654185ab60d7ca374b11b062e78409ee24739353a5a2c7dfaaa11d8fe292a",
+      "sha256": "df50888fe68efcce62300d24b6a6e78c0f951e8a95ab269e349cc681719204ef",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -178,11 +225,11 @@
       "path": "os/ci/prepare_two_disks.py"
     },
     {
-      "sha256": "ab246d3989be1bffca0f55b27669d525453306cba61f3f928c3a58c956ec83a8",
+      "sha256": "516eb3b806be7d131f1e28c19786b3158dad680f1535e79898e11b7d7cccf8fe",
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "c278f5ffb39803b61c783d9fb2bda8ca13fbdc49dc7044db111958afd5cecd75",
+      "sha256": "be51c7c243916644aec94588e2613ffcae547314f70ea63d12042c18319651c0",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -190,7 +237,7 @@
       "path": "os/ci/rehearsal_guard.py"
     },
     {
-      "sha256": "1eccdf3c10828d8f2123e3a7d4fa20a4402ba0044caa1f34beea8c21d2392dc8",
+      "sha256": "dae2fe8f1d21b8d91af1ac7e5e49d29c6596d462f28482e1f410a77de8cf5cb9",
       "path": "os/ci/reorder_probe.py"
     },
     {
@@ -610,6 +657,10 @@
       "path": "os/owner-tools/payload/release/pin-stock.sh"
     },
     {
+      "sha256": "120cdafc2a2e18faf305d37448fef5ddb7bf65df1add3e2a0e899749495d40b7",
+      "path": "os/owner-tools/payload/release/start-next.sh"
+    },
+    {
       "sha256": "630ce503e72b71011fe885d3bc2616aa6b84b31579faa94d879ef34f20a5da7a",
       "path": "os/owner-tools/payload/release/stock-session.sh"
     },
@@ -640,6 +691,10 @@
     {
       "sha256": "74d6c5a9476d83c569ecbc15ba0ce8a342c5679db87947dab5cd28e2ae28edc8",
       "path": "os/release/rollback.sh"
+    },
+    {
+      "sha256": "120cdafc2a2e18faf305d37448fef5ddb7bf65df1add3e2a0e899749495d40b7",
+      "path": "os/release/start-next.sh"
     },
     {
       "sha256": "630ce503e72b71011fe885d3bc2616aa6b84b31579faa94d879ef34f20a5da7a",
@@ -818,7 +873,7 @@
       "path": "os/tests/serial_pty.py"
     },
     {
-      "sha256": "abaf6b6709a0e6d794248269eb2b9dc28882397364ea1d5b8d2fa26f6bb8ff20",
+      "sha256": "5336482e320e04e0e325cd13f7512cdcbb9adc9d9871718694805e436abe50f4",
       "path": "os/tests/test_checkout_sources.py"
     },
     {
@@ -914,7 +969,7 @@
       "path": "os/tests/test_owner_entry.py"
     },
     {
-      "sha256": "e5dc539a9a49cd27a4b46000acd1dc6a5c34f8dad339e30ce186dda37186a044",
+      "sha256": "4b4e30cd9cdbe5b0a0fb341b736c485c22e307f0f9a01f2cfe21403736ed5c9a",
       "path": "os/tests/test_owner_equality.py"
     },
     {
@@ -1018,7 +1073,11 @@
       "path": "os/tests/test_owner_transport.py"
     },
     {
-      "sha256": "68257a10fc920e3813813d12462b2829cfdd30554c305e5184e3426707833061",
+      "sha256": "0f58aef9e1c30b83631b981f7118c53c5bd355b9c9af7e19354096b9cc5c4bf6",
+      "path": "os/tests/test_owner_update.py"
+    },
+    {
+      "sha256": "2189448fcb3d1808d848ef43c2d97d022a193d43846d27038e52baf203672afb",
       "path": "os/tests/test_owner_walk.py"
     },
     {
@@ -1050,8 +1109,16 @@
       "path": "os/tests/test_serial_staging.py"
     },
     {
-      "sha256": "f2a44ff7f85ba106e25fa23ff0b41bc9cfe4969db33cf5f3f92e1a3f9965e470",
+      "sha256": "c17dd40bec8e14e6b06251f9be5aaf85495c8b0582e6df7b78d8f2aa0cddf038",
+      "path": "os/tests/test_ways_back.py"
+    },
+    {
+      "sha256": "29eeb54efa65b479cd620b84ae758afc18a7d6a6e7d30c4c98c4ab155169ea18",
       "path": "os/tests/test_ways_back_probe.py"
+    },
+    {
+      "sha256": "404f87fad6bc0907ceb4a6162b6c3a0a3fdd3e92ec836e31e90957ff2f85fa37",
+      "path": "os/tests/ways_back_keyboard.py"
     },
     {
       "sha256": "6d0467153f768f2e714d26d4bc465c653a2450ec44990f76de1bcb465386ec61",
@@ -1066,7 +1133,7 @@
       "path": "reviews/14-owner-tools/walk-host.py"
     },
     {
-      "sha256": "66ee8ba262909d8cc8cd14f1c1a07e30fc0d376b6fd8247c65c4e655005f56f7",
+      "sha256": "f90d4695444363d37afad756e28ae14dcbee30c15bd51443720bc3bc16a5bd14",
       "path": "reviews/22c-ways-back-after-update/walk-host.py"
     },
     {

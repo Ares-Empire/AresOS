@@ -1,5 +1,6 @@
 """Package14: the owner route, physical commands, unchanged disk/firmware audits."""
 import base64
+import contextlib
 import hashlib
 import inspect
 import itertools
@@ -1762,28 +1763,500 @@ def reorder_probe(audit, media, password, hashed, version_2):
         row['stage'] + ': ' + row['point'] for row in result['expectations']['contradicted'])
 
 
-def bound_sources(walk_sources):
-    """Package 16's binding tables with this checkout's bytes, plus this walk's own sources."""
+# Package 22c, stage 2 (brief E): every way back, typed as the owner types, from the laptop's
+# history. Package 27's route up to release 27 confirmed (tools version 2), then this checkout's
+# tools (version 3) through the guide's stick block, layout trials, and every way between the
+# three installed systems. `forward` wherever the walk returns to an installed AresOS; `update`
+# only where it has nothing to install (release 27 is these tools' release) and names forward.
+WAYS_BACK_ROLES = dict(R27='newer AresOS', R13='older AresOS', S='plain Bazzite')
+# word: (the system it makes the next start, how its change is named, its own line)
+WAYS = {'forward': ('R27', 'Forward to ', 'Newest installed AresOS starts next {}'),
+        'previous': ('R13', 'Return to ', 'Previous AresOS queued for the next start {}'),
+        'rollback': ('S', 'Rollback to ', 'Saved stock rollback queued'),
+        'keep-stock': ('S', 'Change to ', 'Saved stock is default')}
+
+# Brief E7's window, from a second root shell (the harness's serial one): as soon as the list
+# shows the new order (ostree swaps the link under /sysroot/ostree, probe run 43470161858), the
+# tools' own process is stopped. Its release step still ends (set-default, the step's sync, its
+# last read); the tools can never write their record. Nothing of this is in the bundle.
+CUT_WATCH = r'''import json,os,pathlib,signal,time
+OSTREE,OUT='/sysroot/ostree','/run/aresos-cut.json'
+out=pathlib.Path(OUT)
+def write(value):
+    temporary=out.with_suffix('.new'); temporary.write_text(json.dumps(value)); temporary.replace(out)
+def links():
+    # boot.<version> only: ostree swaps it by renaming a temporary link over it.
+    found=[]
+    for e in os.scandir(OSTREE):
+        if e.name.startswith('boot.') and e.name[5:].isdigit():
+            try: found.append((e.name,os.readlink(e.path)))
+            except OSError: pass
+    return sorted(found)
+def processes():
+    rows={}
+    for p in pathlib.Path('/proc').iterdir():
+        if p.name.isdigit():
+            try:
+                fields=(p/'stat').read_text().rsplit(')',1)[1].split()
+                rows[int(p.name)]=dict(state=fields[0],parent=int(fields[1]),argv=(p/'cmdline').read_bytes().split(b'\0'))
+            except (OSError,ValueError,IndexError): pass
+    return rows
+def tools(rows):
+    return [pid for pid,row in rows.items() if len(row['argv'])>=5 and row['argv'][0]==b'/usr/bin/python3'
+            and row['argv'][3].endswith(b'/owner.py') and row['argv'][4]==b'rollback']
+def below(rows,pid):
+    found,todo=[],[pid]
+    while todo:
+        parent=todo.pop()
+        for child,row in rows.items():
+            if row['parent']==parent and child not in found: found.append(child); todo.append(child)
+    return found
+before=links()
+assert before, 'no deployment link to watch'
+write(dict(status='watching',links_before=before))
+deadline=time.monotonic()+900
+pid,scanned=None,0.0
+while links()==before:
+    if time.monotonic()>deadline:
+        write(dict(status='no reorder seen',links_before=before)); raise SystemExit(1)
+    if pid is None and time.monotonic()-scanned>.05:
+        scanned=time.monotonic(); found=tools(processes()); pid=found[0] if len(found)==1 else None
+    time.sleep(.002)
+flipped=time.monotonic()
+if pid is None:
+    found=tools(processes()); pid=found[0] if len(found)==1 else None
+if pid is None:
+    write(dict(status='reorder seen without the tools process',links_before=before,links_after=links())); raise SystemExit(1)
+os.kill(pid,signal.SIGSTOP)
+stopped=time.monotonic()
+while time.monotonic()<deadline:
+    rows=processes()
+    alive=[child for child in below(rows,pid) if rows[child]['state']!='Z']
+    if pid in rows and rows[pid]['state'] in 'Tt' and not alive: break
+    time.sleep(.05)
+else:
+    write(dict(status='the release step did not end',pid=pid)); raise SystemExit(1)
+write(dict(status='frozen',pid=pid,state=rows[pid]['state'],links_before=before,links_after=links(),
+    stop_after_swap_ms=round((stopped-flipped)*1000,3),release_step_ended=True))
+'''
+
+CUT_INTENT = r'''import json,pathlib
+value=json.loads(pathlib.Path('/var/lib/ares/records/outcome-pending.json').read_text())
+print(json.dumps({name:value.get(name) for name in ('schema','word','status','mode','reference','digest','target','before','intended','running')}))
+'''
+
+UPDATERS = r'''import json,subprocess
+names=@NAMES@
+listing=subprocess.check_output(['systemctl','--no-pager','--no-legend','list-unit-files'],text=True)
+files={p[0]:p[1] for line in listing.splitlines() if len(p:=line.split())>=2 and p[0] in names}
+active={}
+for name in files:
+    shown=subprocess.run(['systemctl','--no-pager','show',name,'--property=ActiveState'],capture_output=True,text=True).stdout
+    active[name]=shown.strip().partition('=')[2]
+print(json.dumps(dict(files=files,active=active)))
+'''
+
+
+def cut_wait(condition, seconds):
+    """Wait in the guest until the cut watcher's file answers `condition`, and print it."""
+    return ('import json,pathlib,time\np=pathlib.Path("/run/aresos-cut.json")\ndeadline=time.monotonic()+' + str(seconds) + '\n'
+            'while time.monotonic()<deadline:\n    if p.exists():\n        value=json.loads(p.read_text())\n'
+            '        if ' + condition + ':\n            print(json.dumps(value)); break\n    time.sleep(.2)\n'
+            'else: raise SystemExit("The cut watcher did not answer")\n')
+
+
+class WaysBack:
+    """The rehearsal's record: every typed owner command with the lines it printed, and each
+    stage's three deployments by identity (reorder_probe.Probe: nothing created, nothing removed,
+    the stock pinned). A contradiction stops the walk: the next command would act on an unknown list."""
+
+    def __init__(self, audit, password, hashed, route, identities):
+        self.audit, self.password, self.hashed = audit, password, hashed
+        stock = route['stock']
+        self.probe = rp.Probe(dict(R27=identities[route['new_digest']], R13=identities[route['old_digest']], S=ke.key(stock)))
+        digests = dict(R27=route['new_digest'], R13=route['old_digest'], S=route['stock_digest'])
+        # The tools' names (rule 8): the role and the first twelve digits of the image digest.
+        self.name = {role: WAYS_BACK_ROLES[role] + ' ' + digest.split(':')[1][:12] for role, digest in digests.items()}
+        self.reference = dict(R27=route['new'], R13=route['old'], S=stock['container-image-reference']
+                              .removeprefix('ostree-unverified-registry:').removeprefix('ostree-image-signed:docker://'))
+        self.transcript, self.menus, self.stock_starts, self.cut_proof, self.updater_states = [], [], [], None, None
+        self.boot_stage = 'release-27'
+
+    def checked(self, stage):
+        missed = self.probe.contradicted()
+        assert not missed, 'STOP: ' + stage + ': ' + '; '.join(row['stage'] + ': ' + row['point'] for row in missed)
+
+    def run(self, console, name, stage, **more):
+        """One owner command, typed; its lines go into the transcript."""
+        result = console.run(name, stage, **more)
+        result = result or dict(status='restart requested')
+        self.transcript.append(dict(stage=stage, boot=self.boot_stage, system=self.probe.last['running'], console=console.tty,
+            command=console.commands[name] if name != 'install' else "the guide's 13-line stick block (bash ./at install)",
+            status=result['status'], lines=result.get('result', []), error=result.get('error')))
+        return result
+
+    def standing(self, lines, facts, settled=None):
+        """Rule 8's first line and the row map, as the tools must print them for this list. The row
+        numbers come from the boot entries the harness read itself, by identity."""
+        order, running = facts['order'], facts['running']
+        first = order[0]
+        if first == running:
+            line = self.name[running] + (' runs and now starts next; no restart is waiting' if settled == 'applied' else ' runs and starts next')
+        elif settled == 'pending':
+            line = self.name[running] + ' runs; ' + self.name[first] + ' starts next, after the restart'
+        else:
+            line = self.name[running] + ' runs; ' + self.name[first] + ' starts next; this start was not the default'
+        place = {entry['role']: entry['title_index'] for entry in facts['entries']}
+        menu = 'Boot menu at the next start: ' + '; '.join(
+            '(ostree:%d) %s%s' % (place[role], self.name[role], ', starts next' if role == first else '') for role in order)
+        assert line in lines, 'STOP: the tools do not say: ' + line
+        assert menu in lines, "STOP: the title's row map differs from the boot entries: " + menu
+
+    def begin(self, guest, stage, running, reached, layout='de'):
+        """A start: the list by identity and the row that runs, then the owner's tty3 login and root."""
+        guest.owner_layout, self.boot_stage = layout, stage
+        self.probe.restarted(guest, stage, reached, running)
+        self.checked(stage)
+        keyboard(guest, stage, layout)
+        console = Console(guest)
+        console.login(self.password, stage)
+        console.become_root(self.password, stage)
+        if running == 'S':
+            # Plain Bazzite's greeter beside its German login, as package 14's stock stages prove them.
+            kb.capture_stock_greeter(guest, td.EVIDENCE, stage + '-greeter')
+            self.stock_starts.append(stage)
+        return console
+
+    def start(self, stage, menu=None):
+        if menu is None:
+            return td.start_installed(self.password, self.hashed, stage)
+        # The start stops at the boot menu, which was set to show once; the row is taken as recorded.
+        guest = rp.start_at_menu(self.password, self.hashed, stage)
+        try:
+            choice = rp.menu_choice(guest, menu['backup'], stage)
+            for name in ('b-grub-menu-ocr-proof', 'b-grub-selection'):
+                # two_disk_vm writes one file per run; this walk takes two rows.
+                if (td.EVIDENCE / (name + '.json')).exists():
+                    shutil.copyfile(td.EVIDENCE / (name + '.json'), td.EVIDENCE / (stage + name[1:] + '.json'))
+            self.menus.append(dict(stage=stage, system=menu['role'], row=menu['row'], titles=menu['backup']['menu_titles'], choice=choice))
+            assert choice['selected'], 'STOP: the boot menu could not be driven: ' + str(choice.get('reason'))
+            guest.login()
+        except BaseException:
+            finish(guest, self.audit, stage)
+            raise
+        return guest
+
+    @contextlib.contextmanager
+    def boot(self, stage, running, reached, layout='de', menu=None):
+        guest = self.start(stage, menu)
+        try:
+            yield guest, self.begin(guest, stage, running, reached, layout)
+        finally:
+            finish(guest, self.audit, stage)
+
+    def check(self, console, stage, confirmed=None, settled=None, also=(), never=()):
+        """The guides' check box: `check`, then `title`. A confirmation shows once, in the check."""
+        facts = self.probe.last
+        checked = self.run(console, 'check', stage + '-check')['result']
+        titled = self.run(console, 'title', stage + '-title')['result']
+        for lines in (checked, titled):
+            self.standing(lines, facts, settled)
+        said = [line for line in checked + titled if 'confirmed after the restart' in line]
+        assert said == ([confirmed + ' confirmed after the restart'] if confirmed else []) and (not confirmed or said[0] in checked), \
+            'STOP: expected ' + (confirmed + ' confirmed once, in the check' if confirmed else 'no confirmation') + ': ' + repr(said)
+        for line in also:
+            assert line in checked, 'STOP: the check does not say: ' + line
+        for word in ('WARNING', *never):
+            assert not any(word in line for line in checked + titled), 'STOP: the check or the title says: ' + word
+        return checked, titled
+
+    def move(self, console, name, stage, settled='pending'):
+        """A command that changes which system starts next: its own line, the title it prints
+        (rule 5: waiting for the restart, or applied with nothing waiting), ostree's swap line."""
+        role, change, said = WAYS[name]
+        earlier = self.probe.journal(console.guest, stage + '-journal-before')
+        lines = self.run(console, name, stage)['result']
+        facts, _ = self.probe.tool_move(console.guest, stage, role, earlier, 'at ' + name)
+        self.checked(stage)
+        assert said.format(self.reference[role]) in lines, 'STOP: ' + name + ' does not say: ' + said.format(self.reference[role])
+        self.standing(lines, facts, settled)
+        waiting = change + self.reference[role] + ' is not finished until the restart'
+        assert (waiting in lines) == (settled == 'pending'), 'STOP: ' + name + ': ' + waiting
+        assert not any('confirmed' in line for line in lines), 'STOP: a confirmation before any start'
+        return lines
+
+    def nothing(self, console, name, stage, runs):
+        """A command whose destination starts next already: it says so and changes nothing."""
+        label = self.name[WAYS[name][0]]
+        earlier = self.probe.journal(console.guest, stage + '-journal-before')
+        lines = self.run(console, name, stage)['result']
+        self.probe.unmoved(console.guest, stage, earlier, 'at ' + name + ': nothing changed')
+        self.checked(stage)
+        assert lines == [label[0].upper() + label[1:] + ' already starts next; nothing changed', runs], 'STOP: ' + name + ' says: ' + repr(lines)
+
+    def refused(self, console, name, stage, starts, names):
+        """A refusal: the line the guides quote, the command it names, nothing changed (no changing
+        call in the tools' trace, the same list)."""
+        earlier = self.probe.journal(console.guest, stage + '-journal-before')
+        result = self.run(console, name, stage, expect_stop=True)
+        error = str(result['error'])
+        assert error.startswith(starts) and COMMANDS[names] in error and error.endswith('nothing changed'), \
+            'STOP: ' + name + ' refused with: ' + error
+        assert not any(row.get('mutation') for row in result['trace']), 'STOP: the refused ' + name + ' changed something'
+        self.probe.unmoved(console.guest, stage, earlier, 'at ' + name + ' refused')
+        self.checked(stage)
+
+    def quiet(self, guest, stage, reached):
+        """No list write in this boot so far (E7: the check records the cut change with no second reorder)."""
+        self.probe.unmoved(guest, stage, [], reached)
+        self.checked(stage)
+
+    def restart(self, console, stage, take=None):
+        """The guides' restart: a fresh title (older ones are INVALID), then `reboot`. With `take`,
+        the next start shows the boot menu, and that system's row is found by the title's row map."""
+        titled = self.run(console, 'title', stage + '-reboot-title')['result']
+        menu = None
+        if take is not None:
+            guest = console.guest
+            line, = [text for text in titled if text.startswith('Boot menu at the next start: ')]
+            rows = {match[2]: int(match[1]) for match in re.finditer(r'\(ostree:([0-9]+)\) ([^;,]+)', line)}
+            row = rows[self.name[take]]
+            identity, = [identity for identity, role in self.probe.roles.items() if role == take]
+            snapshot = kb.deployment_snapshot(guest, stage + '-menu')
+            backup, error, _ = rp.recorded_stock_entry(guest, stage + '-menu', snapshot, identity[0])
+            assert backup is not None, 'STOP: the boot entries do not follow the recorded rule: ' + str(error)
+            assert backup['menu_index'] == row and backup['menu_titles'][row].endswith('(ostree:%d)' % row), \
+                "STOP: the title's row map and the boot entries name different rows"
+            rp.show_menu_once(guest, stage + '-menu')
+            menu = dict(role=take, row=row, backup=backup)
+        self.run(console, 'reboot', stage + '-owner-reboot')
+        return menu
+
+    def trial(self, console, begin, profile):
+        """Later layout (the procedures guide): begin, a fresh tty4 login in the new layout, proof, finish."""
+        guest = console.guest
+        self.run(console, begin, begin + '-begin')
+        guest.owner_layout = profile
+        second = Console(guest, 'tty4')
+        second.login(self.password, begin + '-login')
+        self.run(second, 'layout-proof', begin + '-proof', inputs=((LAYOUT_PROMPT, TEXT, False),), password=self.password)
+        second.logout(begin + '-logout')
+        console.select()
+        self.run(console, 'layout-finish', begin + '-finish')
+
+    def updaters(self, guest, stage):
+        """E4: Bazzite's own updater timers are still disabled for good (the list rule 10 reads)."""
+        names = bundle_module('owner').program(pathlib.Path('os/owner-tools/payload'), 'pause-stock-updates', 'PAUSE_STOCK')['SYSTEM']
+        value = guest.capture_json(stage + '-updaters', sw.framed('python3 -c ' + shlex.quote(UPDATERS.replace('@NAMES@', repr(tuple(names))))))
+        td.save(stage + '-stock-updaters', value)
+        timers = {name: state for name, state in value['files'].items() if name.endswith('.timer')}
+        assert 'uupd.timer' in timers and all(state in ('disabled', 'masked') for state in timers.values()), \
+            'STOP: a Bazzite updater timer is on: ' + repr(timers)
+        assert all(state in ('inactive', 'failed') for state in value['active'].values()), 'STOP: a Bazzite updater runs'
+        self.updater_states = value
+
+    def cut(self, console, stage):
+        """E7: `rollback`, cut by one hard reset after its reorder is on disk and before its record."""
+        guest, probe = console.guest, self.probe
+        program = base64.b64encode(CUT_WATCH.encode()).decode()
+        guest.command(stage + '-watch', 'set -e; rm -f /run/aresos-cut.json; printf %s ' + shlex.quote(program) +
+                      ' | base64 -d > /run/aresos-cut.py\npython3 /run/aresos-cut.py > /run/aresos-cut.log 2>&1 < /dev/null &')
+        guest.capture_json(stage + '-armed', sw.framed('python3 -c ' + shlex.quote(cut_wait("value['status']=='watching'", 30))))
+        earlier = probe.journal(guest, stage + '-journal-before')
+        owner_xhci.checkpoint(guest, stage + '-begin')
+        console.select()
+        console.prompt(stage + '-ready')
+        console.visible(console.commands['rollback'] + '\n', stage + '-command')
+        watcher = guest.capture_json(stage + '-frozen', sw.framed('python3 -c ' + shlex.quote(cut_wait("value['status']!='watching'", 300))))
+        td.save(stage + '-watcher', watcher)
+        assert watcher['status'] == 'frozen' and watcher['state'] in ('T', 't') and watcher['release_step_ended'], \
+            'STOP: the rollback was not stopped after its reorder: ' + str(watcher['status'])
+        facts, _ = probe.tool_move(guest, stage, 'S', earlier, 'at rollback, stopped after its reorder and before its record')
+        self.checked(stage)
+        intent = guest.capture_json(stage + '-intent', sw.framed('python3 -c ' + shlex.quote(CUT_INTENT)))
+        stock, = [list(identity) for identity, role in probe.roles.items() if role == 'S']
+        self.cut_proof = dict(stage=stage, watcher=watcher, journal=intent, order=facts['order'], running=facts['running'],
+                              reset='QMP system_reset', journal_holds='the intent' if intent['status'] == 'intent' else intent['status'])
+        td.save(stage + '-proof', self.cut_proof)
+        # With the record already written the reset would not test the cut (brief E7): repeat the run.
+        assert intent['status'] != 'recorded', 'STOP: the journal already holds the record: the cut was not tested; repeat it'
+        assert (intent['word'], intent['status'], intent['mode'], intent['target']) == ('rollback', 'intent', 'reorder', stock), \
+            'STOP: unexpected journal before the reset'
+        assert facts['order'][0] == 'S' and facts['running'] == 'R27', 'STOP: the reorder is not in place before the reset'
+        self.transcript.append(dict(stage=stage, boot=self.boot_stage, system='R27', console=console.tty, command=console.commands['rollback'],
+            status='cut by a hard reset after its reorder and before its record', lines=[], error=None))
+        guest.hard_reset(stage)
+
+
+def ways_back_rehearsal(audit, media, password, hashed, ares_password, version_2):
+    """version_2: the folder with the laptop's current tools bundle (laptop_payload at TOOLS_V2_COMMIT)."""
+    route = laptop_update(audit, media, password, hashed, bundle=(version_2, TOOLS_V2))
+    old, new = route['old'], route['new']
+    # The guide's Windows side for new tools: this checkout's bundle (version 3) onto the stick.
+    media.replace('tools-3')
+    assert media.fingerprint == bundle_module('bundle').check(pathlib.Path('os/owner-tools/payload')) != TOOLS_V2
+    guest = td.start_installed(password, hashed, 'release-27')
+    try:
+        console, identities = confirmed_update(guest, password, route)
+        walk = WaysBack(audit, password, hashed, route, identities)
+        walk.probe.capture(guest, 'release-27-start', "package 27's route: release 27 confirmed", running='R27', order=rp.START)
+        walk.checked('release-27-start')
+        # The one-time administrator password, as the guide says, then his sudo.
+        console.passwd(ares_password, 'release-27-ares-password')
+        Console(guest, 'tty4').ares_sudo(ares_password, 'release-27-ares-sudo')
+        console.select()
+        # E1: the tools update themselves from the stick (version 2 to 3), then the tools-only box.
+        media.attach(guest, 'tools-3')
+        installed = walk.run(console, 'install', 'tools-3-install', record='tools-update')
+        assert installed['manifest'] == media.fingerprint and installed['previous_manifest'] == TOOLS_V2
+        assert (installed['previous_version'], installed['tools_version']) == (2, 3)
+        walk.check(console, 'tools-3')
+        media.detach(guest, 'tools-3')
+        # E2: a layout trial to US International, then the restart.
+        walk.trial(console, 'layout-intl', 'us-intl')
+        walk.restart(console, 'release-27')
+    finally:
+        finish(guest, audit, 'release-27')
+    # Nothing from here on needs the network, and without it nothing else can stage a deployment.
+    Guest.network_up = False
+    with walk.boot('intl-27', 'R27', 'restart with no choice', layout='us-intl') as (guest, console):
+        walk.check(console, 'intl-27')
+        public_typing(guest, 'intl-27', 'us-intl', console, foot=True)
+        # Back to German the same way.
+        walk.trial(console, 'layout-de', 'de')
+        walk.restart(console, 'intl-27')
+    with walk.boot('trial-27', 'R27', 'restart with no choice') as (guest, console):
+        walk.check(console, 'trial-27')
+        public_typing(guest, 'trial-27', 'de', console, foot=True)
+        # One trial ended by a hard reset (package 14's abandoned trial, here over three deployments).
+        before = keyboard(guest, 'trial-27-before', 'de')
+        walk.run(console, 'layout-us', 'trial-27-begin-us')
+        guest.owner_layout = 'us'
+        pending = keyboard(guest, 'trial-27-pending', 'de', loaded_profile='us')
+        assert pending['console'] == before['console'] and pending['x11'] == before['x11'], 'Trial persisted boot/greeter settings'
+        guest.hard_reset('trial-27')
+    with walk.boot('abandon-27', 'R27', 'a hard reset during a layout trial') as (guest, console):
+        finished_consoles(guest, 'abandon-27')
+        walk.run(console, 'layout-abandon', 'abandon-27-abandon')
+        walk.check(console, 'abandon-27')
+        # E3: the AresOS from before the update.
+        walk.move(console, 'previous', 'owner-previous-1')
+        walk.restart(console, 'abandon-27')
+    with walk.boot('back-13', 'R13', 'restart with no choice') as (guest, console):
+        walk.check(console, 'back-13', confirmed='Return to ' + old)
+        # update has nothing to install and selects nothing: it names forward, nothing changed.
+        walk.refused(console, 'update', 'back-13-update-refused', 'The release of these tools is installed already', 'forward')
+        walk.move(console, 'forward', 'owner-forward-1')
+        walk.restart(console, 'back-13')
+    with walk.boot('forward-27', 'R27', 'restart with no choice') as (guest, console):
+        walk.check(console, 'forward-27', confirmed='Forward to ' + new)
+        # His password from the start still passes sudo -v (each system keeps its own /etc).
+        Console(guest, 'tty4').ares_sudo(ares_password, 'forward-27-ares-sudo')
+        console.select()
+        # E4: plain Bazzite and back.
+        walk.move(console, 'rollback', 'owner-rollback-1')
+        walk.restart(console, 'forward-27')
+    with walk.boot('stock-1', 'S', 'restart with no choice') as (guest, console):
+        walk.check(console, 'stock-1', confirmed='Rollback to ' + walk.reference['S'])
+        walk.refused(console, 'rollback', 'stock-1-rollback-refused', 'Plain Bazzite runs here: use ', 'keep-stock')
+        walk.nothing(console, 'keep-stock', 'stock-1-keep-stock', 'It runs now')
+        walk.updaters(guest, 'stock-1')
+        walk.move(console, 'forward', 'owner-forward-2')
+        walk.restart(console, 'stock-1')
+    with walk.boot('forward-27b', 'R27', 'restart with no choice') as (guest, console):
+        walk.check(console, 'forward-27b', confirmed='Forward to ' + new)
+        assert walk.probe.last['order'] == ['R27', 'S', 'R13'], 'STOP: the stock is not second after the return from it'
+        # E5: previous and forward from that order.
+        walk.move(console, 'previous', 'owner-previous-2')
+        walk.restart(console, 'forward-27b')
+    with walk.boot('back-13b', 'R13', 'restart with no choice') as (guest, console):
+        walk.check(console, 'back-13b', confirmed='Return to ' + old)
+        walk.move(console, 'forward', 'owner-forward-3')
+        walk.restart(console, 'back-13b')
+    with walk.boot('forward-27c', 'R27', 'restart with no choice') as (guest, console):
+        walk.check(console, 'forward-27c', confirmed='Forward to ' + new)
+        # The restart that lands elsewhere: previous, then the newer AresOS row in the boot menu.
+        walk.move(console, 'previous', 'owner-previous-3')
+        menu = walk.restart(console, 'forward-27c', take='R27')
+    with walk.boot('menu-27', 'R27', 'the newer AresOS row taken in the boot menu', menu=menu) as (guest, console):
+        # Both facts: the newer AresOS runs; the older one starts next, in place, not yet started.
+        walk.check(console, 'menu-27', also=('Return to ' + old + ' is in place and has not started yet',))
+        # forward works at once: applied, nothing waits, and no confirmation before a start.
+        walk.move(console, 'forward', 'owner-forward-4', settled='applied')
+        walk.restart(console, 'menu-27')
+    with walk.boot('forward-27d', 'R27', 'restart with no choice') as (guest, console):
+        walk.check(console, 'forward-27d', confirmed='Forward to ' + new)
+        # E6: the boot menu without a record.
+        menu = walk.restart(console, 'forward-27d', take='S')
+    with walk.boot('menu-stock', 'S', 'the plain Bazzite row taken in the boot menu', menu=menu) as (guest, console):
+        # Rule 8's neutral line, and no cause named.
+        walk.check(console, 'menu-stock', never=('confirmed', 'in place', 'not finished', 'was not applied', 'interrupted'))
+        walk.move(console, 'keep-stock', 'owner-keep-stock', settled='applied')
+        walk.restart(console, 'menu-stock')
+    with walk.boot('stock-2', 'S', 'restart with no choice') as (guest, console):
+        walk.check(console, 'stock-2', confirmed='Change to ' + walk.reference['S'])
+        walk.move(console, 'forward', 'owner-forward-5')
+        walk.restart(console, 'stock-2')
+    with walk.boot('forward-27e', 'R27', 'restart with no choice') as (guest, console):
+        walk.check(console, 'forward-27e', confirmed='Forward to ' + new)
+        walk.cut(console, 'cut-rollback')
+    with walk.boot('cut-stock', 'S', 'a hard reset inside rollback, after its reorder and before its record') as (guest, console):
+        # The check records the change from the list it finds and confirms it, with no second reorder.
+        walk.check(console, 'cut-stock', confirmed='Rollback to ' + walk.reference['S'],
+                   also=('The interrupted rollback to ' + walk.reference['S'] + ' had made its change; it is recorded now',))
+        walk.quiet(guest, 'cut-stock-recorded', 'at check: the cut change recorded and confirmed')
+        walk.move(console, 'forward', 'owner-forward-6')
+        walk.restart(console, 'cut-stock')
+    with walk.boot('final-27', 'R27', 'restart with no choice') as (guest, console):
+        walk.check(console, 'final-27', confirmed='Forward to ' + new)
+        public_typing(guest, 'final-27', 'de', console, foot=True)
+        console.logout('final-27-logout')
+    td.marker(audit, 'final-unattended-windows')
+    td.marker(audit, 'final-detached-windows', detached=True)
+    probe = walk.probe
+    typed = [row['command'] for row in walk.transcript]
+    result = probe.result(commit=os.environ['GITHUB_SHA'], order='protected-second',
+        starting_state="package 27's route: corrected pinned stock, release 13 by the laptop tools (15f), release 27 by tools version 2",
+        laptop_tools=LAPTOP_TOOLS, tools_version_2=TOOLS_V2, tools_version_2_commit=TOOLS_V2_COMMIT, tools_version_3=media.fingerprint,
+        previous_release=old, release=new, names=walk.name, references=walk.reference, network_after_release_27=False,
+        deployments={role: list(identity) for identity, role in probe.roles.items()},
+        transcript=walk.transcript, typed={name: typed.count(COMMANDS[name]) for name in COMMANDS if name != 'install'},
+        menus=walk.menus, stock_starts=walk.stock_starts, stock_updaters=walk.updater_states, cut=walk.cut_proof,
+        ares_password_set_by_typing=True, ares_sudo_after_the_returns=True, ends_on='R27',
+        owner_commands_physically_typed=True, protected_disk_audits=True, nvram_rule_unchanged=True, bootnext_audits=True)
+    td.save('ways-back-rehearsal-result', result)
+    assert result['status'] == 'passed' and probe.last['running'] == 'R27' and probe.last['order'][0] == 'R27'
+
+
+def bound_sources(walk_sources, package='27', before='16'):
+    """The binding tables of the rehearsal before this one (package 27's rebound package 16's, package
+    22c's rebinds package 27's) with this checkout's bytes, plus this walk's own sources.
+
+    A bound file that no longer exists has no bytes and is left out: package 22c took two scripts out
+    of the owner payload, and the waiting list names them under `removed` until the record step.
+    """
     def current(rows):
-        return [dict(sha256=hashlib.sha256(pathlib.Path(row['path']).read_bytes()).hexdigest(), path=row['path']) for row in rows]
-    previous = json.loads(pathlib.Path('os/manifest/ci/16/source-bindings.json').read_text())
-    tables = [dict(name='package27 host walk', sources=current(walk_sources))]
+        return [dict(sha256=hashlib.sha256(pathlib.Path(row['path']).read_bytes()).hexdigest(), path=row['path'])
+                for row in rows if pathlib.Path(row['path']).is_file()]
+    previous = json.loads(pathlib.Path('os/manifest/ci/' + before + '/source-bindings.json').read_text())
+    tables = [dict(name='package' + package + ' host walk', sources=current(walk_sources))]
     for table in previous['tables'][1:]:
-        tables.append(dict(name=table['name'].replace('package16 rebind', 'package27 rebind'), sources=current(table['sources'])))
-    return dict(package='27', encoding='checkout bytes on the hosted runner (core.autocrlf=false; repository attributes)',
+        tables.append(dict(name=table['name'].replace('package' + before + ' rebind', 'package' + package + ' rebind'),
+                           sources=current(table['sources'])))
+    return dict(package=package, encoding='checkout bytes on the hosted runner (core.autocrlf=false; repository attributes)',
                 commit=os.environ['GITHUB_SHA'], tables=tables)
 
 
 def main():
     global PROBE_MEDIA
     mode, = sys.argv[1:]
-    assert mode in ('probe', 'owner-tools', 'update', 'reorder-probe')
+    assert mode in ('probe', 'owner-tools', 'update', 'reorder-probe', 'ways-back')
     from owner_media import require_runner
     require_runner()
     package=os.environ['REHEARSAL_PACKAGE']
     assert package!='16' or mode=='probe', 'STOP: package16 permits only the owner-tools probe'
     assert (package=='27') == (mode=='update'), 'STOP: the update rehearsal is package 27 only'
-    assert (package=='22c') == (mode in ('reorder-probe',)), 'STOP: the reorder probe is package 22c only'
+    assert (package=='22c') == (mode in ('reorder-probe', 'ways-back')), 'STOP: the reorder probe and the ways-back rehearsal are package 22c only'
     authorization = json.loads(pathlib.Path('evidence/'+package+'-dispatch-authorization.json').read_text())
     assert authorization['allowance'] == package and authorization['native']['status'] == 'passed'
     assert authorization['native']['sha'] == os.environ['GITHUB_SHA']
@@ -1807,6 +2280,9 @@ def main():
     if package == '27':
         # The checkout bytes this walk ran on, for source-bindings.json after a pass.
         td.save('27-bound-sources', bound_sources(walk['sources']))
+    if mode == 'ways-back':
+        # Package 22c's rehearsal rebinds package 27's tables (rebind.py rebind, after a pass).
+        td.save('22c-bound-sources', bound_sources(walk['sources'], '22c', '27'))
     sw.WORK, sw.EVIDENCE = td.WORK, td.EVIDENCE
     td.Guest = sw.Guest = Guest
     Guest.order = 'protected-second'
@@ -1815,7 +2291,7 @@ def main():
         with (td.WORK / name).open('wb') as output:
             subprocess.run(['bsdtar', '-xOf', str(td.WORK / td.LIVE['filename']), 'images/pxeboot/' + name], stdout=output, check=True)
     media = Media()
-    if mode in ('update', 'reorder-probe'):
+    if mode in ('update', 'reorder-probe', 'ways-back'):
         media.create(source=laptop_payload(td.WORK / 'laptop-tools'))
     else:
         media.create()
@@ -1854,6 +2330,14 @@ def main():
         elif mode == 'reorder-probe':
             reorder_probe(audit, media, password, hashed,
                           laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2))
+        elif mode == 'ways-back':
+            ares_password = ''.join(secrets.choice(ARES_LETTERS) for _ in range(24))
+            print(f'::add-mask::{ares_password}', flush=True)
+            try:
+                ways_back_rehearsal(audit, media, password, hashed, ares_password,
+                                    laptop_payload(td.WORK / 'tools-version-2', TOOLS_V2_COMMIT, TOOLS_V2))
+            finally:
+                del ares_password
         else:
             qualification(audit, media, password, hashed)
     finally:

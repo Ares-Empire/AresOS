@@ -268,6 +268,46 @@ class Probe:
         td.save(stage + '-swap', swap)
         return after
 
+    def journal(self, guest, name):
+        """ostree's own journal lines of this boot about a list write, read in the serial root shell."""
+        return guest.capture_json(name, sw.framed('python3 -c ' + shlex.quote(JOURNAL)))
+
+    def tool_move(self, guest, stage, role, earlier, reached):
+        """After an owner command that reorders (stage 2): what `move` proves for plain set-default,
+        with the swap line read from ostree's journal alone (the tools keep the command's output)."""
+        before = self.last
+        later = self.journal(guest, stage + '-journal-after')
+        after, snapshot = self.capture(guest, stage, reached)
+        self.expect(stage, 'the command puts its target first and keeps the others in their old relative order',
+                    after['order'] == moved(before['order'], role), dict(before=before['order'], after=after['order'], target=role))
+        self.expect(stage, 'a reorder leaves the running row running', after['running'] == before['running'],
+                    dict(before=before['running'], after=after['running']))
+        self.expect(stage, 'a reorder is not a new boot', after['boot_id'] == before['boot_id'], None)
+        logged = [line for row in later[len(earlier):] for line in swap_lines(row['MESSAGE'])]
+        self.expect(stage, 'ostree logs one bootconfig swap line for the one reorder', len(logged) == 1 and later[:len(earlier)] == earlier,
+                    dict(logged=logged, lines_before=len(earlier), lines_after=len(later)))
+        swap = dict(stage=stage, target=role, by=reached, before=before['order'], after=after['order'],
+                    bootconfig_swap=logged[0] if len(logged) == 1 else None, journal=[row['MESSAGE'] for row in later[len(earlier):]],
+                    loader_link=dict(before=before['loader_link'], after=after['loader_link']),
+                    ostree_boot_links=dict(before=before['ostree_boot_links'], after=after['ostree_boot_links']),
+                    entry_files_changed={e['file']: (e['title'], e['options']) for e in after['entries']}
+                    != {e['file']: (e['title'], e['options']) for e in before['entries']})
+        after['swap'] = swap
+        self.swaps.append(swap)
+        td.save(stage + '-swap', swap)
+        return after, snapshot
+
+    def unmoved(self, guest, stage, earlier, reached):
+        """After an owner command that must change nothing: the same list, the same boot, no list write."""
+        before = self.last
+        later = self.journal(guest, stage + '-journal-after')
+        after, snapshot = self.capture(guest, stage, reached)
+        self.expect(stage, 'the command leaves the order as it was', after['order'] == before['order'],
+                    dict(before=before['order'], after=after['order']))
+        self.expect(stage, 'the command makes no list write', later == earlier and after['boot_id'] == before['boot_id']
+                    and after['ostree_boot_links'] == before['ostree_boot_links'], dict(lines_before=len(earlier), lines_after=len(later)))
+        return after, snapshot
+
     def result(self, **more):
         table = [dict(stage=row['stage'], reached=row['reached'], order=row['order'], running=row['running'],
                       bootc_booted=row['bootc']['booted'], bootc_rollback=row['bootc']['rollback'],
@@ -290,7 +330,9 @@ def start_at_menu(password, hashed, stage):
 
 
 def recorded_stock_entry(guest, stage, snapshot, stock_checksum):
-    """The stock row's place in the menu, found through its boot entry (package 11's rule, any number of rows)."""
+    """The stock row's place in the menu, found through its boot entry (package 11's rule, any number of rows).
+
+    Stage 2 finds the newer AresOS the same way, by its checksum: the rule only needs a row that is not first."""
     entries = guest.capture_json(stage + '-bls-entries', sw.framed(td.bls_inventory_command()))
     try:
         backup = stock_bls_entry(entries, stock_checksum, snapshot['rpm']['deployments'])

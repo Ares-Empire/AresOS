@@ -125,7 +125,8 @@
     "part_b_cap": 0,
     "dispatch_caps": {
       "checks": 30,
-      "reorder-probe": 4
+      "reorder-probe": 4,
+      "ways-back": 3
     },
     "vm_dispatch_cap": 4,
     "organization_budget": {
@@ -136,12 +137,14 @@
     "publish_cap": 0,
     "job_bounds": {
       "checks": 35,
-      "reorder-probe": 345
+      "reorder-probe": 345,
+      "ways-back": 345
     },
     "titles": {
       "checks": "OS regressions only (no VM)",
-      "reorder-probe": "Two-disk rehearsal (reorder-probe)"
+      "reorder-probe": "Two-disk rehearsal (reorder-probe)",
+      "ways-back": "Two-disk rehearsal (ways-back)"
     },
-    "budget": "briefs/22c-ways-back-after-update.md: at most four VM dispatches in all (vm_dispatch_cap: the probe and the stage 2 rehearsal together) and 1200 minutes. Checks-only runs are counted in the minutes; their own cap only keeps the ledger finite (it stops a runaway dispatch loop). Raised from 12 to 30 in stage 1b, step 2 (2026-11-14): the branch had used 18 checks runs and 446 of the 1200 minutes; each checks run costs about 35 runner minutes while the full model runs beside it, so after one rehearsal reservation (345) about 11 more fit, and 30 lets the minutes stay the real bound. Standard runners cost nothing for this public repository."
+    "budget": "briefs/22c-ways-back-after-update.md: at most four VM dispatches in all (vm_dispatch_cap: the probe and the stage 2 rehearsal together) and 1200 minutes. Checks-only runs are counted in the minutes; their own cap only keeps the ledger finite (it stops a runaway dispatch loop). Raised from 12 to 30 in stage 1b, step 2 (2026-11-14): the branch had used 18 checks runs and 446 of the 1200 minutes; each checks run costs about 35 runner minutes while the full model runs beside it, so after one rehearsal reservation (345) about 11 more fit, and 30 lets the minutes stay the real bound. Standard runners cost nothing for this public repository. Stage 2 (2026-11-14): the rehearsal of every way back is the mode ways-back; the probe used one of the four VM dispatches, so three remain for it."
   }
 }

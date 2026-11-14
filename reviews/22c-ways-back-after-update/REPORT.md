@@ -2960,3 +2960,167 @@ count it is the branch's 25th checks run (cap 30), about 37 runner minutes; I di
 Cleanup: the run logs and helper scripts under `/var/home/ares/pkg22c-work/` are removed with the folder; `.work/` is
 empty (no file over 500 MB); no download was made; no builder-started test or watch process remains; no Gradle daemon
 was started. PR #46 stays draft; nothing was merged or pushed to main.
+
+## Stage 2, step 1
+
+Builder: a Claude agent on Fable 5.2 (`briefs/22c-stage-2-additions.md`, step 1 of 2). Built: the rehearsal mode
+`ways-back` for section E's walk, its local walk, E's route in the 22c host walk and the record step. Then one
+checks-only run with the full model and the first VM dispatch of the rehearsal (runs below). Nothing was merged or
+pushed to main, and no owner tool, start block, deployment binary, keyboard command or VM ran on the laptop.
+
+### The mode as built
+
+- **Mode `ways-back`, package key `22c`, this branch only** (run title `Two-disk rehearsal (ways-back)`). The workflow's
+  option and the job condition's mode-and-branch clause; the ledger (`dispatch_caps` 3, `job_bounds` 345, title; the four
+  VM dispatches stay one allowance); the mode tuples in `owner_media.require_runner`, `registry_auth.require_dispatch`,
+  `owner_capabilities.main`, `owner_devices` and `owner_vm.main`. `test_ways_back_probe` reads the modes from the ledger
+  and holds every list, gate, bound and step to both.
+- **`owner_vm.ways_back_rehearsal`** with the class `WaysBack` (`os/ci/owner_vm.py`). Package 27's route unchanged
+  (`laptop_update`, `confirmed_update`: the 15f tools, then version 2 from `41b06513`), then this checkout's bundle
+  (version 3) copied onto the stick with the guide's Windows lines (`Media.replace`, a second time in one run) and
+  installed by the guide's 13-line stick block. From there every owner command is typed on tty3 as the owner types it.
+  - **Lists by identity.** Every start and every command that reorders is captured with stage 0's `reorder_probe.Probe`
+    (raw `rpm-ostree status --json`, `bootc status --json`, the boot entries, the pins, the links, which row runs) and
+    held to its rules: nothing created, removed or staged, every row's identity and flags as at the first capture, only
+    the stock pinned, its boot options unchanged. Unlike the probe, the first contradiction stops the walk: the next
+    typed command would act on an unknown list. `Probe.tool_move` and `Probe.unmoved` (new) do for an owner command
+    what `move` does for plain `set-default`; the swap line comes from ostree's journal.
+  - **What the tools must say.** `WaysBack.standing` requires rule 8's first line and the line **Boot menu at the next
+    start:** exactly, with the row numbers taken from the boot entries the harness read itself: E1's "the title's row
+    map equals the boot entries" holds at every check, title and reorder. A return's confirmation must show once, in
+    the check, never in the title after it, and no **WARNING** line anywhere.
+  - **The boot menu.** A row is found in the title's row map by the system's name, then required to be the row the boot
+    entries give for that deployment (package 11's rule, unchanged). The menu is shown once, read from the screen and
+    taken only when its rows read as recorded; no fallback: a menu that cannot be driven stops the run.
+  - **The cut (E7).** A watcher runs in the harness's second root shell (the serial one). When ostree swaps the link
+    `/sysroot/ostree/boot.<n>`, it stops the tools' own process (`SIGSTOP`; found by its command line, started as
+    `os/owner-tools/at` starts it) and waits until the release step's processes have ended (set-default, the step's
+    `sync`, its last read). The tools can then never write their record. The harness proves the new order by identity,
+    reads the journal (word `rollback`, status `intent`, the stock as target), and only then sends QMP `system_reset`.
+    A journal that already holds the record stops the run with **the cut was not tested; repeat it**. Nothing of this
+    is in the bundle (a test holds the payload free of it).
+  - **The result file** `ways-back-rehearsal-result.json`: the stage table (as the probe's), the swaps with ostree's
+    line, the transcript of every typed command (stage, start, system, console, command, status, the lines it printed
+    or the refusal), both menu choices, the cut's proof, the stock's updater states, the names and references.
+- **Evidence bound.** The rehearsal job's bound is 450 MB for this mode (180 MB otherwise). Run 43470161858 (13 boots)
+  held 121 MB: 34 MB installer inspection, and about 3 MB per `check` (its private record repeats the tools' reads in
+  three files). This walk types 17 checks and 31 titles over 21 boots; my estimate is 230 to 250 MB.
+
+### The walk, step by step (`ways_back_rehearsal`; starts after package 27's route)
+
+| Start | Runs | Order at the start | Typed there |
+|---|---|---|---|
+| `release-27` | R27 | R27 R13 S | check, title (**Update to … confirmed**, tools version 2); `sudo passwd ares`; on tty4 `ares` with `sudo -v`. **E1:** the stick, the 13-line block (version 2 to 3), check, title, unplug. **E2:** `layout begin us-intl`, fresh tty4 login, `layout proof`, `layout finish`; title, reboot |
+| `intl-27` | R27 | R27 R13 S | US International login; check, title; typing proof on the console and in foot; `layout begin de`, proof, finish; title, reboot |
+| `trial-27` | R27 | R27 R13 S | check, title; typing proof; `layout begin us`; hard reset |
+| `abandon-27` | R27 | R27 R13 S | `layout abandon`; check, title. **E3:** `previous`; title, reboot |
+| `back-13` | R13 | R13 R27 S | check (**Return to … confirmed**), title; `update` refuses (**The release of these tools is installed already**, names forward, nothing changed); `forward`; title, reboot |
+| `forward-27` | R27 | R27 R13 S | check (**Forward to … confirmed**), title; tty4 `ares` with `sudo -v` again. **E4:** `rollback`; title, reboot |
+| `stock-1` | S | S R27 R13 | greeter, German login; check (**Rollback to … confirmed**, no warning), title; `rollback` refused (**Plain Bazzite runs here**, names keep-stock); `keep-stock` (**already starts next; nothing changed**, **It runs now**); the updater timers read; `forward`; title, reboot |
+| `forward-27b` | R27 | R27 S R13 | check (**Forward** confirmed; the stock second), title. **E5:** `previous`; title, reboot |
+| `back-13b` | R13 | R13 R27 S | check (**Return** confirmed), title; `forward`; title, reboot |
+| `forward-27c` | R27 | R27 R13 S | check (**Forward** confirmed), title; `previous`; title (row map), reboot; the R27 row in the menu |
+| `menu-27` | R27 | R13 R27 S | check: **newer AresOS … runs; older AresOS … starts next; this start was not the default** and **Return to … is in place and has not started yet**; title; `forward` (**runs and now starts next; no restart is waiting**, no confirmation); title, reboot |
+| `forward-27d` | R27 | R27 R13 S | check (**Forward** confirmed), title. **E6:** title (row map), reboot; the stock row in the menu |
+| `menu-stock` | S | R27 R13 S | check: the neutral line, no cause; title; `keep-stock` (**Saved stock is default**, **no restart is waiting**, no confirmation); title, reboot |
+| `stock-2` | S | S R27 R13 | check (**Change to … confirmed**), title; `forward`; title, reboot |
+| `forward-27e` | R27 | R27 S R13 | check (**Forward** confirmed), title. **E7:** `rollback`, stopped after its reorder; journal still the intent; hard reset |
+| `cut-stock` | S | S R27 R13 | check: **The interrupted rollback to … had made its change; it is recorded now** and **Rollback to … confirmed**; no list write in this start; title; `forward`; title, reboot |
+| `final-27` | R27 | R27 S R13 | check (**Forward** confirmed), title; typing proof; logout |
+
+`forward` is typed six times (from the older AresOS twice, from plain Bazzite three times, on the newer AresOS taken in
+the menu), `previous` three times, `rollback` three times (once refused, once cut), `keep-stock` twice, `update` once
+with version 3 (refused). The network link is down from `intl-27` on. `check` is the first command after every start
+(after the abandon in `abandon-27`), so it comes before `previous` also after a boot-menu choice, and every restart
+follows a fresh title. E3's "`update` there with the network off" is the refusal plus `forward`, as the additions brief
+says; release 27 is the tools' own release, so version 3's `update` never installs in this walk (PLAN-GAP 1).
+
+### The local walk and the host walk
+
+- **`test_owner_walk.walk(route='ways-back')`** drives the real `ways_back_rehearsal` over the modelled disk
+  (`LaptopDisk`). New: from the version 3 install on, every way-back command the walk types (check, title, forward,
+  previous, rollback, keep-stock, update) is answered by **the owner tools themselves**: `Oracle` runs this
+  checkout's `owner.Tools` over `test_ways_back`'s modelled machine, holding the disk's three deployments, and the disk
+  follows that machine. So the lines the harness requires in the VM are the lines the tools print for each state, and
+  a typed `reboot` runs the tools' own reboot checks (a stale title fails the walk). `check` is `title` with check's own
+  lines around it (its keyboard reads are not modelled); the layout commands stay synthetic. The cut uses
+  `test_ways_back`'s cut point `after` (the reorder made, the record not written). On its first run this caught a wrong
+  expectation of mine (update's refusal has a longer sentence than I had written) before any dispatch.
+- **Tests** (`test_ways_back_probe`): `RehearsalWalkTest` (the route and the three stick blocks in order; forward where
+  the walk returns and update only refused; the guides' order; both menu rows, the cut, twelve reorders, the lists);
+  `RehearsalHarnessTest` (the first line and row map are required exactly; the reset follows only a proved cut: five
+  refusals; the guest programs compile; the run's bound sources have package 22c's shape); `CutWatchTest` (real
+  processes: a stand-in started as the tools are is stopped after the link swap, its step ends, and it never writes its
+  record; a swap without the tools is reported); the decisions test for the rehearsal beside the probe's.
+  `test_owner_equality` types `forward` through this route, and `forward` left `unwalked_commands`.
+- **Host walk:** `walk-host.py` runs both routes and binds 260 sources (five more: `start-next.sh` twice,
+  `test_ways_back.py`, `test_owner_update.py`, `ways_back_keyboard.py`). `owner_vm.main` selects the receipt for both
+  modes. Regenerated after the last bound change, then `rebind.py pending` (37 files wait, 2 removed).
+
+### The record step
+
+`reviews/27-first-update-release/rebind.py rebind <package> <NN-bound-sources.json> <run id>`, in package 27's script
+beside `pending` and `record` (which stays as it was): the waiting list has one tool, and the next package gets a form
+that takes its key. For 22c, after a passing rehearsal: `rebind.py rebind 22c <artifact>/two-disk/22c-bound-sources.json
+<run id>`.
+
+1. The run records `22c-bound-sources.json` (`owner_vm.bound_sources`, now with the package key): the host walk's
+   sources and package 27's other tables with the runner's checkout bytes; a bound file that no longer exists is left out.
+2. `rebind` writes `os/manifest/ci/22c/source-bindings.json` exactly as recorded, after checking that the walk table
+   equals the host walk and every row replays the checkout. A bound path may leave the tables only when the list
+   names it under `removed` and it is gone.
+3. `checkout_sources.active_tables` returns the newest of 22c, 27, 16 that exists: no code change at record time.
+4. The list: `changes`, the paths of `files` and `removed` move into a new `rebound` entry (what waited, for which
+   bindings, the new bindings, the run link); the three fields are emptied; older history stays.
+5. `pending` works on (it reads the active tables). `test_checkout_sources` runs the step on a repository of its own
+   (four refusals, the result, a later change waiting again, a second record refused) and passes before the record;
+   its receipt test is written for 22c's bindings too.
+
+### Verified (local, before the runs)
+
+`TMPDIR=/var/home/ares/pkg22c-work`, `nice -n 10`, one module at a time, from the repository root, Python 3.14:
+`test_ways_back_probe` (55 tests), `test_owner_walk` (27), `test_owner_equality` (10), `test_checkout_sources` (6),
+`test_owner_step_limits`, `test_rehearsal_budget`, `test_owner_guard`, `test_ci_api_permissions`,
+`test_ci_step_environment`, `test_owner_staged_release`, `test_owner_media`, `test_owner_capabilities`,
+`test_owner_devices`, `test_probe_native`, `test_rehearsal_history`, `test_rehearsal_retry`, `test_job_accounting`,
+`test_organization_budget`, `test_build_tools`, `test_keyboard_release`, `test_rehearsal_auth`, `test_installer_webui`,
+`test_owner_devices_native`, `test_loop_nodes`, `test_serial_staging`, `test_release_squash_binding`,
+`test_owner_login`, `test_release27`'s wiring classes (11) and `test_ways_back_model.ScopeTest` (4): all OK.
+`test_owner_setup_resume` (6 errors) and `test_owner_diagnostics` (1 error) fail here only: a mocked `glob` gets Python
+3.14's `case_sensitive` argument, and a private-directory check reads this machine's temp folder; neither was changed.
+`test_owner_update` and the model did not run locally.
+
+### JUDGMENT-CALL
+
+1. **The mode's name is `ways-back`** and its result file `ways-back-rehearsal-result.json` (`collect.py` already
+   expected that name). Changing it means the option, the ledger keys and the tuples.
+2. **The first contradiction stops the rehearsal**, where the probe recorded and went on. A typed owner command on a
+   list that is not the expected one proves nothing and could reorder further. Cost: a run shows one problem at a time.
+3. **The cut is not repeated inside the run.** A journal that already holds the record stops the run; a repeat is the
+   next dispatch. With the tools stopped at the swap, the record cannot be written, so the case should not occur; a
+   repeat in the run would need the way back to R27 first and doubles the step's code.
+4. **The watcher stops only the tools' main process**, with `SIGSTOP`, never its release step, so set-default, the
+   step's `sync` and its last read finish as on the laptop: the reorder is on disk by the tools' own rule, not by a
+   harness `sync`.
+5. **The evidence bound is 450 MB for this mode** (see above). The alternative, saving less per command, would change
+   package 14's reviewed console code for every mode.
+6. **Network down from the second start of the walk** (as the probe did), not only at E3: no later step needs it.
+7. **`sudo -v` is proved twice** (right after `sudo passwd ares`, and after the first return), so "still passes" has
+   its own before.
+8. **`records` is not typed** (the guide's update check box has it): the walk's boxes after the tools update are the
+   tools-only box and the forward box, which ask for check and title.
+9. **The oracle models neither the layout commands nor check's keyboard reads.** They are package 14's reviewed flows
+   with unchanged typing; modelling them needs `KeyboardMachine`'s sessions inside the walk.
+
+### PLAN-GAP
+
+1. **E walks no `update` that installs with version 3.** Release 27 is the release of these tools and is installed
+   before version 3 arrives, so `update` can only refuse (once, on the older AresOS). Staging over three deployments
+   stays proved by the model and the tools' tests, and in a VM only with version 2 over a pair (package 27's route).
+   A staging rehearsal needs a newer signed release (package 23 or 21b).
+2. **E4's "`keep-stock` changes nothing"** and E6's `keep-stock` are different cases; both are walked.
+3. **`collect.py` is not yet adapted to the rehearsal's result** (its menu frames are per choice, a tools reorder has no
+   `-set-default.json`, the transcript must be checked like the captures). Step 2 does it with the first artifact.
+4. **The workflow's evidence bound** was not named in the brief (JUDGMENT-CALL 5).
+5. The older reviewed-decision note for the probe (`package == '27'`: "package 22c does so in stage 2") is now true
+   in code: the rehearsal records `22c-bound-sources`.
