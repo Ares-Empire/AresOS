@@ -132,10 +132,11 @@ class ReleaseChecksTest(unittest.TestCase):
         record.parent.mkdir(parents=True)
         record.write_text(json.dumps(dict(files=files)))
         self.folders = [str(self.root / 'home/Downloads'), str(self.root / 'home/Documents')]
-        config = self.root / self.module.CONFIG
+        config = self.root / self.module.SERVICE_CONFIG
         config.parent.mkdir(parents=True)
-        config.write_text(json.dumps(dict(owner_uid=os.getuid(), folders=[f.removeprefix(str(self.root))
-                                                                          for f in self.folders])))
+        config.write_text(json.dumps(dict(owner_uid=os.getuid())))
+        (self.root / self.module.PROXY_CONFIG).write_text(json.dumps(dict(
+            folders=[f.removeprefix(str(self.root)) for f in self.folders])))
         mock.patch.object(self.module, 'ROOT', self.root).start()
         self.addCleanup(mock.patch.stopall)
 
@@ -153,6 +154,9 @@ class ReleaseChecksTest(unittest.TestCase):
         self.assertTrue(self.module.claude_code_files()[1]['managed_mcp'])
 
     def test_the_folders_must_exist_as_the_owners(self):
+        # Where the shipped configuration keeps them (run 43556905450 read the wrong file).
+        self.assertIn('owner_uid', json.loads((ROOT / 'control/settings/service.json').read_text()))
+        self.assertIn('folders', json.loads((ROOT / 'control/settings/proxy.json').read_text()))
         ok, value = self.module.folders()
         self.assertFalse(ok)
         for folder in self.folders:

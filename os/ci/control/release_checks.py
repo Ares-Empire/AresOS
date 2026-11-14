@@ -29,7 +29,8 @@ SERVICE_ID = 250
 UNIT = 'aresos-toold.service'
 ROOT = pathlib.Path('/')
 RECORD = 'usr/share/aresos/manifest/control.json'
-CONFIG = 'usr/share/aresos/control/service.json'
+SERVICE_CONFIG = 'usr/share/aresos/control/service.json'
+PROXY_CONFIG = 'usr/share/aresos/control/proxy.json'
 MANAGED = 'etc/claude-code'
 # ostree keeps the image's own /etc in /usr/etc; /etc is the deployment's merge.
 IMAGE_ETC = 'usr/etc'
@@ -102,10 +103,11 @@ def claude_code_files():
 
 def folders():
     """The two folders the tools may use exist as folders of the owner (tmpfiles makes them only when missing)."""
-    config = json.loads((ROOT / CONFIG).read_text())
-    value = dict(owner_uid=config['owner_uid'], folders={})
-    ok = len(config['folders']) == 2
-    for name in config['folders']:
+    owner = json.loads((ROOT / SERVICE_CONFIG).read_text())['owner_uid']
+    configured = json.loads((ROOT / PROXY_CONFIG).read_text())['folders']
+    value = dict(owner_uid=owner, folders={})
+    ok = len(configured) == 2
+    for name in configured:
         path = ROOT / name.lstrip('/')
         info = path.lstat() if path.exists() or path.is_symlink() else None
         row = dict(exists=info is not None)
@@ -113,7 +115,7 @@ def folders():
             row.update(directory=stat.S_ISDIR(info.st_mode), link=stat.S_ISLNK(info.st_mode), uid=info.st_uid,
                        mode=f'{stat.S_IMODE(info.st_mode):04o}')
         value['folders'][name] = row
-        ok = ok and bool(info) and row['directory'] and row['uid'] == config['owner_uid']
+        ok = ok and bool(info) and row['directory'] and row['uid'] == owner
     return ok, value
 
 

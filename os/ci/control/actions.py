@@ -60,7 +60,10 @@ print(data.decode().strip() or "{}")
 
 def environment(user):
     home = HOME if user == 'ares' else pathlib.Path('/')
-    return [f'HOME={home}', 'LANG=C.UTF-8', f'PATH={home}/.local/bin:/usr/local/bin:/usr/bin:/usr/sbin',
+    # Not ~/.local/bin: in this guest it holds the CI layer's broken stand-ins for bash, python3, env and more
+    # (package 21, os/ci/overlay/shadow-path.sh), which exit 97. Claude Code is called by its full path, as the
+    # README's install step does.
+    return [f'HOME={home}', 'LANG=C.UTF-8', 'PATH=/usr/local/bin:/usr/bin:/usr/sbin',
             # CI only: the disposable guest neither updates nor reports the pinned Claude Code.
             'DISABLE_AUTOUPDATER=1', 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1']
 
@@ -441,16 +444,17 @@ def user_mcp(request):
     ok(run([*as_ares, 'install', '-D', '-m', '0755', str(HERE / f'claude-{CLAUDE_VERSION}'), str(target)]))
     ok(run([*as_ares, 'mkdir', '-p', str(link.parent)]))
     ok(run([*as_ares, 'ln', '-sfn', str(target), str(link)]))
-    version = ok(run([*as_ares, 'claude', '--version'], cwd=HOME))
+    claude = str(link)
+    version = ok(run([*as_ares, claude, '--version'], cwd=HOME))
     assert version['stdout'].startswith(CLAUDE_VERSION), version
     own = dict(type='stdio', command='/usr/bin/python3', args=['-I', str(HERE / 'own-mcp.py')])
-    ok(run([*as_ares, 'claude', 'mcp', 'add-json', '--scope', 'user', 'notes', json.dumps(own)], cwd=HOME))
+    ok(run([*as_ares, claude, 'mcp', 'add-json', '--scope', 'user', 'notes', json.dumps(own)], cwd=HOME))
     before = user_servers()
     assert set(before) == {'notes'} and same_server(before['notes'], own), before
     shipped = json.loads(USER_MCP.read_text())
     runs = []
     for attempt in (1, 2):
-        result = ok(run([*as_ares, 'bash', '-c', request['install']], cwd=HOME))
+        result = ok(run([*as_ares, '/usr/bin/bash', '-c', request['install']], cwd=HOME))
         servers = user_servers()
         runs.append(dict(attempt=attempt, returncode=result['returncode'], stdout=result['stdout'][-2000:],
                          stderr=result['stderr'][-2000:], servers=servers))
@@ -462,8 +466,8 @@ def user_mcp(request):
     testapp = json.loads(json.dumps(shipped['control']))
     assert testapp['args'][-2:] == ['proxy', 'control'], testapp
     testapp['args'][-1] = 'testapp'
-    ok(run([*as_ares, 'claude', 'mcp', 'add-json', '--scope', 'user', 'testapp', json.dumps(testapp)], cwd=HOME))
-    listed = ok(run([*as_ares, 'claude', 'mcp', 'list'], cwd=HOME, timeout=240))
+    ok(run([*as_ares, claude, 'mcp', 'add-json', '--scope', 'user', 'testapp', json.dumps(testapp)], cwd=HOME))
+    listed = ok(run([*as_ares, claude, 'mcp', 'list'], cwd=HOME, timeout=240))
     connected = {}
     for name in ('notes', *shipped, 'testapp'):
         lines = [line for line in listed['stdout'].splitlines() if line.startswith(name + ':')]
@@ -554,9 +558,20 @@ def service(request):
 def restart(request):
     ok(run(['systemctl', 'restart', UNIT]))
     state = wait_active()
-    pending = answered(cli('ares', 'control', 'pending'))['data']
+    # Type=simple: "active" comes before the daemon has bound its sockets. A call in that gap gets transport_error
+    # (seen in run 43556905450); wait for the first answer, counting the misses.
+    misses, deadline = [], time.monotonic() + 60
+    while True:
+        answer = cli('ares', 'control', 'pending')
+        if answer['returncode'] == 0 and answer['json'] and answer['json'].get('ok'):
+            break
+        misses.append((answer['json'] or {}).get('error', {}).get('code') or answer['stderr'][-200:])
+        assert time.monotonic() < deadline, answer
+        time.sleep(0.5)
+    pending = answer['json']['data']
     assert pending['total'] == 0, pending
-    summary = dict(state, nrestarts=show('NRestarts')['NRestarts'], pending=pending['total'])
+    summary = dict(state, nrestarts=show('NRestarts')['NRestarts'], pending=pending['total'],
+                   calls_before_the_sockets_answered=misses)
     return dict(returncode=0, summary=summary, files=files_out({'restart.json': summary}))
 
 
