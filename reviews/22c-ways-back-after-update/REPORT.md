@@ -3665,8 +3665,10 @@ From the repository root, Python 3.14, `nice -n 10`:
 
 ### For the next agent (after the B10 replay)
 
-1. **The checks-only run on this step's final head** (dispatched here, not watched): CHECKS_RUN. The integrator
-   watches it with `gh run watch <id> --exit-status --interval 60`. `test_ways_back_model.py` changed, so
+1. **The checks-only run on this step's final head** (dispatched here, not watched):
+   [43619559359](https://github.com/Ares-Empire/AresOS/actions/runs/43619559359), `checks_only=true`,
+   `full_model=true`, on `0df34c8f`. The commit after it touches only this report (the run id). The integrator
+   watches it with `gh run watch 43619559359 --exit-status --interval 60`. `test_ways_back_model.py` changed, so
    `os/ci/model_scope.py` selects the full model anyway; it was dispatched with `-f full_model=true`. 28 of 30
    checks-only runs are used with it.
 2. **The final review on Fable**, as above (item 3 of the record step's list): also this step's commits.
