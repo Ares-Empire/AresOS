@@ -124,7 +124,7 @@ SCAN_FOLDERS = 256
 SCAN_DEPTH = 8
 SCAN_BYTES = 32 * 1024 * 1024
 SCAN_SECONDS = 2.0
-# Opening an app checks its program off the serving loop (review 2, finding 1). The loop waits CHECK_WAIT for the
+# Opening an app checks its program off the serving loop (review 2, FIX 1). The loop waits CHECK_WAIT for the
 # check (a local file answers in microseconds), then answers when it does, or fails the launch as unavailable once
 # CHECK_SECONDS have passed. A check stuck in a dead mount keeps its thread, so at most MAX_CHECKS are outstanding.
 CHECK_WAIT = 0.2
@@ -154,7 +154,7 @@ def protocol(minor=MINOR):
     return f'{NAME}/{MAJOR}.{minor}'
 
 
-# This file, run again as the SVG pre-check's own process (review 2, finding 2). Taken from the code itself: a module
+# This file, run again as the SVG pre-check's own process (review 2, FIX 2). Taken from the code itself: a module
 # that a test loads has no __file__.
 HELPER_FILE = os.path.abspath(protocol.__code__.co_filename)
 
@@ -222,7 +222,7 @@ class App:
     desktop_id: str = None
     exec_name: str = None
     app_id_prefixes: tuple = ()
-    # Why it cannot start now (None: it can), worked out when its catalogue was built (review 2, finding 1).
+    # Why it cannot start now (None: it can), worked out when its catalogue was built (review 2, FIX 1).
     unavailable: str = None
 
 
@@ -445,7 +445,7 @@ def resolve(app, executable=None, entry_dirs=DESKTOP_ENTRY_DIRS):
 
 def with_availability(apps, executable=None, budget=None):
     """Each program with whether it can start, worked out where the catalogue is built: on the discovery worker,
-    never on the serving loop. list_apps serves these values and touches no file (review 2, finding 1)."""
+    never on the serving loop. list_apps serves these values and touches no file (review 2, FIX 1)."""
     result = {}
     for key, app in apps.items():
         if budget is not None:
@@ -455,7 +455,7 @@ def with_availability(apps, executable=None, budget=None):
 
 
 def launch_check(app, executable, working_directory):
-    """What opening an app needs from the filesystem. Runs on a LaunchChecks thread (review 2, finding 1)."""
+    """What opening an app needs from the filesystem. Runs on a LaunchChecks thread (review 2, FIX 1)."""
     argv, directory, reason = resolve(app, executable)
     if reason is None:
         # Popen's child changes into this folder while the helper waits for it to start systemd-run, so a folder on
@@ -962,7 +962,7 @@ def load_catalogue(registry_dir, environ=None, entry_dirs=None, executable=None,
     for desktop_id, path in entries.items():
         if desktop_id in replaced:
             continue
-        # The scan's deadline holds while entries are parsed too (review 2, finding 1).
+        # The scan's deadline holds while entries are parsed too (review 2, FIX 1).
         budget.time()
         try:
             values = read_desktop_entry(path, budget, roots)
@@ -1086,7 +1086,7 @@ class Catalogue:
                                         dependencies=dependencies, entries=entries, budget=budget,
                                         deployments=self.deployments)
         legacy = load_legacy(self.registry_dir, self.executable, budget)
-        # A pass that ran out of time publishes nothing, however far it got (review 2, finding 1).
+        # A pass that ran out of time publishes nothing, however far it got (review 2, FIX 1).
         budget.time()
         self.apps, self.revision, self.legacy = apps, revision, legacy
         self.dependencies = dependencies
@@ -1303,7 +1303,7 @@ def librsvg_coder(formats):
 SVG_PICTURES = frozenset({'image', 'feImage', 'foreignObject'})
 XINCLUDE = 'http://www.w3.org/2001/XInclude'
 CSS_URL = re.compile(r'url\s*\(\s*[\'"]?\s*([^)\'"\s]*)', re.IGNORECASE)
-# What the SVG pre-check looks at, at most (review 2, finding 2). The 42,575 SVG icons installed on the laptop
+# What the SVG pre-check looks at, at most (review 2, FIX 2). The 42,575 SVG icons installed on the laptop
 # (2026-11-14) have at most 957 elements, 3,883 attributes, nesting 11, namespace addresses of 50 characters and
 # names of 31. Expat expands every name with its namespace address, and Python keeps each distinct expanded name.
 SVG_ELEMENTS = 8192
@@ -1529,7 +1529,7 @@ class IconCache:
 
     def check_svg(self, path):
         """drawn_svg in a short-lived process of its own, under the converter's address-space ceiling and timeout:
-        whatever the parse costs is paid there, never in the helper (review 2, finding 2)."""
+        whatever the parse costs is paid there, never in the helper (review 2, FIX 2)."""
         output = self.limited([sys.executable or '/usr/bin/python3', '-I', '-S', HELPER_FILE, '--check-svg', path],
                               label='SVG pre-check')
         if output != SVG_DRAWN:
@@ -1621,7 +1621,7 @@ class IconCache:
                     with open(os.path.join(work, name), 'xb') as handle:
                         handle.write(content)
                 if coder == 'svg':
-                    # Before any converter sees it (review 1, FIX 2), in a process of its own (review 2, finding 2).
+                    # Before any converter sees it (review 1, FIX 2), in a process of its own (review 2, FIX 2).
                     # A cached picture skips this: it was made only after its SVG passed.
                     self.check_svg(os.path.join(work, 'input'))
                 if coder == 'svg' and not self.svg_checked:
@@ -1869,7 +1869,7 @@ class LaunchCheck:
 
 
 class LaunchChecks:
-    """Launch checks on their own threads, never on the serving loop (review 2, finding 1).
+    """Launch checks on their own threads, never on the serving loop (review 2, FIX 1).
 
     A program on a mount that stopped answering blocks its check's thread, maybe for good. Repeated launches of the
     same program share its outstanding check, and at most MAX_CHECKS checks are outstanding at once: beyond that a
@@ -2650,7 +2650,7 @@ class Helper:
         return f'p{offset}-{tag}'
 
     def app_row(self, app, details=False):
-        # The catalogue's published value: listing touches no file (review 2, finding 1).
+        # The catalogue's published value: listing touches no file (review 2, FIX 1).
         row = dict(id=app.id, name=app.name, available=app.unavailable is None, reason=app.unavailable)
         if details:
             for key in ('source', 'icon', 'categories', 'generic_name', 'keywords', 'desktop_id', 'exec_name'):
@@ -2722,7 +2722,7 @@ class Helper:
         app = self.catalogue_apps.get(app_id) if conn.minor >= 1 or app_id in self.legacy_apps else None
         if app is None:
             return self.record(request_id, unknown)
-        # Whether its program is still there is checked off the loop (review 2, finding 1).
+        # Whether its program is still there is checked off the loop (review 2, FIX 1).
         check = self.checks.start(app, launch_check, app, self.executable, self.launcher.working_directory)
         if check is None:
             LOG.warning('%s not opened: %d launch checks are still waiting for an answer', app.id, MAX_CHECKS)
