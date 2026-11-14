@@ -41,9 +41,9 @@ jobs:
       matrix:
         shard: [0, 1, 2, 3, 4, 5, 6, 7]
     runs-on: ubuntu-24.04
-    # Header-index updates add real SQLite write/cleanup fault sites. Keep
-    # the complete sweeps within the package's roughly120-minute job target.
-    timeout-minutes: 60
+    # Exhaustive SQLite write/cleanup combinations exceeded 60 minutes on slower
+    # runners. Preserve every case within the lead's roughly 120-minute job target.
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: OS and SQLite fault sweep in isolated mail containers
