@@ -510,6 +510,12 @@ case('step7-sent-checks-scan','control/aresos_control/mail/adapter.py',"for _, o
 # field counts (the stricter rule from KNOWN-LIMITS), text fields only.
 case('step7-retake-counts-text-fields',R,"(gotInput(element)||retaken&&typedField(element))&&value!==''","gotInput(element)&&value!==''",node('reader','step 7 after a retake'))
 case('step7-retake-text-only',R,"retaken&&typedField(element)","retaken",node('reader','step 7 after a retake'))
+# Step 8: the tab catalogue carries Chrome's audible and muted flags, and the
+# owner helper navigates the tab a row names rather than the driver's tab.
+case('step8-tabs-audible',B,",audible:tab.audible===true,muted:tab.mutedInfo?.muted===true}));","}));",node('background','audible and muted flags'))
+case('step8-tabs-muted-reason',B,"muted:tab.mutedInfo?.muted===true","muted:tab.mutedInfo!==undefined",node('background','audible and muted flags'))
+case('step8-owner-navigate-named-tab','control/chrome/ci/owner-ui.mjs',"async navigate(url,{tab=currentTab(),...options}={}){","async navigate(url,{tab:named,...options}={}){const tab=currentTab();",node('owner-ui','the tab the row names'))
+case('step8-owner-navigate-exact-tab','control/chrome/ci/owner-ui.mjs',"assert.ok(Number.isInteger(tab),'the owner navigates an exact tab');","",node('owner-ui','the tab the row names'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

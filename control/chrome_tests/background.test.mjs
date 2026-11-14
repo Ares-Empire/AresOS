@@ -39,6 +39,11 @@ test('tab catalogue reports native position and distinguishes active tabs from f
     {tab:8,window:6,index:0,active:true,focused:false,controlled:true},
   ]);
 });
+test('tab catalogue reports Chrome\'s own audible and muted flags, false when Chrome gives none',async()=>{
+  const f=fixture();f.run("chrome.windows={getAll:async()=>[{id:5,focused:true}]};chrome.tabs.query=async()=>[{id:7,windowId:5,index:0,active:true,groupId:-1,title:'Playing',url:'http://fixture.test/',audible:true,mutedInfo:{muted:false}},{id:8,windowId:5,index:1,active:false,groupId:-1,title:'Muted',url:'http://fixture.test/muted',audible:false,mutedInfo:{muted:true,reason:'user'}},{id:9,windowId:5,index:2,active:false,groupId:-1,title:'Silent',url:'http://fixture.test/silent'}];");
+  const rows=JSON.parse(JSON.stringify((await f.run("collection({name:'tabs',limit:10})")).items));
+  assert.deepEqual(rows.map(({tab,audible,muted})=>({tab,audible,muted})),[{tab:7,audible:true,muted:false},{tab:8,audible:false,muted:true},{tab:9,audible:false,muted:false}]);
+});
 
 function startupFixture(){
   const f=fixture();f.run("globalThis.startup=[];excludedHosts=[];groupId=1;chrome.tabs.get=async()=>({url:'http://fixture.test/',groupId:1});chrome.webNavigation={getAllFrames:async()=>[]};chrome.runtime={getURL:path=>'chrome-extension://fixture/'+path};chrome.debugger={sendCommand:async(source,method,parameters)=>{startup.push({source,method,parameters});if(method==='Debugger.setBreakpointByUrl')return {breakpointId:'inert-breakpoint'};if(method==='Runtime.evaluate')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'private-cleanup'}};if(method==='Runtime.callFunctionOn')return parameters.returnByValue?{result:{value:'private-document'}}:{result:{objectId:'relay'}};if(method==='DOM.describeNode')return {node:{backendNodeId:1}};if(method==='DOM.resolveNode')return {object:{objectId:'isolated-relay'}};return {};}};preloadBundle=Promise.resolve(['// guard fixture','// reader fixture','// wrapper fixture']);controlled.set(7,{epoch:'epoch'});");return f;

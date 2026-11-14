@@ -25,6 +25,12 @@ test('owner navigation selects the exact native tab after restoration changes it
   assert.equal(state.rows[1].url,'http://fixture.test/changed');assert.equal(state.rows[0].url,'http://other.test/');
   assert.ok(state.commands.some(args=>args.includes('ctrl+Tab')));assert.equal(state.selected,1);
 });
+test('owner navigation goes to the tab the row names, not the driver\'s current tab',async()=>{
+  const {state,ui}=fixture();
+  await ui.navigate('http://other.test/changed',{tab:10});
+  assert.equal(state.rows[0].url,'http://other.test/changed');assert.equal(state.rows[1].url,'http://fixture.test/');assert.equal(state.selected,0);
+  await assert.rejects(ui.navigate('http://other.test/again',{tab:'10'}),/exact tab/);assert.equal(state.rows[0].url,'http://other.test/changed');
+});
 test('missing native position refuses before typing into any tab',async()=>{
   const {state,ui}=fixture();delete state.rows[1].index;
   await assert.rejects(ui.navigate('http://fixture.test/changed'),/native tab index/);assert.equal(state.commands.length,0);

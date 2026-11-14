@@ -22,8 +22,11 @@ export function ownerUI({call,currentTab,window,eventually,exec=execFileSync}){
   }
   return {
     select,
-    async navigate(url,options){
-      const tab=currentTab();await select(tab,options);
+    // A row that opens its own tab names it here; the driver's current tab is
+    // only the default (run 43584711126: the owner played in the driver's tab
+    // while the row closed the one it had opened).
+    async navigate(url,{tab=currentTab(),...options}={}){
+      assert.ok(Number.isInteger(tab),'the owner navigates an exact tab');await select(tab,options);
       exec('xdotool',['key','--clearmodifiers','ctrl+l']);
       exec('xdotool',['type','--clearmodifiers','--delay','1',url]);
       // Forward Delete removes only an inline-autocompleted suffix; at the end

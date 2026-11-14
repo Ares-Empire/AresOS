@@ -19,8 +19,12 @@ import {receiverSnapshot} from './receiver-evidence.mjs';
 import {allTabs} from './tabs.mjs';
 import {failBrowserCase} from './failure.mjs';
 
-export async function matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
+export async function matrices({call,read,nav,target,counts,eventually,tab,setTab:syncTab=()=>{},fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,popupEvidence,popupControl,nativeDonor,closeNativeDonor,ownerKey,ownerType,ownerChooseFile,ownerDismiss,ownerHistory,ownerBookmark,lifecycle,restoreControl,stopClick,baseline,isolationAfter}) {
   const results=[];let trustOperation;const shard=process.env.BROWSER_SHARD||null;
+  // The owner helpers (ownerNavigate and the others) close over the driver's
+  // own current tab, so a matrix that moves to another tab tells the driver
+  // too; otherwise the owner acts in the old tab (run 43584711126).
+  const setTab=value=>{tab=value;syncTab(value);};
   const runs=block=>selected(shard,block);
   const inBlock=block=>(name,fn)=>check(name,fn,block);
   const receiverEvidence=(id,phase)=>{const row=receiverSnapshot(fixture.arrivals,id,phase);fs.appendFileSync('/out/page-receiver.jsonl',JSON.stringify(row)+'\n');return row;};
@@ -64,12 +68,12 @@ export async function matrices({call,read,nav,target,counts,eventually,tab,fixtu
   if(runs('core'))await destinationMatrix({check:inBlock('core'),nav,call,target,approval,fixture,receiverEvidence,eventually});
   if(runs('core'))await lateReaderMatrix({check:inBlock('core'),nav,call,rpc,read,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
   if(runs('core'))await lateBindingMatrix({check:inBlock('core'),call,rpc,read,target,fixture,eventually,ownerNavigate,getTab:()=>tab});
-  if(runs('core'))await animatedDefaultMatrix({check:inBlock('core'),nav,call,target,approval,receiverEvidence,eventually,fixture,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor});
+  if(runs('core'))await animatedDefaultMatrix({check:inBlock('core'),nav,call,target,approval,receiverEvidence,eventually,fixture,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor});
   if(process.env.DESTINATION_PROBE==='true'){console.log('Post-18d destination and late-reader probes; not full acceptance');return [];}
-  if(runs('recheck3'))await recheck3Matrices({check:inBlock('recheck3'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor});
-  if(runs('recheck2'))await recheck2Matrices({check:inBlock('recheck2'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab:value=>{tab=value},nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl});
-  if(runs('review'))await reviewMatrices({check:inBlock('review'),nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab:value=>{tab=value},ownerKey,ownerType,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
-  if(runs('recheck2'))await popupMatrices({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,getTab:()=>tab,setTab:value=>{tab=value},fixture,ownerOpenPopup,popupEvidence,popupControl,approval});
+  if(runs('recheck3'))await recheck3Matrices({check:inBlock('recheck3'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor});
+  if(runs('recheck2'))await recheck2Matrices({check:inBlock('recheck2'),nav,call,rpc,target,approval,receiverEvidence,fixture,eventually,getTab:()=>tab,setTab,nativeDonor,closeNativeDonor,ownerKey,lifecycle,restoreControl});
+  if(runs('review'))await reviewMatrices({check:inBlock('review'),nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab:()=>tab,setTab,ownerKey,ownerType,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,lifecycle});
+  if(runs('recheck2'))await popupMatrices({check:inBlock('recheck2'),call,rpc,nav,counts,eventually,getTab:()=>tab,setTab,fixture,ownerOpenPopup,popupEvidence,popupControl,approval});
   await check('GROUP 7 native compatibility inside and outside Claude tabs',async()=>{
     await nav('native-compat&id=controlled');
     const controlled=await measureCompatibility({id:'controlled',fixture,eventually,start:async()=>call('click',await target('Continue'))});

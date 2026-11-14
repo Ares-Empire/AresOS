@@ -250,14 +250,19 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     }
     // discard_unsaved (lead, 2026-11-14): chrome_navigate to an address gives
     // the same report in a taken tab and goes only with the flag.
+    // Step 8: before the act, the run records Chrome's own flags for the tab
+    // (the `audible` the report reads, and muted), so a run tells the product
+    // (the report) apart from the harness (which tab the owner played in).
+    const soundRow=async(id,tab)=>{const row=(await allTabs(call)).items.find(row=>row.tab===tab);console.log(id,'tab before the act',JSON.stringify({tab,url:row?.url,audible:row?.audible,muted:row?.muted,controlled:row?.controlled,active:row?.active}));return row;};
     for(const mode of ['dirty','web-audio','clean']){
-      const id='final-discard-navigate-url-'+mode,next=id+'-next',tab=getTab();await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode);
+      const id='final-discard-navigate-url-'+mode,next=id+'-next',tab=getTab();await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode,{tab});
       await eventually(()=>counts('loaded-'+id)===1,'owner page loaded');
       if(mode==='web-audio'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
       await call('take_tab',{tab});const url='http://fixture.test:8765/?case=take-state&id='+next+'&mode=clean';
       // As above: the Web Audio row just played in this tab.
       if(mode==='clean')await delay(3500);
       if(mode!=='clean'){
+        if(mode==='web-audio')await soundRow(id,tab);
         // Before its first reload a taken tab's text fields count as unsaved.
         const first=await rpc('navigate',{tab,url});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
         assert.match(first.error.message,/Navigating this tab away would lose unsaved typing in field "Draft"/);assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');
@@ -275,16 +280,19 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       // loads the page and plays in a released tab, then Claude takes it. In a
       // tab fresh from `open`, neither Claude's click on "Play media" (run
       // 43575571819) nor the owner's Tab+Return (run 43580466542) started the
-      // sound; the report here is about close_tab, whatever started it.
+      // sound; the report here is about close_tab, whatever started it. The
+      // owner is told this row's own tab: in run 43584711126 he played in the
+      // driver's tab, and close_tab rightly closed this one, which was clean.
       const id='final-discard-close-tab-'+mode,loaded=mode==='web-audio'?id+'-opened':id;
       const opened=await call('open',{url:'http://fixture.test:8765/?case=take-state&id='+loaded+'&mode='+(mode==='web-audio'?'clean':mode)}),tab=opened.untrusted_content?.tab??opened.tab;
       await eventually(()=>counts('loaded-'+loaded)===1,'Claude tab loaded');setTab(tab);
       try{
         if(mode==='web-audio'){
-          await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode=web-audio');
+          await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode=web-audio',{tab});
           await eventually(()=>counts('loaded-'+id)===1,'owner page loaded');
+          assert.equal((await allTabs(call)).items.find(row=>row.tab===tab)?.url,'http://fixture.test:8765/?case=take-state&id='+id+'&mode=web-audio','the owner loaded the page in this row\'s tab');
           ownerKey();await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);
-          await call('take_tab',{tab});
+          await call('take_tab',{tab});await soundRow(id,tab);
         }
         if(mode!=='clean'){
           const first=await rpc('close_tab',{tab});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');

@@ -804,7 +804,10 @@ async function collection(command) {
     else if(command.name==='bookmarks')items=await chrome.bookmarks.search(command.text||{});
     else {
       const focused=new Set((await chrome.windows.getAll()).filter(window=>window.focused).map(window=>window.id));
-      items=(await chrome.tabs.query({})).map(tab=>({tab:tab.id,window:tab.windowId,index:tab.index,active:tab.active,focused:focused.has(tab.windowId),title:tab.title,url:tab.url,controlled:controlled.has(tab.id)&&(controlled.get(tab.id).virtualGroup||tab.groupId===groupId),cleanup_pending:releasing.has(tab.id)}));
+      // audible and muted are Chrome's own tab flags, the same `audible` the
+      // discard report reads, so Claude can see sound before closing or
+      // navigating a tab and a run can tell the flag apart from the report.
+      items=(await chrome.tabs.query({})).map(tab=>({tab:tab.id,window:tab.windowId,index:tab.index,active:tab.active,focused:focused.has(tab.windowId),title:tab.title,url:tab.url,controlled:controlled.has(tab.id)&&(controlled.get(tab.id).virtualGroup||tab.groupId===groupId),cleanup_pending:releasing.has(tab.id),audible:tab.audible===true,muted:tab.mutedInfo?.muted===true}));
     }
     if(items.length>10000 || JSON.stringify(items).length>8*1024*1024)throw Error('refused: this complete list exceeds the 10000-item or 8 MiB snapshot bound; narrow the search');
     const now=Date.now();record={id:crypto.randomUUID(),key,items,time:now,created:now};

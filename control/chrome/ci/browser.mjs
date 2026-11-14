@@ -145,7 +145,7 @@ try {
     if(command==='kill_host'){const lines=execFileSync('ps',['-u','1000','-o','pid=,args='],{encoding:'utf8'}).split('\n');for(const line of lines)if(line.includes('/usr/libexec/aresos-control/chrome/native_host.py'))process.kill(Number(line.trim().split(/\s+/)[0]),'SIGKILL');return;}
     return JSON.parse(execFileSync('sudo',['-n','/usr/bin/python3','/workspace/control/chrome/ci/admin.py',JSON.stringify(command)],{encoding:'utf8'}));
   };
-  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,
+  for(const failure of await matrices({call,read,nav,target,counts,eventually,tab,setTab:value=>{tab=value;},fixture,admin,rpc,caller,ownerNavigate,ownerOpenPopup,nativeDonor,closeNativeDonor,baseline,
     popupControl:async(command,value)=>{
       const state=async()=>{await lifecycle({fixture:'control_status'});const value=JSON.parse(fs.readFileSync('/out/control-status.json'));fs.appendFileSync('/out/popup-controls.jsonl',JSON.stringify(value)+'\n');return value;};
       if(command==='state')return state();

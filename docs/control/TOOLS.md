@@ -5902,7 +5902,7 @@ Result data:
 
 `aresos chrome tabs`; effect **read**; owner-only **False**.
 
-List all tab titles, addresses, native window/position, active/focused state and Claude-group membership; no page content is read. Effect: read.
+List all tab titles, addresses, native window/position, active/focused state, Claude-group membership and whether each tab is playing sound (audible) or muted; no page content is read. Effect: read.
 
 Input:
 ```json
