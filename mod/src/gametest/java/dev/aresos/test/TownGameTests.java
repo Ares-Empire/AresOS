@@ -9,6 +9,7 @@ import dev.aresos.hub.HubLayout;
 import dev.aresos.hub.Place;
 import dev.aresos.hub.Town;
 import dev.aresos.hub.TownKeeper;
+import dev.aresos.hub.TownSeal;
 import dev.aresos.zone.AppZone;
 import dev.aresos.zone.GateBuilder;
 import dev.aresos.zone.GatePicture;
@@ -19,7 +20,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -30,15 +33,22 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LightBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.level.storage.LevelStorageSource;
+import net.minecraft.world.level.storage.SavedDataStorage;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 
 /**
@@ -650,6 +660,203 @@ public final class TownGameTests {
         check(names(level, hub).equals(List.of("INTERNET \u00b7 0", "GAMES \u00b7 0", "SYSTEM & TOOLS \u00b7 0", "WORK & MEDIA \u00b7 0")), "Empty: " + names(level, hub));
         level.setBlockAndUpdate(glass, Blocks.AIR.defaultBlockState());
         level.setBlockAndUpdate(cobble, Blocks.AIR.defaultBlockState());
+    }
+
+    private static final String SEAL_BATCH = "aresos-test:town_seal";
+
+    /**
+     * Review fixes 1 (points 1 to 4) through the world's own files: a normal save is sealed when the world is read
+     * again; a whole-world copy, opened as the game opens a world, stays sealed; a hub.dat of another home and an
+     * unreadable town.dat are refused and kept, and the town does nothing in that world; the review's scenario (an
+     * older mod saved the world after he rebuilt a block of a logo with the same block) freezes the town, so that
+     * block stays, a frozen logo whose app left stays with its line, is not renewed or rebuilt, and its place counts
+     * as taken; {@code hub trust} ends the freeze and the next save renews the seal; a town.dat restored from a
+     * backup is unsealed. Its own batch and ground; the copies are made beside the test world and removed.
+     */
+    @GameTest(environment = SEAL_BATCH, maxTicks = LOAD_TICKS)
+    public void theTownTrustsItsRecordsOnlyWhileTheWorldWasSavedWithThem(GameTestHelper helper) {
+        var level = helper.getLevel();
+        BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(21000, 0, 0);
+        var near = chunks(column.offset(-48, 0, -60), column.offset(48, 0, 16));
+        var fake = new Fake();
+        fake.prefix = "seal-";
+        hold(level, near, true);
+        helper.startSequence()
+                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenExecute(() -> keeping(fake, level, near, true, () -> sealing(fake, level, column)))
+                .thenSucceed();
+    }
+
+    /** A world's files read as the game reads them when the world opens: a data storage of their own. */
+    private static SavedDataStorage storage(MinecraftServer server, Path world) {
+        return new SavedDataStorage(world.resolve(LevelResource.DATA.id()), server.getFixerUpper(), server.registryAccess());
+    }
+
+    /** The hub of a world's files as the world opens, joined to its town: sealed, frozen or refused. */
+    private static HubData reopen(MinecraftServer server, Path world) {
+        var hub = HubData.open(storage(server, world), world, TownSeal.seed(server));
+        check(hub != null, "No hub.dat in " + world);
+        return hub;
+    }
+
+    /** A copy of the world as a whole, of the files the town reads: level.dat and data/aresos. */
+    private static Path copy(Path world, Path to) throws IOException {
+        var data = to.resolve("data").resolve("aresos");
+        Files.createDirectories(data);
+        Files.copy(world.resolve("level.dat"), to.resolve("level.dat"));
+        try (var files = Files.list(world.resolve("data").resolve("aresos"))) {
+            for (var file : files.toList()) Files.copy(file, data.resolve(file.getFileName()));
+        }
+        return to;
+    }
+
+    /** The game opens a copied world: it writes level.dat before any server runs on it, as Minecraft.doWorldLoad does. */
+    private static void opened(MinecraftServer server, Path copies, String name) throws IOException {
+        try (var access = LevelStorageSource.createDefault(copies).createAccess(name)) {
+            access.saveDataTag(server.getWorldData());
+        }
+    }
+
+    /** An older mod or plain Minecraft saves the world: level.dat with another LastPlayed and no seal; town.dat as it was. */
+    private static void olderModSaves(MinecraftServer server, long lastPlayed) throws IOException {
+        var access = ((dev.aresos.mixin.ServerStorageAccess)server).aresos$storageSource();
+        var data = access.getUnfixedDataTag(false);
+        access.saveLevelData(data.set("LastPlayed", data.createLong(lastPlayed)));
+    }
+
+    private static void sealing(Fake fake, ServerLevel level, BlockPos column) throws IOException {
+        var server = level.getServer();
+        fake.previous = HubData.get(server);
+        BlockPos home = new BlockPos(column.getX(), level.getHeight(Heightmap.Types.WORLD_SURFACE, column.getX(), column.getZ()), column.getZ());
+        check(level.getBlockState(home.below()).is(Blocks.GRASS_BLOCK) && level.getBlockState(home).isAir(), "Fixture: no grass surface at " + home);
+        fake.home = home;
+        fake.clearZones(server);
+        var hub = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), FlatHub.build(level, home));
+        HubData.store(server, hub);
+        fake.apps.addAll(List.of(app("seal-chrome", "Chrome", "chrome", AppGroup.INTERNET, true, true),
+                app("seal-discord", "Discord", "discord", AppGroup.INTERNET, false, true)));
+        fake.pass(server);
+        check(place(server, "seal-chrome").equals("N0L0") && place(server, "seal-discord").equals("N0R0"), "Day one: " + hub.logos());
+        Path world = server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
+        long seed = TownSeal.seed(server);
+        Path copies = Files.createTempDirectory(world.getParent(), "aresos-town-seal");
+        BlockPos his = null;
+        try {
+            // A normal save writes level.dat, the seal and town.dat together; the world read again is sealed.
+            server.saveAllChunks(true, true, true);
+            var seal = TownSeal.read(world).orElseThrow(() -> new AssertionError("No seal after a save"));
+            check(TownSeal.lastPlayed(world).equals(OptionalLong.of(seal.lastPlayed())) && seal.seed() == seed, "The seal " + seal + " for " + TownSeal.lastPlayed(world));
+            var reopened = reopen(server, world);
+            check(reopened.refusal().isEmpty() && reopened.frozenCount() == 0 && reopened.logos().equals(hub.logos()), "Read again after a save: " + reopened.logos());
+            byte[] backup = Files.readAllBytes(HubData.townFile(world));
+
+            // A whole-world copy, opened in the game: the game writes level.dat first, the seal follows it.
+            var copy = copy(world, copies.resolve("copy"));
+            opened(server, copies, "copy");
+            check(TownSeal.holding(copy).isPresent(), "The copy's seal was not carried to its new level.dat");
+            var copied = reopen(server, copy);
+            check(copied.refusal().isEmpty() && copied.frozenCount() == 0 && copied.logos().equals(hub.logos()), "A whole-world copy: " + copied.logos());
+
+            // hub.dat of another home beside this town.dat: refused, kept as it is, and the town does nothing.
+            var other = copy(world, copies.resolve("other"));
+            var elsewhere = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home.east(64)), hub.fixed());
+            var file = new net.minecraft.nbt.CompoundTag();
+            file.put("data", HubData.CODEC.encodeStart(NbtOps.INSTANCE, elsewhere).getOrThrow());
+            NbtIo.writeCompressed(NbtUtils.addCurrentDataVersion(file), other.resolve("data").resolve("aresos").resolve("hub.dat"));
+            byte[] town = Files.readAllBytes(HubData.townFile(other));
+            var otherStorage = storage(server, other);
+            var refused = HubData.open(otherStorage, other, seed);
+            check(refused.refusal().orElse("").startsWith("it was saved for a home at ") && refused.logos().isEmpty(), "Another home: " + refused.refusal());
+            otherStorage.saveAndJoin();
+            check(Arrays.equals(town, Files.readAllBytes(HubData.townFile(other))), "A town.dat of another home was written over");
+            // ... and an unreadable one.
+            var broken = copy(world, copies.resolve("broken"));
+            Files.write(HubData.townFile(broken), new byte[] {1, 2, 3});
+            var brokenStorage = storage(server, broken);
+            check(HubData.open(brokenStorage, broken, seed).refusal().equals(Optional.of("it cannot be read")), "An unreadable town.dat");
+            brokenStorage.saveAndJoin();
+            check(Arrays.equals(new byte[] {1, 2, 3}, Files.readAllBytes(HubData.townFile(broken))), "An unreadable town.dat was written over");
+            HubData.store(server, refused);
+            var area = snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2));
+            fake.change("seal-discord", app -> app.withMine(false));
+            var nothing = fake.pass(server);
+            check(nothing.lines().isEmpty() && !nothing.pending() && snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2)).equals(area),
+                    "A refused town changed something: " + nothing.lines());
+            var notice = TownKeeper.notice(server).orElse("");
+            check(notice.startsWith("The town's file " + HubData.townFile(world) + " does not fit this world (it was saved for a home at ")
+                    && notice.endsWith("To start the town afresh, close the world and move that file out of the world's folder."), "The refusal's line: " + notice);
+            fake.change("seal-discord", app -> app.withMine(true));
+            HubData.store(server, hub);
+
+            // The review's scenario. He takes a block of Discord's logo away and builds his own of the same block there;
+            // this mod lets go of it at once, an older mod (packages 32 to 35) does not know town.dat and saves the world
+            // without the seal.
+            var recorded = hub.logo("seal-discord").orElseThrow().gate().placed().getFirst();
+            his = recorded.pos();
+            level.setBlockAndUpdate(his, Blocks.AIR.defaultBlockState());
+            level.setBlockAndUpdate(his, Placing.state(recorded.block()));
+            check(!hub.holds(level, his), "His block is still the town's");
+            olderModSaves(server, seal.lastPlayed() + 1);
+            var older = reopen(server, world);
+            check(older.frozenCount() == 2 && older.logo("seal-discord").orElseThrow().gate().placed().contains(recorded), "The older mod's world: frozen " + older.frozenCount());
+            HubData.store(server, older);
+            check(TownKeeper.notice(server).equals(Optional.of("This world was saved without the town's records since the town last saw it, so the town leaves"
+                    + " its 2 logos as they are. Look them over, then type /aresos hub trust.")), "The freeze's line: " + TownKeeper.notice(server));
+
+            // Discord leaves: its frozen logo stays, said once, and so does his block.
+            fake.change("seal-discord", app -> app.withMine(false));
+            var left = fake.pass(server);
+            check(left.lines().equals(List.of("The logo of Discord stays as it is: the town takes none of its logos down until you type /aresos hub trust.")),
+                    "A frozen logo's app left: " + left.lines());
+            check(level.getBlockState(his).equals(Placing.state(recorded.block())) && HubData.get(server).logo("seal-discord").isPresent(), "His block or the frozen logo went");
+            // A new name and picture for Chrome, and a newcomer: Chrome is not renewed; Mail stands on free ground, not
+            // in Discord's place, which counts as taken (and is not called his).
+            var chrome = HubData.get(server).logo("seal-chrome").orElseThrow();
+            fake.change("seal-chrome", app -> app("seal-chrome", "Chrome Browser", "chrome", AppGroup.INTERNET, true, true).withSpot(app.place(), app.group()));
+            fake.pictures.put("seal-chrome", picture(0xff8f2d2d));
+            fake.apps.add(app("seal-mail", "Mail", "mail", AppGroup.INTERNET, false, true));
+            var joined = fake.pass(server);
+            check(joined.lines().equals(List.of("Mail is new. It stands in Internet, north. /mail opens it.")) && place(server, "seal-mail").equals("N1L0")
+                    && HubData.get(server).logo("seal-chrome").orElseThrow().equals(chrome), "Frozen, then a newcomer: " + joined.lines() + " " + place(server, "seal-mail"));
+            // hub rebuild builds Mail again and leaves the frozen two as they are.
+            var discord = HubData.get(server).logo("seal-discord").orElseThrow();
+            var rebuilt = fake.keeper.rebuild(server, new TownKeeper.Programs(fake.apps, true), app -> Optional.of(fake.pictures.getOrDefault(app.id(), fake.ring)), spots -> { });
+            check(rebuilt.lines().getFirst().equals("The town was rebuilt from the rules: 1 logo built again.")
+                    && rebuilt.lines().getLast().equals("Its 2 frozen logos stay as they are until you type /aresos hub trust.")
+                    && HubData.get(server).logo("seal-chrome").orElseThrow().equals(chrome) && HubData.get(server).logo("seal-discord").orElseThrow().equals(discord),
+                    "A rebuild while frozen: " + rebuilt.lines());
+
+            // He looks the logos over (the block he wants to keep, he changes: it is his) and trusts the records.
+            level.setBlockAndUpdate(his, Blocks.DIAMOND_BLOCK.defaultBlockState());
+            check(TownKeeper.trust(server).equals(Optional.of("The town takes its 2 logos as its own again: from now on it keeps them in step with your apps."))
+                    && HubData.get(server).frozenCount() == 0 && TownKeeper.trust(server).isEmpty() && TownKeeper.notice(server).isEmpty(), "Trust");
+            var trusted = fake.pass(server);
+            check(trusted.lines().equals(List.of("Discord left My apps. Its logo came down.", "The logo of Chrome Browser was renewed.")), "After trust: " + trusted.lines());
+            check(level.getBlockState(his).is(Blocks.DIAMOND_BLOCK) && place(server, "seal-discord").equals("none"), "His diamond or Discord's logo");
+            // The next save renews the seal.
+            server.saveAllChunks(true, true, true);
+            check(reopen(server, world).frozenCount() == 0 && reopen(server, world).logos().size() == 2, "The seal was not renewed after trust");
+
+            // town.dat restored from the backup taken after the first save, into a copy of this world: unsealed.
+            var restored = copy(world, copies.resolve("restored"));
+            Files.write(HubData.townFile(restored), backup);
+            var fromBackup = reopen(server, restored);
+            check(fromBackup.refusal().isEmpty() && fromBackup.frozenCount() == 2 && fromBackup.logo("seal-discord").isPresent(), "A town.dat from a backup: " + fromBackup.frozenCount());
+
+            // The end: everything leaves. A town with no logos needs no seal.
+            fake.apps.replaceAll(app -> app.withMine(false));
+            fake.pass(server);
+            check(HubData.get(server).logos().isEmpty() && !fake.zoneLeft(server), "Taking the town down");
+            server.saveAllChunks(true, true, true);
+            var empty = copy(world, copies.resolve("empty"));
+            Files.delete(TownSeal.file(empty));
+            check(reopen(server, empty).frozenCount() == 0 && reopen(server, empty).refusal().isEmpty(), "A town with no logos was not taken as its own");
+        } finally {
+            if (his != null) level.setBlockAndUpdate(his, Blocks.AIR.defaultBlockState());
+            try (var paths = Files.walk(copies)) {
+                for (var path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
+            }
+        }
     }
 
     private interface Action { void run() throws IOException; }
