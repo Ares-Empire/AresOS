@@ -111,7 +111,7 @@ for(const root of process.argv.slice(2))for(const matrix of walk(root).filter(fi
     assert.equal(frames.find(frame=>frame.frame===0).fields.filter(field=>field.label==='Value').length,2);
   }
   const withheld=lateBinding.find(row=>row.id==='post18df-withheld-form');assert(withheld);assert.equal(counts.get(withheld.id)||0,0);
-  for(const result of [withheld.refused,withheld.afterRead]){assert.equal(result.ok,false);assert.match(result.error.message,/send it yourself, or let Claude reload the tab first/);}
+  for(const result of [withheld.refused,withheld.afterRead]){assert.equal(result.ok,false);assert.match(result.error.message,/send it yourself, or reload the tab first with chrome_navigate direction=reload \(it reports unsaved text first\), then read it again/);}
   assert.match(JSON.stringify(withheld.approved.untrusted_content),/PRIVATE_LATE_FORM_B_20/);assert(!withheld.repeat.untrusted_content);
 
   const node=Object.fromEntries([...read(path.join(folder,'node.txt')).matchAll(/^(?:# |ℹ )?(tests|pass|fail|cancelled|skipped)\s+(\d+)/gm)].map(match=>[match[1],Number(match[2])]));
