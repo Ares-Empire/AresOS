@@ -226,6 +226,10 @@ if digest == pin:
     print(f'MOD_JAR_PINNED {digest}')
 PY
 
+# Package 31: config has been copied by the Containerfile. Compile the desktop
+# defaults now; a bad schema or override must fail the image build.
+glib-compile-schemas --strict /usr/share/glib-2.0/schemas
+
 # Use the same declaration at build and boot: local /etc/passwd changes from
 # the installer otherwise hide new accounts in the image's /usr/etc/passwd.
 systemd-sysusers /usr/lib/sysusers.d/aresos.conf
