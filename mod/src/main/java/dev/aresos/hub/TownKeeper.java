@@ -10,6 +10,7 @@ import dev.aresos.world.DesktopWorld;
 import dev.aresos.zone.GateBuilder;
 import dev.aresos.zone.GatePicture;
 import dev.aresos.zone.PictureReader;
+import dev.aresos.zone.ZoneData;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -325,6 +326,7 @@ public final class TownKeeper {
             if (refused.size() == refusals || rounds == ROUNDS) break;
         }
         renew.retainAll(hub.logos().stream().map(HubData.Logo::app).collect(Collectors.toSet()));
+        doorways(server, hub, lines);
         // 5. Roads and names.
         boolean roads = roads(level, hub, round.assignment());
         return new Pass(lines.said(first, rebuilt, round.waiting()), round.pending() || !roads, need);
@@ -453,6 +455,33 @@ public final class TownKeeper {
         for (var id : assignment.unplaced())
             once(lines, apps.get(id).name() + " has no free place in " + AppGroup.of(apps.get(id)).title() + ": every place there is blocked.");
         return new Round(assignment, pending, need, waiting);
+    }
+
+    /**
+     * Each standing logo's trigger zone (review fixes 1, step B, point 5). One missing from {@code zones.dat} (a mod of
+     * packages 33 to 35 sees it as a plain zone, and its {@code zone remove} takes it away) is put back as the town made
+     * it, if nothing else claims its space: no other zone in its box or at its exit, the check every new zone passes.
+     * Otherwise the logo stays without a doorway, said once. A zone of his that took the logo's zone ID is his and
+     * stays. Putting a zone back takes nothing down, so a frozen logo's comes back too.
+     */
+    private void doorways(MinecraftServer server, HubData hub, TownLines lines) {
+        var zones = ZoneData.get(server);
+        for (var logo : hub.logos()) {
+            var made = hub.zone(logo);
+            if (made.isEmpty()) continue;
+            var named = zones.zones().stream().filter(zone -> zone.id().equals(logo.zone())).toList();
+            if (named.stream().anyMatch(zone -> hub.made(logo, zone))) continue;
+            if (!named.isEmpty()) {
+                once(lines, "The logo of " + logo.name() + " opens nothing: a zone of yours has its doorway's ID.");
+                continue;
+            }
+            if (zones.conflict(made.get()) != null) {
+                once(lines, "The logo of " + logo.name() + " opens nothing: its doorway's zone is gone and a zone of yours is in its place.");
+                continue;
+            }
+            zones.add(made.get());
+            AresOs.LOGGER.info("Town: the doorway of {}'s logo was missing from the zones file and is back", logo.name());
+        }
     }
 
     /**

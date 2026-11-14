@@ -52,7 +52,8 @@ import java.util.stream.Collectors;
  * one, logos kept in {@code hub.dat} would be lost and stand there as nobody's. In memory it is one record with one
  * block index ({@link #holds}). The town's gates are recorded here and not in the zones file, so an older mod that
  * saves the zones file cannot orphan them either. Their trigger zones stay in {@code zones.dat} without a gate of
- * their own; a zone is the town's while a logo here names its ID ({@link #logoOfZone}).
+ * their own; a zone is the town's while a logo here names its ID and it is still the zone the town made ({@link #town}).
+ * The two files can disagree (an older mod's {@code zone remove}): a pass of the town puts a missing zone back.
  */
 public final class HubData extends SavedData {
     /** One block the mod placed; the block as its ID, for example "minecraft:gold_block". */

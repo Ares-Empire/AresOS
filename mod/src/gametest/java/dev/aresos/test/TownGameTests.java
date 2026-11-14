@@ -471,6 +471,26 @@ public final class TownGameTests {
         check(joined.lines().equals(List.of("Spotify is new. It stands in Work & Media, west. /spotify opens it.")) && place(server, "keep-spotify").equals("W0L0"),
                 "A newcomer: " + joined.lines());
 
+        // A missing trigger zone (review fixes 1, step B, point 5): a mod of packages 33 to 35 took Spotify's away with
+        // `zone remove`. A pass puts it back as the town made it and says nothing; a zone of his in its place keeps it
+        // out, said once, and stays; once his zone is gone, the next pass puts the doorway back.
+        var spotifyLogo = HubData.get(server).logo("keep-spotify").orElseThrow();
+        var doorway = ZoneData.get(server).zones().stream().filter(zone -> zone.id().equals(spotifyLogo.zone())).findFirst().orElseThrow();
+        ZoneData.get(server).remove(zone -> zone.id().equals(spotifyLogo.zone()));
+        var restored = fake.pass(server);
+        check(restored.lines().isEmpty() && ZoneData.get(server).zones().contains(doorway), "The missing zone: " + restored.lines());
+        ZoneData.get(server).remove(zone -> zone.id().equals(spotifyLogo.zone()));
+        var hisZone = new AppZone("keep-his-zone", "keep-his", doorway.dimension(), doorway.min(), doorway.max(), doorway.exit(), List.of());
+        ZoneData.get(server).add(hisZone);
+        var claimed = fake.pass(server);
+        check(claimed.lines().equals(List.of("The logo of Spotify opens nothing: its doorway's zone is gone and a zone of yours is in its place."))
+                && ZoneData.get(server).zones().contains(hisZone) && ZoneData.get(server).zones().stream().noneMatch(zone -> zone.id().equals(spotifyLogo.zone())),
+                "A zone of his in the doorway's place: " + claimed.lines());
+        check(fake.pass(server).lines().isEmpty(), "The missing doorway was said twice");
+        ZoneData.get(server).remove(zone -> zone.equals(hisZone));
+        var back = fake.pass(server);
+        check(back.lines().isEmpty() && ZoneData.get(server).zones().contains(doorway), "The doorway after his zone went: " + back.lines());
+
         // A blocked place: his planks in N1L0's box. Mail stands one place on, in the place the absent app remembered.
         var n1l0 = Town.plan(town, fake.get("keep-mail"), Place.parse("N1L0").orElseThrow(), fake.ring);
         fake.planks = n1l0.at(1, 3, 3);
