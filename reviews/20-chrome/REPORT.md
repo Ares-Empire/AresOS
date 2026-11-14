@@ -1,45 +1,117 @@
 <!-- POST18D CURRENT START -->
 # Handover
 
-- **Addenda c–g / implementation:** done and SAFE. Base-URL/SVG, credentials,
-  prepared asking reads, withheld-form refusal, slim integration/group 12,
-  approved latency ceilings/removal probe and sharding are complete. Editors stay
-  read under board #216's owner acceptance. No binding/refusal change is open.
-- **Final code head:** **`a4143586`**; later commits are evidence/report only.
-  Full local preflight passes **268 Python, 373 Node/artifact, 316 mutations**,
-  every mutation baseline passing, plus generator/diff/exact-unit checks.
-  Runtime remains `e0cc9846`, hash `b9de9a97…`; main is merged through `b2b51107`.
-- **CI-only budget fix, SAFE in both reviews:** on prior `7d9c0b95`, Chrome pair
-  and all four independent audits/latency profiles passed; other three shared
-  workflows passed twice. Mail's four suites/six fault shards passed, but two hit
-  60 minutes. Fault jobs now get **120 minutes**, within the lead's target; suite
-  jobs stay35 and all eight partitions/23flows/assertions are unchanged. Chrome
-  still uses120-minute containers/130-minute jobs. Old evidence is intermediate.
-- **Green twice on this head:** base **`43539457993`** (309 tests each), boundary
-  **`43539458152`** (17 interactive cases +20 unit tests each), qualification
-  **`43539458040`** (47 Python +368 Node each, zero failures/skips).
-- **Observer backoff resolved:** shared REST quota reset at 01:42:22 UTC; helpers
-  resumed at 01:42:52 and confirmed the three second successes without duplicate
-  reruns. Remaining watches use 300-second intervals. CI was not stopped by the quota.
-- **Full Chrome pair complete on this head:** **`43539449510`** / **`43539458133`**,
-  both installs each, all four local independent audits, 98 named cases, 999 word
-  cells, all 92 original round-3 names and derived native group 12. All four latency
-  profiles pass, match frozen runtime, and stay below every nominal median/p95
-  ceiling in every phase. Longest Chrome jobs 31m01s / 29m00s.
-- **Only run still watched:** Mail **`43539458146`**, session **`52800`**, using
-  one blocking watcher at 300-second intervals. **Attempt 1 passed all 12 jobs
-  and 23 fault flows**, longest 60m48s; attempt 2 is underway.
-  [First-pass receipt](records/post18d/final-mail-43539458146-attempt1.json).
-  No more Chrome runs are planned.
-- **Budget:** **255 / about 280** Chrome runs, including this pair.
-- **Exact next step:** resume Mail session 52800; if stopped, inspect its finalized
-  attempt receipts before requesting anything, then use receipt-aware
-  `.work/post18d/resume-acceptance.py 43539458146 mail 2 1794620542`.
-  Require two successes on `a4143586`. Fetch both completed-attempt logs and run
-  `.work/post18d/save-shared-evidence.py mail`. Commit the receipt, refresh the safe
-  `.work/` files-over-500-MB inventory after the final logs, finalize REPORT/Handover and draft PR #27
-  with `[skip ci]`. All other required verification is complete. No code/review
-  work remains unless Mail fails. Never merge PR/main or force-push.
+- **Round:** final fixes ([brief](../../briefs/20-final-fixes.md)), answering
+  [REVIEW-FINAL](REVIEW-FINAL.md) and [SECURITY-FINAL](SECURITY-FINAL.md). Claude agents build it in four steps
+  (owner, board #222). Progress, what is left in order and what the code doesn't show:
+  [PROGRESS.md](PROGRESS.md).
+- **Step 1 (Mail and storage) is done.** It covers F1, the Mail sweep changes, F5 and the stale receipt; see "Final
+  fixes round" below. Commits: `b72c81fa` (F1), `b7f58bc6` (F5, receipt), `2e5eb35e` (sweep).
+- **Code head:** **`2e5eb35e`**. The full local preflight passes:
+  - **271 Python, 373 Node and 319 mutations**, every mutation baseline passing;
+  - the generator, diff and exact-unit checks (unit byte-identical to `8b7e799c`).
+  - No browser run in this step. The new Chrome runtime is not yet CI-measured.
+- **Next:**
+  - step 2: F2, F3, F6 and the reader and adapter notes;
+  - step 3: F7, polkit;
+  - step 4: F4, the doc notes, one batched browser run, the final preflight and the records.
+  - Then the lead's scoped re-check, and only after it the final pair and every Control workflow twice.
+- **Budget:** **255 / about 280** `control-chrome.yml` runs; this step started none.
+- **Earlier head `a4143586`** (before this round): its Chrome pair, base, boundary and qualification passed. Mail
+  `43539458146` passed attempt 1. They are history now: the code has changed, so the final pair reruns everything.
+  Never merge the PR or main, and never force-push.
+
+# Final fixes round (2026-11-14)
+
+## Step 1: Mail and storage
+
+**F1, Mail reads on a full disk.**
+- **What was wrong.** `Store.iter_operations` forced `INDEXED BY operation_headers` with `ORDER BY k`. `k` isn't in
+  that index, so every shape sorted in a temporary B-tree. From a few hundred retained operations the sort spills to
+  a temporary file. On a full disk, Mail read, search and `control_pending` then returned `storage_limit`, where main
+  answers.
+- **The fix.**
+  - Every shape now walks the primary-key range `k>='op:' AND k<'op;'` in key order.
+  - The header filters stay in SQL behind a unary `+`, so no expression index can be picked, including one an
+    earlier build left behind. The `substr` prefix test stays for UTF-16 databases.
+  - The forced index and its creation are gone.
+- **Tests** (`control/chrome_tests/test_full_disk_reads.py`):
+  - `EXPLAIN QUERY PLAN` for all 16 shapes in four states: fresh, with the old index left behind, the same after
+    `ANALYZE`, and `ANALYZE` without it. None shows `TEMP B-TREE`, and every one reads through the primary-key index.
+  - With 1,200 retained operations of 3–4 KB, Mail read, Mail search and `control_pending` answer on a full disk with
+    the same data and no write. With the forced index put back, all three return `storage_limit`, first failure
+    `sqlite.main.create`, as the reviews found.
+  - Four removal probes (`final-f1-*`) put the forced index back or drop the unary `+`. All are rejected.
+  - The former probe `post18d-latency-recovery-space` is retired, because the code it guarded is gone.
+
+**Why the Mail fault sweep grew** (the analyst's
+[record](records/post18d/mail-sweep-growth.md), confirmed in both reviews).
+- **Cases: 28,519 on main → 110,065 on the branch** (CI, ×3.86).
+  - 99.3% of the extra cleanup pairs close the read-only journal that Chrome's committed projection opens while each
+    result builds its warning list.
+  - The projection caches on the journal's inode, size and mtime. Main's sweep scripts gave the journal a new stamp
+    on every stat, so the sweep re-read it about 26 times per Mail request.
+  - The 272 extra single and persistent cases were one page per changed `op:` row in the `operation_headers` index.
+- **Time per case: 1.15× (median, CI)**, mostly test-only.
+  - A source checkout hashed 92 Chrome runtime files at every Engine start.
+  - The forced journal re-reads cost the rest.
+- **Mail's own calls: equal or faster.**
+  - The one cost is **+0.06 ms per read in a fresh store** (0.55 → 0.61 ms). It is Chrome's warning check
+    (`f3cfd5b1`), and it buys a safety property: Chrome's open page-step checks, unknown-outcome inputs and
+    unacknowledged warnings show in every app's results from the hash-verified committed journal, even while
+    SQLite reads fail. A Mail result can't hide a Chrome input that may have run.
+  - With history the branch was faster: at 1,000 / 4,000 operations, read 113 → 90 / 443 → 357 ms.
+
+**The sweep changes** (`2e5eb35e`; test-only, the CI timeout stays 120 minutes).
+- **Production cache key.**
+  - The swept journal's stamp changes only when its inode or size changes, as production's key sees it. The
+    database stamps stay fresh on every stat, so the independent Driver still decodes every snapshot.
+  - The new stamp per stat was deliberate for the Driver, not for Chrome. So one flow, `cancel`, keeps it as the one
+    cache-miss case, reaching every Chrome journal-read call site, and the other flows drop the identical repeats.
+  - Coverage, measured with the analyst's harness against the F1-only head:
+    - the 47 distinct primary sites and 81 distinct cleanup sites all stay covered, overall and in every flow;
+    - every main site is covered (main's `iter_items` sites are now `iter_operations`).
+  - `test_sweep_journal_stamp.py` pins it.
+- **`build-id.json` fixture.**
+  - The Mail tests get an installed `chrome/build-id.json`: the same hash, computed once per process.
+  - `test_build_identity.py` keeps the missing-file path, hashing the source tree, covered.
+- **Case counts,** local reproduction with the same harness and Mac. The analyst's local numbers were main 28,321
+  and branch 109,519; this reproduction matches main exactly.
+
+  | Head | Single | Persistent | Pairs | Cases |
+  |---|---|---|---|---|
+  | main `b2b51107` | 6,259 | 6,259 | 15,803 | **28,321** |
+  | F1 only `b72c81fa` | 6,259 | 6,259 | 92,817 | **105,335** |
+  | final `2e5eb35e` | 6,259 | 6,259 | 22,540 | **35,058** (×1.24 main) |
+
+  F1 brings single and persistent back to main's exact count. The CI count follows in the final pair; 19 of 23 flows
+  matched CI exactly in the analyst's reproduction.
+
+**Mail's per-call times after F1 and the sweep change** (analyst's `latency.py`, 50 calls per type, ABBA
+plain runs averaged; [record](records/post18d/mail-sweep-after-f1.json),
+[summary](records/post18d/mail-sweep-after-f1.md)). Median ms, main `b2b51107` → `2e5eb35e`:
+
+| Retained ops | read | search | file | compose | prepare_send | expiry |
+|---|---|---|---|---|---|---|
+| 0 | 0.51 → 0.60 | 3.79 → 3.90 | 7.53 → 7.58 | 4.08 → 3.92 | 7.43 → 6.75 | 3.31 → 2.52 |
+| 1,000 | 102 → 91 | 105 → 95 | 147 → 109 | 192 → 145 | 154 → 115 | 46 → 11.5 |
+| 4,000 | 402 → 358 | 409 → 363 | 563 → 393 | 756 → 559 | 599 → 431 | 189 → 37 |
+
+- **With history, every call is at or below main** (0.19× to 0.90×).
+- **Expiry lost the index and still beats main** by 4×–5×.
+- **In a fresh store,** read is +0.095 ms, search +0.115 ms and file +0.05 ms (1.01×–1.03× for search and file).
+  - This is the same per-result Chrome warning check as the accepted read cost.
+  - The analyst's pre-F1 record shows the same pattern: read +0.07, search +0.09, file +0.10 ms.
+  - So this step changed none of it.
+  - It is a constant 0.1 ms per result, not growth. Removing it would remove the safety property above, so it stays
+    unless the lead decides otherwise.
+- **Time per sweep case** on this Mac (`case_cost.py`), main → final:
+  - maintenance 11.5 → 12.9 ms (it was 20.2 before);
+  - status 37.1 → 42.8 ms;
+  - cancel, the kept cache-miss flow, 18.0 → 23.6 ms.
+  - With ×1.24 cases, the local sweep's work is about 1.4× main's, where it was about 5×.
+- **Full disk:** `fulldisk_read.py` finds Mail read and search answering on both heads at 0, 300, 500, 700, 1,000 and
+  4,000 retained operations.
 
 # Post-18d integration — final repetitions pending
 
@@ -658,6 +730,9 @@ predicates remain after filtering. Index admission uses the existing space ledge
 low space can decline it and use the same unindexed query. Regression tests retain
 legacy/mixed-app warnings, fresh updates, rollback and fallback behavior.
 The 525 ms observation wait and every durable journal write remain unchanged.
+*(Superseded by final fixes F1: the forced index made every shape sort in a
+temporary B-tree, so the index is gone and the same SQL filters now walk the
+primary-key range in key order. See "Final fixes round" at the top.)*
 
 The paired CI measurement now runs current/old sequentially on the same runner,
 in plain and instrumented modes, measuring fresh, 1,000- and 4,000-operation
