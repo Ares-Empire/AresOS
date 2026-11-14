@@ -272,6 +272,12 @@ class IconThemeIndexTest(IconBase):
             'absolute folder': b'[Icon Theme]\nDirectories=/outside\n[/outside]\nSize=48\n',
             'NUL': BREEZE_INDEX + b'\0',
             'group header': b'[Icon Theme\nDirectories=apps/48\n',
+            # Review fixes 4, SHOULD 4: an index without its structure is broken too.
+            'empty': b'',
+            'plain text': b'not an icon theme\njust = some words\n',
+            'no [Icon Theme] group': b'Directories=apps/48\n[apps/48]\nSize=48\nType=Scalable\n',
+            'no Directories key': b'[Icon Theme]\nName=Breeze\n[apps/48]\nSize=48\nType=Scalable\n',
+            'no folder named': b'[Icon Theme]\nDirectories= , \n[apps/48]\nSize=48\nType=Scalable\n',
             'link out of the root': None,
             'FIFO': None,
         }

@@ -1313,7 +1313,8 @@ def read_icon_index(path, roots):
 
     Read like a desktop entry: through the checked, pinned descriptor, at most ICON_INDEX_BYTES and
     ICON_INDEX_FOLDERS folders. A folder at a Scale over 1, or without a Size from 1 to ICON_LARGEST, is left out; a
-    folder name that is not a plain relative path refuses the whole index.
+    folder name that is not a plain relative path refuses the whole index, and so does an index without an
+    [Icon Theme] group whose Directories names a folder (review 4, SHOULD 4: an empty or garbage file is broken).
     """
     with os.fdopen(open_confined(path, roots), 'rb') as handle:
         if os.fstat(handle.fileno()).st_size > ICON_INDEX_BYTES:
@@ -1335,8 +1336,12 @@ def read_icon_index(path, roots):
         elif group is not None and '=' in line:
             key, _, value = line.partition('=')
             group.setdefault(key.strip(), value.strip())
-    names = [name.strip() for name in groups.get('Icon Theme', {}).get('Directories', '').split(',')]
+    if 'Directories' not in groups.get('Icon Theme', {}):
+        raise ValueError('index.theme has no [Icon Theme] group with Directories')
+    names = [name.strip() for name in groups['Icon Theme']['Directories'].split(',')]
     names = list(dict.fromkeys(name for name in names if name))
+    if not names:
+        raise ValueError('index.theme lists no folders')
     if len(names) > ICON_INDEX_FOLDERS:
         raise ValueError(f'index.theme lists more than {ICON_INDEX_FOLDERS} folders')
     folders = []
