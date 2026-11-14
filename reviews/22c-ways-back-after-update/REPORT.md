@@ -2283,3 +2283,150 @@ against the API): **22 checks runs, 1 probe, 558 of 1200 minutes** (this run 36,
 Cleanup: the run logs under `/var/home/ares/pkg22c-work/` are removed; `.work/` is empty (no file over 500 MB); no
 download was made; no builder-started test or watch process remains; no Gradle daemon was started. PR #46 stays
 draft; nothing was merged or pushed to main.
+
+## Review fixes 4
+
+Builder: a Claude agent on Opus 5.5 (`briefs/22c-review-fixes-4.md`; review 5, gpt-6-astra high on `2312fa99`,
+CHANGES-NEEDED: one blocking, one should-fix; it confirmed round 3's four fixes and the judgment call on previous).
+Two fixes, one commit each, pushed after each: `f646fe03` (1), `953aa973` (2). **No rule of the owner tools changed**
+(nothing under `os/owner-tools/` or `os/release/`; the bundle stays `ba4c2bb4…`); no CI file changed. No VM was
+dispatched, nothing was merged or pushed to main, and no owner tool, start block, `rpm-ostree`, `bootc` or `ostree
+admin` ran on the laptop. Tested head: **`953aa973`**; the closing commit changes this report only. The routes were
+traced in `os/tests/ways_back_ledger.py` as in round 3, and every traced case is a test assertion.
+
+### 1. (Blocking) Forward again never stages
+
+**The case** (review 5, reproduced in the ledger): release 28's tools installed, its update's finish lost, so 27, 13
+and plain Bazzite stay. Rollback to plain Bazzite, back with update: "Newest installed AresOS starts next" (27) and,
+after the restart, **Update to … confirmed after the restart**, which round 3's condition took as "the last update
+route finished". Later previous to 13. Round 3's box then ran update on 13, which runs and starts next: it staged 28,
+and the restart keeps 28, 13 and plain Bazzite, so 27 is gone.
+
+**What a line can tell.** Neither `check` nor `title` prints the tools' own release: rule 8 names each system by its
+role and digest, never by release, and the tools' release appears only in update's own lines (staging, **Newest AresOS
+starts next**, **newer still**). So no line tells, before update runs, whether the tools' release is installed. What
+check does show is the fact that decides staging: `update` stages only on an AresOS that runs and starts next (on
+plain Bazzite, or where `rows[0] is not booted`, it only reorders: `owner.py`, `update`).
+
+**Changed** (`docs/INSTALL.md`, last box). The box now starts with `sudo /var/lib/ares/at check` and goes by its line
+naming what runs:
+- **plain Bazzite …**, or a line ending **this start was not the default**: run the update block;
+- **older AresOS … runs and starts next** (forward again's first step): do **not** run update there; reboot, take the
+  newer AresOS's row from the boot menu (the row this check's **Boot menu at the next start:** line names), then check
+  again: the line is now **newer AresOS … runs; older AresOS … starts next; this start was not the default** (the
+  integrator's two-step path; update there only reorders);
+- **newer AresOS … runs and starts next**: forward already, nothing to do; anything else → Help.
+
+The change bullet names both titles a change prints (**starts next, after the restart** from plain Bazzite or the
+older AresOS, **runs and now starts next; no restart is waiting** from the newer one). Round 3's condition ("the last
+update route you followed finished") is gone. The status row's calm test follows the box (previous, restart, the newer
+AresOS from the boot menu, update, restart, …). And a slip of mine in round 3: "`PASS check` whose first line names"
+is now "`PASS check` showing", since check prints its console and layout lines before the title's (asserted absent).
+
+**Traced** (the 750 destination states of round 3; every idle state on plain Bazzite or with two releases; the box
+followed from check, whether or not the tools' release is installed):
+
+| check's running line | Box entries | What the box does | Result |
+|---|---|---|---|
+| plain Bazzite … | 224 | update block | never stages; the newest installed runs and starts next after the restart |
+| … this start was not the default | 233 (+ 58 after the first step) | update block | never stages; same end; a change confirms |
+| older AresOS … runs and starts next | 58 | first step: the newer AresOS's row, then the block | never stages; in 16 of these, update at once would have staged |
+| newer AresOS … runs and starts next | 63 | nothing to do | — |
+| anything else (… runs and now starts next; no restart is waiting, or one release) | 32 | Help | — |
+
+Wherever update says **The release of these tools is newer still**, following it would stage (146 cases); the box
+says not to. The connected regression replays review 5's sequence step by step: round 3's box stages 28 and the
+restart leaves 28, 13 and plain Bazzite; this box ends with 27 running and starting next, **Update to … confirmed**,
+nothing staged.
+
+**Tests.** `test_forward_and_back_box_never_installs_a_release` is rewritten: it reads the box's three dispatch
+bullets and follows them from check's running line, computed from the ledger state as rule 8 prints it (round 3's
+version substituted "the tools' release is installed" for the guide's own condition, which review 5 rightly
+criticised). New: `test_forward_again_after_a_failed_update_a_stock_return_and_previous_never_stages`. The update
+route's order list changes on purpose for the box's dispatch.
+
+### 2. (Should-fix) The failed-update card keeps the result of a check just run
+
+**The case** (review 5): release 28's finish lost; the provisional title's `(ostree:1)` boots 13. The boot menu's
+check (or the update route's check box) shows **Update to … was not applied** and archives the journal (rule 5); its
+link leads to the card, whose own check then shows only **older AresOS … runs; newer AresOS … starts next; this start
+was not the default**: none of the card's results, so no branch led back to 27.
+
+**Changed.** The card: "check comes **first**, never previous before it. If you came here from a check you just ran
+(the update route's check box or misbehaves box, or the boot menu), use that check's result: **was not applied** shows
+only once, and a second check no longer shows it. Otherwise … `sudo /var/lib/ares/at check` now." A new last branch:
+"Any other result, also a check with none of these lines: do **not** run previous; **STOP → go to Help**." The three
+places that run check and link to the card say "with this/that check's result (it shows only once)": the update
+route's check box (not-applied outcome), its misbehaves box, and the recovery menu. The card and the misbehaves box
+now quote the line itself ("check shows …") instead of "the first line".
+
+**Traced** (the linked entry: four staged starts, both ends of the shutdown, every row and no choice, 29 cases): each
+of the 13 lost finishes shows "not applied" at the linked check, and a second check shows nothing the card names (the
+card's last branch: Help, nothing changed); with the kept result the card ends on the AresOS from before the update
+(a restart with no choice where another row runs). "In place, not started" (8) shows again at a second check;
+"confirmed" (8) shows once, after which the card's later-day line applies. Review 5's sequence is asserted explicitly.
+
+**Tests.** `test_failed_update_card_checks_first_then_previous_only_where_the_update_is_in_place`: expectations
+changed on purpose (the entry sentence, the last branch, the linking places' wording, "first line" absent). New:
+`test_failed_update_card_keeps_the_result_of_a_check_just_run`.
+
+### Test expectations changed on purpose (B9)
+
+| Test | Old expectation | New expectation | Finding |
+|---|---|---|---|
+| `test_update_route_orders_…` (the last box) | "**Forward again** only when the last update route you followed finished" | check first, then the three dispatch bullets in order (block; first step without update, the boot menu, the newer AresOS's row; forward already, anything else → Help) | 1 |
+| `test_forward_and_back_box_never_installs_a_release` | the finished-route sentence; the ledger stand-in "tools' release installed" | the box's dispatch followed from check's running line in every entry | 1 |
+| `test_a_return_that_changes_nothing_…` | "`PASS check` whose first line names that AresOS" | "`PASS check` showing that AresOS"; "whose first line" absent | 1 |
+| `test_failed_update_card_checks_first_…` | "`sudo /var/lib/ares/at check` **first**, never previous before it"; "the first line" | the kept result of a check just run, otherwise check now; the "Any other result" branch; "with this/that check's result" in the three linking places | 2 |
+
+No test was deleted or skipped; `test_owner_path` grows from 44 to 46 tests (the shared 750-state helper is now one
+function, `destination_space`).
+
+### Verified
+
+Local, from the worktree, `TMPDIR=/var/home/ares/pkg22c-work`, `nice -n 10`, one module at a time:
+
+| Command | Result |
+|---|---|
+| `python3 -B -m unittest discover -s os/tests -p test_owner_path.py` | after fix 1: 45 tests, OK; after fix 2: 46 tests, OK |
+| `… -p test_owner_entry.py`, `test_owner_equality.py`, `test_checkout_sources.py`, `test_ways_back_probe.py` | after each fix: 3, 10, 5, 44 tests, OK |
+| `python3 -B reviews/22c-ways-back-after-update/walk-host.py`, then `rebind.py pending "<note>"` (after each fix) | `PASS package 22c host walks (reorder-probe): 255 sources; no VM started`; 35 bound files differ, 2 removed |
+
+`test_owner_update` and the full model did not run locally. `git diff --check` passed before each commit.
+
+Hosted, `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`, then one
+`gh run watch <id> --exit-status --interval 60`; totals from each job log's own unittest summary:
+
+| Hosted run | Head | Regressions job | Model job | Result |
+|---|---|---|---|---|
+| **[43567101039](https://github.com/Ares-Empire/AresOS/actions/runs/43567101039)** | **`953aa973`** (both fixes) | **13m43s: `Ran 1100 tests in 766.638s` / `OK`: 0 failures, 0 errors, 0 skipped**; the slice 173,476 states / 3,043,109 edges (153.7 s) | **17m17s: scope `full` (31 dependency paths), 963,003 states / 25,257,042 edges, `Ran 1 test in 978.749s` / `OK`** | Watch exit 0. 1100 = round 3's 1098 + the two new tests in `test_owner_path`. |
+
+The log has no `... FAIL`, `... ERROR` or `... skipped` result line. Ledger afterwards (read-only): **23 checks runs,
+1 probe, 590 of 1200 minutes** (this run 32).
+
+### JUDGMENT-CALL
+
+1. **Every forward again takes the two-step path, gated on check's running line.** The integrator asked for the
+   two-step path when the tools' release is not installed, and for the box to tell the case from check's or title's
+   lines. No such line names the tools' release (rule 8), so the box tells apart the case that decides staging (does
+   the running AresOS start next?) and uses the two-step path for forward again whether or not the tools' release is
+   installed. Cost: when it is installed, one extra restart and a boot-menu choice that the one-step path did not need.
+   A line naming the tools' release in `title` would allow the one-step path again: a tools change (rule 8), not done.
+
+### PLAN-GAP / open questions
+
+1. Stage 2's rehearsal (E) walks the box: it must take forward again's two steps (the newer AresOS's boot-menu row,
+   then update), not update on the older AresOS.
+2. Round 3's open question 1 (a tool-side guard against staging outside the stage box) stands; the box no longer
+   depends on it.
+
+### For the fix check (read in this order)
+
+1. `docs/INSTALL.md` last box (its check-first dispatch) against the first table and review 5's sequence.
+2. `docs/EMERGENCY.md` "Failed or bad update" (the entry sentence and the last branch); the three linking places.
+3. `os/tests/test_owner_path.py`: `forward_box`, `running_line`, the two forward tests and
+   `test_failed_update_card_keeps_the_result_of_a_check_just_run`.
+
+Cleanup: the run logs under `/var/home/ares/pkg22c-work/` are removed; `.work/` is empty (no file over 500 MB); no
+download was made; no builder-started test or watch process remains; no Gradle daemon was started. PR #46 stays
+draft; nothing was merged or pushed to main.
