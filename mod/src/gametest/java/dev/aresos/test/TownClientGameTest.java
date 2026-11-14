@@ -145,6 +145,16 @@ public final class TownClientGameTest implements FabricClientGameTest {
                     var player = world.getConnection().getServerPlayer();
                     player.teleportTo(player.getX() - 2, player.getY(), player.getZ());
                 });
+
+                // A name change reaches the signs (review fixes 1, step B, point 4): the real command asks the town,
+                // and its own scheduler renews Chrome's logo; no pass is called here.
+                var oldSign = world.getServer().computeOnServer(server -> HubData.get(server).logo("browser").orElseThrow().gate().sign().orElseThrow());
+                check(world.getServer().computeOnServer(server -> sign(server, "browser")).equals("Chrome\n/chrome"), "Chrome's sign before the name");
+                context.runOnClient(client -> client.player.connection.sendCommand("aresos app name browser web"));
+                waitForServer(context, world, server -> sign(server, "browser").equals("Chrome\n/web"), "Chrome's sign did not follow its new name", 600);
+                context.waitFor(client -> messages.contains("The logo of Chrome was renewed."), 100);
+                world.getServer().runOnServer(server -> check(server.overworld().getEntity(oldSign) == null && HubData.get(server).logos().size() == 4,
+                        "The old sign stayed, or the town changed: " + HubData.get(server).logos()));
             }
             AresOs.LOGGER.info("36 client checks passed: the town stands up after the host joins (a complete list, the picture thread, "
                     + "the pass), its lines and counts; app remove takes a logo down; hub rebuild says one line");
@@ -187,6 +197,13 @@ public final class TownClientGameTest implements FabricClientGameTest {
         } catch (CommandSyntaxException error) {
             throw new AssertionError(command + ": " + error.getMessage(), error);
         }
+    }
+
+    /** What the sign of an app's town logo says; empty when it has none in the world. */
+    private static String sign(MinecraftServer server, String app) {
+        var hub = HubData.get(server);
+        return hub.logo(app).flatMap(logo -> logo.gate().sign()).map(id -> server.getLevel(hub.home().dimension()).getEntity(id))
+                .map(entity -> ((TextDisplayAccess) entity).aresos$text().getString()).orElse("");
     }
 
     /** How many gates built by hand stand in the world. */

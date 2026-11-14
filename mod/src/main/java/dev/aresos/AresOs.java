@@ -74,15 +74,22 @@ public final class AresOs implements ModInitializer {
         // This operation only edits names. Do not reload launch definitions or replace a newer in-memory list.
         var byId = saved.stream().collect(java.util.stream.Collectors.toMap(AppDefinition::id, AppDefinition::names));
         var updated = apps.stream().map(app -> byId.containsKey(app.id()) ? app.withNames(byId.get(app.id())) : app).toList();
-        if (!apps.equals(updated)) apps = updated;
+        if (apps.equals(updated)) return;
+        apps = updated;
+        // A main name that changed by itself (a new or displaced name): the town's signs follow.
+        dev.aresos.hub.TownKeeper.ask();
     }
 
+    /** `/aresos app name`: saved, then the town's signs follow (package 36, review fixes 1, step B, point 4). */
     public static synchronized void name(String id, String name, Set<String> reserved) throws IOException {
         apps = AppsConfig.name(configPath(), id, name, reserved);
+        dev.aresos.hub.TownKeeper.ask();
     }
 
+    /** `/aresos app unname`: saved, then the town's signs follow. */
     public static synchronized void unname(String name) throws IOException {
         apps = AppsConfig.unname(configPath(), name);
+        dev.aresos.hub.TownKeeper.ask();
     }
 
     /**
