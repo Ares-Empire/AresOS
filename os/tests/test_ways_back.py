@@ -7,7 +7,11 @@ and the tools 2-to-3 compatibility tests (B8) are separate modules.
 
 "Selection applied", "restart waiting" and "target boot confirmed" are three states here:
 the list, the boot id, and a later boot that runs the target. No helper merges them.
+
+One word per meaning (briefs/22c-forward-command.md): update stages the release of the tools
+or changes nothing; forward selects the newest installed AresOS and never stages.
 """
+import collections
 import contextlib
 import copy
 import io
@@ -154,7 +158,7 @@ class ShapeTest(Unchanged, unittest.TestCase):
         cases['bootc contradicts the order'] = (slots, H21)
         for name, (state, known) in cases.items():
             with self.subTest(name=name), laptop(state, known) as (tools, host, store):
-                for method in (tools.title, tools.reboot, tools.update, tools.previous, tools.recover):
+                for method in (tools.title, tools.reboot, tools.update, tools.forward, tools.previous, tools.recover):
                     self.unchanged(host, method, '')
 
     def test_a_staged_row_on_running_stock_beside_aresos_says_rule_10_from_every_command(self):
@@ -164,8 +168,8 @@ class ShapeTest(Unchanged, unittest.TestCase):
             for new in (foreign, row(R30, staged=True)):  # also when the staged row is the bundle's target
                 state = machine([new, *[row(role, booted=role == 'S') for role in order]])
                 with self.subTest(order=order, digest=new['container-image-reference-digest'][:12]), laptop(state, H30) as (tools, host, store):
-                    for method in (tools.title, tools.check, tools.records, tools.reboot, tools.update, tools.previous, tools.recover,
-                                   tools.login, tools.verify, tools.switch, tools.prepare,
+                    for method in (tools.title, tools.check, tools.records, tools.reboot, tools.update, tools.forward,
+                                   tools.previous, tools.recover, tools.login, tools.verify, tools.switch, tools.prepare,
                                    lambda: tools.recover(True), lambda: tools.layout('begin', 'us'), lambda: tools.layout('abandon')):
                         self.unchanged(host, method, 'A Bazzite update is waiting. Do not restart: the restart deletes both AresOS releases. Get help.')
         with laptop(machine([foreign, row(R13), row('S', True)])) as (tools, host, store):
@@ -183,7 +187,7 @@ class ShapeTest(Unchanged, unittest.TestCase):
         with self.assertRaisesRegex(owner.Stop, 'Unexpected staged switch'):
             owner.qualified_state(machine([row(R13, staged=True), *stock]), saved, R21, [R13, R21])
         with laptop(saved['state']) as (tools, host, store):
-            for method in (tools.update, tools.previous, tools.recover, lambda: tools.recover(True)):
+            for method in (tools.update, tools.forward, tools.previous, tools.recover, lambda: tools.recover(True)):
                 self.unchanged(host, method, '')
             self.assertEqual(tools.title()[0], 'stock ' + ' '.join(map(str, saved['stock_identity'])))
 
@@ -192,11 +196,18 @@ class ShapeTest(Unchanged, unittest.TestCase):
             tools.paused.side_effect = owner.Stop('OS updater timer is not persistently disabled: uupd.timer')
             warning, = [line for line in tools.title() if line.startswith('WARNING: ')]
             self.assertIn('uupd.timer', warning)
-            self.assertIn('run sudo /var/lib/ares/at update to go back to AresOS, then get help', warning)
-            self.unchanged(host, lambda: tools.recover(True), 'uupd.timer; nothing changed')
+            self.assertIn('run sudo /var/lib/ares/at forward to go back to AresOS, then get help', warning)
+            self.unchanged(host, lambda: tools.recover(True), 'uupd.timer; nothing changed. Bazzite must not update while AresOS is '
+                           'installed: run sudo /var/lib/ares/at forward to go back to AresOS, then get help')
             tools.reboot()
-            self.assertEqual(tools.update()[:2], ['Newer AresOS ' + R21.split(':')[1][:12] + ' already starts next; nothing changed',
-                                                  'It does not run yet: it starts at the next restart'])
+            self.assertEqual(tools.forward()[:2], ['Newer AresOS ' + R21.split(':')[1][:12] + ' already starts next; nothing changed',
+                                                   'It does not run yet: it starts at the next restart'])
+        # The way off is a real change too: forward reorders on stock while its updaters are on.
+        with laptop(listed(('S', R21, R13), 'S')) as (tools, host, store):
+            tools.paused.side_effect = owner.Stop('OS updater timer is not persistently disabled: uupd.timer')
+            lines = tools.forward()
+            self.assertEqual((lines[0], roles(host)), ('Newest installed AresOS starts next ' + R21, ([R21, 'S', R13], 'S')))
+            self.assertTrue(any(line.startswith('WARNING: ') for line in lines))
 
     def test_install_survey_leaves_prepared_and_first_switch_checks_in_charge(self):
         saved = base.prepared()
@@ -357,13 +368,13 @@ class DestinationTest(Unchanged, unittest.TestCase):
     """Rules 3 and 4: each word names a destination, reached by the one reorder."""
 
     def test_each_word_moves_only_its_target_to_the_front_from_every_order_and_system(self):
-        words = {'update': R21, 'previous': R13, 'stock': 'S'}
+        words = {'forward': R21, 'previous': R13, 'stock': 'S'}
         for order in itertools.permutations((R21, R13, 'S')):
             for running in order:
                 for word, target in words.items():
                     with self.subTest(order=order, running=running, word=word), laptop(listed(order, running)) as (tools, host, store):
                         before = copy.deepcopy(host.state['rpm']['deployments'])
-                        method = {'update': tools.update, 'previous': tools.previous,
+                        method = {'forward': tools.forward, 'previous': tools.previous,
                                   'stock': lambda: tools.recover(keep=running == 'S')}[word]
                         lines = method()
                         if order[0] == target:
@@ -412,7 +423,7 @@ class DestinationTest(Unchanged, unittest.TestCase):
                 self.assertEqual(lines[0].endswith(' runs and starts next'), running == R13)
                 tools.reboot()
                 # Every destination is one command away, each from the same state.
-                for destination, method in (('S', lambda: tools.recover(running == 'S')), (R13, tools.previous), (R21, tools.update)):
+                for destination, method in (('S', lambda: tools.recover(running == 'S')), (R13, tools.previous), (R21, tools.forward)):
                     kept = (copy.deepcopy(host.state), {q.name: q.read_bytes() for q in store.iterdir()})
                     method()
                     self.assertEqual(roles(host), ([destination, *[r for r in order if r != destination]], running))
@@ -462,20 +473,132 @@ class DestinationTest(Unchanged, unittest.TestCase):
         with laptop(listed((R13, 'S'), R13)) as (tools, host, store):
             self.unchanged(host, tools.previous, 'Only one AresOS is installed')
 
-    def test_update_with_a_newer_bundle_reorders_where_it_may_not_stage_and_says_what_is_next(self):
-        for order, running, tail in (((R21, R13, 'S'), 'S', 'restart, then run sudo /var/lib/ares/at update again'),
-                                     ((R13, R21, 'S'), R21, 'run sudo /var/lib/ares/at update again'),
-                                     (('S', R13, R21), R13, 'restart, then run sudo /var/lib/ares/at update again')):
+    def test_update_never_selects_an_installed_system(self):
+        """One word per meaning: update stages the release of the tools, or changes nothing. Every
+        order and running system of the pair and the triple, with that release installed (R21) and
+        not installed (R30). Judged by the machine's state before and after."""
+        seen = collections.Counter()
+        for members in ((R21, 'S'), (R21, R13, 'S')):
+            for order in itertools.permutations(members):
+                for running in members:
+                    for known in (H21, H30):
+                        release = known[-1]['reference']
+                        with self.subTest(order=order, running=running, release=release[-4:]), \
+                                laptop(listed(order, running), known) as (tools, host, store):
+                            before = copy.deepcopy(host.state)
+                            if release not in order and running != 'S' and order[0] == running:
+                                # Rule 6, as before: the only state where update changes anything.
+                                seen['stages'] += 1
+                                self.assertEqual(tools.update()[0], 'Signed exact release staged ' + release)
+                                self.assertEqual(host.changes, ['bootc switch --retain ' + release])
+                                self.assertEqual((journal(store)['word'], journal(store)['mode']), ('update', 'staging'))
+                                self.assertEqual(roles(host), ([release, *order], running))
+                            elif order[0] == running == release:
+                                seen['nothing to do'] += 1
+                                lines = tools.update()
+                                label = owner.name(tools.shape, tools.shape['booted'])
+                                self.assertEqual(lines, [label[0].upper() + label[1:] + ' already starts next; nothing changed', 'It runs now'])
+                            else:
+                                # Nothing to install here, or no staging from here: the refusal names forward.
+                                message = owner.RELEASE_INSTALLED if release in order else owner.FORWARD_FIRST
+                                seen['names forward: ' + ('installed' if release in order else 'not from here')] += 1
+                                self.unchanged(host, tools.update, message)
+                                self.assertIn('run sudo /var/lib/ares/at forward (it makes the newest installed AresOS the next start', message)
+                                self.assertTrue(message.endswith('; nothing changed'))
+                            if not host.changes:
+                                self.assertEqual((host.state, journal(store), archived(store)), (before, None, []))
+                            # Never a reorder: no set-default, and the installed rows are as before, in their order.
+                            self.assertFalse([c for c in host.changes if c == 'sync' or c.startswith('ostree admin')])
+                            self.assertEqual([d for d in host.state['rpm']['deployments'] if not d.get('staged')], before['rpm']['deployments'])
+        self.assertEqual(seen, {'stages': 5, 'nothing to do': 3, 'names forward: installed': 19, 'names forward: not from here': 17})
+
+    def test_forward_selects_the_newest_installed_aresos_from_anywhere_and_never_stages(self):
+        """From plain Bazzite, the older AresOS and a start chosen in the boot menu, whether or not
+        the release of the tools is installed: no login, no network, no signature check, no new or
+        removed deployment. Judged by the machine's state before and after."""
+        count = 0
+        for members in ((R13, 'S'), (R21, R13, 'S')):
+            newest = members[0]
+            for order in itertools.permutations(members):
+                for running in members:
+                    for known in (H21, H30):
+                        with self.subTest(order=order, running=running, release=known[-1]['reference'][-4:]), \
+                                laptop(listed(order, running), known, login=False, signed={}) as (tools, host, store):
+                            before = copy.deepcopy(host.state['rpm']['deployments'])
+                            lines = tools.forward()
+                            count += 1
+                            self.assertFalse(any(t.get('script') in ('verify', 'update') for t in host.trace))
+                            tools.validated.assert_not_called()
+                            # The same deployments with the same flags and pins: nothing staged, created or removed.
+                            self.assertEqual(sorted(before, key=owner.key), sorted(host.state['rpm']['deployments'], key=owner.key))
+                            self.assertEqual(roles(host), ([newest, *[r for r in order if r != newest]], running))
+                            self.assertFalse(any('at update' in line for line in lines), lines)  # it never sends him on to an update
+                            if order[0] == newest:
+                                self.assertEqual((host.changes, journal(store)), ([], None))
+                                self.assertIn('already starts next; nothing changed', lines[0])
+                                self.assertEqual(lines[1], 'It runs now' if running == newest else 'It does not run yet: it starts at the next restart')
+                                continue
+                            self.assertEqual(host.changes, ['ostree admin set-default %d' % order.index(newest), 'sync'])
+                            self.assertEqual(lines[0], 'Newest installed AresOS starts next ' + newest)
+                            value = journal(store)
+                            self.assertEqual((value['schema'], value['mode'], value['word'], value['status']), ('change1', 'reorder', 'forward', 'recorded'))
+        self.assertEqual(count, 2 * (4 + 18))
+
+    def test_forward_never_touches_a_staged_update_or_continues_an_interrupted_one(self):
+        with laptop(listed((R21, R13, 'S'), R21), H30) as (tools, host, store):
+            tools.update()
+            self.assertEqual(roles(host)[0][0], R30)
+            self.unchanged(host, tools.forward, 'The update to ' + R30 + ' waits for the restart: restart first')
+            self.assertEqual(journal(store)['word'], 'update')
+        with laptop(listed((R21, R13, 'S'), R21), H30) as (tools, host, store):
+            host.interrupt = ('update', 'observe')  # staged; the status read after it fails, so only the intent is written
+            with self.assertRaises(OSError):
+                tools.update()
+            self.assertEqual((journal(store)['status'], roles(host)[0][0]), ('intent', R30))
+            self.unchanged(host, tools.forward, 'run sudo /var/lib/ares/at update to continue it')
+            self.assertEqual(journal(store)['status'], 'intent')
+            self.assertEqual(tools.update()[0], 'Interrupted update recorded: ' + R30)
+
+    def test_where_update_named_forward_forward_then_update_installs_the_release(self):
+        """What moved from update to forward (the old reordering update with a newer bundle): update
+        refuses with nothing changed; forward selects the newest installed AresOS and says nothing of
+        an update; once that AresOS runs and starts next, update stages the release of the tools."""
+        for order, running in (((R21, R13, 'S'), 'S'), ((R13, R21, 'S'), R21), (('S', R13, R21), R13)):
             with self.subTest(order=order, running=running), laptop(listed(order, running), H30) as (tools, host, store):
-                lines = tools.update()
+                self.unchanged(host, tools.update, owner.FORWARD_FIRST)
+                lines = tools.forward()
                 self.assertEqual(roles(host)[0][0], R21)
                 self.assertNotIn('bootc switch --retain ' + R30, host.changes)
-                self.assertTrue(lines[-1].endswith(tail), lines[-1])
-                self.assertIn(R30, lines[-1])
+                self.assertFalse(any(R30 in line or 'newer still' in line for line in lines), lines)
+                if running != R21:
+                    self.unchanged(host, tools.update, 'restart first' if order[0] != R21 else owner.FORWARD_FIRST)
+                    restart(tools, host)
+                self.assertEqual(roles(host)[1], R21)
+                self.assertEqual(tools.update()[0], 'Signed exact release staged ' + R30)
 
-    def test_login_refuses_where_update_needs_no_download(self):
-        with laptop(listed((R13, R21, 'S'), R13)) as (tools, host, store):
-            self.unchanged(host, tools.login, 'update needs no login')
+    def test_from_the_older_aresos_with_a_newer_bundle_each_installed_system_is_one_command_away(self):
+        """B2 at its original strength, in the state of briefs/22c-b2-destination-invariant.md:
+        [R13*, R21, S] with a bundle for R30. update stages R30 there (rule 6, unchanged); the newer
+        installed AresOS is one command away again, with no boot-menu step."""
+        for word, target in (('update', R30), ('forward', R21), ('rollback', 'S')):
+            with self.subTest(word=word), laptop(listed((R13, R21, 'S'), R13), H30) as (tools, host, store):
+                {'update': tools.update, 'forward': tools.forward, 'rollback': tools.recover}[word]()
+                self.assertEqual(roles(host), ([target, *[r for r in (R13, R21, 'S') if r != target]], R13))
+                self.assertEqual(bool(host.state['rpm']['deployments'][0].get('staged')), word == 'update')
+                self.assertEqual(len(host.state['rpm']['deployments']), 4 if word == 'update' else 3)
+
+    def test_login_refuses_where_update_would_refuse_or_has_nothing_to_install(self):
+        for order, running, known, message in (((R13, R21, 'S'), R13, H21, owner.RELEASE_INSTALLED),
+                                               ((R21, R13, 'S'), 'S', H21, 'Stock list/pin/pending/BLS changed before switch'),
+                                               ((R21, R13, 'S'), R21, H21, owner.RELEASE_RUNS),
+                                               (('S', R21, R13), R21, H30, owner.FORWARD_FIRST),
+                                               ((R21, R13, 'S'), R13, H30, owner.FORWARD_FIRST)):
+            with self.subTest(order=order, running=running, release=known[-1]['reference'][-4:]), \
+                    laptop(listed(order, running), known) as (tools, host, store), patch.object(owner, 'account'):
+                self.unchanged(host, tools.login, message)
+                self.assertEqual((journal(store), archived(store)), (None, []))
+        self.assertIn('needs no login', owner.RELEASE_RUNS)
+        self.assertIn('sudo /var/lib/ares/at forward', owner.RELEASE_INSTALLED)
 
     def test_a_modified_aresos_a_trial_a_client_or_a_missing_boot_entry_refuse_every_reorder(self):
         modified = machine([dict(row(R21, True), **{'requested-packages': ['x']}), row(R13), row('S')])
@@ -507,8 +630,10 @@ class JournalTest(Unchanged, unittest.TestCase):
             self.assertFalse(any('confirmed' in line for line in lines))
             tools.reboot()
             # A second change refuses: restart first. The destination already first changes nothing.
-            for method in (tools.previous, tools.update, lambda: tools.layout('begin', 'us')):
+            for method in (tools.previous, tools.forward, lambda: tools.layout('begin', 'us')):
                 self.unchanged(host, method, 'waits for the restart: restart first')
+            # update has nothing to install here and selects nothing: it names forward.
+            self.unchanged(host, tools.update, owner.RELEASE_INSTALLED)
             self.assertIn('already starts next; nothing changed', tools.recover()[0])
             restart(tools, host)
             lines = tools.title()
@@ -554,20 +679,52 @@ class JournalTest(Unchanged, unittest.TestCase):
             restart(tools, host)
             self.assertIn('Return to ' + R13 + ' confirmed after the restart', tools.title())
 
-    def test_a_new_change_supersedes_an_in_place_record_and_update_works_at_once(self):
+    def test_a_new_change_supersedes_an_in_place_record_and_forward_works_at_once(self):
         with laptop(listed((R21, R13, 'S'), R21)) as (tools, host, store):
             tools.previous()
             restart(tools, host, choice=1)
-            self.assertEqual(tools.update()[0], 'Newest AresOS starts next ' + R21)
+            self.assertEqual(tools.forward()[0], 'Newest installed AresOS starts next ' + R21)
             self.assertEqual(archived(store), ['in-place-not-started'])
             self.assertTrue(tools.title()[0].endswith(' runs and now starts next; no restart is waiting'))
             restart(tools, host)
-            self.assertIn('Update to ' + R21 + ' confirmed after the restart', tools.title())
+            self.assertIn('Forward to ' + R21 + ' confirmed after the restart', tools.title())
+
+    def test_forward_keeps_applied_waiting_and_confirmed_apart(self):
+        """Forward's three states, as every reorder has them: from a system that is not its target
+        the selection is applied and a restart waits; on its target (taken in the boot menu) it is
+        applied and nothing waits; only a later boot that runs the target confirms."""
+        reference = 'Forward to ' + R21
+        for running, choice in itertools.product(('S', R13, R21), (0, 1)):
+            with self.subTest(running=running, next_start=choice), laptop(listed((R13, R21, 'S'), running)) as (tools, host, store):
+                self.assertEqual(tools.forward()[0], 'Newest installed AresOS starts next ' + R21)
+                self.assertEqual((journal(store)['status'], journal(store)['boot'], archived(store)), ('recorded', 'boot-1', []))
+                lines = tools.title()
+                self.assertFalse(any('confirmed' in line for line in lines), lines)
+                if running == R21:
+                    self.assertTrue(lines[0].endswith(' runs and now starts next; no restart is waiting'), lines[0])
+                    self.assertFalse(any('not finished' in line for line in lines), lines)
+                    tools.previous()  # every command works at once
+                    self.assertEqual(archived(store), ['applied-not-restarted'])
+                    continue
+                self.assertTrue(lines[0].endswith('newer AresOS ' + R21.split(':')[1][:12] + ' starts next, after the restart'), lines[0])
+                self.assertIn(reference + ' is not finished until the restart', lines)
+                self.unchanged(host, tools.previous, 'The forward to ' + R21 + ' waits for the restart: restart first')
+                self.assertEqual(tools.forward()[1], 'It does not run yet: it starts at the next restart')
+                restart(tools, host, choice)
+                lines = tools.title()
+                if choice == 0:
+                    self.assertIn(reference + ' confirmed after the restart', lines)
+                    self.assertEqual((journal(store), archived(store)), (None, ['confirmed']))
+                    self.assertFalse(any('confirmed' in line for line in tools.title()))
+                else:
+                    self.assertIn(reference + ' is in place and has not started yet', lines)
+                    self.assertFalse(any('confirmed' in line or 'fail' in line.lower() for line in lines), lines)
+                    self.assertEqual((journal(store)['status'], archived(store)), ('recorded', []))
 
     def test_every_cut_of_every_reorder_resolves_from_the_list_alone(self):
         cases = {'rollback': (R21, lambda t: t.recover(), 'S'), 'keep-stock': ('S', lambda t: t.recover(True), 'S'),
-                 'previous': (R21, lambda t: t.previous(), R13), 'update': (R13, lambda t: t.update(), R21)}
-        start = {'keep-stock': (R21, R13, 'S'), 'update': (R13, R21, 'S')}
+                 'previous': (R21, lambda t: t.previous(), R13), 'forward': (R13, lambda t: t.forward(), R21)}
+        start = {'keep-stock': (R21, R13, 'S'), 'forward': (R13, R21, 'S')}
         for word, (running, command, target) in cases.items():
             order = start.get(word, (R21, R13, 'S'))
             for point in ('before', 'after', 'observe', 'record'):
@@ -604,7 +761,7 @@ class JournalTest(Unchanged, unittest.TestCase):
                                 self.assertEqual(any('is in place and has not started yet' in l for l in lines), not runs_target)
                         waits = made and choice is None and roles(host)[1] != target
                         # Every destination is one command away, unless a change waits for the restart.
-                        for destination, method in (('S', lambda: tools.recover(roles(host)[1] == 'S')), (R13, tools.previous), (R21, tools.update)):
+                        for destination, method in (('S', lambda: tools.recover(roles(host)[1] == 'S')), (R13, tools.previous), (R21, tools.forward)):
                             # Each from the same state: the machine and the records are put back in between.
                             kept = (copy.deepcopy(host.state), {q.name: q.read_bytes() for q in store.iterdir()})
                             if waits and roles(host)[0][0] != destination:
@@ -665,11 +822,11 @@ class JournalTest(Unchanged, unittest.TestCase):
         with laptop(listed((R21, R13, 'S'), R21)) as (tools, host, store):
             tools.previous()
             host.state = listed((R13, 'S', R21), R21)
-            for method in (tools.title, tools.reboot, tools.update, tools.recover):
+            for method in (tools.title, tools.reboot, tools.update, tools.forward, tools.recover):
                 self.unchanged(host, method, 'neither as before it nor as it intended')
             host.state = listed((R13, R21, 'S'), R21)
             tools.save(owner.OUTCOME, dict(journal(store), schema='change9'))
-            for method in (tools.title, tools.update, tools.previous, tools.recover):
+            for method in (tools.title, tools.update, tools.forward, tools.previous, tools.recover):
                 self.unchanged(host, method, 'unknown tools (schema change9); nothing changed')
 
 
@@ -942,9 +1099,13 @@ class LayoutTest(Unchanged, unittest.TestCase):
             self.assertFalse((store / 'layout-pending.json').exists())
 
     def test_begin_refuses_on_stock_when_not_default_and_with_a_change_waiting(self):
-        for running, waiting, message in (('S', False, 'German layout'), (R13, False, 'does not start next'),
-                                          (R21, True, 'restart first')):
-            with self.subTest(running=running, waiting=waiting), laptop(listed((R21, R13, 'S'), running), host_class=KeyboardMachine) as (tools, host, store), keyboard_sessions(tools, host):
+        for order, running, waiting, message in (
+                ((R21, R13, 'S'), 'S', False, "German layout: no layout trial here; nothing changed; run sudo /var/lib/ares/at forward to go back to AresOS first"),
+                ((R21, R13, 'S'), R13, False, 'does not start next: make it the next start first (sudo /var/lib/ares/at previous), then begin the trial'),
+                ((R13, R21, 'S'), R21, False, 'does not start next: make it the next start first (sudo /var/lib/ares/at forward), then begin the trial'),
+                (('S', R13), R13, False, 'does not start next: make it the next start first (sudo /var/lib/ares/at forward), then begin the trial'),
+                ((R21, R13, 'S'), R21, True, 'restart first')):
+            with self.subTest(running=running, waiting=waiting), laptop(listed(order, running), host_class=KeyboardMachine) as (tools, host, store), keyboard_sessions(tools, host):
                 if waiting:
                     tools.previous()
                 before = copy.deepcopy(host.settings)

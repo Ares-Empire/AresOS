@@ -567,18 +567,31 @@ class UpdateCommandTest(unittest.TestCase):
             with self.subTest(name=name), route(state, known, **options) as (tools, host, store):
                 self.unchanged(tools, host, store, tools.update, message)
 
-    def test_old_direction_refusals_now_select_the_destination_without_network(self):
+    def test_forward_selects_the_destination_without_network_where_update_only_names_it(self):
+        """One word per meaning (briefs/22c-forward-command.md). In the states of the old direction
+        refusals update selects nothing: it refuses with nothing changed and names forward, or has
+        nothing to do. Forward selects the newest installed AresOS there, with no login, network or
+        signature check, and never says that a newer release could be installed."""
         cases = (
-            ('queued stock rollback', machine([stock_row(), release_row(R13, booted=True)]), H21, R13),
-            ('queued previous', queued_previous(), H30, R21),
-            ('nothing newer', pair(), H13, R13),
-            ('booted stock', machine([stock_row(True), release_row(R13)]), H21, R13),
-            ('target already deployed', returned(), H21, R21),
+            ('queued stock rollback', machine([stock_row(), release_row(R13, booted=True)]), H21, R13, owner.FORWARD_FIRST),
+            ('queued previous', queued_previous(), H30, R21, owner.FORWARD_FIRST),
+            ('nothing newer', pair(), H13, R13, None),
+            ('booted stock', machine([stock_row(True), release_row(R13)]), H21, R13, owner.FORWARD_FIRST),
+            ('target already deployed', returned(), H21, R21, owner.RELEASE_INSTALLED),
         )
-        for name, state, known, target in cases:
+        for name, state, known, target, refusal in cases:
             with self.subTest(name=name), route(state, known, login=False, signed={}) as (tools, host, store):
                 before = copy.deepcopy(host.state)
-                lines = tools.update()
+                if refusal is None:
+                    # The release of these tools runs and starts next: nothing to do.
+                    lines = tools.update()
+                    self.assertIn('already starts next; nothing changed', lines[0])
+                    self.assertEqual((lines[1], host.state, host.changes), ('It runs now', before, []))
+                else:
+                    self.assertIn('run sudo /var/lib/ares/at forward', refusal)
+                    self.unchanged(tools, host, store, tools.update, refusal)
+                self.assertFalse((store / (owner.OUTCOME + '.json')).exists())
+                lines = tools.forward()
                 self.assertEqual(owner.image_reference(host.state['rpm']['deployments'][0]), target)
                 self.assertCountEqual(host.state['rpm']['deployments'], before['rpm']['deployments'])
                 self.assertFalse(any(t.get('script') in ('verify', 'update') for t in host.trace))
@@ -586,8 +599,11 @@ class UpdateCommandTest(unittest.TestCase):
                 if state['rpm']['deployments'][0] == host.state['rpm']['deployments'][0]:
                     self.assertIn('already starts next; nothing changed', lines[0])
                     self.assertFalse((store / (owner.OUTCOME + '.json')).exists())
-                if target != known[-1]['reference']:
-                    self.assertIn('newer still', ' '.join(lines))
+                else:
+                    self.assertEqual(lines[0], 'Newest installed AresOS starts next ' + target)
+                    self.assertEqual((tools.load(owner.OUTCOME)['word'], tools.load(owner.OUTCOME)['mode']), ('forward', 'reorder'))
+                self.assertNotIn('newer still', ' '.join(lines))
+                self.assertNotIn('at update', ' '.join(lines))
 
     def test_expired_login_points_to_login_and_never_records_the_secret(self):
         with route(pair()) as (tools, host, store):
@@ -680,8 +696,14 @@ class LoginTest(unittest.TestCase):
             with self.assertRaisesRegex(owner.Stop, 'Login requires a real hidden terminal prompt'):
                 tools.login()
         with route(pair(), H13) as (tools, host, store):
-            with self.assertRaisesRegex(owner.Stop, 'needs no login'):
+            with self.assertRaisesRegex(owner.Stop, 'already runs and starts next: update has nothing to install and needs no login'):
                 tools.login()
+        # Installed but not the next start: login refuses as update does, and names forward.
+        with route(returned()) as (tools, host, store):
+            with self.assertRaises(owner.Stop) as caught:
+                tools.login()
+            self.assertEqual(str(caught.exception), owner.RELEASE_INSTALLED)
+            self.assertEqual(host.changes, [])
         with route(staged_update()) as (tools, host, store):
             with self.assertRaisesRegex(owner.Stop, 'staged deployment already exists'):
                 tools.login()
