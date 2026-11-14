@@ -25,7 +25,10 @@ public final class AppCommands {
     private AppCommands() { }
 
     public static LiteralArgumentBuilder<CommandSourceStack> app() {
-        return Commands.literal("app")
+        // Brigadier checks a requirement while parsing, against the source that typed the command, so
+        // "execute as <host> run ..." from a command block, a function or another operator reaches no branch of
+        // /aresos app. Every branch checks the host again when it runs.
+        return Commands.literal("app").requires(AppCommands::allowed)
                 .then(Commands.literal("add").then(argument(false).executes(c -> change(c.getSource(), getString(c, "app"), MyAppsGame::add))))
                 .then(Commands.literal("remove").then(argument(true).executes(c -> change(c.getSource(), getString(c, "app"), MyAppsGame::remove))))
                 .then(Commands.literal("list").executes(c -> list(c.getSource())))
@@ -33,8 +36,6 @@ public final class AppCommands {
                 // foreign /open can never receive it and two programs with one name stay apart.
                 .then(Commands.literal("open").requires(AppCommands::allowed).then(Commands.argument("app", word())
                         .executes(c -> dev.aresos.names.SlashCommands.launch(c.getSource(), getString(c, "app")))))
-                // Brigadier checks a requirement while parsing, against the source that typed the command, so
-                // "execute as <host> run ..." from a command block or another operator cannot rename his apps.
                 .then(Commands.literal("name").requires(AppCommands::allowed).then(argument(true).then(Commands.argument("name", greedyString())
                         .executes(c -> name(c.getSource(), getString(c, "app"), getString(c, "name"))))))
                 .then(Commands.literal("unname").requires(AppCommands::allowed).then(Commands.argument("name", word()).suggests((c, b) -> {

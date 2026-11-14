@@ -428,6 +428,36 @@ public final class SlashNamesGameTests {
         helper.succeed();
     }
 
+    /** Review 2, point 1: no branch of /aresos app parses for "execute as <host>" or a guest, so My apps stays his. */
+    @GameTest(environment = BATCH)
+    public void onlyTheHostWhoTypesItCanChangeMyApps(GameTestHelper helper) throws Exception {
+        try (var f = new Fixture(helper, app("notes", "Notes", true).withPinned(true))) {
+            var root = f.server.getCommands().getDispatcher().getRoot();
+            var before = AresOs.apps();
+            var names = new ArrayList<>(AresOs.app("discord").names());
+            names.addAll(AresOs.app("notes").names());
+            var commands = names.stream().map(root::getChild).toList();
+            check(commands.stream().allMatch(OwnedNodes::ours) && root.getChild("other") == null, "Fixture: unexpected commands " + names);
+            var console = f.server.createCommandSourceStack();
+            String as = "execute as " + f.player.getStringUUID() + " run aresos app ";
+            for (String branch : List.of("remove discord", "remove notes", "add other", "list"))
+                check(f.attempt(as + branch, console) == -1, "execute as the host parses: " + branch);
+            f.server.setSingleplayerProfile(new GameProfile(UUID.randomUUID(), "DifferentHost"));
+            for (String branch : List.of("remove discord", "add other", "list"))
+                check(f.attempt("aresos app " + branch, f.player.createCommandSourceStack()) == -1, "A guest may type " + branch);
+            f.server.setSingleplayerProfile(f.player.getGameProfile());
+            SlashCommands.refresh(f.server);
+            check(AresOs.apps().equals(before), "My apps or pins changed: " + AresOs.apps());
+            for (int i = 0; i < names.size(); i++)
+                check(root.getChild(names.get(i)) == commands.get(i) && OwnedNodes.ours(commands.get(i)), "His command changed: /" + names.get(i));
+            check(root.getChild("other") == null, "Other got a command");
+            // Control: the host's own typing still reaches every branch.
+            check(f.run("aresos app list") == 5 && f.run("aresos app add other") == 1 && f.run("aresos app remove other") == 1,
+                    "The host could not use /aresos app");
+        }
+        helper.succeed();
+    }
+
     /** Review 1, finding 3: rows open by ID through /aresos app open; typed /open follows HUB.md 4.4 only. */
     @GameTest(environment = BATCH)
     public void clicksOpenByIdAndTypedOpenIgnoresIds(GameTestHelper helper) throws Exception {
