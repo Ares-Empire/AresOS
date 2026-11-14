@@ -356,7 +356,16 @@ case('post18df-withheld-form-final',B,"if((command.kind||command.name==='resume'
 
 case('post18df-withheld-compose',R,"if(!safe.password&&typeof safe.value==='string')append(safe.value,'pre-wrap')","if(!safe.password)append(safe.value,'pre-wrap')",node('reader','post18df facts beside late textareas'))
 
-case('post18d-latency-recovery-space','control/aresos_control/storage.py','self.ledger.admit(cost,history_cost=cost)','pass','test_latency.OperationHeaders.test_optional_header_migration_preserves_real_reserved_cancellation_space',True)
+# Final fixes F1 removed the optional header index (and with it the code the
+# former post18d-latency-recovery-space case guarded). These probes put the
+# forced index back, and drop the unary plus that keeps a left-behind index unused.
+F1_LOOP="""        for key, value in self.db.execute('SELECT k,v FROM kv WHERE '+' AND '.join(clauses)+' ORDER BY k', parameters):"""
+F1_FORCED="""        self.db.execute("CREATE INDEX IF NOT EXISTS operation_headers ON kv(json_extract(v,'$.app'),json_extract(v,'$.context_version'),json_extract(v,'$.state')) WHERE substr(k,1,3)='op:'")
+        for key, value in self.db.execute('SELECT k,v FROM kv INDEXED BY operation_headers WHERE '+' AND '.join(clauses)+' ORDER BY k', parameters):"""
+case('final-f1-forced-index-plans','control/aresos_control/storage.py',F1_LOOP,F1_FORCED,'test_full_disk_reads.FullDiskReads.test_every_operation_query_shape_reads_in_key_order_without_a_sort',True)
+case('final-f1-forced-index-full-disk','control/aresos_control/storage.py',F1_LOOP,F1_FORCED,'test_full_disk_reads.FullDiskReads.test_mail_read_search_and_pending_answer_on_a_full_disk_with_retained_history',True)
+case('final-f1-no-index','control/aresos_control/storage.py',F1_LOOP,F1_FORCED,'test_full_disk_reads.FullDiskReads.test_store_creates_no_operation_header_index',True)
+case('final-f1-unary-plus','control/aresos_control/storage.py',"""clauses.append("+json_extract(v,'$.app')=?")""","""clauses.append("json_extract(v,'$.app')=?")""",'test_full_disk_reads.FullDiskReads.test_every_operation_query_shape_reads_in_key_order_without_a_sort',True)
 
 case('post18d-retained-terminal-pins','control/aresos_control/retention.py','current.update(store.operation_hashes())','pass','test_latency.OperationHeaders.test_completed_operation_keeps_both_old_blob_stores_and_archival_releases_them',True)
 case('post18d-active-retention-pins','control/aresos_control/retention.py',"operations = [op for _, op in store.iter_operations(states=OPEN) if op['state'] in OPEN]",'operations = []','test_latency.OperationHeaders.test_active_operation_protects_old_composition_and_import_metadata',True)

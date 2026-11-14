@@ -72,19 +72,21 @@ class OperationHeaders(unittest.TestCase):
         self.assertTrue(filtered['ok'])
         self.assertEqual({row['app'] for row in filtered['data']['items']},{'mail','chrome'})
 
-    def test_header_index_fallback_and_rollback_keep_the_same_rows(self):
+    def test_header_filter_and_rollback_keep_the_same_rows(self):
         key,op=self.add('rollback','mail',None,'unknown')
         before=list(self.store.iter_operations(app='mail',legacy_open=True))
         self.store.db.execute("UPDATE kv SET v=json_set(v,'$.app','chrome','$.state','done') WHERE k=?",(key,))
         self.assertNotIn(key,dict(self.store.iter_operations(app='mail')))
         self.store.db.rollback()
         self.assertEqual(list(self.store.iter_operations(app='mail',legacy_open=True)),before)
-        self.store.db.execute('DROP INDEX operation_headers');self.store.operation_headers=False
-        self.assertEqual(list(self.store.iter_operations(app='mail',legacy_open=True)),before)
 
-    def test_low_space_can_decline_optional_index_without_losing_committed_reads(self):
+    def no_header_index(self,store):
+        # Final fixes F1: the optional header index is gone; a reopen adds none.
+        names={row[0] for row in store.db.execute("SELECT name FROM sqlite_master WHERE type='index'")}
+        self.assertNotIn('operation_headers',names)
+
+    def test_low_space_reopen_keeps_committed_reads(self):
         from aresos_control.common import Refused
-        self.store.db.execute('DROP INDEX operation_headers')
         state,evidence=self.store.state_dir,self.store.evidence_dir
         committed=self.store.chrome_state.get('chrome:qualification')
         journal=(evidence/'operations.jsonl').read_bytes()
@@ -92,14 +94,14 @@ class OperationHeaders(unittest.TestCase):
         with patch('aresos_control.space.SpaceLedger.admit',side_effect=Refused('storage_limit','Synthetic no space for optional cache')):
             reopened=storage.Store(state,evidence)
         try:
-            self.assertFalse(reopened.operation_headers)
+            self.no_header_index(reopened)
             self.assertEqual(reopened.chrome_state.get('chrome:qualification'),committed)
             self.assertEqual(list(reopened.iter_operations(app='mail')),[])
             self.assertEqual((evidence/'operations.jsonl').read_bytes(),journal)
         finally:reopened.close()
 
 
-    def test_optional_header_migration_preserves_real_reserved_cancellation_space(self):
+    def test_tight_reopen_preserves_real_reserved_cancellation_space(self):
         import shutil
         from aresos_control.space import SAFETY_FLOOR
         target=self.fixture.browser.facts['frames'][0]['target']
@@ -107,7 +109,6 @@ class OperationHeaders(unittest.TestCase):
         approval=self.fixture.prepare()
         held=self.store.ledger.held;self.assertGreater(held,0)
         state,evidence=self.store.state_dir,self.store.evidence_dir
-        self.store.db.execute('DROP INDEX operation_headers')
         self.fixture.engine.close()
         free=held+SAFETY_FLOOR+128*1024-1
         usage=shutil._ntuple_diskusage(1024**3,1024**3-free,free)
@@ -115,7 +116,7 @@ class OperationHeaders(unittest.TestCase):
             reopened=storage.Store(state,evidence)
         try:
             self.assertEqual(reopened.ledger.held,held)
-            self.assertFalse(reopened.operation_headers,'Optional index spent space reserved for cancellation')
+            self.no_header_index(reopened)
             operation=reopened.chrome_state.get('op:'+approval['operation_id'])
             self.assertEqual(operation['state'],'reserved')
         finally:reopened.close()

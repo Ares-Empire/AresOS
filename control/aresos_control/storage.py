@@ -173,7 +173,6 @@ class Store:
                               "INSERT OR IGNORE INTO head VALUES (1,0,'');"
                               "CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY, value TEXT NOT NULL);"
                               "CREATE TABLE IF NOT EXISTS operation_versions (id TEXT PRIMARY KEY, seq INTEGER NOT NULL);")
-        self.operation_headers = bool(self.db.execute("SELECT 1 FROM sqlite_master WHERE name='operation_headers'").fetchone())
         sync_directory(self.state_dir)
         # Derived, disposable index outside the backed-up state. Never trust it
         # across restarts: rebuild solely from the verified permanent journal.
@@ -257,30 +256,10 @@ class Store:
                             # cancellation available if this annotation cannot fit.
             from .recovery import recover_intents
             recover_intents(self)
-            # Optional speed indexes may spend only unheld space, after every
-            # prepared recovery and reservation has been reconstructed.
-            self._index_operation_headers()
         except BaseException as exc:
             with cleanup('index rebuild', exc):
                 self.close()
             raise
-
-    def _index_operation_headers(self):
-        # SQLite maintains headers atomically with kv. If storage cannot add
-        # them, fresh unindexed queries retain identical warning semantics.
-        if self.operation_headers:return
-        try:
-            count=self.db.execute("SELECT count(*) FROM kv WHERE substr(k,1,3)='op:'").fetchone()[0]
-            cost=max(128*1024,count*256)
-            self.ledger.admit(cost,history_cost=cost)
-            self.db.execute("CREATE INDEX operation_headers ON kv(json_extract(v,'$.app'),json_extract(v,'$.context_version'),json_extract(v,'$.state')) WHERE substr(k,1,3)='op:'")
-            self.operation_headers = True
-        except (OSError, sqlite3.Error) as exc:
-            if storage_refusal(exc) is None:raise
-            self.observations.storage(exc)
-        except Refused as exc:
-            if exc.code!='storage_limit':raise
-            self.observations.storage(exc)
 
     def _index_record(self, record, offset):
         if self.index is not None:
@@ -808,28 +787,33 @@ class Store:
         # Inspect small headers in SQLite before decoding retained payloads.
         # This is a fresh query of the same working rows, not a cached verdict;
         # Chrome's independent committed projection remains its read authority.
-        clauses = ["substr(k,1,3)='op:'"]
+        # Every shape walks the primary-key range in key order. The unary plus
+        # keeps each header filter off any expression index (including one an
+        # earlier build left behind), so no shape sorts in a temporary B-tree:
+        # that sort spills to a temporary file with a few hundred retained
+        # operations, and a read must not need disk space. The substr test
+        # keeps the exact prefix for databases in a UTF-16 encoding.
+        clauses = ["k>='op:'", "k<'op;'", "substr(k,1,3)='op:'"]
         parameters = []
         if app is not None:
-            clauses.append("json_extract(v,'$.app')=?")
+            clauses.append("+json_extract(v,'$.app')=?")
             parameters.append(app)
         if exclude_app is not None:
-            clauses.append("json_extract(v,'$.app') IS NOT ?")
+            clauses.append("+json_extract(v,'$.app') IS NOT ?")
             parameters.append(exclude_app)
         if states is not None:
             # Keep malformed headers in the candidate set so the caller's
             # original predicate still fails closed before cleanup.
             states=sorted(states)
-            clauses.append("(json_extract(v,'$.state') IN ("+','.join('?' for _ in states)+") OR typeof(json_extract(v,'$.state'))!='text' OR substr(json_extract(v,'$.state'),1,1) IN ('[','{'))")
+            clauses.append("(+json_extract(v,'$.state') IN ("+','.join('?' for _ in states)+") OR typeof(json_extract(v,'$.state'))!='text' OR substr(json_extract(v,'$.state'),1,1) IN ('[','{'))")
             parameters.extend(states)
         if legacy_open:
             # Only unfinished false-like version headers can be legacy notices.
             # Any extra SQLite coercion
             # matches still pass through the caller's original Python predicate.
-            clauses.append("NOT COALESCE(json_extract(v,'$.context_version'),0)")
-            clauses.append("json_extract(v,'$.state') IN ('reserved','submitting','unknown','partial')")
-        table='kv INDEXED BY operation_headers' if self.operation_headers else 'kv'
-        for key, value in self.db.execute('SELECT k,v FROM '+table+' WHERE '+ ' AND '.join(clauses)+' ORDER BY k', parameters):
+            clauses.append("NOT COALESCE(+json_extract(v,'$.context_version'),0)")
+            clauses.append("+json_extract(v,'$.state') IN ('reserved','submitting','unknown','partial')")
+        for key, value in self.db.execute('SELECT k,v FROM kv WHERE '+' AND '.join(clauses)+' ORDER BY k', parameters):
             yield key, json.loads(value)
 
     def operation_hashes(self):
