@@ -1,8 +1,8 @@
 # 37: Getting around the town
 
-Empire board brief 287. Mod package. `docs/design/HUB.md`, section 6, row 6: the last piece of home screen version 1. It starts from a `main` that contains package 35 (slash names) and package 36 (the town builds itself); the orchestrator says when.
+Empire board brief 287. Mod package. `docs/design/HUB.md`, section 6, row 6: the last piece of home screen version 1. It starts from `main` at `41927e99`, which contains package 35 (slash names, `cdfab755`) and package 36 (the town builds itself, `41927e99`), merged into this branch on 2026-11-14.
 
-**Builders:** three steps, one fresh builder per step. Rules, records and tests: a Codex builder if Codex's week has room when the step starts, otherwise a Claude agent on Opus 5.5 (the orchestrator picks at launch and says which). Each step ends with a commit, a push and an updated `reviews/37-getting-around/PROGRESS.md`. **Review:** a fresh reviewer that isn't a builder.
+**Builders:** three steps, one fresh builder per step: Claude agents on Opus 5.5. Codex's week is at 97% and is kept for reviews (orchestrator, 2026-11-14); the rules below are decided, so the work is carrying them out. Each step ends with a commit, a push and an updated `reviews/37-getting-around/PROGRESS.md`. **Review:** a fresh reviewer that isn't a builder.
 
 ## Why
 
@@ -16,7 +16,7 @@ After package 36 his apps' logos stand along four roads. With forty apps the far
 
 `docs/design/HUB.md`: the status block with its corrections, then 2.5, 2.6, 3.2 to 3.5. Then the code as it is on `main`:
 
-- package 36 (`reviews/36-town/REPORT.md` and the code it names): places, who stands where, the town's record in `hub.dat`, the one function for every block, keeping the world in step and its pending work;
+- package 36 (`reviews/36-town/REPORT.md` with "Review fixes 1" and "Review fixes 2", and the code it names): places (`hub/Place.java`), who stands where (`hub/Assignment.java`), the town's records in `town.dat` beside `hub.dat` with their seal (`hub/HubData.java`, `hub/TownSeal.java`) and the freeze (a world opened without the town's records since its last visit: the town builds and removes nothing until `/aresos hub trust`), the one function for every block (`hub/Town.java`: `check`, `build`, `remove`), keeping the world in step (`hub/TownKeeper.java`: `run`, `ask`, `rebuild`, its pending work and the pictures it reads off the server thread through `zone/PictureReader.java`), and how places are saved (`AresOs.saveSpots`);
 - package 35 (`names/`, `item/AppCommands.java`): how a typed name finds an app, the completion, `/apps`, the reserved names `home` and `go`;
 - `world/HomeCommands.java` (`/aresos home`), `zone/AppZone.java` (a zone's exit point), `client/ModeSwitchClient.java` (the G key: how a key of ours is registered, sent and tested).
 
@@ -24,18 +24,23 @@ After package 36 his apps' logos stand along four roads. With forty apps the far
 
 1. **`/go <app>`** takes any name `/open` takes for one of his apps (package 35's lookup, with its completion limited to My apps). It puts him at that logo's exit point, on the ground, looking at the door (HUB.md 3.2: the exit point and the group's outward yaw, pitch -10). It never opens the app, and arriving there must not count as walking in.
    - The target comes from the app's saved place, so it also works while the logo is not built yet because its place was not loaded; the town's pending work then builds it as he arrives.
+   - In a frozen town, or one whose records file is refused, `/go` still takes him to a logo that stands in its recorded place, since it changes nothing. For an app whose logo does not stand there, one chat line says why (for a frozen town: that `/aresos hub trust` lets the town build again).
    - If his own build stands where he would arrive (the two blocks at the exit point are not free), he arrives at the nearest free spot on the way in between the exit point and the door; if there is none, nothing happens and one chat line says so. No block is ever changed for a teleport.
    - An app of his without a place (the world has no town, or every place of its group is blocked): in a world without a town, `/go` goes to the exit of the nearest zone of that app in his dimension, if he made one by hand; otherwise one chat line says that the app has no logo here.
    - A program that is not one of his apps: one chat line with the command that adds it.
 2. **`/home`** does exactly what `/aresos home` does (the pad, facing north, from any dimension). `/aresos home` and `/aresos home set` stay as they are.
 3. **The H key** ("Home", in the mod's key category, default H, changeable in Controls) does the same from the keyboard: only in an AresOS world, only while no screen is open, never while F3 is held. Build it the way the G key is built.
-4. **`/apps`** adds where each logo stands: "Lunar Client: /lunar. Games, east, front row, left". The wording comes from one function from a place to words (group title, direction, "front row" or "row 2", "left" or "right" as he sees it walking out from home, and "2nd from the road" when `k` is over 0), which `/go`'s and step 2's chat lines use too. An app without a standing logo says why in a few words (waiting until he comes near; no free place; no town in this world).
+4. **`/apps`** adds where each logo stands: "Lunar Client: /lunar. Games, east, front row, left". The wording comes from one function from a place to words (group title, direction, "front row" or "row 2", "left" or "right" as he sees it walking out from home, and "2nd from the road" when `k` is over 0), which `/go`'s and step 2's chat lines use too. An app without a standing logo says why in a few words (waiting until he comes near; no free place; the town is frozen; no town in this world).
 
 End of step 1: unit tests for the wording (the five of day one, `W1R1`, a `k` over 0); server tests for `/go` (position and facing for a day-one app and for one in a second row, an app whose place is not loaded yet, a blocked arrival, a program that is not his, a world without a town with and without a hand-made zone), `/home` from another dimension, and that arriving by `/go` opens nothing; `mod/dev/build.sh` passes; commit, push, `PROGRESS.md`.
 
 ## Step 2: `swap` and `move`
 
 Both are all or nothing: they first check that every logo involved is loaded, that each can be taken down (nothing of his hangs on it) and that each new place can be built on. If any check fails nothing changes, in the file or in the world, and one chat line says what is in the way and what he can do ("Stand at home and try again" when a place is not loaded). When all checks pass, the saved places change first and the town is then brought in step through package 36's own function: no second way of building.
+
+- **When they refuse before checking anything:** both change the town, so while the town is frozen or its records file is refused they refuse with the town's own line (as `hub rebuild` does), and so they do before a complete program list.
+- **Pictures:** the checks plan the new logos with `Town.check` and the pictures the town already holds. A picture the town has not read yet is never read on the server thread: refuse with "try again in a moment" and ask the town to read it.
+- **Timing:** the checks and the changes happen in the same server tick: save the places through `AresOs.saveSpots`, then `TownKeeper.run` (its comment already names `swap` and `move`). If that pass does anything other than what was checked (a logo that could not come down or be built), say so in one line. Say in the report how the pass and the checks are kept from disagreeing.
 
 1. **`/aresos app swap <a> <b>`**: the two apps exchange places. If the places belong to different groups, each app also takes the other place's group as its hand-set group (`group` in the apps file, which package 36 reads); a hand-set group that equals the app's own group is removed again. Both logos come down and are built in their new places, each with its new group's doormat. One chat line names both new places.
 2. **`/aresos app move <app> <north|east|south|west>`**: the app gets that group as its hand-set group (removed when it is the app's own group) and the first free place of that group that can be built on. Its old logo comes down and its old place becomes free. Moving it to the group it already stands in changes nothing and says so. One chat line names the new place.
