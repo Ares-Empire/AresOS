@@ -160,7 +160,8 @@ column gives the `(ostree:N)` number and the row it starts. Every title is `Bazz
   `test_ways_back_probe` reads the modes from the ledger and then demands the rest.
 - After any change to a file the host walk binds: `python3 reviews/22c-ways-back-after-update/walk-host.py`, then
   `python3 reviews/27-first-update-release/rebind.py pending "<note>"`. `HostWalkReceiptTest` fails on a stale
-  receipt.
+  receipt. (Until the record step only; after it the receipt stays frozen and only `rebind.py pending` runs: see
+  "Stage 2, the fix after checks-only run 43619559359".)
 - `owner_vm.laptop_update(..., bundle=(folder, fingerprint))` types version 2's bootstrap line built by this
   checkout's `bootstrap.py`. If stage 1 changes `bootstrap.py`, check that line.
 
@@ -3189,7 +3190,8 @@ the run did not pass.
    `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true -f full_model=true` first (the
    model gate), then `-f rehearsal=ways-back`; the guard can be run read-only before it (command above). 4 checks-only
    runs and 2 VM dispatches remain by count.
-5. **After a bound change:** `walk-host.py`, then `rebind.py pending "<note>"`.
+5. **After a bound change:** `walk-host.py`, then `rebind.py pending "<note>"` (after the record step only
+   `rebind.py pending`: the receipt stays frozen, see "Stage 2, the fix after checks-only run 43619559359").
 6. **After a passing run:** `collect.py <artifact>/two-disk <run id>` (first use on a rehearsal result: check its
    output), the stage table and the swap path of each reorder into this report, `rebind.py rebind 22c
    <artifact>/two-disk/22c-bound-sources.json <run id>`, then `test_checkout_sources`.
@@ -3671,5 +3673,99 @@ From the repository root, Python 3.14, `nice -n 10`:
    watches it with `gh run watch 43619559359 --exit-status --interval 60`. `test_ways_back_model.py` changed, so
    `os/ci/model_scope.py` selects the full model anyway; it was dispatched with `-f full_model=true`. 28 of 30
    checks-only runs are used with it.
+   **Result: failed**, three tests in `test_ways_back_probe`; the other 1122 passed, and the summary reported one
+   skip. Fixed in the next section, whose list replaces this one.
 2. **The final review on Fable**, as above (item 3 of the record step's list): also this step's commits.
+3. Then items 4 and 5 of the record step's list: the owner's judgment calls, then the merge by the integrator.
+
+## Stage 2, the fix after checks-only run 43619559359
+
+Builder: a Claude agent on Opus (the integrator's choice: a documented procedure and a one-line test fix; the plan
+changed during the step, below). No dispatch, no VM, no Gradle; nothing merged or pushed to main; PR #46 stays draft.
+
+### Cause
+
+Checks-only run [43619559359](https://github.com/Ares-Empire/AresOS/actions/runs/43619559359) (full model, on
+`0df34c8f`) failed three tests, all in `os/tests/test_ways_back_probe.py`, and skipped one.
+
+1. `RehearsalHarnessTest.test_the_guest_programs_compile_and_the_run_records_package_22cs_bound_sources` (**Lists
+   differ**: package 27's tables still list `os/owner-tools/payload/release/default-stock.sh` and `rollback.sh`). The
+   test took the removed paths only from the pending list's top-level `removed`. The record step's `rebind`
+   (`7b9f2d7a`) emptied that field and moved both paths into the history entry it wrote (`rebound[-1]`, whose `walk` is
+   `os/manifest/ci/22c/source-bindings.json`).
+2. and 3. `RunnerTest.test_the_probe_reads_package_22cs_host_walk_and_refuses_a_stale_one`, both modes (**Host walk is
+   stale**). The test gave `owner_vm.main` the committed receipt `os/manifest/ci/22c/host-walk.json` and expected it
+   fresh. The record step changed the bound `test_owner_path.py` (`6badee9e`) after the rebind, as the pending list
+   allows.
+4. The skip: `HostWalkReceiptTest`'s freshness test was skipped once the 22c bindings existed. The acceptance wants
+   nothing skipped.
+
+### The receipt stays frozen after the record step
+
+This step's brief said to regenerate the host walk (`walk-host.py`, then `rebind.py pending`), as the bullets after
+stage 0 and in step 1's list said. Run here, `walk-host.py` printed **PASS package 22c host walks (reorder-probe,
+ways-back): 260 sources; no VM started** and changed two rows (`test_owner_path.py`, `test_ways_back_probe.py`).
+`test_checkout_sources` then failed in `test_current_receipts_agree_and_package14_stays_historical` (line 78: the
+receipt's sources must equal table 0 of the 22c bindings). The receipt was restored to its bytes at `c2b70be0` and is
+unchanged by this step, and the integrator changed the plan (2026-11-14):
+
+- Once a rehearsal records its bindings, its host-walk receipt is the record of what the VM walked. `rebind` required
+  it to equal the run's walk table, `test_checkout_sources` holds it so, and the freshness test stopped there. It is
+  never regenerated after the record step: bound files changed later wait on the pending list with their new bytes
+  until the next rehearsal rebinds them. The two procedure bullets above now say they apply until the record step.
+- Consequence: another 22c VM dispatch from this branch (for example a second probe run, stage-0 JUDGMENT-CALL 6) would
+  stop on the frozen receipt, since `owner_vm.main` refuses it as stale. Such a run needs its own decision about the
+  receipt first.
+
+### Fix (`20c168be`: `os/tests/test_ways_back_probe.py` and the pending list)
+
+- **The bound-sources test** reads the removed paths from the top-level `removed` and from the history entry whose
+  `walk` is the 22c bindings, as `test_checkout_sources` reads them, so it holds before and after 22c's record step.
+  A path still leaves package 27's tables only if one of them names it. A named path that still exists fails too (the
+  run keeps it).
+- **The runner's gate test** builds its receipt in memory and passes it through `self.main`'s `given` files: the
+  committed receipt, with each row that waits on the pending list given the list's bytes. It passes the gates only if
+  the list names every changed file the walk binds. The stale half is unchanged (the committed receipt with its first
+  row zeroed is refused).
+- **`HostWalkReceiptTest.test_the_receipt_is_fresh_until_the_record_step_and_frozen_after`** (renamed from
+  `…_so_a_dispatch_does_not_stop_as_stale`) replaces the skip. When the 22c bindings exist, it asserts that the
+  receipt's sources equal their table 0. Before that, it runs the freshness check as it was.
+- **The pending list:** `rebind.py pending "<note>"` printed **pending: 2 bound files differ from the active bindings, 0
+  removed**. It holds `os/tests/test_owner_path.py` (`c3785b60…`, from the record step) and
+  `os/tests/test_ways_back_probe.py` (`cafb2f06…`), each equal to its checkout bytes. These are exactly the bound files
+  changed since the run's head `f84041bf`: `git diff f84041bf..HEAD -- os` also touches the list, the 22c bindings and
+  `test_ways_back_model.py`, and none of those is bound. Its `status` now reads **… two test files wait since the
+  record step: os/tests/test_owner_path.py and os/tests/test_ways_back_probe.py**, and the new change note names this
+  fix.
+
+### Verified
+
+From the repository root, Python 3.14.8, `nice -n 10`, one module at a time, after the fix and the pending list:
+
+| Command | Result |
+|---|---|
+| `python3 -B -m unittest discover -s os/tests -p test_ways_back_probe.py` | 57 tests in 148 s, OK, none skipped |
+| `… -p test_checkout_sources.py` | 6 tests, OK |
+| `… -p test_owner_equality.py` | 10 tests in 73.5 s, OK |
+| `… -p test_owner_path.py` | 47 tests, OK |
+| `ARESOS_MODEL_SCOPE=slice … -p test_ways_back_model.py` | 26 tests in 159 s, OK |
+
+These cover every test module that reads `host-walk.json`, `source-bindings.json` or `pending-rebind.json` (a grep of
+`os/`). The exception is `test_release27`, which only quotes `owner_vm.py`'s receipt line as text and was not run.
+They also cover every `os/tests` module changed since `f84041bf`. With the bound-sources change alone, that test passed
+and the gate test still failed in both modes, as on the hosted run.
+
+Mutations, made by hand and restored from git (not committed):
+- the 22c history entry without `rollback.sh`: the bound-sources test fails (`Lists differ`);
+- a pending list without `test_ways_back_probe.py`: the gate test fails in both modes (`Host walk is stale`);
+- a receipt whose `test_owner_path.py` row has the current bytes: the frozen-receipt test fails (`Lists differ`).
+
+### For the next agent (after the fix)
+
+1. **One checks-only run with the full model on the branch's head** (the integrator dispatches it): `gh workflow run
+   "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true -f full_model=true`. 28 of 30 checks-only runs
+   are used; this is the 29th. It must pass with the whole suite green and nothing skipped. Watch with
+   `gh run watch <id> --exit-status --interval 60`.
+2. **The final review on Fable**, as above (item 3 of the record step's list): also this step's commits and the frozen
+   receipt.
 3. Then items 4 and 5 of the record step's list: the owner's judgment calls, then the merge by the integrator.
