@@ -1,0 +1,11 @@
+✔ preexisting dialog fixture waits through delayed parser revisions before one guarded input (0.698167ms)
+✔ preexisting dialog fixture never retries a dispatched input with an uncertain outcome (0.194584ms)
+✔ preexisting dialog fixture requires the intended guarded-reload refusal (0.33775ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 41.634875

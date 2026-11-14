@@ -1,0 +1,12 @@
+{
+  "acceptance": false,
+  "meaning": "Actual paired samples/metric structures validate, and proposed numeric ceilings are met; this does not adopt lead targets",
+  "source_run": "43502970342",
+  "target_status": "awaiting-lead",
+  "profiles": [
+    "plain",
+    "audit"
+  ],
+  "paired_inputs_per_runtime_profile": 180,
+  "proposal_met_in_every_phase_profile": true
+}

@@ -1,0 +1,27 @@
+✖ recheck3 compose preserves rendered indentation linebreaks and significant spaces without protected reads (6.858125ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 47.35125
+
+✖ failing tests:
+
+test at control/chrome_tests/reader.test.mjs:270:1
+✖ recheck3 compose preserves rendered indentation linebreaks and significant spaces without protected reads (6.858125ms)
+  AssertionError [ERR_ASSERTION]: PRE
+      at TestContext.<anonymous> (file://<worktree>/control/chrome_tests/reader.test.mjs:283:35)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.start (node:internal/test_runner/test:1242:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

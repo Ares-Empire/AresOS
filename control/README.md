@@ -28,9 +28,9 @@ packages and a root-owned test prefix there. Do not run it on a desktop host.
 | --- | --- | --- |
 | `act.sock` | exactly configured owner UID, excluding root/service UID | public actions and caller byte transfers |
 | `admin.sock` | root only | owner-only actions, through `sudo aresos admin …` |
-| `chrome.sock` | nobody, including root | placeholder, always refuses |
+| `chrome.sock` | exactly configured owner UID | Chrome's native host; loosening a site (`allow`, read-only off) also needs the owner's polkit password, once for each change |
 
-The directory is mode 0711, act mode 0666, admin/chrome mode 0600. The service
+The directory is mode 0711, act and chrome mode 0666, admin mode 0600. The service
 cannot chown a socket to another user without privileges, so act's identity gate
 is the kernel peer credential, checked before parsing a request. Root still has
 the normal machine-administrator powers. A single serialized dispatcher also

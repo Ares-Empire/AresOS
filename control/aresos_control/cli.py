@@ -38,6 +38,11 @@ def main(config, argv=None):
         command = ["control", "log"]
     if command == ["mail", "account", "add"]:
         command = ["mail", "account_add"]
+    chrome_alias = None
+    if admin and len(command)>=2 and command[0]=='chrome' and command[1] in {'allowed','allow','revoke','readonly'}:
+        verb=command[1];chrome_alias={'command':'list' if verb=='allowed' else verb}
+        if len(command)==3:chrome_alias[{'allow':'operation_id','revoke':'id','readonly':'site'}[verb]]=command[2]
+        command=['chrome','sites']
     if len(command) != 2:
         root.error("expected [admin] <app> <action>, or log")
     try:
@@ -56,6 +61,7 @@ def main(config, argv=None):
             del password
         else:
             arguments = strict_json_loads(args.input)
+            if chrome_alias:arguments={**arguments,**chrome_alias}
             result = Proxy(command[0], config, admin).call(command[1], arguments)
     except (Refused, ValueError) as exc:
         if isinstance(exc, JSONInputError):

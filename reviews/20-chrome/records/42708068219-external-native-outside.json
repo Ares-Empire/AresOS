@@ -1,0 +1,48 @@
+{
+  "functions": [
+    "function submit() { [native code] }",
+    "function requestSubmit() { [native code] }",
+    "function click() { [native code] }",
+    "function dispatchEvent() { [native code] }"
+  ],
+  "preventReturn": "undefined",
+  "busReturn": false,
+  "busCount": 1,
+  "windowReturn": true,
+  "windows": 1,
+  "shadows": [
+    {
+      "mode": "open",
+      "count": 1,
+      "data": 7,
+      "dispatched": false
+    },
+    {
+      "mode": "closed",
+      "count": 1,
+      "data": 7,
+      "dispatched": false
+    }
+  ],
+  "inert": [
+    {
+      "count": 2,
+      "dispatched": false,
+      "clicked": "undefined"
+    },
+    {
+      "count": 2,
+      "dispatched": false,
+      "clicked": "undefined"
+    },
+    {
+      "count": 2,
+      "dispatched": false,
+      "clicked": "undefined"
+    }
+  ],
+  "replacements": 1,
+  "downloadReturn": "undefined",
+  "fileReturn": "undefined",
+  "filePicker": "Open File"
+}

@@ -1,0 +1,4323 @@
+[
+  {
+    "name": "prepare_read_typed_fields",
+    "description": "Prepare a one-call read of text-capable inputs and textareas in unwatched documents. Returns the exact field-label question without values; pass its approval to read_typed_fields.  Effect: change. Pass the service-provided approval unchanged, including its first field question, operation_id and complete description; never write or amend the question yourself.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tab": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "tab"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "approval": {
+              "type": "object",
+              "properties": {
+                "question": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "operation_id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "description": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "question",
+                "operation_id",
+                "description"
+              ],
+              "additionalProperties": false
+            },
+            "state": {
+              "type": "string",
+              "enum": [
+                "reserved"
+              ]
+            }
+          },
+          "required": [
+            "approval",
+            "state"
+          ],
+          "additionalProperties": false
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "read_typed_fields",
+    "description": "Read the listed text-capable inputs and textareas once after the exact prepared question is approved. Credentials always remain unreadable. The connection, frames, reader and exact field identities are bound; changes refuse and require a fresh question; ordinary reads retain filled/empty.  Effect: read. Pass the service-provided approval unchanged, including its first field question, operation_id and complete description; never write or amend the question yourself.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "description": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "question",
+        "operation_id",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "tabs",
+    "description": "List all tab titles, addresses, native window/position, active/focused state, Claude-group membership and whether each tab is playing sound (audible) or muted; no page content is read. Effect: read.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "downloads",
+    "description": "List Chrome downloads and the paths Chrome chose. Changes nothing; Chrome saves normally. Effect: read.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "bookmarks",
+    "description": "Find bookmark addresses and titles, read-only. Effect: read.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "history",
+    "description": "Find visited addresses and titles, read-only. Effect: read.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "take_tab",
+    "description": "Take the chosen owner tab into the visible Claude group. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tab": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "tab"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "release_tab",
+    "description": "End control and drop prepared work without dispatch. A cleanup_pending result means native restoration is still waiting; the owner must close its dialog or, if needed, the tab. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tab": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "tab"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "close_tab",
+    "description": "Close only a Claude tab; prepared work is dropped. Unsaved typing or playing media is reported first; discard_unsaved=true closes anyway. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tab": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "discard_unsaved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tab"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "open",
+    "description": "Open a web address or about:blank in a new Claude tab. Navigation is free. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "navigate",
+    "description": "Navigate a Claude tab by address or one history direction. Only http, https and about:blank; settings and approval pages refuse. reload never reloads a form-loaded document. Every direction and an address report unsaved typing or playing media as reload_required until repeated with discard_unsaved=true. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tab": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "back",
+            "forward",
+            "reload"
+          ]
+        },
+        "discard_unsaved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tab"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "read",
+    "description": "Read a compact structural page tree with roles, names, safe values, states and boxes; passwords are excluded before extraction. Views are paged at 16000 characters. Effect: read.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tab": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        }
+      },
+      "required": [
+        "tab"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "find",
+    "description": "Find visible text across readable frames. Returns exact references and a bounded page. Effect: read.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tab": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "tab",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "read_form",
+    "description": "Read every field and option of one form, including hidden fields and password presence only. Effect: read.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tab": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "reference": {
+          "type": "object",
+          "properties": {
+            "session": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "tab": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "frame": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "document": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "view": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "element": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "required": [
+            "session",
+            "tab",
+            "frame",
+            "document",
+            "view",
+            "element"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "tab",
+        "reference"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "wait",
+    "description": "Wait for text or a stable view, then return the page; never acts. Effect: read.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tab": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "element": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 8000
+        }
+      },
+      "required": [
+        "tab"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "click",
+    "description": "Click this exact control once if free, or prepare asking input without clicking. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "object",
+          "properties": {
+            "session": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "tab": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "frame": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "document": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "view": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "element": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "required": [
+            "session",
+            "tab",
+            "frame",
+            "document",
+            "view",
+            "element"
+          ],
+          "additionalProperties": false
+        },
+        "expected": {
+          "type": "object"
+        },
+        "discard_unsaved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "reference",
+        "expected"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "fill",
+    "description": "Replace field text; line breaks insert text, never Enter keys. A page-started submission is prepared separately. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "object",
+          "properties": {
+            "session": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "tab": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "frame": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "document": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "view": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "element": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "required": [
+            "session",
+            "tab",
+            "frame",
+            "document",
+            "view",
+            "element"
+          ],
+          "additionalProperties": false
+        },
+        "expected": {
+          "type": "object"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 20000
+        },
+        "discard_unsaved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "reference",
+        "expected",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "select",
+    "description": "Choose one exact option; classifies before input and checks any page-started submission. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "object",
+          "properties": {
+            "session": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "tab": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "frame": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "document": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "view": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "element": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "required": [
+            "session",
+            "tab",
+            "frame",
+            "document",
+            "view",
+            "element"
+          ],
+          "additionalProperties": false
+        },
+        "expected": {
+          "type": "object"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "discard_unsaved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "reference",
+        "expected",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "check",
+    "description": "Set one checkbox or radio state, with expected current state. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "object",
+          "properties": {
+            "session": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "tab": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "frame": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "document": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "view": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "element": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "required": [
+            "session",
+            "tab",
+            "frame",
+            "document",
+            "view",
+            "element"
+          ],
+          "additionalProperties": false
+        },
+        "expected": {
+          "type": "object"
+        },
+        "checked": {
+          "type": "boolean"
+        },
+        "discard_unsaved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "reference",
+        "expected",
+        "checked"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "press",
+    "description": "Press a key on this control. Enter in compose and Delete outside editing ask; focused send controls ask for Enter and Space. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "object",
+          "properties": {
+            "session": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "tab": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "frame": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "document": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "view": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "element": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "required": [
+            "session",
+            "tab",
+            "frame",
+            "document",
+            "view",
+            "element"
+          ],
+          "additionalProperties": false
+        },
+        "expected": {
+          "type": "object"
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "discard_unsaved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "reference",
+        "expected",
+        "key"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "scroll",
+    "description": "Scroll at this element by CSS pixels. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "object",
+          "properties": {
+            "session": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "tab": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "frame": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "document": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "view": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "element": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "required": [
+            "session",
+            "tab",
+            "frame",
+            "document",
+            "view",
+            "element"
+          ],
+          "additionalProperties": false
+        },
+        "expected": {
+          "type": "object"
+        },
+        "x": {
+          "type": "integer"
+        },
+        "y": {
+          "type": "integer"
+        },
+        "discard_unsaved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "reference",
+        "expected",
+        "x",
+        "y"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "upload",
+    "description": "Prepare uploading a caller-side immutable file snapshot. Path and hash appear in approval; never opens a home path in the service. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "object",
+          "properties": {
+            "session": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "tab": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "frame": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "document": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "view": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "element": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          },
+          "required": [
+            "session",
+            "tab",
+            "frame",
+            "document",
+            "view",
+            "element"
+          ],
+          "additionalProperties": false
+        },
+        "expected": {
+          "type": "object"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "file": {
+          "type": "object",
+          "properties": {
+            "sha256": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "size": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "real_path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "last_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "sha256",
+            "size",
+            "name",
+            "real_path"
+          ],
+          "additionalProperties": false
+        },
+        "discard_unsaved": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "reference",
+        "expected",
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "fill_form",
+    "description": "Fill exact fields in order, classifying each separately. Stops at the first prepared or stopped step and reports completed fields; never replays earlier input. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "reference": {
+                "type": "object",
+                "properties": {
+                  "session": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "tab": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "frame": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "document": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "view": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "element": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 32
+                  }
+                },
+                "required": [
+                  "session",
+                  "tab",
+                  "frame",
+                  "document",
+                  "view",
+                  "element"
+                ],
+                "additionalProperties": false
+              },
+              "expected": {
+                "type": "object"
+              },
+              "discard_unsaved": {
+                "type": "boolean"
+              },
+              "text": {
+                "type": "string",
+                "maxLength": 20000
+              }
+            },
+            "required": [
+              "reference",
+              "expected",
+              "text"
+            ],
+            "additionalProperties": false
+          },
+          "maxItems": 32,
+          "minItems": 1
+        }
+      },
+      "required": [
+        "fields"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "dialog",
+    "description": "Answer or dismiss Chrome alert, confirm or prompt. Accepting listed confirmation text prepares its own operation unless exactly named by an approved site adapter. A dialog opened through an outside native function always asks with its exact chosen answer and an unguarded-continuation warning, with no trusted exemption. A dialog already open before taking the tab is handed to the owner within a bounded wait; ask him to answer it himself. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tab": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected": {
+          "type": "object"
+        },
+        "accept": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "tab",
+        "expected",
+        "accept"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "submit",
+    "description": "Run exactly the prepared operation after approval, with question first and unchanged. Rechecks bound page state, dispatches once; no automatic retries. Effect: send. Pass the service-provided approval unchanged, including its first field question, operation_id and complete description; never write or amend the question yourself.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "description": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "question",
+        "operation_id",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "operation": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "generation": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                "app": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "action": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "approval": {
+                  "type": "object"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "reserved",
+                    "submitting",
+                    "done",
+                    "partial",
+                    "refused",
+                    "failed",
+                    "unknown"
+                  ]
+                },
+                "expires": {
+                  "type": "number"
+                },
+                "stages": {
+                  "type": "object"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "notice": {
+                  "type": "boolean"
+                },
+                "ack": {
+                  "type": "boolean"
+                },
+                "repair_of": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                }
+              },
+              "required": [
+                "id",
+                "generation",
+                "app",
+                "action",
+                "approval",
+                "state",
+                "expires",
+                "stages",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "operation"
+          ],
+          "additionalProperties": false
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "submit_trusted",
+    "description": "Run a prepared adapter kind only if the owner-only exact-site/account/parameters entry still allows it. No prompt; deleting, paying and WhatsApp messages always refuse. Effect: send. Pass the service-provided approval unchanged, including its first field question, operation_id and complete description; never write or amend the question yourself.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "description": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "question",
+        "operation_id",
+        "description"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "operation": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "generation": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                "app": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "action": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "approval": {
+                  "type": "object"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "reserved",
+                    "submitting",
+                    "done",
+                    "partial",
+                    "refused",
+                    "failed",
+                    "unknown"
+                  ]
+                },
+                "expires": {
+                  "type": "number"
+                },
+                "stages": {
+                  "type": "object"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "notice": {
+                  "type": "boolean"
+                },
+                "ack": {
+                  "type": "boolean"
+                },
+                "repair_of": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                }
+              },
+              "required": [
+                "id",
+                "generation",
+                "app",
+                "action",
+                "approval",
+                "state",
+                "expires",
+                "stages",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "operation"
+          ],
+          "additionalProperties": false
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "drop",
+    "description": "Cancel only reserved work; its stopped page step stays stopped and no input is dispatched. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      },
+      "required": [
+        "operation_id"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "operation": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                },
+                "generation": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 32
+                },
+                "app": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "action": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                },
+                "approval": {
+                  "type": "object"
+                },
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "reserved",
+                    "submitting",
+                    "done",
+                    "partial",
+                    "refused",
+                    "failed",
+                    "unknown"
+                  ]
+                },
+                "expires": {
+                  "type": "number"
+                },
+                "stages": {
+                  "type": "object"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "notice": {
+                  "type": "boolean"
+                },
+                "ack": {
+                  "type": "boolean"
+                },
+                "repair_of": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 80
+                }
+              },
+              "required": [
+                "id",
+                "generation",
+                "app",
+                "action",
+                "approval",
+                "state",
+                "expires",
+                "stages",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "operation"
+          ],
+          "additionalProperties": false
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "operation_status",
+    "description": "Read committed stages and uncertainty. checked then dispatched, followed by what the page showed; nothing is replayed. Effect: read.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      },
+      "required": [
+        "operation_id"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "notices",
+    "description": "Read every Chrome warning occurrence through bounded pages, including open checks after a storage failure. Acknowledgement and action outcome are separate. Effect: read.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "notice_ack",
+    "description": "Acknowledge one warning occurrence. Unresolved actions remain pending. Effect: change.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        }
+      },
+      "required": [
+        "operation_id"
+      ],
+      "additionalProperties": false
+    },
+    "outputSchema": {
+      "type": "object",
+      "properties": {
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "type": "object"
+        },
+        "error": {
+          "type": "object"
+        },
+        "observations": {
+          "type": "object",
+          "properties": {
+            "stages": {
+              "type": "object"
+            },
+            "evidence": {
+              "type": "object"
+            },
+            "warnings": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cursor": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fragments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "json": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 6000
+                  }
+                },
+                "required": [
+                  "offset",
+                  "json"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "page_changed": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "required": [
+            "stages",
+            "evidence"
+          ],
+          "additionalProperties": false
+        },
+        "bounds": {
+          "type": "object"
+        },
+        "pending": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "ok",
+        "pending"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  }
+]

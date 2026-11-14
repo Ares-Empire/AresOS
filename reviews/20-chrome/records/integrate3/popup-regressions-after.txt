@@ -1,0 +1,13 @@
+✔ a popup committing after admission acquires a reader without reloading its document (7.446542ms)
+✔ a document replaced between frame enumeration and read cannot inherit its successor privacy identity (1.353875ms)
+✔ missing-reader recovery never clears or retries a surviving document password-history refusal (1.63975ms)
+✔ a dialog opening during missing-reader recovery is readable while injection is blocked (0.994041ms)
+✔ ending control during missing-reader installation cannot publish a snapshot or set control (4.409959ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 91.396833

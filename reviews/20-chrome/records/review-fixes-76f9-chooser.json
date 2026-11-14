@@ -1,0 +1,103 @@
+{
+  "source": "76f9b5cf23b1fb5c95f77506dd82c7b6da5c9cfd",
+  "run": 42831333350,
+  "mode": "policy",
+  "verdict": "partial successful owner native chooser and attachment binding; whole job failed fixture pending limit",
+  "receiver": [
+    {
+      "line": 99,
+      "id": "review-owner-file",
+      "phase": "selected bytes changed",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "line": 100,
+      "id": "review-owner-file",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "line": 101,
+      "id": "review-owner-file",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794320004007,
+          "url": "/receive?case=review-owner-file",
+          "method": "POST",
+          "body": "------WebKitFormBoundaryRyLUHtpvT9Izk0lE\r\nContent-Disposition: form-data; name=\"draft\"\r\n\r\nSaved\r\n------WebKitFormBoundaryRyLUHtpvT9Izk0lE\r\nContent-Disposition: form-data; name=\"attachment\"; filename=\"owner-picked.txt\"\r\nContent-Type: application/octet-stream\r\n\r\nEVIL\r\n------WebKitFormBoundaryRyLUHtpvT9Izk0lE--\r\n",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 102,
+      "id": "review-owner-file",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794320004007,
+          "url": "/receive?case=review-owner-file",
+          "method": "POST",
+          "body": "------WebKitFormBoundaryRyLUHtpvT9Izk0lE\r\nContent-Disposition: form-data; name=\"draft\"\r\n\r\nSaved\r\n------WebKitFormBoundaryRyLUHtpvT9Izk0lE\r\nContent-Disposition: form-data; name=\"attachment\"; filename=\"owner-picked.txt\"\r\nContent-Type: application/octet-stream\r\n\r\nEVIL\r\n------WebKitFormBoundaryRyLUHtpvT9Izk0lE--\r\n",
+          "host": "fixture.test:8765"
+        }
+      ]
+    }
+  ],
+  "choice_events": [
+    {
+      "id": "review-owner-file",
+      "phase": "owner-file-input",
+      "files": [
+        {
+          "name": "owner-picked.txt",
+          "size": 4,
+          "lastModified": 1794320000252
+        }
+      ]
+    },
+    {
+      "id": "review-owner-file",
+      "phase": "owner-file-change",
+      "files": [
+        {
+          "name": "owner-picked.txt",
+          "size": 4,
+          "lastModified": 1794320000252
+        }
+      ]
+    }
+  ],
+  "matrix": [
+    {
+      "name": "GROUP 2 first-script natives are guarded in pages and frames",
+      "passed": true
+    },
+    {
+      "name": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working",
+      "passed": true
+    },
+    {
+      "name": "GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally",
+      "passed": true
+    },
+    {
+      "name": "GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements",
+      "passed": true
+    },
+    {
+      "name": "GROUP 2 REVIEW inherited and newly created frames hold submissions",
+      "passed": true
+    },
+    {
+      "name": "GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n\nfalse !== true\n\n    at file:///workspace/control/chrome/ci/review-matrices.mjs:59:97\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)\n    at async reviewMatrices (file:///workspace/control/chrome/ci/review-matrices.mjs:46:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:53:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+    }
+  ]
+}

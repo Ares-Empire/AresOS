@@ -1,0 +1,433 @@
+{
+  "checks": [
+    {
+      "command": "node --test control/chrome_tests/*.test.mjs",
+      "exit_code": 0,
+      "output": "local-node.txt",
+      "sha256": "6606339ff90cc5ff66537386f5aad85832beac505dd7d6a6f49698e6cc5b6d73",
+      "tail": [
+        "\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.215583ms)",
+        "\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.743375ms)",
+        "\u2139 tests 317",
+        "\u2139 suites 0",
+        "\u2139 pass 317",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 7278.885584"
+      ]
+    },
+    {
+      "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s control/chrome_tests -v",
+      "exit_code": 0,
+      "output": "local-python.txt",
+      "sha256": "c31c0c3a1ff6ab9e03fb805f6f58a029e787d0797c4a40f0b499f329ee290f1c",
+      "tail": [
+        "test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch (test_storage.Storage.test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch) ... ok",
+        "test_taken_read_preserves_document_and_first_input_commits_reload_before_staling (test_storage.Storage.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok",
+        "test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_storage.Storage.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok",
+        "test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_storage.Storage.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok",
+        "test_service_sandbox_and_launch_are_exact (test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact) ... ok",
+        "",
+        "----------------------------------------------------------------------",
+        "Ran 231 tests in 580.856s",
+        "",
+        "OK"
+      ]
+    },
+    {
+      "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck3/mutations.json",
+      "exit_code": 0,
+      "output": "local-mutations.txt",
+      "sha256": "c1fc6b5e398052d8929374f126e66e010b909172bb367a14fa7a29190cd6e59a",
+      "tail": [
+        "recheck3-adopted-field-brand MUTATION REJECTED",
+        "recheck3-peer-password MUTATION REJECTED",
+        "recheck3-retired-peer-password MUTATION REJECTED",
+        "recheck3-adopted-password-marker MUTATION REJECTED",
+        "recheck3-main-data-clone MUTATION REJECTED",
+        "recheck3-paused-peer-setup MUTATION REJECTED",
+        "recheck3-unavailable-private-peer MUTATION REJECTED",
+        "recheck3-conservative-adopted-recipient MUTATION REJECTED",
+        "recheck3-passive-cleanup-ack MUTATION REJECTED",
+        "225 mutations rejected; every baseline passed"
+      ]
+    },
+    {
+      "command": "node --test reviews/20-chrome/audit-streams.test.mjs",
+      "exit_code": 0,
+      "output": "local-streams.txt",
+      "sha256": "548044bcb227959b1419fe19a254c1427554fc7d23426e309c6f2229564bada7",
+      "tail": [
+        "\u2714 sentinel scans find an ASCII sentinel split across stream chunks without retaining the file (2.250417ms)",
+        "\u2714 streamed SHA-256 equals the complete byte digest including multibyte chunk boundaries (0.886458ms)",
+        "\u2139 tests 5",
+        "\u2139 suites 0",
+        "\u2139 pass 5",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 48.81775"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'leading pre-line' control/chrome_tests/reader.test.mjs",
+      "exit_code": 1,
+      "output": "leading-pre-line-before.txt",
+      "sha256": "6caf83ff0fd100b7a4dbbe5ad0f6411483f179ea121384b2533491b752c2393a",
+      "tail": [
+        "      at Test.run (node:internal/test_runner/test:1382:25)",
+        "      at Test.start (node:internal/test_runner/test:1242:17)",
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: 'Draft\\nline',",
+        "    expected: 'Draft\\nline',",
+        "    operator: 'notStrictEqual',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'leading pre-line' control/chrome_tests/reader.test.mjs",
+      "exit_code": 0,
+      "output": "leading-pre-line-after.txt",
+      "sha256": "72e1aeea46f052db83c5f724fa17d18bae776d233d094eb50762a9ca14171dc9",
+      "tail": [
+        "\u2714 recheck3 leading pre-line newlines and block br blank lines cannot alias their absence (2.977375ms)",
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 37.877167"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'recheck3 every hyperlink' control/chrome_tests/page.test.mjs",
+      "exit_code": 1,
+      "output": "svg-capture-before.txt",
+      "sha256": "efd20ce707c7f16bf912123dbc3560e53d80cf64f92ca49b96cd80c0caa9e039",
+      "tail": [
+        "      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: 'https://fixture.test/delete',",
+        "    expected: null,",
+        "    operator: 'strictEqual',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'recheck3 every hyperlink' control/chrome_tests/page.test.mjs",
+      "exit_code": 0,
+      "output": "svg-capture-after.txt",
+      "sha256": "0f9e202b68dbe3528d007ffc80a0bae97110867c7b8be6c2fff3dee4c1e55ddb",
+      "tail": [
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 133.689792"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'leading pre-line' control/chrome_tests/reader.test.mjs",
+      "exit_code": 1,
+      "output": "trailing-newline-before.txt",
+      "sha256": "bed4af3915088f6fde4f1ba04f5aa9fc89c425b37e5c84a91a86924daed610f2",
+      "tail": [
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: true,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: 'Draft\\nline\\n',",
+        "    expected: /line\\n\\nSend/,",
+        "    operator: 'match',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'leading pre-line' control/chrome_tests/reader.test.mjs",
+      "exit_code": 0,
+      "output": "trailing-newline-after.txt",
+      "sha256": "96ab70e2a2501b6436f3f353cad258f5776f726b974609de4539f037f1d43c04",
+      "tail": [
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 37.967959"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'compose preserves rendered indentation' control/chrome_tests/reader.test.mjs",
+      "exit_code": 1,
+      "output": "display-override-before.txt",
+      "sha256": "7db7c174eb39385dd7fa6429b2cedb86bba84d34589925a08d14e13335eac89b",
+      "tail": [
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: false,",
+        "    expected: true,",
+        "    operator: '==',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'compose preserves rendered indentation' control/chrome_tests/reader.test.mjs",
+      "exit_code": 0,
+      "output": "display-override-after.txt",
+      "sha256": "30f94eb9f91844d8aa7ad26c778f0f5a569df4ec8ff2b47c9d20cef322c4fe26",
+      "tail": [
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 43.821958"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'wrapped detached listener from another' control/chrome_tests/page.test.mjs",
+      "exit_code": 1,
+      "output": "foreign-listener-before.txt",
+      "sha256": "e37103330e94ec42cf33eb1388b189806226a0bf2198e4a1730e5c4fbe2eea1c",
+      "tail": [
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: 1,",
+        "    expected: 0,",
+        "    operator: 'strictEqual',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'wrapped detached listener from another' control/chrome_tests/page.test.mjs",
+      "exit_code": 0,
+      "output": "foreign-listener-after.txt",
+      "sha256": "b1f12a6ee6501b1ce243e127bf8f0f795e95ffb564b17f68bbb6c3b44bb81a2e",
+      "tail": [
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 45.512666"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'wrapped detached listener from another' control/chrome_tests/page.test.mjs",
+      "exit_code": 1,
+      "output": "private-document-before.txt",
+      "sha256": "8e05aef67073d91abe3c60bac42d26ae7e6db645f915e2da288af414537c0860",
+      "tail": [
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: 1,",
+        "    expected: 0,",
+        "    operator: 'strictEqual',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'wrapped detached listener from another' control/chrome_tests/page.test.mjs",
+      "exit_code": 0,
+      "output": "private-document-after.txt",
+      "sha256": "e0f4863002a5802d387222c51edec4a251be29ecac781bf4582a5a2d0e7acd06",
+      "tail": [
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 40.301"
+      ]
+    },
+    {
+      "command": "git show 9433b2be source + corrected MAIN-clone fixture; node --test --test-name-pattern 'wrapped detached listener from another' control/chrome_tests/page.test.mjs",
+      "exit_code": 1,
+      "output": "private-data-clone-before.txt",
+      "sha256": "0ea7c36226bc9b35be9b58fe4a0861c5a097f7e7bd49a7cf01a9da0d6afe8019",
+      "tail": [
+        "      at Test.run (node:internal/test_runner/test:1382:25)",
+        "      at Test.start (node:internal/test_runner/test:1242:17)",
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: 1,",
+        "    expected: 0,",
+        "    operator: 'strictEqual',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'wrapped detached listener from another' control/chrome_tests/page.test.mjs",
+      "exit_code": 0,
+      "output": "private-data-clone-after.txt",
+      "sha256": "81dc4229af1b4704a31a61a74ec98229765fd3200e8ba9e052721f91ab40d941",
+      "tail": [
+        "\u2714 recheck3 a wrapped detached listener from another controlled document installs capture in its owner (178.860375ms)",
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 235.921958"
+      ]
+    },
+    {
+      "command": "git show bc90cdbd guard + paused DOM callback fixture; node --test --test-name-pattern 'peer setup survives suppressed DOM callbacks' control/chrome_tests/page.test.mjs",
+      "exit_code": 1,
+      "output": "paused-peer-before.txt",
+      "sha256": "b016f15e7d181bd4ea5b7f988fe7fcce1488537d829d11ad29b42c3a9a6044de",
+      "tail": [
+        "      at Test.run (node:internal/test_runner/test:1382:25)",
+        "      at Test.start (node:internal/test_runner/test:1242:17)",
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: true,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: false,",
+        "    expected: true,",
+        "    operator: 'strictEqual',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'peer setup survives suppressed DOM callbacks' control/chrome_tests/page.test.mjs",
+      "exit_code": 0,
+      "output": "paused-peer-after.txt",
+      "sha256": "fff3dfa4029ad46ee7480a532e875a1e33e44c51888d71cbd6b098dab2955d4d",
+      "tail": [
+        "\u2714 recheck3 peer setup survives suppressed DOM callbacks during the debugger startup pause (4.039ms)",
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 38.453375"
+      ]
+    },
+    {
+      "command": "git show 613f2c96 guard; node --test --test-name-pattern 'passive controlled recipient' control/chrome_tests/page.test.mjs",
+      "exit_code": 1,
+      "output": "passive-cleanup-before.txt",
+      "sha256": "269b9f683081b3456848576ff7ff76178c4eb4efac52cd3885d18e4fac4cd627",
+      "tail": [
+        "      at Test.run (node:internal/test_runner/test:1382:25)",
+        "      at Test.start (node:internal/test_runner/test:1242:17)",
+        "      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {",
+        "    generatedMessage: false,",
+        "    code: 'ERR_ASSERTION',",
+        "    actual: false,",
+        "    expected: true,",
+        "    operator: 'strictEqual',",
+        "    diff: 'simple'",
+        "  }"
+      ]
+    },
+    {
+      "command": "node --test --test-name-pattern 'passive controlled recipient' control/chrome_tests/page.test.mjs",
+      "exit_code": 0,
+      "output": "passive-cleanup-after.txt",
+      "sha256": "a7ddf2078a2f9329db8f5e9a296165524b7cb405142600605b371ff30c376ca3",
+      "tail": [
+        "\u2714 recheck3 a passive controlled recipient gets private capture without MAIN wrappers and releases it fully (3.969792ms)",
+        "\u2139 tests 1",
+        "\u2139 suites 0",
+        "\u2139 pass 1",
+        "\u2139 fail 0",
+        "\u2139 cancelled 0",
+        "\u2139 skipped 0",
+        "\u2139 todo 0",
+        "\u2139 duration_ms 37.99825"
+      ]
+    }
+  ],
+  "probe": {
+    "command": "node reviews/20-chrome/probe-recheck3.mjs reviews/20-chrome/records/recheck3/mixed-probe.json",
+    "exit_code": 0,
+    "stdout": "384 generated mixes passed; only 20 all-native rows run their handler"
+  },
+  "generator": {
+    "command": "python3 -B control/generate.py --check",
+    "stdout": "Generated artifacts match definitions",
+    "exit_code": 0
+  },
+  "diff": {
+    "command": "git diff --check",
+    "stdout": "",
+    "exit_code": 0
+  },
+  "corrected_attempts": [
+    "Focused page/reader first failed the inert-target compatibility regression; watch now ignores non-EventTarget roots, preserving native inert/detached behavior.",
+    "First fixture compile check failed because its test generator overwrote the fixture mode; corrected the test parameter ordering.",
+    "First complete Node run failed the required-inventory scan; added the new matrix module to the exact inventory scanner.",
+    "First mutation audit stopped at its old addEventListener-list edit selector; updated that removal to remove the whole dedicated listener wrapper. No original assertion was removed.",
+    "A further strict class probe failed on a leading pre-line newline after a block. Preserve the block separator separately from the significant newline; block-leading br is covered too. Source 939f9d5b and its two own cancelled Chrome runs are superseded. The original class assertions stay strict.",
+    "Both 93148a91 Linux runs passed the 40 mixed-step rows, then failed SVG href-self at one unapproved receiver arrival. The chrome.dom shadow lookup requires HTMLElement and threw for SVGElement before stopDefault. A strict SVG class/API double reproduces the failure; guarding that lookup fixes it without changing any receiver assertion.",
+    "Both 2dd343ac Linux runs passed all mixed-step and native-default cases, then caught a trailing source newline merged with a block boundary: the second changed send ran. Preserve source and structural breaks separately. The strict local regression also required its synthetic Send button to contain the actual Send text; no assertion changed. The full Node suite and all removals pass after that correction.",
+    "A strict local PRE case with hidden plus computed display:block reproduced omitted visible text. The compose walker/candidate selection now use computed display. The Linux PRE variant includes that exact CSS override. Only this build's superseded 7536ebff pair was cancelled before acceptance.",
+    "A strict cross-controlled-document detached-listener probe failed: watch_node ignored a node owned by another controlled document. It now forwards capture and the active hold to that document's private guard, like watch_root already does. Open/closed iframe browser cases and two production probes extend the matrix; ordinary documents gain no authority. Only this build's superseded 04eeaa1f Chrome pair was cancelled.",
+    "55dde837 failed the new iframe case at one unapproved arrival in both runs. WindowProxy did not expose the other isolated guard. The owning document now has an isolated-wrapper reference, removed on disposal; the mock masks WindowProxy access and the browser checks MAIN absence plus forged-document-property rejection. P4's ordinary-document setup now executes full guard disposal before deleting its fake WindowProxy reference; every assertion stays unchanged."
+  ],
+  "corrections": [
+    "The private document-wrapper candidate also failed the strict Linux foreign-listener case on 14833d50; private MAIN absence alone did not establish working cross-document routing.",
+    "Use authenticated detached native relays per controlled recipient, privately wired before page resume. No public watch packet is accepted; a pre-commit public-watch experiment was discarded.",
+    "The fixture now shares native DOM identity across its realms and snapshots target listeners, so a synthetic cross-realm descriptor cannot invent a failure or accept a listener added too late. No original assertion was weakened.",
+    "Full foreign matrix tests also advance the recipient clock past 500 ms. A live private query retains the source hold during long synchronous handlers, preserves conservative recipient policy and stops at source release; the browser rows busy-wait past 500 ms too.",
+    "Six extra removals cover native context identity, private carrier branding/retirement, live source holds, passive recipient cleanup and conservative policy. Final 215 removals fail with all baselines passing.",
+    "The first removal attempt on the refactor survived P19-context-generation because duplicate context-construction code changed the edit selector. Unified the native-context registration; the original race assertions and the removal both pass/fail as required.",
+    "9433b2be depended on non-cloneable MAIN function/event data. Chromium primary source confirmed cross-world cloning. The corrected platform double fails the unchanged old foreign matrix (private-data-clone-before.txt) and passes the new matrix (private-data-clone-after.txt). Only the own 9433b2be Chrome pair was cancelled.",
+    "Private guard exports now stay entirely inside this extension isolated world. MAIN sends only cloneable primitive source identifiers to authenticated detached relays. Native markers reject renderer aliases and stop routing after release; stale source documents are pruned without retaining active holds.",
+    "All 128 masks are also generated for native adoption into a third controlled document, making 384 probes. Native DOM brands and private sticky node metadata preserve password exclusion across realm changes, release and retake. Four extra Linux adoption rows extend receiver acceptance to 107 exact sequences.",
+    "Added removals for adoption brands, private password provenance and cloneable MAIN data. P17 reset now removes both persistent stores because the new private node marker independently preserved the old assertion. Removed duplicate watchCreated branches so the existing native-creation removal targets its actual interception path. All 221 removals now fail; every baseline passes.",
+    "Both bc90cdbd Chrome runs failed the first foreign root-wrapper case. Native protocol evidence shows marked private roots, but both peer exports returned false during the debugger startup pause. Chromium listener runnability and a strict paused-callback fixture explain the failure.",
+    "Register native peer roots during startup and exchange private isolated references lazily after execution resumes. Expired source documents are pruned by native document identity even before a reference is available. An unavailable recipient holds as unknown and retries later; an inherited hold cannot relax a conservative recipient. All 317 Node tests and 224 removals pass.",
+    "613f2c96 passes all 107 new receiver sequences in both install modes, independently audited from the completed second-run artifacts. Its full workflow fails an existing taken-tab test: a passive guard awaited a MAIN cleanup acknowledgement despite having no MAIN wrappers. Passive disposal now confirms isolated teardown directly; MAIN restoration remains required for MAIN-installed documents. A new removal rejects reintroducing the missing-ack wait; all 225 removals fail with passing baselines."
+  ],
+  "historical_corrections": "Earlier notes describe intermediate candidates, not current acceptance.",
+  "ci_time_allowance": {
+    "change": "container 300 -> 350 minutes; job 310 -> 360 minutes; no test case or assertion changed",
+    "runtime_command": "python3 -B control/chrome/build.py",
+    "runtime_stdout": "66cdb07105b163cecf8e82c1c6293a3459fda2da556533552305dd5e41e737c0",
+    "runtime_unchanged": true,
+    "generator_stdout": "Generated artifacts match definitions",
+    "diff_exit": 0,
+    "local_test_source": "8b7e799cd0d27238b3725c1f749e8f430c1b187d",
+    "note": "All runtime, tests and audit sources are byte-identical after the workflow-only deadline change; earlier local suites are retained without an unnecessary repeat.",
+    "control_trees": {
+      "8b7e799cd0d27238b3725c1f749e8f430c1b187d": "9a7bac97da046eaa95163cdf6490a917312408db",
+      "63c81414d970d81d4039a2d9cc51260451591259": "9a7bac97da046eaa95163cdf6490a917312408db"
+    }
+  }
+}

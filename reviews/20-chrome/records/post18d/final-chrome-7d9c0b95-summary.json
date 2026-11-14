@@ -1,0 +1,547 @@
+{
+  "head": "7d9c0b952aafd587d1f600f30846aa342c146850",
+  "runs": [
+    {
+      "run": "43530057774",
+      "longest_job_seconds": 1716.0,
+      "jobs": [
+        {
+          "name": "native-precedence",
+          "seconds": 86.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "python-shards (1)",
+          "seconds": 1716.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "python-shards (2)",
+          "seconds": 18.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "python-shards (3)",
+          "seconds": 19.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "python-shards (0)",
+          "seconds": 574.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "package",
+          "seconds": 23.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "latency (plain)",
+          "seconds": 474.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "latency (audit)",
+          "seconds": 437.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, core)",
+          "seconds": 1699.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, word-0)",
+          "seconds": 293.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, word-2)",
+          "seconds": 280.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, recheck3)",
+          "seconds": 637.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, word-3)",
+          "seconds": 325.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, review)",
+          "seconds": 394.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, word-2)",
+          "seconds": 299.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, recheck2)",
+          "seconds": 301.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, adapters)",
+          "seconds": 458.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, core)",
+          "seconds": 1341.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, word-1)",
+          "seconds": 334.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, word-1)",
+          "seconds": 277.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, review)",
+          "seconds": 436.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, recheck2)",
+          "seconds": 267.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, recheck3)",
+          "seconds": 557.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, word-0)",
+          "seconds": 351.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, word-3)",
+          "seconds": 278.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, adapters)",
+          "seconds": 604.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "aggregate (external)",
+          "seconds": 19.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "aggregate (policy)",
+          "seconds": 26.0,
+          "conclusion": "success"
+        }
+      ],
+      "installs": {
+        "external": {
+          "named_cases": 98,
+          "word_cells": 999,
+          "python_tests": 268,
+          "independent_audit": true,
+          "round3_cases_present": 92,
+          "group12": true
+        },
+        "policy": {
+          "named_cases": 98,
+          "word_cells": 999,
+          "python_tests": 268,
+          "independent_audit": true,
+          "round3_cases_present": 92,
+          "group12": true
+        }
+      },
+      "latency": {
+        "plain": {
+          "build": "b9de9a97d18c56090421614364239471ef82b8c1002ee1696f86ba39d2afb3b4",
+          "gate_passed": true,
+          "nominal_stat_exceedances": [],
+          "history4000": {
+            "approval_to_done": {
+              "samples": 20,
+              "median_ms": 596.3892035000026,
+              "p95_ms": 601.2720969999937
+            },
+            "asking_click": {
+              "samples": 20,
+              "median_ms": 29.707023999995727,
+              "p95_ms": 30.313492000001133
+            },
+            "fill": {
+              "samples": 20,
+              "median_ms": 579.1483474999986,
+              "p95_ms": 582.0273420000012
+            },
+            "free_click": {
+              "samples": 20,
+              "median_ms": 585.8819034999979,
+              "p95_ms": 589.9893650000013
+            },
+            "navigate": {
+              "samples": 20,
+              "median_ms": 52.13607300000149,
+              "p95_ms": 54.98368100001244
+            },
+            "read": {
+              "samples": 20,
+              "median_ms": 20.690756999996665,
+              "p95_ms": 21.20450300000084
+            }
+          }
+        },
+        "audit": {
+          "build": "b9de9a97d18c56090421614364239471ef82b8c1002ee1696f86ba39d2afb3b4",
+          "gate_passed": true,
+          "nominal_stat_exceedances": [],
+          "history4000": {
+            "approval_to_done": {
+              "samples": 20,
+              "median_ms": 589.3466295000035,
+              "p95_ms": 595.7165269999969
+            },
+            "asking_click": {
+              "samples": 20,
+              "median_ms": 24.47865099999035,
+              "p95_ms": 29.146692000009352
+            },
+            "fill": {
+              "samples": 20,
+              "median_ms": 567.0461995000005,
+              "p95_ms": 574.016684000002
+            },
+            "free_click": {
+              "samples": 20,
+              "median_ms": 577.7158089999939,
+              "p95_ms": 582.7216049999988
+            },
+            "navigate": {
+              "samples": 20,
+              "median_ms": 46.82005350000691,
+              "p95_ms": 54.221922999990056
+            },
+            "read": {
+              "samples": 20,
+              "median_ms": 16.373233499994967,
+              "p95_ms": 20.244452999992063
+            }
+          }
+        }
+      }
+    },
+    {
+      "run": "43530063897",
+      "longest_job_seconds": 1702.0,
+      "jobs": [
+        {
+          "name": "native-precedence",
+          "seconds": 85.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "python-shards (1)",
+          "seconds": 1702.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "python-shards (2)",
+          "seconds": 22.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "python-shards (3)",
+          "seconds": 16.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "python-shards (0)",
+          "seconds": 582.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "package",
+          "seconds": 14.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "latency (audit)",
+          "seconds": 453.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "latency (plain)",
+          "seconds": 437.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, recheck3)",
+          "seconds": 680.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, review)",
+          "seconds": 408.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, recheck2)",
+          "seconds": 258.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, word-1)",
+          "seconds": 300.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, word-3)",
+          "seconds": 280.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, word-0)",
+          "seconds": 281.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, word-2)",
+          "seconds": 307.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, core)",
+          "seconds": 1367.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (external, adapters)",
+          "seconds": 593.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, core)",
+          "seconds": 1378.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, word-2)",
+          "seconds": 343.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, review)",
+          "seconds": 399.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, adapters)",
+          "seconds": 661.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, recheck2)",
+          "seconds": 259.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, recheck3)",
+          "seconds": 650.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, word-0)",
+          "seconds": 314.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, word-1)",
+          "seconds": 301.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "fixtures (policy, word-3)",
+          "seconds": 313.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "aggregate (external)",
+          "seconds": 26.0,
+          "conclusion": "success"
+        },
+        {
+          "name": "aggregate (policy)",
+          "seconds": 19.0,
+          "conclusion": "success"
+        }
+      ],
+      "installs": {
+        "external": {
+          "named_cases": 98,
+          "word_cells": 999,
+          "python_tests": 268,
+          "independent_audit": true,
+          "round3_cases_present": 92,
+          "group12": true
+        },
+        "policy": {
+          "named_cases": 98,
+          "word_cells": 999,
+          "python_tests": 268,
+          "independent_audit": true,
+          "round3_cases_present": 92,
+          "group12": true
+        }
+      },
+      "latency": {
+        "plain": {
+          "build": "b9de9a97d18c56090421614364239471ef82b8c1002ee1696f86ba39d2afb3b4",
+          "gate_passed": true,
+          "nominal_stat_exceedances": [],
+          "history4000": {
+            "approval_to_done": {
+              "samples": 20,
+              "median_ms": 593.5634070000015,
+              "p95_ms": 595.412135000006
+            },
+            "asking_click": {
+              "samples": 20,
+              "median_ms": 28.417699500001618,
+              "p95_ms": 29.152052999997977
+            },
+            "fill": {
+              "samples": 20,
+              "median_ms": 578.006598999993,
+              "p95_ms": 579.3296260000061
+            },
+            "free_click": {
+              "samples": 20,
+              "median_ms": 581.349186499996,
+              "p95_ms": 585.0779449999973
+            },
+            "navigate": {
+              "samples": 20,
+              "median_ms": 47.02510500000062,
+              "p95_ms": 49.60614999999234
+            },
+            "read": {
+              "samples": 20,
+              "median_ms": 20.184555500003626,
+              "p95_ms": 20.712308999995003
+            }
+          }
+        },
+        "audit": {
+          "build": "b9de9a97d18c56090421614364239471ef82b8c1002ee1696f86ba39d2afb3b4",
+          "gate_passed": true,
+          "nominal_stat_exceedances": [],
+          "history4000": {
+            "approval_to_done": {
+              "samples": 20,
+              "median_ms": 591.7100569999966,
+              "p95_ms": 593.6102499999979
+            },
+            "asking_click": {
+              "samples": 20,
+              "median_ms": 29.70802349999576,
+              "p95_ms": 30.399092999999993
+            },
+            "fill": {
+              "samples": 20,
+              "median_ms": 577.5570745000005,
+              "p95_ms": 578.8035069999896
+            },
+            "free_click": {
+              "samples": 20,
+              "median_ms": 576.7311534999972,
+              "p95_ms": 588.7579460000125
+            },
+            "navigate": {
+              "samples": 20,
+              "median_ms": 50.356252999998105,
+              "p95_ms": 53.44919899999513
+            },
+            "read": {
+              "samples": 20,
+              "median_ms": 21.376048999998602,
+              "p95_ms": 22.135719999991124
+            }
+          }
+        }
+      }
+    }
+  ],
+  "history4000_ranges": {
+    "read": {
+      "median_ms": {
+        "min": 16.373233499994967,
+        "max": 21.376048999998602
+      },
+      "p95_ms": {
+        "min": 20.244452999992063,
+        "max": 22.135719999991124
+      }
+    },
+    "navigate": {
+      "median_ms": {
+        "min": 46.82005350000691,
+        "max": 52.13607300000149
+      },
+      "p95_ms": {
+        "min": 49.60614999999234,
+        "max": 54.98368100001244
+      }
+    },
+    "free_click": {
+      "median_ms": {
+        "min": 576.7311534999972,
+        "max": 585.8819034999979
+      },
+      "p95_ms": {
+        "min": 582.7216049999988,
+        "max": 589.9893650000013
+      }
+    },
+    "fill": {
+      "median_ms": {
+        "min": 567.0461995000005,
+        "max": 579.1483474999986
+      },
+      "p95_ms": {
+        "min": 574.016684000002,
+        "max": 582.0273420000012
+      }
+    },
+    "asking_click": {
+      "median_ms": {
+        "min": 24.47865099999035,
+        "max": 29.70802349999576
+      },
+      "p95_ms": {
+        "min": 29.146692000009352,
+        "max": 30.399092999999993
+      }
+    },
+    "approval_to_done": {
+      "median_ms": {
+        "min": 589.3466295000035,
+        "max": 596.3892035000026
+      },
+      "p95_ms": {
+        "min": 593.6102499999979,
+        "max": 601.2720969999937
+      }
+    }
+  }
+}

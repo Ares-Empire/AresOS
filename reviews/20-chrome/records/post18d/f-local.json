@@ -1,0 +1,18 @@
+{
+  "browser_free": true,
+  "runtime_build": "388cdfcf158350b48672b50ee4d1b4f40d8cbca88703fee577b451452d039494",
+  "node": {
+    "command": "node --test control/chrome_tests/*.test.mjs reviews/20-chrome/audit-streams.test.mjs",
+    "passed": 369,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0
+  },
+  "python": {
+    "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -m unittest test_policy test_sites test_unit test_questions test_bridge -v",
+    "tests": 79,
+    "seconds": 1.814,
+    "result": "OK"
+  },
+  "mutations": 302
+}

@@ -1,0 +1,1656 @@
+[
+  {
+    "label": "chrome-passive-first",
+    "attempt": 1,
+    "conclusion": "failure",
+    "databaseId": 43395458551,
+    "event": "push",
+    "headSha": "8b7e799cd0d27238b3725c1f749e8f430c1b187d",
+    "jobs": [
+      {
+        "completedAt": "2026-11-13T13:44:44Z",
+        "conclusion": "failure",
+        "databaseId": 131785164701,
+        "name": "fixtures (policy)",
+        "startedAt": "2026-11-13T08:43:32Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:43:34Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:43:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:43:42Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:43:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:43:42Z",
+            "conclusion": "success",
+            "name": "Resolve the exact stable package and checksum",
+            "number": 3,
+            "startedAt": "2026-11-13T08:43:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:44:37Z",
+            "conclusion": "success",
+            "name": "Build disposable branded-Chrome container",
+            "number": 4,
+            "startedAt": "2026-11-13T08:43:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:44:37Z",
+            "conclusion": "failure",
+            "name": "Browser fixtures only inside Linux container, sandbox on",
+            "number": 5,
+            "startedAt": "2026-11-13T08:44:37Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:44:41Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "number": 6,
+            "startedAt": "2026-11-13T13:44:37Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:44:41Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 12,
+            "startedAt": "2026-11-13T13:44:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:44:41Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 13,
+            "startedAt": "2026-11-13T13:44:41Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395458551/job/131785164701"
+      },
+      {
+        "completedAt": "2026-11-13T13:44:38Z",
+        "conclusion": "failure",
+        "databaseId": 131785165014,
+        "name": "fixtures (external)",
+        "startedAt": "2026-11-13T08:43:33Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:43:35Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:43:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:43:42Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:43:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:43:43Z",
+            "conclusion": "success",
+            "name": "Resolve the exact stable package and checksum",
+            "number": 3,
+            "startedAt": "2026-11-13T08:43:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:44:33Z",
+            "conclusion": "success",
+            "name": "Build disposable branded-Chrome container",
+            "number": 4,
+            "startedAt": "2026-11-13T08:43:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:44:33Z",
+            "conclusion": "failure",
+            "name": "Browser fixtures only inside Linux container, sandbox on",
+            "number": 5,
+            "startedAt": "2026-11-13T08:44:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:44:36Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "number": 6,
+            "startedAt": "2026-11-13T13:44:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:44:36Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 12,
+            "startedAt": "2026-11-13T13:44:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:44:36Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 13,
+            "startedAt": "2026-11-13T13:44:36Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395458551/job/131785165014"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395458551"
+  },
+  {
+    "label": "chrome-passive-second",
+    "attempt": 1,
+    "conclusion": "failure",
+    "databaseId": 43395775465,
+    "event": "workflow_dispatch",
+    "headSha": "8b7e799cd0d27238b3725c1f749e8f430c1b187d",
+    "jobs": [
+      {
+        "completedAt": "2026-11-13T13:47:05Z",
+        "conclusion": "failure",
+        "databaseId": 131786191757,
+        "name": "fixtures (policy)",
+        "startedAt": "2026-11-13T08:45:56Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:45:57Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:45:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:05Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:45:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:06Z",
+            "conclusion": "success",
+            "name": "Resolve the exact stable package and checksum",
+            "number": 3,
+            "startedAt": "2026-11-13T08:46:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:57Z",
+            "conclusion": "success",
+            "name": "Build disposable branded-Chrome container",
+            "number": 4,
+            "startedAt": "2026-11-13T08:46:06Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:46:58Z",
+            "conclusion": "failure",
+            "name": "Browser fixtures only inside Linux container, sandbox on",
+            "number": 5,
+            "startedAt": "2026-11-13T08:46:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:47:02Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "number": 6,
+            "startedAt": "2026-11-13T13:46:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:47:02Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 12,
+            "startedAt": "2026-11-13T13:47:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:47:02Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 13,
+            "startedAt": "2026-11-13T13:47:02Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775465/job/131786191757"
+      },
+      {
+        "completedAt": "2026-11-13T13:31:44Z",
+        "conclusion": "success",
+        "databaseId": 131786192185,
+        "name": "fixtures (external)",
+        "startedAt": "2026-11-13T08:45:55Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:45:57Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:45:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:05Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:45:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:05Z",
+            "conclusion": "success",
+            "name": "Resolve the exact stable package and checksum",
+            "number": 3,
+            "startedAt": "2026-11-13T08:46:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:47:05Z",
+            "conclusion": "success",
+            "name": "Build disposable branded-Chrome container",
+            "number": 4,
+            "startedAt": "2026-11-13T08:46:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:31:38Z",
+            "conclusion": "success",
+            "name": "Browser fixtures only inside Linux container, sandbox on",
+            "number": 5,
+            "startedAt": "2026-11-13T08:47:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:31:42Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "number": 6,
+            "startedAt": "2026-11-13T13:31:38Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:31:42Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 12,
+            "startedAt": "2026-11-13T13:31:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T13:31:42Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 13,
+            "startedAt": "2026-11-13T13:31:42Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775465/job/131786192185"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775465"
+  },
+  {
+    "label": "base-passive-first",
+    "attempt": 1,
+    "conclusion": "success",
+    "databaseId": 43395775390,
+    "event": "workflow_dispatch",
+    "headSha": "8b7e799cd0d27238b3725c1f749e8f430c1b187d",
+    "jobs": [
+      {
+        "completedAt": "2026-11-13T08:50:37Z",
+        "conclusion": "success",
+        "databaseId": 131786191155,
+        "name": "containers",
+        "startedAt": "2026-11-13T08:45:57Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:45:58Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:45:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:11Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:45:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:50:33Z",
+            "conclusion": "success",
+            "name": "Test inside Fedora 45 container (no model or real account)",
+            "number": 3,
+            "startedAt": "2026-11-13T08:46:11Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:50:35Z",
+            "conclusion": "success",
+            "name": "Upload exact test output",
+            "number": 4,
+            "startedAt": "2026-11-13T08:50:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:50:35Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T08:50:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:50:35Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T08:50:35Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775390/job/131786191155"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775390"
+  },
+  {
+    "label": "base-passive-second",
+    "attempt": 1,
+    "conclusion": "success",
+    "databaseId": 43396516979,
+    "event": "workflow_dispatch",
+    "headSha": "8b7e799cd0d27238b3725c1f749e8f430c1b187d",
+    "jobs": [
+      {
+        "completedAt": "2026-11-13T08:55:50Z",
+        "conclusion": "success",
+        "databaseId": 131788645266,
+        "name": "containers",
+        "startedAt": "2026-11-13T08:51:32Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:51:33Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:51:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:51:43Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:51:33Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:55:48Z",
+            "conclusion": "success",
+            "name": "Test inside Fedora 45 container (no model or real account)",
+            "number": 3,
+            "startedAt": "2026-11-13T08:51:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:55:49Z",
+            "conclusion": "success",
+            "name": "Upload exact test output",
+            "number": 4,
+            "startedAt": "2026-11-13T08:55:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:55:49Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T08:55:49Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:55:49Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T08:55:49Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43396516979/job/131788645266"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43396516979"
+  },
+  {
+    "label": "mail-passive-first",
+    "attempt": 1,
+    "conclusion": "success",
+    "databaseId": 43395775356,
+    "event": "workflow_dispatch",
+    "headSha": "8b7e799cd0d27238b3725c1f749e8f430c1b187d",
+    "jobs": [
+      {
+        "completedAt": "2026-11-13T08:50:45Z",
+        "conclusion": "success",
+        "databaseId": 131786191349,
+        "name": "sweep (3)",
+        "startedAt": "2026-11-13T08:45:59Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:46:02Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:46:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:10Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:46:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:50:42Z",
+            "conclusion": "success",
+            "name": "OS and SQLite fault sweep in isolated mail containers",
+            "number": 3,
+            "startedAt": "2026-11-13T08:46:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:50:43Z",
+            "conclusion": "success",
+            "name": "Upload sweep output and fixture isolation",
+            "number": 4,
+            "startedAt": "2026-11-13T08:50:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:50:43Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T08:50:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:50:43Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T08:50:43Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775356/job/131786191349"
+      },
+      {
+        "completedAt": "2026-11-13T09:09:24Z",
+        "conclusion": "success",
+        "databaseId": 131786191688,
+        "name": "containers",
+        "startedAt": "2026-11-13T08:45:55Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:45:57Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:45:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:07Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:45:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:09:19Z",
+            "conclusion": "success",
+            "name": "Real isolated mail servers and shared base (no model or real account)",
+            "number": 3,
+            "startedAt": "2026-11-13T08:46:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:09:21Z",
+            "conclusion": "success",
+            "name": "Upload exact output (no credentials or private keys)",
+            "number": 4,
+            "startedAt": "2026-11-13T09:09:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:09:21Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T09:09:21Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:09:21Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T09:09:21Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775356/job/131786191688"
+      },
+      {
+        "completedAt": "2026-11-13T09:12:04Z",
+        "conclusion": "success",
+        "databaseId": 131786191698,
+        "name": "sweep (0)",
+        "startedAt": "2026-11-13T08:45:58Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:45:59Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:45:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:08Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:45:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:12:00Z",
+            "conclusion": "success",
+            "name": "OS and SQLite fault sweep in isolated mail containers",
+            "number": 3,
+            "startedAt": "2026-11-13T08:46:08Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:12:02Z",
+            "conclusion": "success",
+            "name": "Upload sweep output and fixture isolation",
+            "number": 4,
+            "startedAt": "2026-11-13T09:12:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:12:02Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T09:12:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:12:02Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T09:12:02Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775356/job/131786191698"
+      },
+      {
+        "completedAt": "2026-11-13T08:51:42Z",
+        "conclusion": "success",
+        "databaseId": 131786191740,
+        "name": "sweep (2)",
+        "startedAt": "2026-11-13T08:45:56Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:45:59Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:45:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:10Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:45:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:51:38Z",
+            "conclusion": "success",
+            "name": "OS and SQLite fault sweep in isolated mail containers",
+            "number": 3,
+            "startedAt": "2026-11-13T08:46:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:51:39Z",
+            "conclusion": "success",
+            "name": "Upload sweep output and fixture isolation",
+            "number": 4,
+            "startedAt": "2026-11-13T08:51:38Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:51:39Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T08:51:39Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:51:39Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T08:51:39Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775356/job/131786191740"
+      },
+      {
+        "completedAt": "2026-11-13T09:09:19Z",
+        "conclusion": "success",
+        "databaseId": 131786191751,
+        "name": "sweep (1)",
+        "startedAt": "2026-11-13T08:45:58Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:45:59Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:45:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:07Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:45:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:09:15Z",
+            "conclusion": "success",
+            "name": "OS and SQLite fault sweep in isolated mail containers",
+            "number": 3,
+            "startedAt": "2026-11-13T08:46:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:09:16Z",
+            "conclusion": "success",
+            "name": "Upload sweep output and fixture isolation",
+            "number": 4,
+            "startedAt": "2026-11-13T09:09:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:09:16Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T09:09:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:09:16Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T09:09:16Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775356/job/131786191751"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775356"
+  },
+  {
+    "label": "mail-passive-second",
+    "attempt": 1,
+    "conclusion": "success",
+    "databaseId": 43399518490,
+    "event": "workflow_dispatch",
+    "headSha": "8b7e799cd0d27238b3725c1f749e8f430c1b187d",
+    "jobs": [
+      {
+        "completedAt": "2026-11-13T09:31:29Z",
+        "conclusion": "success",
+        "databaseId": 131798599464,
+        "name": "containers",
+        "startedAt": "2026-11-13T09:13:34Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T09:13:35Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T09:13:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:13:42Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T09:13:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:31:26Z",
+            "conclusion": "success",
+            "name": "Real isolated mail servers and shared base (no model or real account)",
+            "number": 3,
+            "startedAt": "2026-11-13T09:13:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:31:27Z",
+            "conclusion": "success",
+            "name": "Upload exact output (no credentials or private keys)",
+            "number": 4,
+            "startedAt": "2026-11-13T09:31:26Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:31:27Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T09:31:27Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:31:27Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T09:31:27Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43399518490/job/131798599464"
+      },
+      {
+        "completedAt": "2026-11-13T09:20:27Z",
+        "conclusion": "success",
+        "databaseId": 131798599867,
+        "name": "sweep (3)",
+        "startedAt": "2026-11-13T09:13:34Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T09:13:35Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T09:13:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:13:42Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T09:13:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:20:24Z",
+            "conclusion": "success",
+            "name": "OS and SQLite fault sweep in isolated mail containers",
+            "number": 3,
+            "startedAt": "2026-11-13T09:13:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:20:25Z",
+            "conclusion": "success",
+            "name": "Upload sweep output and fixture isolation",
+            "number": 4,
+            "startedAt": "2026-11-13T09:20:24Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:20:25Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T09:20:25Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:20:25Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T09:20:25Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43399518490/job/131798599867"
+      },
+      {
+        "completedAt": "2026-11-13T09:23:07Z",
+        "conclusion": "success",
+        "databaseId": 131798599877,
+        "name": "sweep (1)",
+        "startedAt": "2026-11-13T09:13:40Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T09:13:43Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T09:13:40Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:13:53Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T09:13:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:23:03Z",
+            "conclusion": "success",
+            "name": "OS and SQLite fault sweep in isolated mail containers",
+            "number": 3,
+            "startedAt": "2026-11-13T09:13:53Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:23:04Z",
+            "conclusion": "success",
+            "name": "Upload sweep output and fixture isolation",
+            "number": 4,
+            "startedAt": "2026-11-13T09:23:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:23:04Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T09:23:04Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:23:05Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T09:23:04Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43399518490/job/131798599877"
+      },
+      {
+        "completedAt": "2026-11-13T09:31:45Z",
+        "conclusion": "success",
+        "databaseId": 131798599971,
+        "name": "sweep (0)",
+        "startedAt": "2026-11-13T09:13:34Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T09:13:36Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T09:13:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:13:46Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T09:13:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:31:42Z",
+            "conclusion": "success",
+            "name": "OS and SQLite fault sweep in isolated mail containers",
+            "number": 3,
+            "startedAt": "2026-11-13T09:13:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:31:44Z",
+            "conclusion": "success",
+            "name": "Upload sweep output and fixture isolation",
+            "number": 4,
+            "startedAt": "2026-11-13T09:31:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:31:44Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T09:31:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:31:44Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T09:31:44Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43399518490/job/131798599971"
+      },
+      {
+        "completedAt": "2026-11-13T09:24:06Z",
+        "conclusion": "success",
+        "databaseId": 131798600112,
+        "name": "sweep (2)",
+        "startedAt": "2026-11-13T09:13:34Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T09:13:36Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T09:13:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:13:43Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T09:13:36Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:24:02Z",
+            "conclusion": "success",
+            "name": "OS and SQLite fault sweep in isolated mail containers",
+            "number": 3,
+            "startedAt": "2026-11-13T09:13:43Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:24:03Z",
+            "conclusion": "success",
+            "name": "Upload sweep output and fixture isolation",
+            "number": 4,
+            "startedAt": "2026-11-13T09:24:02Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:24:03Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T09:24:03Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T09:24:03Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T09:24:03Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43399518490/job/131798600112"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43399518490"
+  },
+  {
+    "label": "boundary-passive-first",
+    "attempt": 1,
+    "conclusion": "success",
+    "databaseId": 43395775086,
+    "event": "workflow_dispatch",
+    "headSha": "8b7e799cd0d27238b3725c1f749e8f430c1b187d",
+    "jobs": [
+      {
+        "completedAt": "2026-11-13T08:49:21Z",
+        "conclusion": "success",
+        "databaseId": 131786189667,
+        "name": "hostile",
+        "startedAt": "2026-11-13T08:45:56Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:45:57Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:45:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:07Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "startedAt": "2026-11-13T08:45:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:41Z",
+            "conclusion": "success",
+            "name": "Build pinned disposable Linux environment",
+            "number": 3,
+            "startedAt": "2026-11-13T08:46:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:41Z",
+            "conclusion": "success",
+            "name": "Permit unprivileged namespaces on this disposable runner",
+            "number": 4,
+            "startedAt": "2026-11-13T08:46:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:15Z",
+            "conclusion": "success",
+            "name": "Hostile programs with and without seccomp",
+            "number": 5,
+            "startedAt": "2026-11-13T08:46:41Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:17Z",
+            "conclusion": "success",
+            "name": "Separate coding policy and user",
+            "number": 6,
+            "startedAt": "2026-11-13T08:49:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:17Z",
+            "conclusion": "success",
+            "name": "Run identity",
+            "number": 7,
+            "startedAt": "2026-11-13T08:49:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:17Z",
+            "conclusion": "success",
+            "name": "Restore runner namespace policy",
+            "number": 8,
+            "startedAt": "2026-11-13T08:49:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:19Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v4",
+            "number": 9,
+            "startedAt": "2026-11-13T08:49:17Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:19Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 18,
+            "startedAt": "2026-11-13T08:49:19Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:19Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 19,
+            "startedAt": "2026-11-13T08:49:19Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775086/job/131786189667"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775086"
+  },
+  {
+    "label": "boundary-passive-second",
+    "attempt": 1,
+    "conclusion": "success",
+    "databaseId": 43396381130,
+    "event": "workflow_dispatch",
+    "headSha": "8b7e799cd0d27238b3725c1f749e8f430c1b187d",
+    "jobs": [
+      {
+        "completedAt": "2026-11-13T08:53:48Z",
+        "conclusion": "success",
+        "databaseId": 131788188044,
+        "name": "hostile",
+        "startedAt": "2026-11-13T08:50:31Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:50:32Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:50:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:50:39Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@v4",
+            "number": 2,
+            "startedAt": "2026-11-13T08:50:32Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:51:12Z",
+            "conclusion": "success",
+            "name": "Build pinned disposable Linux environment",
+            "number": 3,
+            "startedAt": "2026-11-13T08:50:39Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:51:12Z",
+            "conclusion": "success",
+            "name": "Permit unprivileged namespaces on this disposable runner",
+            "number": 4,
+            "startedAt": "2026-11-13T08:51:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:53:44Z",
+            "conclusion": "success",
+            "name": "Hostile programs with and without seccomp",
+            "number": 5,
+            "startedAt": "2026-11-13T08:51:12Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:53:46Z",
+            "conclusion": "success",
+            "name": "Separate coding policy and user",
+            "number": 6,
+            "startedAt": "2026-11-13T08:53:44Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:53:46Z",
+            "conclusion": "success",
+            "name": "Run identity",
+            "number": 7,
+            "startedAt": "2026-11-13T08:53:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:53:46Z",
+            "conclusion": "success",
+            "name": "Restore runner namespace policy",
+            "number": 8,
+            "startedAt": "2026-11-13T08:53:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:53:47Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@v4",
+            "number": 9,
+            "startedAt": "2026-11-13T08:53:46Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:53:47Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@v4",
+            "number": 18,
+            "startedAt": "2026-11-13T08:53:47Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:53:47Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 19,
+            "startedAt": "2026-11-13T08:53:47Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43396381130/job/131788188044"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43396381130"
+  },
+  {
+    "label": "qualification-passive-first",
+    "attempt": 1,
+    "conclusion": "success",
+    "databaseId": 43395775194,
+    "event": "workflow_dispatch",
+    "headSha": "8b7e799cd0d27238b3725c1f749e8f430c1b187d",
+    "jobs": [
+      {
+        "completedAt": "2026-11-13T08:47:36Z",
+        "conclusion": "success",
+        "databaseId": 131786190703,
+        "name": "delivery-attestation",
+        "startedAt": "2026-11-13T08:45:58Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:46:00Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:45:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:07Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:46:00Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:07Z",
+            "conclusion": "success",
+            "name": "Make a nonempty synthetic record for real verifier tests",
+            "number": 3,
+            "startedAt": "2026-11-13T08:46:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:10Z",
+            "conclusion": "success",
+            "name": "Run actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a",
+            "number": 4,
+            "startedAt": "2026-11-13T08:46:07Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:47:34Z",
+            "conclusion": "success",
+            "name": "Retain this workflow's real Sigstore bundle and test altered copies",
+            "number": 5,
+            "startedAt": "2026-11-13T08:46:10Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:47:35Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "number": 6,
+            "startedAt": "2026-11-13T08:47:34Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:47:35Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 12,
+            "startedAt": "2026-11-13T08:47:35Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:47:35Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 13,
+            "startedAt": "2026-11-13T08:47:35Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775194/job/131786190703"
+      },
+      {
+        "completedAt": "2026-11-13T08:46:18Z",
+        "conclusion": "success",
+        "databaseId": 131786190945,
+        "name": "qualification-tests",
+        "startedAt": "2026-11-13T08:45:55Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:45:57Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:45:56Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:05Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:45:57Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:15Z",
+            "conclusion": "success",
+            "name": "Browser-free build, service, delivery and hermetic publisher tests",
+            "number": 3,
+            "startedAt": "2026-11-13T08:46:05Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:16Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "number": 4,
+            "startedAt": "2026-11-13T08:46:15Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:16Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T08:46:16Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:46:16Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T08:46:16Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775194/job/131786190945"
+      },
+      {
+        "completedAt": "2026-11-13T08:45:53Z",
+        "conclusion": "skipped",
+        "databaseId": 131786192441,
+        "name": "qualification-plan",
+        "startedAt": "2026-11-13T08:45:53Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775194/job/131786192441"
+      },
+      {
+        "completedAt": "2026-11-13T08:45:53Z",
+        "conclusion": "skipped",
+        "databaseId": 131786249600,
+        "name": "qualification-pairs",
+        "startedAt": "2026-11-13T08:46:01Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775194/job/131786249600"
+      },
+      {
+        "completedAt": "2026-11-13T08:47:37Z",
+        "conclusion": "skipped",
+        "databaseId": 131786941437,
+        "name": "qualification-publish",
+        "startedAt": "2026-11-13T08:47:37Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775194/job/131786941437"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43395775194"
+  },
+  {
+    "label": "qualification-passive-second",
+    "attempt": 1,
+    "conclusion": "success",
+    "databaseId": 43396245554,
+    "event": "workflow_dispatch",
+    "headSha": "8b7e799cd0d27238b3725c1f749e8f430c1b187d",
+    "jobs": [
+      {
+        "completedAt": "2026-11-13T08:49:52Z",
+        "conclusion": "success",
+        "databaseId": 131787741311,
+        "name": "qualification-tests",
+        "startedAt": "2026-11-13T08:49:29Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:49:31Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:49:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:38Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:49:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:48Z",
+            "conclusion": "success",
+            "name": "Browser-free build, service, delivery and hermetic publisher tests",
+            "number": 3,
+            "startedAt": "2026-11-13T08:49:38Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:50Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "number": 4,
+            "startedAt": "2026-11-13T08:49:48Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:50Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 8,
+            "startedAt": "2026-11-13T08:49:50Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:50Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 9,
+            "startedAt": "2026-11-13T08:49:50Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43396245554/job/131787741311"
+      },
+      {
+        "completedAt": "2026-11-13T08:51:01Z",
+        "conclusion": "success",
+        "databaseId": 131787741673,
+        "name": "delivery-attestation",
+        "startedAt": "2026-11-13T08:49:30Z",
+        "status": "completed",
+        "steps": [
+          {
+            "completedAt": "2026-11-13T08:49:31Z",
+            "conclusion": "success",
+            "name": "Set up job",
+            "number": 1,
+            "startedAt": "2026-11-13T08:49:30Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:39Z",
+            "conclusion": "success",
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 2,
+            "startedAt": "2026-11-13T08:49:31Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:39Z",
+            "conclusion": "success",
+            "name": "Make a nonempty synthetic record for real verifier tests",
+            "number": 3,
+            "startedAt": "2026-11-13T08:49:39Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:49:42Z",
+            "conclusion": "success",
+            "name": "Run actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a",
+            "number": 4,
+            "startedAt": "2026-11-13T08:49:39Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:50:58Z",
+            "conclusion": "success",
+            "name": "Retain this workflow's real Sigstore bundle and test altered copies",
+            "number": 5,
+            "startedAt": "2026-11-13T08:49:42Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:50:59Z",
+            "conclusion": "success",
+            "name": "Run actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+            "number": 6,
+            "startedAt": "2026-11-13T08:50:58Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:50:59Z",
+            "conclusion": "success",
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "number": 12,
+            "startedAt": "2026-11-13T08:50:59Z",
+            "status": "completed"
+          },
+          {
+            "completedAt": "2026-11-13T08:50:59Z",
+            "conclusion": "success",
+            "name": "Complete job",
+            "number": 13,
+            "startedAt": "2026-11-13T08:50:59Z",
+            "status": "completed"
+          }
+        ],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43396245554/job/131787741673"
+      },
+      {
+        "completedAt": "2026-11-13T08:49:28Z",
+        "conclusion": "skipped",
+        "databaseId": 131787743369,
+        "name": "qualification-plan",
+        "startedAt": "2026-11-13T08:49:28Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43396245554/job/131787743369"
+      },
+      {
+        "completedAt": "2026-11-13T08:49:28Z",
+        "conclusion": "skipped",
+        "databaseId": 131787743663,
+        "name": "qualification-pairs",
+        "startedAt": "2026-11-13T08:49:28Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43396245554/job/131787743663"
+      },
+      {
+        "completedAt": "2026-11-13T08:51:01Z",
+        "conclusion": "skipped",
+        "databaseId": 131788428285,
+        "name": "qualification-publish",
+        "startedAt": "2026-11-13T08:51:01Z",
+        "status": "completed",
+        "steps": [],
+        "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43396245554/job/131788428285"
+      }
+    ],
+    "status": "completed",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43396245554"
+  }
+]

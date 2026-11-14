@@ -1,0 +1,6 @@
+{
+  "threshold_bytes": 500000000,
+  "files_over_500_MB": [],
+  "excluded_profile_directories_not_read": [],
+  "inventory": "file metadata only; no browser or profile contents opened"
+}

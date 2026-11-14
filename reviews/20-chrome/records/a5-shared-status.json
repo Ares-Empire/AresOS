@@ -1,0 +1,210 @@
+{
+  "base": [
+    {
+      "run": 42728630006,
+      "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "containers",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "summaries": [
+        {
+          "line": 416,
+          "text": "containers\tTest inside Fedora 45 container (no model or real account)\t2026-11-10T00:33:06.0271097Z Ran 142 tests in 204.370s"
+        }
+      ]
+    },
+    {
+      "run": 42729233505,
+      "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "containers",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "summaries": [
+        {
+          "line": 399,
+          "text": "containers\tTest inside Fedora 45 container (no model or real account)\t2026-11-10T00:37:56.1972491Z Ran 142 tests in 215.365s"
+        }
+      ]
+    }
+  ],
+  "mail": [
+    {
+      "run": 42728630887,
+      "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "sweep (3)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "sweep (1)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "containers",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "sweep (0)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "sweep (2)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "summaries": [
+        {
+          "line": 357,
+          "text": "sweep (3)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T00:35:28.7390807Z Ran 4 tests in 351.620s"
+        },
+        {
+          "line": 1016,
+          "text": "sweep (1)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T00:44:31.1660606Z Ran 4 tests in 895.398s"
+        },
+        {
+          "line": 1500,
+          "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T00:33:28.3148961Z Ran 142 tests in 234.953s"
+        },
+        {
+          "line": 1935,
+          "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T00:50:11.2793688Z Ran 309 tests in 995.000s"
+        },
+        {
+          "line": 2604,
+          "text": "sweep (0)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T00:53:30.1169975Z Ran 4 tests in 1433.709s"
+        },
+        {
+          "line": 3032,
+          "text": "sweep (2)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T00:38:44.5927283Z Ran 4 tests in 546.377s"
+        }
+      ]
+    },
+    {
+      "run": 42729236411,
+      "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "containers",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "sweep (1)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "sweep (3)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "sweep (0)",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "sweep (2)",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "summaries": [
+        {
+          "line": 419,
+          "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T00:38:26.1805422Z Ran 142 tests in 241.788s"
+        },
+        {
+          "line": 854,
+          "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T00:55:41.0379582Z Ran 309 tests in 1026.717s"
+        },
+        {
+          "line": 1481,
+          "text": "sweep (1)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T00:53:57.8955247Z Ran 4 tests in 1166.333s"
+        },
+        {
+          "line": 1875,
+          "text": "sweep (3)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T00:40:56.1795347Z Ran 4 tests in 363.171s"
+        },
+        {
+          "line": 2509,
+          "text": "sweep (0)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T00:58:46.7184241Z Ran 4 tests in 1452.617s"
+        },
+        {
+          "line": 2900,
+          "text": "sweep (2)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T00:41:13.7391945Z Ran 4 tests in 409.888s"
+        }
+      ]
+    }
+  ],
+  "boundary": [
+    {
+      "run": 42728630135,
+      "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "hostile",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "summaries": [
+        {
+          "line": 893,
+          "text": "hostile\tBuild pinned disposable Linux environment\t2026-11-10T00:29:37.4543620Z #14 0.228 Ran 16 tests in 0.015s"
+        },
+        {
+          "line": 896,
+          "text": "hostile\tBuild pinned disposable Linux environment\t2026-11-10T00:29:37.5216188Z #14 0.450 Installed boundary precondition PASS"
+        }
+      ]
+    },
+    {
+      "run": 42729238340,
+      "head": "a5ce045d67906d45a61634fd1527229c9c8e58e0",
+      "status": "completed",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "hostile",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "summaries": [
+        {
+          "line": 874,
+          "text": "hostile\tBuild pinned disposable Linux environment\t2026-11-10T00:34:24.3463889Z #14 0.215 Ran 16 tests in 0.014s"
+        },
+        {
+          "line": 877,
+          "text": "hostile\tBuild pinned disposable Linux environment\t2026-11-10T00:34:24.4196330Z #14 0.441 Installed boundary precondition PASS"
+        }
+      ]
+    }
+  ]
+}

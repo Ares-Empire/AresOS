@@ -1,0 +1,131 @@
+dbus-daemon[487]: [session uid=1000 pid=487] Activating service name='org.a11y.Bus' requested by ':1.2' (uid=1000 pid=524 comm="/opt/google/chrome/chrome --user-data-dir=/tmp/are" label="chrome (unconfined)")
+dbus-daemon[487]: [session uid=1000 pid=487] Successfully activated service 'org.a11y.Bus'
+dbus-daemon[487]: [session uid=1000 pid=487] Activating service name='ca.desrt.dconf' requested by ':1.4' (uid=1000 pid=524 comm="/opt/google/chrome/chrome --user-data-dir=/tmp/are" label="chrome (unconfined)")
+dbus-daemon[487]: [session uid=1000 pid=487] Successfully activated service 'ca.desrt.dconf'
+GROUP 1 what asks PASS: zero before approval, one after, no replay
+GROUP 2 stopped page steps PASS native
+GROUP 2 stopped page steps PASS event
+GROUP 2 wrapped non-cancellable activation PASS: no delivery and never resumed
+GROUP 7 password presence and show-password PASS
+GROUP 13 residual ordinary-click fetch OBSERVED, NOT HELD
+Preliminary core smoke cases passed; acceptance is not complete
+GROUP 8 owner input evidence {"ownerInput":"X keyboard Tab then Return, outside the tool","ownerDelayMs":71,"ownerArrivals":1,"scheduledArrivals":0,"result":{"operation_id":"4ecf12bb0c73433e9cd29bab8e5ac993:36e424b3958245bbbcb0f58778d318e6","untrusted_content":{"checked":true,"dispatched":true,"no_change":false,"steps":[{"id":"h7","kind":"native_submit","document":"82e19804d06afbd820e9db1798b829a1","label":"","element":"e10","submitter":null,"cancellable":true,"frame":0}],"dialog":null,"uncertain_finish":false,"confirmations":[],"page":{"available":true,"url":"http://fixture.test:8765/?case=owner-input","title":"Synthetic fixture","notices":[],"change":{"element":"e6","name":"Continue","checked":false,"selected":false,"value":"","value_more":0}}},"followups":[{"approval":{"question":"On http://fixture.test:8765/?case=owner-input, page 'Synthetic fixture', as the page shows it, submit 'resume native_submit' to http://fixture.test:8765/receive?case=scheduled-input (post, 1 fields, 1 hidden)?","operation_id":"4ecf12bb0c73433e9cd29bab8e5ac993:76e9b84140734f8ba8229d0efbe317f4","description":{"action":"chrome_submit","untrusted_content":{"page_state":{"session":"230c1bee-67ee-490c-975e-7e36261bec67","tab":507217650,"control":"2e14b042-a1c1-4987-bebe-5ddb483ea5ff","url":"http://fixture.test:8765/?case=owner-input","title":"Synthetic fixture","document":"82e19804d06afbd820e9db1798b829a1","frame":0,"frame_url":"http://fixture.test:8765/?case=owner-input","frame_title":"Synthetic fixture","effective_url":"http://fixture.test:8765/?case=owner-input","target":{"element":"e10","role":"form","name":"","label":"","title":"","href":null,"states":{"checked":false,"selected":false,"disabled":false,"required":false,"invalid":false,"expanded":null},"editable":false,"search":false,"submit":false,"page_dialog":null},"form":{"element":"e10","action":"http://fixture.test:8765/receive?case=scheduled-input","method":"post","encoding":"application/x-www-form-urlencoded","target":"sink","search":false,"fields":[{"element":"e11","name":"source","label":"","type":"hidden","hidden":true,"checked":false,"disabled":false,"multiple":false,"readOnly":false,"value":"scheduled"}]},"selected_files":[{"frame":0,"document":"82e19804d06afbd820e9db1798b829a1","fields":[]},{"frame":8,"document":"bdbd9d28c1ca91972755eed2404710a7","fields":[]}],"editable":null,"item":null,"item_fields":null,"adapter":null,"dialog":null},"input":{"verb":"resume_submission","kind":"native_submit"},"kind":"form","resume_kind":"native_submit","file":null,"confirmation":null},"adapter_action":null,"expires_at":1794451269.2812755}},"state":"reserved"}]}}
+GROUP 8 owner input PASS
+GROUP 7 page forgery PASS page-forgery receiver: 0 before, 1 after, 1 after replay
+GROUP 7 page forgery PASS hostile receiver: 0 before, 1 after, 1 after replay
+GROUP 7 page forgery PASS relay-hostile receiver: 0 before, 1 after, 1 after replay
+GROUP 2 first-script natives are guarded in pages and frames PASS
+OWNER ENTER TIMER OVERLAP {"id":"recheck-owner-overlap","page":[{"phase":"busy-begin","time":1794450381148.5,"receiver_time":1794450381149},{"phase":"busy-end","time":1794450381388.8,"receiver_time":1794450381390},{"phase":"owner-enter","time":1794450381390.5,"receiver_time":1794450381391},{"phase":"owner-submit","time":1794450381391.9001,"receiver_time":1794450381394},{"phase":"timer-fire","time":1794450381393.9001,"receiver_time":1794450381395}],"mark":{"set":{"event":"owner_trace","id":"recheck-owner-overlap","phase":"set","step":null,"time":1794450381392.4001,"token":4,"key":"Enter","input":"keyup","consumed":false,"in_flight":false},"held":{"event":"owner_trace","id":"recheck-owner-overlap","phase":"held","step":"h5","time":1794450381395.2,"token":4,"key":"Enter","input":"keyup","consumed":false,"in_flight":false},"ended":{"event":"owner_trace","id":"recheck-owner-overlap","phase":"clear","step":null,"time":1794450381396.1,"token":4,"key":"Enter","input":"keyup","consumed":false,"in_flight":false}},"owner_enter":{"event":"owner_trace","id":"recheck-owner-overlap","phase":"set","step":null,"time":1794450381390.3,"token":1,"key":"Enter","input":"keydown","consumed":false,"in_flight":false},"owner_pass":{"event":"owner_trace","id":"recheck-owner-overlap","phase":"pass","step":null,"time":1794450381391.8,"token":3,"key":null,"input":"click","consumed":true,"in_flight":false},"owner_arrival":{"time":1794450381400,"url":"/receive?case=owner-recheck-owner-overlap","method":"POST","body":"draft=Saved","host":"fixture.test:8765"}}
+GROUP 2 RECHECK Claude timer fires inside the owner Enter mark PASS
+GROUP 2 RECHECK explicit payment and delete labels override GET search PASS
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-alert-claude-true
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-alert-owner-true
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-alert-task-true
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-confirm-claude-false
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-confirm-claude-true
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-confirm-owner-false
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-confirm-owner-true
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-confirm-task-false
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-confirm-task-true
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-prompt-claude-false
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-prompt-claude-true
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-prompt-owner-false
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-prompt-owner-true
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-prompt-task-false
+REVIEW P1 ANSWERED RECEIVER0/1/1 review-dialog-prompt-task-true
+GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working PASS
+GROUP 4 REVIEW blank and srcdoc native dialogs answer with a held continuation PASS
+GROUP 8 REVIEW preexisting dialogs hand off within bounds and recover after the owner answers PASS
+GROUP 4 REVIEW borrowed native dialogs always ask bind the answer and never replay PASS
+GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally PASS
+GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements PASS
+REVIEW P2 P3 P4 RECEIVER0/1/1 review-frame-blank
+REVIEW P2 P3 P4 RECEIVER0/1/1 review-frame-srcdoc
+REVIEW P2 P3 P4 RECEIVER0/1/1 review-frame-borrowed
+REVIEW P2 P3 P4 RECEIVER0/1/1 review-frame-new
+GROUP 2 REVIEW inherited and newly created frames hold submissions PASS
+GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document PASS
+GROUP 11 REVIEW explicit pay and delete evidence overrides an owner allowed adapter PASS
+REVIEW P5 RECEIVER0/1/1 review-shadow-open-native
+REVIEW P5 RECEIVER0/1/1 review-shadow-open-event
+REVIEW P5 RECEIVER0/1/1 review-shadow-open-click
+REVIEW P5 RECEIVER0/1/1 review-shadow-closed-native
+REVIEW P5 RECEIVER0/1/1 review-shadow-closed-event
+REVIEW P5 RECEIVER0/1/1 review-shadow-closed-click
+GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held PASS
+REVIEW P5 borrowed native review-fallback-false-open-false-false receiver 1 handler 0
+REVIEW P5 borrowed native review-fallback-false-open-false-true receiver 1 handler 1
+REVIEW P5 borrowed native review-fallback-false-open-true-false receiver 1 handler 0
+REVIEW P5 borrowed native review-fallback-false-open-true-true receiver 1 handler 1
+REVIEW P5 borrowed native review-fallback-false-closed-false-false receiver 1 handler 0
+REVIEW P5 borrowed native review-fallback-false-closed-false-true receiver 1 handler 1
+REVIEW P5 borrowed native review-fallback-false-closed-true-false receiver 1 handler 0
+REVIEW P5 borrowed native review-fallback-false-closed-true-true receiver 1 handler 1
+REVIEW P5 borrowed native review-fallback-true-open-false-false receiver 1 handler 0
+REVIEW P5 borrowed native review-fallback-true-open-false-true receiver 1 handler 1
+REVIEW P5 borrowed native review-fallback-true-open-true-false receiver 1 handler 0
+REVIEW P5 borrowed native review-fallback-true-open-true-true receiver 1 handler 1
+REVIEW P5 borrowed native review-fallback-true-closed-false-false receiver 1 handler 0
+REVIEW P5 borrowed native review-fallback-true-closed-false-true receiver 1 handler 1
+REVIEW P5 borrowed native review-fallback-true-closed-true-false receiver 1 handler 0
+REVIEW P5 borrowed native review-fallback-true-closed-true-true receiver 1 handler 1
+GROUP 2 REVIEW new shadow roots capture borrowed native events including noncomposed ones PASS
+REVIEW P6 P7 P8 P15 RECEIVER0/1/1 review-word-nfc-delete
+REVIEW P6 P7 P8 P15 RECEIVER0/1/1 review-word-nfc-send
+REVIEW P6 P7 P8 P15 RECEIVER0/1/1 review-word-title
+REVIEW P6 P7 P8 P15 RECEIVER0/1/1 review-word-%25ZZ
+REVIEW P6 P7 P8 P15 RECEIVER0/1/1 review-word-%25FF
+REVIEW P6 P7 P8 P15 RECEIVER0/1/1 review-word-%25E2%2582
+GROUP 1 REVIEW modified deletion keys normalized words malformed URLs and visible names PASS
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-binding-listitem
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-binding-row
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-binding-article
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-binding-region
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-binding-section
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-binding-unsubscribe
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-binding-abbestellen
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-confirmation-
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-confirmation-form
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-confirmation-submit
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-confirmation-submit-send
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-quantity-
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-compose-key-
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-shadow-binding-li-open
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-shadow-binding-li-closed
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-shadow-binding-row-open
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-shadow-binding-row-closed
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-shadow-binding-slot-li-open
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-shadow-binding-slot-li-closed
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-shadow-binding-slot-row-open
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-shadow-binding-slot-row-closed
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-file-
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-rich-
+REVIEW P10 P11 P12 P13 P14 P22 RECEIVER0/1/1 review-bind-title-
+GROUP 3 REVIEW item confirmation file rich text and title mutations refuse PASS
+REVIEW P20 RECEIVER0/1/1 review-owner-other-form
+REVIEW P20 RECEIVER0/1/1 review-owner-other-submitter
+REVIEW P20 RECEIVER0/1/1 review-owner-delayed-unconsumed
+GROUP 2 REVIEW owner mark exact form submitter and unconsumed delayed work PASS
+GROUP 8 REVIEW iframe drafts and detached or Web Audio report before reload PASS
+GROUP 8 REVIEW script-started POST documents in tabs and popups never reload FAIL Error: owner navigation committed in the exact tab: undefined
+    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)
+    at async navigate (file:///workspace/control/chrome/ci/owner-ui.mjs:29:7)
+    at async file:///workspace/control/chrome/ci/review-matrices.mjs:216:80
+    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)
+    at async reviewMatrices (file:///workspace/control/chrome/ci/review-matrices.mjs:215:3)
+    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:53:3)
+    at async file:///workspace/control/chrome/ci/browser.mjs:146:24
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+Error: owner navigation committed in the exact tab: undefined
+    at eventually (file:///workspace/control/chrome/ci/browser.mjs:29:208)
+    at async navigate (file:///workspace/control/chrome/ci/owner-ui.mjs:29:7)
+    at async file:///workspace/control/chrome/ci/review-matrices.mjs:216:80
+    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)
+    at async reviewMatrices (file:///workspace/control/chrome/ci/review-matrices.mjs:215:3)
+    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:53:3)
+    at async file:///workspace/control/chrome/ci/browser.mjs:146:24
+
+Node.js v22.23.5

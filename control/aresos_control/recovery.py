@@ -41,7 +41,7 @@ def unfinished(store, cutoff=None, keys=None, rows=None):
             yield key, 'recovery-' + key[7:], value['app'], 'A caller export is unfinished. Its recovery space is still held. Inspect the destination file and recorded export before repeating or resolving it.'
         elif key.startswith('mail:account:') and not value.get('onboarded', value.get('ready', False)):
             yield key, 'recovery-' + digest(key)[:32], 'mail', 'Owner account setup is unfinished. Probes may already have sent mail or created folders. Inspect the setup log and server; never repeat probes automatically.'
-        elif key.startswith('intent:'):
+        elif key.startswith('intent:') and (value.get('app') != 'chrome' or value.get('state') in {'started','unknown'}):
             legacy = 'The context of this older change is not yet checked. ' if not value.get('context_version') else ''
             yield key, value['id'], value['app'], legacy + 'A change was interrupted before its completion was recorded. It may already have changed the server. Inspect the audit and your app before repeating.'
 
@@ -73,10 +73,12 @@ def recovery_notices(store, include_checks=True):
     sources = unfinished(store, keys=keys)
     if include_checks:
         from itertools import chain
-        legacy = ((key, value) for key, value in store.iter_items('op:') if key not in keys and
+        legacy = ((key, value) for key, value in store.iter_operations(legacy_open=True) if key not in keys and
             not value.get('context_version') and value.get('state') in {'reserved', 'submitting', 'unknown', 'partial'})
         sources = chain(sources, unfinished(store, rows=legacy))
     for key, notice_id, app, reason in sources:
+        # Chrome discloses its committed open checks through its own projection.
+        if key.startswith('intent:chrome:'):continue
         filing = key.startswith(('mail:filing:', 'mail:rename:'))
         account = key.startswith('mail:account:')
         operation = store.get(key) if key.startswith('op:') else None
@@ -113,12 +115,26 @@ def recover_intents(store, persist=True):
     # full disk nor 10,000 restored operations need an unbounded RAM queue.
     from itertools import islice
     store._open_filings = None
+    for identifier,(changes,action,_) in list(store.deferred_notices.items()):
+        notice=changes.get('notice:'+identifier,{})
+        key=notice.get('untrusted_content',{}).get('intent_key','')
+        if action=='control_intent_recovery' and notice.get('app')=='chrome' and key.startswith('op:'):
+            current=store.chrome_state.historical(key,{})
+            if current.get('state') in {'done','failed'}:
+                # Only an uncommitted proposal is discarded. A committed
+                # occurrence remains visible until its own acknowledgement.
+                del store.deferred_notices[identifier]
     # Capture identities in their actual unfinished state, before and after
     # prepared replay. A reservation that starts later was never interrupted.
     store.startup_intents = getattr(store, 'startup_intents', set()) | {
         (key, notice_id) for key, notice_id, _, _ in unfinished(store)}
     for notice in islice(recovery_notices(store), 3):
         if notice.get('check_only'):
+            continue
+        if not persist and notice.get('app')=='chrome':
+            # Startup has not replayed prepared local completions yet. The
+            # committed projection discloses uncertainty in the meantime;
+            # materializing it now would outlive an immediately recovered result.
             continue
         store.defer_notice(notice['id'], {'notice:' + notice['id']: notice},
                            'control_intent_recovery', 'Unfinished durable intent needs owner inspection')

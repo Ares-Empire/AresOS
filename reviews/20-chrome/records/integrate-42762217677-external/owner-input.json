@@ -1,0 +1,107 @@
+{
+  "ownerInput": "X keyboard Tab then Return, outside the tool",
+  "ownerDelayMs": 127,
+  "ownerArrivals": 1,
+  "scheduledArrivals": 0,
+  "result": {
+    "operation_id": "6e558910ab7640beadc85c54924934ca:f0545d3df34442aa948998b4bb408d10",
+    "untrusted_content": {
+      "checked": true,
+      "dispatched": true,
+      "steps": [
+        {
+          "id": "h7",
+          "kind": "native_submit",
+          "document": "a506127876f1221d75a361dbb33098ad",
+          "label": "",
+          "element": "e10",
+          "submitter": null,
+          "cancellable": true,
+          "frame": 0
+        }
+      ],
+      "dialog": null,
+      "uncertain_finish": false,
+      "confirmations": [],
+      "page": "Input dispatched once; inspect a fresh read for what the page shows."
+    },
+    "followups": [
+      {
+        "approval": {
+          "question": "On http://fixture.test:8765/?case=owner-input, as the page shows it, activate 'resume native_submit' to http://fixture.test:8765/receive?case=scheduled-input (post, 1 fields, 1 hidden)?",
+          "operation_id": "6e558910ab7640beadc85c54924934ca:cff00e077b36449388ad071f569f3fb4",
+          "description": {
+            "action": "chrome_submit",
+            "untrusted_content": {
+              "page_state": {
+                "session": "46bd2b82-4e8b-40da-8819-982e235f84fa",
+                "tab": 552257953,
+                "control": "ba1e06ff-c64c-43c6-9995-7a7bc0a13904",
+                "url": "http://fixture.test:8765/?case=owner-input",
+                "document": "a506127876f1221d75a361dbb33098ad",
+                "frame": 0,
+                "frame_url": "http://fixture.test:8765/?case=owner-input",
+                "target": {
+                  "element": "e10",
+                  "role": "form",
+                  "name": "",
+                  "label": "",
+                  "title": "",
+                  "href": null,
+                  "states": {
+                    "checked": false,
+                    "selected": false,
+                    "disabled": false,
+                    "required": false,
+                    "invalid": false,
+                    "expanded": null
+                  },
+                  "editable": false,
+                  "search": false,
+                  "submit": false,
+                  "page_dialog": null
+                },
+                "form": {
+                  "element": "e10",
+                  "action": "http://fixture.test:8765/receive?case=scheduled-input",
+                  "method": "post",
+                  "encoding": "application/x-www-form-urlencoded",
+                  "target": "sink",
+                  "search": false,
+                  "fields": [
+                    {
+                      "element": "e11",
+                      "name": "source",
+                      "label": "",
+                      "type": "hidden",
+                      "hidden": true,
+                      "checked": false,
+                      "disabled": false,
+                      "multiple": false,
+                      "readOnly": false,
+                      "value": "scheduled"
+                    }
+                  ]
+                },
+                "editable": null,
+                "item": null,
+                "adapter": null,
+                "dialog": null
+              },
+              "input": {
+                "verb": "resume_submission",
+                "kind": "native_submit"
+              },
+              "resume_kind": "native_submit",
+              "file": null,
+              "confirmation": null
+            },
+            "adapter_action": null,
+            "expires_at": 1794290019.4092836
+          }
+        },
+        "state": "reserved"
+      }
+    ]
+  }
+}

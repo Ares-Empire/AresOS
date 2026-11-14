@@ -1,0 +1,94 @@
+{
+  "original_auditor_sha256": "b4d8f000b45b1ce03b55b5ca4687549add14dc65dbba7bd49b64e5eba948b59b",
+  "diagnostic_auditor_sha256": "bb4cb9f454f378ca15cad4e0dd91b307168fdd3926c8712b3593166e08c33c4f",
+  "only_change": "Insert a diagnostic JSON print immediately before the unchanged full-Python assertion. Every receiver, ingress and final-suite assertion remains. All three invocations exit 1; these are not acceptance.",
+  "results": [
+    {
+      "artifact": "control-chrome-42963287917-1-policy",
+      "diagnostic_only": true,
+      "full_acceptance": false,
+      "named_passes": 80,
+      "receiver_audit": [
+        {
+          "file": "page-receiver.jsonl",
+          "snapshots": 3769,
+          "complete_0_1_1_sequences": 1219,
+          "independent_arrivals_match": true
+        },
+        {
+          "file": "adapters-receiver.jsonl",
+          "snapshots": 750,
+          "complete_0_1_1_sequences": 139,
+          "independent_arrivals_match": true
+        }
+      ],
+      "password_audit": {
+        "protocol_events": 25194,
+        "sensitive_getters": 3481,
+        "forbidden_runtime_value_events": 0,
+        "password_sentinel_absent": true
+      },
+      "full_audit_exit": 1,
+      "full_audit_failure": "Full Python suite missing or failed",
+      "matrix_sha256": "6a3cded8a12a37fab045263e9211bf62c4b61c993e01e97b567723151cfde029"
+    },
+    {
+      "artifact": "control-chrome-42963294395-1-external",
+      "diagnostic_only": true,
+      "full_acceptance": false,
+      "named_passes": 80,
+      "receiver_audit": [
+        {
+          "file": "page-receiver.jsonl",
+          "snapshots": 3769,
+          "complete_0_1_1_sequences": 1219,
+          "independent_arrivals_match": true
+        },
+        {
+          "file": "adapters-receiver.jsonl",
+          "snapshots": 750,
+          "complete_0_1_1_sequences": 139,
+          "independent_arrivals_match": true
+        }
+      ],
+      "password_audit": {
+        "protocol_events": 26803,
+        "sensitive_getters": 3481,
+        "forbidden_runtime_value_events": 0,
+        "password_sentinel_absent": true
+      },
+      "full_audit_exit": 1,
+      "full_audit_failure": "Full Python suite missing or failed",
+      "matrix_sha256": "6a3cded8a12a37fab045263e9211bf62c4b61c993e01e97b567723151cfde029"
+    },
+    {
+      "artifact": "control-chrome-42963294395-1-policy",
+      "diagnostic_only": true,
+      "full_acceptance": false,
+      "named_passes": 80,
+      "receiver_audit": [
+        {
+          "file": "page-receiver.jsonl",
+          "snapshots": 3769,
+          "complete_0_1_1_sequences": 1219,
+          "independent_arrivals_match": true
+        },
+        {
+          "file": "adapters-receiver.jsonl",
+          "snapshots": 750,
+          "complete_0_1_1_sequences": 139,
+          "independent_arrivals_match": true
+        }
+      ],
+      "password_audit": {
+        "protocol_events": 25166,
+        "sensitive_getters": 3481,
+        "forbidden_runtime_value_events": 0,
+        "password_sentinel_absent": true
+      },
+      "full_audit_exit": 1,
+      "full_audit_failure": "Full Python suite missing or failed",
+      "matrix_sha256": "6a3cded8a12a37fab045263e9211bf62c4b61c993e01e97b567723151cfde029"
+    }
+  ]
+}

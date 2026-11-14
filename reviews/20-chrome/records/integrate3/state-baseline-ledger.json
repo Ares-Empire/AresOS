@@ -1,0 +1,29 @@
+{
+  "run_count": 16,
+  "latest": [
+    {
+      "conclusion": "success",
+      "createdAt": "2026-11-10T19:43:54Z",
+      "databaseId": 42888182810,
+      "event": "workflow_dispatch",
+      "headSha": "1418fcdeb393afaefe54651d5fc1997c7ca900d5",
+      "status": "completed"
+    },
+    {
+      "conclusion": "success",
+      "createdAt": "2026-11-10T15:39:43Z",
+      "databaseId": 42846669867,
+      "event": "workflow_dispatch",
+      "headSha": "1418fcdeb393afaefe54651d5fc1997c7ca900d5",
+      "status": "completed"
+    },
+    {
+      "conclusion": "failure",
+      "createdAt": "2026-11-10T12:54:06Z",
+      "databaseId": 42819687759,
+      "event": "workflow_dispatch",
+      "headSha": "52bc06fb1828cefb0d04d4bfaecb4f8d760da27f",
+      "status": "completed"
+    }
+  ]
+}

@@ -1,0 +1,171 @@
+[
+  {
+    "run": 42803081568,
+    "source": "4d80ea38920c483cf362ad6a4ccbc6a14dffe08f",
+    "matches": [
+      {
+        "raw_log_line": 401,
+        "text": "containers\tTest inside Fedora 45 container (no model or real account)\t2026-11-10T10:58:30.7633851Z Ran 142 tests in 198.545s"
+      },
+      {
+        "raw_log_line": 403,
+        "text": "containers\tTest inside Fedora 45 container (no model or real account)\t2026-11-10T10:58:30.7634137Z OK"
+      }
+    ],
+    "source_kind": "exact branch source"
+  },
+  {
+    "run": 42803802686,
+    "source": "4d80ea38920c483cf362ad6a4ccbc6a14dffe08f",
+    "matches": [
+      {
+        "raw_log_line": 400,
+        "text": "containers\tTest inside Fedora 45 container (no model or real account)\t2026-11-10T11:03:42.8355367Z Ran 142 tests in 180.186s"
+      },
+      {
+        "raw_log_line": 402,
+        "text": "containers\tTest inside Fedora 45 container (no model or real account)\t2026-11-10T11:03:42.8355598Z OK"
+      }
+    ],
+    "source_kind": "exact branch source"
+  },
+  {
+    "run": 42802888017,
+    "source": "4d80ea38920c483cf362ad6a4ccbc6a14dffe08f",
+    "matches": [
+      {
+        "raw_log_line": 206,
+        "text": "qualification-tests\tBrowser-free build, service, delivery and hermetic publisher tests\t2026-11-10T10:53:23.6811855Z Ran 47 tests in 2.111s"
+      },
+      {
+        "raw_log_line": 208,
+        "text": "qualification-tests\tBrowser-free build, service, delivery and hermetic publisher tests\t2026-11-10T10:53:23.6812045Z OK"
+      },
+      {
+        "raw_log_line": 1304,
+        "text": "qualification-tests\tBrowser-free build, service, delivery and hermetic publisher tests\t2026-11-10T10:53:32.3642475Z # tests 182"
+      },
+      {
+        "raw_log_line": 1306,
+        "text": "qualification-tests\tBrowser-free build, service, delivery and hermetic publisher tests\t2026-11-10T10:53:32.3642693Z # pass 182"
+      },
+      {
+        "raw_log_line": 1307,
+        "text": "qualification-tests\tBrowser-free build, service, delivery and hermetic publisher tests\t2026-11-10T10:53:32.3642804Z # fail 0"
+      }
+    ],
+    "source_kind": "PR combined merge ref with moving Part P base",
+    "tested_merge": "8b9df46ed3384c79e9b0842bbeefafe7d9accf8a",
+    "part_p_base": "6f65b16e728d681de8952ab6cd8da0a7bcef91c0"
+  },
+  {
+    "run": 42803081760,
+    "source": "4d80ea38920c483cf362ad6a4ccbc6a14dffe08f",
+    "source_kind": "exact branch source",
+    "matches": [
+      {
+        "raw_log_line": 400,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T10:59:01.9934370Z Ran 142 tests in 210.943s"
+      },
+      {
+        "raw_log_line": 402,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T10:59:01.9935458Z OK"
+      },
+      {
+        "raw_log_line": 834,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T11:15:31.2621494Z Ran 309 tests in 980.355s"
+      },
+      {
+        "raw_log_line": 837,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T11:15:31.2621975Z OK"
+      },
+      {
+        "raw_log_line": 1228,
+        "text": "sweep (2)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:04:35.3652100Z Ran 4 tests in 535.560s"
+      },
+      {
+        "raw_log_line": 1230,
+        "text": "sweep (2)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:04:35.3652344Z OK"
+      },
+      {
+        "raw_log_line": 1646,
+        "text": "sweep (3)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:03:06.8038714Z Ran 4 tests in 450.327s"
+      },
+      {
+        "raw_log_line": 1649,
+        "text": "sweep (3)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:03:06.8046493Z OK"
+      },
+      {
+        "raw_log_line": 2293,
+        "text": "sweep (1)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:11:48.6599733Z Ran 4 tests in 974.800s"
+      },
+      {
+        "raw_log_line": 2295,
+        "text": "sweep (1)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:11:48.6600015Z OK"
+      },
+      {
+        "raw_log_line": 2928,
+        "text": "sweep (0)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:16:06.0668644Z Ran 4 tests in 1230.074s"
+      },
+      {
+        "raw_log_line": 2931,
+        "text": "sweep (0)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:16:06.0669174Z OK"
+      }
+    ]
+  },
+  {
+    "run": 42806364608,
+    "source": "4d80ea38920c483cf362ad6a4ccbc6a14dffe08f",
+    "source_kind": "exact branch source",
+    "matches": [
+      {
+        "raw_log_line": 601,
+        "text": "sweep (0)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:43:27.6724668Z Ran 4 tests in 1464.292s"
+      },
+      {
+        "raw_log_line": 604,
+        "text": "sweep (0)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:43:27.6725411Z OK"
+      },
+      {
+        "raw_log_line": 997,
+        "text": "sweep (3)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:25:20.6700171Z Ran 4 tests in 381.206s"
+      },
+      {
+        "raw_log_line": 999,
+        "text": "sweep (3)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:25:20.6700347Z OK"
+      },
+      {
+        "raw_log_line": 1643,
+        "text": "sweep (1)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:35:32.6109267Z Ran 4 tests in 993.434s"
+      },
+      {
+        "raw_log_line": 1645,
+        "text": "sweep (1)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:35:32.6109591Z OK"
+      },
+      {
+        "raw_log_line": 2059,
+        "text": "sweep (2)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:27:37.9902580Z Ran 4 tests in 521.562s"
+      },
+      {
+        "raw_log_line": 2062,
+        "text": "sweep (2)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-10T11:27:37.9903526Z OK"
+      },
+      {
+        "raw_log_line": 2508,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T11:22:03.9339213Z Ran 142 tests in 190.340s"
+      },
+      {
+        "raw_log_line": 2510,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T11:22:03.9339472Z OK"
+      },
+      {
+        "raw_log_line": 2942,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T11:35:50.4777288Z Ran 309 tests in 818.666s"
+      },
+      {
+        "raw_log_line": 2945,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-10T11:35:50.4778541Z OK"
+      }
+    ]
+  }
+]

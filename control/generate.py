@@ -33,6 +33,10 @@ def generated():
     for app in apps:
         files[f"control/generated/{app}-tools.json"] = json.dumps(tools_for(app), indent=2) + "\n"
         files[f"control/generated/{app}-instructions.txt"] = instructions_for(app) + "\n"
+    from aresos_control.chrome.policy import WORDS, WORD_LIST_VERSION, FIXED_HOSTS, CDP_METHODS, HOLD_MS, UNICODE_WORDS, folded
+    chrome_policy = {'words':[folded(word) for word in WORDS], 'wordListVersion':WORD_LIST_VERSION,
+                     'fixedHosts':FIXED_HOSTS, 'cdpMethods':CDP_METHODS, 'holdMs':HOLD_MS,'unicodeWords':UNICODE_WORDS}
+    files['control/chrome/extension/policy.js'] = 'export const POLICY = ' + json.dumps(chrome_policy, ensure_ascii=True, indent=2) + ';\n'
     servers = user_mcp()
     missing_apps = APPS - servers.keys() - {'testapp'}
     if missing_apps:
@@ -44,7 +48,7 @@ def generated():
     if not set(ask) <= installed:
         raise ValueError("Asking rule must name an exposed tool of an installed served app (or harness testapp)")
     expected = {f"mcp__{a.app}__{a.verb}" for a in ACTIONS
-                if a.effect in {'send', 'delete'} and not a.owner_only and not a.trusted_send}
+                if (a.effect in {'send', 'delete'} or a.asking_read) and not a.owner_only and not a.trusted_send}
     settings = managed_settings()
     # Validate both artifacts against the actions, independently of the policy helper.
     if set(ask) != expected or set(settings['permissions']['ask']) != expected:

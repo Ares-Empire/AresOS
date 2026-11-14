@@ -1,0 +1,108 @@
+{
+  "source": "ace83b8e6585784e4a76cd96f1512fba3575cd35",
+  "run": 42833520319,
+  "mode": "policy",
+  "verdict": "partial cross-tab and cleanup proof; whole job failed shadow identity",
+  "cross_tab_receivers": [
+    {
+      "line": 115,
+      "id": "review-cross-tab-false",
+      "phase": "before approval",
+      "count": 0,
+      "arrivals": []
+    },
+    {
+      "line": 116,
+      "id": "review-cross-tab-false",
+      "phase": "after approval",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794320735903,
+          "url": "/receive?case=review-cross-tab-false",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    },
+    {
+      "line": 117,
+      "id": "review-cross-tab-false",
+      "phase": "after repeat",
+      "count": 1,
+      "arrivals": [
+        {
+          "time": 1794320735903,
+          "url": "/receive?case=review-cross-tab-false",
+          "method": "POST",
+          "body": "draft=Saved",
+          "host": "fixture.test:8765"
+        }
+      ]
+    }
+  ],
+  "cleanup_contexts": [
+    {
+      "line": 10746,
+      "cleanup_context": {
+        "tab": 336998356,
+        "context": 225,
+        "outcome": "native_context_missing"
+      }
+    },
+    {
+      "line": 11116,
+      "cleanup_context": {
+        "tab": 336998358,
+        "context": 237,
+        "outcome": "native_context_missing"
+      }
+    }
+  ],
+  "shadow_error": [
+    {
+      "line": 25,
+      "text": "[510:510:1110/142544.413146:INFO:CONSOLE:280] \"Uncaught TypeError: Cannot read properties of undefined (reading 'startContainer')\", source: http://fixture.test:8765/?case=review-page&mode=shadow&variant=open-native&id=review-shadow-open-native (280)"
+    },
+    {
+      "line": 26,
+      "text": "[510:510:1110/142544.414266:INFO:CONSOLE:280] \"Uncaught TypeError: Cannot read properties of undefined (reading 'startContainer')\", source: http://fixture.test:8765/?case=review-page&mode=shadow&variant=open-native&id=review-shadow-open-native (280)"
+    }
+  ],
+  "matrix": [
+    {
+      "name": "GROUP 2 first-script natives are guarded in pages and frames",
+      "passed": true
+    },
+    {
+      "name": "GROUP 4 REVIEW ordinary native dialogs from Claude owner and page tasks keep working",
+      "passed": true
+    },
+    {
+      "name": "GROUP 3 REVIEW ordinary blank and srcdoc editors bind drafts and send normally",
+      "passed": true
+    },
+    {
+      "name": "GROUP 3 REVIEW owner chosen attachments show byte digests and bind identical metadata replacements",
+      "passed": true
+    },
+    {
+      "name": "GROUP 2 REVIEW inherited and newly created frames hold submissions",
+      "passed": true
+    },
+    {
+      "name": "GROUP 2 REVIEW borrowed wrappers respect another controlled tab and an ordinary document",
+      "passed": true
+    },
+    {
+      "name": "GROUP 11 REVIEW explicit pay and delete evidence overrides an owner allowed adapter",
+      "passed": true
+    },
+    {
+      "name": "GROUP 2 REVIEW synchronous new shadow roots keep all submission kinds held",
+      "passed": false,
+      "error": "AssertionError [ERR_ASSERTION]: {\"operation_id\":\"2be50c726bc24c2f8a6fd465d0ec99ae:6f0ad3ba167f4e5a8a623efda7ff853a\",\"untrusted_content\":{\"checked\":true,\"dispatched\":true,\"no_change\":false,\"steps\":[],\"dialog\":null,\"uncertain_finish\":false,\"confirmations\":[],\"page\":{\"available\":true,\"url\":\"http://fixture.test:8765/?case=review-page&mode=shadow&variant=open-native&id=review-shadow-open-native\",\"title\":\"Synthetic fixture\",\"notices\":[],\"change\":{\"element\":\"e6\",\"name\":\"Continue\",\"checked\":false,\"selected\":false,\"value\":\"\",\"value_more\":0}}},\"followups\":[]}\n    at approval (file:///workspace/control/chrome/ci/matrices.mjs:28:12)\n    at file:///workspace/control/chrome/ci/review-matrices.mjs:80:19\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async check (file:///workspace/control/chrome/ci/matrices.mjs:19:10)\n    at async reviewMatrices (file:///workspace/control/chrome/ci/review-matrices.mjs:73:3)\n    at async matrices (file:///workspace/control/chrome/ci/matrices.mjs:53:3)\n    at async file:///workspace/control/chrome/ci/browser.mjs:146:24"
+    }
+  ]
+}

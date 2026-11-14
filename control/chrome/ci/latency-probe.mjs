@@ -1,0 +1,37 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import {performance} from 'node:perf_hooks';
+// The lead's sample counts (latency-targets.json), read by the summary and the check too.
+const TARGETS=JSON.parse(fs.readFileSync(new URL('./latency-targets.json',import.meta.url),'utf8'));
+// The current runtime: 60 per call and history phase.
+export const LATENCY_SAMPLES=TARGETS.samples_per_call;
+// The old runtime only feeds the runner-noise ratio and must match the frozen
+// 20-sample reference, so it takes 20 at the reference's positions
+// (mac-aresos-control, 2026-11-14, after run 43613647256).
+export const OLD_RUNTIME_SAMPLES=TARGETS.old_runtime_samples_per_call;
+export function samplesFor(runtime){
+  if(runtime==='current')return LATENCY_SAMPLES;
+  assert.equal(runtime,TARGETS.baseline,'unknown latency runtime');return OLD_RUNTIME_SAMPLES;
+}
+export async function latencyProbe({call,target,nav,eventually,getTab,out='/out',runtime=process.env.LATENCY_BASELINE||'current'}){
+  const samples=samplesFor(runtime);
+  assert(Number.isInteger(samples)&&samples>=20,'latency sample count');
+  const rows=[];
+  async function measure(sample,name,fn){fs.writeFileSync(out+'/latency-marker.json',JSON.stringify({sample,call:name}));const start=performance.now();try{return await fn();}finally{rows.push({sample,phase:sample.split(':')[0],call:name,milliseconds:performance.now()-start});fs.rmSync(out+'/latency-marker.json',{force:true});}}
+  for(const [phase,history] of [['fresh',0],['history-1000',1000],['history-4000',4000]]){
+    if(history){fs.writeFileSync(out+'/latency-history-seed.json',JSON.stringify({count:history}));await call('read',{tab:getTab()});assert.equal(fs.existsSync(out+'/latency-history-seed.json'),false);}
+    for(let index=0;index<samples;index++){
+    const sample=phase+':'+index;
+    const url='http://localhost:8765/?case=latency&id='+sample;
+    await measure(sample,'navigate',()=>call('navigate',{tab:getTab(),url}));
+    await eventually(async()=>String((await call('read',{tab:getTab()})).untrusted_content.url)===url,'latency fixture committed');
+    await measure(sample,'read',()=>call('read',{tab:getTab()}));
+    const free=await target('Continue');await measure(sample,'free_click',()=>call('click',free));
+    const draft=await target('Draft');await measure(sample,'fill',()=>call('fill',{...draft,text:'Synthetic latency draft '+sample}));
+    const send=await target('Send');const prepared=await measure(sample,'asking_click',()=>call('click',send));assert(prepared.approval);
+    const approved=await measure(sample,'approval_to_done',()=>call('submit',prepared.approval));assert.equal(approved.operation.state,'done');
+  }
+  }
+  fs.writeFileSync(out+'/latency-client.json',JSON.stringify({samples:rows,privacy:process.env.LATENCY_PRIVACY||'plain',baseline:runtime},null,2));
+  console.log('Latency probe complete:',rows.length,'calls,',samples,'per category and history phase for runtime',runtime+'; no owner think time');
+}

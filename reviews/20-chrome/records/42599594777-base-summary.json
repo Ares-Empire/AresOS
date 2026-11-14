@@ -1,0 +1,20 @@
+{
+  "run": 42599594777,
+  "head": "55cdee6a16e2f53db13f467bcdc73222d067de7a",
+  "conclusion": "success",
+  "source": "gh run view 42599594777 --log",
+  "selected_log_lines": [
+    {
+      "source_line": 322,
+      "output": "2026-11-09T10:17:14.7997522Z test_all_socket_peer_credentials_even_permissive_modes (test_integration.Integration.test_all_socket_peer_credentials_even_permissive_modes) ... ok"
+    },
+    {
+      "source_line": 413,
+      "output": "2026-11-09T10:19:33.9335127Z Ran 142 tests in 189.184s"
+    },
+    {
+      "source_line": 415,
+      "output": "2026-11-09T10:19:33.9335360Z OK"
+    }
+  ]
+}

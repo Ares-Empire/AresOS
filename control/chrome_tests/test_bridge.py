@@ -1,0 +1,259 @@
+import json
+import socket
+import selectors
+from types import SimpleNamespace
+import unittest
+
+from aresos_control.chrome.bridge import Bridge
+from aresos_control.common import Refused
+from aresos_control.daemon import Daemon
+
+
+class Handshake(unittest.TestCase):
+    def test_post18df_reconnecting_the_same_browser_session_changes_private_connection_identity(self):
+        bridge=Bridge();pairs=[];identities=[]
+        try:
+            for _ in range(2):
+                server,client=socket.socketpair();pairs.extend([server,client]);client.sendall(b'{"event":"hello","session":"same","version":"157.0.1.0"}\n')
+                bridge.accept(server);identities.append(bridge.connection_identity);self.assertEqual(bridge.session,'same');bridge.close();self.assertIsNone(bridge.connection_identity)
+            self.assertNotEqual(*identities);self.assertTrue(all(len(value)==32 for value in identities))
+        finally:
+            bridge.close()
+            for connection in pairs:connection.close()
+
+    def test_invalid_replacement_removes_eof_peer_and_next_host_can_connect(self):
+        bridge = Bridge()
+        daemon = Daemon.__new__(Daemon)
+        daemon.engine = SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge,maintenance=lambda:None)})
+        daemon.selector = selectors.DefaultSelector()
+        connections=[]
+        try:
+            def peer(hello):
+                server,client=socket.socketpair();connections.extend([server,client])
+                client.sendall(hello+b'\n')
+                return server,client
+            original,client=peer(b'{"event":"hello","session":"old","version":"157.0.1.0"}')
+            daemon.register_chrome_host(original)
+            old_fd=original.fileno()
+            client.close()
+            invalid,_=peer(b'{"v":1,"method":"tools"}')
+            with self.assertRaises(Refused): daemon.register_chrome_host(invalid)
+            self.assertNotIn(old_fd, daemon.selector.get_map())
+            self.assertIsNone(bridge.connection)
+            invalid.close()
+            replacement,_=peer(b'{"event":"hello","session":"new","version":"157.0.1.0"}')
+            daemon.register_chrome_host(replacement)
+            self.assertEqual(bridge.session, 'new')
+            self.assertEqual(daemon.selector.get_key(replacement).data, 'chrome-peer')
+            rejected,_=peer(b'{"event":"hello","session":"other","version":"157.0.1.0"}')
+            with self.assertRaises(Refused): daemon.register_chrome_host(rejected)
+            self.assertIs(bridge.connection,replacement)
+            self.assertEqual(daemon.selector.get_key(replacement).data, 'chrome-peer')
+        finally:
+            daemon.selector.close()
+            for connection in connections: connection.close()
+
+    def test_transport_closed_outside_selector_can_reconnect_on_reused_descriptor(self):
+        bridge=Bridge();daemon=Daemon.__new__(Daemon)
+        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge,maintenance=lambda:None)})
+        daemon.selector=selectors.DefaultSelector();pairs=[]
+        try:
+            for session in ['old','new']:
+                server,client=socket.socketpair();pairs.extend([server,client]);client.sendall(json.dumps({'event':'hello','session':session,'version':'157.0.1.0'}).encode()+b'\n')
+                daemon.register_chrome_host(server)
+                if session=='old':bridge.close()
+            self.assertEqual(bridge.session,'new');self.assertEqual(len(daemon.selector.get_map()),1)
+        finally:
+            daemon.selector.close()
+            for connection in pairs:connection.close()
+
+    def test_invalid_chrome_handshake_leaves_descriptor_for_daemon_refusal(self):
+        bridge = Bridge()
+        server, client = socket.socketpair()
+        try:
+            client.sendall(b'{"v":1,"method":"tools","app":"testapp"}\n')
+            with self.assertRaises(Refused) as error:
+                bridge.accept(server)
+            self.assertEqual(error.exception.code, 'permission_denied')
+            self.assertIsNone(bridge.connection)
+            server.sendall(b'{"ok":false}\n')
+            self.assertEqual(json.loads(client.recv(1024)), {'ok':False})
+        finally:
+            server.close(); client.close()
+
+    def test_invalid_full_version_also_refuses_and_resets_session(self):
+        bridge = Bridge()
+        server, client = socket.socketpair()
+        try:
+            client.sendall(b'{"event":"hello","session":"fixture","version":"invalid"}\n')
+            with self.assertRaises(Refused) as error:
+                bridge.accept(server)
+            self.assertEqual(error.exception.code, 'permission_denied')
+            self.assertIsNone(bridge.session)
+            self.assertIsNone(bridge.version)
+            self.assertIsNone(bridge.connection)
+            self.assertGreaterEqual(server.fileno(), 0)
+        finally:
+            server.close(); client.close()
+
+class CIServiceWrapper(unittest.TestCase):
+    """control/chrome/ci/service.py wraps Bridge.accept; its signature must follow the daemon's call."""
+
+    def wrapper(self, original_accept, audits):
+        import ast, os
+        from pathlib import Path
+        source = (Path(__file__).resolve().parents[1] / 'chrome/ci/service.py').read_text()
+        node = next(item for item in ast.parse(source).body if isinstance(item, ast.FunctionDef) and item.name == 'accept')
+        namespace = {'original_accept': original_accept, 'bridge': SimpleNamespace(call=lambda name, **arguments: audits.append(name)), 'os': os}
+        exec(compile(ast.Module(body=[node], type_ignores=[]), 'service.py', 'exec'), namespace)
+        return namespace['accept']
+
+    def test_step6_the_ci_service_accept_wrapper_forwards_the_peer_and_the_old_single_argument(self):
+        bridge = Bridge(); audits = []; pairs = []
+        bridge.accept = self.wrapper(bridge.accept, audits)
+        daemon = Daemon.__new__(Daemon)
+        daemon.engine = SimpleNamespace(adapters={'chrome': SimpleNamespace(bridge=bridge, maintenance=lambda: None)})
+        daemon.selector = selectors.DefaultSelector()
+        peer = {'pid': 4242, 'uid': 1000, 'start': 99}
+        try:
+            server, client = socket.socketpair(); pairs.extend([server, client])
+            client.sendall(b'{"event":"hello","session":"ci","version":"157.0.1.0"}\n')
+            try:
+                daemon.register_chrome_host(server, peer)
+            except TypeError as error:
+                self.fail('the CI service refuses every native host: ' + str(error))
+            self.assertEqual((bridge.session, bridge.peer, audits), ('ci', peer, ['audit']))
+            # The latency pair's historical runtime calls accept(connection) alone.
+            old = Bridge(); old_audits = []
+            server, client = socket.socketpair(); pairs.extend([server, client])
+            client.sendall(b'{"event":"hello","session":"old","version":"157.0.1.0"}\n')
+            self.wrapper(lambda connection: old.accept(connection), old_audits)(server)
+            self.assertEqual((old.session, old_audits), ('old', ['audit']))
+        finally:
+            daemon.selector.close()
+            for connection in pairs: connection.close()
+
+
+class FragmentedReplies(unittest.TestCase):
+    def test_large_multibyte_page_reassembles_before_paging_and_rejects_wrong_offsets(self):
+        import base64
+        import json
+        from aresos_control.chrome.bridge import Bridge
+        class Peer:
+            def __init__(self,broken=False):self.buffer=b'';self.broken=broken
+            def sendall(self,data):
+                identity=json.loads(data)['id'];value=json.dumps({'id':identity,'ok':True,'data':{'text':'é🦊'*300000}},ensure_ascii=False).encode()
+                for offset in range(0,len(value),65536):
+                    message={'id':identity,'chunk':{'offset':offset+(1 if self.broken else 0),'total':len(value),'bytes':base64.b64encode(value[offset:offset+65536]).decode()}}
+                    self.buffer+=(json.dumps(message)+'\n').encode()
+            def recv(self,size):value=self.buffer[:size];self.buffer=self.buffer[size:];return value
+            def close(self):pass
+        bridge=Bridge();bridge.connection=Peer()
+        self.assertEqual(bridge.call('read',tab=1)['text'],'é🦊'*300000)
+        bridge.connection=Peer(True)
+        with self.assertRaises(Refused):bridge.call('read',tab=1)
+
+    def test_failed_owner_event_drains_its_reply_before_the_next_command(self):
+        import json
+        from aresos_control.chrome.bridge import Bridge
+        class Peer:
+            def __init__(self):self.buffer=b''
+            def sendall(self,data):
+                identity=json.loads(data)['id']
+                self.buffer+=(json.dumps({'event':'released','tab':1})+'\n'+json.dumps({'id':identity,'ok':True,'data':{'reply':identity}})+'\n').encode()
+            def recv(self,size):value=self.buffer[:size];self.buffer=self.buffer[size:];return value
+            def close(self):pass
+        bridge=Bridge();bridge.connection=Peer();bridge.on_event=lambda event:(_ for _ in ()).throw(OSError('Synthetic failed event commit'))
+        with self.assertRaises(Refused) as error:bridge.call('input')
+        self.assertEqual(error.exception.code,'unknown')
+        bridge.on_event=lambda event:None
+        self.assertIn('reply',bridge.call('tabs'))
+
+
+class ExtensionErrors(unittest.TestCase):
+    def test_final_extension_error_text_is_escaped_like_page_text(self):
+        import json
+        from aresos_control.chrome.bridge import Bridge
+        class Peer:
+            def __init__(self,error):self.buffer=b'';self.error=error
+            def sendall(self,data):
+                identity=json.loads(data)['id'];self.buffer+=(json.dumps({'id':identity,'ok':False,'error':self.error})+'\n').encode()
+            def recv(self,size):value=self.buffer[:size];self.buffer=self.buffer[size:];return value
+            def close(self):pass
+        for raw,code,message in [('reload_required: unsaved\u202etext\nnext','reload_required','unsaved\\u202etext\\u000anext'),('page said \u2066hidden','refused','page said \\u2066hidden'),('refused: plain','refused','plain')]:
+            bridge=Bridge();bridge.connection=Peer(raw)
+            with self.assertRaises(Refused) as error:bridge.call('read',tab=1)
+            self.assertEqual(error.exception.code,code);self.assertEqual(str(error.exception),message)
+
+
+class ConnectionDelivery(unittest.TestCase):
+    def test_retired_selector_connection_cannot_close_its_replacement(self):
+        bridge=Bridge();old,old_client=socket.socketpair();current,client=socket.socketpair();bridge.connection=current
+        errors=[];daemon=Daemon.__new__(Daemon);daemon.selector=selectors.DefaultSelector()
+        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge)},background_error=errors.append)
+        try:
+            old.close();daemon.drain_chrome_events(old)
+            self.assertIs(bridge.connection,current);self.assertEqual(errors,[])
+        finally:
+            daemon.selector.close();old_client.close();current.close();client.close()
+
+    def test_stale_selector_readiness_never_closes_a_host_drained_by_a_tool(self):
+        bridge=Bridge();server,client=socket.socketpair();server.settimeout(.02);bridge.connection=server
+        errors=[];received=[];bridge.on_event=received.append
+        daemon=Daemon.__new__(Daemon);daemon.selector=selectors.DefaultSelector()
+        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge)},background_error=errors.append)
+        try:
+            client.sendall(b'{"event":"fixture"}\n')
+            self.assertEqual(json.loads(server.recv(65536)),{'event':'fixture'})
+            daemon.drain_chrome_events(server)
+            self.assertIs(bridge.connection,server);self.assertEqual(errors,[])
+            client.sendall(b'{"event":"later"}\n');daemon.drain_chrome_events(server)
+            self.assertEqual(received,[{'event':'later'}]);self.assertEqual(errors,[])
+        finally:
+            daemon.selector.close();server.close();client.close()
+
+    def test_partial_unsolicited_observation_is_buffered_without_blocking_the_daemon(self):
+        bridge=Bridge();server,client=socket.socketpair();server.settimeout(.02);bridge.connection=server
+        errors=[];received=[];bridge.on_event=received.append
+        daemon=Daemon.__new__(Daemon);daemon.selector=selectors.DefaultSelector()
+        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge)},background_error=errors.append)
+        try:
+            client.sendall(b'{"event":');daemon.drain_chrome_events(server)
+            self.assertEqual(bridge.buffer,b'{"event":');self.assertIs(bridge.connection,server);self.assertEqual(errors,[])
+            client.sendall(b'"later"}\n');daemon.drain_chrome_events(server)
+            self.assertEqual(received,[{'event':'later'}]);self.assertEqual(errors,[])
+        finally:
+            daemon.selector.close();server.close();client.close()
+
+    def test_accepted_connection_refreshes_before_any_tool_and_rejected_replacement_does_not(self):
+        calls=[];bridge=Bridge();daemon=Daemon.__new__(Daemon)
+        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge,maintenance=lambda:calls.append(bridge.version))})
+        daemon.selector=selectors.DefaultSelector();pairs=[]
+        try:
+            for session in ['first','rejected']:
+                server,client=socket.socketpair();pairs.extend([server,client]);client.sendall(json.dumps({'event':'hello','session':session,'version':'157.0.1.0'}).encode()+b'\n')
+                if session=='first':daemon.register_chrome_host(server)
+                else:
+                    with self.assertRaises(Refused):daemon.register_chrome_host(server)
+            self.assertEqual(calls,['157.0.1.0'])
+        finally:
+            daemon.selector.close()
+            for connection in pairs:connection.close()
+
+    def test_daemon_drains_complete_buffered_events_without_waiting_for_socket_readiness(self):
+        from aresos_control.daemon import Daemon
+        from types import SimpleNamespace
+        import selectors
+        bridge=Bridge();server,client=socket.socketpair();server.settimeout(.2);bridge.connection=server
+        received=[];bridge.on_event=received.append;errors=[]
+        daemon=Daemon.__new__(Daemon);daemon.selector=selectors.DefaultSelector()
+        daemon.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge)},background_error=errors.append)
+        try:
+            client.sendall(b''.join(json.dumps({'event':'fixture','index':index}).encode()+b'\n' for index in range(200)))
+            daemon.drain_chrome_events(server)
+            self.assertEqual(len(received),128);self.assertIn(b'\n',bridge.buffer)
+            daemon.drain_chrome_events(server,buffered=True)
+            self.assertEqual([row['index'] for row in received],list(range(200)))
+            self.assertEqual(bridge.buffer,b'');self.assertEqual(errors,[])
+        finally:
+            daemon.selector.close();server.close();client.close()

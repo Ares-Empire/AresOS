@@ -1,0 +1,19 @@
+{
+  "run": "43437786144",
+  "head": "63c81414d970d81d4039a2d9cc51260451591259",
+  "conclusion": "failure",
+  "classification": "350-minute container timeout (exit124); no assertion failure found in failed-job log",
+  "handling": "Do not raise the limit; round3 acceptance moves to final sharded pair with all original case names retained",
+  "jobs": [
+    {
+      "name": "fixtures (external)",
+      "conclusion": "failure",
+      "seconds": 21074.0
+    },
+    {
+      "name": "fixtures (policy)",
+      "conclusion": "success",
+      "seconds": 16896.0
+    }
+  ]
+}

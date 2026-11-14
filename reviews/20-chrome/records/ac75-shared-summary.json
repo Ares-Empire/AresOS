@@ -1,0 +1,62 @@
+{
+  "base": {
+    "run": 42720657793,
+    "conclusion": "success",
+    "headSha": "ac75b4174a9b46a3f0d58383034fd85e7649396c",
+    "status": "completed",
+    "summaries": [
+      {
+        "line": 432,
+        "text": "containers\tUNKNOWN STEP\t2026-11-09T23:32:25.1855809Z Ran 142 tests in 236.952s"
+      }
+    ]
+  },
+  "mail": {
+    "run": 42720657695,
+    "conclusion": "success",
+    "headSha": "ac75b4174a9b46a3f0d58383034fd85e7649396c",
+    "status": "completed",
+    "summaries": [
+      {
+        "line": 433,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-09T23:32:21.4128907Z Ran 142 tests in 232.029s"
+      },
+      {
+        "line": 868,
+        "text": "containers\tReal isolated mail servers and shared base (no model or real account)\t2026-11-09T23:48:48.4060780Z Ran 309 tests in 978.951s"
+      },
+      {
+        "line": 1527,
+        "text": "sweep (1)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-09T23:45:03.9458319Z Ran 4 tests in 990.336s"
+      },
+      {
+        "line": 2198,
+        "text": "sweep (0)\tOS and SQLite fault sweep in isolated mail containers\t2026-11-09T23:50:05.4030869Z Ran 4 tests in 1293.370s"
+      },
+      {
+        "line": 2627,
+        "text": "sweep (2)\tUNKNOWN STEP\t2026-11-09T23:37:39.9689779Z Ran 4 tests in 549.093s"
+      },
+      {
+        "line": 3058,
+        "text": "sweep (3)\tUNKNOWN STEP\t2026-11-09T23:35:40.4062095Z Ran 4 tests in 428.927s"
+      }
+    ]
+  },
+  "boundary": {
+    "run": 42720657819,
+    "conclusion": "success",
+    "headSha": "ac75b4174a9b46a3f0d58383034fd85e7649396c",
+    "status": "completed",
+    "summaries": [
+      {
+        "line": 892,
+        "text": "hostile\tUNKNOWN STEP\t2026-11-09T23:28:32.3033905Z #14 0.227 Ran 16 tests in 0.015s"
+      },
+      {
+        "line": 895,
+        "text": "hostile\tUNKNOWN STEP\t2026-11-09T23:28:32.3691583Z #14 0.445 Installed boundary precondition PASS"
+      }
+    ]
+  }
+}

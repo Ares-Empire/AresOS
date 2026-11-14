@@ -1,0 +1,5 @@
+{"time":1794217799631,"url":"/receive?case=compose","method":"POST","body":"Existing synthetic draft","host":"fixture.test:8765"}
+{"time":1794217801017,"url":"/receive?case=native","method":"POST","body":"required=","host":"fixture.test:8765"}
+{"time":1794217802406,"url":"/receive?case=event","method":"POST","body":"required=valid","host":"fixture.test:8765"}
+{"time":1794217805010,"url":"/receive?case=residual-click","method":"POST","body":"ordinary click","host":"fixture.test:8765"}
+{"time":1794217805844,"url":"/receive?case=owner-start","method":"POST","body":"Claude input started","host":"fixture.test:8765"}

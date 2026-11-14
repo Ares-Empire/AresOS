@@ -1,0 +1,18 @@
+{
+  "run": "43437906776",
+  "head": "63c81414d970d81d4039a2d9cc51260451591259",
+  "conclusion": "success",
+  "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43437906776",
+  "jobs": [
+    {
+      "name": "fixtures (policy)",
+      "conclusion": "success",
+      "seconds": 19352.0
+    },
+    {
+      "name": "fixtures (external)",
+      "conclusion": "success",
+      "seconds": 17786.0
+    }
+  ]
+}

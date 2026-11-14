@@ -1,0 +1,3918 @@
+[
+  {
+    "id": 43270272776,
+    "source": "5f0b568194a68a82a5b235fe5b396d69290d1892",
+    "workflow": "Control base",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43270272776",
+    "checks": {
+      "base_tests": 146
+    },
+    "files": [
+      {
+        "file": "control-base-43270272776-1/results.txt",
+        "bytes": 35276,
+        "sha256": "65f680967c5545e44bca57fac6e02fd6cfd9a832cdd0c59666ef89fc6a9db9d5"
+      }
+    ]
+  },
+  {
+    "id": 43270278039,
+    "source": "5f0b568194a68a82a5b235fe5b396d69290d1892",
+    "workflow": "Control boundary",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43270278039",
+    "checks": {
+      "summaries": [
+        "BOUNDARY_OK mode=present attacks=127 unchanged=42 hostile_connections=0 unqualified=0",
+        "BOUNDARY_OK mode=absent attacks=127 unchanged=42 hostile_connections=0 unqualified=1"
+      ]
+    },
+    "files": [
+      {
+        "file": "control-boundary-43270278039-1/isolation-coder.txt",
+        "bytes": 871,
+        "sha256": "f4de6a3bc868d1d5b7e2943eb722ad85589c45c3098fba05380e6328902280f6"
+      },
+      {
+        "file": "control-boundary-43270278039-1/isolation-assistant.txt",
+        "bytes": 76,
+        "sha256": "47d05b010f0726e0df48bd4423049e2641365bead83621dddb2678f119f1950e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present-console.txt",
+        "bytes": 119212,
+        "sha256": "c464ac14d7c28568307f7ff6407f61e9e37f5b0d1ba77b3a5e51cee4a4449aef"
+      },
+      {
+        "file": "control-boundary-43270278039-1/userns-before.txt",
+        "bytes": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent-console.txt",
+        "bytes": 115589,
+        "sha256": "56f6e2efa8b74e4bc02e979c76d47f3fe6966b91e0404219d336ec15a970941e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/identity.txt",
+        "bytes": 72,
+        "sha256": "43594a14f97b40aefb1f5e2bb72f0a26344dcc8adee080e90e007135d89ad7a8"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-tools-1-requests.json",
+        "bytes": 102518,
+        "sha256": "dbaa5d1fff19065fb53f1c994a46113834776e530e0e5556d8d1648a4d86f5a0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-13.txt",
+        "bytes": 146,
+        "sha256": "93dfe95e8888778cd1527eb886e0649141e000db6f0e9beb39b8e73246bc6ff2"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-2.txt",
+        "bytes": 102,
+        "sha256": "1d67bdd5ff46969c682ff575efb6eaa7b148c96468194b63819bd684b09d3582"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-no-key-2-managed-settings.json",
+        "bytes": 4416,
+        "sha256": "55eeff944999c136341ababcfebac66aeb2987922f997fe7d76cb9b910e79372"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-tools-2-processes.txt",
+        "bytes": 64,
+        "sha256": "8aab46bbf5b00b6d8b2f06021df8a3a534a0b8893a893513acc620b3a1146427"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-tools-2-integrity.json",
+        "bytes": 9196,
+        "sha256": "2cba51e9192985acc3e78b73e65498f3352d623453f97f5703b4acd8b57a799b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/flag-agents.txt",
+        "bytes": 411,
+        "sha256": "4f36f3c4d9e104bf6e7b6ef982b4e984cd82a1a002099c68827bdb96373db38e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/launcher-corrupt-native.txt",
+        "bytes": 85,
+        "sha256": "7cb3b76ebc91b467ffaf5cae6445f5f5b749627124e385b3aba1dea37835bbef"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/launcher-symlink-dropins.txt",
+        "bytes": 146,
+        "sha256": "8cfad7727f42b68550c02842b677b1dfed4fd26fa82aacab160d31b129ff2477"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/ide-positive-interactive-tty.txt",
+        "bytes": 2105,
+        "sha256": "0a1d6d59467056f2b44ec544ea516a9d9b642ba8237a529865c2ec258cfb4aeb"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/flag-plugin-url.txt",
+        "bytes": 443,
+        "sha256": "8d90756e4871b5c9bf0204be281e7b98fbf0e3ea86edc3b1925dc2ea59e530c6"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-installed-plugin.txt",
+        "bytes": 107,
+        "sha256": "10bf08c6458a255f76baad9123305742e564db36a48359a0b33b0a8c3d829b82"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-3.txt",
+        "bytes": 99,
+        "sha256": "606c8413621410754d95fa6348320939a3566af91d6b9a241dc486b46cda757f"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-12.txt",
+        "bytes": 109,
+        "sha256": "c612b47f881d63153b8708b7af4ed999807b2c3c9d9f98322df726674f9ce137"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/ide-launcher-requests.json",
+        "bytes": 33846,
+        "sha256": "b1769d3666dbc7763ea43c49a6ceb8be7a0053109de156991a5161414d5e6c23"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-10.txt",
+        "bytes": 127,
+        "sha256": "1b0eee7ebe039fd0c09e4d97591af15e821a024d0d11dc7595955730612c47ba"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-1.txt",
+        "bytes": 104,
+        "sha256": "e62ab48c96b8bf3b128f5270764ee610b02f2fe6e780c2e95cd8230b2a937a27"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/mcp-list.txt",
+        "bytes": 670,
+        "sha256": "642b9576c9ebffa71d42e6fb9d874b11d0a8770c7da733b3ec83178929469ba9"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-pin.json",
+        "bytes": 160,
+        "sha256": "a26d583b459281ce60dd6d39e30b8620c4edd9d3202684e4e75421d549c45226"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-2-integrity.json",
+        "bytes": 9196,
+        "sha256": "dfad53688f8021fedba6be2f652a5372104f97b7ec83b53c246118de1471cce1"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-discovery-seccompConfig.txt",
+        "bytes": 9203,
+        "sha256": "011485cd21c42f112f2e1c5415209e0cddb10cc9d344a12f955ca5306ccd20aa"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-x11.txt",
+        "bytes": 130,
+        "sha256": "32467d99ab97da4b13b066ee8c7b2344e30e5107c9fc702162c6e05571d5bf71"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-baseline-results.json",
+        "bytes": 209,
+        "sha256": "1407c28e882683680b303cc8ba57622e8d354bbb1339245b4bd341e242e7a012"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-0.txt",
+        "bytes": 98,
+        "sha256": "bab21f61fd4a1922cb5d86b45a79be5ee1090db8a0490cb63b6c5e9e49bf4e88"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-11.txt",
+        "bytes": 132,
+        "sha256": "c16ab77076cb9e671d438c0d932a5bc5d9161ddfdb13e087459f1c7014e3294d"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/launcher-dropin-notes.txt.txt",
+        "bytes": 141,
+        "sha256": "19bce550522a6ad73cdac109b365b23049b0c1577ad9b641682919a6033b1c09"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-4.txt",
+        "bytes": 97,
+        "sha256": "f01d6f3a83836dcd8337d9920bf406a54962249ced8be77596782683a7c5bfbe"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-15.txt",
+        "bytes": 107,
+        "sha256": "629d3210642e3f697e2380b33546608e0b77076415b05e04430bf570b3931433"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-baseline-integrity.json",
+        "bytes": 9196,
+        "sha256": "2cba51e9192985acc3e78b73e65498f3352d623453f97f5703b4acd8b57a799b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/ide-launcher.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-stub-delta.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/hostile.txt",
+        "bytes": 35133,
+        "sha256": "77e663f873ba75f208933ed8029a8cfd868c1e45eda9251254639825dafcf727"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/socket-state-mount-tree-differences.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-14.txt",
+        "bytes": 117,
+        "sha256": "1d4508e9572dddf0aca817bcf5bc23868663d48fd9a116325ee3085b786a0756"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-28.txt",
+        "bytes": 112,
+        "sha256": "0fec2f4fc5f2e18c218aeb8ccc7489c2f27d320cc49ea69f34b8763f949b0faa"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-5.txt",
+        "bytes": 100,
+        "sha256": "07bad20c05611a86883fc846d3534b2cdfec89ef96de79796cc3578351778e6e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-2-results.json",
+        "bytes": 311,
+        "sha256": "cc80fa0164dc51508ec04b441c69ae401c9a5194fff98bd5a12e139790725129"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/ide-launcher-results.json",
+        "bytes": 2,
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-7.txt",
+        "bytes": 101,
+        "sha256": "96f52fa416bf66f0f6c97e69924ccd3e53f6abb96bd8ac0b503818ecde3cdbf0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-16.txt",
+        "bytes": 102,
+        "sha256": "99bf7b1459bc19c9219e63da3b584a7a2af0104f57a19eb67e6c56f3f80ac93a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-tools-2-requests.json",
+        "bytes": 102518,
+        "sha256": "57fbb6b230e2b5f7f167f8eb616660b444aef13430a8e89c2281380c96b18cb4"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/launcher-planted.txt",
+        "bytes": 380,
+        "sha256": "26436ae04693b7ab320b240d33cf8cf316c4c972e539f62c3b5269fd85bcb681"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-tools-1-processes.txt",
+        "bytes": 64,
+        "sha256": "8aab46bbf5b00b6d8b2f06021df8a3a534a0b8893a893513acc620b3a1146427"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-proxy-http.txt",
+        "bytes": 8201,
+        "sha256": "9c8b1fc9379e5bb8081f8f591ab05c569336c5b8f9ee99941c19fd92477f0f7f"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-chrome.txt",
+        "bytes": 142,
+        "sha256": "0c099519f0918eef65da132858b3eff9e627abf6687cfabbc154dc7507d9b60c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-17.txt",
+        "bytes": 117,
+        "sha256": "5f94afc1194012c5fc091b845cef759bcd3e03da196341f93fe62c41abe4ae6e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-6.txt",
+        "bytes": 98,
+        "sha256": "2a9e654d2ca95f26a625483af955c00341935812b71f468cb6e524ac671e7f58"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/file-integrity.json",
+        "bytes": 8913,
+        "sha256": "cb07805603c2af866ac080280ad2c1461ece4058a03a110bad16f05cb79971ba"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/ide-positive-results.json",
+        "bytes": 2,
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-14.txt",
+        "bytes": 174,
+        "sha256": "d414edf872c502f59d50434cee321e0dd321b986b67c1cc5801f184cc32bc093"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-28.txt",
+        "bytes": 169,
+        "sha256": "b59fd4a8528f4f85e5ea1c8acf43c8651b4ba4e0391887032896bcf4f854b18d"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-discovery-CLAUDE_CODE_AUTO_CONNECT_IDE.txt",
+        "bytes": 9457,
+        "sha256": "02bed25dde16acd490c72f02c63b5fe517570a7c39396ca08b3c191f10281976"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/version-uname.txt",
+        "bytes": 144,
+        "sha256": "bbc56208602e36a8e33e6a8c8563a90039e008923824818149070f83ca77a04f"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-2-results.json",
+        "bytes": 326,
+        "sha256": "f5ea22f4f2b1b58e2502bc7c3d7474cfbd25e6e50145e627a35e5821b15b73d8"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-tools-1-integrity.json",
+        "bytes": 9196,
+        "sha256": "2cba51e9192985acc3e78b73e65498f3352d623453f97f5703b4acd8b57a799b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-15.txt",
+        "bytes": 164,
+        "sha256": "aa491e43438d08a41cb5a661b93d3fb82eef688e6e6e42ac23a0b844281e6548"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-9.txt",
+        "bytes": 181,
+        "sha256": "96bad69cab7ca5dd767db0e99794dba0aa50d8375be90a0ef570d55831c29d4e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-hostile-approved-requests.json",
+        "bytes": 65377,
+        "sha256": "f639807753ed309743652c370d5742e6f175159d67e702aedac800ba6773708c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-tty-1-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/ide-launcher-interactive-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/flag-mcp-config.txt",
+        "bytes": 468,
+        "sha256": "41e445f59164055466327bc72ac295875cd8d7e12da59df51c128eb563c46e10"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-17.txt",
+        "bytes": 174,
+        "sha256": "e12e25e513448c0e1a316e44880582205e1418efaa4dce4fcd251e453099076c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/ide-positive-requests.json",
+        "bytes": 33846,
+        "sha256": "89f2f9e5396726dff6c3898a0451d8e7008ebb48a28f51f2abee66c95b67ca6b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/ide-positive-interactive-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sandbox.json",
+        "bytes": 1028,
+        "sha256": "2f0e2b343cda55921b3afe799b9cfce0468003c82a04ac856722f627bcf736c3"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-tools-1-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-hostile-approved-managed-settings.json",
+        "bytes": 4567,
+        "sha256": "5c12fca76509e61df06990eea7329eda295e741cdd515f43c21836937f9a864b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-1-integrity.json",
+        "bytes": 9196,
+        "sha256": "dfad53688f8021fedba6be2f652a5372104f97b7ec83b53c246118de1471cce1"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-16.txt",
+        "bytes": 159,
+        "sha256": "72ec530ef28a1f45498bdc17351c53cb1753b2f92ba6f7c6afb565e8ab9addd9"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-tty-2-managed-settings.json",
+        "bytes": 4418,
+        "sha256": "ac9666310b5ee976e769eb19a69d1287608d39f9c0d75a141f5e98d5474a70dd"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/ide-launcher-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-8.txt",
+        "bytes": 172,
+        "sha256": "0f0febb432de8996c582242b79320f837879fbdaf09ba3c6abde667b216137ff"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-tools-2-results.json",
+        "bytes": 27273,
+        "sha256": "6f962b4066f1e6fe13cd2d22c0fa5721ff3e82b5c5672c16ae0586b1af971d2b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-12.txt",
+        "bytes": 166,
+        "sha256": "aab3eea511e16372b55e317f0bfb15871ddcf75947937bbdae9f9a4e4e178d6e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-no-key-2.txt",
+        "bytes": 86,
+        "sha256": "f94c31d43d4156fb764826f8e4d114cccb3c7f1581716e6d14f72b4af18f8a72"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-hostile-approved-processes.txt",
+        "bytes": 172258,
+        "sha256": "c32c40c32833555ed9a466aa65c17ea31803828b62285d347637242340f78a53"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-1-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/launcher-options-plugin.txt",
+        "bytes": 147,
+        "sha256": "389fa1c9468ec6eb24946bfcea769700ba3363403153374143d6d76c4167bbd3"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-13.txt",
+        "bytes": 203,
+        "sha256": "a96e47745b3734edf20b4102ba8e0fb2fe8f5a1b788d7aa7ab44dcfefa666f6a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-mount-trees.json",
+        "bytes": 204887,
+        "sha256": "89c0a01cdf9b63e5ca9d8b01176f589058adf7b311de809f3d4f736e549c67e2"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-read-Cookies.txt",
+        "bytes": 127,
+        "sha256": "d5d43d2461892f1b36fff4310dd70f608d923c4cb2b6fc384426e3179ba208f7"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-11.txt",
+        "bytes": 189,
+        "sha256": "87e016d6ee1d7108ca0ab01054b06b1252262d8bc9a5ec2eef3f78b67794b734"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-no-key-1.txt",
+        "bytes": 86,
+        "sha256": "f94c31d43d4156fb764826f8e4d114cccb3c7f1581716e6d14f72b4af18f8a72"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/mcp-add.txt",
+        "bytes": 221,
+        "sha256": "27d83b48df45f845e2b86941b427b08b3519ca613a1088869bde048aa1bd5376"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/standalone-processes.txt",
+        "bytes": 51589,
+        "sha256": "3acf5d0d08ea54b72e59009cbaa4cfb546b31c327d12eedfefff88d602e29770"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-1-managed-settings.json",
+        "bytes": 4418,
+        "sha256": "ac9666310b5ee976e769eb19a69d1287608d39f9c0d75a141f5e98d5474a70dd"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/network-policy-mutation.txt",
+        "bytes": 35037,
+        "sha256": "cccb92dd08bf794564bc2298dc4e39b83cff354cce216b3db779f1d8e04b2ae7"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-10.txt",
+        "bytes": 184,
+        "sha256": "5f2cb8c1ab24e1dcbf481ef681ac275ffe51f7a03dd77d4c8143fb413faa05b7"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/version-bwrap.txt",
+        "bytes": 55,
+        "sha256": "556f693a01f53c8949c8571db15a3a6a7b64105ab2c4d9ca1e9b640e1b24f3c0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-read-.claude.json.txt",
+        "bytes": 102,
+        "sha256": "a5728ca4a49daaa523d649eb81e8cfa6c8615dc30c7d7c074b3e44b55656ad2c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/stub-new-connections.json",
+        "bytes": 3,
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-3.txt",
+        "bytes": 156,
+        "sha256": "c3ba6bc97077de4fb9a5ccf744e90296d139612c98926d4e65eda4552f4a4b14"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-2-requests.json",
+        "bytes": 34288,
+        "sha256": "213970ec152fb49ea450ac2137b5dce536c99f6829c614b57a3575bc544bfb39"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-21.txt",
+        "bytes": 172,
+        "sha256": "c8960dfa470304e7268985ba372be4fad323750a05936e97e6242fb244b10fea"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/stub.txt",
+        "bytes": 10063,
+        "sha256": "2ecebb17a5b907ac6496749cfd7d3933a39f37d48cb6a47e31ce8ad4ceff7825"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-tty-1-tty.txt",
+        "bytes": 1372,
+        "sha256": "adcf1974a6a9ec407d88a437a37f4054642bd92bddab5571a777fb3586283b52"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-act.txt",
+        "bytes": 139,
+        "sha256": "38cd5a56ffab57e7c1a8eb8b692d61e3b968c70ff1c9d75522417161268e8ddc"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-1-results.json",
+        "bytes": 316,
+        "sha256": "c7c3e88796648cbc091317172235f53f45de0d6646f1507a6f6b1e00120f0cd0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-20.txt",
+        "bytes": 171,
+        "sha256": "e068eb6a0ea516145320c21b566463a0478635dcc1bacfc421100acc52e15f65"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-baseline-requests.json",
+        "bytes": 34105,
+        "sha256": "e1db29ccd865a0d0e35e72823d41109eba67737e1884304eeba19d09e4b00989"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-2.txt",
+        "bytes": 159,
+        "sha256": "ba0661f74349a8d8b6eed76762363c9bbff264e720fa6309e4d66fe3bbcbace0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-0.txt",
+        "bytes": 155,
+        "sha256": "bef4c72e713c87f627336b35090583303b95a249c645d8390ead22ef8aa157a0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/launcher-empty-dropins.txt",
+        "bytes": 380,
+        "sha256": "26436ae04693b7ab320b240d33cf8cf316c4c972e539f62c3b5269fd85bcb681"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/launcher-preinstalled-plugin.txt",
+        "bytes": 107,
+        "sha256": "10bf08c6458a255f76baad9123305742e564db36a48359a0b33b0a8c3d829b82"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-discovery-function swr.txt",
+        "bytes": 2300,
+        "sha256": "c9374f3e6affe421c016b7781aeffc02068c17019dd31c2328ea3f27c8d80d1a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-22.txt",
+        "bytes": 181,
+        "sha256": "9856a12159720ab8a4fb29cdb797b7073f414c57e9419936eb7e5f1de2fbe8bc"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/standalone-policy-mounts.json",
+        "bytes": 11127,
+        "sha256": "7beac9e81344afa293ec19f362e53922e03dd3f950c1f4ee05d3977b2cda63cb"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/launcher-remote-cache.txt",
+        "bytes": 380,
+        "sha256": "26436ae04693b7ab320b240d33cf8cf316c4c972e539f62c3b5269fd85bcb681"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-policy-mounts.json",
+        "bytes": 35207,
+        "sha256": "94f31b10b1ad5aa2033077d5ff04423b9b7922b3021a1a2c55718d37ee762fdb"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-tty-2-tty.txt",
+        "bytes": 1353,
+        "sha256": "f7852cb0bff7e5eb59fef80158390c7c6274b1cbdf38b5fdcabc8ff790545ae7"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/env-positive-python-env-ran.txt",
+        "bytes": 50,
+        "sha256": "80a99081c3e29452b04cdf3898b7c611aa50515b93b191971d5d1f0e18a321f9"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-23.txt",
+        "bytes": 171,
+        "sha256": "1732619d92a78b540a519428bb94cebad4d45f531dc2a17c2549916cdca9786d"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-baseline-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/launcher-dropin-99-open.json.txt",
+        "bytes": 144,
+        "sha256": "7f4a6e86a4bb713aa0b6e99d92d341e48ffdc120ae134a2b909545b09ca0b0b8"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-1.txt",
+        "bytes": 161,
+        "sha256": "ec5e631a06d16ebdf866ce3429de4534232f41d3df19d86b715472239ace6f05"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-5.txt",
+        "bytes": 157,
+        "sha256": "e6f5388e958b12cd3ffc10841156ec65ab3ea0a1fbc4e49138275bb88f29da83"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/bypass-disabled.txt",
+        "bytes": 5879,
+        "sha256": "587764e3c6b9a083051aca5980a852488db7714890b2eca1f9c38e28377a705c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-wayland.txt",
+        "bytes": 138,
+        "sha256": "445800ece8be2058063ad9941d836fb615c0b96ebfffa76c6f3b1c92e9cf3995"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-27.txt",
+        "bytes": 178,
+        "sha256": "b522e722a65edc239bd90b2503a1508a64f3f75d5d3c256dd2cb261c92980095"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-1.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-26.txt",
+        "bytes": 169,
+        "sha256": "939f54176e26243513e6531394619e5be6d68d5c7b38a5d31a29a846dbfe3d7b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-2.txt",
+        "bytes": 100,
+        "sha256": "413d5a9753f8b8e8d363fde9a86a4718faa245e141463ab8582efba1f0f06951"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-baseline.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/ide-positive-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-4.txt",
+        "bytes": 154,
+        "sha256": "797ee0734f853755b9be6b154367dd3f56c1c3d1ae7e4f170dc14a836983c61b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-tools-1-results.json",
+        "bytes": 27273,
+        "sha256": "6f962b4066f1e6fe13cd2d22c0fa5721ff3e82b5c5672c16ae0586b1af971d2b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-6.txt",
+        "bytes": 155,
+        "sha256": "2502fbbc22e7baab51a60d833bb682a0eded23f98fe52fc2441f6824df0aa133"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-1-requests.json",
+        "bytes": 34288,
+        "sha256": "4df0f8b3eb35cc84e076b17e55e2bfed64f0f931526cc57bd0b85c27e2debca8"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-18.txt",
+        "bytes": 180,
+        "sha256": "06dde13bbb5f0574d13acc7f09f86223c3f1e86368df0919b9262b550eafd34e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-1-integrity.json",
+        "bytes": 9196,
+        "sha256": "13dc6559620d363d92530805e6bdd6616ccb6248efa65ef87dfbde36fae93f23"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-24.txt",
+        "bytes": 166,
+        "sha256": "8cee4bdd54a4de5a9c5ed3f645d06a39c8872f3265bf982b2596447a60f129f4"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/mcp-unmanaged-positive.txt",
+        "bytes": 289,
+        "sha256": "9f8eb7cab78aba024420786ba2cb149090ed6fff487edd3c802c45f14509a55a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-unqualified.json",
+        "bytes": 12260,
+        "sha256": "a30b042c5210643c82b875144d8cfefb9a1d97bfd73aab34476304cfa37cfb04"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/managed-settings.json",
+        "bytes": 4321,
+        "sha256": "0e6752737b11a8be8ab5c421a1db0ea1f37f4d2816dcdb61142455cdcf09c520"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/env-positive-node-env-ran.txt",
+        "bytes": 49,
+        "sha256": "5ace5d5e735df2835c92193c48fa89ff829ffcaeca8ef547f4be43de323d98df"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-baseline-processes.txt",
+        "bytes": 85808,
+        "sha256": "3123d63830a80473d4d3ddb3dfbfac363fd93ba6b3688f2c0023d8f64d499274"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-2.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-25.txt",
+        "bytes": 181,
+        "sha256": "c2e8d9c5711d29e509bb34d10624c86f63b1e5cd9ae051aa71805c30ecf4cab3"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-discovery-function Fno.txt",
+        "bytes": 2300,
+        "sha256": "12a81c9f905915721bff1bd0d9a3ed64b5bf666bff6dfc82cd0f0d033c07e55b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-19.txt",
+        "bytes": 162,
+        "sha256": "dc138cbe923dbc2ea460bf0b0f1aad469bca507d19f074e9d2d02f2c162a253c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-no-key-1-managed-settings.json",
+        "bytes": 4416,
+        "sha256": "55eeff944999c136341ababcfebac66aeb2987922f997fe7d76cb9b910e79372"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-1.txt",
+        "bytes": 100,
+        "sha256": "413d5a9753f8b8e8d363fde9a86a4718faa245e141463ab8582efba1f0f06951"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-replace-7.txt",
+        "bytes": 158,
+        "sha256": "023804faa1daa815eb071d8fa3554eb5c3402d74e803c0ac14783a607b2fa615"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/flag-plugin-dir.txt",
+        "bytes": 437,
+        "sha256": "e2400717be5564919288fa0b6465658f0179d2362320ee1ce4ec0c3be3c010cd"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-26.txt",
+        "bytes": 112,
+        "sha256": "0cc9491413256ede5411eb87de97d404270b36af0e44bfb10dc121fedb9d960a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/source-checks.json",
+        "bytes": 1032,
+        "sha256": "b6c66043101241da95b5c9ef5fe17f45fec2d35a121718f477be01c85d615e03"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/version-node.txt",
+        "bytes": 46,
+        "sha256": "b3aad40de7147fb6e1ed974e8d6738a9c0c88fad9bdd23159c30e6c4ec3dc45a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-tty-1-tty.txt",
+        "bytes": 1733,
+        "sha256": "00b6a1f19d38efafb43b5a092beb18b94153162b608f95b252d0914e8cec1d4a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-2-managed-settings.json",
+        "bytes": 4418,
+        "sha256": "ac9666310b5ee976e769eb19a69d1287608d39f9c0d75a141f5e98d5474a70dd"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-open-routes.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-hostile-approved-integrity.json",
+        "bytes": 9196,
+        "sha256": "776e8d7ed24fb04d2e300a3821d4182c371ede5dd19b6b2b7d4f8a5b782e34ea"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/env-positive-preload-ran.txt",
+        "bytes": 33,
+        "sha256": "83c97c08101ffa48eda54747c76a5f2c11214de6ac2e68ccc91b635852549837"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-27.txt",
+        "bytes": 121,
+        "sha256": "07f55e030783b0c715a52e5158bc9af55d3b06b6f96ee8ab8c0915b0f528d5b6"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/launcher-options-bypass.txt",
+        "bytes": 151,
+        "sha256": "74c20fd047f60f28bd4f0048a324e77a43491d541a6dd312a50640c081d681cc"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/ide-launcher-interactive-tty.txt",
+        "bytes": 1372,
+        "sha256": "adcf1974a6a9ec407d88a437a37f4054642bd92bddab5571a777fb3586283b52"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/managed-mcp.json",
+        "bytes": 1076,
+        "sha256": "4ad08d9f9a221d4029dd2602c0a97cea4397504ef911eaef77de33c092cb91e5"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-25.txt",
+        "bytes": 124,
+        "sha256": "f1f1707e4b5e59c7aa8fb3801497eec0c26a51094aede6d60534cc6458b0971c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-8.txt",
+        "bytes": 115,
+        "sha256": "16f226ec04f0575b3de8ec1ad83d70b6631ddd3adf206389924223d16e314678"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-19.txt",
+        "bytes": 105,
+        "sha256": "80e5192062d07673d622bcaa837c811f9ab3b6b10d0c95793e054b44e49c846c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-tty-2-tty.txt",
+        "bytes": 1372,
+        "sha256": "adcf1974a6a9ec407d88a437a37f4054642bd92bddab5571a777fb3586283b52"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-2-requests.json",
+        "bytes": 34302,
+        "sha256": "21b7d1d7dc931f3266da61e3241c0cda2a14c04e77ade8377a3c57e17ce4f474"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/policy-mount-comparison.json",
+        "bytes": 24092,
+        "sha256": "46c764c22f1966b28a2c5cd7905a1197fc34e4ebe3c1e36d2875f63d7cb16d8b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-2-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-discovery-ARGV0=.txt",
+        "bytes": 16715,
+        "sha256": "6999eb547526e3a184c8b6662b7e2e9de65381f08f8fbbe0844e7f255437a212"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-embedded-canary-planted.txt",
+        "bytes": 7937,
+        "sha256": "3c47cc56f96de301b4b9b328172fc8889c47ea5387dca026a521a7cda51b8c1c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-abstract.txt",
+        "bytes": 142,
+        "sha256": "8ed4d1ba5270c989b70dbabfe8f568b5d8ea6f5484c784c36625bbe685f1edf9"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-18.txt",
+        "bytes": 123,
+        "sha256": "081ebbac01eef32c9e5619913ed96d1206364a305169fb1ee99fc4c67864a11a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-24.txt",
+        "bytes": 109,
+        "sha256": "d78fded4d414369a45059f21d3d6c57b4f0252c94902aee829e96b636e8b56c4"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-9.txt",
+        "bytes": 124,
+        "sha256": "ab24df24719369e96f671f2384115c02b7689693002abe0f7d02567c757740b7"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-tty-1-managed-settings.json",
+        "bytes": 4418,
+        "sha256": "ac9666310b5ee976e769eb19a69d1287608d39f9c0d75a141f5e98d5474a70dd"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-positive-1-requests.json",
+        "bytes": 34292,
+        "sha256": "7db900ff7b25f0dd31df4e673fff035be761640001e60ad190df5d7ca47617a7"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-20.txt",
+        "bytes": 114,
+        "sha256": "86ba1e66850e926f34353a448653084e68a03249fd482eee7a51a7e65ac505a2"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-1-results.json",
+        "bytes": 311,
+        "sha256": "cc80fa0164dc51508ec04b441c69ae401c9a5194fff98bd5a12e139790725129"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/ide-arrivals.json",
+        "bytes": 531,
+        "sha256": "5dccf336302eb55f4178856765f3ad585c49d1c79c0fd5a23ae57e1bcaa04932"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-hostile-approved.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-dbus.txt",
+        "bytes": 132,
+        "sha256": "bfa0186da5799c8939bb5215c26e3214ff22362767f396ff0ed506bd081f5e21"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/ide-positive.txt",
+        "bytes": 82,
+        "sha256": "cbab472dbb62b2a7ec69f391ec597fdd27e19818ae4ea1d3218ae6d2d64423ad"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-hostile-rows.json",
+        "bytes": 30180,
+        "sha256": "a9d90b8ffc7d546a8a2abb99164d56f79ee88cf16cb005ebfba20cdccab124cf"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-proxy-connect.txt",
+        "bytes": 8229,
+        "sha256": "a7f89c159c9859ef12296021eeb01543330c4083e1eeb01286fb5013e63c5ff4"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-tools-2-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-network.txt",
+        "bytes": 259,
+        "sha256": "cd003a63b202bf15947684685b28eb03c9ba54bde327be4529ff2c33e5503534"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-tools-2.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-tty-2-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-read-.credentials.json.txt",
+        "bytes": 115,
+        "sha256": "6458b62023c0a82f8fb278d9dfdacaa8947f8e4f110396c9d2c24b8182286f79"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-21.txt",
+        "bytes": 115,
+        "sha256": "4e8c319054ffe114e291641d0ac0559dbb25f63aae11ed101ff2bd3241fd8ed8"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/marketplace-add.txt",
+        "bytes": 309,
+        "sha256": "29cd012476bc938598212d3dc29e5e0ebae3cd3670535d394bbc9c72103197c5"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-23.txt",
+        "bytes": 114,
+        "sha256": "879c9ec99bf564738644daf0d70bee377388b9d3a4d2d13d224143b426088d49"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/launcher-corrupt-filter.txt",
+        "bytes": 89,
+        "sha256": "0b133d8ebd4d1dc76935ebe30306143d1751fd405a7c2d94a2497f86c4c06073"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/version-claude.txt",
+        "bytes": 61,
+        "sha256": "47af1fd9a3eefceb86574e2d07e0ebcf9e751edab7e163d327d01df1369fec71"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-planted-helper-paths.json",
+        "bytes": 809,
+        "sha256": "e7537f774c9ab3da7505268da340681c32b8557c857dd69f16e2f2afccbcbb86"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/sources-launcher-2-integrity.json",
+        "bytes": 9196,
+        "sha256": "13dc6559620d363d92530805e6bdd6616ccb6248efa65ef87dfbde36fae93f23"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-hostile-approved-results.json",
+        "bytes": 31157,
+        "sha256": "0afadc7e514b3c91127d6e08abf93957335d5ca00bfe614b345a5fde91075f08"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-tools-1.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-write-22.txt",
+        "bytes": 124,
+        "sha256": "a146694663c9b3e0b610974b95be63f93fe1766eb0ef54de2d0f3bcd3847ee56"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/positive-read-login.keyring.txt",
+        "bytes": 125,
+        "sha256": "ec015c1bf2ab8eb936a783fcde7c3691f2e06cdf99a7571c32607cd492bd5687"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/hostile-mount-tree-differences.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43270278039-1/present/native-file-tool-paths.json",
+        "bytes": 6131,
+        "sha256": "8fb243be805b4511605053d1ec59852ced19f0325e361cb1473e63f043eb7b82"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-13.txt",
+        "bytes": 146,
+        "sha256": "93dfe95e8888778cd1527eb886e0649141e000db6f0e9beb39b8e73246bc6ff2"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-2.txt",
+        "bytes": 102,
+        "sha256": "1d67bdd5ff46969c682ff575efb6eaa7b148c96468194b63819bd684b09d3582"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/flag-agents.txt",
+        "bytes": 411,
+        "sha256": "4f36f3c4d9e104bf6e7b6ef982b4e984cd82a1a002099c68827bdb96373db38e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/ide-positive-interactive-tty.txt",
+        "bytes": 1886,
+        "sha256": "8841ab9a3b45756825599168f40af8085711db81016e79511627557c6c54cb88"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/flag-plugin-url.txt",
+        "bytes": 443,
+        "sha256": "8d90756e4871b5c9bf0204be281e7b98fbf0e3ea86edc3b1925dc2ea59e530c6"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-3.txt",
+        "bytes": 99,
+        "sha256": "606c8413621410754d95fa6348320939a3566af91d6b9a241dc486b46cda757f"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-12.txt",
+        "bytes": 109,
+        "sha256": "c612b47f881d63153b8708b7af4ed999807b2c3c9d9f98322df726674f9ce137"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/ide-launcher-requests.json",
+        "bytes": 33846,
+        "sha256": "c5c78709a329ffb0421c25db1e830eb76cf119ccc7378359083823a1f35bc5f6"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-10.txt",
+        "bytes": 127,
+        "sha256": "1b0eee7ebe039fd0c09e4d97591af15e821a024d0d11dc7595955730612c47ba"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-1.txt",
+        "bytes": 104,
+        "sha256": "e62ab48c96b8bf3b128f5270764ee610b02f2fe6e780c2e95cd8230b2a937a27"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/mcp-list.txt",
+        "bytes": 670,
+        "sha256": "642b9576c9ebffa71d42e6fb9d874b11d0a8770c7da733b3ec83178929469ba9"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-pin.json",
+        "bytes": 160,
+        "sha256": "a26d583b459281ce60dd6d39e30b8620c4edd9d3202684e4e75421d549c45226"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-discovery-seccompConfig.txt",
+        "bytes": 9203,
+        "sha256": "011485cd21c42f112f2e1c5415209e0cddb10cc9d344a12f955ca5306ccd20aa"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-x11.txt",
+        "bytes": 130,
+        "sha256": "32467d99ab97da4b13b066ee8c7b2344e30e5107c9fc702162c6e05571d5bf71"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-baseline-results.json",
+        "bytes": 209,
+        "sha256": "1407c28e882683680b303cc8ba57622e8d354bbb1339245b4bd341e242e7a012"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-0.txt",
+        "bytes": 98,
+        "sha256": "bab21f61fd4a1922cb5d86b45a79be5ee1090db8a0490cb63b6c5e9e49bf4e88"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-11.txt",
+        "bytes": 132,
+        "sha256": "c16ab77076cb9e671d438c0d932a5bc5d9161ddfdb13e087459f1c7014e3294d"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-4.txt",
+        "bytes": 97,
+        "sha256": "f01d6f3a83836dcd8337d9920bf406a54962249ced8be77596782683a7c5bfbe"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-15.txt",
+        "bytes": 107,
+        "sha256": "629d3210642e3f697e2380b33546608e0b77076415b05e04430bf570b3931433"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-baseline-integrity.json",
+        "bytes": 9196,
+        "sha256": "3d511aa2aa3195fac1913e6679d86b70de35f7c4fadac00c9c2c21bddd7b8ef6"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/ide-launcher.txt",
+        "bytes": 82,
+        "sha256": "cbab472dbb62b2a7ec69f391ec597fdd27e19818ae4ea1d3218ae6d2d64423ad"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-stub-delta.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/hostile.txt",
+        "bytes": 35137,
+        "sha256": "68099b5afce74eb2be9edbb7080559cd161fd81fd8831969d6cdc3097f45e0f6"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/socket-state-mount-tree-differences.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-14.txt",
+        "bytes": 117,
+        "sha256": "1d4508e9572dddf0aca817bcf5bc23868663d48fd9a116325ee3085b786a0756"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-28.txt",
+        "bytes": 112,
+        "sha256": "0fec2f4fc5f2e18c218aeb8ccc7489c2f27d320cc49ea69f34b8763f949b0faa"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-5.txt",
+        "bytes": 100,
+        "sha256": "07bad20c05611a86883fc846d3534b2cdfec89ef96de79796cc3578351778e6e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/ide-launcher-results.json",
+        "bytes": 2,
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-7.txt",
+        "bytes": 101,
+        "sha256": "96f52fa416bf66f0f6c97e69924ccd3e53f6abb96bd8ac0b503818ecde3cdbf0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-16.txt",
+        "bytes": 102,
+        "sha256": "99bf7b1459bc19c9219e63da3b584a7a2af0104f57a19eb67e6c56f3f80ac93a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/launcher-planted.txt",
+        "bytes": 195,
+        "sha256": "89003900a60b051bfa3ae5b63dec1636366642728e75fed267dbb8c5d44f8af0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-proxy-http.txt",
+        "bytes": 8147,
+        "sha256": "09aa301ae2ef1ee2430cab73dbb31cd66dc5cf64b0c164fea4864f89e7fd7d6d"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-chrome.txt",
+        "bytes": 142,
+        "sha256": "0c099519f0918eef65da132858b3eff9e627abf6687cfabbc154dc7507d9b60c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-17.txt",
+        "bytes": 117,
+        "sha256": "5f94afc1194012c5fc091b845cef759bcd3e03da196341f93fe62c41abe4ae6e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-6.txt",
+        "bytes": 98,
+        "sha256": "2a9e654d2ca95f26a625483af955c00341935812b71f468cb6e524ac671e7f58"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/file-integrity.json",
+        "bytes": 8913,
+        "sha256": "77fd8dbe315ff27b0eb27cf915893fb18aae5e6788bc8f541bc75157067725ff"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/ide-positive-results.json",
+        "bytes": 2,
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-14.txt",
+        "bytes": 174,
+        "sha256": "d414edf872c502f59d50434cee321e0dd321b986b67c1cc5801f184cc32bc093"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-28.txt",
+        "bytes": 169,
+        "sha256": "b59fd4a8528f4f85e5ea1c8acf43c8651b4ba4e0391887032896bcf4f854b18d"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-discovery-CLAUDE_CODE_AUTO_CONNECT_IDE.txt",
+        "bytes": 9457,
+        "sha256": "02bed25dde16acd490c72f02c63b5fe517570a7c39396ca08b3c191f10281976"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/version-uname.txt",
+        "bytes": 144,
+        "sha256": "99723e6c226bde9798656672135d05f153e18cfd99065d029689b597fd68034b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-15.txt",
+        "bytes": 164,
+        "sha256": "aa491e43438d08a41cb5a661b93d3fb82eef688e6e6e42ac23a0b844281e6548"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-9.txt",
+        "bytes": 181,
+        "sha256": "96bad69cab7ca5dd767db0e99794dba0aa50d8375be90a0ef570d55831c29d4e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-hostile-approved-requests.json",
+        "bytes": 65377,
+        "sha256": "4d4b947efa3c4c17c8c341400c9a56b5770a493568b16345154058db001da899"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/flag-mcp-config.txt",
+        "bytes": 468,
+        "sha256": "41e445f59164055466327bc72ac295875cd8d7e12da59df51c128eb563c46e10"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-17.txt",
+        "bytes": 174,
+        "sha256": "e12e25e513448c0e1a316e44880582205e1418efaa4dce4fcd251e453099076c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/ide-positive-requests.json",
+        "bytes": 33846,
+        "sha256": "31edc3ba366a67af29b3bca7f128fd3885e69d3801a57fc4d751f9867be8b5f2"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/ide-positive-interactive-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/sandbox.json",
+        "bytes": 1028,
+        "sha256": "2f0e2b343cda55921b3afe799b9cfce0468003c82a04ac856722f627bcf736c3"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-hostile-approved-managed-settings.json",
+        "bytes": 4567,
+        "sha256": "5c12fca76509e61df06990eea7329eda295e741cdd515f43c21836937f9a864b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-16.txt",
+        "bytes": 159,
+        "sha256": "72ec530ef28a1f45498bdc17351c53cb1753b2f92ba6f7c6afb565e8ab9addd9"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/ide-launcher-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-8.txt",
+        "bytes": 172,
+        "sha256": "0f0febb432de8996c582242b79320f837879fbdaf09ba3c6abde667b216137ff"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-12.txt",
+        "bytes": 166,
+        "sha256": "aab3eea511e16372b55e317f0bfb15871ddcf75947937bbdae9f9a4e4e178d6e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-hostile-approved-processes.txt",
+        "bytes": 172256,
+        "sha256": "3164b245aed800a2767ec256d9dea321bef0ef812cd775ce2e4c1b93c5ea7c80"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-13.txt",
+        "bytes": 203,
+        "sha256": "a96e47745b3734edf20b4102ba8e0fb2fe8f5a1b788d7aa7ab44dcfefa666f6a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-mount-trees.json",
+        "bytes": 204884,
+        "sha256": "0cce86fbe055c9cde93576eff7322ef8f98070431e103da7d3da6f2b19f123e9"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-read-Cookies.txt",
+        "bytes": 127,
+        "sha256": "d5d43d2461892f1b36fff4310dd70f608d923c4cb2b6fc384426e3179ba208f7"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-11.txt",
+        "bytes": 189,
+        "sha256": "87e016d6ee1d7108ca0ab01054b06b1252262d8bc9a5ec2eef3f78b67794b734"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/mcp-add.txt",
+        "bytes": 221,
+        "sha256": "27d83b48df45f845e2b86941b427b08b3519ca613a1088869bde048aa1bd5376"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/standalone-processes.txt",
+        "bytes": 50228,
+        "sha256": "a98b01cc9a9ce68648b348de1bd3cc4512ae6faec6174db688c0ee976c95e0c1"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/network-policy-mutation.txt",
+        "bytes": 35041,
+        "sha256": "7d6a88e54b42819a7958dc431908cb0f2b4b8e18335b8880edf9288361e0afea"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-10.txt",
+        "bytes": 184,
+        "sha256": "5f2cb8c1ab24e1dcbf481ef681ac275ffe51f7a03dd77d4c8143fb413faa05b7"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/version-bwrap.txt",
+        "bytes": 55,
+        "sha256": "556f693a01f53c8949c8571db15a3a6a7b64105ab2c4d9ca1e9b640e1b24f3c0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-read-.claude.json.txt",
+        "bytes": 102,
+        "sha256": "a5728ca4a49daaa523d649eb81e8cfa6c8615dc30c7d7c074b3e44b55656ad2c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/stub-new-connections.json",
+        "bytes": 3,
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-3.txt",
+        "bytes": 156,
+        "sha256": "c3ba6bc97077de4fb9a5ccf744e90296d139612c98926d4e65eda4552f4a4b14"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-21.txt",
+        "bytes": 172,
+        "sha256": "c8960dfa470304e7268985ba372be4fad323750a05936e97e6242fb244b10fea"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/stub.txt",
+        "bytes": 10063,
+        "sha256": "015aebb48e327a72acf57b394bdda5b017a80838816c300ab0d3d7d947e663d7"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-act.txt",
+        "bytes": 139,
+        "sha256": "38cd5a56ffab57e7c1a8eb8b692d61e3b968c70ff1c9d75522417161268e8ddc"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-20.txt",
+        "bytes": 171,
+        "sha256": "e068eb6a0ea516145320c21b566463a0478635dcc1bacfc421100acc52e15f65"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-baseline-requests.json",
+        "bytes": 34105,
+        "sha256": "e56b6f74d280da7f3766f7e929d0c8f6f4df07edf19a4cd1388a00a98e20c7e2"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-2.txt",
+        "bytes": 159,
+        "sha256": "ba0661f74349a8d8b6eed76762363c9bbff264e720fa6309e4d66fe3bbcbace0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-0.txt",
+        "bytes": 155,
+        "sha256": "bef4c72e713c87f627336b35090583303b95a249c645d8390ead22ef8aa157a0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-discovery-function swr.txt",
+        "bytes": 2300,
+        "sha256": "c9374f3e6affe421c016b7781aeffc02068c17019dd31c2328ea3f27c8d80d1a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-22.txt",
+        "bytes": 181,
+        "sha256": "9856a12159720ab8a4fb29cdb797b7073f414c57e9419936eb7e5f1de2fbe8bc"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/standalone-policy-mounts.json",
+        "bytes": 11127,
+        "sha256": "dec484ac36ebc4f0e158bd340127a9eaa049caa53615b2586c4f89c08306394b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-policy-mounts.json",
+        "bytes": 35207,
+        "sha256": "294063e4eb126af83d2949fd0b163e3297d11397b865d09e68fa84c6d920e398"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/env-positive-python-env-ran.txt",
+        "bytes": 50,
+        "sha256": "80a99081c3e29452b04cdf3898b7c611aa50515b93b191971d5d1f0e18a321f9"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-23.txt",
+        "bytes": 171,
+        "sha256": "1732619d92a78b540a519428bb94cebad4d45f531dc2a17c2549916cdca9786d"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-baseline-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-1.txt",
+        "bytes": 161,
+        "sha256": "ec5e631a06d16ebdf866ce3429de4534232f41d3df19d86b715472239ace6f05"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-5.txt",
+        "bytes": 157,
+        "sha256": "e6f5388e958b12cd3ffc10841156ec65ab3ea0a1fbc4e49138275bb88f29da83"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/bypass-disabled.txt",
+        "bytes": 5878,
+        "sha256": "709e4f0d86f8af15a930d91bf9b409924e4050fd470bd04e25a6593522a93d7f"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-wayland.txt",
+        "bytes": 138,
+        "sha256": "445800ece8be2058063ad9941d836fb615c0b96ebfffa76c6f3b1c92e9cf3995"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-27.txt",
+        "bytes": 178,
+        "sha256": "b522e722a65edc239bd90b2503a1508a64f3f75d5d3c256dd2cb261c92980095"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-26.txt",
+        "bytes": 169,
+        "sha256": "939f54176e26243513e6531394619e5be6d68d5c7b38a5d31a29a846dbfe3d7b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-baseline.txt",
+        "bytes": 82,
+        "sha256": "cbab472dbb62b2a7ec69f391ec597fdd27e19818ae4ea1d3218ae6d2d64423ad"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/ide-positive-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-4.txt",
+        "bytes": 154,
+        "sha256": "797ee0734f853755b9be6b154367dd3f56c1c3d1ae7e4f170dc14a836983c61b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-6.txt",
+        "bytes": 155,
+        "sha256": "2502fbbc22e7baab51a60d833bb682a0eded23f98fe52fc2441f6824df0aa133"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-18.txt",
+        "bytes": 180,
+        "sha256": "06dde13bbb5f0574d13acc7f09f86223c3f1e86368df0919b9262b550eafd34e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-24.txt",
+        "bytes": 166,
+        "sha256": "8cee4bdd54a4de5a9c5ed3f645d06a39c8872f3265bf982b2596447a60f129f4"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/mcp-unmanaged-positive.txt",
+        "bytes": 289,
+        "sha256": "9f8eb7cab78aba024420786ba2cb149090ed6fff487edd3c802c45f14509a55a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/managed-settings.json",
+        "bytes": 4321,
+        "sha256": "0e6752737b11a8be8ab5c421a1db0ea1f37f4d2816dcdb61142455cdcf09c520"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/env-positive-node-env-ran.txt",
+        "bytes": 49,
+        "sha256": "5ace5d5e735df2835c92193c48fa89ff829ffcaeca8ef547f4be43de323d98df"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-baseline-processes.txt",
+        "bytes": 85807,
+        "sha256": "6e10ce154eb5032b9192d103dfabdbe23364437aaa972ce1a8afde3c13e7ccf1"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-25.txt",
+        "bytes": 181,
+        "sha256": "c2e8d9c5711d29e509bb34d10624c86f63b1e5cd9ae051aa71805c30ecf4cab3"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-discovery-function Fno.txt",
+        "bytes": 2300,
+        "sha256": "12a81c9f905915721bff1bd0d9a3ed64b5bf666bff6dfc82cd0f0d033c07e55b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-19.txt",
+        "bytes": 162,
+        "sha256": "dc138cbe923dbc2ea460bf0b0f1aad469bca507d19f074e9d2d02f2c162a253c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-replace-7.txt",
+        "bytes": 158,
+        "sha256": "023804faa1daa815eb071d8fa3554eb5c3402d74e803c0ac14783a607b2fa615"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/flag-plugin-dir.txt",
+        "bytes": 437,
+        "sha256": "e2400717be5564919288fa0b6465658f0179d2362320ee1ce4ec0c3be3c010cd"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-26.txt",
+        "bytes": 112,
+        "sha256": "0cc9491413256ede5411eb87de97d404270b36af0e44bfb10dc121fedb9d960a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/version-node.txt",
+        "bytes": 46,
+        "sha256": "b3aad40de7147fb6e1ed974e8d6738a9c0c88fad9bdd23159c30e6c4ec3dc45a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-open-routes.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-hostile-approved-integrity.json",
+        "bytes": 9196,
+        "sha256": "f208a0dfc1b53a2b3c01dc9f974ddd359f8089d29a59bade34fc3e32e48f378e"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/env-positive-preload-ran.txt",
+        "bytes": 33,
+        "sha256": "83c97c08101ffa48eda54747c76a5f2c11214de6ac2e68ccc91b635852549837"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-27.txt",
+        "bytes": 121,
+        "sha256": "07f55e030783b0c715a52e5158bc9af55d3b06b6f96ee8ab8c0915b0f528d5b6"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/managed-mcp.json",
+        "bytes": 1076,
+        "sha256": "4ad08d9f9a221d4029dd2602c0a97cea4397504ef911eaef77de33c092cb91e5"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-25.txt",
+        "bytes": 124,
+        "sha256": "f1f1707e4b5e59c7aa8fb3801497eec0c26a51094aede6d60534cc6458b0971c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-8.txt",
+        "bytes": 115,
+        "sha256": "16f226ec04f0575b3de8ec1ad83d70b6631ddd3adf206389924223d16e314678"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-19.txt",
+        "bytes": 105,
+        "sha256": "80e5192062d07673d622bcaa837c811f9ab3b6b10d0c95793e054b44e49c846c"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/policy-mount-comparison.json",
+        "bytes": 24092,
+        "sha256": "38fe8915f9b83dddb2fc8c40ec6be80ce9590abe1f6b1786bba2cf551d913083"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-discovery-ARGV0=.txt",
+        "bytes": 16715,
+        "sha256": "6999eb547526e3a184c8b6662b7e2e9de65381f08f8fbbe0844e7f255437a212"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-embedded-canary-planted.txt",
+        "bytes": 7937,
+        "sha256": "e6066d9fb3fdab3550e48077d61451aa8d7f7844f67eccb3fb8976ed4003597b"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-abstract.txt",
+        "bytes": 142,
+        "sha256": "8ed4d1ba5270c989b70dbabfe8f568b5d8ea6f5484c784c36625bbe685f1edf9"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-18.txt",
+        "bytes": 123,
+        "sha256": "081ebbac01eef32c9e5619913ed96d1206364a305169fb1ee99fc4c67864a11a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-24.txt",
+        "bytes": 109,
+        "sha256": "d78fded4d414369a45059f21d3d6c57b4f0252c94902aee829e96b636e8b56c4"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-9.txt",
+        "bytes": 124,
+        "sha256": "ab24df24719369e96f671f2384115c02b7689693002abe0f7d02567c757740b7"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-20.txt",
+        "bytes": 114,
+        "sha256": "86ba1e66850e926f34353a448653084e68a03249fd482eee7a51a7e65ac505a2"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/ide-arrivals.json",
+        "bytes": 531,
+        "sha256": "4f6451defc90a582d0562d2bc9caba961079d9dc8d22b32a56ab51b20dbaba4a"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-hostile-approved.txt",
+        "bytes": 82,
+        "sha256": "cbab472dbb62b2a7ec69f391ec597fdd27e19818ae4ea1d3218ae6d2d64423ad"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-dbus.txt",
+        "bytes": 132,
+        "sha256": "bfa0186da5799c8939bb5215c26e3214ff22362767f396ff0ed506bd081f5e21"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/ide-positive.txt",
+        "bytes": 82,
+        "sha256": "cbab472dbb62b2a7ec69f391ec597fdd27e19818ae4ea1d3218ae6d2d64423ad"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-hostile-rows.json",
+        "bytes": 30180,
+        "sha256": "a9d90b8ffc7d546a8a2abb99164d56f79ee88cf16cb005ebfba20cdccab124cf"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-proxy-connect.txt",
+        "bytes": 8175,
+        "sha256": "28d2bcc780fb34b32b32cace3c5565c0e8caa9d9809ea38753245a33460e8efa"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-network.txt",
+        "bytes": 259,
+        "sha256": "cd003a63b202bf15947684685b28eb03c9ba54bde327be4529ff2c33e5503534"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-read-.credentials.json.txt",
+        "bytes": 115,
+        "sha256": "6458b62023c0a82f8fb278d9dfdacaa8947f8e4f110396c9d2c24b8182286f79"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-21.txt",
+        "bytes": 115,
+        "sha256": "4e8c319054ffe114e291641d0ac0559dbb25f63aae11ed101ff2bd3241fd8ed8"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/marketplace-add.txt",
+        "bytes": 309,
+        "sha256": "29cd012476bc938598212d3dc29e5e0ebae3cd3670535d394bbc9c72103197c5"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-23.txt",
+        "bytes": 114,
+        "sha256": "879c9ec99bf564738644daf0d70bee377388b9d3a4d2d13d224143b426088d49"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/version-claude.txt",
+        "bytes": 61,
+        "sha256": "47af1fd9a3eefceb86574e2d07e0ebcf9e751edab7e163d327d01df1369fec71"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-planted-helper-paths.json",
+        "bytes": 809,
+        "sha256": "e7537f774c9ab3da7505268da340681c32b8557c857dd69f16e2f2afccbcbb86"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/native-hostile-approved-results.json",
+        "bytes": 31157,
+        "sha256": "7b5fde9226e75b3b64953c39edb133ccb99cd505a6747d97a143eb308f5dcd00"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-write-22.txt",
+        "bytes": 124,
+        "sha256": "a146694663c9b3e0b610974b95be63f93fe1766eb0ef54de2d0f3bcd3847ee56"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/positive-read-login.keyring.txt",
+        "bytes": 125,
+        "sha256": "ec015c1bf2ab8eb936a783fcde7c3691f2e06cdf99a7571c32607cd492bd5687"
+      },
+      {
+        "file": "control-boundary-43270278039-1/absent/hostile-mount-tree-differences.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    ]
+  },
+  {
+    "id": 43270283908,
+    "source": "5f0b568194a68a82a5b235fe5b396d69290d1892",
+    "workflow": "Control Chrome qualification",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43270283908",
+    "checks": {
+      "qualification_python": 47,
+      "node": {
+        "tests": 287,
+        "pass": 287,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "attestation_verifications": {
+        "qualification-attestation-43270283908-1/verification.txt": [
+          "QUALIFICATION DELIVERY newer valid attested record used PASS",
+          "QUALIFICATION DELIVERY missing attestation refused; held retained PASS",
+          "QUALIFICATION DELIVERY altered attestation refused; held retained PASS",
+          "QUALIFICATION DELIVERY wrong workflow refused; held retained PASS",
+          "QUALIFICATION DELIVERY wrong branch refused; held retained PASS",
+          "QUALIFICATION DELIVERY production main rejects branch fixture refused; held retained PASS",
+          "QUALIFICATION DELIVERY altered subject refused; held retained PASS",
+          "QUALIFICATION DELIVERY dropped held entry refused after real verification PASS",
+          "QUALIFICATION DELIVERY changed held entry refused after real verification PASS",
+          "QUALIFICATION PUBLISHER real held attestation and baseline verified PASS",
+          "QUALIFICATION PUBLISHER unsigned inserted entry refused; no write, issue stubbed PASS",
+          "QUALIFICATION PUBLISHER non-append-only shipped baseline refused; no write, issue stubbed PASS"
+        ],
+        "qualification-attestation-43270283908-1/retained-fixture-verification.txt": [
+          "QUALIFICATION DELIVERY newer valid attested record used PASS",
+          "QUALIFICATION DELIVERY missing attestation refused; held retained PASS",
+          "QUALIFICATION DELIVERY altered attestation refused; held retained PASS",
+          "QUALIFICATION DELIVERY wrong workflow refused; held retained PASS",
+          "QUALIFICATION DELIVERY wrong branch refused; held retained PASS",
+          "QUALIFICATION DELIVERY production main rejects branch fixture refused; held retained PASS",
+          "QUALIFICATION DELIVERY altered subject refused; held retained PASS",
+          "QUALIFICATION DELIVERY dropped held entry refused after real verification PASS",
+          "QUALIFICATION DELIVERY changed held entry refused after real verification PASS",
+          "QUALIFICATION PUBLISHER real held attestation and baseline verified PASS",
+          "QUALIFICATION PUBLISHER unsigned inserted entry refused; no write, issue stubbed PASS",
+          "QUALIFICATION PUBLISHER non-append-only shipped baseline refused; no write, issue stubbed PASS"
+        ]
+      }
+    },
+    "files": [
+      {
+        "file": "qualification-attestation-43270283908-1/record.json",
+        "bytes": 726,
+        "sha256": "d30d333043f1e47794d11d7fb9fab64d428cfbeb42f69bebf996a8d209c926a2"
+      },
+      {
+        "file": "qualification-attestation-43270283908-1/verification.txt",
+        "bytes": 1006,
+        "sha256": "e260a992dae6101fd870a49b00426c65f0eb5d28a9aeb5bd2660e5b3f4b24931"
+      },
+      {
+        "file": "qualification-attestation-43270283908-1/bundle.json",
+        "bytes": 11479,
+        "sha256": "f3a0711c75ba23711010a109ed768aaa6d75a819c931e2c1ed1e28e817a421f4"
+      },
+      {
+        "file": "qualification-attestation-43270283908-1/retained-fixture-verification.txt",
+        "bytes": 1006,
+        "sha256": "e260a992dae6101fd870a49b00426c65f0eb5d28a9aeb5bd2660e5b3f4b24931"
+      },
+      {
+        "file": "qualification-tests-43270283908-1/node-tests.txt",
+        "bytes": 66407,
+        "sha256": "3b158ac01adbc06153dcc7cd21eebba456248089de7834b4dca2af982608b7be"
+      },
+      {
+        "file": "qualification-tests-43270283908-1/qualification-tests.txt",
+        "bytes": 8402,
+        "sha256": "920f3c316232ea8bfda471476ac79fd7e48469efd257e3889f073c662d66a9a0"
+      }
+    ]
+  },
+  {
+    "id": 43270288363,
+    "source": "5f0b568194a68a82a5b235fe5b396d69290d1892",
+    "workflow": "Control Mail",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43270288363",
+    "checks": {
+      "base_tests": 146,
+      "mail_tests": 309,
+      "fault_shards": [
+        4,
+        4,
+        4,
+        4
+      ],
+      "result_lines": [
+        "Mail fixture isolation PASS: internal network, one test network, no published ports",
+        "Mail fixture isolation PASS: internal network, one test network, no published ports",
+        "Mail fixture isolation PASS: internal network, one test network, no published ports",
+        "Mail fixture isolation PASS: internal network, one test network, no published ports",
+        "Mail fixture isolation PASS: internal network, one test network, no published ports"
+      ]
+    },
+    "files": [
+      {
+        "file": "control-mail-sweep-1-43270288363-1/greenmail.txt",
+        "bytes": 5709,
+        "sha256": "5139d924775246c83b7bae5f2e71342eb9c9b7f6c7a0872983b472adef916273"
+      },
+      {
+        "file": "control-mail-sweep-1-43270288363-1/mail.txt",
+        "bytes": 34678,
+        "sha256": "f08543c5f5b3b7762c6c99cf07fcaaabcfbf574b58da650b1db8fa757027423e"
+      },
+      {
+        "file": "control-mail-sweep-1-43270288363-1/dovecot.txt",
+        "bytes": 282,
+        "sha256": "a73ada6eff160c98d1e7b2a0b42787aa9d7f1ba0f852d4487e83134ff9984d02"
+      },
+      {
+        "file": "control-mail-sweep-1-43270288363-1/isolation.txt",
+        "bytes": 84,
+        "sha256": "7f2b2f700e1fd23b4fb9f09afd02758cb71cbd6b4f3f2f6d08ec66a4d56f8965"
+      },
+      {
+        "file": "control-mail-sweep-1-43270288363-1/setup.txt",
+        "bytes": 8869,
+        "sha256": "3b9ad4d8780f4dabd9cce5d4b2b4545a24e915cb2c60aaef29040d60408b030b"
+      },
+      {
+        "file": "control-mail-sweep-2-43270288363-1/greenmail.txt",
+        "bytes": 5709,
+        "sha256": "9f6a6e1cb3a51f8472147c9a1288c4b7fd979ea2b06e0b020cdcfc1187a84e71"
+      },
+      {
+        "file": "control-mail-sweep-2-43270288363-1/mail.txt",
+        "bytes": 3270,
+        "sha256": "61d8c72d1abaf9fb0da059bc470a22fb552fe3bc25a6680af54344fb6b69ce92"
+      },
+      {
+        "file": "control-mail-sweep-2-43270288363-1/dovecot.txt",
+        "bytes": 282,
+        "sha256": "f5245bd42758002ec895fbfde5231a58698762a8d80877f2f7225c9ebe2ce6c6"
+      },
+      {
+        "file": "control-mail-sweep-2-43270288363-1/isolation.txt",
+        "bytes": 84,
+        "sha256": "7f2b2f700e1fd23b4fb9f09afd02758cb71cbd6b4f3f2f6d08ec66a4d56f8965"
+      },
+      {
+        "file": "control-mail-sweep-2-43270288363-1/setup.txt",
+        "bytes": 8871,
+        "sha256": "991194d4d2f6b89d08a08dd37989731ef18c86c8d8c09d0b1542d448cd84d0fb"
+      },
+      {
+        "file": "control-mail-sweep-3-43270288363-1/greenmail.txt",
+        "bytes": 5709,
+        "sha256": "0248f1dbb73ab6790ae8286d7f188b95ded2c3374e27b2c08f100e2efa8e3039"
+      },
+      {
+        "file": "control-mail-sweep-3-43270288363-1/mail.txt",
+        "bytes": 3266,
+        "sha256": "d4aa91af567026953026e3665d459813a5338a3270fc484a430ced408bc2f2ae"
+      },
+      {
+        "file": "control-mail-sweep-3-43270288363-1/dovecot.txt",
+        "bytes": 282,
+        "sha256": "6971695f68cfa55369f3c0fe773843b3b407dcca7102fc4ddbbc06967f519119"
+      },
+      {
+        "file": "control-mail-sweep-3-43270288363-1/isolation.txt",
+        "bytes": 84,
+        "sha256": "7f2b2f700e1fd23b4fb9f09afd02758cb71cbd6b4f3f2f6d08ec66a4d56f8965"
+      },
+      {
+        "file": "control-mail-sweep-3-43270288363-1/setup.txt",
+        "bytes": 9121,
+        "sha256": "50dd9ed44154343e7cd52fa9dcbdfebf90ef984250a7f720d6275df6fe0c826f"
+      },
+      {
+        "file": "control-mail-43270288363-1/greenmail.txt",
+        "bytes": 42362,
+        "sha256": "de08ad7785d78f8bba15c38eca05d926a56c3decc89be87ae377a96e900645f0"
+      },
+      {
+        "file": "control-mail-43270288363-1/mail.txt",
+        "bytes": 61204,
+        "sha256": "d05d66cc4c6784ab17665ff3956450f2bc6be71473e2c642c88b84f891103801"
+      },
+      {
+        "file": "control-mail-43270288363-1/dovecot.txt",
+        "bytes": 2779832,
+        "sha256": "a2ea3d9b2808d6ce58fb7efb5d4749f71d567ff417668638b49bab4da8a54b88"
+      },
+      {
+        "file": "control-mail-43270288363-1/isolation.txt",
+        "bytes": 84,
+        "sha256": "7f2b2f700e1fd23b4fb9f09afd02758cb71cbd6b4f3f2f6d08ec66a4d56f8965"
+      },
+      {
+        "file": "control-mail-43270288363-1/base.txt",
+        "bytes": 34658,
+        "sha256": "012784cba425f5c55baa340ca92007ae59a15f94c80d9ec3a92bd0205e1fbb08"
+      },
+      {
+        "file": "control-mail-sweep-0-43270288363-1/greenmail.txt",
+        "bytes": 5709,
+        "sha256": "42c11ca905b45c126aa78b51a6bfad3e31c80458081efd586d18bc4961c2a8ae"
+      },
+      {
+        "file": "control-mail-sweep-0-43270288363-1/mail.txt",
+        "bytes": 36149,
+        "sha256": "cb3fb80710e72444adeeb81e5867778bfbdc9d09aa34215a684c4c865fdf5a18"
+      },
+      {
+        "file": "control-mail-sweep-0-43270288363-1/dovecot.txt",
+        "bytes": 282,
+        "sha256": "2d35a770bef488c0b5684f7bf0135e967d561d8821351cc74255001490dc1c3d"
+      },
+      {
+        "file": "control-mail-sweep-0-43270288363-1/isolation.txt",
+        "bytes": 84,
+        "sha256": "7f2b2f700e1fd23b4fb9f09afd02758cb71cbd6b4f3f2f6d08ec66a4d56f8965"
+      },
+      {
+        "file": "control-mail-sweep-0-43270288363-1/setup.txt",
+        "bytes": 8870,
+        "sha256": "2ec7430b670d8518b307f7663832cd6f406212418bf9454f43202f9f614052c8"
+      }
+    ]
+  },
+  {
+    "id": 43271001440,
+    "source": "5f0b568194a68a82a5b235fe5b396d69290d1892",
+    "workflow": "Control boundary",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43271001440",
+    "checks": {
+      "summaries": [
+        "BOUNDARY_OK mode=present attacks=127 unchanged=42 hostile_connections=0 unqualified=0",
+        "BOUNDARY_OK mode=absent attacks=127 unchanged=42 hostile_connections=0 unqualified=1"
+      ]
+    },
+    "files": [
+      {
+        "file": "control-boundary-43271001440-1/isolation-coder.txt",
+        "bytes": 871,
+        "sha256": "f4de6a3bc868d1d5b7e2943eb722ad85589c45c3098fba05380e6328902280f6"
+      },
+      {
+        "file": "control-boundary-43271001440-1/isolation-assistant.txt",
+        "bytes": 76,
+        "sha256": "47d05b010f0726e0df48bd4423049e2641365bead83621dddb2678f119f1950e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present-console.txt",
+        "bytes": 119212,
+        "sha256": "834b3313eb92c1cce5173330eaf92c8b67a9a31279b4d38a8e68fe8e7e9f0ffb"
+      },
+      {
+        "file": "control-boundary-43271001440-1/userns-before.txt",
+        "bytes": 2,
+        "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent-console.txt",
+        "bytes": 115590,
+        "sha256": "72b3fe1ed7825ef47f5097474898ebae6ccea340743e90666960ba8839cd86b5"
+      },
+      {
+        "file": "control-boundary-43271001440-1/identity.txt",
+        "bytes": 72,
+        "sha256": "82e6fc44787a9c96ae6429f6edc494a7c855958dd7034f67ca4b672109147dc0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-tools-1-requests.json",
+        "bytes": 102518,
+        "sha256": "f6494685e30b4ea23556e3bd1da959d271a98a71e67a9b1c158de6c803c2a094"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-13.txt",
+        "bytes": 146,
+        "sha256": "93dfe95e8888778cd1527eb886e0649141e000db6f0e9beb39b8e73246bc6ff2"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-2.txt",
+        "bytes": 102,
+        "sha256": "1d67bdd5ff46969c682ff575efb6eaa7b148c96468194b63819bd684b09d3582"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-no-key-2-managed-settings.json",
+        "bytes": 4416,
+        "sha256": "55eeff944999c136341ababcfebac66aeb2987922f997fe7d76cb9b910e79372"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-tools-2-processes.txt",
+        "bytes": 64,
+        "sha256": "e53b1a7cfffba7268da7d5f5ffd87f660cc84c81e02311e3d303520a8372a05d"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-tools-2-integrity.json",
+        "bytes": 9196,
+        "sha256": "b9aa8f93ede78385ec8f9b55b90c8b76d6699c40eb5578a0d080cbb6e6c6c756"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/flag-agents.txt",
+        "bytes": 411,
+        "sha256": "4f36f3c4d9e104bf6e7b6ef982b4e984cd82a1a002099c68827bdb96373db38e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/launcher-corrupt-native.txt",
+        "bytes": 85,
+        "sha256": "7cb3b76ebc91b467ffaf5cae6445f5f5b749627124e385b3aba1dea37835bbef"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/launcher-symlink-dropins.txt",
+        "bytes": 146,
+        "sha256": "8cfad7727f42b68550c02842b677b1dfed4fd26fa82aacab160d31b129ff2477"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/ide-positive-interactive-tty.txt",
+        "bytes": 2050,
+        "sha256": "7d19d306e3f3fb4688ef3af111a74a818aea55bf3672ff51adbfde28cc5a7824"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/flag-plugin-url.txt",
+        "bytes": 443,
+        "sha256": "8d90756e4871b5c9bf0204be281e7b98fbf0e3ea86edc3b1925dc2ea59e530c6"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-installed-plugin.txt",
+        "bytes": 107,
+        "sha256": "10bf08c6458a255f76baad9123305742e564db36a48359a0b33b0a8c3d829b82"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-3.txt",
+        "bytes": 99,
+        "sha256": "606c8413621410754d95fa6348320939a3566af91d6b9a241dc486b46cda757f"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-12.txt",
+        "bytes": 109,
+        "sha256": "c612b47f881d63153b8708b7af4ed999807b2c3c9d9f98322df726674f9ce137"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/ide-launcher-requests.json",
+        "bytes": 33846,
+        "sha256": "25263b6b45f24d9d131bc840decffef403bcb6778df4b7659834bef6b80296ba"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-10.txt",
+        "bytes": 127,
+        "sha256": "1b0eee7ebe039fd0c09e4d97591af15e821a024d0d11dc7595955730612c47ba"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-1.txt",
+        "bytes": 104,
+        "sha256": "e62ab48c96b8bf3b128f5270764ee610b02f2fe6e780c2e95cd8230b2a937a27"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/mcp-list.txt",
+        "bytes": 670,
+        "sha256": "642b9576c9ebffa71d42e6fb9d874b11d0a8770c7da733b3ec83178929469ba9"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-pin.json",
+        "bytes": 160,
+        "sha256": "a26d583b459281ce60dd6d39e30b8620c4edd9d3202684e4e75421d549c45226"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-2-integrity.json",
+        "bytes": 9196,
+        "sha256": "bc94338b2d7b3e71da3513da84ab33a9abd557cea72788cbc22469e2b468c14a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-discovery-seccompConfig.txt",
+        "bytes": 9203,
+        "sha256": "011485cd21c42f112f2e1c5415209e0cddb10cc9d344a12f955ca5306ccd20aa"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-x11.txt",
+        "bytes": 130,
+        "sha256": "32467d99ab97da4b13b066ee8c7b2344e30e5107c9fc702162c6e05571d5bf71"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-baseline-results.json",
+        "bytes": 209,
+        "sha256": "1407c28e882683680b303cc8ba57622e8d354bbb1339245b4bd341e242e7a012"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-0.txt",
+        "bytes": 98,
+        "sha256": "bab21f61fd4a1922cb5d86b45a79be5ee1090db8a0490cb63b6c5e9e49bf4e88"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-11.txt",
+        "bytes": 132,
+        "sha256": "c16ab77076cb9e671d438c0d932a5bc5d9161ddfdb13e087459f1c7014e3294d"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/launcher-dropin-notes.txt.txt",
+        "bytes": 141,
+        "sha256": "19bce550522a6ad73cdac109b365b23049b0c1577ad9b641682919a6033b1c09"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-4.txt",
+        "bytes": 97,
+        "sha256": "f01d6f3a83836dcd8337d9920bf406a54962249ced8be77596782683a7c5bfbe"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-15.txt",
+        "bytes": 107,
+        "sha256": "629d3210642e3f697e2380b33546608e0b77076415b05e04430bf570b3931433"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-baseline-integrity.json",
+        "bytes": 9196,
+        "sha256": "b9aa8f93ede78385ec8f9b55b90c8b76d6699c40eb5578a0d080cbb6e6c6c756"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/ide-launcher.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-stub-delta.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/hostile.txt",
+        "bytes": 35133,
+        "sha256": "9612da8cc608f001bc9e22342c976f893b4dd4a2ef045ad283d027ff041f0610"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/socket-state-mount-tree-differences.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-14.txt",
+        "bytes": 117,
+        "sha256": "1d4508e9572dddf0aca817bcf5bc23868663d48fd9a116325ee3085b786a0756"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-28.txt",
+        "bytes": 112,
+        "sha256": "0fec2f4fc5f2e18c218aeb8ccc7489c2f27d320cc49ea69f34b8763f949b0faa"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-5.txt",
+        "bytes": 100,
+        "sha256": "07bad20c05611a86883fc846d3534b2cdfec89ef96de79796cc3578351778e6e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-2-results.json",
+        "bytes": 311,
+        "sha256": "cc80fa0164dc51508ec04b441c69ae401c9a5194fff98bd5a12e139790725129"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/ide-launcher-results.json",
+        "bytes": 2,
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-7.txt",
+        "bytes": 101,
+        "sha256": "96f52fa416bf66f0f6c97e69924ccd3e53f6abb96bd8ac0b503818ecde3cdbf0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-16.txt",
+        "bytes": 102,
+        "sha256": "99bf7b1459bc19c9219e63da3b584a7a2af0104f57a19eb67e6c56f3f80ac93a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-tools-2-requests.json",
+        "bytes": 102518,
+        "sha256": "92ce4d12e87b76b157b6fea2cb39926c67ad901934d3be7fa30c3a55ace2f300"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/launcher-planted.txt",
+        "bytes": 380,
+        "sha256": "26436ae04693b7ab320b240d33cf8cf316c4c972e539f62c3b5269fd85bcb681"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-tools-1-processes.txt",
+        "bytes": 64,
+        "sha256": "e53b1a7cfffba7268da7d5f5ffd87f660cc84c81e02311e3d303520a8372a05d"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-proxy-http.txt",
+        "bytes": 8201,
+        "sha256": "0c167097d6c6cc2bc43abaf940d51346d9173d0168c90b7d535792b4aa7ff545"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-chrome.txt",
+        "bytes": 142,
+        "sha256": "0c099519f0918eef65da132858b3eff9e627abf6687cfabbc154dc7507d9b60c"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-17.txt",
+        "bytes": 117,
+        "sha256": "5f94afc1194012c5fc091b845cef759bcd3e03da196341f93fe62c41abe4ae6e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-6.txt",
+        "bytes": 98,
+        "sha256": "2a9e654d2ca95f26a625483af955c00341935812b71f468cb6e524ac671e7f58"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/file-integrity.json",
+        "bytes": 8913,
+        "sha256": "4f923d48445e843cfc720996153c156ca37ac2ae26b22ed011ea9ddeaa992aa4"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/ide-positive-results.json",
+        "bytes": 2,
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-14.txt",
+        "bytes": 174,
+        "sha256": "d414edf872c502f59d50434cee321e0dd321b986b67c1cc5801f184cc32bc093"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-28.txt",
+        "bytes": 169,
+        "sha256": "b59fd4a8528f4f85e5ea1c8acf43c8651b4ba4e0391887032896bcf4f854b18d"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-discovery-CLAUDE_CODE_AUTO_CONNECT_IDE.txt",
+        "bytes": 9457,
+        "sha256": "02bed25dde16acd490c72f02c63b5fe517570a7c39396ca08b3c191f10281976"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/version-uname.txt",
+        "bytes": 144,
+        "sha256": "736d2d7e471f231715b2b24fa82e466aa4f5740f58f36a84c1b2cdccd14c47a0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-2-results.json",
+        "bytes": 326,
+        "sha256": "f5ea22f4f2b1b58e2502bc7c3d7474cfbd25e6e50145e627a35e5821b15b73d8"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-tools-1-integrity.json",
+        "bytes": 9196,
+        "sha256": "b9aa8f93ede78385ec8f9b55b90c8b76d6699c40eb5578a0d080cbb6e6c6c756"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-15.txt",
+        "bytes": 164,
+        "sha256": "aa491e43438d08a41cb5a661b93d3fb82eef688e6e6e42ac23a0b844281e6548"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-9.txt",
+        "bytes": 181,
+        "sha256": "96bad69cab7ca5dd767db0e99794dba0aa50d8375be90a0ef570d55831c29d4e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-hostile-approved-requests.json",
+        "bytes": 65377,
+        "sha256": "df90a9734facfceacab2fd57672f55a2a9ce5527a911ea2e24239366cf33fc81"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-tty-1-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/ide-launcher-interactive-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/flag-mcp-config.txt",
+        "bytes": 468,
+        "sha256": "41e445f59164055466327bc72ac295875cd8d7e12da59df51c128eb563c46e10"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-17.txt",
+        "bytes": 174,
+        "sha256": "e12e25e513448c0e1a316e44880582205e1418efaa4dce4fcd251e453099076c"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/ide-positive-requests.json",
+        "bytes": 33846,
+        "sha256": "0f4c05d2a84a3340b9633a0514e4b8b5aa93827e9ec8d6c06d668b0dd7255c26"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/ide-positive-interactive-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sandbox.json",
+        "bytes": 1028,
+        "sha256": "2f0e2b343cda55921b3afe799b9cfce0468003c82a04ac856722f627bcf736c3"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-tools-1-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-hostile-approved-managed-settings.json",
+        "bytes": 4567,
+        "sha256": "5c12fca76509e61df06990eea7329eda295e741cdd515f43c21836937f9a864b"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-1-integrity.json",
+        "bytes": 9196,
+        "sha256": "bc94338b2d7b3e71da3513da84ab33a9abd557cea72788cbc22469e2b468c14a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-16.txt",
+        "bytes": 159,
+        "sha256": "72ec530ef28a1f45498bdc17351c53cb1753b2f92ba6f7c6afb565e8ab9addd9"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-tty-2-managed-settings.json",
+        "bytes": 4418,
+        "sha256": "ac9666310b5ee976e769eb19a69d1287608d39f9c0d75a141f5e98d5474a70dd"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/ide-launcher-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-8.txt",
+        "bytes": 172,
+        "sha256": "0f0febb432de8996c582242b79320f837879fbdaf09ba3c6abde667b216137ff"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-tools-2-results.json",
+        "bytes": 27273,
+        "sha256": "6f962b4066f1e6fe13cd2d22c0fa5721ff3e82b5c5672c16ae0586b1af971d2b"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-12.txt",
+        "bytes": 166,
+        "sha256": "aab3eea511e16372b55e317f0bfb15871ddcf75947937bbdae9f9a4e4e178d6e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-no-key-2.txt",
+        "bytes": 86,
+        "sha256": "f94c31d43d4156fb764826f8e4d114cccb3c7f1581716e6d14f72b4af18f8a72"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-hostile-approved-processes.txt",
+        "bytes": 172242,
+        "sha256": "1bf9d8c61e848cf205da7d4d367ca1bec96269297c8a41cf551ad651b8f37ec7"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-1-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/launcher-options-plugin.txt",
+        "bytes": 147,
+        "sha256": "389fa1c9468ec6eb24946bfcea769700ba3363403153374143d6d76c4167bbd3"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-13.txt",
+        "bytes": 203,
+        "sha256": "a96e47745b3734edf20b4102ba8e0fb2fe8f5a1b788d7aa7ab44dcfefa666f6a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-mount-trees.json",
+        "bytes": 204863,
+        "sha256": "39a4b64242d9610456b2ecc2787eb2b35ddc1542a861815f0b0be73fbb7ec929"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-read-Cookies.txt",
+        "bytes": 127,
+        "sha256": "d5d43d2461892f1b36fff4310dd70f608d923c4cb2b6fc384426e3179ba208f7"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-11.txt",
+        "bytes": 189,
+        "sha256": "87e016d6ee1d7108ca0ab01054b06b1252262d8bc9a5ec2eef3f78b67794b734"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-no-key-1.txt",
+        "bytes": 86,
+        "sha256": "f94c31d43d4156fb764826f8e4d114cccb3c7f1581716e6d14f72b4af18f8a72"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/mcp-add.txt",
+        "bytes": 221,
+        "sha256": "27d83b48df45f845e2b86941b427b08b3519ca613a1088869bde048aa1bd5376"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/standalone-processes.txt",
+        "bytes": 51581,
+        "sha256": "b28a56502ee8596013a15bfb8d2535de498b33b0b59b1d146d75d5ef79af8c1c"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-1-managed-settings.json",
+        "bytes": 4418,
+        "sha256": "ac9666310b5ee976e769eb19a69d1287608d39f9c0d75a141f5e98d5474a70dd"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/network-policy-mutation.txt",
+        "bytes": 35037,
+        "sha256": "ad4996760635f01305def2e4c4deaac1bf7f8bdf78349473064f60f2fdc88f48"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-10.txt",
+        "bytes": 184,
+        "sha256": "5f2cb8c1ab24e1dcbf481ef681ac275ffe51f7a03dd77d4c8143fb413faa05b7"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/version-bwrap.txt",
+        "bytes": 55,
+        "sha256": "556f693a01f53c8949c8571db15a3a6a7b64105ab2c4d9ca1e9b640e1b24f3c0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-read-.claude.json.txt",
+        "bytes": 102,
+        "sha256": "a5728ca4a49daaa523d649eb81e8cfa6c8615dc30c7d7c074b3e44b55656ad2c"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/stub-new-connections.json",
+        "bytes": 3,
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-3.txt",
+        "bytes": 156,
+        "sha256": "c3ba6bc97077de4fb9a5ccf744e90296d139612c98926d4e65eda4552f4a4b14"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-2-requests.json",
+        "bytes": 34288,
+        "sha256": "785e408134f81a69baf1b393bfcc11aeb191deaf47899eefac371792e4db48b0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-21.txt",
+        "bytes": 172,
+        "sha256": "c8960dfa470304e7268985ba372be4fad323750a05936e97e6242fb244b10fea"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/stub.txt",
+        "bytes": 10063,
+        "sha256": "25bafdd8ba688ae86243ccfe97f202207fd00e980afc58ad9b289018b90cb282"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-tty-1-tty.txt",
+        "bytes": 1341,
+        "sha256": "7aa59749704b25a7d9f40bff06231a5aee883c72160a6d07108743a25c8c6bbf"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-act.txt",
+        "bytes": 139,
+        "sha256": "38cd5a56ffab57e7c1a8eb8b692d61e3b968c70ff1c9d75522417161268e8ddc"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-1-results.json",
+        "bytes": 316,
+        "sha256": "c7c3e88796648cbc091317172235f53f45de0d6646f1507a6f6b1e00120f0cd0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-20.txt",
+        "bytes": 171,
+        "sha256": "e068eb6a0ea516145320c21b566463a0478635dcc1bacfc421100acc52e15f65"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-baseline-requests.json",
+        "bytes": 34105,
+        "sha256": "949c46f3e9714a9f279e88e88e878bfc8c6092c05e3fbcd63eb38fe4539b5a3a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-2.txt",
+        "bytes": 159,
+        "sha256": "ba0661f74349a8d8b6eed76762363c9bbff264e720fa6309e4d66fe3bbcbace0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-0.txt",
+        "bytes": 155,
+        "sha256": "bef4c72e713c87f627336b35090583303b95a249c645d8390ead22ef8aa157a0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/launcher-empty-dropins.txt",
+        "bytes": 380,
+        "sha256": "26436ae04693b7ab320b240d33cf8cf316c4c972e539f62c3b5269fd85bcb681"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/launcher-preinstalled-plugin.txt",
+        "bytes": 107,
+        "sha256": "10bf08c6458a255f76baad9123305742e564db36a48359a0b33b0a8c3d829b82"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-discovery-function swr.txt",
+        "bytes": 2300,
+        "sha256": "c9374f3e6affe421c016b7781aeffc02068c17019dd31c2328ea3f27c8d80d1a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-22.txt",
+        "bytes": 181,
+        "sha256": "9856a12159720ab8a4fb29cdb797b7073f414c57e9419936eb7e5f1de2fbe8bc"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/standalone-policy-mounts.json",
+        "bytes": 11127,
+        "sha256": "9a4121e078d0140ab35181ccd0003f6205a3c420443e327cfba7cc18b234ae93"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/launcher-remote-cache.txt",
+        "bytes": 380,
+        "sha256": "26436ae04693b7ab320b240d33cf8cf316c4c972e539f62c3b5269fd85bcb681"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-policy-mounts.json",
+        "bytes": 35207,
+        "sha256": "7cb9f8cf128f0d0665cf57ed81d9d18a203cf194af0eb01e4b52dd12532d89b1"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-tty-2-tty.txt",
+        "bytes": 1353,
+        "sha256": "f7852cb0bff7e5eb59fef80158390c7c6274b1cbdf38b5fdcabc8ff790545ae7"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/env-positive-python-env-ran.txt",
+        "bytes": 50,
+        "sha256": "80a99081c3e29452b04cdf3898b7c611aa50515b93b191971d5d1f0e18a321f9"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-23.txt",
+        "bytes": 171,
+        "sha256": "1732619d92a78b540a519428bb94cebad4d45f531dc2a17c2549916cdca9786d"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-baseline-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/launcher-dropin-99-open.json.txt",
+        "bytes": 144,
+        "sha256": "7f4a6e86a4bb713aa0b6e99d92d341e48ffdc120ae134a2b909545b09ca0b0b8"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-1.txt",
+        "bytes": 161,
+        "sha256": "ec5e631a06d16ebdf866ce3429de4534232f41d3df19d86b715472239ace6f05"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-5.txt",
+        "bytes": 157,
+        "sha256": "e6f5388e958b12cd3ffc10841156ec65ab3ea0a1fbc4e49138275bb88f29da83"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/bypass-disabled.txt",
+        "bytes": 5879,
+        "sha256": "165518a8e1269ac31fa0c504e9fa424640cacb29943ff5463f14bff7e782e5f7"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-wayland.txt",
+        "bytes": 138,
+        "sha256": "445800ece8be2058063ad9941d836fb615c0b96ebfffa76c6f3b1c92e9cf3995"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-27.txt",
+        "bytes": 178,
+        "sha256": "b522e722a65edc239bd90b2503a1508a64f3f75d5d3c256dd2cb261c92980095"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-1.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-26.txt",
+        "bytes": 169,
+        "sha256": "939f54176e26243513e6531394619e5be6d68d5c7b38a5d31a29a846dbfe3d7b"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-2.txt",
+        "bytes": 100,
+        "sha256": "413d5a9753f8b8e8d363fde9a86a4718faa245e141463ab8582efba1f0f06951"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-baseline.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/ide-positive-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-4.txt",
+        "bytes": 154,
+        "sha256": "797ee0734f853755b9be6b154367dd3f56c1c3d1ae7e4f170dc14a836983c61b"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-tools-1-results.json",
+        "bytes": 27273,
+        "sha256": "6f962b4066f1e6fe13cd2d22c0fa5721ff3e82b5c5672c16ae0586b1af971d2b"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-6.txt",
+        "bytes": 155,
+        "sha256": "2502fbbc22e7baab51a60d833bb682a0eded23f98fe52fc2441f6824df0aa133"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-1-requests.json",
+        "bytes": 34288,
+        "sha256": "bbed84090b5463d2c83189eef3409df95d11f4ada3a65499f734d840d0d664a6"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-18.txt",
+        "bytes": 180,
+        "sha256": "06dde13bbb5f0574d13acc7f09f86223c3f1e86368df0919b9262b550eafd34e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-1-integrity.json",
+        "bytes": 9196,
+        "sha256": "c766dc19911c8e199b7a4839c98fc58d6467f21654ff3528ced2f7a5a32838a4"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-24.txt",
+        "bytes": 166,
+        "sha256": "8cee4bdd54a4de5a9c5ed3f645d06a39c8872f3265bf982b2596447a60f129f4"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/mcp-unmanaged-positive.txt",
+        "bytes": 289,
+        "sha256": "9f8eb7cab78aba024420786ba2cb149090ed6fff487edd3c802c45f14509a55a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-unqualified.json",
+        "bytes": 12260,
+        "sha256": "a30b042c5210643c82b875144d8cfefb9a1d97bfd73aab34476304cfa37cfb04"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/managed-settings.json",
+        "bytes": 4321,
+        "sha256": "0e6752737b11a8be8ab5c421a1db0ea1f37f4d2816dcdb61142455cdcf09c520"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/env-positive-node-env-ran.txt",
+        "bytes": 49,
+        "sha256": "5ace5d5e735df2835c92193c48fa89ff829ffcaeca8ef547f4be43de323d98df"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-baseline-processes.txt",
+        "bytes": 85800,
+        "sha256": "83fbc0707f5e62c9b308fbf438a3eb32dc6653c18edad0f2067281379083617f"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-2.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-25.txt",
+        "bytes": 181,
+        "sha256": "c2e8d9c5711d29e509bb34d10624c86f63b1e5cd9ae051aa71805c30ecf4cab3"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-discovery-function Fno.txt",
+        "bytes": 2300,
+        "sha256": "12a81c9f905915721bff1bd0d9a3ed64b5bf666bff6dfc82cd0f0d033c07e55b"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-19.txt",
+        "bytes": 162,
+        "sha256": "dc138cbe923dbc2ea460bf0b0f1aad469bca507d19f074e9d2d02f2c162a253c"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-no-key-1-managed-settings.json",
+        "bytes": 4416,
+        "sha256": "55eeff944999c136341ababcfebac66aeb2987922f997fe7d76cb9b910e79372"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-1.txt",
+        "bytes": 100,
+        "sha256": "413d5a9753f8b8e8d363fde9a86a4718faa245e141463ab8582efba1f0f06951"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-replace-7.txt",
+        "bytes": 158,
+        "sha256": "023804faa1daa815eb071d8fa3554eb5c3402d74e803c0ac14783a607b2fa615"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/flag-plugin-dir.txt",
+        "bytes": 437,
+        "sha256": "e2400717be5564919288fa0b6465658f0179d2362320ee1ce4ec0c3be3c010cd"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-26.txt",
+        "bytes": 112,
+        "sha256": "0cc9491413256ede5411eb87de97d404270b36af0e44bfb10dc121fedb9d960a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/source-checks.json",
+        "bytes": 1032,
+        "sha256": "b6c66043101241da95b5c9ef5fe17f45fec2d35a121718f477be01c85d615e03"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/version-node.txt",
+        "bytes": 46,
+        "sha256": "b3aad40de7147fb6e1ed974e8d6738a9c0c88fad9bdd23159c30e6c4ec3dc45a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-tty-1-tty.txt",
+        "bytes": 1733,
+        "sha256": "00b6a1f19d38efafb43b5a092beb18b94153162b608f95b252d0914e8cec1d4a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-2-managed-settings.json",
+        "bytes": 4418,
+        "sha256": "ac9666310b5ee976e769eb19a69d1287608d39f9c0d75a141f5e98d5474a70dd"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-open-routes.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-hostile-approved-integrity.json",
+        "bytes": 9196,
+        "sha256": "6e15fa1f3fd47a20339e96f141905f15a40f0c9599753c2e7caac03f41a6afba"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/env-positive-preload-ran.txt",
+        "bytes": 33,
+        "sha256": "83c97c08101ffa48eda54747c76a5f2c11214de6ac2e68ccc91b635852549837"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-27.txt",
+        "bytes": 121,
+        "sha256": "07f55e030783b0c715a52e5158bc9af55d3b06b6f96ee8ab8c0915b0f528d5b6"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/launcher-options-bypass.txt",
+        "bytes": 151,
+        "sha256": "74c20fd047f60f28bd4f0048a324e77a43491d541a6dd312a50640c081d681cc"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/ide-launcher-interactive-tty.txt",
+        "bytes": 1341,
+        "sha256": "7aa59749704b25a7d9f40bff06231a5aee883c72160a6d07108743a25c8c6bbf"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/managed-mcp.json",
+        "bytes": 1076,
+        "sha256": "4ad08d9f9a221d4029dd2602c0a97cea4397504ef911eaef77de33c092cb91e5"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-25.txt",
+        "bytes": 124,
+        "sha256": "f1f1707e4b5e59c7aa8fb3801497eec0c26a51094aede6d60534cc6458b0971c"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-8.txt",
+        "bytes": 115,
+        "sha256": "16f226ec04f0575b3de8ec1ad83d70b6631ddd3adf206389924223d16e314678"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-19.txt",
+        "bytes": 105,
+        "sha256": "80e5192062d07673d622bcaa837c811f9ab3b6b10d0c95793e054b44e49c846c"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-tty-2-tty.txt",
+        "bytes": 1372,
+        "sha256": "adcf1974a6a9ec407d88a437a37f4054642bd92bddab5571a777fb3586283b52"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-2-requests.json",
+        "bytes": 34302,
+        "sha256": "4720eb2e30acc5f111c3b889887ef5653e373e94caba52ff8dc3cbe009f4a9cb"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/policy-mount-comparison.json",
+        "bytes": 24092,
+        "sha256": "45d9524a904eac74ce91a38105e2070689dad2d6e847d2c1229609f83d53da78"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-2-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-discovery-ARGV0=.txt",
+        "bytes": 16715,
+        "sha256": "6999eb547526e3a184c8b6662b7e2e9de65381f08f8fbbe0844e7f255437a212"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-embedded-canary-planted.txt",
+        "bytes": 7937,
+        "sha256": "8a68dab39ef67a80ca311a0d4aad0f02fae11ad837f2f55d50fbe9b86964aa56"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-abstract.txt",
+        "bytes": 142,
+        "sha256": "8ed4d1ba5270c989b70dbabfe8f568b5d8ea6f5484c784c36625bbe685f1edf9"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-18.txt",
+        "bytes": 123,
+        "sha256": "081ebbac01eef32c9e5619913ed96d1206364a305169fb1ee99fc4c67864a11a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-24.txt",
+        "bytes": 109,
+        "sha256": "d78fded4d414369a45059f21d3d6c57b4f0252c94902aee829e96b636e8b56c4"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-9.txt",
+        "bytes": 124,
+        "sha256": "ab24df24719369e96f671f2384115c02b7689693002abe0f7d02567c757740b7"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-tty-1-managed-settings.json",
+        "bytes": 4418,
+        "sha256": "ac9666310b5ee976e769eb19a69d1287608d39f9c0d75a141f5e98d5474a70dd"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-positive-1-requests.json",
+        "bytes": 34292,
+        "sha256": "17733332dd2bf3e80e7c0e0dee681da3aa4b60a2ec6e8ac004903eee6e2c759f"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-20.txt",
+        "bytes": 114,
+        "sha256": "86ba1e66850e926f34353a448653084e68a03249fd482eee7a51a7e65ac505a2"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-1-results.json",
+        "bytes": 311,
+        "sha256": "cc80fa0164dc51508ec04b441c69ae401c9a5194fff98bd5a12e139790725129"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/ide-arrivals.json",
+        "bytes": 531,
+        "sha256": "123738d6495cd4c2bb82c425c2b81eed99bad754267855a182941f661c0fe054"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-hostile-approved.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-dbus.txt",
+        "bytes": 132,
+        "sha256": "bfa0186da5799c8939bb5215c26e3214ff22362767f396ff0ed506bd081f5e21"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/ide-positive.txt",
+        "bytes": 82,
+        "sha256": "cbab472dbb62b2a7ec69f391ec597fdd27e19818ae4ea1d3218ae6d2d64423ad"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-hostile-rows.json",
+        "bytes": 30180,
+        "sha256": "a9d90b8ffc7d546a8a2abb99164d56f79ee88cf16cb005ebfba20cdccab124cf"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-proxy-connect.txt",
+        "bytes": 8229,
+        "sha256": "10d91092dc1270465c4b444906313db528a4772b67a4a2fd72b95d36e7255128"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-tools-2-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-network.txt",
+        "bytes": 259,
+        "sha256": "cd003a63b202bf15947684685b28eb03c9ba54bde327be4529ff2c33e5503534"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-tools-2.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-tty-2-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-read-.credentials.json.txt",
+        "bytes": 115,
+        "sha256": "6458b62023c0a82f8fb278d9dfdacaa8947f8e4f110396c9d2c24b8182286f79"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-21.txt",
+        "bytes": 115,
+        "sha256": "4e8c319054ffe114e291641d0ac0559dbb25f63aae11ed101ff2bd3241fd8ed8"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/marketplace-add.txt",
+        "bytes": 309,
+        "sha256": "29cd012476bc938598212d3dc29e5e0ebae3cd3670535d394bbc9c72103197c5"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-23.txt",
+        "bytes": 114,
+        "sha256": "879c9ec99bf564738644daf0d70bee377388b9d3a4d2d13d224143b426088d49"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/launcher-corrupt-filter.txt",
+        "bytes": 89,
+        "sha256": "0b133d8ebd4d1dc76935ebe30306143d1751fd405a7c2d94a2497f86c4c06073"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/version-claude.txt",
+        "bytes": 61,
+        "sha256": "47af1fd9a3eefceb86574e2d07e0ebcf9e751edab7e163d327d01df1369fec71"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-planted-helper-paths.json",
+        "bytes": 809,
+        "sha256": "e7537f774c9ab3da7505268da340681c32b8557c857dd69f16e2f2afccbcbb86"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/sources-launcher-2-integrity.json",
+        "bytes": 9196,
+        "sha256": "c766dc19911c8e199b7a4839c98fc58d6467f21654ff3528ced2f7a5a32838a4"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-hostile-approved-results.json",
+        "bytes": 31157,
+        "sha256": "2b656f0677b5f43e1b0370e418396038d6c9d67bfe2bb822acb7b936631a653f"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-tools-1.txt",
+        "bytes": 67,
+        "sha256": "317b8983d45d329f7abe2813f232a66d798111f0f41c6799d7f6a9b7e4c55b51"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-write-22.txt",
+        "bytes": 124,
+        "sha256": "a146694663c9b3e0b610974b95be63f93fe1766eb0ef54de2d0f3bcd3847ee56"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/positive-read-login.keyring.txt",
+        "bytes": 125,
+        "sha256": "ec015c1bf2ab8eb936a783fcde7c3691f2e06cdf99a7571c32607cd492bd5687"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/hostile-mount-tree-differences.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43271001440-1/present/native-file-tool-paths.json",
+        "bytes": 6131,
+        "sha256": "8fb243be805b4511605053d1ec59852ced19f0325e361cb1473e63f043eb7b82"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-13.txt",
+        "bytes": 146,
+        "sha256": "93dfe95e8888778cd1527eb886e0649141e000db6f0e9beb39b8e73246bc6ff2"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-2.txt",
+        "bytes": 102,
+        "sha256": "1d67bdd5ff46969c682ff575efb6eaa7b148c96468194b63819bd684b09d3582"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/flag-agents.txt",
+        "bytes": 411,
+        "sha256": "4f36f3c4d9e104bf6e7b6ef982b4e984cd82a1a002099c68827bdb96373db38e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/ide-positive-interactive-tty.txt",
+        "bytes": 1628,
+        "sha256": "983522574cbd26aa2b0eaa37a43caded77b3922d7b7ce56cbb4a90cc0cfc0569"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/flag-plugin-url.txt",
+        "bytes": 443,
+        "sha256": "8d90756e4871b5c9bf0204be281e7b98fbf0e3ea86edc3b1925dc2ea59e530c6"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-3.txt",
+        "bytes": 99,
+        "sha256": "606c8413621410754d95fa6348320939a3566af91d6b9a241dc486b46cda757f"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-12.txt",
+        "bytes": 109,
+        "sha256": "c612b47f881d63153b8708b7af4ed999807b2c3c9d9f98322df726674f9ce137"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/ide-launcher-requests.json",
+        "bytes": 33846,
+        "sha256": "a53de0f3a6349a4546c51130cde157546990e6242ab491c80c4fb85c90d10ba0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-10.txt",
+        "bytes": 127,
+        "sha256": "1b0eee7ebe039fd0c09e4d97591af15e821a024d0d11dc7595955730612c47ba"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-1.txt",
+        "bytes": 104,
+        "sha256": "e62ab48c96b8bf3b128f5270764ee610b02f2fe6e780c2e95cd8230b2a937a27"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/mcp-list.txt",
+        "bytes": 670,
+        "sha256": "642b9576c9ebffa71d42e6fb9d874b11d0a8770c7da733b3ec83178929469ba9"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-pin.json",
+        "bytes": 160,
+        "sha256": "a26d583b459281ce60dd6d39e30b8620c4edd9d3202684e4e75421d549c45226"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-discovery-seccompConfig.txt",
+        "bytes": 9203,
+        "sha256": "011485cd21c42f112f2e1c5415209e0cddb10cc9d344a12f955ca5306ccd20aa"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-x11.txt",
+        "bytes": 130,
+        "sha256": "32467d99ab97da4b13b066ee8c7b2344e30e5107c9fc702162c6e05571d5bf71"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-baseline-results.json",
+        "bytes": 209,
+        "sha256": "1407c28e882683680b303cc8ba57622e8d354bbb1339245b4bd341e242e7a012"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-0.txt",
+        "bytes": 98,
+        "sha256": "bab21f61fd4a1922cb5d86b45a79be5ee1090db8a0490cb63b6c5e9e49bf4e88"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-11.txt",
+        "bytes": 132,
+        "sha256": "c16ab77076cb9e671d438c0d932a5bc5d9161ddfdb13e087459f1c7014e3294d"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-4.txt",
+        "bytes": 97,
+        "sha256": "f01d6f3a83836dcd8337d9920bf406a54962249ced8be77596782683a7c5bfbe"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-15.txt",
+        "bytes": 107,
+        "sha256": "629d3210642e3f697e2380b33546608e0b77076415b05e04430bf570b3931433"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-baseline-integrity.json",
+        "bytes": 9196,
+        "sha256": "659f7afdd1501aa31ea214c129df2e585915af80142eb5bc07c294d2c19d8cd7"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/ide-launcher.txt",
+        "bytes": 82,
+        "sha256": "cbab472dbb62b2a7ec69f391ec597fdd27e19818ae4ea1d3218ae6d2d64423ad"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-stub-delta.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/hostile.txt",
+        "bytes": 35137,
+        "sha256": "87af6d6b255aa7079e525a61a9b911676e3aa40ca1e330fc5dd543ad10e770ad"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/socket-state-mount-tree-differences.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-14.txt",
+        "bytes": 117,
+        "sha256": "1d4508e9572dddf0aca817bcf5bc23868663d48fd9a116325ee3085b786a0756"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-28.txt",
+        "bytes": 112,
+        "sha256": "0fec2f4fc5f2e18c218aeb8ccc7489c2f27d320cc49ea69f34b8763f949b0faa"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-5.txt",
+        "bytes": 100,
+        "sha256": "07bad20c05611a86883fc846d3534b2cdfec89ef96de79796cc3578351778e6e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/ide-launcher-results.json",
+        "bytes": 2,
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-7.txt",
+        "bytes": 101,
+        "sha256": "96f52fa416bf66f0f6c97e69924ccd3e53f6abb96bd8ac0b503818ecde3cdbf0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-16.txt",
+        "bytes": 102,
+        "sha256": "99bf7b1459bc19c9219e63da3b584a7a2af0104f57a19eb67e6c56f3f80ac93a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/launcher-planted.txt",
+        "bytes": 195,
+        "sha256": "89003900a60b051bfa3ae5b63dec1636366642728e75fed267dbb8c5d44f8af0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-proxy-http.txt",
+        "bytes": 8147,
+        "sha256": "889ed27752e0b0b261ca9ccbfa41f4eae4f29db40cf87987ca92dba78ffd9ec0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-chrome.txt",
+        "bytes": 142,
+        "sha256": "0c099519f0918eef65da132858b3eff9e627abf6687cfabbc154dc7507d9b60c"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-17.txt",
+        "bytes": 117,
+        "sha256": "5f94afc1194012c5fc091b845cef759bcd3e03da196341f93fe62c41abe4ae6e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-6.txt",
+        "bytes": 98,
+        "sha256": "2a9e654d2ca95f26a625483af955c00341935812b71f468cb6e524ac671e7f58"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/file-integrity.json",
+        "bytes": 8913,
+        "sha256": "e0e8248720ec6b62c1473a69bc492d348304f49cc9cbf4d9e94f91400f72e270"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/ide-positive-results.json",
+        "bytes": 2,
+        "sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-14.txt",
+        "bytes": 174,
+        "sha256": "d414edf872c502f59d50434cee321e0dd321b986b67c1cc5801f184cc32bc093"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-28.txt",
+        "bytes": 169,
+        "sha256": "b59fd4a8528f4f85e5ea1c8acf43c8651b4ba4e0391887032896bcf4f854b18d"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-discovery-CLAUDE_CODE_AUTO_CONNECT_IDE.txt",
+        "bytes": 9457,
+        "sha256": "02bed25dde16acd490c72f02c63b5fe517570a7c39396ca08b3c191f10281976"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/version-uname.txt",
+        "bytes": 144,
+        "sha256": "d127e2a7a54ac8b713b2c0ff61b62b928be1678f46457b237a2b46ff7b5ebc04"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-15.txt",
+        "bytes": 164,
+        "sha256": "aa491e43438d08a41cb5a661b93d3fb82eef688e6e6e42ac23a0b844281e6548"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-9.txt",
+        "bytes": 181,
+        "sha256": "96bad69cab7ca5dd767db0e99794dba0aa50d8375be90a0ef570d55831c29d4e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-hostile-approved-requests.json",
+        "bytes": 65377,
+        "sha256": "b76b0f7b22c74f453f6133b33e631dd9578a3c424a672d4de91147868e949152"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/flag-mcp-config.txt",
+        "bytes": 468,
+        "sha256": "41e445f59164055466327bc72ac295875cd8d7e12da59df51c128eb563c46e10"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-17.txt",
+        "bytes": 174,
+        "sha256": "e12e25e513448c0e1a316e44880582205e1418efaa4dce4fcd251e453099076c"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/ide-positive-requests.json",
+        "bytes": 33846,
+        "sha256": "353292f351e134d78f39f4b6d88c6bf0ce8fcf6dba818779f4bf7a2ac48aad1a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/ide-positive-interactive-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/sandbox.json",
+        "bytes": 1028,
+        "sha256": "2f0e2b343cda55921b3afe799b9cfce0468003c82a04ac856722f627bcf736c3"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-hostile-approved-managed-settings.json",
+        "bytes": 4567,
+        "sha256": "5c12fca76509e61df06990eea7329eda295e741cdd515f43c21836937f9a864b"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-16.txt",
+        "bytes": 159,
+        "sha256": "72ec530ef28a1f45498bdc17351c53cb1753b2f92ba6f7c6afb565e8ab9addd9"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/ide-launcher-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-8.txt",
+        "bytes": 172,
+        "sha256": "0f0febb432de8996c582242b79320f837879fbdaf09ba3c6abde667b216137ff"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-12.txt",
+        "bytes": 166,
+        "sha256": "aab3eea511e16372b55e317f0bfb15871ddcf75947937bbdae9f9a4e4e178d6e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-hostile-approved-processes.txt",
+        "bytes": 172240,
+        "sha256": "5ebfd98eec76f8cb0e6b91b954f124e44781d2cd79a814581717304d6b754378"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-13.txt",
+        "bytes": 203,
+        "sha256": "a96e47745b3734edf20b4102ba8e0fb2fe8f5a1b788d7aa7ab44dcfefa666f6a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-mount-trees.json",
+        "bytes": 204860,
+        "sha256": "043b3ac35e9e03c6527fb1b1c4b18899b37847ceab3e550c186b49f0df8a00e9"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-read-Cookies.txt",
+        "bytes": 127,
+        "sha256": "d5d43d2461892f1b36fff4310dd70f608d923c4cb2b6fc384426e3179ba208f7"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-11.txt",
+        "bytes": 189,
+        "sha256": "87e016d6ee1d7108ca0ab01054b06b1252262d8bc9a5ec2eef3f78b67794b734"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/mcp-add.txt",
+        "bytes": 221,
+        "sha256": "27d83b48df45f845e2b86941b427b08b3519ca613a1088869bde048aa1bd5376"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/standalone-processes.txt",
+        "bytes": 50220,
+        "sha256": "85875d0feb04707c6de8132924be0ec6f486c6a9e166639308e78c1a19f38828"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/network-policy-mutation.txt",
+        "bytes": 35041,
+        "sha256": "7a424b5f747b52b1600cbf8a547784bdd59e8b8b3111c00c908ae9abe3889a23"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-10.txt",
+        "bytes": 184,
+        "sha256": "5f2cb8c1ab24e1dcbf481ef681ac275ffe51f7a03dd77d4c8143fb413faa05b7"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/version-bwrap.txt",
+        "bytes": 55,
+        "sha256": "556f693a01f53c8949c8571db15a3a6a7b64105ab2c4d9ca1e9b640e1b24f3c0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-read-.claude.json.txt",
+        "bytes": 102,
+        "sha256": "a5728ca4a49daaa523d649eb81e8cfa6c8615dc30c7d7c074b3e44b55656ad2c"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/stub-new-connections.json",
+        "bytes": 3,
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-3.txt",
+        "bytes": 156,
+        "sha256": "c3ba6bc97077de4fb9a5ccf744e90296d139612c98926d4e65eda4552f4a4b14"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-21.txt",
+        "bytes": 172,
+        "sha256": "c8960dfa470304e7268985ba372be4fad323750a05936e97e6242fb244b10fea"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/stub.txt",
+        "bytes": 10063,
+        "sha256": "e91a45f2f66221bed8fe72a695df315e5343df156691dd7a4171c977254e2603"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-act.txt",
+        "bytes": 139,
+        "sha256": "38cd5a56ffab57e7c1a8eb8b692d61e3b968c70ff1c9d75522417161268e8ddc"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-20.txt",
+        "bytes": 171,
+        "sha256": "e068eb6a0ea516145320c21b566463a0478635dcc1bacfc421100acc52e15f65"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-baseline-requests.json",
+        "bytes": 34105,
+        "sha256": "4134173ff1e56616bfdabedff477c24611d2ceeacefdd66168320f9a43cb777e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-2.txt",
+        "bytes": 159,
+        "sha256": "ba0661f74349a8d8b6eed76762363c9bbff264e720fa6309e4d66fe3bbcbace0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-0.txt",
+        "bytes": 155,
+        "sha256": "bef4c72e713c87f627336b35090583303b95a249c645d8390ead22ef8aa157a0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-discovery-function swr.txt",
+        "bytes": 2300,
+        "sha256": "c9374f3e6affe421c016b7781aeffc02068c17019dd31c2328ea3f27c8d80d1a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-22.txt",
+        "bytes": 181,
+        "sha256": "9856a12159720ab8a4fb29cdb797b7073f414c57e9419936eb7e5f1de2fbe8bc"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/standalone-policy-mounts.json",
+        "bytes": 11127,
+        "sha256": "3e89f2d452be19448a21a0cbcf059c5139654d6a599d2896d4df662537eaea07"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-policy-mounts.json",
+        "bytes": 35207,
+        "sha256": "32929203506af888397f043233682dcfd2535b905fc0449e1b172247f5fee090"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/env-positive-python-env-ran.txt",
+        "bytes": 50,
+        "sha256": "80a99081c3e29452b04cdf3898b7c611aa50515b93b191971d5d1f0e18a321f9"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-23.txt",
+        "bytes": 171,
+        "sha256": "1732619d92a78b540a519428bb94cebad4d45f531dc2a17c2549916cdca9786d"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-baseline-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-1.txt",
+        "bytes": 161,
+        "sha256": "ec5e631a06d16ebdf866ce3429de4534232f41d3df19d86b715472239ace6f05"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-5.txt",
+        "bytes": 157,
+        "sha256": "e6f5388e958b12cd3ffc10841156ec65ab3ea0a1fbc4e49138275bb88f29da83"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/bypass-disabled.txt",
+        "bytes": 5879,
+        "sha256": "5e1a0f3f16d492a12f3dcf5b157dd38c024567ff0f11b1dc5318a1ecf4fd5aac"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-wayland.txt",
+        "bytes": 138,
+        "sha256": "445800ece8be2058063ad9941d836fb615c0b96ebfffa76c6f3b1c92e9cf3995"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-27.txt",
+        "bytes": 178,
+        "sha256": "b522e722a65edc239bd90b2503a1508a64f3f75d5d3c256dd2cb261c92980095"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-26.txt",
+        "bytes": 169,
+        "sha256": "939f54176e26243513e6531394619e5be6d68d5c7b38a5d31a29a846dbfe3d7b"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-baseline.txt",
+        "bytes": 82,
+        "sha256": "cbab472dbb62b2a7ec69f391ec597fdd27e19818ae4ea1d3218ae6d2d64423ad"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/ide-positive-managed-settings.json",
+        "bytes": 4448,
+        "sha256": "ab5952257d21b096ec47044adbe800352d6a6f9eed103c1d31d6651ecad88ab0"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-4.txt",
+        "bytes": 154,
+        "sha256": "797ee0734f853755b9be6b154367dd3f56c1c3d1ae7e4f170dc14a836983c61b"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-6.txt",
+        "bytes": 155,
+        "sha256": "2502fbbc22e7baab51a60d833bb682a0eded23f98fe52fc2441f6824df0aa133"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-18.txt",
+        "bytes": 180,
+        "sha256": "06dde13bbb5f0574d13acc7f09f86223c3f1e86368df0919b9262b550eafd34e"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-24.txt",
+        "bytes": 166,
+        "sha256": "8cee4bdd54a4de5a9c5ed3f645d06a39c8872f3265bf982b2596447a60f129f4"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/mcp-unmanaged-positive.txt",
+        "bytes": 289,
+        "sha256": "9f8eb7cab78aba024420786ba2cb149090ed6fff487edd3c802c45f14509a55a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/managed-settings.json",
+        "bytes": 4321,
+        "sha256": "0e6752737b11a8be8ab5c421a1db0ea1f37f4d2816dcdb61142455cdcf09c520"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/env-positive-node-env-ran.txt",
+        "bytes": 49,
+        "sha256": "5ace5d5e735df2835c92193c48fa89ff829ffcaeca8ef547f4be43de323d98df"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-baseline-processes.txt",
+        "bytes": 85799,
+        "sha256": "5a82405357be473e170af928ca12cd11f99d138cacecee443b6bcc9c7e1c54a7"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-25.txt",
+        "bytes": 181,
+        "sha256": "c2e8d9c5711d29e509bb34d10624c86f63b1e5cd9ae051aa71805c30ecf4cab3"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-discovery-function Fno.txt",
+        "bytes": 2300,
+        "sha256": "12a81c9f905915721bff1bd0d9a3ed64b5bf666bff6dfc82cd0f0d033c07e55b"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-19.txt",
+        "bytes": 162,
+        "sha256": "dc138cbe923dbc2ea460bf0b0f1aad469bca507d19f074e9d2d02f2c162a253c"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-replace-7.txt",
+        "bytes": 158,
+        "sha256": "023804faa1daa815eb071d8fa3554eb5c3402d74e803c0ac14783a607b2fa615"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/flag-plugin-dir.txt",
+        "bytes": 437,
+        "sha256": "e2400717be5564919288fa0b6465658f0179d2362320ee1ce4ec0c3be3c010cd"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-26.txt",
+        "bytes": 112,
+        "sha256": "0cc9491413256ede5411eb87de97d404270b36af0e44bfb10dc121fedb9d960a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/version-node.txt",
+        "bytes": 46,
+        "sha256": "b3aad40de7147fb6e1ed974e8d6738a9c0c88fad9bdd23159c30e6c4ec3dc45a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-open-routes.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-hostile-approved-integrity.json",
+        "bytes": 9196,
+        "sha256": "e4a35a74645d23e73491908c9e2e7fee07777f5e2c893768b444461b8ac06fe6"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/env-positive-preload-ran.txt",
+        "bytes": 33,
+        "sha256": "83c97c08101ffa48eda54747c76a5f2c11214de6ac2e68ccc91b635852549837"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-27.txt",
+        "bytes": 121,
+        "sha256": "07f55e030783b0c715a52e5158bc9af55d3b06b6f96ee8ab8c0915b0f528d5b6"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/managed-mcp.json",
+        "bytes": 1076,
+        "sha256": "4ad08d9f9a221d4029dd2602c0a97cea4397504ef911eaef77de33c092cb91e5"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-25.txt",
+        "bytes": 124,
+        "sha256": "f1f1707e4b5e59c7aa8fb3801497eec0c26a51094aede6d60534cc6458b0971c"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-8.txt",
+        "bytes": 115,
+        "sha256": "16f226ec04f0575b3de8ec1ad83d70b6631ddd3adf206389924223d16e314678"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-19.txt",
+        "bytes": 105,
+        "sha256": "80e5192062d07673d622bcaa837c811f9ab3b6b10d0c95793e054b44e49c846c"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/policy-mount-comparison.json",
+        "bytes": 24092,
+        "sha256": "d45831a712d2efff19534957f5f398f2995d34bde2f64667c3b95f56a274aa08"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-discovery-ARGV0=.txt",
+        "bytes": 16715,
+        "sha256": "6999eb547526e3a184c8b6662b7e2e9de65381f08f8fbbe0844e7f255437a212"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-embedded-canary-planted.txt",
+        "bytes": 7937,
+        "sha256": "29e8bb9a6fb2e4c480fde1f4a60e6a496b8903057ca533d9ac0ebe74e4855f2a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-abstract.txt",
+        "bytes": 142,
+        "sha256": "8ed4d1ba5270c989b70dbabfe8f568b5d8ea6f5484c784c36625bbe685f1edf9"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-18.txt",
+        "bytes": 123,
+        "sha256": "081ebbac01eef32c9e5619913ed96d1206364a305169fb1ee99fc4c67864a11a"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-24.txt",
+        "bytes": 109,
+        "sha256": "d78fded4d414369a45059f21d3d6c57b4f0252c94902aee829e96b636e8b56c4"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-9.txt",
+        "bytes": 124,
+        "sha256": "ab24df24719369e96f671f2384115c02b7689693002abe0f7d02567c757740b7"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-20.txt",
+        "bytes": 114,
+        "sha256": "86ba1e66850e926f34353a448653084e68a03249fd482eee7a51a7e65ac505a2"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/ide-arrivals.json",
+        "bytes": 531,
+        "sha256": "61e0ab0d80fd98f172be8d465aab7045e712c0335388627671be54129b982582"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-hostile-approved.txt",
+        "bytes": 82,
+        "sha256": "cbab472dbb62b2a7ec69f391ec597fdd27e19818ae4ea1d3218ae6d2d64423ad"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-dbus.txt",
+        "bytes": 132,
+        "sha256": "bfa0186da5799c8939bb5215c26e3214ff22362767f396ff0ed506bd081f5e21"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/ide-positive.txt",
+        "bytes": 82,
+        "sha256": "cbab472dbb62b2a7ec69f391ec597fdd27e19818ae4ea1d3218ae6d2d64423ad"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-hostile-rows.json",
+        "bytes": 30180,
+        "sha256": "a9d90b8ffc7d546a8a2abb99164d56f79ee88cf16cb005ebfba20cdccab124cf"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-proxy-connect.txt",
+        "bytes": 8175,
+        "sha256": "386d80539fc89f9bcf1d7aeabcdad823c0ba787010356dab3f594a483d932d85"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-network.txt",
+        "bytes": 259,
+        "sha256": "cd003a63b202bf15947684685b28eb03c9ba54bde327be4529ff2c33e5503534"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-read-.credentials.json.txt",
+        "bytes": 115,
+        "sha256": "6458b62023c0a82f8fb278d9dfdacaa8947f8e4f110396c9d2c24b8182286f79"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-21.txt",
+        "bytes": 115,
+        "sha256": "4e8c319054ffe114e291641d0ac0559dbb25f63aae11ed101ff2bd3241fd8ed8"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/marketplace-add.txt",
+        "bytes": 309,
+        "sha256": "29cd012476bc938598212d3dc29e5e0ebae3cd3670535d394bbc9c72103197c5"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-23.txt",
+        "bytes": 114,
+        "sha256": "879c9ec99bf564738644daf0d70bee377388b9d3a4d2d13d224143b426088d49"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/version-claude.txt",
+        "bytes": 61,
+        "sha256": "47af1fd9a3eefceb86574e2d07e0ebcf9e751edab7e163d327d01df1369fec71"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-planted-helper-paths.json",
+        "bytes": 809,
+        "sha256": "e7537f774c9ab3da7505268da340681c32b8557c857dd69f16e2f2afccbcbb86"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/native-hostile-approved-results.json",
+        "bytes": 31157,
+        "sha256": "4877547c1848ef2185e6a573a53d61ea89addad7a51083ebb457030d96b58b07"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-write-22.txt",
+        "bytes": 124,
+        "sha256": "a146694663c9b3e0b610974b95be63f93fe1766eb0ef54de2d0f3bcd3847ee56"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/positive-read-login.keyring.txt",
+        "bytes": 125,
+        "sha256": "ec015c1bf2ab8eb936a783fcde7c3691f2e06cdf99a7571c32607cd492bd5687"
+      },
+      {
+        "file": "control-boundary-43271001440-1/absent/hostile-mount-tree-differences.json",
+        "bytes": 2,
+        "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      }
+    ]
+  },
+  {
+    "id": 43271006209,
+    "source": "5f0b568194a68a82a5b235fe5b396d69290d1892",
+    "workflow": "Control Chrome qualification",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43271006209",
+    "checks": {
+      "qualification_python": 47,
+      "node": {
+        "tests": 287,
+        "pass": 287,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0
+      },
+      "attestation_verifications": {
+        "qualification-attestation-43271006209-1/verification.txt": [
+          "QUALIFICATION DELIVERY newer valid attested record used PASS",
+          "QUALIFICATION DELIVERY missing attestation refused; held retained PASS",
+          "QUALIFICATION DELIVERY altered attestation refused; held retained PASS",
+          "QUALIFICATION DELIVERY wrong workflow refused; held retained PASS",
+          "QUALIFICATION DELIVERY wrong branch refused; held retained PASS",
+          "QUALIFICATION DELIVERY production main rejects branch fixture refused; held retained PASS",
+          "QUALIFICATION DELIVERY altered subject refused; held retained PASS",
+          "QUALIFICATION DELIVERY dropped held entry refused after real verification PASS",
+          "QUALIFICATION DELIVERY changed held entry refused after real verification PASS",
+          "QUALIFICATION PUBLISHER real held attestation and baseline verified PASS",
+          "QUALIFICATION PUBLISHER unsigned inserted entry refused; no write, issue stubbed PASS",
+          "QUALIFICATION PUBLISHER non-append-only shipped baseline refused; no write, issue stubbed PASS"
+        ],
+        "qualification-attestation-43271006209-1/retained-fixture-verification.txt": [
+          "QUALIFICATION DELIVERY newer valid attested record used PASS",
+          "QUALIFICATION DELIVERY missing attestation refused; held retained PASS",
+          "QUALIFICATION DELIVERY altered attestation refused; held retained PASS",
+          "QUALIFICATION DELIVERY wrong workflow refused; held retained PASS",
+          "QUALIFICATION DELIVERY wrong branch refused; held retained PASS",
+          "QUALIFICATION DELIVERY production main rejects branch fixture refused; held retained PASS",
+          "QUALIFICATION DELIVERY altered subject refused; held retained PASS",
+          "QUALIFICATION DELIVERY dropped held entry refused after real verification PASS",
+          "QUALIFICATION DELIVERY changed held entry refused after real verification PASS",
+          "QUALIFICATION PUBLISHER real held attestation and baseline verified PASS",
+          "QUALIFICATION PUBLISHER unsigned inserted entry refused; no write, issue stubbed PASS",
+          "QUALIFICATION PUBLISHER non-append-only shipped baseline refused; no write, issue stubbed PASS"
+        ]
+      }
+    },
+    "files": [
+      {
+        "file": "qualification-attestation-43271006209-1/record.json",
+        "bytes": 726,
+        "sha256": "d30d333043f1e47794d11d7fb9fab64d428cfbeb42f69bebf996a8d209c926a2"
+      },
+      {
+        "file": "qualification-attestation-43271006209-1/verification.txt",
+        "bytes": 1006,
+        "sha256": "e260a992dae6101fd870a49b00426c65f0eb5d28a9aeb5bd2660e5b3f4b24931"
+      },
+      {
+        "file": "qualification-attestation-43271006209-1/bundle.json",
+        "bytes": 11334,
+        "sha256": "75e4bbf7f12d858ccd0ab021e89c58aa463fc2f1293b2f85b529f982a96a8c28"
+      },
+      {
+        "file": "qualification-attestation-43271006209-1/retained-fixture-verification.txt",
+        "bytes": 1006,
+        "sha256": "e260a992dae6101fd870a49b00426c65f0eb5d28a9aeb5bd2660e5b3f4b24931"
+      },
+      {
+        "file": "qualification-tests-43271006209-1/node-tests.txt",
+        "bytes": 66419,
+        "sha256": "f6119ae6439b1db921176e5a902c17eefbd935cea530a2a3b23e1c57147cdb98"
+      },
+      {
+        "file": "qualification-tests-43271006209-1/qualification-tests.txt",
+        "bytes": 8402,
+        "sha256": "df6ebd726e0e376ea8df5db4b5bec6a9c49847f4f8d46ed987aab3168ee2ffa6"
+      }
+    ]
+  },
+  {
+    "id": 43271116470,
+    "source": "5f0b568194a68a82a5b235fe5b396d69290d1892",
+    "workflow": "Control base",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43271116470",
+    "checks": {
+      "base_tests": 146
+    },
+    "files": [
+      {
+        "file": "control-base-43271116470-1/results.txt",
+        "bytes": 35278,
+        "sha256": "e1da36ee5f4cd1ec3fc063d18ceb0387218e2a67a9c9009afae566e8c743d2b8"
+      }
+    ]
+  },
+  {
+    "id": 43274963177,
+    "source": "5f0b568194a68a82a5b235fe5b396d69290d1892",
+    "workflow": "Control Mail",
+    "url": "https://github.com/Ares-Empire/AresOS/actions/runs/43274963177",
+    "checks": {
+      "base_tests": 146,
+      "mail_tests": 309,
+      "fault_shards": [
+        4,
+        4,
+        4,
+        4
+      ],
+      "result_lines": [
+        "Mail fixture isolation PASS: internal network, one test network, no published ports",
+        "Mail fixture isolation PASS: internal network, one test network, no published ports",
+        "Mail fixture isolation PASS: internal network, one test network, no published ports",
+        "Mail fixture isolation PASS: internal network, one test network, no published ports",
+        "Mail fixture isolation PASS: internal network, one test network, no published ports"
+      ]
+    },
+    "files": [
+      {
+        "file": "control-mail-sweep-0-43274963177-1/greenmail.txt",
+        "bytes": 5709,
+        "sha256": "e98edc6cd65ded688d70f4b1e1b5054ad0add6dc5d3cb7d31df457b89bb58dc5"
+      },
+      {
+        "file": "control-mail-sweep-0-43274963177-1/mail.txt",
+        "bytes": 36149,
+        "sha256": "578f9a770bdac4d57f525d80b91e0101e0876226403480044856cc2868c5f72f"
+      },
+      {
+        "file": "control-mail-sweep-0-43274963177-1/dovecot.txt",
+        "bytes": 282,
+        "sha256": "69a0fe23303eddf109b04e15129d17f860d4b29183be2d6d17c3aa18edc2bc08"
+      },
+      {
+        "file": "control-mail-sweep-0-43274963177-1/isolation.txt",
+        "bytes": 84,
+        "sha256": "7f2b2f700e1fd23b4fb9f09afd02758cb71cbd6b4f3f2f6d08ec66a4d56f8965"
+      },
+      {
+        "file": "control-mail-sweep-0-43274963177-1/setup.txt",
+        "bytes": 8871,
+        "sha256": "7212fc0dd4023d97833bac38f6a8d22365a629cab40601e0ef2933dd70aa9e02"
+      },
+      {
+        "file": "control-mail-sweep-3-43274963177-1/greenmail.txt",
+        "bytes": 5709,
+        "sha256": "8cf87bd55a09eb383c2285c011a9dd258b22b25f5e0ba39343cda87befc32707"
+      },
+      {
+        "file": "control-mail-sweep-3-43274963177-1/mail.txt",
+        "bytes": 3266,
+        "sha256": "7486b3854e207be84321fc63db7be1821fe4165825f93753924b136aa9185058"
+      },
+      {
+        "file": "control-mail-sweep-3-43274963177-1/dovecot.txt",
+        "bytes": 282,
+        "sha256": "88411697436c71eabe37ae1cde0797f6f23187df1b04b1ab4d4bf48a26a67493"
+      },
+      {
+        "file": "control-mail-sweep-3-43274963177-1/isolation.txt",
+        "bytes": 84,
+        "sha256": "7f2b2f700e1fd23b4fb9f09afd02758cb71cbd6b4f3f2f6d08ec66a4d56f8965"
+      },
+      {
+        "file": "control-mail-sweep-3-43274963177-1/setup.txt",
+        "bytes": 8870,
+        "sha256": "beb601bc12732b8ee6d87040a1ad644f9bd73f5b1d809a3a56a62afe9003f1ab"
+      },
+      {
+        "file": "control-mail-43274963177-1/greenmail.txt",
+        "bytes": 42362,
+        "sha256": "15a47de818da68275808790f611a3088c429eef85257324058ba6ba8552d9488"
+      },
+      {
+        "file": "control-mail-43274963177-1/mail.txt",
+        "bytes": 61202,
+        "sha256": "11e56dbdf0de5acf12c4a16016176a3ba276d563d44cc9da7fdb6b46ca0d10fb"
+      },
+      {
+        "file": "control-mail-43274963177-1/dovecot.txt",
+        "bytes": 2779832,
+        "sha256": "f1608d59f0bf1f7a33026e30fbd557b3e40a512572040fc4feefd013b4e266d3"
+      },
+      {
+        "file": "control-mail-43274963177-1/isolation.txt",
+        "bytes": 84,
+        "sha256": "7f2b2f700e1fd23b4fb9f09afd02758cb71cbd6b4f3f2f6d08ec66a4d56f8965"
+      },
+      {
+        "file": "control-mail-43274963177-1/base.txt",
+        "bytes": 34659,
+        "sha256": "93a2764ab07ea8981a35ff7846ad99e9d7d02151e831de906aeeb36bfb9fc286"
+      },
+      {
+        "file": "control-mail-sweep-2-43274963177-1/greenmail.txt",
+        "bytes": 5709,
+        "sha256": "0590892c3d6d87e56e9079f2a013c6a110d915da88e0ca69f238f7cca714b3e4"
+      },
+      {
+        "file": "control-mail-sweep-2-43274963177-1/mail.txt",
+        "bytes": 3271,
+        "sha256": "b3a6be36a433f5caf648e74846ebaf66a892c1c877fc709d195ec1234b159bc3"
+      },
+      {
+        "file": "control-mail-sweep-2-43274963177-1/dovecot.txt",
+        "bytes": 282,
+        "sha256": "9dab9448e60e7eb19294af55c9a0180b3461d6e589751750f91d7917d54991ad"
+      },
+      {
+        "file": "control-mail-sweep-2-43274963177-1/isolation.txt",
+        "bytes": 84,
+        "sha256": "7f2b2f700e1fd23b4fb9f09afd02758cb71cbd6b4f3f2f6d08ec66a4d56f8965"
+      },
+      {
+        "file": "control-mail-sweep-2-43274963177-1/setup.txt",
+        "bytes": 8871,
+        "sha256": "c90846eabf049061ebee56615c96017e4b769efdbad228cebdc7f313ad1b8d64"
+      },
+      {
+        "file": "control-mail-sweep-1-43274963177-1/greenmail.txt",
+        "bytes": 5709,
+        "sha256": "82adb20f292900bd0ddf425d9c017dad8eb94114372f5d6e5133823d013d2e48"
+      },
+      {
+        "file": "control-mail-sweep-1-43274963177-1/mail.txt",
+        "bytes": 34678,
+        "sha256": "e7e9676f1b1250de995f561dd0633d1d52c4833498b468b2330f315c7ae0015f"
+      },
+      {
+        "file": "control-mail-sweep-1-43274963177-1/dovecot.txt",
+        "bytes": 282,
+        "sha256": "d858a7259ce4691ef704bff460138fe1237d31de4dcb2993834098b5717c2b7f"
+      },
+      {
+        "file": "control-mail-sweep-1-43274963177-1/isolation.txt",
+        "bytes": 84,
+        "sha256": "7f2b2f700e1fd23b4fb9f09afd02758cb71cbd6b4f3f2f6d08ec66a4d56f8965"
+      },
+      {
+        "file": "control-mail-sweep-1-43274963177-1/setup.txt",
+        "bytes": 8871,
+        "sha256": "b643f42e3c1691c5defd856d42ad2bc226bef9d3405d6c030f68fa86de21c6ba"
+      }
+    ]
+  }
+]

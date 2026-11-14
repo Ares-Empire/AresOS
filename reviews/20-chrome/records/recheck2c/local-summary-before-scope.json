@@ -1,0 +1,84 @@
+{
+  "runtime": "837b537f0c78d9fb2e1f2bd695e3657f1f0618d192c6215a9d8529d973c81b0a",
+  "node": {
+    "command": "node --test control/chrome_tests/*.test.mjs",
+    "tests": 287,
+    "pass": 287,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "mutations": {
+    "command": "python3 -B reviews/20-chrome/mutation-audit.py reviews/20-chrome/records/recheck2c/mutations.json",
+    "rejected": 186,
+    "every_baseline_passed": true
+  },
+  "python": {
+    "command": "PYTHONPATH=control:control/chrome_tests PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest discover -s control/chrome_tests -v",
+    "tests": 230,
+    "seconds": 578.54,
+    "result": "OK",
+    "prior_import_only_failure_recorded": true
+  },
+  "audit_streams_tests": 5,
+  "host_transport_tests": 4,
+  "generated_check": "Generated artifacts match definitions",
+  "records": [
+    {
+      "file": "recheck2c-node.txt",
+      "bytes": 27936,
+      "sha256": "6f1c6d42eb815ea0acf91129af9e32936dea10ef723b6710f0cd062d05b0430b",
+      "tail": " without changing its captured rows (6.18825ms)\n\u2714 idle catalogue snapshots still expire after five minutes (1.540042ms)\n\u2714 active catalogue walks expire exactly thirty minutes after creation and must restart (2.322333ms)\n\u2714 new catalogues prune absolute expiry even when the expired snapshot was used last (0.517042ms)\n\u2714 invalid cursors cannot renew a snapshot and retained snapshots stay bounded (0.46425ms)\n\u2714 fixture tab inventory follows every public ten-row page (1.346625ms)\n\u2714 qualification never turns missing or failed named cases into passing groups (11.234333ms)\n\u2714 failed support suites and owner trust checks cannot publish adapter or core passes (0.379875ms)\n\u2714 strict owner false hold remains a failing page-script result (0.098292ms)\n\u2714 every mandatory failure reaches a recorded core or adapter switch, not only the unused group map (3.919791ms)\n\u2714 duplicate or nonboolean case evidence cannot qualify (0.112ms)\n\u2714 unmapped additional checks fail closed until explicitly assigned to recorded groups (0.081834ms)\n\u2714 every named core popup and adapter case is in the exact required inventory (0.67025ms)\n\u2714 one adapter failure preserves all independent adapter verdicts (1.035375ms)\n\u2714 multi-adapter matrices preserve sites outside their actual fixture coverage (0.207292ms)\n\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.209292ms)\n\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.601166ms)\n\u2139 tests 287\n\u2139 suites 0\n\u2139 pass 287\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7165.077583\n"
+    },
+    {
+      "file": "recheck2c-mutations.txt",
+      "bytes": 6959,
+      "sha256": "1b4212227162b2e243218be9eb4f13af0031e89e715d36610ae6e3f3013c30e2",
+      "tail": "eck2-network-rule MUTATION REJECTED\nrecheck2-network-expiry MUTATION REJECTED\nrecheck2-network-restart MUTATION REJECTED\nrecheck2-network-release MUTATION REJECTED\nrecheck2-compose-reader MUTATION REJECTED\nrecheck2-compose-service MUTATION REJECTED\nrecheck2-compose-reask MUTATION REJECTED\nrecheck2-compose-bounded MUTATION REJECTED\nrecheck2-compose-change-shown MUTATION REJECTED\nrecheck2-markup-handler MUTATION REJECTED\nrecheck2-single-capture MUTATION REJECTED\nrecheck2-compose-extension MUTATION REJECTED\nrecheck2-compose-final-boundary MUTATION REJECTED\nrecheck2-engine-reask MUTATION REJECTED\nrecheck2-engine-boundary-reask MUTATION REJECTED\nrecheck2-event-reuse MUTATION REJECTED\nrecheck2-slot-dedup-scope MUTATION REJECTED\nrecheck2-clone-native-kinds MUTATION REJECTED\nrecheck2-cached-factory MUTATION REJECTED\nrecheck2b-activation-baseline MUTATION REJECTED\nrecheck2b-activation-receipt MUTATION REJECTED\nrecheck2b-pending-clipboard MUTATION REJECTED\nrecheck2b-picker-leave-chooser MUTATION REJECTED\nrecheck2b-picker-browser-focus MUTATION REJECTED\nrecheck2c-clipboard-write MUTATION REJECTED\nrecheck2c-clipboard-writeText MUTATION REJECTED\nrecheck2c-copy-event MUTATION REJECTED\nrecheck2c-copy-trust MUTATION REJECTED\nrecheck2c-clipboard-reader MUTATION REJECTED\nrecheck2c-clipboard-navigation MUTATION REJECTED\nrecheck2c-clipboard-post-input MUTATION REJECTED\nrecheck2c-clipboard-route MUTATION REJECTED\nrecheck2c-clipboard-description MUTATION REJECTED\nrecheck2c-owner-exact-url MUTATION REJECTED\nrecheck2b-transport-reset MUTATION REJECTED\n186 mutations rejected; every baseline passed\n"
+    },
+    {
+      "file": "recheck2c-audit-streams.txt",
+      "bytes": 627,
+      "sha256": "838c4835eacc070e4529cc49a4d954ab64ab3dabdb6a5b25f47be0a9cbf518ee",
+      "tail": "\u2714 streaming ingress retains nulls and matches completeIngress across UTF-8 and fragment boundaries (3.605833ms)\n\u2714 streaming JSON lines preserve the original empty-line and trailing-line semantics (3.049083ms)\n\u2714 every malformed fragment fails with the unchanged completeIngress reason (3.593209ms)\n\u2714 sentinel scans find an ASCII sentinel split across stream chunks without retaining the file (2.120084ms)\n\u2714 streamed SHA-256 equals the complete byte digest including multibyte chunk boundaries (0.8945ms)\n\u2139 tests 5\n\u2139 suites 0\n\u2139 pass 5\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 51.364583\n"
+    },
+    {
+      "file": "recheck2c-host-transport.txt",
+      "bytes": 840,
+      "sha256": "9d7c0c8cc047a6bf812a54520ccd3e7ef42ff4608f489533eee2a0616d1c0f59",
+      "tail": "test_a_successful_vsock_connect_remains_an_open_route (control.tests.test_boundary_host_transport.HostTransport.test_a_successful_vsock_connect_remains_an_open_route) ... ok\ntest_another_socket_cannot_use_the_vsock_transport_classification (control.tests.test_boundary_host_transport.HostTransport.test_another_socket_cannot_use_the_vsock_transport_classification) ... ok\ntest_policy_denials_remain_blocked_without_transport_excuses (control.tests.test_boundary_host_transport.HostTransport.test_policy_denials_remain_blocked_without_transport_excuses) ... ok\ntest_reset_and_timeout_are_unqualified_not_policy_denials (control.tests.test_boundary_host_transport.HostTransport.test_reset_and_timeout_are_unqualified_not_policy_denials) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 0.003s\n\nOK\n"
+    },
+    {
+      "file": "recheck2c-python.txt",
+      "bytes": 43048,
+      "sha256": "7d028fe5dbc1fc867b021b63b01e9b8de348fee6be93f1663b8bf62414e1bd1c",
+      "tail": "t_commits_reload_before_staling (test_storage.Storage.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok\ntest_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_storage.Storage.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok\ntest_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_storage.Storage.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok\ntest_service_sandbox_and_launch_are_exact (test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact) ... ok\n\n======================================================================\nERROR: test_bridge (unittest.loader._FailedTest.test_bridge)\n----------------------------------------------------------------------\nImportError: Failed to import test module: test_bridge\nTraceback (most recent call last):\n  File \"/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/loader.py\", line 426, in _find_test_path\n    module = self._get_module_from_name(name)\n  File \"/Library/Frameworks/Python.framework/Versions/3.14/lib/python3.14/unittest/loader.py\", line 367, in _get_module_from_name\n    __import__(name)\n    ~~~~~~~~~~^^^^^^\n  File \"<worktree>/control/chrome_tests/test_bridge.py\", line 7, in <module>\n    from aresos_control.chrome.bridge import Bridge\nModuleNotFoundError: No module named 'aresos_control'\n\n\n----------------------------------------------------------------------\nRan 220 tests in 603.839s\n\nFAILED (errors=1)\n"
+    },
+    {
+      "file": "recheck2c-python-final.txt",
+      "bytes": 44100,
+      "sha256": "6efcb9575ee105a606a0f0a1cd9a7fc3e406196da8df7021183be36df56dddab",
+      "tail": "ut) ... ok\ntest_r2_created_tab_identity_commits_before_navigation (test_storage.Storage.test_r2_created_tab_identity_commits_before_navigation) ... ok\ntest_r2_free_input_has_committed_context_before_dispatch (test_storage.Storage.test_r2_free_input_has_committed_context_before_dispatch) ... ok\ntest_review1_password_failure_refuses_before_any_binding_read (test_storage.Storage.test_review1_password_failure_refuses_before_any_binding_read) ... ok\ntest_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds (test_storage.Storage.test_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds) ... ok\ntest_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch (test_storage.Storage.test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch) ... ok\ntest_taken_read_preserves_document_and_first_input_commits_reload_before_staling (test_storage.Storage.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok\ntest_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_storage.Storage.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok\ntest_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_storage.Storage.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok\ntest_service_sandbox_and_launch_are_exact (test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact) ... ok\n\n----------------------------------------------------------------------\nRan 230 tests in 576.850s\n\nOK\n"
+    },
+    {
+      "file": "recheck2c-python-budget.txt",
+      "bytes": 44100,
+      "sha256": "b0dddd744d04c66462457a40dda8ea590568772d27b7b95a088493e8fa55bc15",
+      "tail": "ut) ... ok\ntest_r2_created_tab_identity_commits_before_navigation (test_storage.Storage.test_r2_created_tab_identity_commits_before_navigation) ... ok\ntest_r2_free_input_has_committed_context_before_dispatch (test_storage.Storage.test_r2_free_input_has_committed_context_before_dispatch) ... ok\ntest_review1_password_failure_refuses_before_any_binding_read (test_storage.Storage.test_review1_password_failure_refuses_before_any_binding_read) ... ok\ntest_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds (test_storage.Storage.test_review1_readonly_added_after_prepare_refuses_all_dispatch_kinds) ... ok\ntest_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch (test_storage.Storage.test_storage_admission_refusal_recovers_without_restart_and_prevents_dispatch) ... ok\ntest_taken_read_preserves_document_and_first_input_commits_reload_before_staling (test_storage.Storage.test_taken_read_preserves_document_and_first_input_commits_reload_before_staling) ... ok\ntest_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads (test_storage.Storage.test_taken_reload_warning_requires_explicit_repeat_and_readonly_never_reloads) ... ok\ntest_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement (test_storage.Storage.test_warning_occurrences_bind_source_document_and_do_not_inherit_old_acknowledgement) ... ok\ntest_service_sandbox_and_launch_are_exact (test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact) ... ok\n\n----------------------------------------------------------------------\nRan 230 tests in 578.540s\n\nOK\n"
+    },
+    {
+      "file": "recheck2c-node-budget.txt",
+      "bytes": 27939,
+      "sha256": "5e3b3c2be8b2c25315b2a66b876c7b4af80f9557041a02b8e636d70134f8315c",
+      "tail": "ut changing its captured rows (9.092333ms)\n\u2714 idle catalogue snapshots still expire after five minutes (2.573291ms)\n\u2714 active catalogue walks expire exactly thirty minutes after creation and must restart (3.325292ms)\n\u2714 new catalogues prune absolute expiry even when the expired snapshot was used last (1.001625ms)\n\u2714 invalid cursors cannot renew a snapshot and retained snapshots stay bounded (0.912375ms)\n\u2714 fixture tab inventory follows every public ten-row page (0.552292ms)\n\u2714 qualification never turns missing or failed named cases into passing groups (12.080417ms)\n\u2714 failed support suites and owner trust checks cannot publish adapter or core passes (0.676417ms)\n\u2714 strict owner false hold remains a failing page-script result (0.108625ms)\n\u2714 every mandatory failure reaches a recorded core or adapter switch, not only the unused group map (4.325959ms)\n\u2714 duplicate or nonboolean case evidence cannot qualify (0.123708ms)\n\u2714 unmapped additional checks fail closed until explicitly assigned to recorded groups (0.092333ms)\n\u2714 every named core popup and adapter case is in the exact required inventory (0.671541ms)\n\u2714 one adapter failure preserves all independent adapter verdicts (0.924667ms)\n\u2714 multi-adapter matrices preserve sites outside their actual fixture coverage (0.166042ms)\n\u2714 shared binding classification isolation and owner prerequisites disable dependent adapters (0.206084ms)\n\u2714 P29 runtime acceptance rejects missing duplicate failed or unknown named rows and false verdicts (0.659375ms)\n\u2139 tests 287\n\u2139 suites 0\n\u2139 pass 287\n\u2139 fail 0\n\u2139 cancelled 0\n\u2139 skipped 0\n\u2139 todo 0\n\u2139 duration_ms 7196.213542\n"
+    },
+    {
+      "file": "recheck2c-mutations-budget.txt",
+      "bytes": 6959,
+      "sha256": "1b4212227162b2e243218be9eb4f13af0031e89e715d36610ae6e3f3013c30e2",
+      "tail": "eck2-network-rule MUTATION REJECTED\nrecheck2-network-expiry MUTATION REJECTED\nrecheck2-network-restart MUTATION REJECTED\nrecheck2-network-release MUTATION REJECTED\nrecheck2-compose-reader MUTATION REJECTED\nrecheck2-compose-service MUTATION REJECTED\nrecheck2-compose-reask MUTATION REJECTED\nrecheck2-compose-bounded MUTATION REJECTED\nrecheck2-compose-change-shown MUTATION REJECTED\nrecheck2-markup-handler MUTATION REJECTED\nrecheck2-single-capture MUTATION REJECTED\nrecheck2-compose-extension MUTATION REJECTED\nrecheck2-compose-final-boundary MUTATION REJECTED\nrecheck2-engine-reask MUTATION REJECTED\nrecheck2-engine-boundary-reask MUTATION REJECTED\nrecheck2-event-reuse MUTATION REJECTED\nrecheck2-slot-dedup-scope MUTATION REJECTED\nrecheck2-clone-native-kinds MUTATION REJECTED\nrecheck2-cached-factory MUTATION REJECTED\nrecheck2b-activation-baseline MUTATION REJECTED\nrecheck2b-activation-receipt MUTATION REJECTED\nrecheck2b-pending-clipboard MUTATION REJECTED\nrecheck2b-picker-leave-chooser MUTATION REJECTED\nrecheck2b-picker-browser-focus MUTATION REJECTED\nrecheck2c-clipboard-write MUTATION REJECTED\nrecheck2c-clipboard-writeText MUTATION REJECTED\nrecheck2c-copy-event MUTATION REJECTED\nrecheck2c-copy-trust MUTATION REJECTED\nrecheck2c-clipboard-reader MUTATION REJECTED\nrecheck2c-clipboard-navigation MUTATION REJECTED\nrecheck2c-clipboard-post-input MUTATION REJECTED\nrecheck2c-clipboard-route MUTATION REJECTED\nrecheck2c-clipboard-description MUTATION REJECTED\nrecheck2c-owner-exact-url MUTATION REJECTED\nrecheck2b-transport-reset MUTATION REJECTED\n186 mutations rejected; every baseline passed\n"
+    }
+  ],
+  "source": "8e1894ca1b19529bc213e188d0a94776da9a6a7f",
+  "verification_note": "The runtime and every test byte are unchanged; the local repeat covers the tree used for the final CI-budget correction."
+}

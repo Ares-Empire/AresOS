@@ -1,0 +1,73 @@
+import concurrent.futures,json,os,pathlib,re,subprocess,sys,time
+head='495c0b3477e7496134028f5244b767b3f4bc7896'
+work=pathlib.Path('.work/recheck-ci-'+head[:8]);work.mkdir(exist_ok=True)
+(work/'controller.pid').write_text(str(os.getpid())+'\n')
+pathlib.Path('.work/recheck-active-ci.json').write_text(json.dumps({'head':head,'directory':str(work)})+'\n')
+workflows={'Control Chrome':'control-chrome.yml','Control base':'control-base.yml','Control Mail':'control-mail.yml','Control boundary':'control-boundary.yml','Control Chrome qualification':'control-chrome-qualification.yml'}
+receipt_path=work/'receipts.json'
+receipts=json.loads(receipt_path.read_text()) if receipt_path.exists() else [{'databaseId':43166895797,'workflowName':'Control Chrome','event':'push'},{'databaseId':43167000276,'workflowName':'Control Chrome','event':'workflow_dispatch'}]
+def save_receipts():receipt_path.write_text(json.dumps(receipts,indent=2)+'\n')
+save_receipts()
+def command(args):return subprocess.check_output(args,text=True,timeout=60).strip()
+def same_head():
+ assert command(['git','rev-parse','HEAD'])==head
+ assert command(['git','ls-remote','origin','refs/heads/pkg/20-chrome']).split()[0]==head
+
+def lookup(identifier,detail=False):
+ fields='databaseId,workflowName,headSha,status,conclusion,event,attempt'+(',url,jobs,startedAt,updatedAt' if detail else '')
+ deadline=time.monotonic()+180
+ while True:
+  result=subprocess.run(['gh','run','view',str(identifier),'--json',fields],capture_output=True,text=True,timeout=60)
+  if result.returncode==0:
+   row=json.loads(result.stdout);assert row['headSha']==head;return row
+  if time.monotonic()>=deadline:raise RuntimeError('Run receipt not yet visible; retained without redispatch: '+str(identifier)+' '+result.stderr)
+  time.sleep(5)
+
+def dispatch(name):
+ same_head()
+ result=subprocess.run(['gh','workflow','run',workflows[name],'--ref','pkg/20-chrome'],check=True,capture_output=True,text=True)
+ match=re.search(r'/actions/runs/(\d+)',result.stdout+'\n'+result.stderr);assert match,result.stdout+result.stderr
+ identifier=int(match[1]);receipts.append({'databaseId':identifier,'workflowName':name,'event':'workflow_dispatch'});save_receipts()
+ print('DISPATCHED and receipt retained',identifier,name,flush=True)
+ return lookup(identifier)
+
+def watch(row):
+ identifier=row['databaseId']
+ with (work/f'watch-{identifier}.txt').open('a') as output:
+  while True:
+   subprocess.run(['gh','run','watch',str(identifier),'--exit-status','--interval','60'],stdout=output,stderr=subprocess.STDOUT)
+   try:result=lookup(identifier,True)
+   except (subprocess.SubprocessError,RuntimeError):time.sleep(30);continue
+   if result['status']=='completed':
+    (work/f'completed-{identifier}.json').write_text(json.dumps(result,indent=2)+'\n')
+    print('COMPLETED',identifier,result['workflowName'],result['conclusion'],flush=True);return result
+   time.sleep(30)
+
+same_head()
+ledger=json.loads(command(['gh','run','list','--workflow','control-chrome.yml','--branch','pkg/20-chrome','--limit','300','--json','databaseId,attempt']))
+assert sum(row['attempt'] for row in ledger)<=215
+selected=[lookup(row['databaseId']) for row in receipts]
+assert sum(row['workflowName']=='Control Chrome' for row in selected)==2,'Adopt the two existing Chrome receipts; never redispatch them'
+for name in workflows:
+ if name=='Control Chrome':continue
+ target=1 if name=='Control Mail' else 2
+ while sum(row['workflowName']==name for row in selected)<target:selected.append(dispatch(name))
+assert len({row['databaseId'] for row in selected})==len(selected)
+(work/'started.json').write_text(json.dumps({'head':head,'runs':selected,'deferred_mail_repeat':sum(row['workflowName']=='Control Mail' for row in selected)<2,'recovered_launch_404':43167000276},indent=2)+'\n')
+print('WAITING in one blocking batch',[(row['databaseId'],row['workflowName']) for row in selected],flush=True)
+completed=[]
+with concurrent.futures.ThreadPoolExecutor(max_workers=10) as pool:
+ pending={pool.submit(watch,row) for row in selected}
+ while pending:
+  done,pending=concurrent.futures.wait(pending,return_when=concurrent.futures.FIRST_COMPLETED)
+  for future in done:
+   row=future.result();completed.append(row)
+   if row['workflowName']=='Control Mail' and row['conclusion']=='success' and sum(r['workflowName']=='Control Mail' for r in selected)<2:
+    repeat=dispatch('Control Mail');selected.append(repeat)
+    (work/'started.json').write_text(json.dumps({'head':head,'runs':selected,'deferred_mail_repeat':False,'recovered_launch_404':43167000276},indent=2)+'\n')
+    pending.add(pool.submit(watch,repeat))
+manifest={'head':head,'runs':completed,'receipt_recovery':'Dispatch43167000276 initially returned404 on metadata; adopted its retained receipt without duplicate dispatch. PR27 is conflicting; shared workflows dispatched manually.'}
+(work/'completed.json').write_text(json.dumps(manifest,indent=2)+'\n')
+assert all(row['conclusion']=='success' for row in completed),'A corrected-source workflow failed'
+for name in workflows:assert sum(row['workflowName']==name for row in completed)==2,name
+print('ALL FIVE WORKFLOWS PASSED TWICE',head,flush=True)

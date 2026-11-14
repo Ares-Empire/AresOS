@@ -1,0 +1,50 @@
+{
+  "run": "43521476596",
+  "source_head": "0ca3f6d7",
+  "classification": "Preexisting-dialog fixture reads a new document before its parser mutations settle; service refuses changed revision before dispatch. No runtime or asking binding/refusal change proposed.",
+  "profiles_accessed": false,
+  "modes": {
+    "external": {
+      "document": "aa29fd39a58f5e5bf45eafba1a458e65",
+      "changed_view_fields": [
+        "revision"
+      ],
+      "before_revision": 3,
+      "after_revision": 4,
+      "identical_rows_and_editables": true,
+      "click_errors": [
+        {
+          "code": "stale_reference",
+          "message": "The taken tab reloaded to install its page guard. Every old reference is stale; read again."
+        },
+        {
+          "code": "stale_reference",
+          "message": "Page changed; read again before acting."
+        }
+      ],
+      "boundary_sha256": "4ebd355a3ce6043fd8c88bbb7b97c77c5c8a13435c1ec1e48ee925548b0c3ae4",
+      "tool_sha256": "724e52680c91a841d3863f5428067a1e0484d5edf3787df7851fb3003d8aa19b"
+    },
+    "policy": {
+      "document": "9f86b86a0892c96fa88237018647a400",
+      "changed_view_fields": [
+        "revision"
+      ],
+      "before_revision": 3,
+      "after_revision": 4,
+      "identical_rows_and_editables": true,
+      "click_errors": [
+        {
+          "code": "stale_reference",
+          "message": "The taken tab reloaded to install its page guard. Every old reference is stale; read again."
+        },
+        {
+          "code": "stale_reference",
+          "message": "Page changed; read again before acting."
+        }
+      ],
+      "boundary_sha256": "8b575dc321a12d02e7eda8d86eb7cc9f8a495e8bdf84bb3f1b7722e0a3045512",
+      "tool_sha256": "834b14b5ea1a06447729e2c8a47daa1b11890ffeca0595e92586eacc5c342543"
+    }
+  }
+}

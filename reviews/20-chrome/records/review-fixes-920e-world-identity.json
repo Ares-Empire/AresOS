@@ -1,0 +1,204 @@
+{
+  "source": "920ec23fd4b33bc596ad98a340cd5f0d416bf586",
+  "run": 42835217594,
+  "mode": "policy",
+  "verdict": "failed before complete matrix; native-world identity transport withdrawn as verified",
+  "log": [
+    {
+      "line": 6,
+      "text": "node:internal/modules/run_main:123"
+    },
+    {
+      "line": 7,
+      "text": "    triggerUncaughtException("
+    },
+    {
+      "line": 8,
+      "text": "    ^"
+    },
+    {
+      "line": 9,
+      "text": ""
+    },
+    {
+      "line": 10,
+      "text": "AssertionError [ERR_ASSERTION]: {\"ok\":true,\"data\":{\"items\":[],\"total\":0,\"cursor\":null,\"restore_required\":false},\"pending\":{\"items\":[],\"total\":0,\"cursor\":null,\"restore_required\":false}}"
+    },
+    {
+      "line": 11,
+      "text": "    at file:///workspace/control/chrome/ci/browser.mjs:62:90"
+    },
+    {
+      "line": 12,
+      "text": "    at process.processTicksAndRejections (node:internal/process/task_queues:103:5) {"
+    },
+    {
+      "line": 13,
+      "text": "  generatedMessage: false,"
+    },
+    {
+      "line": 14,
+      "text": "  code: 'ERR_ASSERTION',"
+    },
+    {
+      "line": 15,
+      "text": "  actual: undefined,"
+    },
+    {
+      "line": 16,
+      "text": "  expected: true,"
+    },
+    {
+      "line": 17,
+      "text": "  operator: '==',"
+    },
+    {
+      "line": 18,
+      "text": "  diff: 'simple'"
+    },
+    {
+      "line": 19,
+      "text": "}"
+    },
+    {
+      "line": 20,
+      "text": ""
+    },
+    {
+      "line": 21,
+      "text": "Node.js v22.23.4"
+    }
+  ],
+  "last_clicks": [
+    {
+      "line": 13,
+      "action": "click",
+      "data": {
+        "approval": {
+          "question": "On http://fixture.test:8765/?case=compose, page 'Synthetic fixture', as the page shows it, send 'Send'; where the page sends this isn't visible to the tool?",
+          "operation_id": "4cb8ef5552cb4e4a8167c0290ca1d10d:baeadba15382411c82c8af00d136cd4d",
+          "description": {
+            "action": "chrome_submit",
+            "untrusted_content": {
+              "page_state": {
+                "session": "53629f78-3b60-4792-bdf8-73f68834cd71",
+                "tab": 1907106282,
+                "control": "615686ea-c0a7-493c-a759-a038d45f6d49",
+                "url": "http://fixture.test:8765/?case=compose",
+                "title": "Synthetic fixture",
+                "document": "45c6599109eaa7f8428f69709bf667ab",
+                "frame": 0,
+                "frame_url": "http://fixture.test:8765/?case=compose",
+                "frame_title": "Synthetic fixture",
+                "effective_url": "http://fixture.test:8765/?case=compose",
+                "target": {
+                  "element": "e8",
+                  "role": "button",
+                  "name": "Send",
+                  "label": "Send",
+                  "title": "",
+                  "href": null,
+                  "value": "",
+                  "states": {
+                    "checked": false,
+                    "selected": false,
+                    "disabled": false,
+                    "required": false,
+                    "invalid": false,
+                    "expanded": null
+                  },
+                  "editable": false,
+                  "search": false,
+                  "submit": false,
+                  "page_dialog": null
+                },
+                "form": null,
+                "selected_files": [
+                  {
+                    "frame": 0,
+                    "document": "45c6599109eaa7f8428f69709bf667ab",
+                    "fields": []
+                  }
+                ],
+                "editable": [
+                  {
+                    "frame": 0,
+                    "document": "45c6599109eaa7f8428f69709bf667ab",
+                    "url": "http://fixture.test:8765/?case=compose",
+                    "fields": [
+                      {
+                        "element": "e7",
+                        "name": "",
+                        "label": "Message",
+                        "type": "textarea",
+                        "hidden": false,
+                        "checked": false,
+                        "disabled": false,
+                        "multiple": false,
+                        "readOnly": false,
+                        "value": "Existing synthetic draft"
+                      }
+                    ]
+                  }
+                ],
+                "item": null,
+                "adapter": null,
+                "dialog": null
+              },
+              "input": {
+                "verb": "click"
+              },
+              "kind": "send",
+              "resume_kind": null,
+              "file": null,
+              "confirmation": null
+            },
+            "adapter_action": null,
+            "expires_at": 1794322158.1777177
+          }
+        },
+        "state": "reserved"
+      }
+    },
+    {
+      "line": 19,
+      "action": "click",
+      "data": {
+        "operation_id": "4cb8ef5552cb4e4a8167c0290ca1d10d:1100178d4c0e4e1fa7406413bc69fcc9",
+        "untrusted_content": {
+          "checked": true,
+          "dispatched": true,
+          "no_change": false,
+          "steps": [],
+          "dialog": null,
+          "uncertain_finish": false,
+          "confirmations": [],
+          "page": {
+            "available": true,
+            "url": "http://fixture.test:8765/?case=native",
+            "title": "Synthetic fixture",
+            "notices": [],
+            "change": {
+              "element": "e9",
+              "name": "Continue",
+              "checked": false,
+              "selected": false,
+              "value": "",
+              "value_more": 0
+            }
+          }
+        },
+        "followups": []
+      }
+    }
+  ],
+  "receiver": [
+    {
+      "time": 1794321258211,
+      "url": "/receive?case=compose",
+      "method": "POST",
+      "body": "Existing synthetic draft",
+      "host": "fixture.test:8765"
+    }
+  ]
+}

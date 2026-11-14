@@ -1,0 +1,77 @@
+{
+  "run": "43488005234",
+  "source": "6133468e",
+  "result": "success",
+  "acceptance": "Focused safety probe in both installs, not full acceptance",
+  "profiles_accessed": false,
+  "artifacts": [
+    {
+      "artifact": "control-chrome-43488005234-1-policy-probe",
+      "zip_sha256": "449b1534821d2031772585a4454c8e6dde3fef8aea600934ce78a6735909dacc",
+      "files": {
+        "browser.txt": {
+          "sha256": "e2b015e57b31660362f315364ff02dcf6427be6952edbe03bf57d0bbeecc7343",
+          "bytes": 4748
+        },
+        "chrome-version.txt": {
+          "sha256": "04ce1829b69f68a11eb8ef036a6ab18a63411689e39b9b3331c0d884b707983a",
+          "bytes": 29
+        },
+        "destinations-audit.json": {
+          "sha256": "f6991ec1316af1add5e519ac7511b0d3ac4b8ca66c4e2310f268986849658beb",
+          "bytes": 95
+        },
+        "destinations.json": {
+          "sha256": "7cd7a3c6aec0e0357346c559d34bafc51f2e92fb49c0df039d1c15b980b9f8b2",
+          "bytes": 861838
+        },
+        "late-reader.json": {
+          "sha256": "37d0ada8555ecd4637b1d7facae8691cb34d14b4fd839b31d32bdbae8032a38c",
+          "bytes": 146018
+        },
+        "late-binding.json": {
+          "sha256": "c8871336d3566961a281636796ca1d846ad7a3c7783ee4db1734123b445e5292",
+          "bytes": 110993
+        },
+        "receiver.jsonl": {
+          "sha256": "2afaade150ef71f8a15515b8032f5e26d84a3100dbdc814fc22a297d87004eab",
+          "bytes": 15953
+        }
+      }
+    },
+    {
+      "artifact": "control-chrome-43488005234-1-external-probe",
+      "zip_sha256": "f6c6634a36e25aedc8c70241dde7e3c1272c439875ce8229efdcc0365e09e328",
+      "files": {
+        "browser.txt": {
+          "sha256": "95abeecb33e32c699ce27ec529e329bd2a34d976016c04683b47c0571e7c67d9",
+          "bytes": 4749
+        },
+        "chrome-version.txt": {
+          "sha256": "04ce1829b69f68a11eb8ef036a6ab18a63411689e39b9b3331c0d884b707983a",
+          "bytes": 29
+        },
+        "destinations-audit.json": {
+          "sha256": "f6991ec1316af1add5e519ac7511b0d3ac4b8ca66c4e2310f268986849658beb",
+          "bytes": 95
+        },
+        "destinations.json": {
+          "sha256": "93ffc240cf00c697d37a646c7f78482796a7b8cb6a2f6ccd9850db4aff82cdd2",
+          "bytes": 861519
+        },
+        "late-binding.json": {
+          "sha256": "db7453a0e030a164c349043d5db5fc709cf4b506af653aa9573ee9a9918240e2",
+          "bytes": 110985
+        },
+        "late-reader.json": {
+          "sha256": "68bb0f15f34913a3bb69510ef3dd8471e7e25af0f1eefeb5114d8db6b29259e5",
+          "bytes": 145939
+        },
+        "receiver.jsonl": {
+          "sha256": "0a6f79a8b0455c7f8c9148eaf7a2aa515c4d8e4132f53f6838665df33ec8192b",
+          "bytes": 15953
+        }
+      }
+    }
+  ]
+}

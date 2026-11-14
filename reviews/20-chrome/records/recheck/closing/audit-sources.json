@@ -1,0 +1,54 @@
+{
+  "acceptance_source": "495c0b3477e7496134028f5244b767b3f4bc7896",
+  "files": [
+    {
+      "source": ".work/recheck-audit-fixed-cases.py",
+      "retained_copy": "reviews/20-chrome/records/recheck/closing/fixed-case-audit.py.txt",
+      "sha256": "77ef12e2b0af4a9a2fa1db4321848671133e93c6ebd2063056f44573923c0773"
+    },
+    {
+      "source": ".work/recheck-summarize-shared.py",
+      "retained_copy": "reviews/20-chrome/records/recheck/closing/shared-artifact-audit.py.txt",
+      "sha256": "b182d67658a49e90cbc89b7936f5e11a9e4bed0141196be4cd9db91b15342193"
+    },
+    {
+      "source": ".work/recheck-inventory-work.py",
+      "retained_copy": "reviews/20-chrome/records/recheck/closing/work-inventory.py.txt",
+      "sha256": "434ebc54beee97530bdd1f0f841e7128c551c6f0e7ded6573679c760606e5e44"
+    },
+    {
+      "source": ".work/recheck-audit-final.py",
+      "retained_copy": "reviews/20-chrome/records/recheck/closing/artifact-audit-runner.py.txt",
+      "sha256": "1672f558c9d1ed2d57e7de550fddd97291dd745aef04adf00844119e6927a02a"
+    },
+    {
+      "source": ".work/recheck-resume-ci.py",
+      "retained_copy": "reviews/20-chrome/records/recheck/closing/ci-wait-controller.py.txt",
+      "sha256": "a865a3dc91e9d230b3c94fe651100e5e827a45a584a9534c38ac4699307361e1"
+    },
+    {
+      "tracked_source": "reviews/20-chrome/audit-review-evidence.mjs",
+      "sha256": "58ecfbd75bb972dd1d8f7c6a25654ff8c4fc4e0ea614eea75a98f27ccc96e487"
+    },
+    {
+      "tracked_source": "reviews/20-chrome/audit-streams.mjs",
+      "sha256": "5304592b9c5345d44b45e0bf39a209efcc25a50b4c67ce059cf9f5940ce04948"
+    },
+    {
+      "tracked_source": "control/chrome/ci/owner-evidence.mjs",
+      "sha256": "29d6987e2ae99955bd45dd3dc41f845fe1e6242d5b12ca385b8f48fa470ed45f"
+    },
+    {
+      "tracked_source": "control/chrome/ci/verdicts.mjs",
+      "sha256": "632ae25d98b8e673b574aca4e5daf004de20a4544598cb7903cba772167a5b83"
+    },
+    {
+      "tracked_source": "reviews/20-chrome/mutation-audit.py",
+      "sha256": "f8af9e0203b56c4cafeaff568208ec085b32b194a3b8346093982e857be1db9c"
+    },
+    {
+      "retained_copy": "reviews/20-chrome/records/recheck/closing/dispatch-receipts.json",
+      "sha256": "0624fb1301d836f7ff76087979b7776fb494da829de4d88e547ded01ede89cf9"
+    }
+  ]
+}

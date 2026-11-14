@@ -1,0 +1,122 @@
+{
+  "run": "43584711126",
+  "head": "c1173b0b1fe226d3e540d32983a51f862c64c74a",
+  "conclusion": "failure",
+  "metadata_only": true,
+  "profiles_accessed": false,
+  "jobs": [
+    {
+      "name": "python-shards (3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "native-precedence",
+      "conclusion": "success"
+    },
+    {
+      "name": "package",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (0)",
+      "conclusion": "success"
+    },
+    {
+      "name": "latency (plain)",
+      "conclusion": "success"
+    },
+    {
+      "name": "latency (audit)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-0)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, recheck3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, recheck2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, recheck3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, adapters)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, recheck2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, adapters)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-0)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, review)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (external, review)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (external, core)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, core)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "aggregate (policy)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "aggregate (external)",
+      "conclusion": "failure"
+    }
+  ],
+  "failure": "Both review shards stopped at final-discard-close-tab-web-audio, one step further: the owner loaded the page in the released tab and the sound started (the page reported playing; Claude then took the tab), but the first chrome_close_tab without discard_unsaved closed the tab ({\"closed\":...}) instead of refusing with \"media that is playing\" (review-matrices.mjs:290, assert first.ok === false). The dirty case of the same loop was refused with its report just before, and final-discard-navigate-url-web-audio (the owner's own tab, taken) got the media report in all three runs. Everything else passed, latency gates included. Not diagnosed: no browser runs locally and the step's three runs are used."
+}

@@ -138,8 +138,13 @@ class Blobs:
         self.ensure_writable()
         # Unlinking only frees blocks; still account for filesystem metadata.
         candidates = [path for path in self.directory.iterdir()
-                      if re.fullmatch(r'[0-9a-f]{64}', path.name) and path.name not in pinned
+                      if re.fullmatch(r'[0-9a-f]{64}', path.name)
                       and now - path.stat().st_mtime >= ttl]
+        # Most Chrome calls have no old files. Resolve references only when
+        # needed, fully and before unlinking even one candidate.
+        if candidates:
+            pins=pinned() if callable(pinned) else pinned
+            candidates=[path for path in candidates if path.name not in pins]
         if candidates:
             self.ledger.admit(8192)
         changed = False

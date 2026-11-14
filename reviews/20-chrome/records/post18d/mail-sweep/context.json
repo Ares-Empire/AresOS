@@ -1,0 +1,57 @@
+{
+ "question": "Why the Mail OS/SQLite fault sweep grew from 4 shards under 35 minutes on main to 8 shards that reached 60 minutes on pkg/20-chrome (lead, 2026-11-14).",
+ "commits": {
+  "main": "b2b51107",
+  "branch": "096c3088",
+  "branch_note": "Mail runtime, Mail tests and control/ci/mail are byte-identical at 06878e08, b94c1acf, 0ca3f6d7, 7d9c0b95 and 096c3088; main's Mail code is identical at 7cbf6c21, 1c4b0c19, 4ae90076 and today's origin/main.",
+  "sweep_harness_changed_by_branch": "No: test_review23_sweep.py, storage_faults.py, sweep_scripts.py and control/ci/mail are unchanged; the counts come from runtime changes."
+ },
+ "ci_run_sources": {
+  "main": {"43465777152": "7cbf6c21 pkg/18c-image-test, 4 shards", "43177961962": "1c4b0c19 pkg/18d-base-slim, 4 shards", "43183755749": "4ae90076 docs/18d-followups, 4 shards"},
+  "branch": {"43513676712": "b94c1acf, 8 shards, complete", "43530064032": "7d9c0b95, shards 0 and 6 cancelled at 60 min", "43521486798": "0ca3f6d7, shard 4 cancelled", "43506058350": "06878e08, shards 5 and 6 cancelled at 35 min"},
+  "context_only": {"43441699847": "63c81414 branch before the main merge (no scripted journal timestamps yet), 4 shards", "43437906487": "63c81414", "43147996259": "ad777f5e pkg/19-mail, different Mail code"},
+  "source": "gh run view <id> --log, fetched once; only the sweep's own 'Review26 modes: <flow> {...}; elapsed=Ns' lines are used. Cancelled jobs contribute the flows they finished.",
+  "log_sha256": {
+   "43465777152": "4ee235d6351a0f50a59d6fe9af59672b635976472adab68e31ba35e070b2032a",
+   "43177961962": "7c1eee2197dc4c51a1ee99195f800ff19aa4ef5da480fd84d47298807c56cd97",
+   "43183755749": "8f43db091bdabb19b114eacea3d45a4a68a0f0470fbeff340d795d4adce9e00e",
+   "43513676712": "37196454a0990847019f9503f59663e9f127dd8d3effed4f7ba4a2e9cbacf3d3",
+   "43530064032": "def619ccac055f5b56b923f0a47269ad7ed1d6b4d2817a54753ce983e1e86b4a",
+   "43521486798": "de0bb43dd9b830eb0c78ddda49eb6bcb603dad03b63693c978c1566f333852fb",
+   "43506058350": "21c5b52815307752672c23f6bdcffcda133d60374abe02bdc9a30afabe6cfed2"
+  }
+ },
+ "environment": {
+  "local": "Apple M5 (10 cores), macOS 26.6.2 arm64, CPython 3.14.6, SQLite 3.53.3, jsonschema 4.26.0; plain Python only, no browser, no container, no mail server",
+  "fixtures": "Unchanged sweep Scenario/OSWrites/sweep_scripts for counts; the suite's MemoryIMAP Engine fixture for per-call latency. The only stand-in is hostenv.py: the root-owned managed-settings file CI installs is replaced by an equivalent read with the same descriptor shape.",
+  "ci": "ubuntu-24.04 GitHub runners, Fedora 45 container; runner speed varies up to about 2x between jobs"
+ },
+ "count_rule": "Per flow: 2 x (non-close write points) + pairs; a pair is (primary point n, any cleanup site after n in the single-fault run at n). Every close/unlink/rename/truncate after the injected failure is a cleanup site.",
+ "attribution": {
+  "pairs": {
+   "what": "Closes of the read-only journal descriptor opened by Chrome's committed projection (control/aresos_control/chrome/committed.py journal_reader) while every result builds its pending/notices envelope",
+   "where": "engine.py:78 notice_page extras=chrome.notice_rows; engine.py:101 pending chrome_total; engine.py:189 _pending pending_rows; mail/filing.py:275 extras; committed.py:119-122 sync cache keyed on (inode, size, mtime_ns)",
+   "commits": ["f3cfd5b1 Derive Chrome owner state from committed journal metadata during SQLite failures", "3bf1b0d2 Derive Chrome state from committed history and retire resolved checks", "4d80ea38 journal_reader"],
+   "multiplier": "main 15880c62 (sweep_scripts.timestamps) returns a fresh scripted mtime for operations.jsonl on every stat, so the projection's cache never hits inside the sweep: 26 journal reopens per Mail request instead of 1-3. Arrived with the main merge 77cad19a; the pre-merge branch (63c81414, older Mail tests without the scripted journal timestamps) ran 1.22x main's cases on the 22 flows both have.",
+   "safety_property": "Chrome's open page-step checks, unknown-outcome inputs and unacknowledged warnings are shown in every app's results from the hash-verified committed journal, including while SQLite reads fail (f3cfd5b1). It prevents a Mail or other result from hiding a Chrome input that may have run."
+  },
+  "primaries": {
+   "what": "One extra SQLite page write per transaction that changes an op: row: the optional operation_headers expression index",
+   "commits": ["bc738001 Filter retained operation headers before catalogue decoding and measure warm histories", "ae0047d8 Allocate optional operation headers only after reconstructing recovery rights"],
+   "evidence": "With Store._index_operation_headers disabled every flow has main's exact primary count (clean-branch-noindex)."
+  },
+  "slower_cases": {
+   "what": "Engine start-up in the sweep: the Chrome adapter hashes 92 runtime files (1.3 MB) at every Engine start when build-id.json is absent (a source checkout; installed builds read build-id.json); the sweep starts 2-3 Engines per case. Second: the scripted-timestamp journal re-reads.",
+   "commits": ["414eb1df Add Chrome catalogue, policy and durable service adapter (Engine always builds Chrome)"],
+   "test_only": true
+  }
+ },
+ "fix_candidate": {
+  "title": "Read-only Mail calls fail on a full disk once about 700 operations are retained",
+  "cause": "Store.iter_operations (storage.py:831-833, bc738001) forces 'kv INDEXED BY operation_headers' with ORDER BY k. SQLite then sorts in a temporary B-tree, which spills to temporary files when the rows exceed its 2 MB cache. Each pending/notices envelope calls it in engine._pending (exclude_app='chrome') and Mail.unresolved_sent_checks (app='mail'), and every result builds that envelope twice.",
+  "effect": "mail_read and mail_search do 0 writes on main at any history; on the branch they create 6 temporary files and write about 5,400 pages per call at 1,000 retained operations (21,200 at 4,000). With every allocating write failing (ENOSPC), both return storage_limit from 700 retained operations; main answers them.",
+  "safety_property": "None. The index is a speed optimisation; for these two filters the forced index is no faster than the primary-key scan (14.3 vs 13.4 ms at 1,000; 56.0 vs 52.3 ms at 4,000; fulldisk-branch pending_scan_ms).",
+  "not_in_ci": "The sweep's fixtures hold only a handful of operations, so the sort stays in memory and the sweep cannot see it.",
+  "options": "Force the index only for selective state filters (states, legacy_open), or keep the primary-key order for app/exclude_app scans, or PRAGMA temp_store=MEMORY. Route to the builder; analysis changed no runtime code."
+ }
+}

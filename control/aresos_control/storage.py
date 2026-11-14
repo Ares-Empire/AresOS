@@ -35,7 +35,7 @@ def sync_directory(path):
 
 def short_description(operation):
     description = operation["approval"]["description"]
-    if operation.get("app") == "mail" and "untrusted_content" in description:
+    if operation.get("app") in {"mail", "chrome"} and "untrusted_content" in description:
         result = {"action": description["action"], "untrusted_content": copy.deepcopy(description["untrusted_content"])}
         if operation.get('repair_of'):
             result['repair'] = {'repair_of': operation['repair_of'],
@@ -128,6 +128,25 @@ class JournalRecords:
                     yield record
 
 
+# The unresolved operations, which every request looks at: open ones
+# (retention.OPEN), ones whose state header is malformed (kept so the caller's
+# own check fails closed), ones carrying a notice the owner hasn't acknowledged,
+# and Mail sends whose sent-copy check is still open. This one expression is
+# both the partial index's WHERE and the extra term of every selective query,
+# so SQLite's planner sees the query imply the index (identical terms) and the
+# two can't drift apart. The index holds k alone, so a walk through it is
+# already in key order: no sort, nothing to spill on a full disk. The unary
+# plus keeps the header filters off any expression index an earlier build left
+# behind; the partial index's own WHERE is never matched that way. The notice
+# and ack tests accept every SQL spelling of a Python-truthy or -falsy value,
+# so the index is a superset of the Python predicates, never a subset.
+OPEN_OPERATIONS = ("(+json_extract(v,'$.state') IN (" + ','.join("'" + state + "'" for state in sorted(retention.OPEN)) + ")"
+                   " OR typeof(json_extract(v,'$.state'))!='text' OR substr(json_extract(v,'$.state'),1,1) IN ('[','{')"
+                   " OR (+json_extract(v,'$.notice') NOT IN (0,'') AND COALESCE(+json_extract(v,'$.ack'),0) IN (0,'','[]','{}'))"
+                   " OR +json_extract(v,'$.sent_copy_check.state')='open')")
+OPEN_INDEX = "CREATE INDEX operation_open ON kv(k) WHERE substr(k,1,3)='op:' AND " + OPEN_OPERATIONS
+
+
 class Store:
     def __init__(self, state_dir, evidence_dir, checkpoint=lambda _: None):
         self.db = self.index = self.journal = None
@@ -162,6 +181,7 @@ class Store:
         fcntl.flock(self.journal, fcntl.LOCK_EX | fcntl.LOCK_NB)
         sync_directory(self.evidence_dir)
         self.db = sqlite3.connect(self.state_dir / "control.sqlite")
+        self.text_encoding=self.db.execute('PRAGMA encoding').fetchone()[0]
         self.db.execute("PRAGMA journal_mode=DELETE")
         self.db.execute("PRAGMA synchronous=FULL")
         if not self.db.execute("SELECT 1 FROM sqlite_master WHERE name='operation_versions'").fetchone():
@@ -255,10 +275,51 @@ class Store:
                             # cancellation available if this annotation cannot fit.
             from .recovery import recover_intents
             recover_intents(self)
+            # Optional speed indexes may spend only unheld space, after every
+            # prepared recovery and reservation has been reconstructed.
+            self._index_open_operations()
         except BaseException as exc:
             with cleanup('index rebuild', exc):
                 self.close()
             raise
+
+    def _index_open_operations(self):
+        # SQLite maintains the partial index atomically with kv. A store that
+        # cannot add it (a full disk, an older ledger over quota) still opens and
+        # reads: every selective query walks the primary key in key order
+        # instead, slower but with the same rows and still without a sort.
+        # The index is known by its whole definition, not its name. One built
+        # from an older OPEN_OPERATIONS no longer matches the queries' term, so
+        # the planner would skip it and every selective read would walk the
+        # history; it is replaced. If the replacement can't be built, the store
+        # opens with the old index or none (the same rows either way) and the
+        # next open tries again.
+        stored = self.db.execute("SELECT sql FROM sqlite_master WHERE type='index' AND name='operation_open'").fetchone()
+        if stored is not None and stored[0] == OPEN_INDEX:
+            return
+        try:
+            count = self.db.execute("SELECT count(*) FROM kv WHERE k>='op:' AND k<'op;' AND " + OPEN_OPERATIONS).fetchone()[0]
+            cost = max(64 * 1024, count * 128)
+            self.ledger.admit(cost, history_cost=cost)
+            # Python's sqlite3 opens no transaction before DDL, so a DROP alone
+            # would commit at once, and a rebuild that then failed (a nearly
+            # full disk) would leave no index until the next open. In one
+            # transaction a failed rebuild rolls back to the old index.
+            if not self.db.in_transaction:
+                self.db.execute('BEGIN')
+            if stored is not None:
+                self.db.execute('DROP INDEX operation_open')
+            self.db.execute(OPEN_INDEX)
+            self.db.commit()
+        except (OSError, sqlite3.Error) as exc:
+            if storage_refusal(exc) is None:
+                raise
+            self.db.rollback()
+            self.observations.storage(exc)
+        except Refused as exc:
+            if exc.code != 'storage_limit':
+                raise
+            self.observations.storage(exc)
 
     def _index_record(self, record, offset):
         if self.index is not None:
@@ -367,6 +428,10 @@ class Store:
                         self.ledger.holds.update(self.ledger.right(op, self.get('op:' + (op.get('repair_of') or ''))))
         if self.locked:
             budget = 256 * 1024
+            for key,value in self._restore_chrome():
+                budget += len(canonical(value).encode())*16+65536
+                if key.startswith('op:') and value is not None:
+                    self.ledger.holds.update(self.ledger.right(value))
             for restored in self._restore_operations():
                 budget += record_budget(restored)
                 self.ledger.holds.update(self.ledger.right(restored, self.get('op:' + (restored.get('repair_of') or ''))))
@@ -415,6 +480,8 @@ class Store:
         # Admission and confirmation must enumerate exactly the same work.
         # Unchanged closed history costs no reconstruction space.
         for op_id, seq, known in self.iter_latest(through):
+            if known['description'].get('action','').startswith('chrome_') and self.chrome_state.historical('op:'+op_id) is not None:
+                continue
             old = self.get('op:' + op_id)
             if old is None and self.get('archived:' + op_id) == {'seq': seq}:
                 continue
@@ -428,6 +495,28 @@ class Store:
             else:
                 continue
             yield old
+
+    @property
+    def chrome_state(self):
+        if not hasattr(self, '_chrome_state'):
+            from .chrome.committed import Projection
+            self._chrome_state = Projection(self)
+        return self._chrome_state
+
+    def _restore_chrome(self):
+        for key, value in self.chrome_state.restore_rows():
+            if key=='chrome:qualification':
+                # Qualification reads already use this complete committed
+                # value. Its multi-year history can exceed a restore batch;
+                # copying it into disposable SQLite would add no authority.
+                continue
+            if key.startswith('op:') and value is not None:
+                if value['state']=='reserved':
+                    value.update(state='failed',notice=True,reason='Restore invalidated this generation\'s approval; nothing resumed.')
+                elif value['state']=='submitting':
+                    value.update(state='unknown',reason='Restored committed input has no completion; inspect the page, never replay.')
+            if self.get(key)!=value:
+                yield key,value
 
     def require_index(self):
         # An admission refusal is only a diagnostic. Reconstruct disposable
@@ -525,7 +614,7 @@ class Store:
         if any(key.startswith(('mail:filing:', 'mail:rename:')) for key in changes):
             self._open_filings = None
         self.ensure_writable()
-        cancellation = action.endswith('_operation_cancel')
+        cancellation = action.endswith('_operation_cancel') or action == 'chrome_drop'
         if not (restoring or self.archiving or cancellation or recovery or self.recovering):
             self.require_index()
         if self.locked and not restoring:
@@ -591,6 +680,15 @@ class Store:
                   "previous": self.head_hash, "time": time.time(),
                   "generation": changes.get("generation", self.generation),
                   "operations": compact}
+        chrome = {}
+        for key,value in changes.items():
+            if key.startswith(('chrome:','intent:chrome:')):
+                chrome[key]=copy.deepcopy(value)
+            elif key.startswith(('op:','notice:')):
+                previous=self.get(key) if value is None else value
+                if isinstance(previous,dict) and previous.get('app')=='chrome':
+                    chrome[key]=copy.deepcopy(value)
+        if chrome:record['chrome']=chrome
         record["hash"] = digest(record)
         if restoring and len(canonical(record).encode()) > RESTORE_BATCH_BYTES:
             raise Refused('storage_limit', 'One restore evidence record exceeds the bounded confirmation batch; ask the owner to inspect it.')
@@ -724,8 +822,78 @@ class Store:
         return json.loads(row[0]) if row else default
 
     def iter_items(self, prefix):
-        for k, v in self.db.execute("SELECT k,v FROM kv WHERE substr(k,1,?)=? ORDER BY k", (len(prefix), prefix)):
-            yield k, json.loads(v)
+        # Use the primary-key range: maintenance of an empty namespace must
+        # not scan every completed operation. Preserve literal Unicode prefixes
+        # (including old substr behavior for NULs and legacy UTF-16 databases).
+        if not isinstance(prefix,str):raise TypeError('Namespace prefix must be a string')
+        encoding=getattr(self,'text_encoding',None) or self.db.execute('PRAGMA encoding').fetchone()[0]
+        if encoding!='UTF-8' or '\0' in prefix:
+            rows=self.db.execute("SELECT k,v FROM kv WHERE substr(k,1,?)=? ORDER BY k",(len(prefix),prefix))
+        elif not prefix:
+            rows=self.db.execute("SELECT k,v FROM kv WHERE typeof(k)='text' ORDER BY k")
+        else:
+            position=len(prefix)-1
+            while position>=0 and ord(prefix[position])==0x10ffff:position-=1
+            if position<0:
+                rows=self.db.execute("SELECT k,v FROM kv WHERE typeof(k)='text' AND k>=? ORDER BY k",(prefix,))
+            else:
+                successor=ord(prefix[position])+1
+                if successor==0xd800:successor=0xe000
+                limit=prefix[:position]+chr(successor)
+                rows=self.db.execute('SELECT k,v FROM kv WHERE k>=? AND k<? ORDER BY k',(prefix,limit))
+        for k,v in rows:yield k,json.loads(v)
+
+    def iter_operations(self, app=None, exclude_app=None, legacy_open=False, states=None, unresolved=False):
+        # Inspect small headers in SQLite before decoding retained payloads.
+        # This is a fresh query of the same working rows, not a cached verdict;
+        # Chrome's independent committed projection remains its read authority.
+        # Every shape walks a key-ordered index: the primary key over every
+        # retained operation for the broad shapes (an app's whole history), the
+        # partial index operation_open for the selective ones (open states or a
+        # subset of them, legacy notices, the unresolved set itself). The unary
+        # plus keeps each header filter off any expression index (including
+        # one an earlier build left behind), so no shape sorts in a temporary
+        # B-tree: that sort spills to a temporary file with a few hundred
+        # retained operations, and a read must not need disk space. The
+        # substr test keeps the exact prefix for databases in a UTF-16 encoding.
+        clauses = ["k>='op:'", "k<'op;'", "substr(k,1,3)='op:'"]
+        parameters = []
+        if unresolved or legacy_open or (states is not None and set(states) <= retention.OPEN):
+            # The exact index expression: the planner needs the identical term
+            # to use the partial index. It only narrows to rows the filters
+            # below (or the caller's own predicate) select anyway.
+            clauses.append(OPEN_OPERATIONS)
+        if app is not None:
+            clauses.append("+json_extract(v,'$.app')=?")
+            parameters.append(app)
+        if exclude_app is not None:
+            clauses.append("+json_extract(v,'$.app') IS NOT ?")
+            parameters.append(exclude_app)
+        if states is not None:
+            # Keep malformed headers in the candidate set so the caller's
+            # original predicate still fails closed before cleanup.
+            states=sorted(states)
+            clauses.append("(+json_extract(v,'$.state') IN ("+','.join('?' for _ in states)+") OR typeof(json_extract(v,'$.state'))!='text' OR substr(json_extract(v,'$.state'),1,1) IN ('[','{'))")
+            parameters.extend(states)
+        if legacy_open:
+            # Only unfinished false-like version headers can be legacy notices.
+            # Any extra SQLite coercion
+            # matches still pass through the caller's original Python predicate.
+            clauses.append("NOT COALESCE(+json_extract(v,'$.context_version'),0)")
+            clauses.append("+json_extract(v,'$.state') IN ('reserved','submitting','unknown','partial')")
+        for key, value in self.db.execute('SELECT k,v FROM kv WHERE '+' AND '.join(clauses)+' ORDER BY k', parameters):
+            yield key, json.loads(value)
+
+    def operation_hashes(self):
+        # Enumerate the same nested string references as retention.hashes in
+        # SQLite, without decoding every completed operation into Python.
+        # No side cache: callers finish this fresh enumeration before deleting.
+        # Byte suffixing preserves embedded NULs; its length follows DB encoding.
+        query="""SELECT tree.atom FROM kv AS source, json_tree(source.v) AS tree
+            WHERE substr(source.k,1,3)='op:' AND tree.type='text'
+            AND typeof(tree.key)='text'
+            AND (tree.key='sha256' OR substr(CAST(tree.key AS BLOB),-length(CAST('_sha256' AS BLOB)))=CAST('_sha256' AS BLOB))"""
+        for row in self.db.execute(query):yield row[0]
 
     def items(self, prefix):
         return list(self.iter_items(prefix))
@@ -749,6 +917,15 @@ class Store:
         through = self.sequence
         changes = {}
         batch_bytes = 0
+        # Reconcile policy, qualification, outcomes and acknowledgements before
+        # the final generation marker can release the restore lock.
+        for key,value in self._restore_chrome():
+            amount=len(canonical(value).encode())*2+1024
+            if changes and (len(changes)>=RESTORE_BATCH_COUNT or batch_bytes+amount>RESTORE_BATCH_BYTES):
+                changes['restore_pending']=True
+                self.write(changes,'control_restore_confirm','Committed Chrome restore batch',restoring=True)
+                changes={};batch_bytes=0
+            changes[key]=value;batch_bytes+=amount
         for old in self._restore_operations(through):
             key = 'op:' + old['id']
             amount = len(canonical(old).encode()) + len(canonical(short_description(old)).encode()) + 1024

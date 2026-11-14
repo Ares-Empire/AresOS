@@ -1,0 +1,177 @@
+{
+  "run": "43575571819",
+  "head": "87041a5774452494450148301a0c18d17186f88e",
+  "conclusion": "failure",
+  "metadata_only": true,
+  "profiles_accessed": false,
+  "jobs": [
+    {
+      "name": "package",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "native-precedence",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "python-shards (0)",
+      "conclusion": "success"
+    },
+    {
+      "name": "latency (plain)",
+      "conclusion": "success"
+    },
+    {
+      "name": "latency (audit)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-0)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, recheck3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, review)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (external, word-1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-0)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, recheck2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, core)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, adapters)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, core)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, recheck2)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, adapters)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, word-3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (policy, review)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "fixtures (policy, word-1)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, word-3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "fixtures (external, recheck3)",
+      "conclusion": "success"
+    },
+    {
+      "name": "aggregate (policy)",
+      "conclusion": "failure"
+    },
+    {
+      "name": "aggregate (external)",
+      "conclusion": "failure"
+    }
+  ],
+  "failure": "Both review shards stopped in GROUP 8 at final-discard-close-tab-web-audio: after Claude's click on \"Play media\" the page never reported the AudioContext running (eventually 15 s, \"Web Audio playback started\"). Every other row before it passed; core, latency (both profiles, gates passed at fresh, 1,000 and 4,000), words, recheck2/3, adapters, precedence and the Python shards passed. Fixed in the harness: the owner starts the sound as in every other Web Audio row (17f402d1).",
+  "ci_timing_record": {
+    "1000:chrome_read_service": {
+      "median_ms": 2.94
+    },
+    "1000:engine_pending": {
+      "median_ms": 17.56
+    },
+    "1000:expire": {
+      "indexed_ms": 0.01,
+      "scan_ms": 6.505
+    },
+    "1000:pending": {
+      "indexed_ms": 0.01,
+      "scan_ms": 18.182
+    },
+    "1000:recovery_notices": {
+      "indexed_ms": 0.01,
+      "scan_ms": 6.018
+    },
+    "1000:retention_expire": {
+      "indexed_ms": 0.01,
+      "scan_ms": 6.634
+    },
+    "1000:unresolved_sent_checks": {
+      "indexed_ms": 0.01,
+      "scan_ms": 17.944
+    },
+    "4000:chrome_read_service": {
+      "median_ms": 7.43
+    },
+    "4000:engine_pending": {
+      "median_ms": 71.97
+    },
+    "4000:expire": {
+      "indexed_ms": 0.01,
+      "scan_ms": 29.469
+    },
+    "4000:pending": {
+      "indexed_ms": 0.01,
+      "scan_ms": 89.816
+    },
+    "4000:recovery_notices": {
+      "indexed_ms": 0.01,
+      "scan_ms": 26.475
+    },
+    "4000:retention_expire": {
+      "indexed_ms": 0.01,
+      "scan_ms": 28.747
+    },
+    "4000:unresolved_sent_checks": {
+      "indexed_ms": 0.01,
+      "scan_ms": 88.218
+    },
+    "sqlite_version": "3.45.1"
+  }
+}
