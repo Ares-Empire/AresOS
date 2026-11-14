@@ -21,3 +21,33 @@ test('CI latency overlay preserves results native timers and code with absent hi
     assert(messages.every(row=>row.milliseconds>=0));assert(!JSON.stringify(messages).includes('Synthetic result'));
   }
 });
+
+test('gate60 the latency client takes the lead sample count for every call and history phase',async()=>{
+  // latency-targets.json holds the count (mac-aresos-control, 2026-11-14); the
+  // client, the summary and the check all read it.
+  const {latencyProbe,LATENCY_SAMPLES}=await import('../chrome/ci/latency-probe.mjs');
+  const fs=await import('node:fs');const os=await import('node:os');const path=await import('node:path');
+  const targets=JSON.parse(fs.readFileSync(new URL('../chrome/ci/latency-targets.json',import.meta.url),'utf8'));
+  assert.equal(LATENCY_SAMPLES,targets.samples_per_call);
+  const out=fs.mkdtempSync(path.join(os.tmpdir(),'aresos-latency-client-'));
+  try{
+    let url=null;const seeds=[];
+    const call=async(name,args)=>{
+      if(name==='navigate'){url=args.url;return {ok:true};}
+      if(name==='read'){const seed=path.join(out,'latency-history-seed.json');if(fs.existsSync(seed)){seeds.push(JSON.parse(fs.readFileSync(seed,'utf8')).count);fs.rmSync(seed);}return {untrusted_content:{url}};}
+      if(name==='click')return args.name==='Send'?{approval:{operation:'synthetic'}}:{ok:true};
+      if(name==='submit')return {operation:{state:'done'}};
+      return {ok:true};
+    };
+    await latencyProbe({call,target:async name=>({name}),nav:null,eventually:async check=>assert(await check()),getTab:()=>1,out});
+    const rows=JSON.parse(fs.readFileSync(path.join(out,'latency-client.json'),'utf8')).samples;
+    const phases=['fresh','history-1000','history-4000'],calls=['read','navigate','free_click','fill','asking_click','approval_to_done'];
+    assert.deepEqual(seeds,[1000,4000]);
+    assert.equal(rows.length,phases.length*calls.length*targets.samples_per_call);
+    for(const phase of phases)for(const name of calls){
+      const samples=rows.filter(row=>row.phase===phase&&row.call===name).map(row=>row.sample);
+      assert.deepEqual(samples,Array.from({length:targets.samples_per_call},(_,index)=>phase+':'+index),phase+' '+name);
+    }
+    assert.equal(fs.existsSync(path.join(out,'latency-marker.json')),false);
+  }finally{fs.rmSync(out,{recursive:true,force:true});}
+});

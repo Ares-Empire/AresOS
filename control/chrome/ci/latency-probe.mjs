@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {performance} from 'node:perf_hooks';
-export async function latencyProbe({call,target,nav,eventually,getTab}){
+// The lead's sample count (latency-targets.json), read by the summary and the check too.
+export const LATENCY_SAMPLES=JSON.parse(fs.readFileSync(new URL('./latency-targets.json',import.meta.url),'utf8')).samples_per_call;
+export async function latencyProbe({call,target,nav,eventually,getTab,out='/out'}){
+  assert(Number.isInteger(LATENCY_SAMPLES)&&LATENCY_SAMPLES>=20,'latency sample count');
   const rows=[];
-  async function measure(sample,name,fn){fs.writeFileSync('/out/latency-marker.json',JSON.stringify({sample,call:name}));const start=performance.now();try{return await fn();}finally{rows.push({sample,phase:sample.split(':')[0],call:name,milliseconds:performance.now()-start});fs.rmSync('/out/latency-marker.json',{force:true});}}
+  async function measure(sample,name,fn){fs.writeFileSync(out+'/latency-marker.json',JSON.stringify({sample,call:name}));const start=performance.now();try{return await fn();}finally{rows.push({sample,phase:sample.split(':')[0],call:name,milliseconds:performance.now()-start});fs.rmSync(out+'/latency-marker.json',{force:true});}}
   for(const [phase,history] of [['fresh',0],['history-1000',1000],['history-4000',4000]]){
-    if(history){fs.writeFileSync('/out/latency-history-seed.json',JSON.stringify({count:history}));await call('read',{tab:getTab()});assert.equal(fs.existsSync('/out/latency-history-seed.json'),false);}
-    for(let index=0;index<20;index++){
+    if(history){fs.writeFileSync(out+'/latency-history-seed.json',JSON.stringify({count:history}));await call('read',{tab:getTab()});assert.equal(fs.existsSync(out+'/latency-history-seed.json'),false);}
+    for(let index=0;index<LATENCY_SAMPLES;index++){
     const sample=phase+':'+index;
     const url='http://localhost:8765/?case=latency&id='+sample;
     await measure(sample,'navigate',()=>call('navigate',{tab:getTab(),url}));
@@ -18,6 +21,6 @@ export async function latencyProbe({call,target,nav,eventually,getTab}){
     const approved=await measure(sample,'approval_to_done',()=>call('submit',prepared.approval));assert.equal(approved.operation.state,'done');
   }
   }
-  fs.writeFileSync('/out/latency-client.json',JSON.stringify({samples:rows,privacy:process.env.LATENCY_PRIVACY||'plain',baseline:process.env.LATENCY_BASELINE||'current'},null,2));
-  console.log('Latency probe complete:',rows.length,'calls, 20 per category and history phase; no owner think time');
+  fs.writeFileSync(out+'/latency-client.json',JSON.stringify({samples:rows,privacy:process.env.LATENCY_PRIVACY||'plain',baseline:process.env.LATENCY_BASELINE||'current'},null,2));
+  console.log('Latency probe complete:',rows.length,'calls,',LATENCY_SAMPLES,'per category and history phase; no owner think time');
 }

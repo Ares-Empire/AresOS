@@ -456,9 +456,11 @@ class Questions(unittest.TestCase):
         # Claude Code 2.1.319 (the boundary's pinned CLI) keeps the first 4,096
         # characters of a server's instructions and marks the rest truncated;
         # native precedence then fails "Server instructions shortened or absent"
-        # (run 43603381599, chrome at 4,149). Every app must stay within it.
-        from aresos_control.definitions import instructions_for
-        for app in ('testapp','mail','chrome'):
+        # (run 43603381599, chrome at 4,149). Every app must stay within it:
+        # each one in APPS, control included, not a list that can fall behind.
+        from aresos_control.definitions import APPS, instructions_for
+        self.assertLessEqual({'testapp','mail','chrome','control'},APPS)
+        for app in sorted(APPS):
             with self.subTest(app=app):
                 self.assertLessEqual(len(instructions_for(app)),4096,app)
 

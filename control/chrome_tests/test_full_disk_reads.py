@@ -325,6 +325,35 @@ class FullDiskReads(unittest.TestCase):
             for shape in SHAPES:self.assertEqual(list(reopened.iter_operations(**shape)),expected[repr(shape)],shape)
         finally:reopened.close()
 
+    def test_a_rebuild_that_fails_after_its_drop_keeps_the_old_index(self):
+        # The security re-check of fixes b: Python's sqlite3 opens no
+        # transaction before DDL, so a DROP on its own commits at once. When the
+        # CREATE after it then fails (a nearly full disk: the DROP frees pages,
+        # the build needs more), the store would have no index until the next
+        # open. Drop and rebuild are one transaction, so the old index stays.
+        import sqlite3
+        expected={repr(shape):list(self.store.iter_operations(**shape)) for shape in SHAPES}
+        older=storage.OPEN_INDEX.replace("'$.sent_copy_check.state')='open'","'$.sent_copy_check.state')='pending'")
+        self.assertNotEqual(older,storage.OPEN_INDEX)
+        self.store.db.execute('DROP INDEX operation_open');self.store.db.execute(older);self.store.db.commit()
+        class FullAtCreate(Recorded):
+            def execute(self,sql,parameters=()):
+                if sql==storage.OPEN_INDEX:
+                    self.statements.append((sql,list(parameters)))
+                    error=sqlite3.OperationalError('database or disk is full');error.sqlite_errorcode=sqlite3.SQLITE_FULL
+                    raise error
+                return super().execute(sql,parameters)
+        connection=self.store.db;self.store.db=FullAtCreate(connection)
+        try:self.store._index_open_operations()
+        finally:statements=[sql for sql,_ in self.store.db.statements];self.store.db=connection
+        self.assertEqual(statements[-2:],['DROP INDEX operation_open',storage.OPEN_INDEX],'the drop ran and the rebuild failed')
+        self.assertFalse(connection.in_transaction)
+        self.assertEqual(self.indexes().get('operation_open'),older,'a failed rebuild keeps the old index')
+        self.assertIsNotNone(self.store.observations.error)
+        for shape in SHAPES:self.assertEqual(list(self.store.iter_operations(**shape)),expected[repr(shape)],shape)
+        self.store._index_open_operations()
+        self.assertEqual(self.indexes().get('operation_open'),storage.OPEN_INDEX,'the next try replaces it')
+
     def request(self,action,arguments):
         return self.engine.request({'v':1,'method':'call','action':action,'arguments':arguments})
 

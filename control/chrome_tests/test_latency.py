@@ -265,7 +265,8 @@ class LatencySummary(unittest.TestCase):
         module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         with tempfile.TemporaryDirectory(dir=Path(__file__).resolve().parents[2]/'.work') as temporary:
             root=Path(temporary)
-            rows=[{'sample':phase+':'+str(i),'phase':phase,'call':call,'milliseconds':(525 if call in module.INPUTS else 0)+10+i} for phase in sorted(module.PHASES) for i in range(20) for call in sorted(module.CALLS)]
+            self.assertEqual(module.SAMPLES,json.loads((path.parent/'latency-targets.json').read_text())['samples_per_call'])
+            rows=[{'sample':phase+':'+str(i),'phase':phase,'call':call,'milliseconds':(525 if call in module.INPUTS else 0)+10+i} for phase in sorted(module.PHASES) for i in range(module.SAMPLES) for call in sorted(module.CALLS)]
             client={'samples':rows,'baseline':'current','privacy':'plain'}
             for file,value in [('chrome-version.txt','Synthetic Chrome'),('runtime-build.txt','synthetic-build')]:
                 (root/file).write_text(value)
@@ -275,7 +276,12 @@ class LatencySummary(unittest.TestCase):
             (root/'latency-client.json').write_text(json.dumps(client))
             result=module.summarize(root)
             self.assertEqual(set(result['phases']),module.PHASES)
-            self.assertEqual(result['calls']['read']['client_total'],{'samples':20,'median_ms':19.5,'p95_ms':28})
+            # 60 samples of 10..69 ms: the median between the 30th and 31st,
+            # the p95 the 57th (index 56).
+            self.assertEqual(module.SAMPLES,60)
+            self.assertEqual(result['calls']['read']['client_total'],{'samples':60,'median_ms':39.5,'p95_ms':66})
+            self.assertEqual(result['samples_per_call'],60)
+            self.assertEqual(result['notes'][0],'60 samples per call and history phase; owner think time absent.')
             self.assertNotIn('compose_binding',result['calls']['read'])
             for bad in [rows[:-1],rows[:-1]+[rows[0]]]:
                 (root/'latency-client.json').write_text(json.dumps({**client,'samples':bad}))
@@ -301,8 +307,8 @@ class LatencyGate(unittest.TestCase):
                 accepted=reference['profiles'][profile]
                 current=copy.deepcopy(accepted['current'])
                 self.assertEqual(current['chrome'],observed['chrome'])
-                baseline=directory/'baseline.json';baseline.write_text(json.dumps(accepted['baseline']))
-                source=directory/'current.json';source.write_text(json.dumps(current))
+                baseline=directory/'baseline.json';baseline.write_text(json.dumps(self.repeated(accepted['baseline'])))
+                source=directory/'current.json';source.write_text(json.dumps(self.repeated(current)))
                 command=[sys.executable,'-B',str(ci/'latency-check.py'),str(source),str(baseline),str(ci/'latency-reference.json'),str(ci/'latency-targets.json')]
                 nominal=subprocess.run(command,capture_output=True,text=True,timeout=30)
                 self.assertEqual(nominal.returncode,0,nominal.stdout+nominal.stderr)
@@ -316,7 +322,7 @@ class LatencyGate(unittest.TestCase):
                     rows=[row for row in current['input_samples'] if row['phase']=='history-4000' and row['call']==call]
                     for stage,values in [('client_total',[row['client_ms'] for row in rows]),('post_input_observation_wait',[row['wait_ms'] for row in rows]),('client_without_wait',[max(0,row['client_ms']-row['wait_ms']) for row in rows])]:
                         group[call][stage]=self.stats(values)
-                source.write_text(json.dumps(current))
+                source.write_text(json.dumps(self.repeated(current)))
                 restored=subprocess.run(command,capture_output=True,text=True,timeout=30)
                 self.assertEqual(restored.returncode,1,restored.stdout+restored.stderr)
                 result=json.loads((directory/'latency-check.json').read_text())
@@ -325,35 +331,62 @@ class LatencyGate(unittest.TestCase):
                 self.assertEqual(failures,{('history-4000',call) for call in self.gate.CALLS})
 
     def stats(self,values):
-        import statistics
-        return {'samples':len(values),'median_ms':statistics.median(values),'p95_ms':sorted(values)[18]}
+        # The production summary's arithmetic (its median and p95 rule).
+        return self.summary.summary(values)
+
+    def repeated(self,measurement):
+        # The frozen reference has 20 samples per call; taking each sample
+        # three times gives the 60 the gate requires of a new measurement with
+        # the same median and p95 (the 30th/31st of 60 are the 10th/11th of 20,
+        # the 57th of 60 the 19th of 20).
+        factor,rest=divmod(self.samples,self.reference_samples)
+        self.assertEqual((factor,rest),(3,0))
+        value=copy.deepcopy(measurement)
+        for group in value['phases'].values():
+            for stages in group.values():
+                for block in stages.values():block['samples']*=factor
+        value['input_samples']=[{**row,'sample':row['phase']+':'+str(int(row['sample'].split(':')[1])+copy_index*self.reference_samples)}
+                                for copy_index in range(factor) for row in measurement['input_samples']]
+        return value
 
     def setUp(self):
         import importlib.util
+        import json
         from pathlib import Path
-        path=Path(__file__).resolve().parents[1]/'chrome/ci/latency-check.py'
-        spec=importlib.util.spec_from_file_location('latency_gate',path)
-        self.gate=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.gate)
-        def measurement(runtime,active):
-            phases={};pairs=[]
-            for phase in self.gate.PHASES:
-                group={}
-                for call in self.gate.CALLS:
-                    value=active*(1 if phase=='fresh' else 2)
-                    values=[value]*18+[value*1.2]*2
-                    wait=525 if call in self.gate.INPUTS else 0
-                    group[call]={'client_total':self.stats([wait+v for v in values])}
-                    for stage in ['service_total','service_without_bridge','bridge_round_trip','extension_total','session_rule_add','session_rule_remove','compose_binding','clipboard_hooks']:
-                        group[call][stage]=self.stats([1]*18+[2]*2)
-                    if wait:
-                        group[call]['post_input_observation_wait']=self.stats([wait]*20)
-                        group[call]['client_without_wait']=self.stats(values)
-                        pairs.extend({'sample':phase+':'+str(i),'phase':phase,'call':call,'client_ms':wait+v,'wait_ms':wait} for i,v in enumerate(values))
-                phases[phase]=group
-            return {'runtime':runtime,'privacy':'plain','chrome':'Synthetic Chrome','phases':phases,'input_samples':pairs}
-        self.current=measurement('current',20);self.old=measurement('ab7aba92',15)
-        self.reference={'privacy':'plain','current':copy.deepcopy(self.current),'baseline':copy.deepcopy(self.old)}
-        self.targets={'format':1,'status':'lead-approved','ceilings_ms':{call:{'median_ms':100 if call not in self.gate.INPUTS else 650,'p95_ms':150 if call not in self.gate.INPUTS else 750} for call in self.gate.CALLS}}
+        ci=Path(__file__).resolve().parents[1]/'chrome/ci'
+        modules={}
+        for name in ['latency-check','latency-summary']:
+            spec=importlib.util.spec_from_file_location(name.replace('-','_'),ci/(name+'.py'))
+            modules[name]=importlib.util.module_from_spec(spec);spec.loader.exec_module(modules[name])
+        self.gate,self.summary=modules['latency-check'],modules['latency-summary']
+        targets=json.loads((ci/'latency-targets.json').read_text())
+        self.samples,self.reference_samples=targets['samples_per_call'],targets['measurement_samples_per_call']
+        self.build(self.samples)
+
+    def measurement(self,runtime,active,samples):
+        phases={};pairs=[]
+        for phase in self.gate.PHASES:
+            group={}
+            for call in self.gate.CALLS:
+                value=active*(1 if phase=='fresh' else 2)
+                values=[value]*(samples-2)+[value*1.2]*2
+                wait=525 if call in self.gate.INPUTS else 0
+                group[call]={'client_total':self.stats([wait+v for v in values])}
+                for stage in ['service_total','service_without_bridge','bridge_round_trip','extension_total','session_rule_add','session_rule_remove','compose_binding','clipboard_hooks']:
+                    group[call][stage]=self.stats([1]*(samples-2)+[2]*2)
+                if wait:
+                    group[call]['post_input_observation_wait']=self.stats([wait]*samples)
+                    group[call]['client_without_wait']=self.stats(values)
+                    pairs.extend({'sample':phase+':'+str(i),'phase':phase,'call':call,'client_ms':wait+v,'wait_ms':wait} for i,v in enumerate(values))
+            phases[phase]=group
+        return {'runtime':runtime,'privacy':'plain','chrome':'Synthetic Chrome','phases':phases,'input_samples':pairs}
+
+    def build(self,samples):
+        # A new measurement takes `samples`; the reference keeps its own count.
+        self.current=self.measurement('current',20,samples);self.old=self.measurement('ab7aba92',15,samples)
+        self.reference={'privacy':'plain','current':self.measurement('current',20,self.reference_samples),'baseline':self.measurement('ab7aba92',15,self.reference_samples)}
+        self.targets={'format':1,'status':'lead-approved','samples_per_call':samples,'measurement_samples_per_call':self.reference_samples,
+                      'ceilings_ms':{call:{'median_ms':100 if call not in self.gate.INPUTS else 650,'p95_ms':150 if call not in self.gate.INPUTS else 750} for call in self.gate.CALLS}}
 
     def check(self):return self.gate.check(self.current,self.old,self.reference,self.targets)
 
@@ -403,8 +436,8 @@ class LatencyGate(unittest.TestCase):
 
     def test_correlated_wait_tail_cannot_hide_fivefold_warm_work_regression(self):
         phase='history-4000';call='fill'
-        self.paired(self.reference['current'],phase,call,[40]*20,[525]*20)
-        self.paired(self.current,phase,call,[200]*18+[40]*2,[525]*18+[750]*2)
+        self.paired(self.reference['current'],phase,call,[40]*self.reference_samples,[525]*self.reference_samples)
+        self.paired(self.current,phase,call,[200]*(self.samples-2)+[40]*2,[525]*(self.samples-2)+[750]*2)
         result=self.check();self.assertFalse(result['passed'])
         row=next(row for row in result['measurements'] if row['phase']==phase and row['call']==call)
         self.assertEqual(row['paired_work_ms'],{'median_ms':200,'p95_ms':200})
@@ -416,7 +449,7 @@ class LatencyGate(unittest.TestCase):
         result=self.check();self.assertTrue(result['passed'],result['failures'])
         row=next(row for row in result['measurements'] if row['phase']=='fresh' and row['call']=='read')
         self.assertGreater(row['paired_work_ms']['p95_ms'],row['regression_threshold_ms']['p95_ms'])
-        self.paired(self.current,'fresh','fill',waits=[400]*20)
+        self.paired(self.current,'fresh','fill',waits=[400]*self.samples)
         with self.assertRaises(AssertionError):self.check()
 
     def real_profile(self,profile='plain'):
@@ -425,7 +458,7 @@ class LatencyGate(unittest.TestCase):
         ci=Path(__file__).resolve().parents[1]/'chrome/ci'
         reference=json.loads((ci/'latency-reference.json').read_text())['profiles'][profile]
         targets=json.loads((ci/'latency-targets.json').read_text())
-        return copy.deepcopy(reference['current']),copy.deepcopy(reference['baseline']),reference,targets
+        return self.repeated(reference['current']),self.repeated(reference['baseline']),reference,targets
 
     def test_final_f4_a_median_or_p95_over_a_lead_ceiling_fails_alone(self):
         # The final review's case: the lead's ceilings, the measured reference,
@@ -454,6 +487,40 @@ class LatencyGate(unittest.TestCase):
         self.assertGreater(row['paired_work_ms']['median_ms'],row['regression_threshold_ms']['median_ms'])
         self.assertLessEqual(row['paired_work_ms']['p95_ms'],row['regression_threshold_ms']['p95_ms'])
 
+    def test_gate60_three_slow_samples_of_sixty_pass_and_a_fourth_fails(self):
+        # The lead (mac-aresos-control, 2026-11-14, after run 43603381599): 60
+        # samples per call and history phase, for both runtimes and profiles. A
+        # p95 over its ceiling then takes four slow samples; with the old 20 it
+        # took two. The ceilings and "median or p95" stay; the frozen reference
+        # keeps its 20.
+        import json
+        from pathlib import Path
+        targets=json.loads((Path(__file__).resolve().parents[1]/'chrome/ci/latency-targets.json').read_text())
+        self.assertEqual((targets['samples_per_call'],targets['measurement_samples_per_call']),(60,20))
+        self.assertIn('mac-aresos-control, 2026-11-14, after run 43603381599',targets['samples_basis'])
+        self.assertEqual(self.summary.SAMPLES,60)
+        for samples,slow,passes in [(60,3,True),(60,4,False),(20,1,True),(20,2,False)]:
+            with self.subTest(samples=samples,slow=slow):
+                self.build(samples)
+                # navigate through its client total, fill through its paired samples
+                self.current['phases']['fresh']['navigate']['client_total']=self.stats([20]*(samples-slow)+[400]*slow)
+                self.paired(self.current,'fresh','fill',[20]*(samples-slow)+[600]*slow)
+                result=self.check()
+                self.assertEqual(result['samples_per_call'],samples)
+                expected=[] if passes else [{'phase':'fresh','call':call,'regression':False,'target_miss':True} for call in ['fill','navigate']]
+                self.assertEqual(result['failures'],expected)
+                self.assertEqual(result['passed'],passes)
+
+    def test_gate60_new_measurements_take_the_lead_count_and_the_reference_keeps_its_own(self):
+        # A measurement with the reference's 20 no longer passes, nor does a
+        # reference with the new count: each is checked against its own number.
+        current=copy.deepcopy(self.current)
+        self.current=self.measurement('current',20,self.reference_samples)
+        with self.assertRaises(AssertionError):self.check()
+        self.current=current;self.assertTrue(self.check()['passed'])
+        self.reference['baseline']=self.measurement('ab7aba92',15,self.samples)
+        with self.assertRaises(AssertionError):self.check()
+
     def test_missing_stage_phase_or_unset_lead_targets_cannot_pass(self):
         for change in ['stage','phase','targets']:
             original=copy.deepcopy(self.current)
@@ -465,12 +532,12 @@ class LatencyGate(unittest.TestCase):
 
     def test_sparse_expiry_and_navigation_diagnostics_keep_required_samples_strict(self):
         self.current['phases']['fresh']['read']['daemon_expiry_inside_sample']={'samples':1,'median_ms':2,'p95_ms':2}
-        self.current['phases']['fresh']['navigate']['clipboard_hooks']={'samples':18,'median_ms':1,'p95_ms':2}
+        self.current['phases']['fresh']['navigate']['clipboard_hooks']={'samples':self.samples-2,'median_ms':1,'p95_ms':2}
         self.assertTrue(self.check()['passed'])
         original=copy.deepcopy(self.current)
         for call,stage in [('read','service_total'),('free_click','clipboard_hooks')]:
             self.current=copy.deepcopy(original)
-            self.current['phases']['fresh'][call][stage]['samples']=19
+            self.current['phases']['fresh'][call][stage]['samples']=self.samples-1
             with self.assertRaises(AssertionError):self.check()
         self.current=copy.deepcopy(original)
         self.current['phases']['fresh']['read']['daemon_expiry_inside_sample']['samples']=0
@@ -481,7 +548,7 @@ class LatencyGate(unittest.TestCase):
         for change in ['order','stage','short','pair','nan']:
             self.current=copy.deepcopy(original)
             if change=='order':self.current['phases']['fresh']['read']['client_total'].update(median_ms=10000,p95_ms=1)
-            elif change=='stage':self.current['phases']['fresh']['read']['service_total']={'samples':20}
+            elif change=='stage':self.current['phases']['fresh']['read']['service_total']={'samples':self.samples}
             elif change=='short':self.current['phases']['fresh']['fill']['client_total'].update(median_ms=1,p95_ms=2)
             elif change=='pair':self.current['input_samples'][0]['client_ms']=1
             else:self.current['phases']['fresh']['read']['service_total']['median_ms']=float('nan')

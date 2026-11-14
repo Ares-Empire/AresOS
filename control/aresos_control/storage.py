@@ -301,6 +301,12 @@ class Store:
             count = self.db.execute("SELECT count(*) FROM kv WHERE k>='op:' AND k<'op;' AND " + OPEN_OPERATIONS).fetchone()[0]
             cost = max(64 * 1024, count * 128)
             self.ledger.admit(cost, history_cost=cost)
+            # Python's sqlite3 opens no transaction before DDL, so a DROP alone
+            # would commit at once, and a rebuild that then failed (a nearly
+            # full disk) would leave no index until the next open. In one
+            # transaction a failed rebuild rolls back to the old index.
+            if not self.db.in_transaction:
+                self.db.execute('BEGIN')
             if stored is not None:
                 self.db.execute('DROP INDEX operation_open')
             self.db.execute(OPEN_INDEX)

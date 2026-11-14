@@ -9,6 +9,8 @@ import sys
 CALLS={'read','navigate','free_click','fill','asking_click','approval_to_done'}
 PHASES={'fresh','history-1000','history-4000'}
 INPUTS={'free_click','fill','approval_to_done'}
+# The lead's sample count (latency-targets.json); the client takes it too.
+SAMPLES=json.loads(Path(__file__).with_name('latency-targets.json').read_text())['samples_per_call']
 
 
 def summary(values):
@@ -19,8 +21,8 @@ def summary(values):
 
 def summarize(root):
     client=json.loads((root/'latency-client.json').read_text());rows=client['samples']
-    assert len(rows)==360
-    identities={(row['sample'],row['call']) for row in rows};assert len(identities)==360
+    expected=len(CALLS)*len(PHASES)*SAMPLES;assert len(rows)==expected
+    identities={(row['sample'],row['call']) for row in rows};assert len(identities)==expected
     assert {row['phase'] for row in rows}==PHASES
     stages=collections.defaultdict(list)
     phases={row['sample']:row['phase'] for row in rows}
@@ -48,11 +50,11 @@ def summarize(root):
         pairs.append({'sample':row['sample'],'phase':row['phase'],'call':row['call'],'client_ms':row['milliseconds'],'wait_ms':wait})
         stages[(row['phase'],row['call'],'client_without_wait')].append(work)
     groups={phase:{call:{stage:summary(values) for (part,category,stage),values in stages.items() if part==phase and category==call} for call in sorted(CALLS)} for phase in sorted(PHASES)}
-    assert all(detail['client_total']['samples']==20 for group in groups.values() for detail in group.values())
+    assert all(detail['client_total']['samples']==SAMPLES for group in groups.values() for detail in group.values())
     assert [row['count'] for row in history]==[1000,4000]
     return {'runtime':client['baseline'],'privacy':client['privacy'],'chrome':(root/'chrome-version.txt').read_text().strip(),
-        'build':(root/'runtime-build.txt').read_text().strip(),'calls':groups['fresh'],'phases':groups,'input_samples':pairs,'history_fixtures':history,
-        'notes':['20 samples per call and history phase; owner think time absent.',
+        'build':(root/'runtime-build.txt').read_text().strip(),'samples_per_call':SAMPLES,'calls':groups['fresh'],'phases':groups,'input_samples':pairs,'history_fixtures':history,
+        'notes':[f'{SAMPLES} samples per call and history phase; owner think time absent.',
             'Retained history is disposable synthetic timing input shaped from a real completed free input, not receiver or qualification evidence.',
             'Page handlers are no-op/local receiver; browser dispatch is not pure tool CPU.',
             'Nested stages overlap. Missing historical stages are absent, never fabricated zeros.',
