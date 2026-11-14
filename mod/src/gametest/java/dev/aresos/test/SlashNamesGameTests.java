@@ -52,6 +52,11 @@ public final class SlashNamesGameTests {
         final GameProfile profile;
         final boolean desktop;
         Fixture(GameTestHelper helper, AppDefinition... extra) throws Exception {
+            // As GettingAroundGameTests.Host (36b's review, NIT 3): with a complete program list the game's own town
+            // keeper would act on a leftover hub record with this fixture's apps file between the test's steps. No
+            // server test makes the list complete (only the app helper's list does); this says so if one ever does.
+            if (dev.aresos.hub.TownKeeper.complete())
+                throw new AssertionError("Fixture: a complete program list reached the test server; the game's own town keeper would act with this test's apps");
             server = helper.getLevel().getServer();
             config = System.getProperty("aresos.appsConfig"); profile = server.getSingleplayerProfile();
             desktop = DesktopWorld.isEnabled(server);

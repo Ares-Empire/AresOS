@@ -110,15 +110,18 @@ public final class TownGameTests {
     /** The chunks of the town's ground around this home column. */
     private static Set<Long> town(BlockPos column) { return chunks(column.offset(TOWN_FROM), column.offset(TOWN_TO)); }
 
-    /** How far around a logo's cells its build looks: the lights' surroundings ({@code GateBuilder.prepare}). */
-    private static final int LOOKS = 4;
+    /**
+     * How far around a logo's cells its build looks: the lights' surroundings, {@code GateBuilder.prepare}'s own number
+     * (package 39b; it was a copy). The solid blocks' and the doormat's surroundings are 2.
+     */
+    private static final int LOOKS = GateBuilder.LIGHT_MELTS;
 
     /**
      * Checks that a logo in each of these places, with the ground its build looks at, lies inside the town's ground
      * ({@link #town}). It holds or fails in every run alike; the chunks themselves would show a place reaching past
-     * that ground only in the runs whose plot puts it across a chunk border.
+     * that ground only in the runs whose plot puts it across a chunk border. Returns the places, for {@link #allListed}.
      */
-    private static void withinTown(HubData hub, AppDefinition app, GatePicture picture, String... places) {
+    private static Set<String> withinTown(HubData hub, AppDefinition app, GatePicture picture, String... places) {
         var home = hub.home().pos();
         for (var name : places) {
             var plan = Town.plan(hub, app, Place.parse(name).orElseThrow(), picture);
@@ -137,6 +140,17 @@ public final class TownGameTests {
                         "Fixture: the logo at " + name + " reaches past the ground the test holds, at " + at.toShortString() + " from home");
             }
         }
+        return new java.util.TreeSet<>(List.of(places));
+    }
+
+    /**
+     * At the end of a town test that uses {@link #withinTown} (36b's review, NIT 2): every place a logo of the test
+     * stood in was on its list, so a step that builds somewhere else cannot reach past the held ground unnoticed.
+     */
+    private static void allListed(Set<String> stood, Set<String> listed) {
+        var off = new java.util.TreeSet<>(stood);
+        off.removeAll(listed);
+        check(off.isEmpty(), "Fixture: logos stood at " + off + ", which withinTown did not check (it checked " + listed + ")");
     }
 
     private static Map<BlockPos, BlockState> snapshot(ServerLevel level, BlockPos from, BlockPos to) {
@@ -179,7 +193,7 @@ public final class TownGameTests {
             var discord = new AppDefinition("town-discord", "Discord", List.of("discord"), "minecraft:ender_pearl", false).withNames(List.of("towndc"));
             var picture = picture();
             var place = Place.parse("N0R0").orElseThrow();
-            withinTown(hub, discord, picture, "N0R0", "N0L0", "N1L0");
+            var listed = withinTown(hub, discord, picture, "N0R0", "N0L0", "N1L0");
             var plan = Town.plan(hub, discord, place, picture);
             BlockPos from = home.offset(-20, -2, -40), to = home.offset(20, 16, 2);
             var before = snapshot(level, from, to);
@@ -310,6 +324,7 @@ public final class TownGameTests {
             hisDisplay.discard();
             check(stayed && withHisIds.removed() == expected.size() && hub.logos().isEmpty(), "His zone or display with the logo's IDs: " + withHisIds + ", stayed " + stayed);
             for (var pos : expected.keySet()) check(level.getBlockState(pos).equals(before.get(pos)), "With his IDs " + pos.subtract(home) + " is " + level.getBlockState(pos));
+            allListed(new java.util.TreeSet<>(List.of(logo.place(), signed.place(), reused.place())), listed);
         });
     }
 
@@ -371,6 +386,9 @@ public final class TownGameTests {
         HubData previous;
         BlockPos home, planks;
         Set<Long> far = Set.of();
+        /** The places {@link #withinTown} checked, and every place a logo stood in after a pass ({@link #allListed}). */
+        Set<String> listed = Set.of();
+        final Set<String> stood = new java.util.TreeSet<>();
         /** The start of every app ID of this test's town. */
         String prefix = "keep-";
 
@@ -386,10 +404,13 @@ public final class TownGameTests {
 
         /** One pass, saving places into the fake file as {@code AresOs.saveSpots} does into the real one. */
         TownKeeper.Pass pass(MinecraftServer server, boolean complete) {
-            return keeper.keep(server, new TownKeeper.Programs(apps, complete), app -> Optional.of(pictures.getOrDefault(app.id(), ring)), spots -> {
+            var pass = keeper.keep(server, new TownKeeper.Programs(apps, complete), app -> Optional.of(pictures.getOrDefault(app.id(), ring)), spots -> {
                 saves.add(spots);
                 apps.replaceAll(app -> spots.containsKey(app.id()) ? app.withSpot(spots.get(app.id()).place(), spots.get(app.id()).group()) : app);
             });
+            var hub = HubData.get(server);
+            if (hub != null) hub.logos().forEach(logo -> stood.add(logo.place()));
+            return pass;
         }
 
         void change(String id, java.util.function.UnaryOperator<AppDefinition> how) { apps.replaceAll(app -> app.id().equals(id) ? how.apply(app) : app); }
@@ -467,7 +488,7 @@ public final class TownGameTests {
                 app("keep-spotify", "Spotify", "spotify", AppGroup.WORK_MEDIA, false, false),
                 app("keep-mail", "Mail", "mail", AppGroup.INTERNET, false, false)));
         // Every place this test builds in lies inside the ground it holds (the far place has ground of its own).
-        withinTown(hub, fake.get("keep-spotify"), fake.ring, "N0L0", "N0R0", "N1L0", "N1R0", "W0L0");
+        fake.listed = withinTown(hub, fake.get("keep-spotify"), fake.ring, "N0L0", "N0R0", "N1L0", "N1R0", "W0L0");
 
         // Never on an incomplete list; never in a town that other rules built.
         var none = fake.pass(server, false);
@@ -632,6 +653,10 @@ public final class TownGameTests {
         check(empty.lines().size() == 3 && !empty.pending() && HubData.get(server).logos().isEmpty(), "Taking the town down: " + empty.lines());
         check(!fake.zoneLeft(server), "A zone of the town stayed");
         level.setBlockAndUpdate(fake.planks, Blocks.AIR.defaultBlockState());
+        // The far place stands on ground of its own (fake.far), outside the town's.
+        var listed = new java.util.TreeSet<>(fake.listed);
+        listed.add("N40L0");
+        allListed(fake.stood, listed);
     }
 
     private static final String REBUILD_BATCH = "aresos-test:town_rebuild";
@@ -904,7 +929,7 @@ public final class TownGameTests {
         // Day one: Chrome alone; Discord joins My apps after the first save.
         fake.apps.addAll(List.of(app("seal-chrome", "Chrome", "chrome", AppGroup.INTERNET, true, true),
                 app("seal-discord", "Discord", "discord", AppGroup.INTERNET, false, false)));
-        withinTown(hub, fake.get("seal-chrome"), fake.ring, "N0L0", "N0R0");
+        fake.listed = withinTown(hub, fake.get("seal-chrome"), fake.ring, "N0L0", "N0R0");
         fake.pass(server);
         check(place(server, "seal-chrome").equals("N0L0") && hub.logos().size() == 1, "Day one: " + hub.logos());
         Path world = server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
@@ -1130,6 +1155,7 @@ public final class TownGameTests {
                 olderModSaves(olderAccess, TownSeal.lastPlayed(world).orElseThrow() + 1);
             }
             check(TownSeal.holding(copies.resolve("older")).isEmpty() && !reopen(server, copies.resolve("older")).frozen(), "An empty town saved by an older mod was frozen");
+            allListed(fake.stood, fake.listed);
             done = true;
         } finally {
             if (his != null) level.setBlockAndUpdate(his, Blocks.AIR.defaultBlockState());
