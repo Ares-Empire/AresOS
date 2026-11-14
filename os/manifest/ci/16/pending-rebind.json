@@ -29,7 +29,8 @@
     "22c stage 1b addition 1: the checks-only job explores a bounded model slice; a parallel job runs the full model when its sources changed",
     "22c stage 1b addition 2: the image and rehearsal jobs allow user namespaces before their tests",
     "22c stage 1b D: rollback.sh, default-stock.sh and previous.sh out of the owner payload (repository copies unchanged); new fingerprint pinned",
-    "22c stage 1b F: the refusal invariant's expectation table by journal phase, a real injection before publication, and its revert proof"
+    "22c stage 1b F: the refusal invariant's expectation table by journal phase, a real injection before publication, and its revert proof",
+    "22c stage 1b addition 3: bootstrap.py generates the folder start block beside the stick block; tests run both"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -78,6 +79,10 @@
       "path": "os/ci/two_disk_vm.py"
     },
     {
+      "sha256": "249a18c1b733a0f0b59febb4460c2e142c98951133db72c11c5739d70f7788d3",
+      "path": "os/owner-tools/bootstrap.py"
+    },
+    {
       "sha256": "4a0daeb4e41bfdc18e9372b46572a9aa9121e2078f3491238a1d6b4a347e8b91",
       "path": "os/owner-tools/bundle.py"
     },
@@ -118,6 +123,10 @@
       "path": "os/tests/test_owner_abandon.py"
     },
     {
+      "sha256": "3868b66951bd1504dfe8c51766937a29b7449a003219f01119536d1f08d3d02d",
+      "path": "os/tests/test_owner_bootstrap.py"
+    },
+    {
       "sha256": "b8fc6884066845578824de3fb676a20cfb961ca19ee76ce99ca7d00537550b6f",
       "path": "os/tests/test_owner_capabilities.py"
     },
@@ -130,7 +139,7 @@
       "path": "os/tests/test_owner_devices_native.py"
     },
     {
-      "sha256": "a3644bc48447a967d7d5f43456413654019c89db70b78ba415fe9e7f95647b3d",
+      "sha256": "e5dc539a9a49cd27a4b46000acd1dc6a5c34f8dad339e30ce186dda37186a044",
       "path": "os/tests/test_owner_equality.py"
     },
     {

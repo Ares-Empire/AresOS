@@ -36,14 +36,23 @@ def unwalked_commands():
 
 
 def check_bootstrap(guide, commands):
-    """Both literal owner blocks (step 4 and the update route) are exactly what
-    package 14's tamper tests run."""
+    """Both literal stick blocks (step 4 and the update route) are exactly what
+    package 14's tamper tests run. Any folder block the guide quotes (22c,
+    addition 3) is exactly the generated one test_owner_bootstrap runs from a
+    folder; a changed copy of either counts as a third stick block and refuses.
+    Returns how many folder blocks the guide quotes."""
     fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')
-    expected=common.module('bootstrap').command(fingerprint).encode('utf-8')
+    bootstrap=common.module('bootstrap')
+    expected=bootstrap.command(fingerprint).encode('utf-8')
+    folder=bootstrap.command(fingerprint,'folder').encode('utf-8')
     blocks=re.findall(rb'```bash\n(.*?)\n```',guide,re.S)
     copies=[block for block in blocks if block.startswith(b'sudo bash -c ')]
-    if copies != [expected, expected] or commands['install'].encode('utf-8') != expected or len(expected.splitlines()) != 13:
+    stick=[block for block in copies if block != folder]
+    if stick != [expected, expected] or commands['install'].encode('utf-8') != expected or len(expected.splitlines()) != 13:
         raise AssertionError('Trusted bootstrap differs from the tested 13-line block')
+    if 'install-folder' in commands and (commands['install-folder'].encode('utf-8') != folder or len(folder.splitlines()) != 12):
+        raise AssertionError('Trusted folder bootstrap differs from the tested 12-line block')
+    return len(copies)-len(stick)
 
 
 def check_fingerprints(documents, fingerprint):
@@ -145,6 +154,25 @@ class EqualityTest(unittest.TestCase):
         self.assertEqual(guide.count(block), 2)
         with self.assertRaisesRegex(AssertionError,'Trusted bootstrap differs'):
             check_bootstrap(guide.replace(block, b'', 1), commands)
+
+    def test_a_quoted_folder_block_is_byte_equal_to_the_generated_one(self):
+        """22c, addition 3: the guide quotes the folder block only as bootstrap.py generates it."""
+        commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+        guide=(ROOT/'docs/INSTALL.md').read_bytes()
+        quoted=check_bootstrap(guide,commands)
+        fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')
+        folder=common.module('bootstrap').command(fingerprint,'folder').encode('utf-8')
+        self.assertEqual(guide.count(b'```bash\n'+folder+b'\n```'),quoted)
+        with_folder=guide+b'\n```bash\n'+folder+b'\n```\n'
+        self.assertEqual(check_bootstrap(with_folder,commands),quoted+1)
+        self.assertEqual(check_bootstrap(with_folder,dict(commands,**{'install-folder':folder.decode()})),quoted+1)
+        lines=folder.split(b'\n')
+        for index in range(len(lines)):
+            changed=b'\n'.join(lines[:index]+[lines[index]+b' ']+lines[index+1:])
+            with self.subTest(line=index),self.assertRaisesRegex(AssertionError,'Trusted bootstrap differs'):
+                check_bootstrap(guide+b'\n```bash\n'+changed+b'\n```\n',commands)
+        with self.assertRaisesRegex(AssertionError,'Trusted folder bootstrap differs'):
+            check_bootstrap(with_folder,dict(commands,**{'install-folder':commands['install']}))
 
     def test_extra_stale_fingerprint_is_rejected_in_every_owner_page(self):
         fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')

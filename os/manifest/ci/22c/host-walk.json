@@ -550,7 +550,7 @@
       "path": "os/owner-tools/at"
     },
     {
-      "sha256": "5fbc65ef999be2ec3f30daf9afbced7443e4d4b5ac357c19b5b84b52f5e3db98",
+      "sha256": "249a18c1b733a0f0b59febb4460c2e142c98951133db72c11c5739d70f7788d3",
       "path": "os/owner-tools/bootstrap.py"
     },
     {
@@ -874,7 +874,7 @@
       "path": "os/tests/test_owner_artifact_class.py"
     },
     {
-      "sha256": "c34048662a718b6d2916d996236f2b6bb1466ae89fb29309650248a6d77c3618",
+      "sha256": "3868b66951bd1504dfe8c51766937a29b7449a003219f01119536d1f08d3d02d",
       "path": "os/tests/test_owner_bootstrap.py"
     },
     {
@@ -914,7 +914,7 @@
       "path": "os/tests/test_owner_entry.py"
     },
     {
-      "sha256": "a3644bc48447a967d7d5f43456413654019c89db70b78ba415fe9e7f95647b3d",
+      "sha256": "e5dc539a9a49cd27a4b46000acd1dc6a5c34f8dad339e30ce186dda37186a044",
       "path": "os/tests/test_owner_equality.py"
     },
     {
