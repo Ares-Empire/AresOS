@@ -632,6 +632,11 @@ case('post-popup-any-error-forgotten',B,DEAD_CONTEXT,"if(state.contexts.get(cont
 # The third probe (the lead's, 2026-11-14) lets an empty context set after
 # forgetting pass as "read everything": the admission must fail closed instead.
 case('post-popup-empty-contexts-count-as-read',B,"for(const frameId of forgotten)if(!covered(frameId))throw Error(","for(const frameId of [])if(!covered(frameId))throw Error(",node('background','post-popup no live context'))
+# Brief 20 main fix, H1: the crash-cut child imported the test driver by paths
+# relative to the parent's working directory, which the qualification layout
+# does not satisfy (run 43647781498). The child now gets absolute paths; this
+# probe puts the relative ones back.
+case('mainfix-h1-child-relative-import-path','control/chrome_tests/test_state_crashes.py',"environment['PYTHONPATH']=os.pathsep.join([str(CONTROL),str(TESTS)])","environment['PYTHONPATH']=os.pathsep.join(['control','control/chrome_tests'])",'test_state_crashes.CrashCuts.test_s11_actual_process_cuts_before_and_after_input_keep_every_committed_view',True)
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
