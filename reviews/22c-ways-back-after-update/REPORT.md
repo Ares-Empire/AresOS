@@ -1347,3 +1347,11 @@ all their events, including an unrelated live repair intent. The targeted
 local equivalence class passed **5 tests in 1.816s**, after a 10570 MB gate.
 The full 20-test model and another hosted checks-only run follow. The new test
 adds one to the expected suite count; the state/edge pins remain unchanged.
+
+Retry dispatched on `53b35c57` (owner implementation unchanged from `05fb2a92`):
+[43534401745](https://github.com/Ares-Empire/AresOS/actions/runs/43534401745),
+with `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`
+and one blocking `gh run watch 43534401745 --exit-status`. Full local model
+started after a **10170 MB available** gate. Both results are pending at this
+report-only checkpoint. Acceptance requires **1072 tests**, only the same four
+stage-1b fingerprint failures, zero errors and zero skipped tests.
