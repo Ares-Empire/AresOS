@@ -4,6 +4,18 @@ Brief: `briefs/36-town.md`. Steps 1 to 4, one fresh builder per step. The last s
 
 ## Where it stands
 
+**2026-11-14, the orchestrator (read this first; it replaces what the step-1 text below says about the build):**
+
+- Step 1 compiles and its tests pass on GitHub: Mod run 43524445082 on `c346e617` (the laptop refused all evening
+  because the owner's game ran). Nothing of "First thing for whoever continues" below is open any more.
+- Package 35's branch (`pkg/35-slash-names` at `aeb82bec`: schema 4 with `names` and `absent`) and `origin/main`
+  are merged in (`27874445`, `0797c409`). One conflict, `GateBuilder.planInFrontOf`: package 35's main short name
+  on the sign, this package's group concrete. Mod run 43535095427 on `0797c409` passed (build, unit and server
+  tests, jar reproduced).
+- The brief's step 2 changed accordingly (schema 4, `absent` programs are not wanted, which three files of package
+  35 to stay out of). Step 2 starts from here.
+
+
 **Step 1 is written but not yet built** (Opus 5.5, 2026-11-13): places, groups and the logo's picture, as pure
 functions with unit tests. The build could not run (the owner's game was open the whole time; see "Verified"), so
 step 1 ends when `mod/dev/build.sh` passes. Nothing is built in a world yet. Commits on `pkg/36-town`:
