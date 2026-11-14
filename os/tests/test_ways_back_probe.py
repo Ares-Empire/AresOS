@@ -231,14 +231,18 @@ class LedgerTest(unittest.TestCase):
                          created_at='2026-11-13T18:00:00Z', id=number, display_title=LEDGER['titles'][kind]), **more)
 
     def test_the_brief_budget_is_the_ledger(self):
-        self.assertEqual((guard.BRANCH, guard.MINUTE_CAP, guard.FULL_CAP, guard.PART_B_CAP), (BRANCH, 1200, 0, 0))
-        self.assertEqual(LEDGER['vm_dispatch_cap'], 4)
+        # The brief's 1200 minutes and four VM dispatches, raised by the integrator in stage 2, step 2
+        # (2026-11-14) to 2400 and six: the ledger's own note says why. Every other guard is as before.
+        self.assertEqual((guard.BRANCH, guard.MINUTE_CAP, guard.FULL_CAP, guard.PART_B_CAP), (BRANCH, 2400, 0, 0))
+        self.assertEqual(LEDGER['vm_dispatch_cap'], 6)
+        self.assertIn('raised from 1200 to 2400', LEDGER['budget'])
+        self.assertIn('caps exist to stop runaway loops', LEDGER['budget'])
         self.assertEqual(LEDGER['publish_cap'], 0)
         self.assertEqual(set(LEDGER['titles']), set(LEDGER['dispatch_caps']))
         self.assertEqual(set(LEDGER['job_bounds']), set(LEDGER['dispatch_caps']))
         self.assertTrue(all(LEDGER['dispatch_caps'][mode] <= LEDGER['vm_dispatch_cap'] for mode in VM_MODES))
 
-    def test_four_vm_dispatches_in_all_whatever_their_modes(self):
+    def test_six_vm_dispatches_in_all_whatever_their_modes(self):
         runs = [self.run_row(n, 'reorder-probe') for n in range(1, 5)] + [self.run_row(9, 'checks')]
         with self.history(runs):
             result = guard.budget(0)
@@ -246,23 +250,29 @@ class LedgerTest(unittest.TestCase):
             runs.append(self.run_row(5, 'reorder-probe'))
             with self.assertRaisesRegex(AssertionError, 'reorder-probe dispatch allowance exhausted'):
                 guard.budget(0)
-        # The second VM mode (stage 2's rehearsal) shares the same four: the probe used one, three remain.
+        # The second VM mode (stage 2's rehearsal) shares the same six: the probe used one, five remain.
         self.assertEqual(VM_MODES, ('reorder-probe', 'ways-back'))
-        self.assertEqual(LEDGER['dispatch_caps']['ways-back'], 3)
-        runs = [self.run_row(1, 'reorder-probe'), self.run_row(2, 'ways-back'), self.run_row(3, 'ways-back'), self.run_row(4, 'ways-back')]
+        self.assertEqual(LEDGER['dispatch_caps']['reorder-probe'], 4)
+        self.assertEqual(LEDGER['dispatch_caps']['ways-back'], LEDGER['vm_dispatch_cap'] - 1)
+        runs = [self.run_row(1, 'reorder-probe')] + [self.run_row(n, 'ways-back') for n in range(2, 7)]
         with self.history(runs):
-            self.assertEqual(guard.budget(0)['dispatch_counts'], {'checks': 0, 'reorder-probe': 1, 'ways-back': 3})
-            runs.append(self.run_row(5, 'reorder-probe'))
+            self.assertEqual(guard.budget(0)['dispatch_counts'], {'checks': 0, 'reorder-probe': 1, 'ways-back': 5})
+            runs.append(self.run_row(7, 'reorder-probe'))
             with self.assertRaisesRegex(AssertionError, 'VM dispatch allowance exhausted'):
+                guard.budget(0)
+            # The rehearsal's own count stops a sixth of its kind as well.
+            runs[-1] = self.run_row(7, 'ways-back')
+            with self.assertRaisesRegex(AssertionError, 'ways-back dispatch allowance exhausted'):
                 guard.budget(0)
 
     def test_minutes_count_every_run_and_an_unaccountable_job_costs_its_whole_bound(self):
         runs = [self.run_row(1, 'reorder-probe'), self.run_row(2, 'checks')]
         with self.history(runs):
-            # Two accounted hours each (the modelled job), then the reservation must still fit 1200.
+            # Two accounted hours each (the modelled job), then the reservation must still fit 2400.
             self.assertEqual(guard.budget(345)['consumed_minutes'], 240)
-            with self.assertRaisesRegex(AssertionError, 'exceeds 1200'):
-                guard.budget(961)
+            self.assertEqual(guard.budget(2160)['consumed_minutes'], 240)
+            with self.assertRaisesRegex(AssertionError, 'exceeds 2400'):
+                guard.budget(2161)
         with self.history([self.run_row(1, 'reorder-probe')], job=dict(name='x', conclusion='failure', steps=[])):
             self.assertEqual(guard.budget(0)['consumed_minutes'], LEDGER['job_bounds']['reorder-probe'])
         with self.history([self.run_row(1, 'reorder-probe', run_attempt=2)]):
