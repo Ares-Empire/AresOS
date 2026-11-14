@@ -15,7 +15,8 @@ import java.util.function.BooleanSupplier;
  * How a server game test waits for chunks of its own: it holds them with a ticket of its own, and its waits end by
  * themselves, releasing those tickets, before the framework's limit (package 37's review fixes 1 and 2; package 39b
  * gave the town's and the gate's tests the same). A timeout of the framework runs none of the test's code, so it
- * would leave the tickets held.
+ * would leave the tickets held. Only for waits in a sequence ({@code thenWaitUntil}): a test that runs through
+ * {@code helper.onEachTick} cannot take a framework limit this large, as that registers one callback per tick up to it.
  */
 final class ChunkWaits {
     /**

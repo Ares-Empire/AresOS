@@ -69,11 +69,12 @@ public final class FlatHomeGameTests {
      */
     private static final int CONTROL_LIMIT = 2400;
     /**
-     * How long the no-mob test waits for the ground around home: the test server runs ticks as fast as it can, and
-     * chunks load at the disk's and the other builds' pace, so this wait ends by the clock as every wait for chunks
-     * does (package 39b: it counted 6,000 ticks before). The ticks bound only a clock that stands still.
+     * The test server runs ticks as fast as it can; chunks load at the disk's and the other builds' pace. Counted in
+     * ticks, unlike {@link ChunkWaits}' waits: this test runs through {@code helper.onEachTick}, which registers one
+     * callback for every tick up to the framework's limit, and every tick looks through all of them. With
+     * {@link ChunkWaits#LOAD_TICKS} in that limit, the ten quiet minutes took over 25 minutes and did not end (39b).
      */
-    private static final int LOAD_LIMIT = ChunkWaits.LOAD_TICKS;
+    private static final int LOAD_LIMIT = 6000;
     private static final List<GameRule<Boolean>> SWITCHES = List.of(GameRules.SPAWN_MOBS, GameRules.MOB_GRIEFING, GameRules.KEEP_INVENTORY,
             GameRules.SPAWN_PHANTOMS, GameRules.SPAWN_PATROLS, GameRules.SPAWN_WANDERING_TRADERS, GameRules.ADVANCE_TIME, GameRules.ADVANCE_WEATHER,
             GameRules.SPAWN_MONSTERS);
@@ -424,7 +425,6 @@ public final class FlatHomeGameTests {
         }
         long[] loadedAt = {-1};
         long[] quietSince = {-1};
-        long[] waitingSince = {-1};
         helper.onEachTick(() -> {
             try {
                 long tick = helper.getTick();
@@ -432,11 +432,8 @@ public final class FlatHomeGameTests {
                     var appeared = mobs(level, area[0]);
                     if (additions[0].count() == 0) {
                         if (loadedAt[0] < 0 && loaded(level, home)) loadedAt[0] = tick;
-                        if (waitingSince[0] < 0) waitingSince[0] = System.nanoTime();
-                        long waited = System.nanoTime() - waitingSince[0];
-                        if (loadedAt[0] < 0 && (tick >= LOAD_LIMIT || waited > ChunkWaits.WAIT_NANOS))
-                            throw new AssertionError("Fixture: the ground around home did not load within " + waited / 1_000_000 + " ms and "
-                                    + tick + " ticks. " + spawningState(level, home, player));
+                        if (loadedAt[0] < 0 && tick >= LOAD_LIMIT) throw new AssertionError("Fixture: the ground around home did not load within "
+                                + LOAD_LIMIT + " ticks. " + spawningState(level, home, player));
                         if (loadedAt[0] >= 0 && tick - loadedAt[0] >= CONTROL_LIMIT) throw new AssertionError("Control: no mob appears here even"
                                 + " with mob spawning on, so ten quiet minutes would prove nothing. " + spawningState(level, home, player));
                         return;
