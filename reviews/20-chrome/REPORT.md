@@ -15,26 +15,24 @@
   60 minutes. Fault jobs now get **120 minutes**, within the lead's target; suite
   jobs stay35 and all eight partitions/23flows/assertions are unchanged. Chrome
   still uses120-minute containers/130-minute jobs. Old evidence is intermediate.
-- **Observer backoff (CI itself continues):** GitHub REST core quota reached
-  5,000/5,000; all old watcher processes exited on HTTP403, not a test verdict.
-  Reset is **2026-11-14 01:42:22 UTC**. Deferred helpers make no API calls before
-  **01:42:52 UTC**, then use one blocking watch per run at **300-second intervals**.
-  Last confirmed: base/boundary/qualification attempt1 passed and attempt2 was
-  requested; Chrome/Mail first outcomes are unobserved. Do not create duplicate runs.
-- **Deferred resume helpers on this head:** Chrome push **`43539449510`** (session
-  **`54557`**), PR **`43539458133`** (**`91769`**); base **`43539457993`** (**`82667`**),
-  Mail **`43539458146`** (**`52800`**), boundary **`43539458152`** (**`4964`**),
-  qualification **`43539458040`** (**`7139`**). They inspect finalized receipts and
-  actual attempt numbers before requesting a missing second success.
+- **Green twice on this head:** base **`43539457993`** (309 tests each), boundary
+  **`43539458152`** (17 interactive cases +20 unit tests each), qualification
+  **`43539458040`** (47 Python +368 Node each, zero failures/skips).
+- **Observer backoff resolved:** shared REST quota reset at01:42:22 UTC; helpers
+  resumed at01:42:52 and confirmed the three second successes without duplicate
+  reruns. Remaining watches use300-second intervals. CI was not stopped by the quota.
+- **Only runs still watched:** Chrome push **`43539449510`** (session **`54557`**),
+  PR **`43539458133`** (**`91769`**), Mail **`43539458146`** (**`52800`**). Mail
+  still needs both successes; its helper requests a second only after the first passes.
 - **Budget:** **255 / about 280** Chrome runs, including this pair.
-- **Exact next step:** let the deferred helpers respect the reset, then resume
-  their sessions. If stopped, use `.work/post18d/resume-acceptance.py RUN LABEL
-  TARGET 1794620542` (TARGET1 for each Chrome run,2 for the four shared workflows).
-  It waits through the recorded reset and uses cached success receipts to avoid
-  duplicates. Require all final-head greens, then completed shared logs/receipts,
-  Chrome metadata/four independent audits, all92 original names and latency gates.
-  Commit each finished step with `[skip ci]`; update this Handover. PR #27 stays
-  draft. No production/CI code change is needed for the observer quota.
+- **Exact next step:** resume those three sessions. If stopped, use the
+  receipt-aware `.work/post18d/resume-acceptance.py RUN LABEL TARGET 1794620542`
+  (TARGET1 for each Chrome run,2 for Mail); do not rerun the three verified
+  workflows. After Chrome success, fetch root metadata only and run all four
+  independent audits, original92-name checks, frozen-runtime and latency gates.
+  After both Mail successes, retain both logs and its shared-workflow receipt.
+  Commit finished steps/Handover with `[skip ci]`; finish the safe `.work/` large-file
+  inventory and draft PR #27. No production or CI code change is currently needed.
 
 # Post-18d integration — final repetitions pending
 
@@ -218,13 +216,19 @@ rate-limit check records reset 01:42:22 UTC; deferred watchers wait until01:42:5
 and use300-second intervals, without extra status queries or duplicate reruns.
 [Quota receipt](records/post18d/observer-rate-limit-20261114.json).
 
-**Current candidate:** `a4143586`, full local preflight green. All six required
-workflow runs are active ([inventory](records/post18d/final-a4143586-runs.json));
-the four shared workflows repeat after success. No final green or ready claim. Earlier complete Mail
-diagnostic `43513676712` passes 12/12 jobs, longest 54m53s, within its 60-minute
-budget ([receipt](records/post18d/mail-43513676712.json)). Chrome ledger remains
-**255 / about 280**, including the current normal push/PR pair.
-Report before exceeding 280.
+**Current candidate:** `a4143586`, full local preflight green.
+[Base](records/post18d/final-base-43539457993.json) passes 309 tests each attempt;
+[boundary](records/post18d/final-boundary-43539458152.json) passes 17 interactive
+cases and20 unit tests each; [qualification](records/post18d/final-qualification-43539458040.json)
+passes47 Python and368 Node tests, zero failed/skipped, each. Both successes for
+each are confirmed on this exact head after the quota reset.
+
+**Still required:** the Chrome pair in both installs with independent audits and
+latency gates, and Mail twice. Those three watchers use300-second intervals;
+all six run IDs remain in [the inventory](records/post18d/final-a4143586-runs.json).
+No CI failure was inferred from the watcher quota error. No final green/ready claim.
+Chrome ledger **255 / about280**; report before exceeding280. No local browser,
+profile or container has been accessed.
 
 The latest main merge changes no Control source, generated tools or Control
 workflow. Generator and full-unit checks pass after the merge;
