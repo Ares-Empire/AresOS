@@ -66,10 +66,30 @@ class PublicForm(unittest.TestCase):
         self.shown(SITE + "/OAuth2/abc", "fixture.example/OAuth2/" + MARK)
         self.shown(SITE + "/reset.php/abc", "fixture.example/reset.php/" + MARK)
 
-    def test_a_sign_in_word_inside_another_word_is_no_sign_in_word(self):
-        self.shown(SITE + "/author/jane", "fixture.example/author/jane")
-        self.shown(SITE + "/tokens/list", "fixture.example/tokens/list")
-        self.shown(SITE + "/magical/place", "fixture.example/magical/place")
+    def test_a_long_sign_in_word_counts_inside_a_segment(self):
+        # Decision 9 (section 7): words of five letters or more count without separators.
+        self.shown(SITE + "/resetpassword/abc12", "fixture.example/resetpassword/" + MARK)
+        long_words = sorted(word for word in SIGN_IN_WORDS if len(word) >= 5)
+        self.assertEqual(long_words, sorted("reset verify confirm activate magic token invite oauth login signin logon "
+                                            "callback password passwort".split()))
+        for word in long_words:
+            with self.subTest(word=word):
+                self.shown("%s/my%sfor/abc12" % (SITE, word), "fixture.example/my%sfor/%s" % (word, MARK))
+                self.shown("%s/My%sFor/abc12" % (SITE, word.upper()), "fixture.example/My%sFor/%s" % (word.upper(), MARK))
+                self.shown("%s/my%sfor" % (SITE, word), "fixture.example/my%sfor" % word)      # nothing follows it
+        self.shown(SITE + "/tokens/list", "fixture.example/tokens/" + MARK)
+        self.shown(SITE + "/magical/place", "fixture.example/magical/" + MARK)
+        self.shown(SITE + "/re%73etpassword/abc12", "fixture.example/re%73etpassword/" + MARK)   # also percent-encoded
+
+    def test_a_short_sign_in_word_counts_only_as_a_part_of_its_own(self):
+        self.shown(SITE + "/auth/xyz", "fixture.example/auth/" + MARK)
+        self.shown(SITE + "/my-sso/xyz", "fixture.example/my-sso/" + MARK)
+        self.shown(SITE + "/getOtp/xyz", "fixture.example/getOtp/" + MARK)
+        self.shown(SITE + "/classroom/maths/", "fixture.example/classroom/maths/")
+        self.shown(SITE + "/author/jane-doe", "fixture.example/author/jane-doe")
+        self.shown(SITE + "/assortment/blue", "fixture.example/assortment/blue")      # holds sso
+        self.shown(SITE + "/hotpot/recipes", "fixture.example/hotpot/recipes")        # holds otp
+        self.shown(SITE + "/samlet/list", "fixture.example/samlet/list")              # holds saml
 
     def test_each_credential_name_hides_its_value(self):
         for word in sorted(CREDENTIAL_WORDS):
@@ -117,6 +137,31 @@ class PublicForm(unittest.TestCase):
         self.assertTrue(looks_random("abcdefabcdefabcdefabcdef"))   # 24 hex digits
         self.assertTrue(looks_random("7" * 24))
         self.assertTrue(looks_random("01234567-89ab-cdef-0123-4567"))  # 24 once the hyphens are out
+
+    def test_a_long_token_with_separators_looks_random_and_a_slug_does_not(self):
+        # Decision 7 (section 7): 20 or more letters, digits, - and _ with a digit, an upper and a lower case letter.
+        token = made("a base64url token", 12) + "-" + made("its middle", 17) + "_" + made("its end", 12)
+        self.assertEqual(len(token), 43)
+        self.assertTrue(any(c.isupper() for c in token) and any(c.islower() for c in token) and any(c.isdigit() for c in token))
+        self.assertTrue(all(len(run) < 20 for run in token.replace("_", "-").split("-")))   # the old rule missed it
+        self.assertTrue(looks_random(token))
+        self.shown("%s/p?ordinary=%s&page=2" % (SITE, token), "fixture.example/p?ordinary=%s&page=2" % MARK)
+        self.shown("%s/files/%s/view" % (SITE, token), "fixture.example/files/%s/view" % MARK)
+        self.shown("%s/p#%s" % (SITE, token), "fixture.example/p#" + MARK)
+        slug = "best-laptops-2026-under-1000-euros-and-more_2027"
+        self.assertFalse(looks_random(slug))
+        self.shown("%s/reviews/%s?page=2" % (SITE, slug), "fixture.example/reviews/%s?page=2" % slug)
+        self.assertFalse(looks_random("dQw4w9WgXcQ"))                                       # an 11-character video id
+        self.shown(SITE + "/watch?v=dQw4w9WgXcQ", "fixture.example/watch?v=dQw4w9WgXcQ")
+        self.assertTrue(looks_random(UUID))                                                 # as before
+        self.shown("%s/p?id=%s" % (SITE, UUID), "fixture.example/p?id=" + MARK)
+        # The edges: 19 is short; an upper case letter, a lower case one and a digit are each needed.
+        self.assertFalse(looks_random("Qb1-" + "q" * 15))
+        self.assertTrue(looks_random("Qb1-" + "q" * 16))
+        self.assertTrue(looks_random("Qb1_" + "q" * 16))
+        self.assertFalse(looks_random("qb1-" + "q" * 30))
+        self.assertFalse(looks_random("QB1-" + "Q" * 30))
+        self.assertFalse(looks_random("Qbq-" + "q" * 30))
 
     def test_a_fragment_is_a_query_a_route_or_a_plain_word(self):
         self.shown(SITE + "/cb#access_token=abc&state=xyz&view=list",

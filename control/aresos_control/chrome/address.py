@@ -17,6 +17,9 @@ RANDOM_HEX = 24
 SIGN_IN_WORDS = frozenset(
     "reset verify confirm activate magic token invite auth oauth sso saml login signin logon "
     "callback password passwort otp".split())
+# A word this long counts anywhere inside a segment (`resetpassword`); a
+# shorter one only as a part of its own (`auth`, but not `author`).
+SIGN_IN_INSIDE = 5
 # A query parameter whose name holds one of these never shows its value.
 CREDENTIAL_WORDS = frozenset(
     "token code key secret signature sig password passwd pwd auth session sid otp ticket state "
@@ -28,6 +31,8 @@ _DEFAULT_PORTS = {"http": 80, "https": 443}
 _KEPT = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_~/%:?&=+#;,")
 _SCHEME = re.compile(r"[a-z][a-z0-9+.-]{0,19}")
 _ALNUM_RUN = re.compile(r"[A-Za-z0-9]{%d,}" % RANDOM_RUN)
+# A token may be broken by `-` and `_` (base64url); a slug is too, but in lower case.
+_TOKEN_RUN = re.compile(r"[A-Za-z0-9_-]{%d,}" % RANDOM_RUN)
 _HEX_RUN = re.compile(r"[0-9A-Fa-f]{%d,}" % RANDOM_HEX)
 # The parts of a name: split at every character that is no ASCII letter or
 # digit, and at a change of case (sessionToken, JWTToken, oauth2).
@@ -35,9 +40,18 @@ _NAME_PART = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+")
 
 
 def looks_random(text):
-    """The one test for a value that could be a token, a code or a key."""
+    """The one test for a value that could be a token, a code or a key.
+
+    Random is: a run of 20 or more letters and digits with a letter and a
+    digit in it; a run of 20 or more letters, digits, `-` and `_` with a digit,
+    an upper-case and a lower-case letter in it; or 24 or more hex digits once
+    the hyphens are taken out.
+    """
     for run in _ALNUM_RUN.findall(text):
         if re.search("[A-Za-z]", run) and re.search("[0-9]", run):
+            return True
+    for run in _TOKEN_RUN.findall(text):
+        if re.search("[A-Z]", run) and re.search("[a-z]", run) and re.search("[0-9]", run):
             return True
     return _HEX_RUN.search(text.replace("-", "")) is not None
 
@@ -53,10 +67,14 @@ def credential_name(name):
 
 
 def sign_in_segment(segment):
-    """A path segment with a sign-in word as a part, also written in two parts (sign-in)."""
+    """A path segment with a sign-in word as a part, also written in two parts (sign-in), or,
+    for a word of five letters or more, anywhere inside it (resetpassword)."""
     parts = _parts(segment)
     joined = [first + second for first, second in zip(parts, parts[1:])]
-    return any(part in SIGN_IN_WORDS for part in parts + joined)
+    if any(part in SIGN_IN_WORDS for part in parts + joined):
+        return True
+    whole = unquote(segment).lower()
+    return any(word in whole for word in SIGN_IN_WORDS if len(word) >= SIGN_IN_INSIDE)
 
 
 def _safe(text):
