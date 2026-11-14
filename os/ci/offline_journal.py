@@ -4,12 +4,16 @@ import json
 import os
 import pathlib
 import re
+import stat
 import subprocess
+import time
 
 
 POWER_KEY = 'b72ea4a2881545a0b50e200e55b9b071'
 SHUTDOWN = '98268866d1d54a499c4e98921d93bc40'
 JOURNAL_PATHS = r'^/(|var(|/log(|/journal(|/.*)))|ostree(|/deploy(|/[^/]+(|/var(|/log(|/journal(|/.*)))))))$'
+PARTITION_WAIT_SECONDS = 10
+PARTITION_POLL_SECONDS = 0.5
 
 
 class OfflineJournalUnavailable(RuntimeError):
@@ -61,6 +65,53 @@ def assert_power_key_shutdown(records, boot_id):
     # The journal may relinquish /var before final poweroff.target. Require
     # orderly logind teardown here, and retain the final console/QMP checks.
     return dict(boot_id=boot_id, armed=armed, power_key=key, shutdown=shutdown, logind_stopped=stopped)
+
+
+def block_node(path):
+    """True once the kernel (devtmpfs, not udev) has created the partition's device node."""
+    try:
+        return stat.S_ISBLK(os.stat(path).st_mode)
+    except FileNotFoundError:
+        return False
+
+
+def find_btrfs_root(nbd, run, commands, evidence):
+    """The connected disk's one Btrfs partition, by the signature on the disk itself.
+
+    lsblk's FSTYPE is udev's cached probe, which a runner image may fill late or
+    never for nbd devices (run 43548237383: null on every partition after
+    udevadm settle). lsblk only lists the partitions here (from sysfs; its FSTYPE
+    column stays in the evidence for comparison); blkid -p reads each partition's
+    superblock directly, bypassing udev and blkid's cache.
+    """
+    deadline = time.monotonic() + PARTITION_WAIT_SECONDS
+    while True:
+        layout = json.loads(run('lsblk', '--json', '--paths', '--output', 'NAME,FSTYPE,RO', nbd,
+                                output='offline-disk-layout.json'))
+        names = [part['name'] for part in layout['blockdevices'][0].get('children', [])]
+        # blkid -p answers "nothing found" (exit 2) for a missing node too, so
+        # never probe before every listed node exists.
+        missing = [name for name in names if not block_node(name)]
+        if names and not missing:
+            break
+        assert time.monotonic() < deadline, (f'Partition nodes of {nbd} not ready after {PARTITION_WAIT_SECONDS}s: '
+                                             f'listed {names}, missing {missing}')
+        time.sleep(PARTITION_POLL_SECONDS)
+    types = {}
+    for name in names:
+        output = run('blkid', '-p', '-o', 'value', '-s', 'TYPE', name, required=False)
+        # 0: signatures found (an unformatted partition may still print no TYPE);
+        # 2 without a message: nothing found. 2 with one (such as "Permission
+        # denied") or any other exit, such as 8 (ambivalent), is an error.
+        probe = commands[-1]
+        assert probe['returncode'] == 0 or (probe['returncode'] == 2 and not probe['stderr'].strip()), probe
+        types[name] = output.decode().strip() or None
+    (evidence / 'offline-disk-types.json').write_text(json.dumps(types, indent=2) + '\n')
+    seen = ', '.join(f'{name}={kind or "none"}' for name, kind in types.items())
+    print(f'Offline disk filesystem types (blkid -p): {seen}', flush=True)
+    roots = [name for name, kind in types.items() if kind == 'btrfs']
+    assert len(roots) == 1, f'Expected exactly one btrfs root on {nbd}; blkid -p saw {seen}'
+    return roots[0]
 
 
 def read_offline_journal(disk, work, evidence, boot_id):
@@ -116,12 +167,7 @@ def read_offline_journal(disk, work, evidence, boot_id):
         run('qemu-nbd', '--read-only', '--format=qcow2', f'--connect={nbd}', str(disk))
         connected = True
         run('udevadm', 'settle')
-        layout = json.loads(run('lsblk', '--json', '--paths', '--output', 'NAME,FSTYPE,RO', nbd,
-                                output='offline-disk-layout.json'))
-        partitions = layout['blockdevices'][0].get('children', [])
-        roots = [part for part in partitions if part.get('fstype') == 'btrfs']
-        assert len(roots) == 1, layout
-        root = roots[0]['name']
+        root = find_btrfs_root(nbd, run, commands, evidence)
         assert root.startswith(nbd + 'p') and root[len(nbd) + 1:].isdigit(), root
         assert run('blockdev', '--getro', root).strip() == b'1', 'Offline guest disk is writable'
         run('mount', '-t', 'btrfs', '-o', 'ro,nologreplay,subvolid=5', root, str(mountpoint), required=False)
