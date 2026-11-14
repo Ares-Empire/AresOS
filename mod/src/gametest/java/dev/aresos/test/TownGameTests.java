@@ -748,7 +748,8 @@ public final class TownGameTests {
      * older mod saved the world after he rebuilt a block of a logo with the same block) freezes the town, so that
      * block stays, a frozen logo whose app left stays with its line, is not renewed or rebuilt, and its place counts
      * as taken; {@code hub trust} ends the freeze and the next save renews the seal; a town.dat restored from a
-     * backup is unsealed. Its own batch and ground; the copies are made beside the test world and removed.
+     * backup is unsealed. Between the first save and the rest, the town goes on from its records read back from the
+     * files (step B, point 7). Its own batch and ground; the copies are made beside the test world and removed.
      */
     @GameTest(environment = SEAL_BATCH, maxTicks = LOAD_TICKS)
     public void theTownTrustsItsRecordsOnlyWhileTheWorldWasSavedWithThem(GameTestHelper helper) {
@@ -808,7 +809,7 @@ public final class TownGameTests {
         check(level.getBlockState(home.below()).is(Blocks.GRASS_BLOCK) && level.getBlockState(home).isAir(), "Fixture: no grass surface at " + home);
         fake.home = home;
         fake.clearZones(server);
-        var hub = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), FlatHub.build(level, home));
+        HubData hub = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), FlatHub.build(level, home));
         HubData.store(server, hub);
         fake.apps.addAll(List.of(app("seal-chrome", "Chrome", "chrome", AppGroup.INTERNET, true, true),
                 app("seal-discord", "Discord", "discord", AppGroup.INTERNET, false, true)));
@@ -834,6 +835,27 @@ public final class TownGameTests {
             check(TownSeal.holding(copy).isPresent(), "The copy's seal was not carried to its new level.dat");
             var copied = reopen(server, copy);
             check(copied.refusal().isEmpty() && copied.frozenCount() == 0 && copied.logos().equals(hub.logos()), "A whole-world copy: " + copied.logos());
+
+            // Review fixes 1, step B, point 7: the town goes on from the records read back from the saved files. A pass
+            // on them builds nothing twice and says nothing; a renewal takes the old logo down by its reloaded sign and
+            // zone IDs, so one sign and one zone stand for it afterwards.
+            HubData.store(server, reopened);
+            hub = reopened;
+            var zonesBefore = ZoneData.get(server).zones().stream().filter(zone -> zone.app().startsWith("seal-")).toList();
+            var inStep = fake.pass(server);
+            check(inStep.lines().isEmpty() && HubData.get(server) == reopened && reopened.logos().size() == 2
+                    && ZoneData.get(server).zones().stream().filter(zone -> zone.app().startsWith("seal-")).toList().equals(zonesBefore),
+                    "A pass on the records read back: " + inStep.lines());
+            var oldChrome = reopened.logo("seal-chrome").orElseThrow();
+            fake.pictures.put("seal-chrome", picture(0xff2d8f2d));
+            var renewedChrome = fake.pass(server);
+            var newChrome = reopened.logo("seal-chrome").orElseThrow();
+            check(renewedChrome.lines().equals(List.of("The logo of Chrome was renewed.")) && level.getEntity(oldChrome.gate().sign().orElseThrow()) == null
+                    && level.getEntity(newChrome.gate().sign().orElseThrow()) instanceof Display.TextDisplay
+                    && ZoneData.get(server).zones().stream().filter(zone -> zone.app().equals("seal-chrome")).map(AppZone::id).toList().equals(List.of(newChrome.zone())),
+                    "Renewed from the records read back: " + renewedChrome.lines());
+            // Saved again, so the files hold the town as it stands for what follows.
+            server.saveAllChunks(true, true, true);
 
             // hub.dat of another home beside this town.dat: refused, kept as it is, and the town does nothing.
             var other = copy(world, copies.resolve("other"));

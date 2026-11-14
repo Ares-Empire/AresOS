@@ -56,6 +56,7 @@ public final class TownClientGameTest implements FabricClientGameTest {
         var messages = new CopyOnWriteArrayList<String>();
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> { if (!overlay) messages.add(message.getString()); });
         Path sockets = null;
+        Stood stood = null;
         FakeHelper helper = null;
         ShellClient shell = null;
         try {
@@ -156,9 +157,44 @@ public final class TownClientGameTest implements FabricClientGameTest {
                 context.waitFor(client -> messages.contains("The logo of Chrome was renewed."), 100);
                 world.getServer().runOnServer(server -> check(server.overworld().getEntity(oldSign) == null && HubData.get(server).logos().size() == 4,
                         "The old sign stayed, or the town changed: " + HubData.get(server).logos()));
+                stood = world.getServer().computeOnServer(server -> new Stood(HubData.get(server).logo("browser").orElseThrow().gate().sign().orElseThrow(),
+                        HubData.get(server).logos().stream().collect(Collectors.toMap(HubData.Logo::app, HubData.Logo::zone))));
+            }
+            check(stood != null, "Fixture: what stood before the world was left");
+            var left = stood;
+
+            // Tests that reopen (review fixes 1, step B, point 7): the world is saved, left and opened again as he does
+            // it, through the game's own way of opening a world (its level.dat is written before the server starts,
+            // and the town's seal follows it). The town is sealed, says nothing about its records, and builds nothing
+            // twice. Then Chrome's short name goes back: the sign read back from the saved world is taken down.
+            messages.clear();
+            try (TestSingleplayerContext world = new TestWorldSaveImpl(context, directory).open()) {
+                world.getConnection().waitForChunksRender();
+                waitForServer(context, world, server -> HubData.get(server) != null && HubData.get(server).logos().size() == 4,
+                        "The town's records were not read back", 600);
+                context.runOnClient(client -> client.player.connection.sendCommand("aresos app unname web"));
+                waitForServer(context, world, server -> sign(server, "browser").equals("Chrome\n/chrome"), "Chrome's sign did not follow after the reopen", 600);
+                world.getServer().runOnServer(server -> {
+                    var hub = HubData.get(server);
+                    check(hub.frozenCount() == 0 && hub.refusal().isEmpty() && hub.logos().size() == 4, "After the reopen: frozen " + hub.frozenCount()
+                            + ", refused " + hub.refusal() + ", " + hub.logos().size() + " logos");
+                    check(server.overworld().getEntity(left.webSign()) == null, "The sign read back from the saved world stayed");
+                    var zones = ZoneData.get(server).zones();
+                    for (var logo : hub.logos()) {
+                        check(zones.stream().filter(zone -> zone.app().equals(logo.app())).count() == 1 && zones.stream().anyMatch(zone -> hub.made(logo, zone)),
+                                "Not one zone of the town for " + logo.app() + ": " + zones);
+                        if (!logo.app().equals("browser")) check(logo.zone().equals(left.zones().get(logo.app())), logo.app() + " was built again after the reopen");
+                    }
+                });
+                context.waitFor(client -> messages.contains("The logo of Chrome was renewed."), 100);
+                check(messages.stream().noneMatch(line -> line.startsWith("This world was saved without the town's records")
+                        || line.startsWith("The town's file") || line.contains(" is new. ") || line.startsWith("The town is built")
+                        || line.startsWith("The town changed")), "After the reopen: " + messages);
             }
             AresOs.LOGGER.info("36 client checks passed: the town stands up after the host joins (a complete list, the picture thread, "
-                    + "the pass), its lines and counts; app remove takes a logo down; hub rebuild says one line");
+                    + "the pass), day one's one line and the counts; app remove takes a logo down; hub rebuild says one line; /aresos logo "
+                    + "builds in a later tick and not after he moved; a new name renews the sign; reopened, the town is sealed, builds "
+                    + "nothing twice and takes down a sign read back from the saved world");
         } catch (IOException error) {
             throw new RuntimeException(error);
         } finally {
@@ -178,6 +214,9 @@ public final class TownClientGameTest implements FabricClientGameTest {
             }
         }
     }
+
+    /** What stood before the world was left: Chrome's sign with "/web", and each logo's zone ID by app. */
+    private record Stood(java.util.UUID webSign, java.util.Map<String, String> zones) { }
 
     private static JsonObject program(String id, String name, String source, String category) {
         var entry = FakeHelper.entry(id, name, null, source);
