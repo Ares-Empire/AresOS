@@ -443,7 +443,10 @@ async function admitTab(tab,generation,opener=null) {
   try{
     effectStarted=true;await chrome.debugger.attach({tabId:tab}, '1.3');attached=true;check();
     if(!original.virtualGroup){
-      groupId = await chrome.tabs.group({tabIds:[tab],...(groupId === null ? {} : {groupId})});grouped=true;check();
+      // A new Claude group goes in the tab's own window: without a window Chrome
+      // creates it in the last-focused one, which moves the owner's tab there,
+      // or fails when that window is a popup (run 43620235847, typed-late).
+      groupId = await chrome.tabs.group({tabIds:[tab],...(groupId === null ? {createProperties:{windowId:current.windowId}} : {groupId})});grouped=true;check();
       await chrome.tabGroups.update(groupId,{title:'Claude',color:'blue',collapsed:false});check();
     }
     controlled.set(tab,original);

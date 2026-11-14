@@ -1243,3 +1243,38 @@ test('gate60b the install record names each controlled document\'s path from bac
   status.installs[0].install='late';assert.equal(record()[0].install,'document_start');
   f.run("controlled.set(7,{epoch:'other'})");assert.deepEqual(record(),[]);
 });
+
+// Group after run 43620235847: a release left no controlled tab (groupId=null),
+// and the re-take made a new group without a window, so Chrome put it in the
+// last-focused window, the owner's popup, and refused. The fake follows
+// Chrome's documented rule: a new group without createProperties.windowId goes
+// in the last-focused window, moving the tab there; only normal windows hold
+// groups.
+function groupWindowFixture(){
+  const f=lifecycleFixture();
+  f.run(`groupId=null;globalThis.windows={1:'normal',2:'popup',3:'normal'};globalThis.lastFocused=1;globalThis.tabWindow={7:1,9:1};globalThis.tabGroup={};globalThis.groupWindow={};globalThis.groupCalls=[];globalThis.windowMoves=[];
+    const place=(tab,window)=>{if(windows[window]!=='normal'||windows[tabWindow[tab]]!=='normal')throw Error('Tabs can only be moved to and from normal windows');if(tabWindow[tab]!==window)windowMoves.push({tab,from:tabWindow[tab],to:window});tabWindow[tab]=window;};
+    chrome.windows.get=async id=>({id,type:windows[id]});
+    chrome.tabs.get=async tab=>({id:tab,url:'http://fixture.test/',windowId:tabWindow[tab],index:0,groupId:tabGroup[tab]??-1});
+    chrome.tabs.group=async options=>{groupCalls.push(JSON.parse(JSON.stringify(options)));let id=options.groupId;
+      if(id===undefined){const window=options.createProperties?.windowId??lastFocused;for(const tab of options.tabIds)place(tab,window);id=100+groupCalls.length;groupWindow[id]=window;}
+      else for(const tab of options.tabIds)place(tab,groupWindow[id]);
+      for(const tab of options.tabIds)tabGroup[tab]=id;return id;};
+    chrome.tabs.ungroup=async tab=>{delete tabGroup[tab];};
+    chrome.tabs.move=async(tab,{windowId})=>{place(tab,windowId);};`);
+  return f;
+}
+for(const [focused,label] of [[2,'a focused popup'],[3,'another focused normal window']])test('group-window a new Claude group is created in the taken tab\'s own window, never the focused one: '+label,async()=>{
+  const f=groupWindowFixture();
+  await f.run('take(7)');assert.equal(f.run('groupWindow[groupId]'),1,label+': first group');
+  await f.run('release(7)');assert.equal(f.run('groupId'),null,label+': the release left no group');
+  // The owner focuses another window; Claude takes the same tab again.
+  f.run(`lastFocused=${focused}`);
+  const taken=await f.run('take(7)');
+  assert.equal(taken.group,f.run('groupId'),label);assert.equal(f.run('groupWindow[groupId]'),1,label+': the new group is in the tab\'s own window');
+  assert.equal(f.run('tabWindow[7]'),1,label+': the tab stays in its window');assert.equal(f.run('tabGroup[7]'),f.run('groupId'),label);
+  assert.deepEqual(JSON.parse(f.run('JSON.stringify(groupCalls.at(-1))')),{tabIds:[7],createProperties:{windowId:1}},label);
+  // With a Claude group in place, a tab joins it by id as before.
+  await f.run('take(9)');assert.deepEqual(JSON.parse(f.run('JSON.stringify(groupCalls.at(-1))')),{tabIds:[9],groupId:f.run('groupId')},label);
+  assert.deepEqual(JSON.parse(f.run('JSON.stringify(windowMoves)')),[],label+': no tab moved to another window');
+});

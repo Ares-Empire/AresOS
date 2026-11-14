@@ -612,6 +612,14 @@ case('gate60b-summary-positions-unchecked',LS,"            assert {row['sample']
 case('gate60b-client-old-at-current-count',LP,"  assert.equal(runtime,TARGETS.baseline,'unknown latency runtime');return OLD_RUNTIME_SAMPLES;","  assert.equal(runtime,TARGETS.baseline,'unknown latency runtime');return LATENCY_SAMPLES;",node('latency','gate60b the old runtime'))
 case('gate60b-client-ignores-container-runtime',LP,"runtime=process.env.LATENCY_BASELINE||'current'}){","runtime='current'}){",node('latency','gate60b the old runtime'))
 
+# Group after run 43620235847 (mac-aresos-control, 2026-11-14): a new Claude
+# group is created in the taken tab's own window, never the last-focused one.
+# The lead's removal probe drops createProperties.windowId; the second puts the
+# call back as it was before the fix (no createProperties at all).
+GROUP_WINDOW="groupId = await chrome.tabs.group({tabIds:[tab],...(groupId === null ? {createProperties:{windowId:current.windowId}} : {groupId})});"
+case('group-window-drop-window-id',B,GROUP_WINDOW,GROUP_WINDOW.replace("{createProperties:{windowId:current.windowId}}","{createProperties:{}}"),node('background','group-window'))
+case('group-window-no-create-properties',B,GROUP_WINDOW,GROUP_WINDOW.replace("{createProperties:{windowId:current.windowId}}","{}"),node('background','group-window'))
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']
