@@ -2535,7 +2535,7 @@ the rule 10 test, the first-switch test, `test_any_other_list_stops_and_an_unkno
 3. **forward never stages and never changes the set of deployments.** In the ledger: the same rows, the same stage,
    and where the order changes only the newest installed AresOS moves, to the front. In the driver, by the fake's
    state: the same rows with the same flags and pins, and no change but `set-default` and `sync`. Direct:
-   `test_forward_selects_…_and_never_stages` (88 states, with no login and no signature available).
+   `test_forward_selects_…_and_never_stages` (44 states: two histories, each with four pair and eighteen triple states; no login and no signature available; corrected after REVIEW-7).
 4. **A refusal that names forward is right.** In every resting state where update names forward, forward does not
    refuse and ends with the newest installed AresOS first. And where staging is allowed, update stages the bundle and
    announces the other release (A6), or refuses with the repair note.
