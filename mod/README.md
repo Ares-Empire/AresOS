@@ -488,8 +488,9 @@ AresOS world builds the same town. Nothing that stands moves by itself. On the
 first build pinned apps go first (on a fresh AresOS that is Notepad).
 
 **When it changes.** The town is brought in step when you enter the world, when
-the system's program list changes, and after `/aresos app add` and
-`/aresos app remove` (the Apps screen included). The chat says what changed:
+the system's program list changes, after `/aresos app add` and
+`/aresos app remove` (the Apps screen included), and when a short name changes
+(`/aresos app name`, `unname`). The chat says what changed:
 
 | What happened | The line |
 |---|---|
@@ -501,7 +502,9 @@ the system's program list changes, and after `/aresos app add` and
 | Something of yours is in its place | "N1L0 is blocked by something of yours, so Mail stands at N1R0." |
 | Every place of its group is blocked | "Mail has no free place in Internet: every place there is blocked." |
 | Something of yours hangs on a logo that should come down | "The logo of Chrome stays: … The town tries again later." |
-| More than five changes at once | One line: "The town is built: 12 logos. /apps lists them.", or "The town changed: 7 logos built, 2 moved, 1 renewed, 3 taken down. /apps lists where your apps stand." |
+| The first logos of a town (day one) | One line, however many: "The town is built: 5 logos. /apps lists them." |
+| More than five changes at once | One line: "The town changed: 7 logos built, 2 moved, 1 renewed, 3 taken down. /apps lists where your apps stand." |
+| A logo's doorway was removed (by an older AresOS) and a zone of yours is in its place | "The logo of Spotify opens nothing: its doorway's zone is gone and a zone of yours is in its place." |
 
 In a flat home this is the only line about a new program; My apps' own line
 ("… is new and joined My apps.") is for AresOS worlds without a town.
@@ -524,7 +527,12 @@ never taken up again when its group shrinks.
   you can build between the rows or in a free place, and the town grows around
   it. A road is paved around your blocks in the same way.
 - A logo that something of yours hangs on (a torch on its doormat) is not
-  taken down until that is gone. A light you changed does not hold it up.
+  taken down until that is gone. A light you changed (its level, water in it)
+  is yours from that moment, also if you change it back, and does not hold it
+  up.
+- A logo's sign you edited (`/data`), and an entity or zone of yours that has
+  the ID the town recorded for a sign or zone, are yours: the town leaves them
+  when the logo comes down.
 - You cannot move a logo, choose its place or edit a group's name; moving and
   swapping come with a later package. `/aresos zone remove` and
   `/aresos logo remove` leave the town's logos alone and say that
@@ -551,7 +559,9 @@ blocks, the converter's version, the name and short name on its sign, its
 zone, and every block placed for it. The pad, the roads and the names stay in
 `data/aresos/hub.dat` in the shape package 32 gave it, so an older mod that
 writes `hub.dat` again loses nothing of the town. A logo's doorway and exit
-are a zone in `zones.dat`, like a hand-built gate's.
+are a zone in `zones.dat`, like a hand-built gate's. An older AresOS sees that
+zone as a plain one and can remove it; the town puts a missing doorway back,
+unless a zone of yours is in its place.
 
 **When the town is not sure its records are its own.** Each time the game
 saves the world, this mod writes `data/aresos/town-seal.dat` right after
@@ -585,7 +595,6 @@ are then plain blocks of yours, and the town builds anew on free ground.
 **Known limits.** A group name's count is written at scale 2.5 so that
 "SYSTEM & TOOLS · 14" fits between the two front logos. Closer than about 14
 blocks to a logo its sign is above the top of the screen unless you look up.
-On the first arrival of day one the chat says five lines, one for each app.
 
 ## Walk-in app logos
 
@@ -614,6 +623,9 @@ bottom middle and the app's name floating above it. The doorway's middle is on
 the block edge nearest to you. Stepping into the doorway opens the app; walking
 past the gate or along its front does nothing. Closing the app puts you back
 where you stood when you built it, 5.5 blocks in front of the door, looking at it.
+The icon is read and turned into blocks away from the game's server thread, so
+the gate stands a moment after the command; stand still meanwhile. If you moved
+or left the world before it was read, the chat says so and nothing is built.
 
 How the icon becomes blocks (`docs/design/HUB.md`, section 3.6):
 - The icon is cut to what is visible and scaled to 12 × 12 cells; a cell is
