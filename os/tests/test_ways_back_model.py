@@ -889,9 +889,9 @@ class ScopeTest(unittest.TestCase):
             opened = json.loads(out.read_text())
         root = os.path.realpath(ROOT) + os.sep
         read = {p[len(root):] for p in opened if p.startswith(root)} & tracked
-        # The hook saw the model's data. (Modules show only when Python reads their source,
-        # not a cached compiled copy; closure() covers them by their imports.)
-        self.assertTrue({'os/owner-tools/owner.py', 'os/owner-tools/payload/release/start-next.sh', 'os/manifest/release.json',
+        # The hook saw the model's data. (A module shows only when Python reads its source,
+        # not a cached compiled copy, as on the hosted runner; closure() covers modules.)
+        self.assertTrue({'os/owner-tools/payload/owner.py', 'os/owner-tools/payload/release/start-next.sh', 'os/manifest/release.json',
                          'os/tests/fixtures/owner-tools/retained-parsers.json'} <= read, sorted(read))
         self.assertEqual([p for p in sorted(read) if not model_scope.depends(p, modules)], [])
 
