@@ -8,12 +8,13 @@
     "27c: the checks-only job lets the disposable runner create unprivileged user namespaces (kernel.apparmor_restrict_unprivileged_userns=0), so test_owner_update.ToolsUpdateTest runs instead of skipping",
     "27c: the checks-only job's time limit goes from 15 to 25 minutes, since the namespace tests now run",
     "Package 18c (Control in the image, B2): the check-build job's check_build input gains the choice control (the Control VM test, os/ci/control/); nothing else in the workflow changes; checkout bytes recorded for the next rehearsal (no walk tables rebound)",
-    "Package 18c step 2b: check_build=control runs its VM pass as its own step with its own time limit after the build step (which keeps 80 minutes for every mode) and stops its fixture servers in an always() step; the job's limit is 160 minutes for control only, 120 for the other modes"
+    "Package 18c step 2b: check_build=control runs its VM pass as its own step with its own time limit after the build step (which keeps 80 minutes for every mode) and stops its fixture servers in an always() step; the job's limit is 160 minutes for control only, 120 for the other modes",
+    "Package 18c step 2c: the Control VM pass step's limit is 10 minutes (about 1.5 times a full pass: 6 min 21 s in run 43572578699) and the job's limit for check_build=control 125 minutes (tools 20, build 80, the pass 10, 15 more); 120 for the other modes as before"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "2aa74cb3dff3f51b9c3d93a19813eb64af3acef574aeb34e338e0481f753497f",
+      "sha256": "89311e5fbf933ada9e251abc3ce509ffb90012a8e5d706af31a05c92a61add03",
       "path": ".github/workflows/os-image.yml"
     },
     {
