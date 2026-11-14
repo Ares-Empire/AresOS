@@ -271,6 +271,60 @@ class FullDiskReads(unittest.TestCase):
             for shape in SHAPES:self.assertEqual(list(reopened.iter_operations(**shape)),expected[repr(shape)],shape)
         finally:reopened.close()
 
+    def test_the_index_is_added_after_recovery_and_spends_only_unheld_space(self):
+        # Fixes b, G4.1: optional speed indexes may spend only unheld space,
+        # after every prepared recovery and reservation has been rebuilt. The
+        # index's admission must see a reservation's held cancellation space.
+        template=next(op for _,op in self.store.iter_items('op:'))
+        op=copy.deepcopy(template);op.pop('notice',None);op.pop('ack',None);op.update(id=op['generation']+':held',state='reserved')
+        self.store.write({'op:'+op['id']:op},'chrome_full_disk_fixture','Synthetic reservation; no input')
+        state,evidence=self.store.state_dir,self.store.evidence_dir
+        self.store.db.execute('DROP INDEX operation_open');self.store.db.commit()
+        self.engine.close()
+        seen=[];original=storage.Store._index_open_operations
+        def spy(store):
+            seen.append(dict(store.ledger.holds));return original(store)
+        with patch.object(storage.Store,'_index_open_operations',spy):
+            reopened=storage.Store(state,evidence)
+        try:
+            self.assertEqual(len(seen),1)
+            self.assertIn('cancel:'+op['id'],seen[0],'the reservation is held before the index admits its cost')
+            self.assertEqual(seen[0],reopened.ledger.holds,'nothing reconstructed after the index changes the holds')
+            self.assertEqual(self.indexes(reopened).get('operation_open'),storage.OPEN_INDEX)
+        finally:reopened.close()
+
+    def test_an_index_from_another_definition_is_replaced_at_open_and_a_full_disk_only_defers_it(self):
+        # Fixes b, G4.2: the index is known by its whole definition. One built
+        # from an older OPEN_OPERATIONS no longer matches the queries' term, so
+        # the planner skips it and every selective shape walks the history. The
+        # next open replaces it; on a full disk the store still opens and reads
+        # the same rows, and the open after that replaces it.
+        state,evidence=self.store.state_dir,self.store.evidence_dir
+        expected={repr(shape):list(self.store.iter_operations(**shape)) for shape in SHAPES}
+        older=storage.OPEN_INDEX.replace("'$.sent_copy_check.state')='open'","'$.sent_copy_check.state')='pending'")
+        self.assertNotEqual(older,storage.OPEN_INDEX)
+        self.store.db.execute('DROP INDEX operation_open');self.store.db.execute(older);self.store.db.commit()
+        stale=[shape for shape,(plan,sql) in self.plans().items() if selective(eval(shape)) and any('operation_open' in step for step in plan)]
+        self.assertEqual(stale,[],'the planner skips an index whose WHERE the queries no longer carry')
+        self.engine.close()
+        disk=FullMainDatabase()
+        with disk.wrap():
+            try:reopened=storage.Store(state,evidence)
+            except Exception as exc:self.fail('A store with an older index must open on a full disk: %r'%(exc,))
+        try:
+            self.assertEqual(self.indexes(reopened).get('operation_open'),older,'a full disk leaves the old index in place')
+            self.assertIn('sqlite.main.write',[label for _,label,_ in disk.failures])
+            self.assertIsNotNone(reopened.observations.error)
+            for shape in SHAPES:self.assertEqual(list(reopened.iter_operations(**shape)),expected[repr(shape)],shape)
+        finally:reopened.close()
+        reopened=storage.Store(state,evidence)
+        try:
+            self.assertEqual(self.indexes(reopened).get('operation_open'),storage.OPEN_INDEX)
+            self.assertIsNone(reopened.observations.error)
+            self.store=reopened;self.assert_key_order('replaced at open')
+            for shape in SHAPES:self.assertEqual(list(reopened.iter_operations(**shape)),expected[repr(shape)],shape)
+        finally:reopened.close()
+
     def request(self,action,arguments):
         return self.engine.request({'v':1,'method':'call','action':action,'arguments':arguments})
 

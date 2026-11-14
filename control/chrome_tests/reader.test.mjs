@@ -518,6 +518,28 @@ test('final F2 short credential tokens never withhold ordinary fields that conta
   }
 });
 
+// Fixes b, G4.3: API-key names, as whole tokens. There is no bare "token":
+// hidden CSRF fields are commonly named *_token, and withholding them would
+// make ordinary forms refuse.
+const FIXES_B_API_KEYS=[['API key','apiKey'],['API-Key','api-key'],['APIKEY','apikey'],['API keys','api_keys'],['X-API-Key','x-api-key'],['API-Schlüssel','apiSchluessel'],['API Schlüssel','api_schlüssel']];
+for(const form of ['label','name','id'])test('fixes b G4.3 every API-key name is withheld in its '+form+' form',()=>{
+  for(const watched of [false,true])for(const [label,identifier] of FIXES_B_API_KEYS){
+    const value=form==='label'?label:identifier,f=credentialField(form,value,watched);
+    const row=f.read().data.rows[0];assert.equal(row.password,true,form+' '+value+' watched='+watched);assert.equal(row.value,undefined);assert.equal(f.calls(),0,value);
+    assert.equal(f.command({command:'typed_fields'}).data.fields.length,0,'never offered for an asking read: '+value);
+  }
+});
+test('fixes b G4.3 API and key words alone, and token names, stay ordinary fields',()=>{
+  for(const watched of [false,true])for(const value of ['API endpoint','API version','Keyword','Key result','Monkey','Rapid key','Token','csrf_token','authenticity_token','_token']){
+    for(const form of ['label','name']){
+      const f=fixture([{type:'text',attrs:form==='label'?{}:{[form]:value}}],{watched});
+      if(form==='label')f.nodes[0].labels=[new f.Element({tagName:'LABEL',childNodes:[{nodeType:3,textContent:value}]})];
+      const row=f.read().data.rows[0];assert.equal(row.password,undefined,form+' '+value);
+      if(watched)assert.equal(row.value,'safe visible text',value);else assert.equal(row.value_status,'filled',value);
+    }
+  }
+});
+
 test('post18d late single-line values show filled or empty without reading their value getter',()=>{
   for(const type of ['text','tel','number','unknown','email','url','search'])for(const empty of [false,true]){
     const f=fixture([{type,empty}],{watched:false});f.read();const row=f.command({command:'facts',element:'e1'}).data.target;

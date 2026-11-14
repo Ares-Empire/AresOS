@@ -193,7 +193,6 @@ class Store:
                               "CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY, value TEXT NOT NULL);"
                               "CREATE TABLE IF NOT EXISTS operation_versions (id TEXT PRIMARY KEY, seq INTEGER NOT NULL);")
         sync_directory(self.state_dir)
-        self._index_open_operations()
         # Derived, disposable index outside the backed-up state. Never trust it
         # across restarts: rebuild solely from the verified permanent journal.
         index_path = self.evidence_dir / 'journal-index.sqlite'
@@ -276,6 +275,9 @@ class Store:
                             # cancellation available if this annotation cannot fit.
             from .recovery import recover_intents
             recover_intents(self)
+            # Optional speed indexes may spend only unheld space, after every
+            # prepared recovery and reservation has been reconstructed.
+            self._index_open_operations()
         except BaseException as exc:
             with cleanup('index rebuild', exc):
                 self.close()
@@ -286,12 +288,21 @@ class Store:
         # cannot add it (a full disk, an older ledger over quota) still opens and
         # reads: every selective query walks the primary key in key order
         # instead, slower but with the same rows and still without a sort.
-        if self.db.execute("SELECT 1 FROM sqlite_master WHERE type='index' AND name='operation_open'").fetchone():
+        # The index is known by its whole definition, not its name. One built
+        # from an older OPEN_OPERATIONS no longer matches the queries' term, so
+        # the planner would skip it and every selective read would walk the
+        # history; it is replaced. If the replacement can't be built, the store
+        # opens with the old index or none (the same rows either way) and the
+        # next open tries again.
+        stored = self.db.execute("SELECT sql FROM sqlite_master WHERE type='index' AND name='operation_open'").fetchone()
+        if stored is not None and stored[0] == OPEN_INDEX:
             return
         try:
             count = self.db.execute("SELECT count(*) FROM kv WHERE k>='op:' AND k<'op;' AND " + OPEN_OPERATIONS).fetchone()[0]
             cost = max(64 * 1024, count * 128)
             self.ledger.admit(cost, history_cost=cost)
+            if stored is not None:
+                self.db.execute('DROP INDEX operation_open')
             self.db.execute(OPEN_INDEX)
             self.db.commit()
         except (OSError, sqlite3.Error) as exc:
