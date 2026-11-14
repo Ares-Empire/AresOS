@@ -55,6 +55,11 @@ public final class AppCommands {
     }
 
     public static boolean allowed(CommandSourceStack source) {
+        // Minecraft marks a node "restricted" for the client when its requirement fails for a probe without a server
+        // and without permissions (Commands.createCompilationContext); the client then asks before running a clicked
+        // /apps row. The probe never runs anything, and every real source has a server and is checked in full below.
+        // Function compilation uses the same factory with real permissions, so functions still cannot parse these.
+        if (source.getServer() == null) return source.permissions() == net.minecraft.server.permissions.PermissionSet.NO_PERMISSIONS;
         var player = source.getPlayer();
         return player != null && DesktopWorld.isHost(source.getServer(), player) && DesktopWorld.isEnabled(source.getServer());
     }

@@ -389,6 +389,26 @@ public final class SlashNamesGameTests {
         try { f.close(); } catch (Exception error) { AresOs.LOGGER.error("Could not restore the slash-names fixture", error); }
     }
 
+    /**
+     * Client test, first run: a clicked /apps row opened Minecraft's "elevated permissions" question instead of the
+     * app. Minecraft marks a node restricted when its requirement fails for a probe without server and permissions.
+     */
+    @GameTest(environment = BATCH)
+    public void hostCommandsAreNotRestrictedForClicks(GameTestHelper helper) throws Exception {
+        try (var f = new Fixture(helper)) {
+            var root = f.server.getCommands().getDispatcher().getRoot();
+            var probe = Commands.createCompilationContext(PermissionSet.NO_PERMISSIONS);
+            var function = Commands.createCompilationContext(PermissionSet.ALL_PERMISSIONS);
+            var click = root.getChild("aresos").getChild("app").getChild("open");
+            for (var node : List.of(click, root.getChild("dc"), root.getChild("open"), root.getChild("apps"))) {
+                check(node.canUse(probe), "The client would ask before running /" + node.getName());
+                check(!node.canUse(function), "A function can parse /" + node.getName());
+            }
+            check(!click.canUse(f.server.createCommandSourceStack()), "The console may use the click command");
+        }
+        helper.succeed();
+    }
+
     /** Review 1, finding 2: the requirement is checked against who typed it, not whom "execute as" picks. */
     @GameTest(environment = BATCH)
     public void onlyTheHostWhoTypesItCanNameApps(GameTestHelper helper) throws Exception {
