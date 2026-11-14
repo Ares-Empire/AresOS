@@ -386,7 +386,7 @@ named and refuses the whole file.
   `level.dat` with a fresh `LastPlayed` every time a world is opened in the game (`Minecraft.doWorldLoad`), before the
   integrated server starts. Writing a fresh seal there would seal a world an older mod saved; writing none would freeze
   every world at every opening. So a seal that holds just before that write follows it; a broken one does not.
-- JUDGMENT-CALL A3: **logos built during a frozen visit are not frozen in that visit, but are at the next one** (the
+- JUDGMENT-CALL A3 (moot after review fixes 2, where a frozen town builds nothing): **logos built during a frozen visit are not frozen in that visit, but are at the next one** (the
   seal is not renewed while anything is frozen, and the freeze is of the whole file). Trust once and all is sealed.
 - JUDGMENT-CALL A4: **"its place does not match its recorded origin"**: the record holds no origin, so the place must
   parse and every recorded position must lie in the place's planned box. Also refused: a logo recording a pad or road
@@ -519,7 +519,8 @@ change; the renumbered copies were removed).
 
 #### Decisions step B took
 
-- JUDGMENT-CALL B1: **a hand-built gate's sign is taken down while it is a text display**; its record (package 33's,
+- JUDGMENT-CALL B1 (**withdrawn in review fixes 2**, point 2: a hand-built gate now records its sign's place and text,
+  and a record without them never takes its sign down): **a hand-built gate's sign is taken down while it is a text display**; its record (package 33's,
   in `zones.dat`) holds no place or text to check more. The town's signs are checked fully. Its lights keep package
   33's rule (a light at level 15 and dry when the gate is taken down goes with it): the light fix is for the town's
   record, which the brief and finding 4 name.
@@ -530,7 +531,8 @@ change; the renumbered copies were removed).
   AresOS world again when it builds. The reader thread is shared by the town and the command (one "AresOS pictures"
   thread for the game, as the town had one before), so a slow icon delays the other's pictures.
 - JUDGMENT-CALL B4: **a restored zone is not said in the chat** (only logged); only a doorway that cannot come back is.
-  A frozen logo's missing zone is put back too (it adds, takes nothing down). "Nothing else claims that space" is the
+  A frozen logo's missing zone is put back too (it adds, takes nothing down; **replaced in review fixes 2**: a frozen
+  town puts no zone back). "Nothing else claims that space" is the
   check every new zone passes (`ZoneData.conflict`: other zones' boxes and exits). A zone of his with the logo's ID
   leaves the logo without a doorway, with its own line.
 - JUDGMENT-CALL B5: **a first build is a pass that starts with no logo standing and only builds.** A town that went
@@ -549,3 +551,206 @@ change; the renumbered copies were removed).
   `unname`.
 - A zone put back, a zone of his in its place, his edited sign and reused IDs: server tests only, not in the real client.
 - The two lines about a doorway that cannot come back were not seen in the real client.
+
+## Review fixes 2
+
+Brief: `briefs/36-review-fixes-2.md`, after `REVIEW-2.md` (gpt-6-astra, high: CHANGES-NEEDED, two FIX and one SHOULD,
+all accepted). The principle of round 1 stands. One step by a Claude agent on Opus 5.5.
+
+| Finding | What changed | Point | Tests |
+|---|---|---|---|
+| 1 FIX: a `town.dat` restored on its own can leave out a standing logo, which the town then builds twice; an empty restored file skipped the seal check and was sealed again | The seal is checked whenever the world has a seal file or `town.dat` holds logos; an unsealed world freezes the whole town, which changes nothing in the world until `/aresos hub trust` | 1 | `TownSealTest` (every case of the rule); `theTownTrustsItsRecordsOnlyWhileTheWorldWasSavedWithThem` (a subset and an empty file restored, a save while frozen, trust from a source that is not the host, overlapping records on disk, `town.dat` moved away) |
+| 2 FIX: B1 deletes an edited hand-built sign | A hand-built gate records its sign's planned place and text; removal takes the sign down only while it is still that; a record without them leaves the sign and says so | 2 | `GateGameTests.aHandBuiltSignIsTakenDownOnlyWhileItIsTheOneTheGateWasBuiltWith`; `AppZoneTest` |
+| 3 SHOULD: `PictureReaderTest` races its clean-up | The test waits on an executor barrier before it checks `waiting()` | 3 | `PictureReaderTest` |
+
+### Done
+
+| Commit | Point |
+|---|---|
+| `e89be83e` | 1. An unsealed world freezes the whole town |
+| `3735e7dd` | 2. A hand-built gate's sign is taken down only while it is the mod's |
+| `a857e8a7` | 2. A blank short name on a gate's sign is none, so its record reads back the same (found by the client test) |
+| `80d336a0` | 3. The picture reader's test waits for its own clean-up (and `*.log.gz` ignored) |
+| (this commit) | 4. This section, HUB.md's and `mod/README.md`'s corrections |
+
+### 1. An unsealed world freezes the whole town (`hub/TownSeal.trusted`, `HubData`, `TownKeeper`, `Town`, `HubCommands`)
+
+- **When the seal is checked** (`TownSeal.trusted`, called once as the world opens, from `HubData.join`): no seal file
+  and no logo in `town.dat`: trusted (a town that never had logos). The seal holds for these records (`sealed`, as in
+  round 1: `LastPlayed`, seed, fingerprint): trusted. The seal does not hold, but its fingerprint is that of an empty
+  town of this home and the file is empty: trusted (nothing of the town can stand). Every other case is unsealed,
+  whatever `town.dat` holds, an empty file too, and also a seal file that cannot be read. A world with a seal and no
+  `town.dat` at all is checked as an empty town of its home: a seal that names logos freezes it (point 5 below). A
+  flat home built just now (`store`) is not checked: it has no town yet.
+- **One state.** `TownFile.frozen` is one boolean; `HubData.frozen()` and `trust()` (which says whether it was frozen)
+  replace round 1's set of frozen apps, `frozen(app)` and `frozenCount()`. Not saved: `sealable()` is empty while
+  frozen, so a save does not renew the seal and the freeze lasts across visits; `/aresos hub trust` is the only way
+  out and stays host-only where it is parsed (the `hub` node's `requires`) and again when it runs.
+- **What frozen does.** `TownKeeper.keep` returns before it looks at anything, as for a refused file: no logo built
+  (also not for an app the records do not know), none removed, renewed or rebuilt, no road paved and no count written,
+  no missing zone put back (this replaces B4's "a frozen logo's missing zone is put back"), no place saved in the apps
+  file. The keeper's own runs stop the same way and read no pictures; trust asks for a pass. `hub rebuild` refuses with
+  the freeze's line (the command, as a failure line; `TownKeeper.rebuild` returns it as its one line). `Town.build` and
+  `Town.remove` refuse in a frozen town ("The town is frozen: it builds and removes nothing until you type /aresos hub
+  trust."), as guards. `TownKeeper.speaks` is false while frozen, so My apps says its own line about a new app. Round
+  1's frozen-place logic, the per-logo line "The logo of Discord stays as it is: …" and the rebuild's extra line are
+  gone. What stays as before: recorded blocks, signs and zones protected, doorways working, a light he changes leaving
+  the record, `/apps`, hand-built gates.
+- **The lines.** Entering a frozen world (`TownKeeper.notice`, on `JOIN`, also with no logo in the file): "This world
+  was opened without the town's records since its last visit, so the town builds and removes nothing. Look over its 4
+  logos, then type /aresos hub trust." ("its logo"; with none: "Its records hold no logo: look the town over, then type
+  /aresos hub trust."). The same line is `hub rebuild`'s refusal. Trust: "The town trusts its records again and keeps
+  their 4 logos in step with your apps. Anything of a logo they do not hold is yours from now on, and the town may
+  build that app a logo of its own." (with none: "The town trusts its records again; they hold no logo. Anything of a
+  logo …").
+- **Starting afresh after a refused file (point 5): the instructions say what happens**, they do not name both files.
+  `mod/README.md` and HUB.md: moving `town.dat` out of the world's folder leaves a seal that no longer fits, so the town
+  is frozen once more when he comes back; he looks the old logos over and types `/aresos hub trust`, and they are his
+  blocks from then on. The server test opens a copy without `town.dat` and finds it frozen.
+- **Tests.**
+  - `TownSealTest.theTownTrustsAFileOnlyWhileItsSealOrTheLackOfOneShowsThatNothingElseStands` (unit, new): no seal and
+    no logos, logos without a seal, the seal holding, a subset, an empty file while the seal names logos (holding and
+    not), an empty seal and an empty file after another `LastPlayed`, an empty seal with a file of logos, the empty
+    seal of another home, an unreadable seal.
+  - `TownGameTests.theTownTrustsItsRecordsOnlyWhileTheWorldWasSavedWithThem` (server, rewritten; same batch and ground,
+    `+21000`): day one builds Chrome alone and the world is saved (that `town.dat` is kept), then Discord is built and
+    the world saved again (sealed when read back; a whole-world copy stays sealed). **A subset restored:** a copy with
+    the Chrome-only `town.dat` opens frozen; stored on the server, the line "… Look over its logo, …" is the notice, and
+    a pass with Chrome and Discord wanted says nothing, builds no Discord logo and takes nothing down: the area of the
+    town block for block, the zones of the test's apps, and Discord's sign entity and its text are unchanged. Then the
+    round-1 parts (records read back, a renewal by reloaded IDs; another home and an unreadable file refused and kept)
+    and, new, **a `town.dat` with overlapping records written to disk** (a logo recorded twice): refused ("two logos are
+    recorded for …"), nothing adopted, the file byte for byte the same after its storage saves. **The older-mod case:**
+    his block in Discord's logo, `level.dat` written without the seal: frozen, the line with "its 2 logos"; Discord
+    leaves, Chrome gets a new name and picture and **Mail is new: a pass says nothing and changes nothing** (no Mail
+    logo, the records, zones and area unchanged); `hub rebuild` returns only the freeze's line; **`/aresos hub trust`
+    through the real dispatcher from the server's own source and from a player who is not the host** (`withEntity` of a
+    new `ServerPlayer`): the `hub` node's requirement fails for both, the dispatcher throws `CommandSyntaxException`,
+    still frozen. The test server is no singleplayer game, so it has no host; the host's own trust goes through
+    `TownKeeper.trust`, which the command calls after its host check. **A save while frozen:** the seal file is byte for
+    byte the same and the world read back is frozen. **An empty `town.dat` restored while the logos stand:** frozen with
+    no logo, its line "Its records hold no logo: …", a pass builds nothing, and the next save leaves the seal as it was
+    and the world read back is frozen with an empty file. **After trust** (the trust line): the pass takes Discord down,
+    renews Chrome and builds Mail (his diamond stays); the next save renews the seal and the world read back is not
+    frozen. A `town.dat` from the first backup: frozen. **`town.dat` moved away:** frozen. The end: everything leaves
+    and the world is saved; with the seal deleted: not frozen; **after an older mod's `level.dat` write with the seal of
+    an empty town:** the seal does not hold and the town is not frozen.
+- **Which fail without the change.** Run: with round 1's rule (`file.frozen = !file.logos.isEmpty() &&
+  !TownSeal.sealed(...)`, not committed) the server test fails at "An empty town.dat restored: frozen false" (exit 1,
+  `BUILD FAILED in 45s`). By reading, not run: with round 1's per-logo freeze, the subset pass builds Discord a second
+  logo on free ground (its own blocks block `N0R0`) and fails at "A subset restored changed something", and Mail is
+  built while frozen ("A frozen town changed something"); `TownSealTest`'s new test fails at "an empty file restored
+  while the seal names logos". The non-host trust check passes without this round's change too: the requirement is
+  round 1's; this is the coverage REVIEW-2 asked for.
+
+### 2. A hand-built gate's sign is taken down only while it is the one the mod made (`zone/AppZone`, `GatePlan`, `GateBuilder`, `ZoneCommands`)
+
+- `AppZone.Gate` has a fifth component, `signPlan`: the sign's planned place and text as `GatePlan.Sign` (its lower
+  middle point, the name, the short name), saved as the optional field `sign_plan` (`position`, `name`, `short_name`
+  optional). `GateBuilder.place` records the plan's sign, so `/aresos logo <app>` writes it into the gate's record in
+  `zones.dat`. `GatePlan.Sign` makes a blank short name null itself (`a857e8a7`): a gate of an app without short
+  names plans its sign with `""`, which the field saves as absent, and the first client run found the record read back
+  after a rejoin unequal to the one in memory.
+- `GateBuilder.remove` passes that plan to `takeDown`, and `made` (the town's check of round 1) now refuses a sign when
+  the record has no plan: the sign is taken down only while it is a text display within 0.001 blocks of that place with
+  that text (compared in its saved form). Anything else stays and the record lets go of it with the gate. A record
+  without the plan never takes its sign down.
+- `GateBuilder.Removal` says what happened to the sign (`SignLeft`: `NONE`, taken down or not there; `CHANGED`, not
+  what the mod made; `UNRECORDED`, the record has no plan). `/aresos logo remove`'s one line (`ZoneCommands.tookDown`)
+  adds " Its sign stays: it is not the one the gate was built with, so it is yours." or " Its sign stays and is yours:
+  this gate's record is from an older AresOS and does not say what the sign said."
+- The town's records do not carry the plan (`HubData.Logo` keeps its gate's four fields): the town checks its signs
+  against its own plan, so `town.dat` and its fingerprint keep their shape.
+- **What an older mod does with the new field: it reads it and drops it.** `AppZone.java` last changed in package 33's
+  merge (`688c9571`), so packages 33 to 35 decode a gate with the same `RecordCodecBuilder` as before this round: a
+  map codec that reads the keys it knows and ignores others, inside `ZoneData`'s plain `AppZone.CODEC.listOf()`. It
+  reads the zone without an error and keeps the gate; when it writes `zones.dat` again (any zone change) the gate goes
+  out without `sign_plan`, and this mod then reads a record without a plan: its sign stays when the gate is removed
+  (point 2). Package 32 knows no gates at all (HUB.md, as before). `AppZoneTest` shows it with a copy of that codec;
+  no older mod's jar was run.
+- **JUDGMENT-CALL B1 of round 1 is withdrawn.**
+- **Tests.** `GateGameTests.aHandBuiltSignIsTakenDownOnlyWhileItIsTheOneTheGateWasBuiltWith` (server, new, its own
+  plot, lift 310), each through `GateBuilder.remove` (what `/aresos logo remove` calls) and the reply's
+  `ZoneCommands.tookDown`: an unedited sign: its plan recorded and read back whole, the sign and zone go, the plain line;
+  an edited sign (text set as `/data` does): it stays, the gate's blocks come down, the "not the one" line; a text
+  display of his with the sign's ID and text four blocks higher: stays; an older record (the same gate written back
+  without the plan): its blocks come down, the sign stays, the "older AresOS" line. After each, every block of the site
+  is as before. `AppZoneTest` (unit, new): the new field round-trips; the codec of packages 33 to 35 reads a gate with
+  it without an error, keeps the gate and writes it back without the field, which this mod reads as no plan.
+- **Which fail without the change** (by reading, not run): round 1 passed no plan for a hand-built gate and `made`
+  then took any text display, so the edited sign, his display and the older record's sign would be removed ("An edited
+  sign", "His display with the sign's ID", "An older record"); `Removal.sign()` and `tookDown` did not exist.
+
+### 3. The picture reader's test waits for its own clean-up
+
+`PictureReaderTest.readsEachAppInOrderOffTheCallingThread` submits an empty task to the reader's single-thread
+executor and waits for it before it checks `waiting()`: the read removes itself in `whenComplete`, which runs on that
+thread as it completes the result, so once a later task has run the removal has too. A race cannot be made to fail on
+purpose; the fix is by reading.
+
+### Known limits
+
+- **A failed `level.dat` write.** In 26.2 `saveDataTag` writes through `LevelStorageAccess.saveLevelData(CompoundTag)`,
+  which writes a temporary file and swaps it in with `Util.safeReplaceFile`, catches every exception, logs "Failed to
+  save level {}" and returns normally (read in the bytecode). So `saveDataTag` returns, and the seal written after it
+  names a `LastPlayed` that is not on disk (`level.dat` keeps the old one, or is missing if the swap stopped half way
+  and the game opens `level.dat_old`, which the seal check does not read). The next visit is then unsealed: a false
+  alarm on the safe side, ended with `/aresos hub trust`.
+- **A crash in the middle of a save.** The game saves the chunks first, then `level.dat` and the seal, then
+  `town.dat`. A crash after the chunks and before the seal can leave blocks of a new logo in the world without its
+  record: they are his then, and the town may build that app again. A crash between the seal and `town.dat` leaves the
+  world unsealed (frozen, safe). As with any data the game saves beside its chunks.
+- **Trust takes the records as they are.** A logo they do not hold stays as his blocks and, through its zone, his
+  doorway, and the town may build that app a logo of its own; the trust line says so.
+- **Another program writing into the world folder while the game runs.** The town reads and checks its files once,
+  as the world opens, and keeps them in memory; a file replaced while the game runs is not noticed and is written over
+  at the next save.
+
+### What ran (from the worktree root, on the laptop under AresOS, 2026-11-14)
+
+| Run | Code | Result |
+|---|---|---|
+| `mod/dev/build.sh` | point 1 | exit 0, "All 93 required tests passed :)", `BUILD SUCCESSFUL in 1m 36s` |
+| `mod/dev/build.sh` | point 1 with round 1's rule for an empty file (not committed) | exit 1, "An empty town.dat restored: frozen false", `BUILD FAILED in 45s` |
+| `mod/dev/build.sh` | point 2 | exit 0, "All 94 required tests passed :)", `BUILD SUCCESSFUL in 1m 34s`; `AppZoneTest` and the three `TownSealTest`s passed |
+| `mod/dev/build.sh` | point 3 (`80d336a0`) | exit 0, "All 94 required tests passed :)", `BUILD SUCCESSFUL in 1m 31s`; unit 205 passed, 6 skipped, 0 failed; both `PictureReaderTest`s passed |
+| `mod/dev/client-test.sh` | `80d336a0` | run 1: exit 1, `BUILD FAILED in 7m 43s` (7 min 44 s): 11 "client checks passed" lines (09c to 32), then `GateLogoClientGameTest` (package 33): "The gates' zones changed across the rejoin". The blank short name above; fixed in `a857e8a7` |
+| `mod/dev/client-test.sh` | `a857e8a7` | run 2: exit 0, `BUILD SUCCESSFUL in 9m 21s` (9 min 21 s), 15 "client checks passed" lines (36's as in round 1: "… reopened, the town is sealed, builds nothing twice and takes down a sign read back from the saved world") and "36 pictures taken". The log has no line "This world was opened without …", "does not fit this world" or "The town is frozen" |
+| `mod/dev/build.sh` | `a857e8a7`, final 1 | exit 0, "All 94 required tests passed :)", `BUILD SUCCESSFUL in 1m 36s`; unit 205 passed, 6 skipped, 0 failed |
+| `mod/dev/build.sh` | `a857e8a7`, final 2 | exit 0, "All 94 required tests passed :)", `BUILD SUCCESSFUL in 1m 9s` (unit tests up to date, not run again) |
+
+The game test count is 94 from point 2 on (the new gate test). **Pictures:** none of this package's thirteen changes
+(no chat line in them changed); after each client run every tracked picture was put back and the renumbered copies of
+other packages were removed.
+
+### Decisions (JUDGMENT-CALL C1 to C7)
+
+- JUDGMENT-CALL C1: **point 5, starting afresh: the instructions say that moving `town.dat` away freezes the town once
+  more**, rather than naming both files. One file to move, and the freeze's line then leads him (look the old logos
+  over, trust); it is what the rule of point 1 does with a seal and no `town.dat` anyway, so no extra step can be got
+  wrong.
+- JUDGMENT-CALL C2: **a frozen pass does nothing at all**, also no place saved in the apps file and no picture read; and
+  `speaks` is false while frozen, so My apps says its own line about a new app (otherwise a new app would get no line).
+- JUDGMENT-CALL C3: **`hub rebuild` refuses as a failure line** with the freeze's line; `Town.build` and `Town.remove`
+  refuse in a frozen town as guards.
+- JUDGMENT-CALL C4: the wording of the entering line (for 0, 1 and more logos), the trust line and the two sign
+  endings of `/aresos logo remove`'s reply.
+- JUDGMENT-CALL C5: **the "empty town" exception compares only the seal's fingerprint** with that of an empty town of
+  this home, as the brief states it; it does not ask for the seal's seed or `LastPlayed` (the fingerprint holds the
+  home).
+- JUDGMENT-CALL C6: **the sign's text is recorded as the name and short name** (`GatePlan.Sign`) and rebuilt for the
+  check as the town does, not as a saved text component; the town's own records do not carry the plan, so `town.dat`
+  keeps its shape. The reply also names a recorded sign that stays because it changed, not only an older record's.
+- JUDGMENT-CALL C7: `*.log.gz` is ignored beside `*.log`: the new unit test logs an expected warning (an unreadable
+  seal) through the game's log setup, which writes and rolls `mod/logs/latest.log` when the unit tests run.
+
+### Not verified
+
+- The real client: the freeze's lines in chat, `hub rebuild`'s refusal and the host's own `/aresos hub trust` through
+  the real command (server tests call `TownKeeper.trust` and `rebuild`; the client test checks that a normal reopen is
+  not frozen and says no freeze line). `/aresos logo remove`'s reply about a sign that stays: through `tookDown` in a
+  server test, not in chat.
+- A real older mod (packages 33 to 35) on a `zones.dat` with `sign_plan`: modelled with its codec in `AppZoneTest`.
+- A failed `level.dat` write and a crash in the middle of a save: by reading.
+- Walking through a frozen town's doorway: by reading (a frozen town leaves the zones as they are).
+- Windows.

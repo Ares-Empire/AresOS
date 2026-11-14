@@ -568,19 +568,25 @@ saves the world, this mod writes `data/aresos/town-seal.dat` right after
 `level.dat`: the moment `level.dat` was saved, the world's seed and a
 fingerprint of `town.dat`. When the world opens and the seal does not fit, the
 town's records may no longer match the world: an older AresOS (packages 32 to
-35) or plain Minecraft saved the world since, `town.dat` came from a backup or
-from another world, or the game stopped between the two writes (a false alarm,
-on the safe side). Then the town freezes its logos: they stay protected and
-their doorways work, but the town takes nothing of them down and builds
-nothing over them, not when an app leaves, not on a new picture or name, not
-on `hub rebuild`; new apps get logos on free ground as usual. The chat says
-so once as you enter: "This world was saved without the town's records since
-the town last saw it, so the town leaves its 5 logos as they are. Look them
-over, then type /aresos hub trust." Change back what you want kept as yours
-(a block you change is yours from then on), then type
-**`/aresos hub trust`** (the host): the town takes its logos as its own again
-and the seal is renewed at the next save. Nothing else ends a freeze. A world
-copied or renamed as a whole stays sealed.
+35) or plain Minecraft saved the world since, `town.dat` came from a backup,
+from another world or was moved away, or the game stopped between the two
+writes (a false alarm, on the safe side). A restored `town.dat` can leave out
+a logo that still stands, and the town cannot tell that app from a new one, so
+then the whole town is frozen, also when `town.dat` holds no logo at all: it
+builds no logo (not for a new app either), takes none down, renews none, paves
+no road and puts no missing doorway back, and `hub rebuild` refuses. What
+stands stays protected, doorways work, and your own gates (`/aresos logo`) work
+as always. The chat says so once as you enter: "This world was opened without
+the town's records since its last visit, so the town builds and removes
+nothing. Look over its 5 logos, then type /aresos hub trust." Change back what
+you want kept as yours (a block you change is yours from then on), then type
+**`/aresos hub trust`** (the host): the town takes its records as its own
+again, as they are. Anything of a logo they do not hold is yours from then on,
+and the town may build that app a logo of its own. The seal is renewed at the
+next save; until you trust, the freeze lasts across visits. Nothing else ends a
+freeze. A world copied or renamed as a whole stays sealed. A world whose town
+never had a logo needs no seal, and neither does one whose seal and `town.dat`
+both show a town without logos.
 
 **When `town.dat` does not fit the world.** A `town.dat` that cannot be read,
 that was saved for another home than `hub.dat`'s, or whose records overlap
@@ -589,8 +595,10 @@ or a logo whose blocks lie outside its place) is never used and never
 replaced: the file stays as it is, the town builds nothing, takes nothing down
 and paves no road in that world, and the chat says so with the file's full
 path as you enter. To start the town afresh, close the world and move
-`data/aresos/town.dat` out of the world's folder (or rename it); its old logos
-are then plain blocks of yours, and the town builds anew on free ground.
+`data/aresos/town.dat` out of the world's folder (or rename it). The seal
+beside it then no longer fits, so when you come back the town is frozen once
+more (above): look the old logos over and type `/aresos hub trust`. They are
+plain blocks of yours from then on, and the town builds anew on free ground.
 
 **Known limits.** A group name's count is written at scale 2.5 so that
 "SYSTEM & TOOLS · 14" fits between the two front logos. Closer than about 14
@@ -663,7 +671,13 @@ must be loaded, so build where you are.
 `/aresos logo remove here` the one you stand at (anywhere between its door and
 its exit point). A removal takes each block the gate placed **only if it is
 still that block**, puts the ground under the doormat back, and removes the
-sign and the zone. A block you changed, replaced or mined stays as you left it.
+zone. A block you changed, replaced or mined stays as you left it. The gate
+records where its sign stands and what it says, and the sign goes only while it
+is still that: a sign you edited or moved, or a text display of yours that has
+its ID, stays and is yours. A gate built by an older AresOS (packages 33 to 35)
+has no such record, and one that an older AresOS saved again has lost it (it
+reads the record and drops what it does not know): its sign always stays, and
+the reply says so.
 For an older wall or floor logo the command only removes the zone and says that
 the blocks stay. `/aresos zone remove` leaves gates alone.
 
