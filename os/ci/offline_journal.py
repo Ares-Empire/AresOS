@@ -14,6 +14,12 @@ SHUTDOWN = '98268866d1d54a499c4e98921d93bc40'
 JOURNAL_PATHS = r'^/(|var(|/log(|/journal(|/.*)))|ostree(|/deploy(|/[^/]+(|/var(|/log(|/journal(|/.*)))))))$'
 PARTITION_WAIT_SECONDS = 10
 PARTITION_POLL_SECONDS = 0.5
+# The VM disk is the pinned bootc-image-builder's raw disk (os/manifest/base.json,
+# --type raw --rootfs btrfs, configuration from os/ci/prepare-disk.py): BIOS boot
+# (no filesystem), ESP, /boot, root, in GPT entries 1 to 4. Recorded since package
+# 03 (os/manifest/ci/03i/vm-pass-1/offline-disk-layout.json). A new builder pin
+# that changes it fails here, by design.
+DISK_LAYOUT = (None, 'vfat', 'ext4', 'btrfs')
 
 
 class OfflineJournalUnavailable(RuntimeError):
@@ -76,42 +82,51 @@ def block_node(path):
 
 
 def find_btrfs_root(nbd, run, commands, evidence):
-    """The connected disk's one Btrfs partition, by the signature on the disk itself.
+    """The guest's Btrfs root, once every partition read from the disk matches DISK_LAYOUT.
 
     lsblk's FSTYPE is udev's cached probe, which a runner image may fill late or
     never for nbd devices (run 43548237383: null on every partition after
     udevadm settle). lsblk only lists the partitions here (from sysfs; its FSTYPE
-    column stays in the evidence for comparison); blkid -p reads each partition's
-    superblock directly, bypassing udev and blkid's cache.
+    column stays in the evidence for comparison); blkid -p reads each partition
+    directly, bypassing udev and blkid's cache.
     """
+    expected = {f'{nbd}p{number}': kind or 'none' for number, kind in enumerate(DISK_LAYOUT, 1)}
+
+    def unready(output):
+        layout = json.loads(run('lsblk', '--json', '--paths', '--output', 'NAME,FSTYPE,RO', nbd, output=output))
+        listed = sorted(part['name'] for part in layout['blockdevices'][0].get('children', []))
+        # blkid -p also answers exit 2 for a missing node, so never probe a set that
+        # differs from the layout's or one whose nodes are not all there.
+        missing = [name for name in expected if name not in listed or not block_node(name)]
+        return (listed, missing) if listed != sorted(expected) or missing else None
+
     deadline = time.monotonic() + PARTITION_WAIT_SECONDS
-    while True:
-        layout = json.loads(run('lsblk', '--json', '--paths', '--output', 'NAME,FSTYPE,RO', nbd,
-                                output='offline-disk-layout.json'))
-        names = [part['name'] for part in layout['blockdevices'][0].get('children', [])]
-        # blkid -p answers "nothing found" (exit 2) for a missing node too, so
-        # never probe before every listed node exists.
-        missing = [name for name in names if not block_node(name)]
-        if names and not missing:
-            break
-        assert time.monotonic() < deadline, (f'Partition nodes of {nbd} not ready after {PARTITION_WAIT_SECONDS}s: '
-                                             f'listed {names}, missing {missing}')
+    while state := unready('offline-disk-layout.json'):
+        assert time.monotonic() < deadline, (f'Partitions of {nbd} not ready after {PARTITION_WAIT_SECONDS}s: '
+                                             f'expected {list(expected)}, listed {state[0]}, missing {state[1]}')
         time.sleep(PARTITION_POLL_SECONDS)
-    types = {}
-    for name in names:
-        output = run('blkid', '-p', '-o', 'value', '-s', 'TYPE', name, required=False)
-        # 0: signatures found (an unformatted partition may still print no TYPE);
-        # 2 without a message: nothing found. 2 with one (such as "Permission
-        # denied") or any other exit, such as 8 (ambivalent), is an error.
-        probe = commands[-1]
-        assert probe['returncode'] == 0 or (probe['returncode'] == 2 and not probe['stderr'].strip()), probe
-        types[name] = output.decode().strip() or None
-    (evidence / 'offline-disk-types.json').write_text(json.dumps(types, indent=2) + '\n')
-    seen = ', '.join(f'{name}={kind or "none"}' for name, kind in types.items())
-    print(f'Offline disk filesystem types (blkid -p): {seen}', flush=True)
-    roots = [name for name, kind in types.items() if kind == 'btrfs']
-    assert len(roots) == 1, f'Expected exactly one btrfs root on {nbd}; blkid -p saw {seen}'
-    return roots[0]
+    seen, probes = {}, {}
+    for number, name in enumerate(expected, 1):
+        output = run('blkid', '-p', '-o', 'export', name, required=False)
+        code = commands[-1]['returncode']
+        tags = dict(line.split('=', 1) for line in output.decode(errors='replace').splitlines() if '=' in line)
+        probes[name] = dict(returncode=code, stderr=commands[-1]['stderr'], tags=tags)
+        # On a partition blkid -p always reports its GPT entry (PART_ENTRY_*), even
+        # without a filesystem, and on any probe error it prints nothing (exit 2,
+        # often without a message). So only exit 0 with this partition's own entry
+        # counts as read; a missing TYPE then means no signature, not an error.
+        entry = code == 0 and tags.get('PART_ENTRY_SCHEME') == 'gpt' and tags.get('PART_ENTRY_NUMBER') == str(number)
+        seen[name] = tags.get('TYPE', 'none') if entry else f'unread (exit {code}, entry {tags.get("PART_ENTRY_NUMBER")})'
+    (evidence / 'offline-disk-types.json').write_text(json.dumps(probes, indent=2) + '\n')
+    summary = ', '.join(f'{name}={kind}' for name, kind in seen.items())
+    print(f'Offline disk filesystem types (blkid -p): {summary}', flush=True)
+    assert seen == expected, (f'Expected the image builder\'s layout with exactly one btrfs root: '
+                              f'{", ".join(f"{name}={kind}" for name, kind in expected.items())}; '
+                              f'blkid -p read {summary}')
+    state = unready(None)
+    assert not state, f'Partitions of {nbd} changed while probing: listed {state[0]}, missing {state[1]}'
+    root, = [name for name, kind in expected.items() if kind == 'btrfs']
+    return root
 
 
 def read_offline_journal(disk, work, evidence, boot_id):

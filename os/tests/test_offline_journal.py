@@ -18,6 +18,15 @@ PARTITIONS = [f'/dev/nbd0p{number}' for number in range(1, 5)]
 DISK_TYPES = dict(zip(PARTITIONS, (None, 'vfat', 'ext4', 'btrfs')))
 
 
+def blkid_export(name, kind, number=None):
+    """blkid -p -o export on a GPT partition: its own entry always, TYPE only with a signature."""
+    number = number or name.rsplit('p', 1)[1]
+    lines = [f'DEVNAME={name}'] + ([f'TYPE={kind}'] if kind else []) + [
+        'PART_ENTRY_SCHEME=gpt', 'PART_ENTRY_UUID=00000000-0000-0000-0000-00000000000' + number,
+        f'PART_ENTRY_NUMBER={number}', 'PART_ENTRY_DISK=43:0']
+    return ('\n'.join(lines) + '\n').encode()
+
+
 class OfflineJournalTest(unittest.TestCase):
     boot = 'a' * 32
 
@@ -91,12 +100,16 @@ class OfflineReaderCommandsTest(unittest.TestCase):
 
     def exercise(self, failure=None, *, unsupported=True, absent=False, missing_journals=False,
                  missing_boot=False, records=None, timeout=False, mounted=False, missing_podman=False,
-                 disk_types=DISK_TYPES, udev_types=None, nodes_at=None, blkid_exits=None):
-        """disk_types: what blkid -p reads per partition (None: nothing found, exit 2).
+                 disk_types=DISK_TYPES, listings=None, udev_types=None, nodes_at=None, gone_after_probe=(),
+                 blkid_results=None):
+        """disk_types: the filesystem on each partition (None: no signature).
+        listings: the partitions each successive lsblk call lists (the last one repeats).
         udev_types: lsblk's FSTYPE per partition; null everywhere by default, as on run 43548237383.
         nodes_at: the fake clock's second at which a partition's node appears (default 0).
-        blkid_exits: blkid's (exit code, stderr) per partition instead of 0 or 2, with the same output."""
-        udev_types, nodes_at, blkid_exits = udev_types or {}, nodes_at or {}, blkid_exits or {}
+        gone_after_probe: partitions whose nodes vanish once blkid has run.
+        blkid_results: blkid's raw (exit code, stdout, stderr) per partition instead of a clean probe."""
+        listings = listings or [list(disk_types)]
+        udev_types, nodes_at, blkid_results = udev_types or {}, nodes_at or {}, blkid_results or {}
         self.argv, self.blkid_at, self.disk_types_evidence = [], [], None
         clock = self.clock = [0.0]
         with tempfile.TemporaryDirectory() as temporary, patch.dict('os.environ', {'GITHUB_STEP_SUMMARY': ''}):
@@ -142,13 +155,14 @@ class OfflineReaderCommandsTest(unittest.TestCase):
                 if label == 'dmesg' and unsupported:
                     output = b"btrfs: Unknown parameter 'nologreplay'"
                 elif label == 'lsblk':
+                    listed = listings[min(calls.count('lsblk'), len(listings)) - 1]
                     output = json.dumps({'blockdevices': [{'name': '/dev/nbd0', 'fstype': None, 'ro': True, 'children': [
-                        {'name': name, 'fstype': udev_types.get(name), 'ro': True} for name in disk_types]}]}).encode()
+                        {'name': name, 'fstype': udev_types.get(name), 'ro': True} for name in listed]}]}).encode()
                 elif label == 'blkid':
                     self.blkid_at.append(clock[0])
-                    kind = disk_types[args[-1]]
-                    code, stderr = blkid_exits.get(args[-1], (0 if kind else 2, b''))
-                    return subprocess.CompletedProcess(args, code, f'{kind}\n'.encode() if kind else b'', stderr)
+                    name = args[-1]
+                    return subprocess.CompletedProcess(args, *blkid_results.get(
+                        name, (0, blkid_export(name, disk_types.get(name)), b'')))
                 elif label == 'blockdev':
                     output = b'1'
                 elif label == 'btrfs-roots':
@@ -169,7 +183,8 @@ class OfflineReaderCommandsTest(unittest.TestCase):
             try:
                 with patch('offline_journal.subprocess.run', side_effect=execute), \
                         patch('pathlib.Path.is_mount', side_effect=[False, mounted]), \
-                        patch('offline_journal.block_node', side_effect=lambda name: clock[0] >= nodes_at.get(name, 0)), \
+                        patch('offline_journal.block_node', side_effect=lambda name: clock[0] >= nodes_at.get(name, 0)
+                              and not (name in gone_after_probe and self.blkid_at)), \
                         patch.object(offline_journal.time, 'monotonic', side_effect=lambda: clock[0]), \
                         patch.object(offline_journal.time, 'sleep',
                                      side_effect=lambda seconds: clock.__setitem__(0, clock[0] + seconds)):
@@ -229,6 +244,7 @@ class OfflineDiskProbeTest(unittest.TestCase):
     """The Btrfs root comes from blkid -p on the disk, never from udev's FSTYPE cache."""
     boot = OfflineJournalTest.boot
     exercise = OfflineReaderCommandsTest.exercise
+    LAYOUT = ', '.join(f'{name}={kind or "none"}' for name, kind in DISK_TYPES.items())
 
     def probes(self):
         return [args for args in self.argv if args[0] == 'blkid']
@@ -239,77 +255,107 @@ class OfflineDiskProbeTest(unittest.TestCase):
         self.assertEqual(getro[-1], mount[-2])
         return getro[-1]
 
+    def assert_stopped_before_mount(self, probed=True):
+        self.assertEqual(bool(self.probes()), probed)
+        self.assertNotIn('blockdev', self.calls)
+        self.assertNotIn('mount', self.calls)
+        self.assertEqual(self.calls[-1], 'disconnect')
+
+    def assert_not_ready(self, missing, **options):
+        with self.assertRaisesRegex(AssertionError, f'not ready after {PARTITION_WAIT_SECONDS}s') as error:
+            self.exercise(**options)
+        self.assertEqual(self.clock[0], PARTITION_WAIT_SECONDS)
+        self.assertEqual(str(error.exception).split('missing ', 1)[1], repr(missing))
+        self.assert_stopped_before_mount(probed=False)
+        return str(error.exception)
+
     def test_root_comes_from_blkid_probe_when_udev_has_no_types(self):
         self.assertEqual(self.exercise()['status'], 'passed')
-        self.assertEqual(self.probes(), [['blkid', '-p', '-o', 'value', '-s', 'TYPE', name] for name in PARTITIONS])
+        self.assertEqual(self.probes(), [['blkid', '-p', '-o', 'export', name] for name in PARTITIONS])
         self.assertEqual(self.root_used(), '/dev/nbd0p4')
-        self.assertEqual(self.disk_types_evidence, DISK_TYPES)
+        self.assertEqual({name: probe['tags'].get('TYPE') for name, probe in self.disk_types_evidence.items()},
+                         DISK_TYPES)
         self.assertLess(self.calls.index('udevadm'), self.calls.index('lsblk'))
         self.assertLess(self.calls.index('lsblk'), self.calls.index('blkid'))
+        # Listed again after probing, to prove the set did not change meanwhile.
+        self.assertEqual(self.calls[self.calls.index('blkid') + 4], 'lsblk')
 
     def test_udev_types_are_never_trusted_over_the_disk(self):
-        # A stale cache naming another partition btrfs changes nothing ...
         stale = dict(DISK_TYPES, **{'/dev/nbd0p3': 'btrfs', '/dev/nbd0p4': None})
         self.assertEqual(self.exercise(udev_types=stale)['status'], 'passed')
         self.assertEqual(self.root_used(), '/dev/nbd0p4')
-        # ... and a cache that agrees cannot stand in for a disk without a btrfs root.
-        with self.assertRaisesRegex(AssertionError, 'Expected exactly one btrfs root'):
+        with self.assertRaisesRegex(AssertionError, 'blkid -p read .*/dev/nbd0p4=none'):
             self.exercise(udev_types=DISK_TYPES, disk_types=dict(DISK_TYPES, **{'/dev/nbd0p4': None}))
 
     def test_late_partition_node_is_waited_for_within_the_bound(self):
         self.assertEqual(self.exercise(nodes_at={'/dev/nbd0p4': 3})['status'], 'passed')
-        self.assertGreater(self.calls.count('lsblk'), 1)
+        self.assertGreater(self.calls.count('lsblk'), 2)
         self.assertEqual(self.blkid_at, [3.0] * 4, 'probed before every node existed')
-        self.assertEqual(self.root_used(), '/dev/nbd0p4')
 
     def test_node_that_never_appears_stops_at_the_bound_without_probing(self):
-        for nodes_at in ({'/dev/nbd0p2': 60}, {name: 60 for name in PARTITIONS}):
-            with self.subTest(nodes_at=nodes_at):
-                with self.assertRaisesRegex(AssertionError, 'not ready after 10s') as error:
-                    self.exercise(nodes_at=nodes_at)
-                for name in nodes_at:
-                    self.assertIn(name, str(error.exception).split('missing', 1)[1])
-                self.assertEqual(self.clock[0], PARTITION_WAIT_SECONDS)
-                self.assertEqual(self.probes(), [])
-                self.assertNotIn('mount', self.calls)
-                self.assertEqual(self.calls[-1], 'disconnect')
+        self.assert_not_ready(['/dev/nbd0p2'], nodes_at={'/dev/nbd0p2': 60})
+        self.assert_not_ready(PARTITIONS, nodes_at={name: 60 for name in PARTITIONS})
+        message = self.assert_not_ready(PARTITIONS, listings=[[]])
+        self.assertIn('listed []', message)
 
-    def test_disk_without_listed_partitions_stops_at_the_bound(self):
-        with self.assertRaisesRegex(AssertionError, r"not ready after 10s: listed \[\]"):
-            self.exercise(disk_types={})
-        self.assertEqual(self.clock[0], PARTITION_WAIT_SECONDS)
-        self.assertEqual(self.calls[-1], 'disconnect')
+    def test_shrinking_list_cannot_skip_a_missing_partition(self):
+        # The review's case: p2 listed without its node, then no longer listed at all.
+        message = self.assert_not_ready(['/dev/nbd0p2'], nodes_at={'/dev/nbd0p2': 60},
+                                        listings=[PARTITIONS, [p for p in PARTITIONS if p != '/dev/nbd0p2']])
+        self.assertIn("listed ['/dev/nbd0p1', '/dev/nbd0p3', '/dev/nbd0p4']", message)
+
+    def test_incomplete_list_cannot_hide_a_second_btrfs_root(self):
+        partial = ['/dev/nbd0p1', '/dev/nbd0p2', '/dev/nbd0p4']
+        self.assert_not_ready(['/dev/nbd0p3'], listings=[partial],
+                              disk_types=dict(DISK_TYPES, **{'/dev/nbd0p3': 'btrfs'}))
+
+    def test_growing_list_is_probed_only_once_complete(self):
+        growing = [PARTITIONS[:1], PARTITIONS[:3], PARTITIONS]
+        self.assertEqual(self.exercise(listings=growing)['status'], 'passed')
+        self.assertEqual(self.blkid_at, [1.0] * 4)
+        self.assertEqual(len(self.probes()), 4)
+        # A partition beyond the layout is never ignored.
+        message = self.assert_not_ready([], listings=[PARTITIONS + ['/dev/nbd0p5']])
+        self.assertIn('/dev/nbd0p5', message)
+
+    def test_partition_set_changing_while_probing_fails(self):
+        for options in ({'listings': [PARTITIONS, PARTITIONS[1:]]}, {'gone_after_probe': ['/dev/nbd0p1']}):
+            with self.subTest(options=options):
+                with self.assertRaisesRegex(AssertionError, 'changed while probing.*/dev/nbd0p1'):
+                    self.exercise(**options)
+                self.assert_stopped_before_mount()
 
     def test_zero_or_two_btrfs_roots_fail_naming_every_partition_type(self):
-        for kinds in ((None, 'vfat', 'ext4', 'xfs'), (None, 'vfat', 'btrfs', 'btrfs')):
+        for kinds in ((None, 'vfat', 'ext4', 'xfs'), (None, 'vfat', 'btrfs', 'btrfs'), ('btrfs', 'vfat', 'ext4', 'btrfs')):
             disk_types = dict(zip(PARTITIONS, kinds))
             with self.subTest(kinds=kinds):
                 with self.assertRaises(AssertionError) as error:
                     self.exercise(disk_types=disk_types)
-                message = str(error.exception)
-                self.assertIn('Expected exactly one btrfs root on /dev/nbd0', message)
-                for name, kind in disk_types.items():
-                    self.assertIn(f'{name}={kind or "none"}', message)
-                self.assertEqual(self.disk_types_evidence, disk_types)
-                self.assertNotIn('blockdev', self.calls)
-                self.assertNotIn('mount', self.calls)
-                self.assertEqual(self.calls[-1], 'disconnect')
+                expected, read = str(error.exception).split('; blkid -p read ')
+                self.assertTrue(expected.endswith(self.LAYOUT), expected)
+                self.assertEqual(read, ', '.join(f'{name}={kind or "none"}' for name, kind in disk_types.items()))
+                self.assert_stopped_before_mount()
 
-    def test_blkid_exit_codes(self):
-        # 0 without a TYPE (a partition with only partition-table tags) reads as no filesystem.
-        self.assertEqual(self.exercise(blkid_exits={'/dev/nbd0p1': (0, b'')})['status'], 'passed')
-        self.assertEqual(self.disk_types_evidence, DISK_TYPES)
-        # 2 with a message is an open error, not "nothing found"; any other exit is an
-        # error even with a type printed (8: ambivalent probe).
-        for partition, code, stderr in (('/dev/nbd0p1', 2, b'blkid: error: /dev/nbd0p1: Permission denied\n'),
-                                        ('/dev/nbd0p4', 1, b''), ('/dev/nbd0p4', 4, b''), ('/dev/nbd0p4', 8, b'')):
-            with self.subTest(partition=partition, code=code):
-                with self.assertRaises(AssertionError) as error:
-                    self.exercise(blkid_exits={partition: (code, stderr)})
-                self.assertEqual(error.exception.args[0]['argv'][-1], partition)
-                self.assertEqual(error.exception.args[0]['returncode'], code)
-                self.assertNotIn('mount', self.calls)
-                self.assertEqual(self.calls[-1], 'disconnect')
+    def test_probe_errors_never_read_as_no_filesystem(self):
+        root = '/dev/nbd0p4'
+        for name, result in (
+                # A failed probe prints nothing and exits 2, often without a message,
+                # here on the partition that has no filesystem, next to a valid root.
+                ('/dev/nbd0p1', (2, b'', b'')),
+                ('/dev/nbd0p1', (2, b'', b'blkid: error: /dev/nbd0p1: Input/output error\n')),
+                # Exit 2 with output, exit 8 (ambivalent) and other errors, even with the right TYPE.
+                (root, (2, blkid_export(root, 'btrfs'), b'')),
+                (root, (8, blkid_export(root, 'btrfs'), b'')),
+                (root, (1, blkid_export(root, 'btrfs'), b'')),
+                # Exit 0 without this partition's own GPT entry.
+                (root, (0, b'TYPE=btrfs\n', b'')),
+                (root, (0, blkid_export(root, 'btrfs', number='3'), b'')),
+                (root, (0, blkid_export(root, 'btrfs').replace(b'SCHEME=gpt', b'SCHEME=dos'), b''))):
+            with self.subTest(name=name, result=result):
+                with self.assertRaisesRegex(AssertionError, f'blkid -p read .*{name}=unread \\(exit {result[0]}'):
+                    self.exercise(blkid_results={name: result})
+                self.assertEqual(self.disk_types_evidence[name]['returncode'], result[0])
+                self.assert_stopped_before_mount()
 
 
 if __name__ == '__main__':
