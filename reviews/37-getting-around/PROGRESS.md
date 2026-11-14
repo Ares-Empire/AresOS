@@ -171,7 +171,10 @@ Commits on `pkg/37-getting-around` (on `66d16f81`):
 
 - `1365c286` 37: step 3: README, mod README and HUB.md for getting around
 - `00a6aec9` 37: step 3: client test with pictures of getting around
-<<STEP3_COMMITS>>
+- `4aca5571` 37: step 3: PROGRESS.md in the report's layout, with step 3
+- 37: step 3: the pictures from the final run
+- 37: step 3: the report's run results (this file)
+- 37: step 3: merge origin/main
 
 1. **`GettingAroundClientGameTest`**, last in the client list; its pictures go to `reviews/37-getting-around/screenshots`
    (`aresos.goReviewDir` in `mod/build.gradle`). A fake helper lists day one with Mail (Internet's third app, so the
@@ -281,7 +284,31 @@ From the worktree root, 2026-11-14:
 
 ### Step 3
 
-<<STEP3_VERIFIED>>
+`GettingAroundClientGameTest` (Done, step 3, point 1). From the worktree root, 2026-11-14:
+
+| Run | Exit | What it printed |
+|---|---|---|
+| `mod/dev/client-test.sh` (run 1, the test's first version) | 0 | `BUILD SUCCESSFUL in 9m 40s`; 16 "client checks passed" lines (09c, 09d, 09b, 09, 08, 07b, 07, 01c, 04, 04c, 32, 33, 34, 35, 36, 37), "36 pictures taken", "37 pictures taken". Looked at: `/go`'s picture showed no sign (3-4), the refusal's hid the torch behind the chat (3-5); both tuned. |
+| `mod/dev/build.sh` (final code) | 0 | "All 98 required tests passed :)", `BUILD SUCCESSFUL in 2m`; unit tests 213 run, 6 skipped (Windows), 0 failed |
+| `mod/dev/client-test.sh` (run 2, final code) | 0 | `BUILD SUCCESSFUL in 9m 35s`; the same 16 lines, "37 client checks passed: …", "37 pictures taken: …" |
+| `mod/dev/client-test.sh` (run 3, final code) | 0 | `BUILD SUCCESSFUL in 9m 38s`; the same 16 lines; "Client tests ended with exit code 0 after 9 min 39 s (intel: Mesa Intel(R) Iris(R) Xe Graphics (RPL-P) (Intel))" |
+
+Pictures from run 3, each looked at:
+
+| Picture | What it shows |
+|---|---|
+| `0076_37-go-second-row.png` | After `/go mail`: Mail's logo (the drawn envelope on light blue) fills the view, the doorway straight ahead on its light blue doormat. The sign is above the screen (3-4). |
+| `0077_37-go-second-row-sign.png` | The same spot, looking up 45 degrees: the sign's first line, "Mail", reads at the top; its second line, "/mail", is half hidden behind the logo's top edge (3-4). Added in step 3. |
+| `0078_37-home-key.png` | After H: the arrival view from the pad, Chrome and Discord with their signs readable, "INTERNET · 3" between them, Mail's logo behind Chrome. |
+| `0079_37-apps-chat.png` | `/apps` at home: "My apps: 7." and seven rows with places, e.g. "Mail: /mail. Internet, north, row 2, left"; Terminal's row wraps its last word ("right") to a second line. |
+| `0080_37-swap-before.png` | From above in Build mode: Chrome (the globe) at N0L0, Discord at N0R0, Mail in row 2, Lunar Client (the star tile) at E0L0, Spotify on the west road, Notepad and Terminal on the south road. |
+| `0081_37-swap-after.png` | After `/aresos app swap chrome lunar`: Lunar Client at N0L0 with a light blue doormat, Chrome at E0L0 with a red one; everything else as before. |
+| `0082_37-swap-refused.png` | At Discord's door, looking down: his torch on the light blue doormat, and the red line "Nothing was swapped: Discord's logo at Internet, north, front row, right cannot come down. Logo could disturb neighboring minecraft:torch at 9, 64, -18. No blocks changed. Leave two cells clear of plants, circuits, fluids and blocks with special behavior, then retry." (3-5). |
+| `reviews/35-slash-names/screenshots/0059_35-apps-chat.png` | Package 35's `/apps` picture, committed anew from run 3: "Discord: /discord, /dc. Internet: no town in this world", the other four rows the same way (that test's world has no town). |
+
+Runs 2 and 3 gave the same pictures (compared pixel by pixel: the same except the torch's flame in `0082` and 53 pixels
+along an edge in `0076`). After each run the tracked pictures of other packages were put back and the untracked
+renumbered pictures removed; this step commits only its own seven pictures and `0059`.
 
 ## Not verified
 
@@ -386,7 +413,9 @@ From step 3:
 - **3-4. The sign at `/go`'s arrival (tuned, picture only).** The first picture after `/go mail` showed the door and no
   sign: at the exit point, 6 blocks out at pitch -10 (both decided: HUB.md 3.2 and the brief), the sign of a logo 12
   tall is about 58 degrees up, above the top of the screen, as package 36's correction for 2.2 says. The arrival was not
-  changed; a second picture from the same spot, looking up, shows the sign he reads there. Changing the arrival later
+  changed; a second picture from the same spot, looking up 45 degrees, shows the sign: its first line, the name, reads;
+  its second line, the short name, is half hidden behind the logo's top edge, so from the exit point he reads the name
+  only. Changing the arrival later
   is one number (the exit's pitch or its distance); see Open questions.
 - **3-5. The refused swap's picture looks down at the torch (tuned).** At the arrival pitch the torch was behind the five
   lines of the chat; looking down 15 degrees from the same spot shows the torch, the doorway and the line together.
@@ -409,7 +438,8 @@ From step 3:
 ## Open questions
 
 - **Should `/go` show the sign on arrival?** At the exit point (HUB.md 3.2), 6 blocks out at pitch -10, the door fills the
-  view and the sign is above the screen (pictures `0076` and `0077`). He typed the name, so the door is enough, and one
+  view and the sign is above the screen; looking up, the name reads and the short name is half hidden behind the logo's
+  top edge (pictures `0076` and `0077`). He typed the name, so the door is enough, and one
   step takes him in: I would keep it. The alternatives: arrive about 14 blocks out (sign and door in view, eight more
   steps), or arrive looking up (the door at the bottom edge of the screen).
 
