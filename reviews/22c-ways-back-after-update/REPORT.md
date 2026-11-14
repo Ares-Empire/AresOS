@@ -1416,3 +1416,15 @@ Full local 20-test model restarted with **10196 MB available**. Hosted run
 [43536170182](https://github.com/Ares-Empire/AresOS/actions/runs/43536170182)
 uses this source, the required checks-only dispatch and one blocking
 `gh run watch 43536170182 --exit-status`. Results follow below.
+
+**Final-source full model passed:** `Ran 20 tests in 885.963s` / **`OK`**.
+The queue exhausted **879291 states / 23108154 edges**, with **779125 actual
+executions / 22329029 reuses**, in 880.559s. Exact state/edge/outcome pins and
+all **1077696 abandon interruption edges** match the uncached-provenance run;
+only repeated actual executions decreased. The two menu-only destination cases
+are unchanged. Both cache-fill directions, unrelated intent framing, all
+restoration regressions and revert proofs passed. Together with the final-source
+44-test focused pass, local acceptance is complete. Small current receipt:
+[runs/checks-43536170182.json](runs/checks-43536170182.json). Hosted totals remain
+pending; the source under test is `cfa98e20`, and this checkpoint changes only
+report/evidence files.

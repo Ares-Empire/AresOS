@@ -1,0 +1,57 @@
+{
+  "implementation": "cfa98e20",
+  "hosted": {
+    "run": 43536170182,
+    "status": "in progress"
+  },
+  "local": {
+    "focused": {
+      "tests": 44,
+      "seconds": 24.93,
+      "result": "OK",
+      "available_mb_at_start": 10166
+    },
+    "model": {
+      "tests": 20,
+      "seconds": 885.963,
+      "result": "OK",
+      "available_mb_at_start": 10196,
+      "states": 879291,
+      "edges": 23108154,
+      "executions": 779125,
+      "reuses": 22329029,
+      "exploration_seconds": 880.559,
+      "queue_exhausted": true,
+      "outcomes": {
+        "complete": 333,
+        "in-place-not-started": 135720,
+        "none": 175704,
+        "not-applied": 277098,
+        "retry": 333,
+        "selection-applied": 108672,
+        "target-boot-confirmed": 91956,
+        "waiting": 89475
+      },
+      "abandon_cuts": 1077696
+    }
+  },
+  "earlier_hosted_runs": [
+    {
+      "run": 43530837211,
+      "result": "cancelled at 25-minute job limit; no full totals"
+    },
+    {
+      "run": 43534401745,
+      "result": "cancelled by builder after local cache defect was found"
+    },
+    {
+      "run": 43535052672,
+      "result": "cancelled by builder for note-transfer correction"
+    }
+  ],
+  "limits": [
+    "No owner operations on laptop",
+    "No VM or mod run",
+    "Stage 1b fingerprint pins remain deferred"
+  ]
+}
