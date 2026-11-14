@@ -42,19 +42,46 @@ public final class GettingAround {
 
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         OwnedNodes.install(dispatcher, Commands.literal("go").requires(AppCommands::allowed)
-                .then(Commands.argument("app", greedyString()).suggests((c, b) -> {
-                    if (!AppCommands.allowed(c.getSource())) return b.buildFuture();
-                    // Any name /open takes, for his apps only.
-                    var listed = listed();
-                    var reserved = SlashCommands.reserved(c.getSource().getServer());
-                    var keys = new TreeSet<String>();
-                    for (var app : listed) if (app.mine()) keys.addAll(OpenPrograms.keys(app, listed, reserved));
-                    String typed = NameRules.squeeze(b.getRemaining());
-                    for (String key : keys) if (key.startsWith(typed)) b.suggest(key);
-                    return b.buildFuture();
-                }).executes(c -> go(c.getSource(), getString(c, "app")))));
+                .then(Commands.argument("app", greedyString()).suggests(GettingAround::suggestHis)
+                        .executes(c -> go(c.getSource(), getString(c, "app")))));
         OwnedNodes.install(dispatcher, Commands.literal("home").requires(AppCommands::allowed)
                 .executes(c -> HomeCommands.home(c.getSource())));
+    }
+
+    /**
+     * Completion with any name {@code /open} takes, for his apps only: {@code /go}, {@code /aresos app swap} and
+     * {@code /aresos app move}.
+     */
+    public static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestHis(
+            com.mojang.brigadier.context.CommandContext<CommandSourceStack> c, com.mojang.brigadier.suggestion.SuggestionsBuilder b) {
+        if (!AppCommands.allowed(c.getSource())) return b.buildFuture();
+        var listed = listed();
+        var reserved = SlashCommands.reserved(c.getSource().getServer());
+        var keys = new TreeSet<String>();
+        for (var app : listed) if (app.mine()) keys.addAll(OpenPrograms.keys(app, listed, reserved));
+        String typed = NameRules.squeeze(b.getRemaining());
+        for (String key : keys) if (key.startsWith(typed)) b.suggest(key);
+        return b.buildFuture();
+    }
+
+    /**
+     * One of his installed apps by any name {@code /open} takes, as {@code /go} finds it; empty after one line why
+     * not (several match, a program that is not his, one of his that is not installed, nothing).
+     */
+    public static Optional<AppDefinition> his(CommandSourceStack source, String query) {
+        var reserved = SlashCommands.reserved(source.getServer());
+        var listed = listed();
+        var mine = OpenPrograms.find(listed, query, reserved, AppDefinition::mine);
+        if (mine.size() > 1) {
+            refuse(source, "Several of your apps match \"" + query + "\": " + mine.stream().map(GettingAround::named)
+                    .collect(Collectors.joining(", ")) + ". Type more of the name.");
+            return Optional.empty();
+        }
+        if (mine.isEmpty()) {
+            refuse(source, notMine(query, reserved, listed));
+            return Optional.empty();
+        }
+        return Optional.of(mine.getFirst());
     }
 
     /** The programs the system lists now: the ones {@code /open} takes. */
@@ -65,14 +92,9 @@ public final class GettingAround {
     private static int go(CommandSourceStack source, String query) throws CommandSyntaxException {
         if (!AppCommands.allowed(source)) return 0;
         var player = source.getPlayerOrException();
-        var reserved = SlashCommands.reserved(source.getServer());
-        var listed = listed();
-        var mine = OpenPrograms.find(listed, query, reserved, AppDefinition::mine);
-        if (mine.size() > 1)
-            return refuse(source, "Several of your apps match \"" + query + "\": " + mine.stream().map(GettingAround::named)
-                    .collect(Collectors.joining(", ")) + ". Type more of the name.");
-        if (mine.isEmpty()) return refuse(source, notMine(query, reserved, listed));
-        var app = mine.getFirst();
+        var found = his(source, query);
+        if (found.isEmpty()) return 0;
+        var app = found.get();
         boolean complete = TownKeeper.complete();
         var where = Whereabouts.of(source.getServer(), app, complete);
         return switch (where.kind()) {
