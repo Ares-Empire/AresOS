@@ -1,6 +1,6 @@
 # 35: Slash names
 
-**Status: blocked on local verification.** PR #56 remains draft. The final source compiles and passes unit/server tests twice in hosted CI, but the final local build and two client runs could not run while the owner’s Lunar Client was open. No claim of full acceptance or visual verification is made.
+**Status (after review fixes 1): verified.** The six review findings are fixed with tests; the guarded local build, two full client runs and GitHub's two checkouts pass, and the five screenshots are committed. See "Review fixes 1" below. The rest of this report up to that section is the first build's, kept as written apart from the corrections the fixes name.
 
 ## Done
 
@@ -90,7 +90,8 @@ Then the owner's game had closed (only the Lunar launcher was left running) and 
 - `mod/dev/client-test.sh` at `91919ee2` (client run 1): exit 1 after 8 min 11 s. Every earlier package's client test passed; `SlashNamesClientGameTest` passed real completion of `/d` (screenshot 0058), the typed `/dc` launching once with no teleport, and `/apps` in the chat (screenshot 0059), then timed out at its line 121 waiting for the clicked row to open Discord. The log shows "Saving and pausing game..." right after the click: the confirmation screen of finding 7 above.
 - `mod/dev/build.sh` at `bb014aef` (the click fix): exit 0, "All 85 required tests passed :)", `BUILD SUCCESSFUL in 1m 9s`.
 
-CLIENT_PLACEHOLDER
+- `mod/dev/client-test.sh` at `bb014aef`, twice: both exit 0, "Client tests ended with exit code 0 after 8 min 8 s" and "after 8 min 11 s", `BUILD SUCCESSFUL in 8m 7s` and `in 8m 10s`, each with "35 client checks passed: real completion, dc once without teleport, clickable apps, open one/many/none, alias search, Build launch, live command refresh, new and unchanged standing signs, normal-world receiver gating; five screenshots". Every earlier package's client test passed in both runs.
+- The five screenshots, looked at and committed under `screenshots/`: `0058_35-chat-d-completion` (`/d` typed, completion offers `dc` and `discord`), `0059_35-apps-chat` (`/apps`: five rows with commands and group), `0060_35-apps-short-names` (Apps screen, the main short name in orange beside each of My apps), `0061_35-apps-search-dc` (`dc` finds Discord alone), `0062_35-gate-sign` (a fresh gate signed "Discord" over "/discord"). Nothing in them needed a change. Other packages' rewritten pictures were put back with `git checkout -- reviews/`.
 
 ### Not verified (fixes)
 
