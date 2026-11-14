@@ -10,7 +10,9 @@ by role, and for every move the command's output and ostree's journal lines. The
 audits are summarized in audits.json (one row per boot; the raw audit files stay in the artifact).
 
 Before anything is written, every file is checked for tokens, password hashes and the run's
-passwords' known shape, and the run stops on a hit. Two kinds of VM-only identifiers are
+passwords' known shape, and the run stops on a hit. A JSON capture is checked as it is stored and
+as it reads: json writes `ü` as an escape, which would hide the harness password's start from a
+search of the stored text alone. Two kinds of VM-only identifiers are
 replaced by fixed words, the same word for the same value everywhere, so that equality between
 captures survives: the VM disk's filesystem UUIDs (`root=UUID=`) and the boot ids. The public
 repository holds no GUIDs, also not a throwaway VM's. rpm-ostree's and bootc's JSON hold neither.
@@ -23,15 +25,24 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 UUID = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
-# A token, a credential header, a crypt hash, or the harness password's fixed start.
+# A token, a credential header, a crypt hash, or the harness password: its fixed start with the
+# first of its random hex digits. The start alone is the public typing text (`yz-/!ü`), which the
+# tools print in every check ("Also prove yz-/!ü by physical typing ...") and which the rehearsal's
+# transcript therefore holds.
 FORBIDDEN = (r'gh[pousr]_[A-Za-z0-9]{20,}', r'github_pat_', r'x-access-token', r'[Aa]uthorization: ', r'"auth"\s*:',
-             r'\$(?:6|5|y|gy|2[aby])\$', r'yz-/!ü', r'BEGIN [A-Z ]*PRIVATE KEY')
+             r'\$(?:6|5|y|gy|2[aby])\$', r'yz-/!ü[0-9a-f]{4}', r'BEGIN [A-Z ]*PRIVATE KEY')
 PER_STAGE = ('-deployments.json', '-layout.json', '-observed.json')
 PER_MOVE = ('-set-default.json', '-journal-before.json', '-journal-after.json', '-swap.json')
 MENU = ('menu-bls-entries.json', 'menu-recorded-stock-entry.json', 'b-grub-menu-ocr-proof.json', 'b-grub-selection.json')
-# Stage 2's rehearsal (ways-back): one set of menu files per boot-menu choice, the cut's proof, the stock's updaters.
+# Stage 2's rehearsal (ways-back): one set of menu files per boot-menu choice, the cut's proof, the stock's updaters,
+# and the installed toolset's folder as the harness read it before each layout proof (stage 2, step 2).
 REHEARSAL = ('*-menu-bls-entries.json', '*-menu-recorded-stock-entry.json', '*-grub-menu-ocr-proof.json', '*-grub-selection.json',
-             'cut-rollback-proof.json', 'cut-rollback-watcher.json', '*-stock-updaters.json')
+             'cut-rollback-proof.json', 'cut-rollback-watcher.json', '*-stock-updaters.json', '*-toolset.json')
+
+
+def searched(name, text):
+    """The text the forbidden patterns are searched in: the stored bytes and, for JSON, what they say."""
+    return text + '\n' + json.dumps(json.loads(text), ensure_ascii=False) if name.endswith('.json') else text
 
 
 def main():
@@ -59,7 +70,7 @@ def main():
     texts = {name: (evidence / name).read_text(encoding='utf-8') for name in names}
 
     # 1. Nothing secret, before anything is written.
-    hits = sorted({(name, pattern) for name, text in texts.items() for pattern in FORBIDDEN if re.search(pattern, text)})
+    hits = sorted({(name, pattern) for name, text in texts.items() for pattern in FORBIDDEN if re.search(pattern, searched(name, text))})
     assert not hits, 'STOP: a capture holds a token, credential or password hash: ' + repr(hits)
 
     # 2. VM-only identifiers become fixed words.
