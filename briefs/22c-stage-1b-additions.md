@@ -32,3 +32,12 @@ The owner decided that routine updates need neither the USB stick nor Windows (`
 - Then a fresh review of stage 1b (Codex if any is left after 2026-11-17, otherwise Fable: addition 3 changes the trusted start), then stage 2.
 
 Rules as in the brief. The hosted runs are the truth for `test_owner_update`; never run that module on the laptop.
+
+## Decision after step 1 (integrator, 2026-11-14)
+
+Step 1 found that a stick-free install needs more than a new source in the start block: `at install` and the tools update require the labelled ARESTOOLS stick (`tools_stick` in `owner.py`, used for the bundle's identity) and run "only from the physical recovery console" (`sys.stdin.isatty()`), while the owner wants Claude to run the commands and him to approve the password prompt. Replacing those two checks changes what the tools trust, so it gets its own small package, **22d: the owner tools without the stick, from Claude's terminal** (a design note first, Fable). For 22c:
+
+- The folder start block that step 1 built stays generated and tested, but no guide routes to it and no rehearsal step uses it; the report marks it as waiting for 22d.
+- The guides of step 2 keep the stick route as the way to install version 3. The stick-free route is 22d's.
+- Stage 2's rehearsal installs version 3 from the stick, as the frozen brief says.
+- Step 1's other findings: the budget ledger allows too few checks-only runs on this branch for stage 2 to start (raise it in step 2, say by how much and why; the runners are free for this public repository); the refusal checks run through cut 7, which the report records instead of the brief's reading; the host walk gets E's route in stage 2.
