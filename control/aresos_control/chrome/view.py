@@ -479,7 +479,7 @@ class _Renderer:
             fields = self._fields(node)
             if whole and not self.full:
                 self._detail += 1
-            elif not self.full and len(fields) > FORM_FIELDS:
+            elif not self.full and self._forms == 1 and len(fields) > FORM_FIELDS:  # the outermost form counts
                 fold = _FormFold(node, fields[FORM_FIELDS:])
                 self._hidden.update((field.key, fold) for field in fold.hidden)
         budget = None if whole or self.full else CUT

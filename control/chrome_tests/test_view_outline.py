@@ -209,7 +209,7 @@ frame "Lost"
         self.assertEqual(table.resolve("kqtvm2", 412).frame, 0)
 
     def test_a_dialog_gives_an_empty_outline_and_the_header_says_so(self):
-        shown = View({"session": "s1", "tab": 3, "url": SITE + "/p?code=sesame", "title": "T‮\n",
+        shown = View({"session": "s1", "tab": 3, "url": SITE + "/p?code=sesame", "title": "T\u202e\n",
                       "dialog": {"kind": "confirm", "text": 'Leave?\n"x"'}, "frames": []})
         self.assertEqual(render(shown, references()).text, "")
         self.assertEqual(header(shown), {"url": "fixture.example/p?code=" + MARK, "title": "T\\u202e\\u000a", "scroll": "0/0",
@@ -308,7 +308,7 @@ class Folds(unittest.TestCase):
 
     def test_a_table_folds_whole_and_says_its_size(self):
         table = references()
-        text = outline(f2(), table) if False else render(View(f2()), table).text
+        text = render(View(f2()), table).text
         self.assertEqual(text, """h1 "Stock"
 table "Stock" kqtvm1
   … 200 rows, 6 columns (20,129 characters)
@@ -354,6 +354,17 @@ table "Orders" kqtvm2
         texts = [node(1, "form", name="F")] + [node(index + 2, "p", 1, text=["P%d" % index]) for index in range(9)]
         self.assertIn("%s 4 more" % MARK, outline(texts))                      # and other children of a form still fold
 
+    def test_a_form_inside_a_form_counts_with_the_outer_one(self):
+        nodes = [node(1, "form", name="Outer"), node(2, "form", 1, name="Inner")]
+        nodes += [node(index + 3, "textbox", 2, name="In %d" % index) for index in range(45)]
+        nodes += [node(index + 60, "textbox", 1, name="Out %d" % index) for index in range(5)]
+        table = references()
+        lines = outline(nodes, table).split("\n")
+        self.assertEqual((len(lines), lines[1], lines[41]), (43, '  form "Inner" kqtvm2', '    textbox "In 39" kqtvm42'))
+        self.assertRegex(lines[42], r"^    %s 10 more \(\d+ characters\) kqtvm\d+$" % MARK)
+        self.assertEqual(outline(nodes, table, ref=lines[42].split()[-1]).count("textbox"), 10)
+        self.assertEqual(outline(nodes, table, ref="kqtvm2").count("textbox"), 45)
+
     def test_the_order_of_folding(self):
         # (1) a table folds whole, so the 60 fields in it are neither shown nor folded as fields
         nodes = [node(1, "form", name="F"), node(2, "table", 1, name="T")]
@@ -369,7 +380,7 @@ table "Orders" kqtvm2
         self.assertRegex(text, r"\n  %s 23 more \([0-9,]+ characters\) kqtvm\d+$" % MARK)
         # (5) what is hidden is not rendered: no reference of a hidden element stands in the outline
         table = references()
-        first = outline(f1(), table) if False else render(View(f1()), table).text
+        first = render(View(f1()), table).text
         shown = set(re.findall(r"kqtvm\d+", first))
         self.assertEqual(len(shown), 5 + 1 + 1 + 40 + 1)
         self.assertEqual(first.count(MARK + "+"), 5)                           # only the five shown paragraphs are cut
@@ -463,7 +474,7 @@ class Detail(unittest.TestCase):
                                 '  spinbutton "Age" = "30" kqtvm25', '  slider "Volume" = "40" kqtvm26',
                                 '  searchbox "Find" kqtvm27', '  switch "Dark" kqtvm28', '  button "Save" kqtvm29'])
         many = [node(1, "form", name="F")] + [node(index + 2, "textbox", 1, name="Field %d" % index, value="v") for index in range(60)]
-        self.assertEqual(outline(many, ref=None).count("textbox"), 40)
+        self.assertEqual(outline(many).count("textbox"), 40)
         table = references()
         outline(many, table)
         self.assertEqual(outline(many, table, ref="kqtvm1").count("textbox"), 60)   # every field
@@ -508,8 +519,6 @@ textbox "Mail" = "x" invalid kqtvm4""" % ("t" * 200))
         self.assertIn('  table "Timetable" kqtvm8\n  columns: "c00" | "c01"\n  "c10" | "c11"\n  "c20" | "c21"\n', week_full)
         self.assertIn('    combobox "Semester" = "Winter 2026" kqtvm5\n      option "Winter 2026" selected\n      %s 13 more\n' % MARK, week_full)
         self.assertNotIn("characters)", week_full)
-        part = outline(week(), references(), full=True, ref=None)
-        self.assertEqual(part, week_full)
         table = references()
         outline(week(), table)
         self.assertEqual(outline(week(), table, ref="kqtvm9", full=True).count("Lecture"), 10)   # the element and everything under it

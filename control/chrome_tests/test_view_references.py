@@ -12,7 +12,7 @@ from aresos_control.chrome import references as module
 from aresos_control.chrome.references import CONSONANTS, LIMIT, STALE, References, Stale
 from aresos_control.chrome.view import Reading, asked, fit, render
 from aresos_control.common import Refused
-from view_fixtures import SITE, frame, measure, node, references, reply, view
+from view_fixtures import SITE, frame, measure, node, references, view
 
 # A seed under which 300 runs in a row all draw different letters (the test checks it).
 SEED = 28
@@ -76,8 +76,6 @@ class Issuing(unittest.TestCase):
         table = references()
         strings = [issue(table, tab, element) for element in range(1, 30) for tab in (1, 2, 3)]
         self.assertEqual(strings, ["kqtvm%d" % number for number in range(1, 88)])
-        for tab in (1, 2, 3):
-            mine = {string for string in strings if table.resolve(string, tab) is not None} if False else None
         for index, string in enumerate(strings):
             tab = (1, 2, 3)[index % 3]
             self.assertEqual(table.resolve(string, tab).tab, tab)

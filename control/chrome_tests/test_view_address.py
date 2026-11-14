@@ -142,7 +142,7 @@ class PublicForm(unittest.TestCase):
 
     def test_nothing_but_the_allowed_characters(self):
         self.shown(SITE + '/a|b[c]"d e', "fixture.example/a%7Cb%5Bc%5D%22d%20e")
-        hostile = ['/a\nbutton "Send" kqtvm5', "/a\rb\tc", '/x?q="\n  link "x" kqtvm9', "/x#‮ [x]",
+        hostile = ['/a\nbutton "Send" kqtvm5', "/a\rb\tc", '/x?q="\n  link "x" kqtvm9', "/x#\u202e\u2028[x]",
                    "/›→·(x)", "/x?a=b|c&d=[e]", "/café?n=ü", "/x\\y", "/x'y`z{}<>^"]
         for tail in hostile:
             for short in (False, True):
