@@ -7,7 +7,7 @@ import {fixtures} from '../chrome/ci/fixture.mjs';
 import {popupPage} from '../chrome/ci/popups.mjs';
 
 test('popup fixtures compile for clean dirty and POST opener flows',()=>{
-  for(const kind of ['popup-opener','popup-child'])for(const mode of ['clean','dirty','post']){
+  for(const kind of ['popup-opener','popup-child'])for(const mode of ['clean','dirty','post','typed-clean','typed-early','typed-late']){
     const page=popupPage(new URL('http://fixture.test/?case='+kind+'&id=fixture&mode='+mode));
     new vm.Script(page.script);assert.ok(page.body);
   }
@@ -182,5 +182,22 @@ test('step 6 the React-style take-state field keeps its default in step and Cont
     assert.ok(sent.includes('/receive?case=react-synced-react-row'));
     cont.onclick();
     assert.deepEqual({value:headline.value,defaultValue:headline.defaultValue},{value:'',defaultValue:''});assert.ok(sent.includes('/receive?case=react-reset-react-row'));
+  }finally{fixture.close();}
+});
+
+// Gate after run 43613647256: typed-early holds its popup document until the
+// extension has admitted the popup.
+test('gate60b a held popup document is answered only after its release',async()=>{
+  const fixture=await fixtures({port:0,secondPort:0});
+  try{
+    const base='http://127.0.0.1:'+fixture.port+'/?case=popup-child&mode=typed-early&id=';
+    const release=fixture.hold('popup-typed-early');let answered=false;
+    const held=fetch(base+'popup-typed-early').then(response=>response.text()).then(text=>{answered=true;return text;});
+    assert.match(await(await fetch(base+'popup-other')).text(),/<input aria-label="Draft" value="Saved">/,'another popup is answered at once');
+    await new Promise(resolve=>setTimeout(resolve,100));assert.equal(answered,false,'held until released');
+    release();assert.match(await held,/<input aria-label="Draft" value="Saved">/);
+    assert.match(await(await fetch(base+'popup-typed-early')).text(),/Popup /,'the guarded reload is answered at once');
+    fixture.hold('popup-left');const left=fetch(base+'popup-left').then(response=>response.text());
+    await new Promise(resolve=>setTimeout(resolve,50));fixture.close();assert.match(await left,/Popup /,'closing releases a hold left behind');
   }finally{fixture.close();}
 });

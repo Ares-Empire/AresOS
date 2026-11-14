@@ -111,14 +111,16 @@ try {
   const owner=ownerUI({call,currentTab:()=>tab,window:()=>browserWindow,eventually});
   const ownerNavigate=owner.navigate;
   let ordinaryPopup;
-  const ownerOpenPopup=async currentTab=>{
+  // The owner opens a popup from an opener outside Claude's control: the
+  // ordinary popup-outside, or a popup row's own (popups.mjs, typed-late).
+  const ownerOpenPopup=async(currentTab,{id='popup-outside',mode=null}={})=>{
     if(currentTab===null){
       const windows=execFileSync('xdotool',['search','--onlyvisible','--name','^Popup popup-outside'],{encoding:'utf8'}).trim().split('\n');assert.equal(windows.length,1);
       execFileSync('xdotool',['windowactivate','--sync',windows[0]]);execFileSync('xdotool',['key','--clearmodifiers','alt+F4']);
       await eventually(async()=>!(await call('tabs')).items.some(item=>item.tab===ordinaryPopup),'owner closes ordinary popup');execFileSync('xdotool',['windowactivate','--sync',browserWindow]);return;
     }
-    await call('release_tab',{tab:currentTab});await ownerNavigate('http://fixture.test:8765/?case=popup-opener&id=popup-outside');nativeCompatibilityClick();
-    const child=await eventually(async()=>(await call('tabs')).items.find(item=>item.url?.includes('case=popup-child&id=popup-outside')),'ordinary opener popup');ordinaryPopup=child.tab;return child;
+    await call('release_tab',{tab:currentTab});await ownerNavigate('http://fixture.test:8765/?case=popup-opener&id='+id+(mode?'&mode='+mode:''));nativeCompatibilityClick();
+    const child=await eventually(async()=>(await call('tabs')).items.find(item=>item.url?.includes('case=popup-child&id='+id+'&')),'ordinary opener popup');if(id==='popup-outside')ordinaryPopup=child.tab;return child;
   };
   let donorTab,donorMarker;
   const nativeDonor=async(currentTab,origin='http://fixture.test:8765')=>{

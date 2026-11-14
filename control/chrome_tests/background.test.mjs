@@ -1223,3 +1223,23 @@ test('post18df final native boundary refuses forms holding withheld content even
     await assert.rejects(f.run("dispatch({name:'input',tab:7,reference:{frame:0,element:'e1'},input:{verb:'click'},kind:'send',binding:approved})"),/send it yourself, or reload the tab first with chrome_navigate direction=reload/);assert.equal(f.run('effects.length'),0);
   }
 });
+
+// Gate after run 43613647256: the popup rows learn a document's install path
+// from this record, read through control_status, never from the page.
+test('gate60b the install record names each controlled document\'s path from background memory',async()=>{
+  const f=startupFixture();await f.run('prepareTarget({tabId:7})');await startupContexts(f,'early');await paused(f,'early');
+  // A loaded document of the same tab whose reader joined late: its isolated
+  // context is known, and its guard reports its own identity.
+  await f.run("preloadEvent({tabId:7},'Debugger.scriptParsed',{scriptId:'late',executionContextId:9,url:'chrome-extension://fixture/context.js',executionContextAuxData:{isDefault:false,frameId:'loaded-frame'}})");
+  f.run("const send=chrome.debugger.sendCommand;chrome.debugger.sendCommand=(source,method,parameters)=>method==='Runtime.callFunctionOn'&&parameters.returnByValue&&parameters.functionDeclaration.includes('this.document')?Promise.resolve({result:{value:'late-document'}}):send(source,method,parameters)");
+  await f.run('lateReader(7)');
+  const record=()=>JSON.parse(JSON.stringify(f.run('installRecord()')));
+  assert.deepEqual(record(),[{tab:7,document:'private-document',install:'document_start',ready:true},{tab:7,document:'late-document',install:'late',ready:false}]);
+  f.run('chrome.windows={getAll:async()=>[]};chrome.tabs.query=async()=>[];chrome.debugger.getTargets=async()=>[];');
+  const status=JSON.parse(JSON.stringify(await f.run("dispatch({name:'control_status'})")));
+  assert.deepEqual(status.installs,record());
+  // A copy changed by its reader leaves the record as it was, and a tab
+  // under another control has no record.
+  status.installs[0].install='late';assert.equal(record()[0].install,'document_start');
+  f.run("controlled.set(7,{epoch:'other'})");assert.deepEqual(record(),[]);
+});

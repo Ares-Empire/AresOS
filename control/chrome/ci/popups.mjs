@@ -1,6 +1,46 @@
 // Synthetic popup flows. This module generates fixtures; only the Linux runner opens them.
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {setTimeout as delay} from 'node:timers/promises';
+
+// The typed rows' install path comes from the extension's own record, never
+// from the page: the background's install record (installRecord in
+// background.js), read through the CI's background inspection
+// (control_status). Exactly one record must name the popup's document.
+export function recordedPath(status,tab,document){
+  const rows=(status?.installs||[]).filter(row=>row.tab===tab&&row.document===document);
+  assert.equal(rows.length,1,'exactly one install record for the popup document');
+  if(rows[0].install==='document_start'&&rows[0].ready===true)return 'document_start';
+  if(rows[0].install==='late')return 'late';
+  throw Error('unknown install record '+JSON.stringify(rows[0]));
+}
+// Two rows force their path; typed-clean, the race row, takes the path
+// Chrome's timing gave it.
+export const FORCED_PATHS={'typed-early':'document_start','typed-late':'late'};
+// The first click's exact answer. A list's reset state is known on either
+// path. A text field's history is known only to a guard that listened from
+// document start: there an untouched field reloads without asking
+// (stale_reference); after a late install it may hold the owner's typing,
+// so the click asks (reload_required), the security property.
+export function firstAnswer(mode,path){
+  if(mode==='clean')return 'stale_reference';
+  if(mode==='dirty')return 'reload_required';
+  assert.ok(mode==='typed-clean'||FORCED_PATHS[mode],'unknown popup row '+mode);
+  if(FORCED_PATHS[mode])assert.equal(path,FORCED_PATHS[mode],mode+' must get the install path it forces');
+  if(path==='document_start')return 'stale_reference';
+  if(path==='late')return 'reload_required';
+  throw Error('unknown install path '+path);
+}
+// The extension's popup_admitted audit line in the boundary log: the popup's
+// target is attached and its startup breakpoint set.
+export function admittedAfter(text,opener){
+  return text.split('\n').some(line=>{try{const row=JSON.parse(line)?.popup_admitted;return row?.opener===opener&&row.type==='popup';}catch{return false;}});
+}
+const BOUNDARY='/out/browser-boundary.jsonl';
+const boundaryLog={
+  size:()=>fs.statSync(BOUNDARY).size,
+  since(offset){const descriptor=fs.openSync(BOUNDARY,'r');try{const length=Math.max(0,fs.fstatSync(descriptor).size-offset),buffer=Buffer.alloc(length);fs.readSync(descriptor,buffer,0,length,offset);return buffer.toString('utf8');}finally{fs.closeSync(descriptor);}},
+};
 
 export function popupPage(url){
   const id=url.searchParams.get('id'),mode=url.searchParams.get('mode')||'clean';
@@ -10,12 +50,12 @@ export function popupPage(url){
     script:`let child;document.querySelector('button').onclick=()=>{child=window.open(${JSON.stringify(mode==='post'?'about:blank':child)},${JSON.stringify(name)},'popup,width=620,height=480');};window.addEventListener('message',event=>{if(event.source===child&&event.origin==='http://popup.test:8766'&&event.data===${JSON.stringify(id)})fetch('/receive?case=flow-'+${JSON.stringify(id)},{method:'POST',body:'opener relationship preserved'});});`,
   };
   return {
-    body:mode==='typed-clean'?`<input aria-label="Draft" value="Saved"><form method="post" action="/receive?case=${id}" target="sink"><input name="draft" value="Saved"><button type="button">Continue</button></form><iframe name="sink" hidden></iframe>`:`<select aria-label="Draft"><option selected>Saved</option><option>Unsaved</option></select><form method="post" action="/receive?case=${id}" target="sink"><select name="draft"><option selected>Saved</option></select><button type="button">Continue</button></form><iframe name="sink" hidden></iframe>`,
+    body:mode.startsWith('typed-')?`<input aria-label="Draft" value="Saved"><form method="post" action="/receive?case=${id}" target="sink"><input name="draft" value="Saved"><button type="button">Continue</button></form><iframe name="sink" hidden></iframe>`:`<select aria-label="Draft"><option selected>Saved</option><option>Unsaved</option></select><form method="post" action="/receive?case=${id}" target="sink"><select name="draft"><option selected>Saved</option></select><button type="button">Continue</button></form><iframe name="sink" hidden></iframe>`,
     script:`document.title='Popup '+${JSON.stringify(id)};const firstSubmit=HTMLFormElement.prototype.submit,documentToken=Date.now()+'-'+Math.random();const probes=new EventSource('/events?id='+${JSON.stringify(id)});probes.onmessage=event=>{const change=JSON.parse(event.data);if(change.change==='popup-probe'){fetch('/receive?case=state-'+${JSON.stringify(id)},{method:'POST',body:JSON.stringify({document:documentToken,opener:!!opener,openerClosed:opener?.closed,name:window.name,draft:document.querySelector('input,textarea,select').value})});fetch('/mutation-ack?nonce='+change.nonce);}};fetch('/receive?case=loaded-'+${JSON.stringify(id)},{method:'POST',body:JSON.stringify({opener:!!opener,name:window.name,outerWidth,outerHeight})});${mode==='dirty'?"document.querySelector('input,textarea,select').value='Unsaved';":''}document.querySelector('button').onclick=()=>{opener?.postMessage(${JSON.stringify(id)},'http://fixture.test:8765');firstSubmit.call(document.querySelector('form'));};`,
   };
 }
 
-export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab,fixture,ownerOpenPopup,popupEvidence,popupControl,setTab,approval}){
+export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab,fixture,ownerOpenPopup,popupEvidence,popupControl,setTab,approval,boundary=boundaryLog}){
   const rows=async targetTab=>{
     const page=await call('read',{tab:targetTab});
     return page.untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse);
@@ -25,19 +65,41 @@ export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab
   const evidence=(id,phase)=>console.log('POPUP RECEIVER',id,phase,JSON.stringify(fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')?.includes(id))));
   await check('GROUP 8 popups preserve opener flow and guard first input without moving windows',async()=>{
     const tab=getTab();
-    for(const mode of ['clean','dirty','typed-clean']){
-      const id='popup-'+mode;await nav('popup-opener&id='+id+'&mode='+mode);const parent=(await call('tabs',{limit:10})).items.find(item=>item.tab===tab);const open=(await call('read',{tab})).untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Open window');
-      await call('click',{reference:open.reference,expected:open.expected});const popup=await find(id);await eventually(async()=>(await find(id)).controlled,'private popup group');
+    for(const mode of ['clean','dirty','typed-clean','typed-early','typed-late']){
+      const id='popup-'+mode;
+      if(mode==='typed-late'){
+        // The late path, forced: the owner opens the popup while its opener is
+        // outside Claude's control, so the extension attaches to it only when
+        // Claude takes it, after its page has loaded.
+        const child=await ownerOpenPopup(tab,{id,mode});assert.equal(child.controlled,false);
+        await eventually(()=>counts('loaded-'+id)===1,'owner popup loaded before take');
+        await call('take_tab',{tab});await call('take_tab',{tab:child.tab});
+      }else{
+        await nav('popup-opener&id='+id+'&mode='+mode);const open=(await call('read',{tab})).untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Open window');
+        // The early path, forced: the fixture holds the popup's document until
+        // the extension's own popup_admitted line shows its startup breakpoint
+        // set, so the document's first script pauses for the guard.
+        const release=mode==='typed-early'?fixture.hold(id):null;
+        try{
+          const since=release?boundary.size():0;
+          await call('click',{reference:open.reference,expected:open.expected});
+          if(release)await eventually(()=>admittedAfter(boundary.since(since),tab),'popup admitted before its document');
+        }finally{release?.();}
+      }
+      const parent=(await call('tabs',{limit:10})).items.find(item=>item.tab===tab);
+      const popup=await find(id);await eventually(async()=>(await find(id)).controlled,'private popup group');
       assert.notEqual(popup.window,parent.window,'the popup must remain separate from its opener window');
       await eventually(()=>counts('loaded-'+id)===1,'initial popup load');const before=await target(popup.tab);await rows(popup.tab);assert.equal(counts('loaded-'+id),1,'read preserves popup');
+      const path=mode.startsWith('typed-')?recordedPath(await popupControl('state'),popup.tab,before.reference.document):null;
       const nativeBefore=await popupEvidence(id,'before');
-      const first=await rpc('click',before);assert.equal(first.ok,false);assert.equal(first.error.code,mode==='clean'?'stale_reference':'reload_required');
-      if(mode!=='clean'){assert.equal(counts('loaded-'+id),1);const repeated=await rpc('click',{...before,discard_unsaved:true});assert.equal(repeated.error.code,'stale_reference');}
+      const first=await rpc('click',before);assert.equal(first.ok,false);
+      const expected=firstAnswer(mode,path);assert.equal(first.error.code,expected,mode+' on the '+(path||'either')+' path');
+      if(expected==='reload_required'){assert.equal(counts('loaded-'+id),1);const repeated=await rpc('click',{...before,discard_unsaved:true});assert.equal(repeated.error.code,'stale_reference');}
       await eventually(()=>counts('loaded-'+id)===2,'one guarded reload');const fresh=await target(popup.tab);assert.notEqual(fresh.reference.document,before.reference.document);assert.equal((await rpc('click',before)).ok,false);
       const loads=fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')==='loaded-'+id).map(row=>JSON.parse(row.body));
       assert.equal(loads.length,2);assert.ok(loads.every(load=>load.opener));assert.equal(loads[1].name,loads[0].name);
       assert.deepEqual(await popupEvidence(id,'after'),nativeBefore,'native popup window, position and size remain intact');
-      await approval(await call('click',fresh),id);await eventually(()=>counts('flow-'+id)===1,'opener receives postMessage after reload');evidence(id,'guarded 0/1/1 and opener complete');
+      await approval(await call('click',fresh),id);await eventually(()=>counts('flow-'+id)===1,'opener receives postMessage after reload');evidence(id,'guarded 0/1/1 and opener complete'+(path?' on the '+path+' path':''));
       await call('close_tab',{tab:popup.tab,discard_unsaved:true});
     }
   });

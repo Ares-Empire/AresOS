@@ -10,7 +10,7 @@ import {reviewPage} from './review-fixtures.mjs';
 const reactField=id=>`const headline=document.querySelector('[aria-label=Headline]');let headlineState='';const render=()=>{headline.value=headlineState;headline.defaultValue=headlineState;};headline.addEventListener('input',event=>{headlineState=headline.value;render();if(headlineState&&headline.defaultValue===headline.value)fetch('/receive?case=react-synced-${id}',{method:'POST',body:event.isTrusted?'trusted':'untrusted'});});document.querySelector('#continue').onclick=()=>{headlineState='';render();fetch('/receive?case=react-reset-${id}',{method:'POST'});};headline.focus();`;
 const page=(body,script='',head='')=>`<!doctype html><html><head><meta charset="utf-8"><title>Synthetic fixture</title><script>globalThis.firstScriptSubmit=HTMLFormElement.prototype.submit;globalThis.firstScriptDialogs={alert,confirm,prompt};</script><style>body{font:16px sans-serif;margin:20px}button,input,textarea{margin:8px}</style></head><body>${body}<script>${script}</script>`;
 export async function fixtures(options={}) {
-  const arrivals=[],streams=new Map(),mutations=new Map();let mutationSequence=0;
+  const arrivals=[],streams=new Map(),mutations=new Map(),holds=new Map();let mutationSequence=0;
   const compatibility=[],compatibilityDownloads=[];
   const server=http.createServer(async(req,res)=>{
     const url=new URL(req.url,'http://fixture.test:8765');
@@ -50,7 +50,12 @@ export async function fixtures(options={}) {
     if(kind==='latency'){body='<textarea aria-label="Draft">Synthetic latency draft</textarea><button type="button">Continue</button><button type="button">Send</button>';script="document.querySelectorAll('button')[0].onclick=()=>{if(navigator.clipboard)navigator.clipboard.writeText('Synthetic latency clipboard').catch(()=>{});};document.querySelectorAll('button')[1].onclick=()=>{const draft=document.querySelector('textarea');fetch('/receive?case=latency-'+"+JSON.stringify(url.searchParams.get('id'))+",{method:'POST',body:draft.value});draft.defaultValue='';draft.value='';};";}
     else if(kind==='destination-sink'){res.end(page('<p>Destination sink</p>'));return;}
     else if(kind==='review-page'){const review=reviewPage(url);if(!review)throw Error('Unknown review fixture');({body,script}=review);}
-    else if(['popup-opener','popup-child'].includes(kind)){const popup=popupPage(url);res.end(page(popup.body,popup.script));return;}
+    else if(['popup-opener','popup-child'].includes(kind)){
+      // A held popup document is answered only when the driver releases it
+      // (popups.mjs, typed-early: after the extension has admitted the popup).
+      const held=kind==='popup-child'&&holds.get(url.searchParams.get('id'));if(held)await held.promise;
+      const popup=popupPage(url);res.end(page(popup.body,popup.script));return;
+    }
     else if(kind==='adapter-sites'){const site=(await import('./sites/fixture.mjs')).sitePage(url,req.headers.host);res.end(page(site.body,site.script));return;}
     else if(kind==='native-donor'){
       const id=url.searchParams.get('id');body='<p id="native-donor">Ordinary native donor</p><button type="button" style="position:fixed;inset:0;width:100vw;height:100vh">Open controlled page</button>';
@@ -293,5 +298,9 @@ export async function fixtures(options={}) {
       mutations.set(nonce,()=>{clearTimeout(timer);mutations.delete(nonce);resolve();});
       stream.write('data: '+JSON.stringify({change,nonce})+'\n\n');
     });
-  },close:()=>{for(const stream of streams.values())stream.end();server.close();second.close();}};
+  },hold:id=>{
+    // Returns the release; a request that arrives after it is answered at once.
+    const held={};held.promise=new Promise(resolve=>{held.release=()=>{if(holds.get(id)===held)holds.delete(id);resolve();};});holds.set(id,held);
+    return held.release;
+  },close:()=>{for(const held of [...holds.values()])held.release();for(const stream of streams.values())stream.end();server.close();second.close();}};
 }

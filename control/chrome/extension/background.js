@@ -196,7 +196,7 @@ async function preloadEvent(source,method,params){
     const wrapped=await documentCommand('Runtime.callFunctionOn',{objectId:mainNode.object.objectId,functionDeclaration:'function(){return (\n'+page.trim().replace(/;$/, '')+'\n);}',silent:true});
     const mainContext=state.factoryContexts.get(context.auxData.frameId);state.factoryContexts.delete(context.auxData.frameId);
     if(wrapped.exceptionDetails||!wrapped.result?.objectId)throw Error('refused: page wrappers did not initialize before page scripts');
-    const installed={document:isolated.result.value,frameId:context.auxData.frameId,main:main.uniqueId,isolated:context.uniqueId,cleanup:wrapped.result.objectId,mainContext,relayKey:'data-aresos-'+crypto.randomUUID(),relayValue:crypto.randomUUID(),ready:false};state.documents.set(main.uniqueId,installed);
+    const installed={install:'document_start',document:isolated.result.value,frameId:context.auxData.frameId,main:main.uniqueId,isolated:context.uniqueId,cleanup:wrapped.result.objectId,mainContext,relayKey:'data-aresos-'+crypto.randomUUID(),relayValue:crypto.randomUUID(),ready:false};state.documents.set(main.uniqueId,installed);
     assertTarget(state);
     const relay=await documentCommand('Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(){return this.relay;}'});
     await documentCommand('Runtime.callFunctionOn',{objectId:installed.cleanup,functionDeclaration:'function(key,value){return this.identify(key,value);}',arguments:[{value:installed.relayKey},{value:installed.relayValue}],returnByValue:true});
@@ -219,6 +219,14 @@ async function preloadEvent(source,method,params){
     installed.ready=true;
   }catch(error){if(preloadTargets.get(targetKey(source))===state&&controlled.get(state.tab)?.epoch===state.epoch&&sameDocument()){state.failures??=new Map();state.failures.set(startup?.main.uniqueId||'unknown',{main:startup?.main.uniqueId,isolated:startup?.isolated.uniqueId,error:String(error)});port?.postMessage({event:'reader_error',error:String(error),tab:state.tab});}}
   finally{try{if(state.pause===pause&&sameDocument()&&controlled.get(state.tab)?.epoch===state.epoch)await targetCommand(state,'Debugger.resume');}catch{}state.installing.delete(installing);complete();}
+}
+// The extension's own record of how each document of a controlled tab got its
+// guard: 'document_start' when the startup breakpoint paused it before page
+// scripts, 'late' when the reader joined an already loaded document. Read-only
+// and in background memory only; the CI's background inspection
+// (control_status) reads it, and no decision of the extension does.
+function installRecord(){
+  return [...preloadTargets.values()].filter(state=>controlled.get(state.tab)?.epoch===state.epoch).flatMap(state=>[...state.documents.values()].map(doc=>({tab:state.tab,document:doc.document,install:doc.install,ready:doc.ready===true})));
 }
 function isPreloaded(tab,document){return [...preloadTargets.values()].some(state=>state.tab===tab&&[...state.documents.values()].some(value=>value.ready&&value.document===document));}
 function armedDocument(tab,document,nonce){for(const state of preloadTargets.values())if(state.tab===tab)for(const doc of state.documents.values())if(doc.document===document)doc.activeNonce=nonce;}
@@ -259,7 +267,7 @@ async function lateReader(tab,browserDocument=null){
       const identity=await targetCommand(state,'Runtime.callFunctionOn',{objectId:factory.result.objectId,functionDeclaration:'function(){return this.document;}',returnByValue:true});
       const described=await targetCommand(state,'DOM.describeNode',{objectId:relay.result.objectId,depth:0});
       if(state.contexts.get(context.id)?.uniqueId!==context.uniqueId)throw Error('stale_reference: passive document changed');
-      state.documents.set(context.uniqueId,{document:identity.result.value,isolated:context.uniqueId,main:context.uniqueId,cleanup:factory.result.objectId,backend:described.node.backendNodeId,relayKey,relayValue,ready:false});
+      state.documents.set(context.uniqueId,{install:'late',document:identity.result.value,isolated:context.uniqueId,main:context.uniqueId,cleanup:factory.result.objectId,backend:described.node.backendNodeId,relayKey,relayValue,ready:false});
     }
   }
   await linkPrivateDocuments();
@@ -826,7 +834,7 @@ async function dispatch(command) {
     const tabs=await chrome.tabs.query({});
     return {session,network_rules:await chrome.declarativeNetRequest.getSessionRules(),windows:windows.map(({id,type,left,top,width,height,focused})=>({id,type,left,top,width,height,focused})),
       debugger_targets:(await chrome.debugger.getTargets()).map(({tabId,attached})=>({tab:tabId,attached})),
-      tabs:await Promise.all(tabs.map(async({id,windowId,openerTabId})=>({tab:id,window:windowId,opener:openerTabId,badge:await chrome.action.getBadgeText({tabId:id}),title:await chrome.action.getTitle({tabId:id})}))),...await popupStatus()};
+      tabs:await Promise.all(tabs.map(async({id,windowId,openerTabId})=>({tab:id,window:windowId,opener:openerTabId,badge:await chrome.action.getBadgeText({tabId:id}),title:await chrome.action.getTitle({tabId:id})}))),...await popupStatus(),installs:installRecord()};
   }
   if(command.name==='stop_popup'){await chrome.action.openPopup();return {opened:true};}
   if (command.name === 'audit') { recording=command.enabled === true; return {recording}; }

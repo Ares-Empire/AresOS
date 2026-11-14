@@ -574,6 +574,27 @@ case('gate60-typing-symbol-v1',G,"Symbol.for('aresos.chrome.typing.v2')","Symbol
 case('gate60-instructions-every-app','control/aresos_control/definitions.py','return COMMON_INSTRUCTIONS + ("\\n\\n" + MAIL_INSTRUCTIONS if app == "mail" else "")','return COMMON_INSTRUCTIONS + ("\\n\\n" + MAIL_INSTRUCTIONS if app == "mail" else "x" * 4096 if app == "control" else "")','test_questions.Questions.test_fixes_b_server_instructions_fit_the_native_cli_limit',True)
 case('fixesb-recheck-index-one-transaction','control/aresos_control/storage.py',"            if not self.db.in_transaction:\n                self.db.execute('BEGIN')\n",'','test_full_disk_reads.FullDiskReads.test_a_rebuild_that_fails_after_its_drop_keeps_the_old_index',True)
 
+# The gate after run 43613647256 (mac-aresos-control, 2026-11-14), part 1: the
+# typed popup rows take their install path from the extension's own record and
+# assert its exact answer; typed-early and typed-late force their path. The
+# probes accept either answer, take the path from the row's name, skip the
+# forced-path check, drop the early hold or its wait for the admission, open the
+# late popup by Claude's click, read another tab's record, mislabel a late
+# install, and leave the record out of control_status or keep it past control.
+PO='control/chrome/ci/popups.mjs'
+POPUPS=lambda name:node('popups',name)
+case('gate60b-popup-either-answer',PO,"const expected=firstAnswer(mode,path);","const expected=['stale_reference','reload_required'].includes(first.error.code)?first.error.code:firstAnswer(mode,path);",POPUPS('an answer against the recorded path fails its row'))
+case('gate60b-popup-path-by-mode',PO,"const expected=firstAnswer(mode,path);","const expected=firstAnswer(mode,FORCED_PATHS[mode]||'late');",POPUPS('each install path gives its exact first answer'))
+case('gate60b-popup-forced-path-unchecked',PO,"  if(FORCED_PATHS[mode])assert.equal(path,FORCED_PATHS[mode],mode+' must get the install path it forces');\n","",POPUPS('a forced row whose record names the other path fails'))
+case('gate60b-popup-early-no-hold',PO,"const release=mode==='typed-early'?fixture.hold(id):null;","const release=null;",POPUPS('each install path gives its exact first answer'))
+case('gate60b-popup-early-no-admission-wait',PO,"          if(release)await eventually(()=>admittedAfter(boundary.since(since),tab),'popup admitted before its document');\n","",POPUPS('each install path gives its exact first answer'))
+case('gate60b-popup-late-by-claude-click',PO,"      if(mode==='typed-late'){","      if(false){",POPUPS('each install path gives its exact first answer'))
+case('gate60b-popup-record-any-tab',PO,"filter(row=>row.tab===tab&&row.document===document)","filter(row=>row.document===document)",POPUPS('the path is read only from the extension record for this popup document'))
+case('gate60b-record-late-as-start',B,"state.documents.set(context.uniqueId,{install:'late',","state.documents.set(context.uniqueId,{install:'document_start',",node('background','gate60b the install record'))
+case('gate60b-record-not-in-status',B,"...await popupStatus(),installs:installRecord()};","...await popupStatus()};",node('background','gate60b the install record'))
+case('gate60b-record-past-control',B,"[...preloadTargets.values()].filter(state=>controlled.get(state.tab)?.epoch===state.epoch).flatMap(","[...preloadTargets.values()].flatMap(",node('background','gate60b the install record'))
+case('gate60b-fixture-hold-ignored','control/chrome/ci/fixture.mjs',"if(held)await held.promise;","",node('fixture','gate60b a held popup document'))
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']
