@@ -6,6 +6,7 @@ import net.minecraft.core.Direction;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
@@ -82,8 +83,20 @@ public enum AppGroup {
         return SYSTEM_TOOLS;
     }
 
+    /**
+     * The app's group: the one he moved it to by hand (its saved {@code group}), otherwise the one the rules give.
+     * A saved key that names no group counts as none.
+     */
     public static AppGroup of(AppDefinition app) {
-        return of(app.id(), app.system() == null ? null : app.system().categories());
+        return ofKey(app.group()).orElseGet(() -> of(app.id(), app.system() == null ? null : app.system().categories()));
+    }
+
+    /** The group's key, as the apps file saves a group he chose by hand: {@code internet}, {@code work_media} … */
+    public String key() { return name().toLowerCase(Locale.ROOT); }
+
+    /** The group a saved key names; empty for null and for anything else. */
+    public static Optional<AppGroup> ofKey(String key) {
+        return Arrays.stream(values()).filter(group -> group.key().equals(key)).findFirst();
     }
 
     /** The group whose places start with this letter (N, E, S or W, upper case only). */

@@ -84,6 +84,18 @@ public final class AresOs implements ModInitializer {
     }
 
     /**
+     * Saves where apps stand in the flat home (HUB.md 3.5): {@code place} and {@code group}, exactly as given per app.
+     * Like the names, only these two fields follow into the list in memory.
+     */
+    public static synchronized void saveSpots(java.util.Map<String, AppsConfig.Spot> spots) throws IOException {
+        var saved = AppsConfig.spots(configPath(), spots);
+        var byId = saved.stream().collect(java.util.stream.Collectors.toMap(AppDefinition::id, app -> app));
+        var updated = apps.stream().map(app -> byId.containsKey(app.id())
+                ? app.withSpot(byId.get(app.id()).place(), byId.get(app.id()).group()) : app).toList();
+        if (!apps.equals(updated)) apps = updated;
+    }
+
+    /**
      * One complete program list from the helper goes into the apps file; My apps follows (item/MyAppsGame). The helper
      * owns every launch here, so what it does not name is marked absent: no command, no /open, until it returns.
      */

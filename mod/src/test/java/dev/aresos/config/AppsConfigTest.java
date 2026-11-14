@@ -400,4 +400,43 @@ class AppsConfigTest {
         assertTrue(after.stream().filter(app -> app.id().equals("gimp")).findFirst().orElseThrow().absent());
         assertFalse(after.stream().filter(app -> app.id().equals("discord")).findFirst().orElseThrow().pinned());
     }
+
+    @Test
+    void placesAndGroupsAreReadAndSavedAsGivenAndNothingElseMoves() throws Exception {
+        Path file = directory.resolve("apps.json");
+        try (var fixture = getClass().getResourceAsStream("/apps/schema-4-town.json")) { Files.copy(fixture, file); }
+        var apps = AppsConfig.load(file, true).apps();
+        assertEquals(java.util.Arrays.asList("N0R0", "E0R0", "W0L0", "S0R0"), apps.stream().map(AppDefinition::place).toList());
+        assertEquals(java.util.Arrays.asList(null, "games", null, null), apps.stream().map(AppDefinition::group).toList());
+
+        var before = tree(file);
+        // Spotify goes back to its group by the rules, Discord moves by hand, GIMP's remembered place is cleared.
+        var saved = AppsConfig.spots(file, java.util.Map.of("spotify", new AppsConfig.Spot("W0L0", null),
+                "discord", new AppsConfig.Spot("E1R0", "games"), "gimp", new AppsConfig.Spot(null, null)));
+        assertEquals(java.util.Arrays.asList("E1R0", "W0L0", null, "S0R0"), saved.stream().map(AppDefinition::place).toList());
+        assertEquals(java.util.Arrays.asList("games", null, null, null), saved.stream().map(AppDefinition::group).toList());
+        assertEquals(saved, AppsConfig.load(file, true).apps());
+        var after = tree(file);
+        for (int i = 0; i < 4; i++) {
+            var was = before.getAsJsonArray("apps").get(i).getAsJsonObject().deepCopy();
+            var now = after.getAsJsonArray("apps").get(i).getAsJsonObject().deepCopy();
+            for (String field : List.of("place", "group")) { was.remove(field); now.remove(field); }
+            assertEquals(was, now, "spots changed another field");
+        }
+        assertFalse(after.getAsJsonArray("apps").get(2).getAsJsonObject().has("place"));
+
+        // An unknown app changes nothing; a place that is not text refuses the file, as any field of the wrong type does.
+        String once = Files.readString(file);
+        assertThrows(java.io.IOException.class, () -> AppsConfig.spots(file, java.util.Map.of("nobody", new AppsConfig.Spot("N0L0", null))));
+        assertEquals(once, Files.readString(file));
+        Files.writeString(file, once.replace("\"place\": \"E1R0\"", "\"place\": 7"));
+        assertThrows(java.io.IOException.class, () -> AppsConfig.load(file, true));
+
+        // Written from records too (the first start and the tests), and read back the same; none means no field.
+        var listed = List.of(apps.get(0), apps.get(1).withSpot(null, null));
+        Path written = directory.resolve("written.json");
+        AppsConfig.save(written, listed);
+        assertEquals(listed, AppsConfig.load(written, true).apps());
+        assertFalse(tree(written).getAsJsonArray("apps").get(1).getAsJsonObject().has("place"));
+    }
 }

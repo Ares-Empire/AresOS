@@ -60,4 +60,20 @@ class AppGroupTest {
         assertEquals(Optional.empty(), AppGroup.ofLetter('n'));
         assertEquals(Optional.empty(), AppGroup.ofLetter('X'));
     }
+
+    @Test void aGroupHeChoseByHandWinsOverTheRulesAndUnknownKeysMeanNone() {
+        var spotify = new AppDefinition("spotify", "Spotify", List.of(), "minecraft:paper", false, "helper", null, null)
+                .withSystem(new SystemInfo("flatpak-user", null, List.of("AudioVideo"), null, null, null, null, null));
+        assertEquals(AppGroup.WORK_MEDIA, AppGroup.of(spotify));
+        assertEquals(AppGroup.GAMES, AppGroup.of(spotify.withSpot("E0L0", "games")));
+        assertEquals(AppGroup.GAMES, AppGroup.of(spotify.withSpot(null, "games")), "the group does not wait for a place");
+        for (String unknown : List.of("GAMES", "Games", "E", "work-media", "", " games"))
+            assertEquals(AppGroup.WORK_MEDIA, AppGroup.of(spotify.withSpot(null, unknown)), unknown);
+        // A starter is moved like any other app.
+        var browser = new AppDefinition("browser", "Browser", List.of(), "minecraft:paper", false, "helper", null, null);
+        assertEquals(AppGroup.WORK_MEDIA, AppGroup.of(browser.withSpot(null, "work_media")));
+        for (var group : AppGroup.values()) assertEquals(Optional.of(group), AppGroup.ofKey(group.key()));
+        assertEquals(List.of("internet", "games", "work_media", "system_tools"), java.util.Arrays.stream(AppGroup.values()).map(AppGroup::key).toList());
+        assertEquals(Optional.empty(), AppGroup.ofKey(null));
+    }
 }

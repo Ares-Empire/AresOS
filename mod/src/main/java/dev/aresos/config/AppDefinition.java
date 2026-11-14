@@ -7,10 +7,21 @@ import java.util.List;
  * {@code system} is what the system last said about it, or null when it never said anything. {@code absent}: the
  * latest complete list from the AresOS app helper did not name it, so it cannot be opened now; it keeps everything
  * else, its names and its place in My apps included, for its return.
+ *
+ * <p>{@code place} and {@code group} say where its logo stands in the flat home (HUB.md 3.5), as saved: the place's
+ * name ({@code "N0R0"}, kept while the app is away so it can come back) and the group's key, only when he moved it to
+ * another group by hand. Null when there is none. Text that names no place or group is kept but means none
+ * ({@code hub.Place.parse}, {@code AppGroup.of}), so a file from a later mod is never refused for them.
  */
 public record AppDefinition(String id, String name, List<String> command, String look, boolean pinned,
                             String type, String url, String icon, WindowsLaunchIdentity launchIdentity,
-                            boolean mine, SystemInfo system, List<String> names, boolean absent) {
+                            boolean mine, SystemInfo system, List<String> names, boolean absent,
+                            String place, String group) {
+    public AppDefinition(String id, String name, List<String> command, String look, boolean pinned,
+                         String type, String url, String icon, WindowsLaunchIdentity launchIdentity,
+                         boolean mine, SystemInfo system, List<String> names, boolean absent) {
+        this(id, name, command, look, pinned, type, url, icon, launchIdentity, mine, system, names, absent, null, null);
+    }
     public AppDefinition(String id, String name, List<String> command, String look, boolean pinned,
                          String type, String url, String icon, WindowsLaunchIdentity launchIdentity,
                          boolean mine, SystemInfo system, List<String> names) {
@@ -63,23 +74,29 @@ public record AppDefinition(String id, String name, List<String> command, String
 
     /** Pinning makes an app his; unpinning changes nothing else. */
     public AppDefinition withPinned(boolean value) {
-        return new AppDefinition(id, name, command, look, value, type, url, icon, launchIdentity, mine || value, system, names, absent);
+        return new AppDefinition(id, name, command, look, value, type, url, icon, launchIdentity, mine || value, system, names, absent, place, group);
     }
 
     /** Taking an app out of My apps also unpins it: its item leaves the hotbar. */
     public AppDefinition withMine(boolean value) {
-        return new AppDefinition(id, name, command, look, pinned && value, type, url, icon, launchIdentity, value, system, names, absent);
+        return new AppDefinition(id, name, command, look, pinned && value, type, url, icon, launchIdentity, value, system, names, absent, place, group);
     }
 
     public AppDefinition withNames(List<String> value) {
-        return new AppDefinition(id, name, command, look, pinned, type, url, icon, launchIdentity, mine, system, value, absent);
+        return new AppDefinition(id, name, command, look, pinned, type, url, icon, launchIdentity, mine, system, value, absent, place, group);
     }
 
     public AppDefinition withSystem(SystemInfo value) {
-        return new AppDefinition(id, name, command, look, pinned, type, url, icon, launchIdentity, mine, value, names, absent);
+        return new AppDefinition(id, name, command, look, pinned, type, url, icon, launchIdentity, mine, value, names, absent, place, group);
+    }
+
+    /** Where its logo stands, as saved: a place's name and a group's key, each null for none. */
+    public AppDefinition withSpot(String placeValue, String groupValue) {
+        return new AppDefinition(id, name, command, look, pinned, type, url, icon, launchIdentity, mine, system, names, absent,
+                placeValue, groupValue);
     }
 
     public AppDefinition withAbsent(boolean value) {
-        return new AppDefinition(id, name, command, look, pinned, type, url, icon, launchIdentity, mine, system, names, value);
+        return new AppDefinition(id, name, command, look, pinned, type, url, icon, launchIdentity, mine, system, names, value, place, group);
     }
 }
