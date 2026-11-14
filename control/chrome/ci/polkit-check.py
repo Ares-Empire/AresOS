@@ -10,7 +10,9 @@ What it shows, with the shipped policy file and confirm.py unchanged:
 - a wrong password, no agent, another start time or a policy without the owner
   annotation refuse;
 - a second check right after a yes asks again (nothing is kept);
-- the dialog text names the change ($(change) is expanded);
+- the dialog text names the change: every prompt pkttyagent shows is the
+  policy's message with $(change) replaced by that case's change, and two
+  cases use different changes, so the text can only come from the check;
 - the check runs under an emulation of aresos-toold.service's sandboxing:
   read-only file system including /run, private /tmp and /dev, hidden homes,
   no new privileges and an empty capability bounding set.
@@ -32,6 +34,7 @@ import sys
 import termios
 import time
 import uuid
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / '.work/polkit'
@@ -43,6 +46,8 @@ UNOWNED = ACTION + '-ci-unowned'
 OWNER = 'owner'
 PASSWORD = secrets.token_urlsafe(18)
 CHANGE = 'Read-only off for ci.test'
+OTHER_CHANGE = "Don't ask again: example_send as owner on https://ci.test"
+ANSI = re.compile(r'\x1b\[[0-9;]*m')
 
 # Emulates the unit's [Service] sandboxing for the check (systemd isn't PID 1 here).
 SANDBOX = r'''
@@ -137,10 +142,43 @@ def start_agent(pid):
     return process, master
 
 
-def check(subject, owner_uid, action=ACTION, password=None, agent=True, offset=0):
+def dialog_messages(transcript):
+    """Each message pkttyagent showed: the lines between its header and "Authenticating as:"."""
+    messages, current = [], None
+    for line in ANSI.sub('', transcript).replace('\r', '').split('\n'):
+        if '==== AUTHENTICATING FOR' in line:
+            current = []
+        elif current is not None and line.startswith('Authenticating as:'):
+            messages.append(' '.join(part.strip() for part in current if part.strip()))
+            current = None
+        elif current is not None:
+            current.append(line)
+    return messages
+
+
+def expected_message(change):
+    message = ET.fromstring(POLICY.read_bytes()).find('action/message').text
+    assert message.count('$(change)') == 1
+    return message.replace('$(change)', change)
+
+
+def dialog_problems(result, change, prompted):
+    """A case that reached the agent must show exactly the policy's message naming its change."""
+    messages = dialog_messages(result['transcript'])
+    if prompted and not messages:
+        return ['the agent showed no dialog']
+    if len(messages) != result['prompts']:
+        return [f'{len(messages)} dialog messages for {result["prompts"]} password prompts']
+    wrong = [message for message in messages if message != expected_message(change)]
+    if wrong:
+        return [f'the dialog did not name the change: {wrong[0]!r}']
+    return []
+
+
+def check(subject, owner_uid, action=ACTION, password=None, agent=True, offset=0, change=CHANGE):
     process, master = start_agent(subject.pid) if agent else (None, None)
     driver = subprocess.Popen(['unshare', '--mount', '--propagation', 'private', '--', 'sh', '-c', SANDBOX, 'sandbox', SERVICE_USER,
-                               'python3', '-I', '-S', '-c', DRIVER, str(ROOT / 'control'), action, str(subject.pid), str(owner_uid), str(offset), CHANGE],
+                               'python3', '-I', '-S', '-c', DRIVER, str(ROOT / 'control'), action, str(subject.pid), str(owner_uid), str(offset), change],
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     transcript, prompts, deadline, reading = b'', 0, time.monotonic() + 90, master is not None
     while driver.poll() is None and time.monotonic() < deadline:
@@ -172,7 +210,7 @@ def check(subject, owner_uid, action=ACTION, password=None, agent=True, offset=0
         os.close(master)
     lines = output.strip().splitlines()
     result = json.loads(lines[-1]) if lines else {'granted': None, 'reason': 'driver failed'}
-    return {**result, 'prompts': prompts, 'transcript': transcript.decode('utf-8', 'replace').replace(PASSWORD, '<password>'),
+    return {**result, 'change': change, 'prompts': prompts, 'transcript': transcript.decode('utf-8', 'replace').replace(PASSWORD, '<password>'),
             'driver_errors': errors[-2000:]}
 
 
@@ -187,15 +225,15 @@ def main():
         subject = subprocess.Popen(['setpriv', f'--reuid={OWNER}', f'--regid={OWNER}', '--init-groups', 'sleep', '600'])
         wrong = 'not-' + PASSWORD
         cases = [
-            ('right password', dict(password=PASSWORD), True, None),
-            ('no agent right after a yes', dict(agent=False), False, 'no password dialog'),
-            ('wrong password', dict(password=wrong), False, None),
-            ('another start time for the same pid', dict(password=PASSWORD, offset=1), False, None),
-            ('policy without the owner annotation', dict(action=UNOWNED, password=PASSWORD), False, 'trusted callers'),
-            ('right password again', dict(password=PASSWORD), True, None),
+            ('right password', dict(password=PASSWORD), True, None, True),
+            ('no agent right after a yes', dict(agent=False), False, 'no password dialog', False),
+            ('wrong password', dict(password=wrong), False, None, True),
+            ('another start time for the same pid', dict(password=PASSWORD, offset=1), False, None, False),
+            ('policy without the owner annotation', dict(action=UNOWNED, password=PASSWORD), False, 'trusted callers', False),
+            ('right password again, another change', dict(password=PASSWORD, change=OTHER_CHANGE), True, None, True),
         ]
         results, failures = [], []
-        for label, options, granted, reason in cases:
+        for label, options, granted, reason, prompted in cases:
             result = {'case': label, **check(subject, owner_uid, **options)}
             results.append(result)
             problems = []
@@ -203,8 +241,7 @@ def main():
                 problems.append(f'granted={result["granted"]}, expected {granted}')
             if reason and reason.lower() not in str(result.get('reason')).lower():
                 problems.append(f'reason lacks {reason!r}')
-            if granted and CHANGE not in result['transcript']:
-                problems.append('the dialog text does not name the change')
+            problems += dialog_problems(result, result['change'], prompted)
             if granted and result['prompts'] != 1:
                 problems.append(f'{result["prompts"]} password prompts, expected one')
             if result.get('uid') != pwd.getpwnam(SERVICE_USER).pw_uid or result.get('no_new_privs') != '1' \
@@ -212,7 +249,8 @@ def main():
                 problems.append('the check did not run as the sandboxed service user')
             if problems:
                 failures.append({'case': label, 'problems': problems})
-            print(json.dumps({'case': label, 'granted': result['granted'], 'reason': result.get('reason'), 'problems': problems}), flush=True)
+            print(json.dumps({'case': label, 'granted': result['granted'], 'reason': result.get('reason'),
+                              'dialog': dialog_messages(result['transcript']), 'problems': problems}), flush=True)
         subject.kill()
         polkitd.terminate()
     record = {'service_user': SERVICE_USER, 'action': ACTION, 'versions': versions, 'results': results, 'failures': failures,

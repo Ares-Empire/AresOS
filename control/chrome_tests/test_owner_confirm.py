@@ -3,6 +3,8 @@
 pkcheck is a stub here. Real polkitd with a password agent runs in
 .github/workflows/control-chrome-polkit.yml (control/chrome/ci/polkit-check.py).
 """
+import importlib.util
+import inspect
 import json
 import os
 from pathlib import Path
@@ -327,6 +329,13 @@ class Confirmation(unittest.TestCase):
             listener.close(); daemon.selector.close(); bridge.close()
 
 
+def real_polkit_check():
+    spec = importlib.util.spec_from_file_location('polkit_check', ROOT / 'control/chrome/ci/polkit-check.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 class Policy(unittest.TestCase):
     def test_final_f7_policy_asks_the_admin_password_every_time_and_names_the_service_user(self):
         text = POLICY.read_text()
@@ -349,6 +358,43 @@ class Policy(unittest.TestCase):
         readme = (ROOT / 'control/chrome/packaging/README.md').read_text()
         self.assertIn('/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy', readme)
         self.assertIn('pkcheck', readme)
+
+    def test_final_f7_only_the_real_policy_reaches_the_install_tree(self):
+        # The CI-only stand-in rule (allow_active on a seat-less container) and
+        # the unowned test action live only inside polkit-check.py at run time.
+        sys.path.insert(0, str(ROOT / 'control/chrome'))
+        from build import inputs
+        installed = list(inputs(ROOT))
+        markers = ['polkit.addRule', 'polkit.Result', '-ci-unowned', '/etc/polkit-1']
+        polkit = [path for path in installed if path.suffix in {'.policy', '.rules'} or '<policyconfig' in path.read_text(errors='replace')]
+        self.assertEqual(polkit, [POLICY])
+        self.assertEqual([path for path in installed if any(marker in path.read_text(errors='replace') for marker in markers)], [])
+        self.assertNotIn(ROOT / 'control/chrome/ci/polkit-check.py', installed)
+        readme = (ROOT / 'control/chrome/packaging/README.md').read_text()
+        self.assertEqual(set(re.findall(r'/usr/share/polkit-1/[\w./-]*[\w]', readme)), {'/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy'})
+        self.assertNotIn('/etc/polkit-1', readme)
+        self.assertNotIn('rules.d', readme)
+
+    def test_final_f7_the_real_polkit_check_requires_each_dialog_to_name_its_change(self):
+        check = real_polkit_check()
+        header = '\x1b[1;31m==== AUTHENTICATING FOR org.aresos.control.chrome-loosen ====\r\n\x1b[0m'
+        def shown(message, prompts=1):
+            tail = '\r\nAuthenticating as: owner\r\nPassword: \r\n\x1b[1;31m==== AUTHENTICATION COMPLETE ====\r\n\x1b[0m'
+            return {'transcript': header + message + tail if prompts else '', 'prompts': prompts}
+        intro = "Claude's Chrome tools: confirm this change with your password. "
+        self.assertEqual(check.expected_message(check.CHANGE), intro + check.CHANGE)
+        self.assertEqual(check.dialog_messages(shown(intro + check.CHANGE)['transcript']), [intro + check.CHANGE])
+        self.assertEqual(check.dialog_problems(shown(intro + check.CHANGE), check.CHANGE, True), [])
+        self.assertEqual(check.dialog_problems(shown(intro + check.OTHER_CHANGE), check.OTHER_CHANGE, True), [])
+        # polkit dropping $(change), the wrong change, no dialog at all.
+        self.assertTrue(check.dialog_problems(shown(intro), check.CHANGE, True))
+        self.assertTrue(check.dialog_problems(shown(intro + '$(change)'), check.CHANGE, True))
+        self.assertTrue(check.dialog_problems(shown(intro + check.CHANGE), check.OTHER_CHANGE, True))
+        self.assertTrue(check.dialog_problems(shown('', prompts=0), check.CHANGE, True))
+        self.assertEqual(check.dialog_problems(shown('', prompts=0), check.CHANGE, False), [])
+        self.assertNotEqual(check.CHANGE, check.OTHER_CHANGE)
+        # Every case goes through the dialog check.
+        self.assertIn("problems += dialog_problems(result, result['change'], prompted)", inspect.getsource(check.main))
 
     def test_final_f7_dialog_text_is_one_bounded_line_without_markup(self):
         self.assertEqual(confirm.shown('a\n<b>x</b> & $(y)\u202e'), 'a ?b?x?/b? ? ?(y)?')

@@ -452,6 +452,14 @@ case('final-f7-policy-owner','control/chrome/packaging/org.aresos.control.chrome
 case('final-f7-details-pending','control/chrome/extension/details.js',"statusLine.textContent=change?'Waiting for your password in the system dialog: '+change:'';","statusLine.textContent='';",node('details','final F7 the details page names the pending change'))
 case('final-f7-extension-wait',B,"loosening?LOOSEN_WAIT_MS:10000","10000",node('details','final F7 the extension waits past'))
 
+# Step 5 follow-ups to F7: the real check proves the dialog text; only the real policy ships.
+K='control/chrome/ci/polkit-check.py'
+case('final-f7-dialog-text',K,"wrong = [message for message in messages if message != expected_message(change)]","wrong = []",T.replace('Confirmation','Policy')+'test_final_f7_the_real_polkit_check_requires_each_dialog_to_name_its_change',True)
+case('final-f7-dialog-every-case',K,"            problems += dialog_problems(result, result['change'], prompted)\n","",T.replace('Confirmation','Policy')+'test_final_f7_the_real_polkit_check_requires_each_dialog_to_name_its_change',True)
+case('final-f7-dialog-shown',K,"    if prompted and not messages:\n        return ['the agent showed no dialog']\n","",T.replace('Confirmation','Policy')+'test_final_f7_the_real_polkit_check_requires_each_dialog_to_name_its_change',True)
+case('final-f7-install-tree-ci',"control/chrome/build.py","'chrome/extension', 'chrome/packaging']","'chrome/extension', 'chrome/packaging', 'chrome/ci']",T.replace('Confirmation','Policy')+'test_final_f7_only_the_real_policy_reaches_the_install_tree',True)
+case('final-f7-install-tree-readme',"control/chrome/packaging/README.md","`/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy`, and make sure","`/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy` (CI adds `/usr/share/polkit-1/rules.d/10-aresos-ci.rules`), and make sure",T.replace('Confirmation','Policy')+'test_final_f7_only_the_real_policy_reaches_the_install_tree',True)
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']
