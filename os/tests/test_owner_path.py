@@ -1075,43 +1075,72 @@ class OwnerPathTest(unittest.TestCase):
         self.assertIn("'Expected exact stock/AresOS pair'", version2)
         self.assertNotIn('INSTALL.md#5-', route)
 
-    def test_failed_update_card_takes_the_titled_row_then_previous_rollback_and_windows(self):
-        """22c, C: the failed-update card in its new order. A new AresOS that does not start: the
-        boot-menu row the last title named for the AresOS before the update, then previous. One that
-        starts but misbehaves: previous first, then rollback, then Windows. Changed on purpose from
-        package 22's "Windows first, never a GRUB title" (rules 4, 5 and 8 make every row safe)."""
+    def test_failed_update_card_checks_first_then_previous_only_where_the_update_is_in_place(self):
+        """22c, C, and review 4 (finding 1): the failed-update card. A new AresOS that does not start:
+        the boot-menu row the last title named for the AresOS before the update; one that misbehaves, or
+        the old one returning by itself: stay. Then check first, however Linux started, and previous only
+        where check shows the update in place; never after "was not applied". Then rollback, then Windows.
+        Changed on purpose from package 22's "Windows first, never a GRUB title" (rules 4, 5 and 8 make
+        every row safe) and from stage 1b's "the titled row, then previous" (review 4: if the update did
+        not finish at shutdown, that row is another system and previous goes one release further back)."""
         texts = documents()
         commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
         card = section(texts['EMERGENCY.md'], 'failed-or-bad-update')
         for value in ('Windows Boot Manager', commands['previous'], pass_line('previous'), commands['reboot'],
                       pass_line('reboot'), '**Bazzite**', '(INSTALL-PROCEDURES.md#recovery-menu)',
                       'take the row your last title named for the AresOS that ran before the update',
-                      '**Boot menu after the update finishes at shutdown (expected):**',
-                      '**Return to … confirmed after the restart**', 'choose the row the last title named',
-                      'any row is safe', commands['check'], 'every command still works',
-                      '**Update to … was not applied**', 'do **not** run previous', 'Help decides each repeat',
+                      '**Boot menu after the update finishes at shutdown (expected):**', 'or the old AresOS returns by itself',
+                      'Whatever started, and however', '`' + commands['check'] + '` **first**, never previous before it',
+                      '**Previous AresOS queued for the next start**', '**Return to … confirmed after the restart**',
+                      '**newer AresOS … runs and starts next**', 'with that confirmation in your record',
+                      '**this start was not the default**', 'the AresOS from before the update starts again',
+                      'choose the row the last title named', 'any row is safe',
+                      'Do **not** run previous: it would go one release further back', 'Help decides each repeat',
                       '**did not finish as recorded**', '**interrupted before its result was recorded**',
                       'repeat the update without Help', '**Expected exact stock/AresOS pair**', 'install the current tools first',
                       '(INSTALL-PROCEDURES.md#rollback-from-running-aresos)', '10-minute wait',
                       '(INSTALL.md#8-everyday-boot-and-recovery)', '(INSTALL.md#update-aresos-to-a-new-release)'):
             self.assertIn(value, card)
-        # Not starting: the titled row, then previous. Misbehaving: previous, then rollback, then Windows.
-        positions = [card.index(value) for value in ('the row your last title named', commands['previous'],
-                     'misbehaves: **previous** first', '**rollback** to plain Bazzite', '**Windows Boot Manager**')]
+        # The titled row; check before anything; previous where the update is in place or the new one runs;
+        # never after "was not applied"; then rollback, then Windows.
+        positions = [card.index(value) for value in (
+            'the row your last title named', commands['check'], '- **Update to … is in place and has not started yet**',
+            commands['previous'], '- **Update to … confirmed after the restart**', 'It misbehaves: **previous** the same way',
+            '- **Update to … was not applied**', 'Do **not** run previous', '**rollback** to plain Bazzite',
+            '**Windows Boot Manager**')]
         self.assertEqual(positions, sorted(positions))
-        for value in ('did not finish at the restart', 'guessed GRUB title', 'three deployments', 'they refuse'):
+        self.assertEqual(card.count(commands['previous']), 1)
+        not_applied = next(line for line in card.splitlines() if line.startswith('- **Update to … was not applied**'))
+        self.assertNotIn(commands['previous'], not_applied)
+        for value in ('did not finish at the restart', 'guessed GRUB title', 'three deployments', 'they refuse',
+                      'That AresOS starts: tty3', 'misbehaves: **previous** first'):
             self.assertNotIn(value, card)
         source = (ROOT/'os/owner-tools/owner.py').read_text()
         for value in ("' was not applied: the deployments are as before it, and nothing is waiting'",
+                      "' is in place and has not started yet'", "' confirmed after the restart'", "'update to '",
+                      "'return to '", "'Previous AresOS queued for the next start '", "' runs and starts next'",
+                      "' starts next; this start was not the default'", "'newer AresOS'",
                       "' did not finish as recorded ('", "' was interrupted before its result was recorded; do not reboot; run '"):
             self.assertIn(value, source)
+        # The update route's boxes with the same way back: check first, never previous after "was not applied".
+        route = section(texts['INSTALL.md'], UPDATE)
+        applied = next(line for line in route.splitlines() if line.startswith('  - **Update to … was not applied'))
+        self.assertIn('Do **not** run previous (it would go one release further back)', applied)
+        misbehaves = next(line for line in route.splitlines() if line.startswith('- [ ] **If the new release misbehaves**'))
+        for value in ('`' + commands['check'] + '` first', 'Run previous only on the newer release this route installed',
+                      '**Update to … confirmed after the restart**', '**newer AresOS … runs and starts next**',
+                      'with that confirmation in your record', '**was not applied**', '(EMERGENCY.md#failed-or-bad-update)',
+                      'never previous'):
+            self.assertIn(value, misbehaves)
         # The procedures say what works now with three installed systems.
         menu = section(texts['INSTALL-PROCEDURES.md'], 'recovery-menu')
         for value in ('**three rows after it, which differ only in `(ostree:N)`**', '**Boot menu at the next start:**',
                       '**Take the row the last title named**', 'A wrong choice is harmless', commands['check'],
                       'what runs and what starts next', 'every command still works', '(#keep-stock)',
                       '(#back-to-aresos-from-stock)', 'Never rollback from plain Bazzite', '**Expected exact stock/AresOS pair**',
-                      'Install the current tools first', 'A failed **first** switch boot', '**Windows → Help**'):
+                      'Install the current tools first', 'A failed **first** switch boot', '**Windows → Help**',
+                      'that check comes first after any boot-menu choice', '**Update to … was not applied**',
+                      'previous would then go one release further back', '(EMERGENCY.md#failed-or-bad-update)'):
             self.assertIn(value, menu)
         layout = section(texts['INSTALL-PROCEDURES.md'], 'later-layout').split('### Layout revert', 1)[0]
         for value in ('**Each installed system keeps its own layout**', 'a running AresOS that starts next',
@@ -1126,6 +1155,82 @@ class OwnerPathTest(unittest.TestCase):
         self.assertIn('[back to AresOS from stock](INSTALL-PROCEDURES.md#back-to-aresos-from-stock)', console)
         hang = section(texts['INSTALL-REFERENCE.md'], 'hung-shutdown-or-restart')
         self.assertIn('[update route](INSTALL.md#update-aresos-to-a-new-release)', hang)
+
+    def test_failed_update_card_routes_every_traced_case_to_the_aresos_from_before_the_update(self):
+        """Review 4, finding 1, traced as the reviewer did: in the reference ledger (ways_back_ledger, which
+        the model test holds to the tools on every reachable edge), every update the model stages, both
+        ends of its shutdown (finished, or lost with the staged release discarded) and every boot-menu row,
+        including the row the provisional title named for the AresOS before the update and no choice.
+        The card's branch for what check shows ends on the AresOS from before the update, or on the new
+        release when it runs and works; the stage 1b card (previous straight after the boot) does not."""
+        import ways_back_ledger as ledger
+        commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+        card = section(documents()['EMERGENCY.md'], 'failed-or-bad-update')
+        quotes = {'in-place-not-started': '- **Update to … is in place and has not started yet**',
+                  'target-boot-confirmed': '- **Update to … confirmed after the restart**',
+                  'not-applied': '- **Update to … was not applied**'}
+        branch = {outcome: next(line for line in card.splitlines() if line.startswith(quote)) for outcome, quote in quotes.items()}
+        back = (commands['previous'], '**Previous AresOS queued for the next start**', commands['reboot'],
+                'no choice', '**Return to … confirmed after the restart**')
+        positions = [branch['in-place-not-started'].index(value) for value in back]
+        self.assertEqual(positions, sorted(positions))
+        self.assertIn('It misbehaves: **previous** the same way', branch['target-boot-confirmed'])
+        self.assertNotIn(commands['previous'], branch['not-applied'])
+        restart = branch['not-applied'].index(commands['reboot'])
+        self.assertLess(branch['not-applied'].index('**this start was not the default**'), restart)
+        self.assertLess(restart, branch['not-applied'].index('no choice'))
+
+        def run(state, events):
+            confirmed = False
+            for event in events:
+                result = ledger.transition(state, event)
+                self.assertFalse(result.stop, (event, state))
+                state, confirmed = result.state, confirmed or result.confirmation
+            return state, confirmed
+
+        # previous, save the title, reboot, F12 → Bazzite with no choice, check.
+        previous = [('previous', 'full'), ('title', 'full'), ('restart', 'default'), ('check', 'full')]
+        traced, wrong_before = 0, []
+        for start in ledger.starts():
+            staged = ledger.transition(start, ('update', 'full')).state
+            if not staged.stage:
+                continue
+            before = staged.running
+            for finish in ('restart', 'power-off'):
+                rows = (staged.stage, staged.running, 'S') if finish == 'restart' else staged.rows[1:]
+                for choice in ('default', *rows):
+                    booted = ledger.transition(staged, (finish, choice)).state
+                    outcome = booted.outcome()
+                    self.assertIn(outcome, branch, (finish, choice, booted))
+                    checked = ledger.transition(booted, ('check', 'full'))
+                    self.assertFalse(checked.stop)
+                    cases = [(False, booted.running if outcome == 'target-boot-confirmed' else before)]
+                    if outcome == 'target-boot-confirmed':
+                        cases.append((True, before))
+                    for misbehaves, intended in cases:
+                        with self.subTest(start=start.rows, bundle=start.bundle, finish=finish, choice=choice, misbehaves=misbehaves):
+                            if outcome == 'not-applied':
+                                events = [('restart', 'default')] if booted.running != booted.rows[0] else []
+                            elif outcome == 'in-place-not-started' or misbehaves:
+                                events = previous
+                            else:
+                                events = []  # it works after all: the update route's check box
+                            end, confirmed = run(checked.state, events)
+                            self.assertEqual((end.running, end.rows[0]), (intended, intended))
+                            self.assertEqual(confirmed, events == previous)
+                            traced += 1
+                    # Stage 1b's card: previous straight after the boot of the row the provisional title
+                    # named for the AresOS before the update ((ostree:1), the second row), without check first.
+                    if choice == rows[1]:
+                        old = ledger.transition(booted, ('previous', 'full'))
+                        if not old.stop and ledger.transition(old.state, ('restart', 'default')).state.rows[0] != before:
+                            wrong_before.append((start.rows, start.bundle, finish, choice))
+        # Four starts stage (13+S with bundle 27 or 28, 27+13+S and 27+S with 28). A finished shutdown:
+        # no choice and each of its three rows, the new release's two ways counted twice (6 each); a
+        # lost one: no choice and each row as before (4 from three rows, 3 from two).
+        self.assertEqual(traced, 4 * 6 + 4 + 3 * 3)
+        # The revert: review 4's case, an update from three installed systems whose finish was lost.
+        self.assertEqual(wrong_before, [(('27', '13', 'S'), '28', 'power-off', '13')])
 
     def test_stock_procedures_go_back_to_aresos_and_never_update_bazzite(self):
         """22c, C: rollback and keep-stock beside two releases, the new way back from stock, and the

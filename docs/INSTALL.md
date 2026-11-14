@@ -305,13 +305,13 @@ sudo /var/lib/ares/at records
 ```
 
 Require `PASS check` with **Update to … confirmed after the restart**, then `PASS title` and `PASS records`: the new release booted, the previous AresOS beside it, the corrected stock still pinned, the title's first line **newer AresOS … runs and starts next** and its **Boot menu at the next start:** line with all three rows, labwc and foot running and the daily account exactly as this release's record says. Save the refreshed title; the provisional one is INVALID. Prove console and foot typing of `yz-/!ü` and fresh password sudo as in step 7. Instead of the confirmation:
-  - **Update to … was not applied: the deployments are as before it, and nothing is waiting**: the update did not finish at shutdown and the old release runs; nothing is lost. → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); Help decides each repeat.
+  - **Update to … was not applied: the deployments are as before it, and nothing is waiting**: the update did not finish at shutdown and the old release runs; nothing is lost. Do **not** run previous (it would go one release further back). → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); Help decides each repeat.
   - **Update to … is in place and has not started yet**, with **this start was not the default**: another boot-menu row was taken. Restart with no choice and check again.
   - A STOP **… did not finish as recorded** → [Failed or bad update](EMERGENCY.md#failed-or-bad-update); never repeat it without Help.
 
 - [ ] **Administrator password, once:** on the first update to a release whose announcement says `ares` is an administrator, set its password in this root session with `sudo passwd ares`. Type a long, unique passphrase twice yourself, by the every-install rule: only **lowercase a–x and top-row digits 0–9**, so it types the same in German, US International and US. Require the line ending **updated successfully**. Never photograph, record or send it; keep it private. Then in foot as `ares`, run `sudo -v` and require that password to be accepted.
 
-- [ ] **If the new release misbehaves** but starts: in the tty3 root session:
+- [ ] **If the new release misbehaves** but starts: in the tty3 root session, `sudo /var/lib/ares/at check` first. Run previous only on the newer release this route installed: the check box showed **Update to … confirmed after the restart** (on a later day, check's first line **newer AresOS … runs and starts next**, with that confirmation in your record). Anything else, above all **was not applied** → [Failed or bad update](EMERGENCY.md#failed-or-bad-update), never previous.
 
 ```bash
 sudo /var/lib/ares/at previous
