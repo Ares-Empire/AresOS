@@ -567,6 +567,8 @@ case('gate60-summary-p95-off-by-one',LS,"ordered[max(0,math.ceil(.95*len(values)
 case('gate60-check-p95-off-by-one',LC,"return ordered[max(0,math.ceil(.95*len(ordered))-1)]","return ordered[min(len(ordered)-1,math.ceil(.95*len(ordered)))]",GATE60,True)
 case('gate60-reference-at-new-count',LC,"(reference['current'],reference_samples),(reference['baseline'],reference_samples)","(reference['current'],samples),(reference['baseline'],samples)",'test_latency.LatencyGate.test_gate60_new_measurements_take_the_lead_count_and_the_reference_keeps_its_own',True)
 case('gate60-client-fixed-20','control/chrome/ci/latency-probe.mjs','index<LATENCY_SAMPLES;','index<20;',node('latency','gate60 the latency client takes the lead sample count'))
+# The package re-check of fixes b: the typing record's new shape has its own symbol.
+case('gate60-typing-symbol-v1',G,"Symbol.for('aresos.chrome.typing.v2')","Symbol.for('aresos.chrome.typing.v1')",node('page','gate60 the typing record has its own symbol'))
 # The security re-check of fixes b: every app's instructions within 4,096, and
 # the index's drop and rebuild in one transaction.
 case('gate60-instructions-every-app','control/aresos_control/definitions.py','return COMMON_INSTRUCTIONS + ("\\n\\n" + MAIL_INSTRUCTIONS if app == "mail" else "")','return COMMON_INSTRUCTIONS + ("\\n\\n" + MAIL_INSTRUCTIONS if app == "mail" else "x" * 4096 if app == "control" else "")','test_questions.Questions.test_fixes_b_server_instructions_fit_the_native_cli_limit',True)

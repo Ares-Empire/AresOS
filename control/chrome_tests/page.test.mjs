@@ -7,7 +7,7 @@ import {mixedRows} from '../chrome/ci/guard-matrix.mjs';
 
 const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
 
-function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeShadows=false,retarget=false,dialogs=false,nativeNodeKinds=false,clipboard=false,svgAnimations=false,onDialogBoundary=()=>{}}={}) {
+function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeShadows=false,retarget=false,dialogs=false,nativeNodeKinds=false,clipboard=false,svgAnimations=false,onDialogBoundary=()=>{},isolatedSetup=''}={}) {
   const sourceIdentity="source-"+(fixture.sequence=(fixture.sequence||0)+1);
   const sharedDOM=fixture.sharedDOM??={shadowHosts:new WeakMap(),hostShadows:new WeakMap(),parents:new WeakMap(),children:new WeakMap(),elements:new WeakSet()};
   const windowListeners=new Map(),reports=[],arrivals=[],nodes=[],bridgeDetails=[];let now=0;
@@ -106,6 +106,7 @@ function fixture({relay=false,activate=true,link=true,browserDOM=false,nativeSha
   const dialogCalls=[],dialogReports=[],dialogValues=[],dialogValue=value=>value===undefined?'':`${value}`;if(dialogs)Object.assign(globals,{alert:({alert(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('alert');}}).alert,confirm:({confirm(value){dialogValues.push([dialogValue(value)]);dialogCalls.push('confirm');return true;}}).confirm,prompt:({prompt(value,initial){dialogValues.push([dialogValue(value),dialogValue(initial)]);dialogCalls.push('prompt');return 'native response';}}).prompt});const nativeDialogs=dialogs?{alert:globals.alert,confirm:globals.confirm,prompt:globals.prompt}:{};
   let guard;const isolated=vm.createContext({...globals,fixtureDialogPause:()=>onDialogBoundary(guard)});
   const guardSource=fs.readFileSync('control/chrome/extension/guard.js','utf8').replace('debugger;','fixtureDialogPause();');
+  if(isolatedSetup)vm.runInContext(isolatedSetup,isolated);
   vm.runInContext(guardSource,isolated);
   guard=vm.runInContext("globalThis[Symbol.for('aresos.chrome.guard.v2')]",isolated);
   // A retake installs a new guard in the same document's isolated world.
@@ -1085,6 +1086,16 @@ test('fixes b G1 the guard counts releases and stamps Claude\'s marks with the c
   assert.equal(marks(retaken,mine),'{"owner":false,"claude":true,"release":0}','the mark from before the release keeps its count');
   retaken.typedByClaude(mine);assert.equal(marks(retaken,mine),'{"owner":false,"claude":true,"release":1}','Claude\'s mark after the retake takes the new count');
   retaken.dispose();assert.equal(retaken.typingReleases,2);
+});
+// The package re-check of fixes b: the typing record changed shape in fixes b
+// ({fields,gap} became {fields,releases}), so it has its own symbol; a record
+// an earlier guard left in the same isolated world is never adopted.
+test('gate60 the typing record has its own symbol since fixes b and an older record is not adopted',async()=>{
+  const f=fixture({isolatedSetup:"globalThis[Symbol.for('aresos.chrome.typing.v1')]={fields:new WeakMap(),gap:true};"}),mine=new f.HTMLInputElement();
+  assert.equal(f.guard.typingReleases,0,'a fresh record, not the older one');assert.equal(f.guard.typingGap,false);
+  f.arm(mine,null);f.originalDispatch.call(mine,new f.Event('input',{isTrusted:true}));await f.api.finish('epoch');
+  assert.equal(JSON.stringify(f.guard.typedBy(mine)),'{"owner":false,"claude":true,"release":0}');
+  f.guard.dispose();assert.equal(f.guard.typingReleases,1);
 });
 // Fixes b, G2: Claude's marks wait for their dispatch's finish. If it never
 // comes, the owner's keystrokes in that field got Claude's mark too, so they

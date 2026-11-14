@@ -122,8 +122,10 @@
   // listens (after a release) is unseen: a disposed guard counts a release,
   // and each Claude mark keeps the count it was made at, so the report can
   // tell a mark from before the latest release (the owner may have edited
-  // that field since) from one made after it.
-  const typing=globalThis[Symbol.for('aresos.chrome.typing.v1')]??={fields:new WeakMap(),releases:0};
+  // that field since) from one made after it. The record's shape changed in
+  // fixes b (a release count replaced a gap flag), hence v2: a record an
+  // earlier guard left in this isolated world is never read as this one.
+  const typing=globalThis[Symbol.for('aresos.chrome.typing.v2')]??={fields:new WeakMap(),releases:0};
   let typingTarget=null;
   // Claude's marks from the dispatch in flight. Its finish confirms them. If
   // the finish never comes (a lost finish), the owner's keystrokes in that
