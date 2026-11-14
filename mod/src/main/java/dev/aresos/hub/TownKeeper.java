@@ -319,7 +319,7 @@ public final class TownKeeper {
         return keep(server, programs, pictures, places -> { }, false, new Scope(Map.copyOf(scope)));
     }
 
-    /** Asks for an ordinary pass in the next tick, with the pictures already read (after a swap or move). */
+    /** Asks for the town's next ordinary pass, after the command (a swap or move), with the pictures already read. */
     void again() { due = true; }
 
     /**
