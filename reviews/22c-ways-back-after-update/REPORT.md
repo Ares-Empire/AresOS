@@ -2585,6 +2585,49 @@ through the privacy check. A first start of the full module was ended after abou
 had passed; the exploration had printed no progress line yet) to restart it detached from the agent tool's time
 limit; the run above is the only one that completed.
 
+Hosted: `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`, then
+`gh run watch 43570946876 --exit-status --interval 60`. The first watch lost its connection after about ten minutes
+(a dropped read, not HTTP 403); one second watch with the same options followed the run to its end (exit 1, the
+regressions job).
+
+| Hosted run | Head | Regressions job | Model job |
+|---|---|---|---|
+| **[43570946876](https://github.com/Ares-Empire/AresOS/actions/runs/43570946876)** | **`501e9229`** | **17m23s: 1108 tests: 1093 ok, 15 failed, 0 errors, 0 skipped**; the slice 173,130 states / 3,185,862 edges (244.8 s) | **18m1s: scope `full`, 967,215 states / 26,519,328 edges, 820,691 executions, `Ran 1 test in 1038.456s` / `OK`** |
+
+As in stage 1b, the regressions log has no unittest summary line (a failing guide test prints all of `owner.py` and
+the hosted log ends inside it). The counts come from the verbose result lines: 1,093 ok (1,084 `... ok`, 9 `ok`
+after printed output), 16 `... FAIL` lines for 15 tests (one test fails in its two subtests), no `... ERROR`, no
+skipped. 1108 is run 43567101039's 1100 plus this step's eight new tests. Every test of `test_owner_update`
+(the moved tests among them), `test_ways_back`, `test_ways_back_model`, `test_ways_back_reverts` and
+`test_ways_back_compatibility` passed. By this report's count it is the branch's 24th checks run (cap 30) and costs
+about 36 runner minutes, so about 626 of the 1200; I did not read the ledger from the API again.
+
+**All 15 failures are step 2's.** Seven wait for the bundle refresh: `bundle.check` finds the payload copy older
+than `owner.py` ("Regenerate the reviewed payload").
+
+| Test | Reason |
+|---|---|
+| `test_owner_bootstrap.BootstrapTest.test_documented_command_is_generated_from_complete_system_manifest` | payload copy, fingerprint pin |
+| `test_owner_equality.EqualityTest.test_a_quoted_folder_block_is_byte_equal_to_the_generated_one` | payload copy, fingerprint pin |
+| `test_owner_equality.EqualityTest.test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests` | payload copy, fingerprint pin |
+| `test_owner_equality.EqualityTest.test_every_owner_command_equals_the_command_physically_typed_by_ci` | payload copy first; then forward must be in the guides and under `unwalked_commands` (PLAN-GAP 2) |
+| `test_owner_equality.EqualityTest.test_extra_stale_fingerprint_is_rejected_in_every_owner_page` | payload copy, fingerprint pin |
+| `test_owner_equality.EqualityTest.test_reviewed_windows_payload_is_exact_generated_ci_payload` | payload copy, fingerprint pin |
+| `test_owner_walk.OwnerWalkTest.test_update_route_walks_the_laptop_tools_update_password_and_previous` (ps2 false and true) | payload copy (the walk's stick takes the checked bundle) |
+
+Eight bind the guides, which still say update where forward is the word and do not have forward yet:
+
+| Test | Reason |
+|---|---|
+| `test_owner_entry.EntryTest.test_every_real_entry_pass_line_equals_the_guide` | `PASS forward` is in no guide |
+| `test_owner_equality.EqualityTest.test_every_documented_owner_pass_equals_captured_entry_stdout` | `PASS forward` is in no guide |
+| `test_owner_session.SessionTest.test_harness_sudo_i_then_exact_commands_matches_the_guide` | every command of `commands.json` must be in the guides; `sudo /var/lib/ares/at forward` is in none (not run locally; read from the test) |
+| `test_owner_path.OwnerPathTest.test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns` | quotes `'Newest AresOS starts next '` from `owner.py` (the last box) |
+| `test_owner_path.OwnerPathTest.test_forward_and_back_box_never_installs_a_release` | quotes `'The release of these tools is newer still and is not installed ('`; the box's update dispatch |
+| `test_owner_path.OwnerPathTest.test_forward_again_after_a_failed_update_a_stock_return_and_previous_never_stages` | follows the box with update from plain Bazzite: the ledger now refuses there (`at forward`) |
+| `test_owner_path.OwnerPathTest.test_a_return_that_changes_nothing_completes_without_a_confirmation` | counts returns by update that are confirmed: there are none any more (they are forward's) |
+| `test_owner_path.OwnerPathTest.test_stock_procedures_go_back_to_aresos_and_never_update_bazzite` | quotes `'. Bazzite must not update while AresOS is installed: run '` and the guide's "update back to AresOS" |
+
 ### JUDGMENT-CALL
 
 1. **Where the tools' release already runs and starts next, update passes with the lines every word prints**
@@ -2670,3 +2713,7 @@ of these tools is newer still and is not installed ('` and `'. Bazzite must not 
 '` are gone (the last is now `'. Bazzite must not update while AresOS is installed: '` + `BACK_TO_ARESOS`).
 `test_owner_path` traces the guides through `ways_back_ledger.transition`: a return is `('forward', 'full')` now,
 update's refusal has `stop == 'at forward'`, and `destinations(s)` replaces `destination_paths(s)`.
+
+Cleanup: the logs and helper scripts under `/var/home/ares/pkg22c-work/` are removed with the folder; `.work/` holds
+no file over 500 MB; no download was made; no builder-started test or watch process remains; no Gradle daemon was
+started. PR #46 stays draft; nothing was merged or pushed to main.
