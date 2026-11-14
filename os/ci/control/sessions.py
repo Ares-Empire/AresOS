@@ -205,14 +205,27 @@ def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180)
                 continuations=continuations, warning_answered=terminal.warning, final_screen=final)
 
 
-def transcripts(target):
-    """Claude Code's own transcripts of this check, copied as they are."""
-    source = HOME / '.claude/projects'
+TRANSCRIPTS = HOME / '.claude/projects'
+
+
+def transcript_files():
+    """Claude Code's own transcripts now: path under ~/.claude/projects → (size, mtime_ns)."""
+    found = {}
+    for path in TRANSCRIPTS.rglob('*.jsonl') if TRANSCRIPTS.exists() else []:
+        status = path.stat()
+        found[str(path.relative_to(TRANSCRIPTS))] = (status.st_size, status.st_mtime_ns)
+    return found
+
+
+def transcripts(target, before):
+    """The transcripts written or changed since `before` (transcript_files()), copied as they are."""
     copied = []
-    for path in sorted(source.rglob('*.jsonl')) if source.exists() else []:
-        assert path.stat().st_size < 5_000_000, path
-        destination = target / path.relative_to(source)
+    for name, state in sorted(transcript_files().items()):
+        if before.get(name) == state:
+            continue
+        assert state[0] < 5_000_000, (name, state)
+        destination = target / name
         destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_bytes(path.read_bytes())
-        copied.append(str(path.relative_to(source)))
+        destination.write_bytes((TRANSCRIPTS / name).read_bytes())
+        copied.append(dict(name=name, bytes=state[0]))
     return copied

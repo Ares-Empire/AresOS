@@ -159,6 +159,68 @@ class SessionPiecesTest(unittest.TestCase):
             self.assertIn(f"{name} = {getattr(fixture, name)!r}", flows)
 
 
+class EvidencePackingTest(unittest.TestCase):
+    """Run 43568250360: check 9's transcripts tar went over the cap and its exception lost the whole record."""
+
+    def setUp(self):
+        self.folder = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder)
+        owner = mock.Mock(pw_dir=str(self.folder / 'home'), pw_uid=os.getuid(), pw_gid=os.getgid())
+        paths = [str(ROOT / 'os/ci'), str(ROOT / 'control/boundary'), str(CONTROL_CI)]
+        with mock.patch('pwd.getpwnam', return_value=owner), mock.patch.object(sys, 'path', paths + sys.path):
+            self.actions = load(CONTROL_CI / 'actions.py', 'control_actions_for_test')
+            self.sessions = load(CONTROL_CI / 'sessions.py', 'control_sessions_for_test')
+
+    def case(self, name, size):
+        folder = self.folder / name
+        (folder / 'screens').mkdir(parents=True)
+        (folder / 'screens/001-settled-1.txt').write_text('screen')
+        (folder / 'screens/002-wait-1.txt').write_bytes(os.urandom(size))
+        return folder
+
+    def test_a_tar_that_does_not_fit_is_left_out_and_named_never_raised(self):
+        files, errors = {}, []
+        sizes = self.actions.packed(files, {'small.tar.gz': self.case('small', 1000),
+                                            'missing.tar.gz': self.folder / 'missing',
+                                            'huge.tar.gz': self.case('huge', 0)}, errors)
+        self.assertEqual(sorted(files), ['huge.tar.gz', 'small.tar.gz'])
+        self.assertEqual(errors, [])
+        (self.folder / 'huge/transcript.jsonl').write_bytes(os.urandom(1_200_000))
+        files, errors = {}, []
+        sizes = self.actions.packed(files, {'small.tar.gz': self.case('small2', 1000),
+                                            'huge.tar.gz': self.folder / 'huge'}, errors)
+        self.assertEqual(list(files), ['small.tar.gz'])
+        self.assertIsNone(sizes['huge.tar.gz'])
+        self.assertIn('evidence huge.tar.gz left out', errors[0])
+
+    def test_the_intermediate_screens_go_first_and_the_budget_holds(self):
+        files, errors = {}, []
+        mock.patch.object(self.actions, 'TARS_BUDGET', 1_500_000).start()
+        self.addCleanup(mock.patch.stopall)
+        sizes = self.actions.packed(files, {f'{n}.tar.gz': self.case(f'case{n}', 900_000) for n in range(3)}, errors)
+        # The first fits whole; what is left of the budget then takes the others only without their intermediate
+        # screens, and nothing is left out.
+        self.assertEqual(len(files), 3)
+        self.assertGreater(sizes['0.tar.gz'], 900_000)
+        self.assertTrue(sizes['1.tar.gz'] < 10_000 and sizes['2.tar.gz'] < 10_000, sizes)
+        self.assertEqual(errors, [])
+
+    def test_only_the_transcripts_a_case_wrote_are_copied(self):
+        source = self.folder / 'projects/work'
+        source.mkdir(parents=True)
+        (source / 'old.jsonl').write_text('{"check": 6}\n')
+        (source / 'kept.jsonl').write_text('{"check": 7}\n')
+        mock.patch.object(self.sessions, 'TRANSCRIPTS', self.folder / 'projects').start()
+        self.addCleanup(mock.patch.stopall)
+        before = self.sessions.transcript_files()
+        (source / 'new.jsonl').write_text('{"check": 9}\n')
+        with open(source / 'old.jsonl', 'a') as stream:
+            stream.write('{"check": 9}\n')
+        copied = self.sessions.transcripts(self.folder / 'out', before)
+        self.assertEqual([row['name'] for row in copied], ['work/new.jsonl', 'work/old.jsonl'])
+        self.assertFalse((self.folder / 'out/work/kept.jsonl').exists())
+
+
 class ReleaseChecksTest(unittest.TestCase):
     """Agreed change 12: the rehearsal's checks, on a stand-in root."""
 

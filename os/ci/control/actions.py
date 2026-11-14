@@ -617,20 +617,47 @@ def compact_requests(path):
     path.write_text(json.dumps(requests, indent=1))
 
 
-def tree_out(folder, name):
-    """One case folder as a gzip tar: rendered screens repeat a lot, and one action must stay below a frame."""
+# An action answers in one channel frame (os/ci/channel.py: 4 MiB of JSON, its files in base64, a third larger): one
+# tar stays below TAR_LIMIT, and all tars of one action together below TARS_BUDGET.
+TAR_LIMIT = 1_000_000
+TARS_BUDGET = 2_400_000
+
+
+def tree_out(folder, limit=TAR_LIMIT):
+    """One folder as a gzip tar named after it: rendered screens repeat a lot."""
     for path in folder.rglob('requests.json'):
         compact_requests(path)
     for keep_every_screen in (True, False):
         buffer = io.BytesIO()
         with tarfile.open(fileobj=buffer, mode='w:gz') as archive:
             # Too large with every intermediate frame: keep the named screens the driver acted on or proved with.
-            archive.add(folder, arcname=name, filter=lambda info: info if keep_every_screen or
+            archive.add(folder, arcname=folder.name, filter=lambda info: info if keep_every_screen or
                         '-wait-' not in info.name else None)
         data = buffer.getvalue()
-        if len(data) < 1_000_000:
+        if len(data) < limit:
             return data
-    raise AssertionError(f'{name}: {len(data)} bytes even without the intermediate screens')
+    raise AssertionError(f'{folder.name}: {len(data)} bytes even without the intermediate screens (limit {limit})')
+
+
+def packed(files, folders, errors):
+    """Each existing folder of {evidence name: folder} as a tar into files, within the frame's budget. A tar that
+    can't be made or doesn't fit is left out and named in errors: the check fails, but it still returns its outcomes
+    and records (run 43568250360: check 9's transcripts tar, 1,057,224 bytes, raised past its whole record).
+    Returns each name's size, or None for one left out."""
+    left, sizes = TARS_BUDGET, {}
+    for name, folder in folders.items():
+        if not folder.exists():
+            continue
+        limit = min(TAR_LIMIT, left)
+        try:
+            files[name] = tree_out(folder, limit)
+        except Exception as error:
+            errors.append(f'evidence {name} left out: {type(error).__name__}: {error}')
+            sizes[name] = None
+            continue
+        sizes[name] = len(files[name])
+        left -= sizes[name]
+    return sizes
 
 
 def turn_record(turn):
@@ -736,10 +763,9 @@ def ordinary(request):
                           for row in rows], own_stop_lines=len(stops), pending_after=after['total'])
     files = {'ordinary/summary.json': dict(summary, rows=rows, service=service, settings=settings),
              'ordinary/own-hooks.jsonl': log.read_text() if log.exists() else ''}
-    for name in cases:
-        files[f'ordinary/{name}.tar.gz'] = tree_out(out / name, name)
+    sizes = packed(files, {f'ordinary/{name}.tar.gz': out / name for name in cases}, errors)
     return dict(returncode=1 if errors else 0, stderr='\n'.join(errors)[-6000:], summary=summary,
-                files=files_out(files))
+                evidence_bytes=sizes, files=files_out(files))
 
 
 # Check 7. Mail under the real unit, through the installed entry points only; then one send through Claude Code.
@@ -781,10 +807,9 @@ def mail(request):
     files = {'mail-flows.json': dict(summary, flows=flows.record, onboarding=dict(
         result=onboarding['result'], stderr=onboarding['stderr']), account_settings=confirmed),
         'mail-onboarding-screens.txt': '\n----\n'.join(onboarding['screens'])}
-    if (EVIDENCE / 'mail-claude').exists():
-        files['mail-claude.tar.gz'] = tree_out(EVIDENCE / 'mail-claude', 'mail-claude')
+    sizes = packed(files, {'mail-claude.tar.gz': EVIDENCE / 'mail-claude'}, errors)
     return dict(returncode=1 if errors else 0, stderr='\n'.join(errors)[-6000:], summary=summary,
-                files=files_out(files))
+                evidence_bytes=sizes, files=files_out(files))
 
 
 def find_key(value, key):
@@ -839,8 +864,19 @@ def interactive(request):
             row['user_settings'] = sessions.user_settings(['mcp__testapp__prepare_send', *extra], hooks)
             step = {'prompt': 'ASK_OWNER_TURN_1', 'send': 'mcp__testapp__send',
                     'prepare': {'name': 'mcp__testapp__prepare_send', 'input': MESSAGE}}
-            result = sessions.session(out / case, [step], sessions.SKIP if mode == 'skip' else sessions.NORMAL,
-                                      [answer])
+            before = sessions.transcript_files()
+            try:
+                result = sessions.session(out / case, [step], sessions.SKIP if mode == 'skip' else sessions.NORMAL,
+                                          [answer])
+            finally:
+                # Only this case's transcripts (checks 6 and 7 wrote theirs before): its own tar, beside the case's.
+                try:
+                    row['transcripts'] = sessions.transcripts(out / f'{case}-transcripts', before)
+                except Exception as error:
+                    row['transcripts'] = f'not copied: {type(error).__name__}: {error}'
+                if log.exists():
+                    (out / case).mkdir(parents=True, exist_ok=True)
+                    shutil.copyfile(log, out / case / 'permission-hook.jsonl')
             turn = result['turns'][0]
             op_id = turn['operation_id']
             send_arrivals, receiver_total = arrivals_in_receiver(op_id)
@@ -876,23 +912,20 @@ def interactive(request):
         except Exception:
             errors.append(f'{case}: ' + traceback.format_exc())
         rows.append(row)
-    copied = sessions.transcripts(out / 'transcripts')
+    # The outcomes and the PermissionRequest record first: nothing after this may lose them.
     permission = {row['case']: {key: row.get(key) for key in ('prompt_shown', 'send_arrivals', 'hook_calls',
                                                                'owner_answers')}
                   for row in rows if row['answer'] == 'hook'}
     summary = dict(cases={row['case']: {key: row.get(key) for key in (
         'prompt_shown', 'owner_answers', 'send_arrivals', 'operation_state', 'hook_calls', 'stop_continuations',
         'stop_reminder_in_continuation', 'resumed_after_no', 'pending_after_cleanup')} for row in rows},
-        permission_request=permission, managed_settings_sha256=managed, transcripts=len(copied))
-    files = {'interactive/summary.json': dict(summary, rows=rows, transcripts=copied),
-             'permission-request.json': permission}
-    for case, *_ in ASK_CASES:
-        if (out / case).exists():
-            files[f'interactive/{case}.tar.gz'] = tree_out(out / case, case)
-    if (out / 'transcripts').exists():
-        files['interactive/transcripts.tar.gz'] = tree_out(out / 'transcripts', 'transcripts')
+        permission_request=permission, managed_settings_sha256=managed,
+        transcripts={row['case']: row.get('transcripts') for row in rows})
+    files = {'interactive/summary.json': dict(summary, rows=rows), 'permission-request.json': permission}
+    sizes = packed(files, {f'interactive/{name}.tar.gz': out / name for case, *_ in ASK_CASES
+                           for name in (case, f'{case}-transcripts')}, errors)
     return dict(returncode=1 if errors else 0, stderr='\n'.join(errors)[-6000:], summary=summary,
-                files=files_out(files))
+                evidence_bytes=sizes, files=files_out(files))
 
 
 def holds(path, *needles):
