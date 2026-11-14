@@ -741,6 +741,7 @@ public final class TownGameTests {
         long seed = TownSeal.seed(server);
         Path copies = Files.createTempDirectory(world.getParent(), "aresos-town-seal");
         BlockPos his = null;
+        boolean done = false;
         try {
             // A normal save writes level.dat, the seal and town.dat together; the world read again is sealed.
             server.saveAllChunks(true, true, true);
@@ -851,10 +852,22 @@ public final class TownGameTests {
             var empty = copy(world, copies.resolve("empty"));
             Files.delete(TownSeal.file(empty));
             check(reopen(server, empty).frozenCount() == 0 && reopen(server, empty).refusal().isEmpty(), "A town with no logos was not taken as its own");
+            done = true;
         } finally {
             if (his != null) level.setBlockAndUpdate(his, Blocks.AIR.defaultBlockState());
             try (var paths = Files.walk(copies)) {
                 for (var path : paths.sorted(java.util.Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
+            }
+            // This test saves the world on purpose, and a failed check stops the test server without its last save. So
+            // a failed run must not leave its town in the saved files: every later town of the kept test world would be
+            // refused (a town.dat of another home with logos). Its records go (its blocks stay on its own ground, as
+            // any failed run's do), the previous hub comes back, and the world is saved once more.
+            if (!done) {
+                var current = HubData.get(server);
+                if (current != null) for (var logo : current.logos()) current.remove(logo.app());
+                fake.clearZones(server);
+                if (fake.previous != null) HubData.store(server, fake.previous);
+                server.saveAllChunks(true, true, true);
             }
         }
     }
