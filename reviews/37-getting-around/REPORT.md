@@ -452,6 +452,12 @@ Nothing else holds up the merge. The judgment calls above go to the owner before
 feels are 1-3 (`/go` refuses a loaded place whose logo is not built yet), 1-7 (`/go` to a standing logo says nothing),
 2-1 (the command's own line replaces the town's lines about the apps it moved) and 2-8 (the refusal wording).
 
+**Settled by the orchestrator (2026-11-14):** `/go` keeps the decided arrival (the door in view, the sign above the
+screen). 1-3, 1-7, 2-1 and 2-8 stay as built. Each is a chat line or a number, easy to change, and the owner sees them
+when he tries the town (`hub-try`) rather than being asked beforehand. So do the fix rounds' calls F1 to F7 and G1 to
+G7. REVIEW-3's NIT (the next ordinary pass can run at the end of the same tick, not "one tick later") is corrected in
+the next hub package that touches HUB.md.
+
 ## Review fixes 1
 
 Brief: `briefs/37-review-fixes-1.md`, after `REVIEW-1.md` (CHANGES-NEEDED: three FIX, three SHOULD, all accepted). One
