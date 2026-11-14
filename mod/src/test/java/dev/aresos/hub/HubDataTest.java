@@ -108,6 +108,54 @@ class HubDataTest {
         assertEquals(Optional.empty(), read.resultOrPartial(error -> { }), "nothing of it is read, as the game reads saved data");
     }
 
+    private static HubData.Logo as(HubData.Logo logo, String app, String place, String zone, AppZone.Gate gate) {
+        return new HubData.Logo(app, place, logo.picture(), logo.converter(), logo.name(), logo.shortName(), zone, gate);
+    }
+
+    /**
+     * Review fixes 1, point 4: a town file read from the world goes through the checks of add, and one overlap
+     * refuses all of it: two logos of one app, in one place, on one block, with one sign or one zone, or a logo
+     * whose blocks lie outside the place it names. The files are decoded as the game reads town.dat.
+     */
+    @Test void aTownFileWithOverlappingRecordsIsRefusedWholeAsAddRefusesTheLogo() {
+        var discord = logo("discord", "N0R0", new BlockPos(9, 64, -20), "zone-discord");
+        var chrome = logo("chrome", "N0L0", new BlockPos(-10, 64, -20), "zone-chrome");
+        var gate = chrome.gate();
+        var shared = new java.util.ArrayList<>(gate.placed());
+        shared.add(discord.gate().placed().getFirst());
+        var overlaps = new java.util.LinkedHashMap<String, HubData.Logo>();
+        overlaps.put("two logos are recorded for discord", as(chrome, "discord", "N0L0", "zone-chrome", gate));
+        overlaps.put("two logos are recorded at N0R0", as(chrome, "chrome", "N0R0", "zone-chrome", gate));
+        overlaps.put("two records hold the block at 9, 64, -20", as(chrome, "chrome", "N0L0", "zone-chrome",
+                new AppZone.Gate(shared, gate.ground(), gate.sign(), gate.grass())));
+        overlaps.put("two records name the sign", as(chrome, "chrome", "N0L0", "zone-chrome",
+                new AppZone.Gate(gate.placed(), gate.ground(), discord.gate().sign(), gate.grass())));
+        overlaps.put("two logos name the zone zone-discord", as(chrome, "chrome", "N0L0", "zone-discord", gate));
+        overlaps.put("outside its place N1L0", as(chrome, "chrome", "N1L0", "zone-chrome", gate));
+        overlaps.put("stands in no place of the town: north", as(chrome, "chrome", "north", "zone-chrome", gate));
+        var home = GlobalPos.of(Level.OVERWORLD, HOME);
+        assertDoesNotThrow(() -> hub(List.of()).adopt(new HubData.TownFile(home, List.of(discord, chrome))), "the two as they are");
+        for (var overlap : overlaps.entrySet()) {
+            var saved = HubData.TownFile.CODEC.encodeStart(NbtOps.INSTANCE, new HubData.TownFile(home, List.of(discord, overlap.getValue()))).getOrThrow();
+            var read = HubData.TownFile.CODEC.parse(NbtOps.INSTANCE, saved).getOrThrow();
+            var hub = hub(List.of());
+            var refused = assertThrows(IllegalArgumentException.class, () -> hub.adopt(read), overlap.getKey());
+            assertTrue(refused.getMessage().contains(overlap.getKey()), overlap.getKey() + ": " + refused.getMessage());
+            assertEquals(List.of(), hub.logos(), "nothing of a refused file is read in");
+            assertEquals(Map.of(HOME.below(), "minecraft:gold_block"), hub.blocks(Level.OVERWORLD));
+
+            var standing = hub(List.of(discord));
+            var added = assertThrows(IllegalArgumentException.class, () -> standing.add(overlap.getValue()), overlap.getKey());
+            assertEquals(refused.getMessage(), added.getMessage(), "add refuses it for the same reason");
+            assertEquals(List.of(discord), standing.logos());
+        }
+        // A logo recording a block of the pad, or a group name's ID as its sign.
+        var pad = new java.util.ArrayList<>(gate.placed());
+        pad.add(new AppZone.Placed(HOME.below(), "minecraft:gold_block"));
+        assertThrows(IllegalArgumentException.class, () -> hub(List.of()).adopt(new HubData.TownFile(home,
+                List.of(as(chrome, "chrome", "N0L0", "zone-chrome", new AppZone.Gate(pad, gate.ground(), gate.sign(), gate.grass()))))));
+    }
+
     @Test void theRecordKnowsEveryLogoByAppZoneBlockAndSign() {
         var discord = logo("discord", "N0R0", new BlockPos(9, 64, -20), "zone-discord");
         var hub = hub(List.of(discord));

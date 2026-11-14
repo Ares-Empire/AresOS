@@ -10,6 +10,8 @@ import dev.aresos.AresOs;
 import dev.aresos.mode.LiveMode;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.zone.AppZone;
+import dev.aresos.zone.GatePalette;
+import dev.aresos.zone.GatePicture;
 import dev.aresos.zone.Placing;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
@@ -21,6 +23,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.saveddata.SavedDataType;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.level.storage.SavedDataStorage;
@@ -176,6 +179,7 @@ public final class HubData extends SavedData {
         for (Placed block : this.fixed.blocks()) placed.put(block.pos(), block.block());
         this.town = new TownFile(home, List.of());
         this.town.checked = true;
+        check(logos);
         for (Logo logo : logos) index(logo);
     }
 
@@ -296,6 +300,7 @@ public final class HubData extends SavedData {
     /** Takes the logos of a town file as this hub's, in place of its own: the file is this record's from now on. */
     void adopt(TownFile file) {
         if (!home.equals(file.home)) throw new IllegalArgumentException("The town file belongs to another home: " + file.home);
+        check(file.logos);
         for (var logo : town.logos) for (var block : logo.gate().placed()) { placed.remove(block.pos()); logoBlocks.remove(block.pos()); }
         var logos = List.copyOf(file.logos);
         file.logos.clear();
@@ -355,13 +360,63 @@ public final class HubData extends SavedData {
         return town.logos.stream().flatMap(logo -> logo.gate().sign().stream()).collect(Collectors.toUnmodifiableSet());
     }
 
-    /** Records a logo that was just built. One logo an app, and no block in two records. */
+    /** Records a logo that was just built, if it passes {@link #check} with the logos that stand; otherwise throws, changing nothing. */
     public void add(Logo logo) {
-        if (logo(logo.app()).isPresent()) throw new IllegalArgumentException("The town already has a logo of " + logo.app());
-        for (var block : logo.gate().placed())
-            if (placed.containsKey(block.pos())) throw new IllegalArgumentException("Recorded twice: " + block.pos().toShortString());
+        var logos = new ArrayList<>(town.logos);
+        logos.add(logo);
+        check(logos);
         index(logo);
         town.setDirty();
+    }
+
+    /**
+     * Throws, naming the first overlap, unless these logos can stand together in this hub's record (review fixes 1,
+     * point 4): one logo an app, a place, a block, a sign and a zone; no block of the pad or roads and no group
+     * name's ID in a logo; and each logo's recorded blocks inside the place it names. {@link #add} goes through it,
+     * and so does every town file read from the world ({@link #adopt}): one overlap and the whole file is refused.
+     */
+    private void check(List<Logo> logos) {
+        var apps = new HashSet<String>();
+        var places = new HashSet<Place>();
+        var blocks = new HashSet<BlockPos>();
+        for (var block : fixed.blocks()) blocks.add(block.pos());
+        var signs = new HashSet<UUID>(fixed.names());
+        var zones = new HashSet<String>();
+        for (var logo : logos) {
+            String app = logo.app();
+            if (!apps.add(app)) throw new IllegalArgumentException("two logos are recorded for " + app);
+            var place = Place.parse(logo.place())
+                    .orElseThrow(() -> new IllegalArgumentException("the logo of " + app + " stands in no place of the town: " + logo.place()));
+            if (!places.add(place)) throw new IllegalArgumentException("two logos are recorded at " + place.name());
+            for (var block : logo.gate().placed())
+                if (!blocks.add(block.pos())) throw new IllegalArgumentException("two records hold the block at " + block.pos().toShortString());
+            var sign = logo.gate().sign();
+            if (sign.isPresent() && !signs.add(sign.get())) throw new IllegalArgumentException("two records name the sign " + sign.get());
+            if (!zones.add(logo.zone())) throw new IllegalArgumentException("two logos name the zone " + logo.zone());
+            var footprint = footprint(place);
+            var recorded = new ArrayList<BlockPos>();
+            for (var block : logo.gate().placed()) recorded.add(block.pos());
+            for (var block : logo.gate().ground()) recorded.add(block.pos());
+            recorded.addAll(logo.gate().grass());
+            for (var pos : recorded)
+                if (!footprint.isInside(pos))
+                    throw new IllegalArgumentException("the logo of " + app + " records the block at " + pos.toShortString() + ", outside its place " + place.name());
+        }
+    }
+
+    /**
+     * Where a logo in this place may have blocks: the box of its gate as the town plans it from this home (the front,
+     * the lights, the doormat and the ground around it, the floor, the way in), whatever its picture.
+     */
+    private BoundingBox footprint(Place place) {
+        var plan = place.plan(GatePicture.plain(GatePalette.name(place.group().concrete()), HubLayout.SIZE), home.dimension(), home.pos(), "?", null);
+        var all = new ArrayList<BlockPos>(plan.space());
+        all.addAll(plan.blocks().keySet());
+        all.addAll(plan.lights());
+        all.addAll(plan.doormat());
+        all.addAll(plan.doormatSurround());
+        all.addAll(plan.floor());
+        return BoundingBox.encapsulatingPositions(all).orElseThrow();
     }
 
     /**
