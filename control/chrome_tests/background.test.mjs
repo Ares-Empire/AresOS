@@ -1278,3 +1278,67 @@ for(const [focused,label] of [[2,'a focused popup'],[3,'another focused normal w
   await f.run('take(9)');assert.deepEqual(JSON.parse(f.run('JSON.stringify(groupCalls.at(-1))')),{tabIds:[9],groupId:f.run('groupId')},label);
   assert.deepEqual(JSON.parse(f.run('JSON.stringify(windowMoves)')),[],label+': no tab moved to another window');
 });
+
+// The POST popup of run 43631476260 (fixtures external recheck2): Debugger.enable
+// replayed the extension's context.js from the popup's first document
+// (about:blank in the opener's renderer, context 7); the cross-site POST
+// document then committed in a new renderer (context 2) before
+// setBreakpointByUrl returned, and no frameNavigated or context-destroyed
+// event came for the swap. The dead context stayed in state.contexts, and the
+// late reader's first evaluate hit it: "Cannot find context with specified id"
+// ended the whole admission. The fake replays that order; its popup's
+// evaluate answers come from deadContextErrors, one per call on context 7.
+function swappedPopupFixture(){
+  const f=lifecycleFixture();
+  f.run(`controlled.set(7,{epoch:'parent'});globalThis.evaluated=[];globalThis.injections=[];globalThis.messages=[];globalThis.audits=[];globalThis.badges=new Map();globalThis.deadContextErrors=['{"code":-32000,"message":"Cannot find context with specified id"}'];recording=true;port={postMessage:message=>audits.push(message)};
+    chrome.action.setBadgeText=async({tabId,text})=>{if(tabId!==undefined)badges.set(tabId,text)};
+    chrome.tabs.get=async tab=>({id:tab,url:tab===8?'http://popup.test/post-document':'http://fixture.test/',windowId:tab===7?1:2,index:0,groupId:tab===7?1:-1,openerTabId:tab===8?7:undefined});
+    chrome.windows.get=async window=>({type:window===1?'normal':'popup'});
+    chrome.webNavigation.getAllFrames=async({tabId})=>tabId===8?[{frameId:0,parentFrameId:-1,documentId:'post-document',url:'http://popup.test/post-document'}]:[];
+    chrome.scripting.executeScript=async request=>{injections.push(request);};
+    chrome.tabs.sendMessage=async(tab,message)=>{messages.push(message.command);return {ok:true,data:message.command==='set_control'?{controlled:true}:[]};};
+    chrome.debugger.sendCommand=async(source,method,parameters)=>{lifecycleCalls.push(method);
+      const parsed=(scriptId,executionContextId,url,isDefault)=>preloadEvent(source,'Debugger.scriptParsed',{scriptId,executionContextId,url,executionContextAuxData:{isDefault,frameId:'popup-frame'}});
+      if(method==='Debugger.enable'){await parsed('29',7,'chrome-extension://fixture/context.js',false);return {debuggerId:'opener-renderer'};}
+      if(method==='Debugger.setBreakpointByUrl'){await parsed('3',2,'chrome-extension://fixture/context.js',false);await parsed('4',1,'http://popup.test/post-document',true);return {breakpointId:'startup',locations:[{scriptId:'3'}]};}
+      if(method==='Runtime.evaluate'){evaluated.push({context:parameters.contextId,dispose:parameters.expression.includes('dispose() ?? true')});if(parameters.contextId===7)throw Error(deadContextErrors.length>1?deadContextErrors.shift():deadContextErrors[0]);return parameters.returnByValue?{result:{value:true}}:{result:{objectId:'factory-'+parameters.contextId}};}
+      if(method==='Runtime.callFunctionOn')return parameters.returnByValue?{result:{value:'post-popup-document'}}:{result:{objectId:'relay'}};
+      if(method==='DOM.describeNode')return {node:{backendNodeId:1}};
+      if(method==='DOM.resolveNode')return {object:{objectId:'node'}};
+      return {};};`);
+  return f;
+}
+test('post-popup a dead context from the popup\'s first renderer is forgotten and the live document is admitted late',async()=>{
+  const f=swappedPopupFixture();
+  await f.run('createdTarget({sourceTabId:7,tabId:8})');
+  assert.equal(f.run('controlled.get(8)?.virtualGroup'),true,'the popup is controlled');assert.equal(f.run('controlled.get(8).popupNeedsReload'),true,'a popup still reloads or refuses before its first act');
+  assert.deepEqual(JSON.parse(JSON.stringify(f.run('installRecord()'))),[{tab:8,document:'post-popup-document',install:'late',ready:false}],'one late record for the live document');
+  assert.deepEqual(JSON.parse(f.run("JSON.stringify([...preloadTargets.get('[8,null]').contexts.keys()])")),[2],'the dead context is forgotten, the live one kept');
+  assert.deepEqual(JSON.parse(f.run('JSON.stringify(evaluated)')),[{context:7,dispose:false},{context:2,dispose:false}],'the dead context is tried once, then the live one');
+  const audits=JSON.parse(f.run('JSON.stringify(audits)'));
+  assert.deepEqual(audits.filter(row=>row.data?.late_reader_context).map(row=>row.data.late_reader_context),[{tab:8,context:7,outcome:'native_context_missing'}]);
+  assert.deepEqual(audits.filter(row=>row.data?.popup_admitted).map(row=>row.data.popup_admitted),[{tab:8,window:2,type:'popup',opener:7,badge:'POP on opener'}]);
+  assert.equal(audits.some(row=>row.event==='reader_error'||row.event==='released'),false,'no error and no release');
+  assert.equal(f.run("lifecycleCalls.includes('detach')||lifecycleCalls.includes('group')"),false);assert.equal(f.run("messages.includes('clear')"),false);
+  assert.equal(f.run("badges.get(7)"),'POP','the opener shows its popup');assert.equal(f.run("badges.get(8)"),'ON');
+});
+test('post-popup any other late-reader error still ends the admission, and a failed admission leaves nothing behind',async()=>{
+  const f=swappedPopupFixture();
+  // The first lookup of the dead context fails some other way; release's own
+  // cleanup then meets the missing context. Everything the admission did is
+  // undone: control, debugger, injected guard, reader control, badge.
+  f.run(`deadContextErrors=['Inspected target navigated or closed','{"code":-32000,"message":"Cannot find context with specified id"}']`);
+  await f.run('createdTarget({sourceTabId:7,tabId:8})');
+  assert.equal(f.run('controlled.has(8)'),false,'the popup is not controlled');assert.equal(f.run('controlled.has(7)'),true,'the opener keeps its control');
+  assert.equal(f.run('admissions.size'),0);assert.equal(f.run('releasing.size'),0,'the release finished');
+  assert.deepEqual(JSON.parse(JSON.stringify(f.run('installRecord()'))),[]);assert.equal(f.run("preloadTargets.has('[8,null]')"),false,'no target state remains');
+  assert.equal(f.run('injections.length'),1,'the guard was injected before the failure');
+  assert.deepEqual(JSON.parse(f.run('JSON.stringify(evaluated)')),[{context:7,dispose:false},{context:7,dispose:true},{context:2,dispose:true}],'the admission stopped at the dead context; the release disposed the injected guard in the live one');
+  assert.deepEqual(JSON.parse(f.run('JSON.stringify(messages)')),['set_control','clear'],'the reader\'s control is cleared');
+  assert.deepEqual(JSON.parse(f.run("JSON.stringify(lifecycleCalls.filter(call=>['Debugger.disable','detach','group'].includes(call)))")),['Debugger.disable','detach'],'detached, never grouped');
+  const audits=JSON.parse(f.run('JSON.stringify(audits)'));
+  assert.equal(audits.some(row=>row.data?.popup_admitted),false,'never reported as admitted');
+  assert.deepEqual(audits.filter(row=>row.event==='released').map(row=>row.tab),[8]);
+  assert.match(audits.find(row=>row.event==='reader_error'&&row.tab===8)?.error||'',/navigated or closed/);
+  assert.equal(f.run("badges.get(7)"),'ON','the opener\'s badge shows no popup');assert.equal(f.run("badges.get(8)||''"),'');
+});

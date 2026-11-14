@@ -42,6 +42,10 @@ async function preloadCommand(source,method,parameters={}){
 }
 function assertTarget(state){if(preloadTargets.get(targetKey(state.source))!==state||controlled.get(state.tab)?.epoch!==state.epoch)throw Error('stale_reference: control ended during document setup');}
 function contextChanged(state){for(const done of state.cleanupWaiters||[])done();state.cleanupWaiters?.clear();}
+// The renderer's answer for a context it no longer has. Release's cleanup
+// reads it the same way: a rejected native lookup proves a destroyed realm
+// even without its destruction event.
+const nativeContextMissing=error=>String(error).includes('Cannot find context with specified id');
 function destroyedTarget(state){state.contexts.clear();state.scripts.clear();state.documents.clear();state.failures?.clear();contextChanged(state);if(preloadTargets.get(targetKey(state.source))===state)preloadTargets.delete(targetKey(state.source));}
 async function contextGone(state,identity){
   while([...state.contexts.values()].some(context=>context.uniqueId===identity)){
@@ -261,7 +265,21 @@ async function lateReader(tab,browserDocument=null){
     for(const context of state.contexts.values()){
       if(context.origin!==chrome.runtime.getURL('').replace(/\/$/,'')||context.auxData?.isDefault!==false||[...state.documents.values()].some(doc=>doc.isolated===context.uniqueId))continue;
       const relayKey='data-aresos-'+crypto.randomUUID(),relayValue=crypto.randomUUID();
-      const factory=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'(()=>{const guard=globalThis[Symbol.for("aresos.chrome.guard.v2")];if(!guard?.ready)return null;return {document:guard.identity(),relay:guard.privateRelay('+JSON.stringify(relayKey)+','+JSON.stringify(relayValue)+'),cleanup(){return guard.dispose();}};})()',disableBreaks:true});
+      let factory;
+      try{factory=await targetCommand(state,'Runtime.evaluate',{contextId:context.id,expression:'(()=>{const guard=globalThis[Symbol.for("aresos.chrome.guard.v2")];if(!guard?.ready)return null;return {document:guard.identity(),relay:guard.privateRelay('+JSON.stringify(relayKey)+','+JSON.stringify(relayValue)+'),cleanup(){return guard.dispose();}};})()',disableBreaks:true});}
+      catch(error){
+        // A context the renderer no longer knows belongs to a document that
+        // left without its destruction event: a popup's first document
+        // (about:blank in the opener's renderer), seen by Debugger.enable just
+        // before its cross-site navigation moved the tab to another renderer
+        // (run 43631476260, the POST popup). The dead context must not end the
+        // admission of the live document: forget it and read on. Any other
+        // error still ends the admission.
+        if(!nativeContextMissing(error)||state.contexts.get(context.id)!==context)throw error;
+        state.contexts.delete(context.id);for(const [key,doc]of state.documents)if(doc.isolated===context.uniqueId)state.documents.delete(key);contextChanged(state);
+        if(recording)audit({late_reader_context:{tab,context:context.id,outcome:'native_context_missing'}});
+        continue;
+      }
       if(factory.exceptionDetails||!factory.result?.objectId)continue;
       const relay=await targetCommand(state,'Runtime.callFunctionOn',{objectId:factory.result.objectId,functionDeclaration:'function(){return this.relay;}'});
       const identity=await targetCommand(state,'Runtime.callFunctionOn',{objectId:factory.result.objectId,functionDeclaration:'function(){return this.document;}',returnByValue:true});

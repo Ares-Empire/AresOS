@@ -620,6 +620,16 @@ GROUP_WINDOW="groupId = await chrome.tabs.group({tabIds:[tab],...(groupId === nu
 case('group-window-drop-window-id',B,GROUP_WINDOW,GROUP_WINDOW.replace("{createProperties:{windowId:current.windowId}}","{createProperties:{}}"),node('background','group-window'))
 case('group-window-no-create-properties',B,GROUP_WINDOW,GROUP_WINDOW.replace("{createProperties:{windowId:current.windowId}}","{}"),node('background','group-window'))
 
+# POST popup after run 43631476260 (fixtures external recheck2): a context the
+# renderer no longer knows (the popup's first document, swapped to another
+# renderer during admission) is forgotten by the late reader instead of ending
+# the admission. The first probe puts the old behaviour back (every lookup
+# error ends the admission); the second forgets a context on any error, which
+# would admit a document whose guard lookup failed for another reason.
+DEAD_CONTEXT="if(!nativeContextMissing(error)||state.contexts.get(context.id)!==context)throw error;"
+case('post-popup-dead-context-ends-admission',B,DEAD_CONTEXT,"throw error;",node('background','post-popup a dead context'))
+case('post-popup-any-error-forgotten',B,DEAD_CONTEXT,"if(state.contexts.get(context.id)!==context)throw error;",node('background','post-popup any other'))
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']
