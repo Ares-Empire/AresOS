@@ -50,7 +50,8 @@ public final class AresOsClient implements ClientModInitializer {
                 (payload, context) -> ModeSwitchClient.receive(payload));
         ClientPlayNetworking.registerGlobalReceiver(ZoneLaunchPayload.TYPE, (payload, context) -> {
             // A remote Minecraft server must never be able to auto-launch local programs.
-            if (AppsScreen.active(Minecraft.getInstance())) launch(payload.app(), payload.visit());
+            if (acceptsAppCommands(Minecraft.getInstance())
+                    && (payload.visit() == 0 || AppsScreen.active(Minecraft.getInstance()))) launch(payload.app(), payload.visit());
             else if (ClientPlayNetworking.canSend(ZoneReturnPayload.TYPE))
                 ClientPlayNetworking.send(new ZoneReturnPayload(payload.visit(), false));
         });
@@ -85,6 +86,11 @@ public final class AresOsClient implements ClientModInitializer {
 
     public static void discardModeToggle() {
         if (modeToggle != null) while (modeToggle.consumeClick()) { }
+    }
+
+    public static boolean acceptsAppCommands(Minecraft client) {
+        return client.player != null && client.getSingleplayerServer() != null
+                && dev.aresos.world.DesktopWorld.isEnabled(client.getSingleplayerServer());
     }
 
     public static void launch(String id) {

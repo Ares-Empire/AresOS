@@ -227,7 +227,7 @@ are all retained and logged as ambiguous; discovery never chooses between them.
 
 ```json
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "baseline": "2026-11-13",
   "apps": [
     {
@@ -267,17 +267,17 @@ An optional `icon` path can supply a local PNG. Missing/unreadable icons use `lo
 a missing vanilla item uses a book. Websites use their configured vanilla look
 unless a local icon is supplied; AresOS does not fetch favicons.
 
-Older files move over on startup, package-01 arrays (schema 1) and schema 2
-alike: the entire file is validated first, copied byte for byte to
-`apps.json.schema-<1 or 2>-<unique id>.bak`, then replaced atomically by schema 3.
+Older files move over on startup, package-01 arrays (schema 1), schema 2
+and schema 3 alike: the entire file is validated first, copied byte for byte to
+`apps.json.schema-<1, 2 or 3>-<unique id>.bak`, then replaced atomically by schema 4.
 An app that was pinned, and the starters `browser`, `terminal` and `notepad`,
-start as yours; nothing else in an entry changes. The move runs once. Invalid
+start as yours when moving from schema 1 or 2; schema 3 keeps its My apps choices.
+Nothing else in an entry changes. The move runs once. Invalid
 entries, duplicate IDs, unsupported schemas or an I/O error stop with a
 diagnostic and preserve the original file. No defaults replace a broken file.
 Pin, My-apps and merge edits also preserve unknown optional fields.
 
-An older mod that finds a schema-3 file refuses it ("Unsupported schemaVersion
-(expected 2)"), leaves the file untouched, starts without apps and says
+An older mod that finds a schema-4 file refuses it ("Unsupported schemaVersion"), leaves the file untouched, starts without apps and says
 "AresOS apps disabled: ..." in the chat.
 
 Before downgrading to an older mod, close Minecraft and run the explicit recovery
@@ -288,10 +288,10 @@ command from `mod/` (substitute the paths to your dev config and its migration b
 ```
 
 It takes a schema-1 or a schema-2 backup, validates it, keeps your current
-schema-3 file as `apps.json.schema-3-before-downgrade-<id>.bak`, prints a warning
+schema-4 file as `apps.json.schema-4-before-downgrade-<id>.bak`, prints a warning
 about later edits, and restores the backup's bytes atomically. **The old backup
 excludes later apps, edits, pins and My apps.** Compare both retained versions
-before using the older mod. Starting the new mod again moves the file to schema 3.
+before using the older mod. Starting the new mod again moves the file to schema 4.
 
 On Linux (AresOS) the program list and every launch come from the OS app helper
 over `aresos-shell` (this mod speaks 1.1 and works with a 1.0 helper as before);
@@ -575,3 +575,41 @@ and save gate pictures under `../reviews/33-gate-logo/screenshots/` and wall/flo
 evidence under `../reviews/08-walk-in-logos/screenshots/`.
 The lime glass frames in those screenshots are test fixtures around the saved
 trigger boxes; they are not placed by the logo command.
+
+
+## Short app commands
+
+In a marked AresOS world, the singleplayer host can type `/chrome`, `/browser`,
+`/discord`, `/dc` or `/lunar` to open those apps from My apps. Tab completes every
+saved name. Commands work in Live and Build mode; closing the program leaves you
+where you stood. The request is the same as using its hotbar item, including when
+the program is already open. Remote servers cannot launch local programs.
+
+`/apps` lists My apps with their commands and group; click any line to open it.
+`/open <name>` searches every listed program, including ones outside My apps, by
+its short name, squeezed full name (letters and digits without spaces), or a unique
+prefix. Tab completes program names. An exact name wins over longer prefixes;
+several matches give clickable choices. An app ID is not a search key. Clicked
+lines run `/aresos app open <app id>` (host only), so two programs with identical
+names stay apart and another mod's `/open` never receives a click.
+
+`/aresos app name <app id> <new name>` adds a name and makes it the main name.
+`/aresos app unname <name>` removes one; add another first to remove the last name.
+Use 2–16 lower-case letters or digits, starting with a letter. A refusal explains
+invalid or reserved names and says which app holds a conflicting name. Minecraft's
+commands and `aresos`, `home`, `go`, `open`, `apps` are always reserved (`home` and
+`go` are reserved for later packages). Other mods' existing commands win too.
+
+Names are saved in schema 4 of `config/aresos/apps.json`, in `names`, main first.
+The migration keeps an untouched sibling backup of older schemas. Names survive
+program renames and removal from My apps; an app outside My apps has no short
+command, and keeps its names for its return. A program that the AresOS app helper's
+latest complete list no longer names is saved with `"absent": true`: it keeps its
+names and its place in My apps, but has no command, `/open` neither finds nor
+completes it, and `/apps` shows it as not installed, without a click. The next
+complete list that names it again brings it all back. While the helper is down,
+the last complete list stays in force, also across a restart. Windows discovery
+marks nothing absent. A newly reserved real command forces
+an alternative app name. Apps… shows the main name beside each of My apps and
+searches all saved names. Newly built gates show `/mainname` on the second sign
+line; standing gates keep the text they were built with.
