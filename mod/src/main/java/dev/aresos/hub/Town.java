@@ -8,11 +8,16 @@ import dev.aresos.zone.GatePalette;
 import dev.aresos.zone.GatePicture;
 import dev.aresos.zone.GatePlan;
 import dev.aresos.zone.ZoneData;
+import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,8 +41,42 @@ public final class Town {
      * front of it and the way in is untouched grass or a block of the hub (HUB.md 3.3).
      */
     public static void check(MinecraftServer server, AppDefinition app, Place place, GatePicture picture) throws IOException {
+        check(server, app, place, picture, List.of());
+    }
+
+    /**
+     * {@link #check} as if the logos of the apps in {@code down} had come down first, as a swap or a move takes them
+     * down before it builds (package 37): their blocks read as what {@link #remove} would leave of them (the blocks he
+     * changed stay his), their trigger zones as gone. Whether they can come down is {@link #checkRemove}'s.
+     */
+    public static void check(MinecraftServer server, AppDefinition app, Place place, GatePicture picture, Collection<String> down) throws IOException {
         var hub = hub(server);
-        prepare(level(server, hub), hub, app.id(), plan(hub, app, place, picture));
+        var level = level(server, hub);
+        prepare(level, hub, app.id(), plan(hub, app, place, picture), gone(server, level, hub, down));
+    }
+
+    /**
+     * Throws, changing nothing, unless {@link #remove} would take an app's logo down now: {@link GateBuilder.NotLoaded}
+     * while its place is not loaded, otherwise what of his hangs on it; in a frozen town, always. The check
+     * {@code remove} itself makes ({@link GateBuilder#checkRemoval}).
+     */
+    public static void checkRemove(MinecraftServer server, String app) throws IOException {
+        var hub = hub(server);
+        var logo = hub.logo(app).orElseThrow(() -> new IOException("No logo of " + app + " stands in the town."));
+        unfrozen(hub);
+        GateBuilder.checkRemoval(level(server, hub), logo.gate());
+    }
+
+    /** What taking these apps' logos down would leave, and their zones: the town's own zones only, as {@link #remove}. */
+    private static GateBuilder.Gone gone(MinecraftServer server, ServerLevel level, HubData hub, Collection<String> down) {
+        if (down.isEmpty()) return GateBuilder.Gone.NONE;
+        var blocks = new HashMap<BlockPos, BlockState>();
+        var zones = new HashSet<String>();
+        for (var app : down) hub.logo(app).ifPresent(logo -> {
+            blocks.putAll(GateBuilder.left(level, logo.gate()));
+            ZoneData.get(server).zones().stream().filter(zone -> hub.made(logo, zone)).forEach(zone -> zones.add(zone.id()));
+        });
+        return new GateBuilder.Gone(blocks, zones);
     }
 
     /**
@@ -48,7 +87,7 @@ public final class Town {
     public static void check(MinecraftServer server, Place place) throws IOException {
         var hub = hub(server);
         var full = GatePicture.plain(GatePalette.name(place.group().concrete()), HubLayout.SIZE);
-        prepare(level(server, hub), hub, PLACE_CHECK, place.plan(full, hub.home().dimension(), hub.home().pos(), "?", null));
+        prepare(level(server, hub), hub, PLACE_CHECK, place.plan(full, hub.home().dimension(), hub.home().pos(), "?", null), GateBuilder.Gone.NONE);
     }
 
     /**
@@ -61,7 +100,7 @@ public final class Town {
         unfrozen(hub);
         if (hub.logo(app.id()).isPresent()) throw new IOException("The logo of " + app.name() + " already stands in the town.");
         var level = level(server, hub);
-        var prepared = prepare(level, hub, app.id(), plan(hub, app, place, picture));
+        var prepared = prepare(level, hub, app.id(), plan(hub, app, place, picture), GateBuilder.Gone.NONE);
         var built = GateBuilder.place(prepared);
         var gate = built.gate().orElseThrow();
         // The town's zone opens the app and keeps its exit; its blocks are protected through hub.dat, not by the zone.
@@ -102,12 +141,15 @@ public final class Town {
         return place.plan(picture, hub.home().dimension(), hub.home().pos(), app.name(), NameRules.mainName(app));
     }
 
-    private static GateBuilder.Prepared prepare(ServerLevel level, HubData hub, String app, GatePlan plan) throws IOException {
-        var prepared = GateBuilder.prepare(level, app, plan);
+    private static GateBuilder.Prepared prepare(ServerLevel level, HubData hub, String app, GatePlan plan, GateBuilder.Gone gone) throws IOException {
+        var prepared = GateBuilder.prepare(level, app, plan, gone);
         for (var pos : plan.space()) {
             if (pos.getY() != plan.origin().getY()) continue;
             var floor = pos.below();
-            if (!level.getBlockState(floor).is(Blocks.GRASS_BLOCK) && !hub.holds(level, floor))
+            var left = gone.blocks().get(floor);
+            // A block of a logo that comes down first counts as what its take-down leaves.
+            boolean grass = (left != null ? left : level.getBlockState(floor)).is(Blocks.GRASS_BLOCK);
+            if (!grass && (left != null || !hub.holds(level, floor)))
                 throw new IOException("The ground at " + floor.toShortString() + " isn't untouched grass. No blocks changed.");
         }
         return prepared;

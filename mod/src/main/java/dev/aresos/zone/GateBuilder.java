@@ -78,20 +78,29 @@ public final class GateBuilder {
      * It reads a file and may wait seconds for it: never on the server thread ({@link PictureReader}).
      */
     public static GatePicture picture(AppDefinition app, int size) {
+        return icon(app, size).orElseGet(() -> GatePicture.plain(concrete(app), size));
+    }
+
+    /**
+     * The picture of an app's icon by the rules of HUB.md 3.6, or empty when it has no readable icon or nothing of it
+     * is visible: then its gate has a plain front in its group's colour ({@link #picture}). The icon does not depend
+     * on the group; only the plain front does. It reads a file: never on the server thread.
+     */
+    public static Optional<GatePicture> icon(AppDefinition app, int size) {
         try {
             var icon = AppIcons.read(app);
             if (icon != null) {
                 var picture = GatePicture.of(icon.image(), size);
-                if (!picture.isEmpty()) return picture;
+                if (!picture.isEmpty()) return Optional.of(picture);
             }
         } catch (IOException | RuntimeException unreadable) {
             // Falls through to the plain front; the sign says which app it is.
         }
-        return GatePicture.plain(concrete(app), size);
+        return Optional.empty();
     }
 
     /** The concrete of the app's group, named as the gate names blocks: its doormat and its plain front. */
-    static String concrete(AppDefinition app) { return GatePalette.name(AppGroup.of(app).concrete()); }
+    public static String concrete(AppDefinition app) { return GatePalette.name(AppGroup.of(app).concrete()); }
 
     /** The gate `/aresos logo <app>` builds with this picture: in front of where he stood, facing him, on the ground he stood on. */
     public static GatePlan planInFrontOf(Vec3 feet, Direction facing, ResourceKey<Level> dimension, AppDefinition app, GatePicture picture) {
@@ -118,10 +127,34 @@ public final class GateBuilder {
     public record Prepared(ServerLevel level, GatePlan plan, AppZone zone, Map<BlockPos, BlockState> placed, Entity sign) { }
 
     /**
+     * Gates due to come down before a build, as the build is checked while they still stand (package 37's swap and
+     * move): {@code blocks} is what their take-down would leave ({@link #left}), {@code zones} the IDs of their trigger
+     * zones, which go with them. Everything else is read from the world as it is.
+     */
+    public record Gone(Map<BlockPos, BlockState> blocks, java.util.Set<String> zones) {
+        public static final Gone NONE = new Gone(Map.of(), java.util.Set.of());
+        public Gone { blocks = Map.copyOf(blocks); zones = java.util.Set.copyOf(zones); }
+    }
+
+    /** A block as it would be once the gates in {@code gone} came down. */
+    private static BlockState state(ServerLevel level, Gone gone, BlockPos pos) {
+        var left = gone.blocks().get(pos);
+        return left != null ? left : level.getBlockState(pos);
+    }
+
+    /**
      * Every refusal of a build, without changing anything: {@link NotLoaded} while the place is not loaded, otherwise
      * an IOException that says what is in the way. What it returns is for {@link #place}, at once.
      */
     public static Prepared prepare(ServerLevel level, String app, GatePlan plan) throws IOException {
+        return prepare(level, app, plan, Gone.NONE);
+    }
+
+    /**
+     * {@link #prepare} as if the gates in {@code gone} had come down first: their blocks read as what their take-down
+     * leaves, their zones as gone. Only for checking; build with a {@code prepare} after they came down.
+     */
+    public static Prepared prepare(ServerLevel level, String app, GatePlan plan, Gone gone) throws IOException {
         if (!level.dimension().equals(plan.dimension())) throw new IOException("The gate is planned for another dimension.");
         var data = ZoneData.get(level.getServer());
         var solid = new LinkedHashMap<BlockPos, BlockState>();
@@ -139,21 +172,21 @@ public final class GateBuilder {
         for (var pos : space) {
             if (pos.getY() < level.getMinY() || pos.getY() >= level.getMaxY() || !level.getWorldBorder().isWithinBounds(pos))
                 throw new IOException("Gate would be outside the build limits or world border.");
-            if (!level.getBlockState(pos).isAir())
+            if (!state(level, gone, pos).isAir())
                 throw new IOException("Area isn't clear at " + pos.toShortString() + ". No blocks changed. A gate needs its own "
                         + plan.size() + " x " + plan.size() + " x " + GateNumbers.DEPTH + " blocks, one layer in front and the way to its door free; clear them in Build mode, then retry.");
         }
-        for (var pos : plan.walkway()) if (!level.getBlockState(pos).isFaceSturdy(level, pos, Direction.UP))
+        for (var pos : plan.walkway()) if (!state(level, gone, pos).isFaceSturdy(level, pos, Direction.UP))
             throw new IOException("The ground on the way to the door isn't solid at " + pos.toShortString() + ". No blocks changed.");
         if (!HomeSites.isSafe(level, plan.exit().position()))
             throw new IOException("The exit point in front of the door isn't safe solid ground. No blocks changed.");
-        var doormat = doormat(level, plan);
+        var doormat = doormat(level, plan, gone);
         var placed = new LinkedHashMap<>(solid);
         for (var pos : plan.lights()) placed.put(pos, Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, LightBlock.MAX_LEVEL));
         doormat.ifPresent(mat -> plan.doormat().forEach(pos -> placed.put(pos, mat)));
         var zone = new AppZone(UUID.randomUUID().toString(), app, plan.dimension(), plan.nicheMin(), plan.nicheMax(), plan.exit(),
                 List.copyOf(placed.keySet()), Optional.empty());
-        String conflict = data.conflict(zone);
+        String conflict = data.conflict(zone, gone.zones());
         if (conflict != null) throw new IOException(conflict);
         if (Neighbors.occupant(level, solid.keySet(), Neighbors.signs(level.getServer())) != null)
             throw new IOException("An entity occupies the gate's place. Move it away, then retry.");
@@ -206,9 +239,9 @@ public final class GateBuilder {
      * Grass or dirt under the doormat and its whole ring. These blocks cannot establish provenance, but stone
      * and other landscaping are never paved over. The original kind of every replaced block is recorded.
      */
-    private static Optional<BlockState> doormat(ServerLevel level, GatePlan plan) {
+    private static Optional<BlockState> doormat(ServerLevel level, GatePlan plan, Gone gone) {
         for (var pos : plan.doormatSurround()) {
-            var state = level.getBlockState(pos);
+            var state = state(level, gone, pos);
             if (!state.is(Blocks.GRASS_BLOCK) && !state.is(Blocks.DIRT)) return Optional.empty();
         }
         return Optional.of(Neighbors.block(plan.doormatBlock()).defaultBlockState());
@@ -311,14 +344,48 @@ public final class GateBuilder {
      * could fall or break with it.
      */
     public static Removal takeDown(ServerLevel level, AppZone.Gate gate, GatePlan.Sign sign) throws IOException {
+        // Refuse the whole operation before touching the sign, the record or any block.
+        var undo = checkTakeDown(level, gate);
+        undo.back().forEach((pos, state) -> Placing.set(level, pos, undo.expected().get(pos), state));
+        var entity = gate.sign().map(level::getEntity);
+        var left = SignLeft.NONE;
+        if (entity.isPresent()) {
+            if (made(level, entity.get(), sign)) entity.get().discard();
+            else left = sign == null ? SignLeft.UNRECORDED : SignLeft.CHANGED;
+        }
+        return new Removal(gate.placed().size() - undo.kept(), undo.kept(), left);
+    }
+
+    /**
+     * What a take-down changes: each block that goes, with what the record says stands there ({@code expected}) and
+     * what comes back in its place ({@code back}); {@code kept}: recorded blocks he changed, which stay his.
+     */
+    private record Undo(Map<BlockPos, String> expected, Map<BlockPos, BlockState> back, int kept) { }
+
+    /**
+     * Throws, changing nothing, unless {@link #takeDown} would take this gate down now: {@link NotLoaded} while its
+     * place is not loaded, otherwise an IOException naming what of his could fall or break with it. The very check
+     * {@code takeDown} makes, so a check before a swap or move and the take-down itself cannot disagree.
+     */
+    public static void checkRemoval(ServerLevel level, AppZone.Gate gate) throws IOException { checkTakeDown(level, gate); }
+
+    private static Undo checkTakeDown(ServerLevel level, AppZone.Gate gate) throws IOException {
         var recorded = gate.placed().stream().map(AppZone.Placed::pos).collect(java.util.stream.Collectors.toSet());
         recorded.addAll(gate.grass());
         var inspection = Neighbors.footprint(recorded, 2);
         inspection.addAll(Neighbors.footprint(gate.placed().stream().filter(placed -> placed.block().equals("minecraft:light")).map(AppZone.Placed::pos).toList(), LIGHT_MELTS));
         if (!loaded(level, inspection)) throw new NotLoaded("The gate isn't loaded. Nothing changed.");
+        var undo = undoing(level, gate);
+        Neighbors.checkRemoval(level, undo.back().keySet());
+        return undo;
+    }
+
+    /** What taking this gate down would leave, block by block: only the blocks that change ({@link Gone}). */
+    public static Map<BlockPos, BlockState> left(ServerLevel level, AppZone.Gate gate) { return undoing(level, gate).back(); }
+
+    private static Undo undoing(ServerLevel level, AppZone.Gate gate) {
         var ground = new HashMap<BlockPos, String>();
         for (var replaced : gate.ground()) ground.put(replaced.pos(), replaced.block());
-        // Each block that goes, with what the record says stands there and what comes back in its place.
         var expected = new HashMap<BlockPos, String>();
         var back = new LinkedHashMap<BlockPos, BlockState>();
         int kept = 0;
@@ -331,15 +398,6 @@ public final class GateBuilder {
             expected.put(pos, "minecraft:dirt");
             back.put(pos, Blocks.GRASS_BLOCK.defaultBlockState());
         }
-        // Refuse the whole operation before touching the sign, the record or any block.
-        Neighbors.checkRemoval(level, back.keySet());
-        back.forEach((pos, state) -> Placing.set(level, pos, expected.get(pos), state));
-        var entity = gate.sign().map(level::getEntity);
-        var left = SignLeft.NONE;
-        if (entity.isPresent()) {
-            if (made(level, entity.get(), sign)) entity.get().discard();
-            else left = sign == null ? SignLeft.UNRECORDED : SignLeft.CHANGED;
-        }
-        return new Removal(gate.placed().size() - kept, kept, left);
+        return new Undo(expected, back, kept);
     }
 }

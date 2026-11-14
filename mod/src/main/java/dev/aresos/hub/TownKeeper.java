@@ -21,6 +21,7 @@ import net.minecraft.server.level.ServerPlayer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -89,8 +90,12 @@ public final class TownKeeper {
     // Server thread only, like the servers themselves.
     private static final Map<MinecraftServer, TownKeeper> KEEPERS = new WeakHashMap<>();
 
-    /** A picture as read, with what it was read for: the icon's path and the group (the plain front's colour). */
-    private record Read(String path, AppGroup group, GatePicture picture) { }
+    /**
+     * A picture as read, with the icon's path it was read for. {@code icon} empty: the app has no readable icon, and
+     * its logo has a plain front in its group's colour, which is made when asked for, for the group the app has then
+     * (package 37: a logo moved to another group needs no picture read again).
+     */
+    private record Read(String path, Optional<GatePicture> icon) { }
 
     // One keeper a server; everything below is touched on its thread only.
     /** Places a build refused although they looked free: blocked for this session, so the next pass moves on. */
@@ -187,13 +192,14 @@ public final class TownKeeper {
      */
     public static Pass run(MinecraftServer server) { return keeper(server).runNow(server); }
 
-    private static TownKeeper keeper(MinecraftServer server) { return KEEPERS.computeIfAbsent(server, ignored -> new TownKeeper()); }
+    /** This server's keeper: its pictures, its retries and the places a build refused in this game. */
+    static TownKeeper keeper(MinecraftServer server) { return KEEPERS.computeIfAbsent(server, ignored -> new TownKeeper()); }
 
     private static void tick(MinecraftServer server) {
         if (complete) keeper(server).step(server);
     }
 
-    private static boolean wanted(AppDefinition app) { return app.mine() && !app.absent(); }
+    static boolean wanted(AppDefinition app) { return app.mine() && !app.absent(); }
 
     private void step(MinecraftServer server) {
         if (ASKED.getAndSet(false)) stale = true;
@@ -246,7 +252,7 @@ public final class TownKeeper {
     }
 
     /** Says a pass's lines to the host and schedules what it left: a retry, pictures to read. */
-    private Pass tell(MinecraftServer server, Pass pass) {
+    Pass tell(MinecraftServer server, Pass pass) {
         var host = host(server);
         for (var line : pass.lines()) {
             AresOs.LOGGER.info("Town: {}", line);
@@ -263,19 +269,22 @@ public final class TownKeeper {
     }
 
     /** Reads the apps' pictures on the server's picture reader; a pass follows when they are in. */
-    private void read(MinecraftServer server, List<AppDefinition> apps) {
+    void read(MinecraftServer server, List<AppDefinition> apps) {
         if (reading != null) {
             stale = true;
             return;
         }
-        reading = PictureReader.of(server).read(apps, app -> new Read(AppIcons.path(app), AppGroup.of(app), GateBuilder.picture(app, HubLayout.SIZE)));
+        reading = PictureReader.of(server).read(apps, app -> new Read(AppIcons.path(app), GateBuilder.icon(app, HubLayout.SIZE)));
     }
 
-    /** The picture read for this app, while it was read for the icon and group the app has now. */
-    private Optional<GatePicture> picture(AppDefinition app) {
+    /**
+     * The picture of this app's logo as the town holds it: its icon as read, while it was read for the icon the app
+     * has now, or a plain front in the colour of the group the app has now. Empty when it has not been read.
+     */
+    Optional<GatePicture> picture(AppDefinition app) {
         var read = pictures.get(app.id());
-        return read != null && Objects.equals(read.path(), AppIcons.path(app)) && read.group() == AppGroup.of(app)
-                ? Optional.of(read.picture()) : Optional.empty();
+        if (read == null || !Objects.equals(read.path(), AppIcons.path(app))) return Optional.empty();
+        return Optional.of(read.icon().orElseGet(() -> GatePicture.plain(GateBuilder.concrete(app), HubLayout.SIZE)));
     }
 
     /**
@@ -287,7 +296,15 @@ public final class TownKeeper {
      * @param pictures the picture of an app's logo, or empty when it has not been read yet
      */
     public Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots) {
-        return keep(server, programs, pictures, spots, false);
+        return keep(server, programs, pictures, spots, false, Set.of());
+    }
+
+    /**
+     * {@link #keep} for {@code swap} and {@code move} ({@link TownMoves}): the same pass, without its line that the
+     * logos of {@code quiet} moved, since the command's own line names their new places.
+     */
+    Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots, Set<String> quiet) {
+        return keep(server, programs, pictures, spots, false, quiet);
     }
 
     /**
@@ -305,10 +322,11 @@ public final class TownKeeper {
         for (var logo : hub.logos()) renew.add(logo.app());
         said.clear();
         refused.clear();
-        return keep(server, programs, pictures, spots, true);
+        return keep(server, programs, pictures, spots, true, Set.of());
     }
 
-    private Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots, boolean rebuilt) {
+    private Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots,
+                      boolean rebuilt, Set<String> quiet) {
         if (!programs.complete()) return Pass.NOTHING;
         var hub = HubData.get(server);
         // A town file that does not fit this world (point 3), or a frozen town (review fixes 2, point 1): the town
@@ -328,7 +346,7 @@ public final class TownKeeper {
         // place in this same pass: a few more rounds, each only after a new refusal.
         for (int rounds = 1; ; rounds++) {
             int refusals = refused.size();
-            round = round(server, hub, apps, pictures, spots, lines, cameDown);
+            round = round(server, hub, apps, pictures, spots, lines, cameDown, quiet);
             need.addAll(round.need());
             if (refused.size() == refusals || rounds == ROUNDS) break;
         }
@@ -343,22 +361,14 @@ public final class TownKeeper {
     private record Round(Assignment assignment, boolean pending, Set<String> need, int waiting) { }
 
     /** Points 1 to 4 and 6 of HUB.md 3.4, once. */
-    private Round round(MinecraftServer server, HubData hub, Map<String, AppDefinition> apps,
-                        Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots, TownLines lines, Set<String> cameDown) {
-        var occupied = new HashSet<Place>();
-        for (var logo : hub.logos()) Place.parse(logo.place()).ifPresent(occupied::add);
-        // HUB.md 3.3: pinned apps first, then the others in the order of the apps file.
-        var order = new ArrayList<AppDefinition>();
-        apps.values().stream().filter(AppDefinition::pinned).forEach(order::add);
-        apps.values().stream().filter(app -> !app.pinned()).forEach(order::add);
+    private Round round(MinecraftServer server, HubData hub, Map<String, AppDefinition> apps, Function<AppDefinition, Optional<GatePicture>> pictures,
+                        Spots spots, TownLines lines, Set<String> cameDown, Set<String> quiet) {
         var saved = new HashMap<String, Place>();
-        var input = new ArrayList<Assignment.App>();
-        for (var app : order) {
+        for (var app : apps.values()) {
             var place = saved(app, hub.logo(app.id()));
             if (place != null) saved.put(app.id(), place);
-            input.add(new Assignment.App(app.id(), AppGroup.of(app), place, wanted(app)));
         }
-        var assignment = Assignment.of(input, place -> blocked(server, place, occupied));
+        var assignment = plan(server, hub, apps.values(), Set.of());
 
         save(apps.values(), assignment, spots, lines);
         boolean pending = false;
@@ -415,7 +425,8 @@ public final class TownKeeper {
                 renew.remove(app.id());
                 boolean moved = cameDown.contains(app.id());
                 if (standing.isPresent()) lines.add(TownLines.Kind.RENEWED, "The logo of " + app.name() + " was renewed.");
-                else lines.add(moved ? TownLines.Kind.MOVED : TownLines.Kind.BUILT, built(app, place, saved.get(app.id()), moved));
+                else if (!(moved && quiet.contains(app.id())))
+                    lines.add(moved ? TownLines.Kind.MOVED : TownLines.Kind.BUILT, built(app, place, saved.get(app.id()), moved));
             } catch (GateBuilder.NotLoaded notLoaded) {
                 pending = true;
             } catch (IOException refusal) {
@@ -446,6 +457,27 @@ public final class TownKeeper {
         for (var id : assignment.unplaced())
             once(lines, apps.get(id).name() + " has no free place in " + AppGroup.of(apps.get(id)).title() + ": every place there is blocked.");
         return new Round(assignment, pending, need, waiting);
+    }
+
+    /**
+     * Who stands where after a pass with these apps (HUB.md 3.3): pinned apps first, then the others in the order of
+     * the apps file, each app with the place saved with it (or where its logo stands), the places that cannot be built
+     * on as the pass finds them. The pass's own planning, and the one {@link TownMoves} checks a swap or move with
+     * before it changes anything, so the two cannot plan apart.
+     *
+     * @param also places taken as blocked on top of the ones the pass finds (a place where one app's logo cannot stand)
+     */
+    Assignment plan(MinecraftServer server, HubData hub, Collection<AppDefinition> apps, Set<Place> also) {
+        var occupied = new HashSet<Place>();
+        for (var logo : hub.logos()) Place.parse(logo.place()).ifPresent(occupied::add);
+        var unique = new LinkedHashMap<String, AppDefinition>();
+        for (var app : apps) unique.putIfAbsent(app.id(), app);
+        var order = new ArrayList<AppDefinition>();
+        unique.values().stream().filter(AppDefinition::pinned).forEach(order::add);
+        unique.values().stream().filter(app -> !app.pinned()).forEach(order::add);
+        var input = new ArrayList<Assignment.App>();
+        for (var app : order) input.add(new Assignment.App(app.id(), AppGroup.of(app), saved(app, hub.logo(app.id())), wanted(app)));
+        return Assignment.of(input, place -> also.contains(place) || blocked(server, place, occupied));
     }
 
     /**
