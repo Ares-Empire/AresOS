@@ -7,7 +7,9 @@ import java.time.LocalDate;
 import java.util.*;
 
 /**
- * config/aresos/apps.json. Schema 4 adds saved short names; schema 3 added "My apps" (docs/design/HUB.md 3.5): {@code mine} per app, what the system
+ * config/aresos/apps.json. Schema 4 adds saved short names and, with no new number (package 36), each app's
+ * {@code place} and {@code group} in the flat home: package 35's mod reads such a file and keeps both through its
+ * edits, because it ignores fields it does not know and edits the file in place. schema 3 added "My apps" (docs/design/HUB.md 3.5): {@code mine} per app, what the system
  * said about it ({@code system}), and once for the file {@code baseline}, the day the first full program list was
  * taken. Every change edits the parsed file in place, so fields this mod does not know stay where they are.
  */
@@ -120,7 +122,7 @@ public final class AppsConfig {
                             optional(app, "icon", null), identity(app), mine,
                             app.has("system") ? JSON.fromJson(app.getAsJsonObject("system"), SystemInfo.class) : null,
                             app.has("names") ? names(app.getAsJsonArray("names")) : List.of(),
-                            app.has("absent") && bool(app, "absent")));
+                            app.has("absent") && bool(app, "absent"), optional(app, "place", null), optional(app, "group", null)));
                 } catch (RuntimeException error) { throw new IllegalArgumentException("App " + id + ": " + error.getMessage(), error); }
             }
             validate(apps);
@@ -362,6 +364,23 @@ public final class AppsConfig {
         return parse(document);
     }
 
+    /**
+     * Where an app's logo stands (HUB.md 3.5), as {@link #spots} saves it: the place's name, and the group's key only
+     * when he moved the app to that group by hand. Null leaves the field out of the file.
+     */
+    public record Spot(String place, String group) { }
+
+    /**
+     * Saves where each listed app stands: both fields exactly as given, so a null place or group is removed. Apps not
+     * listed and every other field stay as they are.
+     */
+    public static synchronized List<AppDefinition> spots(Path file, Map<String, Spot> spots) throws IOException {
+        return edit(file, spots, "places", (app, spot) -> {
+            if (spot.place() == null) app.remove("place"); else app.addProperty("place", spot.place());
+            if (spot.group() == null) app.remove("group"); else app.addProperty("group", spot.group());
+        });
+    }
+
     /** Pinning an app makes it his; unpinning changes nothing else. */
     public static synchronized List<AppDefinition> pins(Path file, Map<String, Boolean> changes) throws IOException {
         return edit(file, changes, "pins", (app, pinned) -> {
@@ -378,8 +397,8 @@ public final class AppsConfig {
         });
     }
 
-    private static List<AppDefinition> edit(Path file, Map<String, Boolean> changes, String what,
-                                            java.util.function.BiConsumer<JsonObject, Boolean> change) throws IOException {
+    private static <T> List<AppDefinition> edit(Path file, Map<String, T> changes, String what,
+                                                java.util.function.BiConsumer<JsonObject, T> change) throws IOException {
         var document = read(file).getAsJsonObject();
         var apps = parse(document);
         for (String id : changes.keySet()) if (apps.stream().noneMatch(app -> app.id().equals(id)))

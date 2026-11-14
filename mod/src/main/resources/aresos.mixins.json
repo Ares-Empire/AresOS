@@ -16,7 +16,12 @@
     "PendingPickupMixin",
     "PendingInventoryMixin",
     "CommandNodeAccess",
-    "CommandNodeMergeMixin"
+    "CommandNodeMergeMixin",
+    "TextDisplayAccess",
+    "DisplayAccess",
+    "ServerStorageAccess",
+    "LastPlayedMixin",
+    "TownSealMixin"
   ],
   "injectors": {
     "defaultRequire": 1

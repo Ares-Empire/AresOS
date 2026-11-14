@@ -256,6 +256,8 @@ public final class WalkInLogosClientGameTest implements FabricClientGameTest {
     static void command(ClientGameTestContext context, TestSingleplayerContext world, String command) {
         context.runOnClient(client -> client.player.connection.sendCommand(command));
         world.getConnection().waitForServerboundPackets(); context.waitTicks(3);
+        // `/aresos logo <app>` builds a few ticks later, once its picture is read (package 36, review fixes 1, step B, point 3).
+        for (int tick = 0; tick < 200 && world.getServer().computeOnServer(dev.aresos.zone.ZoneCommands::ordered) > 0; tick++) context.waitTicks(1);
     }
     private static void mark(ClientGameTestContext context, TestSingleplayerContext world, String app, Vec3 first, Vec3 second, Vec3 exit) {
         move(context, world, first); command(context, world, "aresos zone pos1");

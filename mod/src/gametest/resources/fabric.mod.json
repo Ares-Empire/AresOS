@@ -14,7 +14,8 @@
       "dev.aresos.test.GateGameTests",
       "dev.aresos.test.ModeInventoryGameTests",
       "dev.aresos.test.MyAppsGameTests",
-      "dev.aresos.test.SlashNamesGameTests"
+      "dev.aresos.test.SlashNamesGameTests",
+      "dev.aresos.test.TownGameTests"
     ],
     "fabric-client-gametest": [
       "dev.aresos.test.ModeProtocolClientGameTest",
@@ -32,7 +33,9 @@
       "dev.aresos.test.FlatHomeClientGameTest",
       "dev.aresos.test.GateLogoClientGameTest",
       "dev.aresos.test.MyAppsClientGameTest",
-      "dev.aresos.test.SlashNamesClientGameTest"
+      "dev.aresos.test.SlashNamesClientGameTest",
+      "dev.aresos.test.TownClientGameTest",
+      "dev.aresos.test.TownPicturesClientGameTest"
     ]
   },
   "mixins": [
