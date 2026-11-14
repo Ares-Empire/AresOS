@@ -1,5 +1,7 @@
 {
   "schema": 1,
   "desktop_id": "lunarclient.desktop",
-  "app_ids": ["com.mojang.minecraft"]
+  "app_ids": ["com.mojang.minecraft"],
+  "gpu": "discrete",
+  "environment": {"SDL_VIDEO_DRIVER": "wayland"}
 }
