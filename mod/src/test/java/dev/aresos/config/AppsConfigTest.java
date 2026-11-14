@@ -192,7 +192,7 @@ class AppsConfigTest {
 
         // The file is the old one plus the schema number and "mine" per app; nothing else moved or went missing.
         var moved = tree(file);
-        assertEquals(3, moved.get("schemaVersion").getAsInt());
+        assertEquals(AppsConfig.SCHEMA, moved.get("schemaVersion").getAsInt());
         for (var app : moved.getAsJsonArray("apps")) assertNotNull(app.getAsJsonObject().remove("mine"));
         moved.addProperty("schemaVersion", 2);
         assertEquals(com.google.gson.JsonParser.parseString(SCHEMA_2), moved);
@@ -207,7 +207,7 @@ class AppsConfigTest {
         AppsConfig.mine(file, java.util.Map.of("calc", true));
         Path retained = AppsConfig.restoreLegacy(file, loaded.migrationBackup());
         assertEquals(SCHEMA_2, Files.readString(file));
-        assertTrue(retained.getFileName().toString().startsWith("apps.json.schema-3-before-downgrade-"));
+        assertTrue(retained.getFileName().toString().startsWith("apps.json.schema-4-before-downgrade-"));
         assertEquals(List.of("notepad", "paint", "calc"), mine(AppsConfig.load(retained).apps()));
         assertEquals(loaded.apps(), AppsConfig.load(file).apps());
         assertThrows(java.io.IOException.class, () -> AppsConfig.restoreLegacy(file, retained));
@@ -218,7 +218,7 @@ class AppsConfigTest {
         Path file = directory.resolve("apps.json");
         String duplicate = SCHEMA_2.replace("\"id\": \"calc\"", "\"id\": \"paint\"");
         for (String broken : List.of(duplicate, SCHEMA_2.replace("\"pinned\": true", "\"pinned\": \"true\""),
-                SCHEMA_2.replace("\"name\": \"Paint\", ", ""), SCHEMA_2.replace("\"schemaVersion\": 2", "\"schemaVersion\": 4"),
+                SCHEMA_2.replace("\"name\": \"Paint\", ", ""), SCHEMA_2.replace("\"schemaVersion\": 2", "\"schemaVersion\": 5"),
                 SCHEMA_2.replace("\"schemaVersion\": 2", "\"schemaVersion\": \"2\""),
                 SCHEMA_2.replace("\"ownerExtra\": 42", "\"mine\": \"yes\""),
                 SCHEMA_2.replace("\"schemaVersion\": 2", "\"schemaVersion\": 3, \"baseline\": \"tomorrow\""),
