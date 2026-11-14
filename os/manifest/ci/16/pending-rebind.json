@@ -42,7 +42,8 @@
     "22c one word per meaning, step 1: update only stages and names forward; forward selects the newest installed AresOS; tests and model (bundle, pins and guides follow in step 2)",
     "22c one word per meaning, step 2: login on plain Bazzite names forward; bundle refreshed (2084c786…); forward waits under unwalked_commands for stage 2's rehearsal",
     "22c one word per meaning, step 2: the guides say forward for every way back (the forward-again and back-from-stock box runs forward; no check-first dispatch, boot-menu step or tools' release); update only installs a new release",
-    "22c stage 2, step 1: the rehearsal mode ways-back (os-image.yml, the ledger, the mode lists, owner_vm.py, reorder_probe.py), its local walk answered by the tools themselves, the record step (rebind.py rebind, checkout_sources.active_tables), forward typed by a walk"
+    "22c stage 2, step 1: the rehearsal mode ways-back (os-image.yml, the ledger, the mode lists, owner_vm.py, reorder_probe.py), its local walk answered by the tools themselves, the record step (rebind.py rebind, checkout_sources.active_tables), forward typed by a walk",
+    "22c stage 2, step 2: the harness reads the installed toolset's folder in the guest before the tools read input (owner_hidden.owner_reader takes it; run 43581458429 stopped on the first install's folder), the local walk's console shows the process the real entry starts, the ledger's raised caps (2400 minutes, six VM dispatches)"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -75,11 +76,15 @@
       "path": "os/ci/owner_devices.py"
     },
     {
+      "sha256": "c4b94d2770f244f091343bb3b4af480f60aa4f7468bd664f8fd1e41a2a0a8758",
+      "path": "os/ci/owner_hidden.py"
+    },
+    {
       "sha256": "45f3912e52c84153ab382dd80ad67a7bc0e6574ddbd34f6e55c0bbd35e932d2f",
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "df50888fe68efcce62300d24b6a6e78c0f951e8a95ab269e349cc681719204ef",
+      "sha256": "213e4904bf493d85788a83f47050d406f0d28aaeebc45bb56ed9114230b08507",
       "path": "os/ci/owner_vm.py"
     },
     {
@@ -87,7 +92,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "be51c7c243916644aec94588e2613ffcae547314f70ea63d12042c18319651c0",
+      "sha256": "18b24b152431b26de0b6b454ff3159a98898ff9b9cab5e387d85d5b733ec8a39",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -135,6 +140,14 @@
       "path": "os/owner-tools/payload/owner.py"
     },
     {
+      "sha256": "8bc2ecf2242ba2a815caa46e1fe1f87a9ee1b33a9c262e3619ed2e377041eec2",
+      "path": "os/tests/owner_console_shim.py"
+    },
+    {
+      "sha256": "c6f96bc1b42993d8435f3baa3bbef5f5874c479862fb73deff9ddd472b7b48e4",
+      "path": "os/tests/serial_pty.py"
+    },
+    {
       "sha256": "5336482e320e04e0e325cd13f7512cdcbb9adc9d9871718694805e436abe50f4",
       "path": "os/tests/test_checkout_sources.py"
     },
@@ -159,6 +172,10 @@
       "path": "os/tests/test_owner_commands.py"
     },
     {
+      "sha256": "80f05add9f64cc3ff2b1b04e1344f7a03973fc6e619531caf2438019aaa30f57",
+      "path": "os/tests/test_owner_completion.py"
+    },
+    {
       "sha256": "1878da535d481636f91306dd492fdb0c34a6fc3e957cea509fa263f205a50357",
       "path": "os/tests/test_owner_devices_native.py"
     },
@@ -175,8 +192,20 @@
       "path": "os/tests/test_owner_guard.py"
     },
     {
+      "sha256": "19c48ae11fc112cb8d4876093a01622524efb5a4850d35b76415fa9336c5b792",
+      "path": "os/tests/test_owner_hidden.py"
+    },
+    {
       "sha256": "eddb1d3474c6c660a03380b57bf6b19739fae239881bb69db14192f881957110",
       "path": "os/tests/test_owner_path.py"
+    },
+    {
+      "sha256": "0e83b636826adef83aa3ee9ba78ae285a7891bf16857f76bf51490adfffeec7d",
+      "path": "os/tests/test_owner_read_diagnostics.py"
+    },
+    {
+      "sha256": "2b83aedd3c3e43f66d2974ef325611effd753b495ffb6c9bd59860debde63b82",
+      "path": "os/tests/test_owner_reliable_typing.py"
     },
     {
       "sha256": "a48d208fbc503297cfe5c194e68bed083cbf20c02422fa46b4e04a42a7d8b658",
@@ -187,7 +216,7 @@
       "path": "os/tests/test_owner_step_limits.py"
     },
     {
-      "sha256": "2189448fcb3d1808d848ef43c2d97d022a193d43846d27038e52baf203672afb",
+      "sha256": "03a5cc7ea5f7050404525abe73a872222ad99c4251cc6ce1f5fdca525e21b3b5",
       "path": "os/tests/test_owner_walk.py"
     },
     {
