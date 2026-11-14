@@ -3095,14 +3095,41 @@ that takes its key. For 22c, after a passing rehearsal: `rebind.py rebind 22c <a
 | Run | Kind | Head | Result | Minutes |
 |---|---|---|---|---|
 | [43579843181](https://github.com/Ares-Empire/AresOS/actions/runs/43579843181) | checks-only, `full_model=true` | `fe4a03d4` | **passed.** Regressions: `Ran 1121 tests in 1044.269s` / `OK` (1109 + this step's 12; the slice 173,130 states / 3,185,862 edges). Model job: full model, 967,215 states / 26,519,328 edges, `Ran 1 test in 1025.012s` / `OK` | 18 wall (two jobs, 36 runner minutes) |
-| [43581458429](https://github.com/Ares-Empire/AresOS/actions/runs/43581458429) | `ways-back`, VM dispatch 2 of 4 | `fe4a03d4` | dispatched 2026-11-14 09:37 UTC; result below once it ends | |
+| [43581458429](https://github.com/Ares-Empire/AresOS/actions/runs/43581458429) | `ways-back`, VM dispatch 2 of 4 | `fe4a03d4` | **failed in the VM step, in E2**, on a pin of the harness, not on the tools: E1 passed in full, the first layout trial began, and the harness's observer refused the tools' reader at `layout proof` (below). 11 audits equal the baseline. Watch exit 1 | 118 (VM step 85) |
 
 Before the dispatch the guard ran here read-only (`REHEARSAL_PACKAGE=22c python3 os/ci/rehearsal_guard.py ways-back 345`,
-exit 0): the budget fits, the native step is proved by run 43579843181, and the model gate reads that run's full-model
-step. The ledger (the guard's own accounting): 665 minutes before this step, about 701 after the checks-only run, 345
-reserved for the rehearsal, cap 1200; 26 of 30 checks-only runs, 2 of 4 VM dispatches. **A third VM dispatch fits the
-1200 minutes only if this run used less than about 154 of them**: a run that reaches the late steps leaves no room for
-another, and the integrator has to raise the minute cap before step 2 dispatches again.
+exit 0): the budget fit, the native step was proved by run 43579843181, and the model gate read that run's full-model
+step. The ledger now (the guard's own accounting, read after the run): **819 of 1200 minutes** (665 before this step,
+36 for the checks-only run, 118 for the rehearsal); 26 of 30 checks-only runs; 2 of 4 VM dispatches (the probe and this
+one). **Step 2's next dispatch does not fit safely:** a new head needs its checks-only run (about 36 minutes, both
+jobs) and the rehearsal reserves 345: 819 + 36 + 345 = 1200, exactly the cap, and one minute more stops at the guard.
+A run that walks all of E uses about 250 minutes, so a fourth dispatch never fits. The integrator has to raise the
+minute cap before step 2 dispatches.
+
+### What the VM showed (run 43581458429)
+
+| Step | Result |
+|---|---|
+| Package 27's route (15f tools, version 2 from history, release 13, the update) | passed as in stage 0: five starts, release 27 confirmed (**Update to … confirmed after the restart**, tools version 2) |
+| `sudo passwd ares`, then `ares` on tty4 with `sudo -v` | passed |
+| **E1**, version 3 onto the stick (the guide's Windows lines, `PASS tools manifest SHA256 2084c786…`) | passed |
+| **E1**, the 13-line stick block on R27 | **passed: the tools updated themselves from version 2 to 3** (previous manifest `851eb742…`), the first update of a versioned toolset in a VM |
+| **E1**, `check`, `title` with version 3 over three deployments | passed. **newer AresOS 5fad242fceac runs and starts next**; **Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b**: equal to the boot entries the harness read by identity. The stick was unplugged after the block |
+| The list at the start | R27 R13 S, R27 runs, only the stock pinned, nothing staged; no contradiction |
+| **E2**, `layout begin us-intl` | passed (**Console-only trial; …**): the first trial over three deployments |
+| **E2**, fresh tty4 login in US International | passed, first attempt |
+| **E2**, `layout proof`: the sudo password | typed and accepted |
+| **E2**, `layout proof`: the public text | **the run stopped here**: `AssertionError: No verified public reader after sudo` (`owner_vm.py`, `send_hidden`). The observer's reason: **Unexpected foreground reader**; the foreground chain was sudo, sudo, python3, as it should be |
+
+The cause: `os/ci/owner_hidden.py:17`, `owner_reader`, expects the tools' process as
+`/usr/bin/python3 -I -B /var/lib/ares/tools/owner.py …`. That is the first install's folder. Since tools version 2
+the installed toolset runs from `/var/lib/ares/tools-<fingerprint>/owner.py`. No owner command with a hidden or
+handed-over read had run on a versioned toolset in a VM before: package 27's rehearsal typed `login` with the 15f
+tools and nothing of that kind after its tools update. `layout proof` is the only such command in this walk (twice).
+The local walk could not see it: its model of the console builds the reader's process from the reader the harness
+expects (PLAN-GAP 6). E2's finish and everything from the first restart on did not run. The evidence held 106 MB at
+the stop; the run recorded `22c-bound-sources.json` (6 tables, commit `fe4a03d4`), which no record step may use, since
+the run did not pass.
 
 ### JUDGMENT-CALL
 
@@ -3139,3 +3166,35 @@ another, and the integrator has to raise the minute cap before step 2 dispatches
 4. **The workflow's evidence bound** was not named in the brief (JUDGMENT-CALL 5).
 5. The older reviewed-decision note for the probe (`package == '27'`: "package 22c does so in stage 2") is now true
    in code: the rehearsal records `22c-bound-sources`.
+6. **The local walk takes the harness's expected reader as the truth.** `owner_console_shim.execute_hidden` models the
+   process that reads a hidden or handed-over input from the reader the harness names, so a wrong expectation (the
+   tools' folder in run 43581458429) passes locally. The oracle added in this step covers what the tools print, not
+   which process reads. Step 2 should give that model the installed toolset's folder from the walk's own state.
+7. **The minute cap** leaves no safe room for the next dispatch (see "Runs and budget").
+
+### For step 2
+
+1. **Fix the pin first.** `owner_hidden.owner_reader(args)` must name the installed toolset: `/var/lib/ares/tools/owner.py`
+   for a first install, `/var/lib/ares/tools-<fingerprint>/owner.py` after a tools update (`owner.py`, `main`: the
+   payload is `HOME / 'tools'` or `HOME / ('tools-' + fingerprint)`). Its four uses are in `owner_vm.py` (`Console.hidden`'s
+   token test, `send_hidden`'s handoff test, and twice in `Console.run`). Every console of a start after a tools update
+   needs the folder (`confirmed_update`'s, `WaysBack.begin`'s, the tty4 consoles in `WaysBack.trial`), so keep it where
+   the route keeps such state (as `Guest.network_up`), set by `laptop_update` after version 2's install and by
+   `ways_back_rehearsal` after version 3's. `test_owner_hidden` uses the reader in five places.
+2. **Make the local walk able to fail on it** (PLAN-GAP 6), and show that it fails with the old pin before the fix.
+3. **Then the first unproved steps** are, in order: `layout proof`'s public text on a versioned toolset, `layout finish`,
+   the first typed restart with version 3, and from there every start of the table above. Read each for the same
+   kind of pin before dispatching: a path, a version, or a process shape that only the 15f tools had.
+4. **Budget:** ask the integrator for a higher minute cap before the dispatch. Each new head needs
+   `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true -f full_model=true` first (the
+   model gate), then `-f rehearsal=ways-back`; the guard can be run read-only before it (command above). 4 checks-only
+   runs and 2 VM dispatches remain by count.
+5. **After a bound change:** `walk-host.py`, then `rebind.py pending "<note>"`.
+6. **After a passing run:** `collect.py <artifact>/two-disk <run id>` (first use on a rehearsal result: check its
+   output), the stage table and the swap path of each reorder into this report, `rebind.py rebind 22c
+   <artifact>/two-disk/22c-bound-sources.json <run id>`, then `test_checkout_sources`.
+7. Still open after a pass: the run link in the 22c row of `docs/INSTALL-STATUS.md` (brief C).
+
+Cleanup: the temp files under `/var/home/ares/pkg22c-work/` (watch logs, the downloaded evidence of run 43581458429)
+are removed with the folder; `.work/` holds no file over 500 MB; no builder-started test or watch process remains; no
+Gradle daemon was started. PR #46 stays draft; nothing was merged or pushed to main.
