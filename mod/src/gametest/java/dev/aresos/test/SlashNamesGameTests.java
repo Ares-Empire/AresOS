@@ -13,7 +13,10 @@ import dev.aresos.zone.ZoneLaunchPayload;
 import io.netty.channel.embedded.EmbeddedChannel;
 import net.fabricmc.fabric.api.gametest.v1.GameTest;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.FunctionInstantiationException;
+import net.minecraft.commands.functions.CommandFunction;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.network.protocol.game.ClientboundCommandsPacket;
@@ -21,6 +24,8 @@ import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.network.CommonListenerCookie;
+import net.minecraft.server.dedicated.DedicatedServerProperties;
+import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.server.permissions.PermissionSet;
 import net.minecraft.world.level.GameType;
 
@@ -428,13 +433,73 @@ public final class SlashNamesGameTests {
         try (var f = new Fixture(helper)) {
             var root = f.server.getCommands().getDispatcher().getRoot();
             var probe = Commands.createCompilationContext(PermissionSet.NO_PERMISSIONS);
-            var function = Commands.createCompilationContext(PermissionSet.ALL_PERMISSIONS);
-            var click = root.getChild("aresos").getChild("app").getChild("open");
-            for (var node : List.of(click, root.getChild("dc"), root.getChild("open"), root.getChild("apps"))) {
+            var app = root.getChild("aresos").getChild("app");
+            var click = app.getChild("open");
+            for (var node : List.of(app, click, root.getChild("dc"), root.getChild("open"), root.getChild("apps")))
                 check(node.canUse(probe), "The client would ask before running /" + node.getName());
-                check(!node.canUse(function), "A function can parse /" + node.getName());
-            }
             check(!click.canUse(f.server.createCommandSourceStack()), "The console may use the click command");
+        }
+        helper.succeed();
+    }
+
+    private static final net.minecraft.resources.Identifier FUNCTION = net.minecraft.resources.Identifier.fromNamespaceAndPath("aresos-test", "host_commands");
+
+    /** Whether a function file holding this one line loads: ServerFunctionLibrary's own call, with its source. */
+    private static boolean compiles(com.mojang.brigadier.CommandDispatcher<net.minecraft.commands.CommandSourceStack> dispatcher,
+                                    net.minecraft.commands.CommandSourceStack loader, String line) {
+        try { CommandFunction.fromLines(FUNCTION, dispatcher, loader, List.of(line)); return true; }
+        catch (IllegalArgumentException refused) { return false; }
+    }
+
+    /** Whether a macro function "$$(line)" runs this line when called: macro lines are parsed then, with the loader's source. */
+    private static boolean instantiates(com.mojang.brigadier.CommandDispatcher<net.minecraft.commands.CommandSourceStack> dispatcher,
+                                        net.minecraft.commands.CommandSourceStack loader, String line) {
+        var arguments = new CompoundTag();
+        arguments.putString("line", line);
+        try { CommandFunction.fromLines(FUNCTION, dispatcher, loader, List.of("$$(line)")).instantiate(arguments, dispatcher); return true; }
+        catch (FunctionInstantiationException refused) { return false; }
+    }
+
+    /**
+     * Review 2, point 4. ServerFunctionLibrary compiles every function with
+     * Commands.createCompilationContext(server.getFunctionCompilationPermissions()); that permission set is the game
+     * test server's OWNER here, the integrated server's GAMEMASTER, a dedicated server's function-permission-level.
+     * None of them lets a function hold one of the host's commands, as a plain line or through a macro.
+     */
+    @GameTest(environment = BATCH)
+    public void functionsCannotHoldHostCommands(GameTestHelper helper) throws Exception {
+        try (var f = new Fixture(helper)) {
+            var dispatcher = f.server.getCommands().getDispatcher();
+            var root = dispatcher.getRoot();
+            var before = AresOs.apps();
+            var names = AresOs.app("discord").names();
+            var nodes = names.stream().map(root::getChild).toList();
+            var permissions = new LinkedHashMap<String, PermissionSet>();
+            permissions.put("this game test server", f.server.getFunctionCompilationPermissions());
+            permissions.put("integrated server", LevelBasedPermissionSet.GAMEMASTER);
+            for (String level : List.of("0", "1", "2", "3", "4"))
+                permissions.put("dedicated server at function-permission-level " + level, DedicatedServerProperties.deserializePermission(level));
+            String host = f.player.getStringUUID();
+            var lines = List.of("aresos app remove discord", "aresos app add other", "aresos app list", "aresos app open discord",
+                    "aresos app name discord changed", "aresos app unname dc", "dc", "discord", "open discord", "apps",
+                    "execute as " + host + " run aresos app remove discord", "execute as " + host + " run dc");
+            for (var entry : permissions.entrySet()) {
+                var loader = Commands.createCompilationContext(entry.getValue());
+                check(loader.getServer() == null && loader.permissions() != PermissionSet.NO_PERMISSIONS, "Not a loader's source: " + entry.getKey());
+                // Control: the same source compiles an ordinary command, plain and through a macro.
+                check(compiles(dispatcher, loader, "help") && instantiates(dispatcher, loader, "help"), "The loader compiles nothing: " + entry.getKey());
+                for (String line : lines) {
+                    check(!compiles(dispatcher, loader, line), "A function holds \"" + line + "\" on the " + entry.getKey());
+                    check(!instantiates(dispatcher, loader, line), "A macro function runs \"" + line + "\" on the " + entry.getKey());
+                }
+            }
+            // Control: these commands are on this tree; the click probe's source, which never runs anything, parses them.
+            var probe = Commands.createCompilationContext(PermissionSet.NO_PERMISSIONS);
+            check(compiles(dispatcher, probe, "aresos app remove discord") && compiles(dispatcher, probe, "dc"), "Fixture: the commands are missing");
+            SlashCommands.refresh(f.server);
+            check(AresOs.apps().equals(before), "His apps changed: " + AresOs.apps());
+            for (int i = 0; i < names.size(); i++)
+                check(root.getChild(names.get(i)) == nodes.get(i) && OwnedNodes.ours(nodes.get(i)), "His command changed: /" + names.get(i));
         }
         helper.succeed();
     }
