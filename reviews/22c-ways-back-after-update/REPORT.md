@@ -3353,7 +3353,7 @@ reorder-probe, ways-back). `walk-host.py` was regenerated after the last bound c
 | Run | Kind | Head | Result | Minutes |
 |---|---|---|---|---|
 | [43595273649](https://github.com/Ares-Empire/AresOS/actions/runs/43595273649) | checks-only, `full_model=true` | `f84041bf` | **passed.** Regressions: `Ran 1124 tests in 935.830s` / `OK` (1121 + this step's 3; the slice 173,130 states / 3,185,862 edges). Model job: full model, 967,215 states / 26,519,328 edges, `Ran 1 test in 1569.439s` / `OK` | 27 wall (two jobs, 44 runner minutes) |
-| [43597505549](https://github.com/Ares-Empire/AresOS/actions/runs/43597505549) | `ways-back`, VM dispatch 3 of 6 | `f84041bf` | **result pending.** Dispatched 2026-11-14 12:59:52 UTC; its budget step (the guard with the 345-minute reservation, the native gate and the model gate) passed, and the job went on to install its tools. Not watched by this builder (integrator's change to this step: a shell watcher waits, and a fresh agent reads the result) | pending |
+| [43597505549](https://github.com/Ares-Empire/AresOS/actions/runs/43597505549) | `ways-back`, VM dispatch 3 of 6 | `f84041bf` | **passed** (conclusion success). Dispatched 2026-11-14 12:59:52 UTC; the job ran 12:59:55 to 16:35:35. The whole walk, E1 to E7, over 16 starts after release 27: 370 expectations checked, none contradicted; 29 audits equal the baseline, NVRAM rule and BootNext audits unchanged (below). Read by the record step's agent, not watched | 216 (VM step 186, qualify step 20) |
 
 Before the dispatch the guard ran here read-only (`REHEARSAL_PACKAGE=22c python3 os/ci/rehearsal_guard.py ways-back 345`,
 exit 0): the cap read 2400, the native step and the full model were proved by run 43595273649 on the same head, and
@@ -3361,39 +3361,211 @@ the ledger stood at **863 of 2400 minutes** (819 before this step, 44 for the ch
 runs; 2 of 6 VM dispatches. With the rehearsal's reservation that is 1208; the run uses what its job really takes
 (my estimate: 270 to 290 minutes for a walk that passes).
 
+After the run (record step, 2026-11-14): **1079 of 2400 minutes** (863 + 216, the job interval); 27 of 30 checks-only
+runs; 3 of 6 VM dispatches (the probe and two `ways-back`; `ways-back` 2 of 5); complete history, 30 runs. Read with the
+guard's own accounting, `budget(345)` after `configure('22c')` (GET only): the guard's command now stops at its native
+gate before it prints, because the record commits made a new head without a checks-only run of its own. With the
+reservation that is 1424, so a further dispatch still fits.
+
 ### What the VM showed (run 43597505549)
 
-Pending. The first unproved steps are, in order: `layout proof`'s public text read by version 3 from its own folder
-(the `layout-intl-proof-toolset.json` capture names the folder the harness read), `layout finish`, the first typed
-restart with version 3, then every start of step 1's table from `intl-27` to `final-27`. The per-step table, the
-swap line of each of the twelve reorders and the stage table (`collect.py` prints it) belong here once the run ended.
+**Passed.** The result file (`runs/ways-back-rehearsal-43597505549/ways-back-rehearsal-result.json`, `status: passed`,
+commit `f84041bf`) records: tools version 3 `2084c786…` installed over version 2 `851eb742…` (from `41b06513`); both
+layout proofs read by the tools in `/var/lib/ares/tools-2084c786…` (`layout_proofs_read_from_that_folder: true`; the
+`layout-*-proof-toolset.json` captures resolve `/var/lib/ares/at` there, and package 27's two login reads resolve the
+first install's `/var/lib/ares/tools`); the network down after release 27; `ares`'s password set by typing and `sudo -v`
+after the returns; every owner command physically typed; the walk ends on R27; protected-disk, NVRAM-rule and BootNext
+audits unchanged. 370 expectations were checked and none was contradicted. No **WARNING** line was printed, and each
+confirmation showed once, in the check after the restart.
+
+| Start (boot) | Runs | Order at the start | What was typed and what the tools said |
+|---|---|---|---|
+| `release-27` (11) | R27 | R27 R13 S | **E1:** the guide's 13-line stick block installed version 3; check and title: **newer AresOS 5fad242fceac runs and starts next**, **Boot menu at the next start: (ostree:0) newer AresOS 5fad242fceac, starts next; (ostree:1) older AresOS 9b19b7942bc1; (ostree:2) plain Bazzite ed93d2158a1b**. **E2:** `layout begin us-intl`; on tty4 `sudo -k; sudo … layout proof` (**Fresh second-console login and physical typing passed**: the step where run 43581458429 stopped); `layout finish` (**Layout trial completed; fresh login/typing proof saved**); title; `reboot` |
+| `intl-27` (12) | R27 | R27 R13 S | check (**System console us-intl; X11 us variant intl**), title; `layout begin de`, proof, finish; title, reboot |
+| `trial-27` (13) | R27 | R27 R13 S | check, title; `layout begin us`; hard reset during the trial |
+| `abandon-27` (14) | R27 | R27 R13 S | `layout abandon` (**Last finished console layout restored; abandoned trial cleared**); check, title. **E3:** `previous` (**Previous AresOS queued for the next start …**; **older AresOS 9b19b7942bc1 starts next, after the restart**); title, reboot |
+| `back-13` (15) | R13 | R13 R27 S | check (**Return to … confirmed after the restart**), title; `update` stopped (**The release of these tools is installed already, so update has nothing to install: run sudo /var/lib/ares/at forward …; nothing changed**); `forward` (**Newest installed AresOS starts next …**); title, reboot |
+| `forward-27` (16) | R27 | R27 R13 S | check (**Forward to … confirmed after the restart**), title. **E4:** `rollback` (**Saved stock rollback queued**); title, reboot |
+| `stock-1` (17) | S | S R27 R13 | check (**Rollback to … confirmed after the restart**), title; `rollback` stopped (**Plain Bazzite runs here: use sudo /var/lib/ares/at keep-stock …; nothing changed**); `keep-stock` (**Plain Bazzite ed93d2158a1b already starts next; nothing changed**, **It runs now**); the 14 updater units read, all inactive, the five timers disabled; `forward`; title, reboot |
+| `forward-27b` (18) | R27 | R27 S R13 | check (**Forward** confirmed), title. **E5:** `previous`; title, reboot |
+| `back-13b` (19) | R13 | R13 R27 S | check (**Return** confirmed), title; `forward`; title, reboot |
+| `forward-27c` (20) | R27 | R27 R13 S | check (**Forward** confirmed), title; `previous`; title, reboot; the menu shown once, read as recorded, R27's row `ostree:1` taken (keys home, down, Return) |
+| `menu-27` (21) | R27 | R13 R27 S | check: **newer AresOS 5fad242fceac runs; older AresOS 9b19b7942bc1 starts next; this start was not the default** and **Return to … is in place and has not started yet**; title; `forward` (**newer AresOS 5fad242fceac runs and now starts next; no restart is waiting**); title, reboot |
+| `forward-27d` (22) | R27 | R27 R13 S | check (**Forward** confirmed), title. **E6:** title, reboot; the stock's row `ostree:2` taken (home, down, down, Return) |
+| `menu-stock` (23) | S | R27 R13 S | check: **plain Bazzite ed93d2158a1b runs; newer AresOS 5fad242fceac starts next; this start was not the default**, no cause; title; `keep-stock` (**Saved stock is default**, **plain Bazzite ed93d2158a1b runs and now starts next; no restart is waiting**); title, reboot |
+| `stock-2` (24) | S | S R27 R13 | check (**Change to … confirmed after the restart**), title; `forward`; title, reboot |
+| `forward-27e` (25) | R27 | R27 S R13 | check (**Forward** confirmed), title. **E7:** `rollback`; the watcher stopped the tools' process 0.029 ms after the link swap (state `T`), the release step ended, the journal held the intent (`rollback`, status `intent`, target the stock); QMP `system_reset` |
+| `cut-stock` (26) | S | S R27 R13 | check: **The interrupted rollback to … had made its change; it is recorded now** and **Rollback to … confirmed after the restart**; title; `forward`; title, reboot |
+| `final-27` (27) | R27 | R27 S R13 | check (**Forward** confirmed), title |
+
+Typed with version 3 (the result's `typed`): check 17, title 31, reboot 14, forward 6, previous 3, rollback 3,
+keep-stock 2, update 1, layout begin 3 (us-intl, de, us), proof 2, finish 2, abandon 1.
+
+**The twelve reorders** all took the same path. ostree's journal line was **Transaction complete; bootconfig swap: no;
+bootversion: boot.0.N, deployment count change: 0**; the subbootversion link `boot.0` flipped between `boot.0.0` and
+`boot.0.1`; `loader.0` stayed; `entry_files_changed: false`; nothing was created, removed or staged.
+
+| Reorder | Target | Before → after | `boot.0` |
+|---|---|---|---|
+| `owner-previous-1` | R13 | R27 R13 S → R13 R27 S | `boot.0.1` → `boot.0.0` |
+| `owner-forward-1` | R27 | R13 R27 S → R27 R13 S | `boot.0.0` → `boot.0.1` |
+| `owner-rollback-1` | S | R27 R13 S → S R27 R13 | `boot.0.1` → `boot.0.0` |
+| `owner-forward-2` | R27 | S R27 R13 → R27 S R13 | `boot.0.0` → `boot.0.1` |
+| `owner-previous-2` | R13 | R27 S R13 → R13 R27 S | `boot.0.1` → `boot.0.0` |
+| `owner-forward-3` | R27 | R13 R27 S → R27 R13 S | `boot.0.0` → `boot.0.1` |
+| `owner-previous-3` | R13 | R27 R13 S → R13 R27 S | `boot.0.1` → `boot.0.0` |
+| `owner-forward-4` (R27 runs, taken in the menu) | R27 | R13 R27 S → R27 R13 S | `boot.0.0` → `boot.0.1` |
+| `owner-keep-stock` (S runs, taken in the menu) | S | R27 R13 S → S R27 R13 | `boot.0.1` → `boot.0.0` |
+| `owner-forward-5` | R27 | S R27 R13 → R27 S R13 | `boot.0.0` → `boot.0.1` |
+| `cut-rollback` | S | R27 S R13 → S R27 R13 | `boot.0.1` → `boot.0.0` |
+| `owner-forward-6` | R27 | S R27 R13 → R27 S R13 | `boot.0.0` → `boot.0.1` |
+
+The stage table, as `collect.py` printed it:
+
+| Stage | Reached by | Order | Runs | bootc booted / rollback | rollbackQueued | Pinned (origin file) | Titles top to bottom | Swap |
+|---|---|---|---|---|---|---|---|---|
+| `release-27-start` | package 27's route: release 27 confirmed | R27 R13 S | R27 | R27 / R13 | false | S (S) | ostree:0 R27; ostree:1 R13; ostree:2 S |  |
+| `intl-27` | restart with no choice | R27 R13 S | R27 | R27 / R13 | false | S (S) | ostree:0 R27; ostree:1 R13; ostree:2 S |  |
+| `trial-27` | restart with no choice | R27 R13 S | R27 | R27 / R13 | false | S (S) | ostree:0 R27; ostree:1 R13; ostree:2 S |  |
+| `abandon-27` | a hard reset during a layout trial | R27 R13 S | R27 | R27 / R13 | false | S (S) | ostree:0 R27; ostree:1 R13; ostree:2 S |  |
+| `owner-previous-1` | at previous | R13 R27 S | R27 | R27 / R13 | true | S (S) | ostree:0 R13; ostree:1 R27; ostree:2 S | no |
+| `back-13` | restart with no choice | R13 R27 S | R13 | R13 / R27 | false | S (S) | ostree:0 R13; ostree:1 R27; ostree:2 S |  |
+| `back-13-update-refused` | at update refused | R13 R27 S | R13 | R13 / R27 | false | S (S) | ostree:0 R13; ostree:1 R27; ostree:2 S |  |
+| `owner-forward-1` | at forward | R27 R13 S | R13 | R13 / R27 | true | S (S) | ostree:0 R27; ostree:1 R13; ostree:2 S | no |
+| `forward-27` | restart with no choice | R27 R13 S | R27 | R27 / R13 | false | S (S) | ostree:0 R27; ostree:1 R13; ostree:2 S |  |
+| `owner-rollback-1` | at rollback | S R27 R13 | R27 | R27 / S | true | S (S) | ostree:0 S; ostree:1 R27; ostree:2 R13 | no |
+| `stock-1` | restart with no choice | S R27 R13 | S | S / R27 | false | S (S) | ostree:0 S; ostree:1 R27; ostree:2 R13 |  |
+| `stock-1-rollback-refused` | at rollback refused | S R27 R13 | S | S / R27 | false | S (S) | ostree:0 S; ostree:1 R27; ostree:2 R13 |  |
+| `stock-1-keep-stock` | at keep-stock: nothing changed | S R27 R13 | S | S / R27 | false | S (S) | ostree:0 S; ostree:1 R27; ostree:2 R13 |  |
+| `owner-forward-2` | at forward | R27 S R13 | S | S / R27 | true | S (S) | ostree:0 R27; ostree:1 S; ostree:2 R13 | no |
+| `forward-27b` | restart with no choice | R27 S R13 | R27 | R27 / S | false | S (S) | ostree:0 R27; ostree:1 S; ostree:2 R13 |  |
+| `owner-previous-2` | at previous | R13 R27 S | R27 | R27 / R13 | true | S (S) | ostree:0 R13; ostree:1 R27; ostree:2 S | no |
+| `back-13b` | restart with no choice | R13 R27 S | R13 | R13 / R27 | false | S (S) | ostree:0 R13; ostree:1 R27; ostree:2 S |  |
+| `owner-forward-3` | at forward | R27 R13 S | R13 | R13 / R27 | true | S (S) | ostree:0 R27; ostree:1 R13; ostree:2 S | no |
+| `forward-27c` | restart with no choice | R27 R13 S | R27 | R27 / R13 | false | S (S) | ostree:0 R27; ostree:1 R13; ostree:2 S |  |
+| `owner-previous-3` | at previous | R13 R27 S | R27 | R27 / R13 | true | S (S) | ostree:0 R13; ostree:1 R27; ostree:2 S | no |
+| `menu-27` | the newer AresOS row taken in the boot menu | R13 R27 S | R27 | R27 / R13 | true | S (S) | ostree:0 R13; ostree:1 R27; ostree:2 S |  |
+| `owner-forward-4` | at forward | R27 R13 S | R27 | R27 / R13 | false | S (S) | ostree:0 R27; ostree:1 R13; ostree:2 S | no |
+| `forward-27d` | restart with no choice | R27 R13 S | R27 | R27 / R13 | false | S (S) | ostree:0 R27; ostree:1 R13; ostree:2 S |  |
+| `menu-stock` | the plain Bazzite row taken in the boot menu | R27 R13 S | S | S / R27 | true | S (S) | ostree:0 R27; ostree:1 R13; ostree:2 S |  |
+| `owner-keep-stock` | at keep-stock | S R27 R13 | S | S / R27 | false | S (S) | ostree:0 S; ostree:1 R27; ostree:2 R13 | no |
+| `stock-2` | restart with no choice | S R27 R13 | S | S / R27 | false | S (S) | ostree:0 S; ostree:1 R27; ostree:2 R13 |  |
+| `owner-forward-5` | at forward | R27 S R13 | S | S / R27 | true | S (S) | ostree:0 R27; ostree:1 S; ostree:2 R13 | no |
+| `forward-27e` | restart with no choice | R27 S R13 | R27 | R27 / S | false | S (S) | ostree:0 R27; ostree:1 S; ostree:2 R13 |  |
+| `cut-rollback` | at rollback, stopped after its reorder and before its record | S R27 R13 | R27 | R27 / S | true | S (S) | ostree:0 S; ostree:1 R27; ostree:2 R13 | no |
+| `cut-stock` | a hard reset inside rollback, after its reorder and before its record | S R27 R13 | S | S / R27 | false | S (S) | ostree:0 S; ostree:1 R27; ostree:2 R13 |  |
+| `cut-stock-recorded` | at check: the cut change recorded and confirmed | S R27 R13 | S | S / R27 | false | S (S) | ostree:0 S; ostree:1 R27; ostree:2 R13 |  |
+| `owner-forward-6` | at forward | R27 S R13 | S | S / R27 | true | S (S) | ostree:0 R27; ostree:1 S; ostree:2 R13 | no |
+| `final-27` | restart with no choice | R27 S R13 | R27 | R27 / S | false | S (S) | ostree:0 R27; ostree:1 S; ostree:2 R13 |  |
+
+What step 2's PLAN-GAP 4 left to the VM is settled for these cases: the tools' reorder under real ostree and bootc in
+every order the walk reached, both of the menu's later rows (R27 at `ostree:1`, the stock at `ostree:2`), the cut's
+timing, and on plain Bazzite every updater unit inactive at `stock-1`, with check passing on all four stock starts
+(`stock-1`, `menu-stock`, `stock-2`, `cut-stock`). US International in `foot` is not visible in the committed captures.
+Not walked in the VM, as the brief and step 1's PLAN-GAP 1 say: staging and finalize from `[R27*, S, R13]`, staging from
+`[R13*, R27, S]`, finalize over three rows, and a first install with version 3. The model and the tests cover these.
+
+Cleanup at the end of step 2 (before the run ended): the temp files under `/var/home/ares/pkg22c-work/` are removed
+with the folder; `.work/` holds no file over 500 MB; no builder-started test, walk or watch process remains; no Gradle
+daemon was started. PR #46 stays draft; nothing was merged or pushed to main.
 
 ### The record step
 
-Not run: it follows a passing rehearsal. Nothing it needs has changed since the dispatch (see "For the next agent").
+Run on 2026-11-14 after the rehearsal passed, by a Claude agent on Opus (a checklist step against "For the next
+agent" below as it stood at `4f73e930`). Nothing bound changed between the run's head `f84041bf` and the record:
+`f84041bf..4f73e930` touches only this report.
 
-### For the next agent (after run 43597505549 ended)
+1. **The evidence:** `two-disk-evidence` (314 MB) downloaded to `/var/home/ares/pkg22c-work/evidence`;
+   `two-disk/ways-back-rehearsal-result.json` and `two-disk/22c-bound-sources.json` present.
+2. **The captures** (`86fd9bbe`): `python3 -I reviews/22c-ways-back-after-update/collect.py <artifact>/two-disk
+   43597505549` printed **wrote 156 files to reviews/22c-ways-back-after-update/runs/ways-back-rehearsal-43597505549;
+   29 audits equal the baseline** and the stage table above. It replaced one VM root filesystem UUID and 17 boot ids.
+   It wrote 33 stages × deployments, layout and observed; 12 reorders × journal before and after and swap; four
+   toolset reads; one updater read; both menu choices with their OCR frames; the cut's proof and watcher; the result
+   file; and `index.json`. **Read before committing, for private data:**
+   - Searched every file for tokens (`gh*_`, `github_pat_`, `x-access-token`, `Authorization`, `"auth"`, `Bearer`),
+     crypt hashes, the harness password's start, private keys, e-mail addresses, IPv4 and MAC addresses, `/home/`,
+     machine ids, `GITHUB_`/`ACTIONS_` variables, and the owner's names. The only hits were `index.json`'s own
+     list of patterns, the tools' public typing text **Also prove yz-/!ü …** (17 times in the transcript, never
+     followed by hex digits), and package names in rpm-ostree's package lists (`libsecret`, `perl-HTTP-Cookies`,
+     `hostname`, `krunner`).
+   - `carlsenares` occurs in the image's OCI labels: the organization's earlier public handle, already in 547 tracked
+     files and in the probe's committed captures.
+   - The 33 deployments captures differ from the reviewed probe captures only in the deployments' order: boot
+     entries, slots, digests, checksums, pins and the serial. Every other long hex value is an image layer digest,
+     an ostree checksum, a commit, a tools manifest or ostree's journal message id `dd440e3e…`.
+   - The transcript holds only the typed commands, the tools' printed lines and public content hashes. The journal
+     captures hold the same fields as the probe's (`_PID`, `_UID`, timestamps of the VM).
+3. **The rebind** (`7b9f2d7a`): `python3 -I reviews/27-first-update-release/rebind.py rebind 22c
+   <artifact>/two-disk/22c-bound-sources.json 43597505549` printed **recorded 6 tables, 260 unique sources for package
+   22c; 44 waiting files and 2 removed paths moved to the history; pending list empty**. The removed paths are
+   `os/owner-tools/payload/release/default-stock.sh` and `rollback.sh`. `os/manifest/ci/22c/source-bindings.json` (run
+   43597505549, commit `f84041bf`) are now the active tables; the history's new entry waited for package 27's bindings.
+   Then `test_checkout_sources`: `Ran 6 tests`, `OK`.
+4. **INSTALL-STATUS** (`6badee9e`): the 22c row now reads **BUILT AND REVIEWED; VM REHEARSAL PASSED; NOT ON THE
+   LAPTOP**, links run 43597505549, and says what the run walked. It also links the earlier run that stopped on the
+   pin. `at forward` is "reviewed SAFE (review 7)" in place of "its review follows" (review 7 covered it and said
+   SAFE), and "the final review passes" replaces "the rehearsal passes" before "on the laptop". The bound
+   `test_owner_path` pinned the old words, so it changed with the row (record-step JUDGMENT-CALL 1). It now pins the new
+   status, the run link the 22c bindings name and the walked claims, and rejects the old words. `rebind.py pending`
+   lists it (**1 file waits, 0 removed**). Verified: `test_owner_path` 47 OK, `test_owner_equality` 10 OK (both
+   also OK before the change), `test_checkout_sources` 6 OK after `pending`. The new test fails on the old row
+   (`AssertionError: '**BUILT AND REVIEWED; VM REHEARSAL PASSED; NOT ON THE LAPTOP**' not found`).
+5. **Budget:** 216 minutes for the rehearsal, 1079 of 2400 in all (table above).
 
-1. **Read the result:** `gh run view 43597505549 --json conclusion,jobs`; the artifact is `two-disk-evidence`
-   (`gh run download 43597505549 -n two-disk-evidence -D /var/home/ares/pkg22c-work/evidence`; remove it afterwards).
-   The result file is `two-disk/ways-back-rehearsal-result.json` (it exists only after a walk that reached its end).
-2. **If the walk passed:** `python3 reviews/22c-ways-back-after-update/collect.py <artifact>/two-disk 43597505549`
-   (first use on a real rehearsal result; a dry run on the local walk's result passed). Read what it wrote before
-   committing: no token, hash, password or identifier (it stops on the kinds it knows and on any UUID it did not
-   replace). Commit the captures, then `python3 reviews/27-first-update-release/rebind.py rebind 22c
-   <artifact>/two-disk/22c-bound-sources.json 43597505549`, then `test_checkout_sources`, and say what it rebound
-   (44 files and 2 removed paths wait). Then the run link in the 22c row of `docs/INSTALL-STATUS.md` (brief C).
-3. **Do not change a bound file before the record step.** It replays the run's head (`f84041bf`): the harness, the
-   tests, the ledger, the workflow and the guides are bound. `collect.py`, `rebind.py`, this report and
-   `docs/INSTALL-STATUS.md` are not, and may change.
-4. **If the walk failed:** the stage is in the VM step's log and in the newest files of the artifact
-   (`*-owner-diagnostics.json` holds a command's STOP, `*-observed.json` the last list, `*-timeout-*.vcsa` a screen).
-   A STOP of the tools on real state is a finding about the tools; an assertion of the harness on a line, a path or
-   a process is the class of this step. Three VM dispatches and three checks-only runs remain by count; each new head
-   needs `-f checks_only=true -f full_model=true` first, and exactly one such run per head.
-5. **Budget table:** add the rehearsal's minutes (the guard's own accounting; `rehearsal_guard.py ways-back 345`
-   prints `consumed_minutes`).
+### JUDGMENT-CALL (record step)
 
-Cleanup at the end of this step: the temp files under `/var/home/ares/pkg22c-work/` are removed with the folder;
-`.work/` holds no file over 500 MB; no builder-started test, walk or watch process remains; no Gradle daemon was
-started. PR #46 stays draft; nothing was merged or pushed to main.
+1. **The status row and its bound test changed after the rebind**, so the pending list holds one test file again.
+   The brief's stage-2 acceptance asks for an empty list after the record step *and* a row that says rehearsed with the
+   run link. `test_owner_path` pinned "NOT REHEARSED YET", so both could not hold. Rejected: leaving "NOT REHEARSED
+   YET" beside a passing run's link (a false status on the owner's page), and leaving the link out. The list's rule
+   since 27b lets test files wait for the next VM rehearsal, and package 27 changed its status test in the same PR as
+   its record. The list's `status` still reads "rebound by package 22c's rehearsal" with one row waiting. 27b set
+   "waiting for the next VM rehearsal" by hand; I left the field to the integrator. Undo: revert `6badee9e` (row,
+   test and pending row together).
+2. **The minutes come from the guard's `budget()`**, not its command line. The command line also runs the native and
+   model gates for `HEAD`, which stop on the record commits' head before anything is printed. `budget()` is the same
+   accounting with the same history read, and it only reads.
+
+### PLAN-GAP (record step)
+
+1. **The B10 fixture gate now fails, by design, and this step's procedure did not plan for it.**
+   `test_ways_back_model.CaptureTest.test_every_probe_capture_matches_the_model_host` requires every committed
+   `*-deployments.json` under `runs/` to be replayed through `ways_back_host.Host`. The 33 new captures are not
+   replayed yet, so it fails with **Every new capture needs an operation replay through Host (B10), including stage
+   2** (run here: 2 tests, 1 failure; `test_append_instead_of_prepend_fails_the_fixture` passes). The brief's stage-2
+   acceptance says "its result file and captures are committed, and the fixture test passes on them too". So the
+   hosted checks-only run on the final head will fail until the replay exists. Writing the replay is a builder's task
+   in a model test, not part of this checklist step, and it was not started here.
+2. **No checks-only run has run on the final head yet.** The acceptance asks for one, and this step dispatches nothing.
+
+### For the next agent (after the record step)
+
+What is done: the rehearsal passed, its captures are committed, the sources are rebound to it, the status row links it,
+and this report records it. Next, in order:
+
+1. **Register the stage-2 replay (B10)**, a builder step for a fresh agent with its own review. In
+   `test_ways_back_model.CaptureTest`, replay `runs/ways-back-rehearsal-43597505549` through `ways_back_host.Host`
+   from `release-27-start`. Every later order, slot, flag and link must come from an operation, never from its
+   capture (the class docstring). The operations are: the twelve reorders by the tools' own reorder rule, with the
+   target taken from the result's `swaps`; the restarts; the two menu choices, which restart into the chosen row; the
+   two hard resets; and the cut (reorder made, record not written). Compare every one of the 33 stages with
+   `compare`, and keep the discovery assertion so that no capture escapes. A mutant (for example an appending reorder)
+   must fail on these captures too. `test_ways_back_model.py` and `ways_back_host.py` are **not** bound, so no pending
+   row follows. Run the module's capture tests locally, never the full model.
+2. **One checks-only run on that head** (integrator), `gh workflow run "OS image" --ref
+   pkg/22c-ways-back-after-update -f checks_only=true`. Add `-f full_model=true` if `os/ci/model_scope.py` would choose
+   the full model for that change. 27 of 30 checks-only runs are used; watch with
+   `gh run watch <id> --exit-status --interval 60`. It must pass with the whole suite green (acceptance).
+3. **The final review on Fable** before anything reaches the laptop (updates and rollback are high-stakes). Cover the
+   record commits (`86fd9bbe`, `7b9f2d7a`, `6badee9e`), the replay of step 1, this run's evidence against the report,
+   and record-step JUDGMENT-CALL 1.
+4. **The owner's judgment calls**: every JUDGMENT-CALL in this report, with at least the brief's owner decisions 1
+   and 5, put to him in plain words before merge.
+5. **Merge by the integrator** once the review says SAFE, the checks pass and the owner has answered. PR #46 stays
+   draft until then. After the merge the row's own conditions stand: the owner installs these tools on the laptop
+   through the tools-only update, then his calm test.
+
+Cleanup at the end of the record step: the downloaded evidence and the temp files under `/var/home/ares/pkg22c-work/`
+were removed with the folder; nothing new was written to `.work/`; no test, watch or other process started by this
+step remains; no Gradle, VM or laptop system change. PR #46 stays draft; nothing was merged or pushed to main.
