@@ -177,12 +177,22 @@ class _Renderer:
         text = squash(self._flow(self._ordered(node)))
         return bool(text) and text in self._field_names(node)
 
+    def _bare_item(self, node):
+        """A list item that holds one element and nothing of its own: that element stands in its place.
+
+        Its own text, a name, a value, a state or a second element keeps its line.
+        """
+        if node.role != "listitem" or node.name or node.value or node.states:
+            return False
+        content = self.content(node)
+        return len(content) == 1 and type(content[0]) is not str
+
     def _arrange(self, parts, name=""):
         """What gets a line or stands in one, of these runs and elements.
 
         Text that the owner's name already says is left out, a label gives way
-        to its field, and an element without role, name or text gives its
-        place to its children.
+        to its field, an element without role, name or text gives its place to
+        its children, and so does a list item that holds one element alone.
         """
         said = bool(name) and squash(self._flow(parts)) in squash(name)
         items = []
@@ -194,7 +204,7 @@ class _Renderer:
                 continue
             elif self._label(part):
                 items += [item for item in self.content(part) if type(item) is not str and not self._plain(item)]
-            elif shown_role(part) is None:
+            elif shown_role(part) is None or self._bare_item(part):
                 items += self.content(part)
             else:
                 items.append(part)

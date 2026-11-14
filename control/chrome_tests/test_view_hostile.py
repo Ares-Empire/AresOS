@@ -75,7 +75,9 @@ def page(text):
              node(19, "list", 1, name=text)]
     nodes += [node(20 + index, "listitem", 19, text=[text if index % 2 else "item %d" % index]) for index in range(10)]
     nodes += [node(40, "img", 1, name=text), node(41, "text", 1, text=[text]),
-              node(42, "group", 1, name=text), node(43, "text", 42, text=["Deep target"])]
+              node(42, "group", 1, name=text), node(43, "text", 42, text=["Deep target"]),
+              # A list item that holds one link alone: the link moves up into the list (decision 1).
+              node(44, "listitem", 19), node(45, "link", 44, name=text, href=SITE + "/c")]
     return nodes
 
 

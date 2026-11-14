@@ -56,17 +56,12 @@ WEEK = """main kqtvm1
   table "Timetable" kqtvm8
     … 2 rows, 2 columns (75 characters)
   list kqtvm9
-    listitem
-      link "Lecture 0" → other.example kqtvm10
-    listitem
-      link "Lecture 1" → other.example kqtvm11
-    listitem
-      link "Lecture 2" → other.example kqtvm12
-    listitem
-      link "Lecture 3" → other.example kqtvm13
-    listitem
-      link "Lecture 4" → other.example kqtvm14
-    … 5 more (259 characters) kqtvm20"""
+    link "Lecture 0" → other.example kqtvm10
+    link "Lecture 1" → other.example kqtvm11
+    link "Lecture 2" → other.example kqtvm12
+    link "Lecture 3" → other.example kqtvm13
+    link "Lecture 4" → other.example kqtvm14
+    … 5 more (204 characters) kqtvm20"""
 
 
 class Format(unittest.TestCase):
@@ -102,6 +97,44 @@ class Format(unittest.TestCase):
   img "Logo"
   separator
   h2 "Sub\"""")
+
+    def test_a_list_item_that_holds_one_element_alone_gives_its_place_to_it(self):
+        # Decision 1 (section 7): no line for the item; its element moves up a level.
+        nodes = [node(1, "list", name="L"),
+                 node(2, "listitem", 1), node(3, "link", 2, name="Alone", href=SITE + "/a"),
+                 node(4, "listitem", 1, text=["Own text"]),
+                 node(5, "listitem", 1, text=["See ", 6]), node(6, "link", 5, name="this", href=SITE + "/b"),
+                 node(7, "listitem", 1), node(8, "link", 7, name="One", href=SITE + "/c"),
+                 node(9, "link", 7, name="Two", href=SITE + "/d"),
+                 node(10, "listitem", 1, name="Named"), node(11, "link", 10, name="Inside", href=SITE + "/e"),
+                 node(12, "listitem", 1, states=["current"]), node(13, "link", 12, name="Here", href=SITE + "/f"),
+                 node(14, "listitem", 1), node(15, None, 14), node(16, "button", 15, name="Wrapped"),
+                 node(17, "listitem", 1, text=[" \n "]), node(18, "list", 17), node(19, "listitem", 18),
+                 node(20, "p", 19, text=["Nested"])]
+        self.assertEqual(outline(nodes), """list "L" kqtvm1
+  link "Alone" kqtvm2
+  listitem "Own text"
+  listitem "See " [link "this" kqtvm3]
+  listitem
+    link "One" kqtvm4
+    link "Two" kqtvm5
+  listitem "Named"
+    link "Inside" kqtvm6
+  listitem current
+    link "Here" kqtvm7
+  button "Wrapped" kqtvm8
+  list kqtvm9
+    p "Nested\"""")
+
+    def test_elements_moved_up_from_list_items_fold_as_neighbours(self):
+        nodes = [node(1, "list")]
+        for index in range(9):
+            nodes += [node(10 + 2 * index, "listitem", 1), node(11 + 2 * index, "link", 10 + 2 * index, name="L%d" % index, href=SITE)]
+        table = references()
+        self.assertEqual(outline(nodes, table), "\n".join(["list kqtvm1"] + ['  link "L%d" kqtvm%d' % (index, index + 2) for index in range(5)] +
+                                                         ["  %s 4 more (68 characters) kqtvm11" % MARK]))
+        self.assertEqual(outline(nodes, table, ref="kqtvm11"), "\n".join('link "L%d" kqtvm%d' % (index, index + 2) for index in range(5, 9)))
+        self.assertEqual(outline(nodes, table, ref="kqtvm1", full=True).split("\n")[1:], ['  link "L%d" kqtvm%d' % (index, index + 2) for index in range(9)])
 
     def test_a_child_stands_inline_only_as_a_control_with_nothing_below_in_a_parent_with_text(self):
         nodes = [node(1, "p", text=["See ", 2, " and ", 3, " and ", 5]),

@@ -89,6 +89,13 @@ class Budgets(unittest.TestCase):
         self.row(calls, 800, (100, 420), (1, 56, 385))
         self.assertEqual(calls[0][0].count("\n"), 0)
 
+    def test_f3_read_in_full(self):
+        # No budget row: the size that decision 1 of section 7 cut (a list item that holds one link gets no line).
+        # Step 1 measured 18,484 of outline with a line for each of the 300 items.
+        calls = read(View(f3()), references(), limit=40000, full=True)
+        self.assertEqual((len(calls), len(calls[0][0]), len(calls[0][1])), (1, 13984, 15253))
+        self.assertNotIn("listitem", calls[0][0])
+
     def test_compare_three_open_tabs_is_one_call(self):
         table = references()
         shown = [View({**fixture(), "tab": tab}) for tab, fixture in ((1, f1), (2, f2), (3, f3))]
@@ -97,7 +104,7 @@ class Budgets(unittest.TestCase):
         self.assertTrue(all(entry["characters"] <= 3000 for entry in entries))
         self.assertLessEqual(len(sent(entries)), RESULT_LIMIT)
         self.assertEqual([entry["cursor"] is None for entry in entries], [False, True, True])   # F1 goes on with its own cursor
-        self.assertEqual(len(sent(entries)), 4945)
+        self.assertEqual(len(sent(entries)), 4865)
 
     def test_what_a_result_holds_around_its_outline(self):
         # "A read's result has about 310 characters around its outline."
