@@ -28,7 +28,9 @@
   partitions, 23 flows and every assertion remain. No runtime or browser change.
   No CI run is currently in flight. A new head must repeat final verification.
 - **Budget:** **253 / about 280** Chrome runs, including both final attempts.
-- **Exact next step:** freeze a new candidate, run full local preflight, then push normally
+- **Exact next step:** run `.work/post18d/final-local.py` on this new candidate
+  before its normal push (268 Python, 373 Node/artifact, 316 mutations expected).
+  After green preflight, push normally
   for another full Chrome pair and every named Control workflow twice on that
   head. Current Chrome/other greens remain retained intermediate evidence;
   they are not silently substituted for the required new-head runs. Keep the
