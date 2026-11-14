@@ -929,7 +929,8 @@ public final class TownGameTests {
         // Day one: Chrome alone; Discord joins My apps after the first save.
         fake.apps.addAll(List.of(app("seal-chrome", "Chrome", "chrome", AppGroup.INTERNET, true, true),
                 app("seal-discord", "Discord", "discord", AppGroup.INTERNET, false, false)));
-        fake.listed = withinTown(hub, fake.get("seal-chrome"), fake.ring, "N0L0", "N0R0");
+        // N1L0: Mail's place after trust, as his block in Discord's old logo keeps N0R0 (39b: allListed found it).
+        fake.listed = withinTown(hub, fake.get("seal-chrome"), fake.ring, "N0L0", "N0R0", "N1L0");
         fake.pass(server);
         check(place(server, "seal-chrome").equals("N0L0") && hub.logos().size() == 1, "Day one: " + hub.logos());
         Path world = server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
