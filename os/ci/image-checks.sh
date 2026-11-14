@@ -408,7 +408,8 @@ spec = importlib.util.spec_from_loader('aresos_shell', loader)
 shell = importlib.util.module_from_spec(spec)
 loader.exec_module(shell)
 hints = shell.load_hints('/usr/share/aresos/apps/hints')
-assert hints == {'lunarclient.desktop': shell.Hint('lunarclient.desktop', ('com.mojang.minecraft',), ()),
+assert hints == {'lunarclient.desktop': shell.Hint('lunarclient.desktop', ('com.mojang.minecraft',), (), 'discrete',
+                                                   (('SDL_VIDEO_DRIVER', 'wayland'),)),
                  'steam.desktop': shell.Hint('steam.desktop', (), ('steam_app_',))}, hints
 PY
 test "$(stat -c %U /usr/share/aresos/apps/hints /usr/share/aresos/apps/hints/*.json | sort -u)" = root

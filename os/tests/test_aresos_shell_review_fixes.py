@@ -175,7 +175,9 @@ class HintTest(DiscoveryBase):
     def test_the_image_ships_exactly_the_lunar_and_steam_hints(self):
         hints = shell.load_hints(str(REGISTRY / 'hints'))
         self.assertEqual(hints, {
-            'lunarclient.desktop': shell.Hint('lunarclient.desktop', ('com.mojang.minecraft',), ()),
+            # Package 30b gave Lunar's hint its start settings.
+            'lunarclient.desktop': shell.Hint('lunarclient.desktop', ('com.mojang.minecraft',), (), 'discrete',
+                                              (('SDL_VIDEO_DRIVER', 'wayland'),)),
             'steam.desktop': shell.Hint('steam.desktop', (), ('steam_app_',))})
 
     def test_broken_hints_are_refused_with_a_log_line_each(self):
