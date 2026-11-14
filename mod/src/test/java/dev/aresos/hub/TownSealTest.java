@@ -78,6 +78,36 @@ class TownSealTest {
         assertEquals(Optional.empty(), TownSeal.holding(world));
     }
 
+    /** Review fixes 2, point 1: when the seal is checked, and what an empty town file is worth. */
+    @Test void theTownTrustsAFileOnlyWhileItsSealOrTheLackOfOneShowsThatNothingElseStands(@TempDir Path world) throws IOException {
+        var empty = new HubData.TownFile(HOME, List.of());
+        // Neither a seal file nor logos: a town that never had logos.
+        assertTrue(TownSeal.trusted(world, SEED, empty), "no seal, no logos");
+        assertFalse(TownSeal.trusted(world, SEED, town("chrome")), "logos without a seal");
+
+        levelDat(world, 1_000L);
+        var both = town("chrome", "discord");
+        TownSeal.write(world, new TownSeal.Seal(1_000L, SEED, TownSeal.fingerprint(both)));
+        assertTrue(TownSeal.trusted(world, SEED, both), "the seal holds");
+        // A file restored on its own that leaves out a logo the seal names, or holds none at all: the logo may stand.
+        assertFalse(TownSeal.trusted(world, SEED, town("chrome")), "a subset restored");
+        assertFalse(TownSeal.trusted(world, SEED, empty), "an empty file restored while the seal names logos");
+        levelDat(world, 2_000L);
+        assertFalse(TownSeal.trusted(world, SEED, empty), "an empty file, and a seal of logos that no longer holds");
+
+        // The seal no longer holds (an older mod saved since), but it and the file both show an empty town of this home.
+        TownSeal.write(world, new TownSeal.Seal(1_000L, SEED, TownSeal.fingerprint(empty)));
+        assertTrue(TownSeal.trusted(world, SEED, empty), "both show a town without logos");
+        assertFalse(TownSeal.trusted(world, SEED, town("chrome")), "an empty seal and a file with logos");
+        var elsewhere = new HubData.TownFile(GlobalPos.of(Level.OVERWORLD, new BlockPos(64, 64, 0)), List.of());
+        TownSeal.write(world, new TownSeal.Seal(1_000L, SEED, TownSeal.fingerprint(elsewhere)));
+        assertFalse(TownSeal.trusted(world, SEED, empty), "the seal of an empty town of another home");
+
+        // A seal file that cannot be read is a seal file: checked, and it does not hold.
+        java.nio.file.Files.write(TownSeal.file(world), new byte[] {1, 2, 3});
+        assertFalse(TownSeal.trusted(world, SEED, empty), "an unreadable seal");
+    }
+
     @Test void aSealThatHoldsIsCarriedToTheNextLevelDatAndABrokenOneIsNot(@TempDir Path world) throws IOException {
         var town = town("chrome");
         levelDat(world, 1_000L);

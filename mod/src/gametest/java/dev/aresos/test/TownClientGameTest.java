@@ -176,7 +176,7 @@ public final class TownClientGameTest implements FabricClientGameTest {
                 waitForServer(context, world, server -> sign(server, "browser").equals("Chrome\n/chrome"), "Chrome's sign did not follow after the reopen", 600);
                 world.getServer().runOnServer(server -> {
                     var hub = HubData.get(server);
-                    check(hub.frozenCount() == 0 && hub.refusal().isEmpty() && hub.logos().size() == 4, "After the reopen: frozen " + hub.frozenCount()
+                    check(!hub.frozen() && hub.refusal().isEmpty() && hub.logos().size() == 4, "After the reopen: frozen " + hub.frozen()
                             + ", refused " + hub.refusal() + ", " + hub.logos().size() + " logos");
                     check(server.overworld().getEntity(left.webSign()) == null, "The sign read back from the saved world stayed");
                     var zones = ZoneData.get(server).zones();
@@ -187,7 +187,7 @@ public final class TownClientGameTest implements FabricClientGameTest {
                     }
                 });
                 context.waitFor(client -> messages.contains("The logo of Chrome was renewed."), 100);
-                check(messages.stream().noneMatch(line -> line.startsWith("This world was saved without the town's records")
+                check(messages.stream().noneMatch(line -> line.startsWith("This world was opened without the town's records")
                         || line.startsWith("The town's file") || line.contains(" is new. ") || line.startsWith("The town is built")
                         || line.startsWith("The town changed")), "After the reopen: " + messages);
             }

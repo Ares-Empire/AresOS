@@ -742,14 +742,18 @@ public final class TownGameTests {
     private static final String SEAL_BATCH = "aresos-test:town_seal";
 
     /**
-     * Review fixes 1 (points 1 to 4) through the world's own files: a normal save is sealed when the world is read
-     * again; a whole-world copy, opened as the game opens a world, stays sealed; a hub.dat of another home and an
-     * unreadable town.dat are refused and kept, and the town does nothing in that world; the review's scenario (an
-     * older mod saved the world after he rebuilt a block of a logo with the same block) freezes the town, so that
-     * block stays, a frozen logo whose app left stays with its line, is not renewed or rebuilt, and its place counts
-     * as taken; {@code hub trust} ends the freeze and the next save renews the seal; a town.dat restored from a
-     * backup is unsealed. Between the first save and the rest, the town goes on from its records read back from the
-     * files (step B, point 7). Its own batch and ground; the copies are made beside the test world and removed.
+     * Review fixes 1 (points 1 to 4) and 2 (point 1) through the world's own files: a normal save is sealed when the
+     * world is read again; a whole-world copy, opened as the game opens a world, stays sealed; an earlier town.dat put
+     * back alone (a subset of the logos that stand, or none) freezes the whole town, which then builds, removes and
+     * paves nothing for any app, and a save does not seal it; a hub.dat of another home, an unreadable town.dat and
+     * one with overlapping records are refused and kept, and the town does nothing in that world; the review's
+     * scenario (an older mod saved the world after he rebuilt a block of a logo with the same block) freezes the
+     * town, so that block stays, a newcomer gets no logo, {@code hub rebuild} refuses, a save and reopen stay frozen,
+     * and {@code hub trust} from a source that is not the host is refused; trust lets the pass run and the next save
+     * renews the seal; a town.dat restored from a backup, or one moved away, is unsealed; an empty town whose seal
+     * shows an empty town needs no trust. Between the first save and the rest, the town goes on from its records read
+     * back from the files (step B, point 7). Its own batch and ground; the copies are made beside the test world and
+     * removed.
      */
     @GameTest(environment = SEAL_BATCH, maxTicks = LOAD_TICKS)
     public void theTownTrustsItsRecordsOnlyWhileTheWorldWasSavedWithThem(GameTestHelper helper) {
@@ -796,11 +800,27 @@ public final class TownGameTests {
     }
 
     /** An older mod or plain Minecraft saves the world: level.dat with another LastPlayed and no seal; town.dat as it was. */
-    private static void olderModSaves(MinecraftServer server, long lastPlayed) throws IOException {
-        var access = ((dev.aresos.mixin.ServerStorageAccess)server).aresos$storageSource();
+    private static void olderModSaves(LevelStorageSource.LevelStorageAccess access, long lastPlayed) throws IOException {
         var data = access.getUnfixedDataTag(false);
         access.saveLevelData(data.set("LastPlayed", data.createLong(lastPlayed)));
     }
+
+    /** Rewrites a world's town.dat on disk, its records as the game saved them ("data", "logos"). */
+    private static void rewrite(Path world, java.util.function.Consumer<net.minecraft.nbt.ListTag> logos) throws IOException {
+        var file = HubData.townFile(world);
+        var saved = NbtIo.readCompressed(file, net.minecraft.nbt.NbtAccounter.uncompressedQuota());
+        var list = saved.getCompoundOrEmpty("data").getListOrEmpty("logos");
+        check(!list.isEmpty(), "Fixture: no logos in " + file);
+        logos.accept(list);
+        NbtIo.writeCompressed(saved, file);
+    }
+
+    /** The trigger zones of this test's apps. */
+    private static List<AppZone> zones(MinecraftServer server) {
+        return ZoneData.get(server).zones().stream().filter(zone -> zone.app().startsWith("seal-")).toList();
+    }
+
+    private static final String FREEZE = "This world was opened without the town's records since its last visit, so the town builds and removes nothing. ";
 
     private static void sealing(Fake fake, ServerLevel level, BlockPos column) throws IOException {
         var server = level.getServer();
@@ -811,22 +831,30 @@ public final class TownGameTests {
         fake.clearZones(server);
         HubData hub = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), FlatHub.build(level, home));
         HubData.store(server, hub);
+        // Day one: Chrome alone; Discord joins My apps after the first save.
         fake.apps.addAll(List.of(app("seal-chrome", "Chrome", "chrome", AppGroup.INTERNET, true, true),
-                app("seal-discord", "Discord", "discord", AppGroup.INTERNET, false, true)));
+                app("seal-discord", "Discord", "discord", AppGroup.INTERNET, false, false)));
         fake.pass(server);
-        check(place(server, "seal-chrome").equals("N0L0") && place(server, "seal-discord").equals("N0R0"), "Day one: " + hub.logos());
+        check(place(server, "seal-chrome").equals("N0L0") && hub.logos().size() == 1, "Day one: " + hub.logos());
         Path world = server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
         long seed = TownSeal.seed(server);
         Path copies = Files.createTempDirectory(world.getParent(), "aresos-town-seal");
         BlockPos his = null;
         boolean done = false;
         try {
+            // The town.dat of a save with Chrome alone: the earlier file that review fixes 2 puts back.
+            server.saveAllChunks(true, true, true);
+            byte[] chromeOnly = Files.readAllBytes(HubData.townFile(world));
+            fake.change("seal-discord", app -> app.withMine(true));
+            fake.pass(server);
+            check(place(server, "seal-discord").equals("N0R0"), "Discord joined: " + hub.logos());
+
             // A normal save writes level.dat, the seal and town.dat together; the world read again is sealed.
             server.saveAllChunks(true, true, true);
             var seal = TownSeal.read(world).orElseThrow(() -> new AssertionError("No seal after a save"));
             check(TownSeal.lastPlayed(world).equals(OptionalLong.of(seal.lastPlayed())) && seal.seed() == seed, "The seal " + seal + " for " + TownSeal.lastPlayed(world));
             var reopened = reopen(server, world);
-            check(reopened.refusal().isEmpty() && reopened.frozenCount() == 0 && reopened.logos().equals(hub.logos()), "Read again after a save: " + reopened.logos());
+            check(reopened.refusal().isEmpty() && !reopened.frozen() && reopened.logos().equals(hub.logos()), "Read again after a save: " + reopened.logos());
             byte[] backup = Files.readAllBytes(HubData.townFile(world));
 
             // A whole-world copy, opened in the game: the game writes level.dat first, the seal follows it.
@@ -834,17 +862,35 @@ public final class TownGameTests {
             opened(server, copies, "copy");
             check(TownSeal.holding(copy).isPresent(), "The copy's seal was not carried to its new level.dat");
             var copied = reopen(server, copy);
-            check(copied.refusal().isEmpty() && copied.frozenCount() == 0 && copied.logos().equals(hub.logos()), "A whole-world copy: " + copied.logos());
+            check(copied.refusal().isEmpty() && !copied.frozen() && copied.logos().equals(hub.logos()), "A whole-world copy: " + copied.logos());
+
+            // Review fixes 2, point 1: the earlier town.dat (Chrome alone) put back while Discord's logo stands. The town
+            // cannot tell Discord from a new app, so the whole town is frozen: a pass builds no second Discord logo and
+            // takes nothing down, and Discord's blocks, sign and zone stay as they are.
+            var subset = copy(world, copies.resolve("subset"));
+            Files.write(HubData.townFile(subset), chromeOnly);
+            var restored = reopen(server, subset);
+            check(restored.refusal().isEmpty() && restored.frozen() && restored.logos().size() == 1 && restored.logo("seal-discord").isEmpty(),
+                    "A subset restored: frozen " + restored.frozen() + ", " + restored.logos());
+            var discordSign = hub.logo("seal-discord").orElseThrow().gate().sign().orElseThrow();
+            var discordText = text(level, discordSign);
+            var zonesBefore = zones(server);
+            var area = snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2));
+            HubData.store(server, restored);
+            check(TownKeeper.notice(server).equals(Optional.of(FREEZE + "Look over its logo, then type /aresos hub trust.")), "The freeze's line: " + TownKeeper.notice(server));
+            var subsetPass = fake.pass(server);
+            check(subsetPass.lines().isEmpty() && !subsetPass.pending() && restored.logos().size() == 1 && snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2)).equals(area)
+                    && zones(server).equals(zonesBefore) && level.getEntity(discordSign) instanceof Display.TextDisplay && text(level, discordSign).equals(discordText),
+                    "A subset restored changed something: " + subsetPass.lines() + " " + restored.logos());
+            HubData.store(server, hub);
 
             // Review fixes 1, step B, point 7: the town goes on from the records read back from the saved files. A pass
             // on them builds nothing twice and says nothing; a renewal takes the old logo down by its reloaded sign and
             // zone IDs, so one sign and one zone stand for it afterwards.
             HubData.store(server, reopened);
             hub = reopened;
-            var zonesBefore = ZoneData.get(server).zones().stream().filter(zone -> zone.app().startsWith("seal-")).toList();
             var inStep = fake.pass(server);
-            check(inStep.lines().isEmpty() && HubData.get(server) == reopened && reopened.logos().size() == 2
-                    && ZoneData.get(server).zones().stream().filter(zone -> zone.app().startsWith("seal-")).toList().equals(zonesBefore),
+            check(inStep.lines().isEmpty() && HubData.get(server) == reopened && reopened.logos().size() == 2 && zones(server).equals(zonesBefore),
                     "A pass on the records read back: " + inStep.lines());
             var oldChrome = reopened.logo("seal-chrome").orElseThrow();
             fake.pictures.put("seal-chrome", picture(0xff2d8f2d));
@@ -869,15 +915,24 @@ public final class TownGameTests {
             check(refused.refusal().orElse("").startsWith("it was saved for a home at ") && refused.logos().isEmpty(), "Another home: " + refused.refusal());
             otherStorage.saveAndJoin();
             check(Arrays.equals(town, Files.readAllBytes(HubData.townFile(other))), "A town.dat of another home was written over");
-            // ... and an unreadable one.
+            // ... an unreadable one ...
             var broken = copy(world, copies.resolve("broken"));
             Files.write(HubData.townFile(broken), new byte[] {1, 2, 3});
             var brokenStorage = storage(server, broken);
             check(HubData.open(brokenStorage, broken, seed).refusal().equals(Optional.of("it cannot be read")), "An unreadable town.dat");
             brokenStorage.saveAndJoin();
             check(Arrays.equals(new byte[] {1, 2, 3}, Files.readAllBytes(HubData.townFile(broken))), "An unreadable town.dat was written over");
+            // ... and one whose records overlap (a logo recorded twice), written to disk and opened (review fixes 2).
+            var overlapping = copy(world, copies.resolve("overlapping"));
+            rewrite(overlapping, logos -> logos.add(logos.getFirst().copy()));
+            byte[] overlap = Files.readAllBytes(HubData.townFile(overlapping));
+            var overlapStorage = storage(server, overlapping);
+            var twice = HubData.open(overlapStorage, overlapping, seed);
+            check(twice.refusal().orElse("").startsWith("two logos are recorded for seal-") && twice.logos().isEmpty(), "Overlapping records on disk: " + twice.refusal());
+            overlapStorage.saveAndJoin();
+            check(Arrays.equals(overlap, Files.readAllBytes(HubData.townFile(overlapping))), "A town.dat with overlapping records was written over");
             HubData.store(server, refused);
-            var area = snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2));
+            area = snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2));
             fake.change("seal-discord", app -> app.withMine(false));
             var nothing = fake.pass(server);
             check(nothing.lines().isEmpty() && !nothing.pending() && snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2)).equals(area),
@@ -896,61 +951,111 @@ public final class TownGameTests {
             level.setBlockAndUpdate(his, Blocks.AIR.defaultBlockState());
             level.setBlockAndUpdate(his, Placing.state(recorded.block()));
             check(!hub.holds(level, his), "His block is still the town's");
-            olderModSaves(server, seal.lastPlayed() + 1);
+            var access = ((dev.aresos.mixin.ServerStorageAccess)server).aresos$storageSource();
+            olderModSaves(access, seal.lastPlayed() + 1);
             var older = reopen(server, world);
-            check(older.frozenCount() == 2 && older.logo("seal-discord").orElseThrow().gate().placed().contains(recorded), "The older mod's world: frozen " + older.frozenCount());
+            check(older.frozen() && older.logo("seal-discord").orElseThrow().gate().placed().contains(recorded), "The older mod's world: frozen " + older.frozen());
             HubData.store(server, older);
-            check(TownKeeper.notice(server).equals(Optional.of("This world was saved without the town's records since the town last saw it, so the town leaves"
-                    + " its 2 logos as they are. Look them over, then type /aresos hub trust.")), "The freeze's line: " + TownKeeper.notice(server));
+            var freeze = FREEZE + "Look over its 2 logos, then type /aresos hub trust.";
+            check(TownKeeper.notice(server).equals(Optional.of(freeze)), "The freeze's line: " + TownKeeper.notice(server));
 
-            // Discord leaves: its frozen logo stays, said once, and so does his block.
+            // Frozen, the town changes nothing in the world for any app (review fixes 2, point 2): Discord leaves, Chrome
+            // gets a new name and picture, and Mail is new. Nothing comes down, nothing is renewed, Mail gets no logo,
+            // no road is paved and his block stays.
+            var logos = older.logos();
+            zonesBefore = zones(server);
+            area = snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2));
             fake.change("seal-discord", app -> app.withMine(false));
-            var left = fake.pass(server);
-            check(left.lines().equals(List.of("The logo of Discord stays as it is: the town takes none of its logos down until you type /aresos hub trust.")),
-                    "A frozen logo's app left: " + left.lines());
-            check(level.getBlockState(his).equals(Placing.state(recorded.block())) && HubData.get(server).logo("seal-discord").isPresent(), "His block or the frozen logo went");
-            // A new name and picture for Chrome, and a newcomer: Chrome is not renewed; Mail stands on free ground, not
-            // in Discord's place, which counts as taken (and is not called his).
-            var chrome = HubData.get(server).logo("seal-chrome").orElseThrow();
             fake.change("seal-chrome", app -> app("seal-chrome", "Chrome Browser", "chrome", AppGroup.INTERNET, true, true).withSpot(app.place(), app.group()));
             fake.pictures.put("seal-chrome", picture(0xff8f2d2d));
             fake.apps.add(app("seal-mail", "Mail", "mail", AppGroup.INTERNET, false, true));
-            var joined = fake.pass(server);
-            check(joined.lines().equals(List.of("Mail is new. It stands in Internet, north. /mail opens it.")) && place(server, "seal-mail").equals("N1L0")
-                    && HubData.get(server).logo("seal-chrome").orElseThrow().equals(chrome), "Frozen, then a newcomer: " + joined.lines() + " " + place(server, "seal-mail"));
-            // hub rebuild builds Mail again and leaves the frozen two as they are.
-            var discord = HubData.get(server).logo("seal-discord").orElseThrow();
+            var frozen = fake.pass(server);
+            check(frozen.lines().isEmpty() && !frozen.pending() && frozen.pictures().isEmpty() && older.logos().equals(logos) && place(server, "seal-mail").equals("none")
+                    && zones(server).equals(zonesBefore) && snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2)).equals(area),
+                    "A frozen town changed something: " + frozen.lines() + " " + older.logos());
+            // hub rebuild refuses with the freeze's line.
             var rebuilt = fake.keeper.rebuild(server, new TownKeeper.Programs(fake.apps, true), app -> Optional.of(fake.pictures.getOrDefault(app.id(), fake.ring)), spots -> { });
-            check(rebuilt.lines().getFirst().equals("The town was rebuilt from the rules: 1 logo built again.")
-                    && rebuilt.lines().getLast().equals("Its 2 frozen logos stay as they are until you type /aresos hub trust.")
-                    && HubData.get(server).logo("seal-chrome").orElseThrow().equals(chrome) && HubData.get(server).logo("seal-discord").orElseThrow().equals(discord),
+            check(rebuilt.lines().equals(List.of(freeze)) && older.logos().equals(logos) && snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2)).equals(area),
                     "A rebuild while frozen: " + rebuilt.lines());
 
-            // He looks the logos over (the block he wants to keep, he changes: it is his) and trusts the records.
+            // /aresos hub trust from a source that is not the host is refused where it is parsed: the server's own
+            // source, and a player who is not the host (the test server is no singleplayer game, so it has no host).
+            var guest = new net.minecraft.server.level.ServerPlayer(server, level, new com.mojang.authlib.GameProfile(java.util.UUID.randomUUID(), "Guest"),
+                    net.minecraft.server.level.ClientInformation.createDefault());
+            for (var source : List.of(server.createCommandSourceStack(), server.createCommandSourceStack().withEntity(guest))) {
+                check(!dev.aresos.hub.HubCommands.hub().build().canUse(source), "hub's requirement let a source that is not the host through");
+                boolean ran;
+                try {
+                    server.getCommands().getDispatcher().execute("aresos hub trust", source);
+                    ran = true;
+                } catch (com.mojang.brigadier.exceptions.CommandSyntaxException notParsed) {
+                    ran = false;
+                }
+                check(!ran && HubData.get(server).frozen(), "hub trust ran for a source that is not the host");
+            }
+
+            // Saved and opened again without trust: still frozen, the seal was not renewed.
+            var sealBefore = Files.readAllBytes(TownSeal.file(world));
+            server.saveAllChunks(true, true, true);
+            check(Arrays.equals(sealBefore, Files.readAllBytes(TownSeal.file(world))) && reopen(server, world).frozen(), "A save while frozen sealed the town");
+
+            // An empty town.dat put back while the logos stand: frozen too, nothing is built, and a save does not seal it.
+            var emptied = copy(world, copies.resolve("emptied"));
+            rewrite(emptied, net.minecraft.nbt.ListTag::clear);
+            var empty = reopen(server, emptied);
+            check(empty.refusal().isEmpty() && empty.frozen() && empty.logos().isEmpty(), "An empty town.dat restored: frozen " + empty.frozen());
+            HubData.store(server, empty);
+            check(TownKeeper.notice(server).equals(Optional.of(FREEZE + "Its records hold no logo: look the town over, then type /aresos hub trust.")),
+                    "The freeze's line with no logo: " + TownKeeper.notice(server));
+            var emptyPass = fake.pass(server);
+            check(emptyPass.lines().isEmpty() && empty.logos().isEmpty() && zones(server).equals(zonesBefore) && snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2)).equals(area),
+                    "An empty town.dat restored built something: " + emptyPass.lines());
+            server.saveAllChunks(true, true, true);
+            var savedEmpty = reopen(server, world);
+            check(Arrays.equals(sealBefore, Files.readAllBytes(TownSeal.file(world))) && savedEmpty.frozen() && savedEmpty.logos().isEmpty(), "A save sealed the empty town.dat");
+            HubData.store(server, older);
+
+            // He looks the logos over (the block he wants to keep, he changes: it is his) and trusts the records. The
+            // pass runs: Discord comes down, Chrome is renewed and Mail gets a logo.
             level.setBlockAndUpdate(his, Blocks.DIAMOND_BLOCK.defaultBlockState());
-            check(TownKeeper.trust(server).equals(Optional.of("The town takes its 2 logos as its own again: from now on it keeps them in step with your apps."))
-                    && HubData.get(server).frozenCount() == 0 && TownKeeper.trust(server).isEmpty() && TownKeeper.notice(server).isEmpty(), "Trust");
+            check(TownKeeper.trust(server).equals(Optional.of("The town trusts its records again and keeps their 2 logos in step with your apps. Anything of a logo"
+                    + " they do not hold is yours from now on, and the town may build that app a logo of its own."))
+                    && !HubData.get(server).frozen() && TownKeeper.trust(server).isEmpty() && TownKeeper.notice(server).isEmpty(), "Trust");
             var trusted = fake.pass(server);
-            check(trusted.lines().equals(List.of("Discord left My apps. Its logo came down.", "The logo of Chrome Browser was renewed.")), "After trust: " + trusted.lines());
-            check(level.getBlockState(his).is(Blocks.DIAMOND_BLOCK) && place(server, "seal-discord").equals("none"), "His diamond or Discord's logo");
+            check(trusted.lines().containsAll(List.of("Discord left My apps. Its logo came down.", "The logo of Chrome Browser was renewed."))
+                    && trusted.lines().stream().anyMatch(line -> line.startsWith("Mail ")), "After trust: " + trusted.lines());
+            check(level.getBlockState(his).is(Blocks.DIAMOND_BLOCK) && place(server, "seal-discord").equals("none") && !place(server, "seal-mail").equals("none"),
+                    "His diamond, Discord's logo or Mail's: " + place(server, "seal-mail"));
             // The next save renews the seal.
             server.saveAllChunks(true, true, true);
-            check(reopen(server, world).frozenCount() == 0 && reopen(server, world).logos().size() == 2, "The seal was not renewed after trust");
+            check(!reopen(server, world).frozen() && reopen(server, world).logos().size() == 2, "The seal was not renewed after trust");
 
             // town.dat restored from the backup taken after the first save, into a copy of this world: unsealed.
-            var restored = copy(world, copies.resolve("restored"));
-            Files.write(HubData.townFile(restored), backup);
-            var fromBackup = reopen(server, restored);
-            check(fromBackup.refusal().isEmpty() && fromBackup.frozenCount() == 2 && fromBackup.logo("seal-discord").isPresent(), "A town.dat from a backup: " + fromBackup.frozenCount());
+            var fromBackup = copy(world, copies.resolve("restored"));
+            Files.write(HubData.townFile(fromBackup), backup);
+            var backedUp = reopen(server, fromBackup);
+            check(backedUp.refusal().isEmpty() && backedUp.frozen() && backedUp.logo("seal-discord").isPresent(), "A town.dat from a backup: frozen " + backedUp.frozen());
+            // town.dat moved out of the world's folder (to start afresh, review fixes 2, point 5): the seal still names
+            // logos, so the town is frozen once more and asks for trust.
+            var movedAway = copy(world, copies.resolve("moved"));
+            Files.delete(HubData.townFile(movedAway));
+            var withoutFile = reopen(server, movedAway);
+            check(withoutFile.refusal().isEmpty() && withoutFile.frozen() && withoutFile.logos().isEmpty(), "town.dat moved away: frozen " + withoutFile.frozen());
 
-            // The end: everything leaves. A town with no logos needs no seal.
+            // The end: everything leaves. A town with no logos and no seal needs no trust, nor one whose seal shows an
+            // empty town of this home after an older mod saved the world.
             fake.apps.replaceAll(app -> app.withMine(false));
             fake.pass(server);
             check(HubData.get(server).logos().isEmpty() && !fake.zoneLeft(server), "Taking the town down");
             server.saveAllChunks(true, true, true);
-            var empty = copy(world, copies.resolve("empty"));
-            Files.delete(TownSeal.file(empty));
-            check(reopen(server, empty).frozenCount() == 0 && reopen(server, empty).refusal().isEmpty(), "A town with no logos was not taken as its own");
+            var noSeal = copy(world, copies.resolve("empty"));
+            Files.delete(TownSeal.file(noSeal));
+            check(!reopen(server, noSeal).frozen() && reopen(server, noSeal).refusal().isEmpty(), "A town with no logos was not taken as its own");
+            copy(world, copies.resolve("older"));
+            try (var olderAccess = LevelStorageSource.createDefault(copies).createAccess("older")) {
+                olderModSaves(olderAccess, TownSeal.lastPlayed(world).orElseThrow() + 1);
+            }
+            check(TownSeal.holding(copies.resolve("older")).isEmpty() && !reopen(server, copies.resolve("older")).frozen(), "An empty town saved by an older mod was frozen");
             done = true;
         } finally {
             if (his != null) level.setBlockAndUpdate(his, Blocks.AIR.defaultBlockState());

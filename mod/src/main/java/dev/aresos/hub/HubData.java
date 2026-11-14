@@ -141,11 +141,13 @@ public final class HubData extends SavedData {
         final GlobalPos home;
         final List<Logo> logos;
         /**
-         * The apps whose logos were in this file when the world opened unsealed ({@link TownSeal}): frozen, nothing of
-         * them is taken down or replaced until he trusts the records again. Not saved: the seal, which is not renewed
-         * while anything is frozen, carries the freeze to the next visit.
+         * Whether the town is frozen (review fixes 2, point 1): the world opened without proof that this file is the
+         * one the town saved with it ({@link TownSeal#trusted}), so the town changes nothing in the world until he
+         * trusts the records again. One state of the whole town, whatever the file holds: a logo it does not hold may
+         * stand too. Not saved: the seal, which is not renewed while the town is frozen, carries the freeze to the
+         * next visit.
          */
-        final Set<String> frozen = new HashSet<>();
+        boolean frozen;
         /**
          * Whether its seal was checked: once, as the first hub joins a file read from the world. A hub's own new
          * file holds only what this session built and needs no check.
@@ -214,8 +216,8 @@ public final class HubData extends SavedData {
 
     /**
      * Joins this record to the world's town file (review fixes 1, points 1 and 3). A file of this home is adopted
-     * whole if its records pass the checks of {@link #add}, and its logos are frozen when it and the world were not
-     * provably saved together ({@link TownSeal}; a town with no logos needs no seal). A file that cannot be read, of
+     * whole if its records pass the checks of {@link #add}, and the town is frozen when it and the world were not
+     * provably saved together ({@link TownSeal#trusted}, review fixes 2, point 1). A file that cannot be read, of
      * another home, or that fails the checks is refused: kept as it is, never replaced, nothing of it adopted, and
      * the town does nothing in this world until he moves that file away.
      *
@@ -227,6 +229,9 @@ public final class HubData extends SavedData {
         var file = storage.get(TownFile.TYPE);
         if (file == null) {
             if (Files.exists(townFile(world))) refusal = "it cannot be read";
+            // No town file, but a seal that names logos: the file was moved away or lost, and its logos may still
+            // stand. A flat home built just now has no town yet.
+            else if (!built) town.frozen = !TownSeal.trusted(world, seed, town);
             return;
         }
         if (!home.equals(file.home)) {
@@ -237,7 +242,7 @@ public final class HubData extends SavedData {
         }
         if (!file.checked) {
             file.checked = true;
-            if (!file.logos.isEmpty() && !TownSeal.sealed(world, seed, file)) for (var logo : file.logos) file.frozen.add(logo.app());
+            file.frozen = !TownSeal.trusted(world, seed, file);
         }
         try {
             adopt(file);
@@ -258,29 +263,30 @@ public final class HubData extends SavedData {
     public Optional<String> refusal() { return Optional.ofNullable(refusal); }
 
     /**
-     * The town file whose seal a save may renew: the town's records are its own (nothing frozen, nothing refused).
-     * Empty while a freeze lasts, so the seal stays broken and the next visit is frozen too.
+     * The town file whose seal a save may renew: the town's records are its own (not frozen, not refused). Empty while
+     * a freeze lasts, so the seal stays broken and the next visit is frozen too.
      */
     Optional<TownFile> sealable() {
-        return attached && refusal == null && town.frozen.isEmpty() ? Optional.of(town) : Optional.empty();
+        return attached && refusal == null && !town.frozen ? Optional.of(town) : Optional.empty();
     }
 
-    /** Whether a logo of the town is frozen: the world opened without proof that its record is the town's own. */
-    public boolean frozen(String app) { return town.frozen.contains(app); }
-
-    /** How many logos are frozen. */
-    public int frozenCount() { return (int)town.logos.stream().filter(logo -> town.frozen.contains(logo.app())).count(); }
+    /**
+     * Whether the town is frozen (review fixes 2, point 1): the world opened without proof that its records are the
+     * town's own. Then the town builds, removes, renews and paves nothing and puts no zone back, for any app, until
+     * he types {@code /aresos hub trust}; what stands stays protected and its doorways work.
+     */
+    public boolean frozen() { return town.frozen; }
 
     /**
-     * {@code /aresos hub trust}: the records are the town's own again and nothing is frozen any more; the next save
-     * renews the seal. The only way a freeze ends.
+     * {@code /aresos hub trust}: the records are the town's own again, as they are; the next save renews the seal.
+     * Anything of a logo they do not hold is his from then on. The only way a freeze ends.
      *
-     * @return how many logos were frozen
+     * @return whether the town was frozen
      */
-    public int trust() {
-        int frozen = frozenCount();
-        town.frozen.clear();
-        return frozen;
+    public boolean trust() {
+        boolean was = town.frozen;
+        town.frozen = false;
+        return was;
     }
 
     /**

@@ -22,6 +22,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -108,6 +109,27 @@ public final class TownSeal {
 
     /** The world's seed, as the seal holds it. */
     public static long seed(MinecraftServer server) { return server.getWorldGenSettings().options().seed(); }
+
+    /**
+     * Whether the town may take a town file as its own as the world opens (review fixes 2, point 1); otherwise it is
+     * frozen. The seal is checked whenever the world has a seal file or the town file holds logos:
+     * <ul>
+     *   <li>neither: a town that never had logos, trusted;</li>
+     *   <li>the seal holds for these records ({@link #sealed}): trusted;</li>
+     *   <li>the seal does not hold, but it and the file both show a town without logos (the seal's fingerprint is
+     *       that of an empty town of this home, and the file is empty): nothing of the town can stand, trusted;</li>
+     *   <li>every other case, an empty file too: not trusted. A file restored or copied on its own can leave out a
+     *       logo that still stands, and the town cannot tell that app from a new one.</li>
+     * </ul>
+     *
+     * @param town the world's town file, or the hub's own empty one when the world has none
+     */
+    static boolean trusted(Path world, long seed, HubData.TownFile town) {
+        if (!Files.exists(file(world))) return town.logos.isEmpty();
+        if (sealed(world, seed, town)) return true;
+        var empty = fingerprint(new HubData.TownFile(town.home, List.of()));
+        return town.logos.isEmpty() && read(world).filter(seal -> seal.town().equals(empty)).isPresent();
+    }
 
     /**
      * Whether a world's town records are sealed: the seal is there, it was written for the {@code LastPlayed} that

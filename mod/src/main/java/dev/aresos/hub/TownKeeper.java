@@ -52,6 +52,9 @@ import java.util.stream.Collectors;
  * few seconds while he is in the world (so also when he comes near). A place that still holds the town's own logo is
  * not blocked: that logo comes down first, then the new one is built, so a place can change hands in one pass.
  *
+ * <p>A frozen town ({@link HubData#frozen}, review fixes 2) changes nothing in the world: no pass runs, {@code hub
+ * rebuild} refuses, until he types {@code /aresos hub trust}.
+ *
  * <p>Pictures are read away from the server thread (an icon may take seconds to read; {@link PictureReader}, which
  * drops them when the server stops); a pass only uses pictures already read and names the apps it still needs.
  */
@@ -101,9 +104,6 @@ public final class TownKeeper {
     private boolean stale, due, pending;
     private long retryAt;
 
-    /** Why a frozen logo stays: said after "The logo of Discord stays as it is: ". */
-    static final String FROZEN = "the town takes none of its logos down until you type /aresos hub trust.";
-
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(TownKeeper::tick);
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
@@ -116,7 +116,7 @@ public final class TownKeeper {
 
     /**
      * The line he reads as he enters a world whose town's records are in doubt: its town file does not fit the world
-     * (the town does nothing here), or its logos are frozen (the world was not provably saved with them). Empty
+     * (the town does nothing here), or the town is frozen (the world was not provably saved with its records). Empty
      * otherwise.
      */
     public static Optional<String> notice(MinecraftServer server) {
@@ -124,10 +124,18 @@ public final class TownKeeper {
         if (hub == null || !HubLayout.LOOK.equals(hub.look())) return Optional.empty();
         var refusal = hub.refusal();
         if (refusal.isPresent()) return Optional.of(refused(server, refusal.get()));
-        int frozen = hub.frozenCount();
-        if (frozen == 0) return Optional.empty();
-        return Optional.of("This world was saved without the town's records since the town last saw it, so the town leaves its "
-                + (frozen == 1 ? "logo as it is" : frozen + " logos as they are") + ". Look them over, then type /aresos hub trust.");
+        return hub.frozen() ? Optional.of(frozen(hub)) : Optional.empty();
+    }
+
+    /**
+     * The freeze's line (review fixes 2, point 4): as he enters a frozen world, and {@code hub rebuild}'s refusal. Also
+     * when the town file holds no logo: a logo it does not hold may stand.
+     */
+    static String frozen(HubData hub) {
+        int logos = hub.logos().size();
+        return "This world was opened without the town's records since its last visit, so the town builds and removes nothing. "
+                + (logos == 0 ? "Its records hold no logo: look the town over" : "Look over its " + (logos == 1 ? "logo" : logos + " logos"))
+                + ", then type /aresos hub trust.";
     }
 
     /** What he reads about a town file that does not fit his world: why, where it is, and how to start afresh. */
@@ -138,16 +146,17 @@ public final class TownKeeper {
     }
 
     /**
-     * {@code /aresos hub trust}: ends the freeze, the records are the town's again (its seal is renewed at the next
-     * save), and a pass follows. Its line, or empty when nothing was frozen.
+     * {@code /aresos hub trust}: ends the freeze, the records are the town's again as they are (its seal is renewed at
+     * the next save), and a pass follows. Its line says what that means, or empty when the town was not frozen.
      */
     public static Optional<String> trust(MinecraftServer server) {
         var hub = HubData.get(server);
-        int frozen = hub == null ? 0 : hub.trust();
-        if (frozen == 0) return Optional.empty();
+        if (hub == null || !hub.trust()) return Optional.empty();
         ask();
-        return Optional.of("The town takes its " + (frozen == 1 ? "logo" : frozen + " logos") + " as its own again: from now on it keeps "
-                + (frozen == 1 ? "it" : "them") + " in step with your apps.");
+        int logos = hub.logos().size();
+        return Optional.of("The town trusts its records again" + (logos == 0 ? "; they hold no logo." : " and keeps their "
+                + (logos == 1 ? "logo" : logos + " logos") + " in step with your apps.")
+                + " Anything of a logo they do not hold is yours from now on, and the town may build that app a logo of its own.");
     }
 
     /** Any thread: a complete program list from the system went into the apps file. From now on the town may follow. */
@@ -168,7 +177,7 @@ public final class TownKeeper {
      */
     public static boolean speaks(MinecraftServer server) {
         var hub = HubData.get(server);
-        return complete && hub != null && HubLayout.LOOK.equals(hub.look()) && hub.refusal().isEmpty();
+        return complete && hub != null && HubLayout.LOOK.equals(hub.look()) && hub.refusal().isEmpty() && !hub.frozen();
     }
 
     /**
@@ -206,7 +215,8 @@ public final class TownKeeper {
         boolean retry = pending && server.getTickCount() >= retryAt;
         if (!stale && !due && !retry) return;
         var hub = HubData.get(server);
-        if (hub == null || !HubLayout.LOOK.equals(hub.look()) || hub.refusal().isPresent()) {
+        // Refused or frozen: the town changes nothing in this world; trust asks for a pass.
+        if (hub == null || !HubLayout.LOOK.equals(hub.look()) || hub.refusal().isPresent() || hub.frozen()) {
             stale = due = pending = false;
             return;
         }
@@ -285,28 +295,25 @@ public final class TownKeeper {
      * the rules, in the place saved with its app. What he changed in a logo is his and stays; where it is in the way
      * the logo stands one place on, as for any blocked place. A logo whose place is not loaded is built again when it
      * is; one he hangs something on stays as it was until he takes that away. Says one line, plus a line for each
-     * thing of his in the way. Changes nothing on an incomplete list or outside a flat home of these rules.
+     * thing of his in the way. Changes nothing on an incomplete list or outside a flat home of these rules. A frozen
+     * town is not rebuilt: its one line is the freeze's.
      */
     public Pass rebuild(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots) {
         var hub = HubData.get(server);
         if (!programs.complete() || hub == null || !HubLayout.LOOK.equals(hub.look()) || hub.refusal().isPresent()) return Pass.NOTHING;
-        // A frozen logo is not built again: nothing of it is taken down until he trusts the records.
-        for (var logo : hub.logos()) if (!hub.frozen(logo.app())) renew.add(logo.app());
+        if (hub.frozen()) return new Pass(List.of(frozen(hub)), false, Set.of());
+        for (var logo : hub.logos()) renew.add(logo.app());
         said.clear();
         refused.clear();
-        var pass = keep(server, programs, pictures, spots, true);
-        int frozen = hub.frozenCount();
-        if (frozen == 0) return pass;
-        var lines = new ArrayList<>(pass.lines());
-        lines.add((frozen == 1 ? "Its frozen logo stays as it is" : "Its " + frozen + " frozen logos stay as they are") + " until you type /aresos hub trust.");
-        return new Pass(lines, pass.pending(), pass.pictures());
+        return keep(server, programs, pictures, spots, true);
     }
 
     private Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots, boolean rebuilt) {
         if (!programs.complete()) return Pass.NOTHING;
         var hub = HubData.get(server);
-        // A town file that does not fit this world: the town builds, takes down and paves nothing (point 3).
-        if (hub == null || !HubLayout.LOOK.equals(hub.look()) || hub.refusal().isPresent()) return Pass.NOTHING;
+        // A town file that does not fit this world (point 3), or a frozen town (review fixes 2, point 1): the town
+        // builds, takes down, renews and paves nothing, and puts no zone back.
+        if (hub == null || !HubLayout.LOOK.equals(hub.look()) || hub.refusal().isPresent() || hub.frozen()) return Pass.NOTHING;
         var level = server.getLevel(hub.home().dimension());
         if (level == null) return Pass.NOTHING;
 
@@ -351,13 +358,7 @@ public final class TownKeeper {
             if (place != null) saved.put(app.id(), place);
             input.add(new Assignment.App(app.id(), AppGroup.of(app), place, wanted(app)));
         }
-        // A frozen logo's place is taken while it stands: its own app keeps it if it stays there, no other app gets it.
-        var frozen = new HashSet<Place>();
-        for (var logo : hub.logos()) if (hub.frozen(logo.app())) Place.parse(logo.place()).ifPresent(frozen::add);
-        for (var app : input)
-            if (app.wanted() && app.saved() != null && app.saved().group() == app.group() && hub.frozen(app.id())
-                    && hub.logo(app.id()).flatMap(logo -> Place.parse(logo.place())).equals(Optional.of(app.saved()))) frozen.remove(app.saved());
-        var assignment = Assignment.of(input, place -> frozen.contains(place) || blocked(server, place, occupied));
+        var assignment = Assignment.of(input, place -> blocked(server, place, occupied));
 
         save(apps.values(), assignment, spots, lines);
         boolean pending = false;
@@ -370,13 +371,6 @@ public final class TownKeeper {
             var target = assignment.standing().get(logo.app());
             var at = Place.parse(logo.place());
             if (target != null && at.equals(Optional.of(target))) continue;
-            if (hub.frozen(logo.app())) {
-                // Its app left or stands elsewhere now; the frozen logo stays and holds its place, one logo an app.
-                stays.add(logo.app());
-                at.ifPresent(waitingFor::add);
-                once(lines, "The logo of " + logo.name() + " stays as it is: " + FROZEN);
-                continue;
-            }
             try {
                 Town.remove(server, logo.app());
                 cameDown.add(logo.app());
@@ -399,8 +393,6 @@ public final class TownKeeper {
             var standing = hub.logo(app.id());
             // The town's logo that stands there comes down first.
             if (standing.isEmpty() && waitingFor.contains(place)) continue;
-            // A frozen logo is not renewed, whatever changed in its app.
-            if (standing.isPresent() && hub.frozen(app.id())) continue;
             var picture = pictures.apply(app);
             if (picture.isEmpty()) {
                 need.add(app.id());
@@ -444,8 +436,7 @@ public final class TownKeeper {
         for (var skip : assignment.skipped().entrySet()) {
             var app = apps.get(skip.getKey());
             var to = assignment.standing().get(skip.getKey());
-            // A frozen logo's place is the town's own, not something of his.
-            var places = skip.getValue().stream().filter(place -> !frozen.contains(place)).toList();
+            var places = skip.getValue();
             if (places.isEmpty()) continue;
             String named = places.stream().limit(NAMED_PLACES).map(Place::name).collect(Collectors.joining(", "))
                     + (places.size() > NAMED_PLACES ? " and " + (places.size() - NAMED_PLACES) + " more" : "");
@@ -462,7 +453,7 @@ public final class TownKeeper {
      * packages 33 to 35 sees it as a plain zone, and its {@code zone remove} takes it away) is put back as the town made
      * it, if nothing else claims its space: no other zone in its box or at its exit, the check every new zone passes.
      * Otherwise the logo stays without a doorway, said once. A zone of his that took the logo's zone ID is his and
-     * stays. Putting a zone back takes nothing down, so a frozen logo's comes back too.
+     * stays. Not in a frozen town, whose passes do nothing (review fixes 2, point 1).
      */
     private void doorways(MinecraftServer server, HubData hub, TownLines lines) {
         var zones = ZoneData.get(server);

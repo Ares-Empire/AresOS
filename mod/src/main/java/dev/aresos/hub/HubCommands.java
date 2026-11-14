@@ -20,7 +20,7 @@ public final class HubCommands {
                 .then(Commands.literal("trust").executes(context -> trust(context.getSource())));
     }
 
-    /** {@code /aresos hub trust}: the town's frozen logos are its own again (review fixes 1, point 2). */
+    /** {@code /aresos hub trust}: the town's records are its own again and the freeze ends (review fixes 1 and 2). */
     private static int trust(CommandSourceStack source) throws CommandSyntaxException {
         var player = source.getPlayerOrException();
         var server = source.getServer();
@@ -44,6 +44,8 @@ public final class HubCommands {
         if (!HubLayout.LOOK.equals(hub.look()))
             return refuse(source, "This town was built by other rules (" + hub.look() + "). This AresOS cannot rebuild it.");
         if (hub.refusal().isPresent()) return refuse(source, TownKeeper.refused(server, hub.refusal().get()));
+        // A frozen town takes nothing down and builds nothing (review fixes 2, point 1).
+        if (hub.frozen()) return refuse(source, TownKeeper.frozen(hub));
         // Taking logos down needs the list that says which apps are installed, as every pass of the town does.
         if (!TownKeeper.complete())
             return refuse(source, "The town waits for the system's list of programs. Nothing was rebuilt; try again in a moment.");

@@ -53,10 +53,12 @@ public final class Town {
 
     /**
      * Builds an app's logo in a place and records it, or throws with the reason and changes nothing. The sign shows
-     * the app's name and its main short name. One logo an app: an app whose logo stands is refused.
+     * the app's name and its main short name. One logo an app: an app whose logo stands is refused. A frozen town
+     * builds nothing.
      */
     public static HubData.Logo build(MinecraftServer server, AppDefinition app, Place place, GatePicture picture) throws IOException {
         var hub = hub(server);
+        unfrozen(hub);
         if (hub.logo(app.id()).isPresent()) throw new IOException("The logo of " + app.name() + " already stands in the town.");
         var level = level(server, hub);
         var prepared = prepare(level, hub, app.id(), plan(hub, app, place, picture));
@@ -83,12 +85,12 @@ public final class Town {
      * changed is his and stays. So is a sign or zone that is no longer what the town made (review fixes 1, step B,
      * point 2): a sign he edited, an entity or zone of his that took the recorded ID. Those stay and leave the record
      * with the logo, whose removal still counts as done. Refuses, changing nothing, while its place is not loaded
-     * ({@link GateBuilder.NotLoaded}) or when something of his hangs on it.
+     * ({@link GateBuilder.NotLoaded}) or when something of his hangs on it, and in a frozen town.
      */
     public static GateBuilder.Removal remove(MinecraftServer server, String app) throws IOException {
         var hub = hub(server);
         var logo = hub.logo(app).orElseThrow(() -> new IOException("No logo of " + app + " stands in the town."));
-        if (hub.frozen(app)) throw new IOException("The logo of " + logo.name() + " is frozen: " + TownKeeper.FROZEN);
+        unfrozen(hub);
         var removal = GateBuilder.takeDown(level(server, hub), logo.gate(), hub.sign(logo).orElseThrow());
         ZoneData.get(server).remove(zone -> hub.made(logo, zone));
         hub.remove(app);
@@ -119,6 +121,11 @@ public final class Town {
         var refusal = hub.refusal();
         if (refusal.isPresent()) throw new IOException(TownKeeper.refused(server, refusal.get()));
         return hub;
+    }
+
+    /** Refuses in a frozen town (review fixes 2, point 1): it builds and removes nothing until he trusts its records. */
+    private static void unfrozen(HubData hub) throws IOException {
+        if (hub.frozen()) throw new IOException("The town is frozen: it builds and removes nothing until you type /aresos hub trust.");
     }
 
     private static ServerLevel level(MinecraftServer server, HubData hub) throws IOException {
