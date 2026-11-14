@@ -1,6 +1,6 @@
 # Package 20, final fixes: progress
 
-Brief: [`briefs/20-final-fixes.md`](../../briefs/20-final-fixes.md). Claude agents build it in five steps, one fresh
+Brief: [`briefs/20-final-fixes.md`](../../briefs/20-final-fixes.md). Claude agents build it in six steps, one fresh
 agent each. The last step deletes this file.
 
 ## Done
@@ -101,10 +101,31 @@ Commits `90f8f720` (F4) and `6a948248` (the flag, doc notes, unit pins); details
 - **Full local preflight on `f850ec7d`:** 288 Python (shards 50/43/100/95; the Linux-only socket case is skipped on
   the Mac), 392 Node and 373 mutations, plus the generator, diff and unit-pin checks, all green.
 
+### Step 5 (the lead's follow-ups to steps 3 and 4), Claude Opus 5.5, 2026-11-14
+
+Commits `529d5fe8`, `2f633a8d` (F7) and `3a2ec7c4` (back/forward, editors, whose typing); details in REPORT.md,
+"Step 5".
+- **F7 dialog text:** `polkit-check.py` asserts every prompt is the policy's message naming that case's change (two
+  different changes). Run **`43561341511`** passed; polkit carries `$(change)` for this caller, so every claim that
+  the dialog names the change stands.
+- **F7 CI:** `control-chrome-polkit.yml` runs on pull-request pushes (paths: `confirm.py`, the policy, the check, the
+  unit, the workflow); the `polkit` shim is gone and `control-chrome-check.yml` matches `b424f60a` again.
+- **F7 install tree:** a test pins that only the real policy is hashed and installed under `/usr/share/polkit-1/`.
+- **KNOWN-LIMITS:** the spoofer-first availability line, and the one typing-mark race.
+- **Back and forward** get the shared report and the flag.
+- **Editors** count only after input since load (a late reader or a gap after release still counts every editor);
+  plain inputs and textareas keep their rule.
+- **Whose typing: built.** The guard's trusted-event capture already sees every `input` event and knows when Claude's
+  dispatch is in flight, so it records per field whether the owner or Claude typed. The report marks each field;
+  Claude's own typing may be discarded without asking, the owner's typing, playing media and uninspected frames need
+  his OK.
+- Probes: 19 new (`final-f7-*` 7, `step5-*` 12), two repointed; all rejected.
+- **Full local preflight on `3a2ec7c4`:** 291 Python (shards 53/43/100/95; the Linux-only socket case is skipped on the Mac), 399 Node and 392 mutations, plus the generator, diff and unit-pin checks, all green.
+
 ## Left, in order
 
-1. **Step 5: one batched browser run**, `gh workflow run control-chrome.yml --ref pkg/20-chrome` (budget: 255 of
-   about 280 used; steps 1 to 4 started none). Every row below must pass; the whole suite runs in it.
+1. **Step 6: one batched browser run**, `gh workflow run control-chrome.yml --ref pkg/20-chrome` (budget: 255 of
+   about 280 used; steps 1 to 5 started none). Every row below must pass; the whole suite runs in it.
    - **F2:** 14 credential fields and two ordinary ones (`Distanz`, `Tank`) on the late-reader page
      (`control/chrome/ci/late-reader-fixtures.mjs`), checked by `GROUP 7 POST18D credentials and revealed passwords
      stay unreadable before take reload` and `GROUP 7 POST18D typed field reads require exact one-call approval`.
@@ -124,9 +145,22 @@ Commits `90f8f720` (F4) and `6a948248` (the flag, doc notes, unit pins); details
      - `final-discard-navigate-url-{dirty,web-audio,clean}` (a taken tab; the report names `field "Draft"`, the page
        stays, the flag moves on);
      - `final-discard-close-tab-{dirty,web-audio,clean}` (a tab Claude opened; Claude's click starts the Web Audio;
-       the tab stays controlled until the flag closes it).
+       the tab stays controlled until the flag closes it; the dirty report now names `field "Draft" (typed by the
+       owner)`).
+   - **Step 5, same group:**
+     - `final-discard-history-dirty`: back from script-made unsaved text reports `field "Draft" (typed by the owner)`
+       and stays; the flag goes back; forward from that page reports ("Going forward in this tab would lose") and
+       stays; the flag goes forward. The first page may return from the back-forward cache, so the forward check
+       accepts any report;
+     - `final-discard-history-clean`: back from a fresh clean page goes without the flag;
+     - `final-discard-editor-untouched`: an empty, untouched editor in a Claude tab needs no flag;
+     - `final-discard-editor-typed-by-claude`: after Claude fills the editor, the report names `editor "Notes" (typed
+       by Claude)`, says "All of it is Claude's own typing" and never shows the text; the flag moves on.
+     - The owner's mark on his own trusted typing in a Claude tab is covered by Node only (`page.test.mjs`); in the
+       browser the owner mark appears for script-made and taken-tab text.
    - **F7:** `test_owner_confirm.py`'s Linux-only case (a real spoofing process on a real socket) in the CI Python
-     shards; it is skipped on the Mac. F7 has no browser row.
+     shards; it is skipped on the Mac. F7 has no browser row. Real polkit runs in `control-chrome-polkit.yml` in the
+     final pair, not in step 6.
    - **Latency:** Chrome's latency at the 1,000 and 4,000 histories against the ceilings, now without the
      `operation_headers` index and with F4's rule (median or p95). The measured navigate now runs the unsaved
      report (one reader query per frame).
@@ -144,9 +178,9 @@ Commits `90f8f720` (F4) and `6a948248` (the flag, doc notes, unit pins); details
 - **F7, what CI can't show:** `allow_active` from the policy's defaults on seat0 (CI uses a stand-in rule), and
   polkit's session lookup for Chrome's native host, which runs in a systemd user scope (polkit falls back to the
   user's display session). Both are 18c-b.
-- **F7, the new workflow:** `control-chrome-polkit.yml` can be dispatched only once it is on main; until then
-  `gh workflow run control-chrome-check.yml --ref pkg/20-chrome -f polkit=true`. The `polkit` input and the gated
-  job in `control-chrome-check.yml` can go after the merge.
+- **F7, the new workflow:** `control-chrome-polkit.yml` can be dispatched by hand (`workflow_dispatch`) only after it
+  reaches main; GitHub answers 404 for a workflow file that exists only on a branch. Before that it runs only on a
+  pull-request push that touches its paths, as in the final pair. The dispatch shim is gone.
 - **F7, the refactor:** the chrome branch of `Daemon.serve` moved into `Daemon.accept_chrome` unchanged, apart
   from reading the pid; `Bridge.accept` takes the peer.
 
@@ -173,18 +207,23 @@ Commits `90f8f720` (F4) and `6a948248` (the flag, doc notes, unit pins); details
   rule and use `xlink:show="new"` only for an empty own target; an iframe name keeps a newline. Step 4's rows check
   them; the `xlink-show` rows check removing `xlink:show` (the `_blank` binding before it is checked only by the
   reader tests), so no extra tab opens during the suite.
-- **discard_unsaved, for the lead** (none of these blocks step 5):
-  - The error code stays `reload_required` for all four acts, so the code and the report stay one pattern. The
-    name doesn't fit navigating to an address or closing; the report text names the act. A rename (for example
-    `unsaved_changes`) is a small separate change if wanted.
-  - **Back and forward** still drop a document without the report: the brief lists reload, an address and close.
-    They are the last members of the class; adding them is one `requireDiscard` call each, plus browser rows.
-  - The report uses the existing predicate, so in a Claude tab it also lists text Claude typed itself, and it
-    always lists a rich-text editor (there is no native default to compare). Claude repeats with the flag for its
-    own typing; for an editor it can't tell apart, the instructions send it to the owner. Telling his typing from
-    Claude's would need a per-field record of what Claude's input left, which is a new design.
+- **discard_unsaved** (the lead's decisions, kept as they are):
+  - The error code stays `reload_required` for all six acts (brief 28 reshapes these tools).
   - `chrome_close_tab` while a native dialog is open can't query the frame, so it counts as not inspected and needs
     the flag.
+- **For the lead (not blocking step 6): React-controlled plain fields.** Plain inputs and textareas keep the lead's
+  rule, a value different from the page's default. React keeps a controlled field's default (`value` attribute,
+  `defaultValue`) in step with its value, so in a watched document typing in such a field is not reported and a
+  navigate, close or reload drops it without a question (taken tabs before their reload are unaffected: every text
+  field counts there). The guard's new record could close it: count a plain field also when it got trusted input
+  since load and still holds text. That would make the latency page report after Send (it resets its textarea to its
+  non-empty default and the measured navigate passes no flag), so the latency page would have to empty both value and
+  default. Not built: the lead asked to keep the plain-field rule.
+- **Whose typing, how it is decided:** trusted `input` events only; Claude's when `inFlight` and in the field Claude
+  aimed at (`arm`'s target, or its editing host). Claude's `select`/`check` through the reader mark it explicitly. An
+  upload is not marked (no test fixture stages files), so an uploaded file counts as the owner's and Claude asks.
+  The record sits on a document-lifetime symbol in the isolated world (`aresos.chrome.typing.v1`), like the password
+  tracker: no extension storage.
   - CI harness: `nav()`, two direct navigations in `matrices.mjs` and every cleanup `close_tab` pass the flag; the
     latency fixture's Send clears its draft after sending (both runtimes see the same page).
 - **Credential false positives:** a control named only by a short credential word (a "PIN" or "Secret" button) is
