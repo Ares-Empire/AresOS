@@ -629,6 +629,9 @@ case('group-window-no-create-properties',B,GROUP_WINDOW,GROUP_WINDOW.replace("{c
 DEAD_CONTEXT="if(!nativeContextMissing(error)||state.contexts.get(context.id)!==context)throw error;"
 case('post-popup-dead-context-ends-admission',B,DEAD_CONTEXT,"throw error;",node('background','post-popup a dead context'))
 case('post-popup-any-error-forgotten',B,DEAD_CONTEXT,"if(state.contexts.get(context.id)!==context)throw error;",node('background','post-popup any other'))
+# The third probe (the lead's, 2026-11-14) lets an empty context set after
+# forgetting pass as "read everything": the admission must fail closed instead.
+case('post-popup-empty-contexts-count-as-read',B,"for(const frameId of forgotten)if(!covered(frameId))throw Error(","for(const frameId of [])if(!covered(frameId))throw Error(",node('background','post-popup no live context'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

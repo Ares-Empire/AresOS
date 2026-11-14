@@ -262,6 +262,7 @@ async function lateReader(tab,browserDocument=null){
   }
   for(const state of preloadTargets.values()){if(state.tab!==tab)continue;
     await Promise.all([...state.installing||[]]);assertTarget(state);
+    const forgotten=new Set();
     for(const context of state.contexts.values()){
       if(context.origin!==chrome.runtime.getURL('').replace(/\/$/,'')||context.auxData?.isDefault!==false||[...state.documents.values()].some(doc=>doc.isolated===context.uniqueId))continue;
       const relayKey='data-aresos-'+crypto.randomUUID(),relayValue=crypto.randomUUID();
@@ -278,7 +279,7 @@ async function lateReader(tab,browserDocument=null){
         if(!nativeContextMissing(error)||state.contexts.get(context.id)!==context)throw error;
         state.contexts.delete(context.id);for(const [key,doc]of state.documents)if(doc.isolated===context.uniqueId)state.documents.delete(key);contextChanged(state);
         if(recording)audit({late_reader_context:{tab,context:context.id,outcome:'native_context_missing'}});
-        continue;
+        forgotten.add(context.auxData?.frameId??null);continue;
       }
       if(factory.exceptionDetails||!factory.result?.objectId)continue;
       const relay=await targetCommand(state,'Runtime.callFunctionOn',{objectId:factory.result.objectId,functionDeclaration:'function(){return this.relay;}'});
@@ -287,6 +288,12 @@ async function lateReader(tab,browserDocument=null){
       if(state.contexts.get(context.id)?.uniqueId!==context.uniqueId)throw Error('stale_reference: passive document changed');
       state.documents.set(context.uniqueId,{install:'late',document:identity.result.value,isolated:context.uniqueId,main:context.uniqueId,cleanup:factory.result.objectId,backend:described.node.backendNodeId,relayKey,relayValue,ready:false});
     }
+    // Fail closed: a frame whose dead context was forgotten must end with its
+    // live document read and recorded. The live context is learned only from
+    // the renderer's own Debugger.scriptParsed (its context.js, or the guard
+    // and reader injected above); no context left is never "read everything".
+    const covered=frameId=>[...state.documents.values()].some(doc=>[...state.contexts.values()].some(context=>context.uniqueId===doc.isolated&&(context.auxData?.frameId??null)===frameId));
+    for(const frameId of forgotten)if(!covered(frameId))throw Error('refused: a document of this tab left its renderer during admission and its replacement is unread; take the tab again');
   }
   await linkPrivateDocuments();
   }finally{owner.settingUp.delete(settingUp);complete();}
