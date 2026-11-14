@@ -1,8 +1,9 @@
 # Package 30b: a hint says how a program must be started
 
 Brief: `briefs/30b-launch-hints.md` (empire board brief 288). Built by a Claude agent (Opus 5.5) in one step,
-2026-11-14, on branch `pkg/30b-launch-hints` from package 30's `0156d727` (plus the brief commit `2096b538`). This file
-holds the full report text: the builder's file tool refuses `REPORT.md`.
+2026-11-14, on branch `pkg/30b-launch-hints` from package 30's `0156d727` (plus the brief commit `2096b538`). The
+builder left this text in `PROGRESS.md` (its file tool refuses `REPORT.md`); the orchestrator moved it here, merged
+package 30's branch in, and added the sentence the builder suggested to `docs/design/OS-BASE.md`.
 
 Status: built, verified on the laptop, pushed. The hosted checks-only run is under "Hosted run" below. No pull request
 (the orchestrator opens it after package 30 is merged).
@@ -158,6 +159,8 @@ The check build (`check_build=build`, which runs `image-checks.sh` in the image)
 
 - The brief points at a section "Open after this package" in `reviews/30-installed-programs/REPORT.md`; that report (at
   `2096b538`) has no such section. Its "Known limits", "Open questions" and "Review fixes 2" sections were read instead.
+  *(Orchestrator: the section was written on package 30's branch after this branch was cut; it is here since the
+  merge of `pkg/30-installed-programs`.)*
 - `docs/design/OS-BASE.md` ("Window ownership (package 30, review fixes 1)") describes the hint format as `schema` 1,
   `desktop_id`, `app_ids` and/or `app_id_prefixes`, and is now incomplete. It is outside the brief's files, so left
   for the orchestrator. A sentence that would fit: "A hint may also say how its program starts: `gpu` (`discrete`) and
