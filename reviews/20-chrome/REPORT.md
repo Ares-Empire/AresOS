@@ -15,21 +15,26 @@
   60 minutes. Fault jobs now get **120 minutes**, within the lead's target; suite
   jobs stay35 and all eight partitions/23flows/assertions are unchanged. Chrome
   still uses120-minute containers/130-minute jobs. Old evidence is intermediate.
-- **In flight on this head:** Chrome push **`43539449510`** (watch `24080`), PR
-  **`43539458133`** (`11065`); base **`43539457993`** (`37632`), Mail
-  **`43539458146`** (`17579`), boundary **`43539458152`** (`1496`), qualification
-  **`43539458040`** (`70825`). One blocking watcher each. Four shared watchers
-  request attempt 2 only after attempt 1 succeeds; Chrome runs once each.
+- **Observer backoff (CI itself continues):** GitHub REST core quota reached
+  5,000/5,000; all old watcher processes exited on HTTP403, not a test verdict.
+  Reset is **2026-11-14 01:42:22 UTC**. Deferred helpers make no API calls before
+  **01:42:52 UTC**, then use one blocking watch per run at **300-second intervals**.
+  Last confirmed: base/boundary/qualification attempt1 passed and attempt2 was
+  requested; Chrome/Mail first outcomes are unobserved. Do not create duplicate runs.
+- **Deferred resume helpers on this head:** Chrome push **`43539449510`** (session
+  **`54557`**), PR **`43539458133`** (**`91769`**); base **`43539457993`** (**`82667`**),
+  Mail **`43539458146`** (**`52800`**), boundary **`43539458152`** (**`4964`**),
+  qualification **`43539458040`** (**`7139`**). They inspect finalized receipts and
+  actual attempt numbers before requesting a missing second success.
 - **Budget:** **255 / about 280** Chrome runs, including this pair.
-- **Exact next step:** resume these watchers; if stopped, inspect finalized attempt
-  receipts under `.work/post18d/acceptance/` before requesting any rerun, then use
-  one blocking watch per active run. Require two green executions of every named
-  Control workflow and the complete Chrome pair. Fetch Chrome root metadata only
-  with `.work/post18d/fetch-final-chrome.py RUN`; require all four independent
-  audits, 98 named cases/999wordcells, all92 original round-3 names, frozen runtime
-  and both latency profiles. Save completed shared logs/receipts with
-  `.work/post18d/save-shared-evidence.py LABEL`. Commit each finished step with
-  `[skip ci]` and update this Handover. Keep PR #27 draft; never merge it.
+- **Exact next step:** let the deferred helpers respect the reset, then resume
+  their sessions. If stopped, use `.work/post18d/resume-acceptance.py RUN LABEL
+  TARGET 1794620542` (TARGET1 for each Chrome run,2 for the four shared workflows).
+  It waits through the recorded reset and uses cached success receipts to avoid
+  duplicates. Require all final-head greens, then completed shared logs/receipts,
+  Chrome metadata/four independent audits, all92 original names and latency gates.
+  Commit each finished step with `[skip ci]`; update this Handover. PR #27 stays
+  draft. No production/CI code change is needed for the observer quota.
 
 # Post-18d integration — final repetitions pending
 
@@ -206,6 +211,12 @@ Chrome stays120-minute containers/130-minute jobs.
 
 Both scoped [package](BUILD-POST18D-MAIL-BUDGET-REVIEW.md) and
 [security](BUILD-POST18D-MAIL-BUDGET-SECURITY.md) budget reviews are SAFE.
+
+**Observer interruption:** all six watch processes hit the shared GitHub REST
+core limit (5,000/hour) at 01:24–01:25 UTC. No CI failure is inferred. The single
+rate-limit check records reset 01:42:22 UTC; deferred watchers wait until01:42:52
+and use300-second intervals, without extra status queries or duplicate reruns.
+[Quota receipt](records/post18d/observer-rate-limit-20261114.json).
 
 **Current candidate:** `a4143586`, full local preflight green. All six required
 workflow runs are active ([inventory](records/post18d/final-a4143586-runs.json));

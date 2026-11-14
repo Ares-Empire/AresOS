@@ -1,0 +1,12 @@
+{
+  "resource": "GitHub REST core, shared authenticated account",
+  "limit": 5000,
+  "used": 5000,
+  "remaining": 0,
+  "observed_utc": "2026-11-14T01:27:11.597742+00:00",
+  "reset_utc": "2026-11-14T01:42:22+00:00",
+  "reset_epoch": 1794620542,
+  "resume_margin_seconds": 30,
+  "new_watch_interval_seconds": 300,
+  "ci_failure_inferred": false
+}
