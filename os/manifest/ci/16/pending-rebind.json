@@ -35,7 +35,8 @@
     "22c review fixes 3, fix 1: the failed-update card checks first; previous only where the update is in place",
     "22c review fixes 3, fix 2: the forward/back box never installs a release",
     "22c review fixes 3, fix 3: a return that changes nothing has its own completion",
-    "22c review fixes 3, fix 4: a VM dispatch needs the full model passed on its head when its sources changed"
+    "22c review fixes 3, fix 4: a VM dispatch needs the full model passed on its head when its sources changed",
+    "22c review fixes 3: the status row names the new card route and review 4"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
