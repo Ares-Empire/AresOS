@@ -169,7 +169,7 @@ public final class FlatHomeGameTests {
             var brightness = tag.getCompoundOrEmpty("brightness");
             check(brightness.getIntOr("sky", -1) == 15 && brightness.getIntOr("block", -1) == 15, words[i] + " is not at full brightness");
             var scale = tag.getCompoundOrEmpty("transformation").getListOrEmpty("scale");
-            check(scale.size() == 3 && scale.getFloatOr(0, 0) == 3 && scale.getFloatOr(1, 0) == 3 && scale.getFloatOr(2, 0) == 3,
+            check(scale.size() == 3 && scale.getFloatOr(0, 0) == 2.5f && scale.getFloatOr(1, 0) == 2.5f && scale.getFloatOr(2, 0) == 2.5f,
                     words[i] + " has scale " + scale);
         }
     }

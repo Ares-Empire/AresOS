@@ -165,6 +165,8 @@ public final class MyAppsGame {
             var seen = SEEN.get(player.getUUID());
             if (seen != null && (seen.removed != now || seen.added != now)) tidy(player, seen, now);
         }
+        // In a flat home the town says where a new app stands; one line about it, not two (HUB.md 1).
+        if (!NEWS.isEmpty() && dev.aresos.hub.TownKeeper.speaks(server)) NEWS.clear();
         if (!NEWS.isEmpty()) for (ServerPlayer player : server.getPlayerList().getPlayers())
             if (DesktopWorld.isHost(server, player)) {
                 tell(player);

@@ -45,7 +45,11 @@ public final class HubLayout {
 
     public static final int NAME_OUTWARD = 20;
     public static final int NAME_HEIGHT = 9;
-    public static final float NAME_SCALE = 3;
+    /**
+     * 2.5, not the design's 3: with its count a name is up to 103 text pixels wide ("SYSTEM & TOOLS · 14"), which
+     * at 3 is 7.7 blocks in the 7 blocks between the two front logos, so its last digit hid inside the logo.
+     */
+    public static final float NAME_SCALE = 2.5f;
     /** Text displays are seen from 64 blocks times this: 160 blocks. */
     public static final float NAME_VIEW_RANGE = 2.5f;
     /**

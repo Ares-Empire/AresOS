@@ -3,6 +3,7 @@ package dev.aresos.hub;
 import com.mojang.math.Transformation;
 import dev.aresos.AresOs;
 import dev.aresos.catalogue.AppGroup;
+import dev.aresos.mixin.DisplayAccess;
 import dev.aresos.mixin.TextDisplayAccess;
 import dev.aresos.zone.Placing;
 import net.minecraft.core.BlockPos;
@@ -121,8 +122,11 @@ public final class FlatHub {
         BlockPos at = group.block(hub.home().pos(), HubLayout.NAME_OUTWARD, 0, HubLayout.NAME_HEIGHT);
         if (!loaded(level, at)) return false;
         // A name that is gone (only a command can remove one) stays gone; there is nothing to write on.
-        if (level.getEntity(hub.fixed().names().get(index)) instanceof Display.TextDisplay name)
+        if (level.getEntity(hub.fixed().names().get(index)) instanceof Display.TextDisplay name) {
             ((TextDisplayAccess) name).aresos$setText(title(group, apps));
+            // A name that an earlier version built larger takes today's size with its count, so the count fits.
+            ((DisplayAccess) name).aresos$setTransformation(new Transformation(null, null, new Vector3f(HubLayout.NAME_SCALE), null));
+        }
         return true;
     }
 

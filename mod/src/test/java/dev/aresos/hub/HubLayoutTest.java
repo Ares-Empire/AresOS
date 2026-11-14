@@ -59,7 +59,7 @@ class HubLayoutTest {
         assertEquals(new BlockPos(20, 73, 0), AppGroup.GAMES.block(HOME, HubLayout.NAME_OUTWARD, 0, HubLayout.NAME_HEIGHT));
         assertEquals(new BlockPos(0, 73, 20), AppGroup.SYSTEM_TOOLS.block(HOME, HubLayout.NAME_OUTWARD, 0, HubLayout.NAME_HEIGHT));
         assertEquals(new BlockPos(-20, 73, 0), AppGroup.WORK_MEDIA.block(HOME, HubLayout.NAME_OUTWARD, 0, HubLayout.NAME_HEIGHT));
-        assertEquals(3f, HubLayout.NAME_SCALE);
+        assertEquals(2.5f, HubLayout.NAME_SCALE);
     }
 
     /** Corners of day-one places from the worked table of HUB.md 3.2: they pin left and right for packages 33 and 36. */

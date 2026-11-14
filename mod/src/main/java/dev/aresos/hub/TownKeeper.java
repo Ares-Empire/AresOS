@@ -127,6 +127,15 @@ public final class TownKeeper {
     public static boolean complete() { return complete; }
 
     /**
+     * Whether the town tells the host about a new app in this world. Then its line ("Spotify is new. It stands in
+     * Work & Media, west. /spotify opens it.") is the one line about it, and My apps does not say its own.
+     */
+    public static boolean speaks(MinecraftServer server) {
+        var hub = HubData.get(server);
+        return complete && hub != null && HubLayout.LOOK.equals(hub.look());
+    }
+
+    /**
      * Server thread: one pass now, with the pictures already read (an app whose picture is missing is built when it
      * has been read, a few ticks later). Its lines go to the host's chat. For commands that change where apps stand
      * ({@code hub rebuild}, {@code swap}, {@code move}): save the apps' places first, then call this.
