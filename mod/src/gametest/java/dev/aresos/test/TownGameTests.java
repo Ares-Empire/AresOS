@@ -1130,6 +1130,24 @@ public final class TownGameTests {
             server.saveAllChunks(true, true, true);
             check(!reopen(server, world).frozen() && reopen(server, world).logos().size() == 2, "The seal was not renewed after trust");
 
+            // Package 39's renewal waits for trust too (39b, 39's review N5): an older mod saves the world once more, and
+            // Chrome's logo is recorded as drawn by converter 1, its only change. Frozen, the town leaves it as it is;
+            // after /aresos hub trust the next pass draws it again where it stands.
+            olderModSaves(access, TownSeal.lastPlayed(world).orElseThrow() + 1);
+            var drawnBefore = reopen(server, world);
+            check(drawnBefore.frozen() && drawnBefore.logos().size() == 2, "Fixture: the world an older mod saved again: frozen " + drawnBefore.frozen());
+            older(drawnBefore, "seal-chrome");
+            HubData.store(server, drawnBefore);
+            var waits = fake.pass(server);
+            check(waits.lines().isEmpty() && drawnBefore.logo("seal-chrome").orElseThrow().converter() == GatePicture.CONVERTER - 1,
+                    "A frozen town drew a logo of converter 1 again: " + waits.lines());
+            check(TownKeeper.trust(server).isPresent() && !drawnBefore.frozen(), "Trust after the older mod's second save");
+            var drawn = fake.pass(server);
+            var chromeNow = drawnBefore.logo("seal-chrome").orElseThrow();
+            check(drawn.lines().equals(List.of("The logo of Chrome Browser was renewed.")) && chromeNow.converter() == GatePicture.CONVERTER
+                    && chromeNow.place().equals("N0L0"), "After trust, the logo of converter 1: " + drawn.lines() + " " + chromeNow);
+            server.saveAllChunks(true, true, true);
+
             // town.dat restored from the backup taken after the first save, into a copy of this world: unsealed.
             var fromBackup = copy(world, copies.resolve("restored"));
             Files.write(HubData.townFile(fromBackup), backup);

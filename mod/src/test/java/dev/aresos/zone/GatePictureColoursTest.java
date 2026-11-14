@@ -254,4 +254,63 @@ class GatePictureColoursTest {
         assertEquals("red_wool", reds[0]);
         assertNotEquals("red_wool", reds[1]);
     }
+
+    /** An opaque 96 x 96 icon, one sample to a pixel at 12 x 12. */
+    private static BufferedImage draw(java.util.function.IntBinaryOperator rgb) {
+        var icon = new BufferedImage(96, 96, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < 96; y++) for (int x = 0; x < 96; x++) icon.setRGB(x, y, 0xff000000 | rgb.applyAsInt(x, y));
+        return icon;
+    }
+
+    /**
+     * A colour on under 1% of the picture is no main colour (package 39b, 39's review N5): a yellow square of one cell
+     * (0.7%) on an icon of red and blue halves gets no block of its own; its cell takes the nearest main colour, red.
+     */
+    @Test void aColourOnUnderOnePercentIsNoMainColour() {
+        var icon = draw((x, y) -> x >= 8 && x < 16 && y >= 40 && y < 48 ? 0xffd800 : x < 48 ? 0xd02020 : 0x2040d0);
+        var mains = GatePicture.mainColours(icon, SIZE);
+        assertEquals(java.util.List.of(0x2040d0, 0xd02020), mains.stream().map(GatePicture.Main::rgb).toList(), "Main colours: " + mains);
+        var picture = GatePicture.of(icon, SIZE);
+        assertEquals(Set.of("blue_wool", "red_wool"), blocks(picture));
+        assertEquals("red_wool", picture.at(1, 6), "The yellow square's cell");
+    }
+
+    /**
+     * Noise of more than a hundred colours, every two farther apart than a colour group reaches (0.10), each on under
+     * 1% of the picture (package 39b, 39's review N1). Every group falls under the 1% that makes a main colour; then
+     * all of them stay, and the icon is many-coloured, each cell in a colour of its own. Before, none was left: the
+     * conversion threw, and the logo got a plain front.
+     */
+    @Test void noiseWhoseColoursAreAllUnderOnePercentIsManyColoured() {
+        // Picked from the edge of the colour space inwards, each more than 0.10 from every one before it.
+        int[] colours = {
+                0x000000, 0x000015, 0x150000, 0x030042, 0x001500, 0x270027, 0x330f00, 0x000078, 0x0c2130,
+                0x30005d, 0x003000, 0x4e0036, 0x0000b1, 0x3f0096, 0x0000ed, 0x660000, 0x153063, 0x60006c,
+                0x3c3024, 0x4e00d2, 0x004e00, 0x7e0042, 0x6f00a8, 0x7500ff, 0xffff00, 0x00ff00, 0x00429c,
+                0x004b4e, 0x54365a, 0xff00ff, 0xa800ff, 0x90007e, 0x3945ff, 0x990600, 0x693900, 0x9f00bd,
+                0xa8ff57, 0xffffa8, 0xffffff, 0xcf00d8, 0xae0054, 0xff00ba, 0xc00093, 0x006f00, 0xc90000,
+                0x5748b4, 0x00ffa8, 0x00d800, 0xff0000, 0xff0075, 0xa5ffff, 0x036084, 0xffd500, 0x485d39,
+                0x81424e, 0x815aff, 0xff6cfc, 0x0069d2, 0xc65aff, 0xa5d800, 0x009000, 0xffd5ff, 0x8a5400,
+                0x00b400, 0xb7f0a5, 0x844b90, 0x00f0ed, 0xffd8ab, 0xa254c9, 0x1b87ff, 0xff9fff, 0xc94572,
+                0xff6600, 0x6c7500, 0xff63ae, 0x007e63, 0xffab00, 0xc05700, 0x06d88a, 0x696675, 0xb1d8ff,
+                0x9684ff, 0x0081a8, 0x93b400, 0x00cfff, 0x6f6fbd, 0xffb1c0, 0xff8484, 0xc972c9, 0xc6c66c,
+                0x00a86f, 0xd88d00, 0x5aa8ff, 0xbda5ff, 0x998d00, 0x9f6c90, 0x00c0b4, 0x93cfba, 0xcf726c,
+                0x7b8469, 0x5a9cba, 0xd2a88d, 0x8dab7b, 0xb196ba};
+        for (int i = 0; i < colours.length; i++) for (int j = i + 1; j < colours.length; j++) {
+            double[] a = GatePalette.oklab(colours[i]), b = GatePalette.oklab(colours[j]);
+            assertTrue(Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2)) > 0.10,
+                    "Fixture: two colours of one group");
+        }
+        // Each on 88 or 89 of the 9,216 samples, scattered as noise (a fixed seed: the same icon every run).
+        var noise = new java.util.ArrayList<Integer>();
+        for (int i = 0; i < 96 * 96; i++) noise.add(colours[i % colours.length]);
+        java.util.Collections.shuffle(noise, new java.util.Random(39));
+        var icon = draw((x, y) -> noise.get(y * 96 + x));
+        var mains = GatePicture.mainColours(icon, SIZE);
+        assertEquals(colours.length, mains.size(), "Main colours: " + mains.size());
+        assertTrue(mains.stream().allMatch(main -> main.share() < 0.01), "Fixture: a colour on 1% or more");
+        var picture = assertDoesNotThrow(() -> GatePicture.of(icon, SIZE));
+        assertFalse(picture.isEmpty());
+        assertTrue(blocks(picture).size() > 6, "Not many-coloured: " + blocks(picture));
+    }
 }

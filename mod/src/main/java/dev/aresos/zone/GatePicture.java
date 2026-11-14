@@ -38,9 +38,9 @@ public final class GatePicture {
     /**
      * Main colours. A colour within JOIN of a more common one (plain Oklab distance) belongs to it, and two groups
      * of colours whose averages end up within NEARLY of each other are one. A group that covers less than MAIN_SHARE
-     * of the picture (about a cell and a half of 144) is no main colour. An icon with more than MAIN_MOST is
-     * many-coloured: its main colours get no block each, and every cell keeps a colour of its own (the average of
-     * the main colour that covers most of it).
+     * of the picture (about a cell and a half of 144) is no main colour, unless every group is that small. An icon
+     * with more than MAIN_MOST is many-coloured: its main colours get no block each, and every cell keeps a colour of
+     * its own (the average of the main colour that covers most of it).
      */
     private static final double JOIN = 0.10, NEARLY = 0.07, MAIN_SHARE = 0.01;
     private static final int MAIN_MOST = 6;
@@ -316,7 +316,7 @@ public final class GatePicture {
      * The main colours, largest first, found the same way every time. The colours that occur (in steps of 8 a
      * channel) are taken from the most common down: one within JOIN of an earlier one belongs to it, any other
      * starts a new group; three rounds then move each group to the average of its colours and each colour to its
-     * nearest group. Small groups and the colours of smoothed edges are dropped.
+     * nearest group. Small groups and the colours of smoothed edges are dropped, unless every group is small.
      */
     private static List<Main> mainColours(Samples samples) {
         // Per colour step: how much it covers, and the sums of its Oklab and sRGB values.
@@ -371,9 +371,13 @@ public final class GatePicture {
         }
         groups.sort(Comparator.comparingDouble((double[] group) -> -group[0]));
         double enough = MAIN_SHARE * total;
-        groups.removeIf(group -> group[0] < enough);
-        // From the smallest up: a colour between two larger ones is the smoothed edge between them.
-        for (int g = groups.size() - 1; g >= 2; g--) if (blend(groups, g)) groups.remove(g);
+        // Unless every group is under MAIN_SHARE (noise of many colours far apart): dropping them all would leave no
+        // colour to paint with. Then all stay, more than a hundred, and the picture is many-coloured (package 39b).
+        if (groups.getFirst()[0] >= enough) {
+            groups.removeIf(group -> group[0] < enough);
+            // From the smallest up: a colour between two larger ones is the smoothed edge between them.
+            for (int g = groups.size() - 1; g >= 2; g--) if (blend(groups, g)) groups.remove(g);
+        }
         var mains = new ArrayList<Main>();
         for (double[] group : groups) mains.add(new Main(pack(group[4], group[5], group[6]), group[0] / total));
         return List.copyOf(mains);
