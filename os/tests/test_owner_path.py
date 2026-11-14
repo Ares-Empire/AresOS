@@ -9,6 +9,7 @@ import hashlib
 import json
 import pathlib
 import re
+import subprocess
 import unittest
 
 from test_owner_entry import pass_line
@@ -74,6 +75,11 @@ STEP8_RECORD = (
      ' **Announcement for step 8:**'),
 )
 HEADING = re.compile(r'^#{1,6} (.+)$')
+# Package 22c, rule 7: what layout abandon says when there is no trial and no repair note.
+NO_TRIAL = 'No layout trial and no half-written layout to abandon on this system; nothing changed'
+# Package 22c: the sentence the stock procedures and the notice list carry word for word.
+NO_BAZZITE_UPDATE = ('Never start a Bazzite update while AresOS is installed: '
+                     'it deletes both AresOS versions at the next shutdown.')
 
 
 def links(text):
@@ -235,7 +241,7 @@ def abandon_card_route(texts, *, pending, recorded_pass=False, refusal=None, inv
     commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
     card = section(texts['EMERGENCY.md'], 'crashed-or-restarted-during-a-keyboard-layout-trial')
     procedure = section(texts['INSTALL-PROCEDURES.md'], 'abandoned-layout-trial')
-    missing = 'Missing private layout-pending record'
+    missing = NO_TRIAL
     events = []
     if recorded_pass:
         already = next(line for line in procedure.splitlines() if line.startswith('**Already cleared:**'))
@@ -539,10 +545,15 @@ class OwnerPathTest(unittest.TestCase):
                       'completion is unknown', 'switch/title PASS', 'Windows Boot Manager',
                       'Do not repeat the switch', 'v2026.4', 'removes staged state before the merge',
                       'without a resumable staged entry', 'PASS check', 'unchanged prepared stock',
-                      'Final pair has extra/missing deployments', 'Stock KDE after a switch is STOP',
+                      '`Unknown deployment beside AresOS and the saved stock; get help`', 'Stock KDE after a switch is STOP',
                       'step 5 proof rechecked'):
             self.assertIn(value, ref)
         self.assertIn('Stock KDE returning after the switch', section(texts['INSTALL.md'], '7-check-the-first-aresos-session'))
+        # 22c: version 2's final-pair refusal is gone; the quoted refusal is the one the tools print.
+        source = (ROOT/'os/owner-tools/owner.py').read_text()
+        self.assertIn("'Unknown deployment beside AresOS and the saved stock; get help'", source)
+        self.assertNotIn('Final pair has extra/missing deployments', source)
+        self.assertNotIn('Final pair has extra/missing deployments', ref)
         for anchor in ('frozen-laptop', 'failed-first-switch-boot', 'shutdown-or-restart-hangs'):
             self.assertIn('10 minutes' if anchor != 'failed-first-switch-boot' else '10-minute',
                           section(texts['EMERGENCY.md'], anchor))
@@ -656,12 +667,16 @@ class OwnerPathTest(unittest.TestCase):
             self.assertEqual(events, ['abandon', 'completion'])
             self.assertFalse(pending.exists())
             self.assertEqual(abandon_card_route(documents(), pending=False, recorded_pass=True), ['completion'])
-            with self.assertRaisesRegex(setup.owner.Stop, 'No layout trial and no half-written layout to abandon on this system; nothing changed'):
+            with self.assertRaisesRegex(setup.owner.Stop, '^' + re.escape(NO_TRIAL) + '$'):
                 fixture.tools.layout('abandon')
             self.assertEqual(abandon_card_route(documents(), pending=False, recorded_pass=True,
-                             refusal='Missing private layout-pending record'), ['completion'])
+                             refusal=NO_TRIAL), ['completion'])
             self.assertEqual(abandon_card_route(documents(), pending=False,
-                             refusal='Missing private layout-pending record'), ['Help'])
+                             refusal=NO_TRIAL), ['Help'])
+            # 22c: the guides quote the refusal the tools print now, never version 2's.
+            for page in ('INSTALL-PROCEDURES.md', 'EMERGENCY.md'):
+                self.assertIn('`' + NO_TRIAL + '`', documents()[page])
+                self.assertNotIn('Missing private layout-pending record', documents()[page])
             self.assertEqual(abandon_card_route(documents(), pending=False, recorded_pass=True,
                              refusal='Another identity refusal'), ['Help'])
 
@@ -973,10 +988,27 @@ class OwnerPathTest(unittest.TestCase):
         self.assertTrue(route.splitlines()[2].startswith(UPDATE_GATE))
         order = ('Copy-AresOwnerTools', 'PASS tools manifest SHA256 ' + fingerprint, 'Safely eject and unplug',
                  '**F12** (or **Fn+F12**) → **Bazzite**', '```bash\n' + commands['install'] + '\n```', pass_line('install'),
-                 '**Tools updated from version**', commands['update'], pass_line('update'), '**Signed exact release staged**',
-                 commands['title'], commands['export'], 'SAFE TO REMOVE ARESTOOLS', commands['reboot'], pass_line('reboot'),
+                 '**Tools updated from version**',
+                 # 22c: the tools-only update ends after check and title, before any stage.
+                 '**Tools only**', '```bash\n' + commands['check'] + '\n' + commands['title'] + '\n```', pass_line('check'),
+                 pass_line('title'), '**Boot menu at the next start:**', 'unplug it', 'no stage, no restart',
+                 '[Return to step 8](#8-everyday-boot-and-recovery)',
+                 commands['update'], pass_line('update'), '**Signed exact release staged**',
+                 '**… is removed when the update finishes at shutdown**',
+                 "**The new release starts with this system's settings (Wi-Fi, passwords, layout), not …'s**",
+                 commands['title'], commands['export'], 'SAFE TO REMOVE ARESTOOLS',
+                 '**Boot menu after the update finishes at shutdown (expected):**', commands['reboot'], pass_line('reboot'),
                  '10-minute rule', '**F12** (or **Fn+F12**) → **Bazzite**', commands['check'], commands['title'],
-                 commands['records'], pass_line('check'), 'sudo passwd ares', commands['previous'], pass_line('previous'),
+                 commands['records'], pass_line('check'), '**Update to … confirmed after the restart**',
+                 '**Update to … was not applied: the deployments are as before it, and nothing is waiting**',
+                 '**Update to … is in place and has not started yet**', '**… did not finish as recorded**',
+                 'sudo passwd ares', commands['previous'], pass_line('previous'), '**Return to … confirmed after the restart**',
+                 '**forward again**',
+                 # 22c: forward again after previous, and back from plain Bazzite, with no download.
+                 '**Forward again, or back from plain Bazzite**', '```bash\n' + commands['update'] + '\n' + commands['title'] + '\n```',
+                 pass_line('update'), '**Newest AresOS starts next**', 'No stick, no login and no network',
+                 '**… already starts next; nothing changed**', commands['reboot'], pass_line('reboot'),
+                 '**Update to … confirmed after the restart**', '**previous**', '**Return to … confirmed after the restart**',
                  '**Record:**', '[Return to step 8](#8-everyday-boot-and-recovery)')
         position = 0
         for value in order:
@@ -984,7 +1016,9 @@ class OwnerPathTest(unittest.TestCase):
             self.assertGreaterEqual(found, 0, value)
             position = found + len(value)
         boxes = [line for line in route.splitlines() if line.startswith('- [ ]')]
-        self.assertEqual(len(boxes), 8)
+        # Windows, tools, tools only, stage, title and stick, restart, check, password, misbehaves, forward again.
+        self.assertEqual(len(boxes), 10)
+        self.assertTrue(boxes[2].startswith('- [ ] **Tools only**') and boxes[-1].startswith('- [ ] **Forward again'))
         self.assertGreaterEqual(route.count('STOP →'), 4)
         self.assertGreaterEqual(route.count('Return to this update route'), 4)
         # A login refusal points to login, then the same update once more.
@@ -998,41 +1032,162 @@ class OwnerPathTest(unittest.TestCase):
         for value in ('lowercase a–x and top-row digits 0–9', 'German, US International and US',
                       'Never photograph, record or send it', 'keep it private', '`sudo -v`', 'once'):
             self.assertIn(value, password)
-        for value in ('current AresOS as rollback', 'corrected stock pinned', 'three deployments', 'refuse',
-                      '**previous** box', '**F12 → Windows → Help**', 'provisional', 'INVALID',
-                      '[Failed or bad update](EMERGENCY.md#failed-or-bad-update)', 'never a guessed GRUB title',
-                      '**Update to … confirmed after the restart**', '**Return to … confirmed after the restart**',
-                      '**did not finish at the restart**', '**interrupted before its result was recorded**',
-                      'Help decides each repeat', 'STOPs while anything uses the installed tools',
-                      'a STOP always leaves working tools in place',
+        # 22c: the paragraph on three deployments says what works now, and what the old tools' STOP means.
+        intro = route.split('- [ ]', 1)[0]
+        for value in ('current AresOS as rollback', 'corrected stock pinned', 'three systems are installed',
+                      '**newer AresOS**', '**older AresOS**', '**plain Bazzite**', 'works from every installed system',
+                      'never creates or deletes one', 'forward again', 'back from plain Bazzite', '**rollback** (on an AresOS)',
+                      '**keep-stock** (on plain Bazzite)', 'Layout trials work', "boot menu's rows",
+                      '**Expected exact stock/AresOS pair**', '**install the current tools first**', 'tools-only box',
+                      '(INSTALL-PROCEDURES.md#recovery-menu)', '(INSTALL-PROCEDURES.md#what-you-notice-on-each-system)',
                       '**Another owner command is running**'):
+            self.assertIn(value, intro)
+        for value in ('provisional', 'INVALID', '[Failed or bad update](EMERGENCY.md#failed-or-bad-update)',
+                      'take only a row your last title named', 'never repeat the update without Help',
+                      '**interrupted before its result was recorded; do not reboot**',
+                      'Help decides each repeat', 'STOPs while anything uses the installed tools',
+                      'a STOP always leaves working tools in place', '**Newest installed AresOS starts next**'):
             self.assertIn(value, route)
+        # Rule 5 replaced these; the guide never quotes them again (PLAN-GAP 4 of stage 1b, step 1).
+        for value in ('did not finish at the restart', 'three deployments', 'refuse with three', 'guessed GRUB title'):
+            self.assertNotIn(value, route)
         # The quoted tool messages are the ones the tools print.
         source = (ROOT/'os/owner-tools/owner.py').read_text()
-        for value in ("' did not finish at the restart (", "'Another owner command is running;",
-                      "' was interrupted before its result was recorded; ", "'An owner command of the installed tools is running (pid '",
+        for value in ("' did not finish as recorded ('", "'Another owner command is running;",
+                      "' was interrupted before its result was recorded; do not reboot; run '",
+                      "'An owner command of the installed tools is running (pid '",
                       "' confirmed after the restart'", "'Previous AresOS queued for the next start '",
-                      "'Signed exact release staged '", "'Running release stays as rollback '", "'Tools updated from version '"):
+                      "'Signed exact release staged '", "'Running release stays as rollback '", "'Tools updated from version '",
+                      "' was not applied: the deployments are as before it, and nothing is waiting'",
+                      "' is in place and has not started yet'", "' already starts next; nothing changed'",
+                      "'It runs now'", "'It does not run yet: it starts at the next restart'",
+                      "'Newest AresOS starts next '", "'Newest installed AresOS starts next '",
+                      "'The release of these tools is newer still and is not installed ('",
+                      "' is removed when the update finishes at shutdown'",
+                      "\"The new release starts with this system's settings (Wi-Fi, passwords, layout), not \"",
+                      "' runs and starts next'", "' starts next, after the restart'", "' starts next; this start was not the default'",
+                      "'Boot menu at the next start: '", "'Boot menu after the update finishes at shutdown (expected): '",
+                      "'update to '", "'return to '"):
             self.assertIn(value, source)
+        self.assertNotIn(' did not finish at the restart', source)
+        # The line the guide explains is version 2's, the tools on the laptop until 22c's are installed.
+        version2 = subprocess.check_output(['git', 'show', '41b06513:os/owner-tools/payload/owner.py'], cwd=ROOT).decode()
+        self.assertIn("'Expected exact stock/AresOS pair'", version2)
         self.assertNotIn('INSTALL.md#5-', route)
 
-    def test_failed_update_card_returns_to_previous_aresos_or_windows_never_a_grub_title(self):
+    def test_failed_update_card_takes_the_titled_row_then_previous_rollback_and_windows(self):
+        """22c, C: the failed-update card in its new order. A new AresOS that does not start: the
+        boot-menu row the last title named for the AresOS before the update, then previous. One that
+        starts but misbehaves: previous first, then rollback, then Windows. Changed on purpose from
+        package 22's "Windows first, never a GRUB title" (rules 4, 5 and 8 make every row safe)."""
         texts = documents()
         commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
         card = section(texts['EMERGENCY.md'], 'failed-or-bad-update')
         for value in ('Windows Boot Manager', commands['previous'], pass_line('previous'), commands['reboot'],
-                      pass_line('reboot'), '**Bazzite**', 'Never choose a guessed GRUB title', 'repeat the update without Help',
-                      '**did not finish at the restart**', '**interrupted before its result was recorded**', 'Help decides each repeat',
-                      'stock rollback or keep-stock', '10-minute wait', '(INSTALL.md#8-everyday-boot-and-recovery)',
-                      '(INSTALL.md#update-aresos-to-a-new-release)'):
+                      pass_line('reboot'), '**Bazzite**', '(INSTALL-PROCEDURES.md#recovery-menu)',
+                      'take the row your last title named for the AresOS that ran before the update',
+                      '**Boot menu after the update finishes at shutdown (expected):**',
+                      '**Return to … confirmed after the restart**', 'choose the row the last title named',
+                      'any row is safe', commands['check'], 'every command still works',
+                      '**Update to … was not applied**', 'do **not** run previous', 'Help decides each repeat',
+                      '**did not finish as recorded**', '**interrupted before its result was recorded**',
+                      'repeat the update without Help', '**Expected exact stock/AresOS pair**', 'install the current tools first',
+                      '(INSTALL-PROCEDURES.md#rollback-from-running-aresos)', '10-minute wait',
+                      '(INSTALL.md#8-everyday-boot-and-recovery)', '(INSTALL.md#update-aresos-to-a-new-release)'):
             self.assertIn(value, card)
-        self.assertLess(card.index('Windows Boot Manager'), card.index(commands['previous']))
-        for page, anchor in (('INSTALL-PROCEDURES.md', 'recovery-menu'), ('INSTALL-PROCEDURES.md', 'later-layout')):
-            self.assertIn('three deployments', section(texts[page], anchor))
+        # Not starting: the titled row, then previous. Misbehaving: previous, then rollback, then Windows.
+        positions = [card.index(value) for value in ('the row your last title named', commands['previous'],
+                     'misbehaves: **previous** first', '**rollback** to plain Bazzite', '**Windows Boot Manager**')]
+        self.assertEqual(positions, sorted(positions))
+        for value in ('did not finish at the restart', 'guessed GRUB title', 'three deployments', 'they refuse'):
+            self.assertNotIn(value, card)
+        source = (ROOT/'os/owner-tools/owner.py').read_text()
+        for value in ("' was not applied: the deployments are as before it, and nothing is waiting'",
+                      "' did not finish as recorded ('", "' was interrupted before its result was recorded; do not reboot; run '"):
+            self.assertIn(value, source)
+        # The procedures say what works now with three installed systems.
+        menu = section(texts['INSTALL-PROCEDURES.md'], 'recovery-menu')
+        for value in ('**three rows after it, which differ only in `(ostree:N)`**', '**Boot menu at the next start:**',
+                      '**Take the row the last title named**', 'A wrong choice is harmless', commands['check'],
+                      'what runs and what starts next', 'every command still works', '(#keep-stock)',
+                      '(#back-to-aresos-from-stock)', 'Never rollback from plain Bazzite', '**Expected exact stock/AresOS pair**',
+                      'Install the current tools first', 'A failed **first** switch boot', '**Windows → Help**'):
+            self.assertIn(value, menu)
+        layout = section(texts['INSTALL-PROCEDURES.md'], 'later-layout').split('### Layout revert', 1)[0]
+        for value in ('**Each installed system keeps its own layout**', 'a running AresOS that starts next',
+                      "**Plain Bazzite keeps the installer's German layout: no layout trial here**",
+                      '**Expected exact stock/AresOS pair**', 'install the current tools first'):
+            self.assertIn(value, layout)
+        self.assertIn('"Plain Bazzite keeps the installer\'s German layout: no layout trial here; "', source)
+        for anchor in ('recovery-menu', 'later-layout'):
+            self.assertNotIn('three deployments', section(texts['INSTALL-PROCEDURES.md'], anchor))
         console = section(texts['INSTALL-REFERENCE.md'], 'console')
         self.assertIn('[update](INSTALL.md#update-aresos-to-a-new-release)', console)
+        self.assertIn('[back to AresOS from stock](INSTALL-PROCEDURES.md#back-to-aresos-from-stock)', console)
         hang = section(texts['INSTALL-REFERENCE.md'], 'hung-shutdown-or-restart')
         self.assertIn('[update route](INSTALL.md#update-aresos-to-a-new-release)', hang)
+
+    def test_stock_procedures_go_back_to_aresos_and_never_update_bazzite(self):
+        """22c, C: rollback and keep-stock beside two releases, the new way back from stock, and the
+        notice list, each with the sentence about Bazzite's own updates."""
+        texts = documents()
+        procedures = texts['INSTALL-PROCEDURES.md']
+        commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+        back = section(procedures, 'back-to-aresos-from-stock')
+        keep = section(procedures, 'keep-stock')
+        notice = section(procedures, 'what-you-notice-on-each-system')
+        for block in (back, keep, notice):
+            self.assertIn(NO_BAZZITE_UPDATE, block)
+        self.assertNotIn('until the owner chooses stock permanently', procedures)
+        self.assertIn('[step 9](INSTALL.md#9-retire-access-and-return-to-windows)', keep)
+        # Back from stock: the update route's last box, behind its gate; no fenced update outside it.
+        for value in ('**update** the newest AresOS', '**previous** the older one', 'no stick, no login and no network',
+                      '**Forward again, or back from plain Bazzite**', '(INSTALL.md#update-aresos-to-a-new-release)',
+                      'STEP 5 COMPLETE', '**Update to … confirmed after the restart**', '**A Bazzite update is waiting. Do not restart**',
+                      'STOP → [Help](INSTALL-REFERENCE.md#help)', 'Return to step 8'):
+            self.assertIn(value, back)
+        self.assertNotIn('```bash\n' + commands['update'], back)
+        route = section(texts['INSTALL.md'], UPDATE)
+        self.assertIn('- [ ] **Forward again, or back from plain Bazzite**', route)
+        for value in ('**Saved stock is default**', '**plain Bazzite … runs and now starts next; no restart is waiting**',
+                      '**Plain Bazzite … already starts next; nothing changed**', '**It runs now**',
+                      '**Bazzite must not update while AresOS is installed**', '(#back-to-aresos-from-stock)',
+                      '**Change to … confirmed after the restart**', '**WARNING: … Bazzite must not update while AresOS is installed**',
+                      '**Expected exact stock/AresOS pair**'):
+            self.assertIn(value, keep)
+        rollback = section(procedures, 'rollback-from-running-aresos')
+        for value in ('newer or the older one', '**Saved stock rollback queued**',
+                      '**… runs; plain Bazzite … starts next, after the restart**', 'every AresOS still installed',
+                      '**Plain Bazzite runs here: use … keep-stock**', '**Rollback to … confirmed after the restart**',
+                      '(#back-to-aresos-from-stock)', '**Expected exact stock/AresOS pair**'):
+            self.assertIn(value, rollback)
+        for value in ('**Your files in your home folder stay**', '**its own passwords, Wi-Fi and keyboard layout**',
+                      '**Plain Bazzite** has no `ares` account', '**German**',
+                      '**The AresOS from before an update** has no `ares` password and no administrator rights',
+                      'packages 34 and 35', 'stays empty until you go forward again with update', 'Nothing is lost'):
+            self.assertIn(value, notice)
+        source = (ROOT/'os/owner-tools/owner.py').read_text()
+        for value in ("'Saved stock is default'", "'Saved stock rollback queued'", "' runs and now starts next; no restart is waiting'",
+                      "'Plain Bazzite runs here: use '", "'. Bazzite must not update while AresOS is installed: run '",
+                      "'A Bazzite update is waiting. Do not restart: the restart deletes {}. Get help.'", "'change to '", "'rollback to '",
+                      "'The trial began on another system and its finish had started: run '",
+                      "\"This system's half-written layout is restored to the settings before its trial\""):
+            self.assertIn(value, source)
+
+    def test_status_names_22c_built_not_rehearsed_and_not_on_the_laptop(self):
+        status = documents()['INSTALL-STATUS.md']
+        fingerprint = hashlib.sha256((ROOT/'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest()
+        row = next(line for line in status.splitlines() if line.startswith('| Ways back after an update (package 22c) |'))
+        for value in ('**BUILT AND REVIEWED; NOT REHEARSED YET; NOT ON THE LAPTOP**', "the laptop's tools stay `851eb742…`",
+                      '`' + fingerprint + '`', '(../reviews/22c-ways-back-after-update/REPORT.md)', '**Not rehearsed yet:**',
+                      'tools-only update', '**Before this row may say "on the laptop":**', 'the owner installs these tools',
+                      'calm test', "the title's row map", 'stays OPEN'):
+            self.assertIn(value, row)
+        update = next(line for line in status.splitlines() if line.startswith('| Update route (packages 22 and 27) |'))
+        self.assertIn("the laptop's tools until the owner installs package 22c's", update)
+        self.assertNotIn(fingerprint, update)
+        menu = next(line for line in status.splitlines() if line.startswith('| LOQ shortcuts and recovery menu |'))
+        self.assertIn('**OPEN**', menu)
 
     def test_update_gate_mutations_are_rejected(self):
         texts = documents()
