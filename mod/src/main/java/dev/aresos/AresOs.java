@@ -196,6 +196,10 @@ public final class AresOs implements ModInitializer {
                     if (!LiveMode.toggleForHost(context.server(), context.player()))
                         dev.aresos.mode.ModeInventories.of(context.player()).rejectToggle(context.player());
                 });
+        // The H key (package 37): home, as /aresos home.
+        PayloadTypeRegistry.serverboundPlay().register(dev.aresos.world.HomeKeyPayload.TYPE, dev.aresos.world.HomeKeyPayload.CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(dev.aresos.world.HomeKeyPayload.TYPE,
+                (payload, context) -> dev.aresos.world.HomeCommands.key(context.player()));
         AppInventory.register();
         dev.aresos.names.SlashCommands.register();
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
@@ -212,6 +216,7 @@ public final class AresOs implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registry, environment) -> {
             if (!environment.includeIntegrated) return;
             dev.aresos.names.ProgramCommands.register(dispatcher);
+            dev.aresos.world.GettingAround.register(dispatcher);
             dispatcher.register(Commands.literal("aresos")
                         .then(dev.aresos.world.HomeCommands.command())
                         .then(dev.aresos.zone.ZoneCommands.zone())

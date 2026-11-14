@@ -15,7 +15,8 @@
       "dev.aresos.test.ModeInventoryGameTests",
       "dev.aresos.test.MyAppsGameTests",
       "dev.aresos.test.SlashNamesGameTests",
-      "dev.aresos.test.TownGameTests"
+      "dev.aresos.test.TownGameTests",
+      "dev.aresos.test.GettingAroundGameTests"
     ],
     "fabric-client-gametest": [
       "dev.aresos.test.ModeProtocolClientGameTest",
