@@ -24,12 +24,13 @@
     "22c review fixes 1: prove restoration provenance equivalence and pin expanded closure",
     "22c review fixes 1: replace repair notes by identity across interrupted transfers",
     "22c review fixes 2: a refusal of start-next before set-default closes its intent",
-    "22c review fixes 2: layout restoration is an exclusive phase; finish refuses"
+    "22c review fixes 2: layout restoration is an exclusive phase; finish refuses",
+    "22c review fixes 2: checks-only job limit 40 minutes for the grown model"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "4f3a5e4bbea1f40d209a0c67bd69f19282978ed6847f72dcb09ff61dfe75643f",
+      "sha256": "44d0eae936819de9a0acf30563c693e8bd4b506b4836539aceebf105510c5c13",
       "path": ".github/workflows/os-image.yml"
     },
     {

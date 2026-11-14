@@ -55,7 +55,7 @@
       "path": ".gitattributes"
     },
     {
-      "sha256": "4f3a5e4bbea1f40d209a0c67bd69f19282978ed6847f72dcb09ff61dfe75643f",
+      "sha256": "44d0eae936819de9a0acf30563c693e8bd4b506b4836539aceebf105510c5c13",
       "path": ".github/workflows/os-image.yml"
     },
     {
