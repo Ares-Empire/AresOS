@@ -572,6 +572,16 @@ over, then type /aresos hub trust." Change back what you want kept as yours
 and the seal is renewed at the next save. Nothing else ends a freeze. A world
 copied or renamed as a whole stays sealed.
 
+**When `town.dat` does not fit the world.** A `town.dat` that cannot be read,
+that was saved for another home than `hub.dat`'s, or whose records overlap
+(two logos of one app, in one place, on one block, with one sign or one zone,
+or a logo whose blocks lie outside its place) is never used and never
+replaced: the file stays as it is, the town builds nothing, takes nothing down
+and paves no road in that world, and the chat says so with the file's full
+path as you enter. To start the town afresh, close the world and move
+`data/aresos/town.dat` out of the world's folder (or rename it); its old logos
+are then plain blocks of yours, and the town builds anew on free ground.
+
 **Known limits.** A group name's count is written at scale 2.5 so that
 "SYSTEM & TOOLS · 14" fits between the two front logos. Closer than about 14
 blocks to a logo its sign is above the top of the screen unless you look up.

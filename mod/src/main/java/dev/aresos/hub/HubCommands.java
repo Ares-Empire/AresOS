@@ -27,6 +27,8 @@ public final class HubCommands {
         if (!DesktopWorld.isHost(server, player)) return refuse(source, "Only the singleplayer host can trust the town's records.");
         var hub = HubData.get(server);
         if (hub == null) return refuse(source, "This world is not a flat home: it has no town.");
+        // Trust is for records that are this world's town's; a file that does not fit is never taken.
+        if (hub.refusal().isPresent()) return refuse(source, TownKeeper.refused(server, hub.refusal().get()));
         var said = TownKeeper.trust(server);
         if (said.isEmpty()) return refuse(source, "Nothing of the town is frozen: its records are its own.");
         source.sendSuccess(() -> Component.literal(said.get()), false);
@@ -41,6 +43,7 @@ public final class HubCommands {
         if (hub == null) return refuse(source, "This world is not a flat home: it has no town to rebuild.");
         if (!HubLayout.LOOK.equals(hub.look()))
             return refuse(source, "This town was built by other rules (" + hub.look() + "). This AresOS cannot rebuild it.");
+        if (hub.refusal().isPresent()) return refuse(source, TownKeeper.refused(server, hub.refusal().get()));
         // Taking logos down needs the list that says which apps are installed, as every pass of the town does.
         if (!TownKeeper.complete())
             return refuse(source, "The town waits for the system's list of programs. Nothing was rebuilt; try again in a moment.");

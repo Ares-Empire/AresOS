@@ -1,6 +1,10 @@
 package dev.aresos.hub;
 
+import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.Codec;
+import com.mojang.serialization.DataResult;
+import com.mojang.serialization.Decoder;
+import com.mojang.serialization.DynamicOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.aresos.AresOs;
 import dev.aresos.mode.LiveMode;
@@ -21,6 +25,7 @@ import net.minecraft.world.level.saveddata.SavedDataType;
 import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.level.storage.SavedDataStorage;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -110,9 +115,20 @@ public final class HubData extends SavedData {
      * hub: a town file of another home is not this hub's and is never read into it.
      */
     static final class TownFile extends SavedData {
-        static final Codec<TownFile> CODEC = RecordCodecBuilder.create(i -> i.group(
+        private static final Codec<TownFile> WHOLE = RecordCodecBuilder.create(i -> i.group(
                 GlobalPos.CODEC.fieldOf("home").forGetter(file -> file.home),
                 Logo.CODEC.listOf().fieldOf("logos").forGetter(file -> List.copyOf(file.logos))).apply(i, TownFile::new));
+        /**
+         * Read whole or not at all. The game takes what it could read of a saved file; here that would be a town
+         * without the logos it could not read, whose blocks then stood as nobody's. A file with any error is
+         * unreadable, and the town refuses it ({@link #join}).
+         */
+        static final Codec<TownFile> CODEC = Codec.of(WHOLE, new Decoder<>() {
+            @Override public <T> DataResult<Pair<TownFile, T>> decode(DynamicOps<T> ops, T input) {
+                var result = WHOLE.decode(ops, input);
+                return result.error().<DataResult<Pair<TownFile, T>>>map(error -> DataResult.error(error::message)).orElse(result);
+            }
+        });
         // A world without the file has no town yet; the hub makes one for its home when it first needs it.
         static final SavedDataType<TownFile> TYPE = new SavedDataType<>(AresOs.id("town"), () -> {
             throw new IllegalStateException("town.dat is made by its hub");
@@ -125,6 +141,11 @@ public final class HubData extends SavedData {
          * while anything is frozen, carries the freeze to the next visit.
          */
         final Set<String> frozen = new HashSet<>();
+        /**
+         * Whether its seal was checked: once, as the first hub joins a file read from the world. A hub's own new
+         * file holds only what this session built and needs no check.
+         */
+        boolean checked;
 
         TownFile(GlobalPos home, List<Logo> logos) { this.home = home; this.logos = new ArrayList<>(logos); }
     }
@@ -136,6 +157,8 @@ public final class HubData extends SavedData {
     /** The logos, saved in town.dat; the server's own file once {@link #attach}ed. */
     private TownFile town;
     private boolean attached;
+    /** Why the world's town file is not this hub's town; null while it is ({@link #refusal()}). */
+    private String refusal;
     /** Every block of the record, the fixed things' and the logos': where, and which block. */
     private final Map<BlockPos, String> placed = new HashMap<>();
     /** Which logo each of the logos' blocks belongs to, by app. */
@@ -152,6 +175,7 @@ public final class HubData extends SavedData {
         this.fixed = new Fixed(List.copyOf(fixed.blocks()), List.copyOf(fixed.names()));
         for (Placed block : this.fixed.blocks()) placed.put(block.pos(), block.block());
         this.town = new TownFile(home, List.of());
+        this.town.checked = true;
         for (Logo logo : logos) index(logo);
     }
 
@@ -173,26 +197,66 @@ public final class HubData extends SavedData {
         return hub;
     }
 
-    /**
-     * As the world opens: joins this record to the town file saved beside it. The town's logos are frozen when the
-     * file and the world were not provably saved together ({@link TownSeal}); a world with no logos needs no seal.
-     */
+    /** As the world opens: joins this record to the town file saved beside it, or refuses that file (point 3). */
     private void load(SavedDataStorage storage, Path world, long seed) {
-        var file = storage.get(TownFile.TYPE);
-        if (file != null && home.equals(file.home)) {
-            boolean sealed = file.logos.isEmpty() || TownSeal.sealed(world, seed, file);
-            adopt(file);
-            if (!sealed) for (var logo : town.logos) town.frozen.add(logo.app());
-            attached = true;
-        } else attach(storage);
+        join(storage, world, seed, false);
+        if (refusal != null || storage.get(TownFile.TYPE) != null) return;
+        // A world with no town yet: this hub's own town file is saved beside hub.dat from now on.
+        storage.set(TownFile.TYPE, town);
+        if (!town.logos.isEmpty()) town.setDirty();
     }
 
     /**
-     * The town file whose seal a save may renew: the town's records are its own (nothing frozen). Empty while the
-     * freeze lasts, so the seal stays broken and the next visit is frozen too.
+     * Joins this record to the world's town file (review fixes 1, points 1 and 3). A file of this home is adopted
+     * whole if its records pass the checks of {@link #add}, and its logos are frozen when it and the world were not
+     * provably saved together ({@link TownSeal}; a town with no logos needs no seal). A file that cannot be read, of
+     * another home, or that fails the checks is refused: kept as it is, never replaced, nothing of it adopted, and
+     * the town does nothing in this world until he moves that file away.
+     *
+     * @param built a flat home built just now ({@link #store}): it may start its town over an empty town file of
+     *              another home, which holds no record of anything standing
+     */
+    private void join(SavedDataStorage storage, Path world, long seed, boolean built) {
+        attached = true;
+        var file = storage.get(TownFile.TYPE);
+        if (file == null) {
+            if (Files.exists(townFile(world))) refusal = "it cannot be read";
+            return;
+        }
+        if (!home.equals(file.home)) {
+            if (!(built && file.logos.isEmpty()))
+                refusal = "it was saved for a home at " + file.home.pos().toShortString() + " in " + file.home.dimension().identifier()
+                        + ", and this world's home is at " + home.pos().toShortString() + " in " + home.dimension().identifier();
+            return;
+        }
+        if (!file.checked) {
+            file.checked = true;
+            if (!file.logos.isEmpty() && !TownSeal.sealed(world, seed, file)) for (var logo : file.logos) file.frozen.add(logo.app());
+        }
+        try {
+            adopt(file);
+        } catch (IllegalArgumentException overlap) {
+            refusal = overlap.getMessage();
+        }
+    }
+
+    /** Where a world's town file lies. */
+    public static Path townFile(Path world) {
+        return world.resolve(LevelResource.DATA.id()).resolve(TownFile.TYPE.id().getNamespace()).resolve(TownFile.TYPE.id().getPath() + ".dat");
+    }
+
+    /**
+     * Why the world's town file is not this hub's town, while it is not (point 3): then the town builds nothing,
+     * takes nothing down and paves no road in this world, and this record holds no logo. The file stays as it is.
+     */
+    public Optional<String> refusal() { return Optional.ofNullable(refusal); }
+
+    /**
+     * The town file whose seal a save may renew: the town's records are its own (nothing frozen, nothing refused).
+     * Empty while a freeze lasts, so the seal stays broken and the next visit is frozen too.
      */
     Optional<TownFile> sealable() {
-        return attached && town.frozen.isEmpty() ? Optional.of(town) : Optional.empty();
+        return attached && refusal == null && town.frozen.isEmpty() ? Optional.of(town) : Optional.empty();
     }
 
     /** Whether a logo of the town is frozen: the world opened without proof that its record is the town's own. */
@@ -215,23 +279,18 @@ public final class HubData extends SavedData {
 
     /**
      * Called once, when a new flat home has been built (and by tests, to put a record back). The town of the same
-     * home in {@code town.dat} stays this hub's: storing a {@code hub.dat} again loses no logo.
+     * home in {@code town.dat} stays this hub's: storing a {@code hub.dat} again loses no logo. A town file that
+     * cannot be this hub's is refused as when the world opens, and kept.
      */
     public static void store(MinecraftServer server, HubData data) {
-        server.getDataStorage().set(TYPE, data);
+        var storage = server.getDataStorage();
+        storage.set(TYPE, data);
         data.setDirty();
-        data.attach(server.getDataStorage());
-    }
-
-    /** Joins this record to the server's town file of the same home, or makes that file from this record's logos. */
-    private void attach(net.minecraft.world.level.storage.SavedDataStorage storage) {
-        var file = attached ? town : storage.get(TownFile.TYPE);
-        if (file != null && file != town && home.equals(file.home)) adopt(file);
-        else {
-            storage.set(TownFile.TYPE, town);
-            if (!town.logos.isEmpty()) town.setDirty();
-        }
-        attached = true;
+        if (!data.attached) data.join(storage, server.getWorldPath(LevelResource.ROOT), TownSeal.seed(server), true);
+        if (data.refusal != null) return;
+        // Both files are written with the next save, so town.dat always goes with the hub.dat beside it.
+        storage.set(TownFile.TYPE, data.town);
+        data.town.setDirty();
     }
 
     /** Takes the logos of a town file as this hub's, in place of its own: the file is this record's from now on. */

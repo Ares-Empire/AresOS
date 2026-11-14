@@ -94,6 +94,20 @@ class HubDataTest {
         assertThrows(IllegalArgumentException.class, () -> hub(List.of()).adopt(elsewhere));
     }
 
+    /** Review fixes 1, point 3: the game takes what it could read of a saved file; the town's file is read whole or not at all. */
+    @Test void aTownFileWithALogoItCannotReadIsNotReadInPart() {
+        var file = new HubData.TownFile(GlobalPos.of(Level.OVERWORLD, HOME), List.of(logo("discord", "N0R0", new BlockPos(9, 64, -20), "zone-discord"),
+                logo("chrome", "N0L0", new BlockPos(-10, 64, -20), "zone-chrome")));
+        var saved = (CompoundTag)HubData.TownFile.CODEC.encodeStart(NbtOps.INSTANCE, file).getOrThrow();
+        assertTrue(HubData.TownFile.CODEC.parse(NbtOps.INSTANCE, saved).isSuccess());
+        var logos = saved.getListOrEmpty("logos");
+        logos.getCompoundOrEmpty(1).remove("zone");
+        saved.put("logos", logos);
+        var read = HubData.TownFile.CODEC.parse(NbtOps.INSTANCE, saved);
+        assertTrue(read.isError(), "a logo without its zone");
+        assertEquals(Optional.empty(), read.resultOrPartial(error -> { }), "nothing of it is read, as the game reads saved data");
+    }
+
     @Test void theRecordKnowsEveryLogoByAppZoneBlockAndSign() {
         var discord = logo("discord", "N0R0", new BlockPos(9, 64, -20), "zone-discord");
         var hub = hub(List.of(discord));

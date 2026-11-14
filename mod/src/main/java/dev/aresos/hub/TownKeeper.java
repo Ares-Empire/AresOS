@@ -120,16 +120,26 @@ public final class TownKeeper {
     }
 
     /**
-     * The line he reads as he enters a world whose town's records are in doubt: its logos are frozen (the world was
-     * not provably saved with them). Empty otherwise.
+     * The line he reads as he enters a world whose town's records are in doubt: its town file does not fit the world
+     * (the town does nothing here), or its logos are frozen (the world was not provably saved with them). Empty
+     * otherwise.
      */
     public static Optional<String> notice(MinecraftServer server) {
         var hub = HubData.get(server);
         if (hub == null || !HubLayout.LOOK.equals(hub.look())) return Optional.empty();
+        var refusal = hub.refusal();
+        if (refusal.isPresent()) return Optional.of(refused(server, refusal.get()));
         int frozen = hub.frozenCount();
         if (frozen == 0) return Optional.empty();
         return Optional.of("This world was saved without the town's records since the town last saw it, so the town leaves its "
                 + (frozen == 1 ? "logo as it is" : frozen + " logos as they are") + ". Look them over, then type /aresos hub trust.");
+    }
+
+    /** What he reads about a town file that does not fit his world: why, where it is, and how to start afresh. */
+    public static String refused(MinecraftServer server, String why) {
+        var file = HubData.townFile(server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).toAbsolutePath().normalize());
+        return "The town's file " + file + " does not fit this world (" + why + "), so the town builds nothing here and takes nothing down."
+                + " To start the town afresh, close the world and move that file out of the world's folder.";
     }
 
     /**
@@ -163,7 +173,7 @@ public final class TownKeeper {
      */
     public static boolean speaks(MinecraftServer server) {
         var hub = HubData.get(server);
-        return complete && hub != null && HubLayout.LOOK.equals(hub.look());
+        return complete && hub != null && HubLayout.LOOK.equals(hub.look()) && hub.refusal().isEmpty();
     }
 
     /**
@@ -196,7 +206,7 @@ public final class TownKeeper {
         boolean retry = pending && server.getTickCount() >= retryAt;
         if (!stale && !due && !retry) return;
         var hub = HubData.get(server);
-        if (hub == null || !HubLayout.LOOK.equals(hub.look())) {
+        if (hub == null || !HubLayout.LOOK.equals(hub.look()) || hub.refusal().isPresent()) {
             stale = due = pending = false;
             return;
         }
@@ -284,7 +294,7 @@ public final class TownKeeper {
      */
     public Pass rebuild(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots) {
         var hub = HubData.get(server);
-        if (!programs.complete() || hub == null || !HubLayout.LOOK.equals(hub.look())) return Pass.NOTHING;
+        if (!programs.complete() || hub == null || !HubLayout.LOOK.equals(hub.look()) || hub.refusal().isPresent()) return Pass.NOTHING;
         // A frozen logo is not built again: nothing of it is taken down until he trusts the records.
         for (var logo : hub.logos()) if (!hub.frozen(logo.app())) renew.add(logo.app());
         said.clear();
@@ -300,7 +310,8 @@ public final class TownKeeper {
     private Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots, boolean rebuilt) {
         if (!programs.complete()) return Pass.NOTHING;
         var hub = HubData.get(server);
-        if (hub == null || !HubLayout.LOOK.equals(hub.look())) return Pass.NOTHING;
+        // A town file that does not fit this world: the town builds, takes down and paves nothing (point 3).
+        if (hub == null || !HubLayout.LOOK.equals(hub.look()) || hub.refusal().isPresent()) return Pass.NOTHING;
         var level = server.getLevel(hub.home().dimension());
         if (level == null) return Pass.NOTHING;
 

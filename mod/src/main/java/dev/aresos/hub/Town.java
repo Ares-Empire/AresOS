@@ -114,6 +114,8 @@ public final class Town {
         var hub = HubData.get(server);
         if (hub == null) throw new IOException("This world is not a flat home: it has no town.");
         if (!HubLayout.LOOK.equals(hub.look())) throw new IOException("This town was built by other rules (" + hub.look() + ").");
+        var refusal = hub.refusal();
+        if (refusal.isPresent()) throw new IOException(TownKeeper.refused(server, refusal.get()));
         return hub;
     }
 
