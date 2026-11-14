@@ -1631,7 +1631,7 @@ before the suite, unconditional, and to the slice; there are exactly three such 
 **D, B9 and F** (`314062a2`).
 - `bundle.py`: `rollback.sh`, `default-stock.sh` and `previous.sh` left the payload (`start-next.sh` was
   already in); `os/release/` keeps all three byte-identical. `bundle.py --refresh` printed
-  `PASS bundle manifest SHA256 ba4c2bb4acd75693836455e1302182a9da6b6510ea418fc26e1ae99d6d074bef`.
+  `PASS bundle manifest SHA256 ba4c2bb4…`.
 - The 15f stand-in bundle of `ToolsUpdateTest` no longer drops `release/previous.sh` (it is gone from the
   payload); it keeps dropping `history.json` and `release/update.sh`.
 - B9: `test_shell_assertions.ShellAssertionTest.test_payload_no_longer_carries_the_three_old_scripts_and_their_repository_copies_stay`
@@ -1685,7 +1685,7 @@ source lines; `test_owner_equality` accepts a quoted folder block only byte-equa
 
 ### The fingerprint and its pins
 
-`ba4c2bb4acd75693836455e1302182a9da6b6510ea418fc26e1ae99d6d074bef` (tools version 3, this package's
+`ba4c2bb4…` (tools version 3, this package's
 bundle). Pinned in: `docs/INSTALL.md` (both `PASS tools manifest SHA256` copy checks and the fingerprint
 line of both bootstrap blocks: four places), `os/owner-tools/commands.json` (`install`),
 `docs/INSTALL-STATUS.md` (the update row: "Package 22c's bundle (tools version 3; built, **not on the
@@ -1823,7 +1823,7 @@ git -C /var/home/ares/AresOS archive --prefix=ares-tools/ <commit>:os/owner-tool
 sha256sum /var/home/ares/ares-tools/SHA256SUMS
 ```
 
-The last line must print `ba4c2bb4acd75693836455e1302182a9da6b6510ea418fc26e1ae99d6d074bef` (the block
+The last line must print `ba4c2bb4…` (the block
 checks it again). `git archive` takes the committed payload, whatever the checkout's working tree holds.
 The folder must hold nothing else: an extra file refuses. Then the owner approves the password prompt of
 this block, the exact text the guide must quote (`bootstrap.command(fingerprint, 'folder')`):
@@ -1835,7 +1835,7 @@ trap "echo STOP bootstrap: verification or install refused" ERR
 p=$(mktemp -d /run/ares-bootstrap.XXXXXX)
 cd "$p"; cp -R --no-preserve=mode,ownership /var/home/ares/ares-tools .; test ! -L ares-tools; cd ares-tools
 test -z "$(find . ! -type d ! -type f -print -quit)"
-echo "ba4c2bb4acd75693836455e1302182a9da6b6510ea418fc26e1ae99d6d074bef  SHA256SUMS" | sha256sum -c --strict
+echo "ba4c2bb4…  SHA256SUMS" | sha256sum -c --strict
 cmp -s \
   <(find . -type f -printf "%P\n" | sort) \
   <({ cut -c67- SHA256SUMS; echo SHA256SUMS; } | sort)
