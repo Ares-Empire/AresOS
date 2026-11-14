@@ -230,10 +230,10 @@ public final class TownClientGameTest implements FabricClientGameTest {
         return AresOs.apps().stream().filter(AppDefinition::mine).map(AppDefinition::id).sorted().toList();
     }
 
-    /** Runs a command as the host types it, on the server thread; what it returned. */
+    /** Runs a command as the host types it (its answers go to his chat), on the server thread; what it returned. */
     private static int run(MinecraftServer server, TestSingleplayerContext world, String command) {
         try {
-            return server.getCommands().getDispatcher().execute(command, server.createCommandSourceStack().withEntity(world.getConnection().getServerPlayer()));
+            return server.getCommands().getDispatcher().execute(command, world.getConnection().getServerPlayer().createCommandSourceStack());
         } catch (CommandSyntaxException error) {
             throw new AssertionError(command + ": " + error.getMessage(), error);
         }
