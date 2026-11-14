@@ -1,9 +1,11 @@
-"""Package 30, review fixes 3, step A: a picture pass only when something changed.
+"""Package 30, review fixes 3, step A: a picture pass only when something changed, and one warning when no picture can
+be made.
 
 Everything is synthetic: icon folders, desktop entries and the converter's answer (`run` gives a normalized PNG) are
 the test's own. The worker's steps run on the test's thread, so a test can count the passes the helper's ticks cause.
 """
 import os
+import sys
 from unittest import mock
 
 from test_aresos_shell import shell, Base, REGISTRY, INSTANCE, NONCE
@@ -131,3 +133,37 @@ class SupersedeTest(IconBase):
                 self.assertEqual(self.cache.finished is not None, complete)
                 # The request made during the pass: nothing changed for the same catalogue, a pass for a new one.
                 self.assertEqual(self.cache.step(*self.cache.pending.get_nowait()), not complete)
+
+
+class MissingToolsTest(IconBase):
+    """Point 3 (OS lead): without bwrap, magick or prlimit no picture can be made; one WARNING at start says so."""
+
+    def test_one_warning_at_start_names_what_is_missing_and_no_more_per_picture(self):
+        missing = str(self.root / 'missing')
+        for tools, named in ((dict(bwrap=missing + '/bwrap'), ['bwrap']),
+                             (dict(magick=missing + '/magick', prlimit=missing + '/prlimit'), ['magick', 'prlimit'])):
+            with self.subTest(named=named), mock.patch.object(shell.LOG, 'disabled', False), \
+                    self.assertLogs(shell.LOG, 'DEBUG') as logs:
+                present = dict(bwrap=sys.executable, magick=sys.executable, prlimit=sys.executable)
+                cache = shell.IconCache(environ={'HOME': str(self.root), 'XDG_CACHE_HOME': str(self.root / 'cache')},
+                                        directories=self.folders, **dict(present, **tools))
+                self.addCleanup(cache.stop)
+                cache.thread = mock.Mock()
+                sources = [self.write(self.root / f'{n}.png', PNG + bytes([n])) for n in range(3)]
+                cache.request({str(n): shell.App(str(n), 'P', icon_name=str(path)) for n, path in enumerate(sources)},
+                              'base')
+                cache.step(*cache.pending.get_nowait())
+            warnings = [record.getMessage() for record in logs.records if record.levelname == 'WARNING']
+            self.assertEqual(len(warnings), 1, warnings)
+            for name in named:
+                self.assertIn(f'{missing}/{name}', warnings[0])
+            self.assertIn('programs show without pictures', warnings[0])
+            # Each picture still fails on its own, quietly.
+            self.assertEqual(len([r for r in logs.records if r.levelname == 'DEBUG']), 3)
+
+    def test_no_warning_when_every_tool_is_there(self):
+        with mock.patch.object(shell.LOG, 'disabled', False), mock.patch.object(shell.LOG, 'warning') as warning:
+            cache = shell.IconCache(environ={'HOME': str(self.root)}, directories=self.folders,
+                                    bwrap=sys.executable, magick=sys.executable, prlimit=sys.executable)
+            self.addCleanup(cache.stop)
+        warning.assert_not_called()

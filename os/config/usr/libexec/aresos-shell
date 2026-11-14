@@ -1620,6 +1620,10 @@ class IconCache:
         self.latest = None
         # (revision, signature) of the last complete pass; None while a pass is due.
         self.finished = None
+        # Once at start rather than once per picture (review fixes 3): without these no picture can be made.
+        missing = [path for path in (bwrap, magick, prlimit) if not os.access(path, os.X_OK)]
+        if missing:
+            LOG.warning('%s missing: programs show without pictures', ', '.join(missing))
 
     def request(self, apps, revision):
         if self.stopping.is_set():
