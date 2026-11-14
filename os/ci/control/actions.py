@@ -687,8 +687,10 @@ def ordinary(request):
         cases['stopped-mid-session'] = sessions.session(out / 'stopped-mid-session', [step(1), step(2), step(3)],
                                                         sessions.NORMAL, [None, None, None], before_turn=stop_then_start)
         DROP_IN.parent.mkdir(parents=True, exist_ok=True)
-        DROP_IN.write_text('# CI only (package 18c, B2 check 6): the service fails at every start.\n'
-                           '[Service]\nExecStartPre=/usr/bin/false\n')
+        # Restart=no: with the unit's own Restart=on-failure it restarts without end (run 43563336637: 41
+        # restarts in 90 s, never "failed"); check 6 needs the failed state.
+        DROP_IN.write_text('# CI only (package 18c, B2 check 6): the service fails and stays failed.\n'
+                           '[Service]\nExecStartPre=/usr/bin/false\nRestart=no\n')
         systemctl('daemon-reload')
         service[4] = dict(state='failed', restart=run(['systemctl', 'restart', UNIT], timeout=120)['returncode'],
                           **wait_state('failed'))

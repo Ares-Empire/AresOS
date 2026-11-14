@@ -14,6 +14,7 @@ import imaplib
 import os
 import pathlib
 import ssl
+import time
 
 FIXTURES = pathlib.Path(os.environ.get('RUNNER_TEMP', '/tmp')) / 'aresos-control-fixtures'
 # The guest's account (control/ci/image/mail_flows.py uses the same values): synthetic names only.
@@ -64,7 +65,7 @@ def seed():
     try:
         for kind in SUBJECTS:
             mail = message(kind)
-            status, _ = connection.append('INBOX', '', imaplib.Time2Internaldate(None),
+            status, _ = connection.append('INBOX', '', imaplib.Time2Internaldate(time.time()),
                                           mail.as_bytes(policy=policy.SMTP))
             assert status == 'OK', (kind, status)
             seeded[kind] = dict(subject=SUBJECTS[kind], message_id=mail['Message-ID'])

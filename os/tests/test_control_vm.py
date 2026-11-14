@@ -142,7 +142,7 @@ class SessionPiecesTest(unittest.TestCase):
         imported = {(node.module, alias.name) for node in ast.walk(sessions) if isinstance(node, ast.ImportFrom)
                     for alias in node.names}
         self.assertEqual(imported, {('interactive_driver', 'Terminal'), ('interactive_driver', 'options'),
-                                    ('interactive_model', 'Model')})
+                                    ('interactive_model', 'Model'), ('interactive_model', 'texts')})
         actions = (CONTROL_CI / 'actions.py').read_text()
         self.assertIn("'/run/systemd/system/aresos-toold.service.d/aresos-ci-fail.conf'", actions)
 
