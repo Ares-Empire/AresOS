@@ -3198,3 +3198,152 @@ the run did not pass.
 Cleanup: the temp files under `/var/home/ares/pkg22c-work/` (watch logs, the downloaded evidence of run 43581458429)
 are removed with the folder; `.work/` holds no file over 500 MB; no builder-started test or watch process remains; no
 Gradle daemon was started. PR #46 stays draft; nothing was merged or pushed to main.
+
+## Stage 2, step 2
+
+Builder: a Claude agent on Fable 5.2 (`briefs/22c-stage-2-additions.md`, step 2; started from `13f2808e`). Done before
+any dispatch: the harness pin that stopped run 43581458429 is fixed, the local walk fails on such a pin, every step
+from `layout proof` to the end was read against the harness and the tools, and the ledger holds the integrator's
+raised caps. Then the checks-only run with the full model, one VM dispatch and one watch (runs below). Nothing was
+merged or pushed to main, and no owner tool, start block, deployment binary, keyboard command or VM ran on the laptop.
+
+### The pin: the harness reads the folder the tools run from
+
+- **`owner_hidden.owner_reader(toolset, args)`** takes the installed toolset's folder and has no default. It accepts
+  `/var/lib/ares/tools` (the first install) or `/var/lib/ares/tools-<64 hex digits>` (every tools update) and refuses
+  anything else (**STOP: not an installed toolset folder**).
+- **`owner_vm.Console.toolset(stage)`** reads the folder in the guest the way `os/owner-tools/at` finds it for
+  itself: `/usr/bin/readlink -f -- /var/lib/ares/at` (the same command `at` runs on `$0`), then that path's folder
+  (the guest program `owner_vm.ENTRY`; its answer is saved as `<stage>-toolset.json`). `Console.run` calls it before
+  it types a command whose input the tools read: after the sudo password (`layout proof`) or at a hidden prompt of the
+  tools (`login`). It is read before each such command, never kept from an earlier one, so a tools update between two
+  commands cannot leave an old folder behind.
+- **The four uses** (`Console.hidden`'s token test, `send_hidden`'s handoff test, twice in `Console.run`) compare
+  with `Console.owner_reader(args)`, built from the folder just read. Nothing in the harness derives the reader's
+  folder from a version or a fingerprint.
+- **`WaysBack.trial`** additionally holds the folder read at each proof to the toolset this walk installed
+  (`/var/lib/ares/tools-` plus the manifest the install reported; `owner.py`, `installed_update`): **STOP: the proof
+  was not read by the tools this walk installed**. The result file records `tools_version_3_folder`.
+- **Tests.** `test_owner_hidden`: the real `at` behind the real install placement starts `tools/owner.py`; after the
+  tools' own `switch_entry` to `tools-<fingerprint>` the same entry starts that folder's `owner.py`, and only a reader
+  for that folder equals it; twelve other folders are refused. The fifteen unit-test readers name `/var/lib/ares/tools`
+  explicitly (they model the first install). `serial_pty`'s guest stand-in answers the entry program for its
+  first-install fixture.
+
+### The local walk can fail on such a pin
+
+- **Before**, the walk's console built the process that reads from the reader the harness expected
+  (`owner_console_shim.hidden_rows`), so any expectation passed (step 1's PLAN-GAP 6).
+- **`owner_console_shim.InstalledTools`** is the walk's own `/var/lib/ares`: at each modelled install the toolset
+  folder is created (`tools`, then `tools-<fingerprint>`) and the entry is moved by the tools' own `switch_entry`.
+  The reader's command line is what the real `os/owner-tools/at` execs through that link (a stand-in `owner.py`
+  prints its command line and does nothing else). The sudo words come from the command the walk typed. The harness's
+  entry program runs on the same model (`InstalledTools.resolve`), so the program itself is exercised too.
+- **`model_clock`**: guest time moves while the walk runs an observer. With the old pin the walk did not fail at
+  first, it hung: the observer waits for its deadline, and the walk's clock stood still (found while showing the
+  failure; two hung walk processes were stopped and their temp folders under `os/tests` removed). Now an observer
+  that never sees what it waits for ends at its deadline and answers with its refusal, as in the VM.
+- **Shown with the old pin** (the walk change alone, `owner_hidden.py` and `owner_vm.py` still as in `13f2808e`):
+  `AssertionError: The modelled console does not show the reader the harness expects at
+  layout-intl-proof-sudo-hidden-read-wait-205-handoff-1: Unexpected foreground reader`, from
+  `ways_back_rehearsal` → `trial` → `Console.run` → `send_hidden`: the place and the reason of run 43581458429.
+  With the fix the walk passes (21 stages, 43 s), and the tools read input as `/var/lib/ares/tools/owner.py login`
+  (15f tools) and `/var/lib/ares/tools-2084c786…/owner.py layout proof` (version 3, on `release-27` and `intl-27`).
+- **Kept as tests** (`test_ways_back_probe.RehearsalWalkTest`): the harness reads the entry before each of the four
+  reads and the console shows those three processes; a harness that expects the first install's folder
+  (`Console.toolset` replaced by the old pin) fails the walk at `layout-intl-proof` with **Unexpected foreground
+  reader**; an entry that does not resolve to a toolset is refused before anything is typed.
+
+### Read before the dispatch: every step from `layout proof` to the end
+
+Nothing after `layout proof` had run in a VM. Read against `os/ci` and the tools at this head (version 3,
+`2084c786…`), and against the probe's VM captures (`runs/reorder-probe-43470161858/`) where a real value decides:
+
+| Step of the walk | Checked against | Found |
+|---|---|---|
+| `layout proof`: the process after sudo | `os/owner-tools/at`, `owner.py` `main` | **the pin, fixed above.** The chain sudo, sudo, python3 and the handoff rule (`related_transition`: the verified sudo plus its monitor and command) fit version 3; the tools hold no child at the prompt (`reader_chain`: "Reader still has child work") |
+| `layout proof`: the public text | `owner.py:2192`, `input('Physically type yz-/!ü then Return: ')` | `LAYOUT_PROMPT` matches; the echo check reads the Unicode screen as in package 14 |
+| Every command's result record | `tools.save(stamp + '-' + command)`, `refusal_record`, the fixed-name records, the archives (`…-outcome-<state>`) | the harness's lookup (`-<command>.json`, exactly one new file) holds for check, title, layout, forward, previous, rollback, keep-stock and the two refusals; no fixed-name record or archive ends in a command word |
+| `layout finish`, `begin de`, `begin us`, `abandon` | `owner.py` `layout`, `session` | the harness only requires PASS; `abandon` before `check` is allowed (the walk's order differs from package 14's) |
+| `title`, `reboot` with version 3 | `owner.py` `reboot` (identical to version 2, which restarted in the VM), `title` | no pin. The tools never read grubenv, so `menu_show_once` set before the typed restart cannot make the title stale |
+| Every start | `two_disk_vm.start_installed`, `Guest.login`, `keyboard`, `Probe.restarted` | a stage name steers nothing (only `tools-stock`); the link stays down as in the probe; `keyboard` checks each system's own settings |
+| The reorders (`previous`, `forward`, `rollback`, `keep-stock`) | `payload/release/start-next.sh`, `Tools.start_next`, `Probe.tool_move`, `JOURNAL` | one `ostree admin set-default`, so one swap line; the probe's captures show no swap line before a move on any of the three systems, so `quiet` (no list write in a start) holds |
+| Names and references in the required lines | `owner.py` `name`, `image_reference`, `change`; the probe's `walk-0-start-deployments.json` | the tools and `WaysBack.reference` strip the same two prefixes; the real rows read `ostree-unverified-registry:ghcr.io/ares-empire/aresos@sha256:…` (equal to the manifests' references) and `ostree-image-signed:docker://ghcr.io/ublue-os/bazzite-nvidia-open:stable`, which also passes `start_next`'s reference pattern |
+| The refusals (`update`, `rollback` on stock), `keep-stock` unchanged | `Tools.update`, `Tools.recover`, the oracle | the lines come from the tools in the local walk; the record's `trace` carries `mutation` |
+| Plain Bazzite: check, greeter, updaters | `payload/release/stock-session.sh` and `pause-stock-updates.sh` (both byte-identical to the 15f bundle), `paused_state`, `UPDATERS` | rule 10 reads the units that 15f's `prepare` disabled, and the harness reads the same list. Whether a unit is active on a later start of stock shows only in the VM |
+| The boot menu (R27's row, then the stock's) | `grub_bls.stock_bls_entry`, `confirm_menu_ocr`, `td.select_grub_menu`, the probe's menu captures | the rule finds any row that is not first by its checksum; all three titles read `Bazzite (ostree:N)` as recorded; the probe's start after a menu choice ran the first row (GRUB saves no choice) |
+| The cut (E7) | `CUT_WATCH`, `owner.py` `Step`, `intend`, `OUTCOME` | the watcher matches `…/owner.py rollback` in any folder (no folder pin); the release step is a child of the tools' process in its own session, so "the step ended" covers set-default, its `sync` and its last read; the journal is `/var/lib/ares/records/outcome-pending.json` with the fields the harness reads |
+| The end of the walk, the result file | `ways_back_rehearsal`, `Probe.result` | no pin |
+| The job after the VM step | `.github/workflows/os-image.yml` | only the evidence bound (450 MB) and the upload. The job ends at 345 minutes; its steps before the VM step took 33 minutes in run 43581458429, which leaves the walk about 310. My estimate for the whole walk is 235 to 255 minutes |
+| `collect.py` | the names the harness saves (a dry run on the local walk's own result: 152 files, 33 stage rows) | **fixed:** its password check could not see a password in a JSON capture (`json` writes `ü` as an escape), and its pattern was the public typing text, which every `check` prints into the transcript. It now searches each JSON capture as stored and as read, for the password's start plus four of its hex digits. Added: the `*-toolset.json` captures |
+| The record step | `rebind.py rebind`, `owner_vm.bound_sources`, `checkout_sources` | no mismatch. It needs the bound files as the run's head has them: `collect.py`, `rebind.py`, this report and `docs/INSTALL-STATUS.md` are not bound and may change after the run; the ledger, the harness and the tests are bound and may not |
+
+Other installed paths the harness names, all still right for a versioned toolset: `/var/lib/ares/at`,
+`/var/lib/ares/records`, `/var/lib/ares/diagnostics`, `records/prepared.json`, `records/outcome-pending.json`.
+
+### The budget (integrator's decision, 2026-11-14)
+
+`os/ci/rehearsal-packages.json`, package `22c`: `minute_cap` 1200 → **2400**, `vm_dispatch_cap` 4 → **6**, and
+`dispatch_caps.ways-back` 3 → **5** (the probe used one of the six; with 3 the raised cap could not be reached). The
+ledger's `budget` note says why: the runners are free for this public repository, the caps exist to stop runaway
+loops, and a rehearsal that stops on a harness pin needs room to finish. Every other guard is unchanged: the
+345-minute reservation and the job bounds, the checks cap (30), the model gate, the native gate, no rerun, no publish.
+
+### Test expectations changed on purpose
+
+- `test_ways_back_probe.LedgerTest`: 2400 minutes and six VM dispatches (was 1200 and four); the ways-back count is
+  the six minus the probe's one; `exceeds 2400` at 240 + 2161; a seventh VM dispatch and a sixth rehearsal both stop.
+- The fifteen unit-test readers pass the first install's folder (`test_owner_hidden`, `test_owner_completion`,
+  `test_owner_reliable_typing`, `test_owner_read_diagnostics`). No assertion was weakened.
+
+### Verified (local, before the runs)
+
+`TMPDIR=/var/home/ares/pkg22c-work`, `nice -n 10`, one module at a time, from the repository root, Python 3.14:
+`test_ways_back_probe` (57 tests), `test_owner_walk` (27), `test_owner_equality` (10), `test_checkout_sources` (6),
+`test_owner_hidden` (11), `test_owner_completion` (7), `test_owner_reliable_typing` (15),
+`test_owner_read_diagnostics` (6), `test_owner_console` (15), `test_serial_staging` (19), `test_owner_key_counter`
+(11), `test_owner_login` (18), `test_owner_ps2` (14), `test_owner_session` (16), `test_owner_layout_adapter`,
+`test_owner_counter_flush`, `test_owner_sudo_idle`, `test_rehearsal_budget`, `test_owner_guard`,
+`test_owner_staged_release`, `test_probe_native`, `test_ways_back_compatibility` (21), `test_loop_nodes`,
+`test_owner_capabilities`, `test_owner_step_limits`, `test_ci_step_environment`, `test_ci_api_permissions`,
+`test_owner_devices`, `test_owner_media`, `test_rehearsal_history`, `test_rehearsal_retry`, `test_job_accounting`,
+`test_organization_budget` and `test_release27`'s wiring classes (10): all OK. `test_owner_reset` cannot be imported
+when it runs alone (it relies on another module's import path); that is so without this step's changes too.
+`test_owner_update` and the model did not run locally. The four routes of the local walk pass (qualification, update,
+reorder-probe, ways-back). `walk-host.py` was regenerated after the last bound change (260 sources), then
+`rebind.py pending` (44 files wait, 2 removed).
+
+### JUDGMENT-CALL (step 2)
+
+1. **The folder is read before each command, not kept in the route.** Step 1 proposed route state (as
+   `Guest.network_up`), set after each tools install. That would be the harness's own belief about what the install
+   did, the kind of belief that failed. Reading the entry is the tools' own rule and costs one short guest command
+   before each of four reads. Changing it later means `Console.run` and the walk's entry model.
+2. **`owner_reader` has no default folder.** Every caller names the folder; the unit tests name the first install's.
+   A default would bring the pin back for the next reader someone adds.
+3. **The proof is also held to the installed version** (`WaysBack.trial`). The folder for that comparison comes from
+   the manifest the install reported and `owner.py`'s publication rule; it only judges the folder that was read and
+   never builds the reader. Without it, a proof read by other tools than version 3 would pass the reader check.
+4. **`dispatch_caps.ways-back` is 5.** The decision names the minute cap and the VM dispatch cap; the per-mode count
+   was derived from the old cap (four minus the probe's one) and would have kept the rehearsal at three dispatches.
+5. **The walk's observers get a moving clock** (`model_clock`), for the hidden-reader and the idle observers. A
+   wrong expectation must end the walk with the observer's reason; before, it never ended.
+6. **`collect.py` searches a JSON capture as stored and as read**, and its password pattern is the fixed start plus
+   four hex digits. The start alone is public text that the transcript holds in every check.
+7. **The serial fixture answers the entry program with a stand-in** (`serial_pty`), as it does for the key counter:
+   the fixture's guest is this machine, where the program would read the laptop's own `/var/lib/ares`. The real
+   program runs on the walk's model.
+
+### PLAN-GAP (step 2)
+
+1. **A wrong reader expectation hung the local walk** instead of failing it (the model's clock stood still). Fixed
+   for the two observers the walk runs through the shim; the unit fixtures that call `execute_hidden` directly keep
+   their own clocks.
+2. **`collect.py`'s password check was blind in JSON captures** since stage 0 (the probe's captures hold no `ü`, so
+   nothing was missed there). Fixed.
+3. **The walk's model of a command's processes still follows the harness for everything but the tools' own
+   process and its sudo** (login, `sudo -i`, `passwd`, the shell shapes): those are package 14's reviewed shapes and
+   no tools version changes them.
+4. **What reading cannot settle** and the VM run decides: rule 10 on a later start of plain Bazzite (no updater unit
+   active), US International in `foot` on release 27, the tools' reorder under real ostree and bootc in every order,
+   the boot menu's second row, and the cut's timing.
