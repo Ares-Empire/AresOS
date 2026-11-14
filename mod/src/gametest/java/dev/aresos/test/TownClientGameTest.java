@@ -13,6 +13,10 @@ import dev.aresos.shell.FakeHelper;
 import dev.aresos.shell.ShellClient;
 import dev.aresos.test.mixin.AppsTestAccess;
 import dev.aresos.world.NetherHome;
+import dev.aresos.zone.AppZone;
+import dev.aresos.zone.ZoneCommands;
+import dev.aresos.zone.ZoneData;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -117,6 +121,30 @@ public final class TownClientGameTest implements FabricClientGameTest {
                 context.runOnClient(client -> client.player.connection.sendCommand("aresos hub rebuild"));
                 context.waitFor(client -> messages.contains("The town was rebuilt from the rules: 4 logos built again."), 100);
                 world.getServer().runOnServer(server -> check(HubData.get(server).logos().size() == 4, "After the rebuild: " + HubData.get(server).logos()));
+
+                // /aresos logo never waits on a picture on the server thread (review fixes 1, step B, point 3): the
+                // command returns at once and builds nothing in its own tick; the gate stands a few ticks later, once
+                // the picture is read. He stands on the pad, looking north.
+                world.getServer().runOnServer(server -> check(run(server, world, "aresos logo terminal") == 1 && ZoneCommands.ordered(server) == 1
+                        && gates(server) == 0, "The gate was built in the command's own tick"));
+                waitForServer(context, world, server -> ZoneCommands.ordered(server) == 0, "The ordered gate was never built", 200);
+                context.waitFor(client -> messages.stream().anyMatch(line -> line.startsWith("Built the gate of Terminal.")), 100);
+                world.getServer().runOnServer(server -> check(gates(server) == 1, "No gate after its picture was read"));
+                context.runOnClient(client -> client.player.connection.sendCommand("aresos logo remove terminal"));
+                waitForServer(context, world, server -> gates(server) == 0, "The gate stayed", 200);
+                // He moves while the picture is read: one line, nothing built.
+                world.getServer().runOnServer(server -> {
+                    check(run(server, world, "aresos logo terminal") == 1, "The command failed");
+                    var player = world.getConnection().getServerPlayer();
+                    player.teleportTo(player.getX() + 2, player.getY(), player.getZ());
+                });
+                waitForServer(context, world, server -> ZoneCommands.ordered(server) == 0, "The ordered gate was never dropped", 200);
+                context.waitFor(client -> messages.stream().anyMatch(line -> line.startsWith("Logo refused: you moved while the picture of Terminal was read.")), 100);
+                world.getServer().runOnServer(server -> {
+                    check(gates(server) == 0, "A gate was built after he moved");
+                    var player = world.getConnection().getServerPlayer();
+                    player.teleportTo(player.getX() - 2, player.getY(), player.getZ());
+                });
             }
             AresOs.LOGGER.info("36 client checks passed: the town stands up after the host joins (a complete list, the picture thread, "
                     + "the pass), its lines and counts; app remove takes a logo down; hub rebuild says one line");
@@ -151,6 +179,18 @@ public final class TownClientGameTest implements FabricClientGameTest {
     private static List<String> mine() {
         return AresOs.apps().stream().filter(AppDefinition::mine).map(AppDefinition::id).sorted().toList();
     }
+
+    /** Runs a command as the host types it, on the server thread; what it returned. */
+    private static int run(MinecraftServer server, TestSingleplayerContext world, String command) {
+        try {
+            return server.getCommands().getDispatcher().execute(command, server.createCommandSourceStack().withEntity(world.getConnection().getServerPlayer()));
+        } catch (CommandSyntaxException error) {
+            throw new AssertionError(command + ": " + error.getMessage(), error);
+        }
+    }
+
+    /** How many gates built by hand stand in the world. */
+    private static long gates(MinecraftServer server) { return ZoneData.get(server).zones().stream().filter(AppZone::isGate).count(); }
 
     static List<String> names(MinecraftServer server) {
         var hub = HubData.get(server);

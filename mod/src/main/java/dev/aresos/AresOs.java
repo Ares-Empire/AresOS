@@ -175,6 +175,8 @@ public final class AresOs implements ModInitializer {
         LiveMode.register();
         NetherHome.register();
         dev.aresos.zone.WalkInZones.register();
+        dev.aresos.zone.PictureReader.register();
+        dev.aresos.zone.ZoneCommands.register();
         dev.aresos.hub.TownKeeper.register();
         dev.aresos.hub.TownSeal.register();
         PayloadTypeRegistry.serverboundPlay().register(ToggleModePayload.TYPE, ToggleModePayload.CODEC);

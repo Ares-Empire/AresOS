@@ -16,7 +16,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
@@ -59,6 +61,7 @@ public final class GateBuilder {
      * The picture of an app's gate: its icon by the rules of HUB.md 3.6, or a plain front in its group's colour
      * when it has no readable icon or nothing of it is visible (HUB.md 2.3). The icon is the one {@link AppIcons}
      * reads for the app's item: the owner's own path first, otherwise the picture the system named, within its limits.
+     * It reads a file and may wait seconds for it: never on the server thread ({@link PictureReader}).
      */
     public static GatePicture picture(AppDefinition app, int size) {
         try {
@@ -76,11 +79,9 @@ public final class GateBuilder {
     /** The concrete of the app's group, named as the gate names blocks: its doormat and its plain front. */
     static String concrete(AppDefinition app) { return GatePalette.name(AppGroup.of(app).concrete()); }
 
-    /** The gate `/aresos logo <app>` builds: in front of the player, facing him, on the ground he stands on. */
-    public static GatePlan planInFrontOf(ServerPlayer player, AppDefinition app) {
-        var facing = player.getDirection();
-        return GatePlan.of(picture(app, GateNumbers.SIZE), player.level().dimension(),
-                GatePlan.originInFrontOf(player.position(), facing, GateNumbers.SIZE), facing, app.name(),
+    /** The gate `/aresos logo <app>` builds with this picture: in front of where he stood, facing him, on the ground he stood on. */
+    public static GatePlan planInFrontOf(Vec3 feet, Direction facing, ResourceKey<Level> dimension, AppDefinition app, GatePicture picture) {
+        return GatePlan.of(picture, dimension, GatePlan.originInFrontOf(feet, facing, GateNumbers.SIZE), facing, app.name(),
                 dev.aresos.names.NameRules.mainName(app), concrete(app));
     }
 

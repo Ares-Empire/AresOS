@@ -9,6 +9,7 @@ import dev.aresos.names.NameRules;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.zone.GateBuilder;
 import dev.aresos.zone.GatePicture;
+import dev.aresos.zone.PictureReader;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -31,8 +32,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -52,8 +51,8 @@ import java.util.stream.Collectors;
  * few seconds while he is in the world (so also when he comes near). A place that still holds the town's own logo is
  * not blocked: that logo comes down first, then the new one is built, so a place can change hands in one pass.
  *
- * <p>Pictures are read away from the server thread (an icon may take seconds to read); a pass only uses pictures
- * already read and names the apps it still needs.
+ * <p>Pictures are read away from the server thread (an icon may take seconds to read; {@link PictureReader}, which
+ * drops them when the server stops); a pass only uses pictures already read and names the apps it still needs.
  */
 public final class TownKeeper {
     /** His apps as the apps file has them, and whether the system's program list behind it is complete. */
@@ -85,11 +84,6 @@ public final class TownKeeper {
     private static volatile boolean complete;
     // Server thread only, like the servers themselves.
     private static final Map<MinecraftServer, TownKeeper> KEEPERS = new WeakHashMap<>();
-    private static final ExecutorService READER = Executors.newSingleThreadExecutor(task -> {
-        var thread = new Thread(task, "AresOS town pictures");
-        thread.setDaemon(true);
-        return thread;
-    });
 
     /** A picture as read, with what it was read for: the icon's path and the group (the plain front's colour). */
     private record Read(String path, AppGroup group, GatePicture picture) { }
@@ -195,6 +189,11 @@ public final class TownKeeper {
         if (ASKED.getAndSet(false)) stale = true;
         if (reading != null) {
             if (!reading.isDone()) return;
+            // Dropped: the server stops (PictureReader); nothing more is done.
+            if (reading.isCancelled()) {
+                reading = null;
+                return;
+            }
             try {
                 reading.join().forEach(pictures::put);
             } catch (RuntimeException error) {
@@ -215,7 +214,7 @@ public final class TownKeeper {
         if (stale) {
             stale = false;
             said.clear();
-            read(AresOs.apps().stream().filter(TownKeeper::wanted).toList());
+            read(server, AresOs.apps().stream().filter(TownKeeper::wanted).toList());
             return;
         }
         due = false;
@@ -244,7 +243,7 @@ public final class TownKeeper {
         }
         pending = pass.pending();
         retryAt = server.getTickCount() + RETRY_TICKS;
-        if (!pass.pictures().isEmpty()) read(AresOs.apps().stream().filter(app -> pass.pictures().contains(app.id())).toList());
+        if (!pass.pictures().isEmpty()) read(server, AresOs.apps().stream().filter(app -> pass.pictures().contains(app.id())).toList());
         return pass;
     }
 
@@ -252,18 +251,13 @@ public final class TownKeeper {
         return server.getPlayerList().getPlayers().stream().filter(player -> DesktopWorld.isHost(server, player)).findFirst();
     }
 
-    /** Reads the apps' pictures on the reader thread; a pass follows when they are in. */
-    private void read(List<AppDefinition> apps) {
+    /** Reads the apps' pictures on the server's picture reader; a pass follows when they are in. */
+    private void read(MinecraftServer server, List<AppDefinition> apps) {
         if (reading != null) {
             stale = true;
             return;
         }
-        reading = CompletableFuture.supplyAsync(() -> {
-            var read = new HashMap<String, Read>();
-            for (var app : apps)
-                read.put(app.id(), new Read(AppIcons.path(app), AppGroup.of(app), GateBuilder.picture(app, HubLayout.SIZE)));
-            return read;
-        }, READER);
+        reading = PictureReader.of(server).read(apps, app -> new Read(AppIcons.path(app), AppGroup.of(app), GateBuilder.picture(app, HubLayout.SIZE)));
     }
 
     /** The picture read for this app, while it was read for the icon and group the app has now. */

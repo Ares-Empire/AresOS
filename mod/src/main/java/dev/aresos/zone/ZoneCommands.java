@@ -8,18 +8,26 @@ import dev.aresos.world.DesktopWorld;
 import dev.aresos.world.HomeSites;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
+import java.util.concurrent.CompletableFuture;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
@@ -110,18 +118,85 @@ public final class ZoneCommands {
         } catch (IOException | IllegalArgumentException error) { source.sendFailure(Component.literal(error.getMessage())); return 0; }
     }
 
+    /**
+     * A gate {@code /aresos logo <app>} builds once its picture has been read: who asked, where he stood and which
+     * way he looked, and the picture being read.
+     */
+    private record Order(CommandSourceStack source, ServerPlayer player, ServerLevel level, BlockPos feet, Vec3 position, Direction facing,
+                         String app, CompletableFuture<Map<String, GatePicture>> picture, int tick) { }
+    // Server thread only, like the servers themselves.
+    private static final Map<MinecraftServer, List<Order>> ORDERS = new WeakHashMap<>();
+
+    public static void register() {
+        ServerTickEvents.END_SERVER_TICK.register(ZoneCommands::tick);
+        // A stopping server builds nothing more; its pictures are dropped with it (PictureReader).
+        ServerLifecycleEvents.SERVER_STOPPING.register(ORDERS::remove);
+    }
+
+    /** How many gates {@code /aresos logo} builds once their pictures are read. */
+    public static int ordered(MinecraftServer server) {
+        var orders = ORDERS.get(server);
+        return orders == null ? 0 : orders.size();
+    }
+
+    /**
+     * {@code /aresos logo <app>} (review fixes 1, step B, point 3): the picture is read and turned into blocks on the
+     * reader thread, never on the server thread; the gate is planned, checked and built in a later tick ({@link #tick}).
+     */
     private static int gate(CommandSourceStack source, String id) throws CommandSyntaxException {
         var player = host(source); if (player == null) return 0;
         var app = AresOs.app(id);
         if (app == null) { source.sendFailure(Component.literal("Unknown AresOS app")); return 0; }
+        var server = source.getServer();
+        var picture = PictureReader.of(server).read(List.of(app), read -> GateBuilder.picture(read, GateNumbers.SIZE));
+        ORDERS.computeIfAbsent(server, ignored -> new ArrayList<>()).add(new Order(source, player, player.level(), player.blockPosition(),
+                player.position(), player.getDirection(), id, picture, server.getTickCount()));
+        return 1;
+    }
+
+    /** Server thread, every tick: builds the gates whose pictures are in, from a tick after the one they were asked in. */
+    private static void tick(MinecraftServer server) {
+        var orders = ORDERS.get(server);
+        if (orders == null || orders.isEmpty()) return;
+        for (var order : List.copyOf(orders)) {
+            if (!order.picture().isDone() || server.getTickCount() <= order.tick()) continue;
+            orders.remove(order);
+            finish(server, order);
+        }
+    }
+
+    /**
+     * Builds an ordered gate while everything is as it was asked: the same world and he, still the host, standing in
+     * the same block and looking the same way. Otherwise one line, and nothing is built.
+     */
+    private static void finish(MinecraftServer server, Order order) {
+        var source = order.source();
+        var player = order.player();
+        GatePicture picture;
         try {
-            var built = GateBuilder.build(player.level(), id, GateBuilder.planInFrontOf(player, app));
+            picture = order.picture().join().get(order.app());
+        } catch (RuntimeException unread) {
+            picture = null;
+        }
+        var app = AresOs.app(order.app());
+        String name = app == null ? order.app() : app.name();
+        if (picture == null) { source.sendFailure(Component.literal("Logo refused: the picture of " + name + " could not be read. Nothing was built.")); return; }
+        boolean same = server.getLevel(order.level().dimension()) == order.level() && !player.isRemoved()
+                && server.getPlayerList().getPlayer(player.getUUID()) == player && player.level() == order.level();
+        if (!same) { source.sendFailure(Component.literal("Logo refused: you left the world while the picture of " + name + " was read. Nothing was built.")); return; }
+        if (!player.blockPosition().equals(order.feet()) || player.getDirection() != order.facing()) {
+            source.sendFailure(Component.literal("Logo refused: you moved while the picture of " + name + " was read. Nothing was built; stand still and try again."));
+            return;
+        }
+        try {
+            if (host(source) == null) return;
+            if (app == null) { source.sendFailure(Component.literal("Unknown AresOS app")); return; }
+            var built = GateBuilder.build(order.level(), order.app(), GateBuilder.planInFrontOf(order.position(), order.facing(), order.level().dimension(), app, picture));
             boolean doormat = built.gate().map(gate -> !gate.ground().isEmpty()).orElse(false);
             source.sendSuccess(() -> Component.literal("Built the gate of " + app.name() + ". Step into its doorway to open it; closing it puts you back here."
                     + (doormat ? "" : " No doormat: the floor at the door isn't untouched ground.")
-                    + " /aresos logo remove " + id + " takes it down."), false);
-            return 1;
-        } catch (IOException | RuntimeException error) { source.sendFailure(Component.literal("Logo refused: " + error.getMessage())); return 0; }
+                    + " /aresos logo remove " + order.app() + " takes it down."), false);
+        } catch (CommandSyntaxException | IOException | RuntimeException error) { source.sendFailure(Component.literal("Logo refused: " + error.getMessage())); }
     }
 
     /** Takes down the gates of an app, or the one he stands at. An older wall or floor only loses its zone, as with `zone remove`. */
