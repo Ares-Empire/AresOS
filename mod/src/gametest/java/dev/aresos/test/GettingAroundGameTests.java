@@ -79,6 +79,16 @@ public final class GettingAroundGameTests {
      * is counted generously: it only says how long a test waits before it fails.
      */
     private static final int LOAD_TICKS = 4_000_000;
+    /**
+     * Next to {@link #LOAD_TICKS}, how long a wait may last on the wall clock (review fixes 1, point 5): a test whose
+     * ticks slow down or stop still fails and lets go of its tickets.
+     */
+    private static final long WAIT_NANOS = java.util.concurrent.TimeUnit.SECONDS.toNanos(120);
+    /**
+     * The framework's own bound, never reached: every wait fails by itself (and releases the test's tickets) after
+     * {@link #LOAD_TICKS} ticks or {@link #WAIT_NANOS}, a test waits at most twice, and its other steps take a few ticks.
+     */
+    private static final int MAX_TICKS = 2 * LOAD_TICKS + 1_000;
 
     private static void check(boolean condition, String message) { if (!condition) throw new AssertionError(message); }
 
@@ -109,6 +119,32 @@ public final class GettingAroundGameTests {
             if (held) level.getChunkSource().addTicketWithRadius(TicketType.DRAGON, ChunkPos.unpack(chunk), 2);
             else level.getChunkSource().removeTicketWithRadius(TicketType.DRAGON, ChunkPos.unpack(chunk), 2);
         }
+    }
+
+    /**
+     * A wait of a test that holds tickets (review fixes 1, point 5): passes once {@code done}; fails, after running
+     * {@code cleanup} and releasing the test's tickets, after {@link #LOAD_TICKS} ticks or {@link #WAIT_NANOS} on the
+     * wall clock, whichever comes first. Its own failure, before the framework's: a timeout of the framework runs none
+     * of the test's code.
+     */
+    private static Runnable waitFor(GameTestHelper helper, ServerLevel level, Set<Long> near, java.util.function.BooleanSupplier done,
+                                    String what, Runnable cleanup) {
+        var clock = new Object() { long start; int ticks; };
+        return () -> {
+            if (done.getAsBoolean()) return;
+            long now = System.nanoTime();
+            if (clock.ticks++ == 0) clock.start = now;
+            if (now - clock.start > WAIT_NANOS || clock.ticks >= LOAD_TICKS) {
+                try {
+                    cleanup.run();
+                } finally {
+                    hold(level, near, false);
+                }
+                throw new AssertionError(what + " after " + (now - clock.start) / 1_000_000 + " ms and " + clock.ticks
+                        + " ticks; the test's tickets were released");
+            }
+            helper.assertTrue(false, what);
+        };
     }
 
     private static boolean loaded(ServerLevel level, Set<Long> chunks) {
@@ -233,15 +269,15 @@ public final class GettingAroundGameTests {
      * at the exit point (he arrives nearer the door) and on the whole way in (he stays, nothing changes); a place not
      * loaded yet; a program that is not his; {@code /apps} with places.
      */
-    @GameTest(environment = TOWN, maxTicks = LOAD_TICKS)
+    @GameTest(environment = TOWN, maxTicks = MAX_TICKS)
     public void goPutsHimInFrontOfHisAppsDoors(GameTestHelper helper) {
         var level = helper.getLevel();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(23000, 0, 0);
         var near = chunks(column.offset(-48, 0, -60), column.offset(48, 0, 30));
         hold(level, near, true);
-        var state = new Object() { Host host; BlockPos home; Vec3 chrome; };
+        var state = new Object() { Host host; BlockPos home; Vec3 chrome; long cold; Set<Long> far; List<BlockPos> stones; };
         helper.startSequence()
-                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, near), "The town's chunks are not loaded yet", () -> { }))
                 .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
                     state.host = new Host(helper, "go-", List.of(
                             app("go-chrome", "Chrome", "chrome", true, true, "N0L0", "internet"),
@@ -333,10 +369,42 @@ public final class GettingAroundGameTests {
                     // A place that is not loaded yet: its saved place, so he arrives where the town will build it.
                     var far = AresOs.app("go-far");
                     check(Whereabouts.of(host.server, far, true).kind() == Whereabouts.Kind.WAITS, "Fixture: the far place is loaded");
+                    // Review fixes 1, point 4: how long the arrival's checks take on the server thread when its chunks are
+                    // not loaded (new ground: generated now).
+                    var farExit = new Vec3(home.getX() - 9.0, home.getY(), home.getZ() - 573.5);
+                    var spots = new ArrayList<BlockPos>();
+                    for (int step = 0; step < dev.aresos.zone.GateNumbers.EXIT; step++) for (int x = -10; x <= -9; x++) for (int y = 0; y < 2; y++)
+                        spots.add(new BlockPos(home.getX() + x, home.getY() + y, home.getZ() - 574 - step));
+                    state.far = chunks(spots.getFirst(), spots.getLast());
+                    check(state.far.stream().noneMatch(chunk -> level.hasChunk(ChunkPos.getX(chunk), ChunkPos.getZ(chunk))), "Fixture: the far chunks are loaded");
+                    long started = System.nanoTime();
                     host.ran("go far", 1);
-                    standsAt(host.player, new Vec3(home.getX() - 9.0, home.getY(), home.getZ() - 573.5), 180, -10, "/go far");
+                    state.cold = System.nanoTime() - started;
+                    standsAt(host.player, farExit, 180, -10, "/go far");
                     said = host.lines();
                     check(said.equals(List.of("Far's logo is built here once the system has listed your programs.")), "The far line: " + said);
+                    // His stone on all six spots of the way in; then he goes home, and the far chunks unload.
+                    for (var spot : spots) level.setBlockAndUpdate(spot, stone);
+                    state.stones = spots;
+                    host.at(level, Vec3.atBottomCenterOf(home));
+                }))
+                .thenWaitUntil(waitFor(helper, level, near, () -> state.far.stream().noneMatch(chunk -> level.hasChunk(ChunkPos.getX(chunk), ChunkPos.getZ(chunk))),
+                        "The far chunks did not unload", () -> letGo(state.host)))
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    var host = state.host;
+                    var home = state.home;
+                    // Every spot blocked, in chunks that are not loaded (read back from the world's files now).
+                    long started = System.nanoTime();
+                    check(host.run("go far") == 0, "/go far with the way in blocked moved him");
+                    long blocked = System.nanoTime() - started;
+                    var said = host.lines();
+                    check(said.equals(List.of("Something of yours stands in front of Far's door (Internet, north, row 41, left)"
+                            + " with no free spot on the way in, so you stay where you are.")), "The far blocked line: " + said);
+                    standsAt(host.player, Vec3.atBottomCenterOf(home), 0, 0, "/go far blocked");
+                    for (var spot : state.stones) level.setBlockAndUpdate(spot, Blocks.AIR.defaultBlockState());
+                    dev.aresos.AresOs.LOGGER.info("37 review fixes 1, point 4: a cold /go took {} ms on the server thread (new ground, "
+                            + "first spot free); every spot blocked, chunks read back from disk: {} ms; chunks the spots touch: {}",
+                            String.format(java.util.Locale.ROOT, "%.1f", state.cold / 1e6), String.format(java.util.Locale.ROOT, "%.1f", blocked / 1e6), state.far.size());
                 }))
                 .thenExecute(() -> {
                     try (var host = state.host) {
@@ -356,7 +424,7 @@ public final class GettingAroundGameTests {
      * for a world without a town: the server's hub record cannot be taken away, and a town of other rules is no town
      * of these rules.
      */
-    @GameTest(environment = NO_TOWN, maxTicks = LOAD_TICKS)
+    @GameTest(environment = NO_TOWN, maxTicks = MAX_TICKS)
     public void goWithoutATownAndHomeFromTheNether(GameTestHelper helper) {
         var level = helper.getLevel();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(26000, 0, 0);
@@ -364,7 +432,7 @@ public final class GettingAroundGameTests {
         hold(level, near, true);
         var state = new Object() { Host host; boolean failed; HomeRecord record; Vec3 inside, outside; };
         helper.startSequence()
-                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The chunks are not loaded yet"))
+                .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, near), "The chunks are not loaded yet", () -> { }))
                 .thenExecute(() -> {
                     NetherHome.Home before = null;
                     boolean recorded = false, hadRecord = false;
@@ -595,7 +663,7 @@ public final class GettingAroundGameTests {
      * read; his torch on one logo, which refuses the swap with file and world unchanged; an incomplete program list;
      * the command as he types it, and its completion.
      */
-    @GameTest(environment = SWAP, maxTicks = LOAD_TICKS)
+    @GameTest(environment = SWAP, maxTicks = MAX_TICKS)
     public void swapExchangesTwoLogos(GameTestHelper helper) {
         var level = helper.getLevel();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(29000, 0, 0);
@@ -603,7 +671,7 @@ public final class GettingAroundGameTests {
         hold(level, near, true);
         var state = new Object() { Host host; };
         helper.startSequence()
-                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, near), "The town's chunks are not loaded yet", () -> { }))
                 .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
                     state.host = new Host(helper, "sw-", List.of(
                             listed("sw-chrome", "Chrome", "chrome", "Network", "N0L0", true),
@@ -702,7 +770,7 @@ public final class GettingAroundGameTests {
         check(java.util.Arrays.equals(Files.readAllBytes(path), refresh.bytes), "A refused swap changed the apps file");
         check(hub.logos().equals(logos) && ZoneData.get(server).zones().equals(zones), "A refused swap changed the town's records or the zones");
         check(snapshot(level, home.offset(-40, -1, -40), home.offset(40, 12, 40)).equals(before), "A refused swap changed a block");
-        check("/test/elsewhere/chrome.png".equals(dev.aresos.zone.AppIcons.path(AresOs.app("sw-chrome"))), "Fixture: the refresh did not change the icon");
+        check("/test/elsewhere/chrome.png".equals(dev.aresos.icon.AppIcons.path(AresOs.app("sw-chrome"))), "Fixture: the refresh did not change the icon");
         // The same for a move.
         refresh.ran = false;
         said = TownMoves.move(server, keeper, raced, "sw-steam", AppGroup.WORK_MEDIA);
@@ -715,6 +783,82 @@ public final class GettingAroundGameTests {
         AppsConfig.save(path, AresOs.apps().stream().map(app -> app.id().equals("sw-chrome") ? app.withSystem(new SystemInfo("user",
                 null, List.of("Network"), null, null, app.id(), app.id(), false)) : app).toList());
         AresOs.saveMine(Map.of());
+
+        // Review fixes 1, point 3: Lunar Client's sign moved (as /data would) into a block Chrome's logo fills at E0L0.
+        // Lunar's take-down leaves a sign he moved, and its record goes, so the sign counts against Chrome's logo there,
+        // in the checks as in the build: refused before anything changed.
+        var lunarSign = level.getEntity(hub.logo("sw-lunar").orElseThrow().gate().sign().orElseThrow());
+        var signAt = lunarSign.position();
+        var fill = Town.plan(hub, AresOs.app("sw-chrome"), Place.parse("E0L0").orElseThrow(), picture()).blocks().keySet().iterator().next();
+        lunarSign.snapTo(fill.getX() + 0.5, fill.getY() + 0.5, fill.getZ() + 0.5, 0, 0);
+        var bytes = Files.readAllBytes(path);
+        zones = ZoneData.get(server).zones();
+        before = snapshot(level, home.offset(-40, -1, -40), home.offset(40, 12, 40));
+        logos = hub.logos();
+        try {
+            said = TownMoves.swap(server, keeper, game, "sw-chrome", "sw-lunar");
+            check(!said.done() && said.line().equals("Nothing was swapped: Chrome's logo cannot stand at Games, east, front row, left. "
+                    + "An entity occupies the gate's place. Move it away, then retry."), "His moved sign in Chrome's new place: " + said.line());
+            check(java.util.Arrays.equals(Files.readAllBytes(path), bytes) && hub.logos().equals(logos) && ZoneData.get(server).zones().equals(zones),
+                    "A refused swap changed the apps file, the town's records or the zones");
+            check(snapshot(level, home.offset(-40, -1, -40), home.offset(40, 12, 40)).equals(before), "A refused swap changed a block");
+            check(level.getEntity(lunarSign.getUUID()) == lunarSign && lunarSign.position().equals(Vec3.atCenterOf(fill)), "A refused swap moved or took his sign");
+        } finally {
+            lunarSign.snapTo(signAt.x, signAt.y, signAt.z, 0, 0);
+        }
+
+        // Review fixes 1, point 6: a frozen town, then a town file that does not fit this world. Typed, swap and move
+        // refuse first and change nothing; /go goes to a logo that stands in its recorded place and says one line for an
+        // app without a logo (Notes, whose logo is down while the town can build nothing).
+        Town.remove(server, "sw-notes");
+        bytes = Files.readAllBytes(path);
+        zones = ZoneData.get(server).zones();
+        before = snapshot(level, home.offset(-40, -1, -40), home.offset(40, 12, 40));
+        logos = hub.logos();
+        var chromeExit = new Vec3(home.getX() + 10.0, home.getY(), home.getZ() - 13.5);
+        host.lines();
+        freeze(hub, true);
+        try {
+            check(TownKeeper.frozen(hub).startsWith("This world was opened without the town's records"), "Fixture: the town is not frozen");
+            host.ran("aresos app swap chrome discord", 0);
+            check(host.lines().equals(List.of(TownKeeper.frozen(hub))), "A typed swap in a frozen town");
+            host.ran("aresos app move lunar west", 0);
+            check(host.lines().equals(List.of(TownKeeper.frozen(hub))), "A typed move in a frozen town");
+            host.ran("go chrome", 1);
+            standsAt(host.player, chromeExit, 180, -10, "/go chrome in a frozen town");
+            check(host.lines().isEmpty(), "/go to a standing logo in a frozen town said something");
+            host.ran("go notes", 0);
+            var said6 = host.lines();
+            check(said6.equals(List.of("Notes's logo does not stand in the town, and the town is frozen: /aresos hub trust lets it build again.")),
+                    "/go to an app without a logo in a frozen town: " + said6);
+        } finally {
+            freeze(hub, false);
+        }
+        var townFile = refuse(hub, "a town file of another world", null);
+        try {
+            host.ran("aresos app swap chrome discord", 0);
+            var lines = host.lines();
+            String refusedLine = TownKeeper.refused(server, "a town file of another world");
+            check(lines.equals(List.of(refusedLine)), "A typed swap with a refused town file: " + lines);
+            host.ran("aresos app move lunar west", 0);
+            lines = host.lines();
+            check(lines.equals(List.of(refusedLine)), "A typed move with a refused town file: " + lines);
+            host.at(level, Vec3.atBottomCenterOf(home));
+            host.ran("go chrome", 1);
+            standsAt(host.player, chromeExit, 180, -10, "/go chrome with a refused town file");
+            host.ran("go notes", 0);
+            lines = host.lines();
+            check(lines.equals(List.of("Notes's logo does not stand in the town, and the town's file does not fit this world, so the town builds nothing here.")),
+                    "/go to an app without a logo with a refused town file: " + lines);
+        } finally {
+            refuse(hub, null, townFile);
+        }
+        check(java.util.Arrays.equals(Files.readAllBytes(path), bytes) && hub.logos().equals(logos) && ZoneData.get(server).zones().equals(zones),
+                "Frozen or refused: the apps file, the town's records or the zones changed");
+        check(snapshot(level, home.offset(-40, -1, -40), home.offset(40, 12, 40)).equals(before), "Frozen or refused: a block changed");
+        host.at(level, Vec3.atBottomCenterOf(home));
+        keeper.keep(server, game.programs(), game.pictures(), game.spots());
+        stands(server, "sw-notes", "S0L0", null);
 
         // Before a complete program list it refuses before checking anything, as hub rebuild does.
         String waits = "The town waits for the system's list of programs. Nothing changed; try again in a moment.";
@@ -757,7 +901,7 @@ public final class GettingAroundGameTests {
      * logo there (point 3: the move refuses, the town's pass keeps a newcomer waiting, then builds it); a place that is
      * not loaded (file and world unchanged).
      */
-    @GameTest(environment = MOVE, maxTicks = LOAD_TICKS)
+    @GameTest(environment = MOVE, maxTicks = MAX_TICKS)
     public void moveSendsALogoToAnotherGroup(GameTestHelper helper) {
         var level = helper.getLevel();
         BlockPos start = helper.absolutePos(BlockPos.ZERO).offset(32000, 0, 0);
@@ -767,7 +911,7 @@ public final class GettingAroundGameTests {
         hold(level, near, true);
         var state = new Object() { Host host; };
         helper.startSequence()
-                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, near), "The town's chunks are not loaded yet", () -> { }))
                 .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
                     state.host = new Host(helper, "mv-", List.of(
                             listed("mv-chrome", "Chrome", "chrome", "Network", "N0L0", true),
@@ -860,6 +1004,40 @@ public final class GettingAroundGameTests {
     }
 
     /**
+     * Freezes or thaws the server's town, as when a world opens without proof that its records are the town's (review
+     * fixes 1, point 6). The town file's own flag: the game has no call that freezes a town.
+     */
+    private static void freeze(HubData hub, boolean frozen) throws ReflectiveOperationException {
+        var town = field(HubData.class, "town").get(hub);
+        var flag = town.getClass().getDeclaredField("frozen");
+        flag.setAccessible(true);
+        flag.setBoolean(town, frozen);
+    }
+
+    /**
+     * Refuses the server's town file ({@code why}), as when the world's {@code town.dat} does not fit it: no record of
+     * it is read, so the hub holds an empty town. With {@code why} null, puts {@code town} back. Returns the town file
+     * the hub held.
+     */
+    private static Object refuse(HubData hub, String why, Object town) throws ReflectiveOperationException {
+        var held = field(HubData.class, "town");
+        var was = held.get(hub);
+        if (why != null) {
+            var empty = was.getClass().getDeclaredConstructor(GlobalPos.class, List.class);
+            empty.setAccessible(true);
+            held.set(hub, empty.newInstance(hub.home(), List.of()));
+        } else held.set(hub, town);
+        field(HubData.class, "refusal").set(hub, why);
+        return was;
+    }
+
+    private static java.lang.reflect.Field field(Class<?> type, String name) throws ReflectiveOperationException {
+        var field = type.getDeclaredField(name);
+        field.setAccessible(true);
+        return field;
+    }
+
+    /**
      * Takes away the home record {@code NetherHome.recordHome} made in a test world that had none: from the server's
      * saved data and from the world's folder. Left there, every player who joins a later test (in this run or the next,
      * the test world is kept) is sent to this test's spot, and tests of void recovery and Build mode fail. The game has
@@ -882,6 +1060,19 @@ public final class GettingAroundGameTests {
     }
 
     private interface Part { void run() throws Exception; }
+
+    /** After a failure: the test's logos down where they can come down, and the host let go of. */
+    private static void letGo(Host host) {
+        if (host == null) return;
+        try {
+            var hub = HubData.get(host.server);
+            if (hub != null) for (var logo : hub.logos()) if (logo.app().startsWith(host.prefix)) {
+                try { Town.remove(host.server, logo.app()); } catch (Exception ignored) { }
+            }
+            host.close();
+        } catch (Exception ignored) {
+        }
+    }
 
     /** Runs a part of the town test; when it fails, puts the host, the hub record and the chunks back. */
     private static void guarded(java.util.function.Supplier<Host> hosting, ServerLevel level, Set<Long> near, Part part) {
