@@ -593,3 +593,252 @@ release, `lunar` in a terminal stays his way to start Lunar, and a release with 
 described to him as "Lunar opens from the hub". When labwc gets the fifo-v1 protocol, SDL picks Wayland by itself and
 the hint's line can go.
 
+
+## Review fixes 3
+
+Brief: `briefs/30-review-fixes-3.md`. The package and security fix checks said SAFE with documented known limits; the
+OS lead's read of the `os/` diff (2026-11-14) found two defects that fail silently, and all its points were accepted.
+Built by two Claude agents (Opus 5.5), one per step, on 2026-11-14: step A the pictures, step B the Flatpak start,
+this report and the hosted runs. One commit per fix.
+
+`os/` files touched: `config/usr/libexec/aresos-shell` (step A only); tests `test_aresos_shell.py` (`StartupTest`),
+`test_aresos_shell_icons.py`, `check_aresos_shell_icons.py`, `check_aresos_shell_headless.py`, new
+`test_aresos_shell_review_fixes_3.py`; new fixture `tests/fixtures/installed-programs/breeze-index.theme` and a
+paragraph about it in that folder's `README.md`. Nothing under `mod/`; the examples under
+`mod/src/test/resources/shell-1.1/` are unchanged. Step B changed no helper code.
+
+### Step A, point 1: a picture pass runs only when something changed (commits `a39d228f`, `4e22930b`)
+
+- The helper still asks every `CATALOGUE_CHECK` (3 s), as `Discovery` asks the catalogue, but the icon worker's new
+  `IconCache.step()` runs a pass only when the catalogue's revision changed, when the signature of the last complete
+  pass changed, or when the last pass did not finish (`finished` is cleared when a pass starts and set only when it
+  completes). The signature is `IconLookup.seen`: every icon root, theme folder, `index.theme`, folder the pass listed,
+  picture it chose and picture it made, each with `icon_stat` (inode, size, mtime, ctime) taken before it was read.
+  Checking it only stats, on the worker thread; the serving loop still does no file IO.
+- A running pass is cut short only by a request for a different revision (`IconCache.latest`), no longer by the next
+  periodic request for the same catalogue (that would now cut every long first pass short).
+- The made pictures are in the signature (second commit), so a cleared picture cache is made again, as the old pass on
+  every request did within 3 s.
+- **What the idle check costs on the laptop:** 820 signature paths without made pictures (about 876 with them), median
+  1.7 ms of processor time per check (at most 2.0 ms wall in 200 runs), every 3 s: about 0.06 % of one core. The
+  unchanged catalogue rescan costs 1.3 ms. Before, each pass cost about 228 ms (the OS lead's measurement; 233 ms
+  measured again in step A), 7 to 8 % of one core for the whole session.
+- Tests (`test_aresos_shell_review_fixes_3.py`, `PicturePassTest`: a real `Catalogue`, a real `IconCache` whose steps
+  the test runs after each tick, the converter's answer stood in): an idle minute (20 ticks) asks for no pass after the
+  first; a new picture file (fixed layout, and Breeze's own layout), a picture rewritten in place, a cleared picture
+  cache and a changed catalogue each ask for exactly one pass and the picture arrives; a pass cut short (the results
+  queue full) is asked for again. `SupersedeTest`: the same catalogue's request during a pass leaves it complete; a
+  changed catalogue's request cuts it short and runs a new pass.
+- Without the change: with the idle check disabled (a pass on every request) 7 of these fail (all 6 `PicturePassTest`
+  tests of `a39d228f` and the same-revision case of `SupersedeTest`; the changed-revision case is the control). Without
+  the chosen pictures in the signature the rewritten-picture test fails; with any request cutting a pass short the
+  `SupersedeTest` same-revision case fails; without the made pictures the cleared-cache test fails.
+
+### Step A, point 2: Breeze's pictures are found (commit `9cd97ba0`)
+
+- New `IconLookup`, one per pass (`resolve_icon` is a one-off wrapper): each theme's layout is worked out, and each
+  folder listed, once for all programs.
+- `read_icon_index` reads `Directories` and each folder's `Size`, `Type`, `Scale` through `open_confined` (the checked,
+  pinned descriptor), at most `ICON_INDEX_BYTES` = 256 KiB and `ICON_INDEX_FOLDERS` = 2048 folders (hicolor's real
+  index: 55,507 bytes, 649 folders). Folders at a Scale other than 1 (and `ScaledDirectories`) are left out.
+- The first root whose theme folder has an `index.theme` speaks for every root that has one; a root without one (the
+  home folder, Flatpak's exports: `/var/lib/flatpak/exports/share/icons/hicolor` has none on the laptop) keeps the
+  fixed layout `<N>x<N>/<context>`, `scalable/<context>`. A broken or oversized index leaves the theme on the fixed
+  layout with one WARNING per pass.
+- Order inside a theme: PNGs (and extensionless names) by size up to 256, largest first; then SVGs, scalable folders
+  first, then sized folders up to 256, largest first; then PNG folders over 256 up to `ICON_LARGEST` = 1024, smallest
+  first. Themes stay hicolor, then breeze; roots break ties, then the folder's place in its index or layout.
+- Confinement holds for every new path: index files through `open_confined`, every listing through `confined_listing`
+  (now a dict, refusing a folder as soon as it shows more entries than the pass has left), files through `realpath` +
+  `within` as before, and conversion still reopens through `open_confined`. A pass lists at most `ICON_LOOKUP_ENTRIES`
+  = 131,072 folder entries (every icon folder on the laptop together: 20,277).
+- Tests (`test_aresos_shell_icons.py`, new `IconThemeIndexTest`; fixture `breeze-index.theme`, written in Breeze's form,
+  pictures at `breeze/apps/48/` and `breeze/apps/64/`): Breeze's pictures found where Breeze keeps them; SVG order
+  (scalable, then sized largest first); PNGs by size before SVGs whatever the folder's Type; scaled folders and folders
+  without a usable Size left out (6 cases); a root without an index keeps the fixed layout and the first index speaks
+  for all roots; a broken or oversized index (huge, endless list, `..` folder, absolute folder, NUL, bad group header,
+  link out of the root, FIFO) leaves the fixed layout with exactly one log line; a hostile index (a folder linked out of
+  the root, and one below it) never lists or opens anything outside; the listing budget stops a pass with one log
+  line. In `IconLookupTest`: new `test_png_folders_over_256_serve_only_when_the_theme_has_nothing_else_the_smallest_first`.
+- Existing tests changed: `test_theme_then_largest_raster_at_most_256_then_scalable` and
+  `test_roots_break_ties_and_breeze_is_the_second_theme` put Breeze's pictures in its real layout (the invented
+  `breeze/<N>x<N>/apps/` is gone); `test_non_square_oversize_and_svg_in_a_raster_directory_are_not_selected` became
+  `test_non_square_zero_and_over_1024_size_folders_are_not_selected`, because the brief now uses SVGs in sized folders
+  and PNG folders up to 1024 (both covered by the new over-256 test); `IconAsyncTest`'s blocking lookup patches
+  `IconLookup.resolve` instead of `resolve_icon`.
+- Laptop check (`check_aresos_shell_icons.py`, new `RealThemeTest`, not in the suite): Konsole, System Settings and
+  System Monitor's real desktop entries, resolved read-only in the real icon folders without converting, give SVGs
+  under `/usr/share/icons/breeze/`.
+- **On the laptop (read-only, nothing converted, counts only):** 56 programs in the catalogue that day, all with an
+  icon name. Resolving before (the previous `resolve_icon`) 45, after 56: 11 more, 8 of them from Breeze (Konsole,
+  System Settings and System Monitor among them) and 3 from 512-pixel PNG folders. No program that had a picture before
+  gets a different file. Looking up every program's picture: 233 ms of processor time before, 42 ms after (one
+  listing per folder per pass); conversion not included.
+- Without the change: with the theme index disabled (fixed layout only) 18 tests and subtests fail (every
+  `IconThemeIndexTest` test, the reworked roots test and the Breeze case of `PicturePassTest`). Each order rule has a
+  test that fails when that rule alone is undone: SVGs skipped in sized folders (3 fail), PNGs over 256 never used (1),
+  PNGs of Scalable folders ranked as SVG folders (1), scaled folders kept (1), no listing budget (1). Controls:
+  `test_non_square_zero_and_over_1024...`, the fixed-layout parts of the roots test, and the control lines at the end of
+  the broken-index and budget tests.
+
+### Step A, point 3: one warning at start when pictures can't be made (commit `4e2db320`)
+
+`IconCache.__init__` checks `bwrap`, `magick` and `prlimit` (`os.access(..., X_OK)`) and logs one WARNING naming each
+missing one: `<paths> missing: programs show without pictures`. Each picture still fails on its own at DEBUG. Tests
+(`MissingToolsTest`): a missing bwrap, and a missing magick and prlimit, each give exactly one warning naming them, and a
+pass over three pictures adds no other warning (three DEBUG lines); no warning with every tool there (control). The
+first fails without the change.
+
+### Step A, point 4: `StartupTest` is self-contained (commit `f98c91bb`)
+
+`build()` gets `environ={'HOME': <temporary>}`, `desktop_directories` points at an empty folder of the test's own,
+`IconCache` is the same stand-in the other `build()` tests use, and `helper.catalogue.stop` runs at cleanup. Test
+hygiene only: it passes before and after.
+
+### Step B, point 1: a Flatpak program started for real (commits `079bff4a`, `be9e9eec`)
+
+`check_aresos_shell_headless.py` has a third case: **KCalc started through its real Flatpak desktop entry**
+(`/var/lib/flatpak/exports/share/applications/org.kde.kcalc.desktop`, `Exec=/usr/bin/flatpak run --branch=stable
+--arch=x86_64 --command=kcalc org.kde.kcalc`), found by the helper's own discovery (`org-kde-kcalc`, source
+`flatpak-system`, window identity `org.kde.kcalc` from `X-Flatpak` and the command) and opened with 1.1 `open_app`, in
+the check's own headless labwc, HOME, runtime folder and socket, as the two existing cases.
+
+What happened, step by step, on the laptop:
+
+1. The helper started `flatpak run` in its own scope `app-aresos-org\x2dkde\x2dkcalc-e3caa8aa1f99cce1.scope` and
+   answered `starting`.
+2. `flatpak run` moved itself into **`app-flatpak-org.kde.kcalc-689755186.scope`** (in `app.slice`; Flatpak 1.18.4
+   numbers it with an instance number, not the PID). The helper's child, PID 1379235, was in it with four more
+   processes of the sandbox. The helper's own scope was gone at once: `LoadState=not-found`, `ActiveState=inactive`.
+3. The window `org.kde.kcalc` appeared and the helper reported **`app_state=focused`** for the request, then
+   `shell_focus=background, reason=app_activated`.
+4. Two of the helper's scope checks went by (12 s) with the helper's scope still gone: no other `app_state` for the
+   request, the journal still `focused`, the window open.
+5. The check closed the window through its own foreign-toplevel handle: the compositor activated the stand-in hub
+   (`shell_focus=foreground, reason=desktop_activated`), and the helper reported **`app_state=closed`**. Then the
+   Flatpak scope ended and the helper's child exited.
+
+**No helper defect:** the launch rests on the live process (a scope gone while its process lives ends nothing, and
+the window wait is extended while it lives) and on the window's exact identity. Two unit
+tests now model the scope emptying at once, so the hosted runs keep this path (`FlatpakScopeTest` in
+`test_aresos_shell_review_fixes_3.py`): the launch waits through the scope checks, becomes focused with the window,
+stays focused through four window-waits of empty scope checks, closes with one return, and its watch ends with the
+process; without a window it waits while the process lives and then fails once (`no_window`). They pass at the
+unchanged helper; they need none of the registry's three programs.
+
+How the check keeps to its rules:
+
+- **Its own session bus.** The check used to hand the helper (and so every program it starts) the owner's session bus
+  address, for systemd-run's sake. `flatpak run` would have proxied that bus into KCalc's sandbox. The check now
+  starts its own `dbus-daemon` (a configuration without any service folder, so nothing is activated on it) and gives
+  that to everything it starts. systemd-run and systemctl reach the user manager through the private socket the check
+  already links (tried first with a session bus that does not exist: both work). `flatpak run` reaches the same user
+  manager to make its scope; it uses `/run/user/<uid>/systemd/private` by that fixed path (the `flatpak` binary holds
+  it), the socket the check's link points to. Nothing else of his session is reached: nothing can be activated on the
+  check's bus (no portal, document portal or Flatpak session helper), and `DISPLAY` is unset and `WAYLAND_DISPLAY` is the check's own socket, so nothing can
+  appear on his screen.
+- **Skipped while KCalc runs outside the check:** before anything starts, and again right before the case, it reads
+  `flatpak ps`, the user manager's `app-flatpak-org.kde.kcalc-*` units and the process list (read-only); if KCalc runs,
+  it prints `HEADLESS_FLATPAK_KCALC_SKIPPED` with the reason. It did not run.
+- **Stops only its own:** the Flatpak scope's exact name is read from the helper's own child's cgroup, and only that
+  name (and the journal's units, as before) is stopped, never a program by its name. It lists the user manager's
+  `app-aresos-check*`, `app-aresos-org\x2dkde\x2dkcalc-*` and `app-flatpak-org.kde.kcalc-*` units before and after
+  and prints what is new (`check_units_left: {}`).
+- The first case's entry (`check-kcalc`, `StartupWMClass=org.kde.kcalc`) claims KCalc's identity first, because the
+  check's HOME is the first application folder; the check removes it after that case and waits until the catalogue no
+  longer lists it before the Flatpak case.
+- `headless.json` keeps only the check's own programs (and KCalc) from each `list_apps` reply, plus a count; the
+  catalogue of the laptop's installed programs is no longer written into the evidence.
+
+### Recorded for later packages
+
+- **Lunar's hint claims the window identity `com.mojang.minecraft`.** The hub's own game stays apart only while the
+  mod's `WindowIdentityMixin` sets `aresos-desktop`. Whoever moves the hub's game to Minecraft 26.3 with SDL must keep
+  that, or the hub's window counts as Lunar Client's.
+- **Flatpak programs (step B):** `flatpak run` leaves the helper's scope at once for its own
+  `app-flatpak-<app ID>-<number>.scope` in `app.slice`; the helper's scope is then gone (not-found), and only the
+  helper's child process and the window's identity say the program runs. Today's helper handles that (above). Two
+  consequences for later packages: the program's processes are not in the helper's scope, so anything that limits or
+  stops a launch by its scope (a memory limit, a stop button) has to find the Flatpak scope (its name holds Flatpak's
+  number, not the PID; the helper's child's cgroup names it); and a Flatpak program that hands its window to an already
+  running instance is judged only by its process's exit and the bounded window wait, as the helper's scope is gone
+  from the start.
+- **Lunar's game has no memory limit beside the hub's game** (5 GiB on 16 GB); the OS lead takes that into the guardian
+  package.
+
+### JUDGMENT-CALL (review fixes 3)
+
+- **Which icon roots an index speaks for.** The first root whose theme folder has an `index.theme` speaks for every root
+  that has one; a root without one keeps the fixed layout. A broken first index sends the whole theme to the fixed
+  layout, also for later roots whose own index is fine: a broken `~/.local/share/icons/breeze/index.theme` would cost
+  Breeze's pictures (one warning per pass says so). Rejected: skipping a broken index for the next root's, which is not
+  what the brief says. Changing it later is a few lines in `IconLookup`.
+- **A folder name that is not a plain relative path** (absolute, empty, `.` or `..` parts, over 255 characters)
+  refuses the whole index; a folder with a missing or non-numeric Size, a Size over 1024 or a Scale other than 1 is only
+  left out. Numbers must be ASCII digits.
+- **PNGs rank by Size whatever the folder's Type.** hicolor's real index calls `256x256/apps` and `512x512/apps`
+  Scalable; ranking them as scalable folders made 5 programs drop from 256- to 48- or 128-pixel PNGs (found by the
+  laptop measurement, covered by a test). "Scalable folders first" applies to SVGs.
+- **The fixed layout's `scalable/`** has no size: PNG, SVG or extensionless files at the scalable step, as before. An
+  index's Scalable folder gives only SVGs there.
+- **PNGs over 256 come after SVGs** ("nothing of 256 or less" counts an SVG as something); sized folders over 256 are
+  used for PNGs only.
+- **A listing budget per pass** (`ICON_LOOKUP_ENTRIES`, not in the brief): the lookup now lists the deepest folders, so
+  a huge folder in his home could otherwise fill memory. When it runs out the pass still completes (one WARNING;
+  programs left keep the fallback look), so it is not retried every 3 s.
+- **The helper still asks every 3 s; the worker decides.** Rejected: the helper asking only on a new revision with the
+  worker keeping its own timer (two clocks), or the stat check on the serving loop (file IO there was what security
+  FIX 1 of review fixes 2 removed).
+- **The signature's stats follow links** (`os.stat`, like the catalogue's), so a Flatpak update that switches `active`
+  to a new deployment is seen. A stat on a stalled mount blocks only the icon worker.
+- **Made pictures in the signature** (beyond the brief), so a cleared cache comes back as it used to.
+- **The start warning lives in `IconCache.__init__`** and does not skip conversions: each one still fails on its own at
+  DEBUG, at most once per picture per change.
+- **The headless check has its own session bus** (step B, above). Rejected: keeping the owner's bus (the Flatpak case
+  would have put KCalc on it), and a bus with the system's service folders (it could start portals, Flatpak's
+  session helper and the document portal, which mounts a folder of its own). The two older cases pass on
+  it unchanged.
+- **Two unit tests for a Flatpak launch although no defect was found** (step B): the headless check is not part of
+  the hosted runs, so these keep the path tested there.
+
+### Verified (review fixes 3)
+
+On the laptop, 2026-11-14 (step A at `4e22930b`, step B at `be9e9eec`; step B changed no helper code):
+
+- `TMPDIR="$PWD/.work/30-installed-programs/tmp" python3 -m unittest discover -s os/tests -p 'test_aresos_shell*.py'`
+  → step A **Ran 290 tests, OK** (271 before; 19 new); step B **Ran 292 tests, OK** (2 new).
+- Same TMPDIR, `-p 'check_aresos_shell_icons.py'` → **Ran 8 tests, OK** (7 before; `RealThemeTest` new);
+  `-p 'check_aresos_shell_launch.py'` → **Ran 2 tests, OK** (step B).
+- As GitHub's runner sees them (`os.path.isfile` answering no for `/usr/bin/foot`, `/usr/bin/google-chrome`,
+  `/usr/bin/kwrite`): step A, `discover(pattern='test_aresos_shell*.py')` 290 run, 0 failures, 0 errors, and the
+  orchestrator's `runner_sim_modules.py test_aresos_shell_review_fixes_3 test_aresos_shell_icons
+  test_aresos_shell.StartupTest` → `Ran 54 tests ... OK`; step B, `runner_sim_modules.py
+  test_aresos_shell_review_fixes_3.FlatpakScopeTest test_aresos_shell_review_fixes_3` → `Ran 14 tests ... OK`.
+- The "without the change" results of step A come from re-running the new and changed test classes with one change at
+  a time undone in the loaded helper (a scratch script, not in the repo), plus the cleared-cache test against the
+  previous commit's helper.
+- **Headless end to end, all three cases** (`cd os/tests && python3 check_aresos_shell_headless.py`, step B): its guard
+  printed 10 GB available, no Lunar Java, no check unit before, KCalc not running in his session. KCalc from its
+  deployed binary (`app-aresos-check\x2dkcalc-f3714d0d9cd8962f.scope`, active, `app.slice`, ten PIDs, window
+  `org.kde.kcalc`) and btop in Foot (`app-aresos-check\x2dbtop-2acee0370be247fd.scope`, window
+  `aresos.app.check-btop`) each `focused`, then on closing `shell_focus=foreground, reason=desktop_activated` and
+  `closed`: **`HEADLESS_KCALC_BTOP_PASSED`**. Then the Flatpak case as above: **`HEADLESS_FLATPAK_KCALC_PASSED`**,
+  `check_units_left: {}`, **`owned processes and scopes stopped`**. Afterwards `systemctl --user list-units --all
+  'app-aresos-check*' 'app-flatpak-org.kde.kcalc-*'` listed nothing (as before the run), no process of the check was
+  left (the only Flatpak bus proxies running were two of the owner's own programs, started hours earlier), and nothing
+  was mounted under `.work/h30`.
+- `headless.json`, `screenshots/check-btop.png` and the new `screenshots/check-flatpak-kcalc.png` are this run's
+  (`check-kcalc.png` came out byte for byte the same). Inspected: each shows only the check's own windows (KCalc, or btop
+  in Foot, over the stand-in hub's Foot window).
+
+### Not verified (review fixes 3)
+
+- The real helper in a session with the idle picture check running for minutes (its cost is measured by a script over
+  the real folders, not inside a running helper).
+- Converting real Breeze SVGs through the sandbox (the laptop check resolves without converting, as the brief says;
+  the converter checks use the test drawings).
+- The helper's own return (`reason=app_closed`, the helper activating the hub) in the headless check: in all three
+  cases labwc activated the stand-in hub itself before the helper's return was due, so the check saw
+  `desktop_activated`. The helper's return is covered by the unit tests.
+- A Flatpak program that hands its window to an already running instance, and one that keeps running without a window
+  (a tray): only the unit tests' model of a process without a window.
