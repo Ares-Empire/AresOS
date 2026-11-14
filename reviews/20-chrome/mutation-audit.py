@@ -114,9 +114,9 @@ case('P22-bounds',A,'return value if len(visible(value))<=120 else','return valu
 case('P23',B,'page:await observation(tab,reference,dispatchEpoch)',"page:'Input dispatched once'",node('background','P23'))
 case('P23-borrowed-dialog',B,'page:await observation(tab)}',"page:{available:true,url:current.url,notice:'Native answer dispatched'}}",node('background','P23 a borrowed dialog result'))
 case('P24-last-check',B,"await requireDiscard(tab,command,'Reloading this tab',","await requireDiscard(tab,{discard_unsaved:true},'Reloading this tab',",node('background','P24'))
-case('P24-audible',B,'playing=!!nativeTab.audible','playing=false',node('background','P24'),extra=[(B,"playing=!!(await chrome.tabs.get(tab)).audible","playing=false")])
-case('P24-uncovered',B,'unsaved=!!current.uncovered?.length','unsaved=false',node('background','P24 uncovered'))
-case('P24-unreadable',B,'catch{unsaved=true;}','catch{}',node('background','P24 uncovered'))
+case('P24-audible',B,"let playing=!!(await chrome.tabs.get(tab)).audible;","let playing=false;",node('background','P24'))
+case('P24-uncovered',B,"frame=>({frameId:frame.frame,url:frame.url})),current.uncovered?.length||0);","frame=>({frameId:frame.frame,url:frame.url})),0);",node('background','P24 uncovered'))
+case('P24-unreadable',B,"catch(error){if(!(error.readerUnavailable&&frame.frameId===0&&frame.url==='about:blank'))uninspected++;}","catch(error){}",node('background','P24 uncovered'))
 case('P24-designmode',R,"document.designMode?.toLowerCase()==='on'",'false',node('reader','P24 document'))
 case('P25',B,"if(needsNative){","if(command.name==='input'){",node('background','P25'))
 case('P25-report',B,'dispatched:!noChange,no_change:noChange','dispatched:true,no_change:false',node('background','P25'))
@@ -319,7 +319,7 @@ for kind in ['email','url','search']:
 case('post18d-readable-textarea',R,"html(element,HTMLTextAreaElement,'textarea') || html(element,HTMLSelectElement,'select') || html(element,HTMLButtonElement,'button')) value", "html(element,HTMLSelectElement,'select') || html(element,HTMLButtonElement,'button')) value",node('reader','post18d watched input types and late choices'))
 case('post18d-readable-editor',R,"else if (element.isContentEditable) value = editableText(element)","else if (false) value = editableText(element)",node('reader','post18d watched input types and late choices'))
 case('post18d-credential-mask',R,"getComputedStyle(element).webkitTextSecurity !== 'none'",'false',node('reader','group7 protected values never reach'))
-case('post18d-late-reload-privacy',R,"if(!watched&&(typedField(element)||html(element,HTMLInputElement,'input')&&element.type==='hidden')){unsaved=true;continue;}",'',node('reader','post18d late reload warning never extracts'))
+case('post18d-late-reload-privacy',R,"        else if(!watched&&(typedField(element)||html(element,HTMLInputElement,'input')&&element.type==='hidden'))changed=true;\n",'',node('reader','post18d late reload warning never extracts'))
 
 case('post18d-credential-aria-labelledby',R,"signals.push(referenced.map(node=>labelText(node,joiner)).join(' '));",'',node('reader','post18d credential aria-labelledby labels'))
 
