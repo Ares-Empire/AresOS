@@ -18,24 +18,24 @@
 - **Green twice on this head:** base **`43539457993`** (309 tests each), boundary
   **`43539458152`** (17 interactive cases +20 unit tests each), qualification
   **`43539458040`** (47 Python +368 Node each, zero failures/skips).
-- **Observer backoff resolved:** shared REST quota reset at01:42:22 UTC; helpers
-  resumed at01:42:52 and confirmed the three second successes without duplicate
-  reruns. Remaining watches use300-second intervals. CI was not stopped by the quota.
+- **Observer backoff resolved:** shared REST quota reset at 01:42:22 UTC; helpers
+  resumed at 01:42:52 and confirmed the three second successes without duplicate
+  reruns. Remaining watches use 300-second intervals. CI was not stopped by the quota.
 - **Full Chrome pair complete on this head:** **`43539449510`** / **`43539458133`**,
-  both installs each, all four local independent audits,98 named cases,999 word
-  cells,all92 original round-3 names and derived native group12. All four latency
+  both installs each, all four local independent audits, 98 named cases, 999 word
+  cells, all 92 original round-3 names and derived native group 12. All four latency
   profiles pass, match frozen runtime, and stay below every nominal median/p95
-  ceiling in every phase. Longest Chrome jobs31m01s /29m00s.
+  ceiling in every phase. Longest Chrome jobs 31m01s / 29m00s.
 - **Only run still watched:** Mail **`43539458146`**, session **`52800`**, using
-  one blocking watcher at300-second intervals. It needs two successes; the helper
+  one blocking watcher at 300-second intervals. It needs two successes; the helper
   requests a second only after the first passes. No more Chrome runs are planned.
 - **Budget:** **255 / about 280** Chrome runs, including this pair.
-- **Exact next step:** resume Mail session52800; if stopped, inspect its finalized
+- **Exact next step:** resume Mail session 52800; if stopped, inspect its finalized
   attempt receipts before requesting anything, then use receipt-aware
   `.work/post18d/resume-acceptance.py 43539458146 mail 2 1794620542`.
   Require two successes on `a4143586`. Fetch both completed-attempt logs and run
-  `.work/post18d/save-shared-evidence.py mail`. Commit the receipt, finish the safe
-  `.work/` files-over-500-MB inventory, finalize REPORT/Handover and draft PR #27
+  `.work/post18d/save-shared-evidence.py mail`. Commit the receipt, refresh the safe
+  `.work/` files-over-500-MB inventory after the final logs, finalize REPORT/Handover and draft PR #27
   with `[skip ci]`. All other required verification is complete. No code/review
   work remains unless Mail fails. Never merge PR/main or force-push.
 
@@ -218,7 +218,7 @@ Both scoped [package](BUILD-POST18D-MAIL-BUDGET-REVIEW.md) and
 **Observer interruption:** all six watch processes hit the shared GitHub REST
 core limit (5,000/hour) at 01:24–01:25 UTC. No CI failure is inferred. The single
 rate-limit check records reset 01:42:22 UTC; deferred watchers wait until01:42:52
-and use300-second intervals, without extra status queries or duplicate reruns.
+and use 300-second intervals, without extra status queries or duplicate reruns.
 [Quota receipt](records/post18d/observer-rate-limit-20261114.json).
 
 **Current candidate:** `a4143586`, full local preflight green.
@@ -230,9 +230,9 @@ each are confirmed on this exact head after the quota reset.
 
 **Complete final Chrome pair on `a4143586`:** push `43539449510` and PR
 `43539458133` pass both installs each, with all four independent metadata audits,
-98 named cases,999wordcells,all92 original round-3 names and the actual derived
-native group12. Both runs include all268 Chrome Python tests. Longest jobs are
-31m01s and29m00s, well below the roughly120-minute target.
+98 named cases,999 word cells, all 92 original round-3 names and the actual derived
+native group 12. Both runs include all 268 Chrome Python tests. Longest jobs are
+31m01s and 29m00s, well below the roughly 120-minute target.
 [Pair summary](records/post18d/final-chrome-a4143586-summary.json),
 [push external audit](records/post18d/final-chrome-43539449510-external-independent-audit.json),
 [push policy audit](records/post18d/final-chrome-43539449510-policy-independent-audit.json),
@@ -244,7 +244,7 @@ root metadata was extracted; no browser/profile was started or read locally.
 
 All four current timing profiles match frozen runtime `b9de9a97…` and pass the
 production checker against paired `ab7aba92` baselines. Every median and p95 is
-below its unscaled lead ceiling in every phase. At4,000 inputs the ranges across
+below its unscaled lead ceiling in every phase. At 4,000 inputs the ranges across
 the two runs and plain/instrumented profiles are:
 
 | Call | Median range (ms) | p95 range (ms) |
@@ -256,12 +256,12 @@ the two runs and plain/instrumented profiles are:
 | Asking click | 28.1–32.7 | 29.0–34.3 |
 | Approval to done | 579.0–592.3 | 592.8–599.9 |
 
-The525 ms safety wait remains unchanged; no early-end implementation was added.
+The 525 ms safety wait remains unchanged; no early-end implementation was added.
 The measured round-3 cost-restoration/removal probe also passes in the final suite.
 
 **Still required: Mail twice on `a4143586`.** Its watcher is the only active one.
 No final green/ready claim until both executions pass. Chrome ledger remains
-255 /about280; no further Chrome runs are planned. Report before exceeding280.
+255 / about 280; no further Chrome runs are planned. Report before exceeding 280.
 
 The latest main merge changes no Control source, generated tools or Control
 workflow. Generator and full-unit checks pass after the merge;
@@ -275,6 +275,12 @@ safely finish after roughly half the window could save about 260 ms, about half
 of a click/fill total. This is an estimate, not a demonstrated safe early end;
 the lead passes the capability idea to linux-tools for the owner. No early-end
 implementation or safety trade-off is included here.
+
+**Workspace inventory (2026-11-14 02:13 UTC):** no files over500 MB remain in
+`.work/`. Total file sizes inspected by metadata:14,168,029,076 bytes. No possible
+profile directory was traversed and no symlink target followed
+([receipt](records/post18d/work-large-final.json)). No local browser/container or
+Gradle process was started. Refresh the metadata inventory after the final Mail logs.
 
 The chronological sections below retain historical commands and corrections;
 their old pending statements/totals are superseded by this current status.

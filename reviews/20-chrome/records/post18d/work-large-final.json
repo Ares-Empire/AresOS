@@ -1,0 +1,8 @@
+{
+  "observed_utc": "2026-11-14T02:13:53.946796+00:00",
+  "files_over_500_mb": [],
+  "inspected_file_bytes": 14168029076,
+  "scope": "Metadata only inside this worktree .work; no profile directory traversed and no symlink target followed",
+  "pruned_possible_profile_directories": [],
+  "symlinks_not_followed": 0
+}
