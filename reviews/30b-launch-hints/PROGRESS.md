@@ -117,7 +117,10 @@ fields), the 4 controls pass. With it all 12 pass. Each of the 15 single changes
 ### Hosted run
 
 `gh workflow run "OS image" --ref pkg/30b-launch-hints -f checks_only=true` on `63a28d96`:
-https://github.com/Ares-Empire/AresOS/actions/runs/43535791471 — RESULT PENDING (filled in below when known).
+https://github.com/Ares-Empire/AresOS/actions/runs/43535791471 — **still running when the builder stopped.** One
+blocking `gh run watch 43535791471 --exit-status`, capped at 9 minutes, ran out (exit 124) while the job "Regression
+checks only (no image build or VM)" was in its step "Run regression and syntax checks" (setup and checkout passed; the
+image, VM and release jobs are skipped by `checks_only`, as expected). The orchestrator records its result.
 
 The check build (`check_build=build`, which runs `image-checks.sh` in the image) is the orchestrator's, after review.
 
@@ -129,7 +132,9 @@ The check build (`check_build=build`, which runs `image-checks.sh` in the image)
   the owner's `lunar` command, which sets these values, works.
 - `image-checks.sh` inside a built image (root ownership of the hint files): only its Python assertion ran here,
   against the repo's files; the check build runs the rest.
-- The hosted run's result, if it is still pending above.
+- The hosted run's result: it was still running when the builder stopped (above). So the full `os/tests` count on
+  GitHub's runner (no NVIDIA card) is not known yet; the new tests inject the card check, so they should not depend
+  on it.
 
 ## JUDGMENT-CALL
 
@@ -189,4 +194,5 @@ none.**
 
 - `1cde6995` 30b: a hint can say how a program must be started (gpu, SDL environment)
 - `63a28d96` 30b: tests run alone against the old helper; the real route carries the hint
-- this file's commit
+- `ec9cd047` 30b: report text in PROGRESS.md (hosted run pending)
+- this file's update with the hosted run's state
