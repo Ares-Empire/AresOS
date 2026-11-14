@@ -9,22 +9,31 @@
   `b7f58bc6`, `2e5eb35e`.
 - **Step 2 (reader, target, reload, notes) is done:** F2, F3, F6 and the reader and adapter notes; see "Step 2"
   below. Code commits `f177314b` and `831feceb` (the newline-name row expects the escaped question text).
-- **Code head:** **`831feceb`**. The full local preflight passes:
-  - **274 Python, 387 Node and 344 mutations**, every mutation baseline passing;
+- **Step 3 (F7, polkit) is done:** loosening over `chrome.sock` asks the owner's polkit password; see "Step 3"
+  below for the change, the `chrome.sock` message table and the sandboxing reasoning. Commits `f01ef04c` (code, tests,
+  probes) and `5f18ff60` (real-polkit CI case).
+  - **Real polkitd passed:** run `43556395889` (Fedora 45, polkit 127, `pkttyagent`, the unit's sandboxing emulated),
+    all six cases, through `control-chrome-check.yml -f polkit=true`.
+  - **For linux-aresos at merge:** install `control/chrome/packaging/org.aresos.control.chrome-loosen.policy` at
+    `/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy`. The owner's own agent and seat are
+    linux-tools' 18c-b image test.
+- **Code head:** **`5f18ff60`**. The full local preflight passes:
+  - **286 Python, 390 Node and 358 mutations**, every mutation baseline passing (Python shards 50/43/100/93; one
+    Linux-only case is skipped on the Mac and runs in CI);
   - the generator, diff and exact-unit checks (unit byte-identical to `8b7e799c`).
-  - No browser run in this step. The new browser rows (30 destination rows, 3 navigate-reload rows, 14 credential
-    fields) run first in step 4's batched run; they are listed in PROGRESS.md.
+  - No browser run in steps 1 to 3. The new browser rows (30 destination rows, 3 navigate-reload rows, 14 credential
+    fields) run first in step 4's batched run; they are listed in PROGRESS.md. F7 adds none.
 - **For the lead (F3, security NOTE 1):** an explicit `target=""` keeps Chromium's behaviour (the base target), not
   HTML's "current navigable". Chromium's anchor and form code falls back to the base target for an empty target,
   so the spec reading would make the question say `_self` while Chrome uses the base target, the unsafe direction.
   The browser row `post18d-destination-*-top-empty-target` settles it on the installed Chrome. If it shows the spec
   behaviour, the change is one line in `browsingTarget` (mutation `final-f3-empty-target` is that line).
 - **Next:**
-  - step 3: F7, polkit;
   - step 4: F4, the stale doc notes (`managed-settings.draft.comments.md`, `control/README.md`), the unit pin-test
     comments, one batched browser run, the final preflight and the records.
   - Then the lead's scoped re-check, and only after it the final pair and every Control workflow twice.
-- **Budget:** **255 / about 280** `control-chrome.yml` runs; steps 1 and 2 started none.
+- **Budget:** **255 / about 280** `control-chrome.yml` runs; steps 1 to 3 started none. Step 3 started one
+  `control-chrome-check.yml` run (`43556395889`, polkit only, its browser job skipped).
 - **Earlier head `a4143586`** (before this round): its Chrome pair, base, boundary and qualification passed. Mail
   `43539458146` passed attempt 1. They are history now: the code has changed, so the final pair reruns everything.
   Never merge the PR or main, and never force-push.
@@ -195,6 +204,138 @@ plain runs averaged; [record](records/post18d/mail-sweep-after-f1.json),
 
 **Removal probes:** 25 new (`final-f2-*`, `final-f3-*`, `final-f6-*`, `final-notes-*`), and the six existing probes
 whose source lines changed now point at the new lines. All are rejected.
+
+## Step 3: owner authority over chrome.sock (F7, polkit)
+
+**What was wrong** (security FIX 2). The details page's `sites` request reaches the service as an `owner_sites`
+event over `chrome.sock`, which checks only the peer's user id. Any process of the owner's user could pose as the
+native host while Chrome was closed and write a "don't ask again" entry or turn read-only off without sudo.
+
+**The fix** (the lead's option (a): every button stays, loosening needs the same authority as sudo).
+- **The action** `org.aresos.control.chrome-loosen`, in
+  `control/chrome/packaging/org.aresos.control.chrome-loosen.policy`. **Install it root-owned, mode 0644, at
+  `/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy`** (for linux-aresos at merge).
+  - `allow_any=no`, `allow_inactive=no`, `allow_active=auth_admin`; never `auth_admin_keep`.
+  - `org.freedesktop.policykit.owner` = `unix-user:aresos-tools`, the unit's `User=` (a test pins the two together).
+  - It sits under `control/chrome/packaging/`, so `build.py` hashes it and the README's copy step ships it.
+    `control/chrome/packaging/README.md` names it, its install path, `pkcheck` and the agent the image needs.
+- **The check** (`control/aresos_control/chrome/confirm.py`):
+  `pkcheck --action-id org.aresos.control.chrome-loosen --process PID,START,UID --allow-user-interaction --detail change "<the change>"`.
+  - **Subject:** the process that connected. `Daemon.accept_chrome` takes pid and uid from `SO_PEERCRED` and the start
+    time from `/proc/PID/stat` when it accepts, so a reused pid can't stand in later. `Bridge.peer` holds it for that
+    connection only.
+  - **It never blocks the service.** `pkcheck` runs as a child; the service loop polls it every turn
+    (`Chrome.poll_confirmation`), so Mail and Claude's tools keep answering while the dialog is up. One dialog at a
+    time: a second loosening request is refused at once.
+  - **Only a clear yes writes.** Refused, with the reason on the details page and nothing written: exit 1 (denied or
+    wrong password), 2 (no agent), 3 (dismissed), any other code (polkit error, including "Only trusted callers"),
+    no `pkcheck`, an unidentified process, the 120 s timeout (pkcheck is killed, so polkit drops its dialog), a yes
+    whose details name `polkit.temporary_authorization_id` or `polkit.retains_authorization_after_challenge` (a
+    reused or kept authorization), and a yes that arrives after the Chrome connection changed.
+  - **A yes writes exactly the confirmed change:** the stored copy of the arguments, through the owner-only path,
+    which checks them again.
+- **The dialog names the change.** polkit expands `$(change)` in the action's message from the check's details (as
+  udisks does with its device names). The text is one line of at most 300 characters, without `<`, `>`, `&`, `$`,
+  backticks, backslashes or invisible characters, so an agent can't render it as markup. Examples:
+  `Don't ask again: gmail_send as <account> on https://gmail.test (to <recipient>)`, `Read-only off for example.test`.
+- **The details page** says: "Don't ask again" and "Allow editing" ask for your password in a system dialog, once
+  for each change; the dialog names the change; only confirm a dialog you started here. While the dialog is up it
+  shows "Waiting for your password in the system dialog: <the change>", then the outcome or the refusal reason. The
+  extension waits 150 s for a loosening answer (10 s for the rest), past the service's 120 s.
+- **`chrome_sites` tool text:** "Requires sudo on admin.sock. The owner's Chrome details page lists, revokes and
+  marks sites read-only directly; its allow and read-only off ask for his password in a polkit dialog, once for each
+  change." The admin path (`sudo aresos admin chrome sites`) is unchanged: sudo is the same authority.
+
+**Every message the service accepts over `chrome.sock`** (condition 5):
+
+| Message | What the service does | Owner authority? | Gate |
+|---|---|---|---|
+| Connection and `hello` | Admits one live host of the owner's user id (`SO_PEERCRED`); records pid, uid and start time | No. It decides which process speaks for Chrome, not what is allowed. A spoofer that connects first, while Chrome is closed, receives Claude's commands and can describe a browser that doesn't exist (the accepted decision-24 residual). While it is connected, the one-live-host rule refuses the real host, so it can't relay into the owner's Chrome through this socket | owner's user id |
+| Replies to service commands (`id` with `ok`, `data`, `error` or `chunk`) | Browser facts and outcomes | No. Every send, delete, payment and typed read is approved in Claude Code's own ask prompt, bound to the question the service built. A spoofed reply can mark a fake operation `done`, but allowing its kind now needs the password | — |
+| `held_step` | Opens a page-step check; later a fresh asking submit or a stopped-activation warning | No. It can only add a check, a warning or a question. The owner's own clicks and Enter are recognised in the page guard (`event.isTrusted`) and never cross the socket | — |
+| `released` | Fails reserved Chrome operations of that tab | No. It can only drop prepared work | — |
+| `audit` | Hands data to a test-only sink (none in production) | No | — |
+| `reader_error`, `fixture_arm_wait`, `fixture_after_input`, any other event | Ignored | No | — |
+| `owner_sites` `list` | Lists read-only sites, allow entries and recent questions | No | none |
+| `owner_sites` `revoke` | Marks an allow entry revoked | No (tightens) | none |
+| `owner_sites` `readonly`, `enabled` true or absent | Marks a site read-only | No (tightens) | none |
+| `owner_sites` `allow` | Writes `chrome:allow:<id>`; `chrome_submit_trusted` then sends that exact kind without a question | **Yes** | polkit, once per change |
+| `owner_sites` `readonly`, `enabled` anything but true | Lifts a read-only mark | **Yes** | polkit, once per change |
+| `owner_sites`, anything else | Checked against the schema before any dialog, then refused | treated as loosening | schema |
+
+**Caller authorization and the unit's sandboxing** (condition 7). The unit stays byte-identical to `8b7e799c`.
+- polkit answers `CheckAuthorization` for another identity's process only if the caller is uid 0 or is named by
+  the action's `org.freedesktop.policykit.owner` annotation. `aresos-toold` runs as `User=aresos-tools` and the
+  native host as the owner, so the annotation is needed; the CI case below shows the refusal without it.
+- The unit's sandboxing, setting by setting:
+  - `NoNewPrivileges=yes`: `pkcheck` isn't setuid; it only talks to polkitd over D-Bus. The setuid
+    `polkit-agent-helper-1` runs in the owner's agent, not in the service.
+  - `ProtectSystem=strict`: `/usr`, `/etc` and `/run` are read-only. Running `/usr/bin/pkcheck` only reads. Connecting
+    to `/run/dbus/system_bus_socket` needs write permission on the socket's inode, and a read-only mount doesn't take
+    that away: the kernel refuses writes to the file system, not `connect()`.
+  - `ProtectHome=yes`, `PrivateTmp=yes`: `pkcheck` needs no home and no `/tmp`.
+  - `PrivateDevices=yes`: `pkcheck` needs only `/dev/null` (its stdin), which stays.
+  - `RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6`: the system bus is `AF_UNIX`.
+  - `CapabilityBoundingSet=` (empty): `pkcheck` needs no capability.
+  - `ExecStart=/usr/bin/env -i PATH=/usr/bin:/bin …`: no `DBUS_SYSTEM_BUS_ADDRESS`, so the default
+    `unix:path=/run/dbus/system_bus_socket` applies. `confirm.py` calls `/usr/bin/pkcheck` by its full path with the
+    same minimal environment.
+  - The unit has no `ProtectProc=` or `ProcSubset=`, so the owner's `/proc/PID/stat` stays readable for the start
+    time, and no `SystemCallFilter=`, `RestrictNamespaces=`, `InaccessiblePaths=` or `BindPaths=`.
+  - polkit's own D-Bus policy lets every user call `org.freedesktop.PolicyKit1`.
+
+**Real polkit in CI** (condition 7, done in this round). `.github/workflows/control-chrome-polkit.yml` runs
+`control/chrome/ci/polkit-check.py` in a disposable, privileged Fedora 45 container (polkit 127).
+- **What it does.** It installs the shipped policy file unchanged and starts a system bus and polkitd. It starts a
+  process of a test owner (in `wheel`, with a password made up for the run). Then `aresos-tools` runs `confirm.py`'s
+  own check against that process, while `pkttyagent`, as the owner and registered for that process, answers on a
+  terminal.
+- **The unit's sandboxing, emulated:** a private mount namespace with `/` (and so `/run`) read-only, a private
+  `/tmp`, a `/dev` with only the pseudo devices and hidden homes; then `setpriv` with no new privileges and an empty
+  bounding set.
+- **The seat.** The container has no logind seat, so a CI-only rule returns `AUTH_ADMIN` for the action. It stands in
+  for `allow_active=auth_admin`.
+- **Run `43556395889` on `5f18ff60` passed all six cases** (record `records/final-f7/polkit-43556395889.json`):
+  - right password: granted after one prompt. The dialog read "Claude's Chrome tools: confirm this change with your
+    password. Read-only off for ci.test", so polkit carries the change into the dialog;
+  - no agent, right after that yes: refused ("no agent is available"), so nothing was kept;
+  - wrong password: refused ("Not authorized");
+  - another start time for the same pid: refused ("process … has been replaced");
+  - the policy without the owner annotation: refused ("Only trusted callers (e.g. uid 0 or an action owner)…"), so
+    the annotation is needed;
+  - right password again: granted after one prompt.
+  - In every case the check ran as `aresos-tools`, with `NoNewPrivs: 1`, an empty bounding set and a read-only
+    `/run`.
+- **How to run it.** GitHub can't dispatch `control-chrome-polkit.yml` until it is on main (it answers 404 for a
+  workflow file that exists only on a branch). Until then `control-chrome-check.yml`, which is on main, calls it:
+  `gh workflow run control-chrome-check.yml --ref pkg/20-chrome -f polkit=true` (its browser job is skipped then).
+  On a pull-request push that touches the policy, `confirm.py`, the check or the unit, the new workflow runs by
+  itself. Neither uses the `control-chrome.yml` budget.
+
+**Tests with a polkit stub** (`control/chrome_tests/test_owner_confirm.py`; a shell `pkcheck` that records its
+arguments and answers with a set exit code):
+- a spoofed host sending `allow` and `readonly off` writes nothing on denied, no agent, dismissed, polkit error and
+  "Only trusted callers"; nor on a timeout, missing `pkcheck` or an unidentified process;
+- a success writes exactly the confirmed change, only after the yes, for the subject `pid,start,uid` of the
+  connected process, with the dialog's `change` detail;
+- a cached or kept authorization, a replayed request after a spent yes, and a yes after the host changed are refused;
+- one dialog at a time;
+- listing, revoking and read-only on run without `pkcheck`; malformed requests are refused before any dialog;
+- the daemon's accept path takes the subject from `SO_PEERCRED` (a socket that reports another pid); on Linux a real
+  spoofing process connecting to a real socket gets nothing (skipped on the Mac, runs in CI);
+- the policy file (defaults, no keep, owner annotation equal to the unit's `User=`, `$(change)`), its place in the
+  hashed packaging and the README, the dialog text's character rule, and the tool text.
+- Node (`control/chrome_tests/details.test.mjs`, in-memory DOM): the details page names the pending change while
+  the dialog is up and then shows the refusal or the change; its text says loosening asks for the password; the
+  extension waits `LOOSEN_WAIT_MS` (150 s) only for loosening.
+- **Removal probes:** 14 (`final-f7-*`): the gate, read-only off, the clear yes, the timeout, the subject, the change
+  detail, the cached yes, the connection binding, one dialog at a time, the daemon's peer, `auth_admin_keep`, the
+  owner annotation, the page's pending line and the extension's wait. All are rejected.
+
+**What neither the stub nor the container shows** (linux-tools' 18c-b image test): the owner's own desktop agent on
+seat0 and `allow_active` from the policy's defaults rather than the CI rule; polkit's session lookup for Chrome's
+native host, which runs in a systemd user scope rather than in the login session (polkit then falls back to the
+user's display session); and how his agent shows the message.
 
 # Post-18d integration — final repetitions pending
 

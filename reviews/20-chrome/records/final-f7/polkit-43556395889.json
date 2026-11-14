@@ -1,0 +1,103 @@
+{
+  "service_user": "aresos-tools",
+  "action": "org.aresos.control.chrome-loosen",
+  "versions": {
+    "polkit": "polkit-127-5.fc45.x86_64",
+    "pkcheck": "pkcheck version 127",
+    "fedora": "Fedora release 45 (Forty Five)"
+  },
+  "results": [
+    {
+      "case": "right password",
+      "granted": true,
+      "reason": "confirmed with the owner's password",
+      "uid": 995,
+      "no_new_privs": "1",
+      "bounding_set": "0000000000000000",
+      "run_readonly": true,
+      "tmp_entries": [
+        ".dev"
+      ],
+      "prompts": 1,
+      "transcript": "\u001b[1;31m==== AUTHENTICATING FOR org.aresos.control.chrome-loosen ====\r\n\u001b[0mClaude's Chrome tools: confirm this change with your password. Read-only off for ci.test\r\nAuthenticating as: owner\r\nPassword: \r\n\u001b[1;31m==== AUTHENTICATION COMPLETE ====\r\n\u001b[0m",
+      "driver_errors": ""
+    },
+    {
+      "case": "no agent right after a yes",
+      "granted": false,
+      "reason": "no password dialog could be shown (no authentication agent answered) (Authorization requires authentication but no agent is available.)",
+      "uid": 995,
+      "no_new_privs": "1",
+      "bounding_set": "0000000000000000",
+      "run_readonly": true,
+      "tmp_entries": [
+        ".dev"
+      ],
+      "prompts": 0,
+      "transcript": "",
+      "driver_errors": ""
+    },
+    {
+      "case": "wrong password",
+      "granted": false,
+      "reason": "the password was wrong or the request was denied (Not authorized.)",
+      "uid": 995,
+      "no_new_privs": "1",
+      "bounding_set": "0000000000000000",
+      "run_readonly": true,
+      "tmp_entries": [
+        ".dev"
+      ],
+      "prompts": 1,
+      "transcript": "\u001b[1;31m==== AUTHENTICATING FOR org.aresos.control.chrome-loosen ====\r\n\u001b[0mClaude's Chrome tools: confirm this change with your password. Read-only off for ci.test\r\nAuthenticating as: owner\r\nPassword: \r\npolkit-agent-helper-1: pam_authenticate failed: Authentication failure\r\n\u001b[1;31m==== AUTHENTICATION FAILED ====\r\n\u001b[0m",
+      "driver_errors": ""
+    },
+    {
+      "case": "another start time for the same pid",
+      "granted": false,
+      "reason": "polkit could not check the request (Error checking for authorization org.aresos.control.chrome-loosen: GDBus.Error:org.freedesktop.PolicyKit1.Error.Failed: process with PID 150 has been replaced)",
+      "uid": 995,
+      "no_new_privs": "1",
+      "bounding_set": "0000000000000000",
+      "run_readonly": true,
+      "tmp_entries": [
+        ".dev"
+      ],
+      "prompts": 0,
+      "transcript": "",
+      "driver_errors": ""
+    },
+    {
+      "case": "policy without the owner annotation",
+      "granted": false,
+      "reason": "polkit could not check the request (Error checking for authorization org.aresos.control.chrome-loosen-ci-unowned: GDBus.Error:org.freedesktop.PolicyKit1.Error.NotAuthorized: Only trusted callers (e.g. uid 0 or an action owner) can use C\u2026)",
+      "uid": 995,
+      "no_new_privs": "1",
+      "bounding_set": "0000000000000000",
+      "run_readonly": true,
+      "tmp_entries": [
+        ".dev"
+      ],
+      "prompts": 0,
+      "transcript": "",
+      "driver_errors": ""
+    },
+    {
+      "case": "right password again",
+      "granted": true,
+      "reason": "confirmed with the owner's password",
+      "uid": 995,
+      "no_new_privs": "1",
+      "bounding_set": "0000000000000000",
+      "run_readonly": true,
+      "tmp_entries": [
+        ".dev"
+      ],
+      "prompts": 1,
+      "transcript": "\u001b[1;31m==== AUTHENTICATING FOR org.aresos.control.chrome-loosen ====\r\n\u001b[0mClaude's Chrome tools: confirm this change with your password. Read-only off for ci.test\r\nAuthenticating as: owner\r\nPassword: \r\n\u001b[1;31m==== AUTHENTICATION COMPLETE ====\r\n\u001b[0m",
+      "driver_errors": ""
+    }
+  ],
+  "failures": [],
+  "successful": true
+}

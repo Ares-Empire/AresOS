@@ -69,16 +69,35 @@ Code commits `f177314b` and `831feceb`; details in REPORT.md, "Step 2".
 - **Removal probes:** 25 new, 6 repointed; all rejected.
 - **Full local preflight on `831feceb`:** 274 Python (shards 40/101/53/80), 387 Node and 344 mutations, plus the generator, diff and unit-pin checks, all green.
 
+### Step 3 (F7, polkit), Claude Opus 5.5, 2026-11-14
+
+Commits `f01ef04c` (code, tests, probes) and `5f18ff60` (real-polkit CI case); details in REPORT.md, "Step 3".
+- `allow` and read-only off over `chrome.sock` run `pkcheck` against the connected process (pid, start time, uid)
+  through `org.aresos.control.chrome-loosen` (`auth_admin`, owner annotation `unix-user:aresos-tools`), beside the
+  service loop, one dialog at a time. Only a clear yes from the same connection writes, and only that change.
+  Listing, revoking and read-only on need no password.
+- The details page says loosening asks for the password and names the pending change while the dialog is up.
+- Policy file `control/chrome/packaging/org.aresos.control.chrome-loosen.policy`, to be installed at
+  `/usr/share/polkit-1/actions/`; named in REPORT and the packaging README.
+- Tests: `test_owner_confirm.py` (stub), `details.test.mjs`; 14 removal probes `final-f7-*`, all rejected.
+- Real polkitd (Fedora 45, polkit 127) with `pkttyagent`, under an emulation of the unit's sandboxing: run
+  `43556395889` passed all six cases. It ran through `control-chrome-check.yml -f polkit=true`, not the
+  `control-chrome.yml` budget.
+- **Full local preflight on `5f18ff60`:** 286 Python (shards 50/43/100/93; the Linux-only real-socket case is
+  skipped on the Mac), 390 Node and 358 mutations, plus the generator, diff and unit-pin checks, all green.
+
 ## Left, in order
 
-1. **Step 3:** F7 (polkit confirmation for owner authority over `chrome.sock`).
-2. **Step 4:**
+1. **Step 4:**
    - F4 (latency ceilings fail on median or p95);
    - the stale doc notes: `control/settings/managed-settings.draft.comments.md` (eight rules, not six) and
      `control/README.md:31` (`chrome.sock` accepts the owner's user id);
    - the service-unit pin-test comments (`control/tests/test_unit.py:10`, `control/chrome_tests/test_unit.py:10`);
    - **one batched browser run** (`gh workflow run control-chrome.yml --ref pkg/20-chrome`) for the rows of F2, F3,
-     F6 and F7. Step 2's rows are already wired into the suite and need no further change:
+     F6 and F7. F7 adds no browser row: the details page's logic runs in `details.test.mjs` against an in-memory
+     DOM, and the dialog itself is polkit's (CI case above, the owner's real agent in 18c-b). The run's Python
+     shards also run `test_owner_confirm.py`'s Linux-only case (a real spoofing process on a real socket), skipped
+     on the Mac. Step 2's rows are already wired into the suite and need no further change:
      - **F3:** 30 rows in `GROUP 3 POST18D absolute destinations inherited bases targets and form owners`
        (`control/chrome/ci/destination-fixtures.mjs`, `finalTargetRows`; 96 rows in all, audited by
        `destination-evidence.mjs`). Ids: `post18d-destination-{area,svg-href,svg-xlink}-{top,blank,srcdoc}-target`,
@@ -95,6 +114,19 @@ Code commits `f177314b` and `831feceb`; details in REPORT.md, "Step 2".
    - deleting this file.
 
 ## What the code doesn't show
+
+- **F7, for linux-aresos at merge:** install the policy file root-owned at
+  `/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy`; the image needs `/usr/bin/pkcheck` and a
+  polkit agent in the owner's session. linux-tools' 18c-b image test should press "Allow editing" once with his real
+  agent: the dialog must name the site, and a cancelled dialog must leave the site read-only.
+- **F7, what CI can't show:** `allow_active` from the policy's defaults on seat0 (CI uses a stand-in rule), and
+  polkit's session lookup for Chrome's native host, which runs in a systemd user scope (polkit falls back to the
+  user's display session). Both are 18c-b.
+- **F7, the new workflow:** `control-chrome-polkit.yml` can be dispatched only once it is on main; until then
+  `gh workflow run control-chrome-check.yml --ref pkg/20-chrome -f polkit=true`. The `polkit` input and the gated
+  job in `control-chrome-check.yml` can go after the merge.
+- **F7, the refactor:** the chrome branch of `Daemon.serve` moved into `Daemon.accept_chrome` unchanged, apart
+  from reading the pid; `Bridge.accept` takes the peer.
 
 - A database that an earlier build of this branch created may still carry the old `operation_headers` index.
   Nothing reads it: the unary `+` keeps every filter off it, and the plan test checks that. It still costs one page
