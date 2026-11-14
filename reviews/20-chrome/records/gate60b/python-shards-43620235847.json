@@ -1,0 +1,72 @@
+{
+  "shards": [
+    {
+      "index": 0,
+      "count": 4,
+      "head": "07c05de006b8a604b3d6b9fad50b8ed7aeca23c7",
+      "run": "43620235847",
+      "modules": [
+        "test_bridge",
+        "test_exclusions",
+        "test_open_index_timing",
+        "test_qualification",
+        "test_sites",
+        "test_state_mutations",
+        "test_unit"
+      ],
+      "tests": 53,
+      "successful": true
+    },
+    {
+      "index": 1,
+      "count": 4,
+      "head": "07c05de006b8a604b3d6b9fad50b8ed7aeca23c7",
+      "run": "43620235847",
+      "modules": [
+        "test_build",
+        "test_fault_surface",
+        "test_owner_confirm",
+        "test_qualification_service",
+        "test_state_crashes",
+        "test_state_oracle"
+      ],
+      "tests": 56,
+      "successful": true
+    },
+    {
+      "index": 2,
+      "count": 4,
+      "head": "07c05de006b8a604b3d6b9fad50b8ed7aeca23c7",
+      "run": "43620235847",
+      "modules": [
+        "test_committed",
+        "test_full_disk_reads",
+        "test_policy",
+        "test_qualification_shards",
+        "test_state_exhaustion",
+        "test_state_sweeps"
+      ],
+      "tests": 49,
+      "successful": true
+    },
+    {
+      "index": 3,
+      "count": 4,
+      "head": "07c05de006b8a604b3d6b9fad50b8ed7aeca23c7",
+      "run": "43620235847",
+      "modules": [
+        "test_engine",
+        "test_latency",
+        "test_publisher",
+        "test_questions",
+        "test_state_fixes",
+        "test_storage"
+      ],
+      "tests": 147,
+      "successful": true
+    }
+  ],
+  "f7_linux_socket_case": [
+    "test_final_f7_a_real_spoofing_process_on_the_socket_gets_nothing (test_owner_confirm.Confirmation.test_final_f7_a_real_spoofing_process_on_the_socket_gets_nothing) ... ok"
+  ]
+}

@@ -1,30 +1,30 @@
 <!-- POST18D CURRENT START -->
 # Handover
 
-- **Round:** fixes b ([brief](../../briefs/20-final-fixes-b.md)) plus the lead's latency gate change (60 samples,
-  mac-aresos-control, 2026-11-14) and the five notes of the two fixes b re-checks (both SAFE). "Latency gate: 60
-  samples" below has the gate change, the notes, the run and the 4,096-character rule; "Fixes b" has G1 to G4 and the
-  failed run `43603381599` that led to the gate change.
-- **Stopped after the verify run.** Run **`43613647256`** failed in one browser shard: `fixtures (policy, recheck2)`,
-  the `typed-clean` popup, where the popup got a document-start install and the test expects a late one (a timing race
-  in the test's expectation, not a code change of this step). Every other job passed, both latency profiles among
-  them, at 60 samples and with no stat over a ceiling.
-- **Next: the lead decides two things and the next run:** (1) the `typed-clean` popup check's expectation (it should
-  accept and verify the install path it got, or the fixture should fix the path); (2) the runner factor, which rises
-  with the old runtime's 60 samples and loosens the gate (recommended: the old runtime keeps the reference's 20).
-  **Then the reviewers' re-check of fixes b (with the gate change), then the final pair** (and every Control
+- **Round:** the lead's two decisions after run `43613647256` (mac-aresos-control, 2026-11-14): the popup rows take
+  their install path from the extension's own record, and the old runtime keeps 20 latency samples. "Gate: old runtime
+  at 20; popup rows" below has both, their tests and probes, and the run.
+- **Stopped after the verify run.** Run **`43620235847`** (`07c05de0`) failed in one row of one check, in both
+  installs: the new forced-late popup row `typed-late` could not re-take its opener (`take_tab` returned `unknown`,
+  "Tabs can only be moved to and from normal windows"). The cause is in tab-group handling, which this step was told
+  not to change, so it was not fixed. The other two typed rows passed in both installs with the path the extension
+  recorded (`typed-clean` late, `typed-early` document start), and every other job passed except the two aggregates,
+  which stopped for the missing shards.
+- **Next: the lead decides the `typed-late` fix** (options and a recommendation under "The run" below), **then one
+  run; then both reviewers re-check the gate change and the popup rows; then the final pair** (and every Control
   workflow twice).
-- **Run `43613647256`** (`dcf4462d`): 26 of 28 jobs passed. **Latency at 4,000, worst of both profiles** (median /
-  p95 against the ceilings): read 19.5 / 20.7 against 35 / 60, navigate 48.7 / 54.0 against 100 / 150, free_click
-  576.6 / 584.0 and fill 578.8 / 580.8 against 650 / 750, asking_click 26.9 / 28.9 against 60 / 100,
-  approval_to_done 587.4 / 597.0 against 700 / 850. Latency jobs 19.8 and 20.6 minutes. Records:
-  [`records/gate60/`](records/gate60/).
-- **Code head:** **`b3d6e4f2`** (the gate in `e9825745`, the typing symbol in `b3d6e4f2`; records and this report on
-  top change no tested file). The full local preflight passes on it: **303 Python, 417 Node and 440 mutations**
-  (Python shards 53/56/49/145; the Linux-only socket case is skipped on the Mac and runs in CI), every baseline
-  passing, plus the generator, diff and exact-unit checks (unit byte-identical to `8b7e799c`)
-  ([record](records/gate60/final-local-b3d6e4f2.json)).
-- **Budget:** **264 / about 280** `control-chrome.yml` runs (this step used one: `43613647256`).
+- **Latency in run `43620235847`** (worst of both profiles, median / p95 ms against the ceilings): no stat over a
+  ceiling and both gates passed, also with no runner credit. At 4,000: read 28.4 / 31.6 against 35 / 60, navigate
+  70.1 / 77.2 against 100 / 150, free_click 593.6 / 602.4 and fill 589.4 / 593.3 against 650 / 750, asking_click
+  40.5 / 43.6 against 60 / 100, approval_to_done 616.2 / 623.7 against 700 / 850. Runner factors plain 1.07 / 1.08 /
+  1.04, instrumented 1.24 / 1.48 / 1.44 (fresh / 1,000 / 4,000). Latency jobs **11.9 and 12.9 minutes** (19.8 and
+  20.6 before). Records: [`records/gate60b/`](records/gate60b/).
+- **Heads:** run head `07c05de0` (the popup rows in `90ff22d9`, the old runtime at 20 in `07c05de0`). The full local
+  preflight passes on it: **305 Python, 426 Node and 459 mutations** (Python shards 53/56/49/147; the Linux-only socket
+  case is skipped on the Mac and passed in CI), every baseline passing, plus the generator, diff and exact-unit checks
+  ([record](records/gate60b/final-local-07c05de0.json)). After the run one test-only commit silences the popup test's
+  stand-in evidence lines (they printed in CI's node output like a browser run's).
+- **Budget:** **265 / about 280** `control-chrome.yml` runs (this step used one: `43620235847`).
 - **For linux-tools at merge:** the 4,096-character rule for every app's tool instructions ("Latency gate: 60
   samples"); the lead passes it on.
 - **For linux-aresos at merge:** install `control/chrome/packaging/org.aresos.control.chrome-loosen.policy` at
@@ -32,9 +32,159 @@
   linux-tools' 18c-b image test. **For linux-tools' 18c-b image:** the plan and timing tests
   (`control/chrome_tests/test_full_disk_reads.py`, `test_open_index_timing.py`) must also pass on AresOS's own SQLite
   (see "Step 7", SQLite versions).
-- **Earlier heads:** fixes b's run head `e654baff` failed run `43603381599` (native precedence, fixed in `25fe7aaa`,
-  and three instrumented p95 misses, which led to the gate change); the final fixes round's code head `f4a3fba9`
-  passed everything in run `43593989287`. Both are history now. Never merge the PR or main, and never force-push.
+- **Earlier heads:** `b3d6e4f2` failed run `43613647256` (the `typed-clean` race, which led to these decisions);
+  fixes b's `e654baff` failed run `43603381599`; the final fixes round's `f4a3fba9` passed everything in run
+  `43593989287`. Never merge the PR or main, and never force-push.
+
+# Gate: old runtime at 20; popup rows (2026-11-14)
+
+Built by a Claude agent (Opus 5.5) from the lead's two decisions after run `43613647256`.
+
+## Decision 1: the popup rows (the lead, 2026-11-14)
+
+"The path comes from the extension's own record; each path asserts its exact expected answer; the late path keeps
+`reload_required` in a deterministic row of its own in both installs, the early path gets one too; no reliance on the
+race; a variant that accepts either answer regardless of the recorded path must be killed." Commit `90ff22d9`.
+
+**The record.** There was none the test could read, so `background.js` gets `installRecord()`: for every controlled
+tab, each document in the extension's own `state.documents` with how its guard came. The document-start install (the
+startup breakpoint paused the document before page scripts) marks its entry `install:'document_start'`; the late
+reader's registration (`lateReader`, a loaded document) marks `install:'late'`. `control_status`, the CI's background
+inspection, returns it as `installs` (tab, reader document id, path, ready). It lives in background memory only,
+nothing is stored, and no decision of the extension reads it. The row matches its popup's tab and the reader document
+of the reference it clicks; exactly one record must match, and a document-start record counts only once the install
+finished (`ready`). Nothing the page sets enters it.
+
+**The rows** (`popups.mjs`, check "GROUP 8 popups preserve opener flow and guard first input without moving windows",
+both installs; `clean` and `dirty` unchanged):
+- **`typed-early`, forced document start → `stale_reference`.** The fixture holds the popup's document
+  (`fixture.hold`) until the extension's own `popup_admitted` line appears in the boundary log; that line comes after
+  the popup's target is attached and its startup breakpoint set. Only then is the response released, so the
+  document's first script always pauses for the guard.
+- **`typed-late`, forced late → `reload_required`.** The owner opens the popup while its opener is outside Claude's
+  control (`ownerOpenPopup` with the row's id), so the extension never attaches to it on creation (the row asserts
+  `controlled:false`); after its page has loaded, Claude takes the opener and then the popup.
+- **`typed-clean`, the race row, kept:** Claude's click opens the popup with no hold, and the row asserts the answer
+  of whichever path the record names. It stays because it is the only row where Claude's own click opens a popup with
+  a text field under Chrome's natural timing.
+- Every typed row asserts the exact answer for its recorded path (`firstAnswer`), the forced rows also assert that the
+  record names the path they force, and a `reload_required` row then needs `discard_unsaved` before its one reload.
+
+**Tests (local, no browser):**
+- `popups.test.mjs` (new) runs the real rows against a scripted stand-in browser: each path gives its exact answer and
+  the forced rows get their paths, for both race outcomes; an answer against the recorded path fails its row on either
+  path; a forced row whose record names the other path fails even with a matching answer; a missing or doubled record
+  fails, and records for another tab or document never decide; an unfinished document-start install has no answer;
+  the admission line must name the opener and a popup window.
+- `background.test.mjs` `gate60b the install record …`: a document-start install and a late registration on the real
+  background code, the same record through `control_status`, read-only, and none for a tab under another control.
+- `fixture.test.mjs` `gate60b a held popup document …`: held until released, other popups answered at once, the
+  guarded reload not held, closing releases a hold.
+
+**Probes (all rejected), among them the lead's:** `gate60b-popup-either-answer` (the row accepts either answer whatever
+the record says), `-path-by-mode` (the path from the row's name instead of the record), `-forced-path-unchecked`,
+`-early-no-hold`, `-early-no-admission-wait`, `-late-by-claude-click`, `-record-any-tab`; `gate60b-record-late-as-start`,
+`-record-not-in-status`, `-record-past-control`; `gate60b-fixture-hold-ignored`.
+
+## Decision 2: the old runtime keeps 20 samples (the lead, 2026-11-14)
+
+"The current runtime stays at 60 samples per call and phase; the old runtime takes 20, because it only feeds the
+runner-noise ratio and must match the frozen 20-sample reference." Commit `07c05de0`.
+
+- **Two named constants.** `latency-targets.json` keeps `samples_per_call: 60` and adds
+  `old_runtime_samples_per_call: 20`, with `old_runtime_samples_basis` next to the existing basis: "Set by
+  mac-aresos-control, 2026-11-14, after run 43613647256" and the reason. The client (`LATENCY_SAMPLES`,
+  `OLD_RUNTIME_SAMPLES`, `samplesFor`), the summary (`SAMPLES`, `OLD_RUNTIME_SAMPLES`, `samples_for`) and the check read
+  them, each with the reason beside the constant. The client picks the count by the runtime its container names
+  (`LATENCY_BASELINE`, set by `latency-pair.sh`).
+- **Same positions as the reference.** The summary requires every call to sit at positions 0 to count−1 of each
+  history phase; the check requires the old runtime at the frozen reference's count and at exactly the reference's
+  input-sample positions, and computes the runner factor at the old runtime's own count.
+- **Unchanged:** the ceilings, "a median or p95 over a ceiling fails", "both must cross" against the reference, the
+  525 ms hold.
+- **Tests:** `test_latency.LatencyGate.test_gate60b_the_runner_factor_reads_the_old_runtime_at_the_reference_positions`
+  (the constants and the lead's line; the real reference's own old runtime gives a factor of exactly 1 in every phase,
+  both profiles; the same 20 samples at positions 40–59 and the old runtime at 60 both refuse; an old-runtime count
+  other than the reference's refuses), `test_latency.LatencySummary.test_gate60b_the_old_runtime_summary_takes_20_at_positions_0_to_19`,
+  and `latency.test.mjs` `gate60b the old runtime's client …` (through `LATENCY_BASELINE`, the old runtime's input
+  samples sit exactly where the reference's do, in both profiles). The earlier gate tests now pair a 60-sample current
+  runtime with a 20-sample old one.
+- **Probes (all rejected):** `gate60b-old-runtime-back-to-60` (the lead's), `gate60b-check-old-at-current-count`,
+  `-check-ratio-at-current-count`, `-check-positions-unchecked`, `gate60b-summary-old-at-current-count`,
+  `-summary-positions-unchecked`, `gate60b-client-old-at-current-count`, `-client-ignores-container-runtime`.
+  `gate60-client-fixed-20` aims at the client's new loop line.
+
+## The run: `43620235847` (`07c05de0`), failed in `typed-late`
+
+Records in [`records/gate60b/`](records/gate60b/) (metadata only; no profile member read). 265 of about 280 runs are
+now used. **Stopped before another run**, as the brief requires.
+
+- **Passed (24 of 28 jobs):** every fixture shard except `recheck2` in both installs (core, review, adapters,
+  recheck3, the four word shards), the four Python shards (53/56/49/147 = 305; F7's Linux-only socket case `... ok`),
+  `native-precedence`, both latency profiles and the package. Chrome 157.0.8103.78.
+- **The popup rows that ran, in both installs** ([receipt](records/gate60b/chrome-43620235847-failed.json), with the
+  `installs` records read through `control_status`): `clean` and `dirty` as before; **`typed-clean` got the late path
+  in both installs** (record `late`, `reload_required`, then one guarded reload); **`typed-early` got the document-start
+  path in both installs** (record `document_start`, `stale_reference`). So the hold forces the early path in both
+  installs, and the race row checked its answer against the record.
+- **Failed: `fixtures (external, recheck2)` and `fixtures (policy, recheck2)`, row `typed-late`**, before its popup
+  was taken: `take_tab` of the opener (`popups.mjs:76`) returned `unknown`, "Input may have started; inspect status and
+  the page, never retry. Tabs can only be moved to and from normal windows." Up to there the forcing worked: the owner's
+  popup had loaded and was not controlled.
+- **Cause (read from the code and the run's tool log):** the opener had been the only controlled tab, so releasing it
+  set `groupId=null` (`background.js`, end of `release`). The re-take then made a new Claude group with
+  `chrome.tabs.group({tabIds:[tab]})` and no window (`admitTab`). Chrome puts a new group in the current window, the
+  last focused one, which was the owner's popup, and refuses to move a tab into a popup window. The existing
+  `popup-outside` flow never met this because it closes its popup and refocuses the main window before re-taking.
+- **This is also a product edge,** not only a test one: whenever no Claude group exists and the owner's focused window
+  is not the tab's window, `take_tab` fails like this when a popup or app window has focus. With another normal
+  window focused, Chrome's documented default would put the new group, and so the owner's tab, into that window (read
+  from the API's documentation, not measured here); taking a tab must never move it.
+- **Left for the lead (tab-group handling was outside this step):**
+  - **(a) Recommended:** create a new Claude group in the tab's own window
+    (`chrome.tabs.group({tabIds:[tab],createProperties:{windowId:current.windowId}})`), with a background test and a
+    removal probe; `typed-late` stays as it is and then covers the case. It changes tab-group handling, so the
+    reviewers' re-check covers it.
+  - **(b)** Test only: the owner refocuses the main window before Claude re-takes the opener, as `popup-outside` does.
+    Tab-group handling stays frozen; the product edge stays and goes to KNOWN-LIMITS or a follow-up.
+- **Then the aggregates** stopped for the missing `recheck2` shards, so this run has no aggregate, independent audit
+  or group 12 for either install.
+
+**Latency** (run `43620235847`, client median / p95 ms; current runtime 60 samples per call and phase, old runtime 20
+at positions 0–19, as the reference; no stat over a ceiling, both gates passed, and with no runner credit (allowance 1)
+nothing fails either):
+
+| History | Call | Ceiling (median / p95) | Plain | Instrumented | Worst of both |
+|---|---|---|---|---|---|
+| fresh | read | 35 / 60 | 8.3 / 10.2 | 11.2 / 14.3 | 11.2 / 14.3 |
+| fresh | navigate | 100 / 150 | 37.0 / 53.0 | 48.6 / 52.7 | 48.6 / 53.0 |
+| fresh | free_click | 650 / 750 | 569.5 / 576.3 | 576.2 / 585.4 | 576.2 / 585.4 |
+| fresh | fill | 650 / 750 | 560.4 / 576.5 | 572.9 / 575.2 | 572.9 / 576.5 |
+| fresh | asking_click | 60 / 100 | 14.7 / 16.6 | 21.8 / 23.5 | 21.8 / 23.5 |
+| fresh | approval_to_done | 700 / 850 | 575.7 / 593.5 | 599.2 / 603.3 | 599.2 / 603.3 |
+| 1,000 | read | 35 / 60 | 11.0 / 12.9 | 14.2 / 15.7 | 14.2 / 15.7 |
+| 1,000 | navigate | 100 / 150 | 40.8 / 63.9 | 52.7 / 56.4 | 52.7 / 63.9 |
+| 1,000 | free_click | 650 / 750 | 571.7 / 584.3 | 580.8 / 588.4 | 580.8 / 588.4 |
+| 1,000 | fill | 650 / 750 | 569.1 / 606.0 | 568.7 / 582.3 | 569.1 / 606.0 |
+| 1,000 | asking_click | 60 / 100 | 19.1 / 23.5 | 25.5 / 28.9 | 25.5 / 28.9 |
+| 1,000 | approval_to_done | 700 / 850 | 584.0 / 602.2 | 594.7 / 607.2 | 594.7 / 607.2 |
+| 4,000 | read | 35 / 60 | 20.9 / 24.5 | 28.4 / 31.6 | 28.4 / 31.6 |
+| 4,000 | navigate | 100 / 150 | 57.0 / 64.2 | 70.1 / 77.2 | 70.1 / 77.2 |
+| 4,000 | free_click | 650 / 750 | 583.2 / 591.7 | 593.6 / 602.4 | 593.6 / 602.4 |
+| 4,000 | fill | 650 / 750 | 579.0 / 582.3 | 589.4 / 593.3 | 589.4 / 593.3 |
+| 4,000 | asking_click | 60 / 100 | 31.4 / 41.4 | 40.5 / 43.6 | 40.5 / 43.6 |
+| 4,000 | approval_to_done | 700 / 850 | 596.4 / 608.2 | 616.2 / 623.7 | 616.2 / 623.7 |
+
+**Runner factors**, now like for like (the old runtime at the reference's 20 positions): plain 1.074 fresh, 1.076 at
+1,000, 1.039 at 4,000; instrumented 1.243, 1.475 and 1.439. The instrumented job's runner was slower than the
+reference's: its current runtime is slower in the same proportion (4,000 read 28.4 against plain's 20.9). In run
+`43613647256` the old runtime's first 20 samples gave 0.78–0.96 where the 60-sample medians gave 1.22, the drift this
+decision removes. ([receipt](records/gate60b/chrome-43620235847-gate60b.json))
+
+**Job durations.** `latency (plain)` **11.9 minutes** and `latency (audit)` **12.9 minutes** (19.8 and 20.6 in run
+`43613647256`): the current runtime's container 5.8 and 6.0 minutes, the old runtime's 4.9 and 5.6 (13 to 14 before).
+The longest job of the run was `fixtures (external, core)` at 38.0 minutes; the failed `recheck2` shards stopped after
+about 4 minutes.
 
 # Latency gate: 60 samples (2026-11-14)
 
