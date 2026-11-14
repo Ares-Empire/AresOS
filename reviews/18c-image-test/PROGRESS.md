@@ -1,4 +1,4 @@
-# 18c image part: progress (Part A, step 1)
+# 18c image part: progress (Part A, step 1; B2, step 2a)
 
 Branch `pkg/18c-image`, draft PR #58. Step 1 builds Part A of `briefs/18c-image-test.md` as amended by the sixteen
 changes agreed with `linux-aresos` and by `briefs/18c-image-start.md`. It has no VM test (B2), no `os-image.yml` change
@@ -70,15 +70,15 @@ has only `git-core`. See "gh" below.
 | 4 `gh` | check-resolve step done, resolve run done; **install open** (stop rule, below) |
 | 5 Fixed UID/GID | done (250) |
 | 6 Enabled, never holds the session | image side done; the failed-service session check is B2 check 6 (step 2) |
-| 7 Config in `/usr/share/aresos/control` | done; image check of `/etc/claude-code` done; the booted-guest check action is step 2 |
-| 8 `checks.py` hook | step 2 |
-| 9 Fixture servers, negative check | negative check done; the CI layer is step 2 |
+| 7 Config in `/usr/share/aresos/control` | done; image check done; booted-guest check `control-claude-code-files` (step 2a) |
+| 8 `checks.py` hook | done (step 2a): `actions.d` |
+| 9 Fixture servers, negative check | negative check done; fixture servers and CI layer done (step 2a) |
 | 10 Owner's yes before merge | open (lead) |
 | 11 Folders by tmpfiles | done |
-| 12 Rehearsal check actions | step 2 (they need a booted guest) |
+| 12 Rehearsal check actions | done (step 2a): `os/ci/control/release_checks.py` |
 | 13 Reserved words test | done |
-| 14 Idle footprint | step 2 (measured in the guest) |
-| 15 `os-image.yml` additive, lead first | step 2 |
+| 14 Idle footprint | measured (step 2a): ~32 MB, 10 wake-ups/s, 0.35 % CPU |
+| 15 `os-image.yml` additive, lead first | done (step 2a): one option, own commit `1ee81d1b` |
 | 16 `linux-aresos` reads the `os/` diff | before merge |
 
 ## gh (agreed change 4): PLAN-GAP and stop
@@ -208,15 +208,139 @@ has only `git-core`. See "gh" below.
   the config derived from `ares`; `aresos --help` as root and as `ares`, no MCP SDK in Python's own site-packages; no
   fixture CA or names in the image, and planted ones found.
 
-## Left, in order (step 2 on)
+## Step 2a (B2, first half): the Control VM test, checks 1 to 5 and agreed changes 7, 12, 14
 
-1. Tell the lead before the first `os-image.yml` change (agreed change 15); then add the `control` choice in its own
-   commit, purely additive.
-2. B2: `os/ci/control/` (layer, `control_vm.py`, its actions file), the `checks.py` hook (change 8), the check actions
-   for the rehearsal (change 12: also `aresos-tools`'s UID and GID after the update and the owner of its state
-   folders), the booted-guest `/etc/claude-code` check (change 7), the idle footprint (change 14), check 6 with the
-   service stopped and failed. B2's check 10 (`gh`) is out.
-3. The Chrome follow-up after PR #27: two map entries, their checks, the socket modes from the merged `daemon.py`.
+Built by a Claude agent on Opus 5.5 (2026-11-14). Commits `d22414a2` (layer and hook), `17163b0c` (`check-build.sh`),
+`1ee81d1b` (`os-image.yml`), `71c0c9d6` (fixes after run 1).
+
+### Done
+
+- `os/ci/overlay/checks.py`: the hook (agreed change 8). `layer_actions()` loads every `actions.d/*.py` beside it
+  (each defines `ACTIONS = {name: function(request)}`), once; `check()` asks it only after its own fixed actions, so a
+  layer adds actions and never replaces one; two files naming the same action fail.
+- `os/ci/control/Containerfile`: the Control test layer, `FROM localhost/aresos:vm`. `actions.py` →
+  `/usr/libexec/aresos-ci/actions.d/control.py`; `release_checks.py`, `own-mcp.py` → `/usr/libexec/aresos-ci/control/`;
+  per run the pinned Claude Code → `/usr/libexec/aresos-ci/control/claude-2.1.319`, the fixture certificate →
+  `/etc/pki/ca-trust/source/anchors/aresos-ci-mail-fixture.crt` (+ `update-ca-trust extract`), and
+  `10.0.2.2 greenmail dovecot` appended to `/etc/hosts`; `bootc container lint`.
+- `os/ci/control/runner.sh` (runner only): `start` makes the CA as `control/ci/mail/run.sh` does
+  (`/CN=mail-fixture.invalid`, SAN `greenmail`, `dovecot`, `localhost`), a per-run password (`openssl rand -hex 24`,
+  masked) in a copy of `dovecot.conf` (only the `args = password=` line changes), starts GreenMail and Dovecot with the
+  image references and digests read from `run.sh`, published on `127.0.0.1` only (3465, 3993, 993; checked with
+  `docker port`), and fetches Claude Code's `claude-code-linux-x64` package from the lock's URL, checking the lock's
+  sha512 integrity and the version against `control/boundary/package.json` (`CLAUDE_CODE_PINNED` line). `layer` waits
+  until the three TLS ports verify against the CA for their names, then builds `localhost/aresos:control` with
+  `podman build --no-hosts` (so the hosts line lands in the layer). `stop` saves the servers' logs, removes them,
+  fails if the password appears in any evidence file, and deletes the key, keystore, password and layer context. The
+  key, keystore and password live in `$RUNNER_TEMP/aresos-control-fixtures` (outside checkout, build context and
+  evidence); evidence gets only the password's SHA-256.
+- `os/ci/control/actions.py` (guest): `control-files` (check 1), `control-claude-code-files` (change 7),
+  `control-release` (change 12), `control-idle` (change 14), `control-fixtures` (the layer for step 2b),
+  `control-entry-points` (check 3), `control-precondition` (check 4), `control-user-mcp` (check 5), `control-service`
+  (check 2), `control-restart` (the end of the pass).
+- `os/ci/control/release_checks.py`: change 12's check actions (below).
+- `os/ci/control/own-mcp.py`: "his own" MCP server (stdlib, one tool `note`), for checks 5 and 6.
+- `os/ci/control/control_vm.py` (runner): boots the disk like `vm.py` (own QMP and channel sockets, fresh overlay),
+  sends the actions in order, writes each evidence file under `evidence/control/`, prints the PASS lines, runs every
+  check even after a failure, then the power key: `CONTROL_VM_POWEROFF_CLEAN` (QEMU exit 0, guest SHUTDOWN event).
+  Step times go to `evidence/control/vm/timings.json` and the log.
+- `os/ci/check-build.sh`: `control|build)` shares the build mode's steps (the existing test reads the case from
+  `build)`); control starts the fixtures first (trap stops them), builds the layer after the CI layer, makes the disk
+  from `localhost/aresos:control` and runs `control_vm.py` instead of `vm.py`: `CHECK_BUILD_CONTROL_PASSED`.
+- `.github/workflows/os-image.yml`: `check_build` options `['', resolve, build, control]`, nothing else; the bound
+  file's new bytes recorded with `reviews/27-first-update-release/rebind.py pending` in
+  `os/manifest/ci/16/pending-rebind.json` (same commit).
+- `os/tests/test_control_vm.py`: 10 tests (hook, layer wiring, README step extraction, fixture inputs, own server,
+  release checks on a stand-in root).
+
+### Change 12: where the rehearsal's check actions live
+
+`os/ci/control/release_checks.py`, standard library only, no Claude Code. As root in the booted guest after the update:
+`python3 -I release_checks.py [check ...]`, or its text piped to `python3 -I -` (the release image has no CI layer; the
+update rehearsal types into the guest's console, `owner_vm.py`'s `capture_json`). It prints one JSON line with every
+check's values, then `CONTROL_RELEASE_CHECKS_PASS`, or `CONTROL_RELEASE_CHECKS_FAILED <names>` and exit 1; all checks
+run even after a failure. Checks: `service_user` (UID, GID and group 250; nothing else has 250), `unit` (enabled,
+active, running, main process UID/GID 250), `claude_code_files` (`/etc/claude-code` holds exactly its two files, equal
+to `/usr/etc` and to `control.json`, root, recorded mode, no `managed-mcp.json`), `folders` (the two folders of
+`proxy.json` exist as folders of `owner_uid`), `state_folders` (`/var/lib/aresos-tools` and
+`/var/lib/aresos-operation-evidence` 0700, `/run/aresos-tools` 0711, all 250:250, and every entry inside the two state
+folders too). The VM test runs the same file the same way (`control-release`).
+
+### Decisions the code doesn't show (JUDGMENT-CALLs for the report)
+
+1. **The fixture servers run under docker**, as `control/ci/mail/run.sh` does, with its images and digests read from
+   it; podman stays for the image. Only the TLS ports are published (3465 SMTPS, 3993 IMAPS, 993); step 2b adds one if
+   its runner-side seeding needs another.
+2. **The owner's commands run with the system PATH** in this guest: `~ares/.local/bin` holds the CI layer's broken
+   stand-ins for `bash`, `python3`, `env` and 22 more names (package 21, `shadow-path.sh`, exit 97), so his real PATH
+   (`~/.local/bin` first) would run them. Claude Code is called by its full path, as the README step does; nothing is
+   removed from his folder.
+3. **CI-only environment for Claude Code:** `DISABLE_AUTOUPDATER=1`, `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`.
+4. **Check order:** the idle footprint before anything talks to the service; check 2 after checks 3 to 5, so its
+   SELinux scan covers what they made the service do (the service is still the boot's only invocation).
+5. **"Exactly the tools":** each served tool equals the generated one in every generated key, names in the same
+   order; keys the server adds are recorded (`keys_beyond_generated`: none in run 1). "Exactly as in user-mcp.json":
+   every shipped field equal; anything Claude Code adds must be empty.
+6. **Socket modes from today's `daemon.py`:** `act.sock` 0666, `admin.sock` 0600, `chrome.sock` 0600 (the brief's
+   0666 for chrome is `8b7e799c`'s); Chrome's follow-up changes `SOCKET_MODES` in `actions.py`.
+7. **The pass ends with the power key and QEMU's clean exit**, without `vm.py`'s offline journal read (where PR #60's
+   `lsblk` fix lives); Control needs nothing from it.
+8. **The throwaway second user** is a system user `aresos-ci-other` without home (UID 249 in run 1).
+
+### Findings for the lead (not changed: `control/aresos_control/` is out of reach)
+
+- **A start-up gap:** `Type=simple` reports active before the daemon binds its sockets; a call in that gap gets
+  `transport_error` "Service connection lost; inspect operation_status with the same id, never repeat with a new id."
+  (run 43556905450, `aresos control pending` right after `systemctl restart`). Harmless for a read, but the text sends
+  him looking for an operation that never existed. The restart check now waits and records the misses.
+- **`aresos admin ...` as `ares`** answers `transport_error` with that same text (the kernel refuses `admin.sock`,
+  0600), not a permission message that points at `sudo`.
+- **Idle cost:** about 10 wake-ups a second and 0.35 % of one CPU (below). Most likely the service's loop wakes every
+  0.1 s for `engine.expire()`; a longer select timeout would cut both. For the owner, who plays on this laptop.
+
+### PLAN-GAPs
+
+1. Brief B2 check 2 names `chrome.sock` 0666 (from `8b7e799c`); today's `daemon.py` makes it 0600 (decision 6).
+2. The `check-build` job's build step has `timeout-minutes: 80` for build plus the Control pass; run 1 fitted. A longer
+   VM test in step 2b (four interactive cases, Mail) may not, and raising it is not additive (`linux-aresos`).
+3. The CI layer's shadowing stand-ins (package 21) sit in the daily user's `~/.local/bin` in every CI guest; step 2b's
+   interactive cases run Claude Code and its hooks as `ares`: their PATH must not start with `~/.local/bin` either,
+   or a hook's `env`/`python3` lookup would hit a stand-in. The managed hooks call `/usr/bin/...` by full path today.
+
+### Runs (step 2a; budget 4 `check_build=control`)
+
+- **run 43556905450** (`control`, head `1ee81d1b`, 16 min): failure, 3 of 10 checks. Green lines:
+  `CLAUDE_CODE_PINNED 2.1.319 sha512-FO4Sd23B…oOQ== dabafec8…8eed`, `CHECK_BUILD_PASSED`, the three `Fixture ready`
+  lines (TLSv1.3), `CONTROL_IMAGE_FILES_PASS`, `CONTROL_ETC_CLAUDE_CODE_PASS`, `CONTROL_IDLE_FOOTPRINT_RECORDED`,
+  `CONTROL_FIXTURES_REACHABLE`, `CONTROL_ENTRY_POINTS_PASS`, `CONTROL_PRECONDITION_PASS`,
+  `CONTROL_SERVICE_SANDBOX_PASS`, `CONTROL_VM_POWEROFF_CLEAN`. Failed: `control-release` (`folders`: read from
+  `service.json`, which has none: they are in `proxy.json`; the other four checks passed: 250/250, active,
+  `/etc/claude-code` equal, state folders 250:250 with 4 and 3 entries), `control-user-mcp` (the README step returned
+  97 with no output: `bash` resolved to the CI stand-in, decision 2), `control-restart` (the start-up gap, above).
+  Fixed in `71c0c9d6`.
+  - Idle footprint (60 s, nothing using the service, one process, one thread): `memory.current` 31,866,880 B
+    (peak 32,219,136), anon 23,166,976 B, file 4,415,488 B, RSS 36,024 KiB, PSS 24,451 KiB, swap 0; 601 context
+    switches = **10.0 wake-ups/s**; CPU 208.1 ms = **0.35 %** of one CPU.
+  - Check 3: `testapp list` 3 items, `aresos log` 2 items; MCP `mail` 28 tools and `control` 3 tools equal to
+    `generated/`, protocol `2025-06-18`; refusals: other user via CLI and raw `act.sock` `permission_denied`, its
+    proxy exit 1 "AresOS MCP proxy requires the configured owner user (real and effective UID).", `ares` on
+    `admin.sock` `PermissionError` (errno 13), `aresos admin testapp fixture_configure` as `ares` `transport_error`.
+  - Check 4: `boundary_not_installed` for group-writable ("must not be group- or world-writable") and for
+    `mcp__testapp__send` removed ("missing permissions.ask: mcp__testapp__send"); both restores 0644 and
+    `5747bb30…d376` (the shipped hash); baseline: cancelled → `failed`, 1 pending before the notice ack, 0 after.
+- **run 43558438408** (`control`, head `71c0c9d6`): running.
+
+## Left, in order (step 2b on)
+
+1. Step 2b: B2 checks 6 (ordinary session, service stopped and failed by a CI drop-in under `/run/systemd/system`),
+   7 (Mail flows in `control/ci/image/`), 8 (passwords), 9 (the four interactive asks with B1's driver), as actions
+   in `os/ci/control/actions.py` and lines in `control_vm.py`'s `CHECKS` (Mail and the asks after check 5, which
+   installs Claude Code; check 2's SELinux scan should move or repeat after them). On the runner the password is
+   `$RUNNER_TEMP/aresos-control-fixtures/password` (0600; never into evidence); the guest reaches `greenmail:3993`,
+   `greenmail:3465` and `dovecot:993` through the system trust store. Seeding and reading arrivals run on the runner
+   against `127.0.0.1`. Mind PLAN-GAPs 2 and 3.
+2. `check_build=control` green twice on the final head (rerun of the same run).
+3. The Chrome follow-up after PR #27: two map entries, their checks, `SOCKET_MODES` from the merged `daemon.py`.
 4. The reviews (the lead's job): a package review and a high-stakes security review of the whole package.
 
 ## The `os/` diff for `linux-aresos`
