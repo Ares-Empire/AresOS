@@ -171,6 +171,35 @@ public final class LogoIcons {
         });
     }
 
+    /**
+     * Not one of the ten in the pictures, for the unit tests only: a dark tile with two thin lines that meet in a
+     * corner and a small star, under a cell wide, over the end of one of them.
+     */
+    public static BufferedImage lineAndStar() {
+        return draw(g -> {
+            g.setColor(new Color(0x15171c));
+            g.fill(new RoundRectangle2D.Double(4, 4, 120, 120, 30, 30));
+            g.setColor(new Color(0xf2f4f7));
+            g.setStroke(new BasicStroke(4, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g.draw(new Line2D.Double(28, 84, 100, 84));
+            g.draw(new Line2D.Double(28, 84, 28, 40));
+            g.fill(new Ellipse2D.Double(93, 72, 6, 6));
+        });
+    }
+
+    /** Not one of the ten in the pictures, for the unit tests only: six flat stripes on a dark tile, seven colours. */
+    public static BufferedImage sevenStripes() {
+        return draw(g -> {
+            g.setColor(new Color(0x212121));
+            g.fill(new RoundRectangle2D.Double(2, 2, 124, 124, 24, 24));
+            int[] stripes = {0xe53935, 0xfb8c00, 0xfdd835, 0x43a047, 0x1e88e5, 0x8e24aa};
+            for (int stripe = 0; stripe < stripes.length; stripe++) {
+                g.setColor(new Color(stripes[stripe]));
+                g.fillRect(16, 16 + 16 * stripe, 96, 14);
+            }
+        });
+    }
+
     private static int channel(int value, int grain) { return Math.clamp((value & 255) + grain, 0, 255); }
 
     private static BufferedImage draw(Consumer<Graphics2D> picture) {

@@ -169,6 +169,29 @@ class GatePictureColoursTest {
         for (String block : blocks) assertEquals(block, GatePalette.built(block), "a block that a plain one stands in for");
     }
 
+    @Test void aSpeckBesideAThinLineIsNotShown() {
+        var picture = GatePicture.of(LogoIcons.lineAndStar(), SIZE);
+        assertTrue(picture.enlarged());
+        assertEquals(Set.of("black_wool", "white_wool"), blocks(picture));
+        // The two lines are whole: one column up the left, one row along the bottom, meeting in the corner.
+        for (int u = 1; u <= 10; u++) assertEquals("white_wool", picture.at(u, 3), "the line along the bottom at " + u);
+        for (int v = 3; v <= 8; v++) assertEquals("white_wool", picture.at(1, v), "the line up the left at " + v);
+        // The star over the bottom line's end is under a cell wide: no line. Without this rule its cell was light too,
+        // a bump on the line (and on Lunar Client's moon a star stood on the horn's tip as a second cell).
+        for (int v = 0; v < SIZE; v++) for (int u = 0; u < SIZE; u++)
+            if ("white_wool".equals(picture.at(u, v))) assertTrue(u == 1 || v == 3, "a light cell off the two lines: " + u + ", " + v);
+    }
+
+    @Test void aFlatIconOfSevenColoursHasNoBlockBetweenItsColours() {
+        var icon = LogoIcons.sevenStripes();
+        // One more than six main colours: each cell keeps its own colour, which is the colour of the stripe that
+        // covers most of it. The average of all that falls into a cell gave twelve blocks, five of them between two
+        // stripes (yellow terracotta, green wool, cyan wool, yellow and purple concrete).
+        assertEquals(7, GatePicture.mainColours(icon, SIZE).size());
+        assertEquals(Set.of("black_wool", "red_wool", "orange_wool", "yellow_wool", "lime_concrete", "light_blue_concrete", "purple_wool"),
+                blocks(GatePicture.of(icon, SIZE)));
+    }
+
     @Test void aGradientBecomesAFewBandsInOrder() {
         var icon = LogoIcons.gradient();
         var picture = GatePicture.of(icon, SIZE);
