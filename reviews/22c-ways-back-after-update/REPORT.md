@@ -1408,3 +1408,11 @@ in 24.930s, OK**, after a **10166 MB available** gate. The payload refresh is
 intermediate fingerprint `610e1b27…`; stage-1b pins remain unchanged. Acceptance
 count is now **1074** (two additional transfer tests), only the original four
 fingerprint failures, zero errors/skips. No brief rule or schema changed.
+
+Final transfer fix is pushed as **`cfa98e20`**. The 22c walk printed
+`PASS package 22c host walks (reorder-probe): 257 sources; no VM started`,
+then pending bindings printed `pending: 28 bound files differ from the active bindings`.
+Full local 20-test model restarted with **10196 MB available**. Hosted run
+[43536170182](https://github.com/Ares-Empire/AresOS/actions/runs/43536170182)
+uses this source, the required checks-only dispatch and one blocking
+`gh run watch 43536170182 --exit-status`. Results follow below.
