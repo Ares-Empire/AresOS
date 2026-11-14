@@ -82,13 +82,16 @@ public final class GettingAroundGameTests {
     private static final int LOAD_TICKS = 4_000_000;
     /**
      * Next to {@link #LOAD_TICKS}, how long a wait may last on the wall clock (review fixes 1, point 5): a test whose
-     * ticks slow down or stop still fails and lets go of its tickets.
+     * ticks slow down fails and lets go of its tickets. This bound works only while the server ticks: the test's own
+     * waits check it, each tick (review fixes 2, point 3). A server that stops ticking runs none of them; that ends the
+     * whole run through Gradle's limits, and no watchdog thread releases tickets, since that is not safe off the server
+     * thread.
      */
     private static final long WAIT_NANOS = java.util.concurrent.TimeUnit.SECONDS.toNanos(120);
     /**
-     * The framework's own bound, never reached: every wait fails by itself (and releases the test's tickets) after
-     * {@link #LOAD_TICKS} ticks or {@link #WAIT_NANOS}, a test waits at most four times, and its other steps take a few
-     * ticks.
+     * The framework's own bound, never reached while the server ticks: every wait fails by itself (and releases the
+     * test's tickets) after {@link #LOAD_TICKS} ticks or {@link #WAIT_NANOS}, a test waits at most four times, and its
+     * other steps take a few ticks.
      */
     private static final int MAX_TICKS = 4 * LOAD_TICKS + 1_000;
 
@@ -100,19 +103,26 @@ public final class GettingAroundGameTests {
     }
 
     /** A drawn icon: a white ring on a dark plate. Nothing of a real app. */
-    private static GatePicture picture() {
+    private static GatePicture picture() { return picture(0xff2d2f8f); }
+
+    /** The drawn ring on a plate of this colour. */
+    private static GatePicture picture(int plate) {
         var icon = new BufferedImage(96, 96, BufferedImage.TYPE_INT_ARGB);
         for (int y = 0; y < 96; y++) for (int x = 0; x < 96; x++) {
             double r = Math.hypot(x - 47.5, y - 47.5);
-            icon.setRGB(x, y, r > 18 && r < 32 ? 0xffffffff : 0xff2d2f8f);
+            icon.setRGB(x, y, r > 18 && r < 32 ? 0xffffffff : plate);
         }
         return GatePicture.of(icon, HubLayout.SIZE);
     }
 
+    /**
+     * The chunks of the box between two corners, in any order (review fixes 2: the far spots of {@code /go far} run
+     * north, and from the larger corner to the smaller this was empty wherever they straddle a chunk border).
+     */
     private static Set<Long> chunks(BlockPos from, BlockPos to) {
         var chunks = new HashSet<Long>();
-        for (int x = from.getX() >> 4; x <= to.getX() >> 4; x++)
-            for (int z = from.getZ() >> 4; z <= to.getZ() >> 4; z++) chunks.add(ChunkPos.pack(x, z));
+        for (int x = Math.min(from.getX(), to.getX()) >> 4; x <= Math.max(from.getX(), to.getX()) >> 4; x++)
+            for (int z = Math.min(from.getZ(), to.getZ()) >> 4; z <= Math.max(from.getZ(), to.getZ()) >> 4; z++) chunks.add(ChunkPos.pack(x, z));
         return chunks;
     }
 
@@ -131,12 +141,18 @@ public final class GettingAroundGameTests {
      */
     private static Runnable waitFor(GameTestHelper helper, ServerLevel level, Set<Long> near, java.util.function.BooleanSupplier done,
                                     String what, Runnable cleanup) {
+        return waitFor(helper, level, near, done, what, cleanup, LOAD_TICKS, WAIT_NANOS);
+    }
+
+    /** {@link #waitFor} with its own bounds: a test forces the timeout path with small ones (review fixes 2, point 3). */
+    private static Runnable waitFor(GameTestHelper helper, ServerLevel level, Set<Long> near, java.util.function.BooleanSupplier done,
+                                    String what, Runnable cleanup, int maxTicks, long maxNanos) {
         var clock = new Object() { long start; int ticks; };
         return () -> {
             if (done.getAsBoolean()) return;
             long now = System.nanoTime();
             if (clock.ticks++ == 0) clock.start = now;
-            if (now - clock.start > WAIT_NANOS || clock.ticks >= LOAD_TICKS) {
+            if (now - clock.start > maxNanos || clock.ticks >= maxTicks) {
                 try {
                     cleanup.run();
                 } finally {
@@ -491,7 +507,8 @@ public final class GettingAroundGameTests {
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(26000, 0, 0);
         var near = chunks(column.offset(-32, 0, -32), column.offset(32, 0, 32));
         hold(level, near, true);
-        var state = new Object() { Host host; boolean failed; HomeRecord record; Vec3 inside, outside; };
+        var state = new Object() { Host host; boolean failed; HomeRecord record; Vec3 inside, outside, away;
+            java.util.function.IntConsumer far; };
         helper.startSequence()
                 .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, near), "The chunks are not loaded yet", () -> { }))
                 .thenExecute(() -> {
@@ -586,7 +603,8 @@ public final class GettingAroundGameTests {
                     state.host.at(level, state.outside);
                 }, () -> state.record))
                 .thenIdle(2)
-                .thenExecute(() -> state.host.player.teleportTo(level, state.inside.x, state.inside.y, state.inside.z, Set.of(), 180, 0, false))
+                .thenExecute(() -> guarded(() -> state.host, level, near,
+                        () -> state.host.player.teleportTo(level, state.inside.x, state.inside.y, state.inside.z, Set.of(), 180, 0, false), () -> state.record))
                 .thenIdle(2)
                 .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
                     check(state.host.launches(state.host.sent()) == 1, "Walking out and into the doorway did not open it");
@@ -603,11 +621,104 @@ public final class GettingAroundGameTests {
                     state.host.at(level, state.outside);
                 }, () -> state.record))
                 .thenIdle(2)
-                .thenExecute(() -> state.host.player.teleportTo(level, state.inside.x, state.inside.y, state.inside.z, Set.of(), 180, 0, false))
+                .thenExecute(() -> guarded(() -> state.host, level, near,
+                        () -> state.host.player.teleportTo(level, state.inside.x, state.inside.y, state.inside.z, Set.of(), 180, 0, false), () -> state.record))
                 .thenIdle(2)
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    var host = state.host;
+                    check(host.launches(host.sent()) == 1, "Walking out and into the doorway after H did not open it");
+                    host.at(level, state.outside);
+
+                    // Review fixes 2, point 3: a wait's own timeout, forced with small bounds: it runs its cleanup and
+                    // fails (the tickets it releases here: none, so the test's own stay held).
+                    var cleaned = new boolean[2];
+                    var byTicks = waitFor(helper, level, Set.of(), () -> false, "A forced wait", () -> cleaned[0] = true, 1, WAIT_NANOS);
+                    var byClock = waitFor(helper, level, Set.of(), () -> false, "A forced wait", () -> cleaned[1] = true, LOAD_TICKS, 0);
+                    String failed = null;
+                    try { byTicks.run(); } catch (AssertionError expected) { failed = expected.getMessage(); }
+                    check(cleaned[0] && failed != null && failed.startsWith("A forced wait after ") && failed.endsWith("the test's tickets were released"),
+                            "The tick bound: " + failed);
+                    try { byClock.run(); } catch (RuntimeException notYet) { /* the first tick starts the clock and waits */ }
+                    check(!cleaned[1], "The clock bound ran out on its first tick");
+                    failed = null;
+                    try { byClock.run(); } catch (AssertionError expected) { failed = expected.getMessage(); }
+                    check(cleaned[1] && failed != null && failed.startsWith("A forced wait after "), "The clock bound: " + failed);
+
+                    // Review fixes 2, point 2: a /go that waits for its arrival to load, to a zone he made whose exit
+                    // lies far off. No town here (a hub of other rules), and none of his zones but the one made now.
+                    var server = host.server;
+                    var spot = surface(level, column);
+                    HubData.store(server, new HubData("flat-0", HubLayout.numbers(), GlobalPos.of(level.dimension(), spot), new HubData.Fixed(List.of(), List.of())));
+                    state.far = n -> {
+                        ZoneData.get(server).remove(zone -> zone.app().equals("go3-door"));
+                        var exit = spot.offset(0, 0, 3000 + 200 * n);
+                        check(!level.hasChunk(exit.getX() >> 4, exit.getZ() >> 4), "Fixture: the far exit " + n + " is loaded");
+                        ZoneData.get(server).add(new AppZone("go3-far" + n, "go3-door", level.dimension(), spot.offset(0, 0, 3), spot.offset(1, 2, 3),
+                                new NetherHome.Home(level.dimension(), Vec3.atBottomCenterOf(exit), 180, 0), List.of()));
+                        try {
+                            host.ran("go door", 1);
+                        } catch (Exception error) {
+                            throw new AssertionError(error.getMessage(), error);
+                        }
+                        check(Arrivals.loading(host.player) && host.lines().isEmpty(), "Fixture: /go door to far exit " + n + " did not wait");
+                    };
+                    // He changes dimension (not by the mod): dropped in the next tick, nothing said.
+                    state.far.accept(0);
+                    state.away = new Vec3(column.getX() / 8 + 0.5, 100, column.getZ() / 8 + 0.5);
+                    host.player.teleportTo(server.getLevel(Level.NETHER), state.away.x, state.away.y, state.away.z, Set.of(), 0, 0, false);
+                }, () -> state.record))
+                .thenIdle(3)
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    var host = state.host;
+                    check(!Arrivals.loading(host.player) && host.player.level().dimension() == Level.NETHER, "A /go still waits after he went to the Nether");
+                    standsAt(host.player, state.away, 0, 0, "After /go and the Nether");
+                    // (The game's own line of his first visit to the Nether may come; none of the /go's.)
+                    var said = host.lines();
+                    check(said.stream().noneMatch(line -> line.contains("Door")), "A /go dropped by a dimension change said " + said);
+                    host.player.teleportTo(level, state.outside.x, state.outside.y, state.outside.z, Set.of(), 0, 0, false);
+                    host.sent();
+                    // He respawns (the game's own respawn event): dropped at once.
+                    state.far.accept(1);
+                    net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents.AFTER_RESPAWN.invoker().afterRespawn(host.player, host.player, true);
+                    check(!Arrivals.loading(host.player), "A /go still waits after he respawned");
+                    // /home moves him first: dropped at once; he stands at home (in the doorway, which opens nothing).
+                    state.far.accept(2);
+                    host.ran("home", 1);
+                    check(!Arrivals.loading(host.player), "A /go still waits after /home");
+                    standsAt(host.player, state.inside, 180, 0, "/home while a /go waits");
+                    host.at(level, state.outside);
+                    // Void recovery moves him: dropped at once.
+                    state.far.accept(3);
+                    host.player.teleportTo(level, state.outside.x, level.getMinY() - 10, state.outside.z, Set.of(), 0, 0, false);
+                    dev.aresos.mode.LiveMode.protect(host.player);
+                    check(host.player.getY() >= level.getMinY() && !Arrivals.loading(host.player), "A /go still waits after void recovery");
+                    host.at(level, state.outside);
+                    // The app leaves My apps while it waits: one line once the far exit has loaded, and he stays.
+                    state.far.accept(4);
+                    mine(false);
+                }, () -> state.record))
+                .thenIdle(5)
+                .thenWaitUntil(waitFor(helper, level, near, () -> !Arrivals.loading(state.host.player), "The /go of an app that left did not end", () -> {
+                    try { state.record.restore(level.getServer()); } finally { letGo(state.host); }
+                }))
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    var host = state.host;
+                    var said = host.lines();
+                    check(said.equals(List.of("Door is no longer one of your apps, so you stay where you are.")), "An app that left: " + said);
+                    standsAt(host.player, state.outside, 0, 0, "The /go of an app that left");
+                    mine(true);
+                    // His zone is removed while it waits: one line, and he stays.
+                    state.far.accept(5);
+                    ZoneData.get(host.server).remove(zone -> zone.id().equals("go3-far5"));
+                }, () -> state.record))
+                .thenWaitUntil(waitFor(helper, level, near, () -> !Arrivals.loading(state.host.player), "The /go to a removed zone did not end", () -> {
+                    try { state.record.restore(level.getServer()); } finally { letGo(state.host); }
+                }))
                 .thenExecute(() -> {
                     try (var host = state.host) {
-                        check(host.launches(host.sent()) == 1, "Walking out and into the doorway after H did not open it");
+                        var said = host.lines();
+                        check(said.equals(List.of("Door's logo here is gone, so you stay where you are.")), "A removed zone: " + said);
+                        standsAt(host.player, state.outside, 0, 0, "The /go to a removed zone");
                     } catch (Exception error) {
                         throw new AssertionError(error.getMessage(), error);
                     } finally {
@@ -619,6 +730,16 @@ public final class GettingAroundGameTests {
                     }
                 })
                 .thenSucceed();
+    }
+
+    /** The test's app go3-door added to My apps or removed from it, as {@code /aresos app add} and {@code remove} do. */
+    private static void mine(boolean mine) {
+        try {
+            AresOs.saveMine(Map.of("go3-door", mine));
+        } catch (IOException error) {
+            throw new AssertionError(error.getMessage(), error);
+        }
+        check(AresOs.app("go3-door").mine() == mine, "Fixture: go3-door is not " + (mine ? "his" : "gone from My apps"));
     }
 
     /** The world's home record before a test made its own: none, or the one it had (with its exact home or without). */
@@ -739,7 +860,8 @@ public final class GettingAroundGameTests {
                             listed("sw-discord", "Discord", "discord", "Network", "N0R0", true),
                             listed("sw-lunar", "Lunar Client", "lunar", "Game", "E0L0", true),
                             listed("sw-steam", "Steam", "steam", "Game", "E0R0", true),
-                            listed("sw-notes", "Notes", "notes", null, "S0L0", true)));
+                            listed("sw-notes", "Notes", "notes", null, "S0L0", true),
+                            listed("sw-new", "Newcomer", "newcomer", "Network", null, false)));
                     swapping(state.host, level, surface(level, column));
                 }))
                 .thenExecute(() -> done(state.host, level, near))
@@ -920,6 +1042,59 @@ public final class GettingAroundGameTests {
         host.at(level, Vec3.atBottomCenterOf(home));
         keeper.keep(server, game.programs(), game.pictures(), game.spots());
         stands(server, "sw-notes", "S0L0", null);
+
+        // Review fixes 2, point 1: the review's three apps. Chrome is due for renewal (its picture changed) and comes
+        // first in the pass's order; his hand moved Chrome's sign into a block Lunar Client's logo fills at Steam's
+        // place. The swap's pass touches only Lunar's and Steam's logos, so Chrome's sign is still the town's in that
+        // tick, as the checks saw it: the swap is done, and Chrome's logo is untouched until the next ordinary pass.
+        var other = picture(0xff8f2d2f);
+        var renewing = new TownMoves.Game(game.catalogue(), app -> app.id().equals("sw-chrome") ? Optional.of(other) : game.pictures().apply(app),
+                game.read(), game.spots(), game.commit());
+        var chromeLogo = hub.logo("sw-chrome").orElseThrow();
+        var chromeSign = level.getEntity(chromeLogo.gate().sign().orElseThrow());
+        var into = Town.plan(hub, AresOs.app("sw-lunar"), Place.parse("E0R0").orElseThrow(), picture()).blocks().keySet().iterator().next();
+        chromeSign.snapTo(into.getX() + 0.5, into.getY() + 0.5, into.getZ() + 0.5, 0, 0);
+        try {
+            said = TownMoves.swap(server, keeper, renewing, "sw-lunar", "sw-steam");
+            check(said.done() && said.line().equals("Lunar Client now stands at Games, east, front row, right, and Steam at Games, east, front row, left."),
+                    "Three apps, one due for renewal: " + said.line());
+            check(said.pass().lines().isEmpty(), "The swap's pass said: " + said.pass().lines());
+            stands(server, "sw-lunar", "E0R0", null);
+            stands(server, "sw-steam", "E0L0", null);
+            check(hub.logo("sw-chrome").orElseThrow().equals(chromeLogo), "The swap's pass touched Chrome's logo");
+            check(level.getEntity(chromeSign.getUUID()) == chromeSign && chromeSign.position().equals(Vec3.atCenterOf(into)), "The swap moved or took his sign");
+            // The next ordinary pass renews Chrome; the sign he moved is his from then on and stays where he put it.
+            var renewed = keeper.keep(server, renewing.programs(), renewing.pictures(), renewing.spots());
+            check(renewed.lines().equals(List.of("The logo of Chrome was renewed.")), "The next pass: " + renewed.lines());
+            check(hub.logo("sw-chrome").orElseThrow().picture().equals(other.hash()), "Chrome's logo was not renewed");
+            check(level.getEntity(chromeSign.getUUID()) == chromeSign && chromeSign.position().equals(Vec3.atCenterOf(into)), "The renewal moved or took his sign");
+            stands(server, "sw-lunar", "E0R0", null);
+        } finally {
+            // The test's own sign: gone, so Lunar's logo can come down later.
+            chromeSign.discard();
+        }
+        // Chrome with its picture as before.
+        check(keeper.keep(server, game.programs(), game.pictures(), game.spots()).lines().equals(List.of("The logo of Chrome was renewed.")),
+                "Chrome's picture as before");
+
+        // A newcomer waits while a swap runs: the swap's tick neither saves its place, builds its logo nor counts it;
+        // the next ordinary pass does.
+        var joined = game(game, app -> app.id().equals("sw-new") ? app.withMine(true) : app, List.of());
+        var counts = names(level, hub);
+        said = TownMoves.swap(server, keeper, joined, "sw-lunar", "sw-steam");
+        check(said.done() && said.pass().lines().isEmpty(), "A swap while a newcomer waits: " + said.line() + ", " + said.pass().lines());
+        stands(server, "sw-lunar", "E0L0", null);
+        stands(server, "sw-steam", "E0R0", null);
+        check(hub.logo("sw-new").isEmpty() && AresOs.app("sw-new").place() == null, "The swap's tick built or placed the newcomer: "
+                + hub.logo("sw-new").map(HubData.Logo::place) + ", saved at " + AresOs.app("sw-new").place());
+        check(names(level, hub).equals(counts), "The swap's tick counted the newcomer: " + names(level, hub));
+        var pass = keeper.keep(server, joined.programs(), joined.pictures(), joined.spots());
+        check(pass.lines().equals(List.of("Newcomer is new. It stands in Internet, north. /newcomer opens it.")), "The next pass: " + pass.lines());
+        check(hub.logo("sw-new").isPresent() && hub.logo("sw-new").get().place().equals(AresOs.app("sw-new").place())
+                && names(level, hub).getFirst().equals("INTERNET · 3"), "The next pass did not build the newcomer: " + names(level, hub));
+        // It leaves My apps again.
+        keeper.keep(server, game.programs(), game.pictures(), game.spots());
+        check(hub.logo("sw-new").isEmpty(), "The newcomer's logo stayed");
 
         // Before a complete program list it refuses before checking anything, as hub rebuild does.
         String waits = "The town waits for the system's list of programs. Nothing changed; try again in a moment.";
