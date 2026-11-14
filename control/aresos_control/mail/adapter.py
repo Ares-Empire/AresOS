@@ -814,8 +814,10 @@ class Mail:
 
     def unresolved_sent_checks(self):
         # Pure snapshots keep refusals/replays out of IMAP. The committed open
-        # row is enough to disclose the check without another server read.
-        for _, op in self.store.iter_operations(app='mail'):
+        # row is enough to disclose the check without another server read. An
+        # open check is in the store's unresolved set, so this runs on every
+        # request without walking the whole history.
+        for _, op in self.store.iter_operations(app='mail', unresolved=True):
             if op['app'] == 'mail' and op.get('sent_copy_check', {}).get('state') == 'open':
                 yield self.unchecked_sent_notice(op)
 

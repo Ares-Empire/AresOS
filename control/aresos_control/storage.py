@@ -128,6 +128,25 @@ class JournalRecords:
                     yield record
 
 
+# The unresolved operations, which every request looks at: open ones
+# (retention.OPEN), ones whose state header is malformed (kept so the caller's
+# own check fails closed), ones carrying a notice the owner hasn't acknowledged,
+# and Mail sends whose sent-copy check is still open. This one expression is
+# both the partial index's WHERE and the extra term of every selective query,
+# so SQLite's planner sees the query imply the index (identical terms) and the
+# two can't drift apart. The index holds k alone, so a walk through it is
+# already in key order: no sort, nothing to spill on a full disk. The unary
+# plus keeps the header filters off any expression index an earlier build left
+# behind; the partial index's own WHERE is never matched that way. The notice
+# and ack tests accept every SQL spelling of a Python-truthy or -falsy value,
+# so the index is a superset of the Python predicates, never a subset.
+OPEN_OPERATIONS = ("(+json_extract(v,'$.state') IN (" + ','.join("'" + state + "'" for state in sorted(retention.OPEN)) + ")"
+                   " OR typeof(json_extract(v,'$.state'))!='text' OR substr(json_extract(v,'$.state'),1,1) IN ('[','{')"
+                   " OR (+json_extract(v,'$.notice') NOT IN (0,'') AND COALESCE(+json_extract(v,'$.ack'),0) IN (0,'','[]','{}'))"
+                   " OR +json_extract(v,'$.sent_copy_check.state')='open')")
+OPEN_INDEX = "CREATE INDEX operation_open ON kv(k) WHERE substr(k,1,3)='op:' AND " + OPEN_OPERATIONS
+
+
 class Store:
     def __init__(self, state_dir, evidence_dir, checkpoint=lambda _: None):
         self.db = self.index = self.journal = None
@@ -174,6 +193,7 @@ class Store:
                               "CREATE TABLE IF NOT EXISTS events (seq INTEGER PRIMARY KEY, value TEXT NOT NULL);"
                               "CREATE TABLE IF NOT EXISTS operation_versions (id TEXT PRIMARY KEY, seq INTEGER NOT NULL);")
         sync_directory(self.state_dir)
+        self._index_open_operations()
         # Derived, disposable index outside the backed-up state. Never trust it
         # across restarts: rebuild solely from the verified permanent journal.
         index_path = self.evidence_dir / 'journal-index.sqlite'
@@ -260,6 +280,29 @@ class Store:
             with cleanup('index rebuild', exc):
                 self.close()
             raise
+
+    def _index_open_operations(self):
+        # SQLite maintains the partial index atomically with kv. A store that
+        # cannot add it (a full disk, an older ledger over quota) still opens and
+        # reads: every selective query walks the primary key in key order
+        # instead, slower but with the same rows and still without a sort.
+        if self.db.execute("SELECT 1 FROM sqlite_master WHERE type='index' AND name='operation_open'").fetchone():
+            return
+        try:
+            count = self.db.execute("SELECT count(*) FROM kv WHERE k>='op:' AND k<'op;' AND " + OPEN_OPERATIONS).fetchone()[0]
+            cost = max(64 * 1024, count * 128)
+            self.ledger.admit(cost, history_cost=cost)
+            self.db.execute(OPEN_INDEX)
+            self.db.commit()
+        except (OSError, sqlite3.Error) as exc:
+            if storage_refusal(exc) is None:
+                raise
+            self.db.rollback()
+            self.observations.storage(exc)
+        except Refused as exc:
+            if exc.code != 'storage_limit':
+                raise
+            self.observations.storage(exc)
 
     def _index_record(self, record, offset):
         if self.index is not None:
@@ -783,18 +826,26 @@ class Store:
                 rows=self.db.execute('SELECT k,v FROM kv WHERE k>=? AND k<? ORDER BY k',(prefix,limit))
         for k,v in rows:yield k,json.loads(v)
 
-    def iter_operations(self, app=None, exclude_app=None, legacy_open=False, states=None):
+    def iter_operations(self, app=None, exclude_app=None, legacy_open=False, states=None, unresolved=False):
         # Inspect small headers in SQLite before decoding retained payloads.
         # This is a fresh query of the same working rows, not a cached verdict;
         # Chrome's independent committed projection remains its read authority.
-        # Every shape walks the primary-key range in key order. The unary plus
-        # keeps each header filter off any expression index (including one an
-        # earlier build left behind), so no shape sorts in a temporary B-tree:
-        # that sort spills to a temporary file with a few hundred retained
-        # operations, and a read must not need disk space. The substr test
-        # keeps the exact prefix for databases in a UTF-16 encoding.
+        # Every shape walks a key-ordered index: the primary key over every
+        # retained operation for the broad shapes (an app's whole history), the
+        # partial index operation_open for the selective ones (open states or a
+        # subset of them, legacy notices, the unresolved set itself). The unary
+        # plus keeps each header filter off any expression index (including
+        # one an earlier build left behind), so no shape sorts in a temporary
+        # B-tree: that sort spills to a temporary file with a few hundred
+        # retained operations, and a read must not need disk space. The
+        # substr test keeps the exact prefix for databases in a UTF-16 encoding.
         clauses = ["k>='op:'", "k<'op;'", "substr(k,1,3)='op:'"]
         parameters = []
+        if unresolved or legacy_open or (states is not None and set(states) <= retention.OPEN):
+            # The exact index expression: the planner needs the identical term
+            # to use the partial index. It only narrows to rows the filters
+            # below (or the caller's own predicate) select anyway.
+            clauses.append(OPEN_OPERATIONS)
         if app is not None:
             clauses.append("+json_extract(v,'$.app')=?")
             parameters.append(app)

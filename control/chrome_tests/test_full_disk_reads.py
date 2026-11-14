@@ -1,9 +1,11 @@
-"""Retained history never makes a read need disk space (final fixes, F1).
+"""Retained history never makes a read need disk space (final fixes, F1 and step 7).
 
-Every iter_operations shape reads the primary-key range in key order. A sort in
-a temporary B-tree spills to a temporary file once a few hundred operations are
-retained; on a full disk that spill made Mail read, search and control_pending
-return storage_limit, where main answers.
+Every iter_operations shape reads an index in key order: the broad shapes the
+primary key over every retained operation, the selective shapes (open states,
+legacy notices, open or unacknowledged) the partial index operation_open on k
+alone. A sort in a temporary B-tree spills to a temporary file once a few
+hundred operations are retained; on a full disk that spill made Mail read,
+search and control_pending return storage_limit, where main answers.
 """
 import copy
 import itertools
@@ -15,6 +17,7 @@ from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'mail_tests'))
 import storage_faults
 import test_engine
+from aresos_control import storage
 from aresos_control.mail import codec
 from aresos_control.mail.roles import resolve
 from aresos_control.mail.transport import folders, quote
@@ -22,8 +25,12 @@ from aresos_control.retention import OPEN
 
 RETAINED=1200
 # Every combination of iter_operations' filters, including the unfiltered walk.
-SHAPES=[dict(app=app,exclude_app=exclude,legacy_open=legacy,states=states)
-        for app,exclude,legacy,states in itertools.product([None,'mail'],[None,'chrome'],[False,True],[None,OPEN])]
+SHAPES=[dict(app=app,exclude_app=exclude,legacy_open=legacy,states=states,unresolved=pending)
+        for app,exclude,legacy,states,pending in itertools.product([None,'mail'],[None,'chrome'],[False,True],[None,OPEN,{'reserved'}],[False,True])]
+# The shapes that look only at unresolved operations: the ones a request runs
+# every time (states={'reserved'}, states=OPEN, unresolved with or without an
+# app filter) and recovery's legacy_open. They must read the partial index.
+def selective(shape):return shape['legacy_open'] or shape['states'] is not None or shape['unresolved']
 # The header index an earlier build of this branch created; a database it
 # touched may still carry it.
 OLD_INDEX=("CREATE INDEX IF NOT EXISTS operation_headers ON kv(json_extract(v,'$.app'),"
@@ -61,14 +68,27 @@ class ReadOnlyIMAP:
 
 class FullDisk(storage_faults.OSWrites):
     """Every space-allocating file or SQLite write fails; closes still succeed."""
+    FAILING={'write','create'}
     def hit(self,label,sqlite=False):
         if storage_faults.EXCLUDED:return 0
         self.points.append(label)
-        if label.rsplit('.',1)[-1] in {'write','create'}:
+        if label.rsplit('.',1)[-1] in self.FAILING and not label.startswith(self.SPARED):
             self.failed=True;self.failures.append((len(self.points),label,'ENOSPC'))
             if sqlite:return 13  # SQLITE_FULL
             raise OSError(28,'Synthetic full disk at '+label)
         return 0
+    SPARED=()
+
+
+class FullMainDatabase(FullDisk):
+    """Every page write to the main database fails while a store opens.
+
+    Opening a connection passes a create flag whether the file exists or not, and
+    the disposable journal index is rebuilt at every open, so those stay out of
+    the fault; the CREATE INDEX on the existing main database is what fails.
+    """
+    FAILING={'write'}
+    SPARED=('sqlite.index',)
 
 
 class Recorded:
@@ -78,6 +98,23 @@ class Recorded:
         self.statements.append((sql,list(parameters)))
         return self.db.execute(sql,parameters)
     def __getattr__(self,name):return getattr(self.db,name)
+
+
+def retain(store,count,unfinished=True):
+    # Completed history about the size of a real completed send (3-4 KB),
+    # both apps, plus a few unfinished and legacy rows for the filters. Without
+    # them the history is like the CI latency fixture's: every row completed.
+    template=next(op for _,op in store.iter_items('op:'))
+    template['payload']['retained_history']='Synthetic completed history; nothing submitted. '*70
+    for first in range(0,count,48):
+        changes={}
+        for index in range(first,min(first+48,count)):
+            op=copy.deepcopy(template)
+            state='unknown' if unfinished and index%97==0 else 'done'
+            op.update(id=op['generation']+':retained-'+str(index),app=('mail','chrome')[index%2],state=state)
+            if index%193==0:op.pop('context_version',None)
+            changes['op:'+op['id']]=op
+        store.write(changes,'chrome_full_disk_fixture','Synthetic retained history; not acceptance')
 
 
 class FullDiskReads(unittest.TestCase):
@@ -103,19 +140,7 @@ class FullDiskReads(unittest.TestCase):
         self.retain()
 
     def retain(self):
-        # Completed history about the size of a real completed send (3-4 KB),
-        # both apps, plus a few unfinished and legacy rows for the filters.
-        template=next(op for _,op in self.store.iter_items('op:'))
-        template['payload']['retained_history']='Synthetic completed history; nothing submitted. '*70
-        for first in range(0,RETAINED,48):
-            changes={}
-            for index in range(first,min(first+48,RETAINED)):
-                op=copy.deepcopy(template)
-                state='unknown' if index%97==0 else 'done'
-                op.update(id=op['generation']+':retained-'+str(index),app=('mail','chrome')[index%2],state=state)
-                if index%193==0:op.pop('context_version',None)
-                changes['op:'+op['id']]=op
-            self.store.write(changes,'chrome_full_disk_fixture','Synthetic retained history; not acceptance')
+        retain(self.store,RETAINED)
         self.assertGreaterEqual(sum(1 for _ in self.store.iter_items('op:')),RETAINED)
 
     def plans(self):
@@ -133,17 +158,19 @@ class FullDiskReads(unittest.TestCase):
             self.assertEqual([k for k,_ in rows],sorted(k for k,_ in rows),shape)
             (sql,parameters),=[row for row in recorded.statements if row[0].startswith('SELECT k,v FROM kv')]
             plan=[row[-1] for row in original.execute('EXPLAIN QUERY PLAN '+sql,parameters)]
-            result[repr(sorted((k,v if not isinstance(v,set) else sorted(v)) for k,v in shape.items()))]=plan
+            result[repr(dict(sorted((k,v if not isinstance(v,set) else set(v)) for k,v in shape.items())))]=(plan,sql)
         return result
 
     def assert_key_order(self,stage):
-        for shape,plan in self.plans().items():
+        for shape,(plan,sql) in self.plans().items():
             with self.subTest(stage=stage,shape=shape):
                 self.assertFalse([step for step in plan if 'TEMP B-TREE' in step],plan)
-                self.assertTrue([step for step in plan if 'sqlite_autoindex_kv_1' in step],plan)
+                index='operation_open' if selective(eval(shape)) else 'sqlite_autoindex_kv_1'
+                self.assertEqual([step for step in plan if step.startswith('SEARCH kv USING INDEX '+index+' (k>? AND k<?)')],plan,plan)
+                self.assertEqual(storage.OPEN_OPERATIONS in sql,selective(eval(shape)),sql)
 
     def test_every_operation_query_shape_reads_in_key_order_without_a_sort(self):
-        self.assertEqual(len(SHAPES),16)
+        self.assertEqual(len(SHAPES),48)
         self.assert_key_order('fresh')
         self.store.db.execute(OLD_INDEX);self.store.db.commit()
         self.assert_key_order('old index left behind')
@@ -152,12 +179,117 @@ class FullDiskReads(unittest.TestCase):
         self.store.db.execute('DROP INDEX operation_headers');self.store.db.execute('ANALYZE');self.store.db.commit()
         self.assert_key_order('analyzed')
 
+    def indexes(self,store=None):
+        return {row[0]:row[1] for row in (store or self.store).db.execute("SELECT name,sql FROM sqlite_master WHERE type='index' AND sql IS NOT NULL")}
+
     def test_store_creates_no_operation_header_index(self):
-        names={row[0] for row in self.store.db.execute("SELECT name FROM sqlite_master WHERE type='index'")}
+        names=self.indexes()
         self.assertNotIn('operation_headers',names)
+        self.assertEqual(set(names),{'operation_open'})
+
+    def test_the_index_where_and_every_selective_query_come_from_the_one_definition(self):
+        # One constant is the partial index's WHERE and each selective shape's
+        # extra term; the planner needs the two identical. It names exactly the
+        # open states retention knows, so changing either side alone shows here.
+        self.assertEqual(self.indexes()['operation_open'],storage.OPEN_INDEX)
+        self.assertTrue(storage.OPEN_INDEX.endswith(" WHERE substr(k,1,3)='op:' AND "+storage.OPEN_OPERATIONS))
+        self.assertEqual(storage.OPEN_OPERATIONS.count('json_extract(v,'),6)
+        self.assertIn("'$.sent_copy_check.state')='open'",storage.OPEN_OPERATIONS)
+        quoted=storage.OPEN_OPERATIONS.split(' IN (',1)[1].split(')',1)[0]
+        self.assertEqual({name.strip("'") for name in quoted.split(',')},OPEN)
+        for shape,(plan,sql) in self.plans().items():
+            with self.subTest(shape=shape):
+                self.assertEqual(sql.count(storage.OPEN_OPERATIONS),1 if selective(eval(shape)) else 0,sql)
+
+    def in_index(self,key):
+        # INDEXED BY refuses the query unless the index serves it, so this reads
+        # the index itself, never the table.
+        return bool(self.store.db.execute("SELECT 1 FROM kv INDEXED BY operation_open WHERE substr(k,1,3)='op:' AND "
+                                          +storage.OPEN_OPERATIONS+" AND k=?",(key,)).fetchone())
+
+    def test_an_operation_is_in_the_index_while_open_or_unacknowledged_and_leaves_it_after(self):
+        template=next(op for _,op in self.store.iter_items('op:'))
+        def put(label,**fields):
+            op=copy.deepcopy(template);op.pop('notice',None);op.pop('ack',None)
+            op.update(id=op['generation']+':'+label,**fields)
+            key='op:'+op['id'];self.store.write({key:op},'chrome_full_disk_fixture','Synthetic membership row; no input');return key,op
+        for state in sorted(OPEN):
+            key,op=put('open-'+state,state=state);self.assertTrue(self.in_index(key),state)
+            op['state']='done';self.store.write({key:op},'chrome_full_disk_fixture','Synthetic finish');self.assertFalse(self.in_index(key),state)
+        key,op=put('notice',state='failed',notice=True,ack=False);self.assertTrue(self.in_index(key))
+        op['ack']=True;self.store.write({key:op},'chrome_full_disk_fixture','Synthetic acknowledgement');self.assertFalse(self.in_index(key))
+        key,_=put('done-no-notice',state='done');self.assertFalse(self.in_index(key))
+        key,_=put('done-notice-missing-ack',state='done',notice=True);self.assertTrue(self.in_index(key))
+        # Malformed state headers stay candidates, as the states filter keeps them.
+        for label,state in [('number',7),('list',['reserved']),('object',{'state':'reserved'}),('null',None)]:
+            key,_=put('malformed-'+label,state=state);self.assertTrue(self.in_index(key),label)
+        key,_=put('text-closed',state='failed');self.assertFalse(self.in_index(key))
+        key,op=put('sent-check',state='done',sent_copy_check={'state':'open'});self.assertTrue(self.in_index(key))
+        op['sent_copy_check']={'state':'checked','count':1,'clean':True};self.store.write({key:op},'chrome_full_disk_fixture','Synthetic check');self.assertFalse(self.in_index(key))
+        # Every row the index holds is one the selective shapes return, and the
+        # per-request shapes return exactly their rows.
+        indexed={k for k,in self.store.db.execute("SELECT k FROM kv INDEXED BY operation_open WHERE substr(k,1,3)='op:' AND "+storage.OPEN_OPERATIONS)}
+        self.assertEqual({k for k,_ in self.store.iter_operations(unresolved=True)},indexed)
+        rows=dict(self.store.iter_items('op:'))
+        self.assertEqual({k for k,op in self.store.iter_operations(states=OPEN) if isinstance(op.get('state'),str) and op['state'] in OPEN},
+                         {k for k,op in rows.items() if isinstance(op.get('state'),str) and op['state'] in OPEN})
+        self.assertEqual({k for k,op in self.store.iter_operations(unresolved=True) if op.get('notice') and not op.get('ack')},
+                         {k for k,op in rows.items() if op.get('notice') and not op.get('ack')})
+        self.assertEqual({k for k,op in self.store.iter_operations(app='mail',unresolved=True) if op.get('sent_copy_check',{}).get('state')=='open'},
+                         {k for k,op in rows.items() if op['app']=='mail' and op.get('sent_copy_check',{}).get('state')=='open'})
+
+    def test_a_store_without_the_index_opens_and_reads_on_a_full_disk_and_gets_it_later(self):
+        # A store an earlier build left without the index (or one that lost it)
+        # opens on a full disk: the index can't be added, every shape still
+        # answers the same rows in key order, and the next open with space adds it.
+        state,evidence=self.store.state_dir,self.store.evidence_dir
+        expected={repr(shape):list(self.store.iter_operations(**shape)) for shape in SHAPES}
+        self.store.db.execute('DROP INDEX operation_open');self.store.db.commit()
+        self.engine.close()
+        disk=FullMainDatabase()
+        with disk.wrap():
+            try:reopened=storage.Store(state,evidence)
+            except Exception as exc:self.fail('A store without the index must open on a full disk: %r'%(exc,))
+        try:
+            self.assertNotIn('operation_open',self.indexes(reopened))
+            self.assertIn('sqlite.main.write',[label for _,label,_ in disk.failures])
+            self.assertIsNotNone(reopened.observations.error)
+            for shape in SHAPES:
+                with self.subTest(shape=shape):
+                    recorded=Recorded(reopened.db);reopened.db=recorded
+                    try:rows=list(reopened.iter_operations(**shape))
+                    finally:reopened.db=recorded.db
+                    self.assertEqual(rows,expected[repr(shape)])
+                    (sql,parameters),=[row for row in recorded.statements if row[0].startswith('SELECT k,v FROM kv')]
+                    plan=[row[-1] for row in reopened.db.execute('EXPLAIN QUERY PLAN '+sql,parameters)]
+                    self.assertEqual(plan,['SEARCH kv USING INDEX sqlite_autoindex_kv_1 (k>? AND k<?)'],plan)
+        finally:reopened.close()
+        reopened=storage.Store(state,evidence)
+        try:
+            self.assertEqual(self.indexes(reopened).get('operation_open'),storage.OPEN_INDEX)
+            self.assertIsNone(reopened.observations.error)
+            for shape in SHAPES:self.assertEqual(list(reopened.iter_operations(**shape)),expected[repr(shape)],shape)
+        finally:reopened.close()
 
     def request(self,action,arguments):
         return self.engine.request({'v':1,'method':'call','action':action,'arguments':arguments})
+
+    def test_a_chrome_request_and_the_expiry_sweep_run_no_broad_operation_scan(self):
+        # Every operation query on a Chrome request's path (_pending and the
+        # notice rows behind it, _expire, retention.expire) carries the index
+        # term: a read, a reservation and the expiry sweep never walk the whole
+        # history. (control_pending still does, on purpose: resolving Mail's
+        # sent-copy checks reads every Mail send, as on main.)
+        recorded=Recorded(self.store.db);original=self.store.db;self.store.db=recorded
+        try:
+            self.assertTrue(self.fixture.call('read',{'tab':1})['ok'])
+            self.assertTrue(self.engine.pending(resolve_checks=False))
+            self.engine.expire()
+        finally:self.store.db=original
+        scans=[sql for sql,parameters in recorded.statements if sql.startswith('SELECT k,v FROM kv WHERE k>=')
+               and (sql.startswith("SELECT k,v FROM kv WHERE k>='op:'") or parameters[:1]==['op:'])]
+        self.assertGreaterEqual(len(scans),3)
+        self.assertEqual([sql for sql in scans if storage.OPEN_OPERATIONS not in sql],[])
 
     def test_mail_read_search_and_pending_answer_on_a_full_disk_with_retained_history(self):
         reference={'account':'box','folder':'Source','uidvalidity':self.imap.validities['Source'],'uid':1,'message_id':self.imap.mid}

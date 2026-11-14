@@ -484,6 +484,29 @@ case('step6-react-fixture-default-in-step',F,"headline.value=headlineState;headl
 case('step6-ci-service-accept-peer','control/chrome/ci/service.py',"def accept(connection,*peer):\n    original_accept(connection,*peer)\n","def accept(connection):\n    original_accept(connection)\n",'test_bridge.CIServiceWrapper.test_step6_the_ci_service_accept_wrapper_forwards_the_peer_and_the_old_single_argument',True)
 case('step6-list-reset-state',R,"changed=options.some(option=>option.selected!==reset.has(option));","changed=options.some(option=>option.selected!==option.defaultSelected);",node('reader',"step 6 a list counts only"))
 
+# Step 7: the partial index operation_open over the unresolved operations. One
+# definition (OPEN_OPERATIONS) is the index's WHERE and every selective query's
+# extra term; the planner needs them identical. These probes drop the term, let
+# the index drift from the query, stop creating the index, make a full disk
+# fatal at open, and send _pending and Mail's open sent checks back to a scan.
+S='control/aresos_control/storage.py'
+PLAN='test_full_disk_reads.FullDiskReads.test_every_operation_query_shape_reads_in_key_order_without_a_sort'
+ONE='test_full_disk_reads.FullDiskReads.test_the_index_where_and_every_selective_query_come_from_the_one_definition'
+TIMING='test_open_index_timing.OpenIndexTiming.test_the_per_request_shapes_read_the_index_at_1000_and_4000_operations'
+SCAN='test_full_disk_reads.FullDiskReads.test_a_chrome_request_and_the_expiry_sweep_run_no_broad_operation_scan'
+INDEX_SQL='''OPEN_INDEX = "CREATE INDEX operation_open ON kv(k) WHERE substr(k,1,3)='op:' AND " + OPEN_OPERATIONS'''
+case('step7-index-term-dropped-plans',S,"            clauses.append(OPEN_OPERATIONS)\n","            pass\n",PLAN,True)
+case('step7-index-term-dropped-timing',S,"            clauses.append(OPEN_OPERATIONS)\n","            pass\n",TIMING,True)
+case('step7-index-where-drifts',S,INDEX_SQL,INDEX_SQL+'''.replace("'partial','reserved'","'reserved','partial'")''',PLAN,True)
+case('step7-index-where-drifts-definition',S,INDEX_SQL,INDEX_SQL+'''.replace("'partial','reserved'","'reserved','partial'")''',ONE,True)
+case('step7-no-index-plans',S,"        self._index_open_operations()\n","",PLAN,True)
+case('step7-no-index-timing',S,"        self._index_open_operations()\n","",TIMING,True)
+case('step7-states-subset-term',S,"        if unresolved or legacy_open or (states is not None and set(states) <= retention.OPEN):","        if unresolved or legacy_open:",PLAN,True)
+case('step7-full-disk-fatal-at-open',S,"            if storage_refusal(exc) is None:\n                raise\n            self.db.rollback()","            raise",'test_full_disk_reads.FullDiskReads.test_a_store_without_the_index_opens_and_reads_on_a_full_disk_and_gets_it_later',True)
+case('step7-index-membership-sent-check',S,'''                   " OR +json_extract(v,'$.sent_copy_check.state')='open')")''','''                   ")")''','test_full_disk_reads.FullDiskReads.test_an_operation_is_in_the_index_while_open_or_unacknowledged_and_leaves_it_after',True)
+case('step7-pending-scans','control/aresos_control/engine.py',"iter_operations(exclude_app='chrome', unresolved=True)","iter_operations(exclude_app='chrome')",SCAN,True)
+case('step7-sent-checks-scan','control/aresos_control/mail/adapter.py',"for _, op in self.store.iter_operations(app='mail', unresolved=True):","for _, op in self.store.iter_operations(app='mail'):",SCAN,True)
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']
