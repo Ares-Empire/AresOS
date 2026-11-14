@@ -96,6 +96,44 @@ class Handshake(unittest.TestCase):
         finally:
             server.close(); client.close()
 
+class CIServiceWrapper(unittest.TestCase):
+    """control/chrome/ci/service.py wraps Bridge.accept; its signature must follow the daemon's call."""
+
+    def wrapper(self, original_accept, audits):
+        import ast, os
+        from pathlib import Path
+        source = (Path(__file__).resolve().parents[1] / 'chrome/ci/service.py').read_text()
+        node = next(item for item in ast.parse(source).body if isinstance(item, ast.FunctionDef) and item.name == 'accept')
+        namespace = {'original_accept': original_accept, 'bridge': SimpleNamespace(call=lambda name, **arguments: audits.append(name)), 'os': os}
+        exec(compile(ast.Module(body=[node], type_ignores=[]), 'service.py', 'exec'), namespace)
+        return namespace['accept']
+
+    def test_step6_the_ci_service_accept_wrapper_forwards_the_peer_and_the_old_single_argument(self):
+        bridge = Bridge(); audits = []; pairs = []
+        bridge.accept = self.wrapper(bridge.accept, audits)
+        daemon = Daemon.__new__(Daemon)
+        daemon.engine = SimpleNamespace(adapters={'chrome': SimpleNamespace(bridge=bridge, maintenance=lambda: None)})
+        daemon.selector = selectors.DefaultSelector()
+        peer = {'pid': 4242, 'uid': 1000, 'start': 99}
+        try:
+            server, client = socket.socketpair(); pairs.extend([server, client])
+            client.sendall(b'{"event":"hello","session":"ci","version":"157.0.1.0"}\n')
+            try:
+                daemon.register_chrome_host(server, peer)
+            except TypeError as error:
+                self.fail('the CI service refuses every native host: ' + str(error))
+            self.assertEqual((bridge.session, bridge.peer, audits), ('ci', peer, ['audit']))
+            # The latency pair's historical runtime calls accept(connection) alone.
+            old = Bridge(); old_audits = []
+            server, client = socket.socketpair(); pairs.extend([server, client])
+            client.sendall(b'{"event":"hello","session":"old","version":"157.0.1.0"}\n')
+            self.wrapper(lambda connection: old.accept(connection), old_audits)(server)
+            self.assertEqual((old.session, old_audits), ('old', ['audit']))
+        finally:
+            daemon.selector.close()
+            for connection in pairs: connection.close()
+
+
 class FragmentedReplies(unittest.TestCase):
     def test_large_multibyte_page_reassembles_before_paging_and_rejects_wrong_offsets(self):
         import base64

@@ -481,6 +481,7 @@ case('step6-react-typed-plain-field',R,"changed=value!==element.defaultValue||go
 case('step6-react-holds-text',R,"gotInput(element)&&value!==''","gotInput(element)",node('reader','step 6 a field emptied again'))
 case('step6-latency-send-empties',F,"draft.defaultValue='';draft.value='';","draft.value=draft.defaultValue;",node('fixture','step 6 the latency page Send'))
 case('step6-react-fixture-default-in-step',F,"headline.value=headlineState;headline.defaultValue=headlineState;","headline.value=headlineState;",node('fixture','step 6 the React-style take-state field'))
+case('step6-ci-service-accept-peer','control/chrome/ci/service.py',"def accept(connection,*peer):\n    original_accept(connection,*peer)\n","def accept(connection):\n    original_accept(connection)\n",'test_bridge.CIServiceWrapper.test_step6_the_ci_service_accept_wrapper_forwards_the_peer_and_the_old_single_argument',True)
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

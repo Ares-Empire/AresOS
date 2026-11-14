@@ -79,8 +79,10 @@ daemon.engine.adapters['chrome'].refresh_qualification=False
 bridge=daemon.engine.adapters['chrome'].bridge
 original_event=bridge.on_event
 original_accept=bridge.accept
-def accept(connection):
-    original_accept(connection)
+# The daemon passes the connected peer (final F7) on this branch and nothing on
+# the latency pair's historical runtime; forward whatever it gives.
+def accept(connection,*peer):
+    original_accept(connection,*peer)
     bridge.call('audit',enabled=os.environ.get('LATENCY_PROBE')!='true' or os.environ.get('LATENCY_PRIVACY')=='audit')
 bridge.accept=accept
 boundary=open('/out/browser-boundary.jsonl','a',buffering=1)
