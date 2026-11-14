@@ -2052,3 +2052,234 @@ Both logs end with the unittest summary line, so no per-test summing was needed.
 Cleanup: the run logs under `/var/home/ares/pkg22c-work/` are removed; `.work/` holds no file over 500 MB; no download
 was made; no builder-started test or watch process remains; no Gradle daemon was started. PR #46 stays draft; nothing
 was merged or pushed to main.
+
+## Review fixes 3
+
+Builder: a Claude agent on Opus 5.5 (`briefs/22c-review-fixes-3.md`; review 4, gpt-6-astra high on `f3369b8d`,
+CHANGES-NEEDED). Four fixes, one commit each, pushed after each: `3bfcfecf` (1), `a2666ac9` (2), `d4bb6314` (3),
+`02f52057` (4), then `5c7dbef6`: the 22c row of `docs/INSTALL-STATUS.md` still said the card "takes the titled row,
+then previous" and that the stage 1b review "follows"; it now names the card's new route, that the forward and back
+box never installs a release, and review 4 with its fix check to come. **No rule of the owner tools changed:** nothing under `os/owner-tools/` or `os/release/` was touched,
+and the bundle stays `ba4c2bb4…`. No VM was dispatched, nothing was merged or pushed to main, and no owner tool,
+start block, `rpm-ostree`, `bootc` or `ostree admin` ran on the laptop. Tested head: **`5c7dbef6`**; the closing
+commit changes this report only.
+
+**How the routes were traced.** Each guide route was followed in `os/tests/ways_back_ledger.py`, the reference rules
+that the full model holds to the tools on every reachable edge (963,003 states, 25,257,042 edges), so a route traced
+in the ledger is what the tools do. Every traced case below is also asserted by a test in `os/tests/test_owner_path.py`,
+so each checks run traces them again. The provisional title's expected menu is `(ostree:0)` the new release,
+`(ostree:1)` the AresOS that ran before the update, `(ostree:2)` plain Bazzite. "Finish lost" is the ledger's power-off
+during the shutdown: the staged release is discarded and the list stays as before the update. Release names below are
+the ledger's (13, 27, 28; S is plain Bazzite); "tools 28" means the bundle's release is 28.
+
+### 1. (Blocking) Check before previous
+
+**Changed.** `docs/EMERGENCY.md`, "Failed or bad update": the three ways in (the new AresOS does not start: the row the
+provisional title named for the AresOS before the update; it starts but misbehaves, or the old one returns by itself:
+stay) all lead to `sudo /var/lib/ares/at check` **first**, never previous before it, however Linux started. Then one
+branch per result: **Update to … is in place and has not started yet** → previous, title, reboot with no choice, check
+**Return to … confirmed after the restart**; **Update to … confirmed after the restart** (on a later day the first line
+**newer AresOS … runs and starts next** with that confirmation in the record) → misbehaves: previous the same way, works:
+the update route's check; **Update to … was not applied** → do **not** run previous, and only if the first line says
+**this start was not the default**, reboot with no choice so the AresOS from before the update starts again; Help
+decides each repeat; a STOP → export, Help. Then rollback, then Windows, as before. The update route's misbehaves box
+now runs check first and previous only on the newer release this route installed (its confirmation; anything else,
+above all **was not applied**, goes to the card); its check box's not-applied outcome says "Do **not** run previous";
+the recovery menu says check comes first after any boot-menu choice after an update, and why.
+
+**Traced** (37 cases: four starts stage an update; a finished shutdown with no choice and each of three rows, the
+new release's two ways counted twice; a lost one with no choice and each row of the list as before):
+
+| Before the update | Shutdown | Row taken → boots | check shows | Stage 1b card | This card ends on |
+|---|---|---|---|---|---|
+| 27, 13, S; tools 28 | finished | no choice or row 0 → 28 | Update … confirmed | (the new one runs) | 28; misbehaves: previous → 27, Return confirmed |
+| | finished | row 1 → 27 | in place, not started | previous → 27 | previous → 27, Return confirmed |
+| | finished | row 2 → S | in place, not started | (stock started) | previous → 27, Return confirmed |
+| | lost | no choice or row 0 → 27 | was not applied | check first → 27 | no previous; 27 runs and starts next |
+| | lost | **row 1 → 13** (the titled row) | was not applied | **previous → 13: one release back** | no previous; restart, no choice → 27 |
+| | lost | row 2 → S | was not applied | (stock started) | no previous; restart, no choice → 27 |
+| 13, S (tools 27 or 28); 27, S (tools 28) | finished | each row, no choice | as above | as above | the new one, or previous → the AresOS before |
+| | lost | each row, no choice | was not applied | previous refuses (`Only one AresOS is installed …`) | no previous; restart, no choice → the AresOS before |
+
+Every case ends on the AresOS from before the update, or on the new release when it runs and works. The test also
+follows stage 1b's route (previous straight after the titled row) and requires it to go wrong in exactly one case,
+review 4's: three systems before the update, finish lost, row 1.
+
+**Tests.** `test_failed_update_card_takes_the_titled_row_then_previous_rollback_and_windows` is renamed
+`test_failed_update_card_checks_first_then_previous_only_where_the_update_is_in_place` with its expectations changed on
+purpose (table below), and also holds the misbehaves box, the check box's outcome and the recovery menu. New:
+`test_failed_update_card_routes_every_traced_case_to_the_aresos_from_before_the_update` reads each branch from the card
+(its commands in order, previous absent from the not-applied branch) and follows it in the ledger for the 37 cases.
+
+### 2. (Blocking) The back-from-stock box never starts an update
+
+**Changed.** `docs/INSTALL.md`, last box **Forward again, or back from plain Bazzite**: "This box only chooses between
+installed systems; it never installs a release." Update's answers are now three bullets: a change (**Newest AresOS
+starts next** or **Newest installed AresOS starts next**: restart, confirmation), nothing changed (fix 3), and **The
+release of these tools is newer still** (after either line): "do **not** follow it here: it would stage that release
+without its announcement. This box ends once the installed release runs; a new release comes only through the boxes
+above, with the maintainer's announcement." `docs/INSTALL-PROCEDURES.md`, "Back to AresOS from stock", says the same
+in one sentence. The old "names its next step: follow it" is gone (asserted absent).
+
+**Traced.** All 750 states that update, previous, rollback, keep-stock, title, every restart and every lost finish
+reach from the model's starts; 417 of them are box entries (idle, on plain Bazzite or on the older of two AresOS):
+
+| update runs on | Tools' release installed | update does (states) |
+|---|---|---|
+| plain Bazzite | yes | reorder (100), nothing changed (52) |
+| plain Bazzite | no | reorder (46), nothing changed (26), each with "newer still" |
+| older AresOS, not first | yes | reorder (42), nothing changed (49) |
+| older AresOS, not first | no | reorder (14), nothing changed (14), each with "newer still" |
+| older AresOS, first | yes | reorder (54) |
+| older AresOS, first | no | **stages the tools' release at once (20)** |
+
+Wherever "newer still" is printed, following it (restart unless the newest runs, then update again) stages that
+release: the review's case is tools 28 with 27 and S installed, on S. **A second way to stage, not in the review:** the
+last row. Forward again from the older AresOS that starts next, while the tools' release is not installed, stages it
+with the box's first command, before any line can be "not followed" (for example tools 28, list 13, 27, S, running 13:
+reached by previous after an update that was not applied, or by new tools installed before their release). It is the
+same failure (the "no new release" box starting an update), so the box now says: "**Forward again** only when the last
+update route you followed finished: its check showed **Update to … confirmed after the restart**, or it was the
+tools-only box. Otherwise, on an AresOS that starts next, update would stage the release of your newer tools without its
+announcement → **STOP → Help**." That condition is exactly the ledger's "tools' release installed": a confirmed update
+installed it, a tools-only announcement carries an installed release, and only an update removes one. On plain
+Bazzite update never stages (the box says so). This is a guide fix; a tool-side guard would be firmer (open question 1).
+
+**Tests.** New `test_forward_and_back_box_never_installs_a_release`: the box's and the procedure's sentences; then over
+the 417 entries, update and previous never stage except in the excluded row (where the test requires that update
+stages, so the condition is needed), previous beside one release refuses with the list unchanged, and following
+"newer still" stages. The update route's order list changed on purpose for the box's new layout.
+
+### 3. (Should-fix) A return that changes nothing has its own completion
+
+**Changed.** The box's nothing-changed bullet: "nothing was needed and nothing was recorded, so no confirmation line is
+needed (one can still appear for an earlier change). With **It runs now** you are there. With **It does not run yet: it
+starts at the next restart**, restart as in the bullet above, with no boot-menu choice. Either way the box is complete
+with `PASS check` whose first line names that AresOS with **… runs and starts next**." Previous from plain Bazzite names
+both outcomes. "Back to AresOS from stock" gives the no-op PASS. **Found while tracing:** "Rollback from running
+AresOS" had the same gap (an AresOS taken in the boot menu while plain Bazzite starts next: rollback says **Plain
+Bazzite … already starts next; nothing changed** and **It does not run yet**, then neither **Saved stock rollback
+queued** nor the confirmation can come); it now names that case and its completion. Keep-stock already told the two
+apart.
+
+**Traced** (the same 750 states; every idle state and each command that neither refuses nor stages; after a change the
+restart with no choice, after nothing changed a restart only for "It does not run yet"):
+
+| Command | Changed: confirmed after the restart | Nothing changed, no confirmation | Nothing changed, an earlier open change confirms |
+|---|---|---|---|
+| update | 382 | 47 | 159 |
+| previous | 389 | 46 | 144 |
+| rollback | 293 | 20 | 104 |
+| keep-stock | 136 | 32 | 56 |
+
+In every case the command's system then runs and starts next and check passes. Review 4's case (27, 13, S, no
+journal, S taken in the menu, update) is in the second column. The third column is why the guides say a confirmation
+is not *needed* rather than "none follows": an earlier change still open (for example an update in place and not
+started) confirms itself at that start.
+
+**Tests.** New `test_a_return_that_changes_nothing_completes_without_a_confirmation`: the three places' sentences
+(and "no confirmation line follows" absent); the table above, with each column non-empty for all four commands.
+
+### 4. (Should-fix) Changed tools always get the full model
+
+**Changed.** `os/ci/rehearsal_guard.py`: `model_gate(result, sha)`, called for every package 22c VM mode in both guard
+steps of the rehearsal job (the budget step, `probe-budget-ci`, so such a dispatch stops before it spends its minutes;
+and the gate before any VM, `ci`). It asks `model_scope.decide()` for the checkout (uncertain counts as changed); with
+`slice` it records `not-needed`; with `full` it requires a passing checks-only run on the same head whose job **Full
+ways-back model when its sources changed (no image build or VM)** completed the step **Run the full ways-back model**
+with success, read from GitHub's jobs listing, and STOPs `the full ways-back model has not passed on this head, and
+its sources changed (…); dispatch checks_only on this head first` otherwise. The authorization records the result
+under `model`. The workflow's comment beside the rehearsal's `ARESOS_MODEL_SCOPE: slice` names the gate. Rejected: running
+the model job for rehearsal dispatches too (a parallel job does not hold the VM back, and making the rehearsal job wait
+on it changes the rehearsal condition every package shares); `owner_vm` checking the record as well (the gate has no
+pending state: both guard steps STOP, so the VM step never runs).
+
+**Tests** (`test_ways_back_probe.LedgerTest`): new `test_the_model_gate_reads_the_model_jobs_full_step_by_its_workflow_names`
+(the constants equal the workflow's job and step, which runs only for scope `full` with `ARESOS_MODEL_SCOPE: full`);
+new `test_changed_model_sources_need_the_full_model_passed_on_the_same_head` (slice: nothing read; passed; and seven
+STOPs: no checks-only run, the full step skipped or failed, another head, a failed run, the job of another head, a
+step of that name in another job); new `test_a_direct_vm_dispatch_stops_before_its_minutes_and_its_vm_without_the_full_model`
+(the review's case through `main()`: in both guard steps a direct dispatch STOPs with changed sources, passes as
+before with unchanged ones, in `ci` through its own native step, and passes naming the run with a passing full model).
+Revert proof: with `model_gate` replaced by a no-op, the direct-dispatch test fails in both steps (2 failures); with
+it, it passes. `test_ci_api_permissions` declares the gate's jobs GET (`actions: read`, already granted to the jobs
+that run the guard). The existing `test_the_guard_step_reserves_and_writes_package_22cs_authorization` now pins the
+scope to `slice` so it does not depend on the checkout's git state, and asserts the `model` record.
+
+**Cost for stage 2.** While the model's sources differ from main (every head of this branch), the rehearsal needs a
+passing checks-only run on its exact head first: about 35 ledger minutes each, beside the rehearsal's 345.
+
+### Test expectations changed on purpose (B9)
+
+| Test | Old expectation | New expectation | Finding |
+|---|---|---|---|
+| `test_failed_update_card_…` (renamed, see 1) | the titled row, then previous; "misbehaves: **previous** first"; "every command still works" on the card; "do **not** run previous" only for the old AresOS returning by itself | check first however Linux started; previous only in the in-place and confirmed branches, once on the card; "Do **not** run previous" in the not-applied branch; the misbehaves box, the check box and the recovery menu say the same | 1 |
+| `test_update_route_orders_…` (the last box's part) | one paragraph: **Newest AresOS starts next**, nothing changed, then reboot and the confirmation for both | the box's never-installs and forward-again sentences, then three bullets in order: change (restart, confirmation), nothing changed, newer still | 2 |
+| `test_the_guard_step_reserves_and_writes_package_22cs_authorization` | no model record | scope pinned to `slice`; the record `not-needed` | 4 |
+
+No test was deleted or skipped; `test_owner_path` grows from 41 to 44 tests, `test_ways_back_probe` from 41 to 44.
+
+### Verified
+
+Local, from the worktree, `TMPDIR=/var/home/ares/pkg22c-work`, `nice -n 10`, one module at a time (8.5–10 GB free):
+
+| Command | Result |
+|---|---|
+| `python3 -B -m unittest discover -s os/tests -p test_owner_path.py` | after each fix: 42, 43, 44 tests, OK (fix 1's first run: the count placeholder and a reboot without its PASS line in my card text, both fixed; fix 2's: my test sliced at the wrong **Record:** and treated previous's one-release refusal as a failure, fixed; fix 3's: my test expected a confirmation in the same boot as a change, fixed) |
+| `… -p test_owner_entry.py`, `test_owner_equality.py` | after each guide fix: 3 and 10 tests, OK |
+| `… -p test_checkout_sources.py`, `test_ways_back_probe.py` | after each fix: 5 tests OK; 41, then 44 tests OK |
+| `… -p test_ci_api_permissions.py` | first 8 failures (the gate's GET not yet declared), then 4 tests OK |
+| `… -p` each of `test_build_tools`, `test_ci_step_environment`, `test_installer_webui`, `test_job_accounting`, `test_keyboard_release`, `test_organization_budget`, `test_owner_capabilities`, `test_owner_devices_native`, `test_owner_guard`, `test_owner_login`, `test_owner_staged_release`, `test_owner_step_limits`, `test_probe_native`, `test_rehearsal_auth`, `test_rehearsal_budget`, `test_rehearsal_history`, `test_rehearsal_retry`, `test_release27`, `test_release_squash_binding` (every module that reads the guard or the workflow) | 3, 4, 9, 11, 5, 19, 6, 14, 12, 18, 7, 4, 4, 9, 4, 9, 7, 41, 7 tests, all OK |
+| `python3 -m unittest discover -s os/tests -p test_ways_back_model.py -k ScopeTest` | 4 tests, OK |
+| `python3 -B reviews/22c-ways-back-after-update/walk-host.py` (after every bound change) | `PASS package 22c host walks (reorder-probe): 255 sources; no VM started` |
+| `python3 -B reviews/27-first-update-release/rebind.py pending "<note>"` (after it) | 34 bound files differ, 2 removed; after fix 4: **35**, 2 removed |
+| after the status row (`5c7dbef6`): `test_owner_path`, `test_owner_equality`, `test_owner_entry`, `test_checkout_sources`, `test_ways_back_probe`; the host walk; `rebind.py pending` | 44, 10, 3, 5, 44 tests, OK; 255 sources; 35 bound files, 2 removed |
+
+`test_owner_update` did not run locally, nor the full model. `git diff --check` passed before each commit.
+
+Hosted, `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`, then one
+`gh run watch <id> --exit-status --interval 60`; totals from each job log's own unittest summary:
+
+| Hosted run | Head | Regressions job | Model job | Result |
+|---|---|---|---|---|
+| [43563857314](https://github.com/Ares-Empire/AresOS/actions/runs/43563857314) | `02f52057` (the four fixes) | cancelled after about 7 minutes | cancelled | I found the stale status row while it ran; the next head is a superset, and the branch's concurrency group would have queued a second run behind it. No result is claimed from it. |
+| **[43564190565](https://github.com/Ares-Empire/AresOS/actions/runs/43564190565)** | **`5c7dbef6`** (the four fixes and the status row) | **17m49s: `Ran 1098 tests in 1018.549s` / `OK`: 0 failures, 0 errors, 0 skipped**; the slice 173,476 states / 3,043,109 edges (233.0 s) | **17m09s: scope `full` (31 dependency paths), 963,003 states / 25,257,042 edges, `Ran 1 test in 982.576s` / `OK`** | Watch exit 0. 1098 = step 2's 1092 + three new tests in `test_owner_path` and three in `test_ways_back_probe`. |
+
+The log has no `... FAIL`, `... ERROR` or `... skipped` result line. Ledger afterwards (read-only, `rehearsal_guard.budget`
+against the API): **22 checks runs, 1 probe, 558 of 1200 minutes** (this run 36, the cancelled one 10).
+
+### JUDGMENT-CALL
+
+1. **Previous where check shows the update in place, not only where the newer release runs.** The brief says "run
+   previous only when check shows the newer release is running"; review 4 prescribes check after the menu boot,
+   before previous, and verifying the running system against the intended destination. When the new AresOS does not
+   start, the newer release can never run, and check shows **… is in place and has not started yet** with the AresOS
+   from before the update (or plain Bazzite) running. I followed the review: previous there makes the AresOS from
+   before the update the next start in every traced case, from stock too. A literal reading would leave the broken
+   release as the next start with Help as the only way on. To change: that bullet becomes STOP → Help (one line and
+   its test).
+2. **Forward again guarded by the guide, not by the tools.** The condition (a finished update route) is one the owner
+   can read from his record; no command shows the tools' release before update runs. Changing it later to a tool rule
+   needs a rule change, its model and a review.
+3. **The full-model requirement in the guard, not a model job for rehearsals** (see 4).
+
+### PLAN-GAP / open questions
+
+1. **A tool-side guard for the box would be firmer than its text.** Forward again from an AresOS that starts next
+   stages whenever the tools' release is not installed; the guide now forbids that case, but the command itself would
+   still do it. An integrator decision whether update should refuse to stage unless asked to (a rule change, so not
+   done here).
+2. The rollback no-op was outside the lines review 4 named; fixed with finding 3 as the same rule.
+3. Stage 2 must dispatch a passing checks-only run on its rehearsal head before the rehearsal (fix 4).
+
+### For the fix check (read in this order)
+
+1. `docs/EMERGENCY.md` "Failed or bad update" against the first table; `docs/INSTALL.md` misbehaves box and check box.
+2. `docs/INSTALL.md` last box and `docs/INSTALL-PROCEDURES.md` "Back to AresOS from stock" and "Rollback from running
+   AresOS" against the second and third tables.
+3. `os/tests/test_owner_path.py`: the four tests named above, and that each branch is read from the guide.
+4. `os/ci/rehearsal_guard.py` `model_gate` and its call; `os/tests/test_ways_back_probe.py` `LedgerTest`'s three new tests.
+
+Cleanup: the run logs under `/var/home/ares/pkg22c-work/` are removed; `.work/` is empty (no file over 500 MB); no
+download was made; no builder-started test or watch process remains; no Gradle daemon was started. PR #46 stays
+draft; nothing was merged or pushed to main.
