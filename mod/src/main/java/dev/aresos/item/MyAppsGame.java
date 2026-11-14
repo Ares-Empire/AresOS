@@ -93,6 +93,8 @@ public final class MyAppsGame {
             merged.apps().stream().filter(app -> app.id().equals(id)).findFirst()
                     .ifPresent(app -> NEWS.add(app.name() + " is new and joined My apps."));
         changed();
+        // Only a complete list lets the town build or take down anything (HUB.md 3.4).
+        dev.aresos.hub.TownKeeper.listed();
     }
 
     /** Any thread: the list or a picture may have changed while the game runs; the pixel icons follow. */

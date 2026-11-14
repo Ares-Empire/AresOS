@@ -65,6 +65,8 @@ public final class AresOs implements ModInitializer {
 
     public static synchronized void saveMine(java.util.Map<String, Boolean> changes) throws IOException {
         apps = AppsConfig.mine(configPath(), changes);
+        // `/aresos app add` and `remove`, the Apps screen and `/aresos give`: the town follows My apps.
+        dev.aresos.hub.TownKeeper.ask();
     }
 
     public static synchronized void assignNames(Set<String> reserved) throws IOException {
@@ -173,6 +175,7 @@ public final class AresOs implements ModInitializer {
         LiveMode.register();
         NetherHome.register();
         dev.aresos.zone.WalkInZones.register();
+        dev.aresos.hub.TownKeeper.register();
         PayloadTypeRegistry.serverboundPlay().register(ToggleModePayload.TYPE, ToggleModePayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(dev.aresos.mode.ModeSwitchStatePayload.TYPE, dev.aresos.mode.ModeSwitchStatePayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(dev.aresos.mode.ModeSwitchAckPayload.TYPE, dev.aresos.mode.ModeSwitchAckPayload.CODEC);

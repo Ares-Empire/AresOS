@@ -1,0 +1,383 @@
+package dev.aresos.hub;
+
+import dev.aresos.AresOs;
+import dev.aresos.catalogue.AppGroup;
+import dev.aresos.config.AppDefinition;
+import dev.aresos.config.AppsConfig;
+import dev.aresos.icon.AppIcons;
+import dev.aresos.names.NameRules;
+import dev.aresos.world.DesktopWorld;
+import dev.aresos.zone.GateBuilder;
+import dev.aresos.zone.GatePicture;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+/**
+ * Keeps the town in step with his apps (HUB.md 3.4). One pass ({@link #keep}) compares what should stand with what
+ * stands: it takes down the logos that should not stand, builds the missing ones and renews the ones whose picture,
+ * converter or sign changed, and says each change in one chat line. Every caller goes through it: the runs this class
+ * starts by itself (the host enters the world, a complete program list arrives, My apps changes), and the commands
+ * that change where apps stand ({@link #run}).
+ *
+ * <p>The rules a pass keeps: it runs only on a complete program list and only in a flat home of these rules
+ * ({@code hub.dat} says {@code flat-1}). Wanted are the apps of My apps the system lists. Nothing of his is touched:
+ * a place where a logo cannot be built is blocked and the app goes on to its group's next place; a logo whose removal
+ * is refused stays and is tried again at the next run; a place that is not loaded waits, and the pass is retried every
+ * few seconds while he is in the world (so also when he comes near). A place that still holds the town's own logo is
+ * not blocked: that logo comes down first, then the new one is built, so a place can change hands in one pass.
+ *
+ * <p>Pictures are read away from the server thread (an icon may take seconds to read); a pass only uses pictures
+ * already read and names the apps it still needs.
+ */
+public final class TownKeeper {
+    /** His apps as the apps file has them, and whether the system's program list behind it is complete. */
+    public record Programs(List<AppDefinition> apps, boolean complete) {
+        public Programs { apps = List.copyOf(apps); }
+    }
+
+    /**
+     * What one pass did. {@code lines}: one chat line a change. {@code pending}: work waits for a place to load (or
+     * for a place found blocked to be passed by): try again in a few seconds. {@code pictures}: the apps whose
+     * picture the pass needed and did not have; read them, then pass again.
+     */
+    public record Pass(List<String> lines, boolean pending, Set<String> pictures) {
+        public Pass { lines = List.copyOf(lines); pictures = Set.copyOf(pictures); }
+        static final Pass NOTHING = new Pass(List.of(), false, Set.of());
+    }
+
+    /** Where a pass saves the apps' places: {@code AresOs::saveSpots} in the game. */
+    @FunctionalInterface
+    public interface Spots { void save(Map<String, AppsConfig.Spot> spots) throws IOException; }
+
+    /** A pass that left work waiting runs again after this long. */
+    private static final int RETRY_TICKS = 100;
+    /** How many blocked places one chat line names. */
+    private static final int NAMED_PLACES = 3;
+    private static final AtomicBoolean ASKED = new AtomicBoolean();
+    private static volatile boolean complete;
+    // Server thread only, like the servers themselves.
+    private static final Map<MinecraftServer, TownKeeper> KEEPERS = new WeakHashMap<>();
+    private static final ExecutorService READER = Executors.newSingleThreadExecutor(task -> {
+        var thread = new Thread(task, "AresOS town pictures");
+        thread.setDaemon(true);
+        return thread;
+    });
+
+    /** A picture as read, with what it was read for: the icon's path and the group (the plain front's colour). */
+    private record Read(String path, AppGroup group, GatePicture picture) { }
+
+    // One keeper a server; everything below is touched on its thread only.
+    /** Places a build refused although they looked free: blocked for this session, so the next pass moves on. */
+    private final Set<Place> refused = new HashSet<>();
+    /** Lines about lasting conditions (a logo that stays, an app with no place): said once a run he started. */
+    private final Set<String> said = new HashSet<>();
+    private final Map<String, Read> pictures = new HashMap<>();
+    private CompletableFuture<Map<String, Read>> reading;
+    private boolean stale, due, pending;
+    private long retryAt;
+
+    public static void register() {
+        ServerTickEvents.END_SERVER_TICK.register(TownKeeper::tick);
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
+            if (DesktopWorld.isHost(server, handler.player)) ask();
+        });
+        ServerLifecycleEvents.SERVER_STOPPED.register(KEEPERS::remove);
+    }
+
+    /** Any thread: a complete program list from the system went into the apps file. From now on the town may follow. */
+    public static void listed() {
+        complete = true;
+        ask();
+    }
+
+    /** Any thread: his apps changed. The town follows within a few ticks, with every picture read afresh. */
+    public static void ask() { ASKED.set(true); }
+
+    /** Whether a complete program list arrived in this game: before that, the town does nothing. */
+    public static boolean complete() { return complete; }
+
+    /**
+     * Server thread: one pass now, with the pictures already read (an app whose picture is missing is built when it
+     * has been read, a few ticks later). Its lines go to the host's chat. For commands that change where apps stand
+     * ({@code hub rebuild}, {@code swap}, {@code move}): save the apps' places first, then call this.
+     */
+    public static Pass run(MinecraftServer server) { return keeper(server).runNow(server); }
+
+    private static TownKeeper keeper(MinecraftServer server) { return KEEPERS.computeIfAbsent(server, ignored -> new TownKeeper()); }
+
+    private static void tick(MinecraftServer server) {
+        if (complete) keeper(server).step(server);
+    }
+
+    private static boolean wanted(AppDefinition app) { return app.mine() && !app.absent(); }
+
+    private void step(MinecraftServer server) {
+        if (ASKED.getAndSet(false)) stale = true;
+        if (reading != null) {
+            if (!reading.isDone()) return;
+            try {
+                reading.join().forEach(pictures::put);
+            } catch (RuntimeException error) {
+                AresOs.LOGGER.error("Could not read the town's pictures", error);
+            }
+            reading = null;
+            due = true;
+        }
+        boolean retry = pending && server.getTickCount() >= retryAt;
+        if (!stale && !due && !retry) return;
+        var hub = HubData.get(server);
+        if (hub == null || !HubLayout.LOOK.equals(hub.look())) {
+            stale = due = pending = false;
+            return;
+        }
+        // Only while he is in the world: the lines are for him, and it is his presence that loads the places.
+        if (host(server).isEmpty()) return;
+        if (stale) {
+            stale = false;
+            said.clear();
+            read(AresOs.apps().stream().filter(TownKeeper::wanted).toList());
+            return;
+        }
+        due = false;
+        runNow(server);
+    }
+
+    private Pass runNow(MinecraftServer server) {
+        var pass = keep(server, new Programs(AresOs.apps(), complete), this::picture, AresOs::saveSpots);
+        var host = host(server);
+        for (var line : pass.lines()) {
+            AresOs.LOGGER.info("Town: {}", line);
+            host.ifPresent(player -> player.sendSystemMessage(Component.literal(line)));
+        }
+        pending = pass.pending();
+        retryAt = server.getTickCount() + RETRY_TICKS;
+        if (!pass.pictures().isEmpty()) read(AresOs.apps().stream().filter(app -> pass.pictures().contains(app.id())).toList());
+        return pass;
+    }
+
+    private static Optional<ServerPlayer> host(MinecraftServer server) {
+        return server.getPlayerList().getPlayers().stream().filter(player -> DesktopWorld.isHost(server, player)).findFirst();
+    }
+
+    /** Reads the apps' pictures on the reader thread; a pass follows when they are in. */
+    private void read(List<AppDefinition> apps) {
+        if (reading != null) {
+            stale = true;
+            return;
+        }
+        reading = CompletableFuture.supplyAsync(() -> {
+            var read = new HashMap<String, Read>();
+            for (var app : apps)
+                read.put(app.id(), new Read(AppIcons.path(app), AppGroup.of(app), GateBuilder.picture(app, HubLayout.SIZE)));
+            return read;
+        }, READER);
+    }
+
+    /** The picture read for this app, while it was read for the icon and group the app has now. */
+    private Optional<GatePicture> picture(AppDefinition app) {
+        var read = pictures.get(app.id());
+        return read != null && Objects.equals(read.path(), AppIcons.path(app)) && read.group() == AppGroup.of(app)
+                ? Optional.of(read.picture()) : Optional.empty();
+    }
+
+    /**
+     * One pass on the server thread (HUB.md 3.4, points 1 to 4 and 6). Does nothing on an incomplete list or outside a
+     * flat home of these rules. Saves each app's place through {@code spots} when it changed (keeping its group), then
+     * takes down, builds and renews, in that order.
+     *
+     * @param pictures the picture of an app's logo, or empty when it has not been read yet
+     */
+    public Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots) {
+        if (!programs.complete()) return Pass.NOTHING;
+        var hub = HubData.get(server);
+        if (hub == null || !HubLayout.LOOK.equals(hub.look()) || server.getLevel(hub.home().dimension()) == null) return Pass.NOTHING;
+
+        var apps = new LinkedHashMap<String, AppDefinition>();
+        for (var app : programs.apps()) apps.putIfAbsent(app.id(), app);
+        var occupied = new HashSet<Place>();
+        for (var logo : hub.logos()) Place.parse(logo.place()).ifPresent(occupied::add);
+        // HUB.md 3.3: pinned apps first, then the others in the order of the apps file.
+        var order = new ArrayList<AppDefinition>();
+        apps.values().stream().filter(AppDefinition::pinned).forEach(order::add);
+        apps.values().stream().filter(app -> !app.pinned()).forEach(order::add);
+        var saved = new HashMap<String, Place>();
+        var input = new ArrayList<Assignment.App>();
+        for (var app : order) {
+            var place = saved(app, hub.logo(app.id()));
+            if (place != null) saved.put(app.id(), place);
+            input.add(new Assignment.App(app.id(), AppGroup.of(app), place, wanted(app)));
+        }
+        var assignment = Assignment.of(input, place -> blocked(server, place, occupied));
+
+        var lines = new ArrayList<String>();
+        save(apps.values(), assignment, spots, lines);
+        boolean pending = false;
+
+        // 2. Take down what should not stand, or not there.
+        var cameDown = new HashSet<String>();
+        var stays = new HashSet<String>();
+        var waiting = new HashSet<Place>();
+        for (var logo : hub.logos()) {
+            var target = assignment.standing().get(logo.app());
+            var at = Place.parse(logo.place());
+            if (target != null && at.equals(Optional.of(target))) continue;
+            try {
+                Town.remove(server, logo.app());
+                cameDown.add(logo.app());
+                if (target == null) lines.add(gone(apps.get(logo.app()), logo));
+            } catch (IOException refusal) {
+                stays.add(logo.app());
+                at.ifPresent(waiting::add);
+                if (refusal instanceof GateBuilder.NotLoaded) pending = true;
+                else once(lines, "The logo of " + logo.name() + " stays: " + refusal.getMessage() + " The town tries again later.");
+            }
+        }
+
+        // 3. and 4. Build what is missing, renew what changed.
+        var need = new LinkedHashSet<String>();
+        for (var entry : assignment.standing().entrySet()) {
+            var app = apps.get(entry.getKey());
+            var place = entry.getValue();
+            // Its old logo stands somewhere else still; one logo an app.
+            if (stays.contains(app.id())) continue;
+            var standing = hub.logo(app.id());
+            // The town's logo that stands there comes down first.
+            if (standing.isEmpty() && waiting.contains(place)) continue;
+            var picture = pictures.apply(app);
+            if (picture.isEmpty()) {
+                need.add(app.id());
+                continue;
+            }
+            if (standing.isPresent()) {
+                if (!changed(standing.get(), app, picture.get())) continue;
+                try {
+                    Town.remove(server, app.id());
+                } catch (IOException refusal) {
+                    if (refusal instanceof GateBuilder.NotLoaded) pending = true;
+                    else once(lines, "The logo of " + app.name() + " stays as it was: " + refusal.getMessage() + " The town tries again later.");
+                    continue;
+                }
+            }
+            try {
+                Town.build(server, app, place, picture.get());
+                lines.add(standing.isPresent() ? "The logo of " + app.name() + " was renewed."
+                        : built(app, place, saved.get(app.id()), cameDown.contains(app.id())));
+            } catch (GateBuilder.NotLoaded notLoaded) {
+                pending = true;
+            } catch (IOException refusal) {
+                // It looked free with a full front, but this app's logo needs more (a longer name above the sign).
+                // The place is blocked from now on, and the next pass moves the app on and says so.
+                refused.add(place);
+                pending = true;
+                if (standing.isPresent()) lines.add("The logo of " + app.name() + " came down to be renewed but cannot stand at "
+                        + place.name() + " again: " + refusal.getMessage());
+            }
+        }
+
+        // 6. Blocked places, and apps with no place at all.
+        for (var skip : assignment.skipped().entrySet()) {
+            var app = apps.get(skip.getKey());
+            var to = assignment.standing().get(skip.getKey());
+            var places = skip.getValue();
+            String named = places.stream().limit(NAMED_PLACES).map(Place::name).collect(Collectors.joining(", "))
+                    + (places.size() > NAMED_PLACES ? " and " + (places.size() - NAMED_PLACES) + " more" : "");
+            if (to != null) once(lines, named + (places.size() == 1 ? " is" : " are") + " blocked by something of yours, so "
+                    + app.name() + " stands at " + to.name() + ".");
+        }
+        for (var id : assignment.unplaced())
+            once(lines, apps.get(id).name() + " has no free place in " + AppGroup.of(apps.get(id)).title() + ": every place there is blocked.");
+        // 5. (roads and the groups' counts) is step 3's.
+        return new Pass(lines, pending, need);
+    }
+
+    /** The place saved with the app; when the file has none, the place its logo stands in, so it does not move. */
+    private static Place saved(AppDefinition app, Optional<HubData.Logo> logo) {
+        var place = Place.parse(app.place());
+        if (place.isEmpty() && logo.isPresent()) place = Place.parse(logo.get().place());
+        return place.orElse(null);
+    }
+
+    private boolean blocked(MinecraftServer server, Place place, Set<Place> occupied) {
+        // The town's own logo stands there: its app keeps it, or it comes down before another is built.
+        if (occupied.contains(place)) return false;
+        if (refused.contains(place)) return true;
+        try {
+            Town.check(server, place);
+            return false;
+        } catch (GateBuilder.NotLoaded notLoaded) {
+            // Neither free nor blocked: an app may take it, and its build waits until the place is loaded.
+            return false;
+        } catch (IOException his) {
+            return true;
+        }
+    }
+
+    /** Saves the places that changed. A place text this mod cannot read stays as it is unless the app gets a place. */
+    private void save(Iterable<AppDefinition> apps, Assignment assignment, Spots spots, List<String> lines) {
+        var changes = new LinkedHashMap<String, AppsConfig.Spot>();
+        for (var app : apps) {
+            var now = assignment.saved().get(app.id());
+            var before = Place.parse(app.place());
+            if (now == null ? before.isEmpty() : before.equals(Optional.of(now))) continue;
+            changes.put(app.id(), new AppsConfig.Spot(now == null ? null : now.name(), app.group()));
+        }
+        if (changes.isEmpty()) return;
+        try {
+            spots.save(changes);
+        } catch (IOException | RuntimeException error) {
+            once(lines, "The town could not save where your apps stand: " + error.getMessage());
+        }
+    }
+
+    private void once(List<String> lines, String line) {
+        if (said.add(line)) lines.add(line);
+    }
+
+    /** Whether a standing logo shows something else than the app's logo would now (HUB.md 3.4, point 4). */
+    private static boolean changed(HubData.Logo logo, AppDefinition app, GatePicture picture) {
+        return !logo.picture().equals(picture.hash()) || logo.converter() != GatePicture.CONVERTER
+                || !logo.name().equals(app.name()) || !logo.shortName().equals(shortName(app));
+    }
+
+    private static Optional<String> shortName(AppDefinition app) {
+        return Optional.ofNullable(NameRules.mainName(app)).filter(name -> !name.isBlank());
+    }
+
+    private static String built(AppDefinition app, Place place, Place saved, boolean moved) {
+        String where = place.group().title() + ", " + place.group().outward().getSerializedName();
+        String opens = shortName(app).map(name -> " /" + name + " opens it.").orElse("");
+        if (moved) return app.name() + " moved to " + where + "." + opens;
+        if (saved == null) return app.name() + " is new. It stands in " + where + "." + opens;
+        return app.name() + " stands in " + where + "." + opens;
+    }
+
+    private static String gone(AppDefinition app, HubData.Logo logo) {
+        if (app == null) return "The logo of " + logo.name() + " came down: the app is gone from your apps file.";
+        if (app.absent()) return app.name() + " is no longer installed. Its logo came down; its place is kept for its return.";
+        if (!app.mine()) return app.name() + " left My apps. Its logo came down.";
+        return "The logo of " + app.name() + " came down.";
+    }
+}

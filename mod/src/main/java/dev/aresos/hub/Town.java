@@ -4,6 +4,7 @@ import dev.aresos.config.AppDefinition;
 import dev.aresos.names.NameRules;
 import dev.aresos.zone.AppZone;
 import dev.aresos.zone.GateBuilder;
+import dev.aresos.zone.GatePalette;
 import dev.aresos.zone.GatePicture;
 import dev.aresos.zone.GatePlan;
 import dev.aresos.zone.ZoneData;
@@ -23,6 +24,9 @@ import java.util.Optional;
  * step are the caller's: every function here does one thing or refuses, changing nothing.
  */
 public final class Town {
+    /** The app a place is checked for when no app is asked about yet; it is never built. */
+    private static final String PLACE_CHECK = "aresos-town-place-check";
+
     private Town() { }
 
     /**
@@ -33,7 +37,18 @@ public final class Town {
      */
     public static void check(MinecraftServer server, AppDefinition app, Place place, GatePicture picture) throws IOException {
         var hub = hub(server);
-        prepare(level(server, hub), hub, app, place, picture);
+        prepare(level(server, hub), hub, app.id(), plan(hub, app, place, picture));
+    }
+
+    /**
+     * Throws unless a place can take a logo now, whichever app's (HUB.md 3.3, "a place can be built on"), with the
+     * same answers as {@link #check}. It plans a full front in the group's concrete: every picture's blocks are part
+     * of it, so any app's logo builds where this passes, unless its longer name needs more air above the sign.
+     */
+    public static void check(MinecraftServer server, Place place) throws IOException {
+        var hub = hub(server);
+        var full = GatePicture.plain(GatePalette.name(place.group().concrete()), HubLayout.SIZE);
+        prepare(level(server, hub), hub, PLACE_CHECK, place.plan(full, hub.home().dimension(), hub.home().pos(), "?", null));
     }
 
     /**
@@ -44,7 +59,7 @@ public final class Town {
         var hub = hub(server);
         if (hub.logo(app.id()).isPresent()) throw new IOException("The logo of " + app.name() + " already stands in the town.");
         var level = level(server, hub);
-        var prepared = prepare(level, hub, app, place, picture);
+        var prepared = prepare(level, hub, app.id(), plan(hub, app, place, picture));
         var built = GateBuilder.place(prepared);
         var gate = built.gate().orElseThrow();
         // The town's zone opens the app and keeps its exit; its blocks are protected through hub.dat, not by the zone.
@@ -82,9 +97,8 @@ public final class Town {
         return place.plan(picture, hub.home().dimension(), hub.home().pos(), app.name(), NameRules.mainName(app));
     }
 
-    private static GateBuilder.Prepared prepare(ServerLevel level, HubData hub, AppDefinition app, Place place, GatePicture picture) throws IOException {
-        var plan = plan(hub, app, place, picture);
-        var prepared = GateBuilder.prepare(level, app.id(), plan);
+    private static GateBuilder.Prepared prepare(ServerLevel level, HubData hub, String app, GatePlan plan) throws IOException {
+        var prepared = GateBuilder.prepare(level, app, plan);
         for (var pos : plan.space()) {
             if (pos.getY() != plan.origin().getY()) continue;
             var floor = pos.below();

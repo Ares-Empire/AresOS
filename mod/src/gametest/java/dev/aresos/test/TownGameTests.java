@@ -1,11 +1,14 @@
 package dev.aresos.test;
 
+import dev.aresos.catalogue.AppGroup;
 import dev.aresos.config.AppDefinition;
+import dev.aresos.config.AppsConfig;
 import dev.aresos.hub.FlatHub;
 import dev.aresos.hub.HubData;
 import dev.aresos.hub.HubLayout;
 import dev.aresos.hub.Place;
 import dev.aresos.hub.Town;
+import dev.aresos.hub.TownKeeper;
 import dev.aresos.zone.AppZone;
 import dev.aresos.zone.GateBuilder;
 import dev.aresos.zone.GatePicture;
@@ -18,6 +21,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.resources.Identifier;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.entity.Display;
@@ -29,6 +33,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -53,11 +58,14 @@ public final class TownGameTests {
     }
 
     /** A drawn icon: a white ring on a dark blue plate. Nothing of a real app. */
-    private static GatePicture picture() {
+    private static GatePicture picture() { return picture(0xff2d2f8f); }
+
+    /** A white ring on a plate of this colour. */
+    private static GatePicture picture(int plate) {
         var icon = new BufferedImage(96, 96, BufferedImage.TYPE_INT_ARGB);
         for (int y = 0; y < 96; y++) for (int x = 0; x < 96; x++) {
             double r = Math.hypot(x - 47.5, y - 47.5);
-            icon.setRGB(x, y, r > 18 && r < 32 ? 0xffffffff : 0xff2d2f8f);
+            icon.setRGB(x, y, r > 18 && r < 32 ? 0xffffffff : plate);
         }
         return GatePicture.of(icon, HubLayout.SIZE);
     }
@@ -255,6 +263,226 @@ public final class TownGameTests {
         check(Placing.state("minecraft:no_such_block").isAir() && Placing.state("minecraft:gold_block").is(Blocks.GOLD_BLOCK), "Recorded IDs");
         for (var pos : List.of(a, b, c)) level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
         helper.succeed();
+    }
+
+    private static final String KEEP_BATCH = "aresos-test:town_keep";
+
+    /** One app of the fake program list, in a group of his choosing (the saved {@code group}), with one short name or none. */
+    private static AppDefinition app(String id, String name, String shortName, AppGroup group, boolean pinned, boolean mine) {
+        return new AppDefinition(id, name, List.of(id), "minecraft:ender_pearl", pinned).withMine(mine)
+                .withNames(shortName == null ? List.of() : List.of(shortName)).withSpot(null, group.key());
+    }
+
+    /** The keeping test's world outside the town: the fake apps file, the drawn pictures, what was saved. */
+    private static final class Fake {
+        final List<AppDefinition> apps = new ArrayList<>();
+        final GatePicture ring = picture();
+        final Map<String, GatePicture> pictures = new HashMap<>();
+        final List<Map<String, AppsConfig.Spot>> saves = new ArrayList<>();
+        final TownKeeper keeper = new TownKeeper();
+        HubData previous;
+        BlockPos home, planks;
+        Set<Long> far = Set.of();
+
+        TownKeeper.Pass pass(MinecraftServer server) { return pass(server, true); }
+
+        /** One pass, saving places into the fake file as {@code AresOs.saveSpots} does into the real one. */
+        TownKeeper.Pass pass(MinecraftServer server, boolean complete) {
+            return keeper.keep(server, new TownKeeper.Programs(apps, complete), app -> Optional.of(pictures.getOrDefault(app.id(), ring)), spots -> {
+                saves.add(spots);
+                apps.replaceAll(app -> spots.containsKey(app.id()) ? app.withSpot(spots.get(app.id()).place(), spots.get(app.id()).group()) : app);
+            });
+        }
+
+        void change(String id, java.util.function.UnaryOperator<AppDefinition> how) { apps.replaceAll(app -> app.id().equals(id) ? how.apply(app) : app); }
+        AppDefinition get(String id) { return apps.stream().filter(app -> app.id().equals(id)).findFirst().orElseThrow(); }
+    }
+
+    private static String place(MinecraftServer server, String app) {
+        return HubData.get(server).logo(app).map(HubData.Logo::place).orElse("none");
+    }
+
+    /**
+     * HUB.md 3.4 with a fake program list and drawn pictures: never on an incomplete list or in a town of other rules;
+     * the first build (pinned first); a pass in step that changes nothing; hub.dat written again by an older mod; the
+     * refusal and explosion rules; a newcomer; a blocked place; a place changing hands; a logo renewed; a removal his
+     * torch refuses; a light he changed; a place that is not loaded, built once it is. Its own batch and ground.
+     */
+    @GameTest(environment = KEEP_BATCH, maxTicks = LOAD_TICKS)
+    public void theTownKeepsInStepWithHisApps(GameTestHelper helper) {
+        var level = helper.getLevel();
+        BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(17000, 0, 0);
+        var near = chunks(column.offset(-48, 0, -60), column.offset(48, 0, 16));
+        var fake = new Fake();
+        hold(level, near, true);
+        helper.startSequence()
+                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenExecute(() -> keeping(fake, level, near, false, () -> keepingNear(fake, level, column)))
+                .thenWaitUntil(() -> helper.assertTrue(loaded(level, fake.far), "The far place is not loaded yet"))
+                .thenExecute(() -> keeping(fake, level, near, true, () -> keepingFar(fake, level)))
+                .thenSucceed();
+    }
+
+    private interface Part { void run() throws IOException; }
+
+    /** Runs a part; after the last one, or when one fails, puts back the server's hub record and lets go of the chunks. */
+    private static void keeping(Fake fake, ServerLevel level, Set<Long> near, boolean last, Part part) {
+        boolean done = false;
+        try {
+            part.run();
+            done = true;
+        } catch (IOException error) {
+            throw new AssertionError(error.getMessage(), error);
+        } finally {
+            if (last || !done) {
+                if (fake.previous != null) HubData.store(level.getServer(), fake.previous);
+                hold(level, near, false);
+                hold(level, fake.far, false);
+            }
+        }
+    }
+
+    private static void keepingNear(Fake fake, ServerLevel level, BlockPos column) throws IOException {
+        var server = level.getServer();
+        fake.previous = HubData.get(server);
+        BlockPos home = new BlockPos(column.getX(), level.getHeight(Heightmap.Types.WORLD_SURFACE, column.getX(), column.getZ()), column.getZ());
+        check(level.getBlockState(home.below()).is(Blocks.GRASS_BLOCK) && level.getBlockState(home).isAir(), "Fixture: no grass surface at " + home);
+        fake.home = home;
+        var hub = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), FlatHub.build(level, home));
+        HubData.store(server, hub);
+        var before = snapshot(level, home.offset(-40, -2, -45), home.offset(40, 16, 2));
+        fake.apps.addAll(List.of(
+                app("keep-discord", "Discord", "discord", AppGroup.INTERNET, false, true),
+                app("keep-chrome", "Chrome", "chrome", AppGroup.INTERNET, true, true),
+                app("keep-gone", "Gone App", null, AppGroup.INTERNET, false, true).withAbsent(true).withSpot("N1R0", "internet"),
+                app("keep-far", "Far", null, AppGroup.INTERNET, false, true).withSpot("N40L0", "internet"),
+                app("keep-spotify", "Spotify", "spotify", AppGroup.WORK_MEDIA, false, false),
+                app("keep-mail", "Mail", "mail", AppGroup.INTERNET, false, false)));
+
+        // Never on an incomplete list; never in a town that other rules built.
+        var none = fake.pass(server, false);
+        check(none.lines().isEmpty() && !none.pending() && hub.logos().isEmpty() && fake.saves.isEmpty(), "An incomplete list changed the town");
+        var other = new HubData("flat-0", HubLayout.numbers(), hub.home(), hub.fixed());
+        HubData.store(server, other);
+        check(fake.pass(server).lines().isEmpty() && other.logos().isEmpty() && fake.saves.isEmpty(), "A town of other rules was kept by these");
+        HubData.store(server, hub);
+
+        // The first build: pinned first, so Chrome gets N0L0 although Discord comes first in the file. The far place
+        // is not loaded: its build waits, nothing is said about it, its place stays saved.
+        var first = fake.pass(server);
+        check(first.lines().equals(List.of("Chrome is new. It stands in Internet, north. /chrome opens it.",
+                "Discord is new. It stands in Internet, north. /discord opens it.")), "First build: " + first.lines());
+        check(place(server, "keep-chrome").equals("N0L0") && place(server, "keep-discord").equals("N0R0") && hub.logos().size() == 2, "Day one: " + hub.logos());
+        check(first.pending() && first.pictures().isEmpty(), "The far place's build does not wait: " + first);
+        check("N0L0".equals(fake.get("keep-chrome").place()) && "N0R0".equals(fake.get("keep-discord").place())
+                && "N1R0".equals(fake.get("keep-gone").place()) && "N40L0".equals(fake.get("keep-far").place())
+                && "internet".equals(fake.get("keep-chrome").group()), "Saved places: " + fake.apps);
+
+        // In step: nothing changes, nothing is said, nothing is saved.
+        int saves = fake.saves.size();
+        var again = fake.pass(server);
+        check(again.lines().isEmpty() && fake.saves.size() == saves && hub.logos().size() == 2, "A pass in step changed something: " + again.lines());
+
+        // hub.dat written again in package 32's shape (an older mod changed a pad block): the town is still known, and
+        // nothing is built a second time one place on.
+        var rewritten = HubData.CODEC.parse(NbtOps.INSTANCE, HubData.CODEC.encodeStart(NbtOps.INSTANCE, hub).getOrThrow()).getOrThrow();
+        HubData.store(server, rewritten);
+        var afterRewrite = fake.pass(server);
+        check(afterRewrite.lines().isEmpty() && HubData.get(server).logos().size() == 2 && fake.saves.size() == saves, "After hub.dat was written again: " + afterRewrite.lines());
+
+        // Protection: the refusal names a town logo; explosions spare it in Build mode too, the pad only outside it.
+        var town = HubData.get(server);
+        var logoBlock = town.logo("keep-chrome").orElseThrow().gate().placed().getFirst().pos();
+        check(town.refusal(level, logoBlock).startsWith("The logo of Chrome is part of the town and protected."), "Refusal: " + town.refusal(level, logoBlock));
+        check(town.refusal(level, home.below()).startsWith("The home pad and roads are protected.") && town.refusal(level, home.offset(30, -1, 30)) == null, "The pad's refusal");
+        check(town.sparesFromExplosion(level, logoBlock, true) && town.sparesFromExplosion(level, logoBlock, false)
+                && !town.sparesFromExplosion(level, home.below(), true) && town.sparesFromExplosion(level, home.below(), false)
+                && !town.sparesFromExplosion(level, home.offset(30, -1, 30), false), "What explosions spare");
+
+        // A newcomer joins My apps.
+        fake.change("keep-spotify", app -> app.withMine(true));
+        var joined = fake.pass(server);
+        check(joined.lines().equals(List.of("Spotify is new. It stands in Work & Media, west. /spotify opens it.")) && place(server, "keep-spotify").equals("W0L0"),
+                "A newcomer: " + joined.lines());
+
+        // A blocked place: his planks in N1L0's box. Mail stands one place on, in the place the absent app remembered.
+        var n1l0 = Town.plan(town, fake.get("keep-mail"), Place.parse("N1L0").orElseThrow(), fake.ring);
+        fake.planks = n1l0.at(1, 3, 3);
+        level.setBlockAndUpdate(fake.planks, Blocks.OAK_PLANKS.defaultBlockState());
+        fake.change("keep-mail", app -> app.withMine(true));
+        var blocked = fake.pass(server);
+        check(blocked.lines().equals(List.of("Mail is new. It stands in Internet, north. /mail opens it.",
+                "N1L0 is blocked by something of yours, so Mail stands at N1R0.")), "A blocked place: " + blocked.lines());
+        check(place(server, "keep-mail").equals("N1R0") && level.getBlockState(fake.planks).is(Blocks.OAK_PLANKS) && fake.get("keep-gone").place() == null,
+                "His planks, or the remembered place");
+
+        // A place changing hands (package 37's swap): both come down, then both are built, in one pass.
+        fake.change("keep-chrome", app -> app.withSpot("N1R0", app.group()));
+        fake.change("keep-mail", app -> app.withSpot("N0L0", app.group()));
+        var swapped = fake.pass(server);
+        check(swapped.lines().equals(List.of("Chrome moved to Internet, north. /chrome opens it.", "Mail moved to Internet, north. /mail opens it.")),
+                "A swap: " + swapped.lines());
+        check(place(server, "keep-chrome").equals("N1R0") && place(server, "keep-mail").equals("N0L0"), "After the swap");
+
+        // Renewed in place: a new picture and a new name, one line.
+        fake.pictures.put("keep-spotify", picture(0xff8f2d2d));
+        fake.change("keep-spotify", app -> app("keep-spotify", "Spotify Music", "spotify", AppGroup.WORK_MEDIA, false, true).withSpot(app.place(), app.group()));
+        var renewed = fake.pass(server);
+        var spotify = HubData.get(server).logo("keep-spotify").orElseThrow();
+        check(renewed.lines().equals(List.of("The logo of Spotify Music was renewed.")) && spotify.place().equals("W0L0")
+                && spotify.picture().equals(fake.pictures.get("keep-spotify").hash()) && spotify.name().equals("Spotify Music")
+                && level.getEntity(spotify.gate().sign().orElseThrow()) instanceof Display.TextDisplay, "Renewed: " + renewed.lines() + " " + spotify);
+
+        // A removal his torch refuses: Chrome's logo stays, said once; it comes down once the torch is gone.
+        var chromePlan = Town.plan(HubData.get(server), fake.get("keep-chrome"), Place.parse("N1R0").orElseThrow(), fake.ring);
+        BlockPos torch = chromePlan.doormat().getFirst().above();
+        level.setBlockAndUpdate(torch, Blocks.TORCH.defaultBlockState());
+        fake.change("keep-chrome", app -> app.withAbsent(true));
+        var stays = fake.pass(server);
+        check(stays.lines().size() == 1 && stays.lines().getFirst().startsWith("The logo of Chrome stays: ") && stays.lines().getFirst().contains("torch"),
+                "A refused removal: " + stays.lines());
+        check(place(server, "keep-chrome").equals("N1R0") && level.getBlockState(torch).is(Blocks.TORCH), "The logo or his torch went");
+        check(fake.pass(server).lines().isEmpty(), "The refusal was said twice");
+        level.setBlockAndUpdate(torch, Blocks.AIR.defaultBlockState());
+        var gone = fake.pass(server);
+        check(gone.lines().equals(List.of("Chrome is no longer installed. Its logo came down; its place is kept for its return.")), "Chrome gone: " + gone.lines());
+        check(place(server, "keep-chrome").equals("none") && "N1R0".equals(fake.get("keep-chrome").place()), "Chrome's place is not remembered");
+
+        // A light he changed is his and stays, and it does not hold the logo up (the orchestrator's decision 2).
+        var mailPlan = Town.plan(HubData.get(server), fake.get("keep-mail"), Place.parse("N0L0").orElseThrow(), fake.ring);
+        BlockPos light = mailPlan.lights().getFirst();
+        level.setBlockAndUpdate(light, Blocks.LIGHT.defaultBlockState().setValue(LightBlock.LEVEL, 3));
+        check(!HubData.get(server).holds(level, light), "A light he changed is still the mod's");
+        fake.change("keep-mail", app -> app.withMine(false));
+        var left = fake.pass(server);
+        check(left.lines().equals(List.of("Mail left My apps. Its logo came down.")), "Mail left: " + left.lines());
+        check(level.getBlockState(light).is(Blocks.LIGHT) && level.getBlockState(light).getValue(LightBlock.LEVEL) == 3, "His light did not stay");
+        var area = new HashSet<BlockPos>(mailPlan.space());
+        area.addAll(mailPlan.floor());
+        area.addAll(mailPlan.doormat());
+        area.addAll(mailPlan.blocks().keySet());
+        area.remove(light);
+        for (var pos : area) check(level.getBlockState(pos).equals(before.get(pos)), "After Mail left " + pos.subtract(home) + " is " + level.getBlockState(pos));
+
+        // The far place: still waiting. Its chunks are loaded next, with a ticket of this test's own.
+        var farPlan = Town.plan(HubData.get(server), fake.get("keep-far"), Place.parse("N40L0").orElseThrow(), fake.ring);
+        fake.far = chunks(farPlan.origin().offset(-24, 0, -24), farPlan.origin().offset(24, 0, 24));
+        check(!loaded(level, fake.far) && place(server, "keep-far").equals("none") && fake.pass(server).pending(), "The far place is loaded or built");
+        hold(level, fake.far, true);
+    }
+
+    private static void keepingFar(Fake fake, ServerLevel level) {
+        var server = level.getServer();
+        var far = fake.pass(server);
+        check(far.lines().equals(List.of("Far stands in Internet, north.")) && !far.pending() && place(server, "keep-far").equals("N40L0"),
+                "When its place is loaded: " + far.lines() + " pending " + far.pending());
+
+        // Everything leaves My apps: the town comes down and nothing of it is left.
+        fake.apps.replaceAll(app -> app.withMine(false));
+        var empty = fake.pass(server);
+        check(empty.lines().size() == 3 && HubData.get(server).logos().isEmpty(), "Taking the town down: " + empty.lines());
+        check(ZoneData.get(server).zones().stream().noneMatch(zone -> zone.app().startsWith("keep-")), "A zone of the town stayed");
+        level.setBlockAndUpdate(fake.planks, Blocks.AIR.defaultBlockState());
     }
 
     private interface Action { void run() throws IOException; }
