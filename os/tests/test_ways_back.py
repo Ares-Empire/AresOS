@@ -588,14 +588,21 @@ class DestinationTest(Unchanged, unittest.TestCase):
                 self.assertEqual(len(host.state['rpm']['deployments']), 4 if word == 'update' else 3)
 
     def test_login_refuses_where_update_would_refuse_or_has_nothing_to_install(self):
+        """On plain Bazzite beside an installed AresOS too (step 2 of briefs/22c-forward-command.md):
+        login says what update says there and names forward, not the first switch's refusal."""
         for order, running, known, message in (((R13, R21, 'S'), R13, H21, owner.RELEASE_INSTALLED),
-                                               ((R21, R13, 'S'), 'S', H21, 'Stock list/pin/pending/BLS changed before switch'),
+                                               ((R21, R13, 'S'), 'S', H21, owner.RELEASE_INSTALLED),
+                                               (('S', R21, R13), 'S', H21, owner.RELEASE_INSTALLED),
+                                               ((R21, R13, 'S'), 'S', H30, owner.FORWARD_FIRST),
+                                               (('S', R21, R13), 'S', H30, owner.FORWARD_FIRST),
                                                ((R21, R13, 'S'), R21, H21, owner.RELEASE_RUNS),
                                                (('S', R21, R13), R21, H30, owner.FORWARD_FIRST),
                                                ((R21, R13, 'S'), R13, H30, owner.FORWARD_FIRST)):
             with self.subTest(order=order, running=running, release=known[-1]['reference'][-4:]), \
                     laptop(listed(order, running), known) as (tools, host, store), patch.object(owner, 'account'):
                 self.unchanged(host, tools.login, message)
+                if message != owner.RELEASE_RUNS:
+                    self.unchanged(host, tools.update, message)
                 self.assertEqual((journal(store), archived(store)), (None, []))
         self.assertIn('needs no login', owner.RELEASE_RUNS)
         self.assertIn('sudo /var/lib/ares/at forward', owner.RELEASE_INSTALLED)

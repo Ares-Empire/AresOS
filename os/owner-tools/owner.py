@@ -1545,12 +1545,16 @@ class Tools:
         paused_state(self.host, self.pause)
         return state
 
+    def installed_aresos(self, state):
+        """Whether a known AresOS release is installed (a staged row alone does not count)."""
+        known = {reference.split('@')[1] for reference in self.known()}
+        return any(not d.get('staged') and d.get('container-image-reference-digest') in known
+                   for d in state['rpm']['deployments'])
+
     def survey_installed(self, state, saved=None, retry=None):
         """Install-only commands keep their original prepared/first-switch checks,
         but an installed lifecycle must resolve and warn before those checks."""
-        known = {reference.split('@')[1] for reference in self.known()}
-        if any(not d.get('staged') and d.get('container-image-reference-digest') in known
-                for d in state['rpm']['deployments']):
+        if self.installed_aresos(state):
             return self.qualified(state, saved, retry)
 
     def survey(self, retry=None):
@@ -1635,11 +1639,13 @@ class Tools:
         return next((d for d in shape['ares'] if d['container-image-reference-digest'] == digest), None)
 
     def login(self):
-        # Before the first switch the stock rules apply unchanged; on a
-        # running AresOS a login only serves an update that needs a download.
+        # Before the first switch the stock rules apply unchanged. With an AresOS
+        # installed a login only serves an update that needs a download, so it
+        # refuses wherever update would, plain Bazzite included, with update's
+        # next step (forward there), never the first switch's refusal.
         state = observations(self.host)
         self.survey_installed(state, retry='update')
-        if agree(state)['container-image-reference-digest'] == BASE:
+        if agree(state)['container-image-reference-digest'] == BASE and not self.installed_aresos(state):
             self.before_switch()
         else:
             state, shape, settled = self.survey(retry='update')
