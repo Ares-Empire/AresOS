@@ -1154,6 +1154,47 @@ class RehearsalWalkTest(unittest.TestCase):
         self.assertEqual(result['expectations']['contradicted'], [])
         self.assertEqual(table['forward-27b']['order'], ['R27', 'S', 'R13'])
 
+    def test_the_harness_reads_the_installed_toolset_before_the_tools_read_and_the_console_shows_the_real_process(self):
+        """Run 43581458429 stopped at E2's layout proof: the harness expected the tools' process in the
+        first install's folder. It reads the folder in the guest now (Console.toolset, the way the tools'
+        entry resolves it), and the walk's console shows the process the real entry starts from the
+        walk's own installs (owner_console_shim.InstalledTools), not the one the harness expects."""
+        result = self.result
+        resolved = [name for name, source in result['commands'] if name.endswith('-toolset')]
+        self.assertEqual(resolved, ['private-owner-dummy-login-toolset', 'private-owner-login-toolset',
+                                    'layout-intl-proof-toolset', 'layout-de-proof-toolset'])
+        # The 15f tools read the token from tools/; version 2 never reads; version 3 reads both proofs from its own folder.
+        version_3 = '/var/lib/ares/tools-' + walk.common.bundle.check(ROOT / 'os/owner-tools/payload') + '/owner.py'
+        python = ['/usr/bin/python3', '-I', '-B']
+        self.assertEqual(result['tool_readers'], [dict(boot='corrected-stock', argv=[*python, '/var/lib/ares/tools/owner.py', 'login']),
+                                                  dict(boot='release-27', argv=[*python, version_3, 'layout', 'proof']),
+                                                  dict(boot='intl-27', argv=[*python, version_3, 'layout', 'proof'])])
+        self.assertEqual([(row['boot'], row['tty'], row['shape']) for row in result['hidden_shapes'] if row['phase'] == 'handoff'],
+                         [('release-27', 'tty4', 'sudo-owner-public-handoff'), ('intl-27', 'tty4', 'sudo-owner-public-handoff')])
+        self.assertEqual(result['result']['tools_version_3_folder'], version_3.removesuffix('/owner.py'))
+        program = owner_vm.ENTRY
+        self.assertIn("['/usr/bin/readlink','-f','--',entry]", program)
+        self.assertIn('/usr/bin/readlink -f -- "$0"', (ROOT / 'os/owner-tools/at').read_text())
+        compile(program, 'entry', 'exec')
+
+    def test_a_harness_that_expects_the_first_installs_folder_fails_the_walk_where_the_vm_stopped(self):
+        # The pin of run 43581458429, put back: the walk stops at the first proof, with the observer's reason.
+        def first_install(console, stage):
+            console.tools = '/var/lib/ares/tools'
+            return console.tools
+        with patch.object(owner_vm.Console, 'toolset', first_install):
+            with self.assertRaisesRegex(AssertionError, 'layout-intl-proof-sudo-hidden.*-handoff-1: Unexpected foreground reader'):
+                walk.walk(route='ways-back')
+        # A reader the entry does not resolve to is refused before anything is typed.
+        console = owner_vm.Console(Mock(capture_json=Mock(return_value=dict(entry='/var/lib/ares/at', resolved='/var/lib/ares/at'))))
+        with self.assertRaisesRegex(AssertionError, 'not an installed toolset folder'):
+            console.toolset('x')
+        console.guest.capture_json.return_value = dict(entry='/var/lib/ares/at', resolved='/var/lib/ares/tools-' + 'a' * 64 + '/owner.py')
+        with self.assertRaisesRegex(AssertionError, 'does not resolve to a toolset'):
+            console.toolset('x')
+        self.assertIsNone(console.tools)
+        self.assertIsNone(console.owner_reader(['login']))
+
     def test_the_walk_also_passes_with_the_ps2_health_checks(self):
         result = walk.walk(ps2=True, route='ways-back')
         self.assertEqual(result['stages'], walk.WAYS_BACK_STAGES)

@@ -27,7 +27,7 @@ import owner_media
 import test_owner_tools as common
 from owner_fuse_shim import Volume
 from guest_shell import syntax
-from owner_console_shim import execute_idle, execute_hidden, execute_screen
+from owner_console_shim import execute_idle, execute_hidden, execute_screen, InstalledTools, model_clock
 from test_owner_hidden import vcsa
 
 FIXTURES = ROOT / 'os/tests/fixtures/owner-tools'
@@ -248,6 +248,18 @@ def walk(ps2=False, route='qualification'):
     stages['ways-back'] = WAYS_BACK_STAGES
     owner_words = {command: name for name, command in vm.COMMANDS.items()}
     oracle = [None]
+    # The walk's own /var/lib/ares entry (InstalledTools): which toolset is installed, and the
+    # process its entry starts. The harness's expected reader is judged against it, never copied.
+    installed, tool_readers = [None], []
+    def typed_owner():
+        """The owner command typed last: its sudo words, and the tools' process the entry starts for it."""
+        line = next((text.rstrip('\n') for text, profile in reversed(visible_blocks)
+                     if '\n' not in text.rstrip('\n') and ' /var/lib/ares/at ' in text), None)
+        if line is None:
+            return None
+        words = shlex.split(line.rsplit(';', 1)[-1])
+        assert words[:2] == ['sudo', '/var/lib/ares/at'], line
+        return dict(sudo=words, owner=installed[0].reader(words[2:]))
     visits, commands, typed, checks, markers = [], [], [], [], []
     visible_blocks = []
     physical_cases = []
@@ -358,8 +370,20 @@ def walk(ps2=False, route='qualification'):
                 script = words[words.index('python3') + 2]
                 phase = 'handoff' if '# hidden-phase: handoff' in script else 'left' if '# hidden-phase: left' in script else 'ready'
                 rejected = phase == 'left' and 'layout-plain-us' in name
-                result, rows, shape = execute_hidden(script, rejected=rejected, facts=True)
-                assert (result.get('handoff_ready') and not result['ready']) if phase == 'handoff' else (result.get('rejected') and not result['ready']) if rejected else result['ready']
+                actual = typed_owner()
+                with model_clock():
+                    result, rows, shape = execute_hidden(script, rejected=rejected, facts=True, actual=actual)
+                if shape in ('nested-owner-getpass', 'sudo-owner-public-handoff'):
+                    # The tools' own process was in front: which one, from the walk's entry.
+                    reader = dict(boot=self.stage, argv=actual['owner'])
+                    if reader not in tool_readers:
+                        tool_readers.append(reader)
+                # The harness stops on the same answer; the observer's reason says why (in run
+                # 43581458429: Unexpected foreground reader).
+                assert ((result.get('handoff_ready') and not result['ready']) if phase == 'handoff'
+                        else (result.get('rejected') and not result['ready']) if rejected else result['ready']), \
+                    'The modelled console does not show the reader the harness expects at ' + name + ': ' + str(
+                        (result.get('observation') or {}).get('reason') or result.get('reason'))
                 tty, = re.findall(r"(?:hidden_observation|hidden_left|hidden_handoff)\('(?P<tty>tty[34])'", script)
                 if phase == 'left':
                     self.idle_models[tty] = rows
@@ -374,7 +398,9 @@ def walk(ps2=False, route='qualification'):
                 # Execute the real read-only observer on the pinned sudo relay
                 # model at every wait, not a pre-granted Boolean authority.
                 tty, = re.findall(r"os.open\('/dev/(tty[34])'", script)
-                value = execute_idle(script, (ROOT / 'os/tests/fixtures/owner-console/14zg-title-completed.vcsa').read_bytes(), rows=self.idle_models.get(tty))
+                # Guest time moves here too: an idle observer that never sees its shell ends at its deadline.
+                with model_clock(0):
+                    value = execute_idle(script, (ROOT / 'os/tests/fixtures/owner-console/14zg-title-completed.vcsa').read_bytes(), rows=self.idle_models.get(tty))
                 idle_answers.append(name)
                 return value
             if 'base64.b64encode(data)' in source or 'base64.b64encode(raw)' in source:
@@ -411,6 +437,10 @@ def walk(ps2=False, route='qualification'):
             if name in ('offline-first-stock-link', 'stock-offline-login', 'live-offline-before-webui'):
                 return dict(status='passed', physical_link_down=True)
             if name == 'owner-record-list': return []
+            if name.endswith('-toolset'):
+                # The harness resolves the installed entry in the guest: its program runs on the walk's own entry.
+                words = shlex.split(source)
+                return installed[0].resolve(words[words.index('python3') + 2])
             if disk is not None and name.endswith('-layout'): return disk.layout()
             if disk is not None and name.endswith(('-journal-before', '-journal-after')): return list(disk.journal)
             if disk is not None and name.endswith('-set-default'):
@@ -422,6 +452,7 @@ def walk(ps2=False, route='qualification'):
                 # The rehearsal's own captures; from tools version 3 on, the tools themselves answer.
                 if name == 'tools-3-install-owner-result':
                     oracle[0].active = True
+                    installed[0].install(media.fingerprint)
                     return dict(status='passed', trace=[], manifest=media.fingerprint, previous_manifest=vm.TOOLS_V2,
                         previous_version=2, tools_version=3, releases=[dict(reference=old_reference), dict(reference=new_reference)])
                 if name.endswith('-owner-result') and oracle[0].active:
@@ -438,7 +469,10 @@ def walk(ps2=False, route='qualification'):
                 if name.endswith('-intent'):
                     return {field: cut[0].get(field) for field in ('schema', 'word', 'status', 'mode', 'reference', 'digest',
                                                                    'target', 'before', 'intended', 'running')}
+            if name == 'tools-install-owner-result':
+                installed[0].install()  # the first install: tools/
             if name == 'update-tools-install-owner-result':
+                installed[0].install(media.fingerprint)  # a tools update: tools-<fingerprint>/
                 return dict(status='passed', trace=[], manifest=media.fingerprint, previous_manifest=vm.LAPTOP_TOOLS,
                     previous_version=1, tools_version=2, releases=[dict(reference=old_reference), dict(reference=new_reference)])
             if name.endswith('-owner-result') and laptop:
@@ -638,6 +672,7 @@ def walk(ps2=False, route='qualification'):
         stack.enter_context(patch.object(vm.time, 'sleep'))
         stack.enter_context(patch.dict(os.environ, GITHUB_ACTOR='synthetic-user', GH_TOKEN='synthetic_only_0123', GITHUB_SHA='a'*40))
         audit = Mock()
+        installed[0] = InstalledTools(temporary)
         if disk is not None:
             stack.enter_context(patch.object(vm.rp, 'start_at_menu', side_effect=lambda p, h, s: Guest(s, menu=True)))
             stack.enter_context(patch.object(vm.rp, 'read_screen', side_effect=lambda guest, name: disk.screen()))
@@ -672,7 +707,7 @@ def walk(ps2=False, route='qualification'):
     assert {'prepared-unattended-windows','offline-roundtrip-unattended-windows','offline-roundtrip-detached-windows','final-unattended-windows','final-detached-windows'} <= set(markers)
     assert checks.index('tools-stock-hotplug') < checks.index('tools-stock-detach') < checks.index('tools-stock-reboot-tools-absent')
     return dict(stages=visits, commands=commands, typed=typed, visible_blocks=visible_blocks, checks=checks, markers=markers,
-        physical_cases=physical_cases, result=result, disk=disk,
+        physical_cases=physical_cases, result=result, disk=disk, tool_readers=tool_readers,
         prompt_waits=sorted(prompt_waits), fresh_idle_answers=idle_answers, resyncs=events,
         hidden_reads=hidden_reads, hidden_shapes=hidden_shapes, wait_shapes=wait_shapes)
 
