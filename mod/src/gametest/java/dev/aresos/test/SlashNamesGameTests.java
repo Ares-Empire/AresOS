@@ -500,8 +500,8 @@ public final class SlashNamesGameTests {
                 // Control: the same source compiles an ordinary command, plain and through a macro.
                 check(compiles(dispatcher, loader, "help") && instantiates(dispatcher, loader, "help"), "The loader compiles nothing: " + entry.getKey());
                 for (String line : lines) {
-                    check(!compiles(dispatcher, loader, line), "A function holds \"" + line + "\" on the " + entry.getKey());
-                    check(!instantiates(dispatcher, loader, line), "A macro function runs \"" + line + "\" on the " + entry.getKey());
+                    check(!compiles(dispatcher, loader, line), "A function holds \"" + line + "\" (" + entry.getKey() + ")");
+                    check(!instantiates(dispatcher, loader, line), "A macro function runs \"" + line + "\" (" + entry.getKey() + ")");
                 }
             }
             // Control: these commands are on this tree; the click probe's source, which never runs anything, parses them.
