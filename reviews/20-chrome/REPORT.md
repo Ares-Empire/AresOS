@@ -3,39 +3,33 @@
 
 - **Addenda c–g / implementation:** done and SAFE. Base-URL/SVG, credentials,
   prepared asking reads, withheld-form refusal, slim integration/group 12,
-  measured latency/approved ceilings and sharding are complete. Editors stay read
-  under the owner's board #216 acceptance. No binding/refusal change is open.
-- **Latest tested candidate:** **`7d9c0b95`**; the CI-only Mail budget change
-  requires a new final head and repeat verification.
+  approved latency ceilings/removal probe and sharding are complete. Editors stay
+  read under board #216's owner acceptance. No binding/refusal change is open.
+- **Final code head:** **`a4143586`**; later commits are evidence/report only.
   Full local preflight passes **268 Python, 373 Node/artifact, 316 mutations**,
   every mutation baseline passing, plus generator/diff/exact-unit checks.
-  Runtime stays `e0cc9846`, hash `b9de9a97…`; main is merged through `b2b51107`.
-- **Fixture correction closed:** old pair `43521476596`/`43521486785` failed/passed
-  a post-reload revision-3→4 race. The corrected fixture waits for a changed
-  document and stable view, retains strict stale/receiver checks and inputs once.
-  Both scoped reviews are SAFE. Old Mail was cancelled before obsolete attempt 2.
-  Old base/boundary/qualification greens are intermediate, not this head's evidence.
-- **Green on `7d9c0b95`, retained as intermediate:** the complete Chrome pair **`43530057774`** /
-  **`43530063897`**, both installs each; all four independent audits pass, including
-  all 98 named cases, 999 word cells, real group 12 and all 92 round-3 names.
-  Both latency profiles pass on each run and match frozen runtime `b9de9a97…`.
-  Base `43530063893`, boundary `43530063854` and qualification `43530064053` pass
-  both attempts. Their receipts are committed.
-- **CI budget FIX, both scoped reviews SAFE:** Mail `43530064032` ended cancelled: sweep jobs 0 and 6
-  hit the 60-minute cap (60m16s / 60m17s). Four suites and six other fault shards
-  pass; no unittest assertion failure is recorded. The fault-job budget is now
-  120 minutes, within the lead's target; suite budget stays 35. All eight full
-  partitions, 23 flows and every assertion remain. No runtime or browser change.
-  No CI run is currently in flight. A new head must repeat final verification.
-- **Budget:** **253 / about 280** Chrome runs, including both final attempts.
-- **Exact next step:** run `.work/post18d/final-local.py` on this new candidate
-  before its normal push (268 Python, 373 Node/artifact, 316 mutations expected).
-  After green preflight, push normally
-  for another full Chrome pair and every named Control workflow twice on that
-  head. Current Chrome/other greens remain retained intermediate evidence;
-  they are not silently substituted for the required new-head runs. Keep the
-  runtime/hash, asking bindings, withheld-form refusal and 525 ms wait unchanged.
-  Update this Handover at each push; PR #27 stays draft and unmerged.
+  Runtime remains `e0cc9846`, hash `b9de9a97…`; main is merged through `b2b51107`.
+- **CI-only budget fix, SAFE in both reviews:** on prior `7d9c0b95`, Chrome pair
+  and all four independent audits/latency profiles passed; other three shared
+  workflows passed twice. Mail's four suites/six fault shards passed, but two hit
+  60 minutes. Fault jobs now get **120 minutes**, within the lead's target; suite
+  jobs stay35 and all eight partitions/23flows/assertions are unchanged. Chrome
+  still uses120-minute containers/130-minute jobs. Old evidence is intermediate.
+- **In flight on this head:** Chrome push **`43539449510`** (watch `24080`), PR
+  **`43539458133`** (`11065`); base **`43539457993`** (`37632`), Mail
+  **`43539458146`** (`17579`), boundary **`43539458152`** (`1496`), qualification
+  **`43539458040`** (`70825`). One blocking watcher each. Four shared watchers
+  request attempt 2 only after attempt 1 succeeds; Chrome runs once each.
+- **Budget:** **255 / about 280** Chrome runs, including this pair.
+- **Exact next step:** resume these watchers; if stopped, inspect finalized attempt
+  receipts under `.work/post18d/acceptance/` before requesting any rerun, then use
+  one blocking watch per active run. Require two green executions of every named
+  Control workflow and the complete Chrome pair. Fetch Chrome root metadata only
+  with `.work/post18d/fetch-final-chrome.py RUN`; require all four independent
+  audits, 98 named cases/999wordcells, all92 original round-3 names, frozen runtime
+  and both latency profiles. Save completed shared logs/receipts with
+  `.work/post18d/save-shared-evidence.py LABEL`. Commit each finished step with
+  `[skip ci]` and update this Handover. Keep PR #27 draft; never merge it.
 
 # Post-18d integration — final repetitions pending
 
@@ -79,9 +73,9 @@ remains draft.
   observation wait is unchanged. The gate validates paired samples and rejects
   missing/invalid required metrics; only named sparse diagnostics are optional.
 
-**Verified on final code head `7d9c0b95`:** all 268 Chrome Python tests,
+**Verified on final code head `a4143586`:** all 268 Chrome Python tests,
 373 Node/artifact tests and 316 removal probes pass, with every mutation baseline
-passing. [Commands/results](records/post18d/final-local-7d9c0b95.json). All scoped runtime
+passing. [Commands/results](records/post18d/final-local-a4143586.json). All scoped runtime
 FIXes have SAFE package/security re-checks; the small Mail fixture/shard change
 has a SAFE package review. Focused Linux247 (`43488005234`) passes both installs,
 including 66 destination/context sequences, 27 animated defaults and addendum-f.
@@ -213,10 +207,12 @@ Chrome stays120-minute containers/130-minute jobs.
 Both scoped [package](BUILD-POST18D-MAIL-BUDGET-REVIEW.md) and
 [security](BUILD-POST18D-MAIL-BUDGET-SECURITY.md) budget reviews are SAFE.
 
-**Still required:** a new final head and all required local/CI repetitions. No run is currently in flight; no final green or ready claim. Earlier complete Mail
+**Current candidate:** `a4143586`, full local preflight green. All six required
+workflow runs are active ([inventory](records/post18d/final-a4143586-runs.json));
+the four shared workflows repeat after success. No final green or ready claim. Earlier complete Mail
 diagnostic `43513676712` passes 12/12 jobs, longest 54m53s, within its 60-minute
 budget ([receipt](records/post18d/mail-43513676712.json)). Chrome ledger remains
-**253 / about 280**; the next final code push starts two more (planned 255).
+**255 / about 280**, including the current normal push/PR pair.
 Report before exceeding 280.
 
 The latest main merge changes no Control source, generated tools or Control
