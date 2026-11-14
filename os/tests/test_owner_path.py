@@ -1116,7 +1116,13 @@ class OwnerPathTest(unittest.TestCase):
                       pass_line('reboot'), '**Bazzite**', '(INSTALL-PROCEDURES.md#recovery-menu)',
                       'take the row your last title named for the AresOS that ran before the update',
                       '**Boot menu after the update finishes at shutdown (expected):**', 'or the old AresOS returns by itself',
-                      'Whatever started, and however', '`' + commands['check'] + '` **first**, never previous before it',
+                      'Whatever started, and however', 'check comes **first**, never previous before it',
+                      # Review 5: a check just run keeps its result; otherwise check now; anything else → Help.
+                      "If you came here from a check you just ran (the update route's check box or misbehaves box, "
+                      "or the boot menu), use that check's result", '**was not applied** shows only once',
+                      '`' + commands['check'] + '` now', 'Then go by what that check shows',
+                      '- Any other result, also a check with none of these lines: do **not** run previous; '
+                      '**STOP → go to [Help](INSTALL-REFERENCE.md#help)**',
                       '**Previous AresOS queued for the next start**', '**Return to … confirmed after the restart**',
                       '**newer AresOS … runs and starts next**', 'with that confirmation in your record',
                       '**this start was not the default**', 'the AresOS from before the update starts again',
@@ -1152,11 +1158,12 @@ class OwnerPathTest(unittest.TestCase):
         route = section(texts['INSTALL.md'], UPDATE)
         applied = next(line for line in route.splitlines() if line.startswith('  - **Update to … was not applied'))
         self.assertIn('Do **not** run previous (it would go one release further back)', applied)
+        self.assertIn("(EMERGENCY.md#failed-or-bad-update) with this check's result (it shows only once)", applied)
         misbehaves = next(line for line in route.splitlines() if line.startswith('- [ ] **If the new release misbehaves**'))
         for value in ('`' + commands['check'] + '` first', 'Run previous only on the newer release this route installed',
-                      '**Update to … confirmed after the restart**', '**newer AresOS … runs and starts next**',
-                      'with that confirmation in your record', '**was not applied**', '(EMERGENCY.md#failed-or-bad-update)',
-                      'never previous'):
+                      '**Update to … confirmed after the restart**', 'check shows **newer AresOS … runs and starts next**',
+                      'with that confirmation in your record', '**was not applied**',
+                      "(EMERGENCY.md#failed-or-bad-update) with this check's result", 'never previous'):
             self.assertIn(value, misbehaves)
         # The procedures say what works now with three installed systems.
         menu = section(texts['INSTALL-PROCEDURES.md'], 'recovery-menu')
@@ -1166,8 +1173,12 @@ class OwnerPathTest(unittest.TestCase):
                       '(#back-to-aresos-from-stock)', 'Never rollback from plain Bazzite', '**Expected exact stock/AresOS pair**',
                       'Install the current tools first', 'A failed **first** switch boot', '**Windows → Help**',
                       'that check comes first after any boot-menu choice', '**Update to … was not applied**',
-                      'previous would then go one release further back', '(EMERGENCY.md#failed-or-bad-update)'):
+                      'previous would then go one release further back',
+                      "(EMERGENCY.md#failed-or-bad-update) with that check's result (it shows only once)"):
             self.assertIn(value, menu)
+        for text in (card, route, menu):
+            self.assertNotIn('first line says', text)
+            self.assertNotIn("check's first line", text)
         layout = section(texts['INSTALL-PROCEDURES.md'], 'later-layout').split('### Layout revert', 1)[0]
         for value in ('**Each installed system keeps its own layout**', 'a running AresOS that starts next',
                       "**Plain Bazzite keeps the installer's German layout: no layout trial here**",
@@ -1257,6 +1268,61 @@ class OwnerPathTest(unittest.TestCase):
         self.assertEqual(traced, 4 * 6 + 4 + 3 * 3)
         # The revert: review 4's case, an update from three installed systems whose finish was lost.
         self.assertEqual(wrong_before, [(('27', '13', 'S'), '28', 'power-off', '13')])
+
+    def test_failed_update_card_keeps_the_result_of_a_check_just_run(self):
+        """Review 5, finding 2: the update route's check box and misbehaves box and the boot menu run check,
+        then link to the card. That check shows "Update to … was not applied" once (rule 5 archives the
+        journal); a second check shows no update line. The card uses the check just run and sends any result
+        it does not name to Help, never previous. Traced for every staged update, both ends of its shutdown
+        and every boot-menu row, review 5's sequence (finish lost, the titled row boots 13) among them."""
+        import ways_back_ledger as ledger
+        commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
+        card = section(documents()['EMERGENCY.md'], 'failed-or-bad-update')
+        entry = card[:card.index('\n- ')]
+        positions = [entry.index(value) for value in ('If you came here from a check you just ran', "use that check's result",
+                     'a second check no longer shows it', 'Otherwise', '`' + commands['check'] + '` now')]
+        self.assertEqual(positions, sorted(positions))
+        quotes = {'in-place-not-started': '- **Update to … is in place and has not started yet**',
+                  'target-boot-confirmed': '- **Update to … confirmed after the restart**',
+                  'not-applied': '- **Update to … was not applied**', 'none': '- Any other result'}
+        branch = {outcome: next(line for line in card.splitlines() if line.startswith(quote)) for outcome, quote in quotes.items()}
+        self.assertNotIn(commands['previous'], branch['not-applied'])
+        self.assertNotIn(commands['previous'], branch['none'])
+        self.assertIn('**STOP → go to [Help](INSTALL-REFERENCE.md#help)**', branch['none'])
+        self.assertLess(card.index(branch['not-applied']), card.index(branch['none']))
+
+        traced = collections.Counter()
+        for start in ledger.starts():
+            staged = ledger.transition(start, ('update', 'full')).state
+            if not staged.stage:
+                continue
+            for finish in ('restart', 'power-off'):
+                rows = (staged.stage, staged.running, 'S') if finish == 'restart' else staged.rows[1:]
+                for choice in ('default', *rows):
+                    with self.subTest(start=start.rows, bundle=start.bundle, finish=finish, choice=choice):
+                        booted = ledger.transition(staged, (finish, choice)).state
+                        shown = booted.outcome()  # what the linked page's check shows
+                        checked = ledger.transition(booted, ('check', 'full')).state
+                        again = checked.outcome()  # what a second check would show
+                        if shown != 'not-applied':
+                            self.assertEqual(again, shown if shown == 'in-place-not-started' else 'none')
+                            traced[shown] += 1
+                            continue
+                        self.assertEqual(again, 'none')  # shown once
+                        # With the result kept: no previous; a restart with no choice where another row runs.
+                        end = checked if booted.running == booted.rows[0] else ledger.transition(checked, ('restart', 'default')).state
+                        self.assertEqual((end.running, end.rows[0]), (staged.running, staged.running))
+                        traced['not applied, kept'] += 1
+        # Every lost finish (13) is a "not applied" whose second check would show nothing the card names.
+        self.assertEqual(traced, collections.Counter({'not applied, kept': 13, 'target-boot-confirmed': 8,
+                                                      'in-place-not-started': 8}))
+        # Review 5's sequence: release 28's finish lost, the provisional title's (ostree:1) boots 13.
+        start = next(s for s in ledger.starts() if s.bundle == '28' and s.rows == ('27', '13', 'S'))
+        booted = ledger.transition(ledger.transition(start, ('update', 'full')).state, ('power-off', '13')).state
+        self.assertEqual((booted.running, booted.rows[0], booted.outcome()), ('13', '27', 'not-applied'))
+        checked = ledger.transition(booted, ('check', 'full')).state
+        self.assertEqual(checked.outcome(), 'none')
+        self.assertEqual(ledger.transition(checked, ('restart', 'default')).state.running, '27')
 
     def forward_box(self, texts):
         """The box "Forward again, or back from plain Bazzite" and its dispatch on check's running line."""
