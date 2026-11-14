@@ -596,16 +596,45 @@ test('step 5 a rich-text frame counts only once it got input since load',()=>{
   assert.deepEqual(unsavedState(f).fields,['the whole page in design mode (typed by the owner)']);
   const late=fixture([],{watched:false,typing:{gap:false,marks:new Map()}});late.designMode('on');assert.equal(unsavedState(late).unsaved,true,'a late reader');
 });
-test('step 5 plain fields keep their rule, changed from the default, and carry whose typing it is',()=>{
+test('step 5 plain fields count when changed from the default, and carry whose typing it is',()=>{
   const typing={gap:false,marks:new Map()};
   const f=fixture([{attrs:{'aria-label':'Kept'}},{attrs:{'aria-label':'Typed'}}],{typing});const [kept,typed]=f.nodes;
   for(const node of f.nodes)node.defaultValue='safe visible text';
-  typing.marks.set(kept,{owner:false,claude:true});
-  assert.equal(unsavedState(f).unsaved,false,'equal to the default, whoever typed');
-  kept.defaultValue='Saved';typed.defaultValue='Saved';typing.marks.set(typed,{owner:true,claude:false});
+  assert.equal(unsavedState(f).unsaved,false,'equal to the default and nobody typed');
+  kept.defaultValue='Saved';typed.defaultValue='Saved';typing.marks.set(kept,{owner:false,claude:true});typing.marks.set(typed,{owner:true,claude:false});
   assert.deepEqual(unsavedState(f),{unsaved:true,fields:['field "Kept" (typed by Claude)','field "Typed" (typed by the owner)'],claude_only:false,playing:false});
   typing.marks.delete(typed);
   assert.deepEqual(unsavedState(f).fields,['field "Kept" (typed by Claude)','field "Typed" (typed by the owner)'],'a change nobody was seen typing counts as the owner\'s');
+});
+// Step 6: React keeps a controlled field's default (the value attribute,
+// defaultValue) in step with what is typed, so "changed from the default"
+// never sees that typing. A plain field typed since load also counts while it
+// still holds text.
+const holds=(node,text)=>Object.defineProperty(node,'value',{configurable:true,get:()=>text});
+test('step 6 a React-style controlled field typed since load counts while it holds text, marked by who typed it',()=>{
+  const typing={gap:false,marks:new Map()};
+  const f=fixture([{attrs:{'aria-label':'Headline'}},{attrs:{'aria-label':'Story'}},{attrs:{'aria-label':'Untouched'}}],{typing});const [owner,claude]=f.nodes;f.textarea(claude);
+  for(const node of f.nodes)node.defaultValue='safe visible text';
+  assert.equal(unsavedState(f).unsaved,false,'nobody typed and the value is the default: nothing to lose');
+  typing.marks.set(claude,{owner:false,claude:true});
+  assert.deepEqual(unsavedState(f),{unsaved:true,fields:['text area "Story" (typed by Claude)'],claude_only:true,playing:false});
+  typing.marks.set(owner,{owner:true,claude:false});
+  const state=unsavedState(f);
+  assert.deepEqual(state,{unsaved:true,fields:['field "Headline" (typed by the owner)','text area "Story" (typed by Claude)'],claude_only:false,playing:false});
+  assert.doesNotMatch(JSON.stringify(state),/safe visible text/,'labels only, never values');
+  // Typing seen before a release still counts after it.
+  typing.gap=true;assert.deepEqual(unsavedState(f).fields,state.fields);
+});
+test('step 6 a field emptied again is not reported, whoever typed it',()=>{
+  const typing={gap:false,marks:new Map()};
+  const f=fixture([{attrs:{'aria-label':'Headline'}},{attrs:{'aria-label':'Draft'}}],{typing});const [owner,claude]=f.nodes;f.textarea(claude);
+  typing.marks.set(owner,{owner:true,claude:false});typing.marks.set(claude,{owner:false,claude:true});
+  // React's reset, and the latency page's Send: value and default both empty.
+  for(const node of f.nodes){holds(node,'');node.defaultValue='';}
+  assert.deepEqual(unsavedState(f),{unsaved:false,fields:[],claude_only:false,playing:false});
+  // Emptied while the page keeps a saved default is still a change.
+  owner.defaultValue='Saved';
+  assert.deepEqual(unsavedState(f).fields,['field "Headline" (typed by the owner)']);
 });
 test('step 5 Claude\'s own check marks the field as his',()=>{
   const typing={gap:false,marks:new Map()};

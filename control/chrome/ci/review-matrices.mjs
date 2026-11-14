@@ -25,7 +25,7 @@ export async function guardedHandoffClick({rpc,call,target,eventually,receiverEv
   assert.equal(receiverEvidence(id,'first guarded act after handoff').count,1);
 }
 
-export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,ownerKey,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
+export async function reviewMatrices({check,nav,call,rpc,target,read,counts,eventually,approval,receiverEvidence,fixture,getTab,ownerKey,ownerType,ownerChooseFile,admin,ownerNavigate,ownerDismiss,nativeDonor,closeNativeDonor,setTab,lifecycle}){
   await check('GROUP 2 RECHECK Claude timer fires inside the owner Enter mark',async()=>{
     const id='recheck-owner-overlap';await nav('review-page&mode=owner-overlap&id='+id);
     const pending=call('click',await target('Continue'));
@@ -321,6 +321,41 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
         const moved=await rpc('navigate',{tab,url:next,...(mode==='typed-by-claude'?{discard_unsaved:true}:{})});assert.equal(moved.ok,true,JSON.stringify(moved));
         await eventually(()=>counts('loaded-'+id+'-next')===1,'editor '+mode);
       }finally{await call('close_tab',{tab,discard_unsaved:true});setTab(main);}
+    }
+    // Step 6: a React-style controlled field keeps its default in step with
+    // what is typed. Typing there still counts while the field holds text,
+    // marked by who typed it, and no longer once the page empties it again.
+    {
+      const id='final-discard-react-typed-by-claude',next='http://fixture.test:8765/?case=take-state&id='+id+'-next&mode=clean';
+      const opened=await call('open',{url:'http://fixture.test:8765/?case=take-state&id='+id+'&mode=react'}),tab=opened.untrusted_content?.tab??opened.tab;
+      await eventually(()=>counts('loaded-'+id)===1,'Claude tab loaded');setTab(tab);
+      try{
+        await call('fill',{...await target('Headline'),text:'Claude headline'});
+        await eventually(()=>counts('react-synced-'+id)>=1,'the page kept the default in step with Claude\'s typing');
+        const first=await rpc('navigate',{tab,url:next});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
+        assert.match(first.error.message,/Navigating this tab away would lose unsaved typing in field "Headline" \(typed by Claude\)\. Nothing was done\. All of it is Claude's own typing/);
+        assert.doesNotMatch(first.error.message,/Claude headline/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
+        // The page empties value and default, as React does on a reset.
+        await call('click',await target('Continue'));await eventually(()=>counts('react-reset-'+id)===1,'the page emptied the field');await delay(600);
+        const moved=await rpc('navigate',{tab,url:next});assert.equal(moved.ok,true,JSON.stringify(moved));
+        await eventually(()=>counts('loaded-'+id+'-next')===1,'a field emptied again needs no flag');
+      }finally{await call('close_tab',{tab,discard_unsaved:true});setTab(main);}
+    }
+    {
+      // The owner's own trusted typing, in a taken tab after its guarded
+      // reload, so the guard has watched the document from its start.
+      const id='final-discard-react-typed-by-owner',next='http://fixture.test:8765/?case=take-state&id='+id+'-next&mode=clean',tab=getTab();
+      await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode=react');
+      await eventually(()=>counts('loaded-'+id)===1,'owner page loaded');await call('take_tab',{tab});
+      const reloaded=await rpc('navigate',{tab,direction:'reload',discard_unsaved:true});assert.equal(reloaded.ok,true,JSON.stringify(reloaded));
+      await eventually(()=>counts('loaded-'+id)===2,'watched reload');await delay(500);
+      ownerType('Owner headline');
+      await eventually(()=>fixture.arrivals.some(row=>row.url==='/receive?case=react-synced-'+id&&row.body==='trusted'),'the owner\'s trusted typing reached the React-style field');await delay(300);
+      const first=await rpc('navigate',{tab,url:next});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
+      assert.match(first.error.message,/Navigating this tab away would lose unsaved typing in field "Headline" \(typed by the owner\)\. Nothing was done\. Tell the owner/);
+      assert.doesNotMatch(first.error.message,/Owner headline/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
+      const moved=await rpc('navigate',{tab,url:next,discard_unsaved:true});assert.equal(moved.ok,true,JSON.stringify(moved));
+      await eventually(()=>counts('loaded-'+id+'-next')===1,'the flag moves on');
     }
   });
   await check('GROUP 8 REVIEW script-started POST documents in tabs and popups never reload',async()=>{

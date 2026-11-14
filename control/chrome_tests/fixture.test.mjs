@@ -151,3 +151,36 @@ test('recheck3 full mixed matrix and activation whitespace fixtures compile with
   const urls=[...[...[...mixedRows()],...browserMixes().filter(row=>row.foreign)].map(row=>({...row,mode:'mixed',root:row.mode,foreign:row.foreign?1:0,adopted:row.adopted?1:0,id:'mixed'})),...defaultRows().map(row=>({mode:'activation-default',...row})),...whitespaceKinds.flatMap(kind=>['indent','line'].map(change=>({mode:'compose-whitespace',kind,change,id:'space'})))];
   for(const row of urls){const page=recheck3Page(new URL('http://fixture.test/?'+new URLSearchParams(row)));new vm.Script(page.script);assert.ok(page.body);}
 });
+
+// Step 6: the page script of a fixture page, run against small stand-ins.
+const pageScript=html=>html.slice(html.lastIndexOf('<script>')+8,html.lastIndexOf('</script>'));
+test('step 6 the latency page Send empties the draft value and default, so the measured navigate passes no flag',async()=>{
+  const fixture=await fixtures({port:0,secondPort:0});
+  try{
+    const html=await(await fetch('http://127.0.0.1:'+fixture.port+'/?case=latency&id=fresh:0')).text();
+    const draft={value:'Synthetic latency draft fresh:0',defaultValue:'Synthetic latency draft'},buttons=[{},{}],sent=[];
+    vm.runInNewContext(pageScript(html),{document:{querySelectorAll:()=>buttons,querySelector:selector=>{assert.equal(selector,'textarea');return draft;}},navigator:{},fetch:(...args)=>{sent.push(args);return Promise.resolve();}});
+    buttons[1].onclick();
+    assert.equal(sent.length,1);assert.equal(sent[0][1].body,'Synthetic latency draft fresh:0','Send posts the draft first');
+    assert.deepEqual(draft,{value:'',defaultValue:''},'value and default are both empty after Send, in both runtimes');
+  }finally{fixture.close();}
+  const probe=fs.readFileSync('control/chrome/ci/latency-probe.mjs','utf8');
+  assert.match(probe,/measure\(sample,'navigate',\(\)=>call\('navigate',\{tab:getTab\(\),url\}\)\)/,'the measured navigate passes no discard_unsaved');
+  assert.doesNotMatch(probe,/discard_unsaved/);
+});
+test('step 6 the React-style take-state field keeps its default in step and Continue empties both',async()=>{
+  const fixture=await fixtures({port:0,secondPort:0});
+  try{
+    const html=await(await fetch('http://127.0.0.1:'+fixture.port+'/?case=take-state&id=react-row&mode=react')).text();
+    assert.match(html,/<select aria-label="Draft"><option selected>Saved<\/option><\/select><input aria-label="Headline" autofocus>/);
+    let onInput,focused=false;const sent=[],cont={},play={};
+    const headline={value:'',defaultValue:'',addEventListener:(type,listener)=>{assert.equal(type,'input');onInput=listener;},focus:()=>{focused=true;}};
+    vm.runInNewContext(pageScript(html),{document:{querySelector:selector=>({'[aria-label=Headline]':headline,'#continue':cont,'#play':play})[selector]??{}},fetch:url=>{sent.push(url);return Promise.resolve();}});
+    assert.equal(focused,true,'the owner types straight into it');
+    headline.value='Typed headline';onInput({isTrusted:true});
+    assert.deepEqual({value:headline.value,defaultValue:headline.defaultValue},{value:'Typed headline',defaultValue:'Typed headline'},'value and default in step, as React keeps them');
+    assert.ok(sent.includes('/receive?case=react-synced-react-row'));
+    cont.onclick();
+    assert.deepEqual({value:headline.value,defaultValue:headline.defaultValue},{value:'',defaultValue:''});assert.ok(sent.includes('/receive?case=react-reset-react-row'));
+  }finally{fixture.close();}
+});

@@ -539,10 +539,11 @@
         else if(element.isContentEditable){if(element.parentElement?.isContentEditable)continue;changed=!sinceLoad||gotInput(element);}
         else if(html(element,HTMLSelectElement,'select'))changed=[...element.options].some(option=>option.selected!==option.defaultSelected);
         else if(['checkbox','radio'].includes(element.type))changed=element.checked!==element.defaultChecked;
-        // Changed from the page's default. A page that moves the default
-        // along with typing (React does for controlled fields) hides typing
-        // from this rule; see PROGRESS.md, for the lead.
-        else changed=element.value!==element.defaultValue;
+        // Changed from the page's default, or typed since load and still
+        // holding text. A page that moves the default along with typing
+        // (React does for controlled fields) hides typing from the first
+        // rule; a field emptied again holds nothing of anyone's.
+        else{const value=element.value;changed=value!==element.defaultValue||gotInput(element)&&value!=='';}
         if(changed)add(unsavedLabel(element),element);
       }
     }

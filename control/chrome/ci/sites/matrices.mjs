@@ -8,7 +8,7 @@ export async function siteMatrices({call,read,nav,target,counts,eventually,tab,f
   if(process.platform!=='linux'||process.env.GITHUB_ACTIONS!=='true'||!fs.existsSync('/.dockerenv'))throw Error('Adapter browser cases run only in GitHub Linux containers');
   const results=[];let serial=0;
   const state=result=>result.approval.description.untrusted_content.page_state;
-  const fresh=async(site,extra='',port=8765)=>{const id='adapters-'+site+'-'+(++serial);if(port===8765)await nav('adapter-sites&id='+id+extra,site);else{const url='http://'+site+'.test:'+port+'/?case=adapter-sites&id='+id+extra;await call('navigate',{tab,url});await eventually(async()=>{const page=await call('read',{tab});return page.untrusted_content.url===url&&page.characters>0;},'alternate fixture origin');await delay(250);}return id;};
+  const fresh=async(site,extra='',port=8765)=>{const id='adapters-'+site+'-'+(++serial);if(port===8765)await nav('adapter-sites&id='+id+extra,site);else{const url='http://'+site+'.test:'+port+'/?case=adapter-sites&id='+id+extra;await call('navigate',{tab,url,discard_unsaved:true});await eventually(async()=>{const page=await call('read',{tab});return page.untrusted_content.url===url&&page.characters>0;},'alternate fixture origin');await delay(250);}return id;};
   const receiver=(id,label='Send',compose='main')=>id+':'+label+':'+compose;
   const evidence=(id,phase)=>{const row={id,phase,count:counts(id),arrivals:fixture.arrivals.filter(row=>new URL(row.url,'http://fixture.test').searchParams.get('case')===id)};fs.appendFileSync('/out/adapters-receiver.jsonl',JSON.stringify(row)+'\n');return row;};
   async function check(name,fn) {
