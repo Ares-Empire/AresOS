@@ -720,13 +720,27 @@ How the icon becomes blocks (`docs/design/HUB.md`, section 3.6):
   picture that is not square stands in the middle, on the ground.
 - A small figure on a plain plate (a face on a disc, a moon on a tile) is
   enlarged, and the plate's colour fills the whole 12 × 12.
-- Each cell is one kind of block, three blocks deep, picked from 60 blocks: the
-  wall's 48 plus red mushroom block, emerald, lapis, amethyst, snow, iron,
-  polished diorite, smooth stone, smooth sandstone, honeycomb, prismarine bricks
-  and blue ice. The nearest block is found in the Oklab colour space with
-  lightness counted half, so a bright red stays red. The colours are averages
-  measured from the game's own textures (`./gradlew measureBlockColours` prints
-  them); only the numbers are in this repo.
+- The logo is built from the icon's few main colours (up to six), one kind of
+  block for each, three blocks deep. A cell takes the main colour that covers
+  most of it, never a mix of two, so an edge is clean; a thin line of another
+  main colour is kept as a line one cell wide, and a speck smaller than a cell
+  is left out. An icon with more than six main colours (a photo, many hues)
+  keeps a colour of its own in each cell.
+- The blocks are picked from 60: the wall's 48 plus red mushroom block,
+  emerald, lapis, amethyst, snow, iron, polished diorite, smooth stone, smooth
+  sandstone, honeycomb, prismarine bricks and blue ice. The nearest block is
+  found in the Oklab colour space with lightness counted half, so a bright red
+  stays red. Plain blocks first: where a spotted, framed or bricked block is
+  the nearest, the plain block nearest to it is built in its place (red wool
+  for the red mushroom block, lime wool for emerald, white concrete for iron);
+  only amethyst and prismarine bricks have no plain block near them and are
+  still built. The colours are averages measured from the game's own textures
+  (`./gradlew measureBlockColours` prints them); only the numbers are in this
+  repo.
+- These are the rules of converter 2 (package 39). A town logo that an older
+  converter drew is drawn again where it stands, the next time the town runs;
+  a gate built with `/aresos logo` keeps its blocks until it is removed and
+  built again.
 - The doorway is cut out. Its back is black concrete, and so are the posts
   beside it and the bar above it wherever the icon has no block there.
 - An app without a readable icon gets a plain front in its group's colour.
