@@ -1,29 +1,26 @@
 <!-- POST18D CURRENT START -->
 # Handover
 
-- **Round:** the lead's decision after run `43620235847` (mac-aresos-control, 2026-11-14): a new Claude tab group is
-  created in the taken tab's own window, never the focused one. "Group in the tab's own window" below has the bug, the
-  fix, the test, the probes and the run. The gate change and the popup rows before it are in "Gate: old runtime at 20;
-  popup rows".
-- **Verify run passed.** Run **`43626497829`** (`6e8cf12b`): **all 28 jobs passed**, both aggregates with their four
-  independent audits (round 3's 92 named cases among 98 named passes, group 12, the 999-cell word matrix, the latency
-  profiles; the local re-run of the audit on the downloaded metadata agrees in both installs). The popup rows passed in
-  both installs on the path the extension recorded: `typed-early` document start, `typed-late` late (its re-take of
-  the opener, made with the owner's popup focused, now succeeds), `typed-clean` late.
-- **Next: both reviewers re-check the gate change, the popup rows and the group fix; then the final pair** (and every
-  Control workflow twice).
-- **Latency in run `43626497829`** (worst of both profiles, median / p95 ms against the ceilings): no stat over a
-  ceiling and both gates passed. At 4,000: read 22.6 / 24.4 against 35 / 60, navigate 67.0 / 71.3 against 100 / 150,
-  free_click 593.0 / 599.3 and fill 589.9 / 592.8 against 650 / 750, asking_click 35.5 / 39.7 against 60 / 100,
-  approval_to_done 610.2 / 625.0 against 700 / 850. Runner factors plain 1.29 / 1.12 / 1.08, instrumented 0.87 / 0.99
-  / 0.99 (fresh / 1,000 / 4,000). Latency jobs **12.3 and 11.2 minutes**. Records:
-  [`records/group-window/`](records/group-window/).
-- **Heads:** the fix `53ecc91b`, run head `6e8cf12b` (the preflight record). The full local preflight passes on
-  `53ecc91b`: **305 Python, 428 Node and 461 mutations** (Python shards 53/56/49/147; the Linux-only socket case is
-  skipped on the Mac and passed in CI), every baseline passing, plus the generator, diff and exact-unit checks
-  ([record](records/group-window/final-local-53ecc91b.json)). After the run: `9551a0f4` strips a trailing space in
-  two preflight logs (the package re-check's note), then the receipts and this report.
-- **Budget:** **266 / about 280** `control-chrome.yml` runs (this step used one: `43626497829`).
+- **Round:** the lead's four questions after the final-pair push run `43631476260` (mac-aresos-control, 2026-11-14):
+  one shard failed the POST popup row. "POST popup admission" below has the event order with its evidence, whether the
+  product can hit it (it can), the part of `53ecc91b` (none), the security answer (plainly uncontrolled, nothing
+  half-admitted, one POST), the fix, the lead's fail-closed item (how the live context is learned, where admission
+  fails closed), its tests and probes. The group fix and the gate change are in the sections after
+  it.
+- **The final pair on `662e813a`:** the push run `43631476260` failed only `fixtures (external, recheck2)` at
+  `popups.mjs:150` ("POST popup private group"), so `aggregate (external)` stopped; every other job passed. The
+  pull-request run `43631483821` of the same head passed everything, the POST popup row in both installs. One failure
+  in four installs on identical code: the race in "POST popup admission".
+- **Next: the same two reviewers re-check the POST popup fix; then a new final pair** (and every Control workflow
+  twice).
+- **Heads:** the fix `0347b548` (`lateReader` forgets a context the renderer reports missing) and the lead's fail-closed
+  item `6066468b` (a forgotten frame must end covered by a live, recorded document, or the admission fails and leaves
+  nothing); four background tests, three probes. The full local preflight passes on `6066468b`: **305 Python, 432 Node and 464 mutations** (Python shards 53/56/49/147; the Linux-only socket case is skipped on the Mac and passed in CI; the two Mail `enospc_then_unlink_eio` tests passed here this time), every baseline passing, plus the generator, diff and exact-unit checks
+  ([record](records/post-popup/final-local-6066468b.json)). Earlier: the group fix `53ecc91b`, run head `6e8cf12b`.
+- **Budget:** **268 / about 280** `control-chrome.yml` runs (the final pair used two: `43631476260`, `43631483821`).
+  No run in this step.
+- **Latency in run `43631476260`:** both latency jobs passed; the receipts were not re-read in this step. The last
+  recorded table is run `43626497829` under "Group in the tab's own window".
 - **For linux-tools at merge:** the 4,096-character rule for every app's tool instructions ("Latency gate: 60
   samples"); the lead passes it on.
 - **For linux-aresos at merge:** install `control/chrome/packaging/org.aresos.control.chrome-loosen.policy` at
@@ -31,9 +28,140 @@
   linux-tools' 18c-b image test. **For linux-tools' 18c-b image:** the plan and timing tests
   (`control/chrome_tests/test_full_disk_reads.py`, `test_open_index_timing.py`) must also pass on AresOS's own SQLite
   (see "Step 7", SQLite versions).
-- **Earlier heads:** `07c05de0` failed run `43620235847` (`typed-late`, which led to this fix); `b3d6e4f2` failed run
-  `43613647256` (the `typed-clean` race); fixes b's `e654baff` failed run `43603381599`; the final fixes round's
-  `f4a3fba9` passed everything in run `43593989287`. Never merge the PR or main, and never force-push.
+- **Earlier heads:** `662e813a` failed one shard of run `43631476260` (the POST popup race, this step); `6e8cf12b`
+  passed run `43626497829` (all 28 jobs); `07c05de0` failed run `43620235847` (`typed-late`, which led to the group
+  fix); `b3d6e4f2` failed run `43613647256` (the `typed-clean` race); fixes b's `e654baff` failed run `43603381599`;
+  the final fixes round's `f4a3fba9` passed everything in run `43593989287`. Never merge the PR or main, and never
+  force-push.
+
+# POST popup admission (2026-11-14)
+
+Built by a Claude agent (Fable 5.1, chosen for a race in popup admission after several rounds) from the lead's four
+questions after the final-pair push run `43631476260` (mac-aresos-control, 2026-11-14). Fix, tests and probes in
+`0347b548`; the lead's fail-closed item in `6066468b`.
+
+**The failure.** Push run `43631476260` (`662e813a`, the same code as the green run `43626497829`): job
+`fixtures (external, recheck2)` failed the row "GROUP 8 POST popups never resubmit and ordinary openers stay
+untouched" at `control/chrome/ci/popups.mjs:150`, `POST popup private group`: Claude's approved click submitted the
+POST form, the popup opened, and `controlled` never became true. Every other job passed; `aggregate (external)` stopped
+for the missing shard. The pull-request run of the same head, `43631483821`, passed the row in both installs (the
+lead's reading of its logs): one failure in four installs on identical code.
+
+**1. The event order (from the shard's artifact, `browser-boundary.jsonl` lines 18576–18622, with `service.txt`
+18676–18724; the popup is tab `1637225932`, its opener `1637225930`):**
+1. `Page.windowOpen` on the opener (`about:blank`, name `popup-popup-post`); the popup's first document commits
+   (`navigation_method` tab 1637225932, `link`, GET: the initial `about:blank`). `createdTarget` starts the admission:
+   `chrome.debugger.attach`, `controlled.set`, `initializeTab` → `prepareTarget`.
+2. `Page.enable` (750) and `Page.getFrameTree` (751, url `about:blank`) complete. `Debugger.enable` (752) replays
+   `Debugger.scriptParsed` for the extension's `context.js` in **context 7, scriptId 29**: the popup's `about:blank`
+   lives in the opener's renderer (script ids in the twenties, the opener's), so this is the extension's isolated world
+   of the first document. `prepareTarget` records context 7.
+3. `Debugger.setBreakpointByUrl` (753) is dispatched. Before it returns, the POST document commits
+   (`navigation_method` 1637225932, `form_submit`) **in a new renderer**: `Debugger.scriptParsed` for `context.js` in
+   **context 2, scriptId 3**, the page's own script in context 1 (scriptId 4), then `Page.domContentEventFired`,
+   `Page.loadEventFired`, `Page.frameStoppedLoading`. The breakpoint response names scriptId 3, the already-run
+   `context.js`, so the new document got no document-start pause (the late path, as designed for popups:
+   `popupNeedsReload:true`).
+4. **No `Page.frameNavigated`, `Page.frameStartedNavigating`, `Runtime.executionContextsCleared` or
+   `executionContextDestroyed` arrived for the popup's main frame** (none in the log for this tab, while every other
+   protocol event was recorded; the Runtime domain is deliberately not subscribed). So `state.contexts` kept the dead
+   context 7 beside the live context 2.
+5. `Target.setAutoAttach` (754) completes; `lateReader` runs: `chrome.scripting.executeScript` of `guard.js` and
+   `reader.js` into the new document (scriptParsed, context 2, scriptIds 5 and 6), `set_control` answered
+   (`{"ok":true,"data":{"controlled":true}}`). Then its loop over `state.contexts`, in insertion order, evaluates the
+   guard factory in **context 7 first: `Runtime.evaluate` (755) fails** with `Cannot find context with specified id`.
+6. `targetCommand` throws, `lateReader` throws, `initializeTab`'s race rejects, `admitTab`'s catch runs `release`
+   (`released` for tab 1637225932; cleanup evaluate 756 in context 7 fails the same way, `cleanup_context`
+   `native_context_missing`; 757 disposes the guard in context 2, `true`; `Debugger.disable` 758; detach). `createdTarget`
+   reports `reader_error: Cannot find context with specified id`. No `popup_admitted` line is written; the `tabs`
+   listing shows the popup `controlled:false` in its own popup window from then on (`tool.jsonl` 959–992).
+
+**The passing counterpart** (the pull-request run's external shard, saved by the lead, same row): the POST document
+had already committed before `Page.enable` (749); `Debugger.enable` (751) replayed only the new renderer's `context.js`
+(context 2, scriptId 3) and the page script, the late reader evaluated context 2 and the popup was admitted. So the
+race is whether `Debugger.enable` lands while the popup still shows its first document in the opener's renderer; when
+it does, the renderer swap that follows leaves a context the extension never hears the end of.
+
+**2. The product can hit it.** Everything in the order above is the extension's own path: `createdTarget` →
+`take` → `admitTab` → `initializeTab` → `prepareTarget` → `lateReader`. Any popup Claude's click opens starts as
+`about:blank` in the opener's renderer and moves to another renderer when its cross-site document commits (a form or
+link with a named or `_blank` target to another site, a `window.open` to another site). The harness only supplied the
+timing. `take_tab` of a tab mid-navigation and `open` followed by a cross-site navigation share the late reader, so the
+same flaw would end those admissions too.
+
+**3. `53ecc91b` plays no part.** The POST popup is a `virtualGroup` popup: `admitTab` makes no group call for it, and
+no group state is read on its path. Its opener `1637225930` was created by `open` after the previous row's `close` case
+(group `758625815`, which `groupId` held unchanged through the row); the previous row's re-take after `release` happened
+one case earlier and finished (`take_tab` returned the group). The error is `Cannot find context with specified id`,
+not a group or window error; no `stale_reference: tab is outside the Claude group` appears; the opener stayed in its
+normal window and the popup in its own popup window (`tool.jsonl` 959: windows 1637225834 and 1637225933).
+
+**4. Security: the popup was left plainly uncontrolled, nothing half-admitted, nothing resubmitted.** `admitTab`
+fails only through `release(tab)` (`controlled.get(tab)===original`), which the artifact shows running to the end:
+`controlled` no longer holds the popup, the injected guard was disposed (757, `true`), the reader's control cleared, the
+debugger disabled and detached, the network rules recomputed for the opener alone (`session_network_rules` 18620),
+the opener's badge back to `ON` with `popups: []` (`control-status.json`), `cleanup_pending:false` in every later
+`tabs` listing. No action was possible through the tool: `controlled:false` makes every call on the popup fail its
+`requireTab`. The POST was sent exactly once (`receiver.jsonl`: one `/post-document?case=popup-post`;
+`page-receiver.jsonl`: count 1 before and after). The admission was all-or-nothing in this run; a Node test now pins
+that (below). The one transient state, `controlled` holding the popup between `controlled.set` and the failure, is the
+admission itself: `take` dedups through `admissions`, and a call in that window waits on `pendingSetup` and fails with
+it.
+
+**The fix** (`control/chrome/extension/background.js`, `lateReader`): the guard-factory `Runtime.evaluate` is wrapped;
+when it fails with `Cannot find context with specified id` (`nativeContextMissing`, the rule release's cleanup already
+applies: a rejected native lookup proves a destroyed realm even without its destruction event), the context is forgotten
+(`state.contexts.delete`, its documents dropped, `contextChanged`), audited as `late_reader_context`
+`native_context_missing` while recording, and the loop reads on. Any other error still ends the admission. One place
+covers every path (popup auto-attach, `take_tab`, `open`, re-take, `recoverOwnerDialog`, `requireTab`'s retry): they
+all go through `lateReader`. Forgetting a dead context cannot hide a live document: a live document whose context is
+unknown is `!isPreloaded` → `needs_reload`, and a popup reloads or refuses before its first act (`popupNeedsReload`).
+Release's own missing-context line is unchanged (its P27 probes still apply). The harness is unchanged.
+
+**How the live context is learned, and where admission fails closed** (the lead's item, `6066468b`). The Runtime
+domain is deliberately not subscribed, so the extension learns a context only from the renderer's own
+`Debugger.scriptParsed` for the extension's scripts in an isolated world (`preloadEvent`): the new document's
+`context.js` (in the run: context 2, scriptId 3, replayed while `setBreakpointByUrl` was in flight) or the `guard.js`
+and `reader.js` that `lateReader` has just injected into every live frame with `chrome.scripting.executeScript` (in the
+run: scriptIds 5 and 6, context 2). The injection is the second, independent way: it makes the live renderer report its
+isolated world even when `context.js`'s event was missed. `lateReader` now keeps the frames whose dead context it forgot
+(`forgotten`, by the CDP frame id, which the artifact shows stable across the swap: contexts 7 and 2 both carry frame
+`4855E56C457EF028289FDDC1DD4636B2`) and, after the loop, requires each of them to be covered by a recorded document
+whose isolated context is live and belongs to that frame. If not, it throws
+`refused: a document of this tab left its renderer during admission and its replacement is unread; take the tab again`,
+so `initializeTab` rejects, `admitTab` releases, and nothing stays: not attached, not grouped, no guard state (the
+injected reader gets `clear`), no admission or install record. "No context left after forgetting" never counts as "read
+everything". A re-take then learns the live context from `Debugger.enable`'s replay, as the passing run did.
+
+**Tests** (`control/chrome_tests/background.test.mjs`, `swappedPopupFixture`: a scripted debugger that replays the
+order above: `Debugger.enable` reports `context.js` in context 7, `setBreakpointByUrl` reports the new renderer's
+context 2 and page script, no frameNavigated; context 7 answers `Cannot find context with specified id`; two switches
+hide the new renderer's replay and let the injected guard report its own `scriptParsed`):
+- `post-popup a dead context from the popup's first renderer is forgotten and the live document is admitted late`:
+  the real `createdTarget` admits the popup (`virtualGroup`, `popupNeedsReload`), one `late` install record for the live
+  document, context 7 forgotten and context 2 kept, the dead context tried once then the live one, the audit lines
+  `late_reader_context` and `popup_admitted`, no `reader_error`, no release, no detach, no group, badges `POP` on the
+  opener and `ON` on the popup. **On the old code it fails** ("the popup is controlled": the admission was released).
+- `post-popup any other late-reader error still ends the admission, and a failed admission leaves nothing behind`:
+  the dead context's first lookup fails another way (`Inspected target navigated or closed`); the admission ends,
+  the opener keeps control, `admissions` and `releasing` are empty, no target state or install record remains, the
+  injected guard is disposed in the live context, the reader gets `clear`, `Debugger.disable` and detach run, never a
+  group, `released` for the popup, `reader_error` with the error, the opener's badge back to `ON`.
+- `post-popup no live context after forgetting the dead one fails the admission closed, with nothing left behind`
+  (the lead's case): the new renderer's `context.js` event never comes and the injection reports nothing; the dead
+  context is tried once and forgotten, the admission fails with the `unread` refusal, and the same nothing-left-behind
+  checks hold (not controlled, no admission or target state, reader cleared, `Debugger.disable` and detach, never a
+  group, `released`, no `popup_admitted`). **On `0347b548` it fails**: the admission succeeded with no document.
+- `post-popup the live context is also learned from the injected guard's own scriptParsed when context.js's never
+  came`: with the replay hidden, the injection's `guard.js` and `reader.js` events in context 2 are enough: admitted,
+  one late record, only context 2 kept.
+
+**Probes (all three rejected):** `post-popup-dead-context-ends-admission` (the old behaviour: every lookup error ends
+the admission), `post-popup-any-error-forgotten` (a context forgotten on any error) and the lead's
+`post-popup-empty-contexts-count-as-read` (an empty context set after forgetting passes as read).
+
+**Runs:** none in this step, as the brief requires; the new final pair is the verification. Browser test runs used:
+268 of about 280 (`43631476260` and `43631483821` were the final pair).
 
 # Group in the tab's own window (2026-11-14)
 
