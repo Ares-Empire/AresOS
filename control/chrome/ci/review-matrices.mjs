@@ -274,7 +274,10 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
       const id='final-discard-close-tab-'+mode,opened=await call('open',{url:'http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode}),tab=opened.untrusted_content?.tab??opened.tab;
       await eventually(()=>counts('loaded-'+id)===1,'Claude tab loaded');setTab(tab);
       try{
-        if(mode==='web-audio'){await call('click',await target('Play media'));await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
+        // The owner starts the sound, as in every other Web Audio row (run
+        // 43575571819: after Claude's click on "Play media" the page never
+        // reported the AudioContext running; the report here is about close_tab).
+        if(mode==='web-audio'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
         if(mode!=='clean'){
           const first=await rpc('close_tab',{tab});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
           assert.match(first.error.message,mode==='dirty'?/Closing this tab would lose unsaved typing in field "Draft" \(typed by the owner\)\./:/Closing this tab would lose media that is playing\./);assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');
