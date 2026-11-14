@@ -38,8 +38,11 @@ public final class LogoColoursClientGameTest implements FabricClientGameTest {
     private static final String LOOK = System.getenv("ARESOS_LOGO_LOOK");
     private static final List<String[]> REAL = List.of(new String[]{"chrome.png", "Chrome"}, new String[]{"discord.png", "Discord"},
             new String[]{"lunar-client.png", "Lunar Client"});
-    /** Which rules drew the pictures: the ones before this package, kept beside the new ones to compare. */
-    private static final String RULES = "before";
+    /**
+     * Which rules drew the pictures. The two "before" pictures beside these were taken by this test with the rules
+     * of converter 1, in the commit before the rules changed, and are kept to compare.
+     */
+    private static final String RULES = "after";
     private static final int Y = 150, SPACING = GateNumbers.SIZE + 2, ROW = 5;
     private static final double FACE_Z = 15;
 

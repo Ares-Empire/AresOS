@@ -19,28 +19,64 @@ class GatePaletteTest {
         assertTrue(GatePalette.BLOCKS.stream().anyMatch(color -> color.block().equals(GatePalette.BLACK)));
     }
 
-    @Test void everyBlockIsNearestToItsOwnColour() {
-        for (var color : GatePalette.BLOCKS) assertEquals(color.block(), GatePalette.nearest(color.rgb()));
+    @Test void aPlainBlockIsNearestToItsOwnColourAndStandsInForAPatternedOne() {
+        // Plain: the dyed 48, and of the twelve the three with one flat colour.
+        var plain = new java.util.ArrayList<String>();
+        for (var color : GatePalette.BLOCKS) if (GatePalette.plain(color.block())) plain.add(color.block());
+        assertEquals(51, plain.size());
+        assertEquals(java.util.List.of("snow_block", "smooth_sandstone", "blue_ice"), plain.subList(48, 51));
+        // Seven patterned blocks are never built: the plain block nearest to their own colour is (within 0.06).
+        var standIns = Map.of("red_mushroom_block", "red_wool", "emerald_block", "lime_wool", "lapis_block", "blue_concrete",
+                "iron_block", "white_concrete", "polished_diorite", "white_concrete", "smooth_stone", "white_concrete",
+                "honeycomb_block", "yellow_concrete");
+        for (var color : GatePalette.BLOCKS) {
+            String built = standIns.getOrDefault(color.block(), color.block());
+            assertEquals(built, GatePalette.built(color.block()), color.block());
+            assertEquals(built, GatePalette.nearest(color.rgb()), color.block());
+        }
+        // Two keep their place: no plain block is near amethyst's violet or prismarine's sea green.
+        for (String block : new String[]{"amethyst_block", "prismarine_bricks"}) {
+            assertFalse(GatePalette.plain(block));
+            assertEquals(block, GatePalette.built(block));
+        }
+        assertEquals(0.06, GatePalette.PATTERN);
+        assertThrows(IllegalArgumentException.class, () -> GatePalette.plain("stone"));
+        assertThrows(IllegalArgumentException.class, () -> GatePalette.built("stone"));
     }
 
     @Test void referenceColoursKeepTheirHue() {
-        // Pure red and the well-known reds stay red. Plain RGB distance made them orange.
+        // Pure red and the well-known reds stay red, in a plain block: red wool stands in for the spotted red
+        // mushroom block. Plain RGB distance made them orange.
         for (int red : new int[]{0xff0000, 0xea4335, 0xe60023}) {
-            assertEquals("red_mushroom_block", GatePalette.nearest(red));
+            assertEquals("red_wool", GatePalette.nearest(red));
             assertEquals("orange_concrete", LogoPixels.nearest(0xff0000), "the wall's match is not this package's to change");
         }
         var expected = Map.ofEntries(
                 Map.entry(0xfbbc05, "yellow_wool"), Map.entry(0x34a853, "lime_concrete"), Map.entry(0x4285f4, "blue_ice"),
-                // A bright green stays green instead of turning cyan.
-                Map.entry(0x1db954, "emerald_block"), Map.entry(0x25d366, "emerald_block"),
+                // A bright green stays green instead of turning cyan; lime wool stands in for the emerald block.
+                Map.entry(0x1db954, "lime_wool"), Map.entry(0x25d366, "lime_wool"),
                 // No block is this blue-purple; it comes out blue (HUB.md 2.3).
                 Map.entry(0x5865f2, "blue_wool"),
                 Map.entry(0xffffff, "snow_block"), Map.entry(0x000000, "black_concrete"),
-                // A light grey stays grey instead of the pinkish white terracotta.
-                Map.entry(0xc0c0c0, "polished_diorite"), Map.entry(0x808080, "light_gray_concrete"),
-                Map.entry(0xff9900, "honeycomb_block"), Map.entry(0xff6600, "orange_wool"),
+                // A light grey stays grey instead of the pinkish white terracotta; white concrete (a light grey)
+                // stands in for polished diorite.
+                Map.entry(0xc0c0c0, "white_concrete"), Map.entry(0x808080, "light_gray_concrete"),
+                // Yellow concrete stands in for the honeycomb block.
+                Map.entry(0xff9900, "yellow_concrete"), Map.entry(0xff6600, "orange_wool"),
                 Map.entry(0x9146ff, "purple_wool"), Map.entry(0x0000ff, "blue_wool"), Map.entry(0xffff00, "yellow_wool"));
         expected.forEach((rgb, block) -> assertEquals(block, GatePalette.nearest(rgb), String.format("0x%06x", rgb)));
+    }
+
+    @Test void theNextNearestBlocksFollowInOrderWithoutThePatternedOnes() {
+        for (int rgb : new int[]{0xff0000, 0xffffff, 0x1db954, 0x808080, 0x5865f2}) {
+            var order = GatePalette.nearestFirst(rgb);
+            assertEquals(GatePalette.nearest(rgb), order.getFirst());
+            assertEquals(order.size(), order.stream().distinct().count());
+            // The 51 plain blocks and the two patterned ones that are still built.
+            assertEquals(53, order.size());
+            for (String block : order) assertEquals(block, GatePalette.built(block));
+        }
+        assertEquals(java.util.List.of("red_wool", "orange_concrete"), GatePalette.nearestFirst(0xff0000).subList(0, 2));
     }
 
     @Test void oklabMatchesItsPublishedReferenceValues() {
