@@ -182,6 +182,21 @@ group
         nodes[1]["value"] = "v" * 49                                                  # 1 + 49 fits
         self.assertEqual(outline(nodes), 'p "%s" [textbox "n" = "%s" kqtvm1]%s+4 kqtvm2' % ("x" * 150, "v" * 49, MARK))
 
+    def test_inline_formatting_is_text_of_its_parent(self):
+        # Decision 6 (section 7): the reader sends no node for <b>, <i>, <span>; their text joins the parent's runs.
+        # <p>Order <b>confirmed</b> today</p>, in either form the contract allows: one run, or runs side by side.
+        for runs in (["Order confirmed today"], ["Order ", "confirmed", " today"], ["Order", " ", "confirmed", " today"]):
+            with self.subTest(runs=runs):
+                shown = view([node(1, "p", text=runs)])
+                self.assertEqual(outline(shown), 'p "Order confirmed today"')
+                self.assertEqual(outline(shown, find="order confirmed"), 'p "Order confirmed today" kqtvm1')
+                self.assertTrue(contains(shown, "Order confirmed today"))
+        # <p>Read <b>the <a>docs</a></b> now</p>: the link is the paragraph's child, between its runs.
+        nodes = [node(1, "p", text=["Read ", "the ", 2, " now"]), node(2, "link", 1, name="docs", href=SITE + "/d")]
+        self.assertEqual(outline(nodes), 'p "Read the " [link "docs" kqtvm1] " now"')
+        # Runs side by side are joined before the cut is counted.
+        self.assertEqual(outline([node(1, "p", text=["x" * 150, "y" * 100])]), 'p "%s%s"%s+50 kqtvm1' % ("x" * 150, "y" * 50, MARK))
+
     def test_every_role_of_the_list_is_shown_and_nothing_else_is_a_role(self):
         for role in sorted(ROLES - {"table", "grid"}):
             with self.subTest(role=role):
@@ -622,6 +637,32 @@ class Find(unittest.TestCase):
         path = outline(nodes, find="needle").split(" \u00b7 in ")[1]                 # still at most 80 characters
         self.assertEqual(path, " \u203a ".join([MARK] + ["dialog"] * 8))                # nine would be 82 with the mark
         self.assertLessEqual(len(path), 80)
+
+    def test_find_and_until_match_across_an_inline_part_by_its_name(self):
+        # Decision 6 (section 7): an element's joined text, in which each inline part counts with its name.
+        nodes = [node(1, "main"), node(2, "p", 1, text=["See the ", 3, " for week 46."]),
+                 node(3, "link", 2, name="timetable", href=SITE + "/t")]
+        table = references()
+        hit = 'p "See the " [link "timetable" kqtvm1] " for week 46." kqtvm2 · in main'
+        self.assertEqual(outline(nodes, table, find="See the timetable"), hit)
+        self.assertEqual(outline(nodes, table, find="TIMETABLE FOR week"), hit)
+        self.assertTrue(contains(view(nodes), "see the timetable for week 46."))
+        # The link's own name is a hit of its own as well.
+        self.assertEqual(outline(nodes, table, find="timetable"), hit + '\nlink "timetable" kqtvm1 · in main')
+        # A control's value is no part of the joined text; its name is.
+        nodes = [node(1, "p", text=["Amount ", 2, " euro"]), node(2, "textbox", 1, name="Qty", value="12")]
+        self.assertEqual(outline(nodes, find="amount qty euro"), 'p "Amount " [textbox "Qty" = "12" kqtvm1] " euro" kqtvm2')
+        self.assertEqual(outline(nodes, find="amount 12"), "")
+        # A child with a line of its own ends a stretch: nothing is joined across it.
+        nodes = [node(1, "p", text=["Before ", 2, " after"]), node(2, "h3", 1, text=["Head"])]
+        self.assertEqual(outline(nodes, find="before  after"), "")
+        self.assertEqual(outline(nodes, find="before head"), "")
+        self.assertFalse(contains(view(nodes), "Before  after"))
+        self.assertEqual(outline(nodes, find=" after"), 'p "Before " " after" kqtvm1')
+        # In a long text the hit shows the joined text around the words.
+        nodes = [node(1, "p", text=["a" * 300 + " See the ", 2, " now. " + "b" * 300]), node(2, "link", 1, name="timetable", href=SITE)]
+        self.assertEqual(outline(nodes, find="see the timetable"),
+                         'p %s"%s See the timetable now. %s"%s kqtvm1' % (MARK, "a" * 59, "b" * 54, MARK))
 
     def test_role_keeps_only_that_role_and_must_be_one(self):
         table = references()

@@ -82,7 +82,11 @@ def page(text):
               # Inline parts with their value and states (decision 5): in a cell, and in a sentence.
               node(46, "checkbox", 18, name=text, states=["checked"]),
               node(47, "p", 1, text=["Amount ", 48]),
-              node(48, "textbox", 47, name="Qty", value=text, states=["required", "invalid"])]
+              node(48, "textbox", 47, name="Qty", value=text, states=["required", "invalid"]),
+              # Inline formatting joined into runs, and a hit across a link in a long text (decision 6).
+              node(49, "p", 1, text=[text, "x" * 200, " across ", 50, " ", text]),
+              node(50, "link", 49, name="the link", href=SITE + "/d"),
+              node(51, "p", 1, text=["Joined ", text, " runs"])]
     return nodes
 
 
@@ -97,7 +101,7 @@ def reads(nodes):
         texts.append((role + " by ref, full", render(shown, table, ref=found[role], full=True).text))
     fold = re.search(r"more \(.*\) (kqtvm\d+)", skeleton(first)).group(1)
     texts.append(("a fold", render(shown, table, ref=fold).text))
-    for words in ("target cell", "deep target", "plain", "item 4", "pick"):
+    for words in ("target cell", "deep target", "plain", "item 4", "pick", "across the link", "joined"):
         texts.append(("find " + words, render(shown, table, find=words).text))
     texts.append(("find in the form", render(shown, table, find="pick", ref=found["form"]).text))
     every = options([{"label": option["label"], "value": option.get("value", "")} for option in nodes[6]["options"]] * 30)
@@ -134,7 +138,7 @@ class Lines(unittest.TestCase):
         for text in HOSTILE:
             hostile_table, hostile = reads(page(text))
             _, calm = reads(page("h" * len(text)))   # the twin: harmless text of the same length in the same places
-            self.assertEqual(len(hostile), 25)
+            self.assertEqual(len(hostile), 27)
             for (kind, shown), (_, expected) in zip(hostile, calm):
                 with self.subTest(text=text, read=kind):
                     self.assertTrue(shown)

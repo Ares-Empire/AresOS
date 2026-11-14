@@ -3,6 +3,27 @@
 This is where what a page wrote enters the service, so the reply is checked
 before anything is rendered from it. A reply that doesn't have this shape is
 refused whole. The messages name the place and the rule, never a value.
+
+What the reader sends (section 7 of brief 28 decides 4 and 6):
+
+- **Ids are positive integers**, in the reply and when the service sends one
+  back (`options`, brief 28a's commands). A string can't be told from a run
+  of text in `text`, so it is refused.
+- **`text` is the element's own text in the order of the page:** a string for
+  each run, and a child's id where that child stands between runs.
+- **Inline formatting is text, not structure.** An element without a role of
+  its own from the list (`b`, `strong`, `i`, `em`, `code`, `span`, `small`,
+  `mark`, `abbr`, `sub`, `sup`, `time`, `u`, `s`, `q`, `cite`, `kbd` and the
+  like) gets no node. Its text joins the run it stands in, at its place. What
+  it holds that has a node (a link, a control) is a child of the nearest
+  element that has a node, named in that element's `text` where it stands.
+  Only links and controls stand between runs that way. So
+  `<p>Order <b>confirmed</b> today, see <i>the <a>timetable</a></i>.</p>`
+  is one `p` node with `"text": ["Order confirmed today, see the ", 12, "."]`
+  and the link 12 as its child. The service joins runs that stand next to
+  each other, so `["Order ", "confirmed", " today"]` reads the same; the
+  reader may send either. White space is as the page shows it, collapsed
+  across the formatting's edges.
 """
 
 ROLES = frozenset((

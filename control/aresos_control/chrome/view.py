@@ -147,10 +147,21 @@ class _Renderer:
     # --- the tree as the outline shows it ---------------------------------
 
     def _ordered(self, node):
-        """An element's own runs of text and its children, in the order of the page."""
+        """An element's own runs of text and its children, in the order of the page.
+
+        Runs that stand next to each other are one run: inline formatting is
+        text, not structure (section 7, decision 6).
+        """
         named = {part for part in node.text if type(part) is int}
-        return ([part if type(part) is str else node.document.nodes[part] for part in node.text] +
-                [child for child in node.children if child.id not in named])
+        parts = []
+        for part in node.text:
+            if type(part) is not str:
+                parts.append(node.document.nodes[part])
+            elif parts and type(parts[-1]) is str:
+                parts[-1] += part
+            else:
+                parts.append(part)
+        return parts + [child for child in node.children if child.id not in named]
 
     def _plain(self, node):
         """Nothing but text, down to the last child."""
@@ -672,10 +683,30 @@ class _Renderer:
 
     # --- find --------------------------------------------------------------
 
+    def _joined(self, node):
+        """An element's text as `find` and `until` read it (section 7, decision 6).
+
+        Its runs, with the name of each part that stands inline among them in
+        its place, so "See the timetable" is found across a link. A child with
+        a line of its own ends one stretch of joined text and starts the next.
+        """
+        items = self.content(node)
+        has_text = any(type(item) is str for item in items)
+        stretches, stretch = [], ""
+        for item in items:
+            if type(item) is str:
+                stretch += item
+            elif has_text and self._stands_inline(item, False):
+                stretch += item.name
+            else:
+                stretches.append(stretch)
+                stretch = ""
+        return [text for text in stretches + [stretch] if text]
+
     def _match(self, node, needle):
-        """Where an element holds the words: in its name, its text or a value that may be read."""
-        runs = "".join(item for item in self.content(node) if type(item) is str)
-        for kind, text in (("name", node.name), ("run", runs), ("value", self._value(node))):
+        """Where an element holds the words: in its name, its joined text or a value that may be read."""
+        texts = [("name", node.name)] + [("run", text) for text in self._joined(node)] + [("value", self._value(node))]
+        for kind, text in texts:
             if text and needle in text.casefold():
                 return kind, text
         return None
