@@ -113,6 +113,52 @@ class OwnServerTest(unittest.TestCase):
         self.assertEqual(own.answer({'id': 4, 'method': 'resources/list'})['error']['code'], -32601)
 
 
+class SessionPiecesTest(unittest.TestCase):
+    """Step 2b: his own hooks, the layer's copies of B1's driver and model double, Mail's runner-side fixture."""
+
+    def test_his_hooks_log_every_event_and_only_the_permission_hook_approves(self):
+        hook = load(CONTROL_CI / 'own-hook.py', 'own_hook')
+        with tempfile.TemporaryDirectory() as folder:
+            log = pathlib.Path(folder, 'hooks.jsonl')
+            outputs = {}
+            for event in ('Stop', 'UserPromptSubmit', 'PermissionRequest'):
+                with mock.patch('sys.stdin', new=__import__('io').StringIO(json.dumps({'hook_event_name': event}))), \
+                        mock.patch('sys.stdout', new=__import__('io').StringIO()) as out:
+                    hook.main(event, str(log))
+                outputs[event] = out.getvalue()
+            lines = [json.loads(line) for line in log.read_text().splitlines()]
+        self.assertEqual([line['event'] for line in lines], ['Stop', 'UserPromptSubmit', 'PermissionRequest'])
+        self.assertEqual(outputs['Stop'] + outputs['UserPromptSubmit'], '')
+        self.assertEqual(json.loads(outputs['PermissionRequest'])['hookSpecificOutput']['decision'],
+                         {'behavior': 'allow'})
+
+    def test_the_layer_carries_the_session_pieces_unchanged(self):
+        containerfile = (CONTROL_CI / 'Containerfile').read_text()
+        for source in ('os/ci/control/sessions.py', 'os/ci/control/own-hook.py', 'control/boundary/interactive_driver.py',
+                       'control/boundary/interactive_model.py', 'control/ci/image/mail_flows.py'):
+            self.assertIn(source, containerfile)
+            self.assertTrue((ROOT / source).is_file(), source)
+        sessions = ast.parse((CONTROL_CI / 'sessions.py').read_text())
+        imported = {(node.module, alias.name) for node in ast.walk(sessions) if isinstance(node, ast.ImportFrom)
+                    for alias in node.names}
+        self.assertEqual(imported, {('interactive_driver', 'Terminal'), ('interactive_driver', 'options'),
+                                    ('interactive_model', 'Model')})
+        actions = (CONTROL_CI / 'actions.py').read_text()
+        self.assertIn("'/run/systemd/system/aresos-toold.service.d/aresos-ci-fail.conf'", actions)
+
+    def test_the_seeded_attachment_is_binary_and_named(self):
+        fixture = load(ROOT / 'control/ci/image/mail_fixture.py', 'mail_fixture_for_test')
+        mail = fixture.message('attachment')
+        parts = list(mail.iter_attachments())
+        self.assertEqual([part.get_filename() for part in parts], [fixture.ATTACHMENT_NAME])
+        self.assertEqual(parts[0].get_payload(decode=True), fixture.attachment_bytes())
+        self.assertEqual(len(set(fixture.attachment_bytes())), 256)
+        self.assertTrue(mail['Message-ID'].endswith('@mail.invalid>'))
+        flows = (ROOT / 'control/ci/image/mail_flows.py').read_text()
+        for name in ('USERNAME', 'ADDRESS'):
+            self.assertIn(f"{name} = {getattr(fixture, name)!r}", flows)
+
+
 class ReleaseChecksTest(unittest.TestCase):
     """Agreed change 12: the rehearsal's checks, on a stand-in root."""
 

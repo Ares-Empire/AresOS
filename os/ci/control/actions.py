@@ -5,17 +5,23 @@ returns its evidence as files for the runner (os/ci/control/control_vm.py), whic
 steps run as `ares` through runuser; root stands in for his sudo (`ares` has no password in CI).
 """
 import hashlib
+import io
 import json
 import os
 import pathlib
 import pwd
 import queue
+import shutil
 import socket
+import sqlite3
 import ssl
 import stat
 import subprocess
+import sys
+import tarfile
 import threading
 import time
+import traceback
 
 from channel import export_bytes
 
@@ -479,14 +485,14 @@ def user_mcp(request):
         summary, before=before, after_runs=runs, mcp_list=listed['stdout'], shipped=shipped)}))
 
 
-def denials(main_pid):
+def denials(*pids):
     journal = run(['journalctl', '-b', '--no-pager', '-o', 'cat'], timeout=120)['stdout']
     lines = [line for line in journal.splitlines() if 'avc:' in line and 'denied' in line]
     audit = pathlib.Path('/var/log/audit/audit.log')
     if audit.exists():
         lines += [line for line in audit.read_text(errors='replace').splitlines()
                   if 'type=AVC' in line and 'denied' in line]
-    marks = ('aresos', 'act.sock', 'admin.sock', 'chrome.sock', f'pid={main_pid} ')
+    marks = ('aresos', 'act.sock', 'admin.sock', 'chrome.sock', *[f'pid={pid} ' for pid in pids])
     return lines, [line for line in lines if any(mark in line for mark in marks)]
 
 
@@ -554,28 +560,432 @@ def service(request):
                                  'selinux.txt': json.dumps(selinux, indent=2) + '\n' + '\n'.join(every[-200:]) + '\n'}))
 
 
-# The end of the pass: a restarted service comes back with nothing pending.
+# Step 2b: checks 6 to 9 and check 2's SELinux scan again. Claude Code sessions (sessions.py with B1's driver and
+# model double) and Mail's flows (control/ci/image/mail_flows.py) sit beside this file in the Control layer.
+EVIDENCE = pathlib.Path('/var/tmp/aresos-ci-evidence')
+RECEIVER = pathlib.Path('/var/lib/aresos-operation-evidence/receiver.sqlite')
+PASSWORDS = pathlib.Path('/var/lib/aresos-tools/mail-passwords')
+# Agreed change 6: CI only, under /run (gone at the next boot); the shipped unit and its config stay as they are.
+DROP_IN = pathlib.Path('/run/systemd/system/aresos-toold.service.d/aresos-ci-fail.conf')
+REMINDER = 'AresOS held/unfinished work'
+
+
+def layer_modules():
+    if str(HERE) not in sys.path:
+        sys.path.insert(0, str(HERE))
+    import mail_flows
+    import sessions
+    return sessions, mail_flows
+
+
+def systemctl(*args):
+    return ok(run(['systemctl', *args], timeout=120))
+
+
+def wait_state(state, seconds=90):
+    deadline = time.monotonic() + seconds
+    while True:
+        current = show('ActiveState', 'SubState', 'Result', 'NRestarts')
+        if current['ActiveState'] == state:
+            return current
+        assert time.monotonic() < deadline, (f'the service did not become {state}', current)
+        time.sleep(1)
+
+
+def wait_sockets(seconds=60):
+    """Type=simple reports active before the daemon binds its sockets (step 2a's start-up gap): wait for the first
+    answer, counting the misses."""
+    misses, deadline = [], time.monotonic() + seconds
+    while True:
+        answer = cli('ares', 'control', 'pending')
+        if answer['returncode'] == 0 and answer['json'] and answer['json'].get('ok'):
+            return answer['json']['data'], misses
+        misses.append((answer['json'] or {}).get('error', {}).get('code') or answer['stderr'][-200:])
+        assert time.monotonic() < deadline, answer
+        time.sleep(0.5)
+
+
+def compact_requests(path):
+    """Model requests repeat Claude Code's system prompt and tool list; after the first, keep their digests."""
+    requests = json.loads(path.read_text())
+    for request in requests[1:]:
+        for key in ('system', 'tools'):
+            if key in request:
+                raw = json.dumps(request[key], sort_keys=True).encode()
+                request[key] = dict(sha256=hashlib.sha256(raw).hexdigest(), bytes=len(raw))
+    path.write_text(json.dumps(requests, indent=1))
+
+
+def tree_out(folder, name):
+    """One case folder as a gzip tar: rendered screens repeat a lot, and one action must stay below a frame."""
+    for path in folder.rglob('requests.json'):
+        compact_requests(path)
+    for keep_every_screen in (True, False):
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode='w:gz') as archive:
+            # Too large with every intermediate frame: keep the named screens the driver acted on or proved with.
+            archive.add(folder, arcname=name, filter=lambda info: info if keep_every_screen or
+                        '-wait-' not in info.name else None)
+        data = buffer.getvalue()
+        if len(data) < 1_000_000:
+            return data
+    raise AssertionError(f'{name}: {len(data)} bytes even without the intermediate screens')
+
+
+def turn_record(turn):
+    return {key: value for key, value in turn.items() if key != 'tool_result'}
+
+
+def write_as_owner(path, data):
+    result = subprocess.run([*as_user('ares'), '/usr/bin/tee', str(path)], input=data, capture_output=True,
+                            timeout=60)
+    assert result.returncode == 0 and pathlib.Path(path).stat().st_uid == HOME.stat().st_uid, result.stderr
+
+
+# Check 6. An ordinary session stays ordinary: his own MCP tool and hooks beside ours, with the service healthy,
+# stopped in the middle of a session and started again, then failed (agreed change 6) before a fresh session.
+def ordinary(request):
+    sessions, _ = layer_modules()
+    wait_active()
+    pending, _ = wait_sockets()
+    assert pending['total'] == 0, pending
+    sessions.prepare_home()
+    out = EVIDENCE / 'ordinary'
+    shutil.rmtree(out, ignore_errors=True)
+    log = sessions.WORK / 'own-hooks.jsonl'
+    log.unlink(missing_ok=True)
+    settings = sessions.user_settings(['mcp__notes__note'], {event: sessions.own_hook(event, log)
+                                                            for event in ('Stop', 'UserPromptSubmit')})
+
+    def step(number):
+        return {'prompt': f'ORDINARY_OWNER_TURN_{number}', 'send': 'mcp__notes__note',
+                'approval': {'word': f'turn{number}'}}
+    service = {1: dict(state='healthy', **show('ActiveState', 'SubState'))}
+
+    def stop_then_start(index):
+        if index == 1:
+            systemctl('stop', UNIT)
+            service[2] = dict(state='stopped', **wait_state('inactive'))
+        elif index == 2:
+            systemctl('start', UNIT)
+            wait_active()
+            service[3] = dict(state='started again', **show('ActiveState', 'SubState'),
+                              calls_before_the_sockets_answered=wait_sockets()[1])
+
+    def recover(index):
+        if index == 1:
+            DROP_IN.unlink()
+            systemctl('daemon-reload')
+            systemctl('reset-failed', UNIT)
+            systemctl('start', UNIT)
+            wait_active()
+            service[5] = dict(state='recovered', **show('ActiveState', 'SubState'),
+                              calls_before_the_sockets_answered=wait_sockets()[1])
+    errors, cases = [], {}
+    try:
+        cases['stopped-mid-session'] = sessions.session(out / 'stopped-mid-session', [step(1), step(2), step(3)],
+                                                        sessions.NORMAL, [None, None, None], before_turn=stop_then_start)
+        DROP_IN.parent.mkdir(parents=True, exist_ok=True)
+        DROP_IN.write_text('# CI only (package 18c, B2 check 6): the service fails at every start.\n'
+                           '[Service]\nExecStartPre=/usr/bin/false\n')
+        systemctl('daemon-reload')
+        service[4] = dict(state='failed', restart=run(['systemctl', 'restart', UNIT], timeout=120)['returncode'],
+                          **wait_state('failed'))
+        cases['failed-fresh-session'] = sessions.session(out / 'failed-fresh-session', [step(4), step(5)],
+                                                         sessions.NORMAL, [None, None], before_turn=recover)
+    except Exception:
+        errors.append(traceback.format_exc())
+    finally:
+        if DROP_IN.exists():
+            DROP_IN.unlink()
+            run(['systemctl', 'daemon-reload'])
+            run(['systemctl', 'reset-failed', UNIT])
+            run(['systemctl', 'start', UNIT])
+    hooks = sessions.hook_lines(log)
+    turns = [turn for case in cases.values() for turn in case['turns']]
+    rows = []
+    for number, turn in enumerate(turns, 1):
+        result = turn['tool_result'] or {}
+        prompts = [line for line in hooks if line['event'] == 'UserPromptSubmit'
+                   and turn['prompt'] in line['input'].get('prompt', '')]
+        row = dict(turn=number, service=service.get(number, {}).get('state'), **turn_record(turn),
+                   own_tool_ran=not result.get('is_error') and f'OWN_NOTE turn{number}' in json.dumps(result),
+                   own_user_prompt_submit_lines=len(prompts),
+                   extra_model_requests=turn['model_requests'] - 2)
+        rows.append(row)
+        try:
+            assert row['own_tool_ran'] and row['own_user_prompt_submit_lines'] == 1, row
+            assert row['extra_model_requests'] == row['stop_continuations'], row
+            if row['service'] in ('healthy', 'started again', 'recovered'):
+                assert row['stop_continuations'] == 0 and not any('AresOS' in line for line in row['on_screen']), row
+            else:
+                assert row['stop_continuations'] <= 1, ('the Stop guard did not hold', row)
+        except AssertionError:
+            errors.append(traceback.format_exc())
+    stops = [line for line in hooks if line['event'] == 'Stop']
+    if len(stops) != sum(1 + turn['stop_continuations'] for turn in turns) or len(turns) != 5:
+        errors.append(f'his Stop hook ran {len(stops)} times over {len(turns)} turns')
+    after, _ = wait_sockets()
+    if after['total']:
+        errors.append(f'pending after check 6: {after}')
+    summary = dict(turns=[{key: row[key] for key in ('turn', 'service', 'model_requests', 'extra_model_requests',
+                                                     'stop_continuations', 'seconds', 'on_screen', 'own_tool_ran')}
+                          for row in rows], own_stop_lines=len(stops), pending_after=after['total'])
+    files = {'ordinary/summary.json': dict(summary, rows=rows, service=service, settings=settings),
+             'ordinary/own-hooks.jsonl': log.read_text() if log.exists() else ''}
+    for name in cases:
+        files[f'ordinary/{name}.tar.gz'] = tree_out(out / name, name)
+    return dict(returncode=1 if errors else 0, stderr='\n'.join(errors)[-6000:], summary=summary,
+                files=files_out(files))
+
+
+# Check 7. Mail under the real unit, through the installed entry points only; then one send through Claude Code.
+def mail(request):
+    sessions, mail_flows = layer_modules()
+    wait_active()
+    wait_sockets()
+    onboarding = mail_flows.onboard(request['password'])
+    confirmed = answered(cli('root', 'admin', 'mail', 'account_settings',
+                             value={'id': mail_flows.ACCOUNT, 'sent_policy': 'client'}))['data']
+    flows = mail_flows.Flows(cli, write_as_owner)
+    errors, claude = [], None
+    try:
+        flows.run(request['seeded'])
+        composition = flows.compose('claude')
+        sessions.prepare_home()
+        sessions.user_settings(['mcp__mail__prepare_send'])
+        step = {'prompt': 'MAIL_OWNER_TURN_1', 'send': 'mcp__mail__send', 'prepare': {
+            'name': 'mcp__mail__prepare_send', 'input': {key: composition[key] for key in
+                                                         ('composition_id', 'composition_hash')}}}
+        shutil.rmtree(EVIDENCE / 'mail-claude', ignore_errors=True)
+        claude = sessions.session(EVIDENCE / 'mail-claude', [step], sessions.NORMAL, ['Yes'])
+        turn = claude['turns'][0]
+        state = mail_flows.wait_until(lambda: (lambda s: s if s not in ('reserved', 'submitting') else None)(
+            flows.state(turn['operation_id'])))
+        flows.record['claude'] = dict(turn_record(turn), owner_answers=claude['owner_answers'], state=state)
+        assert turn['prompt_shown'] and claude['owner_answers'] == 1 and state == 'done', flows.record['claude']
+    except Exception:
+        errors.append(traceback.format_exc())
+    pending = answered(cli('ares', 'control', 'pending'))['data']
+    if pending['total']:
+        errors.append(f'pending after the Mail flows: {pending}')
+    sent = {kind: dict(recipient=mail_flows.RECIPIENTS[kind], subject=mail_flows.SUBJECTS[kind])
+            for kind in mail_flows.RECIPIENTS}
+    summary = dict(account=flows.record.get('account', {}).get('ready'), sent=sent,
+                   attachment_out=flows.record.get('attachment_out'), attachment_in=flows.record.get('attachment_in'),
+                   outside_refused=flows.record.get('outside_refused'), claude=flows.record.get('claude'),
+                   pending_after=pending['total'])
+    files = {'mail-flows.json': dict(summary, flows=flows.record, onboarding=dict(
+        result=onboarding['result'], stderr=onboarding['stderr']), account_settings=confirmed),
+        'mail-onboarding-screens.txt': '\n----\n'.join(onboarding['screens'])}
+    if (EVIDENCE / 'mail-claude').exists():
+        files['mail-claude.tar.gz'] = tree_out(EVIDENCE / 'mail-claude', 'mail-claude')
+    return dict(returncode=1 if errors else 0, stderr='\n'.join(errors)[-6000:], summary=summary,
+                files=files_out(files))
+
+
+def find_key(value, key):
+    if isinstance(value, dict):
+        if key in value:
+            return value[key]
+        value = list(value.values())
+    if isinstance(value, list):
+        for child in value:
+            found = find_key(child, key)
+            if found is not None:
+                return found
+    return None
+
+
+def arrivals_in_receiver(op_id):
+    connection = sqlite3.connect(f'file:{RECEIVER}?mode=ro', uri=True)
+    try:
+        return [connection.execute(query, args).fetchone()[0] for query, args in (
+            ('SELECT count(*) FROM arrivals WHERE op=?', (op_id,)), ('SELECT count(*) FROM arrivals', ()))]
+    finally:
+        connection.close()
+
+
+# (case, mode, extra user allow rules, user PermissionRequest hook, answer): brief B2 check 9's table.
+ASK_CASES = [('normal-yes', 'normal', [], False, 'Yes'), ('skip-no', 'skip', [], False, 'No'),
+             ('skip-user-allow-send', 'skip', ['mcp__testapp__send'], False, 'No'),
+             ('normal-permission-user', 'normal', [], True, 'hook')]
+
+
+# Check 9. The ask, interactive, against the installed managed files and the real service; a clean baseline
+# before every case.
+def interactive(request):
+    sessions, _ = layer_modules()
+    wait_active()
+    wait_sockets()
+    sessions.prepare_home()
+    out = EVIDENCE / 'interactive'
+    shutil.rmtree(out, ignore_errors=True)
+    managed = sha256(MANAGED_SETTINGS)
+    assert managed == json.loads(RECORD.read_text())['files'][str(MANAGED_SETTINGS)]['sha256'], managed
+    rows, errors = [], []
+    for case, mode, extra, hook, answer in ASK_CASES:
+        row = dict(case=case, mode=mode, answer=answer)
+        try:
+            pending = answered(cli('ares', 'control', 'pending'))['data']
+            assert pending['total'] == 0, ('no clean baseline', pending)
+            log = sessions.WORK / f'permission-{case}.jsonl'
+            log.unlink(missing_ok=True)
+            hooks = {'PermissionRequest': sessions.own_hook('PermissionRequest', log, matcher='mcp__testapp__send')} \
+                if hook else None
+            row['user_settings'] = sessions.user_settings(['mcp__testapp__prepare_send', *extra], hooks)
+            step = {'prompt': 'ASK_OWNER_TURN_1', 'send': 'mcp__testapp__send',
+                    'prepare': {'name': 'mcp__testapp__prepare_send', 'input': MESSAGE}}
+            result = sessions.session(out / case, [step], sessions.SKIP if mode == 'skip' else sessions.NORMAL,
+                                      [answer])
+            turn = result['turns'][0]
+            op_id = turn['operation_id']
+            send_arrivals, receiver_total = arrivals_in_receiver(op_id)
+            status = operation(op_id)
+            reminder = [index for index, request_ in enumerate(json.loads(
+                (out / case / 'model/requests.json').read_text())) if REMINDER in json.dumps(request_['messages'])]
+            row.update(turn_record(turn), owner_answers=result['owner_answers'], send_arrivals=send_arrivals,
+                       receiver_total=receiver_total, operation_state=status['operation']['state'],
+                       status_arrivals=find_key(status, 'arrivals'), hook_calls=len(sessions.hook_lines(log)),
+                       stop_reminder_in_continuation=any(REMINDER in json.dumps(c['messages'])
+                                                         for c in result['continuations']),
+                       requests_with_reminder=reminder,
+                       tool_result_is_error=bool((turn['tool_result'] or {}).get('is_error')))
+            # A clean baseline: evidence first, then cancel what is still reserved and acknowledge the notice.
+            row['pending_before_cleanup'] = answered(cli('ares', 'control', 'pending'))['data']
+            if row['operation_state'] == 'reserved':
+                row['cancelled'] = answered(cli('ares', 'testapp', 'operation_cancel',
+                                                value={'operation_id': op_id}))['data']['operation']['state']
+            if answered(cli('ares', 'control', 'pending'))['data']['total']:
+                row['notice_ack'] = cli('ares', 'testapp', 'notice_ack', value={'operation_id': op_id})['json']
+            row['pending_after_cleanup'] = answered(cli('ares', 'control', 'pending'))['data']['total']
+            assert row['pending_after_cleanup'] == 0, ('no clean baseline after', case)
+            if answer == 'hook':
+                observed = {key: row[key] for key in ('send_arrivals', 'hook_calls', 'owner_answers')}
+                pinned = request['expected']['normal-permission-user']
+                assert observed == pinned, f'STOP: differs from the container pin {pinned}: {observed}'
+            else:
+                assert row['prompt_shown'] and row['owner_answers'] == 1, f'STOP: no prompt of the ask: {row}'
+                assert row['send_arrivals'] == (1 if answer == 'Yes' else 0), f'STOP: arrivals: {row}'
+                assert row['operation_state'] == ('done' if answer == 'Yes' else 'reserved'), row
+                if case == 'skip-no':
+                    assert row['stop_reminder_in_continuation'], f'the reminder did not reach the model: {row}'
+        except Exception:
+            errors.append(f'{case}: ' + traceback.format_exc())
+        rows.append(row)
+    copied = sessions.transcripts(out / 'transcripts')
+    permission = {row['case']: {key: row.get(key) for key in ('prompt_shown', 'send_arrivals', 'hook_calls',
+                                                               'owner_answers')}
+                  for row in rows if row['answer'] == 'hook'}
+    summary = dict(cases={row['case']: {key: row.get(key) for key in (
+        'prompt_shown', 'owner_answers', 'send_arrivals', 'operation_state', 'hook_calls', 'stop_continuations',
+        'stop_reminder_in_continuation', 'resumed_after_no', 'pending_after_cleanup')} for row in rows},
+        permission_request=permission, managed_settings_sha256=managed, transcripts=len(copied))
+    files = {'interactive/summary.json': dict(summary, rows=rows, transcripts=copied),
+             'permission-request.json': permission}
+    for case, *_ in ASK_CASES:
+        if (out / case).exists():
+            files[f'interactive/{case}.tar.gz'] = tree_out(out / case, case)
+    if (out / 'transcripts').exists():
+        files['interactive/transcripts.tar.gz'] = tree_out(out / 'transcripts', 'transcripts')
+    return dict(returncode=1 if errors else 0, stderr='\n'.join(errors)[-6000:], summary=summary,
+                files=files_out(files))
+
+
+def holds(path, secret):
+    with open(path, 'rb') as stream:
+        tail = b''
+        while chunk := stream.read(1 << 20):
+            if secret in tail + chunk:
+                return True
+            tail = chunk[-len(secret):]
+    return False
+
+
+SCANNED = ('/var/lib/aresos-tools', '/var/lib/aresos-operation-evidence', str(HOME), '/tmp', '/var/tmp', '/var/log',
+           '/run', '/root')
+
+
+# Check 8. The app passwords: unreadable for ares; the per-run synthetic password in exactly the one file.
+def passwords(request):
+    secret = request['password'].encode()
+    assert len(secret) >= 32, 'not the per-run password'
+    refusals = dict(list_state=run([*as_user('ares'), '/usr/bin/ls', '/var/lib/aresos-tools']),
+                    list_passwords=run([*as_user('ares'), '/usr/bin/ls', str(PASSWORDS)]))
+    stored = sorted(path for path in PASSWORDS.iterdir())
+    assert len(stored) == 1, f'{len(stored)} password files'
+    refusals['read_password_file'] = run([*as_user('ares'), '/usr/bin/cat', str(stored[0])])
+    for name, result in refusals.items():
+        assert result['returncode'] != 0 and 'Permission denied' in result['stderr'] and not result['stdout'], name
+        refusals[name] = dict(returncode=result['returncode'], stderr=result['stderr'].strip()[-200:])
+    modes = {}
+    for path, mode in ((PASSWORDS, 0o700), (stored[0], 0o600)):
+        info = path.lstat()
+        modes[str(path)] = dict(mode=f'{stat.S_IMODE(info.st_mode):04o}', owner=[info.st_uid, info.st_gid])
+        assert stat.S_IMODE(info.st_mode) == mode and (info.st_uid, info.st_gid) == (250, 250), modes
+    hits, counts = [], {}
+    for root in SCANNED:
+        scanned = unreadable = 0
+        for folder, _, names in os.walk(root):
+            for name in names:
+                path = os.path.join(folder, name)
+                try:
+                    if not stat.S_ISREG(os.lstat(path).st_mode):
+                        continue
+                    scanned += 1
+                    if holds(path, secret):
+                        hits.append(path)
+                except OSError:
+                    unreadable += 1
+        counts[root] = dict(files=scanned, unreadable=unreadable)
+    journal = subprocess.Popen(['journalctl', '--no-pager', '-o', 'export'], stdout=subprocess.PIPE)
+    in_journal, tail = False, b''
+    while chunk := journal.stdout.read(1 << 20):
+        in_journal = in_journal or secret in tail + chunk
+        tail = chunk[-len(secret):]
+    journal.wait(timeout=120)
+    hits = sorted(set(hits))
+    operations = pathlib.Path('/var/lib/aresos-operation-evidence/operations.jsonl')
+    summary = dict(password_sha256=hashlib.sha256(secret).hexdigest(), files_holding_it=hits,
+                   journal_export_holds_it=in_journal, operations_jsonl_holds_it=operations.exists() and
+                   holds(operations, secret), scanned=counts, modes=modes, refusals=refusals)
+    assert hits == [str(stored[0])] and not in_journal, summary
+    return dict(returncode=0, summary=dict(files_holding_it=len(hits), journal=in_journal),
+                files=files_out({'passwords.json': summary}))
+
+
+# Check 2 again, after checks 6 to 9: no SELinux denial names the service, its files or its sockets.
+def selinux_after(request):
+    wait_active()
+    journal = run(['journalctl', '-b', '-u', UNIT, '--no-pager', '-o', 'json', '--output-fields=_PID'], timeout=120)
+    pids = sorted({json.loads(line).get('_PID') for line in journal['stdout'].splitlines()} - {None})
+    every, ours = denials(show('MainPID')['MainPID'], *pids)
+    summary = dict(getenforce=run(['getenforce'])['stdout'].strip(), avc_denials_in_boot=len(every),
+                   avc_denials_naming_the_service=ours, service_pids=pids)
+    assert summary['getenforce'] == 'Enforcing' and not ours, summary
+    return dict(returncode=0, summary=dict(summary, avc_denials_naming_the_service=len(ours)), files=files_out({
+        'selinux-after.txt': json.dumps(summary, indent=2) + '\n' + '\n'.join(every[-200:]) + '\n'}))
+
+
+# The end of the pass: a restarted service comes back with the Mail account still ready and nothing pending.
 def restart(request):
     ok(run(['systemctl', 'restart', UNIT]))
     state = wait_active()
     # Type=simple: "active" comes before the daemon has bound its sockets. A call in that gap gets transport_error
     # (seen in run 43556905450); wait for the first answer, counting the misses.
-    misses, deadline = [], time.monotonic() + 60
-    while True:
-        answer = cli('ares', 'control', 'pending')
-        if answer['returncode'] == 0 and answer['json'] and answer['json'].get('ok'):
-            break
-        misses.append((answer['json'] or {}).get('error', {}).get('code') or answer['stderr'][-200:])
-        assert time.monotonic() < deadline, answer
-        time.sleep(0.5)
-    pending = answer['json']['data']
+    pending, misses = wait_sockets()
     assert pending['total'] == 0, pending
     summary = dict(state, nrestarts=show('NRestarts')['NRestarts'], pending=pending['total'],
                    calls_before_the_sockets_answered=misses)
+    if request.get('mail_account'):
+        accounts = answered(cli('ares', 'mail', 'accounts'))['data']['accounts']
+        summary['mail_ready'] = [account['ready'] for account in accounts if account['id'] == request['mail_account']]
+        assert summary['mail_ready'] == [True], accounts
     return dict(returncode=0, summary=summary, files=files_out({'restart.json': summary}))
 
 
 ACTIONS = {'control-files': files, 'control-claude-code-files': claude_code_files, 'control-release': release,
            'control-idle': idle, 'control-fixtures': fixtures, 'control-entry-points': entry_points,
            'control-precondition': precondition, 'control-user-mcp': user_mcp, 'control-service': service,
-           'control-restart': restart}
+           'control-ordinary': ordinary, 'control-mail': mail, 'control-interactive': interactive,
+           'control-passwords': passwords, 'control-selinux': selinux_after, 'control-restart': restart}

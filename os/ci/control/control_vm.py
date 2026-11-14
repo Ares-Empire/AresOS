@@ -16,13 +16,18 @@ import subprocess
 import sys
 import tempfile
 import time
+import traceback
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from channel import Frames, frame, import_bytes  # noqa: E402
 from qmp import QMP, assert_guest_poweroff  # noqa: E402
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[3] / 'control/ci/image'))
+import mail_fixture  # noqa: E402
+
 # (action, the line its success prints). The order matters: the idle footprint comes before anything talks to the
-# service, and the sandbox check after checks 3 to 5, so its SELinux scan covers them.
+# service; the sandbox check (2) after checks 3 to 5 and before check 6 restarts the service; check 9 before check 8,
+# so the password scan also covers check 9's transcripts; check 2's SELinux scan again after checks 6 to 9.
 CHECKS = [
     ('control-files', 'CONTROL_IMAGE_FILES_PASS'),
     ('control-claude-code-files', 'CONTROL_ETC_CLAUDE_CODE_PASS'),
@@ -33,8 +38,15 @@ CHECKS = [
     ('control-precondition', 'CONTROL_PRECONDITION_PASS'),
     ('control-user-mcp', 'CONTROL_USER_MCP_INSTALL_PASS'),
     ('control-service', 'CONTROL_SERVICE_SANDBOX_PASS'),
+    ('control-ordinary', 'CONTROL_ORDINARY_SESSION_PASS'),
+    ('control-mail', 'CONTROL_MAIL_FLOWS_PASS'),
+    ('control-interactive', 'CONTROL_INTERACTIVE_ASK_PASS'),
+    ('control-passwords', 'CONTROL_PASSWORDS_PRIVATE_PASS'),
+    ('control-selinux', 'CONTROL_SELINUX_AFTER_CHECKS_PASS'),
     ('control-restart', 'CONTROL_SERVICE_RESTART_PASS'),
 ]
+# Lines whose summary is printed with them: the numbers the owner is asked about and the recorded PermissionRequest.
+WITH_SUMMARY = {'control-idle', 'control-ordinary'}
 
 
 def install_step(readme):
@@ -53,6 +65,35 @@ def expected_record():
     return {key: record[key] for key in ('files', 'links', 'directories')}
 
 
+def mail_arrivals(result, seeded, evidence):
+    """Check 7 on the runner: GreenMail holds exactly one arrival per send, the attachment byte for byte, and the
+    message the guest read is still unread on Dovecot."""
+    summary = result['summary']
+    received = {kind: mail_fixture.arrivals(sent['recipient']) for kind, sent in summary['sent'].items()}
+    record = dict(received=received, onboarding_self_send=mail_fixture.arrivals(mail_fixture.ADDRESS),
+                  read_message_flags=mail_fixture.flags(seeded['read']['message_id']),
+                  deleted_left_inbox=mail_fixture.flags(seeded['delete']['message_id']) is None)
+    (evidence / 'mail-runner.json').write_text(json.dumps(record, indent=2) + '\n')
+    for kind, sent in summary['sent'].items():
+        assert [mail['subject'] for mail in received[kind]] == [sent['subject']], (kind, received[kind])
+    attachments = received['attachment'][0]['attachments']
+    out = summary['attachment_out']
+    assert [(item['size'], item['sha256']) for item in attachments] == [(out['size'], out['sha256'])], attachments
+    assert '\\Seen' not in record['read_message_flags'], record['read_message_flags']
+    assert record['deleted_left_inbox'], 'the deleted message is still in INBOX'
+
+
+def password_not_in_evidence(evidence):
+    """Check 8 on the runner: the evidence written so far never holds the password (runner.sh stop checks again)."""
+    secret = mail_fixture.password().encode()
+    hits = sorted(str(path.relative_to(evidence)) for path in evidence.rglob('*')
+                  if path.is_file() and secret in path.read_bytes())
+    files = sum(1 for path in evidence.rglob('*') if path.is_file())
+    (evidence / 'passwords-runner.json').write_text(json.dumps(dict(evidence_files=files, holding_it=len(hits)),
+                                                               indent=2) + '\n')
+    assert not hits, f'{len(hits)} evidence files hold the password'
+
+
 def main():
     work = pathlib.Path('vm-work').resolve()
     evidence = pathlib.Path('evidence').resolve() / 'control'
@@ -61,9 +102,21 @@ def main():
     # check-build.sh reads the commit as the runner's user (git refuses a checkout owned by another one).
     revision = os.environ['ARESOS_REVISION']
     assert re.fullmatch('[0-9a-f]{40}', revision), revision
-    arguments = {'control-files': dict(revision=revision, expected=expected_record()),
-                 'control-idle': dict(seconds=60),
-                 'control-user-mcp': dict(install=install_step(pathlib.Path('control/README.md').read_text()))}
+    expected_pin = json.loads(pathlib.Path('control/boundary/interactive-permission-request-expected.json')
+                              .read_text())
+    seeded = {}
+    # Built when the action is sent: the seeding needs the servers up, the password stays in memory, and no request
+    # is ever written anywhere.
+    arguments = {'control-files': lambda: dict(revision=revision, expected=expected_record()),
+                 'control-idle': lambda: dict(seconds=60),
+                 'control-user-mcp': lambda: dict(install=install_step(pathlib.Path('control/README.md').read_text())),
+                 'control-mail': lambda: dict(password=mail_fixture.password(), seeded=seeded.setdefault(
+                     'mail', mail_fixture.seed())),
+                 'control-interactive': lambda: dict(expected=expected_pin),
+                 'control-passwords': lambda: dict(password=mail_fixture.password()),
+                 'control-restart': lambda: dict(mail_account='ci')}
+    verify = {'control-mail': lambda result: mail_arrivals(result, seeded['mail'], evidence),
+              'control-passwords': lambda result: password_not_in_evidence(evidence)}
     disks = list((work / 'output').rglob('disk.raw'))
     assert len(disks) == 1, disks
     overlay = work / 'control.qcow2'
@@ -114,13 +167,20 @@ def main():
         monitor = QMP(qmp_socket)
         monitor.command('qmp_capabilities')
         checks = connect(work / 'control-checks.sock')
-        checks.settimeout(900)
+        checks.settimeout(1800)
         incoming = Frames(checks.recv)
         assert incoming.receive() == {'ready': True, 'protocol': 1}
         timings['boot_to_channel'] = round(time.monotonic() - started, 1)
         for sequence, (action, line) in enumerate(CHECKS, 1):
             began = time.monotonic()
-            checks.sendall(frame(dict(id=sequence, action=action, **arguments.get(action, {}))))
+            try:
+                request = dict(id=sequence, action=action, **arguments.get(action, dict)())
+            except Exception:
+                failed.append(action)
+                print(f'CONTROL_CHECK_FAILED {action} (runner side)\n{traceback.format_exc()[-4000:]}', flush=True)
+                continue
+            checks.sendall(frame(request))
+            del request
             result = incoming.receive()
             timings[action] = round(time.monotonic() - began, 1)
             assert result.get('id') == sequence, result
@@ -129,10 +189,19 @@ def main():
                 assert path.is_relative_to(evidence), name
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(import_bytes(value))
+            if result.get('returncode') == 0 and action in verify:
+                try:
+                    verify[action](result)
+                except Exception:
+                    result.update(returncode=1, stderr=traceback.format_exc())
             (vm_evidence / f'{action}-result.json').write_text(json.dumps(result, indent=2) + '\n')
+            if 'permission_request' in (result.get('summary') or {}):
+                # Recorded whatever the other cases showed: the accepted residual of brief B2 check 9.
+                print('CONTROL_PERMISSION_REQUEST_RECORDED ' + json.dumps(
+                    result['summary']['permission_request'], sort_keys=True), flush=True)
             if result.get('returncode') == 0:
                 summary = json.dumps(result.get('summary', {}), sort_keys=True)
-                print(f'{line} {summary}' if action == 'control-idle' else line, flush=True)
+                print(f'{line} {summary}' if action in WITH_SUMMARY else line, flush=True)
                 print(f'  {action}: {summary[:3000]}', flush=True)
             else:
                 failed.append(action)

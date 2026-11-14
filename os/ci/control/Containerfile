@@ -4,6 +4,10 @@
 FROM localhost/aresos:vm
 COPY os/ci/control/actions.py /usr/libexec/aresos-ci/actions.d/control.py
 COPY os/ci/control/release_checks.py os/ci/control/own-mcp.py /usr/libexec/aresos-ci/control/
+# Step 2b: the Claude Code sessions with B1's terminal driver and model double (unchanged), his own hooks, and Mail's
+# flows from control/ci/image/.
+COPY os/ci/control/sessions.py os/ci/control/own-hook.py control/boundary/interactive_driver.py \
+     control/boundary/interactive_model.py control/ci/image/mail_flows.py /usr/libexec/aresos-ci/control/
 # Per run: the pinned Claude Code (checked by runner.sh), the fixture CA
 # certificate (never its key) and the fixture servers' names at 10.0.2.2.
 COPY vm-work/control-layer/claude vm-work/control-layer/fixture-ca.crt vm-work/control-layer/hosts /tmp/aresos-ci-control/
@@ -13,4 +17,5 @@ RUN install -Dm0755 /tmp/aresos-ci-control/claude /usr/libexec/aresos-ci/control
     cat /tmp/aresos-ci-control/hosts >> /etc/hosts && \
     grep -qx '10.0.2.2 greenmail dovecot' /etc/hosts && \
     rm -rf /tmp/aresos-ci-control && \
+    test -x /usr/bin/tmux && \
     bootc container lint
