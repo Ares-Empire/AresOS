@@ -1048,3 +1048,23 @@ for(const change of ['retarget','detach'])test('post18d reentry retains restorat
   assert.equal(animation.attributeName,'href');assert.equal(link.getAttribute('href'),'https://fixture.test/page-change');
   f.cleanup();f.guard.dispose();
 });
+
+test('step 5 the guard records typing since load and whose it is',async()=>{
+  const f=fixture(),mine=new f.HTMLInputElement(),other=new f.HTMLInputElement(),marks=node=>JSON.stringify(f.guard.typedBy(node));
+  other.contains=node=>node===other;
+  assert.equal(f.guard.typedBy(mine),null,'nothing typed since load');assert.equal(f.guard.typingGap,false);
+  f.originalDispatch.call(mine,new f.Event('input',{isTrusted:false}));
+  assert.equal(f.guard.typedBy(mine),null,'a page-made input event is no typing');
+  f.originalDispatch.call(other,new f.Event('input',{isTrusted:true}));
+  assert.equal(marks(other),'{"owner":true,"claude":false}','trusted typing outside Claude\'s dispatch is the owner\'s');
+  f.arm(mine,null);
+  f.originalDispatch.call(mine,new f.Event('input',{isTrusted:true}));
+  f.originalDispatch.call(other,new f.Event('input',{isTrusted:true}));
+  assert.equal(marks(mine),'{"owner":false,"claude":true}','Claude\'s dispatch into the field he aimed at');
+  assert.equal(marks(other),'{"owner":true,"claude":false}','typing elsewhere during Claude\'s dispatch stays the owner\'s');
+  await f.api.finish('epoch');
+  f.originalDispatch.call(mine,new f.Event('input',{isTrusted:true}));
+  assert.equal(marks(mine),'{"owner":true,"claude":true}','after the dispatch the next typing is the owner\'s');
+  assert.equal(marks(f.document),'{"owner":true,"claude":true}','the document keeps both, for a design-mode frame');
+  f.guard.dispose();assert.equal(f.guard.typingGap,true,'a disposed guard leaves a gap');
+});

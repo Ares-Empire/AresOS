@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import {webcrypto,createHash} from 'node:crypto';
 
-function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false,watched=true}={}) {
+function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false,watched=true,typing=null}={}) {
   let calls=0,fileSequence=0,clipboardInfo=null;const timers=[];
   let base='https://fixture.test/';
   class NativeNode {get baseURI(){return base;}}
@@ -43,17 +43,19 @@ function fixture(fields,{subtle=true,NativeBlob=Blob,protectedPeer=()=>false,wat
   const chrome={dom:{openOrClosedShadowRoot:element=>element.fixtureShadow||null},runtime:{id:'fixture',sendMessage:async()=>({}),onMessage:{addListener(fn){listener=fn;},removeListener(){}}}};
   class MutationObserver {constructor(fn){this.fn=fn;this.records=[];observer=this;}observe(root,options){observationOptions.push(options);}takeRecords(){return this.records.splice(0);}disconnect(){}}
   const context=vm.createContext({document,chrome,Blob:NativeBlob,crypto:{subtle:subtle?webcrypto.subtle:undefined,getRandomValues:array=>array.fill(++fileSequence)},MutationObserver,
-    Element,SVGAElement,SVGAnimatedString,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,HTMLAnchorElement:Element,HTMLAreaElement:Element,Node:NativeNode,CustomEvent:class{},
+    Element,SVGAElement,SVGAnimatedString,HTMLElement:Element,HTMLInputElement,HTMLTextAreaElement,HTMLSelectElement,HTMLButtonElement,HTMLAnchorElement:Element,HTMLAreaElement:Element,Node:NativeNode,CustomEvent:class{},Event:class{constructor(type){this.type=type;}},
     atob:value=>Buffer.from(value,'base64').toString('binary'),setTimeout:fn=>timers.push(fn),
     URL,getComputedStyle:element=>({display:['DIV','P','PRE'].includes(element.tagName)?'block':'inline',visibility:element.visibility||'visible',webkitTextSecurity:element.mask || 'none',whiteSpace:element.whiteSpace||(element.tagName==='PRE'?'pre':undefined)}),
     [Symbol.for('aresos.chrome.document-start.v1')]:watched,
-    [Symbol.for('aresos.chrome.guard.v2')]:{protectedPeer,clipboard(take){const value=clipboardInfo;if(take)clipboardInfo=null;return value;},watch(){},reader(value){readerAPI=value;},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];}},
+    [Symbol.for('aresos.chrome.guard.v2')]:{protectedPeer,clipboard(take){const value=clipboardInfo;if(take)clipboardInfo=null;return value;},watch(){},reader(value){readerAPI=value;},arm(){},clear(){},resume(){return {resumed:'native_submit'};},steps(){return [];},
+      // guard.js's typing record; without one, input since load is unknown.
+      typedBy(node){return typing?.marks.get(node)||null;},typedByClaude(node){typing?.marks.set(node,{owner:false,...typing.marks.get(node),claude:true});},get typingGap(){return typing?typing.gap:undefined;},direct(){}},
     origin:'https://fixture.test',location:{href:'https://fixture.test/'},scrollX:0,scrollY:0,innerWidth:100,innerHeight:100});
   vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);
   function read(){let result;listener({command:'read'},{id:'fixture'},value=>result=value);assert.equal(result.ok,true,JSON.stringify(result));return result;}
   function command(message){let result;listener(message,{id:'fixture'},value=>result=value);return result;}
   const readAsync=()=>new Promise(resolve=>listener({command:'read'},{id:'fixture'},resolve));
-  return {nodes,Element,setBase:value=>{base=value;},atPoint:node=>{document.elementFromPoint=()=>node;},textarea:node=>Object.setPrototypeOf(node,HTMLTextAreaElement.prototype),setClipboard:value=>{clipboardInfo=value},observeAsync:()=>new Promise(resolve=>listener({command:'observe'},{id:'fixture'},resolve)),designMode:value=>{document.designMode=value},generic:node=>Object.setPrototypeOf(node,Element.prototype),reinject:()=>{readerAPI.dispose();vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);},read,readAsync,command,form:(element,submitter)=>readerAPI.form(element,submitter),observationOptions,expire:()=>{for(const fn of timers.splice(0))fn();},mutations:()=>observer.records,calls:()=>calls};
+  return {nodes,document,Element,setBase:value=>{base=value;},atPoint:node=>{document.elementFromPoint=()=>node;},textarea:node=>Object.setPrototypeOf(node,HTMLTextAreaElement.prototype),setClipboard:value=>{clipboardInfo=value},observeAsync:()=>new Promise(resolve=>listener({command:'observe'},{id:'fixture'},resolve)),designMode:value=>{document.designMode=value},generic:node=>Object.setPrototypeOf(node,Element.prototype),reinject:()=>{readerAPI.dispose();vm.runInContext(fs.readFileSync('control/chrome/extension/reader.js','utf8'),context);},read,readAsync,command,form:(element,submitter)=>readerAPI.form(element,submitter),observationOptions,expire:()=>{for(const fn of timers.splice(0))fn();},mutations:()=>observer.records,calls:()=>calls};
 }
 
 test('group7 protected values never reach a getter, source attribute, trace or binding',()=>{
@@ -565,10 +567,52 @@ test('final discard_unsaved report names fields by label, never their values, ed
   f.nodes[1].labels=[new f.Element({tagName:'LABEL',childNodes:[secret],querySelector:()=>({})})];
   f.nodes.push(new f.Element({tagName:'SPAN',isContentEditable:true,parentElement:f.nodes[2],childNodes:[secret]}));
   const state=f.command({command:'reload_state'});assert.equal(state.ok,true,JSON.stringify(state));
-  assert.deepEqual(JSON.parse(JSON.stringify(state.data.fields)),['field "Subject"',"field \"Say 'hi'\"",'editor "Message body"','an unlabelled editor','password field "Password"','field "'+'L'.repeat(80)+'…"']);
+  assert.deepEqual(JSON.parse(JSON.stringify(state.data.fields)),['field "Subject"',"field \"Say 'hi'\"",'editor "Message body"','an unlabelled editor','password field "Password"','field "'+'L'.repeat(80)+'…"'].map(field=>field+' (typed by the owner)'));
   assert.equal(state.data.unsaved,true);assert.doesNotMatch(JSON.stringify(state),/safe visible text|EDITOR-TEXT-XYZZY/);
   const late=fixture([{attrs:{'aria-label':'Draft'},forbidden:true}],{watched:false}).command({command:'reload_state'});
-  assert.deepEqual(JSON.parse(JSON.stringify(late.data.fields)),['field "Draft"']);
+  assert.deepEqual(JSON.parse(JSON.stringify(late.data.fields)),['field "Draft" (typed by the owner)']);
+});
+
+const unsavedState=f=>JSON.parse(JSON.stringify(f.command({command:'reload_state'}).data));
+test('step 5 an editor counts only once it got input since load, marked by who typed it',()=>{
+  const typing={gap:false,marks:new Map()};
+  const f=fixture([{tagName:'DIV',isContentEditable:true,attrs:{role:'textbox','aria-label':'Body'}}],{typing});const editor=f.nodes[0];f.generic(editor);
+  assert.deepEqual(unsavedState(f),{unsaved:false,fields:[],claude_only:false,playing:false},'an untouched editor holds nothing');
+  typing.marks.set(editor,{owner:false,claude:true});
+  assert.deepEqual(unsavedState(f),{unsaved:true,fields:['editor "Body" (typed by Claude)'],claude_only:true,playing:false});
+  typing.marks.set(editor,{owner:true,claude:true});
+  assert.deepEqual(unsavedState(f),{unsaved:true,fields:['editor "Body" (typed by the owner)'],claude_only:false,playing:false});
+  typing.marks.set(editor,{owner:true,claude:false});assert.equal(unsavedState(f).claude_only,false);
+  // Where input since load isn't known, every editor still counts, as the owner's.
+  typing.marks.clear();typing.gap=true;
+  assert.deepEqual(unsavedState(f).fields,['editor "Body" (typed by the owner)'],'a release left a gap');
+  const late=fixture([{tagName:'DIV',isContentEditable:true,attrs:{'aria-label':'Body'}}],{watched:false,typing:{gap:false,marks:new Map()}});late.generic(late.nodes[0]);
+  assert.deepEqual(unsavedState(late).fields,['editor "Body" (typed by the owner)'],'a late reader');
+});
+test('step 5 a rich-text frame counts only once it got input since load',()=>{
+  const typing={gap:false,marks:new Map()};const f=fixture([],{typing});f.designMode('on');
+  assert.equal(unsavedState(f).unsaved,false,'an untouched design-mode frame holds nothing');
+  typing.marks.set(f.document,{owner:true,claude:false});
+  assert.deepEqual(unsavedState(f).fields,['the whole page in design mode (typed by the owner)']);
+  const late=fixture([],{watched:false,typing:{gap:false,marks:new Map()}});late.designMode('on');assert.equal(unsavedState(late).unsaved,true,'a late reader');
+});
+test('step 5 plain fields keep their rule, changed from the default, and carry whose typing it is',()=>{
+  const typing={gap:false,marks:new Map()};
+  const f=fixture([{attrs:{'aria-label':'Kept'}},{attrs:{'aria-label':'Typed'}}],{typing});const [kept,typed]=f.nodes;
+  for(const node of f.nodes)node.defaultValue='safe visible text';
+  typing.marks.set(kept,{owner:false,claude:true});
+  assert.equal(unsavedState(f).unsaved,false,'equal to the default, whoever typed');
+  kept.defaultValue='Saved';typed.defaultValue='Saved';typing.marks.set(typed,{owner:true,claude:false});
+  assert.deepEqual(unsavedState(f),{unsaved:true,fields:['field "Kept" (typed by Claude)','field "Typed" (typed by the owner)'],claude_only:false,playing:false});
+  typing.marks.delete(typed);
+  assert.deepEqual(unsavedState(f).fields,['field "Kept" (typed by Claude)','field "Typed" (typed by the owner)'],'a change nobody was seen typing counts as the owner\'s');
+});
+test('step 5 Claude\'s own check marks the field as his',()=>{
+  const typing={gap:false,marks:new Map()};
+  const f=fixture([{type:'checkbox',checked:false,defaultChecked:false,attrs:{'aria-label':'Tick'}}],{typing});f.read();
+  f.command({command:'set_control',generation:'g'});
+  const result=f.command({command:'check',generation:'g',element:'e1',checked:true});assert.equal(result.ok,true,JSON.stringify(result));
+  assert.deepEqual(unsavedState(f),{unsaved:true,fields:['checkbox "Tick" (typed by Claude)'],claude_only:true,playing:false});
 });
 test('post18d late reload warning never extracts unapproved typed text to compare defaults',()=>{
   const f=fixture([{type:'text',forbidden:true}],{watched:false});

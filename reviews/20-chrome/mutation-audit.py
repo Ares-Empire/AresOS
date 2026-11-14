@@ -114,7 +114,7 @@ case('P22-bounds',A,'return value if len(visible(value))<=120 else','return valu
 case('P23',B,'page:await observation(tab,reference,dispatchEpoch)',"page:'Input dispatched once'",node('background','P23'))
 case('P23-borrowed-dialog',B,'page:await observation(tab)}',"page:{available:true,url:current.url,notice:'Native answer dispatched'}}",node('background','P23 a borrowed dialog result'))
 case('P24-last-check',B,"await requireDiscard(tab,command,'Reloading this tab',","await requireDiscard(tab,{discard_unsaved:true},'Reloading this tab',",node('background','P24'))
-case('P24-audible',B,"let playing=!!(await chrome.tabs.get(tab)).audible;","let playing=false;",node('background','P24'))
+case('P24-audible',B,"let playing=!!(await chrome.tabs.get(tab)).audible,ownerTyping=false;","let playing=false,ownerTyping=false;",node('background','P24'))
 case('P24-uncovered',B,"frame=>({frameId:frame.frame,url:frame.url})),current.uncovered?.length||0);","frame=>({frameId:frame.frame,url:frame.url})),0);",node('background','P24 uncovered'))
 case('P24-unreadable',B,"catch(error){if(!(error.readerUnavailable&&frame.frameId===0&&frame.url==='about:blank'))uninspected++;}","catch(error){}",node('background','P24 uncovered'))
 case('P24-designmode',R,"document.designMode?.toLowerCase()==='on'",'false',node('reader','P24 document'))
@@ -405,7 +405,7 @@ case('final-discard-close',B,"await requireDiscard(tab,command,'Closing this tab
 case('final-discard-flag-only-true',B,"if(command.discard_unsaved===true)return;","if(command.discard_unsaved)return;",node('background','final discard_unsaved navigate to an address'))
 case('final-discard-fresh-blank',B,"if(!(error.readerUnavailable&&frame.frameId===0&&frame.url==='about:blank'))uninspected++;","if(!error.readerUnavailable)uninspected++;",node('background','final discard_unsaved navigate to an address'))
 case('final-discard-first-act-shared',B,"await requireDiscard(tab,command,'The guarded reload before this first input',","await requireDiscard(tab,{discard_unsaved:true},'The guarded reload before this first input',",node('background','P24 uncovered and unreadable frames'))
-case('final-discard-labels-not-values',R,"if(changed)fields.push(unsavedLabel(element));","if(changed)fields.push(name(element)||'a field');",node('reader','final discard_unsaved report names fields by label'))
+case('final-discard-labels-not-values',R,"if(changed)add(unsavedLabel(element),element);","if(changed)add(name(element)||'a field',element);",node('reader','final discard_unsaved report names fields by label'))
 case('final-discard-label-no-editor',R,"const from=nodes=>nodes.length&&!nodes.some(editor)?","const from=nodes=>nodes.length?",node('reader','final discard_unsaved report names fields by label'))
 case('final-discard-label-cap',R,"clean.slice(0,80).replace(/\"/g,\"'\")","clean",node('reader','final discard_unsaved report names fields by label'))
 case('final-notes-unit-comment-pin','control/packaging/aresos-toold.service','# Mail IMAP/SMTP and the daily qualification','# Mail IMAP and the daily qualification','test_unit.InstalledUnit.test_service_sandbox_and_launch_are_exact',True)
@@ -462,6 +462,20 @@ case('final-f7-install-tree-readme',"control/chrome/packaging/README.md","`/usr/
 
 case('final-f7-polkit-pull-request','.github/workflows/control-chrome-polkit.yml',"  pull_request:\n    branches: [main]\n","  push:\n    branches: [pkg/20-chrome-polkit]\n",T.replace('Confirmation','Policy')+'test_final_f7_the_real_polkit_check_runs_on_pull_requests_and_the_shim_is_gone',True)
 case('final-f7-polkit-shim-back','.github/workflows/control-chrome-check.yml',"permissions:\n","  # polkit: the dispatch shim\npermissions:\n",T.replace('Confirmation','Policy')+'test_final_f7_the_real_polkit_check_runs_on_pull_requests_and_the_shim_is_gone',True)
+
+# Step 5: back and forward close the class; untouched editors hold nothing; whose typing it is.
+case('step5-back-forward-report',B,"await requireDiscard(tab,command,command.direction==='back'?","void (tab,command,command.direction==='back'?",node('background','step 5 back and forward'))
+case('step5-owner-typing',B,"if(state.unsaved&&state.claude_only!==true)ownerTyping=true;","",node('background','step 5 the report lets Claude discard'))
+case('step5-ask-for-media-and-frames',B,"(ownerTyping||uninspected||playing?","(ownerTyping?",node('background','step 5 the report lets Claude discard'))
+case('step5-editor-since-load',R,"changed=!sinceLoad||gotInput(element);}","changed=true;}",node('reader','step 5 an editor counts only once'))
+case('step5-design-mode-since-load',R,"(!sinceLoad||gotInput(document))","true",node('reader','step 5 a rich-text frame'))
+case('step5-gap-counts',R,"const sinceLoad=watched&&guard.typingGap===false;","const sinceLoad=watched;",node('reader','step 5 an editor counts only once'))
+case('step5-typist-claude-only',R,"return marks?.claude&&!marks.owner?'Claude'","return marks?.claude?'Claude'",node('reader','step 5 an editor counts only once'))
+case('step5-claude-select-check',R,"        guard.typedByClaude?.(element);\n        element.dispatchEvent","        element.dispatchEvent",node('reader','step 5 Claude'))
+case('step5-guard-aimed-field',G,"const claude=inFlight&&!!typingTarget&&(field===typingTarget||field.contains(typingTarget));","const claude=inFlight;",node('page','step 5 the guard records typing'))
+case('step5-guard-trusted',G,"if(type(event)!=='input'||!event.isTrusted||!isElement(element))return;","if(type(event)!=='input'||!isElement(element))return;",node('page','step 5 the guard records typing'))
+case('step5-guard-gap',G,"reader=null;typing.gap=true;","reader=null;",node('page','step 5 the guard records typing'))
+case('step5-guard-listens',G,"    typed(event,element);\n","",node('page','step 5 the guard records typing'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

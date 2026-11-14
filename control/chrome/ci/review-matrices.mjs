@@ -271,12 +271,56 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
         if(mode==='web-audio'){await call('click',await target('Play media'));await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
         if(mode!=='clean'){
           const first=await rpc('close_tab',{tab});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-          assert.match(first.error.message,mode==='dirty'?/Closing this tab would lose unsaved typing in field "Draft"\./:/Closing this tab would lose media that is playing\./);assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');
+          assert.match(first.error.message,mode==='dirty'?/Closing this tab would lose unsaved typing in field "Draft" \(typed by the owner\)\./:/Closing this tab would lose media that is playing\./);assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');
           await delay(300);assert.ok((await allTabs(call)).items.some(row=>row.tab===tab&&row.controlled),'the tab stays open and controlled until the explicit repeat');
         }
         const closed=await rpc('close_tab',{tab,...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(closed.ok,true,JSON.stringify(closed));
         await eventually(async()=>!(await allTabs(call)).items.some(row=>row.tab===tab),'close_tab '+mode);
       }finally{setTab(main);}
+    }
+    // Step 5: back and forward give the same report in a Claude tab and go only
+    // with the flag; from a fresh clean page back goes at once.
+    for(const mode of ['dirty','clean']){
+      const id='final-discard-history-'+mode,page=step=>'http://fixture.test:8765/?case=take-state&id='+id+'-'+step+'&mode='+mode;
+      const opened=await call('open',{url:page(1)}),tab=opened.untrusted_content?.tab??opened.tab;
+      const address=async()=>(await allTabs(call)).items.find(row=>row.tab===tab)?.url;
+      await eventually(()=>counts('loaded-'+id+'-1')===1,'first page loaded');setTab(tab);
+      try{
+        const second=await rpc('navigate',{tab,url:page(2),discard_unsaved:true});assert.equal(second.ok,true,JSON.stringify(second));
+        await eventually(async()=>await address()===page(2)&&counts('loaded-'+id+'-2')===1,'second page loaded');
+        if(mode==='dirty'){
+          const back=await rpc('navigate',{tab,direction:'back'});assert.equal(back.ok,false,JSON.stringify(back));assert.equal(back.error.code,'reload_required');
+          assert.match(back.error.message,/Going back in this tab would lose unsaved typing in field "Draft" \(typed by the owner\)\. Nothing was done\. Tell the owner/);assert.doesNotMatch(back.error.message,/Unsaved|Saved/,'labels only, never values');
+          await delay(500);assert.equal(await address(),page(2),'the page stays until the explicit repeat');
+        }
+        const back=await rpc('navigate',{tab,direction:'back',...(mode==='dirty'?{discard_unsaved:true}:{})});assert.equal(back.ok,true,JSON.stringify(back));
+        await eventually(async()=>await address()===page(1),'back '+mode);
+        if(mode==='dirty'){
+          // The first page comes back from the back-forward cache or loads again;
+          // either way it holds unsaved typing or can't be inspected.
+          const forward=await rpc('navigate',{tab,direction:'forward'});assert.equal(forward.ok,false,JSON.stringify(forward));assert.equal(forward.error.code,'reload_required');
+          assert.match(forward.error.message,/Going forward in this tab would lose /);await delay(500);assert.equal(await address(),page(1),'the page stays until the explicit repeat');
+          const moved=await rpc('navigate',{tab,direction:'forward',discard_unsaved:true});assert.equal(moved.ok,true,JSON.stringify(moved));
+          await eventually(async()=>await address()===page(2),'forward dirty');
+        }
+      }finally{await call('close_tab',{tab,discard_unsaved:true});setTab(main);}
+    }
+    // Step 5: an untouched editor in a Claude tab holds nothing; Claude's own
+    // typing is marked as his and may go without asking the owner.
+    for(const mode of ['untouched','typed-by-claude']){
+      const id='final-discard-editor-'+mode,next='http://fixture.test:8765/?case=take-state&id='+id+'-next&mode=clean';
+      const opened=await call('open',{url:'http://fixture.test:8765/?case=take-state&id='+id+'&mode=editor'}),tab=opened.untrusted_content?.tab??opened.tab;
+      await eventually(()=>counts('loaded-'+id)===1,'Claude tab loaded');setTab(tab);
+      try{
+        if(mode==='typed-by-claude'){
+          await call('fill',{...await target('Notes'),text:'Claude notes'});
+          const first=await rpc('navigate',{tab,url:next});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
+          assert.match(first.error.message,/Navigating this tab away would lose unsaved typing in editor "Notes" \(typed by Claude\)\. Nothing was done\. All of it is Claude's own typing/);
+          assert.doesNotMatch(first.error.message,/Claude notes/,'labels only, never values');await delay(500);assert.equal(counts('loaded-'+id+'-next'),0,'the page stays until the explicit repeat');
+        }
+        const moved=await rpc('navigate',{tab,url:next,...(mode==='typed-by-claude'?{discard_unsaved:true}:{})});assert.equal(moved.ok,true,JSON.stringify(moved));
+        await eventually(()=>counts('loaded-'+id+'-next')===1,'editor '+mode);
+      }finally{await call('close_tab',{tab,discard_unsaved:true});setTab(main);}
     }
   });
   await check('GROUP 8 REVIEW script-started POST documents in tabs and popups never reload',async()=>{

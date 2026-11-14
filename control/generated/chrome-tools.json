@@ -1219,7 +1219,7 @@
   },
   {
     "name": "navigate",
-    "description": "Navigate a Claude tab by address or one history direction. Only http, https and about:blank; settings and approval pages refuse. reload never reloads a form-loaded document. reload and an address report unsaved typing or playing media as reload_required until repeated with discard_unsaved=true. Effect: change.",
+    "description": "Navigate a Claude tab by address or one history direction. Only http, https and about:blank; settings and approval pages refuse. reload never reloads a form-loaded document. Every direction and an address report unsaved typing or playing media as reload_required until repeated with discard_unsaved=true. Effect: change.",
     "inputSchema": {
       "type": "object",
       "properties": {

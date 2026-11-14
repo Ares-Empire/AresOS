@@ -433,6 +433,8 @@ class Questions(unittest.TestCase):
         # One flag for every act that drops a Claude tab's document; the browser decides with the report.
         for verb,args in [('navigate',{'tab':1,'direction':'reload'}),('navigate',{'tab':1,'direction':'reload','discard_unsaved':True}),('navigate',{'tab':1,'direction':'reload','discard_unsaved':False}),
                           ('navigate',{'tab':1,'url':'https://fixture.test/next'}),('navigate',{'tab':1,'url':'https://fixture.test/next','discard_unsaved':True}),
+                          ('navigate',{'tab':1,'direction':'back'}),('navigate',{'tab':1,'direction':'back','discard_unsaved':True}),
+                          ('navigate',{'tab':1,'direction':'forward'}),('navigate',{'tab':1,'direction':'forward','discard_unsaved':True}),
                           ('close_tab',{'tab':1}),('close_tab',{'tab':1,'discard_unsaved':True})]:
             self.browser.dispatched.clear()
             result=self.call(verb,args);self.assertTrue(result['ok'],result)
@@ -441,9 +443,11 @@ class Questions(unittest.TestCase):
             self.assertFalse(self.call(verb,args)['ok'],'the choice is a boolean')
         from aresos_control.chrome.definitions import SHARED
         from aresos_control.definitions import instructions_for
-        self.assertIn('chrome_navigate (reload or an address) and chrome_close_tab on any Claude tab first report unsaved typing, by field label, and playing media',SHARED)
+        self.assertIn('chrome_navigate (reload, back, forward or an address) and chrome_close_tab on any Claude tab first report unsaved typing, by field label and marked as typed by the owner or by Claude, and playing media',SHARED)
         self.assertNotIn('reload_taken_tab',instructions_for('chrome'))
-        self.assertIn("When a report lists the owner's unsaved typing or playing media, tell him and get his OK in the chat before setting discard_unsaved.",instructions_for('chrome'))
+        # Step 5: the ask covers his typing, playing media and uninspected frames; Claude's own typing needs no ask.
+        self.assertIn('When a report lists typing by the owner, playing media or frames that could not be inspected, tell him and get his OK in the chat before setting discard_unsaved. '
+                      'Typing marked as typed by Claude may be discarded without asking.',instructions_for('chrome'))
         self.assertIn('refuses its submit before that first-input reload runs',SHARED)
 
     def test_post18df_form_with_withheld_values_refuses_before_reload_or_preparation(self):

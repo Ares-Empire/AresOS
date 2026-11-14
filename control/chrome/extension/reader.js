@@ -513,24 +513,40 @@
     const clean=label.replace(/\s+/g,' ').trim();
     return clean?kind+' "'+clean.slice(0,80).replace(/"/g,"'")+(clean.length>80?'…':'')+'"':'an unlabelled '+kind;
   }
+  // Who typed (guard.js): only typing the guard saw Claude do, and nobody
+  // else, is Claude's. Anything else, including a change no one typed, counts
+  // as the owner's, so Claude asks him.
+  const typist=node=>{const marks=guard.typedBy?.(node);return marks?.claude&&!marks.owner?'Claude':'the owner';};
   function reloadState(){
-    const fields=document.designMode?.toLowerCase()==='on'?['the whole page (design mode)']:[];
+    const fields=[];let claudeOnly=true;
+    const add=(label,node)=>{const by=typist(node);if(by!=='Claude')claudeOnly=false;fields.push(label+' (typed by '+by+')');};
+    // The guard has listened since before page scripts in a watched document,
+    // unless a release left a gap; only then is "no input since load" known.
+    const sinceLoad=watched&&guard.typingGap===false;
+    const gotInput=node=>!!guard.typedBy?.(node);
+    // A rich-text frame (design mode) counts once it got input since load.
+    if(document.designMode?.toLowerCase()==='on'&&(!sinceLoad||gotInput(document)))add('the whole page in design mode',document);
     for(const element of all()){
       if(element.matches('input,textarea,select,[contenteditable]')){
         let changed;
         if(password(element))changed=true;
         else if(!watched&&(typedField(element)||html(element,HTMLInputElement,'input')&&element.type==='hidden'))changed=true;
-        // There is no native defaultValue for rich text. A late reader cannot
-        // prove it unchanged, including an editor the owner emptied. An editor
-        // inside another is part of it and named once.
-        else if(element.isContentEditable){if(element.parentElement?.isContentEditable)continue;changed=true;}
+        // Rich text has no native default. An editor counts only once it got
+        // input since load (an untouched one holds nothing of anyone's). Where
+        // that isn't known, a late reader or a gap, every editor still counts,
+        // including one the owner emptied. An editor inside another is part of
+        // it and named once.
+        else if(element.isContentEditable){if(element.parentElement?.isContentEditable)continue;changed=!sinceLoad||gotInput(element);}
         else if(html(element,HTMLSelectElement,'select'))changed=[...element.options].some(option=>option.selected!==option.defaultSelected);
         else if(['checkbox','radio'].includes(element.type))changed=element.checked!==element.defaultChecked;
+        // Changed from the page's default. A page that moves the default
+        // along with typing (React does for controlled fields) hides typing
+        // from this rule; see PROGRESS.md, for the lead.
         else changed=element.value!==element.defaultValue;
-        if(changed)fields.push(unsavedLabel(element));
+        if(changed)add(unsavedLabel(element),element);
       }
     }
-    return {unsaved:fields.length>0,fields,playing:all().some(element=>['AUDIO','VIDEO'].includes(element.tagName)&&!element.paused&&!element.ended)};
+    return {unsaved:fields.length>0,fields,claude_only:fields.length>0&&claudeOnly,playing:all().some(element=>['AUDIO','VIDEO'].includes(element.tagName)&&!element.paused&&!element.ended)};
   }
   function onMessage(message, sender, reply, filesReady=false) {
     if (sender.id !== chrome.runtime.id || !message || typeof message.command !== 'string') return;
@@ -606,6 +622,7 @@
           element.value = message.value;
         }
         else element.checked = message.checked;
+        guard.typedByClaude?.(element);
         element.dispatchEvent(new Event('input', {bubbles:true})); element.dispatchEvent(new Event('change', {bubbles:true}));
         value = {changed:true};
       } else throw Error('permission_denied: unknown content command');

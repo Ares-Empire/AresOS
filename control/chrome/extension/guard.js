@@ -117,6 +117,22 @@
   function* watchedRoots(){for(const ref of rootRefs){const root=ref.deref();if(root)yield [root,roots.get(root)];else rootRefs.delete(ref);}}
   let privacyCheck=null,reader, generation = null, dispatchNonce = null, config, until = 0, inFlight = false, mark = null, owner = null, sequence = 0;
   const clipboardRoutes=new Set();
+  // Typing since load, per field and whose; the unsaved report reads it
+  // (reader.js). It lives as long as the document. Typing while no guard
+  // listens (after a release) is unseen, so a disposed guard leaves a gap.
+  const typing=globalThis[Symbol.for('aresos.chrome.typing.v1')]??={fields:new WeakMap(),gap:false};
+  let typingTarget=null;
+  function noteTyping(node,claude){const marks=typing.fields.get(node)||{owner:false,claude:false};marks[claude?'claude':'owner']=true;typing.fields.set(node,marks);}
+  // A trusted input event during Claude's own dispatch, in the field Claude
+  // aimed at, is Claude's; every other trusted one is the owner's.
+  function typed(event,element){
+    try{
+      if(type(event)!=='input'||!event.isTrusted||!isElement(element))return;
+      let field=element;while(field.isContentEditable&&field.parentElement?.isContentEditable)field=field.parentElement;
+      const claude=inFlight&&!!typingTarget&&(field===typingTarget||field.contains(typingTarget));
+      noteTyping(field,claude);noteTyping(ownDocument,claude);
+    }catch{}
+  }
   function noteClipboard(route){if(generation!==null&&['write','writeText','copy'].includes(route)){clipboardRoutes.add(route);try{reader?.clipboard?.(route,generation);}catch{}}}
   function clipboardObservation(take=false){
     if(!clipboardRoutes.size)return null;
@@ -275,6 +291,7 @@
       if(peer&&alive(peer)){const other=peerAPI(peer),hold=active()?{config}:null;if(other)other.capture(event,root,hold);else if(hold){if(event.cancelable)event.preventDefault();event.stopImmediatePropagation();report('activation_unknown',element,null,event.cancelable);}}
       return;
     }
+    typed(event,element);
     if (!active()) return;
     if (!(isElement(element))) return;
     const nodeRoot=element.getRootNode();
@@ -474,7 +491,7 @@
     reader(value) { reader=value;privacyCheck=value.protected; }, watch,
     arm(value) {
       generation=value.generation;dispatchNonce=value.dispatch_nonce;config={...value.config,words:value.config.words.map(word=>word.toLowerCase())};inFlight=true;owner=null;until=performance.now()+config.holdMs;
-      const target=reader.element(value.target),implicit=reader.element(value.implicit);
+      const target=reader.element(value.target),implicit=reader.element(value.implicit);typingTarget=target||null;
       mark=value.operation ? {id:value.operation,target,form:reader.element(value.form),implicit,submitter:implicit||(value.primary_submission&&reader.target(target).submit?target:null),keydown:false,expected_key:value.key_input,expected_form:value.approved_form,input:false,primary:!value.primary_submission,consequential:!value.primary_submission,further:false} : null;
     },
     inherit(value){this.arm(value);inFlight=value.in_flight===true;mark=null;},
@@ -482,10 +499,13 @@
     async finish(epoch,nonce) {
       // A private message plus a later browser task over-covers the synchronous input handlers.
       await new Promise(resolve=>setTimeout(resolve,0));
-      if (generation===epoch && dispatchNonce===nonce) { until=Math.max(until,performance.now()+config.holdMs);inFlight=false;mark=null; }
+      if (generation===epoch && dispatchNonce===nonce) { until=Math.max(until,performance.now()+config.holdMs);inFlight=false;mark=null;typingTarget=null; }
     },
-    clear() { peers.clear();clipboardRoutes.clear();generation=null;until=0;inFlight=false;mark=null;owner=null;held.clear(); },
-    dispose() { let restored=true;if(relayNode&&relayMarker)removeAttribute.call(relayNode,relayMarker);relayNode=null;relayMarker=null;if(relayControl){if(relayMain)restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;reader?.protectPeers?.();this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
+    clear() { peers.clear();clipboardRoutes.clear();generation=null;until=0;inFlight=false;mark=null;owner=null;typingTarget=null;held.clear(); },
+    typedBy(node){return typing.fields.get(node)||null;},
+    typedByClaude(node){noteTyping(node,true);},
+    get typingGap(){return typing.gap;},
+    dispose() { let restored=true;if(relayNode&&relayMarker)removeAttribute.call(relayNode,relayMarker);relayNode=null;relayMarker=null;if(relayControl){if(relayMain)restored=!native.dispatch.call(relayControl,new Event('aresos-relay-cleanup',{cancelable:true}));for(const [kind,listener]of relayListeners)relayControl.removeEventListener(kind,listener);}relayControl=null;relayListeners.length=0;reader?.protectPeers?.();this.clear();ownerMutations?.disconnect();for(const [root,listeners] of watchedRoots())for(const [kind,listener,capture]of listeners)root.removeEventListener(kind,listener,capture);rootRefs.clear();ownerTasks.port1.close();ownerTasks.port2.close();reader?.dispose?.();reader=null;typing.gap=true;delete globalThis[Symbol.for('aresos.chrome.guard.v2')];return restored; },
     steps() { const result=[...held.values()].filter(step=>!step.reported).map(step=>{step.reported=true;return {id:step.id,kind:step.kind,document:step.document,label:step.label,element:step.element,submitter:step.submitter,cancellable:step.cancellable};});return result; },
     resume(id,operation,element,form) {
       const step=held.get(id);
