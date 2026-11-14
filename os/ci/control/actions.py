@@ -1,0 +1,566 @@
+"""Package 18c, B2: the Control checks in the booted CI guest (check_build=control).
+
+checks.py loads this file from actions.d (agreed change 8), so Control's checks stay in os/ci/control/. Each action
+returns its evidence as files for the runner (os/ci/control/control_vm.py), which prints the PASS line. The owner's
+steps run as `ares` through runuser; root stands in for his sudo (`ares` has no password in CI).
+"""
+import hashlib
+import json
+import os
+import pathlib
+import pwd
+import queue
+import socket
+import ssl
+import stat
+import subprocess
+import threading
+import time
+
+from channel import export_bytes
+
+HERE = pathlib.Path('/usr/libexec/aresos-ci/control')
+RECORD = pathlib.Path('/usr/share/aresos/manifest/control.json')
+GENERATED = pathlib.Path('/usr/libexec/aresos-control/generated')
+USER_MCP = pathlib.Path('/usr/share/aresos/control/user-mcp.json')
+MANAGED_SETTINGS = pathlib.Path('/etc/claude-code/managed-settings.json')
+UNIT = 'aresos-toold.service'
+SOCKETS = pathlib.Path('/run/aresos-tools')
+# The modes today's control/aresos_control/daemon.py sets: act for the owner's peer-checked calls, admin and chrome
+# for root only (Chrome's adapter, PR #27, may change chrome's).
+SOCKET_MODES = {'act.sock': 0o666, 'admin.sock': 0o600, 'chrome.sock': 0o600}
+SANDBOX = {'Type': 'simple', 'User': 'aresos-tools', 'Group': 'aresos-tools', 'NoNewPrivileges': 'yes',
+           'ProtectSystem': 'strict', 'ProtectHome': 'yes', 'PrivateTmp': 'yes', 'PrivateDevices': 'yes',
+           'UMask': '0077', 'Restart': 'on-failure', 'CapabilityBoundingSet': '', 'AmbientCapabilities': ''}
+SANDBOX_SETS = {'RestrictAddressFamilies': {'AF_UNIX', 'AF_INET', 'AF_INET6'},
+                'ReadWritePaths': {'/run/aresos-tools', '/var/lib/aresos-tools', '/var/lib/aresos-operation-evidence'}}
+OTHER = 'aresos-ci-other'
+CLAUDE_VERSION = '2.1.319'
+HOME = pathlib.Path(pwd.getpwnam('ares').pw_dir)
+# control/tests/support.py's message(): testapp's fixture account.
+MESSAGE = {'account': 'fixture', 'to': ['alpha', 'beta'], 'cc': [], 'bcc': ['hidden'], 'subject': 'Fixture message',
+           'text': 'Written in full', 'attachments': []}
+RAW_REQUEST = '''import json, socket, sys
+connection = socket.socket(socket.AF_UNIX)
+try:
+    connection.connect(sys.argv[1])
+except OSError as error:
+    print(json.dumps({"connect_error": error.errno, "error_name": type(error).__name__}))
+    raise SystemExit(0)
+connection.sendall(sys.argv[2].encode() + b"\\n")
+data = b""
+while not data.endswith(b"\\n"):
+    chunk = connection.recv(65536)
+    if not chunk:
+        break
+    data += chunk
+print(data.decode().strip() or "{}")
+'''
+
+
+def environment(user):
+    home = HOME if user == 'ares' else pathlib.Path('/')
+    return [f'HOME={home}', 'LANG=C.UTF-8', f'PATH={home}/.local/bin:/usr/local/bin:/usr/bin:/usr/sbin',
+            # CI only: the disposable guest neither updates nor reports the pinned Claude Code.
+            'DISABLE_AUTOUPDATER=1', 'CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1']
+
+
+def as_user(user):
+    return ['runuser', '-u', user, '--', 'env', '-i', *environment(user)]
+
+
+def run(argv, input=None, timeout=300, cwd='/'):
+    result = subprocess.run(argv, input=input, capture_output=True, text=True, timeout=timeout, cwd=cwd)
+    return dict(argv=argv, returncode=result.returncode, stdout=result.stdout, stderr=result.stderr)
+
+
+def ok(result):
+    assert result['returncode'] == 0, result
+    return result
+
+
+def cli(user, *argv, value=None):
+    command = ['/usr/bin/aresos', *argv] + (['--input', json.dumps(value)] if value is not None else [])
+    result = run([*as_user(user), *command])
+    try:
+        result['json'] = json.loads(result['stdout'])
+    except ValueError:
+        result['json'] = None
+    return result
+
+
+def answered(result):
+    assert result['returncode'] == 0 and result['json'] and result['json'].get('ok') is True, result
+    return result['json']
+
+
+def refused(result, code=None):
+    """A refusal: a non-zero exit, and when there is a JSON answer, ok false with the given code."""
+    data = result['json']
+    assert result['returncode'] != 0 and (data is None or data.get('ok') is False), result
+    if code:
+        assert data and data['error']['code'] == code, result
+    return data['error'].get('code') if data else result['stderr'].strip()[-300:]
+
+
+def sha256(path):
+    return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
+
+
+def files_out(values):
+    out = {}
+    for name, value in values.items():
+        raw = value if isinstance(value, bytes) else value.encode() if isinstance(value, str) else \
+            (json.dumps(value, indent=2, sort_keys=True) + '\n').encode()
+        out['control/' + name] = export_bytes(raw)
+    return out
+
+
+def show(*names):
+    result = ok(run(['systemctl', 'show', UNIT, *[f'--property={name}' for name in names]]))
+    return dict(line.split('=', 1) for line in result['stdout'].splitlines() if '=' in line)
+
+
+def wait_active(seconds=90):
+    deadline = time.monotonic() + seconds
+    while True:
+        state = show('ActiveState', 'SubState')
+        if state == {'ActiveState': 'active', 'SubState': 'running'}:
+            return state
+        assert time.monotonic() < deadline, ('the service did not become active', state)
+        time.sleep(1)
+
+
+def release_checks(*names):
+    result = run(['/usr/bin/python3', '-I', str(HERE / 'release_checks.py'), *names])
+    lines = result['stdout'].splitlines()
+    assert result['returncode'] == 0 and lines[-1:] == ['CONTROL_RELEASE_CHECKS_PASS'], result
+    return json.loads(lines[0]), result
+
+
+# Check 1. Every path of Part A has the owner, mode and content of the commit; no links; no managed-mcp.json.
+def files(request):
+    record = json.loads(RECORD.read_text())
+    assert record['format'] == 1 and record['source_revision'] == request['revision'], \
+        (record.get('source_revision'), request['revision'])
+    for key in ('files', 'links', 'directories'):
+        assert record[key] == request['expected'][key], f'control.json {key} is not what the commit installs'
+    entries = {**record['files'], **record['vendor'],
+               **{name: dict(mode=mode, sha256=None) for name, mode in record['directories'].items()}}
+    rows = []
+    for name, entry in sorted(entries.items()):
+        path = pathlib.Path(name)
+        for part in (path, *path.parents):
+            info = part.lstat()
+            assert not stat.S_ISLNK(info.st_mode), f'{part} is a link'
+            assert (info.st_uid, info.st_gid) == (0, 0) and not info.st_mode & 0o022, (str(part), oct(info.st_mode))
+        info = path.lstat()
+        mode = f'{stat.S_IMODE(info.st_mode):04o}'
+        assert mode == entry['mode'], (name, mode, entry['mode'])
+        digest = None
+        if entry['sha256'] is None:
+            assert stat.S_ISDIR(info.st_mode), name
+        else:
+            assert stat.S_ISREG(info.st_mode), name
+            digest = sha256(path)
+            assert digest == entry['sha256'], f'{name} differs from the commit'
+        rows.append(dict(path=name, owner='root:root', mode=mode, sha256=digest, source=entry.get('source')))
+    for root in ('/usr/libexec/aresos-control', '/usr/lib/aresos-control', '/usr/share/aresos/control',
+                 '/etc/claude-code'):
+        extra = sorted(str(path) for path in pathlib.Path(root).rglob('*') if str(path) not in entries)
+        assert not extra, f'not recorded in control.json: {extra[:20]}'
+    for link, target in record['links'].items():
+        assert os.readlink(link) == target, (link, os.readlink(link))
+    assert not pathlib.Path('/etc/claude-code/managed-mcp.json').exists(), 'managed-mcp.json exists'
+    summary = dict(revision=record['source_revision'], files=len(record['files']), vendored=len(record['vendor']),
+                   directories=len(record['directories']), links=record['links'])
+    return dict(returncode=0, summary=summary,
+                files=files_out({'files.json': dict(summary, entries=rows, managed_mcp_json=False)}))
+
+
+# Agreed change 7: the booted guest's /etc/claude-code files equal the image's.
+def claude_code_files(request):
+    results, result = release_checks('claude_code_files')
+    return dict(returncode=0, summary=results['claude_code_files']['value'],
+                files=files_out({'etc-claude-code.json': results}))
+
+
+# Agreed change 12: the rehearsal's check actions, run here exactly as the rehearsal would run them.
+def release(request):
+    results, result = release_checks()
+    summary = {name: value['ok'] for name, value in results.items()}
+    return dict(returncode=0, summary=summary, files=files_out({'release-checks.json': results,
+                                                                'release-checks.txt': result['stdout']}))
+
+
+def cgroup_sample(cgroup):
+    tasks = {}
+    for pid in (cgroup / 'cgroup.procs').read_text().split():
+        for task in pathlib.Path(f'/proc/{pid}/task').iterdir():
+            try:
+                status = dict(line.split(':', 1) for line in (task / 'status').read_text().splitlines() if ':' in line)
+                schedstat = task / 'schedstat'
+                timeslices = int(schedstat.read_text().split()[2]) if schedstat.exists() else 0
+            except (FileNotFoundError, ProcessLookupError):
+                continue
+            tasks[f'{pid}/{task.name}'] = dict(switches=int(status['voluntary_ctxt_switches']) +
+                                               int(status['nonvoluntary_ctxt_switches']), timeslices=timeslices)
+    cpu = dict(line.split() for line in (cgroup / 'cpu.stat').read_text().splitlines())
+    return dict(time=time.monotonic(), tasks=tasks, cpu_usec=int(cpu['usage_usec']))
+
+
+# Agreed change 14: the service's memory and wake-ups while nothing uses it. Runs before any check talks to it.
+def idle(request):
+    wait_active()
+    seconds = int(request.get('seconds', 60))
+    cgroup = pathlib.Path('/sys/fs/cgroup' + show('ControlGroup')['ControlGroup'])
+    first = cgroup_sample(cgroup)
+    time.sleep(seconds)
+    last = cgroup_sample(cgroup)
+    elapsed = last['time'] - first['time']
+    common = first['tasks'].keys() & last['tasks'].keys()
+    switches = sum(last['tasks'][task]['switches'] - first['tasks'][task]['switches'] for task in common)
+    timeslices = sum(last['tasks'][task]['timeslices'] - first['tasks'][task]['timeslices'] for task in common)
+    pids = (cgroup / 'cgroup.procs').read_text().split()
+    rollup = {}
+    for pid in pids:
+        for line in pathlib.Path(f'/proc/{pid}/smaps_rollup').read_text().splitlines():
+            key, _, rest = line.partition(':')
+            if key in ('Rss', 'Pss', 'Pss_Anon', 'Private_Dirty', 'Swap'):
+                rollup[key] = rollup.get(key, 0) + int(rest.split()[0])
+    def number(name):
+        path = cgroup / name
+        return int(path.read_text()) if path.exists() else None
+    memory = cgroup / 'memory.stat'
+    memory_stat = dict(line.split() for line in memory.read_text().splitlines()) if memory.exists() else {}
+    summary = dict(seconds=round(elapsed, 1), processes=len(pids), threads=len(last['tasks']),
+                   memory_current_bytes=number('memory.current'), memory_peak_bytes=number('memory.peak'),
+                   anon_bytes=int(memory_stat.get('anon', -1)), file_bytes=int(memory_stat.get('file', -1)),
+                   **{key.lower() + '_kib': value for key, value in rollup.items()},
+                   context_switches=switches, wakeups_per_second=round(switches / elapsed, 3),
+                   timeslices_per_second=round(timeslices / elapsed, 3),
+                   cpu_ms=round((last['cpu_usec'] - first['cpu_usec']) / 1000, 1),
+                   cpu_percent=round((last['cpu_usec'] - first['cpu_usec']) / 1e4 / elapsed, 4))
+    return dict(returncode=0, summary=summary, files=files_out({'idle-footprint.json': dict(
+        summary, cgroup=str(cgroup), memory_stat=memory_stat, first=first, last=last)}))
+
+
+# The layer is complete for Mail (step 2b): the fixture names, the CA in the trust store, the runner's servers.
+def fixtures(request):
+    names = {name: sorted({entry[4][0] for entry in socket.getaddrinfo(name, None, socket.AF_INET)})
+             for name in ('greenmail', 'dovecot')}
+    assert names == {'greenmail': ['10.0.2.2'], 'dovecot': ['10.0.2.2']}, names
+    context = ssl.create_default_context()
+    servers = {}
+    for name, port in (('greenmail', 3993), ('greenmail', 3465), ('dovecot', 993)):
+        deadline = time.monotonic() + 60
+        while True:
+            try:
+                with socket.create_connection((name, port), timeout=10) as raw, \
+                        context.wrap_socket(raw, server_hostname=name) as tls:
+                    tls.settimeout(10)
+                    greeting = tls.recv(200).decode(errors='replace').strip()
+                    servers[f'{name}:{port}'] = dict(tls=tls.version(), subject=dict(
+                        item[0] for item in tls.getpeercert()['subject']), greeting=greeting[:80])
+                break
+            except OSError as error:
+                assert time.monotonic() < deadline, f'{name}:{port}: {error}'
+                time.sleep(2)
+    anchors = sorted(str(path) for path in pathlib.Path('/etc/pki/ca-trust/source/anchors').iterdir())
+    summary = dict(hosts=names, servers=servers, anchors=anchors)
+    return dict(returncode=0, summary=summary, files=files_out({'fixtures.json': summary}))
+
+
+def mcp_session(argv, timeout=60):
+    """initialize, then tools/list (every page), as an MCP client over stdio."""
+    process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               text=True, cwd='/')
+    lines, errors = queue.Queue(), []
+
+    def read():
+        for line in process.stdout:
+            lines.put(line)
+        lines.put(None)
+    threading.Thread(target=read, daemon=True).start()
+    threading.Thread(target=lambda: errors.extend(process.stderr), daemon=True).start()
+
+    def send(message):
+        process.stdin.write(json.dumps(dict(jsonrpc='2.0', **message)) + '\n')
+        process.stdin.flush()
+
+    def receive(ident):
+        deadline = time.monotonic() + timeout
+        while True:
+            line = lines.get(timeout=max(0.1, deadline - time.monotonic()))
+            assert line is not None, ('the server closed its output', ''.join(errors)[-4000:])
+            message = json.loads(line)
+            if message.get('id') == ident:
+                assert 'result' in message, message
+                return message['result']
+    try:
+        send(dict(id=1, method='initialize', params=dict(protocolVersion='2025-06-18', capabilities={},
+                                                         clientInfo=dict(name='aresos-ci', version='1'))))
+        initialized = receive(1)
+        send(dict(method='notifications/initialized'))
+        tools, cursor, ident = [], None, 1
+        while True:
+            ident += 1
+            send(dict(id=ident, method='tools/list', params=dict(cursor=cursor) if cursor else {}))
+            page = receive(ident)
+            tools += page['tools']
+            cursor = page.get('nextCursor')
+            if not cursor:
+                break
+    finally:
+        process.stdin.close()
+        try:
+            process.wait(timeout=15)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+    return dict(initialize=initialized, tools=tools, returncode=process.returncode, stderr=''.join(errors)[-4000:])
+
+
+def raw_request(user, name, request):
+    result = ok(run([*as_user(user), '/usr/bin/python3', '-I', '-c', RAW_REQUEST, str(SOCKETS / name),
+                     json.dumps(request)]))
+    return json.loads(result['stdout'])
+
+
+# Check 3. The daily user's entry points answer; another user and the admin socket refuse.
+def entry_points(request):
+    wait_active()
+    listed = answered(cli('ares', 'testapp', 'list', value={'limit': 3}))
+    assert len(listed['data']['items']) <= 3, listed
+    log = answered(cli('ares', 'log'))
+    servers = {}
+    for app in ('mail', 'control'):
+        session = mcp_session([*as_user('ares'), '/usr/bin/aresos-mcp', app])
+        generated = json.loads((GENERATED / f'{app}-tools.json').read_text())
+        instructions = (GENERATED / f'{app}-instructions.txt').read_text()
+        assert session['initialize'].get('instructions', '') + '\n' == instructions, (app, session['initialize'])
+        served = session['tools']
+        assert [tool['name'] for tool in served] == [tool['name'] for tool in generated], app
+        for tool, shipped in zip(served, generated):
+            assert {key: tool.get(key) for key in shipped} == shipped, (app, tool['name'])
+        servers[app] = dict(server=session['initialize'].get('serverInfo'),
+                            protocol=session['initialize'].get('protocolVersion'),
+                            tools=[tool['name'] for tool in served],
+                            keys_beyond_generated=sorted({key for tool, shipped in zip(served, generated)
+                                                          for key in tool.keys() - shipped.keys()}))
+    # A throwaway second user, made in this VM only.
+    if run(['getent', 'passwd', OTHER])['returncode'] != 0:
+        ok(run(['useradd', '--system', '--no-create-home', '--shell', '/usr/sbin/nologin', OTHER]))
+    other = pwd.getpwnam(OTHER)
+    refusals = dict(
+        other_cli_act=refused(cli(OTHER, 'testapp', 'list', value={'limit': 3}), 'permission_denied'),
+        other_act_socket=raw_request(OTHER, 'act.sock', {'v': 1, 'method': 'tools', 'app': 'testapp'}),
+        ares_admin_socket=raw_request('ares', 'admin.sock', {'v': 1, 'method': 'tools', 'app': 'testapp'}),
+        ares_admin_cli=refused(cli('ares', 'admin', 'testapp', 'fixture_configure',
+                                   value={'failure': 'none', 'refuse': []})))
+    assert refusals['other_act_socket'].get('error', {}).get('code') == 'permission_denied', refusals
+    # admin.sock is 0600 for aresos-tools: the kernel refuses the connection before the service's own check.
+    assert refusals['ares_admin_socket'].get('error_name') == 'PermissionError', refusals
+    proxy = run([*as_user(OTHER), '/usr/bin/aresos-mcp', 'testapp'], input='', timeout=60)
+    assert proxy['returncode'] != 0 and 'requires the configured owner user' in proxy['stderr'], proxy
+    refusals['other_proxy'] = dict(returncode=proxy['returncode'], stderr=proxy['stderr'].strip()[-300:])
+    summary = dict(testapp_list_items=len(listed['data']['items']),
+                   log_items=len(log['data'].get('items', [])) if isinstance(log['data'], dict) else None,
+                   mcp=servers, other_user=dict(name=OTHER, uid=other.pw_uid), refusals=refusals)
+    return dict(returncode=0, summary=summary, files=files_out({'entry-points.json': summary}))
+
+
+def operation(op_id):
+    return answered(cli('ares', 'testapp', 'operation_status', value={'operation_id': op_id}))['data']
+
+
+# Check 4. The precondition check refuses while the managed file is changed; the file comes back as shipped.
+def precondition(request):
+    wait_active()
+    record = json.loads(RECORD.read_text())['files'][str(MANAGED_SETTINGS)]
+    original, info = MANAGED_SETTINGS.read_bytes(), MANAGED_SETTINGS.stat()
+    assert hashlib.sha256(original).hexdigest() == record['sha256'] and \
+        f'{stat.S_IMODE(info.st_mode):04o}' == record['mode'], 'the managed settings are not as shipped'
+    prepared = answered(cli('ares', 'testapp', 'prepare_send', value=MESSAGE))
+    op_id = prepared['data']['approval']['operation_id']
+    settings = json.loads(original)
+    removed = settings['permissions']['ask'][0]
+    changes = [('group-writable', lambda: os.chmod(MANAGED_SETTINGS, stat.S_IMODE(info.st_mode) | 0o020)),
+               (f'ask rule {removed} removed', lambda: MANAGED_SETTINGS.write_text(json.dumps(dict(
+                   settings, permissions=dict(settings['permissions'], ask=settings['permissions']['ask'][1:])),
+                   indent=2) + '\n'))]
+    cases = []
+    for name, change in changes:
+        try:
+            change()
+            refusal = cli('ares', 'testapp', 'prepare_send', value=MESSAGE)
+        finally:
+            MANAGED_SETTINGS.write_bytes(original)
+            os.chown(MANAGED_SETTINGS, 0, 0)
+            os.chmod(MANAGED_SETTINGS, stat.S_IMODE(info.st_mode))
+        restored = MANAGED_SETTINGS.stat()
+        case = dict(change=name, code=refused(refusal, 'boundary_not_installed'),
+                    message=refusal['json']['error'].get('message', '')[:300],
+                    restored_sha256=sha256(MANAGED_SETTINGS), restored_mode=f'{stat.S_IMODE(restored.st_mode):04o}')
+        assert case['restored_sha256'] == record['sha256'] and case['restored_mode'] == record['mode'], case
+        cases.append(case)
+    # A clean baseline: evidence first, then cancel, acknowledge the notice, and nothing is pending.
+    before = operation(op_id)
+    assert before['operation']['state'] == 'reserved', before
+    cancelled = answered(cli('ares', 'testapp', 'operation_cancel', value={'operation_id': op_id}))['data']
+    pending_notice = answered(cli('ares', 'control', 'pending'))['data']
+    answered(cli('ares', 'testapp', 'notice_ack', value={'operation_id': op_id}))
+    after = answered(cli('ares', 'control', 'pending'))['data']
+    assert after['total'] == 0 and not after['items'], after
+    summary = dict(prepared=dict(operation_id=op_id, state=before['operation']['state']), refusals=cases,
+                   shipped_sha256=record['sha256'], baseline=dict(cancelled_state=cancelled['operation']['state'],
+                                                                  pending_before_ack=pending_notice['total'],
+                                                                  pending_after_ack=after['total']))
+    return dict(returncode=0, summary=summary, files=files_out({'precondition.json': dict(
+        summary, operation_before_cancel=before, pending_before_ack=pending_notice)}))
+
+
+def user_servers():
+    path = HOME / '.claude.json'
+    return json.loads(path.read_text()).get('mcpServers', {}) if path.exists() else {}
+
+
+def same_server(stored, shipped):
+    """Equal in every shipped field; anything Claude Code adds must be empty."""
+    return all(stored.get(key) == value for key, value in shipped.items()) and \
+        not any(stored[key] for key in stored.keys() - shipped.keys())
+
+
+# Check 5. The user-scope install step, word for word from control/README.md, twice, beside a server of his own.
+def user_mcp(request):
+    wait_active()
+    as_ares = as_user('ares')
+    target = HOME / f'.local/share/claude/versions/{CLAUDE_VERSION}'
+    link = HOME / '.local/bin/claude'
+    # Where Claude Code's own installer puts it.
+    ok(run([*as_ares, 'install', '-D', '-m', '0755', str(HERE / f'claude-{CLAUDE_VERSION}'), str(target)]))
+    ok(run([*as_ares, 'mkdir', '-p', str(link.parent)]))
+    ok(run([*as_ares, 'ln', '-sfn', str(target), str(link)]))
+    version = ok(run([*as_ares, 'claude', '--version'], cwd=HOME))
+    assert version['stdout'].startswith(CLAUDE_VERSION), version
+    own = dict(type='stdio', command='/usr/bin/python3', args=['-I', str(HERE / 'own-mcp.py')])
+    ok(run([*as_ares, 'claude', 'mcp', 'add-json', '--scope', 'user', 'notes', json.dumps(own)], cwd=HOME))
+    before = user_servers()
+    assert set(before) == {'notes'} and same_server(before['notes'], own), before
+    shipped = json.loads(USER_MCP.read_text())
+    runs = []
+    for attempt in (1, 2):
+        result = ok(run([*as_ares, 'bash', '-c', request['install']], cwd=HOME))
+        servers = user_servers()
+        runs.append(dict(attempt=attempt, returncode=result['returncode'], stdout=result['stdout'][-2000:],
+                         stderr=result['stderr'][-2000:], servers=servers))
+        assert sorted(servers) == sorted({'notes', *shipped}), servers
+        assert servers['notes'] == before['notes'], ('his own entry changed', servers['notes'])
+        for name, server in shipped.items():
+            assert same_server(servers[name], server), (name, servers[name])
+    # The harness adds testapp the same way (its entry is the shipped one with `proxy testapp`).
+    testapp = json.loads(json.dumps(shipped['control']))
+    assert testapp['args'][-2:] == ['proxy', 'control'], testapp
+    testapp['args'][-1] = 'testapp'
+    ok(run([*as_ares, 'claude', 'mcp', 'add-json', '--scope', 'user', 'testapp', json.dumps(testapp)], cwd=HOME))
+    listed = ok(run([*as_ares, 'claude', 'mcp', 'list'], cwd=HOME, timeout=240))
+    connected = {}
+    for name in ('notes', *shipped, 'testapp'):
+        lines = [line for line in listed['stdout'].splitlines() if line.startswith(name + ':')]
+        assert len(lines) == 1 and 'Connected' in lines[0] and 'Failed' not in lines[0], (name, listed)
+        connected[name] = lines[0][-40:]
+    summary = dict(claude=version['stdout'].strip(), his_own=before['notes'], installed=sorted(shipped),
+                   runs=len(runs), connected=connected)
+    return dict(returncode=0, summary=summary, files=files_out({'user-mcp-install.json': dict(
+        summary, before=before, after_runs=runs, mcp_list=listed['stdout'], shipped=shipped)}))
+
+
+def denials(main_pid):
+    journal = run(['journalctl', '-b', '--no-pager', '-o', 'cat'], timeout=120)['stdout']
+    lines = [line for line in journal.splitlines() if 'avc:' in line and 'denied' in line]
+    audit = pathlib.Path('/var/log/audit/audit.log')
+    if audit.exists():
+        lines += [line for line in audit.read_text(errors='replace').splitlines()
+                  if 'type=AVC' in line and 'denied' in line]
+    marks = ('aresos', 'act.sock', 'admin.sock', 'chrome.sock', f'pid={main_pid} ')
+    return lines, [line for line in lines if any(mark in line for mark in marks)]
+
+
+# Check 2. The service under its sandbox, started by the boot alone. Runs after checks 3 to 5, so its SELinux scan
+# also covers what they made the service do.
+def service(request):
+    wait_active()
+    properties = show(*SANDBOX, *SANDBOX_SETS, 'ActiveState', 'SubState', 'NRestarts', 'MainPID', 'UnitFileState',
+                      'InvocationID', 'ControlGroup', 'DropInPaths', 'FragmentPath', 'ExecMainStartTimestamp')
+    for key, value in SANDBOX.items():
+        assert properties[key] == value, (key, properties[key], value)
+    for key, value in SANDBOX_SETS.items():
+        assert set(properties[key].split()) == value, (key, properties[key])
+    assert (properties['NRestarts'], properties['UnitFileState']) == ('0', 'enabled'), properties
+    # Fedora's drop-ins for every service may apply; none of the unit's own.
+    assert UNIT not in properties['DropInPaths'], properties['DropInPaths']
+    # Started once in this boot by systemd itself: the journal knows one invocation, the current one.
+    journal = run(['journalctl', '-b', '-u', UNIT, '--no-pager', '-o', 'json', '--output-fields=INVOCATION_ID,'
+                   '_SYSTEMD_INVOCATION_ID,MESSAGE'], timeout=120)
+    invocations = set()
+    for line in journal['stdout'].splitlines():
+        entry = json.loads(line)
+        for key in ('INVOCATION_ID', '_SYSTEMD_INVOCATION_ID'):
+            if isinstance(entry.get(key), str):
+                invocations.add(entry[key].replace('-', '').lower())
+    assert invocations == {properties['InvocationID'].replace('-', '').lower()}, (invocations, properties)
+    pid = int(properties['MainPID'])
+    cmdline = pathlib.Path(f'/proc/{pid}/cmdline').read_bytes().split(b'\0')
+    assert b'/usr/libexec/aresos-control/launch.py' in cmdline and b'service' in cmdline, cmdline
+    status = {}
+    for line in pathlib.Path(f'/proc/{pid}/status').read_text().splitlines():
+        key, _, rest = line.partition(':')
+        status[key] = rest.strip()
+    process = {key: status[key] for key in ('Uid', 'Gid', 'Groups', 'NoNewPrivs', 'CapInh', 'CapPrm', 'CapEff',
+                                            'CapBnd', 'CapAmb', 'Seccomp')}
+    assert process['Uid'].split() == ['250'] * 4 and process['Gid'].split() == ['250'] * 4, process
+    assert process['NoNewPrivs'] == '1', process
+    for key in ('CapInh', 'CapPrm', 'CapEff', 'CapBnd', 'CapAmb'):
+        assert int(process[key], 16) == 0, (key, process[key])
+    folder = SOCKETS.lstat()
+    assert stat.S_ISDIR(folder.st_mode) and stat.S_IMODE(folder.st_mode) == 0o711 and folder.st_uid == 250, folder
+    sockets = {}
+    for path in sorted(SOCKETS.iterdir()):
+        info = path.lstat()
+        sockets[path.name] = dict(socket=stat.S_ISSOCK(info.st_mode), mode=f'{stat.S_IMODE(info.st_mode):04o}',
+                                  owner=[info.st_uid, info.st_gid])
+    assert sockets == {name: dict(socket=True, mode=f'{mode:04o}', owner=[250, 250])
+                       for name, mode in SOCKET_MODES.items()}, sockets
+    try:
+        context = pathlib.Path(f'/proc/{pid}/attr/current').read_text().strip('\0\n')
+    except OSError as error:
+        context = f'unreadable: {error}'
+    selinux = dict(getenforce=run(['getenforce'])['stdout'].strip(), process_context=context)
+    every, ours = denials(pid)
+    selinux.update(avc_denials_in_boot=len(every), avc_denials_naming_the_service=ours)
+    assert not ours, ours
+    security = run(['systemd-analyze', 'security', UNIT, '--no-pager'], timeout=120)
+    unit_journal = run(['journalctl', '-b', '-u', UNIT, '--no-pager', '-o', 'short-monotonic'], timeout=120)
+    summary = dict(properties=properties, process=process, sockets=sockets, socket_folder='0711 aresos-tools',
+                   selinux=selinux, invocations=sorted(invocations))
+    return dict(returncode=0, summary=dict(user=properties['User'], nrestarts=properties['NRestarts'],
+                                           selinux=selinux['getenforce'], avc_total=len(every)),
+                files=files_out({'unit.json': summary, 'security.txt': security['stdout'] + security['stderr'],
+                                 'journal-aresos-toold.txt': unit_journal['stdout'][-500000:],
+                                 'selinux.txt': json.dumps(selinux, indent=2) + '\n' + '\n'.join(every[-200:]) + '\n'}))
+
+
+# The end of the pass: a restarted service comes back with nothing pending.
+def restart(request):
+    ok(run(['systemctl', 'restart', UNIT]))
+    state = wait_active()
+    pending = answered(cli('ares', 'control', 'pending'))['data']
+    assert pending['total'] == 0, pending
+    summary = dict(state, nrestarts=show('NRestarts')['NRestarts'], pending=pending['total'])
+    return dict(returncode=0, summary=summary, files=files_out({'restart.json': summary}))
+
+
+ACTIONS = {'control-files': files, 'control-claude-code-files': claude_code_files, 'control-release': release,
+           'control-idle': idle, 'control-fixtures': fixtures, 'control-entry-points': entry_points,
+           'control-precondition': precondition, 'control-user-mcp': user_mcp, 'control-service': service,
+           'control-restart': restart}
