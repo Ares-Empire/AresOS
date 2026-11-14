@@ -1339,3 +1339,234 @@ Cleanup: all temporary files this run created under `/var/home/ares/pkg22c-work/
 were removed. The closing `.work/` inventory has **no file over 500 MB**; no large
 download was made. No builder-started test/watch process remains, and no Gradle
 daemon was started. PR #46 is open and draft; nothing was merged or pushed to main.
+
+## Review fixes 2
+
+Builder: a Claude agent on Opus 5.5 (`briefs/22c-review-fixes-2.md`). **Both should-fix
+findings of [REVIEW-2](REVIEW-2.md) are fixed**, each with a test that fails without it
+and an executable revert proof. Fix 1 is `4dd39fbf`, fix 2 is `1c651b8a`, and `12af3787`
+gives the checks-only CI job room for the grown model (see PLAN-GAP below); the closing commit
+changes this report and a receipt only. No rule of the brief was widened. PR #46 stays open
+and draft; nothing was merged or pushed to main.
+
+### 1. A refusal before the change closes its intent
+
+**What changed.**
+- `os/release/start-next.sh`: every check before `set-default` (the fresh read equals the
+  caller's snapshot, nothing staged, the target once, its digest and reference, not already
+  first) calls `refuse()`, which writes `STOP: <reason>; nothing was changed` to stderr and
+  exits with status **3**. Nothing else exits 3: the postcondition stays an `assert`
+  (status 1), a failed status read, `set-default` or `sync` ends with status 1, a kill with a
+  signal status. Status 3 is reached only before the `set-default` process was ever started,
+  so the caller knows it, it does not infer it.
+- `owner.py`: `Failed(Stop)` carries a release step's own non-zero exit status from
+  `Host.script`, with the same message as before, so every other caller is unchanged
+  (`REFUSED_BEFORE_CHANGE = 3`). `start_next` reads it: on status 3 it archives its intent
+  as `refused-before-change` and STOPs with *"The deployment list changed outside the tools
+  before the <change>; nothing was changed and the change is closed; run
+  sudo /var/lib/ares/at check to see what runs and what starts next"*. Any other status
+  re-raises the step's STOP with the journal open, as before, and rule 5 resolves it from the
+  list at the next command.
+- The fakes that run the script's Python (`test_owner_update.Machine.script`,
+  `ways_back_host.Host.script`) report its exit status as the real host does: `SystemExit`
+  with its status, an assertion with status 1, both as `Failed`.
+
+**Tests.**
+- `DestinationTest.test_outside_reorder_before_the_script_closes_the_intent_and_every_way_back_works`
+  replaces round 1's `…_does_not_add_an_owner_mutation`, which expected the open intent.
+  The review's sequence: rollback journals `[R27*, R13, S] → [S, R27*, R13]`, an outside
+  writer makes `[R13, R27*, S]` before the script reads. Required: no owner change, the
+  outside list unchanged, no open journal, one archive `refused-before-change`, the exact
+  STOP. Then, with no restart and after a restart on each of the three rows: `title` (nothing
+  left to resolve), `reboot`, and every destination (`rollback` or `keep-stock`, `previous`,
+  `update`) one command away, each from the same state. Last, the refused word typed again
+  goes through and the next start (stock) confirms it.
+- `DestinationTest.test_a_script_failure_that_may_follow_the_change_keeps_the_intent_open`:
+  status 1 with and without the change on disk, a kill (-9) after it, status 4: the intent
+  stays open with no archive and the step's own STOP; the next `title` records the change
+  (`had made its change`) or archives `not-applied`.
+- `ScriptTest`: wrong lists and snapshot drift now require status 3, one read, no `ostree`
+  call and the `STOP: …; nothing was changed` line; a wrong list afterwards and a failed call
+  stay ordinary failures. `test_the_host_reports_a_steps_own_exit_status` runs the real
+  `Host.script` over a stub step: status 3, 1 and -9 give `Failed` with that status and the
+  old message; status 0 with a process left behind, and a timeout, give a plain `Stop`.
+- `FakeRulesTest.test_script_refusal_before_primitive_has_no_mutation` also requires status 3.
+
+**Revert proofs** (`test_ways_back_reverts.RuleRevertsTest.test_review2_1_only_a_refusal_before_the_change_closes_the_intent`,
+each in memory, unrelated exceptions rejected):
+- the caller never closes (`if True:`, round 1's behaviour): the regression fails in all
+  four boot choices at *"the refused intent is still open"*;
+- the caller closes on every failure (`if False:`): the may-follow test fails, because an
+  intent whose change may be on disk is archived as `refused-before-change`;
+- the script refuses with status 1 (`sys.exit(1)`): the regression fails at *"the refused
+  intent is still open"*.
+- `ScriptTest.test_removing_snapshot_guard_fails_the_outside_writer_regression` still holds:
+  without the snapshot guard the regression fails in all four choices with
+  `ostree admin set-default 2`.
+
+### 2. Restoration is an exclusive phase
+
+**What changed.** `owner.py`, `layout finish`: when the pending trial carries a restoration
+intent (`restoring`), finish STOPs before the login, proof and settings checks and before any
+write: *"Layout abandon has begun restoring the settings from before this trial: from a fresh
+physical administrator login run sudo /var/lib/ares/at layout abandon to complete it; nothing
+changed"*. That holds from the original login as well. `revert` and `proof` are unchanged
+(runtime only); a finish after them refuses the same way.
+
+**The model.**
+- A new step, `original-login`: in the trial's own boot, from a fresh login, the owner goes
+  back to the trial's administrator login, which is still open. The driver makes that login
+  current again; after a restart the step does not exist.
+- The ledger's finish refuses with `layout abandon` while a restoration intent exists for the
+  trial's deployment (after "crossed a reboot", in the tools' order).
+- The reduced key: for a trial still in its own boot, *whether* its restoration began is
+  state now. Round 1 quotiented it away as provenance, which held only as long as nothing
+  but abandon could write that `/etc` again; the missing step hid the renewed finish. After a
+  restart it stays provenance (finish refuses before reading it), so round 1's equivalence
+  tests stand unchanged. The execution memo keys the same input for `layout-pending` and
+  treats `original-login` as a host event like `fresh-login`.
+
+**Tests.**
+- `LayoutTest.test_restoration_is_exclusive_and_finish_from_the_original_login_names_abandon`,
+  the review's sequence on the keyboard fake: German to US, proof; finish cut after its
+  console write (US console, German X11); abandon from a fresh second login cut after its
+  console write (both German; trial and intent remain); back in the original login, finish
+  refuses with the exact text and changes nothing (settings, list, host changes). Then the
+  review's next steps: restart, abandon completes (German), no trial and no note; a new trial
+  (begin, proof, finish) works.
+- `RevertTest.test_restoration_is_exclusive_also_from_the_original_login` (model): the same
+  path through the driver against the ledger, `original-login` included; finish has no cut
+  points; fresh-login abandon completes; a new trial finishes.
+- `EquivalenceTest.test_journal_outcomes_and_live_repairs_are_not_equivalent`: a trial in its
+  own boot with and without a begun restoration are different states.
+- The exhaustive model, with the new step (below).
+
+**Before and after, by hand** (a one-off script under `/var/home/ares/pkg22c-work/`, not
+committed, removed): without the guard, finish from the original login was accepted and, cut
+after both writes, left US/US; abandon after the restart STOPped *"Finished system layout
+changed during the abandoned trial"*, the review's dead end. With the guard, finish STOPs as
+above, and abandon after the restart passes with German.
+
+**Revert proof** (`test_ways_back_reverts.RuleRevertsTest.test_review2_2_restoration_is_an_exclusive_phase`):
+`require('restoring' not in value,` becomes `require(True,`. The model path fails
+`accept/refuse` at finish, and the focused regression fails (`Stop not raised`).
+
+### The model with the new step
+
+`ModelTest.test_reachable_state_space` exhausts **963003 states / 25257042 edges**
+(round 1: 879291 / 23108154), with **813553 executions / 24443489 reuses**, in 911.268 s
+locally. Every one of the 115176 fresh-login edges now has an `original-login` edge.
+`finish`: 26196 PASS, 292914 STOP, 39294 cut. Outcomes: complete 333, in-place-not-started
+135720, none 217560, not-applied 277098, retry 333, selection-applied 150528,
+target-boot-confirmed 91956, waiting 89475; the eight stay separate, and the two menu-only
+destinations are unchanged. The new states are trial states (outcomes `none` and
+`selection-applied` grew by 41856 each). The new pins came from a ledger-only exploration of
+the same queue and keys (a one-off script, 299.6 s, removed) and were then confirmed by the
+full run, which executes and checks every edge against the tools.
+
+### Verified
+
+Local commands, each from `os/tests` with `TMPDIR=/var/home/ares/pkg22c-work`, at nice 10,
+one at a time, after a `free -m` gate, on the committed source of `1c651b8a`:
+
+| Command | Available at start | Result |
+|---|---:|---|
+| `python3 -B -m unittest test_ways_back` | 8367 MB | **47 tests in 28.174s; OK** |
+| `python3 -B -m unittest test_ways_back_model` | 10191 MB | **21 tests in 916.816s; OK** |
+| `python3 -B -m unittest test_ways_back_reverts` | 9287 MB | **17 tests in 1.213s; OK** |
+
+Checkpoints on the way: after fix 1, `test_ways_back` 46 tests in 25.333s OK and
+`test_ways_back_reverts` 16 tests OK. Two earlier reverts attempts had one failure each,
+both in the new proof's own checks: its expected text was hidden by a truncated repr, then a
+mutated `Stop` escaped `assertRaises(Failed)` as an error. Both assertions were made explicit. The model classes outside the exhaustive run
+(20 tests) passed in 3.705s and 3.822s. A one-off shell check showed `bash -seu` with
+`set -euo pipefail` passing a heredoc `python3`'s status 3 through unchanged. No
+`test_owner_update` test, owner command, deployment binary or keyboard command ran on the
+laptop; that module was only imported as the fakes' library, as before.
+
+Bound files: after each fix `python3 -B os/owner-tools/bundle.py --refresh` (payload copy and
+checksums; `PASS bundle manifest SHA256 91d2b5cf…`, then `5869d519…`), then
+`python3 -B reviews/22c-ways-back-after-update/walk-host.py` printed
+`PASS package 22c host walks (reorder-probe): 257 sources; no VM started`, and
+`python3 -B reviews/27-first-update-release/rebind.py pending "<note>"` printed
+`pending: 28 bound files differ from the active bindings` (one note per fix).
+`git diff --check` passed. The stage-1b pins still name the old fingerprint.
+
+Hosted, each `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`
+followed by one `gh run watch <id> --exit-status --interval 60`:
+
+| Hosted run | Result |
+|---|---|
+| [43542336319](https://github.com/Ares-Empire/AresOS/actions/runs/43542336319) | **Cancelled by the unchanged 25-minute job limit** (25m14s) inside `test_reachable_state_space`, at 680000 states after 777s. Before it: **1001 ok, exactly the four stage-1b pins FAIL, 0 errors, 0 skipped**. This runner was about 1.4× slower per state than round 1's (whose whole 879291-state model took 723s). Watch exit 1. |
+| [43544822860](https://github.com/Ares-Empire/AresOS/actions/runs/43544822860) | **Cancelled by the same limit** (25m17s), at 860000 states after 882s. Before it: again **1001 ok, exactly the four pins FAIL, 0 errors, 0 skipped**. On this runner the model needs about 990s and the suite about 27 minutes; round 1's head would also have run past 25 minutes here. Watch exit 1. |
+| **[43547375701](https://github.com/Ares-Empire/AresOS/actions/runs/43547375701)** | On `12af3787` (the 40-minute limit; tools and tests as `1c651b8a`): **1080 tests in 1948.831s; 4 failures, 0 errors, 0 skipped**, the job in 32m53s. Watch exit 1 for the four deferred pins. |
+
+That is round 1's 1074 plus this round's six new tests. Hosted module counts:
+`test_owner_update` **73/73**, `test_ways_back` **47/47**, `test_ways_back_model` **21/21**,
+`test_ways_back_compatibility` **21/21**, `test_ways_back_reverts` **17/17**,
+`test_ways_back_probe` **40/40**. The hosted model exhausted the identical **963003 states /
+25257042 edges** with **813553 executions / 24443489 reuses** and the same eight outcome
+counts as locally, in 1275.008s on that runner. The only failures are the same four stage-1b
+pins as in run 43536170182 (`test_owner_bootstrap…test_documented_command_is_generated_from_complete_system_manifest`,
+`test_owner_equality…test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests`,
+`test_owner_equality…test_reviewed_windows_payload_is_exact_generated_ci_payload`, failing on
+the guide's fingerprint `5869d519…` after source/payload equality passed, and
+`test_owner_path…test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns`).
+Exact counts: [runs/checks-43547375701.json](runs/checks-43547375701.json).
+
+### Not verified, judgment and re-review
+
+**Not verified:** a real `Step` running the real `start-next.sh` (it reads `rpm-ostree`,
+which never runs on this laptop): `Host.script`'s status handling is tested with a stub step,
+the script's statuses through the fakes, and the shell's pass-through by the one-off check
+above. Real typing, real power loss, the VM rehearsal and the laptop gates stay open as before.
+
+**Known limit (added, fails safe):** a power cut after the script's status-3 exit and
+before the archive's directory sync leaves the intent open. The next command then STOPs as in
+round 1 (rule 5 (d)), with nothing changed. The window is one JSON save and one unlink; the
+refusal itself is known only after the script returns. If the script cannot even write its
+STOP line, Python ends with status 1 and the intent stays open (the safe direction).
+
+**Changed PASS and STOP lines:** no PASS line changed. Two new STOP lines, for stage 1b's
+`docs/INSTALL-REFERENCE.md` if it quotes them: *"The deployment list changed outside the tools
+before the <change>; nothing was changed and the change is closed; run
+sudo /var/lib/ares/at check to see what runs and what starts next"* and *"Layout abandon has
+begun restoring the settings from before this trial: from a fresh physical administrator login
+run sudo /var/lib/ares/at layout abandon to complete it; nothing changed"*. The script's own
+stderr lines now end `; nothing was changed` (the drift line no longer says `get help`; the
+tools' STOP names `check`).
+
+**JUDGMENT-CALL:** none. No numbered rule, journal schema or field changed: the archive name
+`refused-before-change` is new, and archives are not state.
+
+**PLAN-GAP, and one change outside the two fixes:** the checks-only job's 25-minute limit
+was already tight in round 1 (its final job took 23m09s, with an unusually fast model phase).
+This round adds about 3.5% model time locally (880.6s to 911.3s), and the two runners above
+were slower: both runs were cut short inside the model, and round 1's head would not have fit
+on the second either. Without a complete hosted run the acceptance cannot be shown, and a third
+attempt on the off chance of a fast runner is not dependable. So `12af3787` raises **only**
+the `regressions` job's `timeout-minutes` from 25 to 40 in `.github/workflows/os-image.yml`
+(a comment names the two runs), with the host walk and the pending list regenerated. No test
+pins that value; the tools, the VM harness and every other job are unchanged. The fix brief
+puts the harness out of scope, not this CI limit, and the change is one line to revert. The
+integrator decides whether it stays; stage 1b adds tests to the same job.
+
+**For re-review:**
+- `start-next.sh`: every exit before the `set-default` line is `refuse()` with status 3;
+  nothing after it can exit 3. `Failed` keeps the old message, and only `start_next` reads its
+  status; it archives, then STOPs naming `check`.
+- The fakes now report an assertion as status 1 and `SystemExit` with its status, both as
+  `Failed`, as the real host does.
+- `layout finish`'s guard comes before the login and proof checks. `revert` and `proof`
+  stay allowed while restoring (runtime only), as the fix brief names finish alone.
+- The model's `original-login` exists only from a fresh login in the trial's boot. Whether a
+  restoration began is now in the reduced key and the memo's `layout-pending` input for a
+  trial in its own boot only; after a restart it stays provenance, as round 1 proved.
+- The CI limit change in `12af3787` (PLAN-GAP above): keep it or revert it.
+
+**Open questions:** none for this round beyond the CI limit above.
+
+Cleanup: every temporary file this round made under `/var/home/ares/pkg22c-work/` (the two
+one-off scripts, run logs and test lists) was removed. `.work/` holds no file over 500 MB; no
+download was made. No builder-started test or watch process remains, and no Gradle daemon was
+started. PR #46 is open and draft; nothing was merged or pushed to main.
