@@ -3523,6 +3523,9 @@ agent" below as it stood at `4f73e930`). Nothing bound changed between the run's
    its record. The list's `status` still reads "rebound by package 22c's rehearsal" with one row waiting. 27b set
    "waiting for the next VM rehearsal" by hand; I left the field to the integrator. Undo: revert `6badee9e` (row,
    test and pending row together).
+   **Integrator's decision (2026-11-14): accepted**, the same as package 27's record step: only the status wording
+   of a test changed, and the next VM rehearsal rebinds it. The B10 replay step set the list's `status` to **rebound
+   by package 22c's rehearsal (run 43597505549); one test file waits since the record step**.
 2. **The minutes come from the guard's `budget()`**, not its command line. The command line also runs the native and
    model gates for `HEAD`, which stop on the record commits' head before anything is printed. `budget()` is the same
    accounting with the same history read, and it only reads.
@@ -3569,3 +3572,102 @@ and this report records it. Next, in order:
 Cleanup at the end of the record step: the downloaded evidence and the temp files under `/var/home/ares/pkg22c-work/`
 were removed with the folder; nothing new was written to `.work/`; no test, watch or other process started by this
 step remains; no Gradle, VM or laptop system change. PR #46 stays draft; nothing was merged or pushed to main.
+
+## Stage 2, the B10 replay
+
+Builder: a Claude agent on Opus (the integrator's choice: a test against a clear rule; a Fable final review follows).
+This is item 1 of "For the next agent" above. Nothing was merged or pushed to main; no VM dispatch.
+
+### Done
+
+- **`CaptureTest.rehearsal`** (`os/tests/test_ways_back_model.py`) replays rehearsal run 43597505549
+  (`runs/ways-back-rehearsal-43597505549`) in the run's order, through **this checkout's owner tools over
+  `ways_back_host.Host`**. Fixture inputs: the first capture's rows and entry bytes (`release-27-start`), what the owner
+  typed (the result's transcript: each command and the start it was typed in) and the keys pressed in the boot menu.
+  Everything later comes from operations: which row each command moves first is the tools' own choice
+  (`Tools.forward`, `previous`, `recover`, `recover(True)` running the payload's `start-next.sh` through `Host.script`),
+  and every start comes from `Host.restart`. No later capture, and not the result's `swaps`, feeds the replay.
+  - **The tools:** `checkout_tools` gives `owner.Tools` the payload's own `release.json` and `history.json` (tools
+    version 3, the bundle the run installed; `os/owner-tools` is unchanged since its head `f84041bf`) in the model's
+    environment. The model's environment patches moved from `driver()` into `environment()`, unchanged, so the
+    model and the replay share them.
+  - **77 typed commands** run through the tools' entry points: check 17, title 31, reboot 14, forward 6, previous 3,
+    rollback 3 (one refused, one cut), keep-stock 2 (one "nothing changed"), update 1 (refused). Each must end as the
+    transcript says: passed, stopped, restart requested, or cut.
+  - **16 starts:** 12 typed reboots (`Host.restart()`), 2 boot-menu picks (the row is the number of `down` keys after
+    `home`; before the restart the entries Host shows are compared with the entries the harness read,
+    `<start>-menu-bls-entries.json`, and the taken row with `<start>-menu-recorded-stock-entry.json`; the system taken
+    must be the one the result names), and 2 hard resets (`Host.restart(power_off=True)`: no shutdown, so ostree's
+    finalize does not run; nothing was staged in this walk).
+  - **33 captures**, each where the harness took it, compared as `compare()` did for stage 0 (now the method
+    `matches`, unchanged): order, identities, pins and the staged flag; bootc's booted, rollback and staged slots;
+    `rollbackQueued`; `bootOrder`; every boot entry's bytes and target by filename; the positional kernel link; the
+    `boot.0` link; the loader link. The replay must visit exactly the result's 33 stages in the result's order.
+  - **12 reorders** (forward 6, previous 3, rollback 2 with the cut, keep-stock 1): ostree's journal before and after
+    (`-journal-before`, `-journal-after`), and every field of `-swap.json` but its label `by`: the target, the order
+    before and after by role, the journal line, `bootconfig swap`, the loader and `boot.0` links before and after, and
+    `entry_files_changed`. The replay must check exactly the result's 12 swaps, in its order, and every `-swap.json`.
+  - **The cut (E7):** `rollback` with Host's cut after its `set-default` (the model's cut point `primitive`): the
+    tools' own journal must hold every field the harness read before the reset (`cut-rollback-proof.json`: schema,
+    word, status `intent`, mode, reference, digest, target, before, intended, running; the record also has `boot`,
+    which the harness did not read), with the order and the running system of the proof. After the hard reset the
+    tools' `check` records it, and `cut-stock-recorded` is compared after that check and title (`WaysBack.quiet`).
+  - **Not replayed**, and listed by pattern so an unknown command fails the replay: the guide's stick block (the
+    replay runs version 3 from the first capture on) and the layout trials (begin, proof on tty4, finish, abandon).
+    They write no deployment, pin, boot entry or link; the model and `test_ways_back` cover them. Logins, typing
+    proofs and the updater read are not commands in the transcript.
+- **The gate:** `REHEARSALS = (WAYS_BACK,)` names stage 2's folder; `test_every_probe_capture_matches_the_model_host`
+  replays the probe folders and then each registered rehearsal, and its last assertion stays: every committed
+  `*-deployments.json` under `runs/` was replayed. A new folder that is not registered still fails it.
+- **The negative test** `test_wrong_hosts_fail_named_rehearsal_captures`: a Host whose kernel link follows the
+  running row (the tools never read that link; only the captures can tell) fails at **`owner-previous-1: positional
+  kernel link`**, and a Host whose boot-menu pick also makes the taken row the default fails at **`menu-27: order,
+  identities, pins and stage`**. Also tried by hand, not committed: stage 0's appending Host fails the rehearsal at
+  `owner-previous-1: previous` (the tools' own check after `set-default` refuses, so the status differs).
+- **Host additions: none.** Every operation the rehearsal performed was already in Host: the list write of
+  `set-default` (through the real `start-next.sh`), restart, restart into a chosen row, restart without finalize, and
+  the cut after the primitive. No capture disagreed with the model.
+- **`os/manifest/ci/16/pending-rebind.json`:** `status` now reads **rebound by package 22c's rehearsal (run
+  43597505549); one test file waits since the record step** (the integrator's decision, record-step JUDGMENT-CALL 1).
+  `test_ways_back_model.py` is not a bound file (not in `os/manifest/ci/22c/source-bindings.json`), so no pending row.
+
+### Verified
+
+From the repository root, Python 3.14, `nice -n 10`:
+
+- `python3 -B -m unittest discover -s os/tests -p test_ways_back_model.py -k CaptureTest -v`: **Ran 4 tests, OK**
+  (and the same without `-B`: 4, OK). Before this step the gate failed on the 33 captures (record-step PLAN-GAP 1);
+  with `REHEARSALS` emptied by hand it fails again (`… owner-forward-4-deployments.json') : Every new capture needs an
+  operation replay through Host (B10)`).
+- `ARESOS_MODEL_SCOPE=slice python3 -B -m unittest discover -s os/tests -p test_ways_back_model.py`: **Ran 26 tests in
+  158.457s, OK**; the slice **173130 states, 3185862 edges** (the pinned `SLICE_COUNTS`), so the model's environment
+  moved into `environment()` unchanged. The full model did not run locally; the checks-only run below runs it.
+- `python3 -B -m unittest discover -s os/tests -p test_checkout_sources.py`: **Ran 6 tests, OK** (after the status
+  change).
+- **The tools say what they said in the VM** (a one-off instrumented run of the replay, not part of the test): for
+  all 77 commands the replayed tools printed exactly the transcript's lines, and both refusals the transcript's text,
+  with one exception: `intl-27`'s check prints **System console de; X11 de variant** where the VM said **us-intl** (the
+  layout trial that set it is not replayed).
+
+### JUDGMENT-CALL (B10 replay)
+
+1. **The reorders run through the tools, not through `Host.set_default` with a captured index.** Stage 0's probe typed
+   `set-default N` itself, so its replay takes N from the typed command. The rehearsal typed `forward`, `previous`,
+   `rollback` and `keep-stock`, so the input is the word and the target is the tools' choice. Rejected: the target from
+   the result's `swaps` (an output of the run). Cost: a later change to how these tools choose, refuse or record fails
+   this replay against these captures. That is intended (the captures describe these tools; such a change needs a new
+   rehearsal), and wording changes do not affect it.
+2. **The printed lines are not compared in the test** (they matched, above). Pinning old captures to the tools' wording
+   would make every later wording change fail B10; the guides' lines are held by `test_ways_back_probe` and the local
+   walk. Adding it is six lines if the reviewer wants it.
+3. **The layout commands are not replayed** (above). Replaying them needs the model's synthetic sessions inside the
+   walk; they touch no deployment, and the check's keyboard line is their only visible effect here.
+
+### For the next agent (after the B10 replay)
+
+1. **The checks-only run on this step's final head** (dispatched here, not watched): CHECKS_RUN. The integrator
+   watches it with `gh run watch <id> --exit-status --interval 60`. `test_ways_back_model.py` changed, so
+   `os/ci/model_scope.py` selects the full model anyway; it was dispatched with `-f full_model=true`. 28 of 30
+   checks-only runs are used with it.
+2. **The final review on Fable**, as above (item 3 of the record step's list): also this step's commits.
+3. Then items 4 and 5 of the record step's list: the owner's judgment calls, then the merge by the integrator.

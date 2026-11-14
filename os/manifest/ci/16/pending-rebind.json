@@ -1,5 +1,5 @@
 {
-  "status": "rebound by package 22c's rehearsal",
+  "status": "rebound by package 22c's rehearsal (run 43597505549); one test file waits since the record step",
   "walk": "os/manifest/ci/22c/source-bindings.json",
   "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Only test files and the CI workflow (its checks-only job) wait now, no tool, guide or image file.",
   "changes": [

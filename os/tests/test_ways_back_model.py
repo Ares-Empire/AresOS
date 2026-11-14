@@ -16,6 +16,7 @@ import inspect
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -39,6 +40,9 @@ owner = base.owner
 ROOT = base.ROOT
 RUNS = ROOT / 'reviews/22c-ways-back-after-update/runs'
 RUN = RUNS / 'reorder-probe-43470161858'
+WAYS_BACK = RUNS / 'ways-back-rehearsal-43597505549'
+# Stage 2's rehearsal runs, each replayed by CaptureTest.rehearsal.
+REHEARSALS = (WAYS_BACK,)
 REFS = {'13': base.R13, '27': base.R21, '28': base.R30}
 
 
@@ -337,8 +341,29 @@ class Driver:
 
 @contextlib.contextmanager
 def driver(host_class=Host):
-    with base.route(base.updated(), base.H30, host_class=host_class) as (tools, host, store), contextlib.ExitStack() as stack:
+    with base.route(base.updated(), base.H30, host_class=host_class) as (tools, host, store):
         d = Driver(tools, host)
+        with environment(tools, host):
+            yield d
+
+
+@contextlib.contextmanager
+def checkout_tools(state, host_class=Host):
+    """This checkout's owner tools over Host, in the model's environment, with no ledger: the
+    payload's own release and history (tools version 3, the bundle rehearsal run 43597505549
+    installed; os/owner-tools is unchanged since its head f84041bf)."""
+    known = owner.lineage(base.PAYLOAD)
+    with base.route(state, known['releases'], host_class=host_class) as (tools, host, store), environment(tools, host):
+        tools.release = json.loads((base.PAYLOAD / 'release.json').read_text())
+        tools._lineage = known
+        tools.keyboard = host.keyboard
+        yield tools, host, store
+
+
+@contextlib.contextmanager
+def environment(tools, host):
+    """Only the environment around the tools: boot ids, boot entries, devices, time and typing."""
+    with contextlib.ExitStack() as stack:
         # Plain environment functions avoid retaining a mock call history for millions
         # of edges. None predicts acceptance, journals, or a deployment transition.
         stack.enter_context(patch.object(owner, 'boot_id', new=lambda: tools.boot[0]))
@@ -352,11 +377,12 @@ def driver(host_class=Host):
         stack.enter_context(patch.object(owner.shutil, 'which', new=lambda *a, **k: '/usr/bin/cosign'))
         stack.enter_context(patch.object(owner.time, 'monotonic', new=lambda: .00001))
         stack.enter_context(patch('builtins.input', new=lambda *a: 'yz-/!ü'))
-        yield d
+        yield
 
 
 class CaptureTest(unittest.TestCase):
-    """B10: replay every committed stage-0 deployment/layout observation through Host.
+    """B10: replay every committed deployment/layout observation through Host: stage 0's
+    reorder probe (replay) and stage 2's ways-back rehearsal (rehearsal).
 
     The initial immutable rows and entry bytes are fixture inputs. Every later
     order, slot, flag and link comes from an operation, never from its capture.
@@ -364,6 +390,25 @@ class CaptureTest(unittest.TestCase):
     """
     def captured(self, stage, kind):
         return json.loads((self.capture_run / (stage + '-' + kind + '.json')).read_text())
+
+    def matches(self, h, stage):
+        """One capture against Host: the list, bootc's slots and order, the entry bytes and the links."""
+        actual, layout = self.captured(stage, 'deployments'), self.captured(stage, 'layout')
+        self.assertEqual(h.state['rpm']['deployments'], [compact(r) for r in actual['rpm']['deployments']], stage + ': order, identities, pins and stage')
+        for name in ('booted', 'rollback', 'staged'):
+            slot, expected = h.state['bootc']['status'][name], actual['bootc']['status'][name]
+            for key in ('ostree', 'pinned'):
+                self.assertEqual((slot or {}).get(key), (expected or {}).get(key), stage + ': ' + name)
+            self.assertEqual((slot or {}).get('image', {}).get('imageDigest'), (expected or {}).get('image', {}).get('imageDigest'), stage)
+        self.assertEqual(h.state['bootc']['status']['rollbackQueued'], actual['bootc']['status']['rollbackQueued'], stage)
+        self.assertEqual(h.state['bootc']['spec']['bootOrder'], actual['bootc']['spec']['bootOrder'], stage)
+        # Capture arrays follow filesystem enumeration, not menu order; filenames
+        # identify files. Compare every byte and resolved identity by filename.
+        self.assertEqual({e['file']: (e['content'], e['target']) for e in h.entries()},
+                         {e['file']: (e['content'], e['deployment']) for e in actual['bls']}, stage + ': boot entry bytes and identities')
+        self.assertEqual(h.kernel_link_target(), layout['running'], stage + ': positional kernel link')
+        self.assertEqual('boot.0.' + str(h.links), layout['ostree_boot_links']['boot.0'], stage)
+        self.assertEqual(layout['loader_link'], 'loader.0')
 
     def replay(self, host_class=Host, folder=RUN):
         self.capture_run = folder
@@ -374,22 +419,7 @@ class CaptureTest(unittest.TestCase):
         visited = []
 
         def compare(stage):
-            actual, layout = self.captured(stage, 'deployments'), self.captured(stage, 'layout')
-            self.assertEqual(h.state['rpm']['deployments'], [compact(r) for r in actual['rpm']['deployments']], stage + ': order, identities, pins and stage')
-            for name in ('booted', 'rollback', 'staged'):
-                slot, expected = h.state['bootc']['status'][name], actual['bootc']['status'][name]
-                for key in ('ostree', 'pinned'):
-                    self.assertEqual((slot or {}).get(key), (expected or {}).get(key), stage + ': ' + name)
-                self.assertEqual((slot or {}).get('image', {}).get('imageDigest'), (expected or {}).get('image', {}).get('imageDigest'), stage)
-            self.assertEqual(h.state['bootc']['status']['rollbackQueued'], actual['bootc']['status']['rollbackQueued'], stage)
-            self.assertEqual(h.state['bootc']['spec']['bootOrder'], actual['bootc']['spec']['bootOrder'], stage)
-            # Capture arrays follow filesystem enumeration, not menu order; filenames
-            # identify files. Compare every byte and resolved identity by filename.
-            self.assertEqual({e['file']: (e['content'], e['target']) for e in h.entries()},
-                             {e['file']: (e['content'], e['deployment']) for e in actual['bls']}, stage + ': boot entry bytes and identities')
-            self.assertEqual(h.kernel_link_target(), layout['running'], stage + ': positional kernel link')
-            self.assertEqual('boot.0.' + str(h.links), layout['ostree_boot_links']['boot.0'], stage)
-            self.assertEqual(layout['loader_link'], 'loader.0')
+            self.matches(h, stage)
             visited.append(stage)
 
         compare('walk-0-start')
@@ -410,17 +440,152 @@ class CaptureTest(unittest.TestCase):
         self.assertEqual(set(visited), {p.name.removesuffix('-deployments.json') for p in folder.glob('*-deployments.json')})
         self.assertEqual(len(visited), 15)
 
+    # The way-back words the rehearsal typed, run here through the tools' own entry points.
+    WORDS = ('check', 'title', 'forward', 'previous', 'rollback', 'keep-stock', 'update', 'reboot')
+    # What the rehearsal typed that writes no deployment, pin, boot entry or link, and is not run
+    # here: the stick block that installed tools version 3 (the replay runs version 3 from the
+    # first capture on) and package 14's layout trials, which the model and test_ways_back cover.
+    UNREPLAYED = (r"the guide's 13-line stick block \(bash \./at install\)"
+                  r"|(sudo -k; )?sudo /var/lib/ares/at layout (begin (de|us|us-intl)|proof|finish|abandon)")
+    # A capture the harness took after a command of another name (WaysBack.quiet after check and title).
+    AFTER = {'cut-stock-title': 'cut-stock-recorded'}
+    CUT = 'cut by a hard reset after its reorder and before its record'
+
+    def rehearsal(self, host_class=Host, folder=WAYS_BACK):
+        """B10, stage 2: the walk of rehearsal run 43597505549 (os/ci/owner_vm.py, ways_back_rehearsal)
+        through this checkout's owner tools over Host, in the run's order.
+
+        Fixture inputs: the first capture's rows and entry bytes, what the owner typed (the
+        transcript's commands, in order, with the start each was typed in) and the keys pressed
+        in the boot menu. Every later order, slot, flag, link and journal comes from the tools'
+        own commands over Host (which row each command moves first is the tools' choice) and from
+        Host's restarts, menu picks and hard resets, never from a later capture. Each capture is
+        compared where the harness took it, each reorder also with ostree's journal and its swap,
+        the cut with the tools' journal, and each menu pick with the entries the harness read.
+        """
+        self.capture_run = folder
+        result = json.loads((folder / 'ways-back-rehearsal-result.json').read_text())
+        first = self.captured('release-27-start', 'deployments')
+        rows = [compact(r) for r in first['rpm']['deployments']]
+        roles = {tuple(value): role for role, value in result['deployments'].items()}
+        self.assertEqual(set(roles), {identity(r) for r in rows})
+        menus = {m['stage']: m for m in result['menus']}
+        reached = {s['stage']: s['reached'] for s in result['stages']}
+        visited, swaps = [], []
+        with checkout_tools(status(rows), host_class) as (tools, h, store):
+            h.entry_files = {e['file']: e['content'] for e in first['bls']}
+            words = dict(check=tools.check, title=tools.title, forward=tools.forward, previous=tools.previous,
+                         rollback=tools.recover, update=tools.update, reboot=tools.reboot, **{'keep-stock': lambda: tools.recover(True)})
+
+            def order():
+                return [roles[identity(r)] for r in h.state['rpm']['deployments']]
+
+            def compare(stage):
+                self.matches(h, stage)
+                visited.append(stage)
+
+            boot, last = 'release-27', None
+            tools.boot[0] = boot
+            compare('release-27-start')
+            for entry in result['transcript']:
+                stage, command = entry['stage'], entry['command']
+                if entry['boot'] != boot:
+                    self.next_start(h, entry['boot'], boot, last, reached[entry['boot']], menus.get(entry['boot']), roles)
+                    boot = tools.boot[0] = entry['boot']
+                    compare(boot)
+                words_typed = command.split()
+                word = words_typed[2] if words_typed[:2] == ['sudo', '/var/lib/ares/at'] and len(words_typed) == 3 else None
+                if word not in self.WORDS:
+                    self.assertRegex(command, '^(' + self.UNREPLAYED + ')$', stage + ': a command the replay does not know')
+                    last = entry['status']
+                    continue
+                self.assertEqual(roles[identity(h.running())], entry['system'], stage + ': the running system')
+                before = dict(order=order(), links=h.links, entries=h.entries(), journal=list(h.ostree_journal))
+                tools.notes = []
+                h.cut = 'primitive' if entry['status'] == self.CUT else ''
+                try:
+                    words[word]()
+                    last = 'restart requested' if word == 'reboot' else 'passed'
+                except owner.Stop:
+                    last = 'stopped'
+                except PowerCut:
+                    last = self.CUT
+                h.cut = ''
+                self.assertEqual(last, entry['status'], stage + ': ' + word)
+                if (folder / (stage + '-swap.json')).exists():
+                    self.swapped(h, stage, word, before, order())
+                    swaps.append(stage)
+                if last == self.CUT:
+                    # The tools' own journal holds the intent, as the harness read it before the reset.
+                    proof, intent = self.captured(stage, 'proof'), json.loads((store / (owner.OUTCOME + '.json')).read_text())
+                    self.assertEqual(set(proof['journal']), set(intent) - {'boot'}, stage + ': the journal fields')
+                    self.assertEqual({k: intent[k] for k in proof['journal']}, proof['journal'], stage + ': the journal holds the intent')
+                    self.assertEqual((proof['order'], proof['running']), (order(), roles[identity(h.running())]), stage + ': the cut')
+                capture = self.AFTER.get(stage, stage)
+                if (folder / (capture + '-deployments.json')).exists():
+                    compare(capture)
+        self.assertEqual(visited, [s['stage'] for s in result['stages']], 'every stage in the order of the run')
+        self.assertEqual(set(visited), {p.name.removesuffix('-deployments.json') for p in folder.glob('*-deployments.json')})
+        self.assertEqual(len(visited), 33)
+        self.assertEqual(swaps, [s['stage'] for s in result['swaps']], 'every reorder in the order of the run')
+        self.assertEqual(set(swaps), {p.name.removesuffix('-swap.json') for p in folder.glob('*-swap.json')})
+
+    def next_start(self, h, boot, previous, last, reached, menu, roles):
+        """A new start: the owner's typed reboot, with the row the menu keys took, or a hard reset."""
+        if last != 'restart requested':
+            self.assertIn('hard reset', reached, boot)
+            h.restart(power_off=True)  # no shutdown: ostree's finalize does not run
+            return
+        if menu is None:
+            self.assertEqual(reached, 'restart with no choice', boot)
+            h.restart()
+            return
+        self.assertIn('boot menu', reached, boot)
+        keys = menu['choice']['keys']
+        self.assertEqual((keys[0], keys[-1], set(keys[1:-1])), ('home', 'ret', {'down'}), boot + ': menu keys')
+        row = len(keys) - 2
+        # The menu lists the boot entries in the list's order (package 11's rule); the harness read
+        # them, and the entry it took, before the restart.
+        entries = h.entries()
+        read = self.captured(previous + '-menu', 'bls-entries')
+        self.assertEqual([(e['file'], e['title'], e['content'], e['target']) for e in entries],
+                         [('/boot/loader/entries/' + e['id'] + '.conf', e['title'], e['content'], e['deployment']) for e in read], boot + ': menu entries')
+        taken, recorded = entries[row], self.captured(previous + '-menu', 'recorded-stock-entry')
+        self.assertEqual((row, taken['file'], taken['content'], taken['target']),
+                         (recorded['menu_index'], '/boot/loader/entries/' + recorded['id'] + '.conf', recorded['content'], recorded['deployment']), boot + ': menu row')
+        self.assertEqual(roles[tuple(taken['identity'])], menu['system'], boot + ': the system taken')
+        h.restart(tuple(taken['identity']))
+
+    def swapped(self, h, stage, word, before, after):
+        """A reorder: ostree's journal before and after it, and the swap the harness derived."""
+        swap = self.captured(stage, 'swap')
+        self.assertEqual(before['journal'], [r['MESSAGE'] for r in self.captured(stage, 'journal-before')], stage + ": ostree's journal before")
+        self.assertEqual(h.ostree_journal, [r['MESSAGE'] for r in self.captured(stage, 'journal-after')], stage + ": ostree's journal after")
+        new = h.ostree_journal[len(before['journal']):]
+        found = dict(stage=stage, target=after[0], before=before['order'], after=after, journal=new,
+                     bootconfig_swap=', '.join(re.findall(r'bootconfig swap: (\w+);', ' '.join(new))),
+                     loader_link=dict(before='loader.0', after='loader.0'),  # one loader link; bootconfig swap "no"
+                     ostree_boot_links=dict(before={'boot.0': 'boot.0.%d' % before['links']}, after={'boot.0': 'boot.0.%d' % h.links}),
+                     entry_files_changed=[e['content'] for e in h.entries()] != [e['content'] for e in before['entries']])
+        self.assertEqual(found, {k: swap[k] for k in found}, stage + ': swap')
+        self.assertEqual(set(swap), {*found, 'by'})
+        self.assertTrue(swap['by'].startswith('at ' + word), stage)
+
     def test_every_probe_capture_matches_the_model_host(self):
         replayed = set()
         for folder in sorted(RUNS.glob('reorder-probe-*')):
             with self.subTest(run=folder.name):
                 self.replay(folder=folder)
                 replayed.update(folder.glob('*-deployments.json'))
+        # Stage 2's rehearsals, registered by name: a new run folder needs its replay here.
+        for folder in REHEARSALS:
+            with self.subTest(run=folder.name):
+                self.rehearsal(folder=folder)
+                replayed.update(folder.glob('*-deployments.json'))
         self.assertTrue(replayed)
-        # Stage 2 must register its operation replay here when committing captures.
         # Merely adding a new directory must never silently escape the fixture gate.
         self.assertEqual(replayed, set(RUNS.rglob('*-deployments.json')),
-                         'Every new capture needs an operation replay through Host (B10), including stage 2')
+                         'Every new capture needs an operation replay through Host (B10)')
 
     def test_append_instead_of_prepend_fails_the_fixture(self):
         class Appends(Host):
@@ -433,6 +598,27 @@ class CaptureTest(unittest.TestCase):
                 return message
         with self.assertRaisesRegex(AssertionError, 'walk-1-moved: order'):
             self.replay(Appends)
+
+    def test_wrong_hosts_fail_named_rehearsal_captures(self):
+        """The stage-2 replay bites. A kernel link that follows the running row (the tools never
+        read it; only the captures can tell) fails at the rehearsal's first reorder. A boot-menu
+        pick that also makes the taken row the default fails at the first pick of a row that is
+        not first."""
+        class FollowsRunning(Host):
+            def kernel_link_target(self):
+                return self.path(self.running())
+
+        class MenuSavesDefault(Host):
+            def restart(self, choice=None, power_off=False):
+                if choice is not None:
+                    rows = self.state['rpm']['deployments']
+                    self.write_list([r for r in rows if identity(r) == choice] + [r for r in rows if identity(r) != choice])
+                super().restart(choice, power_off)
+
+        for host_class, failure in ((FollowsRunning, 'owner-previous-1: positional kernel link'),
+                                    (MenuSavesDefault, 'menu-27: order, identities, pins and stage')):
+            with self.subTest(host=host_class.__name__), self.assertRaisesRegex(AssertionError, failure):
+                self.rehearsal(host_class)
 
     def test_prepared_pair_and_first_switch_slots_match_retained_captures(self):
         for stage in ('after-pin', 'after-switch-staged', 'aresos', 'after-rollback-queued', 'rollback'):
