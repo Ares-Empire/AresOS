@@ -77,7 +77,7 @@ has only `git-core`. See "gh" below.
 | 11 Folders by tmpfiles | done |
 | 12 Rehearsal check actions | done (step 2a): `os/ci/control/release_checks.py` |
 | 13 Reserved words test | done |
-| 14 Idle footprint | measured (step 2a): ~32 MB, 10 wake-ups/s, 0.35 % CPU |
+| 14 Idle footprint | measured (step 2a): ~32 MB, 10 wake-ups/s, 0.35–0.67 % of one CPU |
 | 15 `os-image.yml` additive, lead first | done (step 2a): one option, own commit `1ee81d1b` |
 | 16 `linux-aresos` reads the `os/` diff | before merge |
 
@@ -295,7 +295,7 @@ folders too). The VM test runs the same file the same way (`control-release`).
   him looking for an operation that never existed. The restart check now waits and records the misses.
 - **`aresos admin ...` as `ares`** answers `transport_error` with that same text (the kernel refuses `admin.sock`,
   0600), not a permission message that points at `sudo`.
-- **Idle cost:** about 10 wake-ups a second and 0.35 % of one CPU (below). Most likely the service's loop wakes every
+- **Idle cost:** about 10 wake-ups a second and 0.35 to 0.67 % of one CPU (runs 1 and 2, below). Most likely the service's loop wakes every
   0.1 s for `engine.expire()`; a longer select timeout would cut both. For the owner, who plays on this laptop.
 
 ### PLAN-GAPs
@@ -328,7 +328,45 @@ folders too). The VM test runs the same file the same way (`control-release`).
   - Check 4: `boundary_not_installed` for group-writable ("must not be group- or world-writable") and for
     `mcp__testapp__send` removed ("missing permissions.ask: mcp__testapp__send"); both restores 0644 and
     `5747bb30…d376` (the shipped hash); baseline: cancelled → `failed`, 1 pending before the notice ack, 0 after.
-- **run 43558438408** (`control`, head `71c0c9d6`): running.
+- **run 43558438408** (`control`, head `71c0c9d6`, 43 min): **success**, every line of step 2a, in this order:
+  `CLAUDE_CODE_PINNED 2.1.319 sha512-FO4Sd23B…oOQ== dabafec8…8eed`, `CONTROL_INSTALLED 57 files, 28 wheels, 2024
+  vendored paths from 71c0c9d6…`, `CHECK_BUILD_PASSED`, `Fixture ready` ×3 (TLSv1.3), `CONTROL_IMAGE_FILES_PASS`,
+  `CONTROL_ETC_CLAUDE_CODE_PASS`, `CONTROL_RELEASE_CHECKS_PASS`, `CONTROL_IDLE_FOOTPRINT_RECORDED {…}`,
+  `CONTROL_FIXTURES_REACHABLE`, `CONTROL_ENTRY_POINTS_PASS`, `CONTROL_PRECONDITION_PASS`,
+  `CONTROL_USER_MCP_INSTALL_PASS`, `CONTROL_SERVICE_SANDBOX_PASS`, `CONTROL_SERVICE_RESTART_PASS`,
+  `CONTROL_VM_POWEROFF_CLEAN`, `CHECK_BUILD_CONTROL_PASSED`. Evidence `check-build-evidence` (5.1 MB): `control/`
+  `files.json`, `etc-claude-code.json`, `release-checks.{json,txt}`, `idle-footprint.json`, `fixtures.json`,
+  `entry-points.json`, `precondition.json`, `user-mcp-install.json`, `unit.json`, `security.txt`,
+  `journal-aresos-toold.txt`, `selinux.txt`, `restart.json`, `fixtures/` (CA subject and fingerprint, image refs,
+  ports, readiness, both servers' logs, the password's SHA-256 only), `vm/` (serial, QEMU, QMP, timings).
+  - Check 1: 57 files, 2024 vendored paths, 6 folders, the one enable link, from `71c0c9d6`, equal to `build.sh
+    control-tree` on the checkout; root-owned, recorded modes and hashes, no links, nothing extra, no
+    `managed-mcp.json`.
+  - Change 7: `/etc/claude-code` holds `CLAUDE.md` (`86433ed3…9819`) and `managed-settings.json` (`5747bb30…d376`),
+    0644 root, each equal to `/usr/etc` and `control.json`. Change 12: all five checks true.
+  - Change 14 (60 s idle, one process, one thread): `memory.current` 32,034,816 B (peak 32,788,480), anon 23,162,880 B,
+    file 4,595,712 B, RSS 35,948 KiB, PSS 24,481 KiB, swap 0; 619 switches = **10.3 wake-ups/s**; CPU 404.0 ms =
+    **0.67 %** of one CPU (run 1: 10.0/s, 0.35 %).
+  - Layer: `greenmail` and `dovecot` resolve to 10.0.2.2 only; the system trust store verifies `greenmail:3993`,
+    `greenmail:3465`, `dovecot:993` (subject `mail-fixture.invalid`, TLSv1.3, the servers' greetings); one anchor.
+  - Checks 3 and 4: as in run 1 (other user UID 249).
+  - Check 5: Claude Code `2.1.319 (Claude Code)` at `~/.local/share/claude/versions/2.1.319`, linked from
+    `~/.local/bin/claude`; his `notes` entry (`/usr/bin/python3 -I …/own-mcp.py`) unchanged by both runs of the README
+    step; `control` and `mail` as shipped, nothing duplicated; then `testapp`; `claude mcp list`: `notes`, `control`,
+    `mail`, `testapp` all "✔ Connected".
+  - Check 2: `User=aresos-tools`, `NRestarts=0`, every sandbox value as the unit says, one invocation in the boot's
+    journal, main process UID/GID 250 ×4, `NoNewPrivs 1`, all five capability sets 0, `/run/aresos-tools` 0711 with
+    `act.sock` 0666, `admin.sock` 0600, `chrome.sock` 0600, all 250:250. SELinux `Enforcing`, service context
+    `unconfined_service_t`; 12 AVC denials in the boot, all `tuned_t` `chcon` `mac_admin` (the base's tuned), none
+    naming the service. `systemd-analyze security`: "Overall exposure level for aresos-toold.service: 5.0 MEDIUM"
+    (recorded, not asserted).
+  - Restart: active again, 3 `transport_error` calls before the sockets answered (the start-up gap), 0 pending.
+  - Times (s): boot to channel 31.3, files 3.0, `/etc/claude-code` 0.2, release 0.1, idle 60.0, fixtures 0.1, entry
+    points 2.5, precondition 1.8, user MCP 4.1, service 0.0, restart 2.5; the pass 107.5 from QEMU's start to its
+    exit. The whole job 43 min (run 1: 16 min, same steps; the runner's speed varies).
+
+Step 2a is done: checks 1 to 5 and agreed changes 7, 12 and 14 green once (run 43558438408). Two of the four
+`check_build=control` runs were used.
 
 ## Left, in order (step 2b on)
 
