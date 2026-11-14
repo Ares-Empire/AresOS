@@ -227,6 +227,11 @@ In the development game on AresOS with the app helper running (the orchestrator 
 ## Open questions
 
 - JUDGMENT-CALL 3 is settled by the orchestrator: a first build says one line (review fixes 1, step B, point 6).
+- JUDGMENT-CALLs 1, 2 and 4 to 11 are settled by the orchestrator as built (2026-11-14): each is small, visible in
+  the game and changed later in one place, so they are shown to the owner when he tries the town (`hub-try`) rather
+  than asked beforehand. So are the decisions of the fix rounds (A1 to A7, B2 to B6, C1 to C7), including the freeze:
+  a world opened without the town's records since its last visit builds and removes nothing until
+  `/aresos hub trust`.
 - Should the converter get the two changes named above before the town reaches the laptop? Lunar Client is the one
   logo of the three that does not read without its sign.
 
