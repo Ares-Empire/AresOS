@@ -226,6 +226,8 @@ class App:
     unavailable: str = None
     # The exact window identities a reviewed hint gave it: they rank above discovered candidates (review 2, finding 3).
     hint_ids: tuple = ()
+    # (name, value) pairs a reviewed hint adds to its start (30b); never sent on the socket.
+    environment: tuple = ()
 
 
 ENTRY_KEYS = {'schema', 'id', 'name', 'argv', 'desktop_entry', 'working_directory', 'window', 'replaces', 'gpu'}
@@ -334,20 +336,29 @@ def _reject_constant(value):
 
 @dataclasses.dataclass(frozen=True)
 class Hint:
-    """Reviewed extra window identities for one discovered program (review 1, finding 1)."""
+    """Reviewed facts about one discovered program: extra window identities (review 1, finding 1) and how it must be
+    started (30b): the NVIDIA card, and environment values as (name, value) pairs."""
     desktop_id: str
     app_ids: tuple = ()
     app_id_prefixes: tuple = ()
+    gpu: str = None
+    environment: tuple = ()
 
 
 HINTS = 'hints'
-HINT_KEYS = {'schema', 'desktop_id', 'app_ids', 'app_id_prefixes'}
+HINT_KEYS = {'schema', 'desktop_id', 'app_ids', 'app_id_prefixes', 'gpu', 'environment'}
 # A prefix is deliberate: 4 to 64 characters that end at a separator, so `steam_app_` but never `s` or `steam`.
 HINT_PREFIX = re.compile(r'[A-Za-z0-9._-]{3,63}[._-]\Z')
+# The only names a hint may set at a program's start (30b). A wider list is a reviewed change to this one pattern.
+HINT_ENVIRONMENT_NAME = re.compile(r'SDL_[A-Z0-9_]{1,60}\Z')
+# 1 to 128 printable ASCII characters, passed as they are (never expanded).
+HINT_ENVIRONMENT_VALUE = re.compile(r'[ -~]{1,128}\Z')
+MAX_HINT_ENVIRONMENT = 8
 
 
 def parse_hint(data):
-    """Validate one hint file as strictly as a registry entry: it decides which program a window belongs to."""
+    """Validate one hint file as strictly as a registry entry: it decides which program a window belongs to and
+    how that program starts."""
     if not isinstance(data, dict):
         raise ValueError('hint is not an object')
     unknown = set(data) - HINT_KEYS
@@ -365,12 +376,32 @@ def parse_hint(data):
     if (not isinstance(prefixes, list) or len(prefixes) > 8 or len(set(map(str, prefixes))) != len(prefixes)
             or not all(isinstance(value, str) and HINT_PREFIX.match(value) for value in prefixes)):
         raise ValueError('app_id_prefixes must list at most 8 different prefixes of 4-64 characters ending in . _ or -')
-    if not app_ids and not prefixes:
-        raise ValueError('a hint must name at least one window identity')
+    # The same meaning as a registry entry's gpu: ask for the NVIDIA card where there is one.
+    gpu = data.get('gpu')
+    if 'gpu' in data and gpu != 'discrete':
+        raise ValueError('gpu must be discrete')
+    environment = data.get('environment', {})
+    if not isinstance(environment, dict) or len(environment) > MAX_HINT_ENVIRONMENT:
+        raise ValueError(f'environment must be an object of at most {MAX_HINT_ENVIRONMENT} entries')
+    for name, value in environment.items():
+        if not HINT_ENVIRONMENT_NAME.match(name):
+            raise ValueError(f'environment name {name!r} is not allowed')
+        if not isinstance(value, str) or not HINT_ENVIRONMENT_VALUE.match(value):
+            raise ValueError(f'environment value of {name} must be 1-128 printable ASCII characters')
+    if not app_ids and not prefixes and gpu is None and not environment:
+        raise ValueError('a hint must name at least one window identity, gpu or environment')
     if DESKTOP_APP_IDS & set(app_ids) or any(desktop.startswith(prefix) for desktop in DESKTOP_APP_IDS
                                              for prefix in prefixes):
         raise ValueError('a hint must not claim the desktop window')
-    return Hint(desktop_id, tuple(app_ids), tuple(prefixes))
+    return Hint(desktop_id, tuple(app_ids), tuple(prefixes), gpu, tuple(environment.items()))
+
+
+def _unique_keys(pairs):
+    """A key given twice would let a reviewer read one value while the helper used the other (30b)."""
+    data = dict(pairs)
+    if len(data) != len(pairs):
+        raise ValueError('a key is given twice')
+    return data
 
 
 def _hints_clash(one, two):
@@ -391,7 +422,8 @@ def load_hints(folder):
                 raw = handle.read(MAX_MESSAGE + 1)
             if len(raw) > MAX_MESSAGE:
                 raise ValueError('hint is too large')
-            hint = parse_hint(json.loads(raw.decode('utf-8'), parse_constant=_reject_constant))
+            hint = parse_hint(json.loads(raw.decode('utf-8'), parse_constant=_reject_constant,
+                                         object_pairs_hook=_unique_keys))
         except (OSError, ValueError, RecursionError) as error:
             LOG.error('window hint %s is invalid: %s', path, error)
             continue
@@ -914,12 +946,14 @@ def prefixed(identity, prefixes):
 
 
 def apply_hints(apps, hints):
-    """Reviewed hints give an installed discovered program more window identities (review 1, finding 1).
+    """Reviewed hints give an installed discovered program more window identities (review 1, finding 1) and its start
+    settings (30b).
 
     They beat discovered candidates, exact identities and prefixes alike (review 2, finding 3): another discovered
     program loses each identity a hint names or a hint's prefix covers. They never take a registry entry's identity
-    (valid or not) or the desktop's. A hint for a program that is not installed, or that a registry entry replaces,
-    changes nothing.
+    (valid or not) or the desktop's. A hint's gpu adds to the entry's own wish and never takes it away; its
+    environment goes to that program's start alone. A hint for a program that is not installed, or that a registry
+    entry replaces, changes nothing.
     """
     apps = dict(apps)
     reviewed = {identity for app in apps.values() if not app.discovered for identity in app.app_ids} | DESKTOP_APP_IDS
@@ -937,7 +971,8 @@ def apply_hints(apps, hints):
                 apps[other_key] = dataclasses.replace(
                     other, app_ids=tuple(identity for identity in other.app_ids if not claimed(identity)))
         apps[key] = dataclasses.replace(apps[key], app_ids=tuple(dict.fromkeys((*apps[key].app_ids, *extra))),
-                                        app_id_prefixes=hint.app_id_prefixes, hint_ids=extra)
+                                        app_id_prefixes=hint.app_id_prefixes, hint_ids=extra,
+                                        gpu=hint.gpu or apps[key].gpu, environment=hint.environment)
     return apps
 
 
@@ -1860,6 +1895,9 @@ class ScopeLauncher:
 
     def environment(self, app=None):
         env = {key: value for key, value in self.environ.items() if key not in PRIVATE_ENVIRONMENT and key not in GPU_KEYS}
+        if app is not None:
+            # A reviewed hint's values (30b): after the session's are filtered, before the NVIDIA values.
+            env.update(app.environment)
         if app is not None and app.gpu == 'discrete' and self.nvidia():
             env.update(NVIDIA_OFFLOAD)
         return env
