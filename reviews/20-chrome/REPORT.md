@@ -1,38 +1,200 @@
 <!-- POST18D CURRENT START -->
 # Handover
 
-- **Round:** fixes b ([brief](../../briefs/20-final-fixes-b.md)), answering the scoped re-check
-  ([REVIEW-RECHECK-FINAL](REVIEW-RECHECK-FINAL.md): 1 FIX; [SECURITY-RECHECK-FINAL](SECURITY-RECHECK-FINAL.md): SAFE,
-  two known limits, six notes) and the lead's three additions. One Claude agent (Opus 5.5) built G1 to G4; "Fixes b"
-  below has each item, its tests and probes, the six security notes and the run.
-- **Stopped before a second run.** The round's one run **`43603381599`** (`e654baff`) failed. One cause was found and
-  fixed in `25fe7aaa`: NOTE 1's first wording pushed chrome's server instructions past the 4,096 characters Claude Code
-  2.1.319 keeps, so native precedence failed and both aggregates stopped without it. The other failure, three p95-only
-  misses in the instrumented latency profile, has no code cause found (isolated samples; the old runtime spiked on the
-  same runner; the plain profile is clean). Details: "Fixes b", the run.
-- **Next: the lead decides the second run** (one batched `control-chrome.yml` on the fixed head, which must pass every
-  row); **then the same reviewers re-check fixes b, then the final pair** (and every Control workflow twice).
-- **Run `43603381599`** (`e654baff`): every fixture shard in both installs, the four Python shards (F7's Linux-only
-  socket case ran) and `latency (plain)` passed; `native-precedence`, both aggregates and `latency (audit)` failed.
-  **Latency at 4,000, worst of both profiles** (median / p95 against the ceilings): read 17.3 / 18.0 against 35 / 60,
-  navigate 50.1 / 71.4 against 100 / 150, free_click 573.1 / 585.0 and fill 566.8 / 601.9 against 650 / 750,
-  asking_click 25.4 / 26.3 against 60 / 100, approval_to_done 588.5 / 607.0 against 700 / 850. Records:
-  [`records/fixes-b/`](records/fixes-b/).
-- **Code head:** **`25fe7aaa`**: the run's head `e654baff` plus the instructions fix (records and this report on
-  top change no tested file). The full local preflight passes on it: **300 Python, 415 Node and 432 mutations**
-  (Python shards 53/56/48/143; the Linux-only socket case is skipped on the Mac and runs in CI), every baseline
+- **Round:** fixes b ([brief](../../briefs/20-final-fixes-b.md)) plus the lead's latency gate change (60 samples,
+  mac-aresos-control, 2026-11-14) and the five notes of the two fixes b re-checks (both SAFE). "Latency gate: 60
+  samples" below has the gate change, the notes, the run and the 4,096-character rule; "Fixes b" has G1 to G4 and the
+  failed run `43603381599` that led to the gate change.
+- **Stopped after the verify run.** Run **`43613647256`** failed in one browser shard: `fixtures (policy, recheck2)`,
+  the `typed-clean` popup, where the popup got a document-start install and the test expects a late one (a timing race
+  in the test's expectation, not a code change of this step). Every other job passed, both latency profiles among
+  them, at 60 samples and with no stat over a ceiling.
+- **Next: the lead decides two things and the next run:** (1) the `typed-clean` popup check's expectation (it should
+  accept and verify the install path it got, or the fixture should fix the path); (2) the runner factor, which rises
+  with the old runtime's 60 samples and loosens the gate (recommended: the old runtime keeps the reference's 20).
+  **Then the reviewers' re-check of fixes b (with the gate change), then the final pair** (and every Control
+  workflow twice).
+- **Run `43613647256`** (`dcf4462d`): 26 of 28 jobs passed. **Latency at 4,000, worst of both profiles** (median /
+  p95 against the ceilings): read 19.5 / 20.7 against 35 / 60, navigate 48.7 / 54.0 against 100 / 150, free_click
+  576.6 / 584.0 and fill 578.8 / 580.8 against 650 / 750, asking_click 26.9 / 28.9 against 60 / 100,
+  approval_to_done 587.4 / 597.0 against 700 / 850. Latency jobs 19.8 and 20.6 minutes. Records:
+  [`records/gate60/`](records/gate60/).
+- **Code head:** **`b3d6e4f2`** (the gate in `e9825745`, the typing symbol in `b3d6e4f2`; records and this report on
+  top change no tested file). The full local preflight passes on it: **303 Python, 417 Node and 440 mutations**
+  (Python shards 53/56/49/145; the Linux-only socket case is skipped on the Mac and runs in CI), every baseline
   passing, plus the generator, diff and exact-unit checks (unit byte-identical to `8b7e799c`)
-  ([record](records/fixes-b/final-local-25fe7aaa.json)). On `e654baff`: 299 Python, 415 Node and 431 mutations
-  ([record](records/fixes-b/final-local-e654baff.json)).
-- **Budget:** **263 / about 280** `control-chrome.yml` runs (this round used one: `43603381599`).
+  ([record](records/gate60/final-local-b3d6e4f2.json)).
+- **Budget:** **264 / about 280** `control-chrome.yml` runs (this step used one: `43613647256`).
+- **For linux-tools at merge:** the 4,096-character rule for every app's tool instructions ("Latency gate: 60
+  samples"); the lead passes it on.
 - **For linux-aresos at merge:** install `control/chrome/packaging/org.aresos.control.chrome-loosen.policy` at
   `/usr/share/polkit-1/actions/org.aresos.control.chrome-loosen.policy`; the owner's own agent and seat are
   linux-tools' 18c-b image test. **For linux-tools' 18c-b image:** the plan and timing tests
   (`control/chrome_tests/test_full_disk_reads.py`, `test_open_index_timing.py`) must also pass on AresOS's own SQLite
   (see "Step 7", SQLite versions).
-- **Earlier heads:** the final fixes round's code head `f4a3fba9` passed everything in run `43593989287` (steps 1–8
-  below); `a4143586`, before that round, passed its Chrome pair, base, boundary, qualification and Mail. Both are
-  history now. Never merge the PR or main, and never force-push.
+- **Earlier heads:** fixes b's run head `e654baff` failed run `43603381599` (native precedence, fixed in `25fe7aaa`,
+  and three instrumented p95 misses, which led to the gate change); the final fixes round's code head `f4a3fba9`
+  passed everything in run `43593989287`. Both are history now. Never merge the PR or main, and never force-push.
+
+# Latency gate: 60 samples (2026-11-14)
+
+The lead's decision after run `43603381599` (mac-aresos-control, 2026-11-14): **60 samples per call and per history
+phase**, for both runtimes (current and the paired old `ab7aba92`) and both profiles (plain and instrumented). The
+ceilings, "a call fails if its median **or** its p95 is over the ceiling" and the reference comparison ("both must
+cross") are unchanged. With 20 samples the p95 is the second-highest value, so two runner hiccups failed a call; with 60
+it is the 57th of 60, so a p95 miss takes at least four slow samples. Built by a Claude agent (Opus 5.5): the gate and
+the security re-check's notes in `e9825745`, the package re-check's symbol note in `b3d6e4f2`.
+
+**The constant.** `control/chrome/ci/latency-targets.json` holds `samples_per_call: 60`, with `samples_basis` saying the
+lead set it (mac-aresos-control, 2026-11-14, after run `43603381599`). Every count follows from it:
+- the client (`latency-probe.mjs`) reads it from the file beside it and loops that many times per phase (the old
+  runtime's tree gets current's `ci/` copied in, so both runtimes take 60);
+- the summary (`latency-summary.py`) requires 6 calls × 3 phases × 60 = 1,080 client rows and 60 per call, and
+  records `samples_per_call` and the count in its first note;
+- the check (`latency-check.py`) requires 3 input calls × 3 phases × 60 = 540 paired samples and 60 in every required
+  stage and in the 525 ms wait, and recomputes each p95 with the summary's own rule (index ⌈0.95·n⌉ − 1, the 57th of
+  60) instead of the old fixed `sorted(values)[18]`.
+
+**The reference stays.** The frozen reference (run `43502970342`) was taken with 20 samples. The comparison's
+arithmetic doesn't need matching counts: it reads the reference's median and p95 as numbers. Only its validation did
+(`samples==20` everywhere). The run then showed one place where the count does matter: the runner factor, through
+the old runtime's growing history (the finding after the run's latency table below). So `latency-targets.json` also records `measurement_samples_per_call: 20`, and the check validates the
+reference at its own 20 and every new measurement at 60. Nothing in the comparison changed: the same thresholds
+(`×1.5+10`, `×1.75+20`), the same runner factor and the same "both must cross". A new measurement with 20 samples now
+fails, and so does a reference claiming 60.
+
+**The arithmetic test.** `test_latency.LatencyGate.test_gate60_three_slow_samples_of_sixty_pass_and_a_fourth_fails`
+runs the production summary's arithmetic and the production check: with 60 samples, 3 slow samples (navigate 400 ms
+against 150, fill 1,125 ms against 750) pass and 4 fail on p95 alone (`target_miss`, no regression); with the old 20,
+1 passes and 2 fail. It also pins the constant (60, reference 20) and the lead's line. Further tests: the client's loop
+runs the count for every call and phase with stub calls (`latency.test.mjs`, `gate60 the latency client …`); new
+measurements need 60 and the reference keeps 20
+(`test_gate60_new_measurements_take_the_lead_count_and_the_reference_keeps_its_own`). The earlier gate tests now build
+60-sample measurements against a 20-sample reference; the ones that use the real reference take each of its samples
+three times, which keeps the median and p95 exactly (the 30th/31st of 60 are the 10th/11th of 20, the 57th of 60 the
+19th of 20).
+
+**Probes (all rejected):** `gate60-count-back-to-20` (the constant back to 20), `gate60-summary-p95-off-by-one` and
+`gate60-check-p95-off-by-one` (index ⌈0.95·n⌉ instead of ⌈0.95·n⌉ − 1, which makes three slow samples fail),
+`gate60-reference-at-new-count`, `gate60-client-fixed-20` (the client's loop back to a fixed 20). The probes
+`post18d-sparse-expiry-diagnostic` and `final-f4-median-or-p95-ceiling` aim at the changed lines again.
+
+**The security re-check's two notes** (fixes b, SAFE), folded in before the run:
+1. The 4,096-character test listed `testapp`, `mail` and `chrome`; `APPS` also has `control`. It now iterates
+   `sorted(APPS)` and requires those four to be in it. Probe `gate60-instructions-every-app` (4,096 more characters
+   for `control` only) is rejected; the old list let it through.
+2. `_index_open_operations` dropped a stale index and created the new one without a transaction. Python's sqlite3
+   opens none before DDL, so the DROP committed at once, and a CREATE that then failed (a nearly full disk) left no
+   index until the next open (rows unchanged, speed only). It now opens one explicit transaction first, so a failed
+   rebuild rolls back to the old index. Test
+   `test_full_disk_reads.FullDiskReads.test_a_rebuild_that_fails_after_its_drop_keeps_the_old_index` (the CREATE fails
+   with `SQLITE_FULL` after the DROP ran: the old index stays, the storage observation is recorded, all 48 shapes read
+   the same rows, and the next try replaces it). Without the fix it fails with no index left. Probe
+   `fixesb-recheck-index-one-transaction`.
+
+**The package re-check's notes** (fixes b, SAFE):
+1. The typing record changed shape in fixes b (`{fields,gap}` became `{fields,releases}`) but kept the symbol
+   `aresos.chrome.typing.v1`. It is now `aresos.chrome.typing.v2` (`b3d6e4f2`, before the run), so a record an
+   earlier guard left in the same isolated world is never read as the new one. Test `page.test.mjs` `gate60 the
+   typing record has its own symbol …` (a fixture with an older-shape `v1` record starts a fresh record, releases 0);
+   probe `gate60-typing-symbol-v1`. The step 7 text above that names `v1` is history.
+2. Two wordings in "Fixes b" are corrected: chrome's instructions were 3,999 characters before fixes b (measured at
+   `f4a3fba9`), not 4,000, and the instrumented medians are close to the plain ones, not equal.
+3. The character count is the rule below.
+
+**Rule for all AresOS tool instructions: 4,096 characters.** Claude Code (2.1.319, the CLI pinned in the precedence
+container) passes only the first 4,096 characters of an MCP server's instructions and marks the rest "[truncated]"
+(measured in run `43603381599`, where chrome's 4,149 characters failed native precedence). So:
+- every app's instructions stay within 4,096 characters (today: chrome 4,052, which leaves 44, mail 2,426, control and
+  testapp 1,652);
+- the test counts characters (Python `len` of the string), not bytes. Every app's instructions are ASCII today, so the
+  two agree; a non-ASCII character would need the limit checked in the unit the CLI cuts by, which run `43603381599`
+  measured only on ASCII text;
+- the local test `test_questions.Questions.test_fixes_b_server_instructions_fit_the_native_cli_limit` guards every app
+  in `APPS`, so a new app is covered without editing the test;
+- the lead passes this rule to linux-tools at merge.
+
+**The run: `43613647256`** (`dcf4462d`, code head `b3d6e4f2`), **failed in one browser shard**; records in
+[`records/gate60/`](records/gate60/) (metadata only; no profile member read). 264 of about 280 runs are now used.
+**Stopped before another run**, as the brief requires.
+- **Passed (26 of 28 jobs):** every other fixture shard in both installs (core, review, adapters, recheck3, the four
+  word shards, and `recheck2` in the external install), the four Python shards (53/56/49/145 = 303; F7's Linux-only
+  socket case `... ok`), `native-precedence` (chrome's 4,052-character instructions arrive whole), both latency
+  profiles, the package, and `aggregate (external)` with its independent audit (98 named cases, 999 word cells,
+  group 12, 96 destination rows; the local re-run of the audit on the downloaded metadata agrees). Chrome
+  157.0.8103.78.
+- **Failed: `fixtures (policy, recheck2)`**, in "GROUP 8 popups preserve opener flow and guard first input without
+  moving windows", mode `typed-clean` (`popups.mjs:34`): the first click on the new popup returned `stale_reference`
+  where the test expects `reload_required`. `clean` and `dirty` passed before it, and the same check passed in the
+  external install of this run and in both installs of runs `43603381599` and `43593989287`.
+  `aggregate (policy)` then stopped for the missing shard, so the policy install has no aggregate or audit in this run.
+- **Why (read from the shard's boundary record,
+  [receipt](records/gate60/chrome-43613647256-failed.json)):** the two installs reached the popup at different
+  moments.
+  - **Policy (failed):** the extension attached to the popup before its first navigation committed, paused it at the
+    startup breakpoint and installed the guard and reader before page scripts (`Debugger.paused`, then
+    `Runtime.evaluate`). The reader then counts the document as watched (`document-start.v1`). Its text field is
+    untouched, so it is not unsaved, and the first click reloads without asking: `stale_reference`.
+  - **External (passed):** the popup had loaded (`Page.frameStoppedLoading`) before `Debugger.enable`, so it got a late
+    reader. Its text field has unknown history (`unknown_history`), so the first click asks: `reload_required`.
+  - So `typed-clean` assumes the late path, and Chrome's timing decides which path a popup gets. Both outcomes follow
+    the reader's rule. Nothing in this step touches that path: the changes are the latency scripts, tests, the index
+    transaction and the typing record's symbol name.
+  - **Left for the lead:** the test needs to accept the install path it actually got (and check it, from the boundary
+    record or the reader's `watched` flag), or the fixture needs to make the path certain. That is a test change and
+    needs another run, so it wasn't done here.
+
+**Latency at 60 samples** (run `43613647256`, client median / p95 ms; 60 samples per call and phase in both
+profiles and both runtimes; no stat over a ceiling, and both gates passed):
+
+| History | Call | Ceiling (median / p95) | Plain | Instrumented | Worst of both |
+|---|---|---|---|---|---|
+| fresh | read | 35 / 60 | 6.8 / 8.2 | 6.9 / 9.1 | 6.9 / 9.1 |
+| fresh | navigate | 100 / 150 | 33.1 / 41.3 | 32.8 / 37.8 | 33.1 / 41.3 |
+| fresh | free_click | 650 / 750 | 564.4 / 569.9 | 561.1 / 565.6 | 564.4 / 569.9 |
+| fresh | fill | 650 / 750 | 561.0 / 565.3 | 559.9 / 561.4 | 561.0 / 565.3 |
+| fresh | asking_click | 60 / 100 | 12.0 / 14.1 | 13.3 / 14.2 | 13.3 / 14.2 |
+| fresh | approval_to_done | 700 / 850 | 576.5 / 580.3 | 573.0 / 575.4 | 576.5 / 580.3 |
+| 1,000 | read | 35 / 60 | 7.8 / 10.1 | 10.3 / 11.6 | 10.3 / 11.6 |
+| 1,000 | navigate | 100 / 150 | 35.5 / 40.2 | 36.5 / 38.6 | 36.5 / 40.2 |
+| 1,000 | free_click | 650 / 750 | 560.6 / 571.2 | 569.5 / 572.0 | 569.5 / 572.0 |
+| 1,000 | fill | 650 / 750 | 558.4 / 560.7 | 555.4 / 557.5 | 558.4 / 560.7 |
+| 1,000 | asking_click | 60 / 100 | 14.6 / 18.7 | 16.5 / 17.5 | 16.5 / 18.7 |
+| 1,000 | approval_to_done | 700 / 850 | 572.5 / 580.4 | 582.1 / 585.5 | 582.1 / 585.5 |
+| 4,000 | read | 35 / 60 | 14.6 / 15.6 | 19.5 / 20.7 | 19.5 / 20.7 |
+| 4,000 | navigate | 100 / 150 | 43.6 / 47.4 | 48.7 / 54.0 | 48.7 / 54.0 |
+| 4,000 | free_click | 650 / 750 | 566.6 / 580.2 | 576.6 / 584.0 | 576.6 / 584.0 |
+| 4,000 | fill | 650 / 750 | 568.4 / 571.0 | 578.8 / 580.8 | 578.8 / 580.8 |
+| 4,000 | asking_click | 60 / 100 | 21.9 / 24.5 | 26.9 / 28.9 | 26.9 / 28.9 |
+| 4,000 | approval_to_done | 700 / 850 | 575.7 / 590.5 | 587.4 / 597.0 | 587.4 / 597.0 |
+
+**Job durations.** `latency (plain)` 19.8 minutes and `latency (audit)` 20.6 minutes (20 samples: 8.0 and 8.3 in run
+`43603381599`), well inside the 120-minute job target and the job's 120-minute timeout. Each job spent about 5.6
+minutes in the current runtime's container and 13 to 14 minutes in the old runtime's (each under the 50-minute
+container limit). The longest job of the run was 28.9 minutes (`python-shards (1)` and the core shards).
+
+**A finding for the lead: the runner factor rises with the sample count.** The gate scales its ceilings and reference
+thresholds by the runner factor, the old runtime's medians now over its medians in the frozen 20-sample reference
+(`allowance = max(1, factor)`). The old runtime `ab7aba92` gets slower as its store grows (0.3 to 1.1 ms more paired
+work per sample within a phase; the current runtime stays flat), and each sample adds operations. With 60 samples
+its medians sit later in a longer history than the reference's, so the factor rises with no runner change:
+- **Measured in this run:** the fresh-phase factor was 1.22 in both profiles. The old runtime's first 20 fresh samples,
+  which sit at exactly the reference's history positions, give 0.84, 0.96 and 0.81 (plain) and 0.83, 0.86 and 0.78
+  (instrumented) for its three input calls: this runner was as fast as the reference's or faster. Their 60-sample
+  medians give 1.19, 1.21 and 1.08.
+- **Effect:** in this run the fresh ceilings and thresholds were effectively about 22% looser (history-1000 1.04 and
+  1.19, history-4000 0.88 and 1.09).
+- **This run's verdict doesn't depend on it:** evaluated with no runner credit (allowance 1), no call in either profile
+  is over a ceiling or crosses the reference on both median and p95 (`failures_at_allowance_1` is empty in
+  [`chrome-43613647256-gate60.json`](records/gate60/chrome-43613647256-gate60.json)).
+- **It does make the gate weaker for later runs**, which the lead's conditions rule out. The options are the lead's
+  call, since each changes the decision as given:
+  - **(a) Recommended:** the old runtime keeps the reference's 20 samples. Its only use is the median ratio against
+    the 20-sample reference, which this makes like for like again, and it shortens each latency job by about 9
+    minutes. The current runtime keeps 60, so the p95 benefit stays. It needs a second constant
+    (`measurement_samples_per_call`, already in `latency-targets.json`) read by the client for the old runtime.
+  - **(b)** Measure a new 60-sample reference for both runtimes: one diagnostic run, and a new frozen reference.
+  - **(c)** Keep it and accept a looser gate (about 10 to 25% here).
 
 # Fixes b (2026-11-14)
 

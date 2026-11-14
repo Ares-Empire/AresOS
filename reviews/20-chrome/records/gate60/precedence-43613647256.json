@@ -1,0 +1,131 @@
+{
+  "head": "dcf4462d8cbd81110e8891397473038012e45415",
+  "run": "43613647256",
+  "cases": [
+    {
+      "case": "chrome-normal-missing",
+      "mode": "default",
+      "owner_entry": "missing",
+      "arrivals": {
+        "tabs": 1,
+        "submit": 0,
+        "typed": 0,
+        "trusted": 0
+      },
+      "receiver_delta_sha256": "12d6e4683452c567f17cee82026b90ff1b28b2069d60467359a732e143413906"
+    },
+    {
+      "case": "chrome-normal-matching",
+      "mode": "default",
+      "owner_entry": "matching",
+      "arrivals": {
+        "tabs": 1,
+        "submit": 0,
+        "typed": 0,
+        "trusted": 1
+      },
+      "receiver_delta_sha256": "c0fe1bb2bef640c0a384d7a375e86cdb8ce9f71426e3a9a4ddf665e00062e703"
+    },
+    {
+      "case": "chrome-normal-revoked",
+      "mode": "default",
+      "owner_entry": "revoked",
+      "arrivals": {
+        "tabs": 1,
+        "submit": 0,
+        "typed": 0,
+        "trusted": 0
+      },
+      "receiver_delta_sha256": "bea3772da4397597ac802eb4614e1a8ec8f0b517bf85c82d2481f7a87888bdb1"
+    },
+    {
+      "case": "chrome-normal-other-account",
+      "mode": "default",
+      "owner_entry": "other-account",
+      "arrivals": {
+        "tabs": 1,
+        "submit": 0,
+        "typed": 0,
+        "trusted": 0
+      },
+      "receiver_delta_sha256": "bc816d53afe7707072bb798ae4368e9d93c2be7f6cbb494cbad9288e5ee77713"
+    },
+    {
+      "case": "chrome-normal-positive",
+      "mode": "default",
+      "owner_entry": "positive",
+      "arrivals": {
+        "tabs": 1,
+        "submit": 1,
+        "typed": 1,
+        "trusted": 0
+      },
+      "receiver_delta_sha256": "666fb3ef422a5951ad493e222c9a7559d93e9cb8ff2b528f40e06ec50a6c796b"
+    },
+    {
+      "case": "chrome-skip-missing",
+      "mode": "bypassPermissions",
+      "owner_entry": "missing",
+      "arrivals": {
+        "tabs": 1,
+        "submit": 0,
+        "typed": 0,
+        "trusted": 0
+      },
+      "receiver_delta_sha256": "99814ce19d500d9aab2076609383bf77fdd4f135b2e2e4173078475a3643208a"
+    },
+    {
+      "case": "chrome-skip-matching",
+      "mode": "bypassPermissions",
+      "owner_entry": "matching",
+      "arrivals": {
+        "tabs": 1,
+        "submit": 0,
+        "typed": 0,
+        "trusted": 1
+      },
+      "receiver_delta_sha256": "0d0ecbf17c427db71965aad594770fd8a447b0b2dd3dc53283729b24234b1ee2"
+    },
+    {
+      "case": "chrome-skip-revoked",
+      "mode": "bypassPermissions",
+      "owner_entry": "revoked",
+      "arrivals": {
+        "tabs": 1,
+        "submit": 0,
+        "typed": 0,
+        "trusted": 0
+      },
+      "receiver_delta_sha256": "e966183e1ae9534162ff99bf566ad514fa3160cdb53a62279608277d77b64981"
+    },
+    {
+      "case": "chrome-skip-other-account",
+      "mode": "bypassPermissions",
+      "owner_entry": "other-account",
+      "arrivals": {
+        "tabs": 1,
+        "submit": 0,
+        "typed": 0,
+        "trusted": 0
+      },
+      "receiver_delta_sha256": "43439a70ce4b2e4ed757d73c57e3f357f8665c180bb127a5a849c1c0eb2a6318"
+    },
+    {
+      "case": "chrome-skip-positive",
+      "mode": "bypassPermissions",
+      "owner_entry": "positive",
+      "arrivals": {
+        "tabs": 1,
+        "submit": 1,
+        "typed": 1,
+        "trusted": 0
+      },
+      "receiver_delta_sha256": "a90b1bc67de1ecb85359c2e11432d9f4d02618fb23e8e77ddf0f93fcdb632477"
+    }
+  ],
+  "instructions": {
+    "testapp": "a3e167b98698ef00bc3d83344f05966375f149dc08ae66a625fce878b8148c09",
+    "mail": "b0be4ba95e4ed2fbccaf3d64d0a39977487a1c1f03803da142272901cc863acf",
+    "chrome": "92e6048f0ae05fa29bff822e94e7c0be05e096273864e3b705f228f3dd722128"
+  }
+}
