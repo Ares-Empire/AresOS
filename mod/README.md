@@ -553,6 +553,25 @@ zone, and every block placed for it. The pad, the roads and the names stay in
 writes `hub.dat` again loses nothing of the town. A logo's doorway and exit
 are a zone in `zones.dat`, like a hand-built gate's.
 
+**When the town is not sure its records are its own.** Each time the game
+saves the world, this mod writes `data/aresos/town-seal.dat` right after
+`level.dat`: the moment `level.dat` was saved, the world's seed and a
+fingerprint of `town.dat`. When the world opens and the seal does not fit, the
+town's records may no longer match the world: an older AresOS (packages 32 to
+35) or plain Minecraft saved the world since, `town.dat` came from a backup or
+from another world, or the game stopped between the two writes (a false alarm,
+on the safe side). Then the town freezes its logos: they stay protected and
+their doorways work, but the town takes nothing of them down and builds
+nothing over them, not when an app leaves, not on a new picture or name, not
+on `hub rebuild`; new apps get logos on free ground as usual. The chat says
+so once as you enter: "This world was saved without the town's records since
+the town last saw it, so the town leaves its 5 logos as they are. Look them
+over, then type /aresos hub trust." Change back what you want kept as yours
+(a block you change is yours from then on), then type
+**`/aresos hub trust`** (the host): the town takes its logos as its own again
+and the seal is renewed at the next save. Nothing else ends a freeze. A world
+copied or renamed as a whole stays sealed.
+
 **Known limits.** A group name's count is written at scale 2.5 so that
 "SYSTEM & TOOLS · 14" fits between the two front logos. Closer than about 14
 blocks to a logo its sign is above the top of the screen unless you look up.

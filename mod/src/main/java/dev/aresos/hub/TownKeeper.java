@@ -106,12 +106,43 @@ public final class TownKeeper {
     private boolean stale, due, pending;
     private long retryAt;
 
+    /** Why a frozen logo stays: said after "The logo of Discord stays as it is: ". */
+    static final String FROZEN = "the town takes none of its logos down until you type /aresos hub trust.";
+
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(TownKeeper::tick);
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            if (DesktopWorld.isHost(server, handler.player)) ask();
+            if (!DesktopWorld.isHost(server, handler.player)) return;
+            notice(server).ifPresent(line -> handler.player.sendSystemMessage(Component.literal(line)));
+            ask();
         });
         ServerLifecycleEvents.SERVER_STOPPED.register(KEEPERS::remove);
+    }
+
+    /**
+     * The line he reads as he enters a world whose town's records are in doubt: its logos are frozen (the world was
+     * not provably saved with them). Empty otherwise.
+     */
+    public static Optional<String> notice(MinecraftServer server) {
+        var hub = HubData.get(server);
+        if (hub == null || !HubLayout.LOOK.equals(hub.look())) return Optional.empty();
+        int frozen = hub.frozenCount();
+        if (frozen == 0) return Optional.empty();
+        return Optional.of("This world was saved without the town's records since the town last saw it, so the town leaves its "
+                + (frozen == 1 ? "logo as it is" : frozen + " logos as they are") + ". Look them over, then type /aresos hub trust.");
+    }
+
+    /**
+     * {@code /aresos hub trust}: ends the freeze, the records are the town's again (its seal is renewed at the next
+     * save), and a pass follows. Its line, or empty when nothing was frozen.
+     */
+    public static Optional<String> trust(MinecraftServer server) {
+        var hub = HubData.get(server);
+        int frozen = hub == null ? 0 : hub.trust();
+        if (frozen == 0) return Optional.empty();
+        ask();
+        return Optional.of("The town takes its " + (frozen == 1 ? "logo" : frozen + " logos") + " as its own again: from now on it keeps "
+                + (frozen == 1 ? "it" : "them") + " in step with your apps.");
     }
 
     /** Any thread: a complete program list from the system went into the apps file. From now on the town may follow. */
@@ -254,10 +285,16 @@ public final class TownKeeper {
     public Pass rebuild(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots) {
         var hub = HubData.get(server);
         if (!programs.complete() || hub == null || !HubLayout.LOOK.equals(hub.look())) return Pass.NOTHING;
-        for (var logo : hub.logos()) renew.add(logo.app());
+        // A frozen logo is not built again: nothing of it is taken down until he trusts the records.
+        for (var logo : hub.logos()) if (!hub.frozen(logo.app())) renew.add(logo.app());
         said.clear();
         refused.clear();
-        return keep(server, programs, pictures, spots, true);
+        var pass = keep(server, programs, pictures, spots, true);
+        int frozen = hub.frozenCount();
+        if (frozen == 0) return pass;
+        var lines = new ArrayList<>(pass.lines());
+        lines.add((frozen == 1 ? "Its frozen logo stays as it is" : "Its " + frozen + " frozen logos stay as they are") + " until you type /aresos hub trust.");
+        return new Pass(lines, pass.pending(), pass.pictures());
     }
 
     private Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots, boolean rebuilt) {
@@ -307,7 +344,13 @@ public final class TownKeeper {
             if (place != null) saved.put(app.id(), place);
             input.add(new Assignment.App(app.id(), AppGroup.of(app), place, wanted(app)));
         }
-        var assignment = Assignment.of(input, place -> blocked(server, place, occupied));
+        // A frozen logo's place is taken while it stands: its own app keeps it if it stays there, no other app gets it.
+        var frozen = new HashSet<Place>();
+        for (var logo : hub.logos()) if (hub.frozen(logo.app())) Place.parse(logo.place()).ifPresent(frozen::add);
+        for (var app : input)
+            if (app.wanted() && app.saved() != null && app.saved().group() == app.group() && hub.frozen(app.id())
+                    && hub.logo(app.id()).flatMap(logo -> Place.parse(logo.place())).equals(Optional.of(app.saved()))) frozen.remove(app.saved());
+        var assignment = Assignment.of(input, place -> frozen.contains(place) || blocked(server, place, occupied));
 
         save(apps.values(), assignment, spots, lines);
         boolean pending = false;
@@ -320,6 +363,13 @@ public final class TownKeeper {
             var target = assignment.standing().get(logo.app());
             var at = Place.parse(logo.place());
             if (target != null && at.equals(Optional.of(target))) continue;
+            if (hub.frozen(logo.app())) {
+                // Its app left or stands elsewhere now; the frozen logo stays and holds its place, one logo an app.
+                stays.add(logo.app());
+                at.ifPresent(waitingFor::add);
+                once(lines, "The logo of " + logo.name() + " stays as it is: " + FROZEN);
+                continue;
+            }
             try {
                 Town.remove(server, logo.app());
                 cameDown.add(logo.app());
@@ -342,6 +392,8 @@ public final class TownKeeper {
             var standing = hub.logo(app.id());
             // The town's logo that stands there comes down first.
             if (standing.isEmpty() && waitingFor.contains(place)) continue;
+            // A frozen logo is not renewed, whatever changed in its app.
+            if (standing.isPresent() && hub.frozen(app.id())) continue;
             var picture = pictures.apply(app);
             if (picture.isEmpty()) {
                 need.add(app.id());
@@ -385,7 +437,9 @@ public final class TownKeeper {
         for (var skip : assignment.skipped().entrySet()) {
             var app = apps.get(skip.getKey());
             var to = assignment.standing().get(skip.getKey());
-            var places = skip.getValue();
+            // A frozen logo's place is the town's own, not something of his.
+            var places = skip.getValue().stream().filter(place -> !frozen.contains(place)).toList();
+            if (places.isEmpty()) continue;
             String named = places.stream().limit(NAMED_PLACES).map(Place::name).collect(Collectors.joining(", "))
                     + (places.size() > NAMED_PLACES ? " and " + (places.size() - NAMED_PLACES) + " more" : "");
             if (to != null) once(lines, named + (places.size() == 1 ? " is" : " are") + " blocked by something of yours, so "

@@ -16,7 +16,21 @@ public final class HubCommands {
         // Host-only where it is parsed, like /aresos app since package 35: no command block, function or other
         // player reaches it. The host is checked again when it runs.
         return Commands.literal("hub").requires(AppCommands::allowed)
-                .then(Commands.literal("rebuild").executes(context -> rebuild(context.getSource())));
+                .then(Commands.literal("rebuild").executes(context -> rebuild(context.getSource())))
+                .then(Commands.literal("trust").executes(context -> trust(context.getSource())));
+    }
+
+    /** {@code /aresos hub trust}: the town's frozen logos are its own again (review fixes 1, point 2). */
+    private static int trust(CommandSourceStack source) throws CommandSyntaxException {
+        var player = source.getPlayerOrException();
+        var server = source.getServer();
+        if (!DesktopWorld.isHost(server, player)) return refuse(source, "Only the singleplayer host can trust the town's records.");
+        var hub = HubData.get(server);
+        if (hub == null) return refuse(source, "This world is not a flat home: it has no town.");
+        var said = TownKeeper.trust(server);
+        if (said.isEmpty()) return refuse(source, "Nothing of the town is frozen: its records are its own.");
+        source.sendSuccess(() -> Component.literal(said.get()), false);
+        return 1;
     }
 
     private static int rebuild(CommandSourceStack source) throws CommandSyntaxException {

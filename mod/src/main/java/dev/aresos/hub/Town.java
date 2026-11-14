@@ -86,6 +86,7 @@ public final class Town {
     public static GateBuilder.Removal remove(MinecraftServer server, String app) throws IOException {
         var hub = hub(server);
         var logo = hub.logo(app).orElseThrow(() -> new IOException("No logo of " + app + " stands in the town."));
+        if (hub.frozen(app)) throw new IOException("The logo of " + logo.name() + " is frozen: " + TownKeeper.FROZEN);
         var removal = GateBuilder.takeDown(level(server, hub), logo.gate());
         ZoneData.get(server).remove(zone -> zone.id().equals(logo.zone()));
         hub.remove(app);

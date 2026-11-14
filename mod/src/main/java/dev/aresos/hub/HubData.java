@@ -202,6 +202,18 @@ public final class HubData extends SavedData {
     public int frozenCount() { return (int)town.logos.stream().filter(logo -> town.frozen.contains(logo.app())).count(); }
 
     /**
+     * {@code /aresos hub trust}: the records are the town's own again and nothing is frozen any more; the next save
+     * renews the seal. The only way a freeze ends.
+     *
+     * @return how many logos were frozen
+     */
+    public int trust() {
+        int frozen = frozenCount();
+        town.frozen.clear();
+        return frozen;
+    }
+
+    /**
      * Called once, when a new flat home has been built (and by tests, to put a record back). The town of the same
      * home in {@code town.dat} stays this hub's: storing a {@code hub.dat} again loses no logo.
      */
