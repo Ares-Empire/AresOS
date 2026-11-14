@@ -16,6 +16,7 @@ import dev.aresos.hub.TownMoves;
 import dev.aresos.hub.Whereabouts;
 import dev.aresos.names.ProgramCommands;
 import dev.aresos.names.SlashCommands;
+import dev.aresos.world.Arrivals;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.world.GettingAround;
 import dev.aresos.world.HomeCommands;
@@ -86,9 +87,10 @@ public final class GettingAroundGameTests {
     private static final long WAIT_NANOS = java.util.concurrent.TimeUnit.SECONDS.toNanos(120);
     /**
      * The framework's own bound, never reached: every wait fails by itself (and releases the test's tickets) after
-     * {@link #LOAD_TICKS} ticks or {@link #WAIT_NANOS}, a test waits at most twice, and its other steps take a few ticks.
+     * {@link #LOAD_TICKS} ticks or {@link #WAIT_NANOS}, a test waits at most four times, and its other steps take a few
+     * ticks.
      */
-    private static final int MAX_TICKS = 2 * LOAD_TICKS + 1_000;
+    private static final int MAX_TICKS = 4 * LOAD_TICKS + 1_000;
 
     private static void check(boolean condition, String message) { if (!condition) throw new AssertionError(message); }
 
@@ -145,6 +147,36 @@ public final class GettingAroundGameTests {
             }
             helper.assertTrue(false, what);
         };
+    }
+
+    /**
+     * The server thread while armed (review fixes 1, point 4): how many ticks, the longest tick (its start to its end,
+     * the mod's own tick work included) and the longest time between two ticks (where the game runs queued work).
+     */
+    private static final class Ticks {
+        static boolean armed;
+        static long start, end, tick, between;
+        static int count;
+        static {
+            net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.START_SERVER_TICK.register(server -> {
+                if (!armed) return;
+                start = System.nanoTime();
+                if (end != 0) between = Math.max(between, start - end);
+            });
+            net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents.END_SERVER_TICK.register(server -> {
+                if (!armed || start == 0) return;
+                end = System.nanoTime();
+                tick = Math.max(tick, end - start);
+                count++;
+            });
+        }
+
+        static void arm() { start = end = tick = between = 0; count = 0; armed = true; }
+
+        static String disarm() {
+            armed = false;
+            return String.format(java.util.Locale.ROOT, "%d ticks, the longest %.2f ms, the longest gap between two %.2f ms", count, tick / 1e6, between / 1e6);
+        }
     }
 
     private static boolean loaded(ServerLevel level, Set<Long> chunks) {
@@ -275,7 +307,9 @@ public final class GettingAroundGameTests {
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(23000, 0, 0);
         var near = chunks(column.offset(-48, 0, -60), column.offset(48, 0, 30));
         hold(level, near, true);
-        var state = new Object() { Host host; BlockPos home; Vec3 chrome; long cold; Set<Long> far; List<BlockPos> stones; };
+        var state = new Object() { Host host; BlockPos home; Vec3 chrome; Vec3 farExit; long cold, coldAsked, blocked, blockedAsked; int coldTick, blockedTick;
+            String coldTicks, blockedTicks;
+            Set<Long> far; List<BlockPos> stones; };
         helper.startSequence()
                 .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, near), "The town's chunks are not loaded yet", () -> { }))
                 .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
@@ -377,34 +411,61 @@ public final class GettingAroundGameTests {
                         spots.add(new BlockPos(home.getX() + x, home.getY() + y, home.getZ() - 574 - step));
                     state.far = chunks(spots.getFirst(), spots.getLast());
                     check(state.far.stream().noneMatch(chunk -> level.hasChunk(ChunkPos.getX(chunk), ChunkPos.getZ(chunk))), "Fixture: the far chunks are loaded");
+                    state.farExit = farExit;
+                    state.stones = spots;
                     long started = System.nanoTime();
                     host.ran("go far", 1);
                     state.cold = System.nanoTime() - started;
-                    standsAt(host.player, farExit, 180, -10, "/go far");
-                    said = host.lines();
+                    state.coldAsked = System.nanoTime();
+                    state.coldTick = host.server.getTickCount();
+                    Ticks.arm();
+                    // Nothing read yet: he stays until the spots' chunks are loaded, off the server thread.
+                    standsAt(host.player, Vec3.atBottomCenterOf(home), 0, 0, "/go far before its spots loaded");
+                    check(host.lines().isEmpty() && Arrivals.loading(host.player), "/go far did not wait for its spots to load");
+                }))
+                .thenWaitUntil(waitFor(helper, level, near, () -> !Arrivals.loading(state.host.player), "/go far did not arrive", () -> letGo(state.host)))
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    var host = state.host;
+                    state.coldAsked = System.nanoTime() - state.coldAsked;
+                    state.coldTick = host.server.getTickCount() - state.coldTick;
+                    state.coldTicks = Ticks.disarm();
+                    standsAt(host.player, state.farExit, 180, -10, "/go far");
+                    var said = host.lines();
                     check(said.equals(List.of("Far's logo is built here once the system has listed your programs.")), "The far line: " + said);
                     // His stone on all six spots of the way in; then he goes home, and the far chunks unload.
-                    for (var spot : spots) level.setBlockAndUpdate(spot, stone);
-                    state.stones = spots;
-                    host.at(level, Vec3.atBottomCenterOf(home));
+                    for (var spot : state.stones) level.setBlockAndUpdate(spot, Blocks.STONE.defaultBlockState());
+                    host.at(level, Vec3.atBottomCenterOf(state.home));
                 }))
                 .thenWaitUntil(waitFor(helper, level, near, () -> state.far.stream().noneMatch(chunk -> level.hasChunk(ChunkPos.getX(chunk), ChunkPos.getZ(chunk))),
                         "The far chunks did not unload", () -> letGo(state.host)))
                 .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
                     var host = state.host;
-                    var home = state.home;
-                    // Every spot blocked, in chunks that are not loaded (read back from the world's files now).
+                    // Every spot blocked, in chunks that are not loaded (read back from the world's files): he stays, and
+                    // the later tick says why.
                     long started = System.nanoTime();
-                    check(host.run("go far") == 0, "/go far with the way in blocked moved him");
-                    long blocked = System.nanoTime() - started;
+                    host.ran("go far", 1);
+                    state.blocked = System.nanoTime() - started;
+                    state.blockedAsked = System.nanoTime();
+                    state.blockedTick = host.server.getTickCount();
+                    Ticks.arm();
+                    check(host.lines().isEmpty() && Arrivals.loading(host.player), "/go far (blocked) did not wait for its spots to load");
+                }))
+                .thenWaitUntil(waitFor(helper, level, near, () -> !Arrivals.loading(state.host.player), "/go far (blocked) did not end", () -> letGo(state.host)))
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    var host = state.host;
+                    state.blockedAsked = System.nanoTime() - state.blockedAsked;
+                    state.blockedTick = host.server.getTickCount() - state.blockedTick;
+                    state.blockedTicks = Ticks.disarm();
                     var said = host.lines();
                     check(said.equals(List.of("Something of yours stands in front of Far's door (Internet, north, row 41, left)"
                             + " with no free spot on the way in, so you stay where you are.")), "The far blocked line: " + said);
-                    standsAt(host.player, Vec3.atBottomCenterOf(home), 0, 0, "/go far blocked");
+                    standsAt(host.player, Vec3.atBottomCenterOf(state.home), 0, 0, "/go far blocked");
                     for (var spot : state.stones) level.setBlockAndUpdate(spot, Blocks.AIR.defaultBlockState());
-                    dev.aresos.AresOs.LOGGER.info("37 review fixes 1, point 4: a cold /go took {} ms on the server thread (new ground, "
-                            + "first spot free); every spot blocked, chunks read back from disk: {} ms; chunks the spots touch: {}",
-                            String.format(java.util.Locale.ROOT, "%.1f", state.cold / 1e6), String.format(java.util.Locale.ROOT, "%.1f", blocked / 1e6), state.far.size());
+                    var ms = (java.util.function.LongFunction<String>) nanos -> String.format(java.util.Locale.ROOT, "%.2f", nanos / 1e6);
+                    dev.aresos.AresOs.LOGGER.info("37 review fixes 1, point 4: /go to new ground not loaded: {} ms on the server thread, arrived {} ms ({} ticks)"
+                            + " later ({}); every spot blocked, chunks on disk: {} ms on the server thread, its line {} ms ({} ticks) later ({});"
+                            + " chunks the spots touch: {}", ms.apply(state.cold), ms.apply(state.coldAsked), state.coldTick, state.coldTicks,
+                            ms.apply(state.blocked), ms.apply(state.blockedAsked), state.blockedTick, state.blockedTicks, state.far.size());
                 }))
                 .thenExecute(() -> {
                     try (var host = state.host) {

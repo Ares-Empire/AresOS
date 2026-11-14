@@ -553,9 +553,13 @@ never taken up again when its group shrinks.
   is not loaded yet: you arrive anyway and the town builds it as you come ("The
   town builds Far's logo here now that you are near."). If something of yours
   stands where you would arrive, you arrive at the nearest free spot on the way
-  in; if there is none, you stay and the chat says why. In a world without a
-  town, `/go` takes you to the exit of the nearest zone of that app that you
-  made by hand. Otherwise one line says why it cannot: the logo is not built
+  in; if there is none, you stay and the chat says why. Where you would arrive
+  is checked before you are moved; when that ground is not loaded yet, the game
+  loads it first (as it does for a portal) and you are moved a moment later,
+  or one line says why not. Arriving never counts as walking in, also with
+  `/home`, H, a doorway's return and the respawn: step out and in to open the
+  app. In a world without a town, `/go` takes you to the exit of the nearest
+  zone of that app that you made by hand. Otherwise one line says why it cannot: the logo is not built
   yet ("Try again in a moment"), the town is frozen ("/aresos hub trust lets
   it build again"), the app has no logo here, or the program is not one of
   yours (with the `/aresos app add` command that adds it).
@@ -592,10 +596,15 @@ says what and what to do. They refuse:
   programs.");
 - while the town is still moving or building a logo involved, or reading its
   picture: "… Try again in a moment.";
-- when something of yours hangs on a logo that would come down (a torch on its
+- when something of yours is in a new place, also a logo's sign you moved or
+  edited, which stays when its logo comes down; and when something of yours
+  hangs on a logo that would come down (a torch on its
   doormat): "Nothing was swapped: Discord's logo at Internet, north, front row,
   left cannot come down. Logo could disturb neighboring minecraft:torch at …,
   then retry.";
+- when your apps changed between the check and the change (the system's list
+  arrived just then): "Your apps changed just now. Nothing was swapped; try
+  again.";
 - when a place involved is not loaded: "… is not loaded. Stand at home and try
   again." From home the first six rows of every group are loaded;
 - when something of yours stands in the new place, so that the logo cannot

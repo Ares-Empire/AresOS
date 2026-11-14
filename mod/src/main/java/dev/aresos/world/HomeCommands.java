@@ -42,6 +42,8 @@ public final class HomeCommands {
      * in is not walked into ({@link WalkInZones#arrived}), so arriving never opens an app; stepping out and in does.
      */
     public static void teleport(ServerPlayer player, ServerLevel level, Vec3 position, float yaw, float pitch) {
+        // A /go still loading its arrival is overtaken by this move.
+        Arrivals.cancel(player);
         player.stopRiding();
         player.teleportTo(level, position.x, position.y, position.z, Set.of(), yaw, pitch, false);
         player.setDeltaMovement(Vec3.ZERO);

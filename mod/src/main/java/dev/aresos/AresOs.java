@@ -193,6 +193,7 @@ public final class AresOs implements ModInitializer {
         LiveMode.register();
         NetherHome.register();
         dev.aresos.zone.WalkInZones.register();
+        dev.aresos.world.Arrivals.register();
         dev.aresos.zone.PictureReader.register();
         dev.aresos.zone.ZoneCommands.register();
         dev.aresos.hub.TownKeeper.register();

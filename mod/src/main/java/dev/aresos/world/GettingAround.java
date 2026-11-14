@@ -33,7 +33,8 @@ import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
 
 /**
  * Getting around (HUB.md 2.6, package 37): {@code /go <app>} puts him in front of an app's door, {@code /home} on the
- * home pad. Both move him and nothing else: no block changes, no app opens, no chunk is held. Like {@code /open} and
+ * home pad. Both move him and nothing else: no block changes, no app opens. A {@code /go} whose arrival is not loaded
+ * loads it away from the server thread first and moves him a few ticks later ({@link Arrivals}). Like {@code /open} and
  * {@code /apps} they exist for the host of an AresOS world only, and only where no other command has the name.
  */
 public final class GettingAround {
@@ -123,39 +124,44 @@ public final class GettingAround {
     /**
      * To the exit point of his app's logo, looking at its door (HUB.md 3.2). Where his own build stands there, to the
      * nearest free spot on the way in towards the door; where there is none, nowhere. For a place that is not loaded
-     * yet, the town's pending work builds the logo as he arrives.
+     * yet, the town's pending work builds the logo as he arrives. Where the spots are not loaded, he is moved a few
+     * ticks later, once they are ({@link Arrivals}).
      */
     private static int toLogo(CommandSourceStack source, ServerPlayer player, AppDefinition app, Whereabouts where, boolean complete) {
         var hub = HubData.get(source.getServer());
         var level = source.getServer().getLevel(hub.home().dimension());
         var place = where.place();
         var exit = place.exit(hub.home().dimension(), hub.home().pos());
-        var spot = arrival(level, place, exit.position());
-        if (spot.isEmpty())
-            return refuse(source, "Something of yours stands in front of " + app.name() + "'s door (" + place.words()
-                    + ") with no free spot on the way in, so you stay where you are.");
-        HomeCommands.teleport(player, level, spot.get(), exit.yaw(), exit.pitch());
-        if (where.kind() == Whereabouts.Kind.WAITS) {
-            String line = complete ? "The town builds " + app.name() + "'s logo here now that you are near."
-                    : app.name() + "'s logo is built here once the system has listed your programs.";
-            source.sendSuccess(() -> Component.literal(line), false);
-        }
-        return 1;
+        String arrived = where.kind() != Whereabouts.Kind.WAITS ? null : complete ? "The town builds " + app.name() + "'s logo here now that you are near."
+                : app.name() + "'s logo is built here once the system has listed your programs.";
+        String blocked = "Something of yours stands in front of " + app.name() + "'s door (" + place.words()
+                + ") with no free spot on the way in, so you stay where you are.";
+        String late = app.name() + "'s door (" + place.words() + ") did not load in time, so you stay where you are. Try again in a moment.";
+        return said(source, Arrivals.go(player, level, spots(place, exit.position()), exit.yaw(), exit.pitch(), arrived, blocked, late), arrived, blocked);
+    }
+
+    /** The command's lines when {@link Arrivals#go} moved him or refused at once; a later tick says them otherwise. */
+    private static int said(CommandSourceStack source, Arrivals.Result result, String arrived, String blocked) {
+        return switch (result) {
+            case ARRIVED -> {
+                if (arrived != null) source.sendSuccess(() -> Component.literal(arrived), false);
+                yield 1;
+            }
+            case BLOCKED -> refuse(source, blocked);
+            case LOADING -> 1;
+        };
     }
 
     /**
-     * The first spot from the exit point towards the door where he can stand (two blocks of air on solid ground):
-     * the exit point itself, then each block nearer the door, up to the layer in front of the logo, so that he
-     * never stands in its doorway. Reading a block of a place that is not loaded loads its chunk, as the teleport
-     * there would; nothing holds it.
+     * Where he may arrive, in order (two blocks of air on solid ground decide which, {@link HomeSites#isSafe}): the
+     * exit point itself, then each block nearer the door, up to the layer in front of the logo, so that he never
+     * stands in its doorway.
      */
-    static Optional<Vec3> arrival(ServerLevel level, Place place, Vec3 exit) {
+    static List<Vec3> spots(Place place, Vec3 exit) {
         var ahead = Vec3.atLowerCornerOf(place.facing().getUnitVec3i());
-        for (int step = 0; step < GateNumbers.EXIT; step++) {
-            var spot = exit.add(ahead.scale(step));
-            if (HomeSites.isSafe(level, spot)) return Optional.of(spot);
-        }
-        return Optional.empty();
+        var spots = new java.util.ArrayList<Vec3>();
+        for (int step = 0; step < GateNumbers.EXIT; step++) spots.add(exit.add(ahead.scale(step)));
+        return spots;
     }
 
     /** A world without a town: the exit of the nearest zone of this app he made by hand, in his dimension. */
@@ -166,10 +172,10 @@ public final class GettingAround {
         if (zone.isEmpty()) return refuse(source, app.name() + " has no logo here.");
         var exit = zone.get().exit();
         var level = source.getServer().getLevel(exit.dimension());
-        if (level == null || !HomeSites.isSafe(level, exit.position()))
-            return refuse(source, "The exit of " + app.name() + "'s logo is obstructed. Clear it in Build mode; you stay where you are.");
-        HomeCommands.teleport(player, level, exit.position(), exit.yaw(), exit.pitch());
-        return 1;
+        String blocked = "The exit of " + app.name() + "'s logo is obstructed. Clear it in Build mode; you stay where you are.";
+        if (level == null) return refuse(source, blocked);
+        String late = "The exit of " + app.name() + "'s logo did not load in time, so you stay where you are. Try again in a moment.";
+        return said(source, Arrivals.go(player, level, List.of(exit.position()), exit.yaw(), exit.pitch(), null, blocked, late), null, blocked);
     }
 
     private static String named(AppDefinition app) {
