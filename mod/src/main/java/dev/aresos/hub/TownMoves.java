@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,13 +27,17 @@ import java.util.function.Supplier;
  * place is saved; that the town holds the pictures of the new logos; that the town's own planning puts each app where
  * the command means to; that every logo involved can be taken down now (loaded, nothing of his hangs on it); and that
  * each new place can take its new logo once those logos came down. Only then, in the same server tick, are the places
- * saved and the town brought in step by one pass of {@link TownKeeper}: there is no second way of building.
+ * saved and the moved logos built by the town's own pass limited to the command's apps ({@link TownKeeper}, review
+ * fixes 2, point 1): there is no second way of building. In that tick the pass takes down and builds only what the
+ * checks saw; every other logo, a newcomer, a leaver and a logo due for renewal wait for the next ordinary pass, which
+ * the command asks for.
  *
  * <p>How the checks and the pass are kept from agreeing only by chance: each check is the function the pass itself
  * uses, asked before the pass does it. The new places come from {@link TownKeeper#plan}, the pass's own planning with
- * the places it finds blocked; a logo's take-down is checked by {@link Town#checkRemove}, which is the check
- * {@link Town#remove} makes; a new logo by {@link Town#check} with the very picture the pass will use and the logos
- * involved read as their take-down leaves them. Nothing in the world can change between the checks and the pass: one
+ * the places it finds blocked; the logos that come down are {@link TownKeeper#down}, the very set the limited pass
+ * takes down; a logo's take-down is checked by {@link Town#checkRemove}, which is the check {@link Town#remove} makes;
+ * a new logo by {@link Town#check} with the very picture the pass will use and the logos that come down read as their
+ * take-downs leave them. Nothing in the world can change between the checks and the pass: one
  * command, one tick, the server thread. The catalogue can (a helper refresh runs on its own thread), so the command takes
  * it once and uses that snapshot throughout, and saves only while the catalogue is still that snapshot. Should the pass
  * still end otherwise, the command says so in one line instead of its own.
@@ -68,7 +71,8 @@ public final class TownMoves {
 
     /**
      * What the commands take from the game: the catalogue, the pictures the town holds, how to ask the town to read a
-     * picture it lacks, where the pass saves places, and how the command saves its own. A test gives its own.
+     * picture it lacks, where an ordinary pass saves places (the command's own pass saves none), and how the command
+     * saves its own. A test gives its own.
      */
     public record Game(Supplier<Snapshot> catalogue, Function<AppDefinition, Optional<GatePicture>> pictures,
                        Consumer<AppDefinition> read, TownKeeper.Spots spots, Commit commit) {
@@ -209,11 +213,9 @@ public final class TownMoves {
                 return Optional.of(new Refusal(nothing + "the town would not put " + move.getKey().name() + " at " + move.getValue().words() + ". Try again in a moment."));
 
         // The logos that come down: the moved apps' own, and any logo of the town that still stands in a new place
-        // (a place that changes hands waits for its old logo; it is not blocked).
-        var down = new LinkedHashSet<String>();
-        for (var app : moves.keySet()) down.add(app.id());
-        for (var logo : hub.logos())
-            if (Place.parse(logo.place()).filter(moves::containsValue).isPresent()) down.add(logo.app());
+        // (a place that changes hands waits for its old logo; it is not blocked). The limited pass takes down exactly
+        // these, by the same rule, and no other logo (review fixes 2, point 1).
+        var down = TownKeeper.down(hub, scope(moves));
         for (var app : down) {
             var logo = hub.logo(app).orElseThrow();
             String where = Place.parse(logo.place()).map(Place::words).orElse(logo.place());
@@ -225,26 +227,13 @@ public final class TownMoves {
                 return Optional.of(new Refusal(nothing + logo.name() + "'s logo at " + where + " cannot come down. " + his.getMessage()));
             }
         }
-        // Any other logo the pass takes down with them (a town not yet in step: the plan puts it elsewhere or nowhere)
-        // comes down as well where it can; where it cannot, the pass leaves it standing, and so does this check.
-        var gone = new LinkedHashSet<>(down);
-        for (var logo : hub.logos()) {
-            if (gone.contains(logo.app())) continue;
-            var target = plan.standing().get(logo.app());
-            if (target != null && Place.parse(logo.place()).equals(Optional.of(target))) continue;
-            try {
-                Town.checkRemove(server, logo.app());
-                gone.add(logo.app());
-            } catch (IOException stays) {
-                // The pass's take-down refuses the same way and leaves it where it stands.
-            }
-        }
-        // Each new place takes its new logo once those logos came down, in the world as their take-downs leave it.
+        // Each new place takes its new logo once those logos came down, in the world as their take-downs leave it. No
+        // other logo changes in that tick, so the rest of the world is read as it stands.
         for (var move : moves.entrySet()) {
             var app = move.getKey();
             var place = move.getValue();
             try {
-                Town.check(server, app, place, pictures.get(app.id()), gone);
+                Town.check(server, app, place, pictures.get(app.id()), down);
             } catch (GateBuilder.NotLoaded notLoaded) {
                 return Optional.of(new Refusal(nothing + place.words() + " is not loaded. Stand at home and try again."));
             } catch (IOException his) {
@@ -258,11 +247,12 @@ public final class TownMoves {
     static String changed(String verb) { return "Your apps changed just now. Nothing was " + verb + "; try again."; }
 
     /**
-     * Saves the new places, then one pass of the town brings the world in step. The save happens only while the
-     * catalogue is still the snapshot the checks used (compared under the catalogue's lock); otherwise nothing changes
-     * and one line says to try again. The pass works on that snapshot with the new places, the very apps the checks
-     * planned with. Says {@code done} when every moved logo stands in its new place afterwards; otherwise the one line
-     * that says which does not.
+     * Saves the new places, then the town's pass limited to the moved apps builds them there. The save happens only
+     * while the catalogue is still the snapshot the checks used (compared under the catalogue's lock); otherwise
+     * nothing changes and one line says to try again. The pass works on that snapshot with the new places, the very
+     * apps the checks planned with, saves no place itself and never moves an app of the command on to another place.
+     * Then the town is asked for its next ordinary pass, which does what waited. Says {@code done} when every moved logo
+     * stands in its new place afterwards; otherwise the one line that says which does not.
      */
     private static Said change(MinecraftServer server, TownKeeper keeper, Game game, Snapshot snapshot, Map<AppDefinition, Place> moves,
                                String verb, String done) {
@@ -274,7 +264,8 @@ public final class TownMoves {
             return Said.no("Nothing was " + verb + ": the apps file could not be saved (" + error.getMessage() + ").");
         }
         var programs = new TownKeeper.Programs(with(snapshot.programs().apps(), moves.keySet()), snapshot.programs().complete());
-        var pass = keeper.keep(server, programs, game.pictures(), game.spots(), spots.keySet());
+        var pass = keeper.keep(server, programs, game.pictures(), scope(moves));
+        keeper.again();
         var hub = HubData.get(server);
         for (var move : moves.entrySet()) {
             var stands = hub.logo(move.getKey().id()).map(HubData.Logo::place);
@@ -327,6 +318,13 @@ public final class TownMoves {
     /** The group saved by hand for an app that now stands in {@code group}: none where it is the app's own group. */
     private static String handSet(AppDefinition app, AppGroup group) {
         return group == AppGroup.of(app.withSpot(app.place(), null)) ? null : group.key();
+    }
+
+    /** Each moved app's ID with its new place: the scope of the town's pass for the command. */
+    private static Map<String, Place> scope(Map<AppDefinition, Place> moves) {
+        var scope = new LinkedHashMap<String, Place>();
+        for (var move : moves.entrySet()) scope.put(move.getKey().id(), move.getValue());
+        return scope;
     }
 
     /** His apps with these in place of the ones with their IDs. */
