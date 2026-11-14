@@ -670,8 +670,8 @@ main
 ```
 
 - A line holds the role, the name in quotes, a field's value after `=`, the states that are set (checked, selected,
-  disabled, required, invalid, expanded, current), where a link or a form leads when that isn't obvious, and a
-  reference.
+  disabled, required, invalid, expanded, collapsed, current, readonly), where a link or a form leads when that
+  isn't obvious, and a reference.
 - Text appears once, on the element that owns it: a label's text is on its field, not beside it as well. Wrappers
   without a role or name get no line. A link or control inside a sentence stands in square brackets where it
   stands in the text, so the sentence keeps its order.

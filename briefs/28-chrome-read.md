@@ -603,6 +603,39 @@ The new read has to be reachable for CI, and for nobody else, in this package.
 - Brief 28a turns this action into the public `chrome_read`, uses the switch once more for its side-by-side run,
   and then removes it.
 
+### 7. The lead's decisions after step 1 (2026-11-14; these win over the text above)
+
+Step 1 (the view module, `reviews/28-chrome-read/PROGRESS.md`) found nine places where the brief and section 6
+differed or said too little. Decided:
+
+1. **A list item that holds one element and no text of its own gets no line**; its element moves up a level, as in
+   section 6's example. An item with its own text or several elements keeps its line. (Cost of the brief's rule:
+   4,500 of 18,484 characters on F3 read in full.)
+2. **The `find` path** names the named ancestors, plus these roles also without a name: `main`, `navigation`,
+   `banner`, `contentinfo`, `complementary`, `form`, `dialog`, `table`. At most 80 characters, as before.
+3. **Nine states**, as the grammar has them. Section 6 is corrected to the same nine.
+4. **Node ids are positive integers** in the reader's reply and when they come back. The reader step builds that.
+5. **An inline part carries what its line would:** `[checkbox "Select" checked e31]`, `[textbox "Qty" = "2" e32]`:
+   the value and the states that are set, in the line's order, before the reference.
+6. **Inline formatting is text, not structure.** An element without a role of its own (bold, italic, emphasis,
+   code, a span, small, mark, abbreviation, sub- and superscript, a time) adds its text to its parent's text runs
+   in order, and gets no line. Only links and controls stay inline parts. `find` and `until` match on the joined
+   text of an element, in which each inline part counts with its name, so "See the timetable" is found across a
+   link. The reader step sends the runs in this form.
+7. **A long token with separators looks random too:** a run of 20 or more letters, digits, `-` and `_` that holds a
+   digit and both an upper- and a lower-case letter. A slug (lower case, words and dashes) stays readable. This
+   narrows the known limit the owner accepted (board #213) to short codes, as he was told.
+8. **A page that ends before a line longer than `max`** may hold only the short line before it; it always
+   advances. As specified.
+9. **A sign-in word inside a path segment** counts without separators for the words of five letters or more
+   (reset, verify, confirm, activate, magic, token, invite, oauth, login, signin, logon, callback, password,
+   passwort): `/resetpassword/abc12` hides what follows. The short ones (auth, sso, saml, otp) count only as a
+   separated part, so `/classroom/` and `/author/` stay readable.
+
+The step-1 builder's own decisions in its progress file stand, among them: references are issued at render and
+bounded when their page is returned; a cursor also binds what was returned before it; a read can be paged until
+it has shown 5,000 references (a known limit for section 6); nesting deeper than 150 levels is refused.
+
 ## What must not change
 
 - **What Claude is offered.** The tool list, every tool's name, input, result shape and description, the server
