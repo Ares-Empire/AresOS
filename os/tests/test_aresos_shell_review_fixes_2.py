@@ -297,3 +297,72 @@ class SvgPreCheckTest(IconBase):
         shell.drawn_svg(svg(elements(shell.SVG_ELEMENTS - 1)))
         shell.drawn_svg(svg('<g>' * (shell.SVG_DEPTH - 1) + '</g>' * (shell.SVG_DEPTH - 1)))
         shell.drawn_svg(svg(f'<{"g" * shell.SVG_NAME}/>', f' xmlns:p="urn:{"x" * (shell.SVG_NAMESPACE - 4)}"'))
+
+
+from test_aresos_shell_review_fixes import OwnershipBase  # noqa: E402  (after the classes above)
+
+
+class WindowsBase(OwnershipBase):
+    """The terminal and the editor open behind Lunar Client, which has the focus (as in review fixes 1)."""
+
+    def setUp(self):
+        super().setUp()
+        self.window(3, 'aresos.terminal')
+        self.window(4, 'org.kde.kwrite')
+        self.open('lunarclient', 'o-l')
+        self.window(2, 'lunarclient', active=True)
+        self.later(10)
+        self.before = len(self.conn.events('shell_focus'))
+
+    def hello(self, minor, request_id='h-2'):
+        conn = Conn()
+        self.helper_.connected(conn)
+        reply = self.request(self.helper_, conn, 'hello', request_id, major=1, minor=minor, capabilities=ALL,
+                             instance=INSTANCE, nonce=NONCE)
+        self.assertEqual(reply['minor'], minor)
+        self.conn = conn
+        return conn
+
+    def settle(self):
+        for _ in range(4):
+            self.later(shell.HANDOFF)
+
+
+class LegacyReconnectTest(WindowsBase):
+    """Package review fix 1 (REVIEW-2 finding 1): a 1.0 desktop taking over drops a discovered program's return."""
+
+    def test_a_1_0_reconnect_inside_the_waiting_time_drops_the_pending_return(self):
+        self.close(2)
+        self.focus(3)  # the compositor's pick: the terminal
+        self.later(shell.HANDOFF / 5)
+        self.hello(0)
+        self.settle()
+        self.assertEqual(self.activations, [])
+        self.assertEqual((self.state('o-l'), self.helper_.shell), ('closed', 'background'))
+        self.assertEqual(self.helper_.foreground_app, 'terminal')
+
+    def test_a_1_1_reconnect_right_after_does_not_bring_it_back(self):
+        self.close(2)
+        self.focus(3)
+        self.later(shell.HANDOFF / 5)
+        self.hello(0, 'h-2')
+        self.later(shell.HANDOFF / 5)
+        self.hello(1, 'h-3')
+        self.settle()
+        self.assertEqual(self.activations, [])
+        self.assertEqual(self.state('o-l'), 'closed')
+
+    def test_under_1_0_a_discovered_close_not_yet_processed_forces_no_return(self):
+        # The close is still in the compositor's queue when the 1.0 desktop says hello.
+        self.windows.gone(2)
+        self.hello(0)
+        self.focus(3)
+        self.settle()
+        self.assertEqual(self.activations, [])
+        self.assertEqual(self.state('o-l'), 'closed')
+
+    def test_control_a_1_1_desktop_still_gets_the_return(self):
+        self.close(2)
+        self.focus(3)
+        self.settle()
+        self.assertEqual(self.activations, [1])

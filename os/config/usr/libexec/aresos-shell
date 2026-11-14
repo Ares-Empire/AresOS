@@ -2609,6 +2609,9 @@ class Helper:
             self.window_minor = conn.minor
             self.windows.set_registry(self.window_apps())
             self.windows_pending = True
+            if conn.minor < 1:
+                # A return a discovered program was still waiting for is not a 1.0 desktop's (review 2, finding 1).
+                self.cancel_returns()
         conn.capabilities = capabilities
         previous, self.desktop = self.desktop, conn
         if previous is not None and previous is not conn:
@@ -3090,8 +3093,10 @@ class Helper:
                 if entry['app_id'] == app and entry['state'] not in FINAL:
                     self.set_state(request_id, 'closed')
             # A window nobody owns may be this program's own (an identity no hint knows yet): the hub is not
-            # pulled in front of it, and comes back only when the compositor gives it the focus.
-            if should_return and not returned and self.shell == 'background' and not self.unowned_windows():
+            # pulled in front of it, and comes back only when the compositor gives it the focus. Under 1.0 nothing a
+            # discovered program does forces a return (review 2, finding 1).
+            if (should_return and not returned and self.shell == 'background' and self.window_minor >= 1
+                    and not self.unowned_windows()):
                 returned = True
                 self.return_to_desktop(app)
         active = self.windows.active()
