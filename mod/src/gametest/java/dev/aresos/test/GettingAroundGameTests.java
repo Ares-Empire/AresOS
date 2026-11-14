@@ -3,12 +3,16 @@ package dev.aresos.test;
 import com.mojang.authlib.GameProfile;
 import dev.aresos.AresOs;
 import dev.aresos.config.AppDefinition;
+import dev.aresos.catalogue.AppGroup;
 import dev.aresos.config.AppsConfig;
+import dev.aresos.config.SystemInfo;
 import dev.aresos.hub.FlatHub;
 import dev.aresos.hub.HubData;
 import dev.aresos.hub.HubLayout;
 import dev.aresos.hub.Place;
 import dev.aresos.hub.Town;
+import dev.aresos.hub.TownKeeper;
+import dev.aresos.hub.TownMoves;
 import dev.aresos.hub.Whereabouts;
 import dev.aresos.names.ProgramCommands;
 import dev.aresos.names.SlashCommands;
@@ -18,6 +22,7 @@ import dev.aresos.world.HomeCommands;
 import dev.aresos.world.NetherHome;
 import dev.aresos.zone.AppZone;
 import dev.aresos.zone.GatePicture;
+import dev.aresos.zone.Placing;
 import dev.aresos.zone.ZoneData;
 import dev.aresos.zone.ZoneLaunchPayload;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -44,6 +49,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -51,6 +57,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -145,6 +153,9 @@ public final class GettingAroundGameTests {
             var dispatcher = server.getCommands().getDispatcher();
             ProgramCommands.register(dispatcher);
             GettingAround.register(dispatcher);
+            // The game test server registers AresOS's commands only after a reload (as an integrated server); here they
+            // are as the host's own world has them, whichever test ran first.
+            dispatcher.register(net.minecraft.commands.Commands.literal("aresos").then(dev.aresos.item.AppCommands.app()));
             DesktopWorld.setEnabled(server, true);
             SlashCommands.refresh(server);
             ZoneData.get(server).remove(zone -> zone.app().startsWith(prefix));
@@ -351,6 +362,7 @@ public final class GettingAroundGameTests {
                 .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The chunks are not loaded yet"))
                 .thenExecute(() -> {
                     NetherHome.Home before = null;
+                    boolean recorded = false, hadRecord = false;
                     try (var host = new Host(helper, "go2-", List.of(
                             app("go2-zoned", "Zoned", "zoned", false, true, null, null),
                             app("go2-bare", "Bare", "bare", false, true, "N0L0", "internet"),
@@ -384,7 +396,9 @@ public final class GettingAroundGameTests {
                         // /home from the Nether: the home spot, facing north, in the Overworld. Then the H key's half.
                         var previous = NetherHome.get(server);
                         before = previous != null && previous.hasExactHome() ? previous.home() : null;
+                        hadRecord = previous != null;
                         var home = new NetherHome.Home(level.dimension(), Vec3.atBottomCenterOf(spot.offset(-6, 0, -6)), 180, -8);
+                        recorded = true;
                         NetherHome.recordHome(server, home);
                         var nether = server.getLevel(Level.NETHER);
                         var away = new Vec3(column.getX() / 8 + 0.5, 100, column.getZ() / 8 + 0.5);
@@ -401,11 +415,350 @@ public final class GettingAroundGameTests {
                         throw new AssertionError(error.getMessage(), error);
                     } finally {
                         var server = level.getServer();
-                        if (before != null) NetherHome.get(server).setHome(before);
-                        hold(level, near, false);
+                        try {
+                            // The world's home record as it was: none, or the one it had (with its exact home or without).
+                            if (recorded && hadRecord) NetherHome.get(server).setHome(before);
+                            else if (recorded) forgetHome(server);
+                        } finally {
+                            hold(level, near, false);
+                        }
                     }
                 })
                 .thenSucceed();
+    }
+
+
+    // Package 37, step 2: swap and move. Each test is alone in its batch, like the ones above.
+    private static final String SWAP = "aresos-test:go_swap";
+    private static final String MOVE = "aresos-test:go_move";
+
+    /** One of his apps as the system lists it: with a category, so its own group follows from it (none: System & Tools). */
+    private static AppDefinition listed(String id, String name, String shortName, String category, String place, boolean mine) {
+        return app(id, name, shortName, false, mine, place, null)
+                .withSystem(new SystemInfo("user", null, category == null ? List.of() : List.of(category), null, null, id, id, false));
+    }
+
+    /** The game as swap and move see it, with the test's drawn picture; the apps file is the host's. */
+    private static TownMoves.Game game(List<String> reads, Set<String> unread) {
+        var ring = picture();
+        return new TownMoves.Game(() -> new TownKeeper.Programs(AresOs.apps(), true),
+                app -> unread.contains(app.id()) ? Optional.empty() : Optional.of(ring), app -> reads.add(app.id()), AresOs::saveSpots);
+    }
+
+    /** The same game with his apps changed as the system or My apps would have them, and more apps than the file holds. */
+    private static TownMoves.Game game(TownMoves.Game game, java.util.function.UnaryOperator<AppDefinition> how, List<AppDefinition> more) {
+        return new TownMoves.Game(() -> {
+            var apps = new ArrayList<>(AresOs.apps().stream().map(how).toList());
+            apps.addAll(more);
+            return new TownKeeper.Programs(apps, true);
+        }, game.pictures(), game.read(), game.spots());
+    }
+
+    /** A flat home of these rules on new ground, built by a first pass of the test's own keeper. */
+    private static HubData town(ServerLevel level, BlockPos home, TownKeeper keeper, TownMoves.Game game, int logos) throws IOException {
+        var hub = new HubData(HubLayout.LOOK, HubLayout.numbers(), GlobalPos.of(level.dimension(), home), FlatHub.build(level, home));
+        HubData.store(level.getServer(), hub);
+        var first = keeper.keep(level.getServer(), game.programs().get(), game.pictures(), game.spots());
+        check(first.lines().equals(List.of("The town is built: " + logos + " logos. /apps lists them.")), "The first build: " + first.lines());
+        return hub;
+    }
+
+    /** His app's logo stands at this place, the apps file saves that place, and the hand-set group (null: none). */
+    private static void stands(MinecraftServer server, String id, String place, String group) {
+        var logo = HubData.get(server).logo(id).map(HubData.Logo::place).orElse("none");
+        var app = AresOs.app(id);
+        check(logo.equals(place) && place.equals(app.place()) && Objects.equals(group, app.group()),
+                id + ": its logo at " + logo + ", saved at " + app.place() + " in the group " + app.group() + "; not " + place + ", " + group);
+    }
+
+    private static String text(ServerLevel level, UUID entity) {
+        return ((dev.aresos.mixin.TextDisplayAccess) level.getEntity(entity)).aresos$text().getString();
+    }
+
+    /** What his app's logo shows on its sign and has for a doormat, as built now. */
+    private static void looks(ServerLevel level, HubData hub, String id, String name, AppGroup group) {
+        var logo = hub.logo(id).orElseThrow();
+        check(text(level, logo.gate().sign().orElseThrow()).startsWith(name), id + "'s sign: " + text(level, logo.gate().sign().orElseThrow()));
+        var plan = Town.plan(hub, AresOs.app(id), Place.parse(logo.place()).orElseThrow(), picture());
+        for (var pos : plan.doormat())
+            check(Placing.id(level.getBlockState(pos)).equals(group.concrete()), id + "'s doormat at " + pos + ": " + level.getBlockState(pos));
+    }
+
+    private static List<String> names(ServerLevel level, HubData hub) {
+        return hub.fixed().names().stream().map(id -> text(level, id)).toList();
+    }
+
+    /** Whether a group's avenue is paved and recorded at this outward index, all five blocks. */
+    private static boolean paved(ServerLevel level, HubData hub, AppGroup group, int outward) {
+        for (int sideways = -2; sideways <= 2; sideways++) {
+            var pos = group.block(hub.home().pos(), outward, sideways, -1);
+            if (!Placing.id(level.getBlockState(pos)).equals(sideways == 0 ? group.concrete() : HubLayout.PAVING) || !hub.holds(level, pos)) return false;
+        }
+        return true;
+    }
+
+    /** Takes down the logos of the test's apps, then lets go of the host and the chunks. */
+    private static void done(Host host, ServerLevel level, Set<Long> near) {
+        try (host) {
+            for (var logo : HubData.get(host.server).logos()) if (logo.app().startsWith(host.prefix)) Town.remove(host.server, logo.app());
+        } catch (Exception error) {
+            throw new AssertionError(error.getMessage(), error);
+        } finally {
+            hold(level, near, false);
+        }
+    }
+
+    /**
+     * {@code /aresos app swap}: inside one group; across two groups (doormats, signs, counts, the saved group, the group
+     * {@code /apps} and the Apps screen show); a swap back, which leaves no hand-set group; a picture the town has not
+     * read; his torch on one logo, which refuses the swap with file and world unchanged; an incomplete program list;
+     * the command as he types it, and its completion.
+     */
+    @GameTest(environment = SWAP, maxTicks = LOAD_TICKS)
+    public void swapExchangesTwoLogos(GameTestHelper helper) {
+        var level = helper.getLevel();
+        BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(29000, 0, 0);
+        var near = chunks(column.offset(-48, 0, -48), column.offset(48, 0, 48));
+        hold(level, near, true);
+        var state = new Object() { Host host; };
+        helper.startSequence()
+                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    state.host = new Host(helper, "sw-", List.of(
+                            listed("sw-chrome", "Chrome", "chrome", "Network", "N0L0", true),
+                            listed("sw-discord", "Discord", "discord", "Network", "N0R0", true),
+                            listed("sw-lunar", "Lunar Client", "lunar", "Game", "E0L0", true),
+                            listed("sw-steam", "Steam", "steam", "Game", "E0R0", true),
+                            listed("sw-notes", "Notes", "notes", null, "S0L0", true)));
+                    swapping(state.host, level, surface(level, column));
+                }))
+                .thenExecute(() -> done(state.host, level, near))
+                .thenSucceed();
+    }
+
+    private static void swapping(Host host, ServerLevel level, BlockPos home) throws Exception {
+        var server = host.server;
+        var keeper = new TownKeeper();
+        var reads = new ArrayList<String>();
+        var unread = new HashSet<String>();
+        var game = game(reads, unread);
+        var hub = town(level, home, keeper, game, 5);
+        check(AppGroup.of(AresOs.app("sw-chrome")) == AppGroup.INTERNET && AppGroup.of(AresOs.app("sw-lunar")) == AppGroup.GAMES
+                && AppGroup.of(AresOs.app("sw-notes")) == AppGroup.SYSTEM_TOOLS, "Fixture: the apps' own groups");
+
+        // Inside one group: the places change hands, the groups stay; the town adds no line of its own.
+        var said = TownMoves.swap(server, keeper, game, "sw-chrome", "sw-discord");
+        check(said.done() && said.line().equals("Chrome now stands at Internet, north, front row, right, and Discord at Internet, north, front row, left."),
+                "Inside one group: " + said.line());
+        check(said.pass().lines().isEmpty(), "The town's own lines after a swap: " + said.pass().lines());
+        stands(server, "sw-chrome", "N0R0", null);
+        stands(server, "sw-discord", "N0L0", null);
+        looks(level, hub, "sw-chrome", "Chrome", AppGroup.INTERNET);
+        looks(level, hub, "sw-discord", "Discord", AppGroup.INTERNET);
+
+        // Across two groups: each takes the other's group by hand, with its doormat; the counts stay two and two.
+        said = TownMoves.swap(server, keeper, game, "sw-chrome", "sw-lunar");
+        check(said.done() && said.line().equals("Chrome now stands at Games, east, front row, left, and Lunar Client at Internet, north, front row, right."),
+                "Across two groups: " + said.line());
+        stands(server, "sw-chrome", "E0L0", "games");
+        stands(server, "sw-lunar", "N0R0", "internet");
+        looks(level, hub, "sw-chrome", "Chrome", AppGroup.GAMES);
+        looks(level, hub, "sw-lunar", "Lunar Client", AppGroup.INTERNET);
+        check(names(level, hub).subList(0, 3).equals(List.of("INTERNET · 2", "GAMES · 2", "SYSTEM & TOOLS · 1")), "The counts: " + names(level, hub));
+        // The group /apps names (the place in words) and the one the Apps screen shows (the app's group).
+        check(Whereabouts.of(server, AresOs.app("sw-chrome"), true).place().words().equals("Games, east, front row, left")
+                && AppGroup.of(AresOs.app("sw-chrome")) == AppGroup.GAMES && AppGroup.of(AresOs.app("sw-lunar")) == AppGroup.INTERNET, "The groups shown");
+
+        // A swap back: both in their own groups again, so no hand-set group is left.
+        said = TownMoves.swap(server, keeper, game, "sw-lunar", "sw-chrome");
+        check(said.done() && said.line().equals("Lunar Client now stands at Games, east, front row, left, and Chrome at Internet, north, front row, right."),
+                "The swap back: " + said.line());
+        stands(server, "sw-chrome", "N0R0", null);
+        stands(server, "sw-lunar", "E0L0", null);
+        looks(level, hub, "sw-chrome", "Chrome", AppGroup.INTERNET);
+        looks(level, hub, "sw-lunar", "Lunar Client", AppGroup.GAMES);
+
+        // A picture the town has not read: never read here; the town is asked to read it, and nothing changes.
+        unread.add("sw-steam");
+        said = TownMoves.swap(server, keeper, game, "sw-steam", "sw-notes");
+        check(!said.done() && said.line().equals("Nothing was swapped: the town is still reading the picture of Steam. Try again in a moment.")
+                && reads.equals(List.of("sw-steam")), "A picture not read: " + said.line() + ", " + reads);
+        stands(server, "sw-steam", "E0R0", null);
+        unread.clear();
+
+        // His torch on Discord's doormat: Discord's logo cannot come down, so nothing changes, in the file or the world.
+        var torch = Town.plan(hub, AresOs.app("sw-discord"), Place.parse("N0L0").orElseThrow(), picture()).doormat().getFirst().above();
+        level.setBlockAndUpdate(torch, Blocks.TORCH.defaultBlockState());
+        var before = snapshot(level, home.offset(-40, -1, -40), home.offset(40, 12, 40));
+        var file = AresOs.apps();
+        var logos = hub.logos();
+        said = TownMoves.swap(server, keeper, game, "sw-discord", "sw-steam");
+        check(!said.done() && said.line().startsWith("Nothing was swapped: Discord's logo at Internet, north, front row, left cannot come down. "
+                + "Logo could disturb neighboring minecraft:torch at "), "His torch: " + said.line());
+        check(snapshot(level, home.offset(-40, -1, -40), home.offset(40, 12, 40)).equals(before), "A refused swap changed a block");
+        check(AresOs.apps().equals(file) && hub.logos().equals(logos), "A refused swap changed the apps file or the town's records");
+        level.setBlockAndUpdate(torch, Blocks.AIR.defaultBlockState());
+
+        // Before a complete program list it refuses before checking anything, as hub rebuild does.
+        String waits = "The town waits for the system's list of programs. Nothing changed; try again in a moment.";
+        var incomplete = new TownMoves.Game(() -> new TownKeeper.Programs(AresOs.apps(), false), game.pictures(), game.read(), game.spots());
+        said = TownMoves.swap(server, keeper, incomplete, "sw-chrome", "sw-discord");
+        check(!said.done() && said.line().equals(waits), "An incomplete list: " + said.line());
+
+        // The command as he types it, and its completion. A name that finds none of his apps: /go's line.
+        host.ran("aresos app swap chrome nothing", 0);
+        var typed = host.lines();
+        check(typed.equals(List.of("No program matches \"nothing\".")), "The typed swap with a name of nothing: " + typed);
+        // Without a complete program list (no other test of this run gave one), the town's own line.
+        if (!TownKeeper.complete()) {
+            host.ran("aresos app swap chrome discord", 0);
+            var lines = host.lines();
+            check(lines.equals(List.of(waits)), "The typed swap: " + lines);
+            host.ran("aresos app move lunar west", 0);
+            lines = host.lines();
+            check(lines.equals(List.of(waits)), "The typed move: " + lines);
+        }
+        var dispatcher = server.getCommands().getDispatcher();
+        var source = host.player.createCommandSourceStack();
+        var apps = dispatcher.getCompletionSuggestions(dispatcher.parse("aresos app swap chrome di", source)).join().getList().stream()
+                .map(com.mojang.brigadier.suggestion.Suggestion::getText).toList();
+        check(apps.equals(List.of("discord")), "Completing an app: " + apps);
+        var ways = dispatcher.getCompletionSuggestions(dispatcher.parse("aresos app move lunar ", source)).join().getList().stream()
+                .map(com.mojang.brigadier.suggestion.Suggestion::getText).sorted().toList();
+        check(ways.equals(List.of("east", "north", "south", "west")), "Completing a direction: " + ways);
+        stands(server, "sw-chrome", "N0R0", null);
+        stands(server, "sw-discord", "N0L0", null);
+    }
+
+    /**
+     * {@code /aresos app move}: to a free place (counts, sign, doormat, its old place free); to the group it stands
+     * in (nothing changes); where the first place of the group is blocked by his build (the next place, the road grows);
+     * back to its own group (no hand-set group, the road stays); a place that changes hands waits for the town's old
+     * logo there (point 3: the move refuses, the town's pass keeps a newcomer waiting, then builds it); a place that is
+     * not loaded (file and world unchanged).
+     */
+    @GameTest(environment = MOVE, maxTicks = LOAD_TICKS)
+    public void moveSendsALogoToAnotherGroup(GameTestHelper helper) {
+        var level = helper.getLevel();
+        BlockPos start = helper.absolutePos(BlockPos.ZERO).offset(32000, 0, 0);
+        // The home in the middle of a chunk, so that which chunks are loaded is known: two each way, held.
+        BlockPos column = new BlockPos(((start.getX() >> 4) << 4) + 8, 0, ((start.getZ() >> 4) << 4) + 8);
+        var near = chunks(column.offset(-40, 0, -40), column.offset(39, 0, 39));
+        hold(level, near, true);
+        var state = new Object() { Host host; };
+        helper.startSequence()
+                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenExecute(() -> guarded(() -> state.host, level, near, () -> {
+                    state.host = new Host(helper, "mv-", List.of(
+                            listed("mv-chrome", "Chrome", "chrome", "Network", "N0L0", true),
+                            listed("mv-discord", "Discord", "discord", "Network", "N0R0", true),
+                            listed("mv-lunar", "Lunar Client", "lunar", "Game", "E0L0", true),
+                            listed("mv-steam", "Steam", "steam", "Game", "E0R0", true),
+                            listed("mv-notes", "Notes", "notes", null, "S0L0", true),
+                            listed("mv-new", "Newcomer", "newcomer", "Network", null, false)));
+                    moving(state.host, level, surface(level, column));
+                }))
+                .thenExecute(() -> done(state.host, level, near))
+                .thenSucceed();
+    }
+
+    private static void moving(Host host, ServerLevel level, BlockPos home) throws Exception {
+        var server = host.server;
+        var keeper = new TownKeeper();
+        var game = game(new ArrayList<>(), Set.of());
+        var hub = town(level, home, keeper, game, 5);
+
+        // To a free place: Work & Media's first. Its old place is free; the counts follow.
+        var said = TownMoves.move(server, keeper, game, "mv-steam", AppGroup.WORK_MEDIA);
+        check(said.done() && said.line().equals("Steam now stands at Work & Media, west, front row, left."), "To a free place: " + said.line());
+        check(said.pass().lines().isEmpty(), "The town's own lines after a move: " + said.pass().lines());
+        stands(server, "mv-steam", "W0L0", "work_media");
+        looks(level, hub, "mv-steam", "Steam", AppGroup.WORK_MEDIA);
+        check(hub.logos().stream().noneMatch(logo -> logo.place().equals("E0R0")), "E0R0 still holds a logo");
+        check(names(level, hub).equals(List.of("INTERNET · 2", "GAMES · 1", "SYSTEM & TOOLS · 1", "WORK & MEDIA · 1")), "The counts: " + names(level, hub));
+
+        // To the group it stands in: nothing changes, and it says so.
+        said = TownMoves.move(server, keeper, game, "mv-steam", AppGroup.WORK_MEDIA);
+        check(!said.done() && said.line().equals("Steam already stands in Work & Media, west. Nothing was moved."), "To its group: " + said.line());
+
+        // The group's first free place is blocked by his build: the next one, and the west road grows to its row.
+        var his = Place.parse("W0R0").orElseThrow().origin(home);
+        level.setBlockAndUpdate(his, Blocks.COBBLESTONE.defaultBlockState());
+        said = TownMoves.move(server, keeper, game, "mv-lunar", AppGroup.WORK_MEDIA);
+        check(said.done() && said.line().equals("Lunar Client now stands at Work & Media, west, row 2, left."), "Past his build: " + said.line());
+        stands(server, "mv-lunar", "W1L0", "work_media");
+        check(level.getBlockState(his).is(Blocks.COBBLESTONE), "His block was changed");
+        for (int outward = 3; outward <= HubLayout.avenueEnd(1); outward++) check(paved(level, hub, AppGroup.WORK_MEDIA, outward), "West road at " + outward);
+
+        // Back to its own group: no hand-set group; the road it paved stays.
+        said = TownMoves.move(server, keeper, game, "mv-lunar", AppGroup.GAMES);
+        check(said.done() && said.line().equals("Lunar Client now stands at Games, east, front row, left."), "Back to its group: " + said.line());
+        stands(server, "mv-lunar", "E0L0", null);
+        looks(level, hub, "mv-lunar", "Lunar Client", AppGroup.GAMES);
+        for (int outward = 3; outward <= HubLayout.avenueEnd(1); outward++) check(paved(level, hub, AppGroup.WORK_MEDIA, outward), "West road unpaved at " + outward);
+        level.setBlockAndUpdate(his, Blocks.AIR.defaultBlockState());
+
+        // Point 3. Discord leaves My apps while his torch hangs on its logo: the logo stays, and its place waits for it.
+        var torch = Town.plan(hub, AresOs.app("mv-discord"), Place.parse("N0R0").orElseThrow(), picture()).doormat().getFirst().above();
+        level.setBlockAndUpdate(torch, Blocks.TORCH.defaultBlockState());
+        var left = game(game, app -> app.id().equals("mv-discord") ? app.withMine(false) : app, List.of());
+        var pass = keeper.keep(server, left.programs().get(), left.pictures(), left.spots());
+        check(pass.lines().size() == 1 && pass.lines().getFirst().startsWith("The logo of Discord stays: ") && hub.logo("mv-discord").isPresent(),
+                "Discord's logo with his torch: " + pass.lines());
+        // A move there refuses (all or nothing) instead of going on to another place.
+        said = TownMoves.move(server, keeper, left, "mv-steam", AppGroup.INTERNET);
+        check(!said.done() && said.line().startsWith("Nothing was moved: Discord's logo at Internet, north, front row, right cannot come down. "),
+                "A move to a place that waits: " + said.line());
+        stands(server, "mv-steam", "W0L0", "work_media");
+        // The town's pass gives that place to a newcomer of Internet, which waits there and is not sent on.
+        java.util.function.UnaryOperator<AppDefinition> joining = app -> app.id().equals("mv-discord") ? app.withMine(false)
+                : app.id().equals("mv-new") ? app.withMine(true) : app;
+        var joined = game(game, joining, List.of());
+        pass = keeper.keep(server, joined.programs().get(), joined.pictures(), joined.spots());
+        check(pass.lines().isEmpty() && "N0R0".equals(AresOs.app("mv-new").place()) && hub.logo("mv-new").isEmpty(), "The newcomer waits: " + pass.lines()
+                + ", saved at " + AresOs.app("mv-new").place());
+        level.setBlockAndUpdate(torch, Blocks.AIR.defaultBlockState());
+        pass = keeper.keep(server, joined.programs().get(), joined.pictures(), joined.spots());
+        check(hub.logo("mv-discord").isEmpty(), "Discord's logo did not come down: " + pass.lines());
+        stands(server, "mv-new", "N0R0", null);
+
+        // A place that is not loaded: with System & Tools' first four rows taken, its first free place is in row 5,
+        // beyond the loaded chunks. Nothing changes, in the file or the world.
+        var crowd = new ArrayList<AppDefinition>();
+        var taken = Place.inOrder(AppGroup.SYSTEM_TOOLS).skip(1).limit(19).toList();
+        for (int i = 0; i < taken.size(); i++) crowd.add(listed("mv-p" + i, "Placeholder " + i, null, null, taken.get(i).name(), true));
+        var crowded = game(game, joining, crowd);
+        var before = snapshot(level, home.offset(-40, -1, -40), home.offset(39, 12, 39));
+        var file = AresOs.apps();
+        var logos = hub.logos();
+        said = TownMoves.move(server, keeper, crowded, "mv-chrome", AppGroup.SYSTEM_TOOLS);
+        check(!said.done() && said.line().equals("Nothing was moved: System & Tools, south, row 5, left is not loaded. Stand at home and try again."),
+                "A place not loaded: " + said.line());
+        check(snapshot(level, home.offset(-40, -1, -40), home.offset(39, 12, 39)).equals(before), "A refused move changed a block");
+        check(AresOs.apps().equals(file) && hub.logos().equals(logos), "A refused move changed the apps file or the town's records");
+        stands(server, "mv-chrome", "N0L0", null);
+    }
+
+    /**
+     * Takes away the home record {@code NetherHome.recordHome} made in a test world that had none: from the server's
+     * saved data and from the world's folder. Left there, every player who joins a later test (in this run or the next,
+     * the test world is kept) is sent to this test's spot, and tests of void recovery and Build mode fail. The game has
+     * no call that drops saved data, so the record is taken out of the storage's map of loaded data.
+     */
+    private static void forgetHome(MinecraftServer server) {
+        var storage = server.getDataStorage();
+        try {
+            for (var field : storage.getClass().getDeclaredFields()) {
+                if (!Map.class.isAssignableFrom(field.getType())) continue;
+                field.setAccessible(true);
+                ((Map<?, ?>)field.get(storage)).entrySet().removeIf(entry -> entry.getValue() instanceof Optional<?> data
+                        ? data.filter(NetherHome.class::isInstance).isPresent() : entry.getValue() instanceof NetherHome);
+            }
+            Files.deleteIfExists(server.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).resolve("data/aresos/nether_home.dat"));
+        } catch (ReflectiveOperationException | IOException error) {
+            throw new AssertionError("Could not take the test's home record away: " + error, error);
+        }
+        check(NetherHome.get(server) == null, "The test's home record is still there");
     }
 
     private interface Part { void run() throws Exception; }
@@ -419,7 +772,7 @@ public final class GettingAroundGameTests {
             try {
                 if (host != null) {
                     var hub = HubData.get(host.server);
-                    if (hub != null) for (var logo : hub.logos()) if (logo.app().startsWith("go-")) {
+                    if (hub != null) for (var logo : hub.logos()) if (logo.app().startsWith(host.prefix)) {
                         try { Town.remove(host.server, logo.app()); } catch (Exception ignored) { }
                     }
                     host.close();
