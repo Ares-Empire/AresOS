@@ -40,9 +40,10 @@ import java.util.stream.Collectors;
 /**
  * Keeps the town in step with his apps (HUB.md 3.4). One pass ({@link #keep}) compares what should stand with what
  * stands: it takes down the logos that should not stand, builds the missing ones and renews the ones whose picture,
- * converter or sign changed, and says each change in one chat line. Every caller goes through it: the runs this class
- * starts by itself (the host enters the world, a complete program list arrives, My apps changes), and the commands
- * that change where apps stand ({@link #run}).
+ * converter or sign changed, paves the avenues on to their groups' farthest rows and writes the counts on the groups'
+ * names, and says each change in one chat line ({@link TownLines}: one line for many). Every caller goes through it:
+ * the runs this class starts by itself (the host enters the world, a complete program list arrives, My apps changes),
+ * the commands that change where apps stand ({@link #run}) and {@code /aresos hub rebuild} ({@link #rebuild}).
  *
  * <p>The rules a pass keeps: it runs only on a complete program list and only in a flat home of these rules
  * ({@code hub.dat} says {@code flat-1}). Wanted are the apps of My apps the system lists. Nothing of his is touched:

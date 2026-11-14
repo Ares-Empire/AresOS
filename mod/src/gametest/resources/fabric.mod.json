@@ -33,7 +33,8 @@
       "dev.aresos.test.FlatHomeClientGameTest",
       "dev.aresos.test.GateLogoClientGameTest",
       "dev.aresos.test.MyAppsClientGameTest",
-      "dev.aresos.test.SlashNamesClientGameTest"
+      "dev.aresos.test.SlashNamesClientGameTest",
+      "dev.aresos.test.TownClientGameTest"
     ]
   },
   "mixins": [
