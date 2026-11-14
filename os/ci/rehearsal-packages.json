@@ -124,7 +124,7 @@
     "full_cap": 0,
     "part_b_cap": 0,
     "dispatch_caps": {
-      "checks": 12,
+      "checks": 30,
       "reorder-probe": 4
     },
     "vm_dispatch_cap": 4,
@@ -142,6 +142,6 @@
       "checks": "OS regressions only (no VM)",
       "reorder-probe": "Two-disk rehearsal (reorder-probe)"
     },
-    "budget": "briefs/22c-ways-back-after-update.md: at most four VM dispatches in all (vm_dispatch_cap: the probe and the stage 2 rehearsal together) and 1200 minutes. Checks-only runs are counted in the minutes; their own cap only keeps the ledger finite."
+    "budget": "briefs/22c-ways-back-after-update.md: at most four VM dispatches in all (vm_dispatch_cap: the probe and the stage 2 rehearsal together) and 1200 minutes. Checks-only runs are counted in the minutes; their own cap only keeps the ledger finite (it stops a runaway dispatch loop). Raised from 12 to 30 in stage 1b, step 2 (2026-11-14): the branch had used 18 checks runs and 446 of the 1200 minutes; each checks run costs about 35 runner minutes while the full model runs beside it, so after one rehearsal reservation (345) about 11 more fit, and 30 lets the minutes stay the real bound. Standard runners cost nothing for this public repository."
   }
 }

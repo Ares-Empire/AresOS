@@ -70,11 +70,11 @@
       "path": "briefs/14zze-checkout-bytes.md"
     },
     {
-      "sha256": "30adf4f3e0624095782608c529812969e051bd51e53e0a88afef419cc50a1d41",
+      "sha256": "b7eae9761de1770c77bfb2d3462a0973b819c250b3210acaa6af987e237640f2",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "82b586c8deb569fb042544a4e4cb8df233a250a94abcb8ab9a4a44c1b09a6807",
+      "sha256": "482cfc6411e37261a3399c115bce96549bc40e27d2ba7e77510454244f23fa7e",
       "path": "docs/INSTALL.md"
     },
     {
@@ -182,7 +182,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "ebe2bc317a4055f223df8424e6c3adf77ec3fb32517020a428d6630adb7b8037",
+      "sha256": "c278f5ffb39803b61c783d9fb2bda8ca13fbdc49dc7044db111958afd5cecd75",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -958,7 +958,7 @@
       "path": "os/tests/test_owner_media.py"
     },
     {
-      "sha256": "ce7aeb8caadd155cc9ece1dd8967df3794e97f9863366436087c588719c01d30",
+      "sha256": "4554708a583672c63d361d3ca0350844ba8a2d3813ef397ca778dcfba053db9d",
       "path": "os/tests/test_owner_path.py"
     },
     {

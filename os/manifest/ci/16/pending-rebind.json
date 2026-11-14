@@ -30,7 +30,8 @@
     "22c stage 1b addition 2: the image and rehearsal jobs allow user namespaces before their tests",
     "22c stage 1b D: rollback.sh, default-stock.sh and previous.sh out of the owner payload (repository copies unchanged); new fingerprint pinned",
     "22c stage 1b F: the refusal invariant's expectation table by journal phase, a real injection before publication, and its revert proof",
-    "22c stage 1b addition 3: bootstrap.py generates the folder start block beside the stick block; tests run both"
+    "22c stage 1b addition 3: bootstrap.py generates the folder start block beside the stick block; tests run both",
+    "22c stage 1b step 2: the guides for three installed systems (INSTALL.md update route, EMERGENCY failed-update card, INSTALL-PROCEDURES, INSTALL-REFERENCE, INSTALL-STATUS), their route tests, and the checks-only cap raised to 30"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -39,7 +40,11 @@
       "path": ".github/workflows/os-image.yml"
     },
     {
-      "sha256": "82b586c8deb569fb042544a4e4cb8df233a250a94abcb8ab9a4a44c1b09a6807",
+      "sha256": "b7eae9761de1770c77bfb2d3462a0973b819c250b3210acaa6af987e237640f2",
+      "path": "docs/EMERGENCY.md"
+    },
+    {
+      "sha256": "482cfc6411e37261a3399c115bce96549bc40e27d2ba7e77510454244f23fa7e",
       "path": "docs/INSTALL.md"
     },
     {
@@ -67,7 +72,7 @@
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "ebe2bc317a4055f223df8424e6c3adf77ec3fb32517020a428d6630adb7b8037",
+      "sha256": "c278f5ffb39803b61c783d9fb2bda8ca13fbdc49dc7044db111958afd5cecd75",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -147,7 +152,7 @@
       "path": "os/tests/test_owner_guard.py"
     },
     {
-      "sha256": "ce7aeb8caadd155cc9ece1dd8967df3794e97f9863366436087c588719c01d30",
+      "sha256": "4554708a583672c63d361d3ca0350844ba8a2d3813ef397ca778dcfba053db9d",
       "path": "os/tests/test_owner_path.py"
     },
     {
