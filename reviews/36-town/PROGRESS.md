@@ -15,6 +15,10 @@ Brief: `briefs/36-town.md`. Steps 1 to 4, one fresh builder per step. The last s
 - The brief's step 2 changed accordingly (schema 4, `absent` programs are not wanted, which three files of package
   35 to stay out of). Step 2 starts from here.
 
+**2026-11-14, step 2b (Opus 5.5): step 2 is done and green.** The orchestrator's three decisions (the logos in their
+own `town.dat`, his lights, the refusal that names the logo) and points 4 and 5 (keeping in step, protection). Step 3
+starts from "Done in step 2b", "What step 3 and package 37 call" and "What is left, in order" below.
+
 **2026-11-14, step 2a (Opus 5.5): points 1 to 3 of step 2 are done and green** (the saved fields, the town's record,
 the one function). Points 4 and 5 (keeping in step, protection) are step 2b: read "Done in step 2a" and "What step 2b
 calls" below, then "What is left, in order".
@@ -272,9 +276,157 @@ Refresh (HUB.md 3.4.4) needs nothing new: compare `logo.picture()` with `picture
 `GatePicture.CONVERTER`, `logo.name()` / `logo.shortName()` with `app.name()` / `NameRules.mainName(app)`; then
 `Town.remove` and `Town.build` in the same place (a sign-only rewrite is an optimisation, not needed).
 
+## Done in step 2b
+
+Commits on `pkg/36-town`:
+
+- `a8d6472a` **The orchestrator's three decisions.**
+  1. **The logos have their own file.** `hub.dat` is package 32's shape again (`look`, `numbers`, `home`, `fixed`;
+     `HubData.CODEC`); the standing logos are in `data/aresos/town.dat` (`HubData.TownFile`: `home` and `logos`, the same
+     `HubData.Logo` record). In memory it is still one `HubData` with one block index: `HubData.get(server)` joins the
+     record to the server's `town.dat` of the same home the first time it is asked (`attach`), and `HubData.store`
+     does the same, so storing a `hub.dat` again (a new instance read from package 32's shape) loses no logo. A
+     `town.dat` of another home is never read into a hub: the hub starts an empty town file of its own (this also keeps
+     test towns apart). A logo added, removed or forgotten marks `town.dat` dirty, a pad block `hub.dat`. Tests:
+     `HubDataTest.hubDatKeepsPackage32sShapeSoAnOlderModsRewriteLosesNothingOfTheTown` (hub.dat's keys are exactly the
+     four; a hub read back from a rewritten hub.dat plus town.dat knows every logo, block and sign; a town file of
+     another home is refused), `standingLogosRoundTripThroughTownDatWithEverythingPlacedForThem`; the town game test now
+     stores a hub read from package 32's shape and finds the logo, its block and its sign; the keeping test does it in
+     the middle of a town and checks that the next pass changes nothing (no logo built twice one place on).
+  2. **His light does not hold a logo up.** `Neighbors.stableOnRemoval` accepts every light block: a light needs no
+     support, so nothing hangs on its neighbours. A light he changed (level or water) stays as his; the logo comes
+     down around it. Tested in the keeping test (a light set to level 3, the record lets go of it, the app leaves My
+     apps: the logo comes down, the light stays at level 3, every other cell of the place is as before the town).
+  3. **The Live-mode refusal names what he hit:** `HubData.protection(player, pos)` / `hub.refusal(level, pos)`:
+     "The logo of Discord is part of the town and protected. Press G for Build mode." for a town logo's block, the
+     pad's sentence for the pad and roads (`WalkInZones` uses it; `protectsFrom` stays as `protection != null`).
+  Also point 5's explosion rule: `HubData.sparesFromExplosion(level, pos, buildMode)`: a town logo's block always (as
+  package 33's gates), the pad and roads only outside Build mode; `LogoExplosionMixin` calls it.
+- `a8a4f874` **Point 4, keeping in step** (`hub/TownKeeper.java`), and `Town.check(server, place)`:
+  - `keep(server, Programs, pictures, spots)` is one pass on the server thread. Nothing on an incomplete list or where
+    `hub.dat` is missing or not `flat-1`. Every app of the file goes into `Assignment.of` (pinned first, then file
+    order; group `AppGroup.of(app)`; saved place `Place.parse(app.place())`, or the place its logo stands in when the
+    file has none; wanted = `mine && !absent`). Then, in this order: changed places are saved through `spots` (keeping
+    each app's `group` text), logos that should not stand (or not there) come down, missing logos are built, standing
+    ones whose picture hash, converter, name or short name changed are taken down and built again in place. One chat
+    line a change: "Spotify is new. It stands in Work & Media, west. /spotify opens it." (the command part only with a
+    short name), "Chrome moved to Internet, north.", "Far stands in Internet, north." (built in its saved place: a
+    return or a fresh world), "The logo of Spotify Music was renewed.", "Mail left My apps. Its logo came down.",
+    "Chrome is no longer installed. Its logo came down; its place is kept for its return.", "N1L0 is blocked by
+    something of yours, so Mail stands at N1R0.", "The logo of Chrome stays: <GateBuilder's reason> The town tries again
+    later.", "Mail has no free place in Internet: every place there is blocked."
+  - **Blocked** = `Town.check(server, place)` refuses with anything but `NotLoaded`. It plans the place with a full
+    front in the group's concrete (name "?"), so it does not depend on which app asks; every picture's blocks are a
+    subset of it, so any app's logo builds where it passes. Only a longer name needs more air above the sign: a build
+    refused there marks the place blocked for the session (`refused`) and the next pass moves the app on with the line.
+  - **Not loaded** = neither blocked nor built: the app keeps (and saves) the place, `Pass.pending` is true, and the
+    scheduler runs the pass again every 5 seconds (100 ticks) while the host is in the world, which covers "when he
+    comes near". A takedown that is not loaded waits the same way.
+  - **A place held by the town's own logo is never blocked**: its app keeps it, or that logo comes down first and the
+    new one is built in the same pass (swap tested). If that logo cannot come down (not loaded, or refused), the new
+    app waits for the place, it does not move on. An app whose old logo could not come down is not built elsewhere.
+  - **A refused removal** leaves the logo standing with one line; the line is said once per run he started (`said` is
+    cleared when a fresh run is asked for, not on the 5-second retries); it is tried again at every pass.
+  - **The scheduler** (static part): `register()` (server tick, host join, server stop), `listed()` (a complete list:
+    sets `complete`, asks), `ask()` (any thread). On a tick with work: if `hub.dat` is not `flat-1`, it drops the work;
+    it waits until the host is online (the lines are his, and a run before he joins would lose them); an asked run
+    first reads every wanted app's picture on the "AresOS town pictures" daemon thread (`GateBuilder.picture`, which
+    may wait 3 s an app), then passes on the server thread. Pictures are cached per app with the icon path and group
+    they were read for; the 5-second retries reuse them.
+  - **Hooks:** `MyAppsGame.listed` calls `TownKeeper.listed()` (only complete lists reach it); `AresOs.saveMine` calls
+    `TownKeeper.ask()` (covers `/aresos app add` and `remove`, the Apps screen and `/aresos give`); the host's join asks.
+    `item/AppCommands.java`, `names/OwnedNodes.java` and its mixin are untouched.
+  - Test `TownGameTests.theTownKeepsInStepWithHisApps` (batch `aresos-test:town_keep`, alone, 17000 blocks from its
+    plot, its own tickets; puts back the server's hub record and lets its chunks go): an incomplete list and a town of
+    other rules change nothing; the first build puts pinned Chrome at N0L0 before Discord (N0R0) with two exact lines,
+    saves the places and keeps the group text; an absent app's remembered place and a far app's place (N40L0, not
+    loaded) stay saved and the pass is pending; a second pass changes, says and saves nothing; hub.dat rewritten
+    (decision 1); the refusal texts and what explosions spare; a newcomer (Spotify at W0L0, the brief's line); his
+    planks in N1L0: Mail stands at N1R0 (the place the absent app remembered, which it then loses) with the blocked
+    line, the planks stay; Chrome and Mail swap places in one pass; a new picture and name renew Spotify in place (one
+    line, new hash, new name, a sign); his torch on Chrome's doormat refuses its removal (one line, said once, the logo
+    and torch stay), then without the torch it comes down and its place stays remembered; his light (decision 2); the
+    far place loaded with the test's own ticket: built with "Far stands in Internet, north."; everything leaves My
+    apps: three lines, no logo and no zone left.
+
+**Verified:** `mod/dev/build.sh` on the working tree that became `a8a4f874`: the first run failed one unit test
+(`HubDataTest.theRecordKnowsEveryLogoByAppZoneBlockAndSign` asserted that hub.dat is marked dirty when a logo is added;
+now town.dat is, so the test asserts exactly that and that hub.dat is not), its game tests already "All 91 required
+tests passed"; the second run: exit 0, "All 91 required tests passed :)", `BUILD SUCCESSFUL in 1m 20s`; a third run on `a8a4f874`
+plus this note (no code change): exit 0, "All 91 required tests passed :)", `BUILD SUCCESSFUL in 53s`, unit tests 196
+run, 6 skipped (the Windows-only ones), 0 failed. The batch
+`aresos-test:town_keep` ran before `aresos-test:town` both times, so the town file of another home is not read into
+the town test's hub. Only `a8a4f874` was built; `a8d6472a` alone was not (it is a subset: no new code depends on the
+second commit). Client tests not run (step 3).
+
+## Decisions step 2b took (not settled by the brief)
+
+- **JUDGMENT-CALL: "a complete program list" means one arrived from the system in this game** (`TownKeeper.complete`,
+  set by `MyAppsGame.listed`, which only the helper's complete lists reach). After a restart with the helper down the
+  town does nothing until the helper answers, also nothing new is built. On Windows discovery (no presence, no
+  complete list) there is no town at all. Alternative rejected: trusting the apps file's last complete list (its
+  `absent` marks) across restarts; it would build and tear down while the system says nothing.
+- **JUDGMENT-CALL: blocked is decided with a full front, not the app's own picture.** A place is a place for every app
+  (HUB.md 3.3 speaks of the place), and `Assignment` asks once a place. Cost: next to his build a sparse picture that
+  would just fit is not built there; the app goes one place on.
+- **JUDGMENT-CALL: the town runs only while the host is in the world** (the singleplayer host online). Runs asked for
+  before he joins (a list at start-up) wait for him, so their lines reach him.
+- **The place its logo stands in counts as the app's saved place when the file has none** (a file from another machine,
+  or one an old mod wrote from records): nothing that stands moves. A place text this mod cannot read is never erased
+  unless the app gets a place.
+- **Chat lines:** the brief's line for a new app; "moved to" for an app whose logo came down and stood up elsewhere in
+  the same pass; "stands in" for an app built in its saved place (a return or a fresh world); lines about lasting
+  conditions (a logo that stays, an app with no place, a blocked place, a failed save) once per run he started. No cap:
+  a first build of forty apps says forty lines (see "Found on the way").
+- **Renewing is take down, then build** in the same place; a build refused after the takedown (only a longer new name
+  could do that) leaves the place blocked and the app moves on at the next pass, with a line.
+- **Retry every 5 seconds** while work is pending; no chunk event is hooked.
+- **Every light is stable on removal** (decision 2), also a waterlogged one: its water already runs out on its open
+  sides; package 33 already accepted its own lights so.
+
+## What step 3 and package 37 call
+
+```java
+// hub/TownKeeper.java
+static void TownKeeper.ask()                          // any thread: bring the town in step soon, pictures read afresh
+static TownKeeper.Pass TownKeeper.run(MinecraftServer) // server thread: one pass now with the pictures at hand, lines to the host
+static boolean TownKeeper.complete()                  // a complete program list arrived in this game
+static void TownKeeper.listed()                       // a complete list arrived (MyAppsGame.listed calls it)
+TownKeeper.Pass keeper.keep(MinecraftServer, TownKeeper.Programs(List<AppDefinition> apps, boolean complete),
+        Function<AppDefinition, Optional<GatePicture>> pictures, TownKeeper.Spots spots)   // the one pass; tests use it
+record Pass(List<String> lines, boolean pending, Set<String> pictures)   // pictures: app IDs it needed and lacked
+interface Spots { void save(Map<String, AppsConfig.Spot> spots) throws IOException; }   // AresOs::saveSpots
+
+// hub/Town.java
+static void Town.check(MinecraftServer, Place) throws IOException   // a place for any app: NotLoaded / blocked (message)
+static void Town.check(MinecraftServer, AppDefinition, Place, GatePicture) throws IOException
+static HubData.Logo Town.build(MinecraftServer, AppDefinition, Place, GatePicture) throws IOException
+static GateBuilder.Removal Town.remove(MinecraftServer, String appId) throws IOException
+
+// hub/HubData.java (new or changed in 2b)
+static String HubData.protection(ServerPlayer, BlockPos)   // the Live-mode refusal, or null
+String hub.refusal(ServerLevel, BlockPos)                  // "The logo of X is part of the town..." / the pad's / null
+boolean hub.sparesFromExplosion(ServerLevel, BlockPos, boolean buildMode)
+```
+
+- **Package 37, `swap a b` / `move app dir`:** write the new pair with `AresOs.saveSpots(Map.of(a, new Spot(placeB,
+  groupA), b, new Spot(placeA, groupB)))` (for `move`: the new group's key and `null` place, or the place it found), then
+  `TownKeeper.run(server)` and show its lines (or `ask()` and let the lines come). The pass takes both down, then builds
+  both; nothing is copied.
+- **Step 3, `/aresos hub rebuild`:** take every standing logo down with `Town.remove` (a refusal or `NotLoaded` leaves
+  that one; say so), then `TownKeeper.run(server)`: every app is built again in its saved place. Its one summary line
+  can be made from the lines of the pass.
+- **Step 3, roads and counts:** HUB.md 3.4's point 5 belongs at the end of `keep`, after the builds (marked there); the
+  farthest row in use per group is in `assignment.standing()` (and the standing logos). Put road blocks through
+  `Placing.set` and the fixed record (`hub.dat`), never through `town.dat`.
+- **Step 3, a better converter re-renders by itself:** already so: `keep` renews a logo whose `converter` differs from
+  `GatePicture.CONVERTER`; step 3 only needs its test.
+- **Step 3, the sign's second line:** already `NameRules.mainName(app)` on the sign and compared in `keep` (a changed
+  main short name renews the logo); step 3 needs its test.
+
 ## What is left, in order
 
-**Step 2b** (points 4 and 5 of the brief's step 2):
+**Step 2b** (points 4 and 5 of the brief's step 2; **done in step 2b**, see above; kept as the brief for it):
 1. Keeping in step (HUB.md 3.4): a runner on the server thread, triggered when the host enters the flat home, when a
    complete program list arrives (`AresOs.takeIn` / `MyAppsGame.listed`), and after `/aresos app add` and `remove`
    (without touching `item/AppCommands.java`, `names/OwnedNodes.java` or its mixin: hook where My apps changes, e.g.
@@ -294,6 +446,17 @@ Refresh (HUB.md 3.4.4) needs nothing new: compare `logo.picture()` with `picture
 **Step 3:** roads grow with their group (never shrink); `INTERNET · 2` counts; `/aresos hub rebuild`; re-render on a
 new converter version; the sign's second line with package 35's short name; a new world gets the same town; one
 full client-test pass.
+
+Step 3 in order, as step 2b leaves it (see "What step 3 and package 37 call"):
+1. Roads and counts at the end of `TownKeeper.keep` (HUB.md 3.4 point 5), through `Placing.set` and `hub.dat`'s fixed
+   record; server tests (a road never unpaved, never shorter than package 32's; the counts follow a join and a leave).
+2. `/aresos hub rebuild`: `Town.remove` every standing logo, then `TownKeeper.run`; one summary line; a server test
+   (his blocks and changed blocks stay).
+3. Tests only: a converter version change renews a logo in place; a changed main short name renews the sign; a fresh
+   flat home with saved places builds every app in its place ("stands in" lines). All three already work in `keep`.
+4. The client pass: the first run of the scheduler with a host and the fake helper (the triggers, the picture thread,
+   the 5-second retry); expect package 32's flat-home client tests to meet the town (see "Found on the way").
+5. If the chat floods on a big first build, a summary line beyond a few (a JUDGMENT-CALL for the report).
 
 **Step 4 (Fable):** client screenshots under `reviews/36-town/screenshots/`, the real three for the builder's eyes
 only, docs (`mod/README.md`, `README.md`, HUB.md corrections), the report, delete this file, merge `origin/main`,
@@ -329,6 +492,22 @@ only, docs (`mod/README.md`, `README.md`, HUB.md corrections), the report, delet
   move on. Step 4 should put this in HUB.md's corrections; a separate file for the logos would avoid it.
 - **(Step 2a) `/aresos logo remove here` at a town logo** uses the zone's area (the niche to the exit), so he must stand
   in front of the door, as for a hand-built gate.
+
+- **(Step 2b) Client tests will now see the town.** In a client test with a fake helper whose list reaches
+  `MyAppsGame.listed`, entering a flat home builds every wanted app's logo along the roads. Package 32's flat-home
+  client tests (screenshots, explosions near the roads, walking routes) may change or need room; step 3's client pass
+  is the first to show it.
+- **(Step 2b) A big first build says many lines** (one a logo: forty apps, forty lines). Step 4 sees it in the forty-
+  apps picture; if it floods the chat, summarise beyond a few lines in `keep` (e.g. "and 32 more logos").
+- **(Step 2b) The scheduler is not covered by server tests:** a server game test has no host and no complete list, so
+  `TownKeeper.tick` never runs there; the pass itself (`keep`) is tested. Step 3's client run (a host, the fake helper)
+  is the first to run the real triggers, the picture reading thread and the 5-second retry.
+- **(Step 2b) HUB.md 3.5 says the standing logos are saved in `hub.dat`;** they are in `data/aresos/town.dat` now
+  (decision 1), and the correction "an older mod never rewrites hub.dat" is wrong for packages 32 to 35 (they do; the
+  town is safe because it is not in that file). Step 4 writes both into HUB.md's corrections.
+- **(Step 2b) A place where the town's logo cannot come down holds up the app assigned there** (it waits, it does not
+  move on), as the brief says for a place changing hands. With a refused removal that can last until he clears what
+  hangs on the old logo; the line about the old logo says why.
 
 ## Dead ends
 
