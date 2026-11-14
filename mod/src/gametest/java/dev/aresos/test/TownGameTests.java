@@ -26,7 +26,6 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.TicketType;
 import dev.aresos.mixin.TextDisplayAccess;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -59,6 +58,12 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 
+import static dev.aresos.test.ChunkWaits.LOAD_TICKS;
+import static dev.aresos.test.ChunkWaits.chunks;
+import static dev.aresos.test.ChunkWaits.hold;
+import static dev.aresos.test.ChunkWaits.loaded;
+import static dev.aresos.test.ChunkWaits.waitFor;
+
 /**
  * Package 36: the town's record in hub.dat and the one function every block of the hub goes through. The town test
  * is alone in its batch, because the hub's record is one per server; it builds its flat home far from every plot,
@@ -66,8 +71,13 @@ import java.util.Set;
  */
 public final class TownGameTests {
     private static final String BATCH = "aresos-test:town";
-    /** The longest wait for the town's chunks; the test server ticks as fast as it can. */
-    private static final int LOAD_TICKS = 400_000;
+    /**
+     * The framework's own bound, never reached while the server ticks (package 39b, as package 37's): every wait fails
+     * by itself and releases the test's tickets after {@link ChunkWaits#LOAD_TICKS} ticks or
+     * {@link ChunkWaits#WAIT_NANOS} on the wall clock, a test waits at most twice, and its other steps take a few ticks.
+     * On 2026-11-14 the seal test failed once waiting 400,000 ticks for its chunks, a few seconds on a busy laptop.
+     */
+    private static final int MAX_TICKS = 2 * LOAD_TICKS + 1_000;
 
     private static void check(boolean condition, String message) { if (!condition) throw new AssertionError(message); }
 
@@ -86,13 +96,6 @@ public final class TownGameTests {
             icon.setRGB(x, y, r > 18 && r < 32 ? 0xffffffff : plate);
         }
         return GatePicture.of(icon, HubLayout.SIZE);
-    }
-
-    private static Set<Long> chunks(BlockPos from, BlockPos to) {
-        var chunks = new HashSet<Long>();
-        for (int x = from.getX() >> 4; x <= to.getX() >> 4; x++)
-            for (int z = from.getZ() >> 4; z <= to.getZ() >> 4; z++) chunks.add(ChunkPos.pack(x, z));
-        return chunks;
     }
 
     /**
@@ -136,17 +139,6 @@ public final class TownGameTests {
         }
     }
 
-    private static void hold(ServerLevel level, Set<Long> chunks, boolean held) {
-        for (long chunk : chunks) {
-            if (held) level.getChunkSource().addTicketWithRadius(TicketType.DRAGON, ChunkPos.unpack(chunk), 2);
-            else level.getChunkSource().removeTicketWithRadius(TicketType.DRAGON, ChunkPos.unpack(chunk), 2);
-        }
-    }
-
-    private static boolean loaded(ServerLevel level, Set<Long> chunks) {
-        return chunks.stream().allMatch(chunk -> level.hasChunk(ChunkPos.getX(chunk), ChunkPos.getZ(chunk)) && level.areEntitiesLoaded(chunk));
-    }
-
     private static Map<BlockPos, BlockState> snapshot(ServerLevel level, BlockPos from, BlockPos to) {
         var states = new HashMap<BlockPos, BlockState>();
         for (var pos : BlockPos.betweenClosed(from, to)) states.put(pos.immutable(), level.getBlockState(pos));
@@ -162,7 +154,7 @@ public final class TownGameTests {
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(offset, 0, 0);
         var chunks = town(column);
         hold(level, chunks, true);
-        helper.startSequence().thenWaitUntil(() -> helper.assertTrue(loaded(level, chunks), "The town's chunks are not loaded yet")).thenExecute(() -> {
+        helper.startSequence().thenWaitUntil(waitFor(helper, level, chunks, () -> loaded(level, chunks), "The town's chunks are not loaded yet", () -> { })).thenExecute(() -> {
             var previous = HubData.get(server);
             try {
                 BlockPos home = new BlockPos(column.getX(), level.getHeight(Heightmap.Types.WORLD_SURFACE, column.getX(), column.getZ()), column.getZ());
@@ -177,7 +169,7 @@ public final class TownGameTests {
         }).thenSucceed();
     }
 
-    @GameTest(environment = BATCH, maxTicks = LOAD_TICKS)
+    @GameTest(environment = BATCH, maxTicks = MAX_TICKS)
     public void aTownLogoIsBuiltRecordedAndTakenDownThroughTheOneFunction(GameTestHelper helper) {
         inTown(helper, 15000, (level, home) -> {
             var server = level.getServer();
@@ -414,7 +406,7 @@ public final class TownGameTests {
      * refusal and explosion rules; a newcomer; a blocked place; a place changing hands; a logo renewed; a removal his
      * torch refuses; a light he changed; a place that is not loaded, built once it is. Its own batch and ground.
      */
-    @GameTest(environment = KEEP_BATCH, maxTicks = LOAD_TICKS)
+    @GameTest(environment = KEEP_BATCH, maxTicks = MAX_TICKS)
     public void theTownKeepsInStepWithHisApps(GameTestHelper helper) {
         var level = helper.getLevel();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(17000, 0, 0);
@@ -422,9 +414,12 @@ public final class TownGameTests {
         var fake = new Fake();
         hold(level, near, true);
         helper.startSequence()
-                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, near), "The town's chunks are not loaded yet", () -> { }))
                 .thenExecute(() -> keeping(fake, level, near, false, () -> keepingNear(fake, level, column)))
-                .thenWaitUntil(() -> helper.assertTrue(loaded(level, fake.far), "The far place is not loaded yet"))
+                .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, fake.far), "The far place is not loaded yet", () -> {
+                    fake.clearZones(level.getServer());
+                    letGo(fake, level, Set.of());
+                }))
                 .thenExecute(() -> keeping(fake, level, near, true, () -> keepingFar(fake, level)))
                 .thenSucceed();
     }
@@ -442,11 +437,16 @@ public final class TownGameTests {
         } finally {
             if (last || !done) {
                 if (!done) fake.clearZones(level.getServer());
-                if (fake.previous != null) HubData.store(level.getServer(), fake.previous);
-                hold(level, near, false);
-                hold(level, fake.far, false);
+                letGo(fake, level, near);
             }
         }
+    }
+
+    /** Puts back the server's hub record and lets go of the far chunks and of {@code near}. */
+    private static void letGo(Fake fake, ServerLevel level, Set<Long> near) {
+        if (fake.previous != null) HubData.store(level.getServer(), fake.previous);
+        hold(level, near, false);
+        hold(level, fake.far, false);
     }
 
     private static void keepingNear(Fake fake, ServerLevel level, BlockPos column) throws IOException {
@@ -642,7 +642,7 @@ public final class TownGameTests {
      * the counts on the group names; a logo drawn by an older converter and a changed short name, renewed in place;
      * and {@code hub rebuild} with a block he changed inside a logo.
      */
-    @GameTest(environment = REBUILD_BATCH, maxTicks = LOAD_TICKS)
+    @GameTest(environment = REBUILD_BATCH, maxTicks = MAX_TICKS)
     public void roadsCountsRenewalsAndRebuildInAFreshFlatHome(GameTestHelper helper) {
         var level = helper.getLevel();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(19000, 0, 0);
@@ -651,7 +651,7 @@ public final class TownGameTests {
         fake.prefix = "re-";
         hold(level, near, true);
         helper.startSequence()
-                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, near), "The town's chunks are not loaded yet", () -> { }))
                 .thenExecute(() -> keeping(fake, level, near, true, () -> stepThree(fake, level, column)))
                 .thenSucceed();
     }
@@ -825,7 +825,7 @@ public final class TownGameTests {
      * back from the files (step B, point 7). Its own batch and ground; the copies are made beside the test world and
      * removed.
      */
-    @GameTest(environment = SEAL_BATCH, maxTicks = LOAD_TICKS)
+    @GameTest(environment = SEAL_BATCH, maxTicks = MAX_TICKS)
     public void theTownTrustsItsRecordsOnlyWhileTheWorldWasSavedWithThem(GameTestHelper helper) {
         var level = helper.getLevel();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(21000, 0, 0);
@@ -834,7 +834,7 @@ public final class TownGameTests {
         fake.prefix = "seal-";
         hold(level, near, true);
         helper.startSequence()
-                .thenWaitUntil(() -> helper.assertTrue(loaded(level, near), "The town's chunks are not loaded yet"))
+                .thenWaitUntil(waitFor(helper, level, near, () -> loaded(level, near), "The town's chunks are not loaded yet", () -> { }))
                 .thenExecute(() -> keeping(fake, level, near, true, () -> sealing(fake, level, column)))
                 .thenSucceed();
     }

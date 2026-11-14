@@ -48,14 +48,19 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 
+import static dev.aresos.test.ChunkWaits.LOAD_TICKS;
+import static dev.aresos.test.ChunkWaits.waitFor;
+
 /** The gate: its plan against HUB.md 3.2, and building and removing it in a world. */
 public final class GateGameTests {
     private static final int[] SIZES = {10, 12, 14, 16};
     /**
-     * The longest wait for a site's chunks. The test server ticks as fast as it can, about 70,000 times a second
-     * when nothing else runs, so this is a few seconds of real time for the disk, not five hours of game time.
+     * The framework's own bound for a test that waits for chunks of its own, never reached while the server ticks
+     * (package 39b, as package 37's): its one wait fails by itself and releases its tickets after
+     * {@link ChunkWaits#LOAD_TICKS} ticks or {@link ChunkWaits#WAIT_NANOS} on the wall clock. The test server ticks as
+     * fast as it can, about 70,000 times a second when nothing else runs.
      */
-    private static final int SITE_TICKS = 400_000;
+    private static final int SITE_TICKS = LOAD_TICKS + 1_000;
     /** The app of zones a test puts in a gate's way. */
     private static final String BLOCKER = "gate-blocker";
 
@@ -249,7 +254,8 @@ public final class GateGameTests {
             DesktopWorld.setEnabled(helper.getLevel().getServer(), true);
             var site = new Site(helper.getLevel(), helper.absolutePos(BlockPos.ZERO).above(lift), "gate-fixture-" + lift);
             site.hold(true);
-            helper.startSequence().thenWaitUntil(() -> helper.assertTrue(site.loaded(), "The site's chunks are not loaded yet")).thenExecute(() -> {
+            helper.startSequence().thenWaitUntil(waitFor(helper, site.level, site.chunks(), site::loaded, "The site's chunks are not loaded yet", () -> { }))
+                    .thenExecute(() -> {
                 try {
                     site.clear();
                     site.floor(Blocks.GRASS_BLOCK);
@@ -270,16 +276,9 @@ public final class GateGameTests {
          * every test structure and releases them when that test ends, so forcing and releasing them here would
          * take a neighbouring test's chunks away before it has started.
          */
-        void hold(boolean held) {
-            for (long chunk : chunks()) {
-                if (held) level.getChunkSource().addTicketWithRadius(TicketType.DRAGON, ChunkPos.unpack(chunk), 2);
-                else level.getChunkSource().removeTicketWithRadius(TicketType.DRAGON, ChunkPos.unpack(chunk), 2);
-            }
-        }
+        void hold(boolean held) { ChunkWaits.hold(level, chunks(), held); }
 
-        boolean loaded() {
-            return chunks().stream().allMatch(chunk -> level.hasChunk(ChunkPos.getX(chunk), ChunkPos.getZ(chunk)) && level.areEntitiesLoaded(chunk));
-        }
+        boolean loaded() { return ChunkWaits.loaded(level, chunks()); }
 
         Iterable<BlockPos> region() { return BlockPos.betweenClosed(base.offset(-4, -3, 3), base.offset(24, 20, 20)); }
 
@@ -639,7 +638,8 @@ public final class GateGameTests {
         long key = chunk.pack();
         // A full but non-ticking chunk: its neighbours are not full chunks. Own only this ticket.
         level.getChunkSource().addTicketWithRadius(TicketType.DRAGON, chunk, 0);
-        helper.startSequence().thenWaitUntil(() -> helper.assertTrue(level.hasChunk(chunk.x(), chunk.z()) && level.areEntitiesLoaded(key), "border chunk not loaded"))
+        helper.startSequence().thenWaitUntil(waitFor(helper, level, Set.of(), () -> level.hasChunk(chunk.x(), chunk.z()) && level.areEntitiesLoaded(key),
+                        "border chunk not loaded", () -> level.getChunkSource().removeTicketWithRadius(TicketType.DRAGON, chunk, 0)))
                 .thenExecute(() -> {
                     var outside = plan.lights().getFirst().west(4);
                     var halo = ChunkPos.containing(outside);

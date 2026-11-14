@@ -38,7 +38,6 @@ import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.level.TicketType;
 import net.minecraft.server.network.CommonListenerCookie;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.ChunkPos;
@@ -63,6 +62,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
+import static dev.aresos.test.ChunkWaits.LOAD_TICKS;
+import static dev.aresos.test.ChunkWaits.WAIT_NANOS;
+import static dev.aresos.test.ChunkWaits.chunks;
+import static dev.aresos.test.ChunkWaits.hold;
+import static dev.aresos.test.ChunkWaits.loaded;
+import static dev.aresos.test.ChunkWaits.waitFor;
 import static dev.aresos.test.ModeInventoryFixtures.acknowledge;
 import static dev.aresos.test.ModeInventoryFixtures.registerStateReceiver;
 
@@ -75,23 +80,9 @@ public final class GettingAroundGameTests {
     private static final String TOWN = "aresos-test:go_town";
     private static final String NO_TOWN = "aresos-test:go_no_town";
     /**
-     * How long a test may wait for its far-off chunks. The test server ticks without pause while tests wait (400,000
-     * ticks passed in 8 seconds on the laptop while another build ran, too short to load a town on new ground), so this
-     * is counted generously: it only says how long a test waits before it fails.
-     */
-    private static final int LOAD_TICKS = 4_000_000;
-    /**
-     * Next to {@link #LOAD_TICKS}, how long a wait may last on the wall clock (review fixes 1, point 5): a test whose
-     * ticks slow down fails and lets go of its tickets. This bound works only while the server ticks: the test's own
-     * waits check it, each tick (review fixes 2, point 3). A server that stops ticking runs none of them; that ends the
-     * whole run through Gradle's limits, and no watchdog thread releases tickets, since that is not safe off the server
-     * thread.
-     */
-    private static final long WAIT_NANOS = java.util.concurrent.TimeUnit.SECONDS.toNanos(120);
-    /**
      * The framework's own bound, never reached while the server ticks: every wait fails by itself (and releases the
-     * test's tickets) after {@link #LOAD_TICKS} ticks or {@link #WAIT_NANOS}, a test waits at most four times, and its
-     * other steps take a few ticks.
+     * test's tickets) after {@link ChunkWaits#LOAD_TICKS} ticks or {@link ChunkWaits#WAIT_NANOS}, a test waits at most
+     * four times, and its other steps take a few ticks.
      */
     private static final int MAX_TICKS = 4 * LOAD_TICKS + 1_000;
 
@@ -113,56 +104,6 @@ public final class GettingAroundGameTests {
             icon.setRGB(x, y, r > 18 && r < 32 ? 0xffffffff : plate);
         }
         return GatePicture.of(icon, HubLayout.SIZE);
-    }
-
-    /**
-     * The chunks of the box between two corners, in any order (review fixes 2: the far spots of {@code /go far} run
-     * north, and from the larger corner to the smaller this was empty wherever they straddle a chunk border).
-     */
-    private static Set<Long> chunks(BlockPos from, BlockPos to) {
-        var chunks = new HashSet<Long>();
-        for (int x = Math.min(from.getX(), to.getX()) >> 4; x <= Math.max(from.getX(), to.getX()) >> 4; x++)
-            for (int z = Math.min(from.getZ(), to.getZ()) >> 4; z <= Math.max(from.getZ(), to.getZ()) >> 4; z++) chunks.add(ChunkPos.pack(x, z));
-        return chunks;
-    }
-
-    private static void hold(ServerLevel level, Set<Long> chunks, boolean held) {
-        for (long chunk : chunks) {
-            if (held) level.getChunkSource().addTicketWithRadius(TicketType.DRAGON, ChunkPos.unpack(chunk), 2);
-            else level.getChunkSource().removeTicketWithRadius(TicketType.DRAGON, ChunkPos.unpack(chunk), 2);
-        }
-    }
-
-    /**
-     * A wait of a test that holds tickets (review fixes 1, point 5): passes once {@code done}; fails, after running
-     * {@code cleanup} and releasing the test's tickets, after {@link #LOAD_TICKS} ticks or {@link #WAIT_NANOS} on the
-     * wall clock, whichever comes first. Its own failure, before the framework's: a timeout of the framework runs none
-     * of the test's code.
-     */
-    private static Runnable waitFor(GameTestHelper helper, ServerLevel level, Set<Long> near, java.util.function.BooleanSupplier done,
-                                    String what, Runnable cleanup) {
-        return waitFor(helper, level, near, done, what, cleanup, LOAD_TICKS, WAIT_NANOS);
-    }
-
-    /** {@link #waitFor} with its own bounds: a test forces the timeout path with small ones (review fixes 2, point 3). */
-    private static Runnable waitFor(GameTestHelper helper, ServerLevel level, Set<Long> near, java.util.function.BooleanSupplier done,
-                                    String what, Runnable cleanup, int maxTicks, long maxNanos) {
-        var clock = new Object() { long start; int ticks; };
-        return () -> {
-            if (done.getAsBoolean()) return;
-            long now = System.nanoTime();
-            if (clock.ticks++ == 0) clock.start = now;
-            if (now - clock.start > maxNanos || clock.ticks >= maxTicks) {
-                try {
-                    cleanup.run();
-                } finally {
-                    hold(level, near, false);
-                }
-                throw new AssertionError(what + " after " + (now - clock.start) / 1_000_000 + " ms and " + clock.ticks
-                        + " ticks; the test's tickets were released");
-            }
-            helper.assertTrue(false, what);
-        };
     }
 
     /**
@@ -193,10 +134,6 @@ public final class GettingAroundGameTests {
             armed = false;
             return String.format(java.util.Locale.ROOT, "%d ticks, the longest %.2f ms, the longest gap between two %.2f ms", count, tick / 1e6, between / 1e6);
         }
-    }
-
-    private static boolean loaded(ServerLevel level, Set<Long> chunks) {
-        return chunks.stream().allMatch(chunk -> level.hasChunk(ChunkPos.getX(chunk), ChunkPos.getZ(chunk)) && level.areEntitiesLoaded(chunk));
     }
 
     private static BlockPos surface(ServerLevel level, BlockPos column) {
