@@ -4,6 +4,7 @@ checks.py loads this file from actions.d (agreed change 8), so Control's checks 
 returns its evidence as files for the runner (os/ci/control/control_vm.py), which prints the PASS line. The owner's
 steps run as `ares` through runuser; root stands in for his sudo (`ares` has no password in CI).
 """
+import base64
 import hashlib
 import io
 import json
@@ -892,14 +893,14 @@ def interactive(request):
                 files=files_out(files))
 
 
-def holds(path, secret):
+def holds(path, *needles):
+    """Which of the needles the file holds (read in chunks; the Claude Code binary in his home is large)."""
+    found, tail, longest = set(), b'', max(len(needle) for needle in needles)
     with open(path, 'rb') as stream:
-        tail = b''
         while chunk := stream.read(1 << 20):
-            if secret in tail + chunk:
-                return True
-            tail = chunk[-len(secret):]
-    return False
+            found |= {index for index, needle in enumerate(needles) if needle in tail + chunk}
+            tail = chunk[-longest:]
+    return found
 
 
 SCANNED = ('/var/lib/aresos-tools', '/var/lib/aresos-operation-evidence', str(HOME), '/tmp', '/var/tmp', '/var/log',
@@ -910,6 +911,11 @@ SCANNED = ('/var/lib/aresos-tools', '/var/lib/aresos-operation-evidence', str(HO
 def passwords(request):
     secret = request['password'].encode()
     assert len(secret) >= 32, 'not the per-run password'
+    _, mail_flows = layer_modules()
+    user = mail_flows.USERNAME.encode()
+    # The password itself, and the encoded forms a mail login carries (the forms Mail's own scrubber knows).
+    needles = (secret, base64.b64encode(secret), base64.b64encode(b'\0' + user + b'\0' + secret),
+               base64.b64encode(user + b'\0' + user + b'\0' + secret))
     refusals = dict(list_state=run([*as_user('ares'), '/usr/bin/ls', '/var/lib/aresos-tools']),
                     list_passwords=run([*as_user('ares'), '/usr/bin/ls', str(PASSWORDS)]))
     stored = sorted(path for path in PASSWORDS.iterdir())
@@ -933,22 +939,23 @@ def passwords(request):
                     if not stat.S_ISREG(os.lstat(path).st_mode):
                         continue
                     scanned += 1
-                    if holds(path, secret):
-                        hits.append(path)
+                    for index in holds(path, *needles):
+                        hits.append(path if index == 0 else f'{path} (encoded form {index})')
                 except OSError:
                     unreadable += 1
         counts[root] = dict(files=scanned, unreadable=unreadable)
     journal = subprocess.Popen(['journalctl', '--no-pager', '-o', 'export'], stdout=subprocess.PIPE)
     in_journal, tail = False, b''
     while chunk := journal.stdout.read(1 << 20):
-        in_journal = in_journal or secret in tail + chunk
-        tail = chunk[-len(secret):]
+        in_journal = in_journal or any(needle in tail + chunk for needle in needles)
+        tail = chunk[-200:]
     journal.wait(timeout=120)
     hits = sorted(set(hits))
     operations = pathlib.Path('/var/lib/aresos-operation-evidence/operations.jsonl')
     summary = dict(password_sha256=hashlib.sha256(secret).hexdigest(), files_holding_it=hits,
                    journal_export_holds_it=in_journal, operations_jsonl_holds_it=operations.exists() and
-                   holds(operations, secret), scanned=counts, modes=modes, refusals=refusals)
+                   bool(holds(operations, *needles)), forms_searched=len(needles), scanned=counts, modes=modes,
+                   refusals=refusals)
     assert hits == [str(stored[0])] and not in_journal, summary
     return dict(returncode=0, summary=dict(files_holding_it=len(hits), journal=in_journal),
                 files=files_out({'passwords.json': summary}))
