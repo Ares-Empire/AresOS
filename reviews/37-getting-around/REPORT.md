@@ -78,9 +78,10 @@ Commits on `pkg/37-getting-around` (on `df82fabc`):
    - Not his: "Stranger is not one of your apps. /aresos app add go-stranger adds it." Several non-his matches: one
      line listing them with their IDs. His app that is not installed: one line. Several of his apps match: one line
      naming them with their short names.
-   - It never opens anything, never changes a block, holds no chunk. After the teleport `WalkInZones.arrived` takes
-     the zones he touches as already entered, so arriving can never count as walking in (also for a hand-made zone
-     whose exit lies in its own box).
+   - It never opens anything, never changes a block. After the teleport `WalkInZones.arrived` takes the zones he
+     touches as already entered, so arriving can never count as walking in (also for a hand-made zone whose exit lies
+     in its own box). Review fixes 1 (below): every teleport of the mod does this now, and an arrival that is not
+     loaded is loaded by the game's own ticket and checked a later tick (points 1 and 4).
 6. **`/home`** (`world/GettingAround`, `world/HomeCommands.home`): runs `/aresos home`'s own path. `/aresos home`,
    `home set` and `home info` are unchanged; the teleport they share is `HomeCommands.teleport`.
 7. **The H key** (`client/AresOsClient`, `world/HomeKeyPayload`, `HomeCommands.key`): "Home" in the AresOS key
@@ -161,7 +162,8 @@ Each check is the function the pass itself uses, asked before the pass does it; 
   their zones as gone). A block he changed in such a logo stays his and counts.
 - **Timing:** the command runs the checks, saves and runs the pass in one call on the server thread, so the world and
   the keeper cannot change in between. The town's background pass runs at the end of a server tick, never inside a
-  command.
+  command. The catalogue can change in between (a helper refresh runs on its own thread): review fixes 1, point 2,
+  takes it once and saves only while it is unchanged.
 - **If they still disagree** (something no check foresees), the command says so in one line instead of its own, and
   the pass's lines say what happened; the places stay saved and the town's pending work goes on.
 
@@ -351,10 +353,13 @@ From step 1:
   that is (`/go st` with Steam his and Stellarium not goes to Steam). Only when none of his apps matches does it look
   at the rest, to say how to add one. Rejected: `/open`'s result filtered afterwards (an exact match of a stranger
   would hide a prefix of his own).
-- **1-2. Arrival checks may load a chunk.** To check the exit point of a place that is not loaded, its blocks are
-  read before the teleport, which loads that chunk synchronously (the same chunk the teleport loads anyway a tick
-  later). No ticket is added and nothing is held. Rejected: moving him unchecked (into a wall, against "If unsure");
-  refusing for an unloaded place (against the brief's "it also works while the logo is not built yet").
+- **1-2. Arrival checks may load a chunk** (corrected by review fixes 1, point 4). As built in step 1, the spots of a
+  place that is not loaded were read in the command, which loaded their chunk synchronously: measured since, 416 ms on
+  the server thread for new ground. Now nothing is read in the command where a spot's chunk is not loaded: the game's
+  own teleport ticket (`PORTAL`) loads the chunks the spots' boxes touch (at most four; one in the test), a later tick
+  checks them and moves him or says one line, and the tickets go then. Rejected, as before: moving him unchecked
+  (into a wall, against "If unsure"); refusing for an unloaded place (against "it also works while the logo is not
+  built yet").
 - **1-3. `/go` refuses for a loaded place with no logo yet (`BUILDING`)** with "… is not built yet. Try again in a
   moment." The brief names only the not-loaded case as one to go to; a loaded place without a logo means the town is
   still at work (a picture being read, an old logo to take down first), so he is told instead of being put in front
@@ -446,3 +451,201 @@ From step 3:
 Nothing else holds up the merge. The judgment calls above go to the owner before merge; the ones that change how it
 feels are 1-3 (`/go` refuses a loaded place whose logo is not built yet), 1-7 (`/go` to a standing logo says nothing),
 2-1 (the command's own line replaces the town's lines about the apps it moved) and 2-8 (the refusal wording).
+
+## Review fixes 1
+
+Brief: `briefs/37-review-fixes-1.md`, after `REVIEW-1.md` (CHANGES-NEEDED: three FIX, three SHOULD, all accepted). One
+Claude agent (Opus 5.5), one step, on `pkg/37-getting-around` from `ca1c3e26`.
+
+Commits:
+
+- `dfb1074b` 37: fix 1, point 1: every teleport of the mod marks its arrival, so arriving never opens an app
+- `34272f07` 37: fix 1, point 2: swap and move use one catalogue snapshot and save only while it is unchanged
+- `3f20cf3c` 37: fix 1, point 3: the checks see which signs the take-down removes and which stay
+- `61c6ee57` 37: fix 1, points 3, 5 and 6: tests (a moved sign, bounded waits, frozen and refused at the command)
+- `e53c97a2` 37: fix 1, point 4: /go loads an arrival that is not loaded off the command and moves him a later tick
+- 37: fix 1: the report's section "Review fixes 1" (this text)
+
+The tests of points 3, 5 and 6 share one test file and went into one commit with point 4's first measurement.
+
+### Point 1 (FIX 1): arriving anywhere never counts as walking in
+
+`HomeCommands.teleport`, the shared teleport, now calls `WalkInZones.arrived` itself (and drops a `/go` still loading,
+point 4). Every teleport the mod makes, found by searching the code for `teleport`, `teleportTo`, `snapTo`,
+`setServerLevel` and the respawn:
+
+| Teleport | Where | How it marks its arrival |
+|---|---|---|
+| `/aresos home`, `/home`, the H key | `HomeCommands.goHome` | the shared teleport (new: before, nothing marked it) |
+| `/go` to a logo, `/go` to a hand-made zone | `GettingAround` through `Arrivals` | the shared teleport (before: `GettingAround` marked it after the teleport) |
+| The return in front of a doorway after an app closes | `WalkInZones.returned` | the shared teleport (before: its own teleport, then the membership set to empty, so a zone touching the exit, such as a hand-made zone whose exit lies in its own box, opened again) |
+| Void recovery in Live mode | `LiveMode.protect` | `WalkInZones.arrived` after the respawn teleport (new) |
+| The spawn on joining an AresOS world | `NetherHome.arrive` | `WalkInZones.arrived` after `snapTo` (new; joining was already no entry, since leaving drops the membership) |
+| The respawn after death (the mod picks the spot, `ServerPlayerHomeMixin`) | Fabric `ServerPlayerEvents.AFTER_RESPAWN` in `WalkInZones.register` | `WalkInZones.arrived` (new) |
+
+The other `snapTo` calls move display entities (signs, names), not him. Vanilla moves (`/tp`, portals, ender pearls,
+the End's exit) are not the mod's and still count as walking (F1).
+
+Test (`goWithoutATownAndHomeFromTheNether`, new steps): a hand-made zone, a home recorded inside its doorway (setting a
+home checks safe ground only, so Build mode allows it there; the spot is checked with `HomeSites.isSafe`), then in Live
+mode `/home`: he stands in the doorway, ten ticks later no launch; stepping out and in again launches once. The same
+with `HomeCommands.key` (the H key's server half). The home record is put back as it was afterwards, also on failure.
+"Fails without it": from reading (without the mark, the next walk-in tick sees a newly entered zone and sends its
+launch); not run against the old code.
+
+### Point 2 (FIX 2): one catalogue for the whole command
+
+- `TownMoves.Game` now hands out a `Snapshot` (a token and the programs) and a `Commit`. `swap` and `move` take the
+  snapshot once; the checks, the saved places and the pass all use it: the pass gets the snapshot with the new places
+  (the very apps the checks planned with), not a fresh read.
+- `AresOs.saveSpotsIf(token, spots)` is `static synchronized`, the lock every catalogue update takes (`takeIn` from the
+  helper's thread, `saveMine`, names, pins, `saveSpots`). It saves only while the list in memory is still the token
+  (the very object the command took); each of those updates puts a new list there. Otherwise nothing is saved and the
+  command says "Your apps changed just now. Nothing was swapped; try again." (or "moved").
+- Test (`swapExchangesTwoLogos`): the commit hook rewrites the apps file with Chrome's icon path changed and reloads
+  the catalogue, as a refresh would, then calls the real `saveSpotsIf`. Swap and move both refuse with that line; the
+  file's bytes (as the hook left them), the town's records, the zones and every block within 40 are unchanged.
+  "Fails without it": from reading (the old code saved and passed; the swap would have reported done).
+
+### Point 3 (FIX 3): the checks see which signs come down and which stay
+
+- `GateBuilder.checkRemoval(level, gate, sign)`, the first half of `takeDown`, now returns what the take-down will do
+  (`TakeDown`: the blocks that change and what comes back, the blocks he changed, and the sign it discards or why one
+  stays). `takeDown` does exactly what it returns. `Town.checkRemove` returns it too.
+- `GateBuilder.Gone` is made from those take-downs (`Gone.of`): their blocks as left, their zones gone, every block of
+  their records no longer the mod's, their signs' IDs no longer recorded, and the signs they discard gone. A sign a
+  take-down leaves (he moved or edited it) stays in the world and counts as his.
+- `TownMoves.check` also counts any other logo the pass will take down (one the plan puts elsewhere or nowhere, in a
+  town not yet in step) where its take-down check passes; where it does not, the pass leaves it, and so does the check.
+
+The inputs of the build's checks (`Town.check` → `Town.prepare` → `GateBuilder.prepare`) and how the check sees each
+after the take-down:
+
+| Input | How the check sees it | Same as the commit? |
+|---|---|---|
+| The app, its name and main short name, its picture | the snapshot's app (point 2); the picture from the town's cache, which changes only at the end of a server tick | yes |
+| The town's record (rules, refused, frozen) | refused before any check; unchanged within the tick | yes |
+| Chunks and entities loaded | from the world; a take-down loads and unloads nothing | yes |
+| The logo's space must be air | through `Gone`: blocks as the take-downs leave them | yes |
+| The way in must be solid | through `Gone` | yes |
+| The doormat's ground (grass or dirt around it) | through `Gone` | yes |
+| The floor under the logo (untouched grass or the hub's) | through `Gone` (step 2) | yes |
+| Trigger zones in the way | the down logos' zones as gone (the ones `Town.remove` removes: `hub.made`) | yes |
+| Entities inside the logo's blocks | the mod's signs exempt, minus the down logos' signs, plus the signs their take-downs discard: a sign left standing counts | **fixed** (before, every recorded sign was exempt) |
+| Entities hanging on or standing on blocks within reach | the same set | **fixed** |
+| Blocks within reach (2, lights 4) | through `Gone`; the down logos' recorded blocks are no longer the mod's | **fixed** (before, read from the world with those blocks the mod's: the same verdict except a light he changed in a logo that comes down, which was the mod's in the check and his after) |
+| Which logos come down | the moved apps' own and any town logo in a new place (must come down, else refused), and any other logo the plan moves or drops where its take-down check passes | **fixed** (before, only the first two) |
+| The exit point is safe | from the world, not through `Gone` | yes, by the layout: it is 6 blocks in front of its own place's front, in the 11 blocks between two rows and on its own place's centre line; no logo's blocks (its front, the lights one layer in front, the doormat at the door) reach there |
+| Logos the same pass builds before this one (the other logo of a swap, a newcomer given a freed place) | not modelled | same verdict: their blocks are the town's (passed as harmless by the neighbour checks), their signs recorded, their zones in their own places |
+| A logo the same pass renews in its own place (its picture or name changed) | not modelled | **not the same in one case**: if he moved that logo's sign into the new logo's blocks, the renewal leaves the sign unrecorded and the build refuses; the command then says "The town did not finish" and the place stays saved (F4) |
+
+Test (`swapExchangesTwoLogos`): Lunar Client's sign moved (`snapTo`, as `/data` would) to the middle of a block
+Chrome's logo fills at E0L0, then `swap chrome lunar`: "Nothing was swapped: Chrome's logo cannot stand at Games, east,
+front row, left. An entity occupies the gate's place. Move it away, then retry."; the file's bytes, records, zones,
+blocks and the sign's place are unchanged; the sign is put back. "Fails without it": from reading (the check exempted
+the sign, the take-down left it and dropped its record, and the build refused after both logos came down).
+
+### Point 4 (SHOULD 4): arriving where nothing is loaded yet
+
+Measured in the server test (`goPutsHimInFrontOfHisAppsDoors`, `/go far` to `N40L0`, new ground, 573 blocks out):
+
+| Code | `/go` on the server thread | Then |
+|---|---|---|
+| Step 1's (read in the command) | **416.1 ms** (build 1; the spots touch 1 chunk) | every spot blocked, chunks read back from disk: 13.7 ms |
+| Deferred (now), build 2 | 1.06 ms | arrived 515.45 ms (2 ticks) later; every spot blocked: 1.57 ms, its line 12.89 ms (2 ticks) later |
+| Deferred (now), build 4 | 1.35 ms | arrived 414.53 ms (2 ticks) later, in which one tick took 399.27 ms (the longest gap between ticks 6.83 ms); every spot blocked: 2.37 ms, its line 12.07 ms later, longest tick 6.28 ms |
+
+416 ms is over the 50 ms bound, so the check is no longer made in the command (`world/Arrivals`): where every
+spot's chunk is loaded, it checks and moves him at once, as before. Otherwise it reads nothing: the game's own ticket
+for teleports (`TicketType.PORTAL`, radius 0) loads the chunks the spots' boxes touch (at most four), each server tick
+looks whether they are loaded, then checks the spots (reading loaded chunks only), moves him and says the arrival's line,
+or says the blocked line. It gives up after 200 ticks and 10 s, both ("… did not load in time, so you stay where you
+are. Try again in a moment."). The tickets go when he arrives, when it gives up, when he leaves, and when another move of
+the mod (`/home`, H, another `/go`) comes first. The command says nothing while it loads. A `/go` to a hand-made zone
+does the same with its one exit.
+
+What the numbers say: the check itself no longer holds the server thread. The game's own loading of new ground through
+the ticket took one server tick of about 400 ms in the test world, which any teleport there would cause too (the
+teleport loads the same chunks); read back from disk it is a few ms. Whether new ground in his flat home (a flat world)
+is as slow is not measured. HUB.md (2.6, `/go`), `mod/README.md` (Getting around) and 1-2 above now say what the code
+does.
+
+### Point 5 (SHOULD 5): test tickets released however a test ends
+
+`GettingAroundGameTests.waitFor`: every wait of these tests passes when its condition holds; after `LOAD_TICKS` ticks or
+120 s on the clock, whichever comes first, it runs its cleanup (the host and the test's logos, where it has them),
+releases the test's tickets and fails. The framework's bound (`MAX_TICKS = 4 × LOAD_TICKS + 1,000`, a test waits at
+most four times) is never reached first, so a timeout of the framework, which runs none of the test's code, cannot
+happen. Failures in the steps go through `guarded` (tickets released) as before; success releases them in the last
+step. "Fails without it": from reading; no run forced a timeout.
+
+### Point 6 (SHOULD 6): frozen and refused, at the command
+
+In `swapExchangesTwoLogos`, with Notes' logo taken down first: the town frozen (the town file's own flag), then the town
+file refused (as when `town.dat` does not fit: the hub holds no record of it). Both by reflection on `HubData`'s own
+fields, within one tick and put back in `finally`, since the game has no call that freezes or refuses a town (F6).
+Typed `/aresos app swap chrome discord` and `/aresos app move lunar west`: the town's own line (`TownKeeper.frozen`,
+`TownKeeper.refused`), nothing else. `/go chrome` (its logo stands in its recorded place): he stands at its exit point;
+in the refused town through its doorway in `zones.dat`. `/go notes` (no logo): "Notes's logo does not stand in the town,
+and the town is frozen: /aresos hub trust lets it build again." and "… and the town's file does not fit this world, so
+the town builds nothing here.". The apps file's bytes, the records, the zones and every block within 40 are unchanged;
+Notes is built again afterwards. These tests pass with the old code too: they pin the behaviour against a later bypass.
+
+### What ran
+
+From the worktree root, 2026-11-14:
+
+| Run | Exit | What it printed |
+|---|---|---|
+| `mod/dev/build.sh` (points 1 to 3, tests of 3 to 6, first measurement) | 0 | "All 98 required tests passed :)", `BUILD SUCCESSFUL in 2m 1s`; the cold `/go`: 416.1 ms |
+| `mod/dev/build.sh` (point 4 deferred) | 0 | "All 98 required tests passed :)", `BUILD SUCCESSFUL in 2m 3s` |
+| `mod/dev/build.sh` (a tick timer added to the test) | 1 | `BUILD FAILED in 19s`: package 36's `TownGameTests.keepingNear` failed at "A newcomer: []" and took the test server down; my tests had not run yet (see Not verified) |
+| `mod/dev/build.sh` (the same code, final) | 0 | "All 98 required tests passed :)", `BUILD SUCCESSFUL in 1m 33s` |
+| `mod/dev/client-test.sh` (final code) | 0 | `BUILD SUCCESSFUL in 9m 34s`; 16 "client checks passed" lines (09c, 09d, 09b, 09, 08, 07b, 07, 01c, 04, 04c, 32, 33, 34, 35, 36, 37), "36 pictures taken", "37 pictures taken"; "Client tests ended with exit code 0 after 9 min 35 s (intel: Mesa Intel(R) Iris(R) Xe Graphics (RPL-P) (Intel))" |
+| `mod/dev/build.sh` (final code, again) | 0 | "All 98 required tests passed :)", `BUILD SUCCESSFUL in 1m 30s`; point 4: the command 1.13 ms, arrived 384.65 ms (2 ticks) later, the longest tick 373.64 ms; every spot blocked: 1.07 ms, its line 7.62 ms later, the longest tick 5.04 ms |
+
+The test count stays 98: the new checks are steps inside the four existing tests of this package. This package's
+pictures from the client run were compared with the committed ones: `0076` to `0081` differ in 0 pixels (by more than
+24 in a channel), `0082` in 597 (the torch's flame), so none is committed again; every tracked picture was put back and
+the run's untracked pictures removed.
+
+### Not verified (review fixes 1)
+
+- The cold `/go` in his own flat home: measured only in the server test world (new ground there took one tick of about
+  400 ms to load through the ticket; read back from disk a few ms).
+- The marks of void recovery, the spawn on joining and the respawn: by reading only; the test covers `/home`, the H
+  key's server half and (through the shared teleport) `/go`. The doorway's return goes through the shared teleport;
+  no test of a hand-made zone whose exit lies in its own box.
+- `/go` giving up after 200 ticks and 10 s, and a `/go` dropped by `/home` while it loads: by reading.
+- Every "fails without it" above is from reading; none of the new tests was run against the old code.
+- Package 36's `TownGameTests.keepingNear` failed once ("A newcomer: []", build 3) and passed in builds 1, 2, 4 and the final one
+  with the same main code. Its cause was not found; this round changed nothing it calls except through
+  `GateBuilder.Gone.NONE`, which reads the world as before. Worth a look if it comes back.
+- The residual case of point 3's list: a logo the same pass renews in its own place, whose sign he moved into a new
+  logo's blocks (F4).
+
+### JUDGMENT-CALL (review fixes 1)
+
+- **F1. Only the mod's own teleports mark the arrival.** Vanilla moves (`/tp`, portals, ender pearls, the End's exit)
+  still count as walking, as the brief lists the mod's teleports. Rejected: marking every teleport of the game (a mixin
+  on the player's teleport), which would also cover his own `/tp` into a doorway on purpose. Changing it later is one
+  mixin.
+- **F2. The catalogue's token is the list object itself**, compared under the lock every update takes. An update that
+  produces an equal list still refuses the command once (he types it again). Rejected: a revision number, which every
+  writer of the list would have to remember to raise.
+- **F3. The lock covers the comparison and the save, not the pass.** The pass works on the snapshot (the same object the
+  checks used), so a refresh that lands during the pass cannot change what it does; the town follows that refresh in its
+  next pass. Rejected: holding the catalogue's lock across block changes, which would stall the helper's thread and
+  nest locks (`takeIn` calls into My apps under it).
+- **F4. A renewal in the same pass is not modelled** (point 3's list, last row). Modelling it needs the keeper's private
+  "changed" rule and its rebuild outcome in the check; the case needs a sign he moved from one logo into another's new
+  place, and its outcome is the existing "The town did not finish" line with the place saved, nothing lost.
+- **F5. Deferred `/go`:** the ticket is `PORTAL` (the game's own ticket for teleports; there is no other in 26.2 but the
+  ender pearl's), radius 0, only the chunks the spots touch; nothing is said while it loads (he is moved within a few
+  ticks); it gives up after 200 ticks and 10 s together, so a paused game does not count and a fast test server does
+  not give up early; another move of the mod drops it.
+- **F6. Tests freeze and refuse the server's town by reflection** on `HubData`'s own fields (`town.frozen`, `refusal`,
+  the town file), inside one tick and put back in `finally`; `TownKeeper.frozen` is public now so the tests compare the
+  exact line. Rejected: a test-only freeze method in the main code.
+- **F7. The waits' clock bound is 120 s**, not the brief's example of 60 s: in step 2 a town on new ground took over
+  8 s to load while another builder's Gradle ran, and a bound too short fails a test that would pass.
