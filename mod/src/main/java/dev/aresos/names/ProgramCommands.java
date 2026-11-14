@@ -51,8 +51,13 @@ public final class ProgramCommands {
         if (!AppCommands.allowed(source)) return 0;
         var mine = AresOs.apps().stream().filter(AppDefinition::mine).sorted(AppSearch.BY_NAME).toList();
         source.sendSuccess(() -> Component.literal("My apps: " + mine.size() + ". Click one to open it."), false);
-        // Absent programs are listed too, as not installed: he sees why their commands are gone.
-        for (var app : mine) source.sendSuccess(() -> line(app), false);
+        // Absent programs are listed too, as not installed: he sees why their commands are gone. The others say where
+        // their logo stands, or why it does not (package 37).
+        boolean complete = dev.aresos.hub.TownKeeper.complete();
+        for (var app : mine) {
+            String where = app.absent() ? null : dev.aresos.hub.Whereabouts.of(source.getServer(), app, complete).said(AppGroup.of(app));
+            source.sendSuccess(() -> line(app, where), false);
+        }
         return mine.size();
     }
 
@@ -61,13 +66,21 @@ public final class ProgramCommands {
         return AresOs.apps().stream().filter(app -> !app.absent()).toList();
     }
 
-    private static MutableComponent line(AppDefinition app) {
+    private static MutableComponent line(AppDefinition app) { return line(app, null); }
+
+    /**
+     * One clickable row. {@code where}: for {@code /apps}, where the app's logo stands in words ("Lunar Client:
+     * /lunar. Games, east, front row, left") or why it has none; null for {@code /open}'s choices, which name the group.
+     */
+    private static MutableComponent line(AppDefinition app, String where) {
         // Still one of his apps, kept for its return, but nothing to open and no command while it is gone.
         if (app.absent()) return Component.literal(app.name()).withStyle(ChatFormatting.DARK_GRAY)
                 .append(Component.literal("  not installed  · " + AppGroup.of(app).title()).withStyle(ChatFormatting.DARK_GRAY));
         String commands = app.mine() ? app.names().stream().map(name -> "/" + name).collect(java.util.stream.Collectors.joining(", ")) : "";
+        String rest = where == null ? "  " + commands + "  · " + AppGroup.of(app).title()
+                : ": " + (commands.isEmpty() ? "" : commands + ". ") + where;
         return Component.literal(app.name()).withStyle(ChatFormatting.AQUA)
-                .append(Component.literal("  " + commands + "  · " + AppGroup.of(app).title()).withStyle(ChatFormatting.GRAY))
+                .append(Component.literal(rest).withStyle(ChatFormatting.GRAY))
                 .withStyle(style -> style.withClickEvent(new ClickEvent.RunCommand(CLICK + app.id()))
                         .withHoverEvent(new HoverEvent.ShowText(Component.literal("Open " + app.name() + " (" + app.id() + ")"))));
     }

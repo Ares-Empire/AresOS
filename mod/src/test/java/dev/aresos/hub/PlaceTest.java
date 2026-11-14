@@ -193,4 +193,45 @@ class PlaceTest {
             assertEquals(5, between, group + " row " + row);
         }
     }
+
+    /** Package 37: the one wording of a place, for /apps, /go and the commands that move logos (HUB.md 2.6). */
+    @Test
+    void aPlaceInWordsAsHeReadsItInTheChat() {
+        // The five of day one (HUB.md 3.2's table, with its correction: Notepad at S0L0, Terminal at S0R0).
+        assertEquals("Internet, north, front row, left", words("N0L0"));
+        assertEquals("Internet, north, front row, right", words("N0R0"));
+        assertEquals("Games, east, front row, left", words("E0L0"));
+        assertEquals("System & Tools, south, front row, left", words("S0L0"));
+        assertEquals("System & Tools, south, front row, right", words("S0R0"));
+        // The second row, second from the road.
+        assertEquals("Work & Media, west, row 2, right, 2nd from the road", words("W1R1"));
+        // k over 0, and the ordinals past the tens.
+        assertEquals("Internet, north, row 3, left, 3rd from the road", words("N2L2"));
+        assertEquals("Games, east, row 2, left", words("E1L0"));
+        assertEquals("System & Tools, south, row 5, right, 4th from the road", words("S4R3"));
+        assertEquals("Internet, north, row 11, left, 11th from the road", words("N10L10"));
+        assertEquals("Internet, north, row 12, right, 12th from the road", words("N11R11"));
+        assertEquals("Internet, north, row 13, left, 13th from the road", words("N12L12"));
+        assertEquals("Internet, north, row 21, left, 21st from the road", words("N20L20"));
+        assertEquals("Internet, north, row 22, right, 22nd from the road", words("N21R21"));
+        assertEquals("Internet, north, row 64, right, 64th from the road", words("N63R63"));
+    }
+
+    private static String words(String place) { return Place.parse(place).orElseThrow().words(); }
+
+    /** Where /go puts him: HUB.md 3.2's exit points, measured from a home block that is not the origin. */
+    @Test
+    void theExitPointOfAPlaceIsTheTablesExitPoint() {
+        var home = new BlockPos(100, 70, -200);
+        record Exit(String place, double x, double z, float yaw) { }
+        for (var expected : List.of(new Exit("N0L0", -9.0, -13.5, 180), new Exit("N0R0", 10.0, -13.5, 180),
+                new Exit("E0L0", 14.5, -9.0, -90), new Exit("S0L0", 10.0, 14.5, 0), new Exit("S0R0", -9.0, 14.5, 0),
+                new Exit("W1R1", -27.5, -23.0, 90))) {
+            var exit = Place.parse(expected.place()).orElseThrow().exit(Level.OVERWORLD, home);
+            assertEquals(new Vec3(100 + expected.x(), 70, -200 + expected.z()), exit.position(), expected.place());
+            assertEquals(expected.yaw(), exit.yaw(), expected.place());
+            assertEquals(-10f, exit.pitch(), expected.place());
+            assertEquals(Level.OVERWORLD, exit.dimension());
+        }
+    }
 }

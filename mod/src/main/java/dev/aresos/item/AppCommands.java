@@ -4,6 +4,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import dev.aresos.AresOs;
+import dev.aresos.catalogue.AppGroup;
 import dev.aresos.config.AppDefinition;
 import dev.aresos.config.AppSearch;
 import dev.aresos.world.DesktopWorld;
@@ -38,11 +39,46 @@ public final class AppCommands {
                         .executes(c -> dev.aresos.names.SlashCommands.launch(c.getSource(), getString(c, "app")))))
                 .then(Commands.literal("name").requires(AppCommands::allowed).then(argument(true).then(Commands.argument("name", greedyString())
                         .executes(c -> name(c.getSource(), getString(c, "app"), getString(c, "name"))))))
+                // Package 37: he arranges the town. Names as /go takes them, among his apps.
+                .then(Commands.literal("swap").requires(AppCommands::allowed).then(his("a").then(his("b")
+                        .executes(c -> arrange(c.getSource(), () -> {
+                            var a = dev.aresos.world.GettingAround.his(c.getSource(), getString(c, "a"));
+                            var b = a.isEmpty() ? a : dev.aresos.world.GettingAround.his(c.getSource(), getString(c, "b"));
+                            return b.isEmpty() ? null : dev.aresos.hub.TownMoves.swap(c.getSource().getServer(), a.get().id(), b.get().id());
+                        })))))
+                .then(move())
                 .then(Commands.literal("unname").requires(AppCommands::allowed).then(Commands.argument("name", word()).suggests((c, b) -> {
                     if (allowed(c.getSource())) for (var app : AresOs.apps()) for (String name : app.names())
                         if (name.startsWith(b.getRemainingLowerCase())) b.suggest(name);
                     return b.buildFuture();
                 }).executes(c -> unname(c.getSource(), getString(c, "name")))));
+    }
+
+    /** {@code /aresos app move <app> <north|east|south|west>}: the four directions are the four groups' avenues. */
+    private static LiteralArgumentBuilder<CommandSourceStack> move() {
+        var app = his("app");
+        for (var group : AppGroup.clockwise())
+            app.then(Commands.literal(dev.aresos.hub.TownMoves.direction(group)).executes(c -> arrange(c.getSource(), () -> {
+                var found = dev.aresos.world.GettingAround.his(c.getSource(), getString(c, "app"));
+                return found.isEmpty() ? null : dev.aresos.hub.TownMoves.move(c.getSource().getServer(), found.get().id(), group);
+            })));
+        return Commands.literal("move").requires(AppCommands::allowed).then(app);
+    }
+
+    /** An app of his, completed with any name {@code /go} takes. */
+    private static RequiredArgumentBuilder<CommandSourceStack, String> his(String name) {
+        return Commands.argument(name, word()).suggests(dev.aresos.world.GettingAround::suggestHis);
+    }
+
+    /** Swap or move for the host: its one line, after the line of a name that found none of his apps (then null). */
+    private static int arrange(CommandSourceStack source, java.util.function.Supplier<dev.aresos.hub.TownMoves.Said> arranging) throws CommandSyntaxException {
+        if (host(source) == null) return 0;
+        var said = arranging.get();
+        if (said == null) return 0;
+        if (said.done()) source.sendSuccess(() -> Component.literal(said.line()), false);
+        else source.sendFailure(Component.literal(said.line()));
+        dev.aresos.hub.TownMoves.told(source.getServer(), said);
+        return said.done() ? 1 : 0;
     }
 
     /** Completion over the right list: programs that are not his for add, his apps for remove. */

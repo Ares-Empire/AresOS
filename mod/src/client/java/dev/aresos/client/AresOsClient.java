@@ -63,6 +63,9 @@ public final class AresOsClient implements ClientModInitializer {
         var toggle = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.aresos.switch_mode",
                 InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, category));
         modeToggle = toggle;
+        // Package 37: H takes him home, as /home does. Changeable in Controls, under AresOS like G.
+        var home = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.aresos.home",
+                InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, category));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             AppInput.endTick();
             while (toggle.consumeClick()) {
@@ -71,7 +74,23 @@ public final class AresOsClient implements ClientModInitializer {
                     ModeSwitchClient.requestToggle();
                 }
             }
+            while (home.consumeClick()) {
+                // Only in an AresOS world and only with no screen open; F3+H is the game's own (advanced tooltips).
+                if (client.player != null && client.gui.screen() == null && !debugModifierHeld(client) && acceptsAppCommands(client)
+                        && ClientPlayNetworking.canSend(dev.aresos.world.HomeKeyPayload.TYPE)) {
+                    ClientPlayNetworking.send(dev.aresos.world.HomeKeyPayload.INSTANCE);
+                }
+            }
         });
+    }
+
+    /** Whether the debug key (F3 unless he changed it) is held: then H belongs to the game's F3+H. */
+    static boolean debugModifierHeld(Minecraft client) {
+        var modifier = client.options.keyDebugModifier;
+        if (modifier.isDown()) return true;
+        var key = KeyMappingHelper.getBoundKeyOf(modifier);
+        return key.getType() == InputConstants.Type.KEYSYM && key.getValue() != InputConstants.UNKNOWN.getValue()
+                && InputConstants.isKeyDown(client.getWindow(), key.getValue());
     }
 
     public static void modeKeyInMenu(Minecraft client, int action, net.minecraft.client.input.KeyEvent event) {

@@ -43,6 +43,9 @@ public final class LiveMode {
             player.teleport(player.findRespawnPositionAndUseSpawnBlock(false,
                     net.minecraft.world.level.portal.TeleportTransition.DO_NOTHING));
             player.fallDistance = 0;
+            dev.aresos.zone.WalkInZones.arrived(player);
+            // Moved by the mod: a /go still loading is no longer his wish (review fixes 2, point 2).
+            dev.aresos.world.Arrivals.cancel(player);
         }
     }
 

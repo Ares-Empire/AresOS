@@ -327,6 +327,13 @@ public final class FlatHomeClientGameTest implements FabricClientGameTest {
                 && message.contains("minecraft:overworld") && message.contains("180.0, -8.0")));
         context.runOnClient(client -> client.player.connection.sendCommand("aresos home"));
         context.waitFor(client -> client.player.position().distanceToSqr(SPOT) < 1.0e-4 && facesNorth(client.player.getYRot(), client.player.getXRot()));
+        // Package 37: /home and the H key do what /aresos home does.
+        look(context, world, AWAY, 0, 0);
+        context.runOnClient(client -> client.player.connection.sendCommand("home"));
+        context.waitFor(client -> client.player.position().distanceToSqr(SPOT) < 1.0e-4 && facesNorth(client.player.getYRot(), client.player.getXRot()));
+        look(context, world, AWAY, 0, 0);
+        context.getInput().pressKey(org.lwjgl.glfw.GLFW.GLFW_KEY_H);
+        context.waitFor(client -> client.player.position().distanceToSqr(SPOT) < 1.0e-4 && facesNorth(client.player.getYRot(), client.player.getXRot()));
 
         look(context, world, PICKED, 137, -18);
         context.runOnClient(client -> client.player.connection.sendCommand("aresos home set"));

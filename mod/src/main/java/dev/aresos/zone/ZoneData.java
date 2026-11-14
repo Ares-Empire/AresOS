@@ -35,10 +35,13 @@ public final class ZoneData extends SavedData {
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
-    public String conflict(AppZone candidate) {
+    public String conflict(AppZone candidate) { return conflict(candidate, java.util.Set.of()); }
+
+    /** {@link #conflict} as if the zones with these IDs were gone (their gates come down first). */
+    public String conflict(AppZone candidate, java.util.Set<String> leaving) {
         if (candidate.touchesPlayer(candidate.exit().position())) return "Stand fully outside the zone to save its exit point.";
         if (candidate.blocksExit(candidate.exit())) return "Logo would obstruct its own exit point. Leave standing space clear.";
-        for (var zone : zones) if (zone.dimension().equals(candidate.dimension())) {
+        for (var zone : zones) if (zone.dimension().equals(candidate.dimension()) && !leaving.contains(zone.id())) {
             if (zone.box().intersects(candidate.box())) return "Zone overlaps " + zone.app() + ". Remove or move that zone first.";
             if (zone.touchesPlayer(candidate.exit().position()) || candidate.touchesPlayer(zone.exit().position()))
                 return "Zone would cover an exit point. Leave space outside both zones.";

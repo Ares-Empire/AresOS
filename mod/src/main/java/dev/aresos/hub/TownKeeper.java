@@ -21,6 +21,7 @@ import net.minecraft.server.level.ServerPlayer;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -89,8 +90,12 @@ public final class TownKeeper {
     // Server thread only, like the servers themselves.
     private static final Map<MinecraftServer, TownKeeper> KEEPERS = new WeakHashMap<>();
 
-    /** A picture as read, with what it was read for: the icon's path and the group (the plain front's colour). */
-    private record Read(String path, AppGroup group, GatePicture picture) { }
+    /**
+     * A picture as read, with the icon's path it was read for. {@code icon} empty: the app has no readable icon, and
+     * its logo has a plain front in its group's colour, which is made when asked for, for the group the app has then
+     * (package 37: a logo moved to another group needs no picture read again).
+     */
+    private record Read(String path, Optional<GatePicture> icon) { }
 
     // One keeper a server; everything below is touched on its thread only.
     /** Places a build refused although they looked free: blocked for this session, so the next pass moves on. */
@@ -100,6 +105,11 @@ public final class TownKeeper {
     private final Map<String, Read> pictures = new HashMap<>();
     /** Apps whose logo {@code hub rebuild} asked to be built again and that still stand as they were. */
     private final Set<String> renew = new HashSet<>();
+    /**
+     * The count each group's name shows, as a pass of this keeper last wrote it. The pass of a swap or move writes
+     * only what its apps change in it (review fixes 2, point 1).
+     */
+    private final Map<AppGroup, Integer> counted = new EnumMap<>(AppGroup.class);
     private CompletableFuture<Map<String, Read>> reading;
     private boolean stale, due, pending;
     private long retryAt;
@@ -131,7 +141,7 @@ public final class TownKeeper {
      * The freeze's line (review fixes 2, point 4): as he enters a frozen world, and {@code hub rebuild}'s refusal. Also
      * when the town file holds no logo: a logo it does not hold may stand.
      */
-    static String frozen(HubData hub) {
+    public static String frozen(HubData hub) {
         int logos = hub.logos().size();
         return "This world was opened without the town's records since its last visit, so the town builds and removes nothing. "
                 + (logos == 0 ? "Its records hold no logo: look the town over" : "Look over its " + (logos == 1 ? "logo" : logos + " logos"))
@@ -187,13 +197,14 @@ public final class TownKeeper {
      */
     public static Pass run(MinecraftServer server) { return keeper(server).runNow(server); }
 
-    private static TownKeeper keeper(MinecraftServer server) { return KEEPERS.computeIfAbsent(server, ignored -> new TownKeeper()); }
+    /** This server's keeper: its pictures, its retries and the places a build refused in this game. */
+    static TownKeeper keeper(MinecraftServer server) { return KEEPERS.computeIfAbsent(server, ignored -> new TownKeeper()); }
 
     private static void tick(MinecraftServer server) {
         if (complete) keeper(server).step(server);
     }
 
-    private static boolean wanted(AppDefinition app) { return app.mine() && !app.absent(); }
+    static boolean wanted(AppDefinition app) { return app.mine() && !app.absent(); }
 
     private void step(MinecraftServer server) {
         if (ASKED.getAndSet(false)) stale = true;
@@ -246,7 +257,7 @@ public final class TownKeeper {
     }
 
     /** Says a pass's lines to the host and schedules what it left: a retry, pictures to read. */
-    private Pass tell(MinecraftServer server, Pass pass) {
+    Pass tell(MinecraftServer server, Pass pass) {
         var host = host(server);
         for (var line : pass.lines()) {
             AresOs.LOGGER.info("Town: {}", line);
@@ -263,19 +274,22 @@ public final class TownKeeper {
     }
 
     /** Reads the apps' pictures on the server's picture reader; a pass follows when they are in. */
-    private void read(MinecraftServer server, List<AppDefinition> apps) {
+    void read(MinecraftServer server, List<AppDefinition> apps) {
         if (reading != null) {
             stale = true;
             return;
         }
-        reading = PictureReader.of(server).read(apps, app -> new Read(AppIcons.path(app), AppGroup.of(app), GateBuilder.picture(app, HubLayout.SIZE)));
+        reading = PictureReader.of(server).read(apps, app -> new Read(AppIcons.path(app), GateBuilder.icon(app, HubLayout.SIZE)));
     }
 
-    /** The picture read for this app, while it was read for the icon and group the app has now. */
-    private Optional<GatePicture> picture(AppDefinition app) {
+    /**
+     * The picture of this app's logo as the town holds it: its icon as read, while it was read for the icon the app
+     * has now, or a plain front in the colour of the group the app has now. Empty when it has not been read.
+     */
+    Optional<GatePicture> picture(AppDefinition app) {
         var read = pictures.get(app.id());
-        return read != null && Objects.equals(read.path(), AppIcons.path(app)) && read.group() == AppGroup.of(app)
-                ? Optional.of(read.picture()) : Optional.empty();
+        if (read == null || !Objects.equals(read.path(), AppIcons.path(app))) return Optional.empty();
+        return Optional.of(read.icon().orElseGet(() -> GatePicture.plain(GateBuilder.concrete(app), HubLayout.SIZE)));
     }
 
     /**
@@ -287,7 +301,50 @@ public final class TownKeeper {
      * @param pictures the picture of an app's logo, or empty when it has not been read yet
      */
     public Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots) {
-        return keep(server, programs, pictures, spots, false);
+        return keep(server, programs, pictures, spots, false, Scope.TOWN);
+    }
+
+    /**
+     * The pass of a {@code swap} or {@code move} ({@link TownMoves}, review fixes 2, point 1): the same pass limited to
+     * the apps the command moves, each to the place the command checked ({@code scope}), after the command saved those
+     * places itself. Planning sees every app as an ordinary pass does. In this tick it takes down only the logos of
+     * {@link #down}, builds only the logos of the scope (their doormats with them), writes the counts and paves the
+     * roads of their groups only, and saves no place; every other logo stays as it is, even one due for renewal, and
+     * newcomers and leavers wait. It makes one round and blocks no place, so it never moves an app of the command on to
+     * another place; where the planning would not put each app at its checked place, it changes nothing. No line about
+     * the moved logos: the command's own line names their new places. The next ordinary pass ({@link #again}) does the
+     * rest.
+     */
+    Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Map<String, Place> scope) {
+        return keep(server, programs, pictures, places -> { }, false, new Scope(Map.copyOf(scope)));
+    }
+
+    /** Asks for an ordinary pass in the next tick, with the pictures already read (after a swap or move). */
+    void again() { due = true; }
+
+    /**
+     * Which part of the town a pass may change: all of it ({@link #TOWN}), or the apps of a swap or move, each with the
+     * place the command checked.
+     */
+    private record Scope(Map<String, Place> places) {
+        static final Scope TOWN = new Scope(null);
+
+        boolean whole() { return places == null; }
+
+        /** Whether the pass may build, renew, pave for or speak of this app. */
+        boolean covers(String app) { return places == null || places.containsKey(app); }
+    }
+
+    /**
+     * The logos the pass of a swap or move takes down, and the checks of the command count as gone (one rule for
+     * both): the logos of its apps, and any logo of the town that still stands in one of their new places (a place
+     * that changes hands; it must come down first). No other.
+     */
+    static Set<String> down(HubData hub, Map<String, Place> scope) {
+        var down = new LinkedHashSet<String>();
+        for (var logo : hub.logos())
+            if (scope.containsKey(logo.app()) || Place.parse(logo.place()).filter(scope::containsValue).isPresent()) down.add(logo.app());
+        return down;
     }
 
     /**
@@ -305,10 +362,11 @@ public final class TownKeeper {
         for (var logo : hub.logos()) renew.add(logo.app());
         said.clear();
         refused.clear();
-        return keep(server, programs, pictures, spots, true);
+        return keep(server, programs, pictures, spots, true, Scope.TOWN);
     }
 
-    private Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots, boolean rebuilt) {
+    private Pass keep(MinecraftServer server, Programs programs, Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots,
+                      boolean rebuilt, Scope scope) {
         if (!programs.complete()) return Pass.NOTHING;
         var hub = HubData.get(server);
         // A town file that does not fit this world (point 3), or a frozen town (review fixes 2, point 1): the town
@@ -319,6 +377,16 @@ public final class TownKeeper {
 
         var apps = new LinkedHashMap<String, AppDefinition>();
         for (var app : programs.apps()) apps.putIfAbsent(app.id(), app);
+        // The pass of a swap or move: each of its apps where the command checked it, or nothing changes. The planning's
+        // inputs are the ones the command checked with in this tick, so they agree; this makes sure of it.
+        var from = new HashMap<String, Place>();
+        if (!scope.whole()) {
+            var planned = plan(server, hub, apps.values(), Set.of()).standing();
+            for (var move : scope.places().entrySet()) {
+                if (!move.getValue().equals(planned.get(move.getKey()))) return new Pass(List.of(), true, Set.of());
+                hub.logo(move.getKey()).flatMap(logo -> Place.parse(logo.place())).ifPresent(at -> from.put(move.getKey(), at));
+            }
+        }
         boolean first = hub.logos().isEmpty();
         var lines = new TownLines();
         var need = new LinkedHashSet<String>();
@@ -328,14 +396,15 @@ public final class TownKeeper {
         // place in this same pass: a few more rounds, each only after a new refusal.
         for (int rounds = 1; ; rounds++) {
             int refusals = refused.size();
-            round = round(server, hub, apps, pictures, spots, lines, cameDown);
+            round = round(server, hub, apps, pictures, spots, lines, cameDown, scope);
             need.addAll(round.need());
-            if (refused.size() == refusals || rounds == ROUNDS) break;
+            // The pass of a swap or move makes one round: it never moves an app of the command on to another place.
+            if (!scope.whole() || refused.size() == refusals || rounds == ROUNDS) break;
         }
         renew.retainAll(hub.logos().stream().map(HubData.Logo::app).collect(Collectors.toSet()));
-        doorways(server, hub, lines);
+        doorways(server, hub, lines, scope);
         // 5. Roads and names.
-        boolean roads = roads(level, hub, round.assignment());
+        boolean roads = scope.whole() ? roads(level, hub, round.assignment()) : roads(level, hub, scope, from);
         return new Pass(lines.said(first, rebuilt, round.waiting()), round.pending() || !roads, need);
     }
 
@@ -343,34 +412,29 @@ public final class TownKeeper {
     private record Round(Assignment assignment, boolean pending, Set<String> need, int waiting) { }
 
     /** Points 1 to 4 and 6 of HUB.md 3.4, once. */
-    private Round round(MinecraftServer server, HubData hub, Map<String, AppDefinition> apps,
-                        Function<AppDefinition, Optional<GatePicture>> pictures, Spots spots, TownLines lines, Set<String> cameDown) {
-        var occupied = new HashSet<Place>();
-        for (var logo : hub.logos()) Place.parse(logo.place()).ifPresent(occupied::add);
-        // HUB.md 3.3: pinned apps first, then the others in the order of the apps file.
-        var order = new ArrayList<AppDefinition>();
-        apps.values().stream().filter(AppDefinition::pinned).forEach(order::add);
-        apps.values().stream().filter(app -> !app.pinned()).forEach(order::add);
+    private Round round(MinecraftServer server, HubData hub, Map<String, AppDefinition> apps, Function<AppDefinition, Optional<GatePicture>> pictures,
+                        Spots spots, TownLines lines, Set<String> cameDown, Scope scope) {
         var saved = new HashMap<String, Place>();
-        var input = new ArrayList<Assignment.App>();
-        for (var app : order) {
+        for (var app : apps.values()) {
             var place = saved(app, hub.logo(app.id()));
             if (place != null) saved.put(app.id(), place);
-            input.add(new Assignment.App(app.id(), AppGroup.of(app), place, wanted(app)));
         }
-        var assignment = Assignment.of(input, place -> blocked(server, place, occupied));
+        var assignment = plan(server, hub, apps.values(), Set.of());
 
-        save(apps.values(), assignment, spots, lines);
+        // The pass of a swap or move saves no place: the command saved its apps' places, and only those.
+        if (scope.whole()) save(apps.values(), assignment, spots, lines);
         boolean pending = false;
         int waiting = 0;
 
-        // 2. Take down what should not stand, or not there.
+        // 2. Take down what should not stand, or not there; in the pass of a swap or move, only the logos it moves.
+        var down = scope.whole() ? null : down(hub, scope.places());
         var stays = new HashSet<String>();
         var waitingFor = new HashSet<Place>();
         for (var logo : hub.logos()) {
             var target = assignment.standing().get(logo.app());
             var at = Place.parse(logo.place());
             if (target != null && at.equals(Optional.of(target))) continue;
+            if (down != null && !down.contains(logo.app())) continue;
             try {
                 Town.remove(server, logo.app());
                 cameDown.add(logo.app());
@@ -388,6 +452,8 @@ public final class TownKeeper {
         for (var entry : assignment.standing().entrySet()) {
             var app = apps.get(entry.getKey());
             var place = entry.getValue();
+            // Not an app of the swap or move: built, renewed or left by the next ordinary pass.
+            if (!scope.covers(app.id())) continue;
             // Its old logo stands somewhere else still; one logo an app.
             if (stays.contains(app.id())) continue;
             var standing = hub.logo(app.id());
@@ -415,14 +481,16 @@ public final class TownKeeper {
                 renew.remove(app.id());
                 boolean moved = cameDown.contains(app.id());
                 if (standing.isPresent()) lines.add(TownLines.Kind.RENEWED, "The logo of " + app.name() + " was renewed.");
-                else lines.add(moved ? TownLines.Kind.MOVED : TownLines.Kind.BUILT, built(app, place, saved.get(app.id()), moved));
+                else if (!(moved && !scope.whole()))
+                    lines.add(moved ? TownLines.Kind.MOVED : TownLines.Kind.BUILT, built(app, place, saved.get(app.id()), moved));
             } catch (GateBuilder.NotLoaded notLoaded) {
                 pending = true;
             } catch (IOException refusal) {
                 // It looked free with a full front, but this app's logo cannot stand there: a longer name needs more
                 // air above the sign, or a block he changed in its old logo stayed his. The place is blocked from now
-                // on; the next round moves the app on and says so.
-                refused.add(place);
+                // on; the next round moves the app on and says so. The pass of a swap or move blocks nothing: the next
+                // ordinary pass tries that place again by its own rules.
+                if (scope.whole()) refused.add(place);
                 pending = true;
                 if (standing.isPresent()) {
                     cameDown.add(app.id());
@@ -434,6 +502,7 @@ public final class TownKeeper {
 
         // 6. Blocked places, and apps with no place at all.
         for (var skip : assignment.skipped().entrySet()) {
+            if (!scope.covers(skip.getKey())) continue;
             var app = apps.get(skip.getKey());
             var to = assignment.standing().get(skip.getKey());
             var places = skip.getValue();
@@ -443,9 +512,30 @@ public final class TownKeeper {
             if (to != null) once(lines, named + (places.size() == 1 ? " is" : " are") + " blocked by something of yours, so "
                     + app.name() + " stands at " + to.name() + ".");
         }
-        for (var id : assignment.unplaced())
+        for (var id : assignment.unplaced()) if (scope.covers(id))
             once(lines, apps.get(id).name() + " has no free place in " + AppGroup.of(apps.get(id)).title() + ": every place there is blocked.");
         return new Round(assignment, pending, need, waiting);
+    }
+
+    /**
+     * Who stands where after a pass with these apps (HUB.md 3.3): pinned apps first, then the others in the order of
+     * the apps file, each app with the place saved with it (or where its logo stands), the places that cannot be built
+     * on as the pass finds them. The pass's own planning, and the one {@link TownMoves} checks a swap or move with
+     * before it changes anything, so the two cannot plan apart.
+     *
+     * @param also places taken as blocked on top of the ones the pass finds (a place where one app's logo cannot stand)
+     */
+    Assignment plan(MinecraftServer server, HubData hub, Collection<AppDefinition> apps, Set<Place> also) {
+        var occupied = new HashSet<Place>();
+        for (var logo : hub.logos()) Place.parse(logo.place()).ifPresent(occupied::add);
+        var unique = new LinkedHashMap<String, AppDefinition>();
+        for (var app : apps) unique.putIfAbsent(app.id(), app);
+        var order = new ArrayList<AppDefinition>();
+        unique.values().stream().filter(AppDefinition::pinned).forEach(order::add);
+        unique.values().stream().filter(app -> !app.pinned()).forEach(order::add);
+        var input = new ArrayList<Assignment.App>();
+        for (var app : order) input.add(new Assignment.App(app.id(), AppGroup.of(app), saved(app, hub.logo(app.id())), wanted(app)));
+        return Assignment.of(input, place -> also.contains(place) || blocked(server, place, occupied));
     }
 
     /**
@@ -455,9 +545,10 @@ public final class TownKeeper {
      * Otherwise the logo stays without a doorway, said once. A zone of his that took the logo's zone ID is his and
      * stays. Not in a frozen town, whose passes do nothing (review fixes 2, point 1).
      */
-    private void doorways(MinecraftServer server, HubData hub, TownLines lines) {
+    private void doorways(MinecraftServer server, HubData hub, TownLines lines, Scope scope) {
         var zones = ZoneData.get(server);
         for (var logo : hub.logos()) {
+            if (!scope.covers(logo.app())) continue;
             var made = hub.zone(logo);
             if (made.isEmpty()) continue;
             var named = zones.zones().stream().filter(zone -> zone.id().equals(logo.zone())).toList();
@@ -481,7 +572,7 @@ public final class TownKeeper {
      *
      * @return false when part of it waits for its ground to be loaded
      */
-    private static boolean roads(ServerLevel level, HubData hub, Assignment assignment) {
+    private boolean roads(ServerLevel level, HubData hub, Assignment assignment) {
         var farthest = new EnumMap<AppGroup, Integer>(AppGroup.class);
         var counts = new EnumMap<AppGroup, Integer>(AppGroup.class);
         for (var place : assignment.standing().values()) {
@@ -492,9 +583,43 @@ public final class TownKeeper {
         boolean done = true;
         for (var group : AppGroup.clockwise()) {
             done &= FlatHub.pave(level, hub, group, farthest.getOrDefault(group, 0));
-            done &= FlatHub.count(level, hub, group, counts.getOrDefault(group, 0));
+            done &= count(level, hub, group, counts.getOrDefault(group, 0));
         }
         return done;
+    }
+
+    /**
+     * Point 5 for the pass of a swap or move: only the groups its apps leave or enter. Each avenue is paved on to the
+     * farthest of their new places and the logos that stand in it; each count changes by the apps that left and came,
+     * from the count this keeper last wrote (none written yet: the next ordinary pass writes it). A newcomer or a leaver
+     * the planning sees does not change a count or a road in this tick.
+     *
+     * @param from where the moved apps' logos stood before the pass
+     */
+    private boolean roads(ServerLevel level, HubData hub, Scope scope, Map<String, Place> from) {
+        var farthest = new EnumMap<AppGroup, Integer>(AppGroup.class);
+        var change = new EnumMap<AppGroup, Integer>(AppGroup.class);
+        for (var at : from.values()) change.merge(at.group(), -1, Integer::sum);
+        for (var to : scope.places().values()) {
+            change.merge(to.group(), 1, Integer::sum);
+            farthest.merge(to.group(), to.row(), Math::max);
+        }
+        for (var logo : hub.logos())
+            Place.parse(logo.place()).filter(at -> change.containsKey(at.group())).ifPresent(at -> farthest.merge(at.group(), at.row(), Math::max));
+        boolean done = true;
+        for (var group : change.keySet()) {
+            done &= FlatHub.pave(level, hub, group, farthest.getOrDefault(group, 0));
+            var before = counted.get(group);
+            done &= before != null && count(level, hub, group, before + change.get(group));
+        }
+        return done;
+    }
+
+    /** Writes a group's count on its name ({@link FlatHub#count}) and remembers it once written. */
+    private boolean count(ServerLevel level, HubData hub, AppGroup group, int apps) {
+        if (!FlatHub.count(level, hub, group, apps)) return false;
+        counted.put(group, apps);
+        return true;
     }
 
     /** The place saved with the app; when the file has none, the place its logo stands in, so it does not move. */
