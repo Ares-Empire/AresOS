@@ -174,7 +174,7 @@ On **plain Bazzite**, with the current tools, one command makes an AresOS the ne
 After an update three systems are installed. **Your files in your home folder stay**, whichever system runs. Each system keeps **its own passwords, Wi-Fi and keyboard layout** (its own `/etc`): a change on one does not reach the others.
 
 - **Plain Bazzite** has no `ares` account: sign in as `ares-recovery`, always with the installer's **German** layout.
-- **The AresOS from before an update** has no `ares` password and no administrator rights for `ares`: the password set with `sudo passwd ares` belongs to the newer release. Administrator work there uses `ares-recovery`.
+- **The AresOS from before your first update** (release 13) has no `ares` password and no administrator rights for `ares`: the password was set with `sudo passwd ares` on the newer release. Administrator work there uses `ares-recovery`. A later update starts the new release with the settings of the system it runs on, that password included.
 - **Your app list:** once releases carry My apps (packages 34 and 35), an older release's game cannot read the newer app list file: after going back to it, the list stays empty until you go forward again with update. Nothing is lost.
 - **Never start a Bazzite update while AresOS is installed: it deletes both AresOS versions at the next shutdown.**
 

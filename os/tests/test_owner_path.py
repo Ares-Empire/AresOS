@@ -1163,7 +1163,8 @@ class OwnerPathTest(unittest.TestCase):
             self.assertIn(value, rollback)
         for value in ('**Your files in your home folder stay**', '**its own passwords, Wi-Fi and keyboard layout**',
                       '**Plain Bazzite** has no `ares` account', '**German**',
-                      '**The AresOS from before an update** has no `ares` password and no administrator rights',
+                      '**The AresOS from before your first update** (release 13) has no `ares` password and no administrator rights',
+                      'A later update starts the new release with the settings of the system it runs on',
                       'packages 34 and 35', 'stays empty until you go forward again with update', 'Nothing is lost'):
             self.assertIn(value, notice)
         source = (ROOT/'os/owner-tools/owner.py').read_text()

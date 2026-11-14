@@ -44,7 +44,7 @@
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "482cfc6411e37261a3399c115bce96549bc40e27d2ba7e77510454244f23fa7e",
+      "sha256": "530ba2adb864cb57bd44b2329da8c89544828279e530f364c2a361a3bd8e7008",
       "path": "docs/INSTALL.md"
     },
     {
@@ -152,7 +152,7 @@
       "path": "os/tests/test_owner_guard.py"
     },
     {
-      "sha256": "4554708a583672c63d361d3ca0350844ba8a2d3813ef397ca778dcfba053db9d",
+      "sha256": "ce098f1199b00e757b608ef15858ff21676ed2c3429e56ed20150684e4edda2f",
       "path": "os/tests/test_owner_path.py"
     },
     {
