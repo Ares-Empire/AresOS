@@ -72,13 +72,17 @@ def page(text):
              node(11, "table", 1, name=text), node(12, "row", 11),
              node(13, "columnheader", 12, text=[text]), node(14, "columnheader", 12, text=["Plain"]),
              node(15, "row", 11), node(16, "cell", 15, text=[text, 17]), node(17, "link", 16, name=text, href=SITE + "/b"),
-             node(18, "cell", 15, text=["target cell"]),
+             node(18, "cell", 15, text=["target cell", 46]),
              node(19, "list", 1, name=text)]
     nodes += [node(20 + index, "listitem", 19, text=[text if index % 2 else "item %d" % index]) for index in range(10)]
     nodes += [node(40, "img", 1, name=text), node(41, "text", 1, text=[text]),
               node(42, "group", 1, name=text), node(43, "text", 42, text=["Deep target"]),
               # A list item that holds one link alone: the link moves up into the list (decision 1).
-              node(44, "listitem", 19), node(45, "link", 44, name=text, href=SITE + "/c")]
+              node(44, "listitem", 19), node(45, "link", 44, name=text, href=SITE + "/c"),
+              # Inline parts with their value and states (decision 5): in a cell, and in a sentence.
+              node(46, "checkbox", 18, name=text, states=["checked"]),
+              node(47, "p", 1, text=["Amount ", 48]),
+              node(48, "textbox", 47, name="Qty", value=text, states=["required", "invalid"])]
     return nodes
 
 

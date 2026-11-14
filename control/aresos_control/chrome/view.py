@@ -258,9 +258,19 @@ class _Renderer:
         line.marks.append((len(line.text), reference, line.text[start:], None if target else fingerprint(node)))
 
     def _inline(self, line, node, lead=" "):
-        """A link or control inside a sentence or a cell: [role "name" reference]."""
+        """A link or control inside a sentence or a cell: [role "name" = "value" states reference].
+
+        It carries what its line would before the reference: the value (or
+        the form of a value that isn't read) and the states that are set.
+        """
+        role = shown_role(node)
         line.inline = len(line.text) + len(lead) + 1
-        line.add(lead + "[" + shown_role(node) + (" " + quoted(node.name) if node.name else ""))
+        line.add(lead + "[" + role + (" " + quoted(node.name) if node.name else ""))
+        value = self._value(node)
+        if value:
+            line.add(" = " + quoted(value))
+        self._unread(line, node, role)
+        self._states(line, node)
         self._reference(line, node)
         line.inline = None
         line.add("]")
@@ -269,10 +279,13 @@ class _Renderer:
         return [("run", part) if type(part) is str else ("inline", part) for part in parts]
 
     def _fit(self, pieces, budget):
-        """Cut a line's page text to the budget. Returns what stays and how many characters don't."""
+        """Cut a line's page text to the budget. Returns what stays and how many characters don't.
+
+        An inline part counts with its name and its value, and is kept whole or left out whole.
+        """
         kept, left_out, cut = [], 0, False
         for kind, item in pieces:
-            text = item.name if kind == "inline" else item
+            text = item.name + (self._value(item) or "") if kind == "inline" else item
             if cut:
                 left_out += len(text)  # nothing after the cut is shown
             elif budget is not None and len(text) > budget:
@@ -319,19 +332,26 @@ class _Renderer:
             return " ".join(part for part in (method, address) if part) or None
         return None
 
-    def _marks(self, line, node, role, rich):
-        """What the tool itself says about an element, after its quoted parts."""
+    def _unread(self, line, node, role):
+        """What stands in place of a value that isn't read."""
         if role == "password" or node.unread and node.filled is None:
             line.add(" (not read)")
         elif node.unread:
             line.add(" (filled, not read)" if node.filled else " (empty)")
+
+    def _states(self, line, node):
+        for state in STATES:
+            if state in node.states:
+                line.add(" " + state)
+
+    def _marks(self, line, node, role, rich):
+        """What the tool itself says about an element, after its quoted parts."""
+        self._unread(line, node, role)
         if role == "form" and node.hidden and not rich:
             line.add(" (%s hidden)" % number(len(node.hidden)))
         if node.option_count > OPTIONS and not rich:
             line.add(" (%s options)" % number(node.option_count))
-        for state in STATES:
-            if state in node.states:
-                line.add(" " + state)
+        self._states(line, node)
         target = self._target(node, role, rich)
         if target:
             line.add(" → " + target)

@@ -150,6 +150,38 @@ class Format(unittest.TestCase):
 group
   link "alone" kqtvm4""")
 
+    def test_an_inline_part_carries_its_value_and_states_before_its_reference(self):
+        # Decision 5 (section 7): what its line would carry, in the line's order.
+        nodes = [node(1, "p", text=["Order ", 2, " qty ", 3, " on ", 4, " code ", 5, " nick ", 6, " pin ", 7]),
+                 node(2, "checkbox", 1, name="Select", states=["checked"]),
+                 node(3, "textbox", 1, name="Qty", value="2", states=["required", "invalid"]),
+                 node(4, "link", 1, name="Today", href=SITE + "/t", states=["current"]),
+                 node(5, "textbox", 1, name="Code", unread=True, filled=True),
+                 node(6, "textbox", 1, name="Nick", unread=True, filled=False),
+                 node(7, "password", 1, name="PIN", unread=True),
+                 node(8, "table", name="T"), node(9, "row", 8), node(10, "cell", 9, text=["Order 0"]),
+                 node(11, "cell", 9), node(12, "checkbox", 11, name="Select order 0", states=["checked", "disabled"]),
+                 node(13, "cell", 9), node(14, "combobox", 13, name="Size", chosen="M", value="m")]
+        table = references()
+        self.assertEqual(outline(nodes, table).split("\n")[0],
+                         'p "Order " [checkbox "Select" checked kqtvm1] " qty " [textbox "Qty" = "2" required invalid kqtvm2]'
+                         ' " on " [link "Today" current kqtvm3] " code " [textbox "Code" (filled, not read) kqtvm4]'
+                         ' " nick " [textbox "Nick" (empty) kqtvm5] " pin " [password "PIN" (not read) kqtvm6]')
+        self.assertEqual(outline(nodes, table, ref="kqtvm7"), 'table "T" kqtvm7\n'
+                         '"Order 0" | [checkbox "Select order 0" checked disabled kqtvm8] | [combobox "Size" = "M" kqtvm9]')
+        # The reference keeps what Claude saw of the part, value and states included.
+        self.assertIn((outline(nodes, table).find("kqtvm2") + 6, "kqtvm2", 'textbox "Qty" = "2" required invalid kqtvm2'),
+                      [mark[:3] for mark in render(view(nodes), references()).marks])
+
+    def test_an_inline_parts_value_counts_toward_the_cut(self):
+        # 150 characters, then a part of 1 + 60: it doesn't fit whole, so it is left to the reference.
+        nodes = [node(1, "p", text=["x" * 150, 2, "tail"]), node(2, "textbox", 1, name="n", value="v" * 60)]
+        table = references()
+        self.assertEqual(outline(nodes, table), 'p "%s"%s+65 kqtvm1' % ("x" * 150, MARK))
+        self.assertEqual(outline(nodes, table, ref="kqtvm1"), 'p "%s" kqtvm1\n  textbox "n" = "%s" kqtvm2\n  text "tail"' % ("x" * 150, "v" * 60))
+        nodes[1]["value"] = "v" * 49                                                  # 1 + 49 fits
+        self.assertEqual(outline(nodes), 'p "%s" [textbox "n" = "%s" kqtvm1]%s+4 kqtvm2' % ("x" * 150, "v" * 49, MARK))
+
     def test_every_role_of_the_list_is_shown_and_nothing_else_is_a_role(self):
         for role in sorted(ROLES - {"table", "grid"}):
             with self.subTest(role=role):
@@ -272,7 +304,7 @@ class Unread(unittest.TestCase):
         table = references()
         first = outline(self.NODES, table)
         self.assertEqual(first, "\n".join(['form "Sign in" kqtvm1'] + ["  " + line for line in self.LINES] +
-                                          ['  p "Type " [password "OTP" kqtvm9] " here"']))
+                                          ['  p "Type " [password "OTP" (not read) kqtvm9] " here"']))
         for text in (outline(self.NODES, table, ref="kqtvm1"), outline(self.NODES, table, full=True)):
             self.assertEqual(text, "\n".join(['form "Sign in" kqtvm1'] + ["  " + line for line in self.LINES] +
                                              ['  p "Type "', '    password "OTP" (not read) kqtvm9', '    text " here"']))
