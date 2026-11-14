@@ -40,7 +40,8 @@
     "22c review fixes 4, fix 1: forward again takes the newer AresOS's row first; update only where the running system does not start next",
     "22c review fixes 4, fix 2: the failed-update card keeps the result of a check just run",
     "22c one word per meaning, step 1: update only stages and names forward; forward selects the newest installed AresOS; tests and model (bundle, pins and guides follow in step 2)",
-    "22c one word per meaning, step 2: login on plain Bazzite names forward; bundle refreshed (2084c786…); forward waits under unwalked_commands for stage 2's rehearsal"
+    "22c one word per meaning, step 2: login on plain Bazzite names forward; bundle refreshed (2084c786…); forward waits under unwalked_commands for stage 2's rehearsal",
+    "22c one word per meaning, step 2: the guides say forward for every way back (the forward-again and back-from-stock box runs forward; no check-first dispatch, boot-menu step or tools' release); update only installs a new release"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -49,11 +50,11 @@
       "path": ".github/workflows/os-image.yml"
     },
     {
-      "sha256": "73fa2050ad6feb8b4f9cf2cb0854fe9394a9389423a9cfae2835a0a85c58fd02",
+      "sha256": "b4adf0fe51f1d75d59e143ea0bcb140d371910f5278dc2367524d46ce489bf40",
       "path": "docs/EMERGENCY.md"
     },
     {
-      "sha256": "54afad82bd8914564d7407897621cc808dfd79146a7c25317b52434031a92d18",
+      "sha256": "c467c2f794358c6d9166592b7ac205535fbd80fed9b6367bcaf904b40aff9898",
       "path": "docs/INSTALL.md"
     },
     {
@@ -169,7 +170,7 @@
       "path": "os/tests/test_owner_guard.py"
     },
     {
-      "sha256": "975c00c84c8167f37ac33b113b58938004d2c3b4026680b126a27df43fce8500",
+      "sha256": "eddb1d3474c6c660a03380b57bf6b19739fae239881bb69db14192f881957110",
       "path": "os/tests/test_owner_path.py"
     },
     {
