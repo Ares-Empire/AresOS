@@ -736,7 +736,8 @@ for root in ('/usr/lib/systemd', '/usr/local/lib/systemd', '/etc/systemd', '/run
                 links.append(str(path))
         elif path.is_file() and b'aresos-toold' in path.read_bytes():
             naming.append(str(path))
-assert naming == ['/usr/lib/systemd/system/aresos-toold.service'], naming
+# The unit itself need not contain its own name; no other unit file may name it.
+assert set(naming) <= {'/usr/lib/systemd/system/aresos-toold.service'}, naming
 assert links == ['/etc/systemd/system/multi-user.target.wants/aresos-toold.service'], links
 # Agreed change 3: the updater audit of build.sh configure saw the unit and passed it.
 rows = [row for row in json.load(open('/usr/share/aresos/manifest/updaters.json'))

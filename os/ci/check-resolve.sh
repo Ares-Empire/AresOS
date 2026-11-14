@@ -225,38 +225,12 @@ PY
     head -60 /tmp/prism-home/.local/share/PrismLauncher/prismlauncher.cfg
 } > "$out/pkg23.txt" 2>&1
 
-# Package 18c: the Control service runs /usr/bin/gh with PATH=/usr/bin:/bin
-# and refuses a gh older than 2.102.0. Report Fedora's gh and resolve it into
-# the candidate below, beside the existing inputs. Whether the image takes
-# Fedora's RPM or GitHub's pinned release RPM follows from GH_FEDORA.
-gh_version=''
-{
-    section gh-in-base
-    rpm -q gh
-    printf 'gh: %s\n' "$(command -v gh || echo missing)"
-    section gh-in-fedora
-    dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates repoquery \
-        --qf '%{full_nevra} %{repoid}\n' gh
-    gh_version=$(dnf5 --disable-repo='*' --enable-repo=fedora --enable-repo=updates repoquery -q \
-        --latest-limit=1 --qf '%{version}\n' gh | tail -n 1)
-    python3 - "$gh_version" <<'PY'
-import re, sys
-version = sys.argv[1]
-parts = re.fullmatch(r'(\d+)\.(\d+)\.(\d+)', version)
-verdict = 'missing' if not version else 'unparsed' if not parts else \
-    'new-enough' if tuple(map(int, parts.groups())) >= (2, 102, 0) else 'too-old'
-print(f'GH_FEDORA {version or "-"} {verdict} (Control needs 2.102.0 or newer)')
-PY
-} > "$out/gh.txt" 2>&1
-grep '^GH_FEDORA ' "$out/gh.txt"
-
 # Candidate lock: the existing exact inputs (a vanished pin by name and
-# architecture, see existing-lock-availability) plus package 23's Java 25 and
-# package 18c's gh, resolved exactly as build.sh does.
+# architecture, see existing-lock-availability) plus package 23's Java 25,
+# resolved exactly as build.sh does.
 names=()
 while read -r spec; do names+=("$spec"); done < /tmp/lock-requests.txt
 names+=(java-25-openjdk-headless)
-if [[ -n $gh_version ]]; then names+=(gh); fi
 {
     printf 'Requested: %s\n' "${names[*]}"
     rm -rf /tmp/ares-rpms

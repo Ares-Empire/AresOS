@@ -1,4 +1,4 @@
-"""Package 18c, Part A: the Control tools in the image (build.sh control, the image checks, check-resolve's gh step).
+"""Package 18c, Part A: the Control tools in the image (build.sh control, the image checks).
 
 The install map runs for real: `build.sh control-tree` is the same Python as the image build's `control` mode, into a
 temporary folder. The image build's own extras (pip, the wheel record, the self-checks) run only in the image build;
@@ -336,26 +336,6 @@ class ServiceUserTest(unittest.TestCase):
             output = result.stdout + result.stderr
             self.assertIn("Creating group 'aresos-tools' with GID 250.", output)
             self.assertIn("Creating user 'aresos-tools' (AresOS tool service) with UID 250 and GID 250.", output)
-
-
-class GhResolveTest(unittest.TestCase):
-    """check-resolve.sh's one gh step: a verdict line, and gh resolved into the candidate when Fedora has it."""
-
-    def test_the_verdict_line(self):
-        code = heredoc('os/ci/check-resolve.sh', 'python3 - "$gh_version" <<\'PY\'\n')
-        for version, verdict in (('2.102.0', '2.102.0 new-enough'), ('2.110.3', '2.110.3 new-enough'),
-                                 ('3.0.0', '3.0.0 new-enough'), ('2.101.9', '2.101.9 too-old'),
-                                 ('2.65.0', '2.65.0 too-old'), ('', '- missing'), ('2.102', '2.102 unparsed')):
-            result = subprocess.run([sys.executable, '-I', '-c', code, version], capture_output=True, text=True, timeout=60)
-            self.assertEqual(result.stdout, f'GH_FEDORA {verdict} (Control needs 2.102.0 or newer)\n', version)
-
-    def test_gh_joins_the_candidate_and_nothing_else_changes(self):
-        script = (ROOT / 'os/ci/check-resolve.sh').read_text()
-        candidate = script.split('names=()\n', 1)[1].split('{\n', 1)[0]
-        self.assertEqual(candidate.splitlines(), [
-            'while read -r spec; do names+=("$spec"); done < /tmp/lock-requests.txt',
-            'names+=(java-25-openjdk-headless)',
-            'if [[ -n $gh_version ]]; then names+=(gh); fi'])
 
 
 class ContainerfileTest(unittest.TestCase):
