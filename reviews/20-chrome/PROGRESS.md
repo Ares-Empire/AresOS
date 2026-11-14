@@ -52,16 +52,44 @@ agent each. The last step deletes this file.
 - **REPORT**: see "Final fixes round" at the top of `REPORT.md`, and
   `records/post18d/mail-sweep-after-f1.json` and `.md`.
 
+### Step 2 (reader, target, reload, notes), Claude Opus 5.5, 2026-11-14
+
+Code commits `f177314b` and `831feceb`; details in REPORT.md, "Step 2".
+- **F2:** `credentialLike` knows the reported names and tokens plus the brief's English and German variants. Short
+  names match only as whole tokens; label text split by markup counts; `cc-csc` history is sticky. KNOWN-LIMITS has
+  the word-heuristic line.
+- **F3:** first HTML `<base>` only, HTML's sanitising rule (tab/newline **and** `<`), SVG `xlink:show="new"`.
+  `target=""` keeps Chromium's base fallback (see below). REPORT's "native browsing targets" and the 60-row coverage
+  sentence are corrected; KNOWN-LIMITS names the residual.
+- **F6:** `chrome_navigate direction=reload` gives the first input's report; `reload_taken_tab` is in the navigate
+  schema; a POST never reloads.
+- **Notes:** withheld-form text and tool text, typed-read question (quoted, capped labels, frame site), `visible()`
+  on extension errors, dead `-f` code removed. NOTE 2 (marker shape) left as it is: changing it changes catalogue
+  result shapes.
+- **Removal probes:** 25 new, 6 repointed; all rejected.
+- **Full local preflight on `831feceb`:** 274 Python (shards 40/101/53/80), 387 Node and 344 mutations, plus the generator, diff and unit-pin checks, all green.
+
 ## Left, in order
 
-1. **Step 2:** F2 (credential names), F3 (browsing target), F6 (reload report), and the reader and adapter notes
-   (typed-read question labels and frame sites, dead `-f` code, `visible()` on extension errors, stale
-   managed-settings and `control/README.md` text, the withheld-form tool text).
-2. **Step 3:** F7 (polkit confirmation for owner authority over `chrome.sock`).
-3. **Step 4:**
+1. **Step 3:** F7 (polkit confirmation for owner authority over `chrome.sock`).
+2. **Step 4:**
    - F4 (latency ceilings fail on median or p95);
-   - the remaining doc notes;
-   - one batched browser run for the rows of F2, F3, F6 and F7;
+   - the stale doc notes: `control/settings/managed-settings.draft.comments.md` (eight rules, not six) and
+     `control/README.md:31` (`chrome.sock` accepts the owner's user id);
+   - the service-unit pin-test comments (`control/tests/test_unit.py:10`, `control/chrome_tests/test_unit.py:10`);
+   - **one batched browser run** (`gh workflow run control-chrome.yml --ref pkg/20-chrome`) for the rows of F2, F3,
+     F6 and F7. Step 2's rows are already wired into the suite and need no further change:
+     - **F3:** 30 rows in `GROUP 3 POST18D absolute destinations inherited bases targets and form owners`
+       (`control/chrome/ci/destination-fixtures.mjs`, `finalTargetRows`; 96 rows in all, audited by
+       `destination-evidence.mjs`). Ids: `post18d-destination-{area,svg-href,svg-xlink}-{top,blank,srcdoc}-target`,
+       `post18d-destination-form-action-{top,blank,srcdoc}-owner`, and in the top document `…-owner-target`,
+       `…-decoy-target`, `…-sanitize-newline-target`, `…-sanitize-bracket-target`, `…-xlink-show`, `…-empty-target`.
+     - **F6:** three rows (`final-navigate-reload-{dirty,web-audio,clean}`) at the end of `GROUP 8 REVIEW iframe
+       drafts and detached or Web Audio report before reload` (`control/chrome/ci/review-matrices.mjs`).
+     - **F2:** 14 credential fields and two ordinary ones (`Distanz`, `Tank`) on the late-reader page
+       (`control/chrome/ci/late-reader-fixtures.mjs`), checked by `GROUP 7 POST18D credentials and revealed passwords
+       stay unreadable before take reload` and `GROUP 7 POST18D typed field reads require exact one-call approval`.
+     - The withheld-form text check in `control/chrome/ci/late-binding-matrix.mjs` matches the new refusal text.
    - the final preflight;
    - the records, the Handover and KNOWN-LIMITS;
    - deleting this file.
@@ -79,3 +107,24 @@ agent each. The last step deletes this file.
 - Local measurement used CPython 3.14.6 with the worktree's `.work/20-chrome/python-deps` (jsonschema 4.26.0), the
   analyst's harness unchanged, and detached worktrees at `b2b51107`, `b72c81fa` and the measured head. The worktrees
   were removed afterwards.
+- **`target=""` deviates from the brief (F3, security NOTE 1), for the lead.** The brief asks for HTML's reading
+  (current navigable). Chromium's anchor and form code (`GetEffectiveTarget`, `FormSubmission`) treats an empty
+  target like a missing one and uses the base target, and the earlier code and its `formtarget=""` test already
+  followed that. Binding `_self` would let a named-frame or new-window navigation look like `_self`, the unsafe
+  direction, so step 2 kept Chromium's rule. The four `…-top-empty-target` rows decide it on the installed Chrome:
+  if they fail with the navigation staying in the top document, change `const target=explicit||documentBaseTarget()`
+  to treat an explicit empty string as `_self` (the `final-f3-empty-target` probe is that line) and flip the row
+  expectation in `destinationExpectation`.
+- **The other F3 rules also come from Chromium's source, not yet from a browser:** SVG links skip the sanitising
+  rule and use `xlink:show="new"` only for an empty own target; an iframe name keeps a newline. Step 4's rows check
+  them; the `xlink-show` rows check removing `xlink:show` (the `_blank` binding before it is checked only by the
+  reader tests), so no extra tab opens during the suite.
+- **Open for the lead (security FIX 1's side note, not in the brief):** `chrome_navigate(url)` and
+  `chrome_close_tab` on a taken tab before its first reload still drop unsaved text without a report.
+- **F6 covers every Claude tab:** a navigate reload in a tab Claude opened also reports unsaved text (for example
+  text Claude typed) and needs `reload_taken_tab=true`. The message keeps the words "this taken tab".
+- **Credential false positives:** a control named only by a short credential word (a "PIN" or "Secret" button) is
+  withheld and refused for input, as "PIN" already was. KNOWN-LIMITS says so.
+- **Generated files changed:** `control/generated/chrome-tools.json`, `chrome-instructions.txt` and
+  `docs/control/TOOLS.md` (navigate schema and shared text). The extension's runtime hash changes with `reader.js`
+  and `background.js`, so step 4's run measures a new build.

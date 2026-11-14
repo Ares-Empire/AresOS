@@ -5,18 +5,26 @@
   [REVIEW-FINAL](REVIEW-FINAL.md) and [SECURITY-FINAL](SECURITY-FINAL.md). Claude agents build it in four steps
   (owner, board #222). Progress, what is left in order and what the code doesn't show:
   [PROGRESS.md](PROGRESS.md).
-- **Step 1 (Mail and storage) is done.** It covers F1, the Mail sweep changes, F5 and the stale receipt; see "Final
-  fixes round" below. Commits: `b72c81fa` (F1), `b7f58bc6` (F5, receipt), `2e5eb35e` (sweep).
-- **Code head:** **`2e5eb35e`**. The full local preflight passes:
-  - **271 Python, 373 Node and 319 mutations**, every mutation baseline passing;
+- **Step 1 (Mail and storage) is done:** F1, the Mail sweep changes, F5 and the stale receipt. Commits `b72c81fa`,
+  `b7f58bc6`, `2e5eb35e`.
+- **Step 2 (reader, target, reload, notes) is done:** F2, F3, F6 and the reader and adapter notes; see "Step 2"
+  below. Code commits `f177314b` and `831feceb` (the newline-name row expects the escaped question text).
+- **Code head:** **`831feceb`**. The full local preflight passes:
+  - **274 Python, 387 Node and 344 mutations**, every mutation baseline passing;
   - the generator, diff and exact-unit checks (unit byte-identical to `8b7e799c`).
-  - No browser run in this step. The new Chrome runtime is not yet CI-measured.
+  - No browser run in this step. The new browser rows (30 destination rows, 3 navigate-reload rows, 14 credential
+    fields) run first in step 4's batched run; they are listed in PROGRESS.md.
+- **For the lead (F3, security NOTE 1):** an explicit `target=""` keeps Chromium's behaviour (the base target), not
+  HTML's "current navigable". Chromium's anchor and form code falls back to the base target for an empty target,
+  so the spec reading would make the question say `_self` while Chrome uses the base target, the unsafe direction.
+  The browser row `post18d-destination-*-top-empty-target` settles it on the installed Chrome. If it shows the spec
+  behaviour, the change is one line in `browsingTarget` (mutation `final-f3-empty-target` is that line).
 - **Next:**
-  - step 2: F2, F3, F6 and the reader and adapter notes;
   - step 3: F7, polkit;
-  - step 4: F4, the doc notes, one batched browser run, the final preflight and the records.
+  - step 4: F4, the stale doc notes (`managed-settings.draft.comments.md`, `control/README.md`), the unit pin-test
+    comments, one batched browser run, the final preflight and the records.
   - Then the lead's scoped re-check, and only after it the final pair and every Control workflow twice.
-- **Budget:** **255 / about 280** `control-chrome.yml` runs; this step started none.
+- **Budget:** **255 / about 280** `control-chrome.yml` runs; steps 1 and 2 started none.
 - **Earlier head `a4143586`** (before this round): its Chrome pair, base, boundary and qualification passed. Mail
   `43539458146` passed attempt 1. They are history now: the code has changed, so the final pair reruns everything.
   Never merge the PR or main, and never force-push.
@@ -112,6 +120,81 @@ plain runs averaged; [record](records/post18d/mail-sweep-after-f1.json),
   - With ×1.24 cases, the local sweep's work is about 1.4× main's, where it was about 5×.
 - **Full disk:** `fulldisk_read.py` finds Mail read and search answering on both heads at 0, 300, 500, 700, 1,000 and
   4,000 retained operations.
+
+## Step 2: reader, browsing target, reload report and notes
+
+**F2, credential names** (`reader.js`, `credentialLike`).
+- **Added:** CVC, CVV, CSC, CVN, card security code, card verification, card code; TAN, mTAN, SMS-TAN, pushTAN,
+  chipTAN, TAN-Nummer, Transaktionsnummer; Geheimzahl/-nummer, Kartenprüfnummer, Prüfnummer; pincode, PIN-Nummer,
+  PUK; pwd, passwd, pw, user_pass, passphrase, secret; verification, verify, authentication, auth, access, login, SMS,
+  recovery, backup and activation codes; Verifizierungs-, Verifikations-, Authentifizierungs-, Authentisierungs-,
+  Aktivierungs-, Wiederherstellungs-, Freigabe-, Anmelde- and Sicherungscode; OTP code, TOTP, HOTP, 2FA, MFA;
+  security answer, Sicherheitsantwort. `ae`/`ue` spellings count for ä/ü.
+- **Short names stand alone:** `pin`, `tan`, `pw`, `cvc` and the like match only as a whole token (after the
+  camelCase split), so Distanz, Tank, Tante, Titan, Spin count, Passport number or Promo code stay ordinary fields.
+- **Split labels:** label and `aria-labelledby` text is matched both with spaces between nodes and joined, so
+  `P<b>a</b>sswort` counts as well as `Security <b>code</b>`.
+- **`cc-csc` history:** a field whose `autocomplete` was `cc-csc` stays protected after the page changes it.
+- **Tests:** one row per added name in the label, `name` and `id` forms, in watched and unwatched documents
+  (`final F2 …` in `reader.test.mjs`), the `cc-csc` token and history, split labels in both routes, and 22 ordinary
+  words in three forms that must stay readable. Browser: 14 new credential fields and two ordinary ones on the
+  late-reader page, checked by the existing GROUP 7 rows (no read, form read or approved typed read shows them).
+- **KNOWN-LIMITS:** the word-heuristic line REPORT already referred to is now there.
+
+**F3, the browsing target** (`reader.js`, `browsingTarget`).
+- **Correction:** the extension never used "native browsing targets"; the reader resolves the target in script.
+  The sentence in "Post-18d integration" now says so, and KNOWN-LIMITS names the residual.
+- **Fixed routes:**
+  - the document base target comes from the first **HTML** `<base>` with a target (namespace checked, saved native
+    `getAttribute`), so an SVG `<base>` decoy placed first changes nothing;
+  - the sanitising rule is HTML's: a tab or newline **and** `<` means `_blank`, for explicit and base targets of
+    HTML links and forms (`a\nb` and `a<b` keep their names);
+  - an SVG link with an empty own target and `xlink:show="new"` binds `_blank`; its own target still wins and the
+    base target is still ignored, as in Chromium's SVG code.
+- **`target=""` (security NOTE 1) is not changed to HTML's reading.** Chromium falls back to the base target for an
+  empty `target` and `formtarget`, which the existing code and tests already followed. Binding `_self` there would
+  hide a navigation into a named frame or a new window. The empty-target browser rows check Chromium's behaviour on
+  the installed Chrome; see the Handover.
+- **Browser rows** (30 new, 96 in all, in `GROUP 3 POST18D absolute destinations inherited bases targets and form
+  owners`, defined in `control/chrome/ci/destination-fixtures.mjs`, `finalTargetRows`):
+  - a target change on `area`, `svg-href` and `svg-xlink`, in top, blank and srcdoc documents (the SVG change sets
+    the link's own target);
+  - a form-owner change for a plain submit button (`form-action`), in all three documents;
+  - top document: a new owner form with its own target (three form sources), an HTML base behind an SVG decoy (five
+    sources), names with a newline or `<` alone (links and forms), `xlink:show="new"` removed (two SVG sources), and
+    `target=""` behind a base change (four sources).
+  - Each row needs zero arrivals through the stale approval, a fresh question with the new target, one arrival after
+    it, and Chrome's own window name or top document matching the bound target. `destinationExpectation` gives the
+    expected targets for the matrix and the independent audit.
+- **Tests:** Node rows for each route, the area and owner targets, and the generated pages and row collection
+  (`destination-evidence.test.mjs`).
+
+**F6, reload in a taken tab** (`background.js`, `definitions.py`).
+- `chrome_navigate(direction='reload')` calls `reloadChecked(tab,null,reload_taken_tab!==true)`, the same report on
+  unsaved text and playing media as the first input; `reload_taken_tab` is in the navigate schema. `reloadIdentity`
+  still runs first, so a form-loaded document never reloads, even with the flag.
+- The report covers every Claude tab, as the brief's `requireClean` change does, not only taken ones: the owner can
+  type into a Claude tab too (board #138). Its message keeps the first input's wording, "this taken tab".
+- **Tests:** `final F6 …` in `background.test.mjs` (report, explicit repeat, clean reload, POST refusal) and the
+  schema pass-through in `test_questions.py`. Browser rows in `GROUP 8 REVIEW iframe drafts and detached or Web
+  Audio report before reload`: unsaved text and Web Audio report and keep the page until the explicit repeat; a clean
+  taken tab reloads at once.
+- **Open for the lead (security FIX 1, not in the brief):** `chrome_navigate(url)` and `chrome_close_tab` on a taken
+  tab still drop unsaved text without a report.
+
+**Notes.**
+- The withheld-form refusal (service and extension) names `chrome_navigate direction=reload`, and the shared tool
+  text says the refusal runs before the first-input reload, so `reload_taken_tab=true` on the same input refuses
+  again.
+- The typed-read question lists fields per frame as `frame N (site): "label", …`. Each label sits in double quotes it
+  can't contain and is cut at 80 characters with its length shown.
+- Extension error text passes through `visible()` in `bridge.py`.
+- The dead code of `-f`'s dropped provision is gone (`typedField` comment, editor branch in `readTypedFields`).
+- **Left as it is:** the untrusted marker's two shapes (security NOTE 2). Nesting the catalogue results would change
+  the shape of `tabs`, `downloads`, `bookmarks`, `history` and `sites list` that Claude reads.
+
+**Removal probes:** 25 new (`final-f2-*`, `final-f3-*`, `final-f6-*`, `final-notes-*`), and the six existing probes
+whose source lines changed now point at the new lines. All are rejected.
 
 # Post-18d integration — final repetitions pending
 
