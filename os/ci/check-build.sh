@@ -17,11 +17,11 @@ case $mode in
         ;;
     control|build)
         # check_build=control (package 18c, B2) builds and checks the same image,
-        # then puts the Control test layer on top of the CI layer and boots that
-        # disk once with os/ci/control/control_vm.py instead of vm.py. Its fixture
-        # servers start first, so a broken fixture stops the run before the build.
+        # then puts the Control test layer on top of the CI layer and makes its
+        # disk; the workflow's next step boots it (control-pass, below). Its
+        # fixture servers start first, so a broken fixture stops the run before
+        # the build; the workflow stops them after the pass, also on a failure.
         if [[ $mode == control ]]; then
-            trap 'bash os/ci/control/runner.sh stop' EXIT
             bash os/ci/control/runner.sh start
         fi
         date +%s > evidence/build-start-time.txt
@@ -74,16 +74,24 @@ case $mode in
             "$builder" --type raw --rootfs btrfs --use-librepo=True "$disk_image"
         sudo chmod -R a+rX vm-work/output
         if [[ $mode == control ]]; then
-            sudo -E env "ARESOS_REVISION=$revision" python3 os/ci/control/control_vm.py
-            echo CHECK_BUILD_CONTROL_PASSED
+            echo CHECK_BUILD_CONTROL_DISK_READY
         else
             sudo -E env ARESOS_VM_PASS=1 python3 os/ci/vm.py
             grep -q ARESOS_ACTIVE_SESSION_POLKIT_PASSED evidence/vm-pass-1/policy-result.json
             echo CHECK_BUILD_VM_PASSED
         fi
         ;;
+    control-pass)
+        # check_build=control's own workflow step with its own time limit, so
+        # the build step keeps its limit for every mode: boot the disk the
+        # control build made, once, and run the Control checks.
+        test -d vm-work/output
+        revision=$(git rev-parse HEAD)
+        sudo -E env "ARESOS_REVISION=$revision" python3 os/ci/control/control_vm.py
+        echo CHECK_BUILD_CONTROL_PASSED
+        ;;
     *)
-        echo "Unknown check-build mode: '$mode' (expected resolve, build or control)" >&2
+        echo "Unknown check-build mode: '$mode' (expected resolve, build, control or control-pass)" >&2
         exit 2
         ;;
 esac
