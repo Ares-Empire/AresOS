@@ -22,13 +22,14 @@ and `git worktree list` first.
 |---|---|---|---|
 | Brief 18c | `briefs/18c-image-test.md`, on main (PR #42) | Final; the `os/` change agreed with `linux-aresos` (sixteen changes, in the brief). | - |
 | 18c, container part | on main (PR #43) | The unit may reach the network; 17 interactive Claude Code cases in `control-boundary`. | - |
-| 18c, image part | `pkg/18c-image`, `~/AresOS-18c-image`, start note `briefs/18c-image-start.md` | Being built in steps without the Chrome tool. Step 1 (Part A, static checks) on Opus; progress in `reviews/18c-image-test/PROGRESS.md`. | Step 2: one `check_build=build`. Then the VM loop (B2): decide on Monday with `mac-capacity`, Opus or Codex from Tuesday. Tell `linux-aresos` before the `control` choice goes into `os-image.yml`. After PR #27: Chrome's two startup files and one more VM run. |
+| 18c, image part | `pkg/18c-image`, `~/AresOS-18c-image`, draft PR #58, start note `briefs/18c-image-start.md` | Green without Chrome (2026-11-14): `check_build=control` twice on `2d1ad22f` (run 43577034725 and its rerun), `check_build=build` once (43581194306); 5 of 5 control runs used. Results, check 6's numbers and the report text in `reviews/18c-image-test/PROGRESS.md`. Its first run found the hook bug fixed by PR #61. | After PR #27: Chrome's two startup files, `SOCKET_MODES` from the merged `daemon.py`, one more VM run (new budget). Then the lead assembles `REPORT.md`, updates the `os/` diff summary, and runs the reviews (Codex from 2026-11-17: package review and high-stakes security review). Then `linux-aresos` reads the `os/` diff, then the owner's yes. |
+| Service fixes | not written | Found by 18c's VM runs: active before its sockets exist (Type=notify), `aresos admin` as `ares` without a sudo hint, 10 idle wake-ups/s, endless restart without a start limit, the outside-folder refusal naming Desktop, and the owner's #254 for the service-down notice. Board #233, #235, #237, #255. | A small brief after PR #27 merges (daemon.py overlaps). |
 | Chrome briefs 28, 28a, 28b | `briefs/28-chrome-capability`, draft PR #48 | Ready to build: three review rounds each, the final package check worked in, the security confirmation READY (`reviews/28-chrome-capability/`). | Merge after PR #27 is on main, checking section 6 against its final names and `KNOWN-LIMITS.md`. |
 | Package 28, step 1 | `pkg/28-chrome-read`, `~/AresOS-28-chrome-read`, cut from `pkg/20-chrome` | The view module (pure Python) on a Fable builder, new files only, no pull request; progress in `reviews/28-chrome-read/PROGRESS.md`. | After PR #27 merges: move the commits onto main, then the next steps of 28 (the reader, the wiring, the baseline), then 28a, then 28b. |
 | Brief 18c-b | not written | Design settled: force-install by policy from a `file:` address inside the image, a fresh signing key per image build that is thrown away, symlinks in `/etc` to files in `/usr`. Research with sources: `~/AresOS-18c-b-extension-research.md` on the laptop (put it into the brief's folder). `mac-aresos-control` has no objection. | Write the brief after PR #27 merges; agree the paths with `linux-aresos`; prove it in the CI VM on the shipped Chrome. Board #223, #224. |
 | Live tests | the laptop | Waits for a release that carries the tools. | Mail onboarding with him first (he signs in himself), a test mail, then Chrome. His own hosts go on Chrome's never-list in that sitting (board #200). |
 
-## The owner's answers (2026-11-13), all written into the briefs
+## The owner's answers, written into the briefs (#254: into the service-fix brief)
 
 - #201: Claude may close a tab of his when he asks.
 - #202: the first version reads text only, no screenshots.
@@ -36,6 +37,7 @@ and `git worktree list` first.
 - #210 ("Ask first"): typed text in form fields is read only through the asking read.
 - #213: link addresses are shown, sign-in-like values hidden.
 - #216: rich-text editors are read without asking.
+- #254 (2026-11-14, "Quiet unless used"): while the tool service is down, a Claude Code session that never used the tools gets no notice; one that prepared or sent something with them gets one clear notice that the AresOS tools are not running.
 
 **Still his, later:** his yes to "the next release carries the Control tools: a background service, and two
 managed hooks in every Claude Code session on the laptop" before the image part of 18c merges. Ask it with the
