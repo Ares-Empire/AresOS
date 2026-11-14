@@ -71,8 +71,10 @@ def check(current,baseline,reference,targets):
                 if call in INPUTS:
                     wait=group[call]['post_input_observation_wait']
                     assert wait['samples']==20 and 520<=wait['median_ms']<=wait['p95_ms']<=750,'Missing or changed 525 ms safety wait'
-    # A short tail spike alone does not fail the run. Both median and p95 must
-    # cross the threshold; 20 samples and the paired old runtime absorb noise.
+    # The lead's ceilings are absolute: a median or a p95 over its ceiling (times
+    # the common runner slowdown) fails. Against the frozen reference a short
+    # tail spike alone does not fail: both median and p95 must cross there, and
+    # 20 samples and the paired old runtime absorb runner noise.
     rows=[];failures=[]
     for phase in sorted(PHASES):
         group=current['phases'][phase];old=baseline['phases'][phase]
@@ -91,12 +93,12 @@ def check(current,baseline,reference,targets):
             allowed={'median_ms':active(accepted,call,'median_ms')*allowance*1.5+10,
                      'p95_ms':active(accepted,call,'p95_ms')*allowance*1.75+20}
             regression=all(observed[stat]>allowed[stat] for stat in observed)
-            target_miss=all(metric(group,call,stat)>targets['ceilings_ms'][call][stat]*allowance for stat in observed)
+            target_miss=any(metric(group,call,stat)>targets['ceilings_ms'][call][stat]*allowance for stat in observed)
             if regression or target_miss:failures.append({'phase':phase,'call':call,'regression':regression,'target_miss':target_miss})
             rows.append({'phase':phase,'call':call,'runner_factor':noise,'paired_work_ms':observed,'regression_threshold_ms':allowed,
                          'client_ms':{stat:metric(group,call,stat) for stat in observed},'target_miss':target_miss})
     return {'passed':not failures,'failures':failures,'measurements':rows,
-            'policy':'Lead ceilings and reference regression in every measured history phase; median and p95 must both cross. Common paired runner slowdown scales allowance; Matched per-sample waits are subtracted before percentiles; the 525 ms wait is checked separately.'}
+            'policy':'Lead ceilings and reference regression in every measured history phase. A call misses the lead ceilings when its median or its p95 is over the ceiling; against the reference, median and p95 must both cross. Common paired runner slowdown scales both allowances; Matched per-sample waits are subtracted before percentiles; the 525 ms wait is checked separately.'}
 
 
 if __name__=='__main__':

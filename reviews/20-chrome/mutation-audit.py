@@ -417,6 +417,8 @@ case('post18d-pin-nul-suffix','control/aresos_control/storage.py',"substr(CAST(t
 case('post18d-namespace-encoding','control/aresos_control/storage.py',"if encoding!='UTF-8' or '\\0' in prefix:","if '\\0' in prefix:",'test_latency.OperationHeaders.test_namespace_prefixes_keep_legacy_sqlite_encoding_behavior',True)
 case('post18d-sparse-expiry-diagnostic','control/chrome/ci/latency-check.py','validate_metric(block,allow_sparse=sparse)','validate_metric(block)','test_latency.LatencyGate.test_sparse_expiry_and_navigation_diagnostics_keep_required_samples_strict',True)
 case('post18dg-round3-latency-cost','control/chrome/ci/latency-check.py','if regression or target_miss:failures.append','if False:failures.append','test_latency.LatencyGate.test_round3_measured_cost_removal_probe_fails_the_production_ci_command',True)
+case('final-f4-median-or-p95-ceiling','control/chrome/ci/latency-check.py',"target_miss=any(metric(group,call,stat)","target_miss=all(metric(group,call,stat)",'test_latency.LatencyGate.test_final_f4_a_median_or_p95_over_a_lead_ceiling_fails_alone',True)
+case('final-f4-reference-both-cross','control/chrome/ci/latency-check.py',"regression=all(observed[stat]>allowed[stat]","regression=any(observed[stat]>allowed[stat]",'test_latency.LatencyGate.test_final_f4_reference_comparison_still_needs_median_and_p95_to_cross',True)
 case('post18dg-dialog-reload-settle','control/chrome/ci/review-matrices.mjs','previous=current;return settled?current:false;','previous=current;return current;',node('review-reload','preexisting dialog fixture waits through delayed parser revisions'))
 
 # Final fixes F7: owner authority over chrome.sock waits for the owner's polkit password.

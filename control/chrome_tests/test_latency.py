@@ -410,10 +410,49 @@ class LatencyGate(unittest.TestCase):
         self.assertEqual(row['paired_work_ms'],{'median_ms':200,'p95_ms':200})
 
     def test_tail_spike_alone_does_not_fail_but_shortened_safety_wait_does(self):
-        self.current['phases']['fresh']['read']['client_total']['p95_ms']=1000
-        self.assertTrue(self.check()['passed'])
+        # Over the reference threshold (62 ms here) but under the 150 ms ceiling:
+        # runner noise against the old measurement still needs both to cross.
+        self.current['phases']['fresh']['read']['client_total']['p95_ms']=140
+        result=self.check();self.assertTrue(result['passed'],result['failures'])
+        row=next(row for row in result['measurements'] if row['phase']=='fresh' and row['call']=='read')
+        self.assertGreater(row['paired_work_ms']['p95_ms'],row['regression_threshold_ms']['p95_ms'])
         self.paired(self.current,'fresh','fill',waits=[400]*20)
         with self.assertRaises(AssertionError):self.check()
+
+    def real_profile(self,profile='plain'):
+        import json
+        from pathlib import Path
+        ci=Path(__file__).resolve().parents[1]/'chrome/ci'
+        reference=json.loads((ci/'latency-reference.json').read_text())['profiles'][profile]
+        targets=json.loads((ci/'latency-targets.json').read_text())
+        return copy.deepcopy(reference['current']),copy.deepcopy(reference['baseline']),reference,targets
+
+    def test_final_f4_a_median_or_p95_over_a_lead_ceiling_fails_alone(self):
+        # The final review's case: the lead's ceilings, the measured reference,
+        # and one history phase changed. read 35/60, asking_click 60/100.
+        for call,median,p95 in [('read',50,55),('asking_click',65,70),('read',30,65),('asking_click',50,110)]:
+            with self.subTest(call=call,median=median,p95=p95):
+                current,baseline,reference,targets=self.real_profile()
+                self.assertTrue(self.gate.check(current,baseline,reference,targets)['passed'])
+                current['phases']['history-4000'][call]['client_total'].update(median_ms=median,p95_ms=p95)
+                result=self.gate.check(current,baseline,reference,targets)
+                self.assertFalse(result['passed'])
+                self.assertEqual(result['failures'],[{'phase':'history-4000','call':call,'regression':False,'target_miss':True}])
+                self.assertIn('median or its p95 is over the ceiling',result['policy'])
+
+    def test_final_f4_reference_comparison_still_needs_median_and_p95_to_cross(self):
+        current,baseline,reference,targets=self.real_profile()
+        # navigate: its reference threshold lies under its ceiling, so a median
+        # shift between them is runner noise to the comparison and passes.
+        accepted=reference['current']['phases']['history-4000']['navigate']['client_total']
+        median=accepted['median_ms']*1.5+10+1
+        self.assertLess(median,targets['ceilings_ms']['navigate']['median_ms'])
+        current['phases']['history-4000']['navigate']['client_total'].update(median_ms=median,p95_ms=max(median,accepted['p95_ms']))
+        result=self.gate.check(current,baseline,reference,targets)
+        self.assertTrue(result['passed'],result['failures'])
+        row=next(row for row in result['measurements'] if row['phase']=='history-4000' and row['call']=='navigate')
+        self.assertGreater(row['paired_work_ms']['median_ms'],row['regression_threshold_ms']['median_ms'])
+        self.assertLessEqual(row['paired_work_ms']['p95_ms'],row['regression_threshold_ms']['p95_ms'])
 
     def test_missing_stage_phase_or_unset_lead_targets_cannot_pass(self):
         for change in ['stage','phase','targets']:
