@@ -1649,20 +1649,24 @@ class OwnerPathTest(unittest.TestCase):
                       "\"This system's half-written layout is restored to the settings before its trial\""):
             self.assertIn(value, source)
 
-    def test_status_names_22c_built_not_rehearsed_and_not_on_the_laptop(self):
+    def test_status_names_22c_built_rehearsed_and_not_on_the_laptop(self):
         status = documents()['INSTALL-STATUS.md']
         fingerprint = hashlib.sha256((ROOT/'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest()
         row = next(line for line in status.splitlines() if line.startswith('| Ways back after an update (package 22c) |'))
-        for value in ('**BUILT AND REVIEWED; NOT REHEARSED YET; NOT ON THE LAPTOP**', "the laptop's tools stay `851eb742…`",
-                      '`' + fingerprint + '`', '(../reviews/22c-ways-back-after-update/REPORT.md)', '**Not rehearsed yet:**',
+        # The rehearsal passed and its record step rebound the sources: the row links the run the bindings name.
+        bindings = json.loads((ROOT/'os/manifest/ci/22c/source-bindings.json').read_text())
+        for value in ('**BUILT AND REVIEWED; VM REHEARSAL PASSED; NOT ON THE LAPTOP**', "the laptop's tools stay `851eb742…`",
+                      '`' + fingerprint + '`', '(../reviews/22c-ways-back-after-update/REPORT.md)', '**VM rehearsal passed**',
+                      '(' + bindings['run'] + ')', 'every protected-disk audit was unchanged',
                       'tools-only update', '**Before this row may say "on the laptop":**', 'the owner installs these tools',
                       'calm test', "the title's row map", 'stays OPEN',
-                      # One word per meaning: forward returns, update only installs; its review is still to come.
+                      # One word per meaning: forward returns, update only installs; review 7 found it SAFE.
                       'one word per destination', '`at forward` goes to the newest installed AresOS from every system',
-                      '`at update` only installs a new release', 'and its review follows',
+                      '`at update` only installs a new release', 'reviewed SAFE (review 7)',
                       'previous, restart, forward, restart, then rollback, restart, forward, restart'):
             self.assertIn(value, row)
-        for value in ('`at update` goes to', 'the newer AresOS from the boot menu, update'):
+        for value in ('`at update` goes to', 'the newer AresOS from the boot menu, update', 'NOT REHEARSED', 'Not rehearsed yet',
+                      'its review follows', 'the rehearsal passes'):
             self.assertNotIn(value, row)
         update = next(line for line in status.splitlines() if line.startswith('| Update route (packages 22 and 27) |'))
         self.assertIn("the laptop's tools until the owner installs package 22c's", update)
