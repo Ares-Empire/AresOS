@@ -227,8 +227,7 @@ public final class ZoneCommands {
             }
             try {
                 var removal = GateBuilder.remove(source.getServer(), zone);
-                source.sendSuccess(() -> Component.literal("Took down the gate of " + zone.app() + ": " + removal.removed() + " blocks removed"
-                        + (removal.kept() > 0 ? ", " + removal.kept() + " that you changed stay." : ".")), false);
+                source.sendSuccess(() -> Component.literal(tookDown(zone, removal)), false);
                 done++;
             } catch (IOException | RuntimeException error) { source.sendFailure(Component.literal(error.getMessage())); }
         }
@@ -253,5 +252,19 @@ public final class ZoneCommands {
                     + " logo for " + id + ". Zone saved; return exit is where you stood."), false);
             return 1;
         } catch (IOException | RuntimeException error) { source.sendFailure(Component.literal("Logo refused: " + error.getMessage())); return 0; }
+    }
+
+    /**
+     * The one line {@code /aresos logo remove} says about a gate it took down: the blocks removed, those he changed,
+     * and a sign that stays because it is his (review fixes 2, point 2).
+     */
+    public static String tookDown(AppZone zone, GateBuilder.Removal removal) {
+        String sign = switch (removal.sign()) {
+            case NONE -> "";
+            case CHANGED -> " Its sign stays: it is not the one the gate was built with, so it is yours.";
+            case UNRECORDED -> " Its sign stays and is yours: this gate's record is from an older AresOS and does not say what the sign said.";
+        };
+        return "Took down the gate of " + zone.app() + ": " + removal.removed() + " blocks removed"
+                + (removal.kept() > 0 ? ", " + removal.kept() + " that you changed stay." : ".") + sign;
     }
 }

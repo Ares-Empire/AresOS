@@ -93,6 +93,8 @@ public final class HubData extends SavedData {
                 AppZone.Gate.CODEC.fieldOf("gate").forGetter(Logo::gate)).apply(i, Logo::new));
 
         public Logo {
+            // Without the sign's place and text a hand-built gate records: the town checks its signs against its own
+            // plan ({@link HubData#sign}), so town.dat keeps the shape it has.
             gate = new AppZone.Gate(List.copyOf(gate.placed()), List.copyOf(gate.ground()), gate.sign(), List.copyOf(gate.grass()));
         }
 

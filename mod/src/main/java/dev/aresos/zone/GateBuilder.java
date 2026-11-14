@@ -47,7 +47,21 @@ import java.util.UUID;
  */
 public final class GateBuilder {
     /** How many recorded blocks a removal took away, and how many it left because they had been changed. */
-    public record Removal(int removed, int kept) { }
+    /**
+     * What a removal did: how many recorded blocks it took away, how many stay because he changed them, and whether
+     * an entity with the sign's ID stays ({@link SignLeft}).
+     */
+    public record Removal(int removed, int kept, SignLeft sign) { }
+
+    /** Whether the sign stays after a removal, and why: it is his then. */
+    public enum SignLeft {
+        /** Taken down, or no entity with its ID was there. */
+        NONE,
+        /** It is not what the mod made: edited, moved, or another entity that took its ID. */
+        CHANGED,
+        /** The record does not say where the sign stood and what it said (a gate of packages 33 to 35): never taken down. */
+        UNRECORDED
+    }
 
     /**
      * How far a light block melts: ice goes at block light 11 and snow at 12, and a level-15 light block still
@@ -180,7 +194,7 @@ public final class GateBuilder {
                 .map(change -> new AppZone.Placed(change.pos(), change.before())).toList();
         var zone = prepared.zone();
         return new AppZone(zone.id(), zone.app(), zone.dimension(), zone.min(), zone.max(), zone.exit(), zone.blocks(),
-                Optional.of(new AppZone.Gate(record, ground, Optional.of(sign.getUUID()), grass)));
+                Optional.of(new AppZone.Gate(record, ground, Optional.of(sign.getUUID()), grass, Optional.of(plan.sign()))));
     }
 
     /** Puts back what a build placed, newest first, each block only while it is still the one placed. */
@@ -236,13 +250,13 @@ public final class GateBuilder {
     }
 
     /**
-     * Whether an entity is still the sign the mod made (review fixes 1, step B, point 2): a text display, and, where
-     * the record knows them ({@code made}), at its place with its text, compared in its saved form. Anything else is
-     * his: an entity of his that took the recorded ID, or a sign whose text he edited.
+     * Whether an entity is still the sign the mod made (review fixes 1, step B, point 2, and review fixes 2, point 2):
+     * a text display at the place the record names with the text it names, compared in its saved form. Anything else
+     * is his: an entity of his that took the recorded ID, a sign whose text he edited or that was moved, and any sign
+     * of a record that does not name its place and text ({@code made} null).
      */
     private static boolean made(ServerLevel level, Entity entity, GatePlan.Sign made) {
-        if (!(entity instanceof Display.TextDisplay display)) return false;
-        if (made == null) return true;
+        if (made == null || !(entity instanceof Display.TextDisplay display)) return false;
         if (entity.position().distanceToSqr(made.position()) > 1.0E-6) return false;
         var ops = level.registryAccess().createSerializationContext(NbtOps.INSTANCE);
         var shown = ComponentSerialization.CODEC.encodeStart(ops, ((TextDisplayAccess)display).aresos$text()).result();
@@ -278,8 +292,9 @@ public final class GateBuilder {
         if (level == null) throw new IOException("The gate's dimension does not exist.");
         Removal removal;
         try {
-            // A hand-built gate's record holds no place or text of its sign: it is taken down while it is a text display.
-            removal = takeDown(level, gate, null);
+            // The sign goes only while it is still where and what the record says it was built (review fixes 2,
+            // point 2); a record without that leaves it standing.
+            removal = takeDown(level, gate, gate.signPlan().orElse(null));
         } catch (NotLoaded notLoaded) {
             throw new NotLoaded("The gate of " + zone.app() + " isn't loaded. Go to it and use /aresos logo remove here. Nothing changed.");
         }
@@ -291,7 +306,7 @@ public final class GateBuilder {
      * Takes down what a gate placed, through {@link Placing}: each recorded block that is still that block (the
      * doormat goes back to the ground it replaced), the grass under it where it turned to dirt, and the sign while it
      * is still the one the mod made ({@code sign}: where it stands and what it says, or null when the record does not
-     * know; then any text display with its ID is). A sign that is not is his and stays. Its record and zone are the
+     * know; then it is never taken down). A sign that is not is his and stays. Its record and zone are the
      * caller's. Refuses, changing nothing, while the place is not loaded ({@link NotLoaded}) or when something of his
      * could fall or break with it.
      */
@@ -319,7 +334,12 @@ public final class GateBuilder {
         // Refuse the whole operation before touching the sign, the record or any block.
         Neighbors.checkRemoval(level, back.keySet());
         back.forEach((pos, state) -> Placing.set(level, pos, expected.get(pos), state));
-        gate.sign().map(level::getEntity).filter(entity -> made(level, entity, sign)).ifPresent(Entity::discard);
-        return new Removal(gate.placed().size() - kept, kept);
+        var entity = gate.sign().map(level::getEntity);
+        var left = SignLeft.NONE;
+        if (entity.isPresent()) {
+            if (made(level, entity.get(), sign)) entity.get().discard();
+            else left = sign == null ? SignLeft.UNRECORDED : SignLeft.CHANGED;
+        }
+        return new Removal(gate.placed().size() - kept, kept, left);
     }
 }
