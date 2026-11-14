@@ -6,6 +6,7 @@ import dev.aresos.AresOs;
 import dev.aresos.mode.LiveMode;
 import dev.aresos.world.DesktopWorld;
 import dev.aresos.zone.AppZone;
+import dev.aresos.zone.Placing;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.core.UUIDUtil;
@@ -200,7 +201,7 @@ public final class HubData extends SavedData {
         if (!level.dimension().equals(home.dimension())) return false;
         String block = placed.get(pos);
         if (block == null) return false;
-        if (block.equals(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).toString())) return true;
+        if (Placing.still(level.getBlockState(pos), block)) return true;
         forget(pos);
         return false;
     }

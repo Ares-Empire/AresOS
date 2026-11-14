@@ -3,13 +3,12 @@ package dev.aresos.hub;
 import com.mojang.math.Transformation;
 import dev.aresos.AresOs;
 import dev.aresos.catalogue.AppGroup;
+import dev.aresos.zone.Placing;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
-import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Brightness;
 import net.minecraft.util.ProblemReporter;
@@ -26,6 +25,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.UUID;
 
 /** Builds the fixed things of a flat home (docs/design/HUB.md 3.2): the home pad, the four avenues and their names. */
@@ -55,19 +55,16 @@ public final class FlatHub {
     }
 
     /**
-     * The one place the hub changes a block. It paves only the untouched ground with nothing standing on it;
-     * anything else is his, or another build's, and stays. What it places is recorded with its position.
+     * Paves one block through {@link Placing}, the one way the mod changes a block, and records what it placed. The
+     * pad and roads go on the untouched grass only, with nothing standing on it; anything else is his, or another
+     * build's, and stays. No neighbour updates: paving the ground changes nothing around it.
      */
     private static void place(ServerLevel level, BlockPos pos, String id, List<HubData.Placed> placed) {
         var ground = level.getBlockState(pos);
-        var above = level.getBlockState(pos.above());
-        if (!ground.is(Blocks.GRASS_BLOCK) || !above.isAir()) {
-            AresOs.LOGGER.warn("AresOS hub: left {} unbuilt, something stands there (ground {}, above it {})", pos.toShortString(), ground, above);
-            return;
-        }
-        Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(id));
-        level.setBlock(pos, block.defaultBlockState(), Block.UPDATE_CLIENTS);
-        placed.add(new HubData.Placed(pos.immutable(), id));
+        var change = ground.is(Blocks.GRASS_BLOCK) ? Placing.set(level, pos, null, Placing.state(id), Block.UPDATE_CLIENTS) : Optional.<Placing.Change>empty();
+        change.ifPresentOrElse(done -> placed.add(new HubData.Placed(done.pos(), done.block())),
+                () -> AresOs.LOGGER.warn("AresOS hub: left {} unbuilt, something stands there (ground {}, above it {})", pos.toShortString(),
+                        ground, level.getBlockState(pos.above())));
     }
 
     /** The group's name over its avenue: a text display, so it cannot be hit or broken in either mode. */

@@ -7,14 +7,12 @@ import dev.aresos.world.HomeSites;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.FloatTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentSerialization;
-import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -24,7 +22,6 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.LightBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -36,6 +33,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -86,6 +84,27 @@ public final class GateBuilder {
 
     /** Builds the gate and saves its zone, or throws with the reason and changes nothing. */
     public static AppZone build(ServerLevel level, String app, GatePlan plan) throws IOException {
+        var built = place(prepare(level, app, plan));
+        ZoneData.get(level.getServer()).add(built);
+        return built;
+    }
+
+    /** The gate's place is not loaded: nothing was looked at closely and nothing changed. Try again when it is. */
+    public static final class NotLoaded extends IOException {
+        public NotLoaded(String message) { super(message); }
+    }
+
+    /**
+     * A gate that passed every check, ready to build: nothing in the world has changed yet. {@code zone} is its
+     * trigger zone with every block it will place, not saved anywhere.
+     */
+    public record Prepared(ServerLevel level, GatePlan plan, AppZone zone, Map<BlockPos, BlockState> placed, Entity sign) { }
+
+    /**
+     * Every refusal of a build, without changing anything: {@link NotLoaded} while the place is not loaded, otherwise
+     * an IOException that says what is in the way. What it returns is for {@link #place}, at once.
+     */
+    public static Prepared prepare(ServerLevel level, String app, GatePlan plan) throws IOException {
         if (!level.dimension().equals(plan.dimension())) throw new IOException("The gate is planned for another dimension.");
         var data = ZoneData.get(level.getServer());
         var solid = new LinkedHashMap<BlockPos, BlockState>();
@@ -99,7 +118,7 @@ public final class GateBuilder {
         inspection.addAll(Neighbors.footprint(solid.keySet(), 2));
         inspection.addAll(Neighbors.footprint(plan.doormat(), 2));
         inspection.addAll(Neighbors.footprint(plan.lights(), LIGHT_MELTS));
-        if (!loaded(level, inspection)) throw new IOException("The place for the gate isn't loaded. Go nearer, then retry. No blocks changed.");
+        if (!loaded(level, inspection)) throw new NotLoaded("The place for the gate isn't loaded. Go nearer, then retry. No blocks changed.");
         for (var pos : space) {
             if (pos.getY() < level.getMinY() || pos.getY() >= level.getMaxY() || !level.getWorldBorder().isWithinBounds(pos))
                 throw new IOException("Gate would be outside the build limits or world border.");
@@ -124,27 +143,46 @@ public final class GateBuilder {
         Neighbors.check(level, placed.keySet(), solid.keySet(), 2);
         if (doormat.isPresent()) Neighbors.check(level, placed.keySet(), plan.doormat(), 2);
         Neighbors.check(level, placed.keySet(), plan.lights(), LIGHT_MELTS);
-        var sign = sign(level, plan.sign());
+        return new Prepared(level, plan, zone, java.util.Collections.unmodifiableMap(placed), sign(level, plan.sign()));
+    }
 
-        // The ground the doormat replaces, to put back when the gate is removed.
-        var before = new LinkedHashMap<BlockPos, BlockState>();
-        if (doormat.isPresent()) for (var pos : plan.doormat()) before.put(pos, level.getBlockState(pos));
+    /**
+     * Builds what {@link #prepare} checked, every block through {@link Placing}, and returns its zone with what was
+     * placed for it as its gate. The caller records it: a gate built by hand in {@code zones.dat}, a town logo in
+     * {@code hub.dat}. If the world changed since the check, everything placed goes back and nothing is recorded.
+     */
+    public static AppZone place(Prepared prepared) throws IOException {
+        var level = prepared.level();
+        var plan = prepared.plan();
+        // The grass under the gate turns to dirt in the dark; it is put back when the gate goes.
         var grass = plan.floor().stream().filter(pos -> level.getBlockState(pos).is(Blocks.GRASS_BLOCK)).toList();
-        var record = new ArrayList<AppZone.Placed>();
-        for (var block : placed.entrySet()) {
-            level.setBlockAndUpdate(block.getKey(), block.getValue());
-            record.add(new AppZone.Placed(block.getKey(), id(block.getValue())));
+        var done = new ArrayList<Placing.Change>();
+        for (var block : prepared.placed().entrySet()) {
+            var change = Placing.set(level, block.getKey(), null, block.getValue());
+            if (change.isEmpty()) {
+                undo(level, done);
+                throw new IOException("Something changed at " + block.getKey().toShortString() + " while the gate was built. No blocks changed.");
+            }
+            done.add(change.get());
         }
+        var sign = prepared.sign();
         if (!level.addFreshEntity(sign)) {
             // Nothing is known to make this fail after the checks above; if it does, the world goes back as it was.
-            for (var pos : placed.keySet()) level.setBlockAndUpdate(pos, before.getOrDefault(pos, Blocks.AIR.defaultBlockState()));
+            undo(level, done);
             throw new IOException("The gate's sign could not be placed. No blocks changed.");
         }
-        var ground = before.entrySet().stream().map(block -> new AppZone.Placed(block.getKey(), id(block.getValue()))).toList();
-        var built = new AppZone(zone.id(), app, zone.dimension(), zone.min(), zone.max(), zone.exit(), zone.blocks(),
-                Optional.of(new AppZone.Gate(List.copyOf(record), ground, Optional.of(sign.getUUID()), grass)));
-        data.add(built);
-        return built;
+        var record = done.stream().map(change -> new AppZone.Placed(change.pos(), change.block())).toList();
+        // The ground the doormat replaced, to put back when the gate is removed. Everything else went into air.
+        var ground = done.stream().filter(change -> !Placing.state(change.before()).isAir())
+                .map(change -> new AppZone.Placed(change.pos(), change.before())).toList();
+        var zone = prepared.zone();
+        return new AppZone(zone.id(), zone.app(), zone.dimension(), zone.min(), zone.max(), zone.exit(), zone.blocks(),
+                Optional.of(new AppZone.Gate(record, ground, Optional.of(sign.getUUID()), grass)));
+    }
+
+    /** Puts back what a build placed, newest first, each block only while it is still the one placed. */
+    private static void undo(ServerLevel level, List<Placing.Change> done) {
+        for (var change : done.reversed()) Placing.set(level, change.pos(), change.block(), Placing.state(change.before()));
     }
 
     /**
@@ -207,13 +245,6 @@ public final class GateBuilder {
         return list;
     }
 
-    private static String id(BlockState state) { return BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString(); }
-
-    private static boolean unchanged(BlockState state, AppZone.Placed placed) {
-        return id(state).equals(placed.block()) && (!state.is(Blocks.LIGHT)
-                || state.getValue(LightBlock.LEVEL) == LightBlock.MAX_LEVEL && !state.getValue(LightBlock.WATERLOGGED));
-    }
-
     /**
      * Takes a gate down: each recorded block that is still that block (the doormat goes back to the ground it
      * replaced), the sign and the zone. A block he changed since is his and stays. Refuses, changing nothing,
@@ -223,27 +254,47 @@ public final class GateBuilder {
         var gate = zone.gate().orElseThrow(() -> new IOException("Not a gate."));
         var level = server.getLevel(zone.dimension());
         if (level == null) throw new IOException("The gate's dimension does not exist.");
+        Removal removal;
+        try {
+            removal = takeDown(level, gate);
+        } catch (NotLoaded notLoaded) {
+            throw new NotLoaded("The gate of " + zone.app() + " isn't loaded. Go to it and use /aresos logo remove here. Nothing changed.");
+        }
+        ZoneData.get(server).remove(saved -> saved.id().equals(zone.id()));
+        return removal;
+    }
+
+    /**
+     * Takes down what a gate placed, through {@link Placing}: each recorded block that is still that block (the
+     * doormat goes back to the ground it replaced), the grass under it where it turned to dirt, and the sign. Its
+     * record and zone are the caller's. Refuses, changing nothing, while the place is not loaded ({@link NotLoaded})
+     * or when something of his could fall or break with it.
+     */
+    public static Removal takeDown(ServerLevel level, AppZone.Gate gate) throws IOException {
         var recorded = gate.placed().stream().map(AppZone.Placed::pos).collect(java.util.stream.Collectors.toSet());
         recorded.addAll(gate.grass());
         var inspection = Neighbors.footprint(recorded, 2);
         inspection.addAll(Neighbors.footprint(gate.placed().stream().filter(placed -> placed.block().equals("minecraft:light")).map(AppZone.Placed::pos).toList(), LIGHT_MELTS));
-        if (!loaded(level, inspection))
-            throw new IOException("The gate of " + zone.app() + " isn't loaded. Go to it and use /aresos logo remove here. Nothing changed.");
+        if (!loaded(level, inspection)) throw new NotLoaded("The gate isn't loaded. Nothing changed.");
         var ground = new HashMap<BlockPos, String>();
         for (var replaced : gate.ground()) ground.put(replaced.pos(), replaced.block());
-        var removing = new LinkedHashMap<BlockPos, BlockState>();
+        // Each block that goes, with what the record says stands there and what comes back in its place.
+        var expected = new HashMap<BlockPos, String>();
+        var back = new LinkedHashMap<BlockPos, BlockState>();
         int kept = 0;
         for (var placed : gate.placed()) {
-            if (!unchanged(level.getBlockState(placed.pos()), placed)) { kept++; continue; }
-            var before = Optional.ofNullable(ground.get(placed.pos())).map(Identifier::tryParse).flatMap(BuiltInRegistries.BLOCK::getOptional);
-            removing.put(placed.pos(), before.orElse(Blocks.AIR).defaultBlockState());
+            if (!Placing.still(level.getBlockState(placed.pos()), placed.block())) { kept++; continue; }
+            expected.put(placed.pos(), placed.block());
+            back.put(placed.pos(), Placing.state(ground.getOrDefault(placed.pos(), "minecraft:air")));
         }
-        for (var pos : gate.grass()) if (level.getBlockState(pos).is(Blocks.DIRT)) removing.put(pos, Blocks.GRASS_BLOCK.defaultBlockState());
+        for (var pos : gate.grass()) if (level.getBlockState(pos).is(Blocks.DIRT)) {
+            expected.put(pos, "minecraft:dirt");
+            back.put(pos, Blocks.GRASS_BLOCK.defaultBlockState());
+        }
         // Refuse the whole operation before touching the sign, the record or any block.
-        Neighbors.checkRemoval(level, removing.keySet());
-        removing.forEach(level::setBlockAndUpdate);
+        Neighbors.checkRemoval(level, back.keySet());
+        back.forEach((pos, state) -> Placing.set(level, pos, expected.get(pos), state));
         gate.sign().map(level::getEntity).ifPresent(Entity::discard);
-        ZoneData.get(server).remove(saved -> saved.id().equals(zone.id()));
         return new Removal(gate.placed().size() - kept, kept);
     }
 }
