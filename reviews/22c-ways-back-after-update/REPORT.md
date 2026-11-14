@@ -1149,282 +1149,193 @@ PR #46 stays open and draft; nothing was merged and nothing was pushed to main.
 
 ## Review fixes 1
 
-Builder: Codex GPT-6.1-sol, xhigh. Scope: the three findings in REVIEW-1 only;
-stage 1b, the harness and VM rehearsal remain deferred. This section is updated
-and pushed with each finding so work can continue from a checkpoint.
+Builder: Codex GPT-6.1-sol, xhigh. **All three findings are fixed.** Tested
+implementation: `cfa98e20ea4c37d8446813704e4a3f92de45db25`. Closing commits change
+this report and receipts only. PR #46 remains open and draft; no merge or main push.
 
-### Finding 1 — interrupted layout restoration
+### Done, tests and revert proofs
 
-**Done:** `layout abandon` saves `restoring` (the exact persistent pair before
-restoration) into the pending trial or repair note before either persistent
-write. A retry accepts only that pair, its console-first restoration intermediate,
-and the old finished pair. Initial restoration still accepts only old settings,
-the authorized forward partial finish, or the authorized new settings. A reverse
-partial pair without restoration intent still refuses. Abandoning on another
-deployment carries that intent into its repair note without writing another
-system's settings; retries do not duplicate that note. `check` also names
-fresh-login abandon when a repair note owns a loaded/persistent console mismatch.
-Existing schemas stay unchanged; `restoring` is an additive field.
+**1. Interrupted layout restoration resumes.** `owner.py` saves the exact
+persistent pair in additive `restoring` data before either restoration write,
+for both pending trials and repair notes. A retry accepts its recorded start,
+its own console-first intermediate, and the old finished pair. Without intent,
+a reverse partial pair still refuses. Retries re-publish the same intent;
+they never replace its original snapshot. Abandoning elsewhere carries the
+intent into that deployment's repair note and writes no other system's `/etc`.
+`check` names fresh-login abandon when a repair note owns a console mismatch.
 
-**Tests:** `LayoutTest.test_every_restoration_cut_resumes_only_its_own_settings`
-covers all six directed profile pairs, both interrupted-finish write points,
-pending trials and repair notes, and restoration intent/console/X11 cuts (72
-cases). It checks durable intent, exact restoration, untouched other settings,
-cleared records and an immediately usable destination command.
-`test_reverse_partial_without_a_restoration_intent_is_not_authorized` preserves
-the refusal boundary. The independent ledger now models abandon intent, console
-and persistent cuts; the driver reconstructs and checks restoration intent, and
-the execution memo observes it as an input. Closure counts will be updated for
-this expanded event set, not treated as coverage of unencoded interruptions.
+A further cut was reproduced: save the note on stock, cut before clearing the
+trial, return and interrupt restoration, then transfer back on stock. Exact
+object deduplication previously left two notes, one lacking the new authority.
+Transfer now replaces the note by deployment identity, retains its old/new
+settings and intent, and refuses conflicting records.
 
-**Revert proof:**
-`RevertTest.test_rejecting_reverse_partial_restoration_fails_pending_and_note_regressions`
-removes restoration-intermediate acceptance in memory. The same pending and
-repair-note sequences then fail the driver's `accept/refuse` assertion. The
-positive regression also covers moving an interrupted restoration onto stock,
-transferring its intent to a repair note, returning and repairing.
+- `LayoutTest.test_every_restoration_cut_resumes_only_its_own_settings` covers
+  all six directed profile pairs, both finish write cuts, pending/repair owners,
+  and restoration intent/console/X11 cuts: **72 cases**. It checks durable intent,
+  exact old settings, untouched other settings, cleared records and a usable
+  destination command. The unauthorized reverse-pair test preserves the boundary.
+- `RevertTest.test_abandon_cuts_resume_pending_notes_and_transferred_restoration`
+  replays restoration cuts, restarts and intent transfer. Removing reverse-pair
+  acceptance makes the pending and repair-note retries fail `accept/refuse`.
+  Removing the save fails `restoration intent missing before write`.
+- `LayoutTest.test_cut_during_note_transfer_then_restoration_updates_the_same_note`
+  reproduces the private note-save cut, requires one intent-bearing note and
+  repairs it. Before the fix it printed `Ran 1 test in 0.084s` /
+  `FAILED (failures=1)` (an additional note). Its executable replacement-removal
+  proof fails that same assertion, with no unrelated exception accepted.
 
-**Verified so far:** after a `free -m` gate of 10330 MB available,
-`cd os/tests && TMPDIR=/var/home/ares/pkg22c-work nice -n 10 python3 -B -m unittest test_ways_back`
-printed `Ran 36 tests in 21.160s` / `OK`. Initial model runs caught missing adapter
-encoding for the new field and a missing abandon next step from `check` during
-repair-note restoration; both were fixed. Full model verification is in progress.
+**2. Reorder reads the list that the caller journalled.** `start_next` passes
+its complete pre-change deployment snapshot as hex-encoded JSON (`BEFORE`),
+which cannot introduce quoting or substitutions. `start-next.sh` compares its
+fresh read before `set-default`, alongside the existing target checks. Drift
+reports an outside change and executes no primitive. Exact postconditions and
+`sync` remain. The accepted race after that final read is unchanged.
 
-**Not verified:** physical typing, real shutdown durability, VM and laptop
-operations remain outside this round. No Gradle or mod command is applicable.
-No new JUDGMENT-CALL or rule change. No review finding is rejected.
+- `ScriptTest.test_fresh_read_must_equal_the_callers_snapshot_before_any_mutation`
+  covers order, pin, identity, running row and deployment metadata drift: one
+  read, zero primitives.
+- `DestinationTest.test_outside_reorder_between_intent_and_script_does_not_add_an_owner_mutation`
+  injects `[R13, R27*, S]` after rollback journalled `[R27*, R13, S]`. It requires
+  the outside state unchanged, zero owner changes and an open intent.
+- Removing only the snapshot assertion in memory makes that owner-level
+  regression fail because it observes `ostree admin set-default 2` instead of
+  no mutation. The postcondition still refuses the resulting wrong order.
 
-### Finding 2 — bind the script read to the journalled list
+**3. All reviewed installed-list entry points survey first.** `survey_installed`
+resolves the installed lifecycle before prepare's disk/setup checks, before
+`before_switch`'s checks (verify/switch), and before login chooses its side.
+With no installed AresOS, prepared and first-switch checks stay in charge.
 
-**Done:** the caller passes its entire pre-change deployment list as hex-encoded
-JSON (`BEFORE`), so it cannot introduce quoting or script substitutions. The
-script compares its fresh read with that snapshot before target lookup and
-`set-default`. A mismatch reports an outside change and performs no mutation.
-Target identity/origin/stage checks, exact postcondition and `sync` remain.
-The accepted race after the final read and before the primitive remains.
+- `JournalTest.test_install_commands_resolve_the_installed_journal_before_their_own_refusals`
+  cuts rollback before/after its primitive, starts stock, then separately tries
+  login, verify, switch and prepare. It requires recorded/not-applied resolution
+  before each own refusal, without another deployment mutation.
+- The existing every-command A10 test now includes those four, check and layout
+  begin. The prepared/first-switch boundary test preserves the old refusal,
+  including foreign staging. Its account boundary is explicitly synthetic;
+  the fake disk record supplies prepare's full required structure.
+- Removing the installed survey in memory makes both the journal and mandatory
+  danger-message assertions fail; unrelated exceptions are rejected as proof.
 
-**Tests and revert proof:**
-`ScriptTest.test_fresh_read_must_equal_the_callers_snapshot_before_any_mutation`
-checks order, pin, identity, running row and deployment metadata drift, with
-exactly one read and no primitive. The owner-level
-`DestinationTest.test_outside_reorder_between_intent_and_script_does_not_add_an_owner_mutation`
-injects `[R13, R27*, S]` after rollback has journalled `[R27*, R13, S]`; it
-requires unchanged outside state, an open intent and zero owner changes.
-`ScriptTest.test_removing_snapshot_guard_fails_the_outside_writer_regression`
-removes only the fresh snapshot assertion in memory; that same regression must
-fail because it observes `ostree admin set-default 2` instead of no owner change.
-Local execution of these new tests is pending completion of the one-at-a-time
-model run; no test result is claimed at this checkpoint.
+### Model and verification cost
 
-The payload was refreshed without changing stage-1b inventory or fingerprint
-pins. The host walk and pending bindings were refreshed in that order. No new
-JUDGMENT-CALL, PLAN-GAP or changed brief rule.
+The independent ledger now cuts abandon before persistence, between console
+and X11, and after both writes. Every deployment's settings, all eight journal
+outcomes and restoration evidence remain literal in representatives and actual
+execution checks. The reference catalogue generated the new exact pins;
+reference-only counting is **not** Tools verification.
 
-### Finding 3 — survey every installed-list entry point
+Restoration intent provenance is future-equivalent for reachable settings:
+both initial restoration and retry publish intent before writing old settings.
+Reverse partial pairs remain reachable only with intent. The equivalence test
+executes every successor of **48 pairs**, across all profiles and both record
+owners. Execution reuse additionally checks cached against uncached results in
+**both fill directions**, with an unrelated live repair intent. It frames exact
+snapshots, adds a re-published intent when absent, preserves it on retry, and
+clears it when its trial/note is removed. Every cache hit still compares the
+**full literal ledger** with the independent prediction. No assertion, event or
+state was removed. Predictions are computed once and shared with invariants.
 
-**Done:** `survey_installed` sends an installed lifecycle through the existing
-`qualified`/journal resolution before install-only command checks. It runs at
-the start of `prepare`, before `before_switch`'s refusals (thus verify and
-switch), and before login chooses its stock/AresOS branch. With no installed
-AresOS, the prepared and first-switch checks stay in charge. The audit found
-prepare had the same gap; its disk/setup checks now follow the installed survey.
+One cache implementation omitted an idempotent write when the first execution
+already had intent. The unchanged full-ledger assertion caught that missing
+intent after 80000 states (`20 tests in 106.714s`, one failure). The driver now
+records actual restoration write attempts, including the pre-write cut. The
+both-direction cache regression guards the correction.
 
-**Tests and revert proof:**
-`JournalTest.test_install_commands_resolve_the_installed_journal_before_their_own_refusals`
-cuts rollback before/after its primitive, starts stock, then tries each of login,
-verify, switch and prepare separately. It requires the recorded/not-applied
-outcome before each own refusal and zero further deployment mutations.
-The existing every-command A10 test now includes those four, check and layout
-begin. `ShapeTest.test_install_survey_leaves_prepared_and_first_switch_checks_in_charge`
-checks the pre-install boundary, including foreign staging and the unchanged
-before-switch refusal. The fake disk record now supplies its full structural
-shape, so prepare's own refusal is exercised rather than a fixture KeyError.
-`JournalTest.test_removing_install_survey_fails_resolution_and_danger_warning_regressions`
-removes the gate in memory and requires both guarding tests to fail assertions,
-with no unrelated exception accepted. Local execution and hosted totals follow
-below after the current full-model process completes.
+The private note-save interruption above has its own direct regression; the
+model's closure counts cover its encoded persistent-write event set, **not all
+possible private JSON-save cuts**.
 
-No brief rule changed. The review's three findings stand; the extra `check`
-next-step case belongs to interrupted restoration, and prepare was explicitly
-part of the requested audit. All three fixes have separate pushed commits;
-final verification and any follow-up corrections will be recorded below.
+### Verified
 
-### Verification continuation and model cost
+Final local commands were run separately, at nice 10, after `free -m` gates:
 
-The first final-focused attempt ran 42 tests in 24.763s with one fixture failure:
-the new prepared-state boundary test reached an unmodelled account read. Its
-account boundary is now explicitly replaced; no production account check changed.
-The next run (10329 MB available at its start) printed `Ran 42 tests in 24.221s`
-/ `OK`, including both finding-2 and finding-3 executable revert proofs.
+| Command (from `os/tests`, with `TMPDIR=/var/home/ares/pkg22c-work`) | Available at start | Exact final result |
+|---|---:|---|
+| `nice -n 10 python3 -B -m unittest test_ways_back` | 10166 MB | **44 tests in 24.930s; OK** |
+| `nice -n 10 python3 -B -m unittest test_ways_back_model` | 10196 MB | **20 tests in 885.963s; OK** |
 
-The initial unrestricted restoration-history exploration was stopped explicitly
-with SIGINT on its own Python PID (not another builder's process). It had not
-closed and is not passing evidence. It exposed an avoidable multiplication of
-historical restoration snapshots. The model now quotients that provenance:
-for a reachable persistent pair, an existing restoration intent and a newly
-published one have identical future actions. Restoration republishes the same
-intent on every retry before writes, so both have an intent cut, console cut,
-X11 cut and the same eventual old setting. Reverse partial settings remain
-reachable only with durable intent. No setting, deployment, trial ownership or
-journal outcome is merged. Full literal intent records remain in each
-representative and are checked against actual Tools execution. Memoized
-executions still depend on the actual intent value, never oracle predictions.
-`steps()` also supplies the once-computed candidate transition to the exploration
-instead of calculating every interruption twice; no event was removed.
+The final model exhausted **879291 states / 23108154 edges**, with **779125
+executions / 22329029 reuses**, in 880.559s. It includes **1077696 abandon
+interruption edges**. The eight outcomes and two menu-only destinations remain
+separate and match the earlier full uncached-provenance run (19 tests in
+1188.656s, OK). Full exact counts are in
+[runs/checks-43536170182.json](runs/checks-43536170182.json).
 
-`EquivalenceTest.test_saved_restoration_intent_has_identical_future_commands`
-checks every successor and actual command for pending trials and repair notes,
-all six directed profile pairs, and old/forward-partial/new settings, with and
-without already-saved intent (48 pairs). The additional
-`RevertTest.test_restoration_intent_must_be_saved_before_either_write` removes
-the save in memory for both owners: the pre-write assertion then fails with
-`restoration intent missing before write`. The existing reverse-partial
-acceptance mutant continues to fail the driver's `accept/refuse` assertion.
-The targeted local command was
-`cd os/tests && TMPDIR=/var/home/ares/pkg22c-work nice -n 10 python3 -B -m unittest test_ways_back_model.EquivalenceTest test_ways_back_model.RevertTest`:
-**11 tests in 1.131s, OK**, after a 10646 MB available gate.
+Other local checkpoints: focused 36 tests in 21.160s, OK; focused 42 tests in
+24.221s and 22.456s, OK; model equivalence/reverts 11 tests in 1.131s, OK;
+equivalence 5 tests in 1.816s and then 3.261s, OK. Initial model adapter attempts
+printed 17 tests with 4 failures in 4.169s, 1 failure in 14.589s, and 1 failure
+in 105.523s; missing intent encoding, the repair-note next step and cut selection
+were corrected. The first 42-test focused attempt had one unmodelled account
+fixture failure in 24.763s, corrected as described above. Interrupted exploration
+runs were explicitly stopped with SIGINT on their own Python process and are
+not passing evidence. No owner-update or compatibility test method ran locally;
+those results come from hosted execution.
 
-Reference-only queue exhaustion is used to generate the new exact state/edge
-pins, then the full model is run against actual Tools. Generating those pins
-is not Tools verification. The final local/hosted totals follow below.
+Each hosted dispatch used
+`gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`,
+followed by exactly one blocking `gh run watch <id> --exit-status` for that run:
 
-The reference-only catalogue exhausted **879291 states / 23108154 edges** in
-237.974s; those exact counts replace the old pins for the expanded event set.
-The catalogue imports only the independent ledger and is not reported as a
-passing test. Invariant checks now reuse the same per-state reference
-predictions used for command comparisons; every invariant and event is retained.
-The full actual-Tools model must reach those exact pins with its queue empty.
+| Hosted run | Result |
+|---|---|
+| [43530837211](https://github.com/Ares-Empire/AresOS/actions/runs/43530837211) | Cancelled by the unchanged 25-minute job limit during the expanded model; no full totals. Watch exit 1. |
+| [43534401745](https://github.com/Ares-Empire/AresOS/actions/runs/43534401745) | Explicitly cancelled after the local cache defect was found; no acceptance totals. Watch exit 1. |
+| [43535052672](https://github.com/Ares-Empire/AresOS/actions/runs/43535052672) | Explicitly cancelled for the repair-note transfer correction; no acceptance totals. Watch exit 1. |
+| **[43536170182](https://github.com/Ares-Empire/AresOS/actions/runs/43536170182)** | **1074 tests in 1366.551s; 4 failures, 0 errors, 0 skipped.** Watch exit 1 for the four deferred pins. |
 
-Final-source focused verification (7303 MB available at start):
-`cd os/tests && TMPDIR=/var/home/ares/pkg22c-work nice -n 10 python3 -B -m unittest test_ways_back`
-printed **`Ran 42 tests in 22.456s` / `OK`**. Full model and hosted verification
-are the remaining checkpoint work.
+Final hosted module counts: `test_owner_update` **73/73**,
+`test_ways_back` **44/44**, `test_ways_back_model` **20/20**,
+`test_ways_back_compatibility` **21/21**, `test_ways_back_reverts` **15/15**,
+`test_ways_back_probe` **40/40**. The hosted model exhausted the identical
+**879291 states / 23108154 edges**, with **779125 executions / 22329029 reuses**,
+in **723.035s**; every journal outcome count matches local execution.
 
-Hosted checks-only run dispatched on implementation
-`05fb2a927dc9bc5776b92733c6ac246022c87dad`:
-[43530837211](https://github.com/Ares-Empire/AresOS/actions/runs/43530837211).
-Command: `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`,
-then exactly one blocking `gh run watch 43530837211 --exit-status` (in progress).
-The final local full model command is
-`cd os/tests && TMPDIR=/var/home/ares/pkg22c-work nice -n 10 python3 -B -m unittest test_ways_back_model`,
-started with **6990 MB available**; its result is still pending. The report-only
-checkpoint does not change the implementation being tested.
+The only failures are the same stage-1b pins as baseline 43521572800:
 
-**Final local full model:** `Ran 19 tests in 1188.656s` / **`OK`**.
-It exhausted exactly **879291 states / 23108154 edges**, with **1385183 actual
-executions / 21722971 reuses**, in 1184.688s. The added abandon events include
-**1077696 interruption edges**. All eight journal outcomes remain separate;
-counts and the test receipt are in
-[runs/checks-43530837211.json](runs/checks-43530837211.json).
-The two menu-only destination cases are unchanged. This full run includes the
-new intent-save and reverse-partial acceptance revert proofs and the execution
-of every successor in the restoration equivalence test. No module was skipped
-or weakened. The hosted run remains in progress at this checkpoint.
+1. `test_owner_bootstrap.BootstrapTest.test_documented_command_is_generated_from_complete_system_manifest`.
+2. `test_owner_equality.EqualityTest.test_bootstrap_is_byte_equal_to_the_block_exercised_by_package_14_tamper_tests`.
+3. `test_owner_equality.EqualityTest.test_reviewed_windows_payload_is_exact_generated_ci_payload`
+   (source/payload equality passed; the following guide-fingerprint assertion failed).
+4. `test_owner_path.OwnerPathTest.test_update_route_orders_windows_tools_update_title_reboot_check_with_pass_stop_and_returns`.
 
-### Hosted time limit and execution reuse
+The source-consistency refresh printed
+`PASS bundle manifest SHA256 610e1b2715dbe95702842eb801aa6e4bc5f556e6237a9741b5df109f90353438`.
+The inventory/guides/pins remain for stage 1b. After the final bound edit,
+`python3 -B reviews/22c-ways-back-after-update/walk-host.py` printed
+`PASS package 22c host walks (reorder-probe): 257 sources; no VM started`, then
+`python3 -B reviews/27-first-update-release/rebind.py pending "22c review fixes 1: replace repair notes by identity across interrupted transfers"`
+printed `pending: 28 bound files differ from the active bindings`.
+`git diff --check` passed. Package 27's walk was not rewritten.
 
-Run **43530837211** reached the regression job's unchanged **25-minute limit**
-and was cancelled. Its single `gh run watch ... --exit-status` returned 1.
-It stopped during the expanded model at 680000 processed states (881.803s in
-that model); **there are no full suite totals, so this run is not acceptance**.
-The previously recorded local 19-test full model remains passing evidence.
+### Not verified, judgment and re-review
 
-**PLAN-GAP (verification cost, no rule change):** the extra cut events exceeded
-the hosted time budget when the execution trie keyed every literal restoration
-snapshot. The existing equivalence proof already establishes the relevant
-reachable histories have identical future behavior. The trie now reuses those
-actual executions while framing exact restoration intent values through, like
-unrelated `/etc` values. It preserves a retry's original snapshot, adds an
-intent only when absent, and clears it whenever its trial/note is removed,
-including when the first execution had no intent to clear. It still compares
-the full literal ledger against the independently predicted result on every
-cache hit; no state, edge, assertion, cut or test is removed. The harness,
-workflow budget and owner implementation are unchanged by this optimization.
+**Not verified:** real typing/password entry, real persistence after power loss,
+VM rehearsal, first install with tools 3, triple finalize and the laptop gates.
+No owner entry, deployment binary, keyboard command or mod/Gradle build was run
+on the laptop. No VM was dispatched. Existing stage-1a limits still apply.
 
-`EquivalenceTest.test_execution_reuse_frames_exact_restoration_intents` compares
-cached and uncached execution for both sides of all 48 equivalence pairs and
-all their events, including an unrelated live repair intent. The targeted
-local equivalence class passed **5 tests in 1.816s**, after a 10570 MB gate.
-The full 20-test model and another hosted checks-only run follow. The new test
-adds one to the expected suite count; the state/edge pins remain unchanged.
+**JUDGMENT-CALL:** none added; no numbered rule or schema changed. `restoring`
+is additive. Existing decisions and stage-1b work remain as previously recorded.
 
-Retry dispatched on `53b35c57` (owner implementation unchanged from `05fb2a92`):
-[43534401745](https://github.com/Ares-Empire/AresOS/actions/runs/43534401745),
-with `gh workflow run "OS image" --ref pkg/22c-ways-back-after-update -f checks_only=true`
-and one blocking `gh run watch 43534401745 --exit-status`. Full local model
-started after a **10170 MB available** gate. Both results are pending at this
-report-only checkpoint. Acceptance requires **1072 tests**, only the same four
-stage-1b fingerprint failures, zero errors and zero skipped tests.
+**PLAN-GAP:** the expanded model initially exceeded the hosted time budget;
+execution reuse resolved it without changing the workflow, harness or budget.
+The extra private note-transfer cut was part of making finding 1 resumable.
+The review got none of its three findings wrong; all were confirmed and fixed.
 
-The first optimized full local model found a cache framing defect after 80000
-states: a cache fill that already had an intent recorded no *change* to it,
-so a later input without intent did not receive the re-published checkpoint.
-The full literal-ledger assertion failed, as required. This was confined to
-the execution memo; uncached Tools had already passed the entire model.
-Run **43534401745** was explicitly cancelled to avoid completing known failing
-verification; its single watch is allowed to finish. It has no acceptance totals.
+**For re-review:** inspect layout restoration authorization and note replacement
+by identity, both record owners and their negative proofs; the exact caller
+snapshot assertion before any reorder and its injected outside writer; installed
+surveys before side/refusal checks with the pre-install boundary preserved; and
+the model's actual-write framing, both cache-fill orders and literal ledger
+assertion. Closure is a claim about the stated event set. Final local and hosted
+counts above refer to `cfa98e20`; closing changes are report/receipts only.
 
-The driver now records actual restoration write attempts, including the
-pre-write intent cut. Re-publishing an unchanged intent is an observed write,
-so the cached effect adds it if absent and preserves an existing snapshot.
-The equivalence regression now fills the cache in **both directions** for each
-pair. It passed **5 tests in 3.261s** (10471 MB available at start). The complete
-20-test model was restarted after a fresh memory gate; results follow below.
+**Open questions:** none for this review round. Only the four deferred stage-1b
+pin failures remain; stage 1b and the later VM gates are outside this round.
 
-The corrected model passed its previous counterexample and processed 100000
-states before dispatching the next hosted run. Retry
-[43535052672](https://github.com/Ares-Empire/AresOS/actions/runs/43535052672)
-tests `b644f5be`; it uses the same checks-only dispatch command and exactly one
-blocking `gh run watch 43535052672 --exit-status`. The cancelled prior watch
-returned 1. Full local 20-test model start gate: **10505 MB available**.
-
-### Finding 1 follow-through: a cut while transferring the note
-
-A direct regression confirmed a further interruption within finding 1:
-save the repair note on stock, cut before clearing the pending trial, return
-to its owner and cut restoration after console, then abandon on stock again.
-The old exact-dictionary deduplication left two notes for the same deployment:
-one without restoration intent, one with it. The first then rejected the
-reverse partial pair. The new direct test failed before the fix (`Ran 1 test
-in 0.084s`, one assertion failure showing an additional note).
-
-Transfer now replaces the note by deployment identity, retaining the recorded
-old/new settings and exact restoration intent. Conflicting records refuse;
-no other deployment's settings are written. The new
-`LayoutTest.test_cut_during_note_transfer_then_restoration_updates_the_same_note`
-replays that sequence, requires exactly one intent-bearing note and then
-restores the owner successfully.
-`test_duplicate_note_transfer_is_detected_by_the_same_cut_regression` removes
-that replacement in memory and requires the same extra-note assertion failure,
-with no unrelated exception accepted. This extra private-note-save cut is a
-direct test; the full model's event set/pins still describe the persistent-write
-cuts, not all private JSON-save interruptions.
-
-The in-progress optimized model was explicitly stopped to serialize this local
-regression, and hosted run **43535052672** was explicitly cancelled before
-retaining verification of the incomplete transfer fix. Its watch returned 1;
-no complete totals are claimed. Final-source focused command passed **44 tests
-in 24.930s, OK**, after a **10166 MB available** gate. The payload refresh is
-intermediate fingerprint `610e1b27…`; stage-1b pins remain unchanged. Acceptance
-count is now **1074** (two additional transfer tests), only the original four
-fingerprint failures, zero errors/skips. No brief rule or schema changed.
-
-Final transfer fix is pushed as **`cfa98e20`**. The 22c walk printed
-`PASS package 22c host walks (reorder-probe): 257 sources; no VM started`,
-then pending bindings printed `pending: 28 bound files differ from the active bindings`.
-Full local 20-test model restarted with **10196 MB available**. Hosted run
-[43536170182](https://github.com/Ares-Empire/AresOS/actions/runs/43536170182)
-uses this source, the required checks-only dispatch and one blocking
-`gh run watch 43536170182 --exit-status`. Results follow below.
-
-**Final-source full model passed:** `Ran 20 tests in 885.963s` / **`OK`**.
-The queue exhausted **879291 states / 23108154 edges**, with **779125 actual
-executions / 22329029 reuses**, in 880.559s. Exact state/edge/outcome pins and
-all **1077696 abandon interruption edges** match the uncached-provenance run;
-only repeated actual executions decreased. The two menu-only destination cases
-are unchanged. Both cache-fill directions, unrelated intent framing, all
-restoration regressions and revert proofs passed. Together with the final-source
-44-test focused pass, local acceptance is complete. Small current receipt:
-[runs/checks-43536170182.json](runs/checks-43536170182.json). Hosted totals remain
-pending; the source under test is `cfa98e20`, and this checkpoint changes only
-report/evidence files.
+Cleanup: all temporary files this run created under `/var/home/ares/pkg22c-work/`
+were removed. The closing `.work/` inventory has **no file over 500 MB**; no large
+download was made. No builder-started test/watch process remains, and no Gradle
+daemon was started. PR #46 is open and draft; nothing was merged or pushed to main.
