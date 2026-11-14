@@ -636,6 +636,25 @@ test('step 6 a field emptied again is not reported, whoever typed it',()=>{
   owner.defaultValue='Saved';
   assert.deepEqual(unsavedState(f).fields,['field "Headline" (typed by the owner)']);
 });
+// Step 6 (run 43566651314): a drop-down whose page marks no option selected
+// shows its first enabled option; nobody changed it.
+test('step 6 a list counts only when it differs from HTML\'s reset state',()=>{
+  const state=(config,picks)=>{
+    const f=fixture([],{typing:{gap:false,marks:new Map()}});
+    const options=config.options.map(([marked,disabled],index)=>new f.Element({tagName:'OPTION',defaultSelected:marked,disabled:!!disabled,selected:picks.includes(index)}));
+    f.nodes.push(new f.Element({tagName:'SELECT',namespaceURI:'http://www.w3.org/1999/xhtml',localName:'select',attrs:{'aria-label':'Choice'},options,multiple:!!config.multiple,size:config.size||0}));
+    return unsavedState(f).fields;
+  };
+  const drop={options:[[false,true],[false],[false]]};
+  assert.deepEqual(state(drop,[1]),[],'nothing marked: the first enabled option is the default');
+  assert.deepEqual(state(drop,[2]),['list "Choice" (typed by the owner)'],'another option was chosen');
+  assert.deepEqual(state({options:[[false],[true],[true]]},[2]),[],'the last marked option is a single choice\'s default');
+  assert.deepEqual(state({options:[[false],[true],[true]]},[0]),['list "Choice" (typed by the owner)']);
+  assert.deepEqual(state({options:[[false],[false]],size:3},[]),[],'a list box with nothing marked starts with nothing chosen');
+  assert.deepEqual(state({options:[[false],[false]],size:3},[0]),['list "Choice" (typed by the owner)']);
+  assert.deepEqual(state({options:[[true],[false],[true]],multiple:true},[0,2]),[],'a multiple list keeps every marked option');
+  assert.deepEqual(state({options:[[true],[false],[true]],multiple:true},[0]),['list "Choice" (typed by the owner)']);
+});
 test('step 5 Claude\'s own check marks the field as his',()=>{
   const typing={gap:false,marks:new Map()};
   const f=fixture([{type:'checkbox',checked:false,defaultChecked:false,attrs:{'aria-label':'Tick'}}],{typing});f.read();

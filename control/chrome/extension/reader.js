@@ -537,7 +537,15 @@
         // including one the owner emptied. An editor inside another is part of
         // it and named once.
         else if(element.isContentEditable){if(element.parentElement?.isContentEditable)continue;changed=!sinceLoad||gotInput(element);}
-        else if(html(element,HTMLSelectElement,'select'))changed=[...element.options].some(option=>option.selected!==option.defaultSelected);
+        // A list is changed when it differs from HTML's reset state: the
+        // options marked selected (the last of them for a single choice), or,
+        // with none marked, a one-row drop-down's first enabled option. A
+        // page that marks nothing shows that option without anyone choosing.
+        else if(html(element,HTMLSelectElement,'select')){
+          const options=[...element.options],marked=options.filter(option=>option.defaultSelected),single=!element.multiple;
+          const reset=new Set(!single?marked:marked.length?marked.slice(-1):(element.size||1)===1?options.filter(option=>!option.matches(':disabled')).slice(0,1):[]);
+          changed=options.some(option=>option.selected!==reset.has(option));
+        }
         else if(['checkbox','radio'].includes(element.type))changed=element.checked!==element.defaultChecked;
         // Changed from the page's default, or typed since load and still
         // holding text. A page that moves the default along with typing
