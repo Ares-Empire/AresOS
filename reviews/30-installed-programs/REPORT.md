@@ -1023,6 +1023,26 @@ written down here and not built:
   updating); the helper's serving loop is separate and keeps answering. Fast swaps of a path during a pass and a
   hostile program already running as him are the timing limits of the earlier rounds.
 
+### The OS lead's second read (2026-11-14)
+
+The OS lead's reader looked at the `os/` diff again at `59da0883`: **fine to merge once both hosted runs are green**.
+Both defects of the first read and its nit are fixed, nothing blocks. Measured by the reader on the laptop, read-only:
+56 programs with a picture (the three it counts without are the registry's own entries); Konsole, System Settings and
+System Monitor resolve to Breeze's `apps/48` SVGs and Waydroid to its 512-pixel picture; one full lookup 56 to 62 ms;
+the idle check 1.9 ms over 820 signature entries; an idle minute makes no pass. Two more known limits from that read:
+
+- **An entry of his own whose absolute `Icon=` names a file that keeps changing** gives a pass every 3 seconds for as
+  long as the file changes. It takes one of his own desktop entries, so it adds no power a program of his does not
+  have; he would see nothing but processor time.
+- **The first `index.theme` found speaks for every root:** a broken `~/.local/share/icons/breeze/index.theme` in his
+  home puts Breeze on the fixed layout everywhere, with one warning, so Breeze-only pictures go missing until that
+  file is repaired or removed.
+
+A nit it leaves for a later package: the fixture `breeze-index.theme` is written in Breeze's form, not copied from the
+real theme. The gap that hid the second defect is closed for the laptop by `RealThemeTest` in
+`check_aresos_shell_icons.py` (it resolves three image programs against the real `/usr/share/icons/breeze`); a copy of
+the real index in the fixtures would close it for GitHub's runs too, with its licence note.
+
 ### Hosted runs (review fixes 4)
 
 On `59da0883` (only this report section and `REVIEW-5.md` were committed after it), started one after the other
@@ -1031,5 +1051,7 @@ because the workflow keeps one waiting run for a branch:
 - `checks_only=true`: [43542831811](https://github.com/Ares-Empire/AresOS/actions/runs/43542831811)
 - `check_build=build`: [43542914709](https://github.com/Ares-Empire/AresOS/actions/runs/43542914709)
 
-Both were still running when this was committed; their results follow in the next commit of this report.
+Results: **both passed.** The regression run is the full suite on GitHub's runner (which has none of the registry's
+programs and no Breeze theme); the check build is "Throwaway image build and checks (never pushed, signed or
+published)", which builds the image with this helper and runs `os/ci/image-checks.sh` in it.
 
