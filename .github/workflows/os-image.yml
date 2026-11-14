@@ -32,7 +32,7 @@ on:
       check_build:
         description: 'Throwaway image (package 21): resolve inputs or build and check this ref; never pushes, signs or publishes'
         type: choice
-        options: ['', resolve, build]
+        options: ['', resolve, build, control]
         default: ''
 
 permissions:
