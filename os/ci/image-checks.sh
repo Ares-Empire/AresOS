@@ -692,6 +692,7 @@ install -d -o ares -g ares -m 0700 /tmp/pkg31-home
 layout=$(runuser -u ares -- env -i HOME=/tmp/pkg31-home PATH=/usr/bin:/usr/sbin \
     XDG_CURRENT_DESKTOP=AresOS GSETTINGS_BACKEND=memory \
     /usr/bin/gsettings get org.gnome.desktop.wm.preferences button-layout)
+rm -rf /tmp/pkg31-home
 printf '%s\n' "$layout"
 test "$layout" = "'appmenu:minimize,maximize,close'"
 pass 'Ares-Crown files installed; compiled AresOS default gives apps all three buttons'
