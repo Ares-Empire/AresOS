@@ -556,7 +556,9 @@ never taken up again when its group shrinks.
   in; if there is none, you stay and the chat says why. Where you would arrive
   is checked before you are moved; when that ground is not loaded yet, the game
   loads it first (as it does for a portal) and you are moved a moment later,
-  or one line says why not. Arriving never counts as walking in, also with
+  or one line says why not. If you go elsewhere meanwhile (another dimension,
+  `/home`, H, a respawn, the void), that `/go` is forgotten; if the app left
+  My apps or its logo moved meanwhile, one line says so and you stay. Arriving never counts as walking in, also with
   `/home`, H, a doorway's return and the respawn: step out and in to open the
   app. In a world without a town, `/go` takes you to the exit of the nearest
   zone of that app that you made by hand. Otherwise one line says why it cannot: the logo is not built
@@ -583,7 +585,9 @@ The group an app gets this way is saved as `group` in
 `config/aresos/apps.json`, so it stays where you put it; swapping or moving it
 back to its own group removes that again. The counts on the group names, the
 doormats' colour, the signs and the roads follow by themselves (a road grows
-with its group and is never taken up).
+with its group and is never taken up). In the moment of the swap or move only
+its logos change; anything else the town has waiting (a new app, one that
+left, a logo whose name or picture changed) follows a moment later.
 
 Both are all or nothing. They check every logo involved and every new place
 first; if anything is in the way, nothing changes, in the file or in the

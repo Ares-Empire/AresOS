@@ -435,7 +435,7 @@ public final class GettingAroundGameTests {
                     state.coldAsked = System.nanoTime();
                     state.coldTick = host.server.getTickCount();
                     Ticks.arm();
-                    // Nothing read yet: he stays until the spots' chunks are loaded, off the server thread.
+                    // Nothing read yet: the spots' chunks are requested through the game's tickets and checked in later ticks.
                     standsAt(host.player, Vec3.atBottomCenterOf(home), 0, 0, "/go far before its spots loaded");
                     check(host.lines().isEmpty() && Arrivals.loading(host.player), "/go far did not wait for its spots to load");
                 }))

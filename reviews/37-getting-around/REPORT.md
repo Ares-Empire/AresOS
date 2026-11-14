@@ -517,6 +517,8 @@ launch); not run against the old code.
   take-down leaves (he moved or edited it) stays in the world and counts as his.
 - `TownMoves.check` also counts any other logo the pass will take down (one the plan puts elsewhere or nowhere, in a
   town not yet in step) where its take-down check passes; where it does not, the pass leaves it, and so does the check.
+  (Review fixes 2: withdrawn. The pass of a swap or move takes down only `TownKeeper.down`, and the checks count
+  exactly that set.)
 
 The inputs of the build's checks (`Town.check` → `Town.prepare` → `GateBuilder.prepare`) and how the check sees each
 after the take-down:
@@ -534,10 +536,10 @@ after the take-down:
 | Entities inside the logo's blocks | the mod's signs exempt, minus the down logos' signs, plus the signs their take-downs discard: a sign left standing counts | **fixed** (before, every recorded sign was exempt) |
 | Entities hanging on or standing on blocks within reach | the same set | **fixed** |
 | Blocks within reach (2, lights 4) | through `Gone`; the down logos' recorded blocks are no longer the mod's | **fixed** (before, read from the world with those blocks the mod's: the same verdict except a light he changed in a logo that comes down, which was the mod's in the check and his after) |
-| Which logos come down | the moved apps' own and any town logo in a new place (must come down, else refused), and any other logo the plan moves or drops where its take-down check passes | **fixed** (before, only the first two) |
+| Which logos come down | the moved apps' own and any town logo in a new place (must come down, else refused), and any other logo the plan moves or drops where its take-down check passes | **fixed** (before, only the first two). Review fixes 2: only the first two again, since the limited pass takes down only those (`TownKeeper.down`, one rule for both) |
 | The exit point is safe | from the world, not through `Gone` | yes, by the layout: it is 6 blocks in front of its own place's front, in the 11 blocks between two rows and on its own place's centre line; no logo's blocks (its front, the lights one layer in front, the doormat at the door) reach there |
-| Logos the same pass builds before this one (the other logo of a swap, a newcomer given a freed place) | not modelled | same verdict: their blocks are the town's (passed as harmless by the neighbour checks), their signs recorded, their zones in their own places |
-| A logo the same pass renews in its own place (its picture or name changed) | not modelled | **not the same in one case**: if he moved that logo's sign into the new logo's blocks, the renewal leaves the sign unrecorded and the build refuses; the command then says "The town did not finish" and the place stays saved (F4) |
+| Logos the same pass builds before this one (the other logo of a swap; review fixes 2: no newcomer, the limited pass builds none) | not modelled | same verdict: their blocks are the town's (passed as harmless by the neighbour checks), their signs recorded, their zones in their own places |
+| A logo the same pass renews in its own place (its picture or name changed) | not modelled | ~~not the same in one case (F4)~~ Review fixes 2: the pass of a swap or move renews nothing; such a logo is renewed by the next ordinary pass, so its sign is still recorded in the swap's tick, as the check saw it |
 
 Test (`swapExchangesTwoLogos`): Lunar Client's sign moved (`snapTo`, as `/data` would) to the middle of a block
 Chrome's logo fills at E0L0, then `swap chrome lunar`: "Nothing was swapped: Chrome's logo cannot stand at Games, east,
@@ -556,9 +558,10 @@ Measured in the server test (`goPutsHimInFrontOfHisAppsDoors`, `/go far` to `N40
 | Deferred (now), build 4 | 1.35 ms | arrived 414.53 ms (2 ticks) later, in which one tick took 399.27 ms (the longest gap between ticks 6.83 ms); every spot blocked: 2.37 ms, its line 12.07 ms later, longest tick 6.28 ms |
 
 416 ms is over the 50 ms bound, so the check is no longer made in the command (`world/Arrivals`): where every
-spot's chunk is loaded, it checks and moves him at once, as before. Otherwise it reads nothing: the game's own ticket
-for teleports (`TicketType.PORTAL`, radius 0) loads the chunks the spots' boxes touch (at most four), each server tick
-looks whether they are loaded, then checks the spots (reading loaded chunks only), moves him and says the arrival's line,
+spot's chunk is loaded, it checks and moves him at once, as before. Otherwise it reads nothing: the chunks the spots'
+boxes touch (at most four) are requested through the game's ticket system, with its own ticket for teleports
+(`TicketType.PORTAL`, radius 0), and the game loads them in its own server ticks (review fixes 2, point 4: not away
+from the server thread); each server tick looks whether they are loaded, then checks the spots (reading loaded chunks only), moves him and says the arrival's line,
 or says the blocked line. It gives up after 200 ticks and 10 s, both ("… did not load in time, so you stay where you
 are. Try again in a moment."). The tickets go when he arrives, when it gives up, when he leaves, and when another move of
 the mod (`/home`, H, another `/go`) comes first. The command says nothing while it loads. A `/go` to a hand-made zone
@@ -622,7 +625,7 @@ the run's untracked pictures removed.
   with the same main code. Its cause was not found; this round changed nothing it calls except through
   `GateBuilder.Gone.NONE`, which reads the world as before. Worth a look if it comes back.
 - The residual case of point 3's list: a logo the same pass renews in its own place, whose sign he moved into a new
-  logo's blocks (F4).
+  logo's blocks (F4). Review fixes 2: closed, the swap's pass renews nothing (tested).
 
 ### JUDGMENT-CALL (review fixes 1)
 
@@ -637,7 +640,8 @@ the run's untracked pictures removed.
   checks used), so a refresh that lands during the pass cannot change what it does; the town follows that refresh in its
   next pass. Rejected: holding the catalogue's lock across block changes, which would stall the helper's thread and
   nest locks (`takeIn` calls into My apps under it).
-- **F4. A renewal in the same pass is not modelled** (point 3's list, last row). Modelling it needs the keeper's private
+- **F4. A renewal in the same pass is not modelled** (point 3's list, last row). *Withdrawn in review fixes 2: the
+  pass of a swap or move is limited to its apps and renews nothing.* Modelling it needs the keeper's private
   "changed" rule and its rebuild outcome in the check; the case needs a sign he moved from one logo into another's new
   place, and its outcome is the existing "The town did not finish" line with the place saved, nothing lost.
 - **F5. Deferred `/go`:** the ticket is `PORTAL` (the game's own ticket for teleports; there is no other in 26.2 but the
