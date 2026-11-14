@@ -334,8 +334,17 @@ public final class SlashNamesGameTests {
     public void reloadAndRejoinBringTheNamesBack(GameTestHelper helper) throws Exception {
         var f = new Fixture(helper);
         var old = f.server.getCommands().getDispatcher();
+        // Review 2, point 5: every node of the old tree, to show afterwards that none of them is still recorded.
+        var oldTree = Collections.newSetFromMap(new IdentityHashMap<com.mojang.brigadier.tree.CommandNode<?>, Boolean>());
+        var pending = new ArrayDeque<com.mojang.brigadier.tree.CommandNode<?>>(List.of(old.getRoot()));
+        while (!pending.isEmpty()) {
+            var node = pending.pop();
+            if (oldTree.add(node)) pending.addAll(node.getChildren());
+        }
         try {
             check(old.getRoot().getChild("dc") != null, "Fixture: no /dc before the reload");
+            check(List.of("dc", "discord", "open", "apps").stream().allMatch(name -> OwnedNodes.recorded(old.getRoot().getChild(name))),
+                    "Fixture: the old tree's nodes are not recorded");
             f.server.reloadResources(f.server.getPackRepository().getSelectedIds());
         } catch (Exception | Error error) { f.close(); throw error; }
         boolean[] done = {false};
@@ -352,6 +361,8 @@ public final class SlashNamesGameTests {
                 done[0] = true;
                 var names = AresOs.app("discord").names();
                 for (String name : names) check(OwnedNodes.ours(root.getChild(name)), "Not back after /reload: /" + name);
+                var kept = oldTree.stream().filter(OwnedNodes::recorded).map(com.mojang.brigadier.tree.CommandNode::getName).toList();
+                check(kept.isEmpty(), "Still recorded from the old tree after /reload: " + kept);
                 check(f.visibleNames().containsAll(names), "The rebuilt list was not sent without a rejoin");
                 var all = f.player.createCommandSourceStack().withPermission(PermissionSet.ALL_PERMISSIONS);
                 for (String vanilla : List.of("help", "list", "time"))

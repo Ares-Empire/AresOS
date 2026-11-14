@@ -39,7 +39,11 @@ public final class SlashCommands {
 
     public static void register() {
         ServerTickEvents.END_SERVER_TICK.register(SlashCommands::refresh);
-        ServerLifecycleEvents.SERVER_STOPPED.register(STATES::remove);
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            var state = STATES.remove(server);
+            if (state != null && state.dispatcher != null) OwnedNodes.forget(state.dispatcher);
+            OwnedNodes.forget(server.getCommands().getDispatcher());
+        });
     }
 
     /** Every command on the tree except our app names as we installed them, and AresOS's own. */
@@ -59,7 +63,8 @@ public final class SlashCommands {
         var state = STATES.computeIfAbsent(server, ignored -> new State());
         var dispatcher = server.getCommands().getDispatcher();
         if (state.dispatcher != dispatcher) {
-            // A rebuilt tree (/reload) has none of our names; the old nodes went with the old tree.
+            // A rebuilt tree (/reload) has none of our names; the old nodes go with the old tree, and so do their records.
+            if (state.dispatcher != null) OwnedNodes.forget(state.dispatcher);
             state.owned.clear(); state.apps = null; state.dispatcher = dispatcher;
         }
         boolean enabled = server.isSingleplayer() && DesktopWorld.isEnabled(server);
