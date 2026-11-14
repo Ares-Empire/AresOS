@@ -1,229 +1,10 @@
 {
-  "status": "waiting for the next VM rehearsal",
-  "walk": "os/manifest/ci/27/source-bindings.json",
+  "status": "rebound by package 22c's rehearsal",
+  "walk": "os/manifest/ci/22c/source-bindings.json",
   "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Only test files and the CI workflow (its checks-only job) wait now, no tool, guide or image file.",
-  "changes": [
-    "Package 27b (laptop update record): os/tests/test_owner_path.py pins the laptop's step 8 update in INSTALL-STATUS; os/tests/test_checkout_sources.py and os/tests/test_owner_step_limits.py check this list by rules that hold at any time instead of requiring it empty while package 27's bindings exist",
-    "27b: the checks-only job fetches full history (the suite reads earlier commits)",
-    "27c: the checks-only job lets the disposable runner create unprivileged user namespaces (kernel.apparmor_restrict_unprivileged_userns=0), so test_owner_update.ToolsUpdateTest runs instead of skipping",
-    "27c: the checks-only job's time limit goes from 15 to 25 minutes, since the namespace tests now run",
-    "Package 22c stage 0 (reorder probe): os-image.yml, the dispatch guard and its ledger, the owner harness lists and owner_vm.py know package 22c and its mode reorder-probe; owner_vm.py shares package 27's route up to release 27 confirmed (laptop_update, confirmed_update) and owner_media.py can copy a bundle from history; the tests that pin the workflow's expressions and the local walk follow",
-    "22c stage 1a: main merged in (27c's checks-only step and time limit beside 22c's probe mode in os-image.yml)",
-    "22c stage 1a, step 1: owner.py holds the state machine of section A (free order, one reorder, the journal by the list, tools version 3); os/release/start-next.sh is new and in the bundle; the payload is refreshed",
-    "22c stage 1a step 2: layout/model regressions, four narrow fixes; B2 blocked by A4 destination conflict",
-    "22c step 2b part a: narrowed destination invariant and confirmed boot-menu path",
-    "22c step 2b part b: close 486627 model states and 12176910 steps; preserve all live layouts and journal outcomes",
-    "22c step 2b part c: executable per-rule revert proofs; finalize mutant fails model retention",
-    "22c step 2b audit: assert complete layout records and preserved finish authority before reconstructing each model state",
-    "22c stage 1a step 3(a): replace v2 expectations by A2-A5/A9 and repair older BLS/updater fakes",
-    "22c stage 1a step 3(a) hosted corrections: records resolves before disk writes; complete old fixture observations",
-    "22c stage 1a step 3(b,c): exact v2 compatibility and publication cuts; defer journal migration until v3 publication",
-    "22c review fixes 1: durable layout restoration intent and abandon interruption coverage",
-    "22c review fixes 1: bind set-default fresh read to caller deployment snapshot",
-    "22c review fixes 1: survey installed lifecycle before login verify switch and prepare refusals",
-    "22c review fixes 1: prove restoration provenance equivalence and pin expanded closure",
-    "22c review fixes 1: replace repair notes by identity across interrupted transfers",
-    "22c review fixes 2: a refusal of start-next before set-default closes its intent",
-    "22c review fixes 2: layout restoration is an exclusive phase; finish refuses",
-    "22c review fixes 2: checks-only job limit 40 minutes for the grown model",
-    "22c stage 1b addition 1: the checks-only job explores a bounded model slice; a parallel job runs the full model when its sources changed",
-    "22c stage 1b addition 2: the image and rehearsal jobs allow user namespaces before their tests",
-    "22c stage 1b D: rollback.sh, default-stock.sh and previous.sh out of the owner payload (repository copies unchanged); new fingerprint pinned",
-    "22c stage 1b F: the refusal invariant's expectation table by journal phase, a real injection before publication, and its revert proof",
-    "22c stage 1b addition 3: bootstrap.py generates the folder start block beside the stick block; tests run both",
-    "22c stage 1b step 2: the guides for three installed systems (INSTALL.md update route, EMERGENCY failed-update card, INSTALL-PROCEDURES, INSTALL-REFERENCE, INSTALL-STATUS), their route tests, and the checks-only cap raised to 30",
-    "22c review fixes 3, fix 1: the failed-update card checks first; previous only where the update is in place",
-    "22c review fixes 3, fix 2: the forward/back box never installs a release",
-    "22c review fixes 3, fix 3: a return that changes nothing has its own completion",
-    "22c review fixes 3, fix 4: a VM dispatch needs the full model passed on its head when its sources changed",
-    "22c review fixes 3: the status row names the new card route and review 4",
-    "22c review fixes 4, fix 1: forward again takes the newer AresOS's row first; update only where the running system does not start next",
-    "22c review fixes 4, fix 2: the failed-update card keeps the result of a check just run",
-    "22c one word per meaning, step 1: update only stages and names forward; forward selects the newest installed AresOS; tests and model (bundle, pins and guides follow in step 2)",
-    "22c one word per meaning, step 2: login on plain Bazzite names forward; bundle refreshed (2084c786…); forward waits under unwalked_commands for stage 2's rehearsal",
-    "22c one word per meaning, step 2: the guides say forward for every way back (the forward-again and back-from-stock box runs forward; no check-first dispatch, boot-menu step or tools' release); update only installs a new release",
-    "22c stage 2, step 1: the rehearsal mode ways-back (os-image.yml, the ledger, the mode lists, owner_vm.py, reorder_probe.py), its local walk answered by the tools themselves, the record step (rebind.py rebind, checkout_sources.active_tables), forward typed by a walk",
-    "22c stage 2, step 2: the harness reads the installed toolset's folder in the guest before the tools read input (owner_hidden.owner_reader takes it; run 43581458429 stopped on the first install's folder), the local walk's console shows the process the real entry starts, the ledger's raised caps (2400 minutes, six VM dispatches)"
-  ],
+  "changes": [],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
-  "files": [
-    {
-      "sha256": "a567f295e21b833dc7201497de6b9f40d3bea2d5d1c5ce1e97fa45cbd83aa894",
-      "path": ".github/workflows/os-image.yml"
-    },
-    {
-      "sha256": "b4adf0fe51f1d75d59e143ea0bcb140d371910f5278dc2367524d46ce489bf40",
-      "path": "docs/EMERGENCY.md"
-    },
-    {
-      "sha256": "c467c2f794358c6d9166592b7ac205535fbd80fed9b6367bcaf904b40aff9898",
-      "path": "docs/INSTALL.md"
-    },
-    {
-      "sha256": "83a1f48fe99f0a4704ff65fb91e3125b41dfaccffb4ccd1c54e43795670760c4",
-      "path": "os/ci/checkout_sources.py"
-    },
-    {
-      "sha256": "ba439f07383368b67092d91b0a4ed7fce2f4b6569cf32043d63911b26851a210",
-      "path": "os/ci/installer_webui.py"
-    },
-    {
-      "sha256": "e72fbf6e21f2110232ce931da6148ebdb6569cb23b7172c6695554ae62459ffa",
-      "path": "os/ci/owner_capabilities.py"
-    },
-    {
-      "sha256": "bd47cfd7e15b0c9a4359849f3cdd102bacc3417100b53ac994381f539aa2a883",
-      "path": "os/ci/owner_devices.py"
-    },
-    {
-      "sha256": "c4b94d2770f244f091343bb3b4af480f60aa4f7468bd664f8fd1e41a2a0a8758",
-      "path": "os/ci/owner_hidden.py"
-    },
-    {
-      "sha256": "45f3912e52c84153ab382dd80ad67a7bc0e6574ddbd34f6e55c0bbd35e932d2f",
-      "path": "os/ci/owner_media.py"
-    },
-    {
-      "sha256": "213e4904bf493d85788a83f47050d406f0d28aaeebc45bb56ed9114230b08507",
-      "path": "os/ci/owner_vm.py"
-    },
-    {
-      "sha256": "516eb3b806be7d131f1e28c19786b3158dad680f1535e79898e11b7d7cccf8fe",
-      "path": "os/ci/registry_auth.py"
-    },
-    {
-      "sha256": "18b24b152431b26de0b6b454ff3159a98898ff9b9cab5e387d85d5b733ec8a39",
-      "path": "os/ci/rehearsal-packages.json"
-    },
-    {
-      "sha256": "bc77a5185663fe7f7e87b689895eb5e4d0f31eac2e14576141943697b1269c08",
-      "path": "os/ci/rehearsal_guard.py"
-    },
-    {
-      "sha256": "f5db3954e04786274171995722ce8649244ce0c8416c48aa4a512e83aa0e241e",
-      "path": "os/ci/two_disk_vm.py"
-    },
-    {
-      "sha256": "249a18c1b733a0f0b59febb4460c2e142c98951133db72c11c5739d70f7788d3",
-      "path": "os/owner-tools/bootstrap.py"
-    },
-    {
-      "sha256": "4a0daeb4e41bfdc18e9372b46572a9aa9121e2078f3491238a1d6b4a347e8b91",
-      "path": "os/owner-tools/bundle.py"
-    },
-    {
-      "sha256": "3d93628b673484689ebf3204626a174075c437701b95bcbd2046dbef994c3a31",
-      "path": "os/owner-tools/commands.json"
-    },
-    {
-      "sha256": "a292ea185f361753e19236397a148fa050f14b15b63f64ee69bec38f9d40f4f3",
-      "path": "os/owner-tools/history.json"
-    },
-    {
-      "sha256": "202feb812dca3ae24d54583e53c6c2d833a62cc3bedbbed67d518ba665dfc795",
-      "path": "os/owner-tools/owner.py"
-    },
-    {
-      "sha256": "5ff05186f263ff241ce1461244d4b6606619da057398c73895c60d59eafa90e5",
-      "path": "os/owner-tools/payload/SHA256.json"
-    },
-    {
-      "sha256": "2084c786c29d691a0d8c6ca450c59ef524751e5f6c475de0491f200a80765a3a",
-      "path": "os/owner-tools/payload/SHA256SUMS"
-    },
-    {
-      "sha256": "a292ea185f361753e19236397a148fa050f14b15b63f64ee69bec38f9d40f4f3",
-      "path": "os/owner-tools/payload/history.json"
-    },
-    {
-      "sha256": "202feb812dca3ae24d54583e53c6c2d833a62cc3bedbbed67d518ba665dfc795",
-      "path": "os/owner-tools/payload/owner.py"
-    },
-    {
-      "sha256": "8bc2ecf2242ba2a815caa46e1fe1f87a9ee1b33a9c262e3619ed2e377041eec2",
-      "path": "os/tests/owner_console_shim.py"
-    },
-    {
-      "sha256": "c6f96bc1b42993d8435f3baa3bbef5f5874c479862fb73deff9ddd472b7b48e4",
-      "path": "os/tests/serial_pty.py"
-    },
-    {
-      "sha256": "5336482e320e04e0e325cd13f7512cdcbb9adc9d9871718694805e436abe50f4",
-      "path": "os/tests/test_checkout_sources.py"
-    },
-    {
-      "sha256": "f61605426a07b0eedd1d9429c923d36147203320eb31125092ccc5d8478ef87c",
-      "path": "os/tests/test_ci_api_permissions.py"
-    },
-    {
-      "sha256": "e550b72047d37e7ca17fab7407e77d7a4b952cb0664854d625b78fd6b2556034",
-      "path": "os/tests/test_owner_abandon.py"
-    },
-    {
-      "sha256": "3868b66951bd1504dfe8c51766937a29b7449a003219f01119536d1f08d3d02d",
-      "path": "os/tests/test_owner_bootstrap.py"
-    },
-    {
-      "sha256": "b8fc6884066845578824de3fb676a20cfb961ca19ee76ce99ca7d00537550b6f",
-      "path": "os/tests/test_owner_capabilities.py"
-    },
-    {
-      "sha256": "81cd461a923a591870c40862aeac5438b78055373b70823bc614c7a7fe6bfd37",
-      "path": "os/tests/test_owner_commands.py"
-    },
-    {
-      "sha256": "80f05add9f64cc3ff2b1b04e1344f7a03973fc6e619531caf2438019aaa30f57",
-      "path": "os/tests/test_owner_completion.py"
-    },
-    {
-      "sha256": "1878da535d481636f91306dd492fdb0c34a6fc3e957cea509fa263f205a50357",
-      "path": "os/tests/test_owner_devices_native.py"
-    },
-    {
-      "sha256": "528e0d76bef561f300feae3ef4cc212849e84b57bac6eb2a7ef2000f3982b789",
-      "path": "os/tests/test_owner_entry.py"
-    },
-    {
-      "sha256": "4b4e30cd9cdbe5b0a0fb341b736c485c22e307f0f9a01f2cfe21403736ed5c9a",
-      "path": "os/tests/test_owner_equality.py"
-    },
-    {
-      "sha256": "e062bb255acfad988357dee66de5ac11d48241a9b59c0e8745b81946ca6fdfc2",
-      "path": "os/tests/test_owner_guard.py"
-    },
-    {
-      "sha256": "19c48ae11fc112cb8d4876093a01622524efb5a4850d35b76415fa9336c5b792",
-      "path": "os/tests/test_owner_hidden.py"
-    },
-    {
-      "sha256": "eddb1d3474c6c660a03380b57bf6b19739fae239881bb69db14192f881957110",
-      "path": "os/tests/test_owner_path.py"
-    },
-    {
-      "sha256": "0e83b636826adef83aa3ee9ba78ae285a7891bf16857f76bf51490adfffeec7d",
-      "path": "os/tests/test_owner_read_diagnostics.py"
-    },
-    {
-      "sha256": "2b83aedd3c3e43f66d2974ef325611effd753b495ffb6c9bd59860debde63b82",
-      "path": "os/tests/test_owner_reliable_typing.py"
-    },
-    {
-      "sha256": "a48d208fbc503297cfe5c194e68bed083cbf20c02422fa46b4e04a42a7d8b658",
-      "path": "os/tests/test_owner_retained.py"
-    },
-    {
-      "sha256": "21d51d8d7aea49af0ecd0c83891a2faff4f97b78263b3077d94014422c2c070d",
-      "path": "os/tests/test_owner_step_limits.py"
-    },
-    {
-      "sha256": "03a5cc7ea5f7050404525abe73a872222ad99c4251cc6ce1f5fdca525e21b3b5",
-      "path": "os/tests/test_owner_walk.py"
-    },
-    {
-      "sha256": "65d4987f9887cf06b29c64655cfad9468683911781b8d3cbdc899a055eb87dfb",
-      "path": "os/tests/test_rehearsal_budget.py"
-    }
-  ],
+  "files": [],
   "unwalked_commands": [],
   "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) is typed by the local walk of package 22c's rehearsal (route ways-back: from plain Bazzite, after previous, and on the newer AresOS taken in the boot menu) and left this list in stage 2; test_owner_equality refuses a listed command once it is typed.",
   "rebound": [
@@ -243,10 +24,106 @@
         "Package 27 (first update release): release 27 pinned in release.json and the tools bundle, the update rehearsal harness (laptop tools, step 8 route, passwd and sudo proofs), package 27 dispatch wiring"
       ],
       "rebound_by": "https://github.com/Ares-Empire/AresOS/actions/runs/43302603386"
+    },
+    {
+      "status": "rebound by package 22c's rehearsal",
+      "waited_for": "os/manifest/ci/27/source-bindings.json",
+      "walk": "os/manifest/ci/22c/source-bindings.json",
+      "changes": [
+        "Package 27b (laptop update record): os/tests/test_owner_path.py pins the laptop's step 8 update in INSTALL-STATUS; os/tests/test_checkout_sources.py and os/tests/test_owner_step_limits.py check this list by rules that hold at any time instead of requiring it empty while package 27's bindings exist",
+        "27b: the checks-only job fetches full history (the suite reads earlier commits)",
+        "27c: the checks-only job lets the disposable runner create unprivileged user namespaces (kernel.apparmor_restrict_unprivileged_userns=0), so test_owner_update.ToolsUpdateTest runs instead of skipping",
+        "27c: the checks-only job's time limit goes from 15 to 25 minutes, since the namespace tests now run",
+        "Package 22c stage 0 (reorder probe): os-image.yml, the dispatch guard and its ledger, the owner harness lists and owner_vm.py know package 22c and its mode reorder-probe; owner_vm.py shares package 27's route up to release 27 confirmed (laptop_update, confirmed_update) and owner_media.py can copy a bundle from history; the tests that pin the workflow's expressions and the local walk follow",
+        "22c stage 1a: main merged in (27c's checks-only step and time limit beside 22c's probe mode in os-image.yml)",
+        "22c stage 1a, step 1: owner.py holds the state machine of section A (free order, one reorder, the journal by the list, tools version 3); os/release/start-next.sh is new and in the bundle; the payload is refreshed",
+        "22c stage 1a step 2: layout/model regressions, four narrow fixes; B2 blocked by A4 destination conflict",
+        "22c step 2b part a: narrowed destination invariant and confirmed boot-menu path",
+        "22c step 2b part b: close 486627 model states and 12176910 steps; preserve all live layouts and journal outcomes",
+        "22c step 2b part c: executable per-rule revert proofs; finalize mutant fails model retention",
+        "22c step 2b audit: assert complete layout records and preserved finish authority before reconstructing each model state",
+        "22c stage 1a step 3(a): replace v2 expectations by A2-A5/A9 and repair older BLS/updater fakes",
+        "22c stage 1a step 3(a) hosted corrections: records resolves before disk writes; complete old fixture observations",
+        "22c stage 1a step 3(b,c): exact v2 compatibility and publication cuts; defer journal migration until v3 publication",
+        "22c review fixes 1: durable layout restoration intent and abandon interruption coverage",
+        "22c review fixes 1: bind set-default fresh read to caller deployment snapshot",
+        "22c review fixes 1: survey installed lifecycle before login verify switch and prepare refusals",
+        "22c review fixes 1: prove restoration provenance equivalence and pin expanded closure",
+        "22c review fixes 1: replace repair notes by identity across interrupted transfers",
+        "22c review fixes 2: a refusal of start-next before set-default closes its intent",
+        "22c review fixes 2: layout restoration is an exclusive phase; finish refuses",
+        "22c review fixes 2: checks-only job limit 40 minutes for the grown model",
+        "22c stage 1b addition 1: the checks-only job explores a bounded model slice; a parallel job runs the full model when its sources changed",
+        "22c stage 1b addition 2: the image and rehearsal jobs allow user namespaces before their tests",
+        "22c stage 1b D: rollback.sh, default-stock.sh and previous.sh out of the owner payload (repository copies unchanged); new fingerprint pinned",
+        "22c stage 1b F: the refusal invariant's expectation table by journal phase, a real injection before publication, and its revert proof",
+        "22c stage 1b addition 3: bootstrap.py generates the folder start block beside the stick block; tests run both",
+        "22c stage 1b step 2: the guides for three installed systems (INSTALL.md update route, EMERGENCY failed-update card, INSTALL-PROCEDURES, INSTALL-REFERENCE, INSTALL-STATUS), their route tests, and the checks-only cap raised to 30",
+        "22c review fixes 3, fix 1: the failed-update card checks first; previous only where the update is in place",
+        "22c review fixes 3, fix 2: the forward/back box never installs a release",
+        "22c review fixes 3, fix 3: a return that changes nothing has its own completion",
+        "22c review fixes 3, fix 4: a VM dispatch needs the full model passed on its head when its sources changed",
+        "22c review fixes 3: the status row names the new card route and review 4",
+        "22c review fixes 4, fix 1: forward again takes the newer AresOS's row first; update only where the running system does not start next",
+        "22c review fixes 4, fix 2: the failed-update card keeps the result of a check just run",
+        "22c one word per meaning, step 1: update only stages and names forward; forward selects the newest installed AresOS; tests and model (bundle, pins and guides follow in step 2)",
+        "22c one word per meaning, step 2: login on plain Bazzite names forward; bundle refreshed (2084c786…); forward waits under unwalked_commands for stage 2's rehearsal",
+        "22c one word per meaning, step 2: the guides say forward for every way back (the forward-again and back-from-stock box runs forward; no check-first dispatch, boot-menu step or tools' release); update only installs a new release",
+        "22c stage 2, step 1: the rehearsal mode ways-back (os-image.yml, the ledger, the mode lists, owner_vm.py, reorder_probe.py), its local walk answered by the tools themselves, the record step (rebind.py rebind, checkout_sources.active_tables), forward typed by a walk",
+        "22c stage 2, step 2: the harness reads the installed toolset's folder in the guest before the tools read input (owner_hidden.owner_reader takes it; run 43581458429 stopped on the first install's folder), the local walk's console shows the process the real entry starts, the ledger's raised caps (2400 minutes, six VM dispatches)"
+      ],
+      "files": [
+        ".github/workflows/os-image.yml",
+        "docs/EMERGENCY.md",
+        "docs/INSTALL.md",
+        "os/ci/checkout_sources.py",
+        "os/ci/installer_webui.py",
+        "os/ci/owner_capabilities.py",
+        "os/ci/owner_devices.py",
+        "os/ci/owner_hidden.py",
+        "os/ci/owner_media.py",
+        "os/ci/owner_vm.py",
+        "os/ci/registry_auth.py",
+        "os/ci/rehearsal-packages.json",
+        "os/ci/rehearsal_guard.py",
+        "os/ci/two_disk_vm.py",
+        "os/owner-tools/bootstrap.py",
+        "os/owner-tools/bundle.py",
+        "os/owner-tools/commands.json",
+        "os/owner-tools/history.json",
+        "os/owner-tools/owner.py",
+        "os/owner-tools/payload/SHA256.json",
+        "os/owner-tools/payload/SHA256SUMS",
+        "os/owner-tools/payload/history.json",
+        "os/owner-tools/payload/owner.py",
+        "os/tests/owner_console_shim.py",
+        "os/tests/serial_pty.py",
+        "os/tests/test_checkout_sources.py",
+        "os/tests/test_ci_api_permissions.py",
+        "os/tests/test_owner_abandon.py",
+        "os/tests/test_owner_bootstrap.py",
+        "os/tests/test_owner_capabilities.py",
+        "os/tests/test_owner_commands.py",
+        "os/tests/test_owner_completion.py",
+        "os/tests/test_owner_devices_native.py",
+        "os/tests/test_owner_entry.py",
+        "os/tests/test_owner_equality.py",
+        "os/tests/test_owner_guard.py",
+        "os/tests/test_owner_hidden.py",
+        "os/tests/test_owner_path.py",
+        "os/tests/test_owner_read_diagnostics.py",
+        "os/tests/test_owner_reliable_typing.py",
+        "os/tests/test_owner_retained.py",
+        "os/tests/test_owner_step_limits.py",
+        "os/tests/test_owner_walk.py",
+        "os/tests/test_rehearsal_budget.py"
+      ],
+      "removed": [
+        "os/owner-tools/payload/release/default-stock.sh",
+        "os/owner-tools/payload/release/rollback.sh"
+      ],
+      "rebound_by": "https://github.com/Ares-Empire/AresOS/actions/runs/43597505549"
     }
   ],
-  "removed": [
-    "os/owner-tools/payload/release/default-stock.sh",
-    "os/owner-tools/payload/release/rollback.sh"
-  ]
+  "removed": []
 }
