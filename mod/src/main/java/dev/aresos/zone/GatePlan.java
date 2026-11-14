@@ -31,7 +31,12 @@ public record GatePlan(ResourceKey<Level> dimension, BlockPos origin, Direction 
                        BlockPos nicheMin, BlockPos nicheMax, NetherHome.Home exit, Sign sign) {
     /** The text display above the gate: its lower middle point, the app's name and, once apps have one, its short name. */
     public record Sign(Vec3 position, String name, String shortName) {
-        /** As a hand-built gate records it ({@link AppZone.Gate#signPlan}): a blank short name is none. */
+        /** A blank short name is none (null): the sign shows no second line, and its record reads back the same. */
+        public Sign {
+            if (shortName != null && shortName.isBlank()) shortName = null;
+        }
+
+        /** As a hand-built gate records it ({@link AppZone.Gate#signPlan}). */
         public static final Codec<Sign> CODEC = RecordCodecBuilder.create(i -> i.group(
                 Vec3.CODEC.fieldOf("position").forGetter(Sign::position),
                 Codec.STRING.fieldOf("name").forGetter(Sign::name),
