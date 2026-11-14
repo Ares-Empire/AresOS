@@ -51,6 +51,17 @@ def typed(*words):
 
 LOGIN_REFUSAL = ('Registry login missing, expired or unreachable: run ' + typed('login') + ', '
                  'then run this command again; nothing was changed')
+# One word per meaning (briefs/22c-forward-command.md): update installs the release of these tools
+# and never selects an installed system; forward selects the newest installed AresOS and never
+# installs one. The lines that lead from one word to the other are worded here, once.
+FORWARD = typed('forward') + ' (it makes the newest installed AresOS the next start and says whether a restart is needed)'
+RELEASE_INSTALLED = ('The release of these tools is installed already, so update has nothing to install: run '
+                     + FORWARD + '; nothing changed')
+RELEASE_RUNS = ('The release of these tools already runs and starts next: update has nothing to install '
+                'and needs no login; nothing changed')
+FORWARD_FIRST = ('Update installs a new release only from a running AresOS that starts next: run '
+                 + FORWARD + ', then run this command again; nothing changed')
+BACK_TO_ARESOS = 'run ' + typed('forward') + ' to go back to AresOS'
 # What update/previous expect the next start to show (records/outcome-pending.json).
 OUTCOME = 'outcome-pending'
 # One owner command at a time, bootstrap install included; /run is root-only.
@@ -702,8 +713,14 @@ def name(shape, row):
     return role(shape, row) + ' ' + row['container-image-reference-digest'].split(':')[1][:12]
 
 
+def newest(shape):
+    """The newest installed AresOS, by the release history's order: forward's destination."""
+    return max(shape['ares'], key=lambda d: shape['known'][d['container-image-reference-digest']][0])
+
+
 JOURNAL = 'change1'
-WORDS = ('update', 'previous', 'rollback', 'keep-stock')
+# update journals only its staging; forward, previous, rollback and keep-stock only the reorder.
+WORDS = ('update', 'forward', 'previous', 'rollback', 'keep-stock')
 
 
 def journalled(value):
@@ -1216,7 +1233,7 @@ class Tools:
 
     @staticmethod
     def change(value, capital=False):
-        text = {'update': 'update to ', 'previous': 'return to ', 'rollback': 'rollback to ',
+        text = {'update': 'update to ', 'forward': 'forward to ', 'previous': 'return to ', 'rollback': 'rollback to ',
                 'keep-stock': 'change to '}[value['word']] + value['reference']
         return text[0].upper() + text[1:] if capital else text
 
@@ -1465,8 +1482,8 @@ class Tools:
             try:
                 paused_state(self.host, self.pause)
             except (Stop, OSError, subprocess.SubprocessError) as error:
-                lines.append('WARNING: ' + str(error) + '. Bazzite must not update while AresOS is installed: run '
-                    + typed('update') + ' to go back to AresOS, then get help')
+                lines.append('WARNING: ' + str(error) + '. Bazzite must not update while AresOS is installed: '
+                    + BACK_TO_ARESOS + ', then get help')
         return lines
 
     def title(self):
@@ -1561,8 +1578,7 @@ class Tools:
         """Rule 6: staging only from a running AresOS that is first and whole; never from stock."""
         self.may_change(state, shape, settled)
         booted = shape['booted']
-        require(booted is not shape['stock'] and state['rpm']['deployments'][0] is booted,
-            'Update stages only from a running AresOS that starts next; get help')
+        require(booted is not shape['stock'] and state['rpm']['deployments'][0] is booted, FORWARD_FIRST)
         require(not self.repair_note(booted), "This system's keyboard layout is half written: run "
             + typed('layout', 'abandon') + ' first, then update again; nothing changed')
 
@@ -1599,14 +1615,24 @@ class Tools:
         self.finish(after)
         return after
 
+    @staticmethod
+    def already(shape, target):
+        """What every word says when its destination starts next already: nothing changed, and whether it runs."""
+        label = name(shape, target)
+        return [label[0].upper() + label[1:] + ' already starts next; nothing changed',
+                'It runs now' if target is shape['booted'] else 'It does not run yet: it starts at the next restart']
+
     def select(self, word, state, shape, settled, target, done):
         """Rule 4: make target the next start. Already first: nothing changes and no journal is written."""
         if state['rpm']['deployments'][0] is target:
-            label = name(shape, target)
-            return [label[0].upper() + label[1:] + ' already starts next; nothing changed',
-                    'It runs now' if target is shape['booted'] else 'It does not run yet: it starts at the next restart']
+            return self.already(shape, target)
         self.start_next(word, state, shape, settled, target)
         return [done, *self.title()]
+
+    def tools_release(self, shape):
+        """The installed deployment of the release of these tools, or None while it is not installed."""
+        digest = self.release['reference'].split('@')[1]
+        return next((d for d in shape['ares'] if d['container-image-reference-digest'] == digest), None)
 
     def login(self):
         # Before the first switch the stock rules apply unchanged; on a
@@ -1618,8 +1644,12 @@ class Tools:
         else:
             state, shape, settled = self.survey(retry='update')
             require(settled != 'complete', 'An interrupted update only needs recording: run update')
-            require(shape is not None and not any(d['container-image-reference-digest'] == self.release['reference'].split('@')[1]
-                for d in shape['ares']), 'The release of these tools is installed already: ' + typed('update') + ' needs no login')
+            require(shape is not None, 'Unknown booted image; get help')
+            installed = self.tools_release(shape)
+            if installed is not None:
+                # Where update has nothing to install it needs no login either: its own next step.
+                raise Stop(RELEASE_RUNS if installed is shape['booted'] and state['rpm']['deployments'][0] is installed
+                           else RELEASE_INSTALLED)
             self.may_stage(state, shape, settled)
         require(sys.stdin.isatty(), 'Login requires a real hidden terminal prompt')
         podman = shutil.which('podman', path='/usr/bin:/usr/sbin')
@@ -1680,20 +1710,20 @@ class Tools:
             try:
                 paused_state(self.host, self.pause)
             except Stop as error:
-                raise Stop(str(error) + '; nothing changed. Bazzite must not update while AresOS is installed: run '
-                    + typed('update') + ' to go back to AresOS, then get help') from None
+                raise Stop(str(error) + '; nothing changed. Bazzite must not update while AresOS is installed: '
+                    + BACK_TO_ARESOS + ', then get help') from None
         return self.select('keep-stock' if keep else 'rollback', state, shape, settled, shape['stock'],
             'Saved stock is default' if keep else 'Saved stock rollback queued')
 
     def update(self):
-        """The newest AresOS starts next (rule 4).
+        """The release of these tools, by staging, and nothing else (briefs/22c-forward-command.md).
 
-        The bundle's release is installed: the reorder, with no network, login or signature check
-        (its digest is the history's). It is not installed and an AresOS runs and is first: verify
-        and stage it over the running one, which stays as rollback beside the pinned stock (rule
-        6). Otherwise (stock runs, or the running AresOS is not first): the newest installed
-        AresOS by reorder, and a line that the bundle's release is newer still. Every refusal
-        before the change leaves the system unchanged.
+        It is not installed and an AresOS runs and is first: verify and stage it over the running
+        one, which stays as rollback beside the pinned stock (rule 6). Update never selects an
+        installed system: where the release is installed already, or staging is not allowed here
+        (stock runs, or the running AresOS is not first), it refuses and names forward. Where the
+        release already runs and starts next there is nothing to do. Every refusal leaves the
+        system unchanged.
         """
         before, shape, settled = self.survey(retry='update')
         require(shape is not None, 'Update starts only from a running AresOS release; get help')
@@ -1705,13 +1735,11 @@ class Tools:
             return ['Interrupted update recorded: ' + record['reference'], *self.title()]
         booted, rows = shape['booted'], before['rpm']['deployments']
         rank = lambda d: shape['known'][d['container-image-reference-digest']][0]
-        newest = max(shape['ares'], key=rank)
-        if newest['container-image-reference-digest'] == target.split('@')[1]:
-            return self.select('update', before, shape, settled, newest, 'Newest AresOS starts next ' + target)
-        if booted is shape['stock'] or rows[0] is not booted:
-            lines = self.select('update', before, shape, settled, newest, 'Newest installed AresOS starts next ' + image_reference(newest))
-            return [*lines, 'The release of these tools is newer still and is not installed (' + target + '): '
-                    + ('run ' if newest is booted else 'restart, then run ') + typed('update') + ' again']
+        installed = self.tools_release(shape)
+        if installed is not None:
+            if rows[0] is installed and installed is booted:
+                return self.already(shape, installed)
+            raise Stop(RELEASE_INSTALLED)
         self.may_stage(before, shape, settled)
         stored_login(target)
         require(shutil.which('cosign', path='/usr/sbin:/usr/bin:/sbin:/bin'), 'cosign is missing')
@@ -1848,6 +1876,16 @@ class Tools:
         require(not staged(after) and after['rpm']['deployments'] == before['rpm']['deployments'],
                 'the staged update could not be removed')
         return True
+
+    def forward(self):
+        """The newest installed AresOS starts next, from every system, stock included: rule 3's
+        reorder, journalled and confirmed like every reorder. It never stages, downloads, removes
+        or creates a deployment: no network, no login and no signature check (the release was
+        checked when it was installed). An interrupted staging stays update's to continue."""
+        state, shape, settled = self.survey()
+        require(shape is not None, NOT_INSTALLED)
+        target = newest(shape)
+        return self.select('forward', state, shape, settled, target, 'Newest installed AresOS starts next ' + image_reference(target))
 
     def previous(self):
         """The older of two installed AresOS releases starts next, from every system, stock included."""
@@ -1999,9 +2037,10 @@ class Tools:
             self.may_change(state, shape, settled)
             booted = shape['booted']
             require(booted is not shape['stock'], "Plain Bazzite keeps the installer's German layout: no layout trial here; "
-                'nothing changed; run ' + typed('update') + ' to go back to AresOS first')
+                'nothing changed; ' + BACK_TO_ARESOS + ' first')
+            # The word that selects this system: forward the newest installed AresOS, previous the older one.
             require(state['rpm']['deployments'][0] is booted, 'This AresOS does not start next: make it the next start first ('
-                + typed('update') + ' or ' + typed('previous') + '), then begin the trial; nothing changed')
+                + typed('forward' if booted is newest(shape) else 'previous') + '), then begin the trial; nothing changed')
             require(not self.repair_note(booted), "This system's keyboard layout is half written: run "
                 + typed('layout', 'abandon') + ' first; nothing changed')
             session = self.session()
@@ -2740,7 +2779,7 @@ def main():
     require(os.geteuid() == 0, 'Use sudo from the authenticated ares-recovery session')
     host = Host()
     known = {'install', 'prepare', 'records', 'title', 'login', 'verify', 'switch', 'rollback',
-        'keep-stock', 'export', 'layout', 'reboot', 'check', 'logs', 'update', 'previous'}
+        'keep-stock', 'export', 'layout', 'reboot', 'check', 'logs', 'update', 'forward', 'previous'}
     command = sys.argv[1] if len(sys.argv) >= 2 and sys.argv[1] in known else 'invalid'
     # Never record arbitrary argv: an accidentally pasted credential is not a
     # command. Layout choices are the only accepted extra arguments.
@@ -2780,7 +2819,7 @@ def main():
                        'login': tools.login, 'verify': tools.verify, 'switch': tools.switch,
                        'rollback': tools.recover, 'keep-stock': lambda: tools.recover(True), 'export': tools.export,
                        'layout': lambda: tools.layout(*action[1:]), 'reboot': tools.reboot, 'check': tools.check, 'logs': tools.logs,
-                       'update': tools.update, 'previous': tools.previous}
+                       'update': tools.update, 'forward': tools.forward, 'previous': tools.previous}
             lines = methods[command]()
             lines = [*(getattr(tools, 'notes', None) or []), *lines]
             result.update(status='passed', result=lines)

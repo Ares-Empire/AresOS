@@ -13,6 +13,7 @@
   "reboot": "sudo /var/lib/ares/at reboot",
   "logs": "sudo /var/lib/ares/at logs",
   "update": "sudo /var/lib/ares/at update",
+  "forward": "sudo /var/lib/ares/at forward",
   "previous": "sudo /var/lib/ares/at previous",
   "layout-us": "sudo /var/lib/ares/at layout begin us",
   "layout-intl": "sudo /var/lib/ares/at layout begin us-intl",
