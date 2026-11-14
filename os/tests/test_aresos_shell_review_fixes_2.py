@@ -366,3 +366,28 @@ class LegacyReconnectTest(WindowsBase):
         self.focus(3)
         self.settle()
         self.assertEqual(self.activations, [1])
+
+
+class LateSwitchTest(WindowsBase):
+    """Package review fix 2 (REVIEW-2 finding 2): the switch he just made wins over an overdue return."""
+
+    def test_a_switch_arriving_after_the_deadline_but_before_the_return_ran_wins(self):
+        self.close(2)
+        self.focus(3)  # the compositor's pick
+        self.later(shell.HANDOFF * 0.8)  # a tick inside the hand-over interval: the return still waits
+        self.now[0] += shell.HANDOFF * 0.3  # past its deadline, and no tick ran since
+        self.focus(4)  # his switch to the editor is the next thing the helper hears
+        self.settle()
+        self.assertEqual(self.activations, [])
+        self.assertEqual(self.state('o-l'), 'closed')
+        self.assertEqual((self.helper_.shell, self.helper_.foreground_app), ('background', 'notepad'))
+        self.assertEqual(self.focus_events(self.before), [])
+
+    def test_control_other_news_after_the_deadline_still_runs_the_return(self):
+        self.close(2)
+        self.focus(3)
+        self.later(shell.HANDOFF * 0.8)
+        self.now[0] += shell.HANDOFF * 0.3
+        self.window(6, 'aresos.terminal')  # compositor news, but no switch: the pick stays in front
+        self.assertEqual(self.activations, [1])
+        self.assertEqual(self.focus_events(self.before), [('foreground', 'app_closed', 'lunarclient')])

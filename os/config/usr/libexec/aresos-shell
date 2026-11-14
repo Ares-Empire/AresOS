@@ -3080,6 +3080,15 @@ class Helper:
             if app == self.foreground_app or handed_off:
                 returned = True
                 self.return_to_desktop(app)
+        active = self.windows.active()
+        if active is not None and active.handle != self.active_handle and active.owner != Windows.SHELL:
+            # The first window activated after a close is the compositor's own pick and keeps the return; a later
+            # switch is his choice, and a return he no longer wants is dropped (review 1, finding 4). Taken into
+            # account before an overdue return runs: the switch he just made wins (review 2, finding 2).
+            for app, (deadline, should_return, pick) in list(self.discovered_closing.items()):
+                if should_return:
+                    self.discovered_closing[app] = (deadline, pick is None or pick == active.handle,
+                                                    active.handle if pick is None else pick)
         # Closing a launcher and announcing its child are separate protocol messages, possibly separate reads.
         # Reuse the focus hand-off interval to bridge that gap, without waiting for tray-only processes to exit.
         for app, (deadline, should_return, _) in list(self.discovered_closing.items()):
@@ -3099,7 +3108,6 @@ class Helper:
                     and not self.unowned_windows()):
                 returned = True
                 self.return_to_desktop(app)
-        active = self.windows.active()
         for request_id, handles in self.handles.items():
             focused = active is not None and active.handle in handles
             self.set_state(request_id, 'focused' if focused else 'background')
@@ -3107,13 +3115,6 @@ class Helper:
             return
         previous_handle, previous_owner = self.active_handle, self.active_owner
         self.active_handle, self.active_owner = active.handle, active.owner
-        if active.handle != previous_handle and active.owner != Windows.SHELL:
-            # The first window activated after a close is the compositor's own pick and keeps the return; a later
-            # switch is his choice, and a return he no longer wants is dropped (review 1, finding 4).
-            for app, (deadline, should_return, pick) in list(self.discovered_closing.items()):
-                if should_return:
-                    self.discovered_closing[app] = (deadline, pick is None or pick == active.handle,
-                                                    active.handle if pick is None else pick)
         if (active.handle != previous_handle and previous_handle in self.windows.toplevels
                 and self.windows.toplevels[previous_handle].owner != Windows.SHELL):
             self.keep_target = previous_handle
