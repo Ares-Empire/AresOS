@@ -218,6 +218,10 @@ public final class GettingAroundGameTests {
 
         Host(GameTestHelper helper, String prefix, List<AppDefinition> apps) throws Exception {
             server = helper.getLevel().getServer();
+            // This host lets the game's own town keeper act in this test's town between its steps, with the apps file
+            // below, as soon as the program list is complete. No server test makes it complete (only the app helper's
+            // list does, and the server tests have no helper), so the test's town stays its own (package 36b).
+            check(!TownKeeper.complete(), "Fixture: a complete program list reached the test server; the game's own town keeper would act in this test's town");
             this.prefix = prefix;
             config = System.getProperty("aresos.appsConfig");
             profile = server.getSingleplayerProfile();
@@ -1109,15 +1113,13 @@ public final class GettingAroundGameTests {
         host.ran("aresos app swap chrome nothing", 0);
         var typed = host.lines();
         check(typed.equals(List.of("No program matches \"nothing\".")), "The typed swap with a name of nothing: " + typed);
-        // Without a complete program list (no other test of this run gave one), the town's own line.
-        if (!TownKeeper.complete()) {
-            host.ran("aresos app swap chrome discord", 0);
-            var lines = host.lines();
-            check(lines.equals(List.of(waits)), "The typed swap: " + lines);
-            host.ran("aresos app move lunar west", 0);
-            lines = host.lines();
-            check(lines.equals(List.of(waits)), "The typed move: " + lines);
-        }
+        // Without a complete program list (Host makes sure no test of this run gave one), the town's own line.
+        host.ran("aresos app swap chrome discord", 0);
+        var lines = host.lines();
+        check(lines.equals(List.of(waits)), "The typed swap: " + lines);
+        host.ran("aresos app move lunar west", 0);
+        lines = host.lines();
+        check(lines.equals(List.of(waits)), "The typed move: " + lines);
         var dispatcher = server.getCommands().getDispatcher();
         var source = host.player.createCommandSourceStack();
         var apps = dispatcher.getCompletionSuggestions(dispatcher.parse("aresos app swap chrome di", source)).join().getList().stream()
