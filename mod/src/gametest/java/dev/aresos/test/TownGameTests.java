@@ -95,6 +95,47 @@ public final class TownGameTests {
         return chunks;
     }
 
+    /**
+     * The ground a town test holds around its home column, in blocks from it: the pad, the four roads out to their
+     * names, and the front rows of the north and west groups. Package 36b: it reached 16 blocks south, and the logo at
+     * W0L0 with the ground its build looks at reaches 17. The run puts each test's plot anywhere, so in one run of
+     * sixteen that ground lay in a chunk the test did not hold and so did not wait for; when that chunk was not loaded
+     * yet, the pass that should have built Spotify's logo there said nothing and built nothing.
+     */
+    private static final BlockPos TOWN_FROM = new BlockPos(-48, 0, -60), TOWN_TO = new BlockPos(48, 0, 32);
+
+    /** The chunks of the town's ground around this home column. */
+    private static Set<Long> town(BlockPos column) { return chunks(column.offset(TOWN_FROM), column.offset(TOWN_TO)); }
+
+    /** How far around a logo's cells its build looks: the lights' surroundings ({@code GateBuilder.prepare}). */
+    private static final int LOOKS = 4;
+
+    /**
+     * Checks that a logo in each of these places, with the ground its build looks at, lies inside the town's ground
+     * ({@link #town}). It holds or fails in every run alike; the chunks themselves would show a place reaching past
+     * that ground only in the runs whose plot puts it across a chunk border.
+     */
+    private static void withinTown(HubData hub, AppDefinition app, GatePicture picture, String... places) {
+        var home = hub.home().pos();
+        for (var name : places) {
+            var plan = Town.plan(hub, app, Place.parse(name).orElseThrow(), picture);
+            var cells = new ArrayList<BlockPos>(plan.space());
+            cells.addAll(plan.signSpace());
+            cells.addAll(plan.walkway());
+            cells.addAll(plan.doormatSurround());
+            cells.addAll(plan.floor());
+            cells.addAll(plan.blocks().keySet());
+            cells.addAll(plan.doormat());
+            cells.addAll(plan.lights());
+            for (var cell : cells) {
+                var at = cell.subtract(home);
+                check(at.getX() - LOOKS >= TOWN_FROM.getX() && at.getX() + LOOKS <= TOWN_TO.getX()
+                                && at.getZ() - LOOKS >= TOWN_FROM.getZ() && at.getZ() + LOOKS <= TOWN_TO.getZ(),
+                        "Fixture: the logo at " + name + " reaches past the ground the test holds, at " + at.toShortString() + " from home");
+            }
+        }
+    }
+
     private static void hold(ServerLevel level, Set<Long> chunks, boolean held) {
         for (long chunk : chunks) {
             if (held) level.getChunkSource().addTicketWithRadius(TicketType.DRAGON, ChunkPos.unpack(chunk), 2);
@@ -119,7 +160,7 @@ public final class TownGameTests {
         var level = helper.getLevel();
         var server = level.getServer();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(offset, 0, 0);
-        var chunks = chunks(column.offset(-48, 0, -60), column.offset(48, 0, 16));
+        var chunks = town(column);
         hold(level, chunks, true);
         helper.startSequence().thenWaitUntil(() -> helper.assertTrue(loaded(level, chunks), "The town's chunks are not loaded yet")).thenExecute(() -> {
             var previous = HubData.get(server);
@@ -146,6 +187,7 @@ public final class TownGameTests {
             var discord = new AppDefinition("town-discord", "Discord", List.of("discord"), "minecraft:ender_pearl", false).withNames(List.of("towndc"));
             var picture = picture();
             var place = Place.parse("N0R0").orElseThrow();
+            withinTown(hub, discord, picture, "N0R0", "N0L0", "N1L0");
             var plan = Town.plan(hub, discord, place, picture);
             BlockPos from = home.offset(-20, -2, -40), to = home.offset(20, 16, 2);
             var before = snapshot(level, from, to);
@@ -376,7 +418,7 @@ public final class TownGameTests {
     public void theTownKeepsInStepWithHisApps(GameTestHelper helper) {
         var level = helper.getLevel();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(17000, 0, 0);
-        var near = chunks(column.offset(-48, 0, -60), column.offset(48, 0, 16));
+        var near = town(column);
         var fake = new Fake();
         hold(level, near, true);
         helper.startSequence()
@@ -424,6 +466,8 @@ public final class TownGameTests {
                 app("keep-far", "Far", null, AppGroup.INTERNET, false, true).withSpot("N40L0", "internet"),
                 app("keep-spotify", "Spotify", "spotify", AppGroup.WORK_MEDIA, false, false),
                 app("keep-mail", "Mail", "mail", AppGroup.INTERNET, false, false)));
+        // Every place this test builds in lies inside the ground it holds (the far place has ground of its own).
+        withinTown(hub, fake.get("keep-spotify"), fake.ring, "N0L0", "N0R0", "N1L0", "N1R0", "W0L0");
 
         // Never on an incomplete list; never in a town that other rules built.
         var none = fake.pass(server, false);
@@ -759,7 +803,7 @@ public final class TownGameTests {
     public void theTownTrustsItsRecordsOnlyWhileTheWorldWasSavedWithThem(GameTestHelper helper) {
         var level = helper.getLevel();
         BlockPos column = helper.absolutePos(BlockPos.ZERO).offset(21000, 0, 0);
-        var near = chunks(column.offset(-48, 0, -60), column.offset(48, 0, 16));
+        var near = town(column);
         var fake = new Fake();
         fake.prefix = "seal-";
         hold(level, near, true);
@@ -834,6 +878,7 @@ public final class TownGameTests {
         // Day one: Chrome alone; Discord joins My apps after the first save.
         fake.apps.addAll(List.of(app("seal-chrome", "Chrome", "chrome", AppGroup.INTERNET, true, true),
                 app("seal-discord", "Discord", "discord", AppGroup.INTERNET, false, false)));
+        withinTown(hub, fake.get("seal-chrome"), fake.ring, "N0L0", "N0R0");
         fake.pass(server);
         check(place(server, "seal-chrome").equals("N0L0") && hub.logos().size() == 1, "Day one: " + hub.logos());
         Path world = server.getWorldPath(LevelResource.ROOT).toAbsolutePath().normalize();
