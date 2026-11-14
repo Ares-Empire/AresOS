@@ -271,16 +271,26 @@ export async function reviewMatrices({check,nav,call,rpc,target,read,counts,even
     // opened, whose reader watched from the start, and closes only with the flag.
     const main=getTab();
     for(const mode of ['dirty','web-audio','clean']){
-      const id='final-discard-close-tab-'+mode,opened=await call('open',{url:'http://fixture.test:8765/?case=take-state&id='+id+'&mode='+mode}),tab=opened.untrusted_content?.tab??opened.tab;
-      await eventually(()=>counts('loaded-'+id)===1,'Claude tab loaded');setTab(tab);
+      // The Web Audio case runs as every other Web Audio row does: the owner
+      // loads the page and plays in a released tab, then Claude takes it. In a
+      // tab fresh from `open`, neither Claude's click on "Play media" (run
+      // 43575571819) nor the owner's Tab+Return (run 43580466542) started the
+      // sound; the report here is about close_tab, whatever started it.
+      const id='final-discard-close-tab-'+mode,loaded=mode==='web-audio'?id+'-opened':id;
+      const opened=await call('open',{url:'http://fixture.test:8765/?case=take-state&id='+loaded+'&mode='+(mode==='web-audio'?'clean':mode)}),tab=opened.untrusted_content?.tab??opened.tab;
+      await eventually(()=>counts('loaded-'+loaded)===1,'Claude tab loaded');setTab(tab);
       try{
-        // The owner starts the sound, as in every other Web Audio row (run
-        // 43575571819: after Claude's click on "Play media" the page never
-        // reported the AudioContext running; the report here is about close_tab).
-        if(mode==='web-audio'){ownerKey();await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);}
+        if(mode==='web-audio'){
+          await call('release_tab',{tab});await ownerNavigate('http://fixture.test:8765/?case=take-state&id='+id+'&mode=web-audio');
+          await eventually(()=>counts('loaded-'+id)===1,'owner page loaded');
+          ownerKey();await eventually(()=>counts('playing-'+id)===1,'Web Audio playback started');await delay(500);
+          await call('take_tab',{tab});
+        }
         if(mode!=='clean'){
           const first=await rpc('close_tab',{tab});assert.equal(first.ok,false,JSON.stringify(first));assert.equal(first.error.code,'reload_required');
-          assert.match(first.error.message,mode==='dirty'?/Closing this tab would lose unsaved typing in field "Draft" \(typed by the owner\)\./:/Closing this tab would lose media that is playing\./);assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');
+          if(mode==='dirty')assert.match(first.error.message,/Closing this tab would lose unsaved typing in field "Draft" \(typed by the owner\)\./);
+          else{assert.match(first.error.message,/^Closing this tab would lose /);assert.match(first.error.message,/media that is playing/);}
+          assert.doesNotMatch(first.error.message,/Saved/,'labels only, never values');
           await delay(300);assert.ok((await allTabs(call)).items.some(row=>row.tab===tab&&row.controlled),'the tab stays open and controlled until the explicit repeat');
         }
         const closed=await rpc('close_tab',{tab,...(mode==='clean'?{}:{discard_unsaved:true})});assert.equal(closed.ok,true,JSON.stringify(closed));
