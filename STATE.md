@@ -122,7 +122,7 @@ Updated 2026-11-14. The live truth is `git log`, `gh pr list` and `git worktree 
 - **Who works where (since 2026-11-13).** The OS lead runs on the laptop itself as `linux-aresos` (`laptop-aresos` on Windows is retired). Worktrees are `~/AresOS-NN-slug`, and the tests run natively.
   - `linux-aresos`: `os/`, the install and update documents, `STATE.md`, `HANDOFF.md`, the releases; packages 23, 22c, 21b, 25 and 26.
   - `linux-hub`: all of `mod/`, the helper's app list, `/usr/libexec/aresos-shell` and labwc's theme (the home screen, later the companions).
-  - `linux-tools`: the control tools, including brief 18c (the control files in the image). `mac-aresos-control` keeps the Chrome PR #27 until it merges.
+  - `linux-tools`: the control tools, including brief 18c (the control files in the image), and Chrome since PR #27 merged (2026-11-14).
   - Touch points: labwc's `rc.xml` (21b changes key bindings there; tell each other first) and the mod jar the image pins (it moves with each release). His own programs in the hub (board #163; Lunar, Discord and Chrome first): `linux-hub` builds the listing of installed programs inside `aresos-shell` as one package with the game side; the OS lead reviews its `os/` diff before the merge, and it ships with the next release (agreed 2026-11-13).
 - **The home screen (`linux-hub`, since 2026-11-13).** The owner's pointers: a flat Overworld first, app logos built from blocks that he walks into, the hotbar as the taskbar, `/name` in chat. Design: `docs/design/HUB.md` (PR #45), by a Fable design agent; his decisions so far: logos 12 blocks tall (board #207), the window frame Ares-Crown with Chrome keeping its own bar (board #206).
   - **On main:** 29 the mod's dev scripts under AresOS (PR #44), 38 a reproducible mod jar with the mod's tests on GitHub (PR #51), 32 the flat home (PR #50), 33 the gate logo (PR #49), 34 My apps and the mod's side of `aresos-shell/1.1` (PR #52), 31 the Ares-Crown frame (PR #54), 35 slash names (PR #56, `cdfab755`, 2026-11-14; `apps.json` is schema 4).
@@ -237,10 +237,13 @@ Updated 2026-11-14. The live truth is `git log`, `gh pr list` and `git worktree 
      his account installs software normally. Chrome (decision 25, "B is good"): a light tool of our own in his normal
      Chrome, with no proxy and no certificate; it asks before anything that clearly sends, and a page that sends on
      its own after an ordinary click isn't held, as with Claude in Chrome.
-   - **In progress:** the Chrome tool (brief 20, PR #27, led by `mac-aresos-control` until it merges, planned
-     2026-11-16): a fix round for four findings of its re-check, then main merged in, Chrome moved onto the slim
-     generator, test group 12 in 18d's harness, and reviews of the combined head. `linux-aresos` owns `os/` and the
-     accounts.
+   - **On main (2026-11-14): the Chrome tool** (brief 20, PR #27, merge commit `09cedc84`). Claude reads, navigates
+     and acts in its own tabs and in tabs it takes from the owner, and asks before anything that sends. It reads typed
+     form fields only after asking (#210). Before leaving or closing a tab it reports unsaved typing and playing media,
+     and needs his OK in the chat for his typing. Turning read-only off or "don't ask again" from Chrome needs his
+     admin password (polkit). Every call stays under the latency ceilings, also with a long history. The accepted
+     limits are in `reviews/20-chrome/KNOWN-LIMITS.md`. Chrome now belongs to `linux-tools` (briefs 28, 28a, 28b and
+     18c-b). `linux-aresos` owns `os/` and the accounts.
    - **Since 2026-11-13 the AresOS-side session `linux-tools` leads the tools** (`docs/control/TOOLS-HANDOFF.md`):
      - **Brief 18c, the image test with the tools inside** (`briefs/18c-image-test.md`, PR #42, `25c0df62`), with
        the `os/` change agreed with `linux-aresos` (sixteen changes, in the brief). Its container part is on main
