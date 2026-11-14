@@ -55,7 +55,7 @@
       "path": ".gitattributes"
     },
     {
-      "sha256": "9c4d6f0a3894f44cdf760a7a365c975e45cd1efd9c07dcb473ba17e7361530f2",
+      "sha256": "da2151ca86960ab914bcf3b357864c65bad4b0c692b4b3e0cd08da03adfefaa2",
       "path": ".github/workflows/os-image.yml"
     },
     {
@@ -1055,7 +1055,7 @@
       "path": "os/tests/test_serial_staging.py"
     },
     {
-      "sha256": "02542f9e95447a0c0e51d8ca4ade50a2321a7a0b7c1c8abd44bd81a8b90048bb",
+      "sha256": "9e2e2d7236ae8d06724611193c34a9130c857ee06fd552069c87847fb55b521b",
       "path": "os/tests/test_ways_back_probe.py"
     },
     {

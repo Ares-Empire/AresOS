@@ -96,6 +96,31 @@ class DispatchTest(unittest.TestCase):
                         self.assertFalse(condition(job['if'], mode=mode, **{'github.ref_name': branch}))
 
 
+class SuiteJobsTest(unittest.TestCase):
+    """Stage 1b, additions 1 and 2: every job that runs the whole suite runs its namespace tests
+    (test_owner_update.ToolsUpdateTest skips silently without the step) and explores the model's slice."""
+    NAMESPACES = ('sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0\n'
+                  'unshare -Urm true\n')
+
+    def test_each_suite_job_allows_user_namespaces_before_its_tests_and_explores_the_slice(self):
+        suites = {}
+        for name, job in WORKFLOW['jobs'].items():
+            steps = job['steps']
+            runs = [i for i, step in enumerate(steps) if 'unittest discover -s os/tests -v' in step.get('run', '')]
+            if not runs:
+                continue
+            suite, = runs
+            allow = [i for i, step in enumerate(steps) if step.get('name') == 'Allow unprivileged user namespaces on disposable runner']
+            with self.subTest(job=name):
+                self.assertEqual(len(allow), 1)
+                self.assertLess(allow[0], suite)
+                self.assertEqual(steps[allow[0]]['run'], self.NAMESPACES)
+                self.assertNotIn('if', steps[allow[0]])
+                self.assertEqual(steps[suite]['env']['ARESOS_MODEL_SCOPE'], 'slice')
+            suites[name] = steps[suite]['name']
+        self.assertEqual(suites, {'regressions': 'Run regression and syntax checks', 'image': 'Install tools on disposable runner',
+                                  'rehearsal': guard.NATIVE_STEP})
+
 class JobGatesTest(unittest.TestCase):
     """Every script the rehearsal job runs for a package 22c mode accepts the environment the job gives it
     (test_release27.UpdateJobGatesTest's scan, for this branch: package 27's first runs died on such gates)."""

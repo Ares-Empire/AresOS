@@ -79,7 +79,7 @@ jobs:
       # test_owner_update.ToolsUpdateTest runs the tools' update as root in an
       # unprivileged user and mount namespace (unshare -Urm). Ubuntu 24.04's
       # AppArmor refuses that by default (uid_map: Operation not permitted) and
-      # the tests skip; this is the only place they can run (27c).
+      # the tests skip (27c; the image and rehearsal jobs since 22c stage 1b).
       - name: Allow unprivileged user namespaces on disposable runner
         run: |
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
@@ -242,7 +242,17 @@ jobs:
       - uses: ublue-os/remove-unwanted-software@695eb75bc387dbcd9685a8e72d23439d8686cba6
         with:
           extra-squeeze: 'true'
+      # test_owner_update.ToolsUpdateTest runs the tools' update as root in an
+      # unprivileged user and mount namespace (unshare -Urm). Ubuntu 24.04's
+      # AppArmor refuses that by default (uid_map: Operation not permitted) and
+      # the tests skip (27c; this job since 22c stage 1b).
+      - name: Allow unprivileged user namespaces on disposable runner
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          unshare -Urm true
       - name: Install tools on disposable runner
+        env:
+          ARESOS_MODEL_SCOPE: slice
         run: |
           set -euo pipefail
           bash os/ci/install-tools.sh
@@ -579,11 +589,22 @@ jobs:
         env:
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: sudo -E python3 os/ci/owner_capabilities.py
+      # test_owner_update.ToolsUpdateTest runs the tools' update as root in an
+      # unprivileged user and mount namespace (unshare -Urm). Ubuntu 24.04's
+      # AppArmor refuses that by default (uid_map: Operation not permitted) and
+      # the tests skip (27c; this job since 22c stage 1b).
+      - name: Allow unprivileged user namespaces on disposable runner
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          unshare -Urm true
       - name: Qualify tools, regressions, rewritten release identity and private access
         timeout-minutes: 35
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REHEARSAL_MODE: ${{ inputs.rehearsal }}
+          # The full ways-back model would not fit this step; the checks-only run on the
+          # same head explored it when its sources changed (22c stage 1b, addition 1).
+          ARESOS_MODEL_SCOPE: slice
         run: |
           set -euo pipefail
           python3 -m venv --system-site-packages .work/browser-env
