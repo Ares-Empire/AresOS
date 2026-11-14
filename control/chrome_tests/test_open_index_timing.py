@@ -8,6 +8,7 @@ No browser: the bridge is the test fixture's, so a request's time here is the
 service's own, as the latency profile's service_total stage measures it.
 """
 import json
+import sqlite3
 import statistics
 import time
 import unittest
@@ -87,6 +88,7 @@ class OpenIndexTiming(unittest.TestCase):
             record[f'{count}:engine_pending']={'median_ms':round(pending,2)}
             with self.subTest(count=count,call='chrome_read'):
                 self.assertLess(read,READ_SERVICE_MS,record)
+        record['sqlite_version']=sqlite3.sqlite_version
         print('\nstep7-timing '+json.dumps(record,sort_keys=True))
 
 

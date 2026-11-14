@@ -522,7 +522,10 @@
     const add=(label,node)=>{const by=typist(node);if(by!=='Claude')claudeOnly=false;fields.push(label+' (typed by '+by+')');};
     // The guard has listened since before page scripts in a watched document,
     // unless a release left a gap; only then is "no input since load" known.
+    // After that gap (a release and a retake of the same document without a
+    // reload) typing went unseen, so what the fields hold now counts.
     const sinceLoad=watched&&guard.typingGap===false;
+    const retaken=guard.typingGap===true;
     const gotInput=node=>!!guard.typedBy?.(node);
     // A rich-text frame (design mode) counts once it got input since load.
     if(document.designMode?.toLowerCase()==='on'&&(!sinceLoad||gotInput(document)))add('the whole page in design mode',document);
@@ -550,8 +553,10 @@
         // Changed from the page's default, or typed since load and still
         // holding text. A page that moves the default along with typing
         // (React does for controlled fields) hides typing from the first
-        // rule; a field emptied again holds nothing of anyone's.
-        else{const value=element.value;changed=value!==element.defaultValue||gotInput(element)&&value!=='';}
+        // rule; a field emptied again holds nothing of anyone's. After a
+        // retake every non-empty text field counts, as editors do after a
+        // gap: typing in the gap was unseen, and whoever typed, it's the owner's.
+        else{const value=element.value;changed=value!==element.defaultValue||(gotInput(element)||retaken&&typedField(element))&&value!=='';}
         if(changed)add(unsavedLabel(element),element);
       }
     }

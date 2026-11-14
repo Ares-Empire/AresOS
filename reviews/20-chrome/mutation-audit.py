@@ -506,6 +506,10 @@ case('step7-full-disk-fatal-at-open',S,"            if storage_refusal(exc) is N
 case('step7-index-membership-sent-check',S,'''                   " OR +json_extract(v,'$.sent_copy_check.state')='open')")''','''                   ")")''','test_full_disk_reads.FullDiskReads.test_an_operation_is_in_the_index_while_open_or_unacknowledged_and_leaves_it_after',True)
 case('step7-pending-scans','control/aresos_control/engine.py',"iter_operations(exclude_app='chrome', unresolved=True)","iter_operations(exclude_app='chrome')",SCAN,True)
 case('step7-sent-checks-scan','control/aresos_control/mail/adapter.py',"for _, op in self.store.iter_operations(app='mail', unresolved=True):","for _, op in self.store.iter_operations(app='mail'):",SCAN,True)
+# Step 7: after a release and a retake without a reload every non-empty text
+# field counts (the stricter rule from KNOWN-LIMITS), text fields only.
+case('step7-retake-counts-text-fields',R,"(gotInput(element)||retaken&&typedField(element))&&value!==''","gotInput(element)&&value!==''",node('reader','step 7 after a retake'))
+case('step7-retake-text-only',R,"retaken&&typedField(element)","retaken",node('reader','step 7 after a retake'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

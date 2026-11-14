@@ -622,8 +622,9 @@ test('step 6 a React-style controlled field typed since load counts while it hol
   const state=unsavedState(f);
   assert.deepEqual(state,{unsaved:true,fields:['field "Headline" (typed by the owner)','text area "Story" (typed by Claude)'],claude_only:false,playing:false});
   assert.doesNotMatch(JSON.stringify(state),/safe visible text/,'labels only, never values');
-  // Typing seen before a release still counts after it.
-  typing.gap=true;assert.deepEqual(unsavedState(f).fields,state.fields);
+  // Typing seen before a release still counts after it; after the gap the
+  // untouched field holding text counts too, as the owner's (step 7).
+  typing.gap=true;assert.deepEqual(unsavedState(f).fields,[...state.fields,'field "Untouched" (typed by the owner)']);
 });
 test('step 6 a field emptied again is not reported, whoever typed it',()=>{
   const typing={gap:false,marks:new Map()};
@@ -635,6 +636,29 @@ test('step 6 a field emptied again is not reported, whoever typed it',()=>{
   // Emptied while the page keeps a saved default is still a change.
   owner.defaultValue='Saved';
   assert.deepEqual(unsavedState(f).fields,['field "Headline" (typed by the owner)']);
+});
+// Step 7: between a release and a retake of the same document (no reload) the
+// guard saw nothing, so every non-empty text field then counts, as an editor
+// does after a gap, and as the owner's. A page that keeps the default in step
+// with typing (React) would otherwise hide a draft typed in that gap.
+test('step 7 after a retake every non-empty text field counts as the owner\'s, empty and non-text fields do not',()=>{
+  const typing={gap:false,marks:new Map()};
+  const f=fixture([{attrs:{'aria-label':'Headline'}},{attrs:{'aria-label':'Story'}},{attrs:{'aria-label':'Blank'}},{type:'range',attrs:{'aria-label':'Volume'}},{type:'color',attrs:{'aria-label':'Tone'}}],{typing});
+  const [headline,story,blank,volume,tone]=f.nodes;f.textarea(story);
+  for(const node of [headline,story])node.defaultValue='safe visible text';
+  holds(blank,'');blank.defaultValue='';
+  holds(volume,'50');volume.defaultValue='50';holds(tone,'#000000');tone.defaultValue='#000000';
+  assert.equal(unsavedState(f).unsaved,false,'no gap, nobody typed, values equal the defaults');
+  typing.gap=true;
+  const state=unsavedState(f);
+  assert.deepEqual(state,{unsaved:true,fields:['field "Headline" (typed by the owner)','text area "Story" (typed by the owner)'],claude_only:false,playing:false});
+  assert.doesNotMatch(JSON.stringify(state),/safe visible text/,'labels only, never values');
+  // Claude's own typing seen before the release stays his; the gap adds the rest as the owner's.
+  typing.marks.set(story,{owner:false,claude:true});
+  assert.deepEqual(unsavedState(f).fields,['field "Headline" (typed by the owner)','text area "Story" (typed by Claude)']);
+  // A late reader (unwatched document) keeps its own rule for text fields and never counts a slider.
+  const late=fixture([{type:'range',attrs:{'aria-label':'Volume'}}],{watched:false,typing:{gap:false,marks:new Map()}});
+  holds(late.nodes[0],'50');late.nodes[0].defaultValue='50';assert.equal(unsavedState(late).unsaved,false);
 });
 // Step 6 (run 43566651314): a drop-down whose page marks no option selected
 // shows its first enabled option; nobody changed it.
