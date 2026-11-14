@@ -17,10 +17,11 @@ Stock KDE returning instead of AresOS also fails: `PASS check` can describe vali
 
 ## Failed or bad update
 
-**Action:** new AresOS does not start, or the old one or stock appears instead: normal restart → **F12** (or **Fn+F12**) → **Windows Boot Manager** → get help. A hung restart uses the [10-minute wait](INSTALL-REFERENCE.md#hung-shutdown-or-restart).
-It starts but misbehaves: tty3 `ares-recovery` → `sudo -i` → `sudo /var/lib/ares/at previous`, require `PASS previous`, save the refreshed title, then `sudo /var/lib/ares/at reboot` (`PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`) → **F12** → **Bazzite** → [check](INSTALL.md#update-aresos-to-a-new-release).
-A check that STOPs with **did not finish at the restart** or **interrupted before its result was recorded** means the change is not confirmed; the tools refuse to confirm it, and Help decides each repeat. Never choose a guessed GRUB title, repeat the update without Help, or use the stock rollback or keep-stock after an update; they refuse with three deployments.
-**STOP → go to [Help](INSTALL-REFERENCE.md#help)**; return to [step 8](INSTALL.md#8-everyday-boot-and-recovery) only after help or a passing check of the previous release.
+**Action:** the new AresOS does not start: normal restart → **F12** (or **Fn+F12**) → **Bazzite** → [boot menu](INSTALL-PROCEDURES.md#recovery-menu) → take the row your last title named for the AresOS that ran before the update (the provisional title's **Boot menu after the update finishes at shutdown (expected):** line). A hung restart uses the [10-minute wait](INSTALL-REFERENCE.md#hung-shutdown-or-restart). That AresOS starts: tty3 `ares-recovery` → `sudo -i` → `sudo /var/lib/ares/at previous`, require `PASS previous`, save the refreshed title, then `sudo /var/lib/ares/at reboot` (`PASS reboot` / `Reboot requested; Windows stays default; F12 then Linux for one Linux start`) → **F12** → **Bazzite**, no choice → [check](INSTALL.md#update-aresos-to-a-new-release): **Return to … confirmed after the restart**.
+It starts but misbehaves: **previous** first, the same way from the new AresOS. If the older AresOS misbehaves too: **rollback** to plain Bazzite ([rollback](INSTALL-PROCEDURES.md#rollback-from-running-aresos)). If nothing works: **F12** → **Windows Boot Manager** → get help.
+The old AresOS returns by itself, with no choice: run `sudo /var/lib/ares/at check` first. **Update to … was not applied** means the update did not finish at shutdown and nothing is lost; do **not** run previous then (it would go one release further back); Help decides each repeat.
+In the boot menu choose the row the last title named. Without a title any row is safe: that system starts, `sudo /var/lib/ares/at check` names what runs and what starts next, and every command still works. A STOP **did not finish as recorded** or **interrupted before its result was recorded** → keep the screen, [export](#a-tools-command-stopped), Help decides each repeat. Never repeat the update without Help. With the tools from before package 22c, rollback, keep-stock and the boot menu STOP with **Expected exact stock/AresOS pair**: install the current tools first.
+**STOP → go to [Help](INSTALL-REFERENCE.md#help)**; return to [step 8](INSTALL.md#8-everyday-boot-and-recovery) only after help or a passing check.
 
 ## Blue MOK menu on first stock boot
 
@@ -35,7 +36,7 @@ If those conditions permit a power hold, do it once until off → **F12 → Wind
 ## Stale or missing stock title
 
 **Action:** do not choose a GRUB row. Use **F12** (or **Fn+F12**) → Windows → help.
-Every deployment reorder invalidates old titles, even before reboot. Both entries can say Bazzite; position and checksum alone do not identify stock.
+Every deployment reorder invalidates old titles, even before reboot. Both entries can say Bazzite; position and checksum alone do not identify stock. This holds until AresOS has started once; after that, with the current tools, the [boot menu](INSTALL-PROCEDURES.md#recovery-menu) explains why any row is safe.
 **STOP → go to [Help](INSTALL-REFERENCE.md#help)**. Return to [step 5](INSTALL.md#5-prove-windows-and-corrected-stock) before any authentication or switching.
 
 ## Password not accepted
@@ -49,7 +50,7 @@ Otherwise use **F12** (or **Fn+F12**) → Windows → help. AresOS uses its curr
 
 **Action:** identify the interrupted action from your record. **Begin/revert:** after restart, try the **last confirmed layout once**; a failed login → Help. **Finish invoked, but no `PASS layout finish`:** the console may already use the proven new layout. Try the last confirmed layout **once**; only if login fails, try the recorded, proven new layout **once**. After two failed logins, **STOP → go to [Help](INSTALL-REFERENCE.md#help)**. Failed attempts before this route, unknown profiles/policy or any lockout warning → Help before starting. [Attempt-limit source and precautions](INSTALL-REFERENCE.md#layout-recovery-login-limit). Retained stock uses its own installer German.
 Use a **fresh physical tty3 ares-recovery password login** for that bounded route ([TTY entry/exit](INSTALL-REFERENCE.md#console)); after that one successful login, run `sudo -i` in the same session using the successful map. If sudo rejects the password, stop at Help without a retry. Run `sudo /var/lib/ares/at layout abandon` once (require `PASS layout abandon`) and save the refreshed title.
-**After `PASS layout abandon`:** [Finish abandoned-trial recovery](INSTALL-PROCEDURES.md#abandon-completion); do not run abandon again. If an accidental repeat says `Missing private layout-pending record` **and you already recorded that PASS**, use the same completion link. Every other refusal → **STOP → go to [Help](INSTALL-REFERENCE.md#help)**. On AresOS, check and Return to [step 8](INSTALL.md#8-everyday-boot-and-recovery); on retained stock, complete [keep-stock](INSTALL-PROCEDURES.md#keep-stock) before that return. Do not force a reset to test this route.
+**After `PASS layout abandon`:** [Finish abandoned-trial recovery](INSTALL-PROCEDURES.md#abandon-completion); do not run abandon again. If an accidental repeat says `No layout trial and no half-written layout to abandon on this system; nothing changed` **and you already recorded that PASS**, use the same completion link. Every other refusal → **STOP → go to [Help](INSTALL-REFERENCE.md#help)**. On AresOS, check and Return to [step 8](INSTALL.md#8-everyday-boot-and-recovery); on retained stock, complete [keep-stock](INSTALL-PROCEDURES.md#keep-stock) before that return. Do not force a reset to test this route.
 
 ## A tools command stopped
 
