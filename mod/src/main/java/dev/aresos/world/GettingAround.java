@@ -26,6 +26,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.TreeSet;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static com.mojang.brigadier.arguments.StringArgumentType.getString;
@@ -34,7 +35,8 @@ import static com.mojang.brigadier.arguments.StringArgumentType.greedyString;
 /**
  * Getting around (HUB.md 2.6, package 37): {@code /go <app>} puts him in front of an app's door, {@code /home} on the
  * home pad. Both move him and nothing else: no block changes, no app opens. A {@code /go} whose arrival is not loaded
- * loads it away from the server thread first and moves him a few ticks later ({@link Arrivals}). Like {@code /open} and
+ * requests it through the game's ticket system, checks it in a later tick and moves him then ({@link Arrivals}), if
+ * the app and its logo's place (or its hand-made zone) are still the same by then. Like {@code /open} and
  * {@code /apps} they exist for the host of an AresOS world only, and only where no other command has the name.
  */
 public final class GettingAround {
@@ -137,7 +139,25 @@ public final class GettingAround {
         String blocked = "Something of yours stands in front of " + app.name() + "'s door (" + place.words()
                 + ") with no free spot on the way in, so you stay where you are.";
         String late = app.name() + "'s door (" + place.words() + ") did not load in time, so you stay where you are. Try again in a moment.";
-        return said(source, Arrivals.go(player, level, spots(place, exit.position()), exit.yaw(), exit.pitch(), arrived, blocked, late), arrived, blocked);
+        var server = source.getServer();
+        Supplier<Optional<String>> still = () -> {
+            var now = AresOs.app(app.id());
+            if (!his(now)) return Optional.of(notHis(app));
+            return place.equals(Whereabouts.of(server, now, TownKeeper.complete()).place()) ? Optional.empty()
+                    : Optional.of(app.name() + "'s logo is no longer at " + place.words() + ", so you stay where you are.");
+        };
+        return said(source, Arrivals.go(player, level, spots(place, exit.position()), exit.yaw(), exit.pitch(), arrived, blocked, late, still),
+                arrived, blocked);
+    }
+
+    /** Whether this app, as the apps file has it now, is one of his installed apps. */
+    private static boolean his(AppDefinition app) {
+        return app != null && app.mine() && !app.absent();
+    }
+
+    /** What a waiting {@code /go} says when its app is no longer his by the time its arrival has loaded. */
+    private static String notHis(AppDefinition app) {
+        return app.name() + " is no longer one of your apps, so you stay where you are.";
     }
 
     /** The command's lines when {@link Arrivals#go} moved him or refused at once; a later tick says them otherwise. */
@@ -175,7 +195,15 @@ public final class GettingAround {
         String blocked = "The exit of " + app.name() + "'s logo is obstructed. Clear it in Build mode; you stay where you are.";
         if (level == null) return refuse(source, blocked);
         String late = "The exit of " + app.name() + "'s logo did not load in time, so you stay where you are. Try again in a moment.";
-        return said(source, Arrivals.go(player, level, List.of(exit.position()), exit.yaw(), exit.pitch(), null, blocked, late), null, blocked);
+        var made = zone.get();
+        var server = source.getServer();
+        Supplier<Optional<String>> still = () -> {
+            if (!his(AresOs.app(app.id()))) return Optional.of(notHis(app));
+            boolean stands = ZoneData.get(server).zones().stream().anyMatch(candidate -> candidate.id().equals(made.id())
+                    && candidate.app().equals(made.app()) && candidate.exit().equals(made.exit()));
+            return stands ? Optional.empty() : Optional.of(app.name() + "'s logo here is gone, so you stay where you are.");
+        };
+        return said(source, Arrivals.go(player, level, List.of(exit.position()), exit.yaw(), exit.pitch(), null, blocked, late, still), null, blocked);
     }
 
     private static String named(AppDefinition app) {

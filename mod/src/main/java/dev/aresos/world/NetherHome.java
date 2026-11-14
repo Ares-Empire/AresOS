@@ -352,6 +352,7 @@ public final class NetherHome extends SavedData {
         player.fallDistance = 0;
         player.clearFire();
         dev.aresos.zone.WalkInZones.arrived(player);
+        Arrivals.cancel(player);
         setRespawn(player, home);
         if (!dev.aresos.mode.ModeInventories.of(player).hasStoredInventories()) AppItems.placePinned(player, AresOs.apps());
         dev.aresos.mode.LiveMode.protect(player);
