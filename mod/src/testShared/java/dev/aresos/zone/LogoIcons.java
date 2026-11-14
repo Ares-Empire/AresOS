@@ -9,6 +9,7 @@ import java.awt.RenderingHints;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.List;
@@ -33,15 +34,23 @@ public final class LogoIcons {
                 new Icon("small-figure", "Small figure", smallFigure()), new Icon("see-through", "See-through", seeThrough()));
     }
 
-    /** A dark tile with a ring and an arc over it, both 4 pixels wide: half a cell once the figure is enlarged. */
+    /**
+     * A dark tile with an arch and a ring under it, both 4 pixels wide: half a cell once the figure is enlarged.
+     * The arch's feet stand left and right of the doorway and the ring hangs above it, so the door cuts neither.
+     */
     public static BufferedImage thinLines() {
         return draw(g -> {
             g.setColor(new Color(0x15171c));
             g.fill(new RoundRectangle2D.Double(4, 4, 120, 120, 30, 30));
             g.setColor(new Color(0xf2f4f7));
             g.setStroke(new BasicStroke(4, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-            g.draw(new Ellipse2D.Double(46, 54, 36, 36));
-            g.draw(new Arc2D.Double(26, 34, 76, 76, 20, 140, Arc2D.OPEN));
+            var arch = new Path2D.Double();
+            arch.moveTo(30, 104);
+            arch.lineTo(30, 62);
+            arch.append(new Arc2D.Double(30, 28, 68, 68, 180, -180, Arc2D.OPEN), true);
+            arch.lineTo(98, 104);
+            g.draw(arch);
+            g.draw(new Ellipse2D.Double(50, 48, 28, 28));
         });
     }
 
