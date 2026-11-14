@@ -25,7 +25,7 @@ test at control/chrome_tests/verdicts.test.mjs:75:1
   
   false !== true
   
-      at TestContext.<anonymous> (file:///Users/pab/AresOS-20-chrome/control/chrome_tests/verdicts.test.mjs:81:52)
+      at TestContext.<anonymous> (file://<worktree>/control/chrome_tests/verdicts.test.mjs:81:52)
       at Test.runInAsyncScope (node:async_hooks:226:14)
       at Test.run (node:internal/test_runner/test:1382:25)
       at Test.processPendingSubtests (node:internal/test_runner/test:960:18)

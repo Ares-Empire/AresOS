@@ -42,7 +42,7 @@
       "filing_rename"
     ]
   },
-  "job_timeout_minutes": 60,
+  "job_timeout_minutes": 120,
   "suite_shards_unchanged": 4,
-  "reason": "Six of eight fault shards complete; archive/duplicate-send shards reach35m without assertion failures.60m retains every discovered write/cleanup case below the lead120m target."
+  "reason": "Six of eight fault shards complete; archive/duplicate-send shards reach35m without assertion failures.60m retains every discovered write/cleanup case below the lead120m target. The workflow job timeout was then raised to 120m (096c3088)."
 }

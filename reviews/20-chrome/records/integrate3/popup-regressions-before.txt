@@ -20,7 +20,7 @@ test at control/chrome_tests/background.test.mjs:656:1
   
   0 !== 1
   
-      at TestContext.<anonymous> (file:///Users/pab/AresOS-20-chrome/control/chrome_tests/background.test.mjs:658:69)
+      at TestContext.<anonymous> (file://<worktree>/control/chrome_tests/background.test.mjs:658:69)
       at async Test.run (node:internal/test_runner/test:1389:7)
       at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
     generatedMessage: true,
@@ -37,7 +37,7 @@ test at control/chrome_tests/background.test.mjs:664:1
   
   1 !== 0
   
-      at TestContext.<anonymous> (file:///Users/pab/AresOS-20-chrome/control/chrome_tests/background.test.mjs:666:46)
+      at TestContext.<anonymous> (file://<worktree>/control/chrome_tests/background.test.mjs:666:46)
       at async Test.run (node:internal/test_runner/test:1389:7)
       at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
     generatedMessage: true,
@@ -54,8 +54,8 @@ test at control/chrome_tests/background.test.mjs:675:1
   
   false !== true
   
-      at spin (file:///Users/pab/AresOS-20-chrome/control/chrome_tests/background.test.mjs:32:120)
-      at async TestContext.<anonymous> (file:///Users/pab/AresOS-20-chrome/control/chrome_tests/background.test.mjs:677:35)
+      at spin (file://<worktree>/control/chrome_tests/background.test.mjs:32:120)
+      at async TestContext.<anonymous> (file://<worktree>/control/chrome_tests/background.test.mjs:677:35)
       at async Test.run (node:internal/test_runner/test:1389:7)
       at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
     generatedMessage: false,
@@ -72,8 +72,8 @@ test at control/chrome_tests/background.test.mjs:682:1
   
   false !== true
   
-      at spin (file:///Users/pab/AresOS-20-chrome/control/chrome_tests/background.test.mjs:32:120)
-      at async TestContext.<anonymous> (file:///Users/pab/AresOS-20-chrome/control/chrome_tests/background.test.mjs:684:35)
+      at spin (file://<worktree>/control/chrome_tests/background.test.mjs:32:120)
+      at async TestContext.<anonymous> (file://<worktree>/control/chrome_tests/background.test.mjs:684:35)
       at async Test.run (node:internal/test_runner/test:1389:7)
       at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
     generatedMessage: false,

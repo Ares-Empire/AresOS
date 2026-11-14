@@ -3,7 +3,7 @@ node:internal/modules/run_main:107
     ^
 
 AssertionError [ERR_ASSERTION]: Full Python suite missing or failed
-    at file:///Users/pab/AresOS-20-chrome/reviews/20-chrome/audit-review-evidence.mjs:54:3
+    at file://<worktree>/reviews/20-chrome/audit-review-evidence.mjs:54:3
     at ModuleJob.run (node:internal/modules/esm/module_job:447:25)
     at async node:internal/modules/esm/loader:646:26
     at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5) {

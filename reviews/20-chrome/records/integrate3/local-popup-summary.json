@@ -172,7 +172,9 @@
       "file": "popup-regressions-before.txt",
       "command": "node --test --test-name-pattern='popup committing|document replaced between|missing-reader' control/chrome_tests/background.test.mjs (new regressions against unfixed code)",
       "exit": 1,
-      "sha256": "d65a4a56ba5cfc8d3cafbc62a5e11a9f75e9ed6482cc4c8294ccc00d4a5d1f88",
+      "sha256_as_recorded": "d65a4a56ba5cfc8d3cafbc62a5e11a9f75e9ed6482cc4c8294ccc00d4a5d1f88",
+      "sha256": "46eb7b70d059d878133fabb9033b0605753a709e72ddc7bb3468f0a7645c3514",
+      "redaction": "Final fixes F5: the absolute worktree path in stack traces is now file://<worktree>/; nothing else changed.",
       "results": [
         {
           "line": 6,
@@ -228,7 +230,9 @@
       "file": "f25-strict-audit.txt",
       "command": "node reviews/20-chrome/audit-review-evidence.mjs .work/20-integrate3/final/artifacts/42963294395",
       "exit": 1,
-      "sha256": "be7d5ca32adbf94f76ca0cfa83007b640ebcac209baeadc9165235fd083b4312",
+      "sha256_as_recorded": "be7d5ca32adbf94f76ca0cfa83007b640ebcac209baeadc9165235fd083b4312",
+      "sha256": "eaf82e049ab437afba3546ce167d5b39a7f18abe51b7c6eb99e6c59abb1121a1",
+      "redaction": "Final fixes F5: the absolute worktree path in stack traces is now file://<worktree>/; nothing else changed.",
       "results": [
         {
           "line": 5,
