@@ -14,10 +14,17 @@ from test_aresos_shell_windows import DiscoveredBase
 
 SDL = {'SDL_VIDEO_DRIVER': 'wayland'}
 SDL_PAIRS = (('SDL_VIDEO_DRIVER', 'wayland'),)
-LUNAR = shell.Hint('lunarclient.desktop', ('com.mojang.minecraft',), (), 'discrete', SDL_PAIRS)
-# Lunar's hint as package 30 shipped it: the window identity alone.
-LUNAR_BEFORE = shell.Hint('lunarclient.desktop', ('com.mojang.minecraft',), ())
+
+
+def lunar(**start):
+    """Lunar's hint; without start settings, as package 30 shipped it. Built inside the tests, so that each test
+    also runs, and fails on its own, against the helper without this change."""
+    return shell.Hint('lunarclient.desktop', ('com.mojang.minecraft',), (), **start)
+
+
 STEAM = shell.Hint('steam.desktop', (), ('steam_app_',))
+# The image's hint files, read by the helper under test (the socket checks below run against both helpers).
+IMAGE_HINTS = shell.load_hints
 # What the helper's own session holds: the plain values, its own SDL choice, and keys every start drops.
 SESSION = {'HOME': '/var/home/ares', 'PATH': '/usr/bin', 'WAYLAND_DISPLAY': 'wayland-0', 'SDL_VIDEO_DRIVER': 'x11'}
 INHERITED = {**SESSION, **{key: 'inherited' for key in shell.GPU_KEYS},
@@ -119,8 +126,8 @@ class HintFormatTest(DiscoveryBase):
 
     def test_lunars_shipped_hint_loads_with_both_settings(self):
         # Fails without the change: the old file has neither, and the old helper refuses the new file.
-        self.assertEqual(shell.load_hints(str(REGISTRY / 'hints')), {'lunarclient.desktop': LUNAR,
-                                                                    'steam.desktop': STEAM})
+        self.assertEqual(shell.load_hints(str(REGISTRY / 'hints')), {
+            'lunarclient.desktop': lunar(gpu='discrete', environment=SDL_PAIRS), 'steam.desktop': STEAM})
         shutil.copytree(REGISTRY / 'hints', self.registry / 'hints')
         # Lunar's entry as installed: no PrefersNonDefaultGPU and no game category.
         self.write('lunarclient.desktop', Name='Lunar Client', StartupWMClass='lunarclient')
@@ -137,7 +144,9 @@ class HintFormatTest(DiscoveryBase):
                                   'environment': SDL})
         apps = self.catalogue()[0]
         self.assertNotIn('google-chrome', apps)
-        self.assertEqual({(app.gpu, app.environment) for app in apps.values()}, {(None, ())})
+        launcher = shell.ScopeLauncher(popen=None, environ=dict(INHERITED), nvidia=lambda: True)
+        self.assertEqual({app.id: launcher.environment(app) for app in apps.values()},
+                         dict.fromkeys(('browser', 'notepad', 'terminal'), SESSION))
 
 
 class LaunchEnvironmentTest(DiscoveredBase):
@@ -198,12 +207,11 @@ class LaunchEnvironmentTest(DiscoveredBase):
         self.assertEqual(self.launcher().environment(app), SESSION | SDL | shell.NVIDIA_OFFLOAD)
 
     def test_nothing_new_on_the_socket(self):
-        # A control: list_apps (with app_details) answers the same as with package 30's Lunar hint, and no start
-        # setting appears in any message the helper sends.
+        # A control: with the image's hints, list_apps (with app_details) answers the same as with package 30's
+        # Lunar hint, and no start setting appears in any message the helper sends.
         rows = {}
-        for name, lunar in (('before', LUNAR_BEFORE), ('now', LUNAR)):
-            with mock.patch.object(shell, 'load_hints', return_value={'lunarclient.desktop': lunar,
-                                                                      'steam.desktop': STEAM}):
+        for name, hints in (('before', {'lunarclient.desktop': lunar(), 'steam.desktop': STEAM}), ('now', None)):
+            with mock.patch.object(shell, 'load_hints', side_effect=lambda folder: hints or IMAGE_HINTS(folder)):
                 helper = self.start(tracked=False, journal=f'{self.journal}-{name}')
             rows[name] = self.request(helper, self.conn, 'list_apps', 'l-1')['apps']
             self.assertEqual(self.request(helper, self.conn, 'open_app', 'o-1', app_id='lunarclient')['state'],
@@ -220,12 +228,12 @@ class LegacyClientTest(DiscoveredBase):
     """A 1.0 client: the registry alone, exactly as before."""
 
     def test_a_1_0_client_is_untouched(self):
-        # A control: passes with or without the change.
+        # A control: with the image's hints a 1.0 client gets the same answers as with package 30's Lunar hint.
         answers = {}
-        for name, lunar in (('before', LUNAR_BEFORE), ('now', LUNAR)):
+        for name, hints in (('before', {'lunarclient.desktop': lunar()}), ('now', IMAGE_HINTS(REGISTRY / 'hints'))):
             apps, revision = shell.load_registry(REGISTRY)
             apps['lunarclient'] = self.app('lunarclient')
-            apps = shell.apply_hints(apps, {'lunarclient.desktop': lunar})
+            apps = shell.apply_hints(apps, hints)
             self.popen.reset_mock()
             helper = shell.Helper(str(REGISTRY), INSTANCE, NONCE, f'{self.journal}-{name}',
                                   registry=(apps, revision), launcher=shell.ScopeLauncher(
