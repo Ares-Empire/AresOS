@@ -850,7 +850,9 @@ Both started once on `ee716aa2`, the commit before this report-only commit (it a
 - `checks_only=true`: [43539825033](https://github.com/Ares-Empire/AresOS/actions/runs/43539825033)
 - `check_build=build`: [43539828600](https://github.com/Ares-Empire/AresOS/actions/runs/43539828600)
 
-Their results are recorded by the orchestrator.
+Results (the orchestrator): the `checks_only` run **passed** (the full regression suite on GitHub, with the two tests
+that review fixes 2 made independent of installed programs). The check build was cancelled by the orchestrator while
+it ran: review 4 had asked for changes, and the build on review fixes 4's head replaces it (below).
 
 ## Review fixes 4
 
@@ -881,8 +883,10 @@ Every path that enters the signature, and what the pass does with it:
 - **The way to a refused path:** `icon_stat(path, folder=…, roots=…)` walks from the icon root down the path, following
   links only while each step stays inside the root's allowed real folders, and keeps the lstat of each folder and link
   on the way, up to the first step out. So the link that leads out and the folders that hold it are kept, and what lies
-  behind it is never looked at, by the pass's signature or by the idle check. Replacing the link changes the link and
-  its folder.
+  behind it never enters the signature and is never read or listed. *(Made exact after REVIEW-5: deciding that a path
+  leads out does look at metadata behind the link, through `os.path.realpath` and a metadata-only `O_PATH`
+  descriptor; no content is read and no folder is listed there.)* Replacing the link changes the link and its
+  folder.
 - Which way a path is kept is decided before it is read (`IconLookup.note`: `os.path.realpath` and `within` against its
   root's allowed folders); the idle check takes each entry again the same way.
 - **`prepare()`** (the brief's question): it ran `chmod` on both cache folders for every picture, cached or not, and
@@ -998,3 +1002,34 @@ On the laptop, 2026-11-14:
 - A refused link on the laptop's real folders: there is none, so the walk is exercised only by the tests.
 - The headless check: not run, as the brief says (nothing it exercises changed).
 - The hosted runs: the orchestrator starts them.
+
+### Review 5 and the known limits it leaves (the orchestrator)
+
+`REVIEW-5.md` (gpt-6-astra, high) at `59da0883`: **SAFE with documented known limits**. FIX 1's loop is closed, SHOULD
+2 to 4 are closed, the confinement, the order of pictures, the sandbox and the pruning are unchanged. It found one
+SHOULD and one NIT, both below the bar of this round ("a picture that stays missing in a rare layout"), so they are
+written down here and not built:
+
+- **A refused link behind an absolute link inside the root** (SHOULD): `breeze/index.theme` is an absolute link to
+  another file inside the same icon root, and that file is itself a link out of the allowed folders. The walk stops at
+  the first link and never records the second. If only the second link is later replaced by a good index, no pass
+  runs: the pictures of that theme's indexed layout stay missing until anything else the lookup depends on changes or
+  the helper restarts. He would see programs with their fallback look; nothing else. No such layout exists on the
+  laptop (no refused path at all among its 820 signature paths).
+- **A warning can repeat for an unchanged refused index** (NIT): the folder that holds the index is part of what is
+  kept for it, so an unrelated file created in that folder makes the one warning appear once more. Log noise only; no
+  pass repeats by itself.
+- **What still can stall, as before:** a dead mount under an icon folder can hold the picture worker (pictures stop
+  updating); the helper's serving loop is separate and keeps answering. Fast swaps of a path during a pass and a
+  hostile program already running as him are the timing limits of the earlier rounds.
+
+### Hosted runs (review fixes 4)
+
+On `59da0883` (only this report section and `REVIEW-5.md` were committed after it), started one after the other
+because the workflow keeps one waiting run for a branch:
+
+- `checks_only=true`: [43542831811](https://github.com/Ares-Empire/AresOS/actions/runs/43542831811)
+- `check_build=build`: [43542914709](https://github.com/Ares-Empire/AresOS/actions/runs/43542914709)
+
+Both were still running when this was committed; their results follow in the next commit of this report.
+
