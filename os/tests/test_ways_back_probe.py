@@ -469,11 +469,17 @@ class RunnerTest(unittest.TestCase):
                     self.main(package, mode, branch, any_runner=True)
 
     def test_the_probe_reads_package_22cs_host_walk_and_refuses_a_stale_one(self):
+        walk_path = 'os/manifest/ci/22c/host-walk.json'
+        # After the record step the committed receipt stays what the run walked (HostWalkReceiptTest), and bound
+        # files changed since wait on the list with their new bytes. The committed receipt with those rows
+        # replaced is fresh only if the list names every changed file the walk binds.
+        waiting = {row['path']: row['sha256'] for row in json.loads((ROOT / 'os/manifest/ci/16/pending-rebind.json').read_text())['files']}
+        fresh = json.loads((ROOT / walk_path).read_text())
+        fresh['sources'] = [dict(row, sha256=waiting.get(row['path'], row['sha256'])) for row in fresh['sources']]
         # With a fresh receipt the driver passes every gate and reaches its first host work.
         for mode in VM_MODES:
             with self.subTest(mode=mode), self.assertRaisesRegex(RuntimeError, 'past the gates'):
-                self.main('22c', mode, BRANCH)
-        walk_path = 'os/manifest/ci/22c/host-walk.json'
+                self.main('22c', mode, BRANCH, {walk_path: json.dumps(fresh)})
         receipt = json.loads((ROOT / walk_path).read_text())
         receipt['sources'][0] = dict(receipt['sources'][0], sha256='0' * 64)
         with self.assertRaisesRegex(AssertionError, 'Host walk is stale'):
@@ -500,11 +506,16 @@ class HostWalkReceiptTest(unittest.TestCase):
         previous = json.loads((ROOT / 'os/manifest/ci/27/host-walk.json').read_text())
         self.assertLessEqual({row['path'] for row in previous['sources'] if (ROOT / row['path']).is_file()}, set(paths))
 
-    @unittest.skipIf((ROOT / 'os/manifest/ci/22c/source-bindings.json').exists(), "historical once package 22c's rehearsal recorded its bindings")
-    def test_the_receipt_is_fresh_so_a_dispatch_does_not_stop_as_stale(self):
-        """Regenerate with `python3 reviews/22c-ways-back-after-update/walk-host.py` after changing a file it binds."""
+    def test_the_receipt_is_fresh_until_the_record_step_and_frozen_after(self):
+        """Before the record step: regenerate with `python3 reviews/22c-ways-back-after-update/walk-host.py` after
+        changing a file it binds. After it the receipt is what the rehearsal walked and is never regenerated: bound
+        files changed since wait on the pending list (`rebind.py pending`) for the next rehearsal."""
         import hashlib
         receipt = json.loads(self.PATH.read_text())
+        bindings = ROOT / 'os/manifest/ci/22c/source-bindings.json'
+        if bindings.exists():
+            self.assertEqual(receipt['sources'], json.loads(bindings.read_text())['tables'][0]['sources'])
+            return
         stale = [row['path'] for row in receipt['sources']
                  if hashlib.sha256((ROOT / row['path']).read_bytes()).hexdigest() != row['sha256']]
         self.assertEqual(stale, [])
@@ -1304,7 +1315,11 @@ class RehearsalHarnessTest(unittest.TestCase):
         self.assertEqual([table['name'] for table in bound['tables']],
                          ['package22c host walk'] + [table['name'].replace('package27', 'package22c') for table in earlier['tables'][1:]])
         self.assertEqual([row['path'] for row in bound['tables'][0]['sources']], [row['path'] for row in receipt['sources']])
-        gone = json.loads((ROOT / 'os/manifest/ci/16/pending-rebind.json').read_text())['removed']
+        # A path leaves package 27's tables only if it is recorded as removed: on the list until 22c's record step,
+        # then in the history entry that step wrote (as test_checkout_sources reads it).
+        waiting = json.loads((ROOT / 'os/manifest/ci/16/pending-rebind.json').read_text())
+        gone = set(waiting['removed']).union(*(entry.get('removed', []) for entry in waiting['rebound']
+                                               if entry['walk'] == 'os/manifest/ci/22c/source-bindings.json'))
         for before, after in zip(earlier['tables'][1:], bound['tables'][1:]):
             self.assertEqual([row['path'] for row in before['sources'] if row['path'] not in gone], [row['path'] for row in after['sources']])
         # The record step accepts exactly this shape (test_checkout_sources runs it on a repository of its own).
