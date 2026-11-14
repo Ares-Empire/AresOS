@@ -15,6 +15,9 @@ Brief: `briefs/36-town.md`. Steps 1 to 4, one fresh builder per step. The last s
 - The brief's step 2 changed accordingly (schema 4, `absent` programs are not wanted, which three files of package
   35 to stay out of). Step 2 starts from here.
 
+**2026-11-14, step 3 (Opus 5.5): step 3 is done and green** (the brief's six points and the orchestrator's two
+decisions). Step 4 starts from "Done in step 3", "Decisions step 3 took" and "What is left, in order" (step 4) below.
+
 **2026-11-14, step 2b (Opus 5.5): step 2 is done and green.** The orchestrator's three decisions (the logos in their
 own `town.dat`, his lights, the refusal that names the logo) and points 4 and 5 (keeping in step, protection). Step 3
 starts from "Done in step 2b", "What step 3 and package 37 call" and "What is left, in order" below.
@@ -424,6 +427,144 @@ boolean hub.sparesFromExplosion(ServerLevel, BlockPos, boolean buildMode)
 - **Step 3, the sign's second line:** already `NameRules.mainName(app)` on the sign and compared in `keep` (a changed
   main short name renews the logo); step 3 needs its test.
 
+## Done in step 3
+
+Commits on `pkg/36-town`: `3389ea0b` (roads, counts, `hub rebuild`, one line for a big change, server and unit
+tests), `a84c2799` (the client check, package 33's gate-tree picture), then this note.
+
+- **Roads grow with their group** (point 1, HUB.md 3.4 point 5). At the end of every pass `TownKeeper.roads` takes each
+  group's farthest row in use (the places of `assignment.standing()` and the logos that still stand) and calls
+  `FlatHub.pave(level, hub, group, row)`: it paves on from the farthest road block the record holds (never less than
+  package 32's `avenueEnd(0)` = 24) to `avenueEnd(row)`, a whole row of five at a time, nearest first, through the same
+  `FlatHub.place` as the first build (untouched grass with air above only, `Placing.set`), and records the blocks in
+  `hub.dat`'s fixed blocks (`HubData.pave`). It never unpaves. It stops at the first row whose ground is not loaded
+  with its entities and the pass stays pending (the 5-second retry), so no chunk is loaded for a road.
+- **The counts on the group names** (point 2): `FlatHub.count` writes `INTERNET · 2` on each name after every pass
+  (the number of apps that have their place in the group, so also one whose build waits for its place to load), through
+  an invoker for the text display's private `setText` (`mixin/TextDisplayAccess`, in `aresos.mixins.json`). A name whose
+  chunk is not loaded with its entities waits (pending); a name that is gone (only `/kill` can do that) stays gone. A new
+  flat home shows the bare names until the town's first pass (`FlatHub.title(group, null)`); after it, an empty group
+  says `GAMES · 0`.
+- **`/aresos hub rebuild`** (point 3, `hub/HubCommands.java`, registered in `AresOs`): `.requires(AppCommands::allowed)`
+  where it is parsed (as `/aresos app`), the host checked again when it runs; it refuses (changing nothing) outside a
+  flat home, in a town of other rules, and before a complete program list arrived in this game. It calls
+  `TownKeeper.rebuild(server)`: every standing logo goes into `renew`, `said` and `refused` are cleared, and one pass
+  renews them (take down through `Town.remove`, build again in the app's saved place) with the pictures already read.
+  A block he changed in a logo stays his: the takedown leaves it; where it is in the way the build is refused, the
+  place counts as blocked and **the same pass** moves the app one place on (see "rounds" below). A logo whose place
+  is not loaded stays in `renew` and is built again when it is; one that something of his hangs on stays as it was
+  with its line and is tried again at every pass. The pad, the roads and the names are not taken down (the same rules
+  give the same blocks; a road is never unpaved).
+- **Rounds:** a build refused in a place that looked free (a longer name, or his block left in a renewed logo) used to
+  wait for the next pass; now `keep` runs the assignment again at once, at most three rounds, each only after a new
+  refusal. `cameDown` spans the rounds, so such an app's line says "moved to".
+- **A big change is said in one line** (the orchestrator's decision 1, `hub/TownLines.java`): every line of a pass has
+  a kind (built, moved, renewed, taken down, or "in his way"). More than five of the ordinary kinds give one line:
+  "The town is built: 12 logos. /apps lists them." (no logo stood before and every line is a build), otherwise "The
+  town changed: 7 logos built, 2 moved, 1 renewed, 3 taken down. /apps lists where your apps stand." A rebuild always
+  says one line: "The town was rebuilt from the rules: 5 logos built again, 1 moved." (+ " 2 more are built again when
+  you come near." for logos whose place is not loaded). Lines about his things in the way (a blocked place, a removal
+  refused, no free place, a failed save, a logo that cannot stand again) follow one by one.
+- **Points 4 and 5** needed no new code (step 2b's `keep` already renews on a converter or main short name change);
+  they are tested now.
+
+Tests:
+- Unit `hub/TownLinesTest` (6): five lines one by one; six as one line (first build and later); forty on a first build
+  plus two "in his way" lines one by one; every kind counted; a rebuild's line (with waiting logos, with none, singular);
+  nothing changed says nothing.
+- Server game test `TownGameTests.roadsCountsRenewalsAndRebuildInAFreshFlatHome` (batch `aresos-test:town_rebuild`,
+  alone, 19000 blocks from its plot, ±80 blocks held with its own ticket, the server's hub record put back): a fresh flat
+  home whose apps file brings places of another world (Discord N0L0 left of pinned Chrome N0R0, Lunar Client E1L0, ...)
+  builds every app in its place, says "The town is built: 6 logos. /apps lists them." and saves nothing; the counts
+  (`INTERNET · 2`, `GAMES · 1`, `SYSTEM & TOOLS · 2`, `WORK & MEDIA · 1`); the east road paved and recorded to row 1's
+  end (38) and not one row more, the north road still ending at 24; Mail joins at N2L1: the north road grows to 52 over
+  grass but not under his cobblestone, the count follows; Mail leaves: the road stays, the count follows; a logo
+  recorded with converter `CONVERTER - 1` is renewed in place; a new main short name renews Chrome's sign
+  (`Chrome\n/chrome` to `Chrome\n/web`); a pass in step says nothing; his glass in place of a block of Discord's logo,
+  then a rebuild: one line "The town was rebuilt from the rules: 5 logos built again, 1 moved." plus the two lines about
+  N0L0, the glass and his cobblestone stay, Discord stands (and is saved) at N1L0, every other app in its place with a
+  new zone; everything leaves: "The town changed: 6 logos taken down. ..." and every count `· 0`.
+- `theTownKeepsInStepWithHisApps` changed in one expectation: when the far place N40L0 has loaded and its logo stands,
+  the pass is **still pending**, because the north road to row 40 runs through ground nobody loaded (checked: the
+  ground half way is not loaded); after everything leaves My apps nothing is pending any more (new check).
+- Both town tests now remove their own apps' zones first and when they fail (`Fake.clearZones`): the test world is kept
+  between runs, and my two failed runs had left `keep-discord` and `keep-spotify` zones in `zones.dat`, which made the
+  unrelated `ZoneSafetyGameTests.disjointZoneWallCannotObstructSavedExit` fail (it expects zones.dat to hold only its own
+  zone). The next run cleared them and everything passed.
+- Client test `TownClientGameTest`, **last** in the client list, no screenshots: a fake helper (`FakeHelper`, wired with
+  `AppsTestAccess.aresos$startHelper` as AresOs wires its own) sends a complete list of five programs; day one makes them
+  his; a new flat home is made through the title screen ("Keep old & continue", "aresos.home.create"); after the host
+  joins it waits for five standing logos (Chrome and Discord in row 0 north, Lunar Client at E0L0, Notepad and Terminal
+  in row 0 south), the counts `INTERNET · 2`, `GAMES · 1`, `SYSTEM & TOOLS · 2`, `WORK & MEDIA · 0`, the places saved in
+  the apps file, and the five "is new" lines in his chat; then `/aresos app remove discord` typed as he types it (the
+  logo comes down, "Discord left My apps. Its logo came down.", `INTERNET · 1`) and `/aresos hub rebuild` ("The town was
+  rebuilt from the rules: 4 logos built again.").
+
+**Verified:** `mod/dev/build.sh` failed four times on the way (all fixed: the keep test's far
+place pending, then the road paved through ground only scheduled to load, then leftover zones from those failed runs
+in the kept test world, which failed `ZoneSafetyGameTests.disjointZoneWallCannotObstructSavedExit` once), then passed
+twice: on `3389ea0b` exit 0, "All 92 required tests passed :)", `BUILD SUCCESSFUL in 1m 27s`; on the final code (the
+client test added, a comment) exit 0, "All 92 required tests passed :)", `BUILD SUCCESSFUL in 1m 27s`, unit tests 202
+run, 6 skipped (the Windows-only ones), 0 failed.
+
+**Client pass:** `mod/dev/client-test.sh` once on the final code: exit 0, `BUILD SUCCESSFUL in 8m 14s`, every client
+test passed (the last line "36 client checks passed: ..."). **The scheduler's first run:** the complete list set
+`complete`; the host's join asked; the picture thread read five pictures; the pass built five logos and said five lines
+at 03:08:56, within the first seconds after the world opened; `app remove` (through `AresOs.saveMine` → `ask()`) read
+the pictures again and took Discord's logo down within a second; the rebuild said its line at once. No problem showed.
+**Not exercised:** the 5-second retry (no place of day one was unloaded, so no pass was pending) and a list arriving
+while he is already in the world.
+
+**Earlier packages' pictures after the client pass:** 25 tracked pictures were rewritten and 25 renumbered copies
+appeared (old numbering in the tracked names). Compared pixel by pixel: package 32's seven (arrival, east, south,
+west, above, rejoin, missing data) are unchanged (no pixel differs by more than 40 of 255): rerun only, put back.
+Kept one: `reviews/33-gate-logo/screenshots/0044_gate-tree-from-20.png`, whose doormat is now yellow (step 1: every
+app has its group's colour; "Tall Tree" has no categories, so System & Tools). It also shows package 35's `/notepad` on
+the "No Picture" gate's sign. Put back although they differ for a reason that is not this package's: package 33's
+`0043`, `0049`, `0050` (only the `/notepad` sign line of package 35) and package 34's Apps screen `0052`, `0055`,
+`0056` (package 35's short names in the rows); package 35's PR did not re-record them, so step 4 or the orchestrator
+may. Put back as rerun noise: package 09's two (an emerald's angle, the helper-unavailable chat line caught by
+timing), the other 33, 34 and 35 pictures. The renumbered copies were deleted; `git status --short reviews/` shows only
+`0044` and this file.
+
+**Earlier packages' client tests and the town (the orchestrator's decision 2):** no earlier client test meets the town,
+so none was changed and no tracked picture changed because of it. The town needs `TownKeeper.complete`, which only a
+complete list from a helper sets (`MyAppsGame.listed`); the client runs have discovery off (`aresos.disableDiscovery`),
+and the only test with a helper list before mine is `MyAppsClientGameTest` (14th), which runs after every test that
+makes a flat home (`HomeChoice`, `FlatHome`, `GateLogo`); `MyApps` and `SlashNames` make normal worlds (no `hub.dat`).
+So package 32's arrival views, pad and roads are pictured without a town, as before. If the test order ever changes,
+or `complete` (static for the game) is set earlier, those tests would meet the town: they would then need a run with
+no apps in My apps or before a complete list.
+
+## Decisions step 3 took (not settled by the brief)
+
+- **JUDGMENT-CALL: the count is the apps that have their place in the group**, including one whose build waits for its
+  place to load, and an empty group says `· 0` once the town has run (`INTERNET · 0`). Alternatives: count only standing
+  logos (the number would jump while he walks), or hide `· 0` (a missing count reads like a missing feature). Changing
+  it is one line in `TownKeeper.roads` / `FlatHub.title`.
+- **JUDGMENT-CALL: one line for more than five ordinary lines** (the orchestrator's threshold); a first build says "The
+  town is built: N logos. /apps lists them.", later passes "The town changed: ...". Lines about his things in the way
+  are never folded. `TownLines.FEW` is the number.
+- **JUDGMENT-CALL: `hub rebuild` renews only the logos;** the pad, roads and names are not taken down and built again
+  (the same rules give the same blocks, a road is never unpaved, and a road block he changed is his). It uses the
+  pictures already read in this session (a rebuild right after start-up has them: the host's join reads every wanted
+  app's picture); an icon file changed under the same path is read at the next asked run, not by the rebuild.
+- **JUDGMENT-CALL: a rebuild refuses before a complete list arrived** ("The town waits for the system's list of
+  programs. Nothing was rebuilt; try again in a moment.") instead of taking logos down it could not build again.
+- **The road is paved on from the farthest road block the record holds**, not from every unrecorded block up to the
+  end: a road block he changed in the middle (for example to grass) is never paved again; only when he changed the very
+  last row back to untouched grass can it be paved there again. Rows his builds block entirely are skipped once a
+  later row is paved.
+- **"Loaded" for roads and names is the gate's notion:** the chunk is there and its entities are loaded
+  (`hasChunkAt && areEntitiesLoaded`). `hasChunkAt` alone is true for a chunk the server has only scheduled, and reading
+  a block of it loads it on the spot: with it, the first version paved the whole north road to row 40 in the keep test
+  (found by the test, fixed before the commit).
+- **A road that waits keeps the pass pending,** so the 5-second retry runs while he is in the world until the road
+  is done or the group shrinks; it costs one cheap pass every 5 seconds (no `Town.check` for apps that keep their
+  places).
+- **A build refused after a takedown moves the app on in the same pass** (rounds, at most three) instead of on the
+  next pass 5 seconds later: `/aresos hub rebuild` then says its one line about a finished town.
+
 ## What is left, in order
 
 **Step 2b** (points 4 and 5 of the brief's step 2; **done in step 2b**, see above; kept as the brief for it):
@@ -458,9 +599,22 @@ Step 3 in order, as step 2b leaves it (see "What step 3 and package 37 call"):
    the 5-second retry); expect package 32's flat-home client tests to meet the town (see "Found on the way").
 5. If the chat floods on a big first build, a summary line beyond a few (a JUDGMENT-CALL for the report).
 
-**Step 4 (Fable):** client screenshots under `reviews/36-town/screenshots/`, the real three for the builder's eyes
-only, docs (`mod/README.md`, `README.md`, HUB.md corrections), the report, delete this file, merge `origin/main`,
-`gh pr create`.
+**Step 3:** done (see "Done in step 3").
+
+**Step 4 (Fable), in order:**
+1. Client screenshots under `reviews/36-town/screenshots/` (the brief's list), in a new client test placed **after**
+   `TownClientGameTest` (or by extending it; it takes no screenshots today, so no picture is renumbered either way).
+   Copy its set-up: a fake helper with a complete list, `AppsTestAccess.aresos$startHelper`, a flat home through the
+   title screen, then wait for `HubData.get(server).logos()` (the scheduler needs the host in the world). Forty apps
+   from above: a first build of forty says one line ("The town is built: 40 logos. /apps lists them.").
+2. The real three for the builder's eyes only (nothing in the repo).
+3. Docs: `mod/README.md` (the town, `/aresos hub rebuild` and its one line, the counts, what he can and cannot change:
+   a road block or logo block he changes is his; the roads only grow), `README.md`'s status lines, HUB.md corrections
+   (the logos are in `town.dat`, not `hub.dat`; the correction "an older mod never rewrites hub.dat" is wrong for
+   packages 32 to 35; the counts include apps whose logo waits for its place; an empty group says `· 0`; rebuild does
+   not take the pad and roads down; a big change is one chat line).
+4. The report (with this step's JUDGMENT-CALLs above and step 2b's), delete this file, merge `origin/main`,
+   `mod/dev/build.sh` once and `mod/dev/client-test.sh` twice on the final code, push, `gh pr create`.
 
 ## Found on the way (for steps 2 to 4)
 
@@ -508,6 +662,16 @@ only, docs (`mod/README.md`, `README.md`, HUB.md corrections), the report, delet
 - **(Step 2b) A place where the town's logo cannot come down holds up the app assigned there** (it waits, it does not
   move on), as the brief says for a place changing hands. With a refused removal that can last until he clears what
   hangs on the old logo; the line about the old logo says why.
+
+- **(Step 3) The kept test world remembers a failed run.** A server game test that fails half way leaves what it made
+  in `build/run/gameTest/world` for the next run. The town tests now clear their own zones, but other tests that expect
+  an empty `zones.dat` (`ZoneSafetyGameTests.disjointZoneWallCannotObstructSavedExit`) still fail after any other
+  test leaves zones behind; deleting `mod/build/run/gameTest/world` resets it.
+- **(Step 3) `hub rebuild` with no picture read yet** (only if he types it in the first ticks after joining) renews the
+  logos whose picture is at hand at once and the others a few ticks later, each with its own "was renewed" line.
+- **(Step 3) A road through ground he never visits keeps the town pending** (a retry every 5 seconds while he is in the
+  world). Only an app placed very far out (row 10 and more, after many blocked places, or a place saved in another
+  world) causes it.
 
 ## Dead ends
 
