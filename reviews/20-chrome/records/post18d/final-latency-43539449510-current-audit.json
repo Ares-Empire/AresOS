@@ -1,0 +1,2901 @@
+{
+  "runtime": "current",
+  "privacy": "audit",
+  "chrome": "Google Chrome 157.0.8103.78",
+  "build": "b9de9a97d18c56090421614364239471ef82b8c1002ee1696f86ba39d2afb3b4",
+  "calls": {
+    "approval_to_done": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 571.9706230000002,
+        "p95_ms": 573.1460249999982
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 548.400000000016,
+        "p95_ms": 549.8999999999942
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 551.2446190000092,
+        "p95_ms": 552.7312300000062
+      },
+      "compose_binding": {
+        "samples": 20,
+        "median_ms": 0.3000000000174623,
+        "p95_ms": 0.5
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 4.999999999992724,
+        "p95_ms": 5.499999999970896
+      },
+      "session_rule_update": {
+        "samples": 20,
+        "median_ms": 0.7000000000043656,
+        "p95_ms": 1.0
+      },
+      "session_rule_add": {
+        "samples": 20,
+        "median_ms": 0.75,
+        "p95_ms": 1.0
+      },
+      "finish_input": {
+        "samples": 20,
+        "median_ms": 7.349999999998545,
+        "p95_ms": 8.5
+      },
+      "session_rule_remove": {
+        "samples": 20,
+        "median_ms": 1.3500000000058208,
+        "p95_ms": 1.6999999999825377
+      },
+      "post_input_observation_wait": {
+        "samples": 20,
+        "median_ms": 525.1999999999825,
+        "p95_ms": 525.3000000000175
+      },
+      "post_input_steps": {
+        "samples": 20,
+        "median_ms": 526.6500000000015,
+        "p95_ms": 527.3999999999942
+      },
+      "clipboard_hooks": {
+        "samples": 20,
+        "median_ms": 0.0,
+        "p95_ms": 0.0
+      },
+      "page_observation": {
+        "samples": 20,
+        "median_ms": 1.0999999999912689,
+        "p95_ms": 1.3000000000029104
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 570.9108544999992,
+        "p95_ms": 572.1974989999978
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 19.41139449999696,
+        "p95_ms": 20.34944200002542
+      },
+      "daemon_expiry_inside_sample": {
+        "samples": 19,
+        "median_ms": 0.1625080000167145,
+        "p95_ms": 0.2040459999932409
+      },
+      "client_outside_service": {
+        "samples": 20,
+        "median_ms": 0.9955150000051276,
+        "p95_ms": 1.1410109999956148
+      },
+      "client_without_wait": {
+        "samples": 20,
+        "median_ms": 46.87062299999434,
+        "p95_ms": 47.84602500000983
+      }
+    },
+    "asking_click": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 13.749799999999595,
+        "p95_ms": 14.758963000000222
+      },
+      "compose_binding": {
+        "samples": 20,
+        "median_ms": 0.1999999999825377,
+        "p95_ms": 0.20000000001164153
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 1.8999999999941792,
+        "p95_ms": 2.1000000000058208
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 3.5500000000101863,
+        "p95_ms": 3.900000000008731
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 5.92763900002069,
+        "p95_ms": 6.458506000015518
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 12.885471500005963,
+        "p95_ms": 13.803707999997528
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 6.99300599999475,
+        "p95_ms": 7.336369999990211
+      },
+      "daemon_expiry_inside_sample": {
+        "samples": 18,
+        "median_ms": 0.29264750000379536,
+        "p95_ms": 0.41769399999225243
+      },
+      "client_outside_service": {
+        "samples": 20,
+        "median_ms": 0.8504689999969628,
+        "p95_ms": 0.960779000002276
+      }
+    },
+    "fill": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 559.3352029999996,
+        "p95_ms": 560.9029330000012
+      },
+      "compose_binding": {
+        "samples": 20,
+        "median_ms": 0.3000000000029104,
+        "p95_ms": 0.5000000000145519
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 5.0,
+        "p95_ms": 5.599999999991269
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 548.5500000000029,
+        "p95_ms": 550.0000000000291
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 550.428732499995,
+        "p95_ms": 551.9530870000011
+      },
+      "session_rule_update": {
+        "samples": 20,
+        "median_ms": 0.7000000000116415,
+        "p95_ms": 1.1000000000058208
+      },
+      "session_rule_add": {
+        "samples": 20,
+        "median_ms": 0.7000000000116415,
+        "p95_ms": 1.1000000000058208
+      },
+      "finish_input": {
+        "samples": 20,
+        "median_ms": 8.049999999995634,
+        "p95_ms": 9.700000000011642
+      },
+      "session_rule_remove": {
+        "samples": 20,
+        "median_ms": 1.3999999999941792,
+        "p95_ms": 1.7999999999883585
+      },
+      "post_input_observation_wait": {
+        "samples": 20,
+        "median_ms": 525.1499999999942,
+        "p95_ms": 525.2000000000116
+      },
+      "post_input_steps": {
+        "samples": 20,
+        "median_ms": 526.7000000000116,
+        "p95_ms": 527.0
+      },
+      "clipboard_hooks": {
+        "samples": 20,
+        "median_ms": 0.0,
+        "p95_ms": 0.10000000000582077
+      },
+      "page_observation": {
+        "samples": 20,
+        "median_ms": 1.0999999999912689,
+        "p95_ms": 1.3000000000029104
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 558.5241020000069,
+        "p95_ms": 560.0722070000188
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 8.042289500004074,
+        "p95_ms": 8.389270000009219
+      },
+      "daemon_expiry_inside_sample": {
+        "samples": 20,
+        "median_ms": 0.16273499999641672,
+        "p95_ms": 0.2112880000026962
+      },
+      "client_outside_service": {
+        "samples": 20,
+        "median_ms": 0.8481364999948937,
+        "p95_ms": 0.9427860000031387
+      },
+      "client_without_wait": {
+        "samples": 20,
+        "median_ms": 34.154479999990144,
+        "p95_ms": 35.70293299998957
+      }
+    },
+    "free_click": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 561.2730574999996,
+        "p95_ms": 574.4168179999979
+      },
+      "compose_binding": {
+        "samples": 20,
+        "median_ms": 0.8499999999767169,
+        "p95_ms": 1.1000000000349246
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 6.0,
+        "p95_ms": 6.7000000000116415
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 550.3500000000058,
+        "p95_ms": 563.2000000000116
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 552.1803069999933,
+        "p95_ms": 565.1758550000068
+      },
+      "session_rule_update": {
+        "samples": 20,
+        "median_ms": 1.0,
+        "p95_ms": 1.5
+      },
+      "session_rule_add": {
+        "samples": 20,
+        "median_ms": 1.0,
+        "p95_ms": 1.5
+      },
+      "clipboard_hooks": {
+        "samples": 20,
+        "median_ms": 0.10000000000582077,
+        "p95_ms": 0.3000000000029104
+      },
+      "finish_input": {
+        "samples": 20,
+        "median_ms": 7.25,
+        "p95_ms": 15.89999999999418
+      },
+      "session_rule_remove": {
+        "samples": 20,
+        "median_ms": 1.3999999999941792,
+        "p95_ms": 1.6000000000058208
+      },
+      "post_input_observation_wait": {
+        "samples": 20,
+        "median_ms": 525.1999999999971,
+        "p95_ms": 525.2000000000116
+      },
+      "post_input_steps": {
+        "samples": 20,
+        "median_ms": 526.8000000000102,
+        "p95_ms": 527.3000000000029
+      },
+      "page_observation": {
+        "samples": 20,
+        "median_ms": 1.2000000000116415,
+        "p95_ms": 1.3000000000029104
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 560.4555345000008,
+        "p95_ms": 573.6732529999813
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 8.27638100000172,
+        "p95_ms": 8.504406000014342
+      },
+      "daemon_expiry_inside_sample": {
+        "samples": 20,
+        "median_ms": 0.1676900000049386,
+        "p95_ms": 0.19913500000257045
+      },
+      "client_outside_service": {
+        "samples": 20,
+        "median_ms": 0.7999750000014956,
+        "p95_ms": 0.906477999997378
+      },
+      "client_without_wait": {
+        "samples": 20,
+        "median_ms": 36.123057500005416,
+        "p95_ms": 49.316817999992054
+      }
+    },
+    "navigate": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 35.794758,
+        "p95_ms": 39.10239800000272
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 21.44999999999709,
+        "p95_ms": 26.5
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 27.151763999995637,
+        "p95_ms": 30.36062100002823
+      },
+      "clipboard_hooks": {
+        "samples": 20,
+        "median_ms": 0.0,
+        "p95_ms": 0.0
+      },
+      "page_observation": {
+        "samples": 20,
+        "median_ms": 13.299999999988358,
+        "p95_ms": 18.199999999982538
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 34.83981599998742,
+        "p95_ms": 38.305557000001045
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 7.271373999998332,
+        "p95_ms": 10.984556000011025
+      },
+      "daemon_expiry_inside_sample": {
+        "samples": 20,
+        "median_ms": 0.2163535000079264,
+        "p95_ms": 0.3675659999942127
+      },
+      "client_outside_service": {
+        "samples": 20,
+        "median_ms": 0.8870464999974956,
+        "p95_ms": 1.3835050000134288
+      }
+    },
+    "read": {
+      "client_total": {
+        "samples": 20,
+        "median_ms": 8.884665000000041,
+        "p95_ms": 13.5104409999999
+      },
+      "frame_facts": {
+        "samples": 20,
+        "median_ms": 2.0,
+        "p95_ms": 5.5
+      },
+      "extension_total": {
+        "samples": 20,
+        "median_ms": 2.0,
+        "p95_ms": 5.600000000005821
+      },
+      "bridge_round_trip": {
+        "samples": 20,
+        "median_ms": 4.89328749998208,
+        "p95_ms": 8.943527000013773
+      },
+      "service_total": {
+        "samples": 20,
+        "median_ms": 7.826470000011909,
+        "p95_ms": 12.069689000000494
+      },
+      "service_without_bridge": {
+        "samples": 20,
+        "median_ms": 2.744034499997383,
+        "p95_ms": 3.1261619999867207
+      },
+      "daemon_expiry_inside_sample": {
+        "samples": 20,
+        "median_ms": 0.17251250000072105,
+        "p95_ms": 0.4455680000035045
+      },
+      "client_outside_service": {
+        "samples": 20,
+        "median_ms": 0.9362304999978619,
+        "p95_ms": 1.4407519999994065
+      }
+    }
+  },
+  "phases": {
+    "fresh": {
+      "approval_to_done": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 571.9706230000002,
+          "p95_ms": 573.1460249999982
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 548.400000000016,
+          "p95_ms": 549.8999999999942
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 551.2446190000092,
+          "p95_ms": 552.7312300000062
+        },
+        "compose_binding": {
+          "samples": 20,
+          "median_ms": 0.3000000000174623,
+          "p95_ms": 0.5
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 4.999999999992724,
+          "p95_ms": 5.499999999970896
+        },
+        "session_rule_update": {
+          "samples": 20,
+          "median_ms": 0.7000000000043656,
+          "p95_ms": 1.0
+        },
+        "session_rule_add": {
+          "samples": 20,
+          "median_ms": 0.75,
+          "p95_ms": 1.0
+        },
+        "finish_input": {
+          "samples": 20,
+          "median_ms": 7.349999999998545,
+          "p95_ms": 8.5
+        },
+        "session_rule_remove": {
+          "samples": 20,
+          "median_ms": 1.3500000000058208,
+          "p95_ms": 1.6999999999825377
+        },
+        "post_input_observation_wait": {
+          "samples": 20,
+          "median_ms": 525.1999999999825,
+          "p95_ms": 525.3000000000175
+        },
+        "post_input_steps": {
+          "samples": 20,
+          "median_ms": 526.6500000000015,
+          "p95_ms": 527.3999999999942
+        },
+        "clipboard_hooks": {
+          "samples": 20,
+          "median_ms": 0.0,
+          "p95_ms": 0.0
+        },
+        "page_observation": {
+          "samples": 20,
+          "median_ms": 1.0999999999912689,
+          "p95_ms": 1.3000000000029104
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 570.9108544999992,
+          "p95_ms": 572.1974989999978
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 19.41139449999696,
+          "p95_ms": 20.34944200002542
+        },
+        "daemon_expiry_inside_sample": {
+          "samples": 19,
+          "median_ms": 0.1625080000167145,
+          "p95_ms": 0.2040459999932409
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 0.9955150000051276,
+          "p95_ms": 1.1410109999956148
+        },
+        "client_without_wait": {
+          "samples": 20,
+          "median_ms": 46.87062299999434,
+          "p95_ms": 47.84602500000983
+        }
+      },
+      "asking_click": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 13.749799999999595,
+          "p95_ms": 14.758963000000222
+        },
+        "compose_binding": {
+          "samples": 20,
+          "median_ms": 0.1999999999825377,
+          "p95_ms": 0.20000000001164153
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 1.8999999999941792,
+          "p95_ms": 2.1000000000058208
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 3.5500000000101863,
+          "p95_ms": 3.900000000008731
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 5.92763900002069,
+          "p95_ms": 6.458506000015518
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 12.885471500005963,
+          "p95_ms": 13.803707999997528
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 6.99300599999475,
+          "p95_ms": 7.336369999990211
+        },
+        "daemon_expiry_inside_sample": {
+          "samples": 18,
+          "median_ms": 0.29264750000379536,
+          "p95_ms": 0.41769399999225243
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 0.8504689999969628,
+          "p95_ms": 0.960779000002276
+        }
+      },
+      "fill": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 559.3352029999996,
+          "p95_ms": 560.9029330000012
+        },
+        "compose_binding": {
+          "samples": 20,
+          "median_ms": 0.3000000000029104,
+          "p95_ms": 0.5000000000145519
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 5.0,
+          "p95_ms": 5.599999999991269
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 548.5500000000029,
+          "p95_ms": 550.0000000000291
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 550.428732499995,
+          "p95_ms": 551.9530870000011
+        },
+        "session_rule_update": {
+          "samples": 20,
+          "median_ms": 0.7000000000116415,
+          "p95_ms": 1.1000000000058208
+        },
+        "session_rule_add": {
+          "samples": 20,
+          "median_ms": 0.7000000000116415,
+          "p95_ms": 1.1000000000058208
+        },
+        "finish_input": {
+          "samples": 20,
+          "median_ms": 8.049999999995634,
+          "p95_ms": 9.700000000011642
+        },
+        "session_rule_remove": {
+          "samples": 20,
+          "median_ms": 1.3999999999941792,
+          "p95_ms": 1.7999999999883585
+        },
+        "post_input_observation_wait": {
+          "samples": 20,
+          "median_ms": 525.1499999999942,
+          "p95_ms": 525.2000000000116
+        },
+        "post_input_steps": {
+          "samples": 20,
+          "median_ms": 526.7000000000116,
+          "p95_ms": 527.0
+        },
+        "clipboard_hooks": {
+          "samples": 20,
+          "median_ms": 0.0,
+          "p95_ms": 0.10000000000582077
+        },
+        "page_observation": {
+          "samples": 20,
+          "median_ms": 1.0999999999912689,
+          "p95_ms": 1.3000000000029104
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 558.5241020000069,
+          "p95_ms": 560.0722070000188
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 8.042289500004074,
+          "p95_ms": 8.389270000009219
+        },
+        "daemon_expiry_inside_sample": {
+          "samples": 20,
+          "median_ms": 0.16273499999641672,
+          "p95_ms": 0.2112880000026962
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 0.8481364999948937,
+          "p95_ms": 0.9427860000031387
+        },
+        "client_without_wait": {
+          "samples": 20,
+          "median_ms": 34.154479999990144,
+          "p95_ms": 35.70293299998957
+        }
+      },
+      "free_click": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 561.2730574999996,
+          "p95_ms": 574.4168179999979
+        },
+        "compose_binding": {
+          "samples": 20,
+          "median_ms": 0.8499999999767169,
+          "p95_ms": 1.1000000000349246
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 6.0,
+          "p95_ms": 6.7000000000116415
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 550.3500000000058,
+          "p95_ms": 563.2000000000116
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 552.1803069999933,
+          "p95_ms": 565.1758550000068
+        },
+        "session_rule_update": {
+          "samples": 20,
+          "median_ms": 1.0,
+          "p95_ms": 1.5
+        },
+        "session_rule_add": {
+          "samples": 20,
+          "median_ms": 1.0,
+          "p95_ms": 1.5
+        },
+        "clipboard_hooks": {
+          "samples": 20,
+          "median_ms": 0.10000000000582077,
+          "p95_ms": 0.3000000000029104
+        },
+        "finish_input": {
+          "samples": 20,
+          "median_ms": 7.25,
+          "p95_ms": 15.89999999999418
+        },
+        "session_rule_remove": {
+          "samples": 20,
+          "median_ms": 1.3999999999941792,
+          "p95_ms": 1.6000000000058208
+        },
+        "post_input_observation_wait": {
+          "samples": 20,
+          "median_ms": 525.1999999999971,
+          "p95_ms": 525.2000000000116
+        },
+        "post_input_steps": {
+          "samples": 20,
+          "median_ms": 526.8000000000102,
+          "p95_ms": 527.3000000000029
+        },
+        "page_observation": {
+          "samples": 20,
+          "median_ms": 1.2000000000116415,
+          "p95_ms": 1.3000000000029104
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 560.4555345000008,
+          "p95_ms": 573.6732529999813
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 8.27638100000172,
+          "p95_ms": 8.504406000014342
+        },
+        "daemon_expiry_inside_sample": {
+          "samples": 20,
+          "median_ms": 0.1676900000049386,
+          "p95_ms": 0.19913500000257045
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 0.7999750000014956,
+          "p95_ms": 0.906477999997378
+        },
+        "client_without_wait": {
+          "samples": 20,
+          "median_ms": 36.123057500005416,
+          "p95_ms": 49.316817999992054
+        }
+      },
+      "navigate": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 35.794758,
+          "p95_ms": 39.10239800000272
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 21.44999999999709,
+          "p95_ms": 26.5
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 27.151763999995637,
+          "p95_ms": 30.36062100002823
+        },
+        "clipboard_hooks": {
+          "samples": 20,
+          "median_ms": 0.0,
+          "p95_ms": 0.0
+        },
+        "page_observation": {
+          "samples": 20,
+          "median_ms": 13.299999999988358,
+          "p95_ms": 18.199999999982538
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 34.83981599998742,
+          "p95_ms": 38.305557000001045
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 7.271373999998332,
+          "p95_ms": 10.984556000011025
+        },
+        "daemon_expiry_inside_sample": {
+          "samples": 20,
+          "median_ms": 0.2163535000079264,
+          "p95_ms": 0.3675659999942127
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 0.8870464999974956,
+          "p95_ms": 1.3835050000134288
+        }
+      },
+      "read": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 8.884665000000041,
+          "p95_ms": 13.5104409999999
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 2.0,
+          "p95_ms": 5.5
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 2.0,
+          "p95_ms": 5.600000000005821
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 4.89328749998208,
+          "p95_ms": 8.943527000013773
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 7.826470000011909,
+          "p95_ms": 12.069689000000494
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 2.744034499997383,
+          "p95_ms": 3.1261619999867207
+        },
+        "daemon_expiry_inside_sample": {
+          "samples": 20,
+          "median_ms": 0.17251250000072105,
+          "p95_ms": 0.4455680000035045
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 0.9362304999978619,
+          "p95_ms": 1.4407519999994065
+        }
+      }
+    },
+    "history-1000": {
+      "approval_to_done": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 581.9093490000014,
+          "p95_ms": 583.069112000012
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 553.3500000000058,
+          "p95_ms": 554.6999999999534
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 556.3125249999956,
+          "p95_ms": 557.7361309999844
+        },
+        "compose_binding": {
+          "samples": 20,
+          "median_ms": 0.3000000000174623,
+          "p95_ms": 0.40000000002328306
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 4.9500000000116415,
+          "p95_ms": 5.399999999994179
+        },
+        "session_rule_update": {
+          "samples": 20,
+          "median_ms": 0.6999999999825377,
+          "p95_ms": 0.7999999999883585
+        },
+        "session_rule_add": {
+          "samples": 20,
+          "median_ms": 0.6999999999825377,
+          "p95_ms": 0.7999999999883585
+        },
+        "finish_input": {
+          "samples": 20,
+          "median_ms": 12.44999999999709,
+          "p95_ms": 14.39999999999418
+        },
+        "session_rule_remove": {
+          "samples": 20,
+          "median_ms": 1.2999999999883585,
+          "p95_ms": 1.5
+        },
+        "post_input_observation_wait": {
+          "samples": 20,
+          "median_ms": 525.2000000000116,
+          "p95_ms": 525.2999999999884
+        },
+        "post_input_steps": {
+          "samples": 20,
+          "median_ms": 526.6999999999971,
+          "p95_ms": 527.1000000000058
+        },
+        "clipboard_hooks": {
+          "samples": 20,
+          "median_ms": 0.0,
+          "p95_ms": 0.0
+        },
+        "page_observation": {
+          "samples": 20,
+          "median_ms": 1.099999999976717,
+          "p95_ms": 1.2000000000116415
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 580.7260254999846,
+          "p95_ms": 581.667436999993
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 24.112283499988507,
+          "p95_ms": 25.705098999964093
+        },
+        "daemon_expiry_inside_sample": {
+          "samples": 1,
+          "median_ms": 0.5614250000007814,
+          "p95_ms": 0.5614250000007814
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 1.3060729999984915,
+          "p95_ms": 1.3973229999908199
+        },
+        "client_without_wait": {
+          "samples": 20,
+          "median_ms": 56.709349000004295,
+          "p95_ms": 57.869112000000314
+        }
+      },
+      "asking_click": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 18.03445599999759,
+          "p95_ms": 18.90293300000485
+        },
+        "compose_binding": {
+          "samples": 20,
+          "median_ms": 0.10000000000582077,
+          "p95_ms": 0.1999999999825377
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 2.0499999999883585,
+          "p95_ms": 2.1999999999825377
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 3.8000000000029104,
+          "p95_ms": 4.100000000005821
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 6.182074999998122,
+          "p95_ms": 6.5444790000128705
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 17.01173600000061,
+          "p95_ms": 17.80241900002011
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 10.870694999979946,
+          "p95_ms": 11.39170100000797
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 0.9814989999987347,
+          "p95_ms": 1.1343609999960336
+        }
+      },
+      "fill": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 556.5982975000006,
+          "p95_ms": 571.8954440000016
+        },
+        "compose_binding": {
+          "samples": 20,
+          "median_ms": 0.3000000000174623,
+          "p95_ms": 0.5000000000291038
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 5.349999999991269,
+          "p95_ms": 5.899999999994179
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 541.5499999999884,
+          "p95_ms": 557.1000000000058
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 543.6169350000029,
+          "p95_ms": 559.2125409999653
+        },
+        "session_rule_update": {
+          "samples": 20,
+          "median_ms": 0.6000000000058208,
+          "p95_ms": 1.0
+        },
+        "session_rule_add": {
+          "samples": 20,
+          "median_ms": 0.6000000000058208,
+          "p95_ms": 1.0
+        },
+        "finish_input": {
+          "samples": 20,
+          "median_ms": 0.8500000000058208,
+          "p95_ms": 15.89999999999418
+        },
+        "session_rule_remove": {
+          "samples": 20,
+          "median_ms": 1.2999999999883585,
+          "p95_ms": 1.3999999999941792
+        },
+        "post_input_observation_wait": {
+          "samples": 20,
+          "median_ms": 525.1999999999825,
+          "p95_ms": 525.2000000000116
+        },
+        "post_input_steps": {
+          "samples": 20,
+          "median_ms": 526.6000000000058,
+          "p95_ms": 526.9000000000233
+        },
+        "clipboard_hooks": {
+          "samples": 20,
+          "median_ms": 0.0,
+          "p95_ms": 0.10000000000582077
+        },
+        "page_observation": {
+          "samples": 20,
+          "median_ms": 1.099999999976717,
+          "p95_ms": 1.2999999999883585
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 555.483370999994,
+          "p95_ms": 570.8277340000052
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 11.667455999983645,
+          "p95_ms": 12.94612800003847
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 1.025143000007347,
+          "p95_ms": 1.0940159999804564
+        },
+        "client_without_wait": {
+          "samples": 20,
+          "median_ms": 31.448297500006447,
+          "p95_ms": 46.59544399998413
+        }
+      },
+      "free_click": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 565.3348114999972,
+          "p95_ms": 571.4736989999947
+        },
+        "compose_binding": {
+          "samples": 20,
+          "median_ms": 0.8000000000174623,
+          "p95_ms": 1.0
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 6.19999999999709,
+          "p95_ms": 6.600000000005821
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 550.4499999999971,
+          "p95_ms": 557.1999999999825
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 552.323997000002,
+          "p95_ms": 559.1104000000087
+        },
+        "session_rule_update": {
+          "samples": 20,
+          "median_ms": 0.8000000000029104,
+          "p95_ms": 1.0
+        },
+        "session_rule_add": {
+          "samples": 20,
+          "median_ms": 0.8000000000029104,
+          "p95_ms": 1.0
+        },
+        "clipboard_hooks": {
+          "samples": 20,
+          "median_ms": 0.19999999999708962,
+          "p95_ms": 0.20000000001164153
+        },
+        "finish_input": {
+          "samples": 20,
+          "median_ms": 6.5,
+          "p95_ms": 13.099999999976717
+        },
+        "session_rule_remove": {
+          "samples": 20,
+          "median_ms": 1.2999999999883585,
+          "p95_ms": 1.599999999976717
+        },
+        "post_input_observation_wait": {
+          "samples": 20,
+          "median_ms": 525.1999999999825,
+          "p95_ms": 525.2000000000116
+        },
+        "post_input_steps": {
+          "samples": 20,
+          "median_ms": 526.8500000000058,
+          "p95_ms": 527.1000000000058
+        },
+        "page_observation": {
+          "samples": 20,
+          "median_ms": 1.2000000000116415,
+          "p95_ms": 1.400000000023283
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 564.3162969999906,
+          "p95_ms": 570.4650369999911
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 11.842350499975396,
+          "p95_ms": 13.036193999994339
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 1.030286000023466,
+          "p95_ms": 1.196455000015476
+        },
+        "client_without_wait": {
+          "samples": 20,
+          "median_ms": 40.18481149998843,
+          "p95_ms": 46.273698999983026
+        }
+      },
+      "navigate": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 37.28309050000462,
+          "p95_ms": 40.16625400000339
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 20.35000000000582,
+          "p95_ms": 23.0
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 24.98390499999914,
+          "p95_ms": 27.41550799999004
+        },
+        "clipboard_hooks": {
+          "samples": 20,
+          "median_ms": 0.0,
+          "p95_ms": 0.0
+        },
+        "page_observation": {
+          "samples": 20,
+          "median_ms": 12.150000000008731,
+          "p95_ms": 15.199999999982538
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 36.47276199997407,
+          "p95_ms": 39.44021199998815
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 11.754199500032314,
+          "p95_ms": 12.923964999998816
+        },
+        "daemon_expiry_inside_sample": {
+          "samples": 1,
+          "median_ms": 0.6653009999979531,
+          "p95_ms": 0.6653009999979531
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 0.8303430000014487,
+          "p95_ms": 1.0263789999885375
+        }
+      },
+      "read": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 10.883963500004029,
+          "p95_ms": 12.233295999998518
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 2.0500000000029104,
+          "p95_ms": 3.8000000000174623
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 2.1000000000058208,
+          "p95_ms": 3.900000000023283
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 3.587539499989134,
+          "p95_ms": 5.660581000000775
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 9.853510999988657,
+          "p95_ms": 10.962901999988617
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 5.417876000009869,
+          "p95_ms": 6.403457999994089
+        },
+        "daemon_expiry_inside_sample": {
+          "samples": 3,
+          "median_ms": 0.8154920000151833,
+          "p95_ms": 0.9089170000038393
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 1.0349314999905346,
+          "p95_ms": 1.8572310000058678
+        }
+      }
+    },
+    "history-4000": {
+      "approval_to_done": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 589.3755999999994,
+          "p95_ms": 599.8602630000096
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 544.4999999999854,
+          "p95_ms": 556.0999999999767
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 548.2391634999715,
+          "p95_ms": 559.6011009999984
+        },
+        "compose_binding": {
+          "samples": 20,
+          "median_ms": 0.34999999997671694,
+          "p95_ms": 0.5000000000291038
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 5.2999999999883585,
+          "p95_ms": 5.7000000000116415
+        },
+        "session_rule_update": {
+          "samples": 20,
+          "median_ms": 0.6000000000058208,
+          "p95_ms": 1.0
+        },
+        "session_rule_add": {
+          "samples": 20,
+          "median_ms": 0.6000000000058208,
+          "p95_ms": 1.0
+        },
+        "finish_input": {
+          "samples": 20,
+          "median_ms": 3.1999999999970896,
+          "p95_ms": 15.0
+        },
+        "session_rule_remove": {
+          "samples": 20,
+          "median_ms": 1.2999999999883585,
+          "p95_ms": 1.5
+        },
+        "post_input_observation_wait": {
+          "samples": 20,
+          "median_ms": 525.1999999999971,
+          "p95_ms": 525.2999999999884
+        },
+        "post_input_steps": {
+          "samples": 20,
+          "median_ms": 526.6499999999942,
+          "p95_ms": 527.0999999999767
+        },
+        "clipboard_hooks": {
+          "samples": 20,
+          "median_ms": 0.0,
+          "p95_ms": 0.10000000000582077
+        },
+        "page_observation": {
+          "samples": 20,
+          "median_ms": 1.1000000000058208,
+          "p95_ms": 1.2000000000116415
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 586.8731785000136,
+          "p95_ms": 597.3474950000082
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 37.63260649998301,
+          "p95_ms": 39.16864300003908
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 2.508232499990413,
+          "p95_ms": 2.7544669999947473
+        },
+        "client_without_wait": {
+          "samples": 20,
+          "median_ms": 64.07560000001104,
+          "p95_ms": 74.56026300002122
+        }
+      },
+      "asking_click": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 32.66090799999802,
+          "p95_ms": 34.25014699999883
+        },
+        "compose_binding": {
+          "samples": 20,
+          "median_ms": 0.1999999999825377,
+          "p95_ms": 0.20000000001164153
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 2.3000000000174623,
+          "p95_ms": 2.6999999999825377
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 4.30000000000291,
+          "p95_ms": 4.7999999999883585
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 7.432543999982499,
+          "p95_ms": 8.55778299998633
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 30.270215500010522,
+          "p95_ms": 32.066775999993524
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 22.778211000002102,
+          "p95_ms": 24.173441000016282
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 2.2554715000065926,
+          "p95_ms": 2.4166419999996833
+        }
+      },
+      "fill": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 575.4230895000001,
+          "p95_ms": 578.5971779999963
+        },
+        "compose_binding": {
+          "samples": 20,
+          "median_ms": 0.20000000001164153,
+          "p95_ms": 0.40000000002328306
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 5.699999999982538,
+          "p95_ms": 6.0
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 546.1999999999971,
+          "p95_ms": 547.9999999999709
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 548.4729304999831,
+          "p95_ms": 550.4801280000038
+        },
+        "session_rule_update": {
+          "samples": 20,
+          "median_ms": 0.6999999999825377,
+          "p95_ms": 1.0
+        },
+        "session_rule_add": {
+          "samples": 20,
+          "median_ms": 0.6999999999825377,
+          "p95_ms": 1.0
+        },
+        "finish_input": {
+          "samples": 20,
+          "median_ms": 5.5,
+          "p95_ms": 7.0
+        },
+        "session_rule_remove": {
+          "samples": 20,
+          "median_ms": 1.3000000000174623,
+          "p95_ms": 1.6000000000058208
+        },
+        "post_input_observation_wait": {
+          "samples": 20,
+          "median_ms": 525.1999999999825,
+          "p95_ms": 525.2999999999884
+        },
+        "post_input_steps": {
+          "samples": 20,
+          "median_ms": 526.6999999999825,
+          "p95_ms": 527.1000000000058
+        },
+        "clipboard_hooks": {
+          "samples": 20,
+          "median_ms": 0.0,
+          "p95_ms": 0.10000000000582077
+        },
+        "page_observation": {
+          "samples": 20,
+          "median_ms": 1.1000000000058208,
+          "p95_ms": 1.2999999999883585
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 573.384887500012,
+          "p95_ms": 575.8967320000181
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 24.686742499994807,
+          "p95_ms": 26.95624500000804
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 2.3234900000003336,
+          "p95_ms": 2.519607999994605
+        },
+        "client_without_wait": {
+          "samples": 20,
+          "median_ms": 50.22308950000297,
+          "p95_ms": 53.397177999984706
+        }
+      },
+      "free_click": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 583.7127384999985,
+          "p95_ms": 588.0161950000038
+        },
+        "compose_binding": {
+          "samples": 20,
+          "median_ms": 0.8000000000174623,
+          "p95_ms": 1.0000000000291038
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 6.7000000000116415,
+          "p95_ms": 7.200000000040745
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 554.6999999999971,
+          "p95_ms": 558.7000000000116
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 556.921314500002,
+          "p95_ms": 560.7172170000183
+        },
+        "session_rule_update": {
+          "samples": 20,
+          "median_ms": 0.8999999999941792,
+          "p95_ms": 1.2999999999883585
+        },
+        "session_rule_add": {
+          "samples": 20,
+          "median_ms": 0.8999999999941792,
+          "p95_ms": 1.2999999999883585
+        },
+        "clipboard_hooks": {
+          "samples": 20,
+          "median_ms": 0.19999999999708962,
+          "p95_ms": 0.20000000001164153
+        },
+        "finish_input": {
+          "samples": 20,
+          "median_ms": 10.000000000014552,
+          "p95_ms": 13.89999999999418
+        },
+        "session_rule_remove": {
+          "samples": 20,
+          "median_ms": 1.25,
+          "p95_ms": 1.3999999999941792
+        },
+        "post_input_observation_wait": {
+          "samples": 20,
+          "median_ms": 525.1999999999825,
+          "p95_ms": 525.3000000000175
+        },
+        "post_input_steps": {
+          "samples": 20,
+          "median_ms": 526.6999999999971,
+          "p95_ms": 527.1999999999825
+        },
+        "page_observation": {
+          "samples": 20,
+          "median_ms": 1.2000000000116415,
+          "p95_ms": 1.5
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 581.4218974999932,
+          "p95_ms": 585.7095579999907
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 24.961158499991143,
+          "p95_ms": 26.53918799998678
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 2.1537430000045106,
+          "p95_ms": 2.400780999967992
+        },
+        "client_without_wait": {
+          "samples": 20,
+          "median_ms": 58.56273850000434,
+          "p95_ms": 62.81619499999215
+        }
+      },
+      "navigate": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 53.76453999999649,
+          "p95_ms": 55.94496799999615
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 19.60000000000582,
+          "p95_ms": 23.199999999982538
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 25.28897299998789,
+          "p95_ms": 27.583662000012055
+        },
+        "clipboard_hooks": {
+          "samples": 20,
+          "median_ms": 0.0,
+          "p95_ms": 0.10000000000582077
+        },
+        "page_observation": {
+          "samples": 20,
+          "median_ms": 11.549999999988358,
+          "p95_ms": 14.700000000011642
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 51.471800499996334,
+          "p95_ms": 53.555649000003314
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 25.992758999976218,
+          "p95_ms": 27.31861899999899
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 2.0752240000000484,
+          "p95_ms": 2.818667000004325
+        }
+      },
+      "read": {
+        "client_total": {
+          "samples": 20,
+          "median_ms": 22.46379799999704,
+          "p95_ms": 23.574820000008913
+        },
+        "frame_facts": {
+          "samples": 20,
+          "median_ms": 2.1999999999825377,
+          "p95_ms": 2.3000000000174623
+        },
+        "extension_total": {
+          "samples": 20,
+          "median_ms": 2.249999999985448,
+          "p95_ms": 2.3999999999941792
+        },
+        "bridge_round_trip": {
+          "samples": 20,
+          "median_ms": 3.954573000015671,
+          "p95_ms": 4.5833820000211745
+        },
+        "service_total": {
+          "samples": 20,
+          "median_ms": 20.082466499999896,
+          "p95_ms": 21.249321999988524
+        },
+        "service_without_bridge": {
+          "samples": 20,
+          "median_ms": 16.118292999991013,
+          "p95_ms": 17.122859000011204
+        },
+        "client_outside_service": {
+          "samples": 20,
+          "median_ms": 2.3161734999829378,
+          "p95_ms": 2.5434070000030715
+        }
+      }
+    }
+  },
+  "input_samples": [
+    {
+      "sample": "fresh:0",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 560.6895460000001,
+      "wait_ms": 525.0999999999913
+    },
+    {
+      "sample": "fresh:0",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 560.2820310000002,
+      "wait_ms": 525.0999999999913
+    },
+    {
+      "sample": "fresh:0",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 604.5434359999995,
+      "wait_ms": 525.1999999999971
+    },
+    {
+      "sample": "fresh:1",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 592.6259599999994,
+      "wait_ms": 525.1999999999971
+    },
+    {
+      "sample": "fresh:1",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 557.4776780000002,
+      "wait_ms": 525.1999999999971
+    },
+    {
+      "sample": "fresh:1",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 570.9252749999996,
+      "wait_ms": 525.0999999999913
+    },
+    {
+      "sample": "fresh:2",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 568.4347250000001,
+      "wait_ms": 525.1999999999971
+    },
+    {
+      "sample": "fresh:2",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 558.3683000000001,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:2",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 571.0346329999993,
+      "wait_ms": 525.1999999999971
+    },
+    {
+      "sample": "fresh:3",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 567.393669,
+      "wait_ms": 525.1999999999971
+    },
+    {
+      "sample": "fresh:3",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 558.7432270000008,
+      "wait_ms": 525.1999999999971
+    },
+    {
+      "sample": "fresh:3",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 570.1798889999991,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:4",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 565.1196369999998,
+      "wait_ms": 525.1999999999971
+    },
+    {
+      "sample": "fresh:4",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 558.5693049999991,
+      "wait_ms": 525.0999999999913
+    },
+    {
+      "sample": "fresh:4",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 572.5031120000003,
+      "wait_ms": 525.1999999999971
+    },
+    {
+      "sample": "fresh:5",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 562.2612410000002,
+      "wait_ms": 525.1999999999971
+    },
+    {
+      "sample": "fresh:5",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 560.390073999999,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:5",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 571.5807389999991,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:6",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 560.9646940000002,
+      "wait_ms": 525.1999999999971
+    },
+    {
+      "sample": "fresh:6",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 559.3149140000005,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "fresh:6",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 570.5093910000014,
+      "wait_ms": 525.1999999999971
+    },
+    {
+      "sample": "fresh:7",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 561.884935,
+      "wait_ms": 525.2999999999884
+    },
+    {
+      "sample": "fresh:7",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 559.3554919999988,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "fresh:7",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 571.9308599999986,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:8",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 558.9553849999975,
+      "wait_ms": 525.1999999999971
+    },
+    {
+      "sample": "fresh:8",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 560.3962489999976,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:8",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 570.7301259999986,
+      "wait_ms": 525.0999999999913
+    },
+    {
+      "sample": "fresh:9",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 561.581420999999,
+      "wait_ms": 525.0999999999913
+    },
+    {
+      "sample": "fresh:9",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 559.253467999999,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:9",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 572.539499999999,
+      "wait_ms": 525.2999999999884
+    },
+    {
+      "sample": "fresh:10",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 555.9124950000005,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "fresh:10",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 560.0583710000028,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "fresh:10",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 572.1397130000005,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:11",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 558.2705900000001,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "fresh:11",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 560.1007729999983,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "fresh:11",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 570.5109340000017,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "fresh:12",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 560.0054139999993,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:12",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 560.9029330000012,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "fresh:12",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 570.8768370000034,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:13",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 556.337786,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "fresh:13",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 560.7039910000021,
+      "wait_ms": 525.0999999999767
+    },
+    {
+      "sample": "fresh:13",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 572.2172739999987,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "fresh:14",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 573.211134000001,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "fresh:14",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 558.5096309999972,
+      "wait_ms": 525.0999999999767
+    },
+    {
+      "sample": "fresh:14",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 572.7572130000008,
+      "wait_ms": 525.3000000000175
+    },
+    {
+      "sample": "fresh:15",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 560.1887790000001,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "fresh:15",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 562.6494069999972,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "fresh:15",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 565.7816410000014,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "fresh:16",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 571.5303390000008,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "fresh:16",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 557.3805549999997,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "fresh:16",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 573.1460249999982,
+      "wait_ms": 525.2999999999884
+    },
+    {
+      "sample": "fresh:17",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 574.4168179999979,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:17",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 558.3396570000041,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "fresh:17",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 572.0103860000017,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:18",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 555.8444290000043,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "fresh:18",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 560.125884000001,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:18",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 572.431110000005,
+      "wait_ms": 525.0999999999767
+    },
+    {
+      "sample": "fresh:19",
+      "phase": "fresh",
+      "call": "free_click",
+      "client_ms": 555.8460230000055,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:19",
+      "phase": "fresh",
+      "call": "fill",
+      "client_ms": 558.6837749999977,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "fresh:19",
+      "phase": "fresh",
+      "call": "approval_to_done",
+      "client_ms": 572.4168999999965,
+      "wait_ms": 525.3000000000175
+    },
+    {
+      "sample": "history-1000:0",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 571.6237490000058,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:0",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 554.6294639999978,
+      "wait_ms": 525.0999999999767
+    },
+    {
+      "sample": "history-1000:0",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 580.5257980000024,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-1000:1",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 560.2836610000013,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:1",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 555.720484000005,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:1",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 581.448553000002,
+      "wait_ms": 525.3000000000175
+    },
+    {
+      "sample": "history-1000:2",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 571.4736989999947,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:2",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 557.0040399999998,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-1000:2",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 578.9619550000061,
+      "wait_ms": 525.2999999999884
+    },
+    {
+      "sample": "history-1000:3",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 570.1327569999994,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:3",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 554.5801780000038,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:3",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 582.5351880000017,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:4",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 570.9398580000052,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-1000:4",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 556.1759269999966,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:4",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 582.1312419999958,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:5",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 569.5906189999951,
+      "wait_ms": 525.0
+    },
+    {
+      "sample": "history-1000:5",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 554.4352749999962,
+      "wait_ms": 525.0
+    },
+    {
+      "sample": "history-1000:5",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 582.5761669999993,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:6",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 567.5215830000016,
+      "wait_ms": 525.0999999999767
+    },
+    {
+      "sample": "history-1000:6",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 555.4291439999943,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:6",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 581.8781149999995,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:7",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 564.632024999999,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:7",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 556.4909530000004,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:7",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 582.7042319999964,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:8",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 565.3282599999948,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:8",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 555.3459710000025,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:8",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 582.7008619999979,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:9",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 565.3413629999995,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:9",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 556.1114129999987,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:9",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 580.3891760000042,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:10",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 570.8420530000003,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:10",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 571.751393999999,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-1000:10",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 579.4822870000062,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:11",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 569.2750620000006,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-1000:11",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 571.1412130000026,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:11",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 582.7960460000031,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:12",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 563.8494319999954,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:12",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 571.8954440000016,
+      "wait_ms": 525.3000000000175
+    },
+    {
+      "sample": "history-1000:12",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 580.8421270000035,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:13",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 563.5740640000004,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-1000:13",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 556.0247949999975,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-1000:13",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 582.8746299999984,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:14",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 562.3095639999956,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-1000:14",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 571.3104180000009,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-1000:14",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 583.221375999994,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-1000:15",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 563.655396999995,
+      "wait_ms": 525.0999999999767
+    },
+    {
+      "sample": "history-1000:15",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 556.7056420000008,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-1000:15",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 579.3647959999944,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:16",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 564.1946690000041,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-1000:16",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 571.2745419999992,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:16",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 580.8573929999984,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:17",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 565.7077569999965,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:17",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 557.792419999998,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:17",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 581.7501530000009,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:18",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 564.5187439999863,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:18",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 557.4669260000082,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:18",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 583.069112000012,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-1000:19",
+      "phase": "history-1000",
+      "call": "free_click",
+      "client_ms": 562.748339999991,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-1000:19",
+      "phase": "history-1000",
+      "call": "fill",
+      "client_ms": 573.5540409999958,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-1000:19",
+      "phase": "history-1000",
+      "call": "approval_to_done",
+      "client_ms": 581.9405830000032,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:0",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 585.4718160000048,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:0",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 575.2001319999981,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:0",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 589.403363999998,
+      "wait_ms": 525.2999999999884
+    },
+    {
+      "sample": "history-4000:1",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 586.7005050000007,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:1",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 574.7359989999968,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:1",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 587.9782260000065,
+      "wait_ms": 525.2999999999884
+    },
+    {
+      "sample": "history-4000:2",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 589.3111019999924,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:2",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 572.4660260000092,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:2",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 591.2670490000019,
+      "wait_ms": 525.0999999999767
+    },
+    {
+      "sample": "history-4000:3",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 583.5715409999975,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:3",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 576.2932000000001,
+      "wait_ms": 525.0999999999767
+    },
+    {
+      "sample": "history-4000:3",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 589.5583729999926,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:4",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 580.5272919999989,
+      "wait_ms": 525.3000000000175
+    },
+    {
+      "sample": "history-4000:4",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 576.5471210000105,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:4",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 586.8056560000114,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:5",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 588.0161950000038,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:5",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 573.6985660000064,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:5",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 590.4805760000017,
+      "wait_ms": 525.2999999999884
+    },
+    {
+      "sample": "history-4000:6",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 584.1175389999989,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:6",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 574.723468000011,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:6",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 588.2657340000005,
+      "wait_ms": 525.2999999999884
+    },
+    {
+      "sample": "history-4000:7",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 587.3744799999986,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:7",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 575.6783429999923,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:7",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 589.3478360000008,
+      "wait_ms": 525.2999999999884
+    },
+    {
+      "sample": "history-4000:8",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 583.36413300001,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:8",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 575.4707539999945,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:8",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 588.6933439999993,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:9",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 587.8539859999873,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:9",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 574.6746540000022,
+      "wait_ms": 525.2999999999884
+    },
+    {
+      "sample": "history-4000:9",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 590.7339930000016,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:10",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 583.8539359999995,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:10",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 576.2468669999944,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:10",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 589.7415970000002,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:11",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 580.3245400000014,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:11",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 578.6376299999974,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:11",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 602.7058000000106,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:12",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 579.245001999996,
+      "wait_ms": 525.2999999999884
+    },
+    {
+      "sample": "history-4000:12",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 573.211679,
+      "wait_ms": 525.2999999999884
+    },
+    {
+      "sample": "history-4000:12",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 593.3662449999974,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:13",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 580.5478379999986,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:13",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 573.805680999998,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:13",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 586.5219990000041,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:14",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 580.6193990000029,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:14",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 576.9350230000127,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:14",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 586.2716680000012,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:15",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 584.2058120000002,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:15",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 574.984123000002,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:15",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 589.7216559999943,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:16",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 581.3288439999887,
+      "wait_ms": 525.3000000000175
+    },
+    {
+      "sample": "history-4000:16",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 576.7002829999983,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:16",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 587.1735279999994,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:17",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 585.6699499999959,
+      "wait_ms": 525.1000000000058
+    },
+    {
+      "sample": "history-4000:17",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 578.5971779999963,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:17",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 599.8602630000096,
+      "wait_ms": 525.2999999999884
+    },
+    {
+      "sample": "history-4000:18",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 578.8167409999878,
+      "wait_ms": 525.0999999999767
+    },
+    {
+      "sample": "history-4000:18",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 577.7167599999957,
+      "wait_ms": 525.2000000000116
+    },
+    {
+      "sample": "history-4000:18",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 587.4522390000056,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:19",
+      "phase": "history-4000",
+      "call": "free_click",
+      "client_ms": 582.2527269999991,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:19",
+      "phase": "history-4000",
+      "call": "fill",
+      "client_ms": 575.3754250000056,
+      "wait_ms": 525.1999999999825
+    },
+    {
+      "sample": "history-4000:19",
+      "phase": "history-4000",
+      "call": "approval_to_done",
+      "client_ms": 587.3571969999903,
+      "wait_ms": 525.2000000000116
+    }
+  ],
+  "history_fixtures": [
+    {
+      "stage": "history_fixture",
+      "count": 1000,
+      "journal_bytes": 5740418
+    },
+    {
+      "stage": "history_fixture",
+      "count": 4000,
+      "journal_bytes": 24915344
+    }
+  ],
+  "notes": [
+    "20 samples per call and history phase; owner think time absent.",
+    "Retained history is disposable synthetic timing input shaped from a real completed free input, not receiver or qualification evidence.",
+    "Page handlers are no-op/local receiver; browser dispatch is not pure tool CPU.",
+    "Nested stages overlap. Missing historical stages are absent, never fabricated zeros.",
+    "Client outside service includes daemon expiry/queueing, IPC and framing; only complete expiry sweeps wholly inside a sample receive the daemon stage.",
+    "The unchanged fixed post-input wait is holdMs + 25 ms (525 ms at holdMs=500)."
+  ]
+}

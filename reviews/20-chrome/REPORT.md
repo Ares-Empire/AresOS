@@ -21,22 +21,23 @@
 - **Observer backoff resolved:** shared REST quota reset at01:42:22 UTC; helpers
   resumed at01:42:52 and confirmed the three second successes without duplicate
   reruns. Remaining watches use300-second intervals. CI was not stopped by the quota.
-- **Chrome PR complete:** **`43539458133`** passes both installs and both local
-  independent audits:98 named cases,999wordcells,92 original round-3 names,
-  derived native group12; both latency profiles pass and match runtime `b9de9a97…`.
-  Every measured median/p95 is below its nominal ceiling; longest job29m00s.
-- **Only runs still watched:** Chrome push **`43539449510`** (session **`54557`**)
-  and Mail **`43539458146`** (**`52800`**), at300-second intervals. Mail needs both
-  successes; its helper requests a second only after the first passes.
+- **Full Chrome pair complete on this head:** **`43539449510`** / **`43539458133`**,
+  both installs each, all four local independent audits,98 named cases,999 word
+  cells,all92 original round-3 names and derived native group12. All four latency
+  profiles pass, match frozen runtime, and stay below every nominal median/p95
+  ceiling in every phase. Longest Chrome jobs31m01s /29m00s.
+- **Only run still watched:** Mail **`43539458146`**, session **`52800`**, using
+  one blocking watcher at300-second intervals. It needs two successes; the helper
+  requests a second only after the first passes. No more Chrome runs are planned.
 - **Budget:** **255 / about 280** Chrome runs, including this pair.
-- **Exact next step:** resume those two sessions. If stopped, use the
-  receipt-aware `.work/post18d/resume-acceptance.py RUN LABEL TARGET 1794620542`
-  (TARGET1 for each Chrome run,2 for Mail); do not rerun the three verified
-  workflows. After Chrome success, fetch root metadata only and run all four
-  independent audits, original92-name checks, frozen-runtime and latency gates.
-  After both Mail successes, retain both logs and its shared-workflow receipt.
-  Commit finished steps/Handover with `[skip ci]`; finish the safe `.work/` large-file
-  inventory and draft PR #27. No production or CI code change is currently needed.
+- **Exact next step:** resume Mail session52800; if stopped, inspect its finalized
+  attempt receipts before requesting anything, then use receipt-aware
+  `.work/post18d/resume-acceptance.py 43539458146 mail 2 1794620542`.
+  Require two successes on `a4143586`. Fetch both completed-attempt logs and run
+  `.work/post18d/save-shared-evidence.py mail`. Commit the receipt, finish the safe
+  `.work/` files-over-500-MB inventory, finalize REPORT/Handover and draft PR #27
+  with `[skip ci]`. All other required verification is complete. No code/review
+  work remains unless Mail fails. Never merge PR/main or force-push.
 
 # Post-18d integration — final repetitions pending
 
@@ -227,22 +228,40 @@ cases and20 unit tests each; [qualification](records/post18d/final-qualification
 passes47 Python and368 Node tests, zero failed/skipped, each. Both successes for
 each are confirmed on this exact head after the quota reset.
 
-**Chrome PR `43539458133` complete on `a4143586`:** both installs,98 named cases,
-999wordcells,all92 original round-3 names and the actual derived native group12
-pass. Both independent audits and both latency gates pass; runtime matches
-`b9de9a97…`, every median/p95 is below its nominal ceiling, longest job29m00s.
-[Summary](records/post18d/final-chrome-43539458133-summary.json),
-[external audit](records/post18d/final-chrome-43539458133-external-independent-audit.json),
-[policy audit](records/post18d/final-chrome-43539458133-policy-independent-audit.json).
-Artifact hashes, native proof, disjoint inventories and paired timing/gate results
-are retained beside them. Only root metadata was extracted; no profile was accessed.
+**Complete final Chrome pair on `a4143586`:** push `43539449510` and PR
+`43539458133` pass both installs each, with all four independent metadata audits,
+98 named cases,999wordcells,all92 original round-3 names and the actual derived
+native group12. Both runs include all268 Chrome Python tests. Longest jobs are
+31m01s and29m00s, well below the roughly120-minute target.
+[Pair summary](records/post18d/final-chrome-a4143586-summary.json),
+[push external audit](records/post18d/final-chrome-43539449510-external-independent-audit.json),
+[push policy audit](records/post18d/final-chrome-43539449510-policy-independent-audit.json),
+[PR external audit](records/post18d/final-chrome-43539458133-external-independent-audit.json),
+[PR policy audit](records/post18d/final-chrome-43539458133-policy-independent-audit.json).
+Native precedence, disjoint shard inventories, ZIP/member hashes, all paired
+stage summaries and gate results are retained alongside these receipts. Only
+root metadata was extracted; no browser/profile was started or read locally.
 
-**Still required:** the Chrome push run and its independent audits/latency gates,
-and Mail twice. Those two watchers use300-second intervals;
-all six run IDs remain in [the inventory](records/post18d/final-a4143586-runs.json).
-No CI failure was inferred from the watcher quota error. No final green/ready claim.
-Chrome ledger **255 / about280**; report before exceeding280. No local browser,
-profile or container has been accessed.
+All four current timing profiles match frozen runtime `b9de9a97…` and pass the
+production checker against paired `ab7aba92` baselines. Every median and p95 is
+below its unscaled lead ceiling in every phase. At4,000 inputs the ranges across
+the two runs and plain/instrumented profiles are:
+
+| Call | Median range (ms) | p95 range (ms) |
+| --- | ---: | ---: |
+| Read | 20.8–22.5 | 21.5–23.6 |
+| Navigate | 44.6–53.8 | 47.0–56.7 |
+| Free click | 577.9–586.7 | 582.4–589.3 |
+| Fill | 564.1–578.1 | 578.3–579.4 |
+| Asking click | 28.1–32.7 | 29.0–34.3 |
+| Approval to done | 579.0–592.3 | 592.8–599.9 |
+
+The525 ms safety wait remains unchanged; no early-end implementation was added.
+The measured round-3 cost-restoration/removal probe also passes in the final suite.
+
+**Still required: Mail twice on `a4143586`.** Its watcher is the only active one.
+No final green/ready claim until both executions pass. Chrome ledger remains
+255 /about280; no further Chrome runs are planned. Report before exceeding280.
 
 The latest main merge changes no Control source, generated tools or Control
 workflow. Generator and full-unit checks pass after the merge;
