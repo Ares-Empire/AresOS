@@ -73,7 +73,7 @@ class IconRealRouteTest(IconBase):
                     self.cache.convert(str(source))
                 # The sandbox below still holds should that refusal ever be bypassed.
                 self.cache.failed.clear()
-                with mock.patch.object(shell, 'drawn_svg'):
+                with mock.patch.object(self.cache, 'check_svg'):
                     path = self.cache.convert(str(source))
                 self.assertTrue(all(p[3] == 0 for row in pixels(pathlib.Path(path).read_bytes()) for p in row))
             with self.assertRaises(TimeoutError):
@@ -87,7 +87,7 @@ class IconRealRouteTest(IconBase):
         # Bypass the refusal: librsvg would decode about 1 GB; the address-space ceiling stops it.
         self.cache.failed.clear()
         start = time.monotonic()
-        with mock.patch.object(shell, 'drawn_svg'), self.assertRaises(ValueError):
+        with mock.patch.object(self.cache, 'check_svg'), self.assertRaises(ValueError):
             self.cache.convert(str(source))
         self.assertLess(time.monotonic() - start, shell.ICON_TIMEOUT + 1)
         self.assertEqual(list(pathlib.Path(self.cache.directory).iterdir()), [])

@@ -4,12 +4,17 @@ Everything is synthetic: no real program, window or compositor. Time moves throu
 mount is a stand-in check that never answers until the test ends.
 """
 import os
+import pathlib
+import resource
+import subprocess
+import sys
 import threading
 import time
 from unittest import mock
 
-from test_aresos_shell import shell, Base, Conn, REGISTRY, INSTANCE, NONCE, ALL
-from test_aresos_shell_hardening import HardeningBase
+from test_aresos_shell import shell, Base, Conn, HELPER, REGISTRY, INSTANCE, NONCE, ALL
+from test_aresos_shell_hardening import HardeningBase, svg
+from test_aresos_shell_icons import IconBase, SVG, NORMAL
 
 
 def icons_stub():
@@ -207,3 +212,88 @@ class ScanDeadlineTest(HardeningBase):
         # In time again, the same scan publishes the new programs.
         self.assertTrue(catalogue.scan())
         self.assertEqual(len(catalogue.apps), 11)
+
+
+def name_bomb():
+    """The security review's case: a 256 KiB namespace address and 50,000 differently named elements in it. Parsed
+    with namespaces, every name grows by the address, and Python keeps each one: about 12 GiB."""
+    address = 'urn:' + 'x' * (256 * 1024)
+    names = ''.join(f'<p:n{n}/>' for n in range(50000))
+    return f'<svg xmlns="http://www.w3.org/2000/svg" xmlns:p="{address}" width="8" height="8">{names}</svg>'.encode()
+
+
+def address_space():
+    with open('/proc/self/status') as status:
+        return int(next(line for line in status if line.startswith('VmSize')).split()[1]) * 1024
+
+
+class SvgPreCheckTest(IconBase):
+    """Security fix 2: the SVG pre-check runs in a process of its own under the converter's ceiling, and is bounded."""
+
+    def test_the_reviews_name_bomb_is_refused_the_helper_does_not_grow_and_the_program_keeps_its_fallback(self):
+        raw = name_bomb()
+        self.assertLess(len(raw), shell.MAX_ICON_BYTES)
+        source = self.write(self.root / 'names.svg', raw)
+        # Should the pre-check ever run in this process again, it stops at 1 GiB more, not at the laptop's memory.
+        soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+        ceiling = address_space() + 1024 ** 3
+        resource.setrlimit(resource.RLIMIT_AS, (ceiling if hard == resource.RLIM_INFINITY else min(ceiling, hard),
+                                                hard))
+        self.addCleanup(resource.setrlimit, resource.RLIMIT_AS, (soft, hard))
+        before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        app = shell.App('names', 'Names', icon_name=str(source))
+        self.cache.request({app.id: app}, 'r-1')
+        revision, app_id, icon_name, path = self.cache.results.get(timeout=30)
+        self.assertEqual((revision, app_id, icon_name, path), ('r-1', 'names', str(source), None))
+        apps, _ = self.cache.take({app.id: app}, 'r-1')
+        self.assertIsNone(apps['names'].icon)  # no picture: the program keeps its fallback look
+        self.cache.failed.clear()
+        with self.assertRaisesRegex(ValueError, 'namespace'):
+            self.cache.convert(str(source))
+        grown = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss - before  # KiB
+        self.assertLess(grown, 32 * 1024)
+        self.assertEqual(list(pathlib.Path(self.cache.directory).glob('*.png')), [])
+
+    def test_the_pre_check_never_runs_in_the_helper_but_in_its_own_process_under_the_ceiling(self):
+        drawn = self.write(self.root / 'drawn.svg', SVG)
+        refused = self.write(self.root / 'refused.svg', svg('<image href="file:///etc/hostname"/>'))
+        self.cache.svg_checked = True
+        with mock.patch.object(shell, 'drawn_svg', side_effect=AssertionError('the helper ran the pre-check')), \
+                mock.patch.object(shell.subprocess, 'Popen', wraps=subprocess.Popen) as popen, \
+                mock.patch.object(self.cache, 'run', return_value=NORMAL) as run:
+            self.assertIsNotNone(self.cache.convert(str(drawn)))
+            with self.assertRaisesRegex(ValueError, 'refused: SVG contains <image>'):
+                self.cache.convert(str(refused))
+        self.assertEqual(run.call_count, 1)  # only the drawn one was converted
+        for call in popen.call_args_list:
+            command = call.args[0]
+            self.assertEqual(command[:3], [self.cache.prlimit, f'--as={shell.ICON_ADDRESS_SPACE}', '--'])
+            self.assertEqual(command[3:8], [sys.executable, '-I', '-S', str(HELPER), '--check-svg'])
+            # It reads the work folder's private copy, which is gone again afterwards.
+            self.assertEqual(pathlib.Path(command[8]).parent.parent, pathlib.Path(self.cache.directory))
+            self.assertFalse(pathlib.Path(command[8]).exists())
+        self.assertEqual(popen.call_count, 2)
+
+    def test_the_pre_check_looks_at_bounded_names_namespaces_counts_and_nesting(self):
+        def elements(count, attributes=0):
+            attribute = ' '.join(f'a{n}="1"' for n in range(attributes))
+            return ''.join(f'<g {attribute}/>' for _ in range(count))
+
+        refused = {
+            'namespace address': svg('<p:g/>', f' xmlns:p="urn:{"x" * shell.SVG_NAMESPACE}"'),
+            'default namespace address': svg(f'<g xmlns="urn:{"x" * shell.SVG_NAMESPACE}"/>'),
+            'namespace prefix': svg('', f' xmlns:{"p" * (shell.SVG_NAME + 1)}="urn:x"'),
+            'element name': svg(f'<{"g" * (shell.SVG_NAME + 1)}/>'),
+            'attribute name': svg(f'<g {"a" * (shell.SVG_NAME + 1)}="1"/>'),
+            'elements': svg(elements(shell.SVG_ELEMENTS)),  # with the root, one too many
+            'attributes': svg(elements(shell.SVG_ATTRIBUTES // 1000 + 1, 1000)),
+            'nesting': svg('<g>' * shell.SVG_DEPTH + '</g>' * shell.SVG_DEPTH),
+        }
+        for name, raw in refused.items():
+            with self.subTest(name):
+                with self.assertRaisesRegex(ValueError, 'over'):
+                    shell.drawn_svg(raw)
+        # At the bounds themselves, a drawing still passes.
+        shell.drawn_svg(svg(elements(shell.SVG_ELEMENTS - 1)))
+        shell.drawn_svg(svg('<g>' * (shell.SVG_DEPTH - 1) + '</g>' * (shell.SVG_DEPTH - 1)))
+        shell.drawn_svg(svg(f'<{"g" * shell.SVG_NAME}/>', f' xmlns:p="urn:{"x" * (shell.SVG_NAMESPACE - 4)}"'))

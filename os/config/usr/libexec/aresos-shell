@@ -154,6 +154,11 @@ def protocol(minor=MINOR):
     return f'{NAME}/{MAJOR}.{minor}'
 
 
+# This file, run again as the SVG pre-check's own process (review 2, finding 2). Taken from the code itself: a module
+# that a test loads has no __file__.
+HELPER_FILE = os.path.abspath(protocol.__code__.co_filename)
+
+
 class StatusPipe:
     """One-way readiness lines to the desktop supervisor (package 23).
 
@@ -1298,6 +1303,15 @@ def librsvg_coder(formats):
 SVG_PICTURES = frozenset({'image', 'feImage', 'foreignObject'})
 XINCLUDE = 'http://www.w3.org/2001/XInclude'
 CSS_URL = re.compile(r'url\s*\(\s*[\'"]?\s*([^)\'"\s]*)', re.IGNORECASE)
+# What the SVG pre-check looks at, at most (review 2, finding 2). The 42,575 SVG icons installed on the laptop
+# (2026-11-14) have at most 957 elements, 3,883 attributes, nesting 11, namespace addresses of 50 characters and
+# names of 31. Expat expands every name with its namespace address, and Python keeps each distinct expanded name.
+SVG_ELEMENTS = 8192
+SVG_ATTRIBUTES = 32768
+SVG_DEPTH = 64
+SVG_NAMESPACE = 512
+SVG_NAME = 128
+SVG_DRAWN = b'drawn\n'
 
 
 def drawn_svg(raw):
@@ -1306,14 +1320,32 @@ def drawn_svg(raw):
     App icons are drawn shapes. librsvg decodes embedded and referenced pictures with decoders of its own, outside
     the converter's coder policy and pixel checks, so only references to the SVG's own elements (#id) pass: no
     image, feImage or foreignObject element, no XInclude, no href or url() to anything else (data: included), no
-    CSS @import or CSS escapes, no processing instruction (xml-stylesheet), no DTD.
+    CSS @import or CSS escapes, no processing instruction (xml-stylesheet), no DTD. Anything over the SVG_ bounds is
+    refused too. The helper never runs this itself: IconCache.check_svg runs it in a process of its own.
     """
     parser = expat.ParserCreate(namespace_separator=' ')
     parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
     style = [0]
+    seen = dict(elements=0, attributes=0, depth=0)
 
     def refuse(what):
         raise ValueError('SVG ' + what)
+
+    def namespace(prefix, address):
+        # Called for each declaration before any name in it is expanded.
+        if len(prefix or '') > SVG_NAME or len(address or '') > SVG_NAMESPACE:
+            refuse(f'declares a namespace over {SVG_NAMESPACE} characters')
+
+    def bounded(name, attributes):
+        seen['elements'] += 1
+        seen['attributes'] += len(attributes)
+        seen['depth'] += 1
+        if seen['elements'] > SVG_ELEMENTS or seen['attributes'] > SVG_ATTRIBUTES or seen['depth'] > SVG_DEPTH:
+            refuse(f'has over {SVG_ELEMENTS} elements, {SVG_ATTRIBUTES} attributes or nesting {SVG_DEPTH}')
+        for key in (name, *attributes):
+            address, _, local = key.rpartition(' ')
+            if len(local) > SVG_NAME or len(address) > SVG_NAMESPACE:
+                refuse(f'has a name over {SVG_NAME} characters')
 
     def css(text, where):
         # librsvg reads attributes and <style> as CSS, where u\72l( is url(.
@@ -1324,6 +1356,7 @@ def drawn_svg(raw):
                 refuse(f'{where} refers to {match[1][:40]!r}')
 
     def start(name, attributes):
+        bounded(name, attributes)
         namespace, _, local = name.rpartition(' ')
         if local in SVG_PICTURES or namespace == XINCLUDE:
             refuse(f'contains <{local}>')
@@ -1338,6 +1371,7 @@ def drawn_svg(raw):
                 css(value, attribute)
 
     def end(name):
+        seen['depth'] -= 1
         if name.rpartition(' ')[2] == 'style':
             style[0] -= 1
 
@@ -1345,6 +1379,7 @@ def drawn_svg(raw):
         if style[0]:
             css(text, '<style>')
 
+    parser.StartNamespaceDeclHandler = namespace
     parser.StartElementHandler = start
     parser.EndElementHandler = end
     parser.CharacterDataHandler = data
@@ -1355,6 +1390,23 @@ def drawn_svg(raw):
         parser.Parse(raw, True)
     except expat.ExpatError as error:
         raise ValueError(f'SVG is not well-formed XML: {error}') from None
+
+
+def check_svg_file(path):
+    """The SVG pre-check's own process (--check-svg FILE). It prints SVG_DRAWN or why the SVG is refused; a parse
+    that tries to grow dies here, under the converter's address-space ceiling, never in the helper."""
+    try:
+        with open(path, 'rb') as handle:
+            raw = handle.read(MAX_ICON_BYTES + 1)
+        if len(raw) > MAX_ICON_BYTES:
+            raise ValueError('SVG is too large')
+        drawn_svg(raw)
+    except (OSError, ValueError) as error:
+        sys.stdout.buffer.write(f'refused: {error}'.encode('utf-8', 'replace')[:200] + b'\n')
+    else:
+        sys.stdout.buffer.write(SVG_DRAWN)
+    sys.stdout.buffer.flush()
+    return 0
 
 
 def icons_revision(apps, base_revision):
@@ -1470,10 +1522,24 @@ class IconCache:
                 '--', '/usr/bin/magick', *(['identify'] if identify else []), *ICON_LIMITS, *arguments]
 
     def run(self, command):
-        # prlimit sets the address-space limit before the converter starts; everything it starts inherits it.
         # A missing sandbox stays an OSError, as when it was started directly, not a failed conversion.
         if not os.access(command[0], os.X_OK):
             raise FileNotFoundError(f'converter not found: {command[0]}')
+        return self.limited(command)
+
+    def check_svg(self, path):
+        """drawn_svg in a short-lived process of its own, under the converter's address-space ceiling and timeout:
+        whatever the parse costs is paid there, never in the helper (review 2, finding 2)."""
+        output = self.limited([sys.executable or '/usr/bin/python3', '-I', '-S', HELPER_FILE, '--check-svg', path],
+                              label='SVG pre-check')
+        if output != SVG_DRAWN:
+            raise ValueError(output.decode('utf-8', 'replace').strip()[:200] or 'SVG pre-check gave no answer')
+
+    def limited(self, command, label='icon converter'):
+        """command's output, run under the address-space ceiling and the timeout; its whole process group ends after.
+
+        prlimit sets the limit before the command starts; everything it starts inherits it.
+        """
         command = [self.prlimit, f'--as={ICON_ADDRESS_SPACE}', '--', *command]
         with self.lock:
             if self.stopping.is_set():
@@ -1499,7 +1565,7 @@ class IconCache:
                     if len(data) > MAX_ICON_OUTPUT:
                         raise ValueError('converter output too large')
             if proc.wait(timeout=max(0.001, deadline - time.monotonic())):
-                raise ValueError('icon converter failed')
+                raise ValueError(f'{label} failed')
             return bytes(data)
         finally:
             # Kill the held process group even if a failed converter left a child holding stdout open.
@@ -1533,12 +1599,6 @@ class IconCache:
             if len(raw) != info.st_size or (after.st_size, after.st_mtime_ns) != (info.st_size, info.st_mtime_ns):
                 raise ValueError('icon changed while reading')
         coder = sniff_icon(raw)
-        if coder == 'svg':
-            try:
-                drawn_svg(raw)
-            except ValueError:
-                self.remember_failure(key)
-                raise
         self.prepare()
         target = os.path.join(self.directory, key + '.png')
         try:
@@ -1560,6 +1620,10 @@ class IconCache:
                 for name, content in (('input', raw), ('policy.xml', ICON_POLICY.encode())):
                     with open(os.path.join(work, name), 'xb') as handle:
                         handle.write(content)
+                if coder == 'svg':
+                    # Before any converter sees it (review 1, FIX 2), in a process of its own (review 2, finding 2).
+                    # A cached picture skips this: it was made only after its SVG passed.
+                    self.check_svg(os.path.join(work, 'input'))
                 if coder == 'svg' and not self.svg_checked:
                     if not librsvg_coder(self.run(self.command(work, '-list', 'format', identify=True))):
                         raise ValueError('SVG coder is not librsvg')
@@ -3348,7 +3412,11 @@ def main(argv=None):
     parser.add_argument('--registry', default=REGISTRY, help='folder of reviewed app entries')
     parser.add_argument('--socket', help='socket path (default $XDG_RUNTIME_DIR/aresos/shell.sock)')
     parser.add_argument('--list', action='store_true', help='print the reviewed registry with availability and exit')
+    # Internal: the icon worker runs the SVG pre-check through this, in its own memory-limited process.
+    parser.add_argument('--check-svg', metavar='FILE', help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
+    if args.check_svg is not None:
+        return check_svg_file(args.check_svg)
     logging.basicConfig(level=logging.INFO, format='aresos-shell: %(levelname)s %(message)s')
     if args.list:
         apps, revision = load_registry(args.registry)
