@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
  * new flat home is made through the title screen; when the host is in, the keeper's own triggers, its picture thread
  * and its pass build day one's logos, with their lines in his chat and the counts on the group names. Then
  * {@code /aresos app remove} and {@code /aresos hub rebuild}, typed as he types them. No screenshots (step 4 takes
- * them). Last in the list, so no other package's pictures are renumbered.
+ * them, in {@link TownPicturesClientGameTest}, which uses this test's helpers and runs after it).
  */
 public final class TownClientGameTest implements FabricClientGameTest {
     private static final List<String> DAY_ONE = List.of("browser", "discord", "lunar-client", "notepad", "terminal");
@@ -152,13 +152,13 @@ public final class TownClientGameTest implements FabricClientGameTest {
         return AresOs.apps().stream().filter(AppDefinition::mine).map(AppDefinition::id).sorted().toList();
     }
 
-    private static List<String> names(MinecraftServer server) {
+    static List<String> names(MinecraftServer server) {
         var hub = HubData.get(server);
         return hub.fixed().names().stream().map(id -> ((TextDisplayAccess) server.getLevel(hub.home().dimension()).getEntity(id)).aresos$text().getString()).toList();
     }
 
     /** The title screen's way to a new AresOS home; an older one is kept aside, as package 32's test does it. */
-    private static void openCreateScreen(ClientGameTestContext context, Path directory) {
+    static void openCreateScreen(ClientGameTestContext context, Path directory) {
         context.setScreen(TitleScreen::new);
         if (Files.exists(directory)) {
             context.clickScreenButton("aresos.home.new");
@@ -168,7 +168,7 @@ public final class TownClientGameTest implements FabricClientGameTest {
         context.waitForScreen(HomeCreateScreen.class);
     }
 
-    private static void waitForServer(ClientGameTestContext context, TestSingleplayerContext world, Predicate<MinecraftServer> done,
+    static void waitForServer(ClientGameTestContext context, TestSingleplayerContext world, Predicate<MinecraftServer> done,
                                       String failure, int ticks) {
         for (int tick = 0; tick < ticks; tick++) {
             if (world.getServer().computeOnServer(done::test)) return;
@@ -177,7 +177,7 @@ public final class TownClientGameTest implements FabricClientGameTest {
         throw new AssertionError(failure);
     }
 
-    private static void deleteTree(Path root) throws IOException {
+    static void deleteTree(Path root) throws IOException {
         if (!Files.exists(root)) return;
         try (var paths = Files.walk(root)) {
             for (var path : paths.sorted(Comparator.reverseOrder()).toList()) Files.delete(path);
