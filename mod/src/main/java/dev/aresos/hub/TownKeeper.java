@@ -136,7 +136,7 @@ public final class TownKeeper {
      * The freeze's line (review fixes 2, point 4): as he enters a frozen world, and {@code hub rebuild}'s refusal. Also
      * when the town file holds no logo: a logo it does not hold may stand.
      */
-    static String frozen(HubData hub) {
+    public static String frozen(HubData hub) {
         int logos = hub.logos().size();
         return "This world was opened without the town's records since its last visit, so the town builds and removes nothing. "
                 + (logos == 0 ? "Its records hold no logo: look the town over" : "Look over its " + (logos == 1 ? "logo" : logos + " logos"))

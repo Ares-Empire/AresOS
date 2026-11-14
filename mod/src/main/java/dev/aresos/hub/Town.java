@@ -46,8 +46,11 @@ public final class Town {
 
     /**
      * {@link #check} as if the logos of the apps in {@code down} had come down first, as a swap or a move takes them
-     * down before it builds (package 37): their blocks read as what {@link #remove} would leave of them (the blocks he
-     * changed stay his), their trigger zones as gone. Whether they can come down is {@link #checkRemove}'s.
+     * down before it builds (package 37): the world as {@link #remove} would leave it, taken from the take-down's own
+     * code ({@link GateBuilder#checkRemoval}): their blocks as it leaves them (the blocks he changed stay his), their
+     * trigger zones and records gone, the signs it discards gone, a sign it leaves (one he moved or edited) standing
+     * and counting as his (review fixes 1, point 3). Whether they can come down is {@link #checkRemove}'s; one that
+     * cannot is refused here as well.
      */
     public static void check(MinecraftServer server, AppDefinition app, Place place, GatePicture picture, Collection<String> down) throws IOException {
         var hub = hub(server);
@@ -58,25 +61,30 @@ public final class Town {
     /**
      * Throws, changing nothing, unless {@link #remove} would take an app's logo down now: {@link GateBuilder.NotLoaded}
      * while its place is not loaded, otherwise what of his hangs on it; in a frozen town, always. The check
-     * {@code remove} itself makes ({@link GateBuilder#checkRemoval}).
+     * {@code remove} itself makes ({@link GateBuilder#checkRemoval}), with what the take-down will do.
      */
-    public static void checkRemove(MinecraftServer server, String app) throws IOException {
+    public static GateBuilder.TakeDown checkRemove(MinecraftServer server, String app) throws IOException {
         var hub = hub(server);
         var logo = hub.logo(app).orElseThrow(() -> new IOException("No logo of " + app + " stands in the town."));
         unfrozen(hub);
-        GateBuilder.checkRemoval(level(server, hub), logo.gate());
+        return GateBuilder.checkRemoval(level(server, hub), logo.gate(), hub.sign(logo).orElseThrow());
     }
 
-    /** What taking these apps' logos down would leave, and their zones: the town's own zones only, as {@link #remove}. */
-    private static GateBuilder.Gone gone(MinecraftServer server, ServerLevel level, HubData hub, Collection<String> down) {
+    /**
+     * What taking these apps' logos down would leave, as {@link #remove} takes each down (the same sign, the same
+     * take-down code), and their zones: the town's own zones only.
+     */
+    private static GateBuilder.Gone gone(MinecraftServer server, ServerLevel level, HubData hub, Collection<String> down) throws IOException {
         if (down.isEmpty()) return GateBuilder.Gone.NONE;
-        var blocks = new HashMap<BlockPos, BlockState>();
+        var takeDowns = new java.util.ArrayList<GateBuilder.TakeDown>();
         var zones = new HashSet<String>();
-        for (var app : down) hub.logo(app).ifPresent(logo -> {
-            blocks.putAll(GateBuilder.left(level, logo.gate()));
-            ZoneData.get(server).zones().stream().filter(zone -> hub.made(logo, zone)).forEach(zone -> zones.add(zone.id()));
-        });
-        return new GateBuilder.Gone(blocks, zones);
+        for (var app : down) {
+            var logo = hub.logo(app);
+            if (logo.isEmpty()) continue;
+            takeDowns.add(GateBuilder.checkRemoval(level, logo.get().gate(), hub.sign(logo.get()).orElseThrow()));
+            ZoneData.get(server).zones().stream().filter(zone -> hub.made(logo.get(), zone)).forEach(zone -> zones.add(zone.id()));
+        }
+        return GateBuilder.Gone.of(takeDowns, zones);
     }
 
     /**

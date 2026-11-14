@@ -128,18 +128,61 @@ public final class GateBuilder {
 
     /**
      * Gates due to come down before a build, as the build is checked while they still stand (package 37's swap and
-     * move): {@code blocks} is what their take-down would leave ({@link #left}), {@code zones} the IDs of their trigger
-     * zones, which go with them. Everything else is read from the world as it is.
+     * move), each as its own take-down will leave things ({@link #checkRemoval}): {@code blocks}, the blocks that
+     * change and what comes back; {@code zones}, the IDs of their trigger zones, which go with them; {@code disowned},
+     * every block their records hold, which is the mod's no longer (a block he changed stays and is his);
+     * {@code unrecorded}, their signs' IDs, which leave the records; {@code discarded}, the signs the take-downs
+     * discard. A sign a take-down leaves (he moved or edited it) stays in the world, no longer the mod's, and counts
+     * like any entity of his (review fixes 1, point 3). Everything else is read from the world as it is.
      */
-    public record Gone(Map<BlockPos, BlockState> blocks, java.util.Set<String> zones) {
-        public static final Gone NONE = new Gone(Map.of(), java.util.Set.of());
-        public Gone { blocks = Map.copyOf(blocks); zones = java.util.Set.copyOf(zones); }
+    public record Gone(Map<BlockPos, BlockState> blocks, java.util.Set<String> zones, java.util.Set<BlockPos> disowned,
+                       java.util.Set<UUID> unrecorded, java.util.Set<UUID> discarded) {
+        public static final Gone NONE = new Gone(Map.of(), java.util.Set.of(), java.util.Set.of(), java.util.Set.of(), java.util.Set.of());
+
+        public Gone {
+            blocks = Map.copyOf(blocks);
+            zones = java.util.Set.copyOf(zones);
+            disowned = java.util.Set.copyOf(disowned);
+            unrecorded = java.util.Set.copyOf(unrecorded);
+            discarded = java.util.Set.copyOf(discarded);
+        }
+
+        /** What these take-downs leave, with the trigger zones that go with them. */
+        public static Gone of(java.util.Collection<TakeDown> takeDowns, java.util.Set<String> zones) {
+            var blocks = new HashMap<BlockPos, BlockState>();
+            var disowned = new HashSet<BlockPos>();
+            var unrecorded = new HashSet<UUID>();
+            var discarded = new HashSet<UUID>();
+            for (var down : takeDowns) {
+                blocks.putAll(down.back());
+                down.gate().placed().forEach(placed -> disowned.add(placed.pos()));
+                down.gate().sign().ifPresent(unrecorded::add);
+                down.discards().ifPresent(discarded::add);
+            }
+            return new Gone(blocks, zones, disowned, unrecorded, discarded);
+        }
+
+        /** A block as it will be once these gates came down. */
+        BlockState state(ServerLevel level, BlockPos pos) {
+            var left = blocks.get(pos);
+            return left != null ? left : level.getBlockState(pos);
+        }
+
+        /**
+         * The entities a check leaves alone once these gates came down: the mod's signs that keep their records, and the
+         * signs the take-downs discard (they are gone). A sign a take-down leaves standing is not among them.
+         */
+        java.util.Set<UUID> exempt(java.util.Set<UUID> signs) {
+            var exempt = new HashSet<>(signs);
+            exempt.removeAll(unrecorded);
+            exempt.addAll(discarded);
+            return exempt;
+        }
     }
 
     /** A block as it would be once the gates in {@code gone} came down. */
     private static BlockState state(ServerLevel level, Gone gone, BlockPos pos) {
-        var left = gone.blocks().get(pos);
-        return left != null ? left : level.getBlockState(pos);
+        return gone.state(level, pos);
     }
 
     /**
@@ -188,11 +231,11 @@ public final class GateBuilder {
                 List.copyOf(placed.keySet()), Optional.empty());
         String conflict = data.conflict(zone, gone.zones());
         if (conflict != null) throw new IOException(conflict);
-        if (Neighbors.occupant(level, solid.keySet(), Neighbors.signs(level.getServer())) != null)
+        if (Neighbors.occupant(level, solid.keySet(), gone.exempt(Neighbors.signs(level.getServer()))) != null)
             throw new IOException("An entity occupies the gate's place. Move it away, then retry.");
-        Neighbors.check(level, placed.keySet(), solid.keySet(), 2);
-        if (doormat.isPresent()) Neighbors.check(level, placed.keySet(), plan.doormat(), 2);
-        Neighbors.check(level, placed.keySet(), plan.lights(), LIGHT_MELTS);
+        Neighbors.check(level, placed.keySet(), solid.keySet(), 2, gone);
+        if (doormat.isPresent()) Neighbors.check(level, placed.keySet(), plan.doormat(), 2, gone);
+        Neighbors.check(level, placed.keySet(), plan.lights(), LIGHT_MELTS, gone);
         return new Prepared(level, plan, zone, java.util.Collections.unmodifiableMap(placed), sign(level, plan.sign()));
     }
 
@@ -344,32 +387,32 @@ public final class GateBuilder {
      * could fall or break with it.
      */
     public static Removal takeDown(ServerLevel level, AppZone.Gate gate, GatePlan.Sign sign) throws IOException {
-        // Refuse the whole operation before touching the sign, the record or any block.
-        var undo = checkTakeDown(level, gate);
-        undo.back().forEach((pos, state) -> Placing.set(level, pos, undo.expected().get(pos), state));
-        var entity = gate.sign().map(level::getEntity);
-        var left = SignLeft.NONE;
-        if (entity.isPresent()) {
-            if (made(level, entity.get(), sign)) entity.get().discard();
-            else left = sign == null ? SignLeft.UNRECORDED : SignLeft.CHANGED;
-        }
-        return new Removal(gate.placed().size() - undo.kept(), undo.kept(), left);
+        // Refuse the whole operation before touching the sign, the record or any block; then do what was decided.
+        var down = checkRemoval(level, gate, sign);
+        down.back().forEach((pos, state) -> Placing.set(level, pos, down.expected().get(pos), state));
+        down.discards().map(level::getEntity).ifPresent(Entity::discard);
+        return new Removal(gate.placed().size() - down.kept(), down.kept(), down.left());
     }
 
     /**
-     * What a take-down changes: each block that goes, with what the record says stands there ({@code expected}) and
-     * what comes back in its place ({@code back}); {@code kept}: recorded blocks he changed, which stay his.
+     * What a take-down does, decided before anything changes: each block that goes, with what the record says stands
+     * there ({@code expected}) and what comes back in its place ({@code back}); {@code kept}, recorded blocks he
+     * changed, which stay his; the sign it discards ({@code discards}: still the one the mod made) or why an entity
+     * with the sign's ID stays ({@code left}).
      */
+    public record TakeDown(AppZone.Gate gate, Map<BlockPos, String> expected, Map<BlockPos, BlockState> back, int kept,
+                           Optional<UUID> discards, SignLeft left) { }
+
+    /** The blocks of a take-down, before its sign is looked at. */
     private record Undo(Map<BlockPos, String> expected, Map<BlockPos, BlockState> back, int kept) { }
 
     /**
      * Throws, changing nothing, unless {@link #takeDown} would take this gate down now: {@link NotLoaded} while its
-     * place is not loaded, otherwise an IOException naming what of his could fall or break with it. The very check
-     * {@code takeDown} makes, so a check before a swap or move and the take-down itself cannot disagree.
+     * place is not loaded, otherwise an IOException naming what of his could fall or break with it. Otherwise what
+     * the take-down will do. The very code {@code takeDown} runs first (review fixes 1, point 3), so a check before a
+     * swap or move ({@link Gone#of}) and the take-down itself cannot disagree, about the blocks or the sign.
      */
-    public static void checkRemoval(ServerLevel level, AppZone.Gate gate) throws IOException { checkTakeDown(level, gate); }
-
-    private static Undo checkTakeDown(ServerLevel level, AppZone.Gate gate) throws IOException {
+    public static TakeDown checkRemoval(ServerLevel level, AppZone.Gate gate, GatePlan.Sign sign) throws IOException {
         var recorded = gate.placed().stream().map(AppZone.Placed::pos).collect(java.util.stream.Collectors.toSet());
         recorded.addAll(gate.grass());
         var inspection = Neighbors.footprint(recorded, 2);
@@ -377,11 +420,15 @@ public final class GateBuilder {
         if (!loaded(level, inspection)) throw new NotLoaded("The gate isn't loaded. Nothing changed.");
         var undo = undoing(level, gate);
         Neighbors.checkRemoval(level, undo.back().keySet());
-        return undo;
+        var entity = gate.sign().map(level::getEntity);
+        Optional<UUID> discards = Optional.empty();
+        var left = SignLeft.NONE;
+        if (entity.isPresent()) {
+            if (made(level, entity.get(), sign)) discards = Optional.of(entity.get().getUUID());
+            else left = sign == null ? SignLeft.UNRECORDED : SignLeft.CHANGED;
+        }
+        return new TakeDown(gate, undo.expected(), undo.back(), undo.kept(), discards, left);
     }
-
-    /** What taking this gate down would leave, block by block: only the blocks that change ({@link Gone}). */
-    public static Map<BlockPos, BlockState> left(ServerLevel level, AppZone.Gate gate) { return undoing(level, gate).back(); }
 
     private static Undo undoing(ServerLevel level, AppZone.Gate gate) {
         var ground = new HashMap<BlockPos, String>();

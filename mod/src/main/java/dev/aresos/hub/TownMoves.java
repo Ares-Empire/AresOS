@@ -225,12 +225,26 @@ public final class TownMoves {
                 return Optional.of(new Refusal(nothing + logo.name() + "'s logo at " + where + " cannot come down. " + his.getMessage()));
             }
         }
-        // Each new place takes its new logo once those logos came down.
+        // Any other logo the pass takes down with them (a town not yet in step: the plan puts it elsewhere or nowhere)
+        // comes down as well where it can; where it cannot, the pass leaves it standing, and so does this check.
+        var gone = new LinkedHashSet<>(down);
+        for (var logo : hub.logos()) {
+            if (gone.contains(logo.app())) continue;
+            var target = plan.standing().get(logo.app());
+            if (target != null && Place.parse(logo.place()).equals(Optional.of(target))) continue;
+            try {
+                Town.checkRemove(server, logo.app());
+                gone.add(logo.app());
+            } catch (IOException stays) {
+                // The pass's take-down refuses the same way and leaves it where it stands.
+            }
+        }
+        // Each new place takes its new logo once those logos came down, in the world as their take-downs leave it.
         for (var move : moves.entrySet()) {
             var app = move.getKey();
             var place = move.getValue();
             try {
-                Town.check(server, app, place, pictures.get(app.id()), down);
+                Town.check(server, app, place, pictures.get(app.id()), gone);
             } catch (GateBuilder.NotLoaded notLoaded) {
                 return Optional.of(new Refusal(nothing + place.words() + " is not loaded. Stand at home and try again."));
             } catch (IOException his) {
