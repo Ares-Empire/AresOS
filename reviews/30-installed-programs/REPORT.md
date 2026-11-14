@@ -166,8 +166,14 @@ Closing housekeeping: all owned headless processes/scopes and converter/test chi
 
 Brief: `briefs/30-review-fixes-1.md`. Two fresh reviews of `08753aeb`, both CHANGES-NEEDED: `SECURITY-1.md` (five FIX
 findings) and `REVIEW-1.md` (one blocking, six should-fix). All twelve fixed by two Claude builder steps (Opus 5.5),
-2026-11-13/14: step A the security review's five, step B the package review's. Every new test was also run with its
-own fix taken out (a scratch script that patches the helper in memory, one fix at a time); each one failed then.
+2026-11-13/14: step A the security review's five, step B the package review's. Each fix was also taken out alone (a
+scratch script that patches the helper in memory) and its tests run; "Verified" says how many failed then. Not every
+new test is a regression test: some are controls that check unchanged behaviour and pass either way (corrected in
+review fixes 2, REVIEW-2 nit 5): FlatpakMarkerTest's recognised-forwarding case, FlatpakAppIdTest's ordinary-program
+case (it also passes the pre-review code), the hint for a program that is not installed, DroppedReturnTest's
+no-choice case, and step A's positive cases (internal desktop links, accepted desktop exports, allowed SVG shapes,
+the route without the systemd flag). The registry-return test beside an unowned window was a control for an exception
+that review fixes 2 removed.
 
 `os/` files touched: `config/usr/libexec/aresos-shell`; `config/usr/share/aresos/apps/hints/` (new: `lunarclient.json`,
 `steam.json`); `ci/image-checks.sh` (two added checks: `/usr/bin/prlimit`; the hints load and are root's); tests
@@ -323,10 +329,8 @@ that name the same desktop ID, or could claim the same window, are all refused.
 
 ### JUDGMENT-CALL (review fixes 1)
 
-- **Unowned windows stop only discovered programs' returns.** A registry app (Terminal, KWrite, Chrome) closing its
-  last window still returns at once even if a window nobody owns is open, as before (the lead's rule: nothing changes
-  for the three registry apps). Applying the rule to them too would change how today's apps feel; it is one condition
-  in `windows_changed` if wanted later.
+- *(Superseded by review fixes 2, finding 4: with a 1.1 desktop the registry apps leave a window nobody owns in
+  front too; a 1.0 desktop keeps the immediate return.)* Unowned windows stopped only discovered programs' returns.
 - **"A window nobody owns is open" means any such window, not only the one in front** (the brief's words). A window
   nobody owns that stays open all the time (a tray helper, a program with no identity) means discovered programs'
   closes leave the focus to the compositor; the hub comes when the compositor gives it. Narrowing it to the active
@@ -352,7 +356,13 @@ that name the same desktop ID, or could claim the same window, are all refused.
   reviewed hint for that program.
 - **Steam's prefix was not seen on the laptop.** `steam_app_<appid>` is the identity Steam is known to give its games;
   Proton or native games that set their own identity would be nobody's until hinted.
-- A permanently open window nobody owns stops discovered programs' forced returns (see the JUDGMENT-CALL).
+- A permanently open window nobody owns stops forced returns (see the JUDGMENT-CALL; since review fixes 2 also the
+  registry apps' with a 1.1 desktop).
+- **What he sees of the missing provenance (REVIEW-2 nit 6).** A Lunar game window that appears more than half a second
+  after the launcher's window closed leaves that launch `closed`: the hub came back once, and My apps shows Lunar as not
+  open while the game runs (the window is still Lunar's: closing it returns to the hub). Another launcher's Minecraft
+  window (`com.mojang.minecraft`, e.g. Prism's) counts as Lunar Client's while Lunar is installed: it confirms a waiting
+  Lunar launch, keeps Lunar open, and closing it returns to the hub as Lunar's.
 - A mod that reconnects with a lower minor while discovered programs are open makes their windows nobody's; their
   launches close after the hand-over interval.
 
@@ -370,8 +380,9 @@ check ran at `228ae93c`, before a one-function change to `Windows.set_registry` 
   with the full catalogue for 1.0 desktops two of three `LegacyWindowsTest` tests, and with inherited dialog owners
   kept the third; with the old generic refusal both
   `LegacyDiscoveredIdTest` tests; without the switch cancel 2 of 4 and without the launch cancel 1 of 4
-  `DroppedReturnTest` tests; with markers removed everywhere 2 of 3; with the old invented Flatpak ID all 4 of
-  `FlatpakAppIdTest` (subtests included). With every fix in, all pass.
+  `DroppedReturnTest` tests; with markers removed everywhere 2 of 3; with the old invented Flatpak ID 3 of 4
+  `FlatpakAppIdTest` tests are regression tests (the fourth, the ordinary program, is a control: REVIEW-2 found that it
+  passes the pre-review code too, so the earlier count of 4 is withdrawn). With every fix in, all pass.
 - **Headless end to end once more:** `python3 os/tests/check_aresos_shell_headless.py` → **`HEADLESS_KCALC_BTOP_PASSED`**,
   then **`owned processes and scopes stopped`**. Before it, the owner's Lunar game had been running (its Java under
   `~/.lunarclient/`, 3 GB available), so the run waited until it had ended: the script's own guard then printed
@@ -391,3 +402,143 @@ check ran at `228ae93c`, before a one-function change to `Windows.set_registry` 
   window identity: both need the owner's own programs, which this run never starts. The Lunar identities are the ones
   read from his session's window list on 2026-11-13; Steam's prefix was not seen there.
 - The real package-34 mod against these windows rules (1.0 and 1.1): covered here at the protocol level only.
+
+## Review fixes 2
+
+Brief: `briefs/30-review-fixes-2.md`. Two fix checks of `ab58d12f`, both CHANGES-NEEDED: `SECURITY-2.md` (FIX 1 and 2
+open in a new form) and `REVIEW-2.md` (findings 2 and 4 open in a narrower form, two new should-fix, two nits). Built by
+a Claude agent (Opus 5.5), 2026-11-14, after merging `origin/main` (packages 31 and 34; `image-checks.sh` kept both
+blocks). One commit per fix. New tests are in `os/tests/test_aresos_shell_review_fixes_2.py` unless named otherwise.
+
+`os/` files touched: `config/usr/libexec/aresos-shell`; `ci/image-checks.sh` (package 31's `/tmp/pkg31-home` removed
+right after its `gsettings` call, for the OS lead); tests `test_aresos_shell_review_fixes.py` (one test changed, below),
+`check_aresos_shell_icons.py` (its two bypasses of the SVG refusal now patch `IconCache.check_svg`), new
+`test_aresos_shell_review_fixes_2.py`. Nothing under `mod/`; the examples under `mod/src/test/resources/shell-1.1/` are
+unchanged.
+
+### The fixes
+
+- **Security FIX 1, no filesystem call on the serving loop.** Whether a program can start is worked out where its
+  catalogue is built, on the discovery worker (`with_availability`, also for the 1.0 list), and published as
+  `App.unavailable`; `list_apps` serves it and touches no file. Opening an app checks its program, and the folder it
+  starts in (Popen's child changes into it while the helper waits), on a `LaunchChecks` thread: the loop waits 0.2 s (a
+  local file answers in microseconds), then answers when the check does, or after 3 s fails the launch as `unavailable`
+  with reason `not_responding`. A resent request ID joins its waiting launch; launches of one program share its check;
+  at most 4 checks are outstanding, beyond that a launch fails at once with reason `checks_busy`. The scan's deadline
+  is also checked per parsed entry, per program's availability and right before a catalogue is published.
+  Tests: `StalledMountTest` (a stand-in for a stalled mount whose check never returns until the test ends, and which
+  fails the test at once if the serving loop ever touches it): listing, heartbeats and another program's launch go on
+  while the stalled program's launch and one whose folder is on the dead mount wait; both fail as `not_responding`
+  after 3 s and replay that answer; once the mount answers, it opens. And with 4 stuck checks the next launches fail at
+  once (`checks_busy`), no fifth thread starts, the helper answers, and the waiting launches go on once it answers.
+  `ScanDeadlineTest`: out of time while parsing, after parsing, and right before publishing, the last good catalogue
+  stays and the work stops there.
+- **Security FIX 2, the SVG pre-check runs under the memory ceiling.** The helper never runs `drawn_svg` itself any
+  more: `IconCache.check_svg` runs the helper file in `--check-svg` mode (`python3 -I -S`), a short-lived process under
+  the converter's `prlimit --as=268435456` and timeout, on the work folder's private copy, right before conversion; a
+  cached picture skips it (it was made only after its SVG passed). It costs about 70 ms per conversion. The pre-check is
+  bounded as well: namespace addresses 512 and names 128 characters, 8192 elements, 32768 attributes, nesting 64; a
+  namespace declaration over the bound is refused before any name in it is expanded. The 42,575 SVG icons installed on
+  the laptop have at most 957 elements, 3,883 attributes, nesting 11, addresses of 50 and names of 31 characters.
+  Tests (`SvgPreCheckTest`): the review's case (a 256 KiB namespace address and 50,000 differently named elements) is
+  refused, the helper's peak memory grows under 32 MiB, no picture is made and the program keeps its fallback look (the
+  test caps its own address space 1 GiB above its size first, so a regression fails instead of taking the laptop's
+  memory); the pre-check never runs in the helper but in `prlimit --as=268435456 -- python3 -I -S <helper>
+  --check-svg <work copy>`; each bound refuses (8 cases) and a drawing at the bounds passes.
+- **Package review finding 1, going back to a 1.0 client drops what was pending.** A 1.0 hello cancels discovered
+  programs' pending returns, and an overdue discovered close forces a return only while the window rules are 1.1's.
+  Tests (`LegacyReconnectTest`): Lunar closes, the compositor activates the terminal, a 1.0 desktop connects inside the
+  waiting time: no return, Lunar closed, terminal in front; the same with a 1.1 reconnect right after; a close the
+  helper had not processed yet when the 1.0 hello arrived; a 1.1 control that still returns.
+- **Package review finding 2, the switch he just made wins.** `windows_changed` takes the current activation into
+  account (the compositor's first pick keeps the return, a later switch drops it) before an overdue return runs.
+  Tests (`LateSwitchTest`): the switch to the editor arrives after the deadline, before any tick ran the return: no
+  return, the editor in front, no focus event; a control where only other compositor news arrives after the deadline
+  and the return still runs.
+- **Package review finding 3, a reviewed prefix beats a discovered exact identity.** `apply_hints` removes from every
+  other discovered program each identity a hint names or a hint's prefix covers (`App.hint_ids` records a hint's exact
+  identities). `Windows` owns in this order: the desktop and the registry, then hints (exact, then prefix), then
+  discovered programs' own candidates. Tests (`PrefixPrecedenceTest`): a discovered entry with
+  `StartupWMClass=steam_app_1086940` beside Steam keeps only its own identity; the game window is Steam's; Steam's
+  launcher closing right after the game took the focus forces no return and Steam stays open; the game's close returns
+  once and closes Steam's launch. And `Windows` ranks registry, hint exact, prefix, discovered in both insertion orders.
+- **Package review finding 4, the protection holds for the registry apps under 1.1.** When Chrome, Terminal or
+  Notepad closes its last window while a window nobody owns is open, a 1.1 desktop's hub is not pulled in front of it;
+  it comes back when the compositor gives it the focus. A 1.0 desktop keeps the immediate return. Changed test:
+  `test_aresos_shell_review_fixes.py` `test_registry_apps_still_return_when_their_last_window_closes_beside_an_unowned_window`
+  (it asserted the exception) became `test_registry_apps_leave_an_unowned_window_in_front_too_under_1_1`. New:
+  `RegistryBesideUnownedTest` (Chrome under 1.1; the 1.0 immediate return).
+
+### Which tests are regression tests, which are controls
+
+Each fix, or part of a fix, was taken out alone (scratch script: the helper's source changed in memory and run in the
+loaded module, never on disk) and its tests run:
+
+| Taken out | Fails then |
+|---|---|
+| list_apps checks executables on the loop | both `StalledMountTest` tests |
+| the launch check on the loop | both `StalledMountTest` tests |
+| the folder check | `StalledMountTest` listing test |
+| the 4-check limit | `StalledMountTest` limit test |
+| each of the three deadline checks | `ScanDeadlineTest` (its own subtest) |
+| the pre-check back in the helper | `SvgPreCheckTest` own-process test |
+| the bounds | `SvgPreCheckTest` bounds test, all 8 subtests |
+| both (the review-1 pre-check) | also the review's case: the worker never answers (out of memory at the test's guard) |
+| the cancel at a 1.0 hello | `LegacyReconnectTest` 1.1-right-after test |
+| the 1.0 condition on discovered returns | `LegacyReconnectTest` not-yet-processed test |
+| both | also the 1.0-reconnect test |
+| the old order (activation after expiry) | `LateSwitchTest` switch test |
+| the catalogue removal under a prefix | `PrefixPrecedenceTest` Steam test |
+| the `Windows` order | `PrefixPrecedenceTest` ranking test (both subtests) |
+| the registry-app condition | `RegistryBesideUnownedTest` 1.1 test and the changed `HintedOwnershipTest` test |
+| that condition without the 1.0 exception | `RegistryBesideUnownedTest` 1.0 test |
+
+Controls (pass with or without their fix, kept to pin unchanged behaviour): `LegacyReconnectTest`'s 1.1 control,
+`LateSwitchTest`'s other-news control, review fixes 1's `DroppedReturnTest` (unchanged, passes either way). The
+review's name bomb (`SvgPreCheckTest`) fails only with both halves of FIX 2 out: each half alone stops that case.
+
+### JUDGMENT-CALL (review fixes 2)
+
+- **A launch whose check is slow is answered later.** Over 0.2 s the reply waits for the check (at most 3 s), then
+  `unavailable` with reason `not_responding`; the mod (package 34's `ShellClient.reason`) shows that as "unavailable
+  (not_responding)", with no wording of its own. Rejected: waiting the whole 3 s on the loop (heartbeats would stall).
+- **Four stuck checks block every launch.** With four different programs on dead mounts, any further launch, Terminal
+  included, fails at once (`checks_busy`, "unavailable (checks_busy)") until one answers; listing and heartbeats go on.
+  Rejected: falling back to the published value then (systemd-run's child would hang on the dead mount and the launch
+  wait 30 s for a window). The limit is one constant.
+- **A 1.0 desktop's list shows availability from the last scan**, not a live check per list: a program removed between
+  scans shows as available for up to about 3 s (the scan notices executables changing); opening it still checks.
+- **The pre-check process is the helper file itself** (`--check-svg`, hidden from `--help`), so there is one copy of
+  the check. Rejected: inside the converter's sandbox (Python is not bound into it).
+
+### Known limits (review fixes 2), with what he would see
+
+- **A style rule split across pieces passes the pre-check** (`u&#114;l(` or `@im&#112;ort` in `<style>`, or a CDATA
+  boundary): the converter still renders it inside its sandbox (no network, no home folder, only the icon), under the
+  timeout and memory ceiling. At worst an icon looks odd or falls back to the plain look; nothing outside the icon is
+  read.
+- **An icon can be missing for a moment while it is replaced:** the old picture is removed before the new one is
+  published, and two programs sharing one source can briefly get different versions. The program shows its fallback
+  look until the next icon pass (seconds). Nothing of his is lost.
+- **A scan stuck on a dead drive stops new programs from appearing until the helper restarts:** the last good list
+  stays, listing and opening keep working, and the helper logs it once after 4 s. A logout and login (or a restart of
+  the desktop) brings discovery back.
+- **Window identities are claims:** a program can name another's window identity; another launcher's Minecraft window
+  counts as Lunar Client's and a stray `steam_app_*` window as Steam's. He would see a wrong open state in My apps or
+  the hub coming back at an unexpected moment; no command runs because of it.
+- A mount that stalls in the microseconds between a launch's check and its start still holds the helper while Popen
+  waits for the child; a stuck check thread lives until its file call returns.
+
+### Verified (review fixes 2)
+
+On the laptop, 2026-11-14:
+
+- `TMPDIR="$PWD/.work/30-installed-programs/tmp" python3 -m unittest discover -s os/tests -p 'test_aresos_shell*.py'`
+  → **Ran 271 tests, OK** (255 before this round). Each per-fix commit's snapshot (`git checkout-index` of `os/` into a
+  scratch folder) also passed: 265, 267, 269, 271 for findings 1 to 4.
+- `... -p 'check_aresos_shell_icons.py'` (the real sandboxed converter) → **Ran 7 tests, OK** (after FIX 2).
+- PENDING (step 2, see PROGRESS.md): `check_aresos_shell_launch.py`, the headless end to end, the hosted runs.
+
+### Not verified (review fixes 2)
+
+- A real stalled mount (NFS or a pulled USB drive): only the stand-in. A real Lunar Client or Steam session, as before.
