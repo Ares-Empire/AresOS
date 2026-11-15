@@ -1,6 +1,7 @@
 # Package 40: progress
 
-Step 1 (Fable 5.2) is running. This file is the handoff: a fresh agent continues from the commits and from here.
+Step 1 (Fable 5.2) and step 2 (Opus 5.5) are done. This file is the handoff: a fresh agent continues from the commits
+and from here.
 
 ## Done
 
@@ -20,34 +21,42 @@ Step 1 (Fable 5.2) is running. This file is the handoff: a fresh agent continues
   started but showed no window the helper can tell is its own is reported as that after the open deadline instead
   of "no answer from the app helper"; a walk-in the client refuses says so; the helper logs every refusal and every
   launch that fails after starting.
+- **Step 2: paused only when covered** (owner's addition 2, 2026-11-15: "When another app is open in fullscreen the
+  homescreen can be paused? If the app is a small window then there shouldnt be a pause screen on the homescreen."):
+  - Helper (`aresos-shell`): keeps maximized, minimized, fullscreen and each window's outputs from foreign-toplevel. It
+    binds every `wl_output` (before the manager, and screens plugged in later), because the compositor names outputs
+    only to a client that bound them. A window **covers** the world when it is maximized or fullscreen, not minimized,
+    and shares an output with the world's window (`Windows.covering`). New event `shell_covered {covered}`, offered
+    with window tracking to a 1.1 desktop only (`LATER_CAPABILITIES`), sent only to a client that offered it: once
+    after `hello` when covered (at the next tick, after the reply) and on every change.
+  - **Per screen** (orchestrator, 2026-11-15, from the owner's choice of the world on the external monitor while it is
+    plugged in): a maximized window on the other screen does not cover the world.
+  - **PLAN-GAP 3, decided by the orchestrator (2026-11-15):** when the world gets the focus while covered (Alt+Tab,
+    any activation, the helper's own return after an app closed), the helper minimizes the windows that cover it on
+    its screen (foreign-toplevel `set_minimized`), so the world shows. Smaller windows and windows on the other screen
+    stay where they are. Not at the helper's start-up, and not for a restored desktop that gives the focus back
+    (`keep_foreground`).
+  - Mod: `ShellClient` offers `shell_covered`, tells listeners on every change, and resets to uncovered when the
+    connection ends. `HomeScreen.covered(client)` (covered and `HomeScreen.active`) pauses the world without a screen
+    (`MinecraftCoveredMixin`: `runTick`'s `Gui.isPausing()`; the integrated server follows `Minecraft.isPaused()`)
+    and caps the frame rate at 10 (`FramerateCoveredMixin` on `FramerateLimitTracker.getFramerateLimit`, Minecraft's
+    own limit for a minimized window). The sounds the pause stopped start again when it ends (Minecraft starts them
+    only when a screen closes).
+  - Heartbeats and `world_ready` are unchanged while covered (linux-aresos's condition): they come from the shell
+    client's timer and writer threads, and what they report (`ShellFocusClient.readyWorld`) does not look at the
+    pause. Tested in the game (below).
+  - Examples (`mod/src/test/resources/shell-1.1/`): `shell_covered` in both hello files, and
+    `shell-covered-event.json`; the README there says what it means.
 
 ## Left, in order
 
-1. **Owner's addition 2 (2026-11-15): paused only when covered.** Not built. Design, ready to build:
-   - Helper: read `maximized`, `minimized` and `fullscreen` from the foreign-toplevel state array
-     (`ForeignToplevels.dispatch`, opcode 4: values 0, 1 and 3; today only 2, activated, is kept). Covered = any
-     ready toplevel that is not the desktop, is not minimized and is maximized or fullscreen. Send it as a **new
-     event `shell_covered` with `covered: true|false`**, offered as a capability in `WINDOW_CAPABILITIES`. The
-     helper sends an event only to a client that offered its name (`Helper.emit`), so a 1.0 or 1.1 mod never gets
-     it and an older helper never sends it: no field of `shell_focus` changes meaning. Send the current value after
-     every `hello` (set `windows_pending`, as `hello` does for the registry) and whenever it changes. Limit to
-     write down: one screen is assumed; with two screens a maximized window on the other one counts as covering.
-   - Mod: add `shell_covered` to `ShellClient.CAPABILITIES`, a `Listener.covered(boolean)`, and reset to false
-     when the connection is lost (a dead helper must never leave the world paused). While covered in
-     `HomeScreen.active`: pause the integrated server without a screen and render at a minimal rate.
-     `Minecraft.runTick` computes `pause` from the open screen; `IntegratedServer` reads `Minecraft.isPaused()`.
-     A frame-rate cap goes through `FramerateLimitTracker.getFramerateLimit()` (the iconified limit there is 10).
-     `RenderSystem.limitDisplayFPS` waits out the whole frame time, so the cap is also the worst delay before the
-     world shows again: 10 a second means 100 ms.
-   - **Heartbeats (linux-aresos's condition):** `ShellClient` sends `heartbeat` from its own timer thread
-     (`watch()`, every `Settings.heartbeat`), and `world_ready` from the writer thread when the world name changes.
-     Neither waits for a frame. What they report is `ShellFocusClient.readyWorld`, set on every client tick: it is
-     null only with no player, no level, an overlay or the loading screen, so a pause without a screen keeps it.
-     Client ticks still run while paused (at most 10 a frame). Add a test that heartbeats with `ready: true` keep
-     arriving at the fake helper while covered.
-   - Measure GPU, CPU and memory with a small window in front against covered (numbers for today's code are below).
-2. Step 2 of the brief: D (fly and speed), the nested preview in `run-hub.sh`.
-3. Step 3: docs, three `build.sh` runs, one `client-test.sh` run, the PR.
+The orchestrator moved D and the nested preview from step 2 to step 3 (2026-11-15).
+
+1. D (fly and speed), as the brief says.
+2. The nested preview in `run-hub.sh`.
+3. Docs: as the brief says, plus `shell_covered` in the protocol's documentation (HUB.md 3.8 lists the 1.1 additions;
+   OS-BASE Appendix B1/B2 the events), three `build.sh` runs, one `client-test.sh` run, the PR. The PR's description
+   should say that `aresos-shell` now binds `wl_output` and can minimize windows (linux-aresos reads the `os/` diff).
 
 ## Evidence
 
@@ -104,6 +113,26 @@ capture itself (no cursor in a headless compositor); two screens.
 below). The toggle did not flip when the window was minimized and brought back. Not checked: an X window that the
 client itself unmaps and maps again; the game does not do that once fullscreen is off.
 
+### Step 2: covered, in the rig
+
+Same rig (one headless output), the step 2 helper and mod, the saved desktop world opened with quick play. The app was
+a `foot` window of the rig's own (`pkg40.TestApp`) started in the rig compositor, driven with `rig/tl.py` (which now
+prints each window's outputs). Run 1 (`measure.sh`-style sequence, 04:43 to 04:45):
+
+| What | What labwc reported, and what happened |
+|---|---|
+| World open, no app | world `['maximized', 'activated'] outputs=[4]`: labwc names the output of the Xwayland game window |
+| Small app in front | app `['activated'] outputs=[4]`; no "Saving and pausing game"; no `shell_covered` |
+| The app maximized | app `['maximized', 'activated']`; the game log has "Saving and pausing game..." at once (the pause without a screen) |
+| The world activated while covered (as Alt+Tab) | helper: "the desktop got the focus; minimized 1 window(s) that covered it"; app `['maximized', 'minimized']`, world `['maximized', 'activated']`; the world draws and ticks again (load below) |
+| Back to the app | labwc brings it back maximized; a second "Saving and pausing game..." |
+| The app fullscreen | `['maximized', 'activated', 'fullscreen']`: still covered |
+| The app closed | world `['maximized', 'activated']` |
+| Errors | none from the mod in the game log, none in the helper log |
+
+Not in the rig: two screens (the fake compositor's tests have them), and a real Alt+Tab (labwc's switcher needs the
+rig keyboard; `tl.py activate` asks for the same activation through foreign-toplevel).
+
 ### Load (GPU utilisation and power from `nvidia-smi`, the game's CPU from `/proc`, 6 s each, 1280 x 720, 60 a second, render distance 8)
 
 | State | GPU | GPU power | Game CPU (one core = 100 %) | Game memory |
@@ -119,6 +148,26 @@ right after the world was made, the "after" rows in the open. What they show: th
 has the focus or not, also fully covered. **No lower frame rate for an unfocused world was added**: with a small
 window in front the owner wants the world moving, and the saving belongs to "paused only when covered" (left, point
 1), which these numbers are the "before" for. His screen is 1920 x 1080 at 144 a second, so his numbers are higher.
+
+**Step 2, small window in front against covered** (run 2, 04:50: the world opened with quick play and left for 90 s
+first, so chunk building had finished; then each state for 6 s, back to back):
+
+| State | GPU | GPU power | Game CPU (one core = 100 %) | Game memory |
+|---|---|---|---|---|
+| World focused, no app | 11.2 % | 3.5 W | 25 % | 1368 MiB |
+| Small app in front | 11.0 % | 3.4 W | 29 % | 1368 MiB |
+| **Covered** (the app maximized) | **4.0 %** | 3.3 W | **8.5 %** | 1371 MiB |
+| Small app in front again | 11.3 % | 3.4 W | 26 % | 1371 MiB |
+| **Covered** again | **4.0 %** | 3.3 W | **9.9 %** | 1373 MiB |
+
+Run 1 (04:43, measured from 30 s after the world opened, while chunks were still being built) showed the same step:
+small app in front 18.5 % and 16.0 % GPU, 59 % and 41 % CPU; covered 4.0 % GPU and 8 to 10 % CPU twice; after the
+helper uncovered the world and after the app closed 12 % GPU and 24 to 27 % CPU (the world running again, at the
+settled level). What the numbers say: covering cuts the game's GPU use by about two thirds and its CPU by about two
+thirds to three quarters; a small window in front costs what the focused world costs, as the owner wants. GPU power
+hardly moves (3.4 to 3.3 W), because at this load the RTX 4060 sits near its idle floor in the headless rig; on his
+1920 x 1080 screen at 144 a second the uncovered world draws far more frames, so the saving there is larger (not
+measured). Memory does not change: a paused world keeps its chunks.
 
 ### B: the app that never opened
 
@@ -155,11 +204,23 @@ window in front the owner wants the world moving, and the saving belongs to "pau
 | `HomeScreenClientGameTest` (client test, last in the list): the pause menu opens on focus loss outside the home screen and not in it, the mouse is let go, Esc still opens the menu, F11 does nothing in a session, a failed launch leaves a chat line | yes for each check after the first; the first shows Minecraft's own rule still works |
 | `os/tests/test_aresos_shell_home.py` (3 tests): refusals and a launch without a window are logged | yes (no such lines before) |
 | `test_aresos_desktop.py`, `test_recovery_terminal_shortcut_is_kept`: the second rule, once, and no `skipTaskbar` | yes |
+| Step 2: `test_aresos_shell_home.CoveredTest` (7 tests, over the wire with two screens): outputs bound before the manager and followed when plugged in and out; only maximized or fullscreen, not minimized, covers; a window on the other screen never covers; `shell_covered` after hello only to a 1.1 desktop that offered it; the world getting the focus minimizes only what covers it on its screen (also after the helper's own return); a restored desktop minimizes nothing; nothing at start-up | yes, all 7 (run against the old helper: errors) |
+| Step 2: `ShellClientTest.coveredReachesListenersAndALostHelperUncovers`: the example event, one call per change, false when the helper goes away | yes (no such event or callback before) |
+| Step 2: `ShellClientTest.heartbeatsKeepSayingReadyWhileCovered`: ready heartbeats with the world and no second `world_ready` while covered | no: it guards linux-aresos's condition; heartbeats never depended on the game. It does not compile without the new callback |
+| Step 2: `HomeScreenClientGameTest`, its new last part: a real `ShellClient` on the fake helper, wired with `ShellFocusClient.register`; covered pauses the client and the integrated server with no screen, caps the frame rate at 10, five ready heartbeats for the world arrive while paused and no second `world_ready`; uncovered runs again at the old cap; a dropped helper connection unpauses | yes for the pause, the cap and the reset (from reading: without the mixins nothing pauses); the heartbeat part guards |
 
 Ran: `mod/dev/build.sh` once, passing (BUILD SUCCESSFUL, 2 min 17 s; `ShellClientTest` 20 tests).
 `python3 -m unittest discover -s os/tests -p 'test_aresos_shell_home.py'` (3 tests OK), `-p 'test_aresos_shell.py'`
 (74 OK), `-p 'test_aresos_desktop.py' -k recovery_terminal_shortcut` (1 OK). `mod/dev/client-test.sh` once, passing: exit code 0 after 9 min 47 s on the RTX 4060, all 18 "checks passed"
 lines, the last one "40 home screen checks passed". Each ran once, not three times: that is step 3's.
+
+Step 2 ran: the helper modules one at a time, `test_aresos_shell_home.py` (10 OK; the 7 new ones also against the old
+helper: 7 errors), `test_aresos_shell.py` (74 OK), `test_aresos_shell_protocol.py` (21 OK, with the changed example
+files), `test_aresos_shell_windows.py` (33 OK). `mod/dev/build.sh` twice on the final code, both passing (BUILD
+SUCCESSFUL, all 98 server game tests each time; the first ran `ShellClientTest` with the two new tests, the second
+found the unit tests up to date, since no code had changed). `mod/dev/client-test.sh` once,
+passing: exit 0 after 9 min 41 s, all 18 "checks passed" lines, the last one ending "a covered world pauses and draws
+slowly while ready heartbeats go on, and uncovering or losing the helper lets it run". The rig twice (above).
 
 Only the rig shows: that the window is not fullscreen and not minimized, that it stays below the apps, what labwc
 does on click, Alt+Tab, minimize and close, and that GLFW's focus is wrong under labwc.
@@ -181,18 +242,35 @@ does on click, Alt+Tab, minimize and close, and that GLFW's focus is wrong under
 5. **The 45 seconds** before "it started, but no window of it appeared" are the existing open deadline (the
    helper's 30 s window wait plus a margin). Shorter would tell slow programs they failed.
 
+The orchestrator accepted 1 to 5 (2026-11-15). Step 2's:
+
+6. **10 frames a second while covered**, Minecraft's own limit for a minimized window. The cap is also the longest
+   wait before the world shows again when it is uncovered (`RenderSystem.limitDisplayFPS` waits out the frame):
+   100 ms. Lower saves little more (see Load) and makes the return slower.
+7. **A window whose screen is not known yet counts as on the world's screen** (and a world whose screen is not known
+   counts as on every screen). labwc names the screens of every window (checked in the rig); the rule only matters
+   for a moment after a window maps or a monitor is unplugged, and then it errs toward pausing, as with one screen.
+8. **Both sides start a connection uncovered**, so after `hello` the helper sends `covered: true` only when it is,
+   instead of always sending the value. Same meaning, and no event the old tests or a 1.0 desktop would see.
+9. **The world's own window being minimized is not "covered".** Nothing in the session minimizes it (step 1 turned
+   off GLFW's auto-iconify, labwc keeps it maximized); Minecraft already draws a minimized window at 10 frames.
+10. **Minimizing on activation** happens when the compositor reports the world activated after another window, so
+   it covers Alt+Tab, a click, the game's own window taking the focus and the helper's return after a close alike.
+
 ## PLAN-GAP
 
 1. **B's evidence** is read wrongly in the brief (above): nothing shows he asked for that app. Worth asking him
    what he did (walked in, clicked in the Apps screen, something else). A click on one of his apps in the Apps
    screen picks its item up and opens nothing, which may be what he saw.
-2. **"Terminal stays maximized as today" is not what happens.** The game's Terminal runs foot as `aresos.terminal`
+2. **"Terminal stays maximized as today" is not what happens.** (Orchestrator, 2026-11-15: stays as it is.) The game's Terminal runs foot as `aresos.terminal`
    (`os/config/usr/share/aresos/apps/terminal.json`); the `rc.xml` rule maximizes `foot`, the recovery terminal.
    In the rig the game's Terminal opened at foot's own size. Not changed: only the added rule may change in
    `rc.xml`. It matters for addition 2: Terminal will not pause the world unless he maximizes it.
 3. **Alt+Tab to the world under a maximized app** gives the world the focus while the app still covers it. The
    brief does not say what should happen (bring nothing forward, as now, or minimize what covers it).
-4. An earlier commit on this branch (`4f387f44`) names one of his programs in this file; the next commit removed
+   **Decided by the orchestrator (2026-11-15):** the helper minimizes the windows that cover the world on its
+   screen; small windows stay where they are. Built in step 2.
+4. (The orchestrator handles this one, 2026-11-15.) An earlier commit on this branch (`4f387f44`) names one of his programs in this file; the next commit removed
    it. A squash merge keeps it out of `main`; the branch's history keeps it until the branch is deleted.
 
 ## For the PR's description (linux-aresos asked)
@@ -211,3 +289,9 @@ does on click, Alt+Tab, minimize and close, and that GLFW's focus is wrong under
 - A world opened in the rig keeps the town of the apps the rig's helper lists. Pictures for the repo are cut so
   that no logo made from a real icon is in them.
 - `HomeScreen.session()` is read once from the environment; client tests set it with `HomeScreen.forTests`.
+- Covering is decided by the helper alone, from what labwc reports; the game never looks at other windows. The game
+  cannot tell "covered" from "paused" in its log except by "Saving and pausing game...", which now appears whenever a
+  window covers the world (it did not in step 1's rig).
+- `ShellFocusClient.register` is public only for the client test. It is the last client test on purpose: the tick
+  listener that registration leaves behind runs only against a closed shell client afterwards.
+- Two screens are tested in the helper's fake compositor, not in the rig (one headless output there).

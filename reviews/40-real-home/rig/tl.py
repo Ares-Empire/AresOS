@@ -31,4 +31,4 @@ if action != 'list':
     client.sock.setblocking(False); client.readable() if False else None
     client.sock.setblocking(True); client.roundtrip()
 for t in windows.toplevels.values():
-    print(f"{t.app_id!r:28} {info.get(t.handle, {}).get('states')} title={info.get(t.handle, {}).get('title')!r}")
+    print(f"{t.app_id!r:28} {info.get(t.handle, {}).get('states')} outputs={sorted(t.outputs)} title={info.get(t.handle, {}).get('title')!r}")
