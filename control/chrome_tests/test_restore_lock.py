@@ -8,6 +8,7 @@ continuation names a route the lock refuses, and no Mail server check runs.
 chrome_notices is unchanged. After control_restore_confirm the ordinary replies
 come back, checks included.
 """
+import errno
 import sqlite3
 import time
 import unittest
@@ -173,6 +174,26 @@ class RestoreLock(unittest.TestCase):
         self.assertTrue(self.request('control_pending')['ok'])
         self.assertIn('imap',self.sessions,'checks resume once the owner has confirmed')
         self.assertNotIn('smtp',self.sessions)
+
+
+    def test_locked_storage_failure_lists_no_stale_mail_notice(self):
+        # Security review 1: the storage-failure fallback of pending listed the recovery notices that
+        # the lock's opening recovery defers from the older database, and the snapshot's other apps.
+        self.fake_transport();self.plant_mail()
+        self.prepare();self.chrome.steps([self.step()],1)
+        self.lock()
+        self.assertTrue(any(key.startswith('notice:') and value.get('app')=='mail'
+                            for changes,_,_ in self.engine.store.deferred_notices.values() for key,value in changes.items()),
+                        'the older database leaves a deferred Mail recovery notice')
+        self.assertTrue(self.request('control_pending')['ok'])
+        def full(*arguments,**options):raise OSError(errno.ENOSPC,'No space left on device')
+        with patch.object(self.chrome.committed,'sync',full):
+            for name in ['control_pending','control_notices']:
+                with self.subTest(name):
+                    result=self.request(name)
+                    for view in [result['pending']]+([result['data']] if result['ok'] and name=='control_pending' else []):
+                        self.assert_only_chrome(view)
+        self.assertEqual(self.sessions,[])
 
 
 if __name__=='__main__':

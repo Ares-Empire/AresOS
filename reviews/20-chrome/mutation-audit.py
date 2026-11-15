@@ -766,6 +766,11 @@ case('restorelock-mail-route-continued',EN,"        if self.store.locked:\n     
 case('restorelock-pending-unavailable-dropped',EN,"        if locked:\n            result['unavailable'] = LOCKED_PENDING\n",'',RL+'test_locked_pending_lists_only_chrome_rows_and_warnings_until_the_owner_confirms',True)
 case('restorelock-notices-unavailable-dropped',EN,"            if self.store.locked:\n                page['unavailable'] = LOCKED_NOTICES\n",'',RL+'test_locked_notices_page_only_chrome_warnings_through_an_answered_route',True)
 case('restorelock-sent-check-runs',EN,"                return chrome.notice_page(args)\n            return {'items': [], 'total': 0, 'cursor': None}","                tuple(mail.resolve_sent_checks() if resolve_checks else ());return chrome.notice_page(args)\n            return {'items': [], 'total': 0, 'cursor': None}",RL+'test_locked_reads_open_no_mail_server_session',True)
+# Security review 1 of 20-restore-lock: the storage-failure fallback of pending
+# holds the lock's rule too (no deferred recovery notice from the older database,
+# the restore wording kept).
+case('restorelock-fallback-deferred-notices','control/aresos_control/engine.py',"            for changes,_,_ in ([] if locked else self.store.deferred_notices.values()):\n","            for changes,_,_ in self.store.deferred_notices.values():\n",'test_restore_lock.RestoreLock.test_locked_storage_failure_lists_no_stale_mail_notice',True)
+case('restorelock-fallback-lock-wording','control/aresos_control/engine.py',"                result['unavailable']=LOCKED_PENDING+' '+result['unavailable']\n","",'test_restore_lock.RestoreLock.test_locked_storage_failure_lists_no_stale_mail_notice',True)
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

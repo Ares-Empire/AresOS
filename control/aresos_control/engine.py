@@ -156,7 +156,13 @@ class Engine:
             other_total=self._last_notice_counts.get(snapshot_app,
                 len(notices)+(more.get('count',0) if more.get('action')!='chrome_notices' else 0))
             new_notices=[]
-            for changes,_,_ in self.store.deferred_notices.values():
+            locked=self.store.locked
+            if locked:
+                # Under a restore lock other apps are unavailable: neither a
+                # snapshot nor the recovery notices deferred from the older
+                # database are current (20-restore-lock, security review 1).
+                notices,other_total={},0
+            for changes,_,_ in ([] if locked else self.store.deferred_notices.values()):
                 for key,value in changes.items():
                     if key.startswith('notice:') and value.get('app')!='chrome' and not value.get('ack'):
                         if value['id'] not in notices:other_total+=1
@@ -166,7 +172,7 @@ class Engine:
             order=list(dict.fromkeys([*reversed(new_notices),*notices]))
             other_notices=[notices[key] for key in order]
             chrome=self.adapters['chrome']
-            result['items']=[item for item in result.get('items',[]) if item.get('app')!='chrome']
+            result['items']=[] if locked else [item for item in result.get('items',[]) if item.get('app')!='chrome']
             result.pop('notices_more',None)
             try:
                 if app in {None,'chrome'}:
@@ -186,6 +192,9 @@ class Engine:
             if total>len(result['notices']):
                 route='control_notices' if chrome_total and other_total else 'chrome_notices' if chrome_total else 'mail_filing_notices'
                 result['notices_more']={'count':total-len(result['notices']),'action':route}
+            if locked:
+                result['unavailable']=LOCKED_PENDING+' '+result['unavailable']
+                result['restore_required']=True
             return result
 
     def _pending(self, app=None, args=None, resolve_checks=True, include_chrome=True):
