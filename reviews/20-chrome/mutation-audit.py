@@ -57,7 +57,7 @@ case('P1-borrowed-origin',B,"dialog.unguarded=true;",'void 0;',node('background'
 case('P1-borrowed-matched',B,'const matched=!dialog.unguarded&&confirmationPlans','const matched=confirmationPlans',node('background','a stale approved dialog opening'))
 case('P1-borrowed-prior-hold',B,'if(completion){const result=await Promise.race','if(false){const result=await Promise.race',node('background','P1 a borrowed answer preserves'))
 case('P1-preexisting-bound',B,"if(!preloadTargets.get(targetKey({tabId:tab}))?.pageEnabled)resolve({owner_dialog:true});",'if(false)resolve({owner_dialog:true});',node('background','P1 preexisting modal handoff'))
-case('P1-preexisting-detach',B,'await chrome.debugger.detach({tabId:tab});return;','return;',node('background','P1 preexisting modal handoff'))
+case('P1-preexisting-detach',B,"await chrome.debugger.detach({tabId:tab});\n    owner.handoffMessage=await stallMessage(tab);return;","owner.handoffMessage=await stallMessage(tab);return;",node('background','P1 preexisting modal handoff'))
 case('P1-preexisting-retain',B,'if(previous.modalHandoff)return;','',node('background','P1 preexisting modal handoff'))
 case('P1-preexisting-recover',B,"if(owner.modalHandoff){await recoverOwnerDialog(tab,owner);if(owner.modalHandoff)throw Error('owner_dialog: '+ownerDialogMessage);}",'',node('background','P1 preexisting modal handoff'))
 case('P1-preexisting-slow',B,'if(!preloadTargets.get(targetKey({tabId:tab}))?.pageEnabled)resolve({owner_dialog:true});','if(true)resolve({owner_dialog:true});',node('background','P1 a responding Page domain'))

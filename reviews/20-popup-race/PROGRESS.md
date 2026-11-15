@@ -25,9 +25,11 @@ request is open and no workflow was started. No browser was started on this Mac.
     The result flag and error code stay `owner_dialog`, so the service and its fail-closed handling are unchanged.
   - The MCP instruction (`control/aresos_control/chrome/definitions.py`, regenerated into
     `control/generated/chrome-instructions.txt` and `docs/control/TOOLS.md` by `control/generate.py`) now says: on
-    `owner_dialog`, do what its message says (answer the dialog, or try again when the page is still loading), then
+    `owner_dialog`, do as its message says (the owner answers the dialog, or try again while the page loads), then
     read the tab again. Without this the instruction would still tell Claude to ask for a dialog answer in the loading
-    case.
+    case. The whole Chrome instruction text must stay within the native CLI's 4096 characters
+    (`test_fixes_b_server_instructions_fit_the_native_cli_limit`); a first, longer wording was 10 over, so the
+    sentence is kept short.
 - **P3: left to brief 28a.** The popup is admitted by `onCreatedNavigationTarget` → `createdTarget`, after the
   click's dispatch has returned or in parallel with it; naming an uncontrolled popup in the click's result would mean
   holding the click result for the admission and threading its outcome through `dispatch`, which is more than a few
@@ -53,7 +55,9 @@ request is open and no workflow was started. No browser was started on this Mac.
   (every error ends the admission), re-arm on any error, re-arm without disable, re-arm that only sets again, a
   swallowed second refusal, the adopt-by-pause mistake (a pause while the id is unknown counts as startup); the line
   without the flag, the flag never true, the gate accepting a handoff, one message for both cases (twice), the dialog
-  record ignored, the message kept after recovery, the act's error with the old text.
+  record ignored, the message kept after recovery, the act's error with the old text. The existing probe
+  `P1-preexisting-detach` is re-pointed to the fallback's new text (the message is computed after the detach); it
+  still removes the detach alone.
 
 ## Left, in order
 
