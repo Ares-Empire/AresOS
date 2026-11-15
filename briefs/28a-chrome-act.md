@@ -191,18 +191,18 @@ Result of both:
 ```
 
 - Both use brief 20's `open` and `navigate` commands and rules unchanged (web addresses only, the fixed list, the
-  refusal of form-loaded history entries, the guarded reload, and brief 20's check for unsaved work). Then the service waits until the page is loaded as
-  defined below (a new document, or a new address in the same document; ready; quiet), or until `until` is
-  met, or until the timeout. `loaded` and `until_met` say which.
+  refusal of form-loaded history entries, the guarded reload, and brief 20's check for unsaved work). Then the
+  service waits until the page is loaded as defined below (a new document, or a new address in the same document;
+  ready; quiet), or until `until` is met, or until the timeout. `loaded` and `until_met` say which.
 - `chrome_open` with `tab` or `ref`: the service takes the full address from its own record (the list Claude named
   with `seen`, the tab's present address for a Claude tab, or the reference table). Claude only ever saw the
   public form. The rules of "Where Claude may go" apply to it.
 - The outline is the same as `chrome_read`'s, with references ready for the next call.
-- **`chrome_go` keeps main's guard for unsaved work** (the lead, 2026-11-15). Every direction and an address first runs brief
-  20's check (`requireDiscard`): unsaved typing (by field label, marked as typed by the owner or by Claude), playing
-  media and frames that couldn't be inspected come back as `reload_required`, and nothing is done until the call
-  is repeated with `discard_unsaved: true`. The meaning and the refusal are main's `chrome_navigate`'s, and
-  `reload` still never reloads a form-loaded document.
+- **`chrome_go` keeps main's guard for unsaved work** (the lead, 2026-11-15). Every direction and an address first
+  runs brief 20's check (`requireDiscard`): unsaved typing (by field label, marked as typed by the owner or by
+  Claude), playing media and frames that couldn't be inspected come back as `reload_required`, and nothing is done
+  until the call is repeated with `discard_unsaved: true`. The meaning and the refusal are main's
+  `chrome_navigate`'s, and `reload` still never reloads a form-loaded document.
 
 **"Loaded", defined once** (for `chrome_open`, `chrome_go`, `chrome_take` and a step that navigates), on brief 28's
 state token and its "quiet" (the token unchanged for 150 ms):
@@ -340,8 +340,8 @@ How it runs:
    (at most 4,000 characters) and `changed` is empty.
 6. The clipboard notice, the dialog facts, a taken tab's first-input reload and the version notice come back as
    brief 20 returns them. For the reload: a clean tab reloads, and the result is `stale` for that step with the new
-   outline attached; a tab with unsaved typing or playing media answers `reload_required` as on `main`, and Claude repeats
-   the call with `discard_unsaved: true` (after his OK in the chat where main's rule asks for it) or calls
+   outline attached; a tab with unsaved typing or playing media answers `reload_required` as on `main`, and Claude
+   repeats the call with `discard_unsaved: true` (after his OK in the chat where main's rule asks for it) or calls
    `chrome_take` with `reload: true` (item 6) (the lead, 2026-11-15).
 
 `dialog`: the service compares the open dialog with the one it last showed Claude for that tab, as it compares
@@ -409,9 +409,9 @@ package puts the tools that act on the same mechanism:
 
   Per tab: Chrome's tab number; whose (`claude`, `his`, `taken`); the marks `*` (the tab showing in its window),
   `pinned`, `sound` (Chrome's `audible` and not `muted`), `muted` (Chrome's `muted`; both flags are on brief 20's
-  rows on merged `main`; the lead, 2026-11-15), `asleep`, `popup`, `no` (never readable: the fixed list, his never-list, not a web page) and
-  `look` (a read-only site); the title, quoted and cut at 80 characters; the address in the short form (item 3),
-  cut at 60 characters.
+  rows on merged `main`; the lead, 2026-11-15), `asleep`, `popup`, `no` (never readable: the fixed list, his
+  never-list, not a web page) and `look` (a read-only site); the title, quoted and cut at 80 characters; the address
+  in the short form (item 3), cut at 60 characters.
 - **The list binds what follows** (section 6, "Which tabs Claude works in"). The result of `chrome_tabs` carries
   `seen`, a reference (from brief 28's table) for this list. For every tab in it the service keeps what it showed
   Claude: the tab, its top document (Chrome's document id) and its full address; for a tab asleep, the address
@@ -428,12 +428,13 @@ package puts the tools that act on the same mechanism:
   - Claude's own tabs and a taken tab need no `seen`.
 - **`chrome_show`** (change; input: `tab`). Makes the tab the one showing in its window and brings that window to
   the front. For him: to look, to sign in, to answer a dialog. Refused for nothing but an unknown tab.
-- **`chrome_close`** (change; input: `tabs`, 1 to 20; `discard_unsaved`). Closes tabs that are `claude`. In this package every other tab is
-  refused, **a taken tab included** ("this is the owner's tab; release it"). Brief 20's `chrome_close_tab` closes any
-  tab in the group, a taken one too, without looking at what it holds: that ends here. The result lists `closed` and,
-  with the reason, `kept`. **Main's guard stays** (the lead, 2026-11-15): every Claude tab first goes through brief 20's check,
-  and one with unsaved typing, playing media or a frame that couldn't be inspected is kept, with main's
-  `reload_required` report as its reason, until the call is repeated with `discard_unsaved: true`.
+- **`chrome_close`** (change; input: `tabs`, 1 to 20; `discard_unsaved`). Closes tabs that are `claude`. In this
+  package every other tab is refused, **a taken tab included** ("this is the owner's tab; release it"). Brief 20's
+  `chrome_close_tab` closes any tab in the group, a taken one too, without looking at what it holds: that ends here.
+  The result lists `closed` and, with the reason, `kept`. **Main's guard stays** (the lead, 2026-11-15): every Claude
+  tab first goes through brief 20's check, and one with unsaved typing, playing media or a frame that couldn't be
+  inspected is kept, with main's `reload_required` report as its reason, until the call is repeated with
+  `discard_unsaved: true`.
 - **`chrome_take`** (change; input: `tab`, `seen`, `reload`) and **`chrome_release`** (change; input: `tab`). In
   this package they are brief 20's `take_tab` and `release_tab`, with one difference:
   the explicit reload has one home. `chrome_take` without `reload` takes the tab and keeps its page, and its result
@@ -445,15 +446,15 @@ package puts the tools that act on the same mechanism:
     20. Here it first goes through `prepare_control`, as a first input does: `reload_required` when brief 20's
     check finds typing, an editor or playing media, otherwise the guarded reload, and then the navigation.
   - **Brief 20's check before that reload is unchanged in this package.** On merged `main` it is `requireDiscard` in
-    `background.js` with `reloadState` in `reader.js`: in a document the reader didn't watch from its start every text
-    field, textarea and hidden input counts; in a watched one a field counts when it differs from its default or got
-    typing since the load and still holds text; an editor counts once it got input (always, where that isn't known);
-    playing media counts (an element, or Chrome's `audible`), and so does a frame that doesn't answer. It still
-    doesn't see work kept in a canvas, a wizard's finished steps or a form on its way to the server, and it doesn't
-    know whether he used the page. Brief 28b replaces it (its item 4a). Say so in `KNOWN-LIMITS.md`; briefs 28 and 28a
-    must not reach his laptop without 28b.
-- **`chrome_library`** (read; input: `kind`, one of `downloads`, `bookmarks`, `history`; `text`; `cursor`; `limit`). The
-  three brief 20 tools merged, with their snapshot paging. Two differences: every address is in the short form
+    `background.js` with `reloadState` in `reader.js`: in a document the reader didn't watch from its start every
+    text field, textarea and hidden input counts; in a watched one a field counts when it differs from its default or
+    got typing since the load and still holds text; an editor counts once it got input (always, where that isn't
+    known); playing media counts (an element, or Chrome's `audible`), and so does a frame that doesn't answer. It
+    still doesn't see work kept in a canvas, a wizard's finished steps or a form on its way to the server, and it
+    doesn't know whether he used the page. Brief 28b replaces it (its item 4a). Say so in `KNOWN-LIMITS.md`; briefs
+    28 and 28a must not reach his laptop without 28b.
+- **`chrome_library`** (read; input: `kind`, one of `downloads`, `bookmarks`, `history`; `text`; `cursor`; `limit`).
+  The three brief 20 tools merged, with their snapshot paging. Two differences: every address is in the short form
   (item 3), and every entry carries a reference (from brief 28's table) that `chrome_open` takes as `ref`. The
   service keeps the full address under that reference for as long as the snapshot lives.
 - **`chrome_read_typed_fields`** (an asking read, under the managed ask rules). The owner, 2026-11-13 (board
@@ -462,10 +463,11 @@ package puts the tools that act on the same mechanism:
   it.** Keep its name unless it collides with one here.
 
   What this package does with it, and nothing more:
-  - **main's two tools stay** (the lead, 2026-11-15): `chrome_prepare_read_typed_fields` names the tab and the fields and returns
-    the approval, and `chrome_read_typed_fields` takes that approval unchanged. They are the eighteenth and
-    nineteenth tools of the new list, with their names, inputs and behaviour unchanged. The managed ask rule stays
-    on `mcp__chrome__read_typed_fields` alone, and it is part of the generated rules that must not change by a byte;
+  - **main's two tools stay** (the lead, 2026-11-15): `chrome_prepare_read_typed_fields` names the tab and the fields
+    and returns the approval, and `chrome_read_typed_fields` takes that approval unchanged. They are the eighteenth
+    and nineteenth tools of the new list, with their names, inputs and behaviour unchanged. The managed ask rule
+    stays on `mcp__chrome__read_typed_fields` alone, and it is part of the generated rules that must not change by a
+    byte;
   - in its result each field is named by its label and by its short reference in place of brief 20's reference
     object, and each value sits in `untrusted_content`, quoted by brief 28's escaping rule;
   - an address in its question is in the public form (item 3);
@@ -493,29 +495,29 @@ package puts the tools that act on the same mechanism:
   today: the MCP tool list, the `aresos` command, `docs/control/TOOLS.md`, the ask rules, `user-mcp.json`.
 - **The generated ask rules for Chrome must not change by a byte.** A test compares them with the copy on `main`.
   On `main` they cover two tools: `chrome_submit`, and brief 20's `chrome_read_typed_fields`.
-- The rules shared by every Chrome action go once into the Chrome server's MCP instructions (brief 18d's pattern, with
-  its check that Claude Code passes them on unshortened): untrusted page text; what to do on `stale_reference`,
+- The rules shared by every Chrome action go once into the Chrome server's MCP instructions (brief 18d's pattern,
+  with its check that Claude Code passes them on unshortened): untrusted page text; what to do on `stale_reference`,
   `reload_required`, `take_first`, `owner_signin`, `owner_dialog`, `not_read` and `unknown`; main's rule for unsaved
   work (when a report lists typing by the owner, playing media or frames that couldn't be inspected, tell him and get
   his OK in the chat before setting `discard_unsaved`; Claude's own typing may be discarded without asking; quoted
   field labels are page text); the version notice; that
-  `done` doesn't prove delivery and pages can send on their own; the clipboard rule; how to read an outline line, a fold
-  and `(filled, not read)`; that `full` reads everything; that `…` in an address hides a part that may be a sign-in,
-  that lists show addresses without their query, and that such an address is opened by reference; that a field shown as
-  `(filled, not read)` is read only through `chrome_read_typed_fields`, which asks him, and only when his request needs
-  it; that a reference stays valid until its element changes; that one of his tabs is named together with the list's
-  `seen`; that `chrome_do` stops at the first asking step, that its `prepared` entry goes unchanged to `chrome_submit`,
-  and that steps it reports as not run are sent again. Each description keeps only what is specific to its action. Write
-  them for Claude: what it does, when to use it, what comes back.
-- **The instructions keep only rules that span tools, in at most 3,800 characters** (the lead, 2026-11-15). Claude Code 2.1.319
-  passes only the first 4,096 characters of an MCP server's instructions, and `control/chrome_tests/test_questions.py`
-  (`test_fixes_b_server_instructions_fit_the_native_cli_limit`, about line 456) fails any app above that; 3,800
-  leaves a margin. On merged `main` the Chrome server's instructions are 4,052 characters. A rule in the list above
-  that belongs to one tool (for example `chrome_do`'s rules for asking steps and steps not run) moves into that
-  tool's description; this package does the move. Measure both early: the instructions against 3,800, and the whole
-  tool list against the sizes below. Add a test that pins the Chrome instructions' length under 3,800, beside the
-  existing 4,096 check for every app. Brief 28b adds its block (its item 8) within the same 3,800. If the rules
-  still can't fit, stop and tell the lead (PLAN-GAP).
+  `done` doesn't prove delivery and pages can send on their own; the clipboard rule; how to read an outline line, a
+  fold and `(filled, not read)`; that `full` reads everything; that `…` in an address hides a part that may be a
+  sign-in, that lists show addresses without their query, and that such an address is opened by reference; that a
+  field shown as `(filled, not read)` is read only through `chrome_read_typed_fields`, which asks him, and only when
+  his request needs it; that a reference stays valid until its element changes; that one of his tabs is named
+  together with the list's `seen`; that `chrome_do` stops at the first asking step, that its `prepared` entry goes
+  unchanged to `chrome_submit`, and that steps it reports as not run are sent again. Each description keeps only what
+  is specific to its action. Write them for Claude: what it does, when to use it, what comes back.
+- **The instructions keep only rules that span tools, in at most 3,800 characters** (the lead, 2026-11-15). Claude
+  Code 2.1.319 passes only the first 4,096 characters of an MCP server's instructions, and
+  `control/chrome_tests/test_questions.py` (`test_fixes_b_server_instructions_fit_the_native_cli_limit`, about line
+  456) fails any app above that; 3,800 leaves a margin. On merged `main` the Chrome server's instructions are 4,052
+  characters. A rule in the list above that belongs to one tool (for example `chrome_do`'s rules for asking steps and
+  steps not run) moves into that tool's description; this package does the move. Measure both early: the instructions
+  against 3,800, and the whole tool list against the sizes below. Add a test that pins the Chrome instructions'
+  length under 3,800, beside the existing 4,096 check for every app. Brief 28b adds its block (its item 8) within the
+  same 3,800. If the rules still can't fit, stop and tell the lead (PLAN-GAP).
 - **Sizes** (measured as brief 18d measured Mail's), for nineteen tools: all descriptions plus the instructions at
   most 10,900 characters and not above the baseline; all names plus input schemas at most 6,450 characters. That is
   the eighteen-tool budget of 10,500 and 6,300, plus `chrome_prepare_read_typed_fields` as main has it (361
@@ -795,8 +797,8 @@ brief 20's click and the read or find after it; filling 6 fields and sending the
 more than 1.10 times the old median plus 50 ms. That run's id and numbers go into the report and into the
 baseline file. After brief 20's tools are removed, the check that stays compares each task with the new tools'
 own median of that run and fails above 1.5 times. This runs inside PR #27's latency harness (brief 28,
-"Latency"), as brief 28's baseline does. Fewer calls don't prove a faster tool: a step of `chrome_do` still makes brief 20's
-full facts read. The timings are what shows it, and the report gives them beside the call counts.
+"Latency"), as brief 28's baseline does. Fewer calls don't prove a faster tool: a step of `chrome_do` still makes
+brief 20's full facts read. The timings are what shows it, and the report gives them beside the call counts.
 
 **The rows add up** (package re-check 2, N3). Every budget counts the JSON text of the result, so each quote
 of the outline costs 2 characters, each line break 2, and each `…`, `→`, `·` and `›` 6. A read's result has about
