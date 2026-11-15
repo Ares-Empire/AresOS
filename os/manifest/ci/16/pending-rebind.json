@@ -12,12 +12,13 @@
     "22d step 6: the tools-local mode's wiring",
     "22d step 6b: the tools-local walk (tools_local.rehearsal), its local route in test_owner_walk, 22d's host-walk receipt, the minute cap at 2400",
     "22d: test_owner_devices_native pins the native-suite line with 22d's branch (step 6a added it to the workflow)",
-    "22d step 6c: verify_release binds release 27's trees to its source commit in the tools-local mode; the walk reads no release 27 image source from the checkout (test)"
+    "22d step 6c: verify_release binds release 27's trees to its source commit in the tools-local mode; the walk reads no release 27 image source from the checkout (test)",
+    "22d: the switch job's release check gets REHEARSAL_MODE as explicit step env (test_ci_step_environment)"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "51bd834110188850b55f78d6f5082e2deafbb32c6d9a0f5f2867d9f29bc9dcae",
+      "sha256": "5d4031dfc224a6e3e8a6ea4c322a47b623089e0ab4e66ca323880f25e670e180",
       "path": ".github/workflows/os-image.yml"
     },
     {

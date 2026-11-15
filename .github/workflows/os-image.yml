@@ -505,6 +505,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_RUN: ${{ inputs.switch_from_run || github.run_id }}
+          REHEARSAL_MODE: ${{ inputs.rehearsal }}
         run: python3 os/ci/verify_release.py "$RELEASE_RUN"
       - name: Start switch quota measurements
         run: |
