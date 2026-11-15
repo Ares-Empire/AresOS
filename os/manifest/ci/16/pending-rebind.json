@@ -4,10 +4,19 @@
   "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Only test files and the CI workflow (its checks-only job) wait now, no tool, guide or image file.",
   "changes": [
     "22c record step (after rehearsal run 43597505549 rebound the sources): test_owner_path pins the 22c INSTALL-STATUS row as rehearsed, with the run link the 22c bindings name; no tool, guide or image file changed",
-    "22c fix after checks-only run 43619559359: test_ways_back_probe keeps the 22c host-walk receipt frozen after the record step (asserted equal to the bindings' walk table instead of skipped; the gate test uses it with the waiting rows' bytes) and reads removed paths from the 22c rebind's history entry; no tool, guide or image file changed"
+    "22c fix after checks-only run 43619559359: test_ways_back_probe keeps the 22c host-walk receipt frozen after the record step (asserted equal to the bindings' walk table instead of skipped; the gate test uses it with the waiting rows' bytes) and reads removed paths from the 22c rebind's history entry; no tool, guide or image file changed",
+    "40: the home screen (helper covered/minimize, rc.xml always-on-bottom rule, one test assertion) and the checks timeout from 22d/23b"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
+    {
+      "sha256": "c96b7a9ca4fc3b04824f9cd6f6e4450936028ce777ff0f889d16ed85b1658f82",
+      "path": ".github/workflows/os-image.yml"
+    },
+    {
+      "sha256": "9c0cdf6e9fcdf8f52485fe454008e80de461131739bc0663b5d115fc05199d18",
+      "path": "os/ci/rehearsal-packages.json"
+    },
     {
       "sha256": "c3785b60d8b89b0765c0f971156e49f78ac9153838f32f70f6508e9b25828a03",
       "path": "os/tests/test_owner_path.py"
