@@ -52,7 +52,7 @@ for s in rows:
 created = [s for s in rows if 'create' in s['windows']]
 if created:
     print()
-    print('| Run (new world) | Home | Create to joining | Heap before GC, most / committed, most | GC pauses, longest, over 50 ms | '
+    print('| Run (new world) | Home | Create to joining: s, worst frame ms | Heap before GC, most / committed, most | GC pauses, longest, over 50 ms | '
           'RSS, most | Scope, most | Town build: s, worst frame ms, frames over 17 / 33 / 50 ms | '
           'First 30 s: worst frame ms, frames over 17 / 33 / 50 ms |')
     print('|' + '---|' * 9)
@@ -64,7 +64,7 @@ if created:
         pauses = sum(p['gc_pauses'] for p in parts)
         town = w.get('town')
         hitch = lambda p: f"{p.get('max_ms', '-')}, {p.get('over_17ms', '-')} / {p.get('over_33ms', '-')} / {p.get('over_50ms', '-')}"
-        print(f"| {s['name']} | {st.get('HOMEKIND') or '-'} | {w['create']['seconds']} s | "
+        print(f"| {s['name']} | {st.get('HOMEKIND') or '-'} | {w['create']['seconds']} s, {w['create'].get('max_ms', '-')} | "
               f"{most('heap_before_gc_max_mib')} / {most('heap_committed_max_mib')} | "
               f"{pauses}, {most('gc_max_ms')} ms, {sum(p['gc_over_50ms'] for p in parts)} | {most('rss_max_mib')} | "
               f"{most('scope_max_mib')} | {(str(town['seconds']) + ' s, ' + hitch(town)) if town else '-'} | "
