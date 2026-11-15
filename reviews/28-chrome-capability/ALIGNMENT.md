@@ -69,3 +69,37 @@ were added. The design itself is unchanged; the open points are listed at the en
    `chrome_take_reload`); its pins become 12,300 and 7,200 (28a's, the block of 983 characters, about 400 for the new
    tool's description, about 500 for the new inputs and about 250 for its name and input). Section 6 counts the
    same, and its managed ask rules gain `chrome_take_reload` with 28b.
+
+## The lead's decisions after review 4 (2026-11-15)
+
+`BRIEF-REVIEW-4.md` (NOT READY: B1, B2; S1 to S10; N1 to N10) found the taken-tab rule of `f8065664` weaker than
+the rest of 28b, and `chrome_take_reload`'s input unable to carry its question. No review had looked at
+`chrome_take_reload` before (it came with `42aa0370`, after both READY reviews).
+
+1. **B1: nothing of his in a taken tab goes by flag.** On a tab of his that Claude has taken, `discard_unsaved:
+   true` is refused when his typing **or a frame that couldn't be inspected** would be lost. Only playing media, and
+   typing the report marks as all Claude's (main's rule), still go with the flag. The refusal names
+   `chrome_release`; for his typing it also carries the approval for `chrome_take_reload`, and for an uninspected
+   frame it carries none, since the asking reload never overrides that. 28b's header, item 4, its never-override
+   line, item 4a and the Known limits rule now agree; a test covers the frame case.
+2. **B2: `chrome_take_reload` follows main's two-step asking pattern.** The refusal that requires the reload
+   (`chrome_take`'s `reload_required`, and the taken-tab refusal of `chrome_go` and `chrome_do`) returns main's
+   `APPROVAL`, bound to the tab, its title and short address, its document and what the check found;
+   `chrome_take_reload` takes it unchanged under the ask rule `mcp__chrome__take_reload`, and the service refuses
+   one that no longer matches the tab (it asks again with a new approval). On a tab already taken, the approval
+   comes from that `chrome_go` or `chrome_do` refusal, prepared by brief 20's check on the watched document (which
+   marks whose typing it is), not by item 4a's used mark, which Claude's own input sets after the take. Sized at
+   about 290 characters for name plus input schema (`read_typed_fields` is 285 on main).
+3. **S1: 2,800 for 28a, 1,000 for 28b.** 28a's server instructions at most 2,800 characters in all, the 1,652
+   shared by every app included, so 28b has 1,000 left under the 3,800 ceiling. In both briefs, rules that belong to
+   one tool go into that tool's description; 28b moves its own (the typed-field prepare tool, `chrome_take`,
+   `chrome_close`, `chrome_take_reload`). Tests pin 2,800 after 28a and 3,800 after 28b, beside the 4,096 check. The
+   top-level `definitions.py` (the Chrome branch of `instructions_for`) is in both briefs' paths.
+4. **S2 to S10 as the review suggests.** S7: 28a changes main's `WITHHELD_FORM` text (in `adapter.py` and
+   `background.js`) to name `chrome_go` with `to: reload`, with the tests that pin it, and a test fails on any
+   removed tool's name. S8: the pins are raised rather than taken from the margin, to 11,300 and 6,560 for 28a and
+   12,750 and 7,350 for 28b. S10: after 28b, the rule covers a `chrome_do` step only where the tool's guarded reload
+   runs before an input (a document that missed the preload, `needs_reload`, or the PLAN-GAP fallback's first
+   input); the first input after a take no longer reloads.
+5. **Notes.** N1 to N5 and N7 to N10 are done. N6 (one flag on `chrome_close` covering up to 20 tabs) is left for
+   the lead: it changes the tool's contract, and main's own flag already skips the check on a first call.
