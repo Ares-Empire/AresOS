@@ -158,7 +158,8 @@ window in front the owner wants the world moving, and the saving belongs to "pau
 
 Ran: `mod/dev/build.sh` once, passing (BUILD SUCCESSFUL, 2 min 17 s; `ShellClientTest` 20 tests).
 `python3 -m unittest discover -s os/tests -p 'test_aresos_shell_home.py'` (3 tests OK), `-p 'test_aresos_shell.py'`
-(74 OK), `-p 'test_aresos_desktop.py' -k recovery_terminal_shortcut` (1 OK). `mod/dev/client-test.sh`: still running when this was written; see the last commit of step 1.
+(74 OK), `-p 'test_aresos_desktop.py' -k recovery_terminal_shortcut` (1 OK). `mod/dev/client-test.sh` once, passing: exit code 0 after 9 min 47 s on the RTX 4060, all 18 "checks passed"
+lines, the last one "40 home screen checks passed". Each ran once, not three times: that is step 3's.
 
 Only the rig shows: that the window is not fullscreen and not minimized, that it stays below the apps, what labwc
 does on click, Alt+Tab, minimize and close, and that GLFW's focus is wrong under labwc.
