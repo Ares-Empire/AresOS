@@ -43,11 +43,11 @@ on that compositor's seat.
 
 ### B: the app that never opened
 
-- The brief reads 03:18:09 as a walk-in. It was the typed `/localsend`: `command_history.txt` holds `/apps` and
-  `/localsend` only, and `debug.log` has the client-command line for `localsend` in the same second. The lines at
+- The brief reads 03:18:09 as a walk-in. It was a typed short-name command for the third app: `command_history.txt`
+  holds `/apps` and that command only, and `debug.log` has its client-command line in the same second. The lines at
   03:16:47 and 03:17:10 are `aresos:zone_return` packets, not typed commands.
-- So the three `zone_launch` packets are two walk-ins (Terminal, Discord) and `/localsend`, and the helper's three
-  `started` lines are exactly these. **No open of the fourth app was ever requested**: no walk-in packet, no command,
+- So the three `zone_launch` packets are two walk-ins (Terminal, Discord) and that typed command, and the helper's
+  three `started` lines are exactly these. **No open of the fourth app was ever requested**: no walk-in packet, no command,
   no helper request, and only Notepad was in his hotbar.
 - The world's saved data is in order: the app's zone and gate exist at "south, front row, right", built like the
   other six.
