@@ -18,14 +18,25 @@ import java.util.Locale;
  * focus never opens the pause menu. Where the focus is comes from the helper's {@code shell_focus}, because GLFW
  * cannot say: when a Wayland window takes the focus, the X server hands the game a pointer focus that GLFW reports as
  * the real one (measured in package 40), so {@code Window.isFocused()} stays true behind an app.
+ *
+ * <p><b>Covered</b> ({@link #covered}): while a maximized or fullscreen window hides the world on its screen, the helper
+ * says so ({@code shell_covered}) and the world pauses without a screen and draws at most {@link #COVERED_FRAME_LIMIT}
+ * frames a second. A smaller window leaves it moving (owner, 2026-11-15). Heartbeats and {@code world_ready} do not
+ * change: they come from the shell client's own threads and from {@link ShellFocusClient#readyWorld}, which a pause
+ * without a screen leaves as it is.
  */
 public final class HomeScreen {
     private static final boolean SESSION = System.getProperty("os.name").toLowerCase(Locale.ROOT).startsWith("linux")
             && ShellClient.configured(System.getenv());
+    /** Minecraft's own limit for a minimized window. It is also the longest wait before the world shows again. */
+    public static final int COVERED_FRAME_LIMIT = 10;
     private static Boolean sessionForTests, activeForTests;
     // Client thread only: what the helper last said, and what GLFW said at the last frame.
     private static boolean appInFront;
     private static boolean wasFocused = true;
+    private static boolean covered;
+    // Client thread only: the pause at the last tick was ours, so its end must start the sounds it stopped.
+    private static boolean pausedForCover;
 
     private HomeScreen() { }
 
@@ -45,6 +56,33 @@ public final class HomeScreen {
     /** The helper said an app took the foreground (true) or the world got the focus back (false). */
     static void appInFront(boolean inFront) {
         appInFront = inFront;
+    }
+
+    /** The helper said a window hides the world on its screen, or no longer does (false also when it went away). */
+    static void covered(boolean now) {
+        covered = now;
+    }
+
+    /** Covered in an active home screen: the world pauses and draws slowly. Outside it the helper's word changes nothing. */
+    public static boolean covered(Minecraft client) {
+        return covered && active(client);
+    }
+
+    /**
+     * What {@code Minecraft.runTick} uses to decide the pause, given what the open screen says. Minecraft pauses only
+     * sounds when a pause begins and starts them again only when a screen closes, so the end of a pause without a
+     * screen starts them here.
+     */
+    public static boolean pausing(Minecraft client, boolean screenPauses) {
+        boolean cover = covered(client);
+        if (pausedForCover && !cover && !screenPauses) client.getSoundManager().resume();
+        pausedForCover = cover && !screenPauses;
+        return screenPauses || cover;
+    }
+
+    /** The frame rate cap {@code FramerateLimitTracker} answers, given its own. */
+    public static int framerateLimit(Minecraft client, int limit) {
+        return covered(client) ? Math.min(limit, COVERED_FRAME_LIMIT) : limit;
     }
 
     /**
@@ -75,5 +113,6 @@ public final class HomeScreen {
         activeForTests = active;
         wasFocused = true;
         appInFront = false;
+        covered = false;
     }
 }

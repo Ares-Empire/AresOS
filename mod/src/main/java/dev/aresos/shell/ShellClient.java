@@ -41,10 +41,11 @@ public final class ShellClient implements AutoCloseable {
     public static final int MAX_APPS = 1024;
     /** Wayland app_id and X11 class of the desktop window, so the helper can hand focus back to it. */
     public static final String DESKTOP_APP_ID = "aresos-desktop";
-    // The last three are 1.1's. The helper sends an event only to a client that offered its name, so apps_changed
-    // must be offered; none of the three is required, which keeps a 1.0 helper compatible.
+    // app_details, apps_changed and list_paging are 1.1's, shell_covered is package 40's. The helper sends an event
+    // only to a client that offered its name, so the events must be offered; none is required, which keeps a 1.0
+    // helper compatible.
     static final List<String> CAPABILITIES = List.of("list_apps", "open_app", "app_state", "shell_focus",
-            "world_ready", "heartbeat", "windows", "app_details", "apps_changed", "list_paging");
+            "world_ready", "heartbeat", "windows", "app_details", "apps_changed", "list_paging", "shell_covered");
     static final List<String> REQUIRES = List.of("list_apps", "open_app");
     private static final Gson JSON = new Gson();
     private static final System.Logger LOG = System.getLogger("aresos");
@@ -83,6 +84,11 @@ public final class ShellClient implements AutoCloseable {
         default void status(Status status) { }
         /** Without window tracking an open already counted as done; the helper reported its failure afterwards. */
         default void launchFailed(String appId, String requestId, ShellException error) { }
+        /**
+         * A maximized or fullscreen window hides the desktop window on its screen (package 40), or no longer does.
+         * Called on every change, and with false when the connection ends: a helper that is gone covers nothing.
+         */
+        default void covered(boolean covered) { }
     }
 
     /** A refusal carrying the helper's stable error code (B1), such as unknown_app, unavailable or no_window. */
@@ -137,6 +143,8 @@ public final class ShellClient implements AutoCloseable {
     private volatile Connection connection;
     private volatile Connection attempt;
     private volatile boolean windows;
+    // Reader thread only: what the helper last said about covering. Every connection starts uncovered.
+    private boolean covered;
     private volatile String world;
     private volatile boolean closed;
     private Thread loop;
@@ -429,6 +437,8 @@ public final class ShellClient implements AutoCloseable {
             if (connection == current) connection = null;
             if (attempt == current) attempt = null;
             current.close();
+            // A helper that is gone must never leave the world paused.
+            setCovered(false);
         }
     }
 
@@ -672,6 +682,7 @@ public final class ShellClient implements AutoCloseable {
                     if (open != null) update(open, message);
                     else if (watching.containsKey(id)) lateUpdate(id, message);
                 }
+                case "shell_covered" -> setCovered(bool(message, "covered"));
                 case "shell_focus" -> {
                     var focus = new Focus("foreground".equals(text(message, "focus")), text(message, "reason"),
                             text(message, "app_id"), bool(message, "activated"));
@@ -692,6 +703,15 @@ public final class ShellClient implements AutoCloseable {
         var open = opens.get(id);
         if (open != null) update(open, message);
         else if (watching.containsKey(id)) lateUpdate(id, message);
+    }
+
+    private void setCovered(boolean now) {
+        if (covered == now) return;
+        covered = now;
+        for (var listener : listeners) {
+            try { listener.covered(now); }
+            catch (RuntimeException error) { LOG.log(System.Logger.Level.ERROR, "Shell listener failed", error); }
+        }
     }
 
     private void update(PendingOpen open, JsonObject message) {
