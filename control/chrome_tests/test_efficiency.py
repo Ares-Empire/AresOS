@@ -27,11 +27,14 @@ class Record:
         self.directory = Path(directory)
         self.calls, self.tasks = [], []
 
-    def task(self, name, run, results, milliseconds, warmup=None, tools=None):
+    def task(self, name, run, results, milliseconds, warmup=None, tools=None, refusals=None):
         warmup = run == 0 if warmup is None else warmup
         for index, (action, result) in enumerate(results):
-            self.calls.append({"task": name, "run": run, "warmup": warmup, "index": index, "action": "chrome_" + action,
-                               "arguments": {}, "result": result})
+            call = {"task": name, "run": run, "warmup": warmup, "index": index, "action": "chrome_" + action,
+                    "arguments": {}, "result": result}
+            if (refusals or {}).get(index):
+                call["expected_refusal"] = refusals[index]
+            self.calls.append(call)
         self.tasks.append({"task": name, "run": run, "warmup": warmup, "milliseconds": milliseconds,
                            "tools": tools if tools is not None else [action for action, _ in results]})
 
@@ -95,6 +98,35 @@ class EfficiencySummaryTest(unittest.TestCase):
         for run in range(1, 6):
             self.record.task("f5_free_click", run, [("click", page("c"))], 1.0, warmup=False)
         with self.assertRaisesRegex(ValueError, "warm-up"):
+            summary.summarize(self.record.write())
+
+    def test_only_the_refusal_a_task_expected_may_fail_a_call(self):
+        # Brief 20 can't send F4 (run 43698395453): its row records the refusal.
+        refused = {"ok": False, "error": {"code": "asking_input_too_large", "message": "The whole approval exceeds 16384 bytes"},
+                   "pending": {"items": [], "total": 0, "cursor": None}}
+        for run in range(6):
+            self.record.task("f4_fill_send", run, [("read", page("form")), ("click", refused)], 1.0,
+                             refusals={1: "asking_input_too_large"})
+            self.record.task("f3_find_link", run, [("find", page("link"))], 1.0)
+        result = summary.summarize(self.record.write())
+        task = result["tasks"]["f4_fill_send"]
+        self.assertEqual(task["outcome"], "refused")
+        self.assertEqual(task["refusals"], [{"action": "chrome_click", "code": "asking_input_too_large"}])
+        self.assertEqual(task["characters"], len(display_json(page("form"))) + len(display_json(refused)))
+        self.assertEqual((result["tasks"]["f3_find_link"]["outcome"], result["tasks"]["f3_find_link"]["refusals"]), ("done", []))
+        # Another code than the expected one, or a refusal nobody expected, fails the summary.
+        for refusals in ({1: "refused"}, None):
+            self.record = Record(self.temporary.name)
+            for run in range(6):
+                self.record.task("f4_fill_send", run, [("read", page("form")), ("click", refused)], 1.0, refusals=refusals)
+            with self.assertRaisesRegex(ValueError, "run 0: chrome_click failed"):
+                summary.summarize(self.record.write())
+        # A row that ends differently in one measured run is no baseline.
+        self.record = Record(self.temporary.name)
+        for run in range(6):
+            click = ("click", page("sent")) if run == 4 else ("click", refused)
+            self.record.task("f4_fill_send", run, [("read", page("form")), click], 1.0, refusals={1: "asking_input_too_large"})
+        with self.assertRaisesRegex(ValueError, "ended differently"):
             summary.summarize(self.record.write())
 
     def test_timed_tools_must_match_the_recorded_calls(self):

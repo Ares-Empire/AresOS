@@ -63,6 +63,7 @@ test('a plan allows repeated cursor calls only where it says so',()=>{
 });
 
 // A fake service: just enough of brief 20's results for every task to run.
+// Brief 20 refuses F4's Save (its approval would be over 16,384 bytes).
 // F2's first page comes from the setup's load check, the second from the first
 // read; the task then follows two cursors.
 function fakeService(){
@@ -90,23 +91,27 @@ function fakeService(){
     if(action==='read'||action==='find')return view(name==='f7'?trees.f7.replace('page 1','page '+f7):trees[name]||'');
     if(action==='read_form')return {ok:true,data:{untrusted_content:{form:'Synthetic value 0 Synthetic value 79'},cursor:null}};
     if(action==='fill_form')return {ok:true,data:{completed:args.fields,remaining:0}};
-    if(action==='click'&&name==='f4')return {ok:true,data:{approval:{operation_id:'op'}}};
+    if(action==='click'&&name==='f4')return {ok:false,error:{code:'asking_input_too_large',message:'The whole approval exceeds 16384 bytes; prepare a smaller operation. Nothing was reserved.'}};
     if(action==='click'&&name==='f7'){f7++;page=page.replace(/page=\d+/,'page='+f7);return {ok:true,data:{followups:[]}};}
     if(action==='click'){f5Clicked=name==='f5';return {ok:true,data:{followups:[]}};}
     if(action==='wait')return {ok:true,data:{...view(trees.f7.replace('page 1','page '+f7)).data,untrusted_content:{url:page,title:'Results page '+f7,tree:trees.f7.replace('page 1','page '+f7)},condition_met:true}};
-    if(action==='submit')return {ok:true,data:{operation:{state:'done'}}};
     throw Error('unexpected '+action);
   }
   return {rpc,calls,tabCount:()=>tabs};
 }
 
+// The fake reads every page at once, so `loaded` must see the address.
+const probeRpc=(service,change=()=>null)=>async(action,args)=>{
+  const changed=change(action,args);if(changed)return changed;
+  const result=await service.rpc(action,args);if(action==='read'&&result.data?.untrusted_content&&!result.data.characters)result.data.characters=1;return result;
+};
+const probeOptions=(rpc,out,counts=()=>0)=>({rpc,eventually:async fn=>{assert.ok(await fn());},counts,getTab:()=>1,out});
+
 test('every task makes exactly the calls of its plan, recorded and timed, and the tabs reach 25',async()=>{
   const out=fs.mkdtempSync(path.join(os.tmpdir(),'pkg28-efficiency-'));
   try{
     const service=fakeService();
-    // The fake reads every page at once, so `loaded` must see the address.
-    const rpc=async(action,args)=>{const result=await service.rpc(action,args);if(action==='read'&&result.data?.untrusted_content&&!result.data.characters)result.data.characters=1;return result;};
-    await efficiencyProbe({rpc,eventually:async fn=>{assert.ok(await fn());},counts:()=>1,getTab:()=>1,out});
+    await efficiencyProbe(probeOptions(probeRpc(service),out));
     const timings=fs.readFileSync(out+'/efficiency-tasks.jsonl','utf8').trim().split('\n').map(line=>JSON.parse(line));
     const calls=fs.readFileSync(out+'/efficiency-calls.jsonl','utf8').trim().split('\n').map(line=>JSON.parse(line));
     assert.equal(timings.length,TASKS.length*(EFFICIENCY_WARMUPS+EFFICIENCY_RUNS));
@@ -119,8 +124,25 @@ test('every task makes exactly the calls of its plan, recorded and timed, and th
       }
     }
     assert.deepEqual(timings.find(timing=>timing.task==='f2_table').tools,['read','read']);
+    assert.deepEqual(timings.find(timing=>timing.task==='f4_fill_send').tools,['read','fill_form','find','click']);
+    const f4=calls.filter(call=>call.task==='f4_fill_send');
+    assert.ok(f4.filter(call=>call.action==='chrome_click').every(call=>call.expected_refusal==='asking_input_too_large'));
+    assert.ok(calls.every(call=>call.result.ok||call.expected_refusal===call.result.error.code),'only the expected refusal fails');
     assert.deepEqual(timings.find(timing=>timing.task==='list_25_tabs').tools,['tabs','tabs','tabs']);
     assert.equal(service.tabCount(),EFFICIENCY_TAB_COUNT);
     assert.ok(JSON.parse(fs.readFileSync(out+'/efficiency-runner.json','utf8')).cpus>0);
   }finally{fs.rmSync(out,{recursive:true,force:true});}
+});
+
+test('F4 fails when brief 20 sends it, and a failed run is reported over its after check',async()=>{
+  for(const [change,counts,message] of [
+    // Run 43698395453: the click was refused, and the receiver check in `after` hid that.
+    [(action)=>action==='fill_form'?{ok:false,error:{code:'stale_reference'}}:null,()=>1,/f4_fill_send fill_form: \{"code":"stale_reference"\}/],
+    [(action,args)=>action==='click'&&args.expected?.name==='Save'?{ok:true,data:{approval:{operation_id:'op'}}}:null,()=>0,/f4_fill_send click should be refused with asking_input_too_large: "it succeeded"/],
+    [()=>null,()=>1,/F4 received nothing/],
+  ]){
+    const out=fs.mkdtempSync(path.join(os.tmpdir(),'pkg28-efficiency-'));
+    try{await assert.rejects(efficiencyProbe(probeOptions(probeRpc(fakeService(),change),out,counts)),message);}
+    finally{fs.rmSync(out,{recursive:true,force:true});}
+  }
 });

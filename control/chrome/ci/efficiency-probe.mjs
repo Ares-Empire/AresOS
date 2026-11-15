@@ -3,7 +3,9 @@
 // baseline's tasks: brief 20's tools, used as well as they allow. Each task
 // makes exactly the calls listed in its `plan` (a `*` marks a call repeated
 // with each cursor the tool returns) and no others; setup calls are not
-// counted or timed. efficiency-summary.py turns the record into the numbers.
+// counted or timed. A row brief 20's tools can't finish ends in the one refusal
+// its task expects, and the baseline records that. efficiency-summary.py turns
+// the record into the numbers.
 import fs from 'node:fs';
 import os from 'node:os';
 import assert from 'node:assert/strict';
@@ -66,16 +68,19 @@ export const TASKS=[
       const page=await call('wait',{tab:state.tab,text:'Results page 1',timeout_ms:8000});assert.equal(page.condition_met,true);
     },
     async after({rpc,state}){if(state.tab!==undefined)assert.ok((await rpc('close_tab',{tab:state.tab,discard_unsaved:true})).ok);}},
-  {name:'f4_fill_send',row:'F4: fill 6 fields and send the form',plan:['read','fill_form','find','find*','click','submit'],page:({run})=>fixtureUrl('f4','&id=r'+run),
+  // Brief 20 can't send F4: Save's approval would carry the form's facts, the
+  // 200 options of Country among them (14,380 bytes alone), over the 16,384
+  // bytes an approval may hold (run 43698395453). Its tools, used as well as
+  // they allow, end in that refusal; nothing is reserved and nothing received.
+  {name:'f4_fill_send',row:'F4: fill 6 fields and send the form',plan:['read','fill_form','find','find*','click'],page:({run})=>fixtureUrl('f4','&id=r'+run),
     async run({call,tab}){
       const rows=parseRows((await call('read',{tab})).untrusted_content.tree);
       const fields=F4_FILLED.map((name,index)=>{const row=rows.find(named('textbox',name));assert.ok(row,name+' on the first page');return {...target(row),text:'Efficiency line '+index};});
       assert.equal((await call('fill_form',{fields})).remaining,0);
       const save=await pagedRow(call,'find',{tab,text:'Save'},named('button','Save'));
-      const prepared=await call('click',target(save));assert.ok(prepared.approval,'Save asks');
-      assert.equal((await call('submit',prepared.approval)).operation.state,'done');
+      await call('click',target(save),{refusal:'asking_input_too_large'});
     },
-    async after({eventually,counts,run}){await eventually(()=>counts('efficiency-f4-r'+run)===1,'F4 received once');}},
+    async after({counts,run}){await delay(250);assert.equal(counts('efficiency-f4-r'+run),0,'F4 received nothing');}},
   {name:'f7_three_pages',row:'F7: three result pages, one click each, the titles collected',plan:['click','wait','click','wait','click','wait'],page:()=>fixtureUrl('f7','&page=1'),firstRead:true,
     async run({call,tab,first}){
       let next=parseRows(first.untrusted_content.tree).find(named('link','Next page'));const titles=[];
@@ -127,18 +132,26 @@ export async function efficiencyProbe({rpc,eventually,counts,getTab,out='/out'})
   async function nav(url){const result=await rpc('navigate',{tab,url,discard_unsaved:true});assert.ok(result.ok,JSON.stringify(result));await loaded(tab,url);}
   async function perform(task,run,context){
     const tools=[];let index=0;
-    const call=async(action,args={})=>{
+    // `refusal` is the one error code a call must end in; any other outcome,
+    // success included, fails the task.
+    const call=async(action,args={},{refusal}={})=>{
       const result=await rpc(action,args);
-      fs.writeSync(record,JSON.stringify({task:task.name,run,warmup:run<EFFICIENCY_WARMUPS,index:index++,action:'chrome_'+action,arguments:args,result})+'\n');
-      tools.push(action);assert.ok(result.ok,task.name+' '+action+': '+JSON.stringify(result.error));return result.data;
+      const refused=refusal!==undefined&&!result.ok&&result.error?.code===refusal;
+      fs.writeSync(record,JSON.stringify({task:task.name,run,warmup:run<EFFICIENCY_WARMUPS,index:index++,action:'chrome_'+action,arguments:args,result,...(refused?{expected_refusal:refusal}:{})})+'\n');
+      tools.push(action);
+      if(refusal!==undefined){assert.ok(refused,task.name+' '+action+' should be refused with '+refusal+': '+JSON.stringify(result.ok?'it succeeded':result.error));return result.error;}
+      assert.ok(result.ok,task.name+' '+action+': '+JSON.stringify(result.error));return result.data;
     };
     const state={};
     const started=performance.now();
-    try{await task.run({...context,call,state});}
+    let failed=true;
+    try{await task.run({...context,call,state});failed=false;}
     finally{
       const milliseconds=performance.now()-started;
       fs.writeSync(timing,JSON.stringify({task:task.name,row:task.row,plan:task.plan,run,warmup:run<EFFICIENCY_WARMUPS,milliseconds,tools})+'\n');
-      if(task.after)await task.after({rpc,eventually,counts,run,state});
+      // `after` cleans up after a failed run too, but never hides why it failed
+      // (run 43698395453 reported F4's receiver, not the click's refusal).
+      if(task.after){try{await task.after({rpc,eventually,counts,run,state});}catch(error){if(!failed)throw error;console.error(task.name+' run '+run+', after the failure below: '+error.message);}}
     }
     assert.ok(followsPlan(tools,task.plan),task.name+' made '+tools.join(',')+' against its plan '+task.plan.join(','));
   }

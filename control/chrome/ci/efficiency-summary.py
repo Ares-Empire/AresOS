@@ -5,9 +5,11 @@ usage: efficiency-summary.py <probe output directory> [<output file>]
 Characters are counted on each result as Claude receives it: the text the MCP
 proxy sends (proxy.serve: display_json(bound_result(result))). Calls and tools
 must be the same in every measured run; the wall time of a task is the median
-of the measured runs, after the warm-up. The sizes of what a session loads are
-measured from the same tree: tool descriptions plus the server instructions,
-and tool names plus input schemas as compact JSON.
+of the measured runs, after the warm-up. A call may fail only with the refusal
+its task expected (the probe marks it); the task's outcome is then "refused".
+The sizes of what a session loads are measured from the same tree: tool
+descriptions plus the server instructions, and tool names plus input schemas
+as compact JSON.
 """
 import json
 import statistics
@@ -54,10 +56,13 @@ def summarize(directory):
         tasks[timing["task"]]["warmup" if timing["warmup"] else "measured"].append(timing)
     characters = {}
     for call in calls:
+        refusal = None
         if not call["result"].get("ok"):
-            raise ValueError("%s run %s: %s failed" % (call["task"], call["run"], call["action"]))
+            refusal = (call["result"].get("error") or {}).get("code")
+            if refusal is None or call.get("expected_refusal") != refusal:
+                raise ValueError("%s run %s: %s failed" % (call["task"], call["run"], call["action"]))
         key = (call["task"], call["run"])
-        characters.setdefault(key, []).append((call["index"], call["action"], received(call["result"])))
+        characters.setdefault(key, []).append((call["index"], call["action"], received(call["result"]), refusal))
     out = {}
     for name in order:
         runs = tasks[name]["measured"]
@@ -66,19 +71,25 @@ def summarize(directory):
         per_run = []
         for timing in runs:
             recorded = sorted(characters.get((name, timing["run"]), []))
-            if ["chrome_" + tool for tool in timing["tools"]] != [action for _, action, _ in recorded]:
+            if ["chrome_" + tool for tool in timing["tools"]] != [action for _, action, _, _ in recorded]:
                 raise ValueError(name + ": the recorded calls differ from the timed calls")
             per_run.append({"run": timing["run"], "tools": timing["tools"], "milliseconds": timing["milliseconds"],
-                            "characters": [count for _, _, count in recorded]})
+                            "characters": [count for _, _, count, _ in recorded],
+                            "refusals": [{"action": action, "code": code} for _, action, _, code in recorded if code]})
         tools = {tuple(run["tools"]) for run in per_run}
         if len(tools) != 1:
             raise ValueError(name + ": the measured runs made different calls: " + repr(sorted(tools)))
+        refusals = {json.dumps(run["refusals"]) for run in per_run}
+        if len(refusals) != 1:
+            raise ValueError(name + ": the measured runs ended differently: " + repr(sorted(refusals)))
         totals = [sum(run["characters"]) for run in per_run]
         out[name] = {
             "row": runs[0].get("row"),
             "plan": runs[0].get("plan"),
             "calls": len(per_run[0]["tools"]),
             "tools": ["chrome_" + tool for tool in per_run[0]["tools"]],
+            "outcome": "refused" if per_run[0]["refusals"] else "done",
+            "refusals": per_run[0]["refusals"],
             "characters": int(statistics.median(totals)),
             "characters_per_run": totals,
             "characters_per_call": [int(statistics.median(column)) for column in zip(*(run["characters"] for run in per_run))],
@@ -90,7 +101,8 @@ def summarize(directory):
         "format": FORMAT,
         "what": "Brief 28's efficiency baseline: brief 20's tools on the group 16 fixtures, used as well as they allow "
                 "(control/chrome/ci/efficiency-probe.mjs). Characters are the JSON text of each tool result as "
-                "Claude receives it; wall time is the median of the measured runs after one warm-up.",
+                "Claude receives it; wall time is the median of the measured runs after one warm-up. A task whose "
+                "outcome is \"refused\" ends in the refusal listed: brief 20's tools can't finish that row.",
         "run_id": runner.get("run_id"),
         "sha": runner.get("sha"),
         "runner": {key: runner.get(key) for key in ("runner", "cpu", "cpus", "memory_bytes", "node", "chrome")},
@@ -108,7 +120,8 @@ def main(argv):
     target = Path(argv[2]) if len(argv) == 3 else Path(argv[1]) / "efficiency-measured.json"
     target.write_text(json.dumps(summary, indent=2) + "\n")
     for name, task in summary["tasks"].items():
-        print("EFFICIENCY %s: %d calls, %d characters, %.1f ms" % (name, task["calls"], task["characters"], task["milliseconds"]))
+        print("EFFICIENCY %s: %d calls, %d characters, %.1f ms, %s" % (name, task["calls"], task["characters"], task["milliseconds"],
+                                                                 task["outcome"]))
     print("EFFICIENCY sizes:", json.dumps(summary["sizes"]))
 
 

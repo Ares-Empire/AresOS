@@ -33,7 +33,8 @@ function f3Body(){
 }
 
 // F4: a form of 25 fields. The task fills the six lines F4_FILLED and presses
-// Save; the receiver logs the submission under the run's id.
+// Save, which brief 20 refuses (efficiency-probe.mjs); a submission would reach
+// the receiver under the run's id.
 export const F4_FILLED=['Line 0','Line 1','Line 2','Line 3','Line 4','Line 5'];
 function f4Body(id){
   const lines=Array.from({length:10},(_,index)=>'<label>Line '+index+' <input name="line'+index+'" value="Value '+index+'"></label>').join('');
