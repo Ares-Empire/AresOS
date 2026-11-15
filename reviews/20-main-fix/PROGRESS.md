@@ -119,7 +119,34 @@ outside samples / journal fsync untimed / harness streams on the store disk.
 
 ### Runs
 
-(filled in as they happen)
+Qualification workflow budget 4, `Control Chrome` 2 (both used only for the final PR check).
+
+1. **43656398035** (dispatch on the branch, head `14e81352`): `qualification-tests`, `-plan` (28 pair jobs: stable ×
+   2 repeats × 14 shards) and `delivery-attestation` passed. The attestation job's recorded response listed exactly
+   this run's attestation on the first `gh api` attempt; the product's anonymous path ran offline through it; the
+   negative cases refused; "production main rejects a bundle attested on refs/heads/pkg/20-main-fix" PASS (the
+   retained fixture's offline case too). Two `python-3` pair shards failed in my new plan test, which ran
+   `qualify.py plan` with `--root .` (the qualification layout's cwd has no `control/`); both combines failed on that.
+   `qualification-publish` ran every step in PR mode and failed in the PR-mode publish step **as it must**: the
+   candidate was attested on the branch ref and `publish --bundle` verified it under main's policy. Fix `af0e620e`:
+   the PR-mode step passes `--ref "$GITHUB_REF"` for the fresh candidate only; `qualify.py` refuses `--ref` for a
+   publication to origin (test and probe `mainfix-h4-origin-publish-accepts-a-foreign-ref`); the plan test names the
+   repo root.
+2. **43660183139** (dispatch on the branch, head `af0e620e`): tests, plan, attestation, 27 of 28 pair jobs, one
+   combine and **`qualification-publish` passed in PR mode** (attested on `refs/heads/pkg/20-main-fix`, verified on
+   that ref, published to `.work/publish-remote.git`, the local data branch holds the candidate, `main` unmoved).
+   One browser shard failed: `recheck2`, repeat 2, "GROUP 8 popups preserve opener flow and guard first input
+   without moving windows": the `typed-early` row recorded the `late` install path instead of the forced
+   `document_start`; its combine then failed ("every browser shard is required"). Repeat 1 of the same shard and
+   both recheck2 shards of run 1 passed. **Diagnosis from the artifact** (`control-status.json`,
+   `browser-boundary.jsonl`): the popup tab `1364224890` holds two install records, both `late`, for two documents
+   (`f43b1dba…`, never ready, and the final `bb36d1eb…`); `popup_admitted` for that tab was logged after the
+   popup's `Page.frameStartedNavigating`, so the fixture's hold released the document as designed, but the popup's
+   first document was replaced during admission and the extension attached to the second one late. That is the
+   renderer-swap-during-admission shape the lead's post-popup fixes handle for the admission itself (mutation probes
+   `post-popup-*`), now showing in the install-path record. Nothing on this branch touches the extension, the popup
+   admission or the fixture shards (`FIXTURE_LOG_DIR` stays `/out` there); the next run re-exercises recheck2 twice.
+   **For the lead:** a browser-timing flake in brief 20's popup fixture, outside this brief; no change made here.
 
 ## Diagnoses
 
