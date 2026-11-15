@@ -74,8 +74,9 @@ and from here.
   the owner's desktop (wlroots' Wayland backend), with a copy of the checkout's
   `os/config/usr/share/aresos/labwc/rc.xml` and nothing else of that folder (its `autostart` would start the
   session's own supervisor). `preview-window.py` asks the outer desktop (wlr foreign-toplevel `set_fullscreen`) to
-  show the preview's window fullscreen and exits when that window closes, which stops the run. The plain window
-  stays the default. Tested headless only (Evidence, "Step 3: the preview"). **For `hub-try` (orchestrator):** add
+  show the preview's window fullscreen and exits when that window closes; run-hub.sh then asks the game's window in
+  the preview to close (`preview-window.py --close aresos-desktop`, as its close button), so the world is saved, and
+  stops the rest. The plain window stays the default. Tested headless only (Evidence, "Step 3: the preview"). **For `hub-try` (orchestrator):** add
   `--session` to its `run-hub.sh` call, before `"$@"`; it needs a checkout that has this commit.
 
 ## Left, in order
@@ -207,6 +208,33 @@ hardly moves (3.4 to 3.3 W), because at this load the RTX 4060 sits near its idl
 1920 x 1080 screen at 144 a second the uncovered world draws far more frames, so the saving there is larger (not
 measured). Memory does not change: a paused world keeps its chunks.
 
+### Step 3: the preview, headless
+
+A stand-in for his desktop: a headless labwc 0.9.6 with the image's `rc.xml` on the RTX 4060 (`WLR_BACKENDS=headless`,
+its own socket `wayland-2`, Xwayland `:2`, never `wayland-0`), a virtual keyboard on its seat (`rig/vinput.py`) and an
+`Outer terminal` (`foot`) as a window of his own. `run-hub.sh --session` ran inside it with `WAYLAND_DISPLAY=wayland-2`,
+a home folder of its own (so no program of his was listed, and the run's lock and logs stayed out of his
+`~/.cache/aresos-dev`), the client-test lock held, sound off (`ALSOFT_DRIVERS=null`), the worktree's helper and
+registry, and quick play into the worktree's `AresHub`. Four runs, 05:42 to 05:47:
+
+| What | Result |
+|---|---|
+| The preview's labwc | started nested (`wayland-1`, `:1`), its window in the outer desktop `'labwc' ['activated', 'fullscreen'] title='labwc - WL-1'` (app ID `labwc`, not wlroots' `wlroots`) |
+| Its size | follows the outer screen: the outer output set to 1600 x 900, the preview's output became 1600 x 900 |
+| The game inside | `'aresos-desktop' ['maximized', 'activated']` in the preview's labwc; nothing of it in the outer desktop. Live HUD: the hotbar only |
+| `/terminal` typed in the game | helper: "started terminal"; `'aresos.terminal' ['activated']` above the world in the preview, with the session's frame; the world around it; no "Saving and pausing game" |
+| Terminal's environment | `WAYLAND_DISPLAY=wayland-1 DISPLAY=:1 LABWC_PID=<the preview's labwc>`, not the outer desktop's |
+| Terminal closed (its close button, through foreign-toplevel) | helper: "terminal closed its last window; returning to the desktop"; the world `['maximized', 'activated']` |
+| Alt+Tab on the outer seat, preview in front | the outer desktop took it: the outer terminal got the focus; the preview's own windows unchanged |
+| Alt+F4 on the outer seat, preview in front | the outer desktop closed the preview window. The preview's labwc stays up without a screen (its apps report no outputs); `preview-window.py` exits; run 1 (before the save step) stopped the game with TERM and nothing saved; run 2: "asking the game to save and quit", the game logged "Stopping!", "Saving worlds", "All dimensions are saved", exit 0 |
+| The game quitting (run 3) | the game saved, run-hub.sh exit 0, the preview window gone |
+| Plain window (run 4, no `--session`) | the game as a window of the outer desktop, closing it ends the run, exit 0 |
+| Left behind after each run | no `aresos-dev-*` scope, no private folder |
+
+Not tried: his real desktop, the mouse (no pointer in a headless compositor; whether the game's mouse look is
+captured through two compositors is for the try-out), two screens, a real single-copy program (from the protocol:
+it hands the request to its running copy outside).
+
 ### B: the app that never opened
 
 - The brief reads 03:18:09 as a walk-in. It was a typed short-name command for the third app: `command_history.txt`
@@ -319,9 +347,9 @@ Step 3's:
 14. **Live is invulnerable in the game's own sense**, not only by the mod's damage rule: in 26.2 that also means no
    fire on him (no flames over the screen after lava) and no exhaustion; the mod already kept food full.
 15. **The preview is `--session`, fullscreen through foreign-toplevel, and ends when its window closes.** Alt+F4 on
-   it is the outer desktop's (labwc has no keyboard-shortcuts-inhibit), so it closes the preview; ending the run then
-   is better than a game left running in a labwc with no screen. The alternative, a nested rc.xml with other keys,
-   would no longer be the image's rc.xml.
+   it is the outer desktop's (labwc has no keyboard-shortcuts-inhibit), so it closes the preview; ending the run then,
+   with the game asked to save and quit first, is better than a game left running in a labwc with no screen. The
+   alternative, a nested rc.xml with other keys, would no longer be the image's rc.xml.
 
 ## PLAN-GAP
 
@@ -354,6 +382,13 @@ Step 3's:
   supervisor and its wrapper are untouched. Not run in the rig (it needs the supervisor): from reading.
 
 ## What the code doesn't show
+
+- Step 3: his client gets Live's abilities (flight, the walking speed) at once and the movement attribute with the
+  server's next entity update, one or two ticks later; the client test waits for it.
+- Step 3: Live's HUD is decided on his client by the same rule as Live on the server (a desktop world, survival), read
+  from the integrated server; a LAN guest's client has no integrated server and still draws hearts (he cannot be hurt).
+- Step 3: the preview's labwc outlives its own window (wlroots destroys the output, labwc keeps running), which is why
+  `preview-window.py` watches the window rather than the process.
 
 - Under labwc with Xwayland, `Window.isFocused()` stays true while a Wayland app is in front. Only the helper's
   `shell_focus` says where the focus really is; `HomeScreen.appInFront` keeps it.
