@@ -65,7 +65,21 @@ no system install and change no shell setup:
   reuses a helper; when the game exits, its helper stops and the folder is
   removed. `--helper <path>` starts another helper (for example one from a
   worktree) and `--registry <dir>` passes its app folder to the helper's
-  `--registry`.
+  `--registry`. **`--session`** (package 40) shows it as the AresOS session
+  will: the helper and the game run inside a labwc of the run's own, nested in
+  the desktop (wlroots' Wayland backend) and shown fullscreen there
+  (`dev/preview-window.py`, wlr foreign-toplevel), with a copy of the
+  checkout's `os/config/usr/share/aresos/labwc/rc.xml` and nothing else of that
+  folder (its `autostart` would start the session's supervisor). The game is
+  then the maximized, frameless, always-on-bottom desktop window and apps open
+  over it. Closing the game, Ctrl+C, or closing the preview window (which first
+  asks the game to save and quit) ends the run. What it cannot show is listed at
+  the top of `run-hub.sh`: keys the outer desktop binds reach it first (Alt+Tab,
+  Alt+F4 closes the whole preview, Super+Ctrl+Escape), a single-copy program
+  already running outside opens there, D-Bus dialogs (polkit, file choosers)
+  open outside, one screen only, no supervisor, the development client. The
+  preview's log is `~/.cache/aresos-dev/run-hub-session.log`. Without
+  `--session` the game is a plain window, as before.
 
 Extra arguments go to Gradle; its daemon switches `--daemon`, `--foreground`,
 `--stop` and `--status`, including their single-dash forms, are refused (exit
@@ -190,7 +204,7 @@ while holding does not launch repeatedly. Each release and new press launches
 again, even between client ticks.
 
 In an AresOS world, press **G** to switch between Build (creative) and Live
-(protected survival). Each mode keeps its own inventory, hotbar, armor, offhand
+(protected survival that flies; "The home screen" below). Each mode keeps its own inventory, hotbar, armor, offhand
 and selected hotbar slot. The first switch from Live to Build starts empty.
 Both survive rejoining and restarting; a home arrival restores Live while keeping
 your Build items for the next **G**. Close menus and finish cursor/crafting moves
@@ -458,7 +472,72 @@ After an app launch, AresOS watches for the first focus loss within 30 seconds.
 On return, it closes only the pause screen created by that focus loss. An Esc
 menu, a replacement screen, and focus loss without a launch stay untouched.
 Each launch owns its focus tracking, so an older launch failing cannot cancel a
-newer launch's return.
+newer launch's return. In a desktop world with the app helper connected no such
+pause screen opens at all ("The home screen" below).
+
+## The home screen
+
+Package 40 makes the world the desktop that apps open over (design:
+`docs/design/HUB.md`, "Corrections from making it the home screen"). Two
+conditions, in `client/HomeScreen.java`:
+
+- **A session** (`HomeScreen.session()`): on Linux, a game started with the
+  session's launch identity (`ARESOS_DESKTOP_INSTANCE`, `ARESOS_LAUNCH_NONCE`
+  and `ARESOS_SHELL_SOCKET` or `XDG_RUNTIME_DIR`), as package 23's supervisor and
+  `dev/run-hub.sh` start it. Its window is the desktop: a saved
+  `fullscreen:true` is ignored, F11 does nothing and GLFW's auto-iconify is off
+  (`WindowHomeScreenMixin`, `WindowIdentityMixin`). labwc keeps it maximized,
+  frameless and always on bottom (`rc.xml`). This holds from the title screen on.
+- **An active home screen** (`HomeScreen.active()`): a session in a desktop
+  world with the helper connected. Another window having the focus opens no
+  pause menu (Esc still does); keys and the mouse are let go while an app is in
+  front and the mouse is captured again when the world has the focus, from the
+  helper's `shell_focus` (under labwc GLFW reports the game focused while a
+  Wayland app is in front). While the helper says `shell_covered` (a maximized
+  or fullscreen window on the world's screen) the world pauses without a screen
+  (`MinecraftCoveredMixin`; the integrated server follows) and draws at most 10
+  frames a second (`FramerateCoveredMixin`). Uncovered, or with the helper gone,
+  it runs again. Heartbeats and `world_ready` do not change while paused.
+
+Every open that does not happen says why in a chat line as well as over the
+hotbar ("Couldn't open Test App: it failed to start"). A program that started
+but showed no window the helper can tell is its own is reported as "it started,
+but no window of it appeared" after the open deadline (45 seconds) instead of
+"no answer from the app helper", and a walk-in the client refuses says so.
+
+**Live mode** stays `SURVIVAL` (its own inventory, no instant building, the
+creative inventory's slot packets refused) but gets creative's `mayfly` and
+`invulnerable` in desktop worlds: a double space flies, nothing hurts or burns
+him, no hunger, and his HUD shows only the hotbar (`LiveHudMixin`). Both modes
+walk at **0.15** instead of the game's 0.1 (`LiveMode.DESKTOP_WALKING_SPEED`),
+set as the abilities' walking speed and the movement attribute's base together,
+so the field of view does not widen and nothing shows. They are put back right
+after every `ServerPlayerGameMode.setGameModeForPlayer` (`LiveAbilitiesMixin`),
+which joining, respawning, every switch and a rolled-back switch end in, and the
+server resends the abilities after the game-mode packets of `ModeInventories.sync`
+and the respawn, which reset the client's copy. `/aresos desktop off` gives the
+game's own abilities and speed back at once.
+
+**Tests.** `LiveFlightGameTests` (six server game tests: flight and no harm on
+joining, the speed through switches, death and respawns, the speed reaching his
+client, flying in Live still breaking no logo and placing nothing, the marker
+off, a normal world). `ShellClientTest` covers `shell_covered`, ready heartbeats while covered
+and the "no window" report. `HomeScreenClientGameTest` is the last client test:
+the pause menu on focus loss outside the home screen and not in it, Esc, F11, a
+failed launch's chat line, Live's HUD, speed and flight, and the covered pause
+through a real `ShellClient` on a fake helper; its picture goes to
+`../reviews/40-real-home/screenshots/`. The helper's side is in
+`os/tests/test_aresos_shell_home.py`.
+
+**The rig** (`../reviews/40-real-home/rig/`, a development aid): what only a real
+labwc shows (the window rules, stacking on click, Alt+Tab, minimize, close, and
+GLFW's focus under Xwayland) was reproduced in a headless labwc
+(`WLR_BACKENDS=headless`) with the image's `rc.xml`, the worktree's helper and
+the development client. `start.sh` starts it (set `RIG` to a run folder; it holds
+the client-test lock), `vinput.py` is a virtual keyboard and pointer on that
+compositor's seat, `tl.py` lists and drives its windows through foreign-toplevel,
+`shot.sh` takes a picture with `grim`, `load.sh` samples GPU and CPU load. Every
+tool refuses `wayland-0` and `:0`.
 
 ## The town
 
