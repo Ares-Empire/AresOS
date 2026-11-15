@@ -203,7 +203,97 @@ digit) against them with Python's `re.search`, which matches QRegularExpression'
 - The board note is posted after the tools-only box too, not only after a change of what starts next (decision 8):
   on the routine route he no longer sees the title himself, and the failed-update card works from his last title.
 
+### Left after step 2
+
+Steps 3 to 7 as in the brief.
+
+## Step 4 (review 8's findings 2 and 5), 2026-11-15, Claude agent on Opus 5.5: done
+
+Brief row 4 (decision 11). Built on `4cdd7b28` while step 3's review of steps 1 and 2 ran on that head; nothing of
+steps 1 and 2 changed. No PLAN-GAP.
+
+### What changed
+
+- **Finding 2, a cleanly stopped update closes its intent** (`Tools.stop_update`). When every part of the stop routine
+  passed, `reconcile_update` has proved the list is as before (nothing staged, or this update's staged row removed and
+  the others unchanged). The routine then archives the intent as `<stamp>-outcome-stopped-not-applied.json` (the
+  intent plus `stopped` and `staged_release_removed`), as `start_next` does for its certain refusal. Its line is
+  unchanged ("… was stopped safely: … Nothing changes at the next start; run update again later, or get help"), and
+  now holds in the same start: `check`, `title`, `reboot`, `forward`, `previous`, `rollback` and `update` work. With
+  any error (a surviving process, an unproved end, a failed status read, a foreign staged row, a failed mask, or the
+  archive itself failing, reported as `records: …`) the intent stays open and every other command STOPs with
+  "interrupted before its result was recorded; do not reboot; run … update to continue it", as before. A kill or a
+  power cut in the step never reaches the routine, so it leaves the intent open too.
+- **Finding 5, a trial from an earlier boot names abandon** (`Tools.no_layout_trial`, constants `LAYOUT_TRIAL` and
+  `LAYOUT_TRIAL_RESTARTED`). One helper replaces the three copies of the refusal: `may_change` (the reorders, staging,
+  `layout begin`), `reboot`, and the tools update's readiness check (`system_ready`, which had the same wording and the
+  same problem). In the trial's own boot the wording is unchanged:
+  `Layout trial is unfinished; prove it or revert first`. When the trial's administrator login was in another boot:
+  `Layout trial is unfinished and began before the last restart: from a fresh physical administrator login run sudo /var/lib/ares/at layout abandon, then run this command again`.
+  It keeps the old prefix (every test and the model that matched `Layout trial is unfinished` still do) and does not
+  say "nothing changed" (in the tools update the refusal can come with a journalled copy in place). A record whose
+  boot cannot be read (not JSON, no `administrator.boot`, not a string) keeps the first wording; it refuses all the
+  same. `title` still passes without mentioning the trial (finding 5's side remark; not changed).
+- **The guide.** `INSTALL.md`'s update box said a cut-off update ("(power, closed window)") makes the next command in
+  the same start STOP. A closed window ends in the stop routine, which now closes the intent, and a power cut leaves
+  no same start (finding 7). It now reads: "If the update STOPs with **was stopped safely**, nothing changed and every
+  command works: run update again later, or get Help. If it is cut off before its PASS without that line (the command
+  killed), the next command in the same start STOPs with **interrupted before its result was recorded; do not
+  reboot**: …". No guide quoted the layout refusal, so none changed for finding 5.
+- **Fingerprint:** payload refreshed (`bundle.py --refresh`); tools version 4 is now
+  `e68fd5fd56fad61987bdad9d9c1106e40e449548f82dcc27fa351a75074cb75b` in `commands.json` (equal to `bootstrap.lines`),
+  `OWNER-TOOLS.md`, `INSTALL.md` (stick blocks, folder line, routine and export labels, PASS lines), `EMERGENCY.md` and
+  `INSTALL-STATUS.md`. `rebind.py pending "22d step 4: review 8 findings 2 and 5"` ran after the last bound change.
+
+### Tests
+
+- `test_ways_back.py` (4 new): a clean stop for a step that fails before staging and one that fails after it (the
+  routine removed the staged row): the line, the list as before, the closed record, then `check`, `title`, `reboot`
+  and `update` in the same start; a stop with errors (a surviving step, a failed mask after the removal, an archive
+  that fails), before and after staging: the intent stays open and `check`, `title`, `reboot`, `forward`, `previous` and `rollback` STOP as
+  before with nothing changed; a trial on the older AresOS refused by `forward`, `rollback`, `reboot` and `begin` with
+  the same-boot wording, then after a restart by the same words and on plain Bazzite by `forward`, `keep-stock` and
+  `reboot` with the new one, `proof` refusing (`Trial crossed a reboot`), and `abandon` from the fresh login clearing
+  it; unreadable trial records keep the first wording. With both fixes reverted in a scratch copy the clean-stop test (both
+  points) and the trial test fail; the errors test and the unreadable-record test pin unchanged behaviour and pass
+  either way.
+- `ways_back_ledger.py`: the model predicts both wordings by the trial's boot (`trial_refusal`). The slice's counts
+  are unchanged; only executions grow a little, because the refusal now reads the trial record.
+- `test_owner_update.py` (hosted only): the `system_ready` needle is now `checker.no_layout_trial()`. `IntentTest`:
+  update's step failing before or after staging ends in a clean stop, so the intent is closed there (`CLOSED`),
+  `check`, `title` and `records` pass, the next start archives nothing more, and the same command stages afresh; the
+  "other commands never continue an intent" test uses the `observe` point (staged, then the status read failed), where
+  the intent stays open. The fixture patches `finalizer_masks` to `[]` so the routine never reads the runner's `/etc`.
+  `UpdateStopTest`: `stopped_cleanly` expects no open intent and one closed record (and `settled` None); the five
+  stops with an error assert the intent stays open (`stopped_with_errors`). **Not run here**, by the rule. The changed
+  `IntentTest` scenarios were replayed with the module imported as a library (scratch script, not committed): OK.
+- `test_owner_path.py`: pins the new guide sentence, the tool's `' and was stopped safely: '`, and that
+  `(power, closed window)` is gone.
+
+### What ran here (Python 3.14, one module at a time)
+
+| Module | Result |
+|---|---|
+| `test_ways_back` (4 new tests) | `Ran 56 tests`, `OK` |
+| `test_ways_back_model`, `ARESOS_MODEL_SCOPE=slice` (ledger changed) | `Ran 26 tests in 188.961s`, `OK`; slice `173130 states, 3185862 edges` (the pinned `SLICE_COUNTS`, unchanged), 245754 executions, 2940108 reuses. The full model runs hosted; its pinned counts (967215, 26519328) should not change either, since only the predicted refusal words changed, not a state or an edge |
+| `test_ways_back_reverts`, `test_ways_back_compatibility`, `test_owner_sources` (ledger; the tools update's readiness check) | `OK` each (20, 21, 12 tests) |
+| `test_owner_bootstrap`, `test_owner_equality`, `test_owner_path`, `test_owner_entry`, `test_owner_walk` (pins, guide) | `OK` each (12, 11, 48, 3, 27 tests) |
+| `test_grub_bls`, `test_system_keyboard`, `test_stock_prepare`, `test_owner_session` (read the guides) | `OK` each (6, 7, 7, 16 tests) |
+| `test_checkout_sources`, `test_owner_step_limits` (after `rebind.py pending`: 23 bound files wait) | `OK` each (6, 4 tests) |
+| `test_ways_back_probe` | `Ran 57 tests`, the same 2 failures as at step 2 (`Host walk is stale`, below) |
+| `test_owner_update` | not run here, by the rule; its changed `IntentTest` update scenarios replayed through the library: OK |
+
+### Expected red until a later step
+
+Unchanged from step 2: `test_ways_back_probe`'s two `Host walk is stale` failures (22c's frozen host-walk receipt;
+step 6) and `os/ci/owner_vm.py`'s `(2, 3)`. `test_ways_back_model` selects the full model for this branch (hosted).
+
+### JUDGMENT-CALL (for the owner, at the "try this" stage)
+
+- The new refusal's words (above). Changing them later costs a tools version.
+- The `INSTALL.md` sentence about a stopped update (above).
+
 ### Left, in order
 
-Steps 3 to 7 as in the brief: review of steps 1 and 2 (Fable), then review 8's findings 2 and 5, their review, the
-harness mode `tools-local` with the rehearsal, the record step.
+Steps 5 to 7 as in the brief: review of step 4, the harness mode `tools-local` with the rehearsal (its walk binds the
+new fingerprint), the record step (with review 8's finding 3).
