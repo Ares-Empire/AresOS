@@ -1,4 +1,4 @@
-# 20-ci-noise: progress
+# 20-ci-noise: report
 
 Brief: `briefs/20-ci-noise.md`. Builder: a Claude agent on Opus. Branch `ci/20-ci-noise`.
 
@@ -126,3 +126,19 @@ Brief: `briefs/20-ci-noise.md`. Builder: a Claude agent on Opus. Branch `ci/20-c
 ## PLAN-GAPs
 
 - None so far.
+
+## Review and merge (lead, 2026-11-15)
+
+- `REVIEW-1.md` (fresh Opus reviewer): SAFE, seven nits.
+- Merged as is, because none changes behaviour today.
+- Follow-ups, small, for a later Codex run (`~/codex-queue/linux-tools/QUEUE.md`):
+  - the gate also compares the lowest count per sample (nit 2);
+  - the commit counter also counts writes in autocommit mode (nit 3);
+  - the summary requires the end record (nit 4);
+  - the two comments (nits 5, 6);
+  - the brief's literal refusal without a run ID (nit 1).
+- **Nit 7, the lead's answers:**
+  - **The reference:** `latency-reference.json` stays as measured. A looser regression allowance against it is
+    acceptable, because the paired leg is the gate's real comparison.
+  - **A deliberate new sync:** the change that adds it raises the gate in the same PR, with the lead's OK written
+    in its report.
