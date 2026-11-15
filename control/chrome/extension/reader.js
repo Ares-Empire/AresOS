@@ -101,6 +101,31 @@
   const credentialStems=String.raw`pass[\s_-]*(?:word|wort|code|phrase)|passwd|kennwort|sicherheits[\s_-]*(?:code|antwort)|einmal[\s_-]*(?:code|kennwort|passwort)|best(?:ä|ae)tigungs[\s_-]*code|zugangs[\s_-]*code|one[\s_-]*time[\s_-]*(?:code|password)|security[\s_-]*(?:code|answer)|card[\s_-]*(?:verification|code)|pr(?:ü|ue)f[\s_-]*nummer|kartenpr(?:ü|ue)f|geheim[\s_-]*(?:zahl|nummer|code|wort)|transaktions[\s_-]*nummer|(?:verification|verify|authentication|auth|access|activation|recovery|backup|login|sms)[\s_-]*code|(?:verifizierungs|verifikations|authentifizierungs|authentisierungs|aktivierungs|wiederherstellungs|freigabe|anmelde|sicherungs)[\s_-]*code`;
   const credentialTokens=String.raw`pin(?:[\s_-]?(?:code|nummer|number))?\d*|otp(?:code|pin)?|[th]otp|2fa|mfa|pwd?\d*|passwd\d*|secret|puk\d*|cvc\d*|cvv\d*|csc|cvn|(?:sms|push|chip|photo|foto|app|mobile|m)?[\s_-]?tans?|user[\s_-]*pass|api[\s_-]?keys?|api[\s_-]?schl(?:ü|ue)ssel`;
   const credentialWords=new RegExp(`${credentialStems}|(?:^|[^\\p{L}\\p{N}])(?:${credentialTokens})(?:$|[^\\p{L}\\p{N}])`,'u');
+  // Brief 28, item 1 (the name rule): the credential words of the definitions,
+  // a copy of control/aresos_control/chrome/credentials.py that
+  // test_credentials.py compares with it. Either list makes a field
+  // password-kind. This one counts only for a field a person types into, so
+  // a hidden *_token field stays an ordinary field and its form is still sent.
+  const credentialNames={"version":1,"words":["password","passwort","kennwort","passcode","passphrase","pwd","pin","otp","totp","tan","mtan","2fa","mfa","secret","token","seed","mnemonic","cvv","cvc"],"pairs":{"code":["verification","verify","security","sms","login","auth","recovery","backup","card","einmal","bestätigung","sicherheit"],"key":["private","api","secret","access","recovery","signing"],"phrase":["recovery","seed","secret"]}};
+  const foldName=value=>value.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss');
+  const namedWords=new Set(credentialNames.words.map(foldName));
+  const namedPairs=Object.entries(credentialNames.pairs).map(([word,beside])=>[foldName(word),new Set(beside.map(foldName))]);
+  // A word counts whole or as a part of a name (user_password, otpCode,
+  // PIN2), never inside another word (shipping, pinned). A paired word
+  // counts beside a companion: as neighbours in either order, or written as
+  // one word, with the s German puts between them (Einmalcode, Sicherheitscode).
+  function namesCredential(value){
+    const parts=value.normalize('NFKC').replace(/(\p{Ll})(\p{Lu})/gu,'$1 $2').replace(/(\p{Lu})(\p{Lu}\p{Ll})/gu,'$1 $2').split(/[^\p{L}\p{N}]+/u).filter(Boolean)
+      .map(part=>{const folded=foldName(part);return folded.replace(/\d+$/,'')||folded;});
+    return parts.some((part,index)=>namedWords.has(part)||namedPairs.some(([word,beside])=>{
+      if(part===word)return beside.has(parts[index-1])||beside.has(parts[index+1]);
+      const before=part.endsWith(word)?part.slice(0,-word.length):null;
+      return before!==null&&(beside.has(before)||beside.has(before.replace(/s$/,'')));
+    }));
+  }
+  // A verdict depends on the field's kind and its name strings alone, and a
+  // read asks for it many times a field: it is kept until one of them changes.
+  const credentialVerdicts=new WeakMap();
   function credentialLike(element) {
     // Text is joined twice: with spaces between nodes for words in separate
     // elements, and without for a word split by markup (P<b>a</b>sswort).
@@ -116,7 +141,12 @@
       signals.push(referenced.map(node=>labelText(node,joiner)).join(' '));
       signals.push([...element.labels||[]].map(node=>labelText(node,joiner)).join(' '));
     }
-    return signals.some(value=>credentialWords.test(value.replace(/([a-z])([A-Z])/g,'$1 $2').normalize('NFKC').toLowerCase()));
+    const typed=!!element.isContentEditable||html(element,HTMLTextAreaElement,'textarea')||html(element,HTMLInputElement,'input')&&element.type!=='hidden';
+    const key=JSON.stringify([typed,...signals]),known=credentialVerdicts.get(element);
+    if(known?.key===key)return known.verdict;
+    const verdict=signals.some(value=>credentialWords.test(value.replace(/([a-z])([A-Z])/g,'$1 $2').normalize('NFKC').toLowerCase())||typed&&namesCredential(value));
+    credentialVerdicts.set(element,{key,verdict});
+    return verdict;
   }
   function password(element) {
     if(observer?.takeRecords)protect(observer.takeRecords());

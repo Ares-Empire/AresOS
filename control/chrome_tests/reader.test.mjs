@@ -518,9 +518,10 @@ test('final F2 short credential tokens never withhold ordinary fields that conta
   }
 });
 
-// Fixes b, G4.3: API-key names, as whole tokens. There is no bare "token":
-// hidden CSRF fields are commonly named *_token, and withholding them would
-// make ordinary forms refuse.
+// Fixes b, G4.3: API-key names, as whole tokens. The older expressions have
+// no bare "token": hidden CSRF fields are commonly named *_token, and
+// withholding them would make ordinary forms refuse. Brief 28's list has it,
+// for typed fields only (below).
 const FIXES_B_API_KEYS=[['API key','apiKey'],['API-Key','api-key'],['APIKEY','apikey'],['API keys','api_keys'],['X-API-Key','x-api-key'],['API-Schlüssel','apiSchluessel'],['API Schlüssel','api_schlüssel']];
 for(const form of ['label','name','id'])test('fixes b G4.3 every API-key name is withheld in its '+form+' form',()=>{
   for(const watched of [false,true])for(const [label,identifier] of FIXES_B_API_KEYS){
@@ -529,8 +530,8 @@ for(const form of ['label','name','id'])test('fixes b G4.3 every API-key name is
     assert.equal(f.command({command:'typed_fields'}).data.fields.length,0,'never offered for an asking read: '+value);
   }
 });
-test('fixes b G4.3 API and key words alone, and token names, stay ordinary fields',()=>{
-  for(const watched of [false,true])for(const value of ['API endpoint','API version','Keyword','Key result','Monkey','Rapid key','Token','csrf_token','authenticity_token','_token']){
+test('fixes b G4.3 API and key words alone stay ordinary fields',()=>{
+  for(const watched of [false,true])for(const value of ['API endpoint','API version','Keyword','Key result','Monkey','Rapid key']){
     for(const form of ['label','name']){
       const f=fixture([{type:'text',attrs:form==='label'?{}:{[form]:value}}],{watched});
       if(form==='label')f.nodes[0].labels=[new f.Element({tagName:'LABEL',childNodes:[{nodeType:3,textContent:value}]})];
@@ -538,6 +539,73 @@ test('fixes b G4.3 API and key words alone, and token names, stay ordinary field
       if(watched)assert.equal(row.value,'safe visible text',value);else assert.equal(row.value_status,'filled',value);
     }
   }
+});
+
+// Brief 28, item 1 (the name rule; the lead's decision of 2026-11-15). The
+// brief's list is the reader's `credentialNames`, a copy of credentials.py
+// (test_credentials.py compares them). It has a bare "token", "seed" and
+// "mnemonic" and the key and phrase pairs. Until brief 28 a typed field named
+// `token` or `csrf_token` was read (the test above listed them as ordinary):
+// HARNESS-MAP. A hidden field named so is still an ordinary field.
+const BRIEF28_NAMES=JSON.parse(fs.readFileSync('control/chrome/extension/reader.js','utf8').match(/^  const credentialNames=(\{.*\});$/m)[1]);
+const capital=word=>word[0].toUpperCase()+word.slice(1);
+test('brief 28 every credential word withholds a typed field, whole and as a part of a name, in each of the six places',()=>{
+  const cases=[];
+  for(const word of BRIEF28_NAMES.words)cases.push(word,word.toUpperCase(),'user_'+word,word+'Field');
+  for(const [word,beside] of Object.entries(BRIEF28_NAMES.pairs))for(const other of beside)cases.push(other+' '+word,other+'_'+word,other+capital(word));
+  assert.equal(cases.length,19*4+21*3);
+  for(const place of ['name','id','autocomplete','aria-label','placeholder','label'])for(const value of cases){
+    const f=credentialField(place,value,true),row=f.read().data.rows[0];
+    assert.equal(row.password,true,place+' '+value);assert.equal(row.value,undefined);assert.equal(f.calls(),0,value);
+  }
+});
+test('brief 28 a pair counts in either order, as one word and with a number; the rule holds in every document and for every typed element',()=>{
+  for(const watched of [false,true])for(const value of ['Code (SMS)','Einmalcode','Sicherheitscode','Bestätigungscode','bestaetigungs_code','authcode','privatekey','Key: private','Recovery phrase','seedphrase','Seed phrase 12','PIN2','otp1','mTAN','pushTOTP','OTPCode','Your token here','my-seed-2','Mnemonic']){
+    for(const form of ['label','name']){
+      const f=credentialField(form,value,watched),row=f.read().data.rows[0];
+      assert.equal(row.password,true,form+' '+value+' watched='+watched);assert.equal(f.calls(),0,value);
+      assert.equal(f.command({command:'typed_fields'}).data.fields.length,0,'never offered for an asking read: '+value);
+    }
+  }
+  for(const watched of [false,true])for(const [kind,label] of [['textarea','Recovery phrase'],['textarea','secret_value'],['editable','Private key'],['editable','Token']]){
+    const f=fixture([kind==='editable'?{tagName:'DIV',isContentEditable:true,attrs:{'aria-label':label},childNodes:[{nodeType:3,textContent:'NEVER READ'}]}:{tagName:'TEXTAREA',forbidden:true,attrs:{'aria-label':label}}],{watched});
+    if(kind==='editable')f.generic(f.nodes[0]);else f.textarea(f.nodes[0]);
+    const reply=f.read();assert.equal(reply.data.rows[0].password,true,kind+' '+label);assert.doesNotMatch(JSON.stringify(reply),/NEVER READ/);assert.equal(f.calls(),0);
+  }
+});
+test('brief 28 a credential word inside another word, and a paired word alone, withhold nothing',()=>{
+  for(const watched of [false,true])for(const value of ['Shipping','Postal code','postal_code','Pinned','pinned_items','Seedling','Seeds','Tokenizer','Keyboard','Key','Phrase','Code','Promo code','Stand','Mnemonics','Recovery email','Private notes','Security question']){
+    for(const form of ['label','name','aria-label','placeholder']){
+      const f=fixture([{type:'text',attrs:form==='label'?{}:{[form]:value}}],{watched});
+      if(form==='label')f.nodes[0].labels=[new f.Element({tagName:'LABEL',childNodes:[{nodeType:3,textContent:value}]})];
+      const row=f.read().data.rows[0];assert.equal(row.password,undefined,form+' '+value);
+      if(watched)assert.equal(row.value,'safe visible text',value);else assert.equal(row.value_status,'filled',value);
+    }
+  }
+});
+test('brief 28 a typed field named token is withheld, and a hidden field named so stays an ordinary field',()=>{
+  for(const watched of [false,true]){
+    for(const value of ['Token','csrf_token','authenticity_token','_token'])for(const form of ['label','name']){
+      const f=credentialField(form,value,watched),row=f.read().data.rows[0];
+      assert.equal(row.password,true,form+' '+value);assert.equal(row.value,undefined);assert.equal(f.calls(),0,value);
+    }
+    for(const value of ['csrf_token','authenticity_token','_token','token','seed','mnemonic','private_key','recovery_phrase']){
+      const f=fixture([{type:'hidden',attrs:{name:value,id:value}}],{watched});f.read();
+      const target=f.command({command:'facts',element:'e1'}).data.target;
+      assert.equal(target.password,undefined,'hidden '+value+' watched='+watched);
+      if(!watched)assert.equal(target.value_status,'not_read');
+    }
+  }
+});
+test('brief 28 a field that becomes a typed field named like a credential is withheld from then on',()=>{
+  // The verdict is kept per field only while its kind and its name strings stay the same.
+  const f=fixture([{type:'hidden',attrs:{name:'access_token'}}]);f.read();
+  assert.equal(f.command({command:'facts',element:'e1'}).data.target.password,undefined);
+  f.nodes[0].type='text';f.nodes[0].forbidden=true;const before=f.calls();
+  assert.equal(f.read().data.rows[0].password,true);assert.equal(f.calls(),before);
+  const renamed=fixture([{type:'text',attrs:{name:'note'}}]);assert.equal(renamed.read().data.rows[0].value,'safe visible text');
+  renamed.nodes[0].attrs.name='seed';renamed.nodes[0].forbidden=true;const reads=renamed.calls();
+  assert.equal(renamed.read().data.rows[0].password,true);assert.equal(renamed.calls(),reads);
 });
 
 test('post18d late single-line values show filled or empty without reading their value getter',()=>{
