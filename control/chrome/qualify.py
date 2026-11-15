@@ -213,17 +213,21 @@ def notify(candidate, published, runner=subprocess.run):
             '--body','Bring the shipped baseline up to date with the verified append-only data branch. Runtime delivery already uses the attested record. Review before merging.'])
 
 
-def publish(root, candidate, baseline, *, remote=None, verifier=verify, bundle=None, held_verifier=verify_held):
+def publish(root, candidate, baseline, *, remote=None, verifier=verify, bundle=None, held_verifier=verify_held, ref=None):
     """Only the main-only CLI uses the real remote; pull-request runs and tests supply a local bare repo.
 
     The candidate is verified against the bundle the attest step just made,
     so a fresh publication depends on no API listing. A held data-branch
-    record (second and later runs) is verified by held_verifier.
+    record (second and later runs) is verified by held_verifier. ref is the
+    pull-request mode's own source ref for the fresh bundle; main's policy
+    stays the default and the CLI allows ref only with a local remote.
     """
     if bundle is None:
         verifier(candidate)
-    else:
+    elif ref is None:
         verifier(candidate, bundle=bundle)
+    else:
+        verifier(candidate, bundle=bundle, ref=ref)
     candidate_record = append_only(baseline, json.loads(candidate.read_text()))
     with tempfile.TemporaryDirectory(dir=root/'.work') as temporary:
         repository = Path(temporary)
@@ -261,6 +265,7 @@ def main():
     parser.add_argument('--channels',default='stable,beta',help='plan: Chrome channels to qualify; pull-request runs take one')
     parser.add_argument('--bundle',help='publish: the Sigstore bundle the attest step made for the candidate')
     parser.add_argument('--remote',help='publish: an existing local bare repository instead of origin (pull-request mode)')
+    parser.add_argument('--ref',help='publish --remote only: the full ref this run attested the candidate on')
     args=parser.parse_args();root=Path(args.root)
     if args.command=='plan':
         channels=args.channels.split(',')
@@ -322,6 +327,7 @@ def main():
         candidate.parent.mkdir(parents=True,exist_ok=True);candidate.write_text(json.dumps(result,separators=(',',':'))+'\n');return
     if args.remote is None:
         if not on_main:raise SystemExit('Qualification publication to origin is restricted to main')
+        if args.ref:raise SystemExit('Publication to origin verifies the candidate under the main policy only; --ref is for --remote')
         remote=None
     else:
         remote=Path(args.remote)
@@ -331,7 +337,7 @@ def main():
     if not args.bundle:
         raise ValueError('publish requires the bundle the attest step made for this candidate')
     baseline=json.loads(git(root,'show','origin/main:'+RECORD))
-    publish(root,candidate,baseline,remote=remote,bundle=Path(args.bundle))
+    publish(root,candidate,baseline,remote=remote,bundle=Path(args.bundle),ref=args.ref)
 
 
 if __name__=='__main__':main()

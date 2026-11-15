@@ -191,9 +191,9 @@ class Publisher(unittest.TestCase):
                     self.assertIn('No remote reads before branch guard',str(reached.exception))
                 # publish --remote <existing local directory> proceeds with the attest bundle.
                 baseline={'format':1,'entries':[entry()]}
-                with self.subTest(ref=ref,command='publish --remote'), patch.object(sys,'argv',['qualify.py','publish','--bundle','bundle.json','--remote',str(local)]), patch.dict(qualify.os.environ,environment), patch.object(qualify,'git',return_value=json.dumps(baseline)), patch.object(qualify,'publish') as published, no_notify:
+                with self.subTest(ref=ref,command='publish --remote'), patch.object(sys,'argv',['qualify.py','publish','--bundle','bundle.json','--remote',str(local),'--ref',ref or 'refs/pull/1/merge']), patch.dict(qualify.os.environ,environment), patch.object(qualify,'git',return_value=json.dumps(baseline)), patch.object(qualify,'publish') as published, no_notify:
                     qualify.main()
-                    self.assertEqual(published.call_args.kwargs,{'remote':str(local.resolve()),'bundle':Path('bundle.json')})
+                    self.assertEqual(published.call_args.kwargs,{'remote':str(local.resolve()),'bundle':Path('bundle.json'),'ref':ref or 'refs/pull/1/merge'})
                     self.assertEqual(published.call_args.args[1:],(Path('.work/qualification-candidate.json'),baseline))
                 # Never a URL, never a missing directory, never without the bundle.
                 for remote in ['https://github.com/'+qualify.REPOSITORY+'.git','file://'+str(local),str(local/'missing'),'git@github.com:'+qualify.REPOSITORY+'.git']:
@@ -203,6 +203,10 @@ class Publisher(unittest.TestCase):
                     with self.assertRaises(ValueError):qualify.main()
             with patch.object(sys,'argv',['qualify.py','publish','--bundle','bundle.json']), patch.dict(qualify.os.environ,{'GITHUB_REF':'refs/heads/main','GITHUB_REPOSITORY':qualify.REPOSITORY}), no_git, no_publish:
                 with self.assertRaises(AssertionError):qualify.main()
+            # A real publication to origin verifies the candidate under main's policy only: --ref is refused there.
+            with patch.object(sys,'argv',['qualify.py','publish','--bundle','bundle.json','--ref','refs/heads/main']), patch.dict(qualify.os.environ,{'GITHUB_REF':'refs/heads/main','GITHUB_REPOSITORY':qualify.REPOSITORY}), no_git, no_publish:
+                with self.assertRaises(SystemExit) as refused:qualify.main()
+                self.assertIn('--ref is for --remote',str(refused.exception))
             for command in ['prepare','publish','notify']:
                 with self.subTest(repository='foreign',command=command), patch.object(sys,'argv',['qualify.py',command,'--bundle','bundle.json']), patch.dict(qualify.os.environ,{'GITHUB_REF':'refs/heads/main','GITHUB_REPOSITORY':'fixture/repository'}), no_git, no_notify, no_publish:
                     with self.assertRaises(SystemExit):qualify.main()
@@ -235,12 +239,12 @@ class Publisher(unittest.TestCase):
         def git(repo,*arguments,check=True):
             return 'a'*40 if arguments[0]=='rev-parse' else ''
         for channels,expected in [('stable',{'stable'}),('stable,beta',{'stable','beta'}),('beta',{'beta'})]:
-            with self.subTest(channels=channels), patch.object(sys,'argv',['qualify.py','plan','--channels',channels]), patch.object(qualify.urllib.request,'urlopen',return_value=io.BytesIO(gzip.compress(metadata.encode()))), patch.object(qualify,'git',side_effect=git), patch.object(qualify,'build_hash',return_value='a'*64), patch('sys.stdout',new_callable=io.StringIO) as stdout:
+            with self.subTest(channels=channels), patch.object(sys,'argv',['qualify.py','plan','--root',str(ROOT),'--channels',channels]), patch.object(qualify.urllib.request,'urlopen',return_value=io.BytesIO(gzip.compress(metadata.encode()))), patch.object(qualify,'git',side_effect=git), patch.object(qualify,'build_hash',return_value='a'*64), patch('sys.stdout',new_callable=io.StringIO) as stdout:
                 qualify.main()
             rows=json.loads(stdout.getvalue())['include']
             self.assertEqual({row['channel'] for row in rows},expected);self.assertEqual(len(rows),2*len(expected))
         for channels in ['dev','stable,stable','','stable,beta,dev']:
-            with self.subTest(channels=channels), patch.object(sys,'argv',['qualify.py','plan','--channels',channels]), patch.object(qualify.urllib.request,'urlopen',side_effect=AssertionError('No fetch for an invalid channel list')):
+            with self.subTest(channels=channels), patch.object(sys,'argv',['qualify.py','plan','--root',str(ROOT),'--channels',channels]), patch.object(qualify.urllib.request,'urlopen',side_effect=AssertionError('No fetch for an invalid channel list')):
                 with self.assertRaises(ValueError):qualify.main()
 
     def test_first_publication_cuts_the_data_branch_from_main_and_extends_only_the_shipped_baseline(self):
@@ -273,8 +277,13 @@ class Publisher(unittest.TestCase):
             bundle=root/'bundle.json';bundle.write_text('{"fixture":"attest step bundle"}')
             verifier=Mock();held=Mock(side_effect=AssertionError('No data branch exists to verify'))
             main=qualify.git(remote,'rev-parse','refs/heads/main')
-            qualify.publish(seed,candidate,baseline,remote=str(remote),verifier=verifier,bundle=bundle,held_verifier=held)
-            verifier.assert_called_once_with(candidate,bundle=bundle)
+            qualify.publish(seed,candidate,baseline,remote=str(remote),verifier=verifier,bundle=bundle,held_verifier=held,ref='refs/pull/9/merge')
+            verifier.assert_called_once_with(candidate,bundle=bundle,ref='refs/pull/9/merge')
+            # Without a ref (main's publication) the fresh bundle is verified under the default main policy;
+            # the data branch now exists, so the held record is verified too.
+            with patch.object(qualify,'verify') as verify:
+                qualify.publish(seed,candidate,baseline,remote=str(remote),verifier=verify,bundle=bundle,held_verifier=verify)
+            self.assertEqual(verify.call_args_list[0].kwargs,{'bundle':bundle});self.assertEqual(verify.call_count,2)
             self.assertEqual(qualify.git(remote,'rev-parse','refs/heads/main'),main)
             self.assertEqual(json.loads(qualify.git(remote,'show','chrome-qualification:'+qualify.RECORD)),expected)
             self.assertEqual(qualify.git(remote,'rev-parse','chrome-qualification^'),main)

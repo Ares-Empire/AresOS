@@ -234,7 +234,7 @@ jobs:
           set -euo pipefail
           git init --quiet --bare .work/publish-remote.git
           git push --quiet .work/publish-remote.git origin/main:refs/heads/main
-          python3 control/chrome/qualify.py publish --bundle "$BUNDLE" --remote .work/publish-remote.git
+          python3 control/chrome/qualify.py publish --bundle "$BUNDLE" --remote .work/publish-remote.git --ref "$GITHUB_REF"
           git -C .work/publish-remote.git show chrome-qualification:control/chrome/qualification.json > .work/published-record.json
           python3 -c "import json,sys;assert json.load(open(sys.argv[1]))==json.load(open(sys.argv[2])),'The local data branch does not hold the candidate'" .work/published-record.json .work/qualification-candidate.json
           test "$(git -C .work/publish-remote.git rev-parse refs/heads/main)" = "$(git rev-parse origin/main)"
