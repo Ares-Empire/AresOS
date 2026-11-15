@@ -6,6 +6,10 @@ for a mark of one of its own ancestors: Claude Code 2.1.319 starts both from the
 interactive boundary suite). A mark is an empty file named `<pid>-<start>`; the start time (field 22 of
 /proc/<pid>/stat) keeps a reused PID from inheriting a mark. The owner's /run/user/<uid> is a tmpfs, so marks vanish
 at logout. The uid, not XDG_RUNTIME_DIR, names it: the managed commands run under `env -i`.
+
+One notice per outage (lead, 2026-11-15): when the Stop hook tells a marked session that the tools are not running,
+it leaves a second empty file `<pid>-<start>.told` beside the mark; later stops stay quiet while it exists. The next
+hook that reaches the service removes it, so a later outage tells the session again.
 """
 import os
 from pathlib import Path
@@ -15,6 +19,7 @@ RUN = Path('/run/user')
 PROC = Path('/proc')
 FOLDERS = ('aresos-control', 'used')
 LEVELS = 4
+TOLD = '.told'
 # Keys in a result's data that name an operation: its id, or an approval that reserved one.
 NAMING = {'operation_id', 'approval'}
 
@@ -82,6 +87,35 @@ def _marks(uid, run, create):
     return fd
 
 
+def _create(name, folder):
+    """An empty 0600 file in the marks folder, never through a link."""
+    os.close(os.open(name, os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600, dir_fd=folder))
+
+
+def _plain(name, folder):
+    """True when `name` is a plain file in the folder, False when it doesn't exist; raises otherwise (also for a link)."""
+    try:
+        info = os.stat(name, dir_fd=folder, follow_symlinks=False)
+    except FileNotFoundError:
+        return False
+    if not stat.S_ISREG(info.st_mode):
+        raise Unreadable(f'{name}: not a plain file')
+    return True
+
+
+def _session(folder, pid, proc):
+    """The mark (`<pid>-<start>`) of the nearest marked ancestor, up to four levels, never PID 1; None when unmarked."""
+    for _ in range(LEVELS):
+        if pid <= 1:
+            break
+        start, parent = process(pid, proc)
+        key = f'{pid}-{start}'
+        if _plain(key, folder):
+            return key
+        pid = parent
+    return None
+
+
 def mark(pid=None, uid=None, run=RUN, proc=PROC):
     """Mark the Claude Code process (the proxy's parent) as having used the tools. Raises on any failure."""
     pid = os.getppid() if pid is None else pid
@@ -89,7 +123,7 @@ def mark(pid=None, uid=None, run=RUN, proc=PROC):
     start, _ = process(pid, proc)
     folder = _marks(uid, run, create=True)
     try:
-        os.close(os.open(f'{pid}-{start}', os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600, dir_fd=folder))
+        _create(f'{pid}-{start}', folder)
     finally:
         os.close(folder)
 
@@ -107,20 +141,62 @@ def used(pid=None, uid=None, run=RUN, proc=PROC):
         except FileNotFoundError:
             return False
         try:
-            for _ in range(LEVELS):
-                if pid <= 1:
-                    break
-                start, parent = process(pid, proc)
-                try:
-                    info = os.stat(f'{pid}-{start}', dir_fd=folder, follow_symlinks=False)
-                except FileNotFoundError:
-                    pid = parent
-                    continue
-                if not stat.S_ISREG(info.st_mode):
-                    raise Unreadable(f'{pid}-{start}: not a plain mark')
-                return True
-            return False
+            return _session(folder, pid, proc) is not None
         finally:
             os.close(folder)
     except Exception:
         return True
+
+
+def notice(pid=None, uid=None, run=RUN, proc=PROC):
+    """Whether the Stop hook tells this session now that the tools are not running: once per outage.
+
+    A session that used the tools (as `used`) is told unless its `.told` file is there; telling it creates that file.
+    A `.told` file that can't be written still tells (better twice than never); one that can't be read (other than
+    missing) counts as not told. Marks that can't be read tell at every stop: no session is known to record it for.
+    """
+    pid = os.getppid() if pid is None else pid
+    uid = os.getuid() if uid is None else uid
+    try:
+        folder = _marks(uid, run, create=False)
+    except FileNotFoundError:
+        return False
+    except Exception:
+        return True
+    try:
+        try:
+            key = _session(folder, pid, proc)
+        except Exception:
+            return True
+        if key is None:
+            return False
+        try:
+            if _plain(key + TOLD, folder):
+                return False
+        except Exception:
+            pass
+        try:
+            _create(key + TOLD, folder)
+        except Exception:
+            pass
+        return True
+    finally:
+        os.close(folder)
+
+
+def reached(pid=None, uid=None, run=RUN, proc=PROC):
+    """A hook reached the service: remove this session's `.told` file so a later outage tells it again. Never raises."""
+    pid = os.getppid() if pid is None else pid
+    uid = os.getuid() if uid is None else uid
+    try:
+        folder = _marks(uid, run, create=False)
+    except Exception:
+        return
+    try:
+        key = _session(folder, pid, proc)
+        if key is not None:
+            os.unlink(key + TOLD, dir_fd=folder)
+    except Exception:
+        pass
+    finally:
+        os.close(folder)

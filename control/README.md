@@ -40,8 +40,10 @@ or slow clients get a two-second read deadline; large transfers are capped.
 The unit stays `Type=simple` (a slow or failing start never holds `multi-user.target`),
 so it is "active" a moment before its sockets exist. The client therefore tries a
 failing connect (`ENOENT`, `ECONNREFUSED`) again for up to 3 seconds in 0.1 s steps:
-nothing has been sent yet. If it still fails, or connect fails in another way, every
-caller (MCP proxies, the CLI, the hooks) gets the error code `service_unavailable`:
+nothing has been sent yet. The MCP proxies and the CLI wait so; the hooks make one
+attempt (`Client(…, connect_wait=0)`), so a session never waits at every prompt and
+turn end while the service is down. If it still fails, or connect fails in another way,
+every caller (MCP proxies, the CLI, the hooks) gets the error code `service_unavailable`:
 "The AresOS tool service is not running; nothing was sent. Try again later." It never
 points at `operation_status`: there is no operation. A connection lost after the request
 was sent keeps `transport_error`, or `unknown` with the same-id advice for a change.
@@ -285,7 +287,9 @@ is read in full, including long prompts and final assistant messages. A hook rea
 only `hook_event_name` and `stop_hook_active` and checks their types; every other
 field is accepted and never read, because Claude Code adds and changes input fields
 between versions (2.1.319 sends `prompt_id`, which a closed list refused in every
-turn; found by brief 18c's VM test). When the service can't be reached (`service_unavailable`, or `transport_error` for a
+turn; found by brief 18c's VM test). A hook connects once, without the client's 3 s wait
+for a starting service (lead, 2026-11-15): a service that isn't listening at that moment
+counts as not running. When the service can't be reached (`service_unavailable`, or `transport_error` for a
 connection lost), `Stop` is quiet unless the session used the tools (owner, #254): the
 MCP proxy marks its parent, the Claude Code process, before it returns a result that
 names an operation (an `operation_id`, an approval, or an unknown outcome of a change;
@@ -300,7 +304,14 @@ with "AresOS tools are not running. If you prepared or sent something with them 
 session, its outcome is unknown: tell the owner, and don't repeat it." No mark: no
 output, exit 0. A marks folder or process that can't be read counts as a mark; no marks
 folder at all is a clear no. A mark that can't be written is skipped: that session then
-stays quiet. With the service up nothing changes. `Stop` reports malformed input or its
+stays quiet. The notice comes once per outage, not at every turn end (lead, 2026-11-15):
+giving it, `Stop` leaves a second empty file `<pid>-<start>.told` beside the session's
+mark (same folder, 0600, never through a link), and while it exists later stops of that
+session stay quiet. The next hook (`Stop` or `UserPromptSubmit`) that reaches the
+service removes it, so a later outage gives the notice again. A `.told` file that can't
+be written still gives the notice (at every stop, better twice than never); one that
+can't be read (other than missing) counts as not given; marks that can't be read give
+it at every stop. With the service up nothing changes. `Stop` reports malformed input or its
 own failure on stderr with exit 2. Both block a stop once: when the input parses and
 `stop_hook_active` is already true, it ends quietly. Input it can't parse (over the
 size limit, not strict JSON) exits 2 at every stop, up to Claude Code's own limit on

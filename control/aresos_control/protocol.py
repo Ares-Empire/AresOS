@@ -13,7 +13,8 @@ READ_TIMEOUT = 10
 CHANGE_TIMEOUT = 30
 ARCHIVE_TIMEOUT = 600
 # The unit is Type=simple, so it is "active" a moment before its sockets exist. A connect that fails before any byte
-# is sent is safe to try again: wait this long for a starting service, in short steps.
+# is sent is safe to try again: wait this long for a starting service, in short steps. The MCP proxies and the CLI
+# wait; the hooks pass connect_wait=0 (one attempt), so a session never waits per prompt or turn end while it is down.
 CONNECT_WAIT = 3.0
 CONNECT_STEP = 0.1
 NOT_LISTENING = {errno.ENOENT, errno.ECONNREFUSED}
@@ -59,12 +60,14 @@ class ServiceUnavailable(Refused):
 
 
 class Client:
-    def __init__(self, socket_path):
+    def __init__(self, socket_path, connect_wait=None):
+        """`connect_wait`: seconds to keep trying a connect that finds no listener; None is CONNECT_WAIT, 0 one try."""
         self.socket_path = str(socket_path)
+        self.connect_wait = connect_wait
 
     def connect(self, timeout):
         """A connected socket; failures here happen before any byte of the request is sent."""
-        deadline = time.monotonic() + CONNECT_WAIT
+        deadline = time.monotonic() + (CONNECT_WAIT if self.connect_wait is None else self.connect_wait)
         while True:
             connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             try:

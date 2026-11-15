@@ -46,7 +46,11 @@ def main(config, name):
         if not isinstance(event, dict) or event.get("hook_event_name") != name:
             raise Refused("invalid_input", "Hook input must be an object matching the launcher event.")
         try:
-            result = Client(config["act_socket"]).call("control_pending", {})
+            # One connect attempt: the 3 s wait for a starting service is for the MCP proxies and the CLI; a hook
+            # runs at every prompt and turn end, and a session must not wait each time while the service is down.
+            result = Client(config["act_socket"], connect_wait=0).call("control_pending", {})
+            # The service answered: a later outage tells a session that used the tools again.
+            usage.reached()
             if name == "UserPromptSubmit" and not result["ok"]:
                 return
             pending = result["data"] if result["ok"] else {**result.get("pending", {}), "service_unavailable": True, "message": result["error"]["message"],
@@ -55,8 +59,9 @@ def main(config, name):
             if name == "UserPromptSubmit":
                 return
             if exc.code in UNREACHABLE:
-                # Quiet unless used (owner, #254): only a session that used the tools hears that they are down.
-                if not event.get("stop_hook_active") and usage.used():
+                # Quiet unless used (owner, #254): only a session that used the tools hears that they are down, and
+                # once per outage, not at every turn end (lead, 2026-11-15).
+                if not event.get("stop_hook_active") and usage.notice():
                     print(display_json({"decision": "block", "reason": NOT_RUNNING}))
                 return
             pending = {"service_unavailable": True, "message": str(exc)}

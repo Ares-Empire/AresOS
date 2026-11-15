@@ -124,6 +124,39 @@ class ConnectGap(unittest.TestCase):
         self.assertEqual(result['error']['code'], 'service_unavailable')
         self.assertNotIn('operation_status', result['error']['message'])
 
+    def test_hooks_connect_once_and_the_proxy_still_waits(self):
+        # Lead, 2026-11-15: the 3 s wait stays for the MCP proxies and the CLI; a hook makes one attempt, so a session
+        # never waits at every prompt and turn end while the service is down.
+        from aresos_control import hooks
+        with patch.object(protocol.time, 'sleep') as sleep, self.assertRaises(ServiceUnavailable) as caught:
+            Client(self.path, connect_wait=0).request(READ)
+        sleep.assert_not_called()
+        self.assertIn('not running', str(caught.exception))
+        for socket_file in ('missing', 'stale'):
+            if socket_file == 'stale':
+                with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as stale:
+                    stale.bind(self.path)  # refuses connections (ECONNREFUSED), which the proxy waits on too
+            for name in ('Stop', 'UserPromptSubmit'):
+                event = json.dumps({'hook_event_name': name}).encode()
+                with self.subTest(socket_file=socket_file, hook=name), \
+                        patch.object(hooks.usage, 'notice', return_value=True) as notice, \
+                        patch.object(hooks.usage, 'reached') as reached, \
+                        patch('sys.stdin', io.TextIOWrapper(io.BytesIO(event))), redirect_stdout(io.StringIO()) as output:
+                    started = time.monotonic()
+                    hooks.main({'act_socket': self.path}, name)  # the real client, with the default 3 s wait in place
+                    self.assertLess(time.monotonic() - started, 0.5)
+                    reached.assert_not_called()
+                    if name == 'Stop':
+                        self.assertEqual(json.loads(output.getvalue())['reason'], hooks.NOT_RUNNING)
+                    else:
+                        self.assertEqual(output.getvalue(), '')
+                        notice.assert_not_called()
+            with self.subTest(socket_file=socket_file, caller='proxy'), patch.object(protocol, 'CONNECT_WAIT', 0.4):
+                started = time.monotonic()
+                result = Proxy('testapp', {'act_socket': self.path, 'admin_socket': self.path + '.admin'}).call('list', {'limit': 3})
+                self.assertGreaterEqual(time.monotonic() - started, 0.4)
+                self.assertEqual(result['error']['code'], 'service_unavailable')
+
 
 class AdminWithoutSudo(unittest.TestCase):
     def run_cli(self, words, euid):
@@ -153,10 +186,6 @@ class AdminWithoutSudo(unittest.TestCase):
         code, output, proxy, password, sockets = self.run_cli(['admin', 'control', 'restore_confirm'], 0)
         proxy.assert_called_once()
         self.assertTrue(proxy.call_args.args[2])
-
-
-if __name__ == '__main__':
-    unittest.main()
 
 
 class IdleLoop(unittest.TestCase):
@@ -388,11 +417,13 @@ class QuietUnlessUsed(unittest.TestCase):
         from aresos_control import hooks
         event = event or {'hook_event_name': name, 'session_id': 's', 'prompt_id': 'p'}
         output = io.StringIO()
-        with patch.object(hooks, 'Client') as client, patch.object(hooks.usage, 'used', return_value=marked) as used, \
+        with patch.object(hooks, 'Client') as client, patch.object(hooks.usage, 'notice', return_value=marked) as notice, \
+                patch.object(hooks.usage, 'reached') as reached, \
                 patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), redirect_stdout(output):
             client.return_value.call.side_effect = error
             hooks.main({'act_socket': '/nonexistent'}, name)
-        return output.getvalue(), used
+        reached.assert_not_called()
+        return output.getvalue(), notice
 
     def test_stop_hook_is_quiet_unless_used(self):
         for error in (ServiceUnavailable(FileNotFoundError(2, 'No such file')),
@@ -406,20 +437,158 @@ class QuietUnlessUsed(unittest.TestCase):
                 self.assertTrue(decision['reason'].startswith('AresOS tools are not running.'))
                 self.assertIn("don't repeat it", decision['reason'])
                 self.assertNotIn('operation_status', decision['reason'])
-                printed, used = self.stop(error, marked=True, event={'hook_event_name': 'Stop', 'stop_hook_active': True})
+                printed, notice = self.stop(error, marked=True, event={'hook_event_name': 'Stop', 'stop_hook_active': True})
                 self.assertEqual(printed, '')
-                printed, used = self.stop(error, marked=True, name='UserPromptSubmit')
+                notice.assert_not_called()  # the continuation guard comes first: nothing is recorded as told
+                printed, notice = self.stop(error, marked=True, name='UserPromptSubmit')
                 self.assertEqual(printed, '')
-                used.assert_not_called()
+                notice.assert_not_called()
 
     def test_stop_hook_with_the_service_up_is_unchanged(self):
         from aresos_control import hooks
         pending = {'items': [{'operation_id': 'op'}], 'total': 1}
         output = io.StringIO()
-        with patch.object(hooks, 'Client') as client, patch.object(hooks.usage, 'used') as used, \
+        with patch.object(hooks, 'Client') as client, patch.object(hooks.usage, 'notice') as notice, \
+                patch.object(hooks.usage, 'reached') as reached, \
                 patch('sys.stdin', io.TextIOWrapper(io.BytesIO(b'{"hook_event_name":"Stop"}'))), redirect_stdout(output):
             client.return_value.call.return_value = {'ok': True, 'data': pending}
             hooks.main({'act_socket': '/nonexistent'}, 'Stop')
         self.assertEqual(json.loads(output.getvalue())['decision'], 'block')
         self.assertIn('held/unfinished work', json.loads(output.getvalue())['reason'])
-        used.assert_not_called()
+        notice.assert_not_called()
+        reached.assert_called_once_with()
+
+    # One notice per outage (lead, 2026-11-15).
+    def notice(self, pid=35):
+        from aresos_control import usage
+        return usage.notice(pid=pid, uid=self.uid, run=self.run_dir, proc=self.proc)
+
+    def reached(self, pid=35):
+        from aresos_control import usage
+        usage.reached(pid=pid, uid=self.uid, run=self.run_dir, proc=self.proc)
+
+    def told(self):
+        return self.marks() / '20-500.told'
+
+    def test_a_marked_session_is_told_once_per_outage(self):
+        self.mark()
+        self.assertTrue(self.notice())
+        self.assertEqual(sorted(p.name for p in self.marks().iterdir()), ['20-500', '20-500.told'])
+        self.assertEqual(self.told().read_bytes(), b'')
+        self.assertEqual(self.told().stat().st_mode & 0o777, 0o600)
+        self.assertFalse(self.notice())
+        self.assertFalse(self.notice())
+        self.assertTrue(self.used())  # still a session that used the tools
+        self.reached()  # the service answered a hook
+        self.assertFalse(self.told().exists())
+        self.assertTrue((self.marks() / '20-500').exists())
+        self.assertTrue(self.notice())  # the next outage tells again
+        self.assertFalse(self.notice())
+        self.reached()
+        self.reached()  # nothing left to remove is fine
+        self.assertTrue(self.notice())
+
+    def test_unmarked_sessions_are_never_told_and_leave_no_file(self):
+        self.assertFalse(self.notice())  # no folder at all
+        self.reached()
+        self.process(55, 50, 2, 'sh')
+        self.process(50, 1, 1, 'claude')
+        self.mark(pid=50)  # another session's mark
+        self.assertFalse(self.notice())
+        self.reached()
+        self.assertEqual(sorted(p.name for p in self.marks().iterdir()), ['50-1'])
+        self.process(20, 10, 777, 'claude')  # a reused pid doesn't inherit a mark or its notice
+        self.mark(pid=50)
+        self.assertTrue(self.notice(pid=55))
+        self.assertFalse(self.notice())
+
+    def test_a_told_file_that_cannot_be_written_or_read_still_tells(self):
+        from aresos_control import usage
+        self.mark()
+        real_open, real_stat = os.open, os.stat
+        def failing(real):
+            def call(name, *args, **kwargs):
+                if str(name).endswith(usage.TOLD):
+                    raise PermissionError(13, 'synthetic')
+                return real(name, *args, **kwargs)
+            return call
+        with patch.object(usage.os, 'open', failing(real_open)):
+            self.assertTrue(self.notice())  # better twice than never
+            self.assertTrue(self.notice())
+        self.assertFalse(self.told().exists())
+        with patch.object(usage.os, 'stat', failing(real_stat)):
+            self.assertTrue(self.notice())  # can't be read: not told
+            self.assertTrue(self.notice())
+        self.assertTrue(self.told().exists())  # written all the same
+        self.assertFalse(self.notice())
+
+    def test_a_link_or_folder_at_the_told_name_is_never_followed_and_still_tells(self):
+        self.mark()
+        elsewhere = self.root / 'elsewhere'
+        elsewhere.mkdir(mode=0o700)
+        self.told().symlink_to(elsewhere / 'told')
+        self.assertTrue(self.notice())
+        self.assertTrue(self.notice())
+        self.assertEqual(list(elsewhere.iterdir()), [])
+        self.reached()  # removes the link itself, never its target
+        self.assertFalse(os.path.lexists(self.told()))
+        self.told().mkdir()
+        self.assertTrue(self.notice())
+        self.assertTrue(self.notice())
+        self.reached()  # can't remove a folder; never raises
+        self.assertTrue(self.told().is_dir())
+
+    def test_unreadable_marks_tell_at_every_stop_and_record_nothing(self):
+        self.mark()
+        self.marks().chmod(0o755)
+        self.assertTrue(self.notice())
+        self.assertTrue(self.notice())
+        self.reached()
+        self.marks().chmod(0o700)
+        self.assertFalse(self.told().exists())
+        (self.proc / '35' / 'stat').unlink()  # the hook's parent can't be read
+        self.assertTrue(self.notice())
+        self.assertTrue(self.notice())
+        self.reached()
+        self.assertFalse(self.told().exists())
+
+    def test_the_stop_hook_tells_once_per_outage(self):
+        from functools import partial
+        from aresos_control import hooks, usage
+        where = {'pid': 35, 'uid': self.uid, 'run': self.run_dir, 'proc': self.proc}
+        down = ServiceUnavailable(FileNotFoundError(2, 'No such file'))
+        lost = Refused('transport_error', 'Service connection lost; inspect operation_status with the same id, never repeat with a new id.')
+        up = {'ok': True, 'data': {'total': 0}}
+
+        def hook(outcome, name='Stop', active=False):
+            event = {'hook_event_name': name, 'session_id': 's', **({'stop_hook_active': active} if name == 'Stop' else {})}
+            output = io.StringIO()
+            with patch.object(hooks, 'Client') as client, patch.object(hooks.usage, 'notice', partial(usage.notice, **where)), \
+                    patch.object(hooks.usage, 'reached', partial(usage.reached, **where)), \
+                    patch('sys.stdin', io.TextIOWrapper(io.BytesIO(json.dumps(event).encode()))), redirect_stdout(output):
+                if isinstance(outcome, Exception):
+                    client.return_value.call.side_effect = outcome
+                else:
+                    client.return_value.call.return_value = outcome
+                hooks.main({'act_socket': '/nonexistent'}, name)
+            return output.getvalue()
+
+        def told(printed):
+            return json.loads(printed) == {'decision': 'block', 'reason': hooks.NOT_RUNNING}
+
+        self.assertEqual(hook(down), '')  # never used: quiet
+        self.mark()
+        self.assertEqual(hook(down, active=True), '')  # the continuation guard records nothing
+        self.assertTrue(told(hook(down)))
+        self.assertEqual(hook(down), '')  # the next turns of the same outage stay quiet
+        self.assertEqual(hook(lost), '')
+        self.assertEqual(hook(down, 'UserPromptSubmit'), '')
+        self.assertEqual(json.loads(hook(up)), {})  # the service is back
+        self.assertTrue(told(hook(down)))  # a new outage tells again
+        self.assertEqual(hook(lost), '')
+        self.assertEqual(json.loads(hook(up, 'UserPromptSubmit')), {})  # a prompt that reaches the service counts too
+        self.assertTrue(told(hook(lost)))
+
+
+if __name__ == '__main__':
+    unittest.main()
