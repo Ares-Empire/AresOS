@@ -112,7 +112,7 @@ before any capture; the capture and the preflight ran on heads that contain it.
 ### C3 and C4: expectations unchanged
 
 No oracle change. With R1, the lock's rows and notices become missing-only gaps as at the pin (predicted from local
-samples in the handover below; not yet captured).
+samples; confirmed by the capture in "Step 3" below).
 
 ### Tests and probes
 
@@ -133,123 +133,90 @@ samples in the handover below; not yet captured).
   `test_owner_state_quiet` 2 OK; `test_owner_state_regressions` 6 OK. `test_owner_state_contracts` needs
   `cryptography` (Linux container only); the alterations ran in CI.
 
-## Step 3 handover (capture, classification, re-pin, proof)
+## Step 3 (capture, classification, re-pin, proof)
 
-**Dispatches used for R2 so far: 0 of 3.** Nothing was dispatched in step 2 (the lead stopped it before the
-capture). The code to capture is the branch head, which contains `e2240fca` (lead's production fix), the R2 commits
-`ad331af5` and `6019410c`, and the lead's test-only `9c2a361d`. Production code is unchanged since `e2240fca`.
+**Dispatches: 1 and 2 of 3 used** (dispatch 3 unused).
 
-### What R2 changed, in one paragraph each
+- Dispatch 1, capture: **43722918063** on `065275ff`. The ledger job and all 12 alteration shards pass. All 48 sweep
+  and onboarding shards fail only `test_all_flows_all_storage_modes_independent_views` against the old pin, after
+  writing their complete lists. `sweep (0, 0)` also fails `test_matrix_contracts`: two contract groups changed digest
+  with the same count (E renumbering, as in 43702462699). The runners were busy; the run took 2 h 35 min.
+- Dispatch 2, proof: PROOF-PENDING.
 
-- **C2** (`control/owner_state_oracle/model.py`, `driver.py`): under `record.locked`, the three reads in
-  `LOCKED_READS` are permitted `allowed` plus the usual fault permissions; `restore_required` only when the driver
-  recorded `lock_refused_write` (a `Store.write` that raised `Refused('restore_required')` during the call). Every
-  other call under the lock still expects `restore_required` alone.
-- **D** (`control/mail_tests/storage_faults.py`, the sweep's exhausted phase): the exhaustion injector no longer fails
-  closing a Python file opened read-only; the hit still counts. Not a `permitted_status` filter, because the injected
-  close error itself makes production answer `storage_limit`; a filter would have pinned new false gaps
-  (`restart_index`/`restart_tail`, 8 of 8 sampled). See "Step 2" above for the measurements.
+### Pin
 
-### Where the tools are (all ignored, never commit them)
+`reviews/19b-owner-state/KNOWN-GAPS.json` = the capture's compact list: **2,622,072 keys / 1,997 groups / 921,711
+bytes**, SHA-256 `ee326914fff6ccddcb78afbf3c346207148471f3e8b1dd0f96868a776291e68d`. 53 lists, no conflicting shared
+keys, every flow's clean-run point count equal to 43702462699's. Section "Re-pin after 18d, PR #27, PR #68 and
+20-restore-lock (board #185)" in `reviews/19b-owner-state/KNOWN-GAPS.md`, and its top paragraph names it the current
+pin.
 
-- This worktree: `/Users/pab/AresOS-20-restore-lock/.work/185/`
-  - `old-43137420989-full.json`: the pin's full list (reproduces `KNOWN-GAPS.json` byte for byte).
-  - `43702462699-full.json`: the previous capture (pre-R1, same code as `a350cc8b`/`b0711d20` under `control/`).
-  - `r2/regen2.sh <run>`: downloads a run (`gh run download`) into `.work/185/capture/<run>/`, writes
-    `.work/185/<run>-full.json`, `<run>-compact.json` (sorted, `indent=1`, trailing newline, like the pin),
-    `<run>-compact.diff` and `<run>-points.txt`, prints the compact SHA-256 and size, and checks that every flow's
-    clean-run point count equals capture 43702462699 (it should: R1 changes nothing outside the lock).
-  - `r2/account2.py PIN-full NEW-full`: the classification. It aligns points per flow by their cleanup-free
-    signature (the trace's step-2 method: IDs, caller directories and alias numbers normalised, fact lists sorted,
-    lock views and exhausted read statuses left out of the signature), then labels every differing key and pair
-    case, prints counts and examples, and ends with `OUTSIDE THE INTENDED CLASSES: none` (exit 0) or the list of
-    offending labels (exit 1). Validated on pin → 43702462699: it reproduces the trace's counts (9,822 matched,
-    425 inserted, C-pairs 995 / 43,861 keys, C4 43 + 172, C2 3,826) and flags exactly C2, C3 (stale extras), C4
-    and D, which R1/R2 fix.
-  - `r2/pointmap.py OLD NEW OUT.json`: the same alignment as a point map (`matched`, `inserted`, ...).
-    `r2/map-pin-cap1.json` is pin → 43702462699.
-  - `r2/cases.py OUT.json FLOW/MODE/POINT[/CLEANUP] ...`: runs sweep cases locally exactly as the sweep does (live,
-    exhausted for persistent, crash) and dumps their gap entries. `r2/extract.py FULL.json OUT.json PREFIX...`
-    pulls the same cases from a full list. `r2/sample_check.py NEW.json MAP.json PIN-full.json` classifies a
-    local sample against the pin with `account2`'s rules.
-  - `r2/exp_d.py VARIANT FLOW...`: the D experiment (`none`, `P` = permitted filter, `I` = injector).
-  - `r2/c5.py POINT [MODE]`: the restore flow's lock state at a point (store vs decoded record) during the compare.
-  - `tree-base/`: `a350cc8b`'s `control/` (the previous capture's code), for local baselines.
-  - `step2/probe.py FLOW POINT MODE [CLEANUP] [PHASE]`: the trace's single-case probe (replies and failing hits
-    with call sites); patched here for the new `hit(read_only=...)` signature.
-- The trace's originals stay in `/Users/pab/AresOS-19b-oracle-repin/.work/185/` (read-only). **Don't import
-  `step2/index2.py`**: it runs at import and overwrites `sys.argv[1]` with a pickle (it clobbered a copy here once;
-  restored from the original).
-- Local runs: cwd `control/mail_tests`, interpreter `.work/20-restore-lock/venv/bin/python3` (has `jsonschema`),
-  `PYTHONPATH=<tree>/control:<tree>/control/mail_tests:/Users/pab/AresOS-20-restore-lock/.work/185/r2`
-  (`probe_env.py` there stubs the root-owned managed settings). Export flows (`attachment_export`,
-  `testapp_export`, `export_rollback`) and `onboarding` don't run locally; contracts need `cryptography`.
+### Classification (previous pin 43137420989 → capture 43722918063)
 
-### How local runs were checked against CI
-
-The 13 cases `cancel/single/3`, `cancel/persistent/10`, `settlement/persistent/83`, `archive/persistent/2`,
-`expiry/persistent/2`, `maintenance/persistent/2`, `status/single/55`, `restore/single/75`,
-`restore/persistent/75`, `repair/persistent/2`, `send/single/5`, `send/persistent/300` and `filing_move/single/166`
-were run with `cases.py` on `tree-base` and compared with the same keys extracted from 43702462699: 832 of 832
-keys identical, none missing or extra. Local runs therefore stand for CI for these flows. Then on the R2 tree:
-218 locked crash cases across all non-export flows, 140 persistent cases and 80 cleanup pairs, all inside the
-classes below.
-
-### Procedure for step 3, in order
-
-1. Wait for the runs the lead names to finish (in step 2: PR #77, head `7e69bfdc`; one background `until` loop
-   with `sleep 120` on `gh run list -R Ares-Empire/AresOS --commit <sha> --json status`).
-2. Dispatch 1 (capture): `gh workflow run control-owner-oracle.yml -R Ares-Empire/AresOS --ref pkg/20-restore-lock`.
-   Find it with `gh run list -R Ares-Empire/AresOS --workflow control-owner-oracle.yml --branch pkg/20-restore-lock
-   --limit 1 --json databaseId,headSha,status`; watch with at least 60 s between `gh` calls. Expected: the ledger
-   job and all 12 alteration shards pass; the 48 sweep/onboarding shards fail strictly against the old pin after
-   writing their complete lists (as in 43702462699); a contract shard may fail `test_matrix_contracts` on the
-   E renumbering, as before. Anything else failing: diagnose, report, don't retry.
-3. From `/Users/pab/AresOS-20-restore-lock`: `bash .work/185/r2/regen2.sh <run>`. Expect 53 lists and equal
-   clean-run points.
-4. `python3 .work/185/r2/account2.py .work/185/old-43137420989-full.json .work/185/<run>-full.json`. It must end
-   with `OUTSIDE THE INTENDED CLASSES: none`. Also `python3 .work/185/r2/pointmap.py .work/185/43702462699-full.json
-   .work/185/<run>-full.json .work/185/r2/map-cap1-new.json`: expect only matched points (same numbering).
-5. **Stop rule:** any `OTHER`, `UNALIGNED`, `SHOWS MORE`, any `D ...` line, `pair cases old-only`, or E fixed keys
-   changed stops the step before the re-pin; report the labels and examples to the lead and don't pin. Also check
-   that every `C2r` key is in the restore flow's exhausted phase (`account2.py` already makes any C2r key that is not
-   closed an `OTHER lock status` line); a C2r key elsewhere also stops the step.
-6. Re-pin: `cp .work/185/<run>-compact.json reviews/19b-owner-state/KNOWN-GAPS.json`; confirm
-   `shasum -a 256` and `wc -c` match regen2's output. Add a KNOWN-GAPS.md section "Re-pin after 18d, PR #27, PR #68
-   and 20-restore-lock (board #185)": keys, groups, bytes, SHA-256, the run ID and head, the regenerate commands
-   (regen2's three `owner_state_oracle.gaps` steps, as in the earlier sections), and the class table below with the
-   measured counts and commits. Commit with `[skip ci]`, push.
-7. Dispatch 2 (proof) on the same branch: it must be green (all 61 jobs). Record its run ID in KNOWN-GAPS.md and
-   here. Dispatch 3 stays spare.
-
-### Expected classes (pin → new capture), with the lead's rulings
-
-Labels are `account2.py`'s. Predictions come from the samples and from the pin → 43702462699 counts.
-
-| Class | What it is | Commits | Prediction |
+| Class | Prediction | Measured | Verdict |
 |---|---|---|---|
-| A | new fault sites (index pages) | `c5810bb0` | as the trace: +425 points, 43,624 pair-0 keys, 1,316 pair cases / 51,468 keys |
-| B | pair cases equal to their point's own single result (Chrome journal close after each fault) | `3bf1b0d2`, `f3cfd5b1`, `4d80ea38` | about 15,011 new / 5,571 old pair cases, as the trace |
-| C1 | `restore-lock` gaps closed (control_pending answered during the lock) | `f3cfd5b1`, `994b6e8f` | about 6,375 + 238 (restore flow), closed only |
-| C2 | the three reads' status under the lock: back to no gap | R2 `ad331af5` | 0 new. Also closes pin gaps where the oracle's record is locked but the store isn't (exhausted/live-restored): up to 1,246 pin keys (666 observed `allowed` close; 580 observed `storage_limit` close or change in the expected set only, labelled "expected set only"). The `restore-lock` gap at those points stays. |
-| C2r | **Allowed (lead's ruling).** Reads the lock refuses now answer with the lock's refusal first: R1 no longer reads other apps' storage during the lock, so on the full disk those reads answer `restore_required` instead of `storage_limit` and the pin's gaps close. Allowed form: keys in the restore flow's exhausted phase whose gap closes, the reply being `restore_required` for a route the lock refuses. Not allowed: a C2r key that opens a gap or changes to anything but closed. Name it in KNOWN-GAPS.md as "C2r, closed by R1" with its count. | R1 `1e770483`, `e2240fca` | small (3 in the sample); closed only |
-| C3 | control_pending rows and notices during the lock | R1 | back to the pin's M14 "rows missing": about 0 differences vs the pin; any key must be missing-only |
-| C3e | envelopes and passive views during the lock: Mail rows/notices now missing (lead: "C3 (envelopes)", every key missing-only) | R1 | about 10 keys per locked case (2,328 in 218 sampled cases), all missing-only; tens of thousands in all |
-| C4 | continuation to a refused route | `3389d862`, fixed by R1 | back to the pin: 0 new or changed |
-| C5 | restore flow last point (pin 68, now 75), persistent mode | pre-existing | about 48 keys (44 missing-only envelope/notice keys, 2 `restore-lock`, 2 closed) |
-| D | exhausted reads after a background storage failure | R2 `ad331af5` | the pin's 83 gaps are back: 0 differences vs the pin |
-| E | identity renumbering | `baed6679` | 0 fixed keys changed after normalisation |
-| C-pairs | pair cases that equal an old pair case outside the lock views | follows C1–C5 | hundreds of cases |
+| A | +425 points, 43,624 pair-0 keys, 1,316 pair cases / 51,468 keys | +425, 43,609, 1,316 / 51,456 | as predicted; the 15 + 12 fewer keys are C2 status keys at those points |
+| B | about 15,011 new / 5,571 old pair cases | 15,514 / 6,080 (823,611 keys) | explained below |
+| C1 | about 6,375 + 238, closed only | 6,375 + 238, closed only | exact |
+| C2 | 0 new; up to 1,246 pin keys closed or changed in the expected set | 0 new; 661 pair-0 keys (353 closed, 308 expected set only) + 585 pair-case keys = 1,246 | exact |
+| C2r | small (3 in the sample), closed only | 51, closed only, all in the restore flow's exhausted phase | explained below |
+| C3 | about 0 differences, missing-only | 0 | exact |
+| C3e | about 10 keys per locked case, missing-only | 95,258 (66,519 new, 28,739 changed), all missing-only | explained below |
+| C4 | 0 | 0 | exact |
+| C5 | about 48 (44 missing-only, 2 `restore-lock`, 2 closed) | 44 + 2 + 2 | exact |
+| C-pairs | hundreds of cases | 1,071 cases / 60,722 keys | as predicted |
+| D | the pin's 83 gaps back, 0 differences | 0 differences; all 100 exhausted read-status gaps of `expiry` and `maintenance` present unchanged | see below (82, not 83) |
+| E | 0 fixed keys changed | 0 of 377 | exact |
 
-**C5, what disagrees.** At the restore flow's last fault point in persistent mode, the final restore commit
-marker is written, its fsync fails, and the cleanup truncate fails too (persistent fault), so the unsynced marker
-stays in the journal. The decoded state the oracle reads (and a restart) says the restore is confirmed: unlocked.
-The running store keeps its in-memory lock and `write_failed` until restart, so it answers
-`restore_required: true`. In single mode the truncate succeeds and both sides agree the lock holds. The gap
-predates this package (the pin and 43702462699 already had the `restore-lock` disagreement there). R1 only adds
-the missing-only envelope and notice keys. Whether the store's lock there is right (oracle drift) or a production
-question: **not decided; for `linux-tools`.** The facts: the store refuses everything until restart either way,
-and cannot know whether the marker is durable.
+No `OTHER`, `SHOWS MORE`, `D`, old-only pair cases or E changes.
+
+**Where a count differs from the prediction, and why.**
+- **The alignment.** `account2.py`'s own alignment left one `UNALIGNED replace` block in the restore flow (pin 67–68
+  against 73–75) and shifted restore points 54–64 by one. R1 changes the restore flow's live-phase envelope keys at
+  74 and 75 (C3e and C5), and those keys are part of its signature. The capture keeps 43702462699's numbering (the
+  point map from it to this capture matches all 10,247 failing points by number; only restore 74 and 75 change
+  signature), so the classification uses the trace's validated pin → 43702462699 map instead. `account3.py` is
+  `account2.py` with that fixed alignment; on pin → 43702462699 it reproduces `account2.py`'s counts exactly.
+- **C2, 1,246.** The pin holds exactly 1,246 status keys of the three reads outside the crash phase that expect
+  `restore_required`: 661 cleanup-free (336 observed `allowed`, now closed; 308 observed `storage_limit`, now changed
+  in the expected set only; 17 in the restore flow, closed) and 585 in pair cases.
+- **B.** The 585 pair cases that carry a C2 key were identical between the pin and 43702462699; now they differ
+  ("pair cases same" 15,539 → 14,954) and are counted as B (they equal their point's own single result: +503 new,
+  +509 old) or as C-pairs (+76). Total pair cases at matched points are unchanged (22,105 old).
+- **C2r, 51.** 17 restore-flow points in the exhausted phase × three statuses (`control_log`, `mail_accounts`,
+  `mail_filing_notices`); the local sample had one such point. Every key is closed, the reply being
+  `restore_required`.
+- **C3e, 95,258.** By flow, 4 to 20 keys per locked case. The local sample took about 8 cases per flow and no
+  onboarding or export flow; weighted by real case counts, onboarding (1,483 locked cases, 17.2 each) and the send
+  flows (20 each) dominate: 14.8 per locked case. Every key is missing-only (no fact shown that the pin did not show,
+  except a count lower than expected).
+- **D, 82 not 83.** Recounted: 43702462699 had lost 82 of the pin's exhausted read-status gaps (`expiry` 50,
+  `maintenance` 32); all 82 are back unchanged. The trace's 83 was a miscount.
+
+### Reviewer's C2 check (via the lead)
+
+Every C2 status key that closes or changes outside the crash phase keeps a `restore-lock` gap at its point, unchanged
+from the pin: **712 of 712**, none without.
+- 644 outside the restore flow (exhausted and live-restored phases): the oracle's record says locked, the store isn't.
+  Each point keeps `control_pending.restore-lock`, `passive.restore-lock`, `aresos log.restore-lock` and the reply
+  envelopes' `restore-lock` (expected `True`, observed `False`). Named in KNOWN-GAPS.md as C2's mirror of C5.
+- 68 in the restore flow's exhausted phase (17 C2, 51 C2r): the store now answers as locked (C1 closes
+  `control_pending.restore-lock` there); each keeps its `aresos log.restore-lock` gap.
+- The 585 pair-case keys sit at 360 point, mode and phase slots; each slot has at least as many pair cases with an
+  `aresos log.restore-lock` gap in the capture as it had pair cases with a C2 key in the pin.
+
+### Tools (ignored `.work/185/` of the worktree; never committed)
+
+`r2/regen2.sh` (download and lists), `r2/account2.py` (labels), `r2/account3.py` (labels with a fixed point map),
+`r2/c2check.py` (the reviewer's check), `r2/pointmap.py`, maps `r2/map-pin-cap1.json`, `r2/map-cap1-new.json`,
+`r2/map-pin-new.json`. Commands, from the repo root:
+
+```sh
+bash .work/185/r2/regen2.sh 43722918063
+python3 .work/185/r2/account3.py .work/185/old-43137420989-full.json .work/185/43722918063-full.json .work/185/r2/map-pin-cap1.json
+python3 .work/185/r2/c2check.py .work/185/old-43137420989-full.json .work/185/43722918063-full.json .work/185/r2/map-pin-cap1.json
+python3 .work/185/r2/pointmap.py .work/185/43702462699-full.json .work/185/43722918063-full.json .work/185/r2/map-cap1-new.json
+```
 
 ## Records
 

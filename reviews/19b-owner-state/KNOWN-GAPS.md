@@ -8,8 +8,12 @@ known limits of the accepted stage-2 implementation. The stage-2 pin from
 the final fix round: **1,966,234 keys / 2,010 groups**. Correctly disclosed Trash
 roles no longer count as missing; the separate `G22-rename` pin is unchanged.
 
-The current executable pin includes the final escaped-role correction below;
-earlier sections retain their historical conversion and verification evidence.
+**Current executable pin (board #185):** the last section, "Re-pin after 18d,
+PR #27, PR #68 and 20-restore-lock": **2,622,072 keys / 1,997 groups / 921,711
+bytes**, SHA-256 `ee326914fff6ccddcb78afbf3c346207148471f3e8b1dd0f96868a776291e68d`.
+It replaces the 1,966,234-key pin above, which includes the final escaped-role
+correction below; earlier sections retain their historical conversion and
+verification evidence.
 
 The list starts with Mail review 22's three blocking cases. They remain failures in production; stage 1 exposes them without changing their assertions.
 
@@ -468,3 +472,72 @@ No full gap list is committed. The final strict evidence is LEDGER-STRICT-S2-FIX
 
 
 **Run — finished strict pair:** source `3198892719cd86c0e10e49b588de3ca6400d9ad3`; base 42915009215, Mail 42915014744 and boundary 42915020026 each pass attempts 1 and 2. Both independent 53-list merges strictly reproduce all 1,968,467 keys and the 924,737-byte pin byte-for-byte. All 128 Mail jobs are green; maxima 19m02s / 19m57s. Both complete Linux matrices cover 98 recordings, 110 tasks, 2,080,065 alterations and 267,100 coherent variants, zero slipped. Provenance counters are reported separately per pass in REPORT.md. The full fresh-list/source/output proof is LEDGER-STRICT-S2-FIXES-3.json.
+
+
+## Re-pin after 18d, PR #27, PR #68 and 20-restore-lock (board #185)
+
+**Pin:** **2,622,072 keys / 1,997 groups / 921,711 bytes**, all stage 3, zero R2,
+format 3, SHA-256 `ee326914fff6ccddcb78afbf3c346207148471f3e8b1dd0f96868a776291e68d`.
+Keys: 1,155,439 cleanup-free sweep keys, 1,466,256 cleanup-pair keys and 377
+contract, `G22-*` and channel keys (the previous pin: 1,052,284, 913,573 and 377).
+
+**Capture:** dispatch 43722918063 on `065275ff` (branch `pkg/20-restore-lock`),
+attempt 1. The ledger job and all 12 alteration shards pass. All 48 sweep and
+onboarding shards fail only `test_all_flows_all_storage_modes_independent_views`,
+strictly against the previous pin, after writing their complete lists; shard
+`sweep (0, 0)` also fails `test_matrix_contracts` on two contract groups whose
+digests changed by renumbering alone (class E). This is a capture, not green
+verification. All 53 lists merge without conflicting shared keys, and every
+flow's clean-run point count equals capture 43702462699's.
+
+**Proof:** pending (dispatch 2 on the re-pinned head).
+
+Regenerate from the downloaded artifacts (`gh run download 43722918063 -D .work/185/capture/43722918063`):
+
+```sh
+PYTHONPATH=control python3 -m owner_state_oracle.gaps $(find .work/185/capture/43722918063 -name 'owner-gaps-*.json.gz' | sort) --full --output .work/185/43722918063-full.json
+PYTHONPATH=control python3 -m owner_state_oracle.gaps .work/185/43722918063-full.json --output .work/185/43722918063-compact.json
+python3 - <<'PY'
+import json
+from pathlib import Path
+p = Path('.work/185/43722918063-compact.json')
+p.write_text(json.dumps(json.loads(p.read_text()), sort_keys=True, indent=1) + '\n')
+PY
+diff -u reviews/19b-owner-state/KNOWN-GAPS.json .work/185/43722918063-compact.json
+```
+
+**Classification.** Every difference between the previous pin (run 43137420989,
+`65070a83`) and this capture was classified with the board #185 trace's method
+(`reviews/19b-owner-state/REPIN-185-PROGRESS.md`, "Trace (step 2)"): fact lists
+normalised (export directories, 32-hex IDs, alias numbers) and sorted; failing
+points aligned per flow with the trace's alignment of the pin to capture
+43702462699, whose numbering this capture keeps (all 10,247 failing points of
+43702462699 are at the same numbers here). Nothing falls outside these classes.
+
+| Class | Keys (previous pin → this pin) | Cause |
+|---|---|---|
+| A. New fault sites (index pages) | +425 failing points: 43,609 cleanup-free keys, 1,316 pair cases (51,456 keys) | `c5810bb0` |
+| B. Chrome journal close after each fault | pair cases equal to their point's own single-fault result: 6,080 → 15,514 (823,611 keys) | `3bf1b0d2`, `f3cfd5b1`, `4d80ea38` |
+| C1. `restore-lock` gaps closed: `control_pending` answered during the lock | 6,613 closed (238 in the restore flow) | `f3cfd5b1`, `994b6e8f` |
+| C2. The lock's three reads answer: back to no gap | 0 new. Outside the crash phase, 661 status keys: 353 closed (336 observed `allowed`; 17 in the restore flow, observed `storage_limit` at the previous pin), 308 changed in the expected set only (observed `storage_limit`); plus 585 keys in pair cases, counted under B and C-pairs | `ad331af5` (oracle) |
+| C2r. Closed by R1 | 51 closed: the restore flow's exhausted phase, 17 points × `control_log`, `mail_accounts`, `mail_filing_notices` statuses. The lock's refusal now comes first: `restore_required` instead of `storage_limit` | `1e770483`, `e2240fca` |
+| C3. `control_pending` rows and notices during the lock | 0 differences: the M14 "rows missing" gaps as before PR #27 | `1e770483` |
+| C3 (envelopes and passive views) during the lock | 95,258 keys (66,519 new, 28,739 changed; 76 in the restore flow), every one missing-only: Mail's rows and notices are no longer shown during the lock | `1e770483` |
+| C4. Continuation to a refused route | 0 differences: the pin's gaps | `3389d862`, fixed by `1e770483` |
+| C5. The restore flow's last point (68, now 75), persistent | 48: 44 new missing-only envelope and notice keys, 2 new `control_pending.restore-lock`, 2 closed | pre-existing |
+| C-pairs | 1,071 pair cases (60,722 keys) equal to an old pair case outside the lock views | follows C1–C5 |
+| D. Exhausted reads after a background storage failure | 0 differences: all 100 exhausted read-status gaps of `expiry` and `maintenance` are back, including the 82 that 43702462699 had lost | `ad331af5` (oracle) |
+| E. Identity renumbering | 0 of 377 fixed keys changed after normalisation | `baed6679` |
+
+Unchanged: 1,016,218 cleanup-free keys and 14,954 pair cases (530,467 keys).
+
+- **C5:** pre-existing. At the last point in persistent mode the oracle's decoded state says the restore is
+  confirmed, while the running store keeps its lock until restart. Whether the lock there is correct is not
+  decided; for `linux-tools`.
+- **C2's mirror of C5:** 644 status keys outside the restore flow (the exhausted and live-restored phases), where the
+  oracle's record says locked and the store isn't, are no longer gaps through the status (336 closed, 308 changed in
+  the expected set only). The disagreement stays recorded: each of those points keeps its `restore-lock` gaps
+  (`control_pending`, `passive`, `aresos log` and the reply envelopes), unchanged from the previous pin. The 585
+  pair-case keys sit at 360 point, mode and phase slots, and each slot keeps at least as many pair cases with an
+  `aresos log.restore-lock` gap. In the restore flow, the 17 C2 and 51 C2r points keep their `aresos log.restore-lock`
+  gap.
