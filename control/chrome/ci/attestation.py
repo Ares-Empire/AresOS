@@ -262,15 +262,16 @@ def publisher_cases(publication, original, baseline, candidate, verifier):
         ('non-append-only shipped baseline', original, {'format': 1, 'entries': [dict(candidate['entries'][0], run='changed-fixture-baseline')]}, ROLLBACK)
     ]:
         subject.write_bytes(contents)
-        notifications = Mock(return_value=Mock(stdout='[]'))
+        notifications = Mock(return_value=Mock(stdout=''))
         try:
             expected_refusal(lambda: qualify.prepare(publication, [], trusted_baseline, verifier), reason)
         except AssertionError as error:
             raise AssertionError(name + ': ' + str(error)) from error
         qualify.notify(None, False, notifications)
         assert subject.read_bytes() == contents
-        # One open-issue lookup, then the refusal issue; never a pull request.
-        assert [call.args[0][1:3] for call in notifications.call_args_list] == [['issue', 'list'], ['issue', 'create']]
+        # One lookup of the workflow's own open issues, then the refusal issue; never a pull request.
+        assert [call.args[0][1] for call in notifications.call_args_list] == ['api', 'issue']
+        assert notifications.call_args.args[0][1:3] == ['issue', 'create']
         print('QUALIFICATION PUBLISHER ' + name + ' refused (' + reason + '); no write, issue stubbed PASS', flush=True)
 
 

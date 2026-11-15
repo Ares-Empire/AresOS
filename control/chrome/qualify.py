@@ -20,6 +20,8 @@ from build import build_hash
 
 RECORD = 'control/chrome/qualification.json'
 DATA_BRANCH = 'chrome-qualification'
+# The account GITHUB_TOKEN writes issues and comments as.
+WORKFLOW_BOT = 'github-actions[bot]'
 PACKAGES = 'https://dl.google.com/linux/chrome/deb/dists/stable/main/binary-amd64/Packages.gz'
 
 
@@ -300,20 +302,28 @@ def notify(candidate, published, runner=subprocess.run):
     Every GitHub write is an issue. The repository doesn't let workflows
     create pull requests, so the shipped-copy update is an issue a session
     acts on. Each title keeps one open issue: a run comments on it only when
-    its text is new, so the daily runs don't pile up duplicates.
+    its text is new, so the daily runs don't pile up duplicates. Only the
+    workflow's own issues and comments count: the repository is public, and
+    anyone can open an issue or write a comment with the same title or text.
     """
     def gh(arguments):
         try:return runner(['gh',*arguments],check=True,capture_output=True,text=True)
         except subprocess.CalledProcessError as error:
             raise SystemExit('gh '+' '.join(arguments[:2])+' failed: '+(error.stderr or '').strip()) from None
+    def rows(arguments):
+        return [json.loads(line) for line in gh(arguments).stdout.splitlines() if line.strip()]
+    def own(row):
+        return row['user']==WORKFLOW_BOT and row['type']=='Bot'
     def report(title, body):
-        listed=json.loads(gh(['issue','list','--repo',REPOSITORY,'--state','open','--limit','200','--json','number,title']).stdout)
-        numbers=sorted(issue['number'] for issue in listed if issue['title']==title)
-        if not numbers:
+        listed=rows(['api','--paginate','repos/'+REPOSITORY+'/issues?state=open&creator='+WORKFLOW_BOT.replace('[','%5B').replace(']','%5D')+'&per_page=100',
+                     '--jq','.[] | {number, title, body, user: .user.login, type: .user.type, pull: (.pull_request != null)}'])
+        mine=sorted((issue for issue in listed if own(issue) and not issue['pull'] and issue['title']==title),key=lambda issue:issue['number'])
+        if not mine:
             gh(['issue','create','--repo',REPOSITORY,'--title',title,'--body',body]);return
-        seen=json.loads(gh(['issue','view',str(numbers[0]),'--repo',REPOSITORY,'--json','body,comments']).stdout)
-        if body!=seen['body'] and body not in [comment['body'] for comment in seen['comments']]:
-            gh(['issue','comment',str(numbers[0]),'--repo',REPOSITORY,'--body',body])
+        comments=rows(['api','--paginate','repos/'+REPOSITORY+'/issues/'+str(mine[0]['number'])+'/comments',
+                       '--jq','.[] | {body, user: .user.login, type: .user.type}'])
+        if body!=mine[0]['body'] and body not in [comment['body'] for comment in comments if own(comment)]:
+            gh(['issue','comment',str(mine[0]['number']),'--repo',REPOSITORY,'--body',body])
     if not published:
         run=os.environ.get('GITHUB_SERVER_URL','https://github.com')+'/'+REPOSITORY+'/actions/runs/'+os.environ.get('GITHUB_RUN_ID','unknown')
         report('Chrome qualification publication refused',
@@ -427,7 +437,7 @@ def main():
         Path(args.artifacts).mkdir(parents=True,exist_ok=True)
         (Path(args.artifacts)/'pair.json').write_text(json.dumps(identity));return
     # Only this repository prepares or publishes. Writes that reach GitHub (the
-    # push to origin's data branch, issues and pull requests) happen on main
+    # push to origin's data branch and issues) happen on main
     # only; a pull request or branch run prepares, attests and publishes to a
     # local bare repository so that every step runs before the merge.
     if os.environ.get('GITHUB_REPOSITORY')!=REPOSITORY:

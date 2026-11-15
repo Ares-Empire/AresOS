@@ -755,13 +755,17 @@ case('mainfix-sec-publisher-baseline-case-unsigned-bytes',AT,"        ('non-appe
 # Qualification publisher fixes from main's first full run (43696892949): the
 # version is the token after the browser's name (every beta pair was read as
 # 'beta' and recorded all-false), and notify writes issues only, keeps one open
-# issue per title, comments only on new text and shows gh's own error.
+# issue per title (the workflow's own only), comments only on new text and
+# shows gh's own error.
 QFT='test_publisher.Publisher.test_pair_result_requires_measured_build_and_exact_browser_version'
 QFN='test_publisher.Publisher.test_notify_keeps_one_open_issue_per_title_and_shows_gh_errors'
 case('qualifyfix-version-last-word',QY,"measured_version = measured_chrome_version(actual.read_text()) if actual.exists() else None","measured_version = actual.read_text().strip().split()[-1] if actual.exists() else None",QFT,True)
 case('qualifyfix-version-any-name',QY,"re.fullmatch(r'Google Chrome (\\d+(?:\\.\\d+){3})(?: [a-z]+)?',text.strip())","re.search(r'(\\d+(?:\\.\\d+){3})',text)",QFT,True)
-case('qualifyfix-notify-duplicate-issues',QY,"        if not numbers:\n","        if True:\n",QFN,True)
-case('qualifyfix-notify-repeated-comments',QY,"        if body!=seen['body'] and body not in [comment['body'] for comment in seen['comments']]:\n","        if True:\n",QFN,True)
+case('qualifyfix-notify-duplicate-issues',QY,"        if not mine:\n","        if True:\n",QFN,True)
+case('qualifyfix-notify-repeated-comments',QY,"        if body!=mine[0]['body'] and body not in [comment['body'] for comment in comments if own(comment)]:\n","        if True:\n",QFN,True)
+case('qualifyfix-notify-trusts-strangers',QY,"        return row['user']==WORKFLOW_BOT and row['type']=='Bot'\n","        return True\n",QFN,True)
+case('qualifyfix-notify-lists-every-author',QY,"'/issues?state=open&creator='+WORKFLOW_BOT.replace('[','%5B').replace(']','%5D')+'&per_page=100'","'/issues?state=open&per_page=100'",QFN,True)
+case('qualifyfix-notify-pull-request-as-issue',QY,"if own(issue) and not issue['pull'] and issue['title']==title","if own(issue) and issue['title']==title",QFN,True)
 case('qualifyfix-notify-hides-gh-errors',QY,"            raise SystemExit('gh '+' '.join(arguments[:2])+' failed: '+(error.stderr or '').strip()) from None\n","            raise\n",QFN,True)
 case('qualifyfix-publisher-pull-requests-write',QW,"      issues: write\n    steps:","      issues: write\n      pull-requests: write\n    steps:",'test_qualification.Workflow.test_main_only_mutations_serialized_publication_and_daily_stable_beta_pairs',True)
 
