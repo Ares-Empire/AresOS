@@ -208,7 +208,7 @@ fi
 # above it. Only the rig's own test logos are in them.
 if [[ $SHOTS == 1 ]]; then
     [[ -z $cover ]] || { kill "$cover" 2>/dev/null || true; cover=; sleep 2; }
-    # The closed cover leaves no keyboard focus; give it back to the world, as a click would.
+    # Hand the keyboard to the world after the cover closes, as a click on it would.
     python3 -I "$WT/reviews/40-real-home/rig/tl.py" "$RIG" activate aresos-desktop >/dev/null 2>&1 || true
     sleep 1
     mkdir -p "$RIG/shots"

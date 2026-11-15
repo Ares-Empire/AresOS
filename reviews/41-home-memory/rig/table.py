@@ -6,7 +6,10 @@ Set 1 (runs a*) flew only sometimes (a key tap shorter than a game tick), so its
 import glob, json, os, sys
 
 runs = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), '../runs')
-rows = [json.load(open(path)) for path in sorted(glob.glob(os.path.join(runs, '*', 'summary.json')))]
+# In the order of the study: distances set 1 and 2, heap ceilings, covered GC runs, the middle ratio, validation.
+ORDER = 'adhcmv'
+rows = sorted((json.load(open(path)) for path in glob.glob(os.path.join(runs, '*', 'summary.json'))),
+              key=lambda s: (ORDER.index(s['name'][0]) if s['name'][0] in ORDER else len(ORDER), s['name']))
 
 
 def g(d, *keys, default='-'):
