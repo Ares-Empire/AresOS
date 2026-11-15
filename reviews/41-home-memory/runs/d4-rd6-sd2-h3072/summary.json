@@ -1,0 +1,203 @@
+{
+ "name": "d4-rd6-sd2-h3072",
+ "settings": {
+  "RD": "6",
+  "SD": "2",
+  "HEAP": "3072",
+  "MIN_HEAP": "512",
+  "GC": "",
+  "MEMHIGH": "5G",
+  "SIZE": "1920x1080",
+  "REFRESH": "144",
+  "SETTLE": "120",
+  "WINDOW": "60",
+  "COVER": "0"
+ },
+ "windows": {
+  "stand": {
+   "seconds": 57.1,
+   "cpu_percent": 35,
+   "frames": 6844,
+   "fps": 120.0,
+   "avg_ms": 8.34,
+   "p50_ms": 8.33,
+   "p99_ms": 8.47,
+   "max_ms": 23.8,
+   "over_50ms": 0,
+   "over_100ms": 0,
+   "gc_pauses": 9,
+   "gc_max_ms": 16.3,
+   "gc_total_ms": 32.9,
+   "gc_over_50ms": 0,
+   "gc_kinds": [
+    "Pause Cleanup",
+    "Pause Remark",
+    "Pause Young (Concurrent Start) (G1 Evacuation Pause)",
+    "Pause Young (Mixed) (G1 Evacuation Pause)",
+    "Pause Young (Prepare Mixed) (G1 Evacuation Pause)"
+   ]
+  },
+  "flight": {
+   "seconds": 60.0,
+   "cpu_percent": 76,
+   "frames": 7199,
+   "fps": 119.9,
+   "avg_ms": 8.34,
+   "p50_ms": 8.33,
+   "p99_ms": 8.5,
+   "max_ms": 13.1,
+   "over_50ms": 0,
+   "over_100ms": 0,
+   "gc_pauses": 34,
+   "gc_max_ms": 7.36,
+   "gc_total_ms": 99.2,
+   "gc_over_50ms": 0,
+   "gc_kinds": [
+    "Pause Cleanup",
+    "Pause Remark",
+    "Pause Young (Concurrent Start) (G1 Evacuation Pause)",
+    "Pause Young (Mixed) (G1 Evacuation Pause)",
+    "Pause Young (Prepare Mixed) (G1 Evacuation Pause)",
+    "Pause Young (Prepare Mixed) (G1 Evacuation Pause) (Evacuation Failure: Pinned)"
+   ]
+  },
+  "whole_run": {
+   "seconds": 260.7,
+   "cpu_percent": 46,
+   "frames": 25363,
+   "fps": 97.3,
+   "avg_ms": 10.28,
+   "p50_ms": 8.34,
+   "p99_ms": 33.44,
+   "max_ms": 35.7,
+   "over_50ms": 0,
+   "over_100ms": 0,
+   "gc_pauses": 57,
+   "gc_max_ms": 16.3,
+   "gc_total_ms": 186.1,
+   "gc_over_50ms": 0,
+   "gc_kinds": [
+    "Pause Cleanup",
+    "Pause Remark",
+    "Pause Young (Concurrent Start) (G1 Evacuation Pause)",
+    "Pause Young (Mixed) (G1 Evacuation Pause)",
+    "Pause Young (Prepare Mixed) (G1 Evacuation Pause)",
+    "Pause Young (Prepare Mixed) (G1 Evacuation Pause) (Evacuation Failure: Pinned)"
+   ]
+  }
+ },
+ "snapshots": {
+  "flight": {
+   "rss": 1436,
+   "rss_peak": 1436,
+   "pss": 1319,
+   "rss_anon": 1232,
+   "rss_file": 146,
+   "swap": 0,
+   "heap_used": 449,
+   "heap_committed": 566,
+   "nmt_total": 910,
+   "nmt": {
+    "Java Heap": 566,
+    "Class": 26,
+    "Thread": 8,
+    "Code": 58,
+    "GC": 72,
+    "Symbol": 23,
+    "Native Memory Tracking": 9,
+    "Shared class space": 14,
+    "Metaspace": 120
+   },
+   "cgroup_current": 1257,
+   "cgroup_peak": 1258,
+   "cgroup_anon": 1232,
+   "cgroup_file": 15,
+   "cgroup_high_events": 0,
+   "memory_high": "5368709120",
+   "gpu_process": 306,
+   "gpu_total": 370
+  },
+  "settled": {
+   "rss": 1331,
+   "rss_peak": 1331,
+   "pss": 1216,
+   "rss_anon": 1132,
+   "rss_file": 144,
+   "swap": 0,
+   "heap_used": 424,
+   "heap_committed": 514,
+   "nmt_total": 869,
+   "nmt": {
+    "Java Heap": 514,
+    "Class": 26,
+    "Thread": 7,
+    "Code": 70,
+    "GC": 71,
+    "Other": 8,
+    "Symbol": 23,
+    "Native Memory Tracking": 10,
+    "Shared class space": 14,
+    "Metaspace": 119
+   },
+   "cgroup_current": 1147,
+   "cgroup_peak": 1147,
+   "cgroup_anon": 1132,
+   "cgroup_file": 7,
+   "cgroup_high_events": 0,
+   "memory_high": "5368709120",
+   "gpu_process": 306,
+   "gpu_total": 370
+  },
+  "stand": {
+   "rss": 1340,
+   "rss_peak": 1340,
+   "pss": 1225,
+   "rss_anon": 1140,
+   "rss_file": 144,
+   "swap": 0,
+   "heap_used": 350,
+   "heap_committed": 514,
+   "nmt_total": 858,
+   "nmt": {
+    "Java Heap": 514,
+    "Class": 26,
+    "Thread": 7,
+    "Code": 58,
+    "GC": 71,
+    "Other": 5,
+    "Symbol": 23,
+    "Native Memory Tracking": 9,
+    "Shared class space": 14,
+    "Arena Chunk": 7,
+    "Metaspace": 119
+   },
+   "cgroup_current": 1156,
+   "cgroup_peak": 1156,
+   "cgroup_anon": 1140,
+   "cgroup_file": 7,
+   "cgroup_high_events": 0,
+   "memory_high": "5368709120",
+   "gpu_process": 306,
+   "gpu_total": 370
+  }
+ },
+ "gc_after_join": {
+  "pauses": 60,
+  "max_ms": 16.3,
+  "full": 0,
+  "concurrent_cycles": 24
+ },
+ "gc_before_join": {
+  "pauses": 36,
+  "max_ms": 14.52
+ },
+ "heap_committed_mib": {
+  "max": 566,
+  "last": 566,
+  "max_before_gc": 535
+ },
+ "out_of_memory": false,
+ "town_frozen": false,
+ "paused_lines": 0,
+ "lost_frames": 0
+}
