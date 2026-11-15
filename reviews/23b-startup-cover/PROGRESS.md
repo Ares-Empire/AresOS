@@ -57,7 +57,12 @@ Nothing here was run on the owner's screen: every graphical run was a headless l
 
 - `python3 -m unittest discover -s os/tests -p 'test_aresos_desktop.py' -k CoverTest -k SessionFilesTest`:
   `Ran 18 tests … OK`. `-k LoopTest`: `Ran 23 tests in 68.2s OK` (6 new).
-- Whole module `test_aresos_desktop.py`: see the PR description (filled in when the run ends).
+- Whole module `test_aresos_desktop.py`, first run: `Ran 172 tests in 167.9s FAILED (failures=1, skipped=1)`.
+  The failure was `RestartPolicyTest.test_deadlines_never_spin_after_their_action`: it requires `pending() == []`
+  right after a slow start and a quit, but the slow-start view now stops the session's cover, whose SIGKILL is
+  legitimately due 2 s later. The test now also checks that timer (exactly one item, due at +2 s, fires once,
+  then `pending() == []` and `deadline() == 30.0`); nothing it checked before was removed. Second whole run: see
+  the PR description.
 - `test_aresos_cover.py` (new), twice: `Ran 9 tests in 6.0s OK`, then `OK` again, nothing skipped here.
 - Modules that read files changed here, one at a time: `test_everyday_account` 34 OK, `test_journal_ready` 6 OK,
   `test_aresos_shell_icons` 43 OK, `test_owner_path` 47 OK, `test_release27` 41 OK.

@@ -1257,6 +1257,11 @@ class RestartPolicyTest(Base):
         sup.tick()
         self.assertGreater(sup.deadline(), 0)
         self.end_game(sup, pid, 0)
+        # The slow-start view stopped the startup cover: only its SIGKILL is due, 2 s later (package 23b), once.
+        self.assertEqual([at for at, _ in sup.pending()], [self.now[0] + desktop.COVER_STOP_WAIT])
+        self.advance(desktop.COVER_STOP_WAIT)
+        sup.tick()
+        self.assertEqual(self.runner.cover_kills, [self.now[0]])
         self.assertEqual(sup.pending(), [])
         self.assertEqual(sup.deadline(), 30.0)
         # A normally ended game is never mistaken for a lost hand-off later.
