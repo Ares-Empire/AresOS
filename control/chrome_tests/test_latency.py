@@ -621,3 +621,77 @@ class LatencyGate(unittest.TestCase):
             elif change=='pair':self.current['input_samples'][0]['client_ms']=1
             else:self.current['phases']['fresh']['read']['service_total']['median_ms']=float('nan')
             with self.assertRaises((AssertionError,KeyError)):self.check()
+
+
+class MainFixStorageStages(unittest.TestCase):
+    """Main fix H5: the CI profile times the store's writes and the journal's fsyncs per marked sample."""
+
+    def setUp(self):
+        import importlib.util
+        import json
+        import os
+        from pathlib import Path
+        import tempfile
+        from types import SimpleNamespace
+        ROOT=Path(__file__).resolve().parents[2]
+        self.temporary=tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome');self.addCleanup(self.temporary.cleanup)
+        root=Path(self.temporary.name)
+        spec=importlib.util.spec_from_file_location('latency_profile',ROOT/'control/chrome/ci/latency-profile.py')
+        self.profile=importlib.util.module_from_spec(spec);spec.loader.exec_module(self.profile)
+        self.profile.MARKER=root/'latency-marker.json';self.profile.OUT=root/'latency-service.jsonl'
+        self.addCleanup(setattr,storage,'os',os)
+        journal=open(root/'journal','ab');self.addCleanup(journal.close)
+        self.json,self.os=json,os
+        def write(changes,action,summary):
+            # Two journal fsyncs per write, as the real store's _append does.
+            for _ in range(2):storage.os.fsync(journal.fileno())
+            return 'written'
+        store=SimpleNamespace(write=write)
+        bridge=SimpleNamespace(connection=None,call=lambda name,**arguments:{'ok':True},on_event=lambda value:None)
+        def request(value,admin=False):
+            for _ in range(value.get('writes',0)):self.engine.store.write({'x':1},'chrome_fixture','synthetic')
+            return {'ok':True}
+        self.engine=SimpleNamespace(adapters={'chrome':SimpleNamespace(bridge=bridge)},request=request,expire=lambda:None,store=store)
+        self.daemon=SimpleNamespace(engine=self.engine)
+
+    def rows(self,stage):
+        if not self.profile.OUT.exists():return []
+        return [self.json.loads(line) for line in self.profile.OUT.read_text().splitlines() if self.json.loads(line).get('stage')==stage]
+
+    def test_store_write_and_journal_fsync_are_summed_per_marked_sample_only(self):
+        self.profile.install(self.daemon)
+        self.assertIsNot(storage.os,self.os);self.assertEqual(storage.os.SEEK_END,self.os.SEEK_END)
+        # Work outside a marked sample is not counted and does not leak into the next one.
+        self.engine.store.write({'x':1},'chrome_fixture','synthetic');self.engine.request({'writes':3})
+        self.assertEqual(self.rows('store_write'),[]);self.assertEqual(self.rows('journal_fsync'),[])
+        self.profile.MARKER.write_text(self.json.dumps({'sample':'fresh:0','call':'approval_to_done'}))
+        self.engine.request({'writes':2})
+        self.profile.MARKER.write_text(self.json.dumps({'sample':'fresh:1','call':'read'}))
+        self.engine.request({'writes':0})
+        writes=self.rows('store_write');fsyncs=self.rows('journal_fsync')
+        self.assertEqual([(row['sample'],row['call']) for row in writes],[('fresh:0','approval_to_done'),('fresh:1','read')])
+        self.assertEqual([(row['sample'],row['call'],row['count']) for row in fsyncs],[('fresh:0','approval_to_done',4),('fresh:1','read',0)])
+        self.assertGreater(writes[0]['milliseconds'],0);self.assertGreaterEqual(writes[0]['milliseconds'],fsyncs[0]['milliseconds'])
+        self.assertEqual(writes[1]['milliseconds'],0);self.assertEqual(fsyncs[1]['milliseconds'],0)
+        for row in writes+fsyncs:self.assertNotIn('command',row)
+        # Every marked sample carries both stages, so the summary's per-call
+        # sample counts stay complete for the gate's strict validation.
+        totals=self.rows('service_total')
+        self.assertEqual(len(totals),len(writes),2)
+
+    def test_the_latency_pair_keeps_its_harness_streams_off_the_store_disk(self):
+        from pathlib import Path
+        ROOT=Path(__file__).resolve().parents[2]
+        pair=(ROOT/'control/chrome/ci/latency-pair.sh').read_text()
+        self.assertIn('--tmpfs /scratch:rw,size=256m,mode=1777 -e INSTALL_MODE=policy -e LATENCY_PROBE=true',pair)
+        run=(ROOT/'control/chrome/ci/run.sh').read_text()
+        self.assertIn('if test "${LATENCY_PROBE:-}" = true && test -d /scratch; then FIXTURE_LOG_DIR=/scratch; fi',run)
+        self.assertIn('FIXTURE_LOG_DIR="$FIXTURE_LOG_DIR" python3 control/chrome/ci/service.py > "$FIXTURE_LOG_DIR/service.txt" 2>&1 &',run)
+        self.assertIn('cp "$FIXTURE_LOG_DIR/service.txt" "$FIXTURE_LOG_DIR/browser-boundary.jsonl" /out/',run)
+        self.assertLess(run.index('wait "$service_pid"'),run.index('cp "$FIXTURE_LOG_DIR/service.txt"'))
+        service=(ROOT/'control/chrome/ci/service.py').read_text()
+        self.assertIn("open(os.environ.get('FIXTURE_LOG_DIR','/out')+'/browser-boundary.jsonl','a',buffering=1)",service)
+        self.assertNotIn("open('/out/browser-boundary.jsonl'",service)
+        # The store stays on the container's disk: nothing redirects its state directories.
+        self.assertIn("'state_dir':'/var/lib/aresos-tools'",service)
+        self.assertNotIn('/scratch',service)

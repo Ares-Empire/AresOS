@@ -418,4 +418,75 @@ class ShellClientTest {
         if (error != null) reply.addProperty("error", error);
         return reply;
     }
+
+    /** Package 40: a program that started but showed no window of its own is said as that, not as a silent helper. */
+    @Test void aStartedProgramWithoutAWindowIsNotReportedAsAMissingAnswer() throws Exception {
+        connect();
+        var refused = refusal(client.open("notepad"));  // the fake helper answers "starting" and nothing more
+        assertEquals("no_window", refused.code());
+        assertEquals("it started, but no window of it appeared", ShellClient.describe(refused));
+    }
+
+    /** Package 40: what the helper says about covering reaches listeners once per change; a lost helper uncovers. */
+    @Test void coveredReachesListenersAndALostHelperUncovers() throws Exception {
+        connect();
+        var covered = new CopyOnWriteArrayList<Boolean>();
+        client.addListener(new ShellClient.Listener() {
+            @Override public void covered(boolean now) { covered.add(now); }
+        });
+        var offered = helper.received("hello").getFirst().getAsJsonArray("capabilities").asList();
+        assertTrue(offered.stream().anyMatch(value -> value.getAsString().equals("shell_covered")));
+        try (var input = ShellClientTest.class.getResourceAsStream("/shell-1.1/shell-covered-event.json")) {
+            // The example says covered; a 1.0 helper's envelope is accepted like any other 1.x.
+            var example = com.google.gson.JsonParser.parseString(new String(input.readAllBytes(),
+                    java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+            example.addProperty("protocol", "aresos-shell/1.0");
+            helper.raw(example.toString());
+        }
+        helper.event("shell_covered", Map.of("covered", true));  // no change, no call
+        helper.event("shell_covered", Map.of("covered", false));
+        helper.event("shell_covered", Map.of("covered", true));
+        FakeHelper.await(() -> covered.size() == 3, "three changes");
+        helper.drop();
+        FakeHelper.await(() -> covered.size() == 4, "uncovered when the helper went away");
+        assertEquals(List.of(true, false, true, false), covered);
+    }
+
+    /**
+     * Package 40, linux-aresos's condition: package 23's supervisor takes missing heartbeats for a dead world. Covering
+     * pauses the world, so the helper must go on hearing ready heartbeats with the world, and no new world_ready.
+     */
+    @Test void heartbeatsKeepSayingReadyWhileCovered() throws Exception {
+        connect();
+        var covered = new CopyOnWriteArrayList<Boolean>();
+        client.addListener(new ShellClient.Listener() {
+            @Override public void covered(boolean now) { covered.add(now); }
+        });
+        client.world("AresOS");
+        FakeHelper.await(() -> !helper.received("world_ready").isEmpty(), "world_ready");
+        helper.event("shell_covered", Map.of("covered", true));
+        FakeHelper.await(() -> covered.equals(List.of(true)), "covered");
+        int before = helper.received("heartbeat").size();
+        FakeHelper.await(() -> helper.received("heartbeat").size() >= before + 5, "five heartbeats while covered");
+        var beats = helper.received("heartbeat");
+        for (var beat : beats.subList(before, beats.size())) {
+            assertTrue(beat.get("ready").getAsBoolean(), beat.toString());
+            assertEquals("AresOS", beat.getAsJsonObject("world").get("id").getAsString());
+        }
+        assertEquals(1, helper.received("world_ready").size());
+        assertEquals(List.of(true), covered);
+    }
+
+    /** Package 40: only a game the AresOS session started is the desktop window. */
+    @Test void onlyAGameTheSessionStartedIsADesktopSession() {
+        assertTrue(ShellClient.configured(Map.of("XDG_RUNTIME_DIR", "/run/user/1001",
+                "ARESOS_DESKTOP_INSTANCE", "desk", "ARESOS_LAUNCH_NONCE", "abcdefghijklmnop")));
+        assertTrue(ShellClient.configured(Map.of("ARESOS_SHELL_SOCKET", "/run/user/1001/dev/shell.sock",
+                "ARESOS_DESKTOP_INSTANCE", "desk", "ARESOS_LAUNCH_NONCE", "abcdefghijklmnop")));
+        assertFalse(ShellClient.configured(Map.of("XDG_RUNTIME_DIR", "/run/user/1001")));
+        assertFalse(ShellClient.configured(Map.of("XDG_RUNTIME_DIR", "/run/user/1001",
+                "ARESOS_DESKTOP_INSTANCE", "desk", "ARESOS_LAUNCH_NONCE", " ")));
+        assertFalse(ShellClient.configured(Map.of("ARESOS_DESKTOP_INSTANCE", "desk",
+                "ARESOS_LAUNCH_NONCE", "abcdefghijklmnop")));
+    }
 }

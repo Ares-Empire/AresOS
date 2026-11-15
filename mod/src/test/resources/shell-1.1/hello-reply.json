@@ -12,6 +12,7 @@
     "list_apps",
     "list_paging",
     "open_app",
+    "shell_covered",
     "shell_focus",
     "windows",
     "world_ready"

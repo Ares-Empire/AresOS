@@ -2,13 +2,41 @@ package dev.aresos.mode;
 
 import dev.aresos.world.DesktopWorld;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.level.GameType;
 
+/**
+ * Live mode is the game's survival mode in a desktop world: the hotbar is his taskbar, logos and the town's blocks
+ * cannot be broken, and nothing can hurt or starve him.
+ *
+ * <p>Package 40 (the owner: "put the user into creative and give him speed to travel faster"): Live stays survival,
+ * so the creative inventory never reaches the taskbar and left-click never breaks a logo at once, but it gets
+ * creative's flight and invulnerability. Both modes walk faster ({@link #DESKTOP_WALKING_SPEED}). The game resets
+ * these with every change of game mode, so they are put back right there ({@link #applyDesktopAbilities}), which
+ * covers joining, respawning and both switches; the client resets its copy whenever it is told the game mode, so the
+ * server sends the abilities again after each such packet ({@code ModeInventories.sync}, the respawn below).
+ */
 public final class LiveMode {
+    /**
+     * The walking speed in desktop worlds, in both modes: 1.5 times the game's 0.1, so he walks 6.5 blocks a second
+     * instead of 4.3 and sprints 8.4 instead of 5.6. The front row's doorway (21 blocks, HUB.md) is 2.5 seconds away
+     * sprinting instead of 3.7, the farthest of forty apps (64 blocks) 7.6 seconds instead of 11.3. Walking is now
+     * faster than the game's sprint, so he need not hold a key to cross the town. It stays below flight (10.9 a
+     * second), the fast way, and at 0.42 blocks a tick a 2-wide doorway is still easy to hit.
+     *
+     * <p>It is the walking speed of his abilities and the base of his movement speed together, as the game itself keeps
+     * them (it loads the base from the walking speed), so the field of view does not widen as it would with an effect
+     * or a modifier: the game widens it by the ratio of the two.
+     */
+    public static final float DESKTOP_WALKING_SPEED = 0.15f;
+    private static final float GAME_WALKING_SPEED = new Abilities().getWalkingSpeed();
+
     private LiveMode() { }
 
     public static boolean isLive(ServerPlayer player) {
@@ -26,6 +54,11 @@ public final class LiveMode {
             }
             return true;
         });
+        // The client makes a new player from the respawn packet's game mode, with survival's abilities in Live and the
+        // game's walking speed: tell it the real ones after that packet.
+        ServerPlayerEvents.AFTER_RESPAWN.register((before, after, alive) -> {
+            if (DesktopWorld.isEnabled(after.level().getServer())) after.onUpdateAbilities();
+        });
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             // A switch timeout can disconnect and remove a player during this loop.
             for (ServerPlayer player : java.util.List.copyOf(server.getPlayerList().getPlayers())) {
@@ -33,6 +66,40 @@ public final class LiveMode {
                 protect(player);
             }
         });
+    }
+
+    /**
+     * Called whenever the game has just set a player's game mode and with it his abilities (on joining, on a respawn,
+     * on every switch, and while a failed switch is rolled back). In a desktop world it gives back what the game took:
+     * the speed in both modes, and in Live creative's flight and invulnerability, never its instant building. A Live
+     * player who was flying keeps flying, as in a switch between creative and spectator; the game itself then lands him
+     * when he is close to the ground.
+     */
+    public static void applyDesktopAbilities(ServerPlayer player, boolean wasFlying) {
+        if (!DesktopWorld.isEnabled(player.level().getServer())) return;
+        setWalkingSpeed(player, DESKTOP_WALKING_SPEED);
+        if (!isLive(player)) return;
+        var abilities = player.getAbilities();
+        abilities.mayfly = true;
+        abilities.invulnerable = true;
+        abilities.flying = wasFlying;
+    }
+
+    /** The desktop marker was switched on or off with the player in the world: his abilities follow at once. */
+    public static void markerChanged(ServerPlayer player, boolean enabled) {
+        if (enabled) applyDesktopAbilities(player, player.getAbilities().flying);
+        else {
+            // The game's own abilities for his mode, and its walking speed if it was this mod's.
+            player.gameMode.getGameModeForPlayer().updatePlayerAbilities(player.getAbilities());
+            if (player.getAbilities().getWalkingSpeed() == DESKTOP_WALKING_SPEED) setWalkingSpeed(player, GAME_WALKING_SPEED);
+        }
+        player.onUpdateAbilities();
+    }
+
+    private static void setWalkingSpeed(ServerPlayer player, float speed) {
+        player.getAbilities().setWalkingSpeed(speed);
+        var movement = player.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (movement != null) movement.setBaseValue(speed);
     }
 
     public static void protect(ServerPlayer player) {

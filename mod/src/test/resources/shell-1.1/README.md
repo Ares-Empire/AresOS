@@ -9,7 +9,7 @@ the instance, the nonce and the icon paths are made up.
 
 | File | What it is |
 |---|---|
-| `hello-request.json` | The mod's `hello`: minor 1 and the three new capability names. |
+| `hello-request.json` | The mod's `hello`: minor 1, the three new capability names and package 40's `shell_covered`. |
 | `hello-reply.json` | A 1.1 helper's answer. |
 | `list-apps-request-first.json` | `list_apps` for the first page: no `cursor` field. |
 | `list-apps-request-next.json` | `list_apps` for the page after: `cursor` is the `next` of the reply before. |
@@ -18,6 +18,7 @@ the instance, the nonce and the icon paths are made up.
 | `entry-full.json` | One entry with every field. |
 | `entry-minimal.json` | One entry with none of the new fields: as in 1.0. |
 | `apps-changed-event.json` | The event that makes the mod list again. |
+| `shell-covered-event.json` | Package 40: a maximized or fullscreen window hides the world on its screen (`true`), or no longer does (`false`). Sent only to a 1.1 client that offered `shell_covered`, by a helper that tracks windows. A connection starts uncovered on both sides. |
 
 The two pages together hold every kind of `source`. By the day-one rule five of the eight are his: the three
 starters (`image`), Discord (`flatpak-user`) and Lunar Client (`user`).

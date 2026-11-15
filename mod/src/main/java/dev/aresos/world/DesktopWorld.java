@@ -32,10 +32,13 @@ public final class DesktopWorld extends SavedData {
 
     public static void setEnabled(MinecraftServer server, boolean enabled) {
         var marker = server.getDataStorage().computeIfAbsent(TYPE);
+        boolean was = marker.enabled;
         marker.enabled = enabled;
         marker.setDirty();
-        if (enabled) {
-            for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+            // Turning it off gives back the game's abilities once; a world that stays vanilla is left alone.
+            if (enabled || was) LiveMode.markerChanged(player, enabled);
+            if (enabled) {
                 dev.aresos.item.AppInventory.populate(player);
                 LiveMode.protect(player);
             }
