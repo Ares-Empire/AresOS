@@ -593,7 +593,7 @@ case('gate60b-popup-record-any-tab',PO,"filter(row=>row.tab===tab&&row.document=
 case('gate60b-record-late-as-start',B,"state.documents.set(context.uniqueId,{install:'late',","state.documents.set(context.uniqueId,{install:'document_start',",node('background','gate60b the install record'))
 case('gate60b-record-not-in-status',B,"...await popupStatus(),installs:installRecord()};","...await popupStatus()};",node('background','gate60b the install record'))
 case('gate60b-record-past-control',B,"[...preloadTargets.values()].filter(state=>controlled.get(state.tab)?.epoch===state.epoch).flatMap(","[...preloadTargets.values()].flatMap(",node('background','gate60b the install record'))
-case('gate60b-fixture-hold-ignored','control/chrome/ci/fixture.mjs',"if(held)await held.promise;","",node('fixture','gate60b a held popup document'))
+case('gate60b-fixture-hold-ignored','control/chrome/ci/fixture.mjs',"if(held)await held.promise;","",node('fixture','gate60b a held popup gate'))
 
 # The gate after run 43613647256, part 2: the old runtime keeps the frozen
 # reference's 20 samples at the reference's positions; the current runtime
@@ -673,6 +673,13 @@ LPF='control/chrome/ci/latency-profile.py'
 case('mainfix-h5-storage-stages-count-outside-samples',LPF,"    def account(kind,milliseconds):\n        if active is None:return\n","    def account(kind,milliseconds):\n        if active is None:return STORE_STAGES.__setitem__('fsync_ms' if kind=='fsync' else 'store_write_ms',STORE_STAGES['fsync_ms' if kind=='fsync' else 'store_write_ms']+milliseconds)\n",'test_latency.MainFixStorageStages.test_store_write_and_journal_fsync_are_summed_per_marked_sample_only',True)
 case('mainfix-h5-journal-fsync-untimed',LPF,"    storage_module.os=TimedOS(account)\n","",'test_latency.MainFixStorageStages.test_store_write_and_journal_fsync_are_summed_per_marked_sample_only',True)
 case('mainfix-h5-harness-streams-on-the-store-disk','control/chrome/ci/latency-pair.sh',"--tmpfs /scratch:rw,size=256m,mode=1777 ","",'test_latency.MainFixStorageStages.test_the_latency_pair_keeps_its_harness_streams_off_the_store_disk',True)
+
+# Main fix H6: typed-early's early path no longer depends on whether the
+# debugger attaches before or after the popup's navigation starts.
+FX='control/chrome/ci/fixture.mjs'
+case('mainfix-h6-early-opens-row-document',PO,"export const popupOpenURL=(id,mode)=>mode==='typed-early'?'/?case=popup-start&id='+id+'&mode='+mode:popupChild(id,mode);","export const popupOpenURL=(id,mode)=>popupChild(id,mode);",POPUPS('each install path gives its exact first answer|navigates only once the gate answers'))
+case('mainfix-h6-start-navigates-before-gate',PO,"script:`fetch(${JSON.stringify(POPUP_GATE+'?id='+encodeURIComponent(id))},{cache:'no-store'}).then(()=>location.replace(${JSON.stringify(child)}));`,","script:`location.replace(${JSON.stringify(child)});fetch(${JSON.stringify(POPUP_GATE+'?id='+encodeURIComponent(id))},{cache:'no-store'});`,",POPUPS('navigates only once the gate answers'))
+case('mainfix-h6-fixture-holds-the-document',FX,"    else if(['popup-opener','popup-start','popup-child'].includes(kind)){\n","    else if(['popup-opener','popup-start','popup-child'].includes(kind)){\n      const held=kind==='popup-child'&&holds.get(url.searchParams.get('id'));if(held)await held.promise;\n",node('fixture','gate60b a held popup gate'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

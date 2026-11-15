@@ -187,17 +187,24 @@ test('step 6 the React-style take-state field keeps its default in step and Cont
 
 // Gate after run 43613647256: typed-early holds its popup document until the
 // extension has admitted the popup.
-test('gate60b a held popup document is answered only after its release',async()=>{
+test('gate60b a held popup gate is answered only after its release, and no popup document is ever held',async()=>{
+  // Main fix H6: typed-early's first document waits on the gate; a held
+  // document would keep the popup's navigation pending while the extension
+  // admits it, which DevTools answers by holding the admission back.
   const fixture=await fixtures({port:0,secondPort:0});
   try{
-    const base='http://127.0.0.1:'+fixture.port+'/?case=popup-child&mode=typed-early&id=';
+    const origin='http://127.0.0.1:'+fixture.port,gate=id=>origin+'/popup-gate?id='+id;
     const release=fixture.hold('popup-typed-early');let answered=false;
-    const held=fetch(base+'popup-typed-early').then(response=>response.text()).then(text=>{answered=true;return text;});
-    assert.match(await(await fetch(base+'popup-other')).text(),/<input aria-label="Draft" value="Saved">/,'another popup is answered at once');
+    const held=fetch(gate('popup-typed-early')).then(response=>{answered=true;return response.status;});
+    assert.equal((await fetch(gate('popup-other'))).status,204,'another gate is answered at once');
+    for(const kind of ['popup-start','popup-child']){
+      const text=await Promise.race([fetch(origin+'/?case='+kind+'&mode=typed-early&id=popup-typed-early').then(response=>response.text()),new Promise(resolve=>setTimeout(()=>resolve('still held'),1000))]);
+      assert.match(text,kind==='popup-start'?/popup-gate/:/<input aria-label="Draft" value="Saved">/,kind+' is answered at once while its gate is held');
+    }
     await new Promise(resolve=>setTimeout(resolve,100));assert.equal(answered,false,'held until released');
-    release();assert.match(await held,/<input aria-label="Draft" value="Saved">/);
-    assert.match(await(await fetch(base+'popup-typed-early')).text(),/Popup /,'the guarded reload is answered at once');
-    fixture.hold('popup-left');const left=fetch(base+'popup-left').then(response=>response.text());
-    await new Promise(resolve=>setTimeout(resolve,50));fixture.close();assert.match(await left,/Popup /,'closing releases a hold left behind');
+    release();assert.equal(await held,204);
+    assert.equal((await fetch(gate('popup-typed-early'))).status,204,'a gate after its release is answered at once');
+    fixture.hold('popup-left');const left=fetch(gate('popup-left')).then(response=>response.status);
+    await new Promise(resolve=>setTimeout(resolve,50));fixture.close();assert.equal(await left,204,'closing releases a hold left behind');
   }finally{fixture.close();}
 });

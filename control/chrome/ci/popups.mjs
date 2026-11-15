@@ -42,12 +42,35 @@ const boundaryLog={
   since(offset){const descriptor=fs.openSync(BOUNDARY,'r');try{const length=Math.max(0,fs.fstatSync(descriptor).size-offset),buffer=Buffer.alloc(length);fs.readSync(descriptor,buffer,0,length,offset);return buffer.toString('utf8');}finally{fs.closeSync(descriptor);}},
 };
 
+// The row's document: cross-site to its opener, as a popup to another site.
+export const popupChild=(id,mode)=>'http://popup.test:8766/?case=popup-child&id='+id+'&mode='+mode;
+// What Claude's click opens. typed-early, the forced early path, opens a first
+// document on the opener's own origin instead: the extension admits the popup
+// there, with no navigation pending and no renderer change, and the first
+// document moves to the row's document only when the fixture answers its gate
+// (/popup-gate), which the row holds until the extension's popup_admitted
+// line shows the startup breakpoint set. The row's document therefore starts
+// navigating after the breakpoint, and its first script pauses for the guard.
+// The fixture used to hold the row's document itself. That deadlocked
+// whenever the debugger attached before the popup's navigation started:
+// DevTools holds a session's renderer commands back until a pending navigation
+// of its frame ends (DidStartNavigation suspends the session), so admission
+// waited on the hold, and the extension's 5 s fallback admitted the popup
+// without its breakpoint (run 43660183139, recheck2 repeat 2: the late path).
+export const popupOpenURL=(id,mode)=>mode==='typed-early'?'/?case=popup-start&id='+id+'&mode='+mode:popupChild(id,mode);
+export const POPUP_GATE='/popup-gate';
 export function popupPage(url){
   const id=url.searchParams.get('id'),mode=url.searchParams.get('mode')||'clean';
-  const name='popup-'+id,child='http://popup.test:8766/?case=popup-child&id='+id+'&mode='+mode;
+  const name='popup-'+id,child=popupChild(id,mode);
   if(url.searchParams.get('case')==='popup-opener')return {
     body:mode==='post'?`<form method="post" target="${name}" action="http://popup.test:8766/post-document?case=${id}"><button type="submit">Open window</button></form>`:'<button type="button" style="position:fixed;inset:0;width:100vw;height:100vh;margin:0">Open window</button>',
-    script:`let child;document.querySelector('button').onclick=()=>{child=window.open(${JSON.stringify(mode==='post'?'about:blank':child)},${JSON.stringify(name)},'popup,width=620,height=480');};window.addEventListener('message',event=>{if(event.source===child&&event.origin==='http://popup.test:8766'&&event.data===${JSON.stringify(id)})fetch('/receive?case=flow-'+${JSON.stringify(id)},{method:'POST',body:'opener relationship preserved'});});`,
+    script:`let child;document.querySelector('button').onclick=()=>{child=window.open(${JSON.stringify(mode==='post'?'about:blank':popupOpenURL(id,mode))},${JSON.stringify(name)},'popup,width=620,height=480');};window.addEventListener('message',event=>{if(event.source===child&&event.origin==='http://popup.test:8766'&&event.data===${JSON.stringify(id)})fetch('/receive?case=flow-'+${JSON.stringify(id)},{method:'POST',body:'opener relationship preserved'});});`,
+  };
+  // typed-early's first document: nothing to act on, and no navigation until
+  // the gate answers.
+  if(url.searchParams.get('case')==='popup-start')return {
+    body:'<p>Opening the popup document</p>',
+    script:`fetch(${JSON.stringify(POPUP_GATE+'?id='+encodeURIComponent(id))},{cache:'no-store'}).then(()=>location.replace(${JSON.stringify(child)}));`,
   };
   return {
     body:mode.startsWith('typed-')?`<input aria-label="Draft" value="Saved"><form method="post" action="/receive?case=${id}" target="sink"><input name="draft" value="Saved"><button type="button">Continue</button></form><iframe name="sink" hidden></iframe>`:`<select aria-label="Draft"><option selected>Saved</option><option>Unsaved</option></select><form method="post" action="/receive?case=${id}" target="sink"><select name="draft"><option selected>Saved</option></select><button type="button">Continue</button></form><iframe name="sink" hidden></iframe>`,
@@ -76,9 +99,11 @@ export async function popupMatrices({check,call,rpc,nav,counts,eventually,getTab
         await call('take_tab',{tab});await call('take_tab',{tab:child.tab});
       }else{
         await nav('popup-opener&id='+id+'&mode='+mode);const open=(await call('read',{tab})).untrusted_content.tree.split('\n').filter(line=>line.startsWith('{')).map(JSON.parse).find(row=>row.expected.name==='Open window');
-        // The early path, forced: the fixture holds the popup's document until
-        // the extension's own popup_admitted line shows its startup breakpoint
-        // set, so the document's first script pauses for the guard.
+        // The early path, forced: the fixture holds the gate of the popup's
+        // first document (popupOpenURL) until the extension's own
+        // popup_admitted line shows its startup breakpoint set; only then does
+        // the popup navigate to the row's document, so that document's first
+        // script pauses for the guard.
         const release=mode==='typed-early'?fixture.hold(id):null;
         try{
           const since=release?boundary.size():0;
