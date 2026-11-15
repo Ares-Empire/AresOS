@@ -1,0 +1,28 @@
+{
+  "uid": 1001,
+  "loginuid": "1001",
+  "stdin_terminal": false,
+  "wayland": true,
+  "runtime": "/run/user/1001",
+  "terminal": false,
+  "tty_errno": 6,
+  "line_sha256": {
+    "folder": "c1b579be56abe84e24c3be1be6a93edc7ccb39cee607988b493cfe55bc4bdd82",
+    "routine": "0b11cfc562841f58393bdb11f7962556418f851241885ce21d11594a4e13c079"
+  },
+  "folder": {
+    "status": 0,
+    "stdout": "SHA256SUMS: OK\n",
+    "stderr": ""
+  },
+  "routine": {
+    "status": 1,
+    "stdout": "",
+    "stderr": "sudo: no password was provided\nsudo: a password is required\n",
+    "signalled": [
+      48083
+    ],
+    "helper": 48083,
+    "helper_gone": true
+  }
+}
