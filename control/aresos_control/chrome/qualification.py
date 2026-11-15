@@ -83,15 +83,17 @@ def switches(record, build, chrome_version):
             'adapters': {key: passed('adapters', key) for key in HOSTS}}
 
 
-def verify(path, *, branch='main', bundle=None, workflow=WORKFLOW):
+def verify(path, *, branch='main', ref=None, bundle=None, workflow=WORKFLOW):
     # Require the fixed gh verifier's security corrections; no hand-written crypto.
     output = subprocess.run(['gh', '--version'], check=True, capture_output=True, text=True, timeout=10).stdout
     match = re.search(r'gh version (\d+)\.(\d+)\.(\d+)', output)
     if not match or tuple(map(int, match.groups())) < (2, 102, 0):
         raise Refused('qualification_invalid', 'Qualification verification requires GitHub CLI 2.102.0 or newer.')
+    # The installed service verifies main only. CI passes the full ref it
+    # attested on (a pull request's merge ref) to check its own bundle.
     command = ['gh', 'attestation', 'verify', str(path), '--repo', REPOSITORY,
                '--signer-workflow', REPOSITORY + '/' + workflow,
-               '--source-ref', 'refs/heads/' + branch, '--deny-self-hosted-runners']
+               '--source-ref', ref or 'refs/heads/' + branch, '--deny-self-hosted-runners']
     cache = Path(path).resolve().parent/'qualification-verifier-cache'
     environment = {**os.environ, 'XDG_CACHE_HOME': str(cache), 'XDG_CONFIG_HOME': str(cache/'config')}
     if bundle is not None:

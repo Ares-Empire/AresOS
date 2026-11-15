@@ -85,7 +85,9 @@ def accept(connection,*peer):
     original_accept(connection,*peer)
     bridge.call('audit',enabled=os.environ.get('LATENCY_PROBE')!='true' or os.environ.get('LATENCY_PRIVACY')=='audit')
 bridge.accept=accept
-boundary=open('/out/browser-boundary.jsonl','a',buffering=1)
+# The latency pair writes this harness stream to a tmpfs (main fix H5), so its
+# flushes do not share the store's disk journal with the product's fsyncs.
+boundary=open(os.environ.get('FIXTURE_LOG_DIR','/out')+'/browser-boundary.jsonl','a',buffering=1)
 bridge.audit_sink=lambda data:boundary.write(json.dumps(data)+'\n')
 original_call=bridge.call
 def call(name,**arguments):

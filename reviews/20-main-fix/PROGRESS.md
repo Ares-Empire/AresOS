@@ -1,19 +1,125 @@
 # Brief 20 main fix: progress
 
-Builder step 1 (Claude Fable 5.2, 2026-11-15). Brief: `briefs/20-main-fix.md`. Branch `pkg/20-main-fix`.
+Builder step 1 (Claude Fable 5.2, 2026-11-15): diagnoses and the H1 fix. Builder step 2 (Claude Fable 5.2, 2026-11-15):
+H2, H3, H4, H5 built on the lead's decisions. Brief: `briefs/20-main-fix.md`. Branch `pkg/20-main-fix`.
 
-## Handover
+## Handover (step 2)
 
-- **Done in step 1:** diagnoses of H1, H2, H3 and H5 (below), the H1 fix with a test that fails without it and a
-  mutation probe. No CI run was used. The latency artifacts of run 43647781438 are kept locally under
-  `.work/20-main-fix/lat-current-audit` and `lat-ab7aba92-audit` (git-ignored); the next step may re-download them
-  (`gh run download 43647781438 -n chrome-latency-43647781438-1-current-audit`).
-- **Left, in order:** H2 (CI bundle via the job token, offline stub for the anonymous path, product tests for 403/429/
-  timeout/5xx), H3 (publish verifies the attestation it just made from the attest step's bundle), H4 (PR mode for the
-  main-only jobs and the workflow check), H5 (CI-only store-write and fsync stages, no code fix), then the runs:
-  qualification workflow on the PR (at most 4 in all), `Control Chrome` on the PR (at most 2), package review,
-  security review of H2 and H3.
-- **Lead decisions needed before building:** listed under "Decisions for the lead".
+- **Done:** H1 (step 1), H2, H3, H4, H5 as decided by the lead (below, "Step 2: what was built"). Local: the touched
+  Python suites green, 18 main-fix removal probes rejected (`.work/20-main-fix/mainfix-mutations.json`, 17 new plus
+  H1's), generator and whitespace checks green, and the recorded API bundle of the retained fixture verifies with the
+  real `gh attestation verify` on this Mac (branch policy passes, main policy refuses it).
+- **Runs:** see "Runs" at the end of this section; the qualification workflow budget is 4, `Control Chrome` 2.
+- **Left, in order:** the qualification run(s) on the PR in PR mode and their fixes; the full local preflight on the
+  final head; one `Control Chrome` PR run; a fresh package review and a fresh security review (H2 and H3, the trust
+  path). The lead merges.
+
+### Step 2: what was built
+
+**H2. Attestation checks without GitHub's anonymous quota** (`control/chrome/ci/attestation.py`,
+`control/chrome/qualify.py`, `.github/workflows/control-chrome-qualification.yml`, tests).
+- CI records the real attestation API response for the record it just attested with `gh api` and the job's token
+  (retrying up to a minute until the fresh attestation is listed). `attestation.py` installs a `urllib` opener
+  (`RecordedAttestationAPI`) that answers exactly the product's own URL for that digest with the recorded bytes and
+  refuses every other URL, plain HTTP, and any request carrying `Authorization`. The product's anonymous
+  `verify()` runs unchanged in the minimal environment through it, then the real `gh attestation verify --bundle`.
+  Negative cases through the same opener: empty list, 403, 429 with `Retry-After`, 500 (each refused), and an
+  unrecorded URL. The retained fixture (`control/chrome_tests/fixtures/qualification/42687597384/`) got its own
+  recorded response (`api-response.json`, the fixture's entry of the API response, 12 KB) so that case needs no
+  network at all; the API lists 64 attestations for those bytes because every earlier run attested the same
+  synthetic record, which is why the synthetic record now carries the run id (`entry(run=...)`) and is unique per run.
+- The synthetic record's digest therefore differs per run, and the anonymous path on the PR verifies this run's own
+  attestation on the run's full ref (`--ref "$GITHUB_REF"`, `refs/pull/N/merge` on pull requests).
+- **Product change, small and trust-neutral:** `verify()` takes `ref=None` (the full source ref) beside `branch`; the
+  default stays `refs/heads/main`, and the installed service never passes it. It exists so CI can check the bundle it
+  attested on a pull-request ref through the product's own code path. No token reaches `qualification.py`; the
+  "never ships" test asserts no installed file contains `install_opener`, `RecordedAttestationAPI`, `OpenerDirector`
+  or `api-response.json`, and that the product module names no `Authorization`, `GH_TOKEN` or `GITHUB_TOKEN`.
+- **H2.3 (part of "as proposed"):** `qualify.py` verifies a *held* data-branch record from a token-fetched bundle list
+  (`bundle_from_api` → `gh api`, serialized exactly as the product does, bounded by `DELIVERY_LIMIT`; `verify_held`
+  passes it as `--bundle`). `plan`, `prepare` and `publish` use it for the held record; the anonymous API is no longer
+  called anywhere in CI. Same policy (`gh attestation verify`, main, this workflow, hosted runners); the response is
+  transport, not evidence.
+- **Product tests (no product gap found):** `test_rate_limits_timeouts_and_server_errors_keep_held_and_wait_a_day`
+  (verifier HTTPError 403, 429 with `Retry-After`, 500; download `URLError(TimeoutError)`, `TimeoutError`, HTTPError
+  503): held record unchanged, result names only the exception class and "held record retained" (no URL, body, header
+  or reason), no request at +1 s or +86,399 s, one at +86,400 s, no temporary left, and a later good fetch is accepted.
+  `test_failed_forced_refresh_for_an_uncovered_version_is_attempted_once_per_connection` (through the real adapter
+  and `refresh`, with `urlopen` raising 403): one fetch per `(session, version)` across repeated `maintenance()`
+  calls, a new connection or version gets exactly one more, record unchanged, nothing private logged.
+
+**H3. First publish and the attestation just made** (`qualify.py`, workflow, `test_publisher.py`).
+- `qualify.py publish --bundle "$BUNDLE"` takes the attest step's bundle (`id: attest` on the publisher's attest step)
+  and `publish()` verifies the candidate with `verify(candidate, bundle=...)`; `--bundle` is required. The first-record
+  path is unchanged in shape and now pinned: `test_first_publication_cuts_the_data_branch_from_main_and_extends_only_the_shipped_baseline`
+  runs the real `prepare` CLI against a seeded local repository with `origin/main` and no data branch (candidate =
+  shipped baseline + this run's aggregated entries, held verifier never called), then `publish()` to a local bare
+  remote (verifier called once with the bundle, `main` untouched, the data branch cut from `main` with the candidate),
+  and two refusals with nothing pushed: a candidate whose prefix is not the trusted baseline, and a `main` whose
+  shipped record is not the trusted baseline. No unattested path exists.
+
+**H4. Main-only paths run before the merge** (both workflows, `qualify.py`, `test_qualification.py`).
+- No job of either workflow is main-only any more. `qualification-plan`, `-pairs`, `-combine`, `-publish` and
+  `delivery-attestation` run on pull requests and branch dispatches. The writes that reach GitHub are the only
+  main-only steps: "Verify the new attestation then push only the data branch" and "Publish failure details and
+  propose shipped-copy update" (`if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'`, the
+  second with `always() &&`). Their pull-request counterpart "Verify the new attestation then publish to a local
+  bare remote (pull-request mode)" seeds a bare repository from `origin/main`, runs
+  `publish --bundle "$BUNDLE" --remote .work/publish-remote.git`, and checks the local data branch holds the candidate
+  and `main` did not move.
+- **In code:** `qualify.py`'s guard requires this repository for everything; `notify` and `publish` without
+  `--remote` require `refs/heads/main`; `prepare` and `publish --remote <dir>` run anywhere; `--remote` must be an
+  existing local directory (a URL, `file://`, `git@…` or a missing directory is refused before any git call).
+- **PR cost:** the plan takes `--channels stable` off main (`QUALIFICATION_CHANNELS` is `stable,beta` on main), so a
+  pull request runs one channel × 2 repeats × 14 shards (9 browser, 4 Python, precedence) = 28 pair jobs plus two
+  combines, half of main's matrix. Every step of every job runs except the two main-only writes.
+- **Negative test in CI:** `attestation.py` on a non-main ref adds the case "production main rejects a bundle
+  attested on <ref>": `verify(subject, bundle=<PR bundle>)` with the default main policy must raise, and the held
+  record must stay. It runs in the PR job on the PR-made bundle (and on dispatches on the branch ref).
+- **Workflow test:** `test_no_job_is_main_only_and_only_allow_listed_write_steps_are` parses both workflows'
+  `if:` lines by indentation: no job-level condition may mention `refs/heads/main`, `pull_request`, `github.ref`,
+  `event_name`, `base_ref` or `head_ref`; a step-level main-only condition must be exactly the form above and on an
+  allow-listed write step; each allow-listed write step must carry it; the PR-mode counterpart must carry the exact
+  complement; `qualify.py` must hold both guard lines. `test_path_triggers_cover_every_input_of_the_jobs`: both
+  workflows' `push` and `pull_request` paths now include everything the jobs copy or archive
+  (`docs/control/TOOLS.md`, `reviews/20-chrome/audit-review-evidence.mjs`, and each other's workflow file).
+
+**H5. The `latency (audit)` tail: a runner storage stall** (`latency-profile.py`, `service.py`, `run.sh`,
+`latency-pair.sh`, `test_latency.py`). No ceiling, sample-count or rule change.
+- CI-only stages `store_write` (sum per marked sample) and `journal_fsync` (sum and `count`) in
+  `latency-profile.py`: `store.write` is wrapped on the daemon's store, and the storage module's `os` is replaced by
+  a proxy whose `fsync` is timed (everything else delegates to `os`). Both stages are emitted for every marked sample
+  (0 when nothing was written), so the summary's per-call sample counts stay complete for `latency-check.py`'s strict
+  validation, and nothing outside a marked sample is counted. The gate reads its listed stages only; unchanged.
+- The two harness streams of the instrumented profile are harness-only: `service.txt` is the CI service's stdout
+  (`CHROME_EVENT` lines, `FIXTURE_BACKGROUND_ERROR`), `browser-boundary.jsonl` the CI audit sink
+  (`bridge.audit_sink`, set only in `ci/service.py`). In the container their only readers are fixture matrices
+  (`matrices.mjs`, `popups.mjs`, `review-matrices.mjs`, `admin.py start_service`) which the latency probe never
+  reaches (`run.sh` exits after `browser.mjs` when `LATENCY_PROBE=true`; `latency-probe.mjs` reads no `/out` file).
+  `latency-pair.sh` now mounts `--tmpfs /scratch` (256 MB, mode 1777); `run.sh` writes both streams there when
+  `LATENCY_PROBE=true`, and after the probe stops the service and copies them to `/out`, so the artifacts still
+  carry them. The store stays in `/var/lib/aresos-tools` on the container's disk; its fsyncs keep being measured.
+  Fixture shards are unchanged (`FIXTURE_LOG_DIR` stays `/out`).
+
+**Probes** (`reviews/20-chrome/mutation-audit.py`, prefix `mainfix-`, all rejected, baselines passing): h2 recording
+answers any URL / accepts credentials / refresh retries before a day after failure / logs transport detail / forced
+refresh every call / held record verified anonymously; h3 publish skips fresh verification / ignores the trusted
+baseline (both append-only checks); h4 publish to origin off main / notify off main / `--remote` accepts a URL / plan
+job main-only again / publish step unconditional / attestation job skips pull requests; h5 storage stages count
+outside samples / journal fsync untimed / harness streams on the store disk.
+
+**What the code doesn't show.**
+- The API's representation of a bundle differs from the attest step's `bundle.json` (same signature and payload,
+  different field layout); the recorded representation verifies with gh 2.x on this Mac (exit 0 with the branch
+  policy, 1 with main's), which is what the product path has always serialized.
+- `prepare` on a pull request reaches `origin` read-only (`ls-remote`, public); with a data branch present it
+  verifies the held record through `gh api` with the job's `GH_TOKEN` (already set on that step).
+- Whether GitHub grants `id-token: write` and `attestations: write` to same-repository pull-request runs is decided by
+  the first PR run; the fallback is the retained-fixture verification only (lead's H4 decision).
+
+### Runs
+
+(filled in as they happen)
 
 ## Diagnoses
 
@@ -176,7 +282,7 @@ anything main-specific. Evidence of the stall's location (store writes) is indir
 the expiry sweep and the whole request, but not the store. The proposal below adds that timing so the next tail, if
 any, is attributed from the artifact itself.
 
-## Proposed fixes (not built yet)
+## Step 1 proposals (built in step 2 as decided by the lead; kept as the record)
 
 ### H2. Attestation checks without GitHub's anonymous quota
 
@@ -280,7 +386,7 @@ rounds); runs 3–4 are reserve. `Control Chrome` runs: none for H4.
   paired run.
 - A re-run of `Control Chrome` on main is the lead's call and outside this brief's two-run budget for the PR.
 
-## Decisions for the lead
+## Decisions for the lead (answered 2026-11-15: 1 approved; 2 confirmed; 3 accepted, stages added, harness streams moved; 4 fallback as stated)
 
 1. **H4 guard change in `qualify.py`** (trust-adjacent): allow `prepare` and `publish --remote <local directory>` off
    main, keep push-to-origin and `notify` main-only. Recommended; the alternative (faking `GITHUB_REF`) is worse for the

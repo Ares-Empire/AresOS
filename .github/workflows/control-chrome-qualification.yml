@@ -2,10 +2,10 @@ name: Control Chrome qualification
 on:
   push:
     branches: [pkg/20-chrome-qual, main]
-    paths: ['control/**', 'reviews/20-chrome/QUALIFICATION*', '.github/workflows/control-chrome-qualification.yml']
+    paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/20-chrome/QUALIFICATION*', 'reviews/20-chrome/audit-review-evidence.mjs', '.github/workflows/control-chrome-qualification.yml', '.github/workflows/control-chrome.yml']
   pull_request:
     branches: [pkg/20-chrome, main]
-    paths: ['control/**', 'reviews/20-chrome/QUALIFICATION*', '.github/workflows/control-chrome-qualification.yml']
+    paths: ['control/**', 'docs/control/TOOLS.md', 'reviews/20-chrome/QUALIFICATION*', 'reviews/20-chrome/audit-review-evidence.mjs', '.github/workflows/control-chrome-qualification.yml', '.github/workflows/control-chrome.yml']
   workflow_dispatch:
   schedule:
     - cron: '19 4 * * *'
@@ -32,8 +32,11 @@ jobs:
         with:
           name: qualification-tests-${{ github.run_id }}-${{ github.run_attempt }}
           path: .work/20-chrome/*tests.txt
+  # Every job runs on pull requests too (main fix H4). Only the writes that
+  # reach GitHub (the push to the data branch, issues, pull requests) are
+  # main-only, as steps below and in qualify.py's own guard. A pull request
+  # qualifies one channel to keep its cost at half of main's matrix.
   qualification-plan:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
@@ -46,9 +49,10 @@ jobs:
       - id: plan
         env:
           GH_TOKEN: ${{ github.token }}
+          QUALIFICATION_CHANNELS: ${{ github.ref == 'refs/heads/main' && 'stable,beta' || 'stable' }}
         run: |
           set -euo pipefail
-          python3 control/chrome/qualify.py plan > qualification-plan.json
+          python3 control/chrome/qualify.py plan --channels "$QUALIFICATION_CHANNELS" > qualification-plan.json
           echo "matrix=$(cat qualification-plan.json)" >> "$GITHUB_OUTPUT"
           echo "shard_matrix=$(python3 control/chrome/ci/qualification-shards.py qualification-plan.json)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -176,7 +180,7 @@ jobs:
           path: runtime/.work/20-chrome/ci/
   qualification-publish:
     needs: [qualification-plan, qualification-pairs, qualification-combine, qualification-tests, delivery-attestation]
-    if: always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && (needs.qualification-plan.result == 'failure' || needs.qualification-pairs.result != 'skipped')
+    if: always() && (needs.qualification-plan.result == 'failure' || needs.qualification-pairs.result != 'skipped')
     runs-on: ubuntu-24.04
     concurrency:
       group: chrome-qualification-publisher
@@ -211,21 +215,38 @@ jobs:
           mkdir -p .work
           python3 control/chrome/qualify.py prepare --artifacts .work/qualification-results --plan .work/qualification-plan.json
       - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        id: attest
         with:
           subject-path: .work/qualification-candidate.json
       - name: Verify the new attestation then push only the data branch
         id: publish
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 control/chrome/qualify.py publish
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: python3 control/chrome/qualify.py publish --bundle "$BUNDLE"
+      - name: Verify the new attestation then publish to a local bare remote (pull-request mode)
+        if: github.ref != 'refs/heads/main' || github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          set -euo pipefail
+          git init --quiet --bare .work/publish-remote.git
+          git push --quiet .work/publish-remote.git origin/main:refs/heads/main
+          python3 control/chrome/qualify.py publish --bundle "$BUNDLE" --remote .work/publish-remote.git
+          git -C .work/publish-remote.git show chrome-qualification:control/chrome/qualification.json > .work/published-record.json
+          python3 -c "import json,sys;assert json.load(open(sys.argv[1]))==json.load(open(sys.argv[2])),'The local data branch does not hold the candidate'" .work/published-record.json .work/qualification-candidate.json
+          test "$(git -C .work/publish-remote.git rev-parse refs/heads/main)" = "$(git rev-parse origin/main)"
+          echo 'Pull-request mode: the verified candidate reached only the local bare remote'
       - name: Publish failure details and propose shipped-copy update
-        if: always()
+        if: always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
           PUBLISH_STATE: ${{ steps.publish.outcome }}
         run: python3 control/chrome/qualify.py notify
   delivery-attestation:
-    if: github.event_name != 'pull_request' && github.repository == 'Ares-Empire/AresOS'
+    if: github.repository == 'Ares-Empire/AresOS'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -239,10 +260,12 @@ jobs:
         run: |
           mkdir -p .work/attestation
           PYTHONPATH=control:control/chrome_tests python3 - <<'PY'
-          import json
+          import json, os
           from pathlib import Path
           from test_policy import entry
-          Path('.work/attestation/record.json').write_text(json.dumps({'format':1,'entries':[entry(), entry(version='158.0.1.0',channel='beta')]}))
+          # Unique bytes per run, so the attestation API lists this run's bundle alone.
+          run = 'synthetic-' + os.environ['GITHUB_RUN_ID'] + '-' + os.environ['GITHUB_RUN_ATTEMPT']
+          Path('.work/attestation/record.json').write_text(json.dumps({'format':1,'entries':[entry(run=run), entry(version='158.0.1.0',channel='beta',run=run)]}))
           PY
       - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a
         id: attest
@@ -255,8 +278,17 @@ jobs:
         run: |
           set -euo pipefail
           cp "$BUNDLE" .work/attestation/bundle.json
-          python3 control/chrome/ci/attestation.py .work/attestation/record.json .work/attestation/bundle.json 2>&1 | tee .work/attestation/verification.txt
-          GITHUB_HEAD_REF=pkg/20-chrome-qual python3 control/chrome/ci/attestation.py control/chrome_tests/fixtures/qualification/42687597384/record.json control/chrome_tests/fixtures/qualification/42687597384/bundle.json 2>&1 | tee .work/attestation/retained-fixture-verification.txt
+          # Record the real attestation API response with the job's token (main
+          # fix H2); the product's anonymous verify() replays it offline. The
+          # token stays in this step; attestation.py's opener serves the file.
+          DIGEST=$(sha256sum .work/attestation/record.json | cut -d' ' -f1)
+          for attempt in 1 2 3 4 5 6; do
+            gh api "repos/$GITHUB_REPOSITORY/attestations/sha256:$DIGEST?per_page=100" > .work/attestation/api-response.json
+            if python3 -c "import json,sys;sys.exit(0 if json.load(open(sys.argv[1])).get('attestations') else 1)" .work/attestation/api-response.json; then break; fi
+            echo "attempt $attempt: this run's attestation is not listed yet"; sleep 10
+          done
+          python3 control/chrome/ci/attestation.py .work/attestation/record.json .work/attestation/bundle.json .work/attestation/api-response.json --ref "$GITHUB_REF" 2>&1 | tee .work/attestation/verification.txt
+          python3 control/chrome/ci/attestation.py control/chrome_tests/fixtures/qualification/42687597384/record.json control/chrome_tests/fixtures/qualification/42687597384/bundle.json control/chrome_tests/fixtures/qualification/42687597384/api-response.json --ref refs/heads/pkg/20-chrome-qual 2>&1 | tee .work/attestation/retained-fixture-verification.txt
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

@@ -638,6 +638,41 @@ case('post-popup-empty-contexts-count-as-read',B,"for(const frameId of forgotten
 # probe puts the relative ones back.
 case('mainfix-h1-child-relative-import-path','control/chrome_tests/test_state_crashes.py',"environment['PYTHONPATH']=os.pathsep.join([str(CONTROL),str(TESTS)])","environment['PYTHONPATH']=os.pathsep.join(['control','control/chrome_tests'])",'test_state_crashes.CrashCuts.test_s11_actual_process_cuts_before_and_after_input_keep_every_committed_view',True)
 
+# Brief 20 main fix, H2 (run 43647781498's 403 on the anonymous attestation
+# API). The CI recording opener answers one recorded URL only; the product's
+# daily refresh keeps the held record, logs only the exception class and waits
+# a day after any failure; a forced refresh for an uncovered version is tried
+# once per connection. Each probe removes one of those properties.
+AT='control/chrome/ci/attestation.py'
+QL='control/aresos_control/chrome/qualification.py'
+QY='control/chrome/qualify.py'
+case('mainfix-h2-recording-answers-any-url',AT,"        if request.full_url != self.url:\n            raise urllib.error.URLError('Recording refuses an unrecorded URL: ' + request.full_url)\n","",'test_qualification.RecordingOpener.test_recording_serves_exactly_one_url_offline_and_refuses_every_other',True)
+case('mainfix-h2-recording-accepts-credentials',AT,"        if 'Authorization' in request.headers:\n            raise urllib.error.URLError('The anonymous path must not send credentials')\n","",'test_qualification.RecordingOpener.test_recording_serves_exactly_one_url_offline_and_refuses_every_other',True)
+case('mainfix-h2-refresh-retries-before-a-day-after-failure',QL,"        self.store.write({'chrome:qualification_fetch': {'time': now, 'result': result}}, 'chrome_qualification', result)","        self.store.write({'chrome:qualification_fetch': {'time': now if result == 'Verified record accepted.' else 0, 'result': result}}, 'chrome_qualification', result)",'test_qualification.Delivery.test_rate_limits_timeouts_and_server_errors_keep_held_and_wait_a_day',True)
+case('mainfix-h2-refresh-logs-transport-detail',QL,"            reason = exc.code if isinstance(exc, Refused) else type(exc).__name__","            reason = exc.code if isinstance(exc, Refused) else type(exc).__name__ + ': ' + str(exc)",'test_qualification.Delivery.test_rate_limits_timeouts_and_server_errors_keep_held_and_wait_a_day',True)
+case('mainfix-h2-forced-refresh-every-call',A,"        self._refresh_attempted = identity\n","",'test_qualification_service.Service.test_failed_forced_refresh_for_an_uncovered_version_is_attempted_once_per_connection',True)
+case('mainfix-h2-held-record-verified-anonymously',QY,"        verify(path, bundle=bundle)\n    finally:\n        bundle.unlink()","        verify(path)\n    finally:\n        bundle.unlink()",'test_publisher.Publisher.test_held_record_bundle_comes_from_gh_api_with_the_job_login',True)
+# H3: the fresh attestation is verified from the attest step's bundle before
+# anything is written; a first publication extends the shipped baseline only.
+case('mainfix-h3-publish-skips-fresh-verification',QY,"    if bundle is None:\n        verifier(candidate)\n    else:\n        verifier(candidate, bundle=bundle)\n","",'test_publisher.Publisher.test_first_publication_cuts_the_data_branch_from_main_and_extends_only_the_shipped_baseline',True)
+case('mainfix-h3-publish-ignores-trusted-baseline',QY,"    candidate_record = append_only(baseline, json.loads(candidate.read_text()))\n    with tempfile.TemporaryDirectory(dir=root/'.work') as temporary:","    candidate_record = validate_record(json.loads(candidate.read_text()))\n    with tempfile.TemporaryDirectory(dir=root/'.work') as temporary:",'test_publisher.Publisher.test_first_publication_cuts_the_data_branch_from_main_and_extends_only_the_shipped_baseline',True,extra=[(QY,"        append_only(baseline, held)\n        append_only(held, candidate_record)\n","        append_only(held, candidate_record)\n")])
+# H4: the guard in qualify.py, not only the workflow, keeps GitHub writes on
+# main; a pull-request run publishes to a local directory only; no job of
+# either workflow may be main-only again.
+case('mainfix-h4-publish-to-origin-off-main',QY,"        if not on_main:raise SystemExit('Qualification publication to origin is restricted to main')\n","",'test_publisher.Publisher.test_writes_to_github_refuse_off_main_while_prepare_and_local_publish_run_anywhere',True)
+case('mainfix-h4-notify-off-main',QY,"        if not on_main:raise SystemExit('Qualification notifications are restricted to main')\n","",'test_publisher.Publisher.test_writes_to_github_refuse_off_main_while_prepare_and_local_publish_run_anywhere',True)
+case('mainfix-h4-remote-accepts-a-url',QY,"        if '://' in args.remote or not remote.is_dir():","        if False:",'test_publisher.Publisher.test_writes_to_github_refuse_off_main_while_prepare_and_local_publish_run_anywhere',True)
+QW='.github/workflows/control-chrome-qualification.yml'
+case('mainfix-h4-plan-job-main-only-again',QW,"  qualification-plan:\n    runs-on: ubuntu-24.04\n","  qualification-plan:\n    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'\n    runs-on: ubuntu-24.04\n",'test_qualification.Workflow.test_no_job_is_main_only_and_only_allow_listed_write_steps_are',True)
+case('mainfix-h4-publish-step-unconditional',QW,"        id: publish\n        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'\n","        id: publish\n",'test_qualification.Workflow.test_no_job_is_main_only_and_only_allow_listed_write_steps_are',True)
+case('mainfix-h4-attestation-job-skips-pull-requests',QW,"  delivery-attestation:\n    if: github.repository == 'Ares-Empire/AresOS'\n","  delivery-attestation:\n    if: github.event_name != 'pull_request' && github.repository == 'Ares-Empire/AresOS'\n",'test_qualification.Workflow.test_no_job_is_main_only_and_only_allow_listed_write_steps_are',True)
+# H5: the storage stages count only work inside a marked sample, and the
+# latency pair's harness streams leave the store's disk.
+LPF='control/chrome/ci/latency-profile.py'
+case('mainfix-h5-storage-stages-count-outside-samples',LPF,"    def account(kind,milliseconds):\n        if active is None:return\n","    def account(kind,milliseconds):\n        if active is None:return STORE_STAGES.__setitem__('fsync_ms' if kind=='fsync' else 'store_write_ms',STORE_STAGES['fsync_ms' if kind=='fsync' else 'store_write_ms']+milliseconds)\n",'test_latency.MainFixStorageStages.test_store_write_and_journal_fsync_are_summed_per_marked_sample_only',True)
+case('mainfix-h5-journal-fsync-untimed',LPF,"    storage_module.os=TimedOS(account)\n","",'test_latency.MainFixStorageStages.test_store_write_and_journal_fsync_are_summed_per_marked_sample_only',True)
+case('mainfix-h5-harness-streams-on-the-store-disk','control/chrome/ci/latency-pair.sh',"--tmpfs /scratch:rw,size=256m,mode=1777 ","",'test_latency.MainFixStorageStages.test_the_latency_pair_keeps_its_harness_streams_off_the_store_disk',True)
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']

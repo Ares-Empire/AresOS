@@ -1,13 +1,17 @@
 """Browser-free qualification, delivery, and workflow contracts."""
 import copy
+import importlib.util
 import io
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
 import unittest
 from unittest.mock import Mock, patch
+import urllib.error
+import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from aresos_control.chrome import qualification as q
@@ -102,6 +106,13 @@ class Records(unittest.TestCase):
         for required in ['--repo', q.REPOSITORY, '--signer-workflow', q.REPOSITORY+'/'+q.WORKFLOW,
                          '--source-ref', 'refs/heads/main', '--deny-self-hosted-runners', '--bundle', 'bundle.json']:
             self.assertIn(required, command)
+        # CI verifies the bundle it attested on its own full ref; the default stays main.
+        runner = Mock(side_effect=[Mock(stdout='gh version 2.102.0'), Mock()])
+        with patch.object(q.subprocess, 'run', runner):
+            q.verify('record.json', bundle='bundle.json', ref='refs/pull/7/merge')
+        command = runner.call_args.args[0]
+        self.assertEqual(command[command.index('--source-ref')+1], 'refs/pull/7/merge')
+        self.assertNotIn('refs/heads/main', command)
         with patch.object(q.subprocess, 'run', return_value=Mock(stdout='gh version 2.94.0')) as runner:
             with self.assertRaises(Refused): q.verify('record.json')
             self.assertEqual(runner.call_count, 1)
@@ -140,6 +151,68 @@ class Records(unittest.TestCase):
                 return Mock()
             with patch.object(q.subprocess, 'run', side_effect=runner), patch.object(q.urllib.request, 'urlopen', return_value=io.BytesIO(payload)):
                 q.verify(path)
+
+
+class RecordingOpener(unittest.TestCase):
+    """Main fix H2: CI replays a token-fetched API response through the product's anonymous path."""
+    FIXTURE = ROOT/'control/chrome_tests/fixtures/qualification/42687597384'
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location('chrome_ci_attestation', ROOT/'control/chrome/ci/attestation.py')
+        self.attestation = importlib.util.module_from_spec(spec); spec.loader.exec_module(self.attestation)
+        self.addCleanup(urllib.request.install_opener, None)
+
+    def test_recording_serves_exactly_one_url_offline_and_refuses_every_other(self):
+        url = 'https://api.github.com/repos/'+q.REPOSITORY+'/attestations/sha256:'+'0'*64+'?per_page=100'
+        payload = json.dumps({'attestations':[{'bundle':{'fixture':'recorded'}}]}).encode()
+        opener, handler = self.attestation.recorded(url, payload)
+        with opener.open(url, timeout=1) as response:
+            self.assertEqual(response.read(q.DELIVERY_LIMIT+1), payload)
+        for other in [url.replace('per_page=100', 'per_page=1'), 'https://api.github.com/rate_limit', url.replace('https://', 'http://'),
+                      'https://raw.githubusercontent.com/'+q.REPOSITORY+'/refs/heads/chrome-qualification/control/chrome/qualification.json']:
+            with self.subTest(url=other), self.assertRaises(urllib.error.URLError):
+                opener.open(other, timeout=1)
+        with self.assertRaises(urllib.error.URLError):
+            opener.open(urllib.request.Request(url, headers={'Authorization':'token private'}), timeout=1)
+        for status in [403, 429, 500]:
+            opener, _ = self.attestation.recorded(url, b'{"message":"private"}', status)
+            with self.subTest(status=status), self.assertRaises(urllib.error.HTTPError) as caught:
+                opener.open(url, timeout=1)
+            self.assertEqual(caught.exception.code, status); caught.exception.close()
+        # Installed, the product's verify() reaches it through urlopen and
+        # serializes the recorded bundles for gh exactly as it would online.
+        with tempfile.TemporaryDirectory(dir=WORK) as directory:
+            path = Path(directory)/'record.json'; path.write_bytes((self.FIXTURE/'record.json').read_bytes())
+            recording = (self.FIXTURE/'api-response.json').read_bytes()
+            expected = ''.join(json.dumps(item['bundle'], ensure_ascii=False, separators=(',',':'))+'\n' for item in json.loads(recording)['attestations']).encode()
+            self.assertEqual(json.loads(recording)['attestations'][0]['bundle']['dsseEnvelope']['signatures'][0]['sig'],
+                             json.loads((self.FIXTURE/'bundle.json').read_text())['dsseEnvelope']['signatures'][0]['sig'])
+            seen = {}
+            def runner(command, **kwargs):
+                if command[1] == '--version': return Mock(stdout='gh version 2.102.0')
+                seen['bundle'] = Path(command[command.index('--bundle')+1]).read_bytes(); seen['ref'] = command[command.index('--source-ref')+1]
+                return Mock()
+            with patch.object(q.subprocess, 'run', side_effect=runner):
+                _, handler = self.attestation.with_recording(self.attestation.attestation_url(path), recording, lambda: q.verify(path, ref='refs/heads/pkg/20-chrome-qual'))
+            self.assertEqual(seen, {'bundle': expected, 'ref': 'refs/heads/pkg/20-chrome-qual'})
+            self.assertEqual([request.full_url for request in handler.requests], [self.attestation.attestation_url(path)])
+            self.assertIsNone(urllib.request._opener)
+            with patch.object(q.subprocess, 'run', side_effect=runner), self.assertRaises(urllib.error.HTTPError):
+                self.attestation.with_recording(self.attestation.attestation_url(path), b'{}', lambda: q.verify(path, ref='refs/heads/pkg/20-chrome-qual'), 403)
+
+    def test_the_recording_opener_never_ships(self):
+        # Like the CI stand-in polkit rule: the opener and anything that
+        # installs one live only in control/chrome/ci at run time.
+        sys.path.insert(0, str(ROOT/'control/chrome'))
+        from build import inputs
+        installed = list(inputs(ROOT))
+        markers = ['install_opener', 'RecordedAttestationAPI', 'OpenerDirector', 'api-response.json']
+        self.assertEqual([path for path in installed if any(marker in path.read_text(errors='replace') for marker in markers)], [])
+        self.assertNotIn(ROOT/'control/chrome/ci/attestation.py', installed)
+        self.assertIn('Authorization', (ROOT/'control/chrome/ci/attestation.py').read_text())
+        product = (ROOT/'control/aresos_control/chrome/qualification.py').read_text()
+        for forbidden in ['Authorization', 'GH_TOKEN', 'GITHUB_TOKEN', 'install_opener']:
+            self.assertNotIn(forbidden, product)
 
 
 class Delivery(unittest.TestCase):
@@ -209,6 +282,46 @@ class Delivery(unittest.TestCase):
         self.assertIn('OSError', result); self.assertIn('held record retained', result)
         self.assertNotIn('private transport detail', result)
 
+    def test_rate_limits_timeouts_and_server_errors_keep_held_and_wait_a_day(self):
+        # Main fix H2: the daily fetch on the laptop meets GitHub's quota, a
+        # slow network or a 5xx. The held record stays, nothing private is
+        # logged, and the next attempt comes about 24 h later, never sooner.
+        url = 'https://api.github.com/repos/'+q.REPOSITORY+'/attestations/sha256:'+'0'*64
+        def http(code, headers=None):
+            return urllib.error.HTTPError(url, code, 'private reason', headers or {}, io.BytesIO(b'{"message":"private body"}'))
+        download = lambda *args, **kw: io.BytesIO(json.dumps(self.newer).encode())
+        cases = [('HTTPError', 403, download, Mock(side_effect=http(403))),
+                 ('HTTPError', 429, download, Mock(side_effect=http(429, {'Retry-After': '60'}))),
+                 ('HTTPError', 500, download, Mock(side_effect=http(500))),
+                 ('URLError', 'connect timeout', Mock(side_effect=urllib.error.URLError(TimeoutError('private host'))), Mock()),
+                 ('TimeoutError', 'read timeout', Mock(side_effect=TimeoutError('private host')), Mock()),
+                 ('HTTPError', 503, Mock(side_effect=http(503)), Mock())]
+        now = 1_000_000
+        for name, detail, transport, verifier in cases:
+            with self.subTest(name=name, detail=detail):
+                now += 2*86400  # past the previous case's own daily gate
+                with patch.object(q.urllib.request, 'urlopen', side_effect=transport) as opened:
+                    self.qualification.refresh(now=now, verifier=verifier)
+                    self.assertEqual(opened.call_count, 1)
+                    self.qualification.refresh(now=now+1, verifier=verifier)
+                    self.qualification.refresh(now=now+86399, verifier=verifier)
+                    self.assertEqual(opened.call_count, 1, 'A failed fetch must not be retried before the daily interval')
+                self.assertEqual(self.qualification.record(), self.held)
+                fetch = self.store.get('chrome:qualification_fetch')
+                self.assertEqual(fetch['time'], now)
+                self.assertIn(name, fetch['result']); self.assertIn('held record retained', fetch['result'])
+                for private in ['private', 'api.github.com', 'Retry-After', str(detail)]:
+                    self.assertNotIn(private, fetch['result'])
+                self.assertEqual(list(self.store.state_dir.glob('.qualification-*')), [])
+                with patch.object(q.urllib.request, 'urlopen', side_effect=transport) as opened:
+                    self.qualification.refresh(now=now+86400, verifier=verifier)
+                    self.assertEqual(opened.call_count, 1)
+                self.assertEqual(self.qualification.record(), self.held)
+        # The service keeps serving: a later good fetch is accepted normally.
+        with patch.object(q.urllib.request, 'urlopen', side_effect=download):
+            self.qualification.refresh(now=now+2*86400, verifier=Mock())
+        self.assertEqual(self.qualification.record(), self.newer)
+
     def test_bad_signature_rollback_malformed_and_oversized_downloads_keep_held(self):
         for data, verifier, reason in [
             (json.dumps(self.newer).encode(), Mock(side_effect=Refused('qualification_invalid', 'fixture')), 'qualification_invalid'),
@@ -222,27 +335,113 @@ class Delivery(unittest.TestCase):
             self.assertEqual(list(self.store.state_dir.glob('.qualification-*')), [])
 
 
+MAIN_ONLY = "github.ref == 'refs/heads/main' && github.event_name != 'pull_request'"
+PULL_REQUEST_MODE = "github.ref != 'refs/heads/main' || github.event_name == 'pull_request'"
+# The only steps that may run on main alone: the writes that reach GitHub.
+MAIN_ONLY_WRITES = {'Verify the new attestation then push only the data branch',
+                    'Publish failure details and propose shipped-copy update'}
+PULL_REQUEST_COUNTERPARTS = {'Verify the new attestation then publish to a local bare remote (pull-request mode)'}
+
+
+def workflow_conditions(source):
+    """(job, step name or None, condition) for every if: in a workflow, by indentation."""
+    rows, job, step = [], None, None
+    for line in source.split('\njobs:\n', 1)[1].splitlines():
+        if re.match(r'^  \S', line):
+            job, step = line.strip().rstrip(':'), None
+        elif re.match(r'^      - ', line):
+            step = {'name': None}
+        found = re.match(r'^(?:      - |        )name: (.*)$', line)
+        if found and step is not None:
+            step['name'] = found[1].strip()
+        found = re.match(r'^( +)if: (.*)$', line)
+        if found:
+            rows.append((job, None if len(found[1]) == 4 else step, found[2].strip()))
+    for job, step, condition in rows:
+        if step is not None and step['name'] is None:
+            step['name'] = '<unnamed>'
+    return [(job, step and step['name'], condition) for job, step, condition in rows]
+
+
 class Workflow(unittest.TestCase):
+    QUALIFICATION = ROOT/'.github/workflows/control-chrome-qualification.yml'
+    CHROME = ROOT/'.github/workflows/control-chrome.yml'
+
     def test_main_only_mutations_serialized_publication_and_daily_stable_beta_pairs(self):
-        source = (ROOT/'.github/workflows/control-chrome-qualification.yml').read_text()
+        source = self.QUALIFICATION.read_text()
         self.assertIn("cron: '19 4 * * *'", source)
         self.assertIn('branches: [pkg/20-chrome-qual, main]', source)
         plan = source.split('  qualification-plan:')[1].split('  qualification-pairs:')[0]
         publisher = source.split('  qualification-publish:')[1].split('  delivery-attestation:')[0]
-        self.assertIn("github.ref == 'refs/heads/main'", plan)
-        self.assertIn("github.ref == 'refs/heads/main'", publisher)
-        self.assertIn("github.event_name != 'pull_request'", publisher)
+        self.assertIn("QUALIFICATION_CHANNELS: ${{ github.ref == 'refs/heads/main' && 'stable,beta' || 'stable' }}", plan)
+        self.assertIn('plan --channels "$QUALIFICATION_CHANNELS"', plan)
         self.assertIn('group: chrome-qualification-publisher\n      cancel-in-progress: false', publisher)
         for permission in ['contents: write', 'id-token: write', 'attestations: write', 'issues: write', 'pull-requests: write']:
             self.assertIn(permission, publisher)
         self.assertLess(publisher.index('qualify.py prepare'), publisher.index('actions/attest-build-provenance'))
         self.assertLess(publisher.index('actions/attest-build-provenance'), publisher.index('qualify.py publish'))
         self.assertIn('--plan .work/qualification-plan.json', publisher)
+        # Main fix H3: the fresh attestation is verified from the attest step's bundle.
+        self.assertIn('id: attest', publisher)
+        self.assertIn('BUNDLE: ${{ steps.attest.outputs.bundle-path }}', publisher)
+        self.assertIn('qualify.py publish --bundle "$BUNDLE"\n', publisher)
+        self.assertIn('qualify.py publish --bundle "$BUNDLE" --remote .work/publish-remote.git', publisher)
         self.assertIn('path: qualification-plan.json', source)
         self.assertIn('--runtime-root runtime', source)
         self.assertIn('QUALIFICATION_OUTCOME: ${{ steps.suite.outcome }}', source)
         attestation = source.split('  delivery-attestation:')[1]
-        self.assertIn("github.event_name != 'pull_request'", attestation)
+        # Main fix H2: the API response is recorded with the job token; the
+        # product's anonymous path replays it; the PR-made bundle is checked
+        # on the run's own full ref, and the retained fixture offline.
+        self.assertIn('gh api "repos/$GITHUB_REPOSITORY/attestations/sha256:$DIGEST?per_page=100" > .work/attestation/api-response.json', attestation)
+        self.assertIn('.work/attestation/api-response.json --ref "$GITHUB_REF"', attestation)
+        self.assertIn('42687597384/api-response.json --ref refs/heads/pkg/20-chrome-qual', attestation)
+        self.assertNotIn('GITHUB_HEAD_REF', attestation)
+        self.assertIn("entry(run=run)", attestation)
         self.assertNotIn("github.event_name == 'push'", attestation)
         # Runner-only browser harness remains in the original fixtures job.
-        self.assertNotIn('delivery-attestation:', (ROOT/'.github/workflows/control-chrome.yml').read_text())
+        self.assertNotIn('delivery-attestation:', self.CHROME.read_text())
+
+    def test_no_job_is_main_only_and_only_allow_listed_write_steps_are(self):
+        # Main fix H4: every job of both workflows runs on pull requests, so a
+        # path cannot reach main unexercised (run 43647781498). Main-only
+        # conditions exist only on the allow-listed write steps, and each of
+        # those steps has one.
+        markers = ['refs/heads/main', 'pull_request', 'github.ref', 'event_name', 'github.base_ref', 'head_ref']
+        for workflow in [self.QUALIFICATION, self.CHROME]:
+            rows = workflow_conditions(workflow.read_text())
+            self.assertTrue(rows)
+            for job, step, condition in rows:
+                with self.subTest(workflow=workflow.name, job=job, step=step):
+                    if step is None:
+                        self.assertFalse(any(marker in condition for marker in markers), 'Job-level main-only condition: '+condition)
+                    elif condition in {MAIN_ONLY, 'always() && '+MAIN_ONLY}:
+                        self.assertIn(step, MAIN_ONLY_WRITES)
+                    elif condition == PULL_REQUEST_MODE:
+                        self.assertIn(step, PULL_REQUEST_COUNTERPARTS)
+                    else:
+                        self.assertFalse(any(marker in condition for marker in markers), 'Unlisted ref condition: '+condition)
+        rows = workflow_conditions(self.QUALIFICATION.read_text())
+        self.assertEqual({step for _, step, condition in rows if condition in {MAIN_ONLY, 'always() && '+MAIN_ONLY}}, MAIN_ONLY_WRITES)
+        self.assertEqual({step for _, step, condition in rows if condition == PULL_REQUEST_MODE}, PULL_REQUEST_COUNTERPARTS)
+        jobs = set(re.findall(r'^  (\S+):', self.QUALIFICATION.read_text().split('\njobs:\n', 1)[1], re.M))
+        self.assertEqual(jobs, {'qualification-tests', 'qualification-plan', 'qualification-pairs', 'qualification-combine', 'qualification-publish', 'delivery-attestation'})
+        # The product's own guard, not only the workflow, keeps the real writes on main.
+        qualify = (ROOT/'control/chrome/qualify.py').read_text()
+        self.assertIn("if not on_main:raise SystemExit('Qualification publication to origin is restricted to main')", qualify)
+        self.assertIn("if not on_main:raise SystemExit('Qualification notifications are restricted to main')", qualify)
+
+    def test_path_triggers_cover_every_input_of_the_jobs(self):
+        # The jobs copy or archive these beside control/**; a change to any of
+        # them must start the workflow on the pull request.
+        expected = {self.QUALIFICATION: ['control/**', 'docs/control/TOOLS.md', 'reviews/20-chrome/QUALIFICATION*', 'reviews/20-chrome/audit-review-evidence.mjs',
+                                         '.github/workflows/control-chrome-qualification.yml', '.github/workflows/control-chrome.yml'],
+                    self.CHROME: ['control/**', 'docs/control/TOOLS.md', 'reviews/20-chrome/**', '.github/workflows/control-chrome.yml', '.github/workflows/control-chrome-qualification.yml']}
+        for workflow, paths in expected.items():
+            source = workflow.read_text().split('\njobs:\n')[0]
+            for event in ['push', 'pull_request']:
+                section = re.search(r'^  '+event+r':\n((?:    .*\n)+)', source, re.M)[1]
+                for path in paths:
+                    with self.subTest(workflow=workflow.name, event=event, path=path):
+                        self.assertIn("'"+path+"'", section)
+            self.assertIn('pull_request:', source)

@@ -1,5 +1,8 @@
 """Real Sigstore verifier and durable-delivery fixtures; no browser access."""
+import argparse
 import copy
+import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -7,42 +10,125 @@ import sys
 import subprocess
 import tempfile
 from unittest.mock import Mock
+import urllib.error
+import urllib.request
+import urllib.response
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from aresos_control.chrome.qualification import Qualification, VERIFIER_CACHE_RESERVE, verify
+from aresos_control.chrome.qualification import Qualification, REPOSITORY, VERIFIER_CACHE_RESERVE, verify
+from aresos_control.common import Refused
 from aresos_control.storage import Store
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import qualify
 
 
-def exercise(path, bundle, branch):
+def attestation_url(path):
+    digest = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    return f'https://api.github.com/repos/{REPOSITORY}/attestations/sha256:{digest}?per_page=100'
+
+
+class RecordedAttestationAPI(urllib.request.BaseHandler):
+    """CI-only: answers exactly one recorded URL offline and refuses every other.
+
+    The recording is made by the workflow step with gh api and the job's
+    token; the product's anonymous verify() runs unchanged through it and
+    never sees a token or a header. This class ships in no installed file.
+    """
+
+    def __init__(self, url, payload, status=200, headers=None):
+        self.url, self.payload, self.status, self.headers = url, payload, status, headers or {}
+        self.requests = []
+
+    def https_open(self, request):
+        self.requests.append(request)
+        if request.full_url != self.url:
+            raise urllib.error.URLError('Recording refuses an unrecorded URL: ' + request.full_url)
+        if 'Authorization' in request.headers:
+            raise urllib.error.URLError('The anonymous path must not send credentials')
+        headers = {'Content-Type': 'application/json', **self.headers}
+        if self.status != 200:
+            raise urllib.error.HTTPError(self.url, self.status, 'recorded status', headers, io.BytesIO(self.payload))
+        return urllib.response.addinfourl(io.BytesIO(self.payload), headers, self.url, self.status)
+
+    def http_open(self, request):
+        raise urllib.error.URLError('Recording refuses plain HTTP: ' + request.full_url)
+
+
+def recorded(url, payload, status=200, headers=None):
+    handler = RecordedAttestationAPI(url, payload, status, headers)
+    opener = urllib.request.OpenerDirector()
+    opener.add_handler(handler)
+    return opener, handler
+
+
+def with_recording(url, payload, action, status=200, headers=None):
+    opener, handler = recorded(url, payload, status, headers)
+    urllib.request.install_opener(opener)
+    try:
+        return action(), handler
+    finally:
+        urllib.request.install_opener(None)
+
+
+def minimal_environment(action):
+    # Exercise the runtime default: no personal authentication, no inherited
+    # token, gh --bundle with the same source policy.
+    environment = dict(os.environ)
+    try:
+        os.environ.clear()
+        os.environ.update({'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8'})
+        try:
+            return action()
+        except subprocess.CalledProcessError as error:
+            raise AssertionError('Minimal-environment verifier failed: ' + error.stderr.decode(errors='replace')[:4000]) from error
+    finally:
+        os.environ.clear()
+        os.environ.update(environment)
+
+
+def exercise(path, bundle, ref, response):
     candidate = json.loads(path.read_text())
     baseline = {'format': 1, 'entries': candidate['entries'][:1]}
+    recording = Path(response).read_bytes()
+    listed = json.loads(recording).get('attestations')
+    assert isinstance(listed, list) and listed, 'The recorded API response lists no attestation for this record'
+    url = attestation_url(path)
     with tempfile.TemporaryDirectory(dir=path.parent) as directory:
         root = Path(directory)
         store = Store(root/'state', root/'evidence')
         qualification = Qualification(store, candidate['entries'][0]['build'], baseline)
-        verifier = lambda subject: verify(subject, branch=branch, bundle=bundle)
+        verifier = lambda subject: verify(subject, ref=ref, bundle=bundle)
         qualification.accept(path, verifier)
         assert qualification.record() == candidate
         print('QUALIFICATION DELIVERY newer valid attested record used PASS', flush=True)
-        environment = dict(os.environ)
-        try:
-            # Exercise the runtime default: public HTTPS lookup, no personal
-            # authentication, gh --bundle with the same source policy.
-            os.environ.clear()
-            os.environ.update({'PATH':'/usr/bin:/bin', 'LANG':'C.UTF-8'})
-            try:
-                verify(path, branch=branch)
-            except subprocess.CalledProcessError as error:
-                raise AssertionError('Minimal-environment verifier failed: '+error.stderr.decode(errors='replace')[:4000]) from error
-        finally:
-            os.environ.clear()
-            os.environ.update(environment)
+        # The product's anonymous lookup, offline: its urlopen reaches only the
+        # recorded response for exactly its own URL, then the real gh verify.
+        _, handler = with_recording(url, recording, lambda: minimal_environment(lambda: verify(path, ref=ref)))
+        assert [request.full_url for request in handler.requests] == [url]
+        assert all('Authorization' not in request.headers for request in handler.requests)
         cache = path.parent/'qualification-verifier-cache'
         cache_bytes = sum(file.stat().st_size for file in cache.rglob('*') if file.is_file())
         assert cache_bytes <= VERIFIER_CACHE_RESERVE, 'Verifier cache exceeds admitted reserve'
-        print(f'QUALIFICATION DELIVERY anonymous bundle lookup in launch-equivalent environment PASS; cache {cache_bytes} bytes', flush=True)
+        print(f'QUALIFICATION DELIVERY anonymous bundle lookup in launch-equivalent environment PASS; {len(listed)} recorded attestation(s), cache {cache_bytes} bytes', flush=True)
+        # Transport failures of the anonymous path refuse without a verdict.
+        for name, status, payload, expected in [
+            ('empty attestation list', 200, b'{"attestations":[]}', Refused),
+            ('rate limit 403', 403, b'{"message":"API rate limit exceeded"}', urllib.error.HTTPError),
+            ('secondary rate limit 429', 429, b'{"message":"too many requests"}', urllib.error.HTTPError),
+            ('server error 500', 500, b'', urllib.error.HTTPError)]:
+            try:
+                with_recording(url, payload, lambda: verify(path, ref=ref), status, {'Retry-After': '60'} if status == 429 else None)
+            except expected as error:
+                assert status == 200 or error.code == status
+            else:
+                raise AssertionError(name + ' was accepted')
+            print('QUALIFICATION DELIVERY anonymous lookup ' + name + ' refused PASS', flush=True)
+        try:
+            with_recording(url, recording, lambda: urllib.request.urlopen('https://api.github.com/rate_limit', timeout=5))
+        except urllib.error.URLError:
+            print('QUALIFICATION DELIVERY recording opener refuses an unrecorded URL PASS', flush=True)
+        else:
+            raise AssertionError('The recording opener answered an unrecorded URL')
         original = path.read_bytes()
         altered = copy.deepcopy(json.loads(bundle.read_text()))
         signature = altered['dsseEnvelope']['signatures'][0]['sig']
@@ -50,14 +136,15 @@ def exercise(path, bundle, branch):
         broken = root/'altered-bundle.json'
         broken.write_text(json.dumps(altered))
         cases = [
-            ('missing attestation', lambda subject: verify(subject, branch=branch, bundle=root/'missing.json')),
-            ('altered attestation', lambda subject: verify(subject, branch=branch, bundle=broken)),
-            ('wrong workflow', lambda subject: verify(subject, branch=branch, bundle=bundle, workflow='.github/workflows/untrusted-fixture.yml')),
+            ('missing attestation', lambda subject: verify(subject, ref=ref, bundle=root/'missing.json')),
+            ('altered attestation', lambda subject: verify(subject, ref=ref, bundle=broken)),
+            ('wrong workflow', lambda subject: verify(subject, ref=ref, bundle=bundle, workflow='.github/workflows/untrusted-fixture.yml')),
             ('wrong branch', lambda subject: verify(subject, branch='untrusted-fixture-branch', bundle=bundle)),
-            ('production main rejects branch fixture', lambda subject: verify(subject, bundle=bundle))
         ]
-        if branch == 'main':
-            cases.pop()
+        if ref != 'refs/heads/main':
+            # The installed service's main policy must refuse a bundle attested
+            # on this branch or pull request ref, however genuine.
+            cases.append(('production main rejects a bundle attested on ' + ref, lambda subject: verify(subject, bundle=bundle)))
         for name, check in cases:
             try:
                 qualification.accept(path, check)
@@ -118,4 +205,12 @@ def exercise(path, bundle, branch):
 
 
 if __name__ == '__main__':
-    exercise(Path(sys.argv[1]), Path(sys.argv[2]), os.environ.get('GITHUB_HEAD_REF') or os.environ['GITHUB_REF_NAME'])
+    parser = argparse.ArgumentParser()
+    parser.add_argument('record', type=Path)
+    parser.add_argument('bundle', type=Path)
+    parser.add_argument('response', type=Path, help='the attestation API response recorded by gh api for this record')
+    parser.add_argument('--ref', default=os.environ.get('GITHUB_REF'), help='the full ref the bundle was attested on')
+    arguments = parser.parse_args()
+    if not arguments.ref or not arguments.ref.startswith('refs/'):
+        raise SystemExit('--ref (or GITHUB_REF) must be a full ref such as refs/heads/main or refs/pull/N/merge')
+    exercise(arguments.record, arguments.bundle, arguments.ref, arguments.response)

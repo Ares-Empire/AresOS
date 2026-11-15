@@ -13,7 +13,8 @@ import tempfile
 import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from aresos_control.chrome.qualification import REPOSITORY, WORKFLOW, append_only, validate_record, verify, version
+from aresos_control.chrome.qualification import DELIVERY_LIMIT, REPOSITORY, WORKFLOW, append_only, validate_record, verify, version
+from aresos_control.common import Refused
 from aresos_control.chrome.policy import CORE_GROUPS, HOSTS
 from build import build_hash
 
@@ -105,7 +106,40 @@ def git(repo, *arguments, check=True):
     return subprocess.run(['git','-C',str(repo),*arguments],check=check,capture_output=True,text=True).stdout.strip()
 
 
-def prepare(repo, entries, baseline, verifier=verify):
+def bundle_from_api(path, runner=subprocess.run):
+    """Fetch the held record's attestation list with the job's gh login.
+
+    The installed service fetches the same list anonymously; CI runs share
+    GitHub's anonymous quota with other tenants, so the workflow uses its own
+    token for the transport. The response is never evidence: gh attestation
+    verify checks the signatures, the workflow identity and the source ref.
+    """
+    path = Path(path)
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    result = runner(['gh', 'api', f'repos/{REPOSITORY}/attestations/sha256:{digest}?per_page=100'],
+                    check=True, capture_output=True, text=True, timeout=60)
+    attestations = json.loads(result.stdout).get('attestations')
+    if not isinstance(attestations, list) or not attestations:
+        raise Refused('qualification_invalid', 'No attestation is listed for the held qualification record.')
+    serialized = ''.join(json.dumps(attestation['bundle'], ensure_ascii=False, separators=(',', ':')) + '\n'
+                         for attestation in attestations).encode('utf-8')
+    if len(serialized) > DELIVERY_LIMIT:
+        raise Refused('qualification_invalid', 'Serialized qualification attestations exceed the delivery bound.')
+    bundle = path.with_name(path.name + '.bundles.jsonl')
+    bundle.write_bytes(serialized)
+    return bundle
+
+
+def verify_held(path):
+    """Verify a held data-branch record from a token-fetched bundle list; main policy."""
+    bundle = bundle_from_api(path)
+    try:
+        verify(path, bundle=bundle)
+    finally:
+        bundle.unlink()
+
+
+def prepare(repo, entries, baseline, verifier=verify_held):
     # Fetching/verification precede any write to the publication branch.
     path = Path(repo)/RECORD
     current = json.loads(path.read_text())
@@ -179,9 +213,17 @@ def notify(candidate, published, runner=subprocess.run):
             '--body','Bring the shipped baseline up to date with the verified append-only data branch. Runtime delivery already uses the attested record. Review before merging.'])
 
 
-def publish(root, candidate, baseline, *, remote=None, verifier=verify):
-    """Only the main-only CLI uses the real remote; tests supply a local bare repo."""
-    verifier(candidate)
+def publish(root, candidate, baseline, *, remote=None, verifier=verify, bundle=None, held_verifier=verify_held):
+    """Only the main-only CLI uses the real remote; pull-request runs and tests supply a local bare repo.
+
+    The candidate is verified against the bundle the attest step just made,
+    so a fresh publication depends on no API listing. A held data-branch
+    record (second and later runs) is verified by held_verifier.
+    """
+    if bundle is None:
+        verifier(candidate)
+    else:
+        verifier(candidate, bundle=bundle)
     candidate_record = append_only(baseline, json.loads(candidate.read_text()))
     with tempfile.TemporaryDirectory(dir=root/'.work') as temporary:
         repository = Path(temporary)
@@ -189,10 +231,12 @@ def publish(root, candidate, baseline, *, remote=None, verifier=verify):
         git(repository, 'remote', 'add', 'origin', remote or 'https://github.com/'+REPOSITORY+'.git')
         credentials = ('-c', 'credential.helper=!gh auth git-credential') if remote is None else ()
         exists = git(repository, *credentials, 'ls-remote', '--heads', 'origin', 'refs/heads/'+DATA_BRANCH)
+        # First publication: the data branch is cut from main, whose shipped
+        # record is the reviewed baseline; the candidate must extend it.
         git(repository, *credentials, 'fetch', 'origin', DATA_BRANCH if exists else 'main')
         git(repository, 'checkout', '-b', DATA_BRANCH, 'FETCH_HEAD')
         if exists:
-            verifier(repository/RECORD)
+            held_verifier(repository/RECORD)
         held = json.loads((repository/RECORD).read_text())
         append_only(baseline, held)
         append_only(held, candidate_record)
@@ -214,8 +258,14 @@ def main():
     parser.add_argument('--plan')
     parser.add_argument('--runtime-root')
     parser.add_argument('--candidate',default='.work/qualification-candidate.json')
+    parser.add_argument('--channels',default='stable,beta',help='plan: Chrome channels to qualify; pull-request runs take one')
+    parser.add_argument('--bundle',help='publish: the Sigstore bundle the attest step made for the candidate')
+    parser.add_argument('--remote',help='publish: an existing local bare repository instead of origin (pull-request mode)')
     args=parser.parse_args();root=Path(args.root)
     if args.command=='plan':
+        channels=args.channels.split(',')
+        if not channels or set(channels)-{'stable','beta'} or len(set(channels))!=len(channels):
+            raise ValueError('--channels takes stable, beta or stable,beta')
         with urllib.request.urlopen(PACKAGES,timeout=30) as response:data=gzip.decompress(response.read(8*1024*1024)).decode()
         held=json.loads((root/RECORD).read_text())
         exists=git(root,'ls-remote','--heads','origin','refs/heads/'+DATA_BRANCH)
@@ -223,9 +273,10 @@ def main():
             git(root,'fetch','origin',DATA_BRANCH)
             content=git(root,'show','FETCH_HEAD:'+RECORD)
             with tempfile.NamedTemporaryFile(dir=root,suffix='.json',mode='w') as temporary:
-                temporary.write(content+'\n');temporary.flush();verify(temporary.name)
+                temporary.write(content+'\n');temporary.flush();verify_held(temporary.name)
                 held=append_only(held,json.loads(content))
-        matrix=plan(json.loads((root/'control/chrome/builds.json').read_text()),packages(data),held,git(root,'rev-parse','HEAD'),build_hash(root.resolve()))
+        versions={channel:package for channel,package in packages(data).items() if channel in channels}
+        matrix=plan(json.loads((root/'control/chrome/builds.json').read_text()),versions,held,git(root,'rev-parse','HEAD'),build_hash(root.resolve()))
         print(json.dumps(matrix));return
     if args.command=='pair':
         identity=json.loads(os.environ['QUALIFICATION_PAIR'])
@@ -242,11 +293,16 @@ def main():
                         adapters={key: valid and result.get('adapters', {}).get(key) is True for key in HOSTS})
         Path(args.artifacts).mkdir(parents=True,exist_ok=True)
         (Path(args.artifacts)/'pair.json').write_text(json.dumps(identity));return
-    # A branch/test invocation cannot publish, open issues or create a pull request.
-    if os.environ.get('GITHUB_REF')!='refs/heads/main' or os.environ.get('GITHUB_REPOSITORY')!=REPOSITORY:
-        raise SystemExit('Qualification publication is restricted to this repository on main')
+    # Only this repository prepares or publishes. Writes that reach GitHub (the
+    # push to origin's data branch, issues and pull requests) happen on main
+    # only; a pull request or branch run prepares, attests and publishes to a
+    # local bare repository so that every step runs before the merge.
+    if os.environ.get('GITHUB_REPOSITORY')!=REPOSITORY:
+        raise SystemExit('Qualification publication is restricted to this repository')
+    on_main=os.environ.get('GITHUB_REF')=='refs/heads/main'
     candidate=Path(args.candidate)
     if args.command=='notify':
+        if not on_main:raise SystemExit('Qualification notifications are restricted to main')
         notify(candidate,os.environ.get('PUBLISH_STATE')=='success');return
     if args.command=='prepare':
         if not args.plan:
@@ -264,8 +320,18 @@ def main():
             (publication/RECORD).write_text(current+'\n')
             result=prepare(publication,entries,baseline)
         candidate.parent.mkdir(parents=True,exist_ok=True);candidate.write_text(json.dumps(result,separators=(',',':'))+'\n');return
+    if args.remote is None:
+        if not on_main:raise SystemExit('Qualification publication to origin is restricted to main')
+        remote=None
+    else:
+        remote=Path(args.remote)
+        if '://' in args.remote or not remote.is_dir():
+            raise SystemExit('--remote must be an existing local directory, never a URL')
+        remote=str(remote.resolve())
+    if not args.bundle:
+        raise ValueError('publish requires the bundle the attest step made for this candidate')
     baseline=json.loads(git(root,'show','origin/main:'+RECORD))
-    publish(root,candidate,baseline)
+    publish(root,candidate,baseline,remote=remote,bundle=Path(args.bundle))
 
 
 if __name__=='__main__':main()

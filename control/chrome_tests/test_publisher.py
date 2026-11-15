@@ -1,14 +1,16 @@
 """Publisher tests are hermetic: local repository and stubbed GitHub notifications."""
 import copy
+import gzip
 import hashlib
 import importlib.util
+import io
 import json
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'control/chrome'))
@@ -168,14 +170,124 @@ class Publisher(unittest.TestCase):
             script.write_text("print('not a build hash')\n")
             with self.assertRaises(ValueError):qualify.runtime_identity(root)
 
-    def test_all_non_main_mutation_commands_refuse_before_git_or_github(self):
-        from unittest.mock import patch
-        for ref in ['refs/heads/pkg/20-chrome-qual','refs/heads/pkg/20-chrome','refs/pull/1/merge','']:
+    def test_writes_to_github_refuse_off_main_while_prepare_and_local_publish_run_anywhere(self):
+        # Main fix H4: a pull request or branch run prepares, attests and
+        # publishes to a local bare repository; the push to origin and the
+        # notifications stay main-only in this guard, not only in the workflow.
+        no_git=patch.object(qualify,'git',side_effect=AssertionError('No remote reads before branch guard'))
+        no_notify=patch.object(qualify,'notify',side_effect=AssertionError('No GitHub writes'))
+        no_publish=patch.object(qualify,'publish',side_effect=AssertionError('No publication'))
+        with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
+            local=Path(temporary);(local/'plan.json').write_text('{"include":[]}')
+            for ref in ['refs/heads/pkg/20-chrome-qual','refs/heads/pkg/20-chrome','refs/pull/1/merge','']:
+                environment={'GITHUB_REF':ref,'GITHUB_REPOSITORY':qualify.REPOSITORY,'GITHUB_RUN_ID':'1'}
+                for arguments in [['publish','--bundle','bundle.json'],['notify']]:
+                    with self.subTest(ref=ref,command=arguments[0]), patch.object(sys,'argv',['qualify.py',*arguments]), patch.dict(qualify.os.environ,environment), no_git, no_notify, no_publish:
+                        with self.assertRaises(SystemExit) as refused:qualify.main()
+                        self.assertIn('restricted to main',str(refused.exception))
+                # prepare reads origin/main and proceeds (the patched git is reached).
+                with self.subTest(ref=ref,command='prepare'), patch.object(sys,'argv',['qualify.py','prepare','--artifacts',str(local),'--plan',str(local/'plan.json')]), patch.dict(qualify.os.environ,environment), patch.object(qualify,'aggregate',return_value=[]), no_git, no_notify:
+                    with self.assertRaises(AssertionError) as reached:qualify.main()
+                    self.assertIn('No remote reads before branch guard',str(reached.exception))
+                # publish --remote <existing local directory> proceeds with the attest bundle.
+                baseline={'format':1,'entries':[entry()]}
+                with self.subTest(ref=ref,command='publish --remote'), patch.object(sys,'argv',['qualify.py','publish','--bundle','bundle.json','--remote',str(local)]), patch.dict(qualify.os.environ,environment), patch.object(qualify,'git',return_value=json.dumps(baseline)), patch.object(qualify,'publish') as published, no_notify:
+                    qualify.main()
+                    self.assertEqual(published.call_args.kwargs,{'remote':str(local.resolve()),'bundle':Path('bundle.json')})
+                    self.assertEqual(published.call_args.args[1:],(Path('.work/qualification-candidate.json'),baseline))
+                # Never a URL, never a missing directory, never without the bundle.
+                for remote in ['https://github.com/'+qualify.REPOSITORY+'.git','file://'+str(local),str(local/'missing'),'git@github.com:'+qualify.REPOSITORY+'.git']:
+                    with self.subTest(ref=ref,remote=remote), patch.object(sys,'argv',['qualify.py','publish','--bundle','bundle.json','--remote',remote]), patch.dict(qualify.os.environ,environment), no_git, no_publish:
+                        with self.assertRaises(SystemExit):qualify.main()
+                with self.subTest(ref=ref,command='publish without bundle'), patch.object(sys,'argv',['qualify.py','publish','--remote',str(local)]), patch.dict(qualify.os.environ,environment), no_git, no_publish:
+                    with self.assertRaises(ValueError):qualify.main()
+            with patch.object(sys,'argv',['qualify.py','publish','--bundle','bundle.json']), patch.dict(qualify.os.environ,{'GITHUB_REF':'refs/heads/main','GITHUB_REPOSITORY':qualify.REPOSITORY}), no_git, no_publish:
+                with self.assertRaises(AssertionError):qualify.main()
             for command in ['prepare','publish','notify']:
-                with self.subTest(ref=ref,command=command), patch.object(sys,'argv',['qualify.py',command]), patch.dict(qualify.os.environ,{'GITHUB_REF':ref,'GITHUB_REPOSITORY':qualify.REPOSITORY}), patch.object(qualify,'git',side_effect=AssertionError('No remote reads before branch guard')), patch.object(qualify,'notify',side_effect=AssertionError('No GitHub writes')):
+                with self.subTest(repository='foreign',command=command), patch.object(sys,'argv',['qualify.py',command,'--bundle','bundle.json']), patch.dict(qualify.os.environ,{'GITHUB_REF':'refs/heads/main','GITHUB_REPOSITORY':'fixture/repository'}), no_git, no_notify, no_publish:
                     with self.assertRaises(SystemExit):qualify.main()
-        with patch.object(sys,'argv',['qualify.py','publish']), patch.dict(qualify.os.environ,{'GITHUB_REF':'refs/heads/main','GITHUB_REPOSITORY':'fixture/repository'}):
-            with self.assertRaises(SystemExit):qualify.main()
+
+    def test_held_record_bundle_comes_from_gh_api_with_the_job_login(self):
+        # Main fix H2: the CLI verifies a held data-branch record from a
+        # bundle list fetched by gh api (the job's token), not the anonymous
+        # quota; the response is transport, gh attestation verify is the check.
+        with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
+            path=Path(temporary)/'record.json';path.write_text(json.dumps({'format':1,'entries':[entry()]}))
+            digest=hashlib.sha256(path.read_bytes()).hexdigest()
+            runner=Mock(return_value=Mock(stdout=json.dumps({'attestations':[{'bundle':{'fixture':1}},{'bundle':{'fixture':'\u00e9'}}]})))
+            bundle=qualify.bundle_from_api(path,runner)
+            command=runner.call_args.args[0]
+            self.assertEqual(command,['gh','api','repos/'+qualify.REPOSITORY+'/attestations/sha256:'+digest+'?per_page=100'])
+            self.assertEqual(bundle.read_bytes(),'{"fixture":1}\n{"fixture":"\u00e9"}\n'.encode())
+            self.assertEqual(bundle.parent,path.parent);self.assertEqual(bundle.suffix,'.jsonl')
+            for stdout in ['{"attestations":[]}','{}','{"attestations":[{"bundle":{"x":"'+'y'*(4*1024*1024)+'"}}]}']:
+                with self.subTest(stdout=stdout[:20]), self.assertRaises(Refused):
+                    qualify.bundle_from_api(path,Mock(return_value=Mock(stdout=stdout)))
+            with patch.object(qualify,'bundle_from_api',return_value=bundle), patch.object(qualify,'verify') as verify:
+                qualify.verify_held(path)
+            verify.assert_called_once_with(path,bundle=bundle)
+            self.assertFalse(bundle.exists())
+            self.assertIs(qualify.prepare.__defaults__[0],qualify.verify_held)
+            self.assertIs(qualify.publish.__kwdefaults__['held_verifier'],qualify.verify_held)
+
+    def test_plan_takes_one_channel_off_main_and_both_on_main(self):
+        metadata='\n\n'.join('Package: google-chrome-'+channel+'\nVersion: '+version+'-1\nFilename: pool/main/g/google-chrome-'+channel+'/google-chrome-'+channel+'_'+version+'-1_amd64.deb\nSHA256: '+'1'*64 for channel,version in [('stable','157.0.1.0'),('beta','158.0.2.0')])
+        def git(repo,*arguments,check=True):
+            return 'a'*40 if arguments[0]=='rev-parse' else ''
+        for channels,expected in [('stable',{'stable'}),('stable,beta',{'stable','beta'}),('beta',{'beta'})]:
+            with self.subTest(channels=channels), patch.object(sys,'argv',['qualify.py','plan','--channels',channels]), patch.object(qualify.urllib.request,'urlopen',return_value=io.BytesIO(gzip.compress(metadata.encode()))), patch.object(qualify,'git',side_effect=git), patch.object(qualify,'build_hash',return_value='a'*64), patch('sys.stdout',new_callable=io.StringIO) as stdout:
+                qualify.main()
+            rows=json.loads(stdout.getvalue())['include']
+            self.assertEqual({row['channel'] for row in rows},expected);self.assertEqual(len(rows),2*len(expected))
+        for channels in ['dev','stable,stable','','stable,beta,dev']:
+            with self.subTest(channels=channels), patch.object(sys,'argv',['qualify.py','plan','--channels',channels]), patch.object(qualify.urllib.request,'urlopen',side_effect=AssertionError('No fetch for an invalid channel list')):
+                with self.assertRaises(ValueError):qualify.main()
+
+    def test_first_publication_cuts_the_data_branch_from_main_and_extends_only_the_shipped_baseline(self):
+        # Main fix H3: the first run on main has no data branch. prepare takes
+        # the shipped baseline from origin/main plus this run's results, and
+        # publish verifies the candidate against the attest step's bundle,
+        # cuts the data branch from main and never calls the held verifier.
+        with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
+            root=Path(temporary)
+            def seeded(name,record):
+                remote=root/(name+'.git');remote.mkdir();qualify.git(remote,'init','--bare')
+                seed=root/name;seed.mkdir();qualify.git(seed,'init','-b','main');(seed/'.work').mkdir()
+                path=seed/qualify.RECORD;path.parent.mkdir(parents=True);path.write_text(json.dumps(record))
+                qualify.git(seed,'add','.');qualify.git(seed,'-c','user.name=Fixture','-c','user.email=fixture@fixture.test','commit','-m','Fixture baseline')
+                qualify.git(seed,'remote','add','origin',str(remote));qualify.git(remote,'fetch',str(seed),'main:main');qualify.git(seed,'fetch','-q','origin')
+                return seed,remote
+            baseline={'format':1,'entries':[entry()]}
+            seed,remote=seeded('first',baseline)
+            artifacts=root/'artifacts';plan={'include':[]}
+            for repeat in [1,2]:
+                (artifacts/str(repeat)).mkdir(parents=True)
+                (artifacts/str(repeat)/'pair.json').write_text(json.dumps({**entry(version='158.0.1.0'),'repeat':repeat}))
+                plan['include'].append({'build':'a'*64,'version':'158.0.1.0','channel':'stable','repeat':repeat})
+            (root/'plan.json').write_text(json.dumps(plan))
+            candidate=root/'candidate.json'
+            with patch.object(sys,'argv',['qualify.py','prepare','--root',str(seed),'--artifacts',str(artifacts),'--plan',str(root/'plan.json'),'--candidate',str(candidate)]), patch.dict(qualify.os.environ,{'GITHUB_REF':'refs/pull/9/merge','GITHUB_REPOSITORY':qualify.REPOSITORY,'GITHUB_RUN_ID':'77'}), patch.object(qualify,'verify_held',side_effect=AssertionError('Nothing held to verify on the first run')):
+                qualify.main()
+            expected={'format':1,'entries':[entry(),{**entry(version='158.0.1.0'),'run':'77'}]}
+            self.assertEqual(json.loads(candidate.read_text()),expected)
+            bundle=root/'bundle.json';bundle.write_text('{"fixture":"attest step bundle"}')
+            verifier=Mock();held=Mock(side_effect=AssertionError('No data branch exists to verify'))
+            main=qualify.git(remote,'rev-parse','refs/heads/main')
+            qualify.publish(seed,candidate,baseline,remote=str(remote),verifier=verifier,bundle=bundle,held_verifier=held)
+            verifier.assert_called_once_with(candidate,bundle=bundle)
+            self.assertEqual(qualify.git(remote,'rev-parse','refs/heads/main'),main)
+            self.assertEqual(json.loads(qualify.git(remote,'show','chrome-qualification:'+qualify.RECORD)),expected)
+            self.assertEqual(qualify.git(remote,'rev-parse','chrome-qualification^'),main)
+            # Refused: a candidate whose prefix is not the shipped baseline, and
+            # a main whose shipped record is not the baseline the run trusts.
+            foreign={'format':1,'entries':[entry(run='foreign-baseline')]}
+            seed2,remote2=seeded('second',baseline)
+            for name,trusted,target in [('candidate does not extend the baseline',foreign,remote2),('main does not hold the trusted baseline',foreign,seeded('third',foreign)[1])]:
+                verifier=Mock()
+                with self.subTest(name=name), self.assertRaises(Refused):
+                    qualify.publish(seed2,candidate,trusted if name.startswith('candidate') else baseline,remote=str(target),verifier=verifier,bundle=bundle,held_verifier=held)
+                self.assertEqual(qualify.git(target,'ls-remote','--heads',str(target),'refs/heads/chrome-qualification'),'')
+                self.assertEqual(json.loads(qualify.git(target,'show','main:'+qualify.RECORD)),foreign if name.startswith('main') else baseline)
 
     def test_local_repository_publish_only_changes_data_branch_and_verifies_both_subjects(self):
         with tempfile.TemporaryDirectory(dir=ROOT/'.work/20-chrome') as temporary:
@@ -190,11 +302,11 @@ class Publisher(unittest.TestCase):
             main=qualify.git(remote,'rev-parse','refs/heads/main')
             candidate=root/'candidate.json';newer={'format':1,'entries':[entry(),entry(version='158.0.1.0')]};candidate.write_text(json.dumps(newer))
             verifier=Mock()
-            qualify.publish(root,candidate,baseline,remote=str(remote),verifier=verifier)
+            qualify.publish(root,candidate,baseline,remote=str(remote),verifier=verifier,held_verifier=verifier)
             self.assertEqual(verifier.call_count,1)
             self.assertEqual(qualify.git(remote,'rev-parse','refs/heads/main'),main)
             self.assertEqual(json.loads(qualify.git(remote,'show','chrome-qualification:'+qualify.RECORD)),newer)
-            verifier.reset_mock();qualify.publish(root,candidate,baseline,remote=str(remote),verifier=verifier)
+            verifier.reset_mock();qualify.publish(root,candidate,baseline,remote=str(remote),verifier=verifier,held_verifier=verifier)
             self.assertEqual(verifier.call_count,2)
             before=qualify.git(remote,'rev-parse','chrome-qualification')
             # Simulate an unsigned inserted branch entry, then the main workflow's

@@ -36,7 +36,14 @@ runuser -u owner -- env GITHUB_ACTIONS=true dbus-run-session -- xvfb-run -a -s '
   node control/chrome/ci/baseline.mjs
 ' 2>&1 | tee /out/baseline.txt
 node control/chrome/ci/prepare.mjs
-runuser -u aresos-tools -- env PYTHONPATH=/workspace/control PYTHONDONTWRITEBYTECODE=1 GITHUB_ACTIONS=true python3 control/chrome/ci/service.py > /out/service.txt 2>&1 &
+# Main fix H5: the latency pair keeps its two harness streams (the service's
+# stdout and the browser-boundary audit sink) on a tmpfs the pair mounts, so
+# their flushes are not in the disk journal the store's fsyncs wait on. They
+# are copied to /out when the probe ends; the store itself stays on disk.
+FIXTURE_LOG_DIR=/out
+if test "${LATENCY_PROBE:-}" = true && test -d /scratch; then FIXTURE_LOG_DIR=/scratch; fi
+export FIXTURE_LOG_DIR
+runuser -u aresos-tools -- env PYTHONPATH=/workspace/control PYTHONDONTWRITEBYTECODE=1 GITHUB_ACTIONS=true FIXTURE_LOG_DIR="$FIXTURE_LOG_DIR" python3 control/chrome/ci/service.py > "$FIXTURE_LOG_DIR/service.txt" 2>&1 &
 service_pid=$!
 trap 'kill "$service_pid" 2>/dev/null || true' EXIT
 for attempt in $(seq 1 100); do
@@ -50,6 +57,11 @@ runuser -u owner -- env GITHUB_ACTIONS=true dbus-run-session -- xvfb-run -a -s '
 ' 2>&1 | tee /out/browser.txt
 
 if test "${DESTINATION_PROBE:-}" = true || test "${LATENCY_PROBE:-}" = true; then
+  if test "$FIXTURE_LOG_DIR" != /out; then
+    kill "$service_pid" 2>/dev/null || true
+    wait "$service_pid" 2>/dev/null || true
+    cp "$FIXTURE_LOG_DIR/service.txt" "$FIXTURE_LOG_DIR/browser-boundary.jsonl" /out/
+  fi
   echo 'Post-18d safety probes complete; not full acceptance'
   exit
 fi
