@@ -752,6 +752,18 @@ case('mainfix-sec-rollback-any-exception',AT,"            refused(qualification,
 case('mainfix-sec-refusal-code-unchecked',AT,"        if error.code != reason:\n            raise\n","        if False:\n            raise\n",ROLLBACK_CASES,True)
 case('mainfix-sec-publisher-any-exception',AT,"            expected_refusal(lambda: qualify.prepare(publication, [], trusted_baseline, verifier), reason)\n","            try:\n                qualify.prepare(publication, [], trusted_baseline, verifier)\n            except Exception:\n                pass\n            else:\n                raise AssertionError('accepted')\n",PUBLISHER_CASES,True)
 case('mainfix-sec-publisher-baseline-case-unsigned-bytes',AT,"        ('non-append-only shipped baseline', original, ","        ('non-append-only shipped baseline', json.dumps(candidate).encode(), ",PUBLISHER_CASES,True)
+# Qualification publisher fixes from main's first full run (43696892949): the
+# version is the token after the browser's name (every beta pair was read as
+# 'beta' and recorded all-false), and notify writes issues only, keeps one open
+# issue per title, comments only on new text and shows gh's own error.
+QFT='test_publisher.Publisher.test_pair_result_requires_measured_build_and_exact_browser_version'
+QFN='test_publisher.Publisher.test_notify_keeps_one_open_issue_per_title_and_shows_gh_errors'
+case('qualifyfix-version-last-word',QY,"measured_version = measured_chrome_version(actual.read_text()) if actual.exists() else None","measured_version = actual.read_text().strip().split()[-1] if actual.exists() else None",QFT,True)
+case('qualifyfix-version-any-name',QY,"re.fullmatch(r'Google Chrome (\\d+(?:\\.\\d+){3})(?: [a-z]+)?',text.strip())","re.search(r'(\\d+(?:\\.\\d+){3})',text)",QFT,True)
+case('qualifyfix-notify-duplicate-issues',QY,"        if not numbers:\n","        if True:\n",QFN,True)
+case('qualifyfix-notify-repeated-comments',QY,"        if body!=seen['body'] and body not in [comment['body'] for comment in seen['comments']]:\n","        if True:\n",QFN,True)
+case('qualifyfix-notify-hides-gh-errors',QY,"            raise SystemExit('gh '+' '.join(arguments[:2])+' failed: '+(error.stderr or '').strip()) from None\n","            raise\n",QFN,True)
+case('qualifyfix-publisher-pull-requests-write',QW,"      issues: write\n    steps:","      issues: write\n      pull-requests: write\n    steps:",'test_qualification.Workflow.test_main_only_mutations_serialized_publication_and_daily_stable_beta_pairs',True)
 
 # Brief 20-popup-race, P1 (run 43671248371, popup-opener-close): Chrome replays an
 # unanswered Debugger.setBreakpointByUrl into a popup's new renderer, where the

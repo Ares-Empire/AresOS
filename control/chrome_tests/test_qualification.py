@@ -535,8 +535,10 @@ class Workflow(unittest.TestCase):
         publisher = source.split('  qualification-publish:')[1].split('  delivery-attestation:')[0]
         self.assertIn("QUALIFICATION_CHANNELS: ${{ github.ref == 'refs/heads/main' && 'stable,beta' || 'stable' }}", plan)
         self.assertIn('plan --channels "$QUALIFICATION_CHANNELS"', plan)
-        for permission in ['contents: write', 'id-token: write', 'attestations: write', 'issues: write', 'pull-requests: write']:
+        for permission in ['contents: write', 'id-token: write', 'attestations: write', 'issues: write']:
             self.assertIn(permission, publisher)
+        # Notify writes issues only: the repository doesn't let workflows create pull requests.
+        self.assertNotIn('pull-requests', publisher)
         self.assertLess(publisher.index('qualify.py prepare'), publisher.index('actions/attest-build-provenance'))
         self.assertLess(publisher.index('actions/attest-build-provenance'), publisher.index('qualify.py publish'))
         self.assertIn('--plan .work/qualification-plan.json', publisher)

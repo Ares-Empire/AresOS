@@ -269,7 +269,8 @@ def publisher_cases(publication, original, baseline, candidate, verifier):
             raise AssertionError(name + ': ' + str(error)) from error
         qualify.notify(None, False, notifications)
         assert subject.read_bytes() == contents
-        assert notifications.call_count == 1 and 'issue' in notifications.call_args.args[0]
+        # One open-issue lookup, then the refusal issue; never a pull request.
+        assert [call.args[0][1:3] for call in notifications.call_args_list] == [['issue', 'list'], ['issue', 'create']]
         print('QUALIFICATION PUBLISHER ' + name + ' refused (' + reason + '); no write, issue stubbed PASS', flush=True)
 
 
