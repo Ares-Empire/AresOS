@@ -48,7 +48,7 @@ Codex is at 0% until the refill; Patrik has one manual full reset for when it ru
 3. **22d fix steps, if the final Fable review finds any** (sol xhigh against the review's findings); the re-review on astra high.
 4. **42 step 2** (sol xhigh) once PR #58 and 18c-b are merged (Control's diff rules, `verify_release` binding `control/`, the manifest's `control` object).
 5. **42 step 3** (sol xhigh) once 22d is merged: the `release-28` rehearsal mode from 22d's tools-local route.
-6. **43, the `aresos` command**: its design note is Claude's (Fable; see `STATE.md`, "Timing"); its build steps go to sol xhigh after the note is READY, reviews on astra.
+6. **43, the `aresos` command** (empire brief 296): its design note is Claude's (Fable agent started 2026-11-15 evening with `mac-capacity`'s OK; worktree `~/AresOS-43-aresos-command`, branch `pkg/43-aresos-command`, `reviews/43-aresos-command/DESIGN.md`; see `STATE.md`, "Timing"); its READY reviews on astra high from Tuesday (expect three rounds); its build steps go to sol xhigh after the note is READY, reviews on astra.
 7. If time is left: the owner tools' tests on AresOS itself (`test_owner_update.reached()` takes "STOP: Required tool missing: rpm-ostree" as the marker that the new tools ran, which cannot appear on a host that has rpm-ostree; verify natively, then make the marker independent of the host), and the documents that still describe the Windows laptop (below).
 
 ## Waiting on others
