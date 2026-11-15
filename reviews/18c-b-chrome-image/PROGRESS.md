@@ -5,10 +5,166 @@ Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; th
 
 ## Where it stands
 
-**Step 1a is built** (2026-11-15, Claude Fable 5.2, as the brief recommends for the signing key and the packer).
-Next: step 1b (`record_build.py`), then step 2 (the install proof in the container).
+**Steps 1a and 1b are built** (1a: 2026-11-15, Claude Fable 5.2; 1b: 2026-11-15, Claude Opus 5.5, as the brief
+recommends). 1b also fixed the latency pair that 1a's path move broke (Part A below).
+Next: read the runs below, then step 2 (the install proof in the container).
 
-## Done
+## Step 1b
+
+### Part A: the latency pair after 1a (run 43705955018)
+
+**Cause (read from the run, not assumed).** Every job of `Control Chrome` on `265caa52` was green except
+`latency (plain)` and `latency (audit)`, both in "Paired current and historical measurements on the same runner"
+(`control/chrome/ci/latency-pair.sh`). The pair runs two legs: `current`, then `ab7aba92` (main's older runtime,
+with the current `control/chrome/ci/` and `control/chrome_tests/` copied over it). The `current` leg finished and
+printed its results (`"runtime": "current"`, build `2acd63cb…`); the `ab7aba92` leg failed in `browser.mjs` line 40
+with `extension native connection: undefined`. Its artifact (`chrome-latency-43705955018-1-ab7aba92-plain`,
+`tool.jsonl`) holds 296 `tabs` answers: 5 `chrome_unavailable` (before the extension connected), then 291
+`chrome_settings_unavailable`. So the extension did connect; the tools refused because the list wasn't where that
+runtime reads it. `ab7aba92`'s `exclusions.py` has `SETTING = '/etc/aresos/control/chrome-excluded-sites.json'`,
+and the current `prepare.mjs` (copied into that leg) wrote only `/var/lib/aresos-control/…`. `rpc('tabs')` answers
+`ok: false` without throwing, which is why the message says `undefined`. The lead's guess was right.
+
+**Fix** (`32f1126c`): `prepare.mjs` no longer names a path for the list. It asks the tree under test,
+`python3 -B -c 'from aresos_control.chrome.exclusions import SETTING;print(SETTING)'` with
+`PYTHONPATH=/workspace/control`, refuses an answer that isn't an absolute path ending in
+`/chrome-excluded-sites.json`, and writes the same content, mode (0640) and owner (`root:1001`) there. The
+`current` leg and every other Control Chrome job get `/var/lib/aresos-control/…` as before; the `ab7aba92` leg
+gets `/etc/aresos/control/…`, as main's harness gave it. Ceilings, sample counts, `latency-targets.json`,
+`latency-reference.json`, `latency-pair.sh` and the comparison are unchanged. Checked locally: the command prints
+the old path over `git archive ab7aba92 control/aresos_control` and the new one over the checkout.
+
+**Its test:** `CiInstall` in `control/chrome_tests/test_excluded_sites_placeholder.py` (3 tests): `prepare.mjs`
+holds neither path nor the file name as a literal, and writes and chowns `excludedSites`; the exact command taken
+from `prepare.mjs` prints `exclusions.SETTING` over the checkout and the old path over a copy of
+`aresos_control` whose `SETTING` is the old one; the guard accepts both and refuses others. All three fail on
+`prepare.mjs` before the fix.
+
+### 1b done: `record_build.py` (item 4)
+
+- `control/chrome/record_build.py` (stdlib only; not one of `build.py`'s inputs, the hash stays `2acd63cb…`):
+  - `add --commit <40 hex> --shipped-at <YYYY-MM-DDTHH:MM:SSZ> [--expect <64 hex>] [--registry PATH] [--repo PATH]`:
+    `git archive <commit> -- control` into a temporary folder (extracted with tarfile's `data` filter), runs that
+    commit's `control/chrome/build.py` with `-I -B`, refuses a wrong `--expect` or an existing row for the commit
+    with another hash, adds the row, keeps the newest three by `shipped_at` and writes atomically. `--registry`
+    defaults to the repository's `builds.json`; the recorded run below used a scratch copy.
+  - `check [--root PATH]`: validates `builds.json` (the planner's rules plus unique commits), then
+    `os/manifest/release.json` and every `os/manifest/releases/**/*.json`. No `control` object: an info line. A
+    `control` object must be exactly `{"source_revision": <40 hex>, "chrome_build": <64 hex>}` with
+    `source_revision` equal to the manifest's `source_commit`; `release.json` needs an equal row; a release under
+    `releases/` needs an equal row only if one is kept. Exit 1 with `FAIL:` lines, else `record_build check passed`.
+- `control/chrome/ci/records/test_record_build.py` (21 tests, synthetic repositories and checkouts in temporary
+  folders): `add` records what that commit's own `build.py` prints over its archived tree (the test archives and
+  runs it itself); a commit with another `build.py` keeps its own algorithm, not the checkout's, and uncommitted
+  changes don't count; wrong `--expect`; a repeated commit (unchanged file) and a conflicting row (refused); pruning
+  to three, added out of order; a later commit with the same build; bad commits, times, `--expect`, a commit
+  without `control/`; invalid registries; what `add` writes passes `qualify.plan`; the command line. `check`: with
+  a row, without one, with an unequal one, no `control` object, malformed objects (in `release.json` and in
+  `releases/`), `source_revision` against `source_commit`, `releases/**` (kept equal, kept unequal, missing,
+  a subfolder), an invalid registry, a missing or non-object `release.json`, exit codes, and this checkout.
+- `.github/workflows/control-chrome-records.yml`: pull requests touching `os/manifest/release.json`,
+  `os/manifest/releases/**`, `control/chrome/builds.json`, `record_build.py`, `control/chrome/ci/records/**` or the
+  workflow itself; `contents: read`, no secrets, `persist-credentials: false`, ubuntu-24.04's own `python3`; the
+  tests, then `record_build.py check` on the checkout.
+- `builds.json` is unchanged (`{"format":1,"builds":[]}`).
+
+**The recorded run (run, on the laptop, into a scratch copy of `builds.json`):** 18c's head is reachable
+(`origin/pkg/18c-image`).
+```
+$ python3 control/chrome/record_build.py add --commit 84f45c28fc20a21bf4882de8eb9fe83b94414798 \
+    --shipped-at 2026-11-15T12:00:00Z --expect ccd0fd79190f492dbb0ca9889a288c0c004e0d46da3458e0f4446c80b5f5ce15 \
+    --registry <scratch>/builds.json
+{"commit":"84f45c28fc20a21bf4882de8eb9fe83b94414798","build":"ccd0fd79190f492dbb0ca9889a288c0c004e0d46da3458e0f4446c80b5f5ce15","shipped_at":"2026-11-15T12:00:00Z"}
+record_build: recorded
+```
+exit 0. The same commit again: `already recorded; builds.json unchanged`, exit 0; with `--expect aaaa…`:
+`refused: commit 84f45c28… hashes to ccd0fd79…, not the expected aaaa…`, exit 1. `qualify.plan` accepts the
+scratch file. `check` on the checkout prints an info line for `release.json` and `releases/06.json`, `13.json`,
+`27.json` (none has a `control` object yet) and `record_build check passed`.
+
+### Local tests (laptop, Python 3.14.8)
+
+- `python3 -B -m unittest discover -s control/chrome/ci/records -p 'test_*.py'`: `Ran 21 tests`, `OK`.
+- `PYTHONPATH=control:control/chrome_tests python3 -B -m unittest test_excluded_sites_placeholder test_exclusions
+  test_build test_extension_stores_nothing test_unit`: `Ran 19 tests`, `OK`.
+- `CiInstall` on the `prepare.mjs` before the fix: `FAILED (failures=3)`.
+- Three mutants of `record_build.py` (the checkout's `build.py` instead of the commit's; no pruning; `check` not
+  comparing the build) each fail tests; not committed.
+- `python3 -B control/chrome/build.py`: `2acd63cbc4ae0ec273e82f700a4a8afdfa7288f191706a848c9091b64636c6ec`
+  (unchanged by 1b).
+- **Not run locally:** `prepare.mjs` itself (no node, no container): the Control Chrome run below is its proof.
+
+### CI runs (started by the push of `9302528d`; nobody waited for them)
+
+1a's other runs on `265caa52` were green: Control Chrome qualification 43705955046, Control base 43705955015,
+Control Mail 43705954960, Control boundary 43705954998.
+
+| Run | Workflow | What to look for |
+|---|---|---|
+| 43716630045 | Control Chrome | `latency (plain)` and `latency (audit)` green (Part A); the 3 `CiInstall` tests in the python shards |
+| 43716630095 | Control Chrome records | first run of the 21 tests and `check` on GitHub |
+| 43716630048 | Control Chrome qualification | |
+| 43716630066 | Control base | |
+| 43716630101 | Control Mail | |
+| 43716630097 | Control boundary | |
+
+### What the code doesn't show (1b)
+
+- `record_build.py` needs Python 3.12 or later (tarfile's `data` filter) and `git` on `PATH`. The commit must be
+  in the clone: a release job with `actions/checkout`'s default depth of 1 has its own commit, so
+  `add --commit "$GITHUB_SHA"` works there without fetching history.
+- `add` runs the archived `build.py` as a script with `-I -B` in a temporary folder that is removed afterwards;
+  nothing is written into the repository but `--registry`.
+- The python shards of `Control Chrome` pick up `CiInstall` (every `control/chrome_tests/test_*.py`); nothing but the
+  records workflow runs `control/chrome/ci/records/`.
+
+### Left, in order
+
+1. **Read the runs above.** If a latency leg still fails, its `tool.jsonl` artifact names the refusal.
+2. **2** the install proof in the container. First thing: run `test_pack.py` and `pack-crosscheck.test.mjs` there.
+   They have run nowhere on GitHub yet, and the node test has never run at all.
+3. **3a, 3b, 4 (4b), 5, 6** as the brief's "Steps" lists them. 3a waits for PR #58 on `main`, the lead's go and
+   the owner's answer to question 5.
+
+### JUDGMENT-CALL (1b)
+
+1. **Part A asks the runtime for its path** instead of writing the list at both paths. Two paths would leave a
+   list at the old `/etc` path in every container of current code, so a `SETTING` moved back to `/etc` would
+   still pass every browser run. Cost: `prepare.mjs` (an existing file under `control/chrome/ci/`, which the brief
+   lets this package change only on item 1's path lines) changed on those three lines plus two imports, on the
+   lead's instruction. The test went into this package's new `test_excluded_sites_placeholder.py`, not the existing
+   `test_latency.py`, for the same rule.
+2. **`add` archives `control/` only**, not the whole tree (about 980 MB at HEAD). Every version of `build.py` so
+   far hashes only paths under `control/` (`ROOT/'control'`). A later `build.py` that reads outside `control/`
+   would need the archived paths widened (one line).
+3. **A repeated commit with an equal hash is a no-op** (exit 0, the first `shipped_at` stays), so a rerun release
+   job passes; with another hash it is refused.
+4. **A later commit with the same build takes over that build's row** (with its own commit and time). The planner
+   (`qualify.plan`) refuses a build named twice, and a release that changed nothing under `control/` hashes the
+   same as the one before. Refusing would fail every such release; two rows would break qualification. The older
+   release then has no row, which `check` allows for `releases/`.
+5. **A row older than the three newest is refused**, not added and pruned at once in silence.
+6. **`--shipped-at` is strictly `YYYY-MM-DDTHH:MM:SSZ`** (no fractions, no offsets), and must be a real time.
+7. **`check` is a little wider than item 4:** `source_revision` must equal `source_commit` in `releases/` too; it
+   reads `releases/` recursively; a missing or non-object `release.json` and an invalid `builds.json` fail.
+8. **The workflow** runs on pull requests against any base (no branch filter) and on its own path too;
+   `pull_request` only, as item 4 says.
+9. **`builds.json` layout:** one row per line, newest first, so the pinning pull request shows its row as one
+   line; the empty file stays byte for byte as it is.
+
+### PLAN-GAP (1b)
+
+- **The latency pair wasn't in the brief's picture.** It runs the current harness over main's runtime
+  (`ab7aba92`), so a path the harness writes and the runtime reads can't simply move in the harness. 1a moved the
+  list as the brief said and the historical leg broke. Any later change of that kind (the policy or host paths in
+  steps 2 and 3a, if CI's install follows them) meets the same.
+- **"That commit's tree"** in item 4 would be about a gigabyte per `add`; see JUDGMENT-CALL 2.
+- **Item 4 leaves open** a repeated commit and the same build under a new commit; decided in JUDGMENT-CALLs 3 and 4.
+  `linux-aresos`'s release job should run `add` once per release and may rerun it.
+
+## Step 1a
+
+### Done
 
 **1a. Packer, templates, pins** (item 1; `control/` only, nothing under `os/` or `docs/design/`)
 
@@ -32,16 +188,7 @@ Next: step 1b (`record_build.py`), then step 2 (the install proof in the contain
 `python3 control/chrome/build.py` prints `2acd63cbc4ae0ec273e82f700a4a8afdfa7288f191706a848c9091b64636c6ec` at
 `0fc242e7` (the brief expected it to change: `packaging/` and `exclusions.py` are hashed).
 
-## Left, in order
-
-1. **1b** `record_build.py`, its tests under `control/chrome/ci/records/`, the records workflow, the one recorded
-   run. The README already names the tool.
-2. **2** the install proof in the container. First thing: run `test_pack.py` and `pack-crosscheck.test.mjs` there.
-   They have run nowhere on GitHub yet, and the node test has never run at all.
-3. **3a, 3b, 4 (4b), 5, 6** as the brief's "Steps" lists them. 3a waits for PR #58 on `main`, the lead's go and
-   the owner's answer to question 5.
-
-## What the code doesn't show
+### What the code doesn't show
 
 - **Signing uses Python's `cryptography`**, imported inside `_sign_with_fresh_key` only. The container of
   `control/chrome/ci/Dockerfile` (Debian bookworm) has `python3` without it: step 2's workflow installs the
@@ -62,7 +209,7 @@ Next: step 1b (`record_build.py`), then step 2 (the install proof in the contain
 - In today's code the swept tools make **no** bridge call at all; the test allows `ack_steps` and `queued_steps`
   as the brief says and fails on any other, `configure` included.
 
-## Local tests (laptop, 2026-11-15, Python 3.14.8, `cryptography` 50.0.0)
+### Local tests (laptop, 2026-11-15, Python 3.14.8, `cryptography` 50.0.0)
 
 - `python3 -m unittest discover -s control/chrome/ci/install -p 'test_*.py'`: `Ran 10 tests`, `OK`.
 - `PYTHONPATH=control:control/chrome_tests python3 -m unittest test_extension_stores_nothing
@@ -76,7 +223,7 @@ Next: step 1b (`record_build.py`), then step 2 (the install proof in the contain
   `control/tests`' `test_policy_sources`, `test_slim_policy`, `test_unit` were started locally and stopped
   unfinished (slow suites; the laptop is shared): take their result from the GitHub runs below.
 
-## CI runs
+### CI runs
 
 Draft pull request **#76**. Started by its first push, on head `265caa52` (queued when this was written; nobody
 waited for them, so the next agent reads the results first):
@@ -91,7 +238,7 @@ waited for them, so the next agent reads the results first):
 
 Nothing on GitHub runs `control/chrome/ci/install/` yet (step 2).
 
-## JUDGMENT-CALL
+### JUDGMENT-CALL
 
 1. **`cryptography` in the process, not OpenSSL through pipes.** The key lives only in the crypto library's
    memory, is never serialized and is freed after one signature. The pipe route would carry the key's PEM
@@ -111,7 +258,7 @@ Nothing on GitHub runs `control/chrome/ci/install/` yet (step 2).
 7. **The zip** is deflated as `install.mjs`'s is (what CI's Chrome has unpacked since package 17), with the
    time fixed at 1980-01-01 and mode 0644.
 
-## PLAN-GAP
+### PLAN-GAP
 
 - **Branch name.** The brief's "Rules" say `pkg/18c-b-chrome-image`; the lead's handoff gave
   `pkg/18c-b-chrome`, which is what exists.
@@ -123,7 +270,7 @@ Nothing on GitHub runs `control/chrome/ci/install/` yet (step 2).
 - **CI's list in the container** now goes to `/var/lib/aresos-control/`, which `prepare.mjs` makes as root
   (0755 by default). `Boundary.read` needs that; only the `control-chrome.yml` run shows it.
 
-## The brief against the code
+### The brief against the code
 
 Nothing in item 1 turned out wrong. Checked: `exclusions.py` lines 8 and 23, `prepare.mjs` lines 32 to 34,
 `test_exclusions.py` line 13 and `background.js` lines 869 to 875 are where the brief says; the extension uses
