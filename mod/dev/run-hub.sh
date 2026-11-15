@@ -52,8 +52,9 @@
 #     opens out here: the preview's helper sees no window of it and says so after its open deadline.
 #   - Whatever goes through this desktop's D-Bus session opens out here too: the polkit password prompt, portal
 #     dialogs (file choosers), notifications.
-#   - One screen only (the preview is one window), so the world on the other screen is not shown; no package 23
-#     supervisor (no restart, no recovery terminal) and the development client instead of Prism's.
+#   - One screen only (the preview is one window on the screen it opens on): the world on an external monitor and
+#     "covered" per screen are not shown. No package 23 supervisor (no restart, no recovery terminal), and the
+#     development client instead of Prism's.
 set -euo pipefail
 source "$(dirname -- "${BASH_SOURCE[0]}")/env.sh"
 

@@ -276,6 +276,7 @@ it hands the request to its running copy outside).
 | Step 2: `HomeScreenClientGameTest`, its new last part: a real `ShellClient` on the fake helper, wired with `ShellFocusClient.register`; covered pauses the client and the integrated server with no screen, caps the frame rate at 10, five ready heartbeats for the world arrive while paused and no second `world_ready`; uncovered runs again at the old cap; a dropped helper connection unpauses | yes for the pause, the cap and the reset (from reading: without the mixins nothing pauses); the heartbeat part guards |
 | Step 3: `LiveFlightGameTests.joiningLivePlayerFliesAndCannotBeHurt`: a joining Live player can fly (server and, replayed packet by packet, his client), is invulnerable without instant building, walks at 0.15, the server accepts his double space, fall and lava do nothing, he does not catch fire; joining again from his save (read as the game reads it) he is still Live, still flying | yes ("Live on the server: he cannot fly") |
 | Step 3: `LiveFlightGameTests.speedSurvivesSwitchesDeathAndRespawn`: the speed in Live, after G to Build, after G back, after a death in Build and the game's respawn, after G to Live, after a respawn in Live keeping everything (the End's); his client's abilities after each | yes ("Live: walking speed 0.1"). Without only the resend in `ModeInventories.sync`: "Live after Build, on his client: he cannot fly". Without only the resend after a respawn: "His client walks at the game's speed after dying" |
+| Step 3: `LiveFlightGameTests.hisClientIsToldTheSpeed`: the movement attribute packets his client gets end with 0.15 (ten ticks after joining Live) | from reading: without step 3 the last value is the game's 0.1 (added after the check runs without the change) |
 | Step 3: `LiveFlightGameTests.liveFlightStillBreaksAndPlacesNothing`: flying in Live, a creative slot packet puts nothing into the taskbar, left-click does not break a logo at once and breaking it is refused, a taskbar item used on the ground places nothing, no instant building | fails at its fixture (he cannot fly); its checks themselves guard (from reading they held before step 3 too: Live was survival then) |
 | Step 3: `LiveFlightGameTests.markerOffGivesBackTheGamesSurvival`: the marker off gives the game's survival and walking speed back (server and client), on again gives Live's | yes ("Fixture: Live: he cannot fly") |
 | Step 3: `LiveFlightGameTests.normalWorldKeepsTheGamesSurvival` (normal environment): no flight, no invulnerability, the game's speed, also on his client | no: it guards "a world without the marker is vanilla" |
@@ -293,6 +294,19 @@ SUCCESSFUL, all 98 server game tests each time; the first ran `ShellClientTest` 
 found the unit tests up to date, since no code had changed). `mod/dev/client-test.sh` once,
 passing: exit 0 after 9 min 41 s, all 18 "checks passed" lines, the last one ending "a covered world pauses and draws
 slowly while ready heartbeats go on, and uncovering or losing the helper lets it run". The rig twice (above).
+
+Step 3 ran: `mod/dev/build.sh` seven times. Green with the new tests (103, then 104 server game tests); three check
+runs with parts of the change taken out (results in the table above; the working tree was restored to the commit
+after each); the last on the final code at 05:48, passing (BUILD SUCCESSFUL, "All 104 required tests passed").
+`mod/dev/client-test.sh` five times: the first full run failed only in the new Live part (the speed was checked before
+the server's entity update had reached the client; the other 20 client tests passed); three runs of the home screen
+test alone (the test list cut to it in the working tree, never committed) to fix that and the double space; then the
+full suite on the final code at 05:49 to 05:59, passing: exit 0 after 9 min 48 s, all 18 "checks passed" lines, the
+last "40 home screen checks passed ... Live mode shows only the hotbar, walks faster with the field of view kept,
+still flies after G and G and flies on a double space ...". The preview four times headless (Evidence). The client
+runs rewrite other packages' pictures of Live (no hearts or hunger now); they were put back with `git checkout`, so
+those folders still show the old HUD until someone commits a new run's pictures. Not run: `os/tests` (nothing under
+`os/` changed in step 3).
 
 Only the rig shows: that the window is not fullscreen and not minimized, that it stays below the apps, what labwc
 does on click, Alt+Tab, minimize and close, and that GLFW's focus is wrong under labwc.
