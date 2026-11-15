@@ -30,7 +30,8 @@ owner's real laptop.
 ## Why
 
 The laptop runs release 27 (`ghcr.io/ares-empire/aresos@sha256:5fad242f…`, source `b216f28f`, since 2026-11-13)
-with the owner tools version 2 (`851eb742…`). Since then `main` gained what the owner sees next: Minecraft starts as
+with the owner tools version 2 (`851eb742…`); version 4 (`dcbc375f…`, package 22d) goes on in a short session of its own
+before this release (owner, board #308, 2026-11-15: "Soon"). Since then `main` gained what the owner sees next: Minecraft starts as
 the desktop (package 23), the startup cover (23b), its memory settings (23d), the home screen (packages 30 to 40),
 the Ares-Crown window frame (31), and, with the owner's yes, Control in the image (18c Part A and 18c-b; board #286:
 "Yes, if reviews pass"). This package builds that release, rehearses the owner's real route on it, and pins it.
@@ -99,11 +100,12 @@ after this one; it needs a tools change, see `STATE.md`). It does not ride in th
 
 The two-disk VM harness (a stand-in Windows disk that is never written), with 22d's tools-local route and its
 stand-in origin. Start from **the laptop's state**: R27 booted, the release before it as rollback, stock pinned,
-tools version 2 installed. Then walk the guides' route exactly as the laptop session will:
+the tools the laptop has when step 3 starts (version 4 after the owner's 22d session; the integrator records which in
+PROGRESS.md; if that session has not happened, version 2). Then walk the guides' route exactly as the laptop session will:
 
 1. **Tools, from Claude's terminal** (22d): the folder line and the routine line at the announced commit on the
    stand-in origin's `main`; the password window approved; the 8 characters equal line 1 of `OWNER-TOOLS.md`. This
-   proves version 2 to the new bundle (version 4 with R28's reference).
+   proves the laptop's installed tools to the new bundle (version 4's code with R28's reference, so a new fingerprint).
 2. **Before the update** (only when Control rides): root writes the made-up sites list
    `{"format":1,"hosts":["rehearsal.invalid"]}` to `/var/lib/aresos-control/chrome-excluded-sites.json` with
    `sudo tee` as the guide does (making `/var/lib/aresos-control/` `root:root` 0755 first if R27 lacks it), and
