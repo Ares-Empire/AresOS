@@ -230,6 +230,75 @@ class RunnerTest(unittest.TestCase):
                     main(package, mode, branch, any_runner=True)
 
 
+class VerifyReleaseTest(unittest.TestCase):
+    """Step 6c (integrator, 2026-11-15): in the tools-local mode release 27's trees are bound to its source commit.
+
+    Run 43690565301 stopped at verify_release.py: this branch's image sources hold the next release's unreleased
+    changes, while the VM runs the pinned release 27 image. Every identity check stays; only 22d's mode reads
+    the recorded trees at the source commit instead of at HEAD."""
+    MODE_ENVIRONMENT = dict(GITHUB_REF_NAME=BRANCH, REHEARSAL_PACKAGE='22d', REHEARSAL_MODE=MODE)
+    # What run 43690565301's checkout held: four image sources moved on after release 27.
+    MOVED = {'os/Containerfile': 'c' * 40, 'os/build.sh': 'd' * 40, 'os/config': 'e' * 40, 'os/packages.lock.json': 'f' * 40}
+
+    def verify(self, environment=MODE_ENVIRONMENT, **kwargs):
+        return base.run_verify_release(self, environment=environment, **kwargs)
+
+    def test_trees_found_at_the_source_commit_pass_and_name_the_paths_that_differ(self):
+        code, printed, calls = self.verify(head=self.MOVED)
+        source = base.RELEASE27_SOURCE
+        self.assertEqual(code, 0)
+        self.assertIn('the image under test is release 27 built from ' + source, printed)
+        self.assertIn('differ in os/Containerfile, os/build.sh, os/config, os/packages.lock.json because they hold '
+                      'unreleased changes', printed)
+        # The commit was in the clone: no fetch; every recorded tree read at the source commit.
+        self.assertEqual(calls[0], ['git', 'cat-file', '-e', source + '^{commit}'])
+        self.assertNotIn('fetch', [c[1] for c in calls])
+        self.assertEqual(sorted(c[4].split(':', 1)[1] for c in calls if c[4:5] and c[4].startswith(source + ':')),
+                         sorted(base.RELEASE27_TREES))
+        # An unchanged checkout passes too and says so.
+        code, printed, _ = self.verify()
+        self.assertEqual(code, 0)
+        self.assertIn('differ in no path because', printed)
+
+    def test_a_source_commit_missing_from_the_clone_is_fetched_first(self):
+        code, _, calls = self.verify(head=self.MOVED, present=False)
+        source = base.RELEASE27_SOURCE
+        self.assertEqual(code, 0)
+        self.assertEqual(calls[:2], [['git', 'cat-file', '-e', source + '^{commit}'], ['git', 'fetch', '--no-tags', 'origin', source]])
+
+    def test_a_missing_or_different_tree_at_the_source_commit_refuses(self):
+        for path in ('os/config', 'os/manifest/base.json', 'os/tests/audit.py'):
+            for tree in ('a' * 40, None):
+                with self.subTest(path=path, tree=tree), self.assertRaisesRegex(
+                        AssertionError, 'does not hold its recorded tree: ' + re.escape(path)):
+                    self.verify(head=self.MOVED, at_source={path: tree})
+
+    def test_every_identity_check_still_applies_in_the_mode(self):
+        with self.assertRaisesRegex(AssertionError, 'must have succeeded'):
+            self.verify(job='image')
+        with self.assertRaises(AssertionError):  # the rows' shape
+            self.verify(trees=dict(base.RELEASE27_TREES))
+        with self.assertRaises(AssertionError):  # a recorded tree that is no object ID
+            self.verify(trees=[dict(tree='HEAD', path=path) for path in base.RELEASE27_TREES])
+        with self.assertRaises(AssertionError):  # a path list other than release 27's
+            self.verify(trees=[dict(tree=tree, path=path) for path, tree in base.RELEASE27_TREES.items()
+                               if path != 'os/keys'])
+
+    def test_other_branches_packages_and_modes_still_compare_head(self):
+        """22c's and 27's branches, and 22d's branch outside its mode (the regressions step runs without
+        REHEARSAL_PACKAGE), behave as before: HEAD's trees, no git command beyond rev-parse."""
+        for environment in (dict(GITHUB_REF_NAME=wb.BRANCH, REHEARSAL_PACKAGE='22c', REHEARSAL_MODE='ways-back'),
+                            dict(GITHUB_REF_NAME='pkg/27-first-update-release', REHEARSAL_PACKAGE='27', REHEARSAL_MODE='update'),
+                            dict(self.MODE_ENVIRONMENT, REHEARSAL_PACKAGE='22c'), dict(self.MODE_ENVIRONMENT, REHEARSAL_MODE='ways-back'),
+                            dict(self.MODE_ENVIRONMENT, GITHUB_REF_NAME='main'),
+                            {k: v for k, v in self.MODE_ENVIRONMENT.items() if k != 'REHEARSAL_PACKAGE'}, {}):
+            with self.subTest(**environment):
+                self.assertEqual(self.verify(environment), (0, 'Qualified private org release ' + base.RELEASE27_SOURCE
+                    + '; runtime payload unchanged; testing ghcr.io/ares-empire/aresos@sha256:' + '27' * 32 + '\n', []))
+                with self.assertRaisesRegex(AssertionError, 'Release 27 runtime payload changed: os/Containerfile'):
+                    self.verify(environment, head=self.MOVED)
+
+
 
 class StandInOriginTest(unittest.TestCase):
     """The guest's stand-in for GitHub (tools_local.standin_origin), built from this checkout."""
@@ -266,14 +335,57 @@ class StandInOriginTest(unittest.TestCase):
 
 
 
+# What WalkTest's walk opens and runs. An audit hook cannot be removed, so it is added once and records only
+# while that walk runs: absolute paths (resolved when opened) and command lines.
+RECORDING = dict(hooked=False, into=None)
+
+
+def recorder(event, args):
+    into = RECORDING['into']
+    if into is None:
+        return
+    if event == 'open' and isinstance(args[0], (str, bytes, os.PathLike)):
+        into['opened'].add(os.path.abspath(os.fsdecode(args[0])))
+    elif event == 'subprocess.Popen':
+        into['commands'].append([os.fsdecode(word) if isinstance(word, (bytes, os.PathLike)) else str(word) for word in args[1]])
+
+
 class WalkTest(unittest.TestCase):
     """The local walk (test_owner_walk's tools-local route): the real harness over the modelled guest."""
 
     @classmethod
     def setUpClass(cls):
         import test_owner_walk
-        cls.walked = test_owner_walk.walk(route='tools-local')
+        if not RECORDING['hooked']:
+            sys.addaudithook(recorder)
+            RECORDING['hooked'] = True
+        cls.reads = RECORDING['into'] = dict(opened=set(), commands=[])
+        try:
+            cls.walked = test_owner_walk.walk(route='tools-local')
+        finally:
+            RECORDING['into'] = None
         cls.stages = test_owner_walk.TOOLS_LOCAL_STAGES
+
+    def test_the_walk_reads_no_image_source_of_release_27_from_this_checkout(self):
+        """Step 6c: in this mode verify_release binds release 27's trees to its source commit, not to this
+        checkout, whose image sources hold the next release's changes. So the harness must predict nothing about
+        the release 27 VM from them: no file under these paths opened, no git read of them at any commit.
+
+        os/manifest/base.json is the exception: in the VM (not in this walk) the stock install reads its
+        `reference`, the base release 27 was built on, and verify_release asserts it equals the release's base in
+        every mode. The steps the walk replaces (the stock install, each start, the snapshots, the audits) were
+        read by hand for step 6c (PROGRESS.md)."""
+        payload = [path for path in base.RELEASE27_TREES if path != 'os/manifest/base.json']
+        inside = sorted({pathlib.Path(p).relative_to(ROOT).as_posix() for p in self.reads['opened']
+                         if pathlib.Path(p).is_relative_to(ROOT)})
+        self.assertEqual([p for p in inside if any(p == x or p.startswith(x + '/') for x in payload)], [])
+        git = [c for c in self.reads['commands'] if c[:1] == ['git']]
+        named = lambda word: word.split(':', 1)[1] if ':' in word else word  # a `<commit>:<path>` word names the path
+        self.assertEqual([c for c in git if any(named(w) == x or named(w).startswith(x + '/') for w in c[1:] for x in payload)], [])
+        git = [' '.join(c) for c in git]
+        # The recorder saw the walk: release 27's record, version 2's route, and git reads of the tools.
+        self.assertLessEqual({'os/manifest/release.json', 'os/manifest/releases/13.json'}, set(inside))
+        self.assertTrue([c for c in git if ':os/owner-tools' in c])
 
     def test_the_walk_passes_every_stage_of_the_brief(self):
         result = self.walked['result']

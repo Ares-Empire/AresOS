@@ -11,7 +11,8 @@
     "22d guide fixes after review 4",
     "22d step 6: the tools-local mode's wiring",
     "22d step 6b: the tools-local walk (tools_local.rehearsal), its local route in test_owner_walk, 22d's host-walk receipt, the minute cap at 2400",
-    "22d: test_owner_devices_native pins the native-suite line with 22d's branch (step 6a added it to the workflow)"
+    "22d: test_owner_devices_native pins the native-suite line with 22d's branch (step 6a added it to the workflow)",
+    "22d step 6c: verify_release binds release 27's trees to its source commit in the tools-local mode; the walk reads no release 27 image source from the checkout (test)"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -66,6 +67,10 @@
     {
       "sha256": "f048e8bc0a8fc5de8fa69758202f8f404f37c5857c6b0cb0ab4d2a5d1ddf72f8",
       "path": "os/ci/two_disk_vm.py"
+    },
+    {
+      "sha256": "22f2da5daff55db62b7a8aea8100eebaa3b70c859b44ac0b12aed7531bff56a0",
+      "path": "os/ci/verify_release.py"
     },
     {
       "sha256": "e481df943e05ac885988b40ffaea5af1010f759d6b7a87444846f8cf6da17c78",

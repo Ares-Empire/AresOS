@@ -195,7 +195,7 @@
       "path": "os/ci/two_disk_vm.py"
     },
     {
-      "sha256": "a314a8268404ba7df1ca63adaab535ce743f79ffa2e9e6627cb16c8c215d6b35",
+      "sha256": "22f2da5daff55db62b7a8aea8100eebaa3b70c859b44ac0b12aed7531bff56a0",
       "path": "os/ci/verify_release.py"
     },
     {
@@ -1047,7 +1047,7 @@
       "path": "os/tests/test_serial_staging.py"
     },
     {
-      "sha256": "0eba6b0dea62afa482709ba7232b37c21793d67a74b282fcf22e642e538fa172",
+      "sha256": "f94379d0c8d0a33836dec523cf00ef99ddbacf17b0ee3879f42e4543128aae55",
       "path": "os/tests/test_tools_local_wiring.py"
     },
     {
