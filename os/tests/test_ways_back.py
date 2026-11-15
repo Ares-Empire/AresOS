@@ -937,11 +937,15 @@ class StagingTest(Unchanged, unittest.TestCase):
 
     def test_a_stop_with_errors_leaves_the_intent_open_and_every_other_command_stops_on_it(self):
         mask = 'ostree-finalize-staged.service'
-        for point, error in itertools.product(('before', 'after'), ('process survived', 'mask failed')):
+        for point, error in itertools.product(('before', 'after'), ('process survived', 'mask failed', 'record failed')):
             with self.subTest(point=point, error=error), self.failing_update(point) as (tools, host, store), contextlib.ExitStack() as stack:
                 if error == 'process survived':
                     stack.enter_context(patch.object(base.ModelStep, 'stop', return_value=False))
                     expected = 'a process of the update step survived TERM and KILL, so nothing was deleted'
+                elif error == 'record failed':
+                    # The list is proved as before, but the intent could not be closed: it stays open.
+                    stack.enter_context(patch.object(tools, 'archive', side_effect=OSError('injected archive failure')))
+                    expected = 'records: OSError: injected archive failure'
                 else:
                     stack.enter_context(patch.object(owner, 'finalizer_masks', return_value=[mask]))
                     stack.enter_context(patch.object(owner, 'restore_masks',
@@ -952,7 +956,7 @@ class StagingTest(Unchanged, unittest.TestCase):
                 self.assertIn('The update failed, and stopping it did not finish: ' + expected, str(caught.exception))
                 self.assertIn('Do not reboot; export records and get help', str(caught.exception))
                 self.assertNotIn('stopped safely', str(caught.exception))
-                # Only a step that survived keeps its staged row; a failed mask comes after the removal.
+                # Only a step that survived keeps its staged row; a failed mask or record comes after the removal.
                 self.assertEqual(roles(host)[0][0] == R30, point == 'after' and error == 'process survived')
                 self.assertEqual((journal(store)['status'], archived(store)), ('intent', []))
                 for command in (tools.check, tools.title, tools.reboot, tools.forward, tools.previous, tools.recover):
