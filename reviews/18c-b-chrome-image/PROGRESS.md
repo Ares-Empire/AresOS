@@ -1,13 +1,138 @@
 # 18c-b progress
 
-Brief: `briefs/18c-b-chrome-image.md` (draft PR #73, branch `briefs/18c-b-chrome-image`; not on `main` yet).
+Brief: `briefs/18c-b-chrome-image.md` (on `main` since PR #73).
 Branch `pkg/18c-b-chrome`, one builder at a time. Each step is a fresh agent; this file is the handoff.
 
 ## Where it stands
 
-**Steps 1a and 1b are built** (1a: 2026-11-15, Claude Fable 5.2; 1b: 2026-11-15, Claude Opus 5.5, as the brief
-recommends). 1b also fixed the latency pair that 1a's path move broke (Part A below).
-Next: read the runs below, then step 2 (the install proof in the container).
+**Steps 1a, 1b and 2 are built; step 2 is not green.** (1a and 2: Claude Fable 5.2; 1b: Claude Opus 5.5, as the
+brief recommends.) Item 2's workflow passes cases 1 to 4 on the image's pinned Chrome; **case 5 fails**: Chrome ran
+no scheduled extension update check in ten minutes, so the log has nothing to judge. Step 2 stopped at its budget.
+Next: finish case 5 (below, "Left"), then 3a.
+
+## Step 2 (2026-11-15, Claude Fable 5.2)
+
+### Done: the install proof in a container (item 2)
+
+- `.github/workflows/control-chrome-install.yml` ("Control Chrome install"): pull requests touching
+  `control/chrome/packaging/**`, `control/chrome/extension/**`, `control/chrome/ci/install/**`, the container's
+  `Dockerfile`, `service.py`, `native_host.py` or the workflow. `contents: read`, no secrets. It builds the container
+  of `control/chrome/ci/Dockerfile` with the pinned Chrome, adds `python3-cryptography` in a layer of its own
+  (`control/chrome/ci/install/Dockerfile`), runs `run.sh pack` and then `run.sh proof`, both with `--network none`.
+- `control/chrome/ci/install/chrome.lock.json`: Chrome **157.0.8103.50**, the image's pinned version, as Google's
+  `.deb` by URL and SHA-256 (`92148bd1…3f79`, 147674220 bytes; Google still serves it). A workflow step compares it
+  with `os/google-chrome.lock.json`: another major fails, another patch version warns.
+- `proof.py` (root, in the container only): the image's layout (four files in `/usr/share/aresos/chrome/`, the two
+  links in `/etc`, `packaging/host` 0755 and `native_host.py` in `/usr/libexec/aresos-control/chrome/`), a made-up
+  `format` 1 list at `exclusions.SETTING`, CI's `service.py` as it is, one Xvfb session, Chrome with `browser.mjs`'s
+  flags. Bundles A, B and C each come from one call of `pack.py -I -B`. Evidence in the artifact
+  `control-chrome-install-<run>-<attempt>` (`result.json`, Chrome's logs, `probe.jsonl`, `tool.jsonl`, screenshots,
+  network logs).
+- The probe: `probe/` (extension: `management`, `nativeMessaging`; its manifest's `update_url` is
+  `http://localhost:18766/probe/update.xml`), `probe_host.py` (its test-only host: writes down every message and
+  relays it to the check's socket). Installed by `ExtensionInstallForcelist` alone, in `aresos-install-probe.json`,
+  from its own `file:` address, packed with `pack.pack` under its own key.
+- `netlog.py` with `test_netlog.py` (9 tests): the scan of `--log-net-log` for case 5, standard library only, so
+  the VM pass can use it in the guest. `tool_call.py`: one tool call as the owner over `act.sock`.
+
+### Runs
+
+| Run | Head | Result |
+|---|---|---|
+| 43724239061 | `faa7e340` | `pack` green: Python 3.11.2, `cryptography` 38.0.4, `Ran 17 tests`, `OK`; node v22.23.5, `pack-crosscheck.test.mjs` `# pass 1` (**its first run ever**). Proof: case 4 PASS; 1, 2, 3, 5 FAIL (the three findings below) |
+| 43726164336 | `9ac6c8cb` | `pack` green (`Ran 19 tests`, `OK`, `# pass 1`). Proof: `CONTROL_CHROME_INSTALL_CASE_1_PASS` to `_4_PASS`, `_5_FAIL` |
+
+Two of the 40 runs of this workflow are used. Every push also started Control Chrome, base, Mail, boundary,
+qualification and records (their paths); nobody waited for them: on `9ac6c8cb` base 43726164318, boundary
+43726164304 and records 43726164298 are green, Control Chrome 43726164356, Mail 43726164371 and qualification
+43726164312 were still queued. The lead's rerun of 43716630045: `fixtures (external, word-1)` passed on attempt 2;
+the run's conclusion still read `failure` when looked at once.
+
+### What run 43726164336 shows, case by case (all **run**)
+
+1. **Install: PASS.** Fresh profile, no address but loopback's, no default route. Chrome installs ours from
+   `file:///usr/share/aresos/chrome/update.xml` through the two links: installed 0.6 s and connected 0.64 s after
+   Chrome's start. `management.get`: `installType` `admin`, `enabled` true, `mayDisable` false. `uninstall` is
+   refused: "Extension … cannot be modified by user." No forbidden flag in any Chrome process, no listening port.
+   **The pin:** in the right half of the top strip, 0 pixels differ between two pinned starts and 819 between
+   pinned and the same policy without `toolbar_pin`. `setEnabled(false)`: see "wrong against real Chrome", 1.
+2. **One origin: PASS.** The host manifest behind the link equals the rendered template; the host runs as the
+   owner, started by Chrome, with exactly `PATH=/usr/bin:/bin` and `LANG=C.UTF-8`. The probe's
+   `connectNative('org.aresos.chrome')` answers "Access to the specified native messaging host is forbidden."; over
+   28 samples while it tried there was one host process and one connection on `chrome.sock`; ours still answered.
+3. **Update and back: PASS.** A to B, then B to A, one profile, Chrome restarted. Both times, after Chrome's
+   start: old ID gone 0.41 s, new installed 0.41 s, new connected 0.67 s, old folder gone from
+   `Default/Extensions` 0.67 s. Only the current ID is listed beside the probe; the probe is refused again; the
+   manifest's bytes hold the current origin and not the previous ID.
+4. **A broken package: PASS (both runs).** On a profile that never held C: with one byte of the signed archive
+   changed (Chrome logs `Package is invalid: 'CRX_SIGNATURE_VERIFICATION_FAILED'`) and with the file missing, C
+   is not installed over 20 s (20 samples each), the tools answer `chrome_unavailable`, Chrome and the service stay
+   up, the start page and a typed address both load. Restored: installed 0.41 s, connected 0.44 s. Installed, then
+   changed or missing: still enabled and connected after 8 s.
+5. **Nothing asks the store: FAIL, unfinished.** See "Left".
+
+### The brief against real Chrome (157.0.8103.50)
+
+1. **`setEnabled(false)` is not refused to the probe.** Chrome lets one policy-installed extension switch another
+   off, and the brief requires the probe to be policy-installed. Run 43724239061: the call answered `ok`, ours showed
+   `enabled: false`, the tools `chrome_unavailable`, for the 120 s watched. Case 1 now requires the `uninstall`
+   refusal and that **the next start of Chrome has ours enabled and connected again** (run 43726164336: 0.4 s and
+   0.43 s), and records what Chrome answered. Not exercised: an extension that is not policy-installed (read, not
+   run: Chrome refuses those as it refuses the user). Whoever can add a policy file can already replace ours, so
+   this adds no new party; it does mean C2 in the VM can't require the refusal either.
+2. **"No request at all to the update service" doesn't hold for Chrome itself.** On a fresh profile, with
+   `--disable-component-update` and no network, Chrome asks
+   `https://clients2.google.com/service/update2/crx` for two extensions of its own
+   (`ghbmnnjooekpmoecnnnilnnbdlolhkhi`, `nmmhkkegccagdldgiimedpiccmgmieda`, both `v=0.0.0.0`), retrying at 0, 2, 6,
+   13, 29, 60, 120 and 236 s (run 43724239061's log). **Neither our ID nor the probe's appears anywhere in that
+   236 s log.** So the brief's fallback is the rule now: case 5 always runs the probe alone as the baseline, and ours
+   must add no address and no ID (`netlog.added`); the control without `override_update_url` must add one.
+3. **`--extensions-update-frequency` gave no scheduled check.** With `=30`, no update check of the probe reached
+   the test's server in 240 s (run 1) or 600 s (run 2). The probe's own `chrome.runtime.requestUpdateCheck()` then
+   answered `no_update` and its request did arrive at `localhost`, so the address works and the schedule doesn't.
+   Not a "Stop and report" case: nothing names our ID.
+
+### Left, in order
+
+1. **Case 5.** The baseline, the comparison and the negative control are written but have never run: the case
+   stops at "two scheduled update checks". Find what makes Chrome 157 check all extensions. Untried ideas: the
+   two store installs that never finish without a network may hold the schedule back (a run with a network, or a
+   longer one); a policy change that adds a pending forced ID starts a check of everything (read, not run). The
+   probe's `requestUpdateCheck` is ready as a positive control for the probe alone, but it doesn't check ours.
+   Chrome doesn't close the log's JSON on SIGTERM; `netlog.events` reads the cut-off file line by line.
+2. **Case 3's preference record.** After each switch the profile's preference files still list the previous ID
+   (`"previous": true`, 7 entries) although the management API and the folder say it is gone. Recorded, not
+   required; look at what the entry holds before turning it into a check.
+3. Then 3a, 3b, 4 (4b), 5, 6 as before.
+
+### What the code doesn't show (2)
+
+- The artifact's files are public by design (`bundles.json` holds IDs and hashes only). No key is written; the
+  probe's key is made in `proof.py`'s own process by `pack.pack` and dropped.
+- `proof.py` runs as root because it swaps files under `/usr/share`; Chrome, the tool calls and the session run as
+  `owner`, the service as `aresos-tools`. Chrome is ended with SIGTERM by its PID.
+- The "one host" check reads the kernel's view (`ss -x`) and the process list, sampled every 50 ms, plus Chrome's
+  own refusal text. `service.py` has no line for an accepted or refused host.
+- Cases are independent where they can be: each has its own profile except 1 and 3, which share one on purpose.
+
+### JUDGMENT-CALL (2)
+
+1. **The policy form stays `ExtensionSettings` alone**: the pinned Chrome installs from it. The fallback isn't needed.
+2. **Case 1's `setEnabled` check changed** as described above instead of installing a second, non-policy probe.
+3. **The pin is asserted by pixels** (pinned twice against pinned and unpinned), since nothing but our own
+   extension can ask Chrome about its pin. Thresholds: at least 150 pixels and four times the same-start difference.
+4. **The harness is Python, not node**, so steps 4 and 5 can reuse `netlog.py`, the probe and its host in the guest.
+5. **The Chrome pin is a file** (`chrome.lock.json`) whose hash has no second source; a patch-level difference to
+   the image's lock warns instead of failing, as the brief allows the same major.
+6. **Case 5 runs without a network** like the other cases; `--extensions-update-frequency=30` because release
+   builds are said to enforce 30 s (read, not confirmed: no check ran at all).
+
+### PLAN-GAP (2)
+
+- The three points under "The brief against real Chrome".
+- A change of `os/google-chrome.lock.json` doesn't start this workflow (its paths are the brief's plus its own
+  files); the version step only speaks on the next run.
+- Every push to this branch starts the whole Control Chrome matrix, because the new files live under `control/`.
 
 ## Step 1b
 
