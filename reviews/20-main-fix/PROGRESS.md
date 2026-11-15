@@ -3,7 +3,108 @@
 Builder step 1 (Claude Fable 5.2, 2026-11-15): diagnoses and the H1 fix. Builder step 2 (Claude Fable 5.2, 2026-11-15):
 H2, H3, H4, H5 built on the lead's decisions. Builder step 3 (Claude Opus 5.5, 2026-11-15): H6 and security NOTEs 1–3.
 Builder step 4 (Claude Opus 5.5, 2026-11-15): the package review's F1 and F2, security NOTE 4, review NOTEs (a) to (c),
-the altered-subject refusal, the final preflight and the final runs. Brief: `briefs/20-main-fix.md`. Branch `pkg/20-main-fix`.
+the altered-subject refusal, the final preflight and the final runs. Builder step 5 (Claude Opus 5.5, 2026-11-15): the
+package re-check's F3 and the security re-check's first NOTE, the preflight and the last pull-request runs. Brief:
+`briefs/20-main-fix.md`. Branch `pkg/20-main-fix`.
+
+## Handover (step 5)
+
+Builder step 5 (Claude Opus 5.5, 2026-11-15): the two items the lead scoped from the re-checks, then the one final
+commit that starts the pull-request runs.
+- **Done:** F3 (off main the repeat check is one-way: a worse repeat fails the PR, a better one keeps the held entry,
+  warns and goes on; main unchanged) and the security re-check's first NOTE (the rollback and publisher cases of
+  `attestation.py` count only their own named refusal). Code `496018a5`; details under "Step 5: what was built".
+- **Local:** full preflight on `496018a5` green (**335 Python, 428 Node, 523 removal mutations rejected**, 11 new
+  and 1 re-pointed); record `reviews/20-main-fix/records/final-local-496018a5.json`.
+- **Runs:** the commit that adds this section has no `[skip ci]`. It starts qualification run 5 of 6 and `Control
+  Chrome` run 3 (one more than the brief's two, allowed by the lead). Their IDs and results are in the step-5 report to
+  the lead. Nothing is committed after them, so the PR head stays the commit they checked.
+- **Left:** **ready for the lead's re-check.**
+- **Note (not blocking, unchanged):** `prepare`'s first-record path (no data branch on origin) appends this run's
+  entries to main's shipped record without the repeat check, so a duplicate pair refuses (`Repeated qualification
+  key`, fail-closed). It is reachable only when main's shipped record holds the head build's pair while origin has
+  no data branch, that is after someone deletes the data branch. F3's scope didn't cover it.
+
+## Step 5: what was built (`496018a5`)
+
+**F3. One-way repeat check off main** (`qualify.py`, `test_publisher.py`).
+- `compared(held, repeat)` names each group `core.<name>` or `adapters.<name>` and returns the worse ones (true held,
+  false here) and the better ones (false held, true here).
+- `prepare(..., on_main=True)`: strict by default; the CLI passes its `on_main` (`GITHUB_REF == refs/heads/main`, the
+  same value the publication guard and `requalify_head` use).
+  - **On main:** any repeat with another verdict raises exactly as before, with the same message.
+  - **Off main, worse** (at least one group true held and false here, mixed included): raises `Conflicting repeat for
+    an immutable qualification pair: this run fails <groups>, which the held record passes; publish nothing`. No
+    candidate is written.
+  - **Off main, better** (nothing true→false): prints one `::warning::` line with the improved groups, the build (12
+    characters), channel and version, and says the held entry stays and those groups stay disabled. The candidate
+    keeps the held entry unchanged; the PR's differing entry is dropped. New pairs are appended as usual, and an
+    identical repeat is skipped without a warning, as before.
+  - Only the CLI's data-branch path passes `on_main`. The direct calls in `attestation.py` and the older unit tests
+    keep the strict default.
+- Tests replace `test_off_main_an_identical_repeat_is_skipped_and_a_conflicting_one_fails_the_pull_request`. Each one
+  runs the real `prepare` CLI against a local origin whose data branch holds the pair, with a new beta pair in the
+  same run (helper `Publisher.repeat`; the held record is verified from its bundle list first):
+  - `..._an_identical_repeat_is_skipped_and_never_carries_main_s_bytes`: PR indented, main compact, no warning.
+  - `..._a_worse_repeat_fails_the_pull_request_and_writes_no_candidate`: a core group and an adapter group alone;
+    the error names the group; no candidate.
+  - `..._a_better_repeat_warns_keeps_the_held_entry_and_the_rest_proceeds`: held all-false (main's failed shard)
+    and held with two groups failed; exactly one warning naming exactly the improved groups; the candidate is the
+    held entry unchanged plus the new pair, indented.
+  - `..._a_mixed_repeat_fails_the_pull_request`: two core groups better, one adapter worse; the error names only
+    the worse group.
+  - `test_on_main_any_conflicting_repeat_raises`: better and worse both raise the unchanged message; no candidate.
+- Probes (all rejected, each for its stated reason; `.work/20-main-fix/step5-mutations.json`):
+  - `mainfix-f1-conflicting-repeat-relaxed`, re-pointed: a worse repeat on a PR is allowed.
+  - `mainfix-f3-adapter-regression-ignored`: only core groups are compared.
+  - `mainfix-f3-mixed-repeat-passes`: worse counts only when nothing is better.
+  - `mainfix-f3-better-repeat-overwrites-held`: a better repeat replaces the held entry.
+  - `mainfix-f3-better-repeat-fails-off-main`: F3 itself, the two-way check off main.
+  - `mainfix-f3-better-repeat-silent`: no `::warning::`.
+  - `mainfix-f3-better-repeat-kept-on-main`: main becomes one-way too.
+  - `mainfix-f3-prepare-strict-everywhere`: the CLI doesn't pass `on_main`.
+
+**Security re-check NOTE: named refusals for the rollback and publisher cases** (`attestation.py`,
+`test_qualification.py`).
+- `expected_refusal(action, reason)` generalises step 3's rule:
+  - gh's `CalledProcessError` counts only when its stderr names `reason`;
+  - `Refused` counts only when its code is `reason` (`ROLLBACK = 'qualification_rollback'`), and any other code is
+    raised again;
+  - any other exception propagates, and an accepted record fails the case.
+  - `refused()` now calls it, so the verifier cases behave as before.
+- `rollback_cases(...)`: the two held-history cases ("dropped held entry", "changed held entry") call `refused(...,
+  ROLLBACK, held)`, so the held record must also be unchanged.
+- `publisher_cases(...)` first verifies the genuine held record, then:
+  - "unsigned inserted entry" expects gh's named policy failure. Its bytes are no longer the signed ones, the same
+    path as the altered subject, which run 43678600028 logged as `verifying with issuer "sigstore.dev"`.
+  - "non-append-only shipped baseline" expects `ROLLBACK`. It now writes the genuine signed bytes, so verification
+    passes and only the baseline check can refuse it. Before, it wrote `json.dumps(candidate)`, which equals the
+    signed bytes only because both CI records happen to serialize that way (checked: the synthetic record and the
+    retained fixture both do). The case no longer depends on that.
+- Log lines name the reason, e.g. `QUALIFICATION DELIVERY dropped held entry refused (qualification_rollback) after
+  real verification PASS` and `QUALIFICATION PUBLISHER unsigned inserted entry refused (verifying with issuer
+  "sigstore.dev"); no write, issue stubbed PASS`.
+- Tests:
+  - `RecordingOpener.test_a_rollback_case_counts_only_as_the_append_only_refusal` (real `Qualification` and `Store`,
+    stand-in verifier): with a passing verifier both cases pass. A timeout, gh missing and
+    `Refused('qualification_invalid')` propagate. A gh refusal fails, naming the case.
+  - `RecordingOpener.test_the_publisher_cases_count_each_refusal_only_by_its_own_reason`: a stand-in that verifies
+    only the signed bytes passes both cases with their reasons. Each of these fails the job or propagates: an
+    inserted entry that is accepted, refused by a timeout or by another gh failure; a baseline case refused by
+    verification, by a timeout or by "gh too old".
+- Probes (all rejected): `mainfix-sec-rollback-any-exception` (the old catch-all), `mainfix-sec-refusal-code-unchecked`
+  (any `Refused` code counts), `mainfix-sec-publisher-any-exception` (the old catch-all),
+  `mainfix-sec-publisher-baseline-case-unsigned-bytes` (the baseline case writes re-serialized bytes again).
+- **Not provable on this Mac:** gh here is 2.94 and `verify()` requires 2.102, so the real cases run only in
+  `delivery-attestation`. Expected there: the log lines above for the run's own record and for the retained fixture.
+
+**Local verification (step 5).** Full preflight on `496018a5` (`reviews/20-main-fix/records/final-local-496018a5.json`,
+step 4's driver unchanged): **335 Python** (shards 68/57/49/161; the Linux-only socket case skipped on the Mac), **428
+Node**, **523 removal mutations rejected** with every baseline passing (512 + 11 new; the re-pointed probe replaces
+its old self), generator check, `git diff --check`, and the service unit byte-identical to `8b7e799c`. The
+touched suites (`test_build`, `test_publisher`, `test_qualification`, `test_qualification_service`: 75 tests) also pass
+from a foreign working directory with no `PYTHONPATH`. The 26 `mainfix-f1-`/`-f3-`/`-sec-` probes were also run on their
+own (26 of 26). No browser was started.
 
 ## Handover (step 4)
 
@@ -38,7 +139,8 @@ Builder step 4 (Claude Opus 5.5, 2026-11-15): everything the lead scoped for ste
   main has published it; main's plan is unchanged (shipped builds stay skipped everywhere).
 - `prepare` is unchanged: an identical repeat adds nothing, a conflicting repeat (same build, version and channel,
   another verdict) raises `Conflicting repeat for an immutable qualification pair; publish nothing`, so the PR's
-  publish job fails and writes no candidate. Never relaxed, never overwritten.
+  publish job fails and writes no candidate. Never relaxed, never overwritten. (Step 5's F3 makes the check one-way
+  off main: only a worse repeat fails; see "Step 5: what was built".)
 - **Added (my call, see "Decision for the lead"):** off main the candidate is written indented
   (`serialized(record, on_main)`); main writes the compact bytes as before. Without it an identical repeat would make
   the PR attest exactly the bytes main published, and every such PR run would add one more attestation to the listing
