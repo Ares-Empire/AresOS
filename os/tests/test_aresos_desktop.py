@@ -3718,6 +3718,18 @@ class LoopTest(Base):
         self.fail(f'timed out; state {self.loop.supervisor.state} {self.loop.supervisor.reason}; '
                   f'log {self.log.read_text() if self.log.exists() else ""}')
 
+    def wait_until_the_launch_has_ended(self):
+        """Wait until the ended launch's Prism stand-in, and so its wrapper, has exited, as before any retry the owner
+        types. The wrapper says how Java ended and only then exits; it holds the desktop lock until it exits (a held
+        lock means its wrapper may still report: account_for_start), so a retry sent in those few milliseconds finds
+        the lock held and is answered RECOVERY locked, the safe answer (package 23b, step 2: the flaky retry test,
+        which failed this way on main too)."""
+        launch = self.loop.supervisor.launch
+        self.wait(lambda: launch.prism_ended is not None)
+        # Nothing else may keep the lock once the launch's processes are gone (no child of the supervisor, the
+        # cover among them, holds it across a fork).
+        self.assertFalse(self.loop.runner.jvm_lock_held(), 'the ended launch left the desktop lock held')
+
     def covers(self):
         if not self.log.exists():
             return []
@@ -3811,6 +3823,7 @@ class LoopTest(Base):
         self.ready_file.unlink()
         pid = self.end_jvm(0)
         self.wait(lambda: sup.state == 'RECOVERY' and sup.reason == 'quit')
+        self.wait_until_the_launch_has_ended()
         self.assertTrue(desktop.request(self.paths, {'op': 'retry'})['ok'])
         self.wait(lambda: len(self.covers()) == 2 and sup.launch.jvm_pid not in (None, pid))
         self.assertEqual([args for _, *args in self.covers()], [[], ['--again']])
@@ -3836,6 +3849,7 @@ class LoopTest(Base):
         self.assertEqual((status['state'], status['latched'], status['consecutive']), ('RECOVERY', True, 3))
         launches = [l for l in self.log.read_text().splitlines() if l.startswith('--launch')]
         self.assertEqual(launches, ['--launch AresDesktop --world AresHub'] * 3)
+        self.wait_until_the_launch_has_ended()
         reply = desktop.request(self.paths, {'op': 'retry'})
         self.assertTrue(reply['ok'])
         self.wait(lambda: sup.launch.jvm_pid is not None)
