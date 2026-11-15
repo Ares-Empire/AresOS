@@ -11,7 +11,8 @@ Wire format: one UTF-8 JSON object per line, at most 64 KiB per line.
   request  {"protocol": "aresos-shell/1.1", "id": <request id>, "op": <operation>, ...}
   reply    {"protocol": ..., "id": <request id>, "ok": true, ...}
            {"protocol": ..., "id": <request id or null>, "ok": false, "error": <code>, "message": <text>}
-  event    {"protocol": ..., "id": <event id>, "event": "app_state" | "shell_focus" | "apps_changed", ...}
+  event    {"protocol": ..., "id": <event id>, "event": "app_state" | "shell_focus" | "apps_changed"
+                                                 | "shell_covered", ...}
 
 Minor 1 adds app_details, list_paging and apps_changed. list_apps returns an
 ID-ordered page with revision and optional next; cursor requests the next page.
@@ -20,6 +21,11 @@ commands or environment. Discovery scans run on their own thread within hard
 bounds, at most every three seconds, and the last good catalogue answers
 meanwhile; icons arrive asynchronously. Minor 0 keeps the original starter-only list,
 revision and launch access. Examples: mod/src/test/resources/shell-1.1/.
+
+shell_covered (package 40, minor 1, with window tracking) says whether a window
+covers the desktop's window on its screen: {"covered": true|false}. A connection
+starts uncovered on both sides; the helper sends the value whenever it changes
+and once after hello when it is true. The game pauses the world while covered.
 
 Operations (B1): hello, list_apps, open_app, world_ready, heartbeat. Everything
 else, including the guardian's request_power, prepare_stop and save_complete
@@ -130,7 +136,9 @@ SCAN_SECONDS = 2.0
 CHECK_WAIT = 0.2
 CHECK_SECONDS = 3.0
 MAX_CHECKS = 4
-WINDOW_CAPABILITIES = frozenset({'shell_focus', 'windows'})
+WINDOW_CAPABILITIES = frozenset({'shell_focus', 'windows', 'shell_covered'})
+# Offered only to a client that speaks minor 1: what a 1.0 desktop hears stays exactly as it was.
+LATER_CAPABILITIES = DETAIL_CAPABILITIES | {'shell_covered'}
 # The launch secrets stay with the desktop; launched apps never inherit them,
 # nor the helper's own service plumbing.
 PRIVATE_ENVIRONMENT = ('ARESOS_LAUNCH_NONCE', 'ARESOS_DESKTOP_INSTANCE', 'ARESOS_SHELL_STATUS_FD',
@@ -2357,6 +2365,11 @@ class Toplevel:
     app_id: str = ''
     parent: int = 0
     activated: bool = False
+    maximized: bool = False
+    minimized: bool = False
+    fullscreen: bool = False
+    # The compositor's outputs (our wl_output object IDs) the window is on; empty until it says.
+    outputs: frozenset = frozenset()
     ready: bool = False
     owner: str = None
     # The owner a dialog took from a discovered parent; it keeps it after the parent closes.
@@ -2418,9 +2431,27 @@ class Windows:
         if handle in self.toplevels:
             self.toplevels[handle].pending['parent'] = parent
 
-    def state(self, handle, activated):
+    def state(self, handle, activated, maximized=False, minimized=False, fullscreen=False):
         if handle in self.toplevels:
-            self.toplevels[handle].pending['activated'] = activated
+            self.toplevels[handle].pending.update(activated=activated, maximized=maximized, minimized=minimized,
+                                                  fullscreen=fullscreen)
+
+    def output(self, handle, output, entered):
+        toplevel = self.toplevels.get(handle)
+        if toplevel is not None:
+            outputs = set(toplevel.pending.get('outputs', toplevel.outputs))
+            if entered:
+                outputs.add(output)
+            else:
+                outputs.discard(output)
+            toplevel.pending['outputs'] = frozenset(outputs)
+
+    def output_gone(self, output):
+        """A screen was unplugged: no window is on it any more, whether or not its output_leave came first."""
+        for toplevel in self.toplevels.values():
+            toplevel.outputs = toplevel.outputs - {output}
+            if 'outputs' in toplevel.pending:
+                toplevel.pending['outputs'] = toplevel.pending['outputs'] - {output}
 
     def done(self, handle):
         toplevel = self.toplevels.get(handle)
@@ -2486,6 +2517,21 @@ class Windows:
     def of(self, owner):
         return [t for t in self.toplevels.values() if t.ready and t.owner == owner]
 
+    def covering(self):
+        """The windows that hide the desktop's window: maximized or fullscreen, not minimized, on its screen.
+
+        The desktop is always below every window (rc.xml), so any such window on one of its outputs hides it. A
+        window on another screen does not (package 40: the world on the external monitor, apps on either screen).
+        An output list the compositor has not sent yet counts as the same screen, as with a single screen.
+        """
+        desktop = self.of(self.SHELL)
+        if not desktop:
+            return []
+        screens = frozenset().union(*(t.outputs for t in desktop))
+        return [t for t in self.toplevels.values()
+                if t.ready and t.owner != self.SHELL and not t.minimized and (t.maximized or t.fullscreen)
+                and (not screens or not t.outputs or t.outputs & screens)]
+
 
 class WaylandError(Exception):
     pass
@@ -2495,10 +2541,12 @@ class ForeignToplevels:
     """A minimal Wayland client for zwlr_foreign_toplevel_manager_v1, standard library only.
 
     labwc implements the wlr foreign-toplevel protocol; it reports every
-    toplevel's app_id, parent and activated state, and lets us activate one.
+    toplevel's app_id, parent, state and outputs, and lets us activate or
+    minimize one. Outputs are reported only for wl_output objects this client
+    has bound, so every wl_output is bound (and ignored otherwise).
     """
     MANAGER = 'zwlr_foreign_toplevel_manager_v1'
-    STATE_ACTIVATED = 2
+    STATE_MAXIMIZED, STATE_MINIMIZED, STATE_ACTIVATED, STATE_FULLSCREEN = 0, 1, 2, 3
 
     def __init__(self, sock, windows):
         self.sock = sock
@@ -2510,6 +2558,8 @@ class ForeignToplevels:
         self.callbacks = set()
         self.manager = None
         self.seat = None
+        # wl_output global name -> our object ID for it.
+        self.outputs = {}
         self.registry = self._new('registry')
         self._send(1, 1, struct.pack('=I', self.registry))
 
@@ -2557,6 +2607,10 @@ class ForeignToplevels:
                      if interface == 'wl_seat'), None)
         if manager is None:
             return False
+        # Outputs first, so the manager's first list already says which screen each window is on.
+        for name, (interface, _) in list(self.globals.items()):
+            if interface == 'wl_output':
+                self.bind_output(name)
         self.manager = self._new('manager')
         self._send(self.registry, 0, struct.pack('=I', manager[0]) + self.string(self.MANAGER)
                    + struct.pack('=II', min(manager[1], 3), self.manager))
@@ -2565,6 +2619,11 @@ class ForeignToplevels:
             self._send(self.registry, 0, struct.pack('=I', seat[0]) + self.string('wl_seat')
                        + struct.pack('=II', 1, self.seat))
         return True
+
+    def bind_output(self, name):
+        self.outputs[name] = self._new('output')
+        self._send(self.registry, 0, struct.pack('=I', name) + self.string('wl_output')
+                   + struct.pack('=II', 1, self.outputs[name]))
 
     def roundtrip(self):
         callback = self._new('callback')
@@ -2580,6 +2639,12 @@ class ForeignToplevels:
         if self.seat is None or self.kinds.get(handle) != 'toplevel':
             return False
         self._send(handle, 4, struct.pack('=I', self.seat))
+        return True
+
+    def minimize(self, handle):
+        if self.kinds.get(handle) != 'toplevel':
+            return False
+        self._send(handle, 2)
         return True
 
     def readable(self):
@@ -2626,11 +2691,16 @@ class ForeignToplevels:
                 interface, offset = self._string(payload, 4)
                 (version,) = struct.unpack_from('=I', payload, offset)
                 self.globals[name] = (interface, version)
+                if interface == 'wl_output' and self.manager is not None:
+                    self.bind_output(name)  # a screen plugged in later
             elif opcode == 1:
                 (name,) = struct.unpack_from('=I', payload)
                 interface, _ = self.globals.pop(name, (None, 0))
                 if interface == self.MANAGER and self.manager is not None:
                     raise WaylandError('the compositor removed ' + self.MANAGER)
+                if name in self.outputs:
+                    # Its object stays known: an output_leave naming it may still be on its way.
+                    self.windows.output_gone(self.outputs.pop(name))
         elif kind == 'callback':
             self.callbacks.discard(object_id)
             self.kinds.pop(object_id, None)
@@ -2645,10 +2715,14 @@ class ForeignToplevels:
             if opcode == 1:
                 value, _ = self._string(payload, 0)
                 self.windows.app_id(object_id, value)
+            elif opcode in (2, 3):
+                (output,) = struct.unpack_from('=I', payload)
+                self.windows.output(object_id, output, opcode == 2)
             elif opcode == 4:
                 (length,) = struct.unpack_from('=I', payload)
                 values = struct.unpack_from(f'={length // 4}I', payload, 4)
-                self.windows.state(object_id, self.STATE_ACTIVATED in values)
+                self.windows.state(object_id, self.STATE_ACTIVATED in values, self.STATE_MAXIMIZED in values,
+                                   self.STATE_MINIMIZED in values, self.STATE_FULLSCREEN in values)
             elif opcode == 5:
                 self.windows.done(object_id)
             elif opcode == 6:
@@ -2667,7 +2741,7 @@ class Helper:
 
     def __init__(self, registry_dir, instance, nonce, journal_path, launcher=None, windows=None,
                  activate=None, clock=time.monotonic, executable=None, window_timeout=WINDOW_TIMEOUT, registry=None,
-                 watcher=None, status=no_status, keep_foreground=False, catalogue=None, icons=None):
+                 watcher=None, status=no_status, keep_foreground=False, catalogue=None, icons=None, minimize=None):
         self.instance = instance
         self.status = status
         self.keep_foreground = keep_foreground
@@ -2695,6 +2769,7 @@ class Helper:
         self.watcher = watcher or ScopeWatcher(run=self.launcher.run)
         self.windows = windows
         self.activate_window = activate
+        self.minimize_window = minimize
         self.clock = clock
         self.executable = executable
         self.window_timeout = window_timeout
@@ -2808,6 +2883,8 @@ class Helper:
 
     def connected(self, conn):
         conn.authenticated = False
+        # What this connection was last told about covering; both sides start a connection uncovered.
+        conn.covered = False
         conn.capabilities = frozenset()
         conn.minor = MINOR
         conn.opened = self.clock()
@@ -2895,7 +2972,7 @@ class Helper:
 
     def emit(self, event, **fields):
         conn = self.desktop
-        if conn is None or event not in conn.capabilities or (event == 'apps_changed' and conn.minor < 1):
+        if conn is None or event not in conn.capabilities or (event in LATER_CAPABILITIES and conn.minor < 1):
             return
         self.events += 1
         self.send(conn, dict({'id': f'e-{self.events}', 'event': event}, **fields))
@@ -2922,7 +2999,7 @@ class Helper:
             raise Failure('incompatible_version', f'this helper speaks {protocol()}', close=True)
         capabilities = names(message.get('capabilities', []))
         required = names(message.get('requires', []))
-        offered = self.capabilities if minor >= 1 else self.capabilities - DETAIL_CAPABILITIES
+        offered = self.capabilities if minor >= 1 else self.capabilities - LATER_CAPABILITIES
         missing = sorted(required - offered)
         if missing:
             raise Failure('incompatible_version', 'missing capabilities: ' + ', '.join(missing), close=True,
@@ -2941,6 +3018,9 @@ class Helper:
                 # A return a discovered program was still waiting for is not a 1.0 desktop's (review 2, finding 1).
                 self.cancel_returns()
         conn.capabilities = capabilities
+        if self.windows is not None:
+            # Covered is told after this reply, at the next tick, like the registry change above.
+            self.windows_pending = True
         previous, self.desktop = self.desktop, conn
         if previous is not None and previous is not conn:
             # The newest authenticated desktop wins, e.g. the mod reconnecting.
@@ -3334,6 +3414,29 @@ class Helper:
         order. So the transition state lives on the helper (the last active window and a short hand-off record),
         and the outcome is the same however the bytes were split.
         """
+        self.follow_windows()
+        self.report_covered()
+
+    def report_covered(self):
+        """Package 40: the game pauses its world while a window hides it, and only then (owner, 2026-11-15)."""
+        conn = self.desktop
+        covered = bool(self.windows.covering())
+        if conn is not None and conn.covered != covered:
+            conn.covered = covered
+            self.emit('shell_covered', covered=covered)
+
+    def uncover(self):
+        """The world got the focus while windows hide it: minimize those, so it shows (orchestrator, 2026-11-15).
+
+        Smaller windows stay where they are, above the world, and so do windows on another screen.
+        """
+        covering = self.windows.covering()
+        if covering and self.minimize_window is not None:
+            for toplevel in covering:
+                self.minimize_window(toplevel.handle)
+            LOG.info('the desktop got the focus; minimized %d window(s) that covered it', len(covering))
+
+    def follow_windows(self):
         opened, closed = self.windows.take()
         self.windows_pending = False
         now = self.clock()
@@ -3465,6 +3568,10 @@ class Helper:
                 self.active_handle, self.active_owner = target.handle, target.owner
                 return
         if active.owner == Windows.SHELL:
+            if previous_handle is not None and previous_handle != active.handle:
+                # Alt+Tab, a click or our own return: he wants the world, so it must not stay hidden. Not at
+                # start-up (no previous window), and not for a restored desktop that gave the focus back above.
+                self.uncover()
             # The compositor already returned us. A pending close must not later
             # steal focus from another app deliberately opened during its grace.
             self.cancel_returns()
@@ -3742,7 +3849,8 @@ def build(registry_dir, instance, nonce, journal_path, environ=None, launcher=No
         wayland, windows = None, None
     helper = Helper(registry_dir, instance, nonce, journal_path, launcher=launcher, windows=windows,
                     activate=wayland.activate if wayland else None, clock=clock, registry=registry, status=status,
-                    keep_foreground=keep_foreground, catalogue=catalogue, icons=IconCache(environ=environ))
+                    keep_foreground=keep_foreground, catalogue=catalogue, icons=IconCache(environ=environ),
+                    minimize=wayland.minimize if wayland else None)
     helper.watcher.watch(helper.watched_units())
     helper.watcher.start()
     return helper, wayland
