@@ -87,9 +87,11 @@ The payload's fingerprint changed and step 2 owns the pins. From reading the tes
 
 ### Expected red until a later step (the integrator's call)
 
-- `test_checkout_sources`: `owner.py`, `media.py`, the payload, `history.json` and four test files are bound by
-  22c's walk and now differ. The waiting list's own rule admits only test files, and tool files wait for 22d's
-  receipt (step 6). I did not run `rebind.py pending`.
+- `test_checkout_sources`: ten files that 22c's walk binds now differ (checked against
+  `os/manifest/ci/22c/source-bindings.json`): `owner.py`, `media.py`, `history.json`, the five payload files that
+  follow them, and two test files (`test_owner_export.py`, `test_owner_update.py`). The waiting list's own rule
+  admits only test files, and tool files wait for 22d's receipt (step 6). I did not run `rebind.py pending` and
+  did not run this module.
 - `test_ways_back_probe` (22c's frozen receipt names `tools_version_3` as this checkout's payload) and
   `os/ci/owner_vm.py:2146` (`(2, 3)`): step 6's harness and receipt.
 - `test_ways_back_model` selects the full model for this branch (`owner.py` changed), as for any tools change.
