@@ -16,14 +16,18 @@ Builder step 4 (Claude Opus 5.5, 2026-11-15): everything the lead scoped for ste
   Code `5de22178`; details under "Step 4: what was built".
 - **Local:** full preflight on `5de22178` green (**329 Python, 428 Node, 512 removal mutations rejected**, 21 new);
   record `reviews/20-main-fix/records/final-local-5de22178.json`.
-- **Runs:** the final push (the commit that adds this handover, no `[skip ci]`) starts qualification run 4 of 6 and
-  `Control Chrome` run 2 of 2 on the PR; their results follow in the next commit.
+- **Runs (final push `7b015a7a`, both green):** qualification **43678600028** (run 4 of 6), 34 of 34 jobs; `Control
+  Chrome` **43678600076** (run 2 of 2), 28 of 28 jobs. `recheck2` passed in both installs and both repeats, and
+  `typed-early` recorded `document_start` (answering `stale_reference`) in all four: H6's first browser proof. Details
+  under "Step 4: runs". The lead's hold on this push reached me after it had gone out; the lead then said to let both
+  runs finish. No further run started.
 - **Decision for the lead (not blocking, reversible):** off main, `prepare` writes the candidate indented instead of
   compact, so a pull request never attests the exact bytes main published (with F1 an identical repeat would
   otherwise add one attestation per PR run to the real record's listing, which the laptop and main read one page of
   100 and at most 4 MiB of). Main's bytes are unchanged. The alternative is to skip attest and publish off main when
   nothing is new, which would also skip the second-run path NOTE 4 asks for.
-- **Left:** the lead's re-check. Ready for the lead's re-check once the runs below are green.
+- **Left:** **ready for the lead's re-check.** The opener-row flake on another PR (run 43671248371) is being diagnosed
+  separately, so this step didn't touch it. That row passed in all four `recheck2` shards here.
 
 ## Step 4: what was built (`5de22178`)
 
@@ -137,6 +141,38 @@ the service unit byte-identical to `8b7e799c`. The touched suites also pass from
   path is proven by the local step tests and runs in CI from the first PR after main's first publication.
 - Once main has published, every PR touching `control/**` keeps running the head build's stable matrix (28 pair jobs
   plus combines), as this PR's runs already do: no new cost against run 3.
+
+## Step 4: runs
+
+The final push `7b015a7a` (no `[skip ci]`) started all five Control workflows on the PR. All five passed: Control
+boundary, base and Mail (outside this brief's budgets) and the two below. Budgets are now used up: qualification 4 of 6,
+`Control Chrome` 2 of 2.
+
+1. **Qualification 43678600028** (pull-request event, run 4 of 6): **34 of 34 jobs green.**
+   - `qualification-tests` ran the new step tests on the hosted runner (bash, git, stand-in `gh`).
+   - `delivery-attestation`: the new recording step found this run's attestation on the first attempt (no retry
+     line). The token-free "Retain ..." step passed every case. That includes the new "anonymous lookup nothing
+     listed 404 refused", "altered subject refused (verifying with issuer "sigstore.dev")", and "production main
+     rejects a bundle attested on refs/pull/68/merge". The trimmed retained fixture passed the same cases.
+   - Pairs: 28 jobs for the head build on stable, 2 repeats.
+   - `recheck2`, repeat 1 and repeat 2: every GROUP 8 row PASS. Each recorded the extension's install path as
+     `typed-early` → `document_start`, `typed-late` → `late`, `typed-clean` → `late` (`POPUP RECEIVER ... on the
+     document_start path`). `control-status.json` holds `document_start`/`ready` for both.
+   - Both combines passed.
+   - `qualification-publish`: prepare took the first-record path and wrote the indented candidate. The read-only step
+     said "No data branch on origin: the pull-request publish takes the first-record path". The token-free publish
+     step then printed "Pull-request mode: the verified candidate reached only the local bare remote".
+   - The two main-only steps were skipped.
+2. **`Control Chrome` 43678600076** (pull-request event, run 2 of 2): **28 of 28 jobs green.** That covers every
+   fixture shard in both installs, the four Python shards, native precedence, both aggregates, and `latency (plain)`
+   and `latency (audit)`.
+   - `fixtures (policy, recheck2)` and `fixtures (external, recheck2)`: the same three `POPUP RECEIVER` paths,
+     `typed-early` → `document_start`.
+   - GROUP 8 "popups preserve opener flow and guard first input without moving windows" PASS in both installs. So did
+     "closing or releasing an opener ends popup control and clears badges", the row that flaked on another PR.
+
+Evidence in `.work/20-main-fix/` (not committed): `final-attestation.log`, `final-chrome-recheck2-132704158641.log`,
+`final-chrome-recheck2-132704158647.log`, `final-qual-recheck2/rep{1,2}/`, `final-publish.log`, and the watch outputs.
 
 ## Handover (step 3)
 
