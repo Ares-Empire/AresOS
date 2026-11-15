@@ -57,9 +57,9 @@ case('P1-borrowed-origin',B,"dialog.unguarded=true;",'void 0;',node('background'
 case('P1-borrowed-matched',B,'const matched=!dialog.unguarded&&confirmationPlans','const matched=confirmationPlans',node('background','a stale approved dialog opening'))
 case('P1-borrowed-prior-hold',B,'if(completion){const result=await Promise.race','if(false){const result=await Promise.race',node('background','P1 a borrowed answer preserves'))
 case('P1-preexisting-bound',B,"if(!preloadTargets.get(targetKey({tabId:tab}))?.pageEnabled)resolve({owner_dialog:true});",'if(false)resolve({owner_dialog:true});',node('background','P1 preexisting modal handoff'))
-case('P1-preexisting-detach',B,'await chrome.debugger.detach({tabId:tab});return;','return;',node('background','P1 preexisting modal handoff'))
+case('P1-preexisting-detach',B,"await chrome.debugger.detach({tabId:tab});\n    owner.handoffMessage=await stallMessage(tab);return;","owner.handoffMessage=await stallMessage(tab);return;",node('background','P1 preexisting modal handoff'))
 case('P1-preexisting-retain',B,'if(previous.modalHandoff)return;','',node('background','P1 preexisting modal handoff'))
-case('P1-preexisting-recover',B,"if(owner.modalHandoff){await recoverOwnerDialog(tab,owner);if(owner.modalHandoff)throw Error('owner_dialog: '+ownerDialogMessage);}",'',node('background','P1 preexisting modal handoff'))
+case('P1-preexisting-recover',B,"if(owner.modalHandoff){await recoverOwnerDialog(tab,owner);if(owner.modalHandoff)throw Error('owner_dialog: '+handoffMessage(owner));}",'',node('background','P1 preexisting modal handoff'))
 case('P1-preexisting-slow',B,'if(!preloadTargets.get(targetKey({tabId:tab}))?.pageEnabled)resolve({owner_dialog:true});','if(true)resolve({owner_dialog:true});',node('background','P1 a responding Page domain'))
 case('P2',B,'let effective;try { effective=frameAddress(frame,frames);','if(frame.url.startsWith("about:"))continue;let effective;try { effective=frameAddress(frame,frames);',node('background','P2'))
 case('P3-inherit',B,'if(hold&&(hold.inFlight||Date.now()<hold.until)){','if(false){',node('background','P3 startup'))
@@ -752,6 +752,56 @@ case('mainfix-sec-rollback-any-exception',AT,"            refused(qualification,
 case('mainfix-sec-refusal-code-unchecked',AT,"        if error.code != reason:\n            raise\n","        if False:\n            raise\n",ROLLBACK_CASES,True)
 case('mainfix-sec-publisher-any-exception',AT,"            expected_refusal(lambda: qualify.prepare(publication, [], trusted_baseline, verifier), reason)\n","            try:\n                qualify.prepare(publication, [], trusted_baseline, verifier)\n            except Exception:\n                pass\n            else:\n                raise AssertionError('accepted')\n",PUBLISHER_CASES,True)
 case('mainfix-sec-publisher-baseline-case-unsigned-bytes',AT,"        ('non-append-only shipped baseline', original, ","        ('non-append-only shipped baseline', json.dumps(candidate).encode(), ",PUBLISHER_CASES,True)
+# Qualification publisher fixes from main's first full run (43696892949): the
+# version is the token after the browser's name (every beta pair was read as
+# 'beta' and recorded all-false), and notify writes issues only, keeps one open
+# issue per title (the workflow's own only), comments only on new text and
+# shows gh's own error.
+QFT='test_publisher.Publisher.test_pair_result_requires_measured_build_and_exact_browser_version'
+QFN='test_publisher.Publisher.test_notify_keeps_one_open_issue_per_title_and_shows_gh_errors'
+case('qualifyfix-version-last-word',QY,"measured_version = measured_chrome_version(actual.read_text()) if actual.exists() else None","measured_version = actual.read_text().strip().split()[-1] if actual.exists() else None",QFT,True)
+case('qualifyfix-version-any-name',QY,"re.fullmatch(r'Google Chrome (\\d+(?:\\.\\d+){3})(?: [a-z]+)?',text.strip())","re.search(r'(\\d+(?:\\.\\d+){3})',text)",QFT,True)
+case('qualifyfix-notify-duplicate-issues',QY,"        if not mine:\n","        if True:\n",QFN,True)
+case('qualifyfix-notify-repeated-comments',QY,"        if body!=mine[0]['body'] and body not in [comment['body'] for comment in comments if own(comment)]:\n","        if True:\n",QFN,True)
+case('qualifyfix-notify-trusts-strangers',QY,"        return row['user']==WORKFLOW_BOT and row['type']=='Bot'\n","        return True\n",QFN,True)
+case('qualifyfix-notify-lists-every-author',QY,"'/issues?state=open&creator='+WORKFLOW_BOT.replace('[','%5B').replace(']','%5D')+'&per_page=100'","'/issues?state=open&per_page=100'",QFN,True)
+case('qualifyfix-notify-pull-request-as-issue',QY,"if own(issue) and not issue['pull'] and issue['title']==title","if own(issue) and issue['title']==title",QFN,True)
+case('qualifyfix-notify-hides-gh-errors',QY,"            raise SystemExit('gh '+' '.join(arguments[:2])+' failed: '+(error.stderr or '').strip()) from None\n","            raise\n",QFN,True)
+case('qualifyfix-publisher-pull-requests-write',QW,"      issues: write\n    steps:","      issues: write\n      pull-requests: write\n    steps:",'test_qualification.Workflow.test_main_only_mutations_serialized_publication_and_daily_stable_beta_pairs',True)
+
+# Brief 20-popup-race, P1 (run 43671248371, popup-opener-close): Chrome replays an
+# unanswered Debugger.setBreakpointByUrl into a popup's new renderer, where the
+# breakpoint already is, and V8 refuses the copy. prepareTarget re-arms once on
+# that exact error (disable, enable, set), so the breakpoint id is known and no
+# orphan stays. The probes: the old behaviour (every error ends the admission);
+# a re-arm on any error; a re-arm that keeps the orphan (no disable) or only
+# sets again; a second refusal swallowed; and the adopt-by-pause mistake, where
+# a pause while the id is still unknown counts as the extension's own startup
+# pause although the document may have run already.
+REARM_GUARD="if(!duplicateBreakpoint(error))throw error;"
+REARM_RESET="    await targetCommand(state,'Debugger.disable');\n    await targetCommand(state,'Debugger.enable');\n"
+REARM_SET="breakpoint=await targetCommand(state,'Debugger.setBreakpointByUrl',startupBreakpoint());\n  }"
+case('popuprace-duplicate-ends-admission',B,REARM_GUARD,"throw error;",node('background','popuprace one duplicate-breakpoint reply'))
+case('popuprace-any-error-rearmed',B,REARM_GUARD,"",node('background','popuprace any other breakpoint error'))
+case('popuprace-rearm-keeps-orphan',B,REARM_RESET,"    await targetCommand(state,'Debugger.enable');\n",node('background','popuprace one duplicate-breakpoint reply'))
+case('popuprace-rearm-only-sets-again',B,REARM_RESET,"",node('background','popuprace one duplicate-breakpoint reply'))
+case('popuprace-second-duplicate-admitted',B,REARM_SET,"breakpoint=await targetCommand(state,'Debugger.setBreakpointByUrl',startupBreakpoint()).catch(()=>({}));\n  }",node('background','popuprace a second duplicate reply'))
+case('popuprace-unknown-pause-counts-as-startup',B,"if(!params.hitBreakpoints?.includes(state.breakpoint)){","if(state.breakpoint!==undefined&&!params.hitBreakpoints?.includes(state.breakpoint)){",node('background','popuprace a pause before the re-armed id'),extra=[(B,"if(!params.hitBreakpoints?.includes(state.breakpoint))return;","if(state.breakpoint!==undefined&&!params.hitBreakpoints?.includes(state.breakpoint))return;")])
+# P2: the 5 s Page.enable fallback writes popup_admitted with owner_dialog:true,
+# which the harness's gate does not count, and a page still loading gets a
+# message that says so instead of "answer the dialog". The probes drop or fix
+# the flag, let the gate accept the handoff, pick one message for both cases,
+# ignore the extension's own dialog record, keep the message after recovery,
+# and give the act's error the old text.
+STALL_MESSAGE="return status==='loading'?stillLoadingMessage:ownerDialogMessage;"
+case('popuprace-admitted-line-without-flag',B,",owner_dialog:!!original.modalHandoff}});","}});",node('background','popuprace a popup whose Page.enable stalls'))
+case('popuprace-admitted-line-flag-never-true',B,"owner_dialog:!!original.modalHandoff","owner_dialog:false",node('background','popuprace a popup whose Page.enable stalls'))
+case('popuprace-gate-accepts-handoff',PO,"&&row.owner_dialog===false;",";",POPUPS('the admission line names the opener'))
+case('popuprace-loading-says-dialog',B,STALL_MESSAGE,"return ownerDialogMessage;",node('background','popuprace a popup whose Page.enable stalls'))
+case('popuprace-dialog-says-loading',B,STALL_MESSAGE,"return stillLoadingMessage;",node('background','popuprace a stalled popup that has loaded'))
+case('popuprace-dialog-record-ignored',B,"  if(dialogs.has(tab))return ownerDialogMessage;\n","",node('background','popuprace a stalled popup that has loaded'))
+case('popuprace-handoff-message-kept-after-recovery',B,"owner.modalHandoff=false;delete owner.handoffMessage;","owner.modalHandoff=false;",node('background','popuprace a popup whose Page.enable stalls'))
+case('popuprace-act-error-old-text',B,"throw Error('owner_dialog: '+handoffMessage(owner));","throw Error('owner_dialog: '+ownerDialogMessage);",node('background','popuprace a popup whose Page.enable stalls'))
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

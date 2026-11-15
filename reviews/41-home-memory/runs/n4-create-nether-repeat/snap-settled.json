@@ -1,0 +1,70 @@
+{
+ "label": "settled",
+ "monotonic_ns": 47791996667265,
+ "time": "12:41:41",
+ "status_mib": {
+  "VmHWM": 1366,
+  "VmRSS": 1341,
+  "RssAnon": 1127,
+  "RssFile": 150,
+  "RssShmem": 62,
+  "VmSwap": 0
+ },
+ "smaps_rollup_mib": {
+  "Rss": 1283,
+  "Pss": 1220,
+  "Pss_Anon": 1127,
+  "Pss_File": 87,
+  "Pss_Shmem": 5,
+  "Swap": 0
+ },
+ "cgroup": "/user.slice/user-1001.slice/user@1001.service/app.slice/pkg41-game-n4-create-nether-repeat-892721.scope",
+ "cgroup_mib": {
+  "current": 1144,
+  "peak": 1170,
+  "swap": 0,
+  "high": "2684354560",
+  "anon": 1127,
+  "file": 8,
+  "kernel": 7,
+  "shmem": 0
+ },
+ "cgroup_events": {
+  "low": 0,
+  "high": 0,
+  "max": 0,
+  "oom": 0,
+  "oom_kill": 0,
+  "oom_group_kill": 0,
+  "sock_throttled": 0
+ },
+ "heap_mib": {
+  "reserved": 1024,
+  "committed": 448,
+  "used": 387
+ },
+ "heap_regions": {
+  "region_kib": 1024,
+  "young": 61,
+  "survivors": 7
+ },
+ "nmt_committed_mib": {
+  "Java Heap": 448,
+  "Class": 26,
+  "Thread": 8,
+  "Code": 58,
+  "GC": 70,
+  "Compiler": 1,
+  "Internal": 2,
+  "Other": 5,
+  "Symbol": 23,
+  "Native Memory Tracking": 10,
+  "Shared class space": 14,
+  "Arena Chunk": 3,
+  "Synchronization": 3,
+  "Metaspace": 120,
+  "Total": 791
+ },
+ "gpu_total_used_mib": 668,
+ "gpu_process_mib": 604
+}

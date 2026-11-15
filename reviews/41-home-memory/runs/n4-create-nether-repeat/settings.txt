@@ -1,0 +1,22 @@
+name=n4-create-nether-repeat
+RD=8
+SD=5
+HEAP=1024
+MIN_HEAP=256
+GC=-XX:MaxHeapFreeRatio=30,-XX:MinHeapFreeRatio=10
+MEMHIGH=2560M
+SIZE=1920x1080
+REFRESH=144
+SETTLE=30
+WINDOW=60
+COVER=0
+MODE=create
+WORLD=base
+HOMEKIND=nether
+BASE=/var/home/ares/AresOS-41-home-memory/.work/pkg41/AresHub-base
+FLIGHT=none
+QUIT=0
+JVM_ARGS=-Xms256m -Xmx1024m -XX:NativeMemoryTracking=summary -Xlog:gc:file=/var/home/ares/AresOS-41-home-memory/.work/pkg41/rigs/n4-create-nether-repeat/gc.txt:tn,u -Dfabric.addMods=/var/home/ares/AresOS-41-home-memory/.work/pkg41/pkg41-frames.jar -Dpkg41.frames=/var/home/ares/AresOS-41-home-memory/.work/pkg41/rigs/n4-create-nether-repeat/frames.txt -XX:MaxHeapFreeRatio=30 -XX:MinHeapFreeRatio=10
+GAME_ARGS=
+started=2026-11-15T12:40:27+01:00
+GAME_PID=893191

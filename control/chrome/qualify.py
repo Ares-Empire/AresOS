@@ -20,6 +20,8 @@ from build import build_hash
 
 RECORD = 'control/chrome/qualification.json'
 DATA_BRANCH = 'chrome-qualification'
+# The account GITHUB_TOKEN writes issues and comments as.
+WORKFLOW_BOT = 'github-actions[bot]'
 PACKAGES = 'https://dl.google.com/linux/chrome/deb/dists/stable/main/binary-amd64/Packages.gz'
 
 
@@ -282,13 +284,50 @@ def aggregate(root, run, expected=None):
     return entries
 
 
+def measured_chrome_version(text):
+    """The full version from `chrome --version`, or None.
+
+    Stable prints 'Google Chrome 157.0.8103.78 ' and beta 'Google Chrome
+    159.0.8154.6 beta'. The version is the token after the name, never the
+    last word: reading the last word turned every beta pair into 'beta' and
+    so into an all-false entry (main run 43696892949).
+    """
+    match=re.fullmatch(r'Google Chrome (\d+(?:\.\d+){3})(?: [a-z]+)?',text.strip())
+    return match[1] if match else None
+
+
 def notify(candidate, published, runner=subprocess.run):
-    """Only the main-only CLI invokes this; tests inject a recording subprocess runner."""
+    """Only the main-only CLI invokes this; tests inject a recording subprocess runner.
+
+    Every GitHub write is an issue. The repository doesn't let workflows
+    create pull requests, so the shipped-copy update is an issue a session
+    acts on. Each title keeps one open issue: a run comments on it only when
+    its text is new, so the daily runs don't pile up duplicates. Only the
+    workflow's own issues and comments count: the repository is public, and
+    anyone can open an issue or write a comment with the same title or text.
+    """
     def gh(arguments):
-        return runner(['gh',*arguments],check=True,capture_output=True,text=True)
+        try:return runner(['gh',*arguments],check=True,capture_output=True,text=True)
+        except subprocess.CalledProcessError as error:
+            raise SystemExit('gh '+' '.join(arguments[:2])+' failed: '+(error.stderr or '').strip()) from None
+    def rows(arguments):
+        return [json.loads(line) for line in gh(arguments).stdout.splitlines() if line.strip()]
+    def own(row):
+        return row['user']==WORKFLOW_BOT and row['type']=='Bot'
+    def report(title, body):
+        listed=rows(['api','--paginate','repos/'+REPOSITORY+'/issues?state=open&creator='+WORKFLOW_BOT.replace('[','%5B').replace(']','%5D')+'&per_page=100',
+                     '--jq','.[] | {number, title, body, user: .user.login, type: .user.type, pull: (.pull_request != null)}'])
+        mine=sorted((issue for issue in listed if own(issue) and not issue['pull'] and issue['title']==title),key=lambda issue:issue['number'])
+        if not mine:
+            gh(['issue','create','--repo',REPOSITORY,'--title',title,'--body',body]);return
+        comments=rows(['api','--paginate','repos/'+REPOSITORY+'/issues/'+str(mine[0]['number'])+'/comments',
+                       '--jq','.[] | {body, user: .user.login, type: .user.type}'])
+        if body!=mine[0]['body'] and body not in [comment['body'] for comment in comments if own(comment)]:
+            gh(['issue','comment',str(mine[0]['number']),'--repo',REPOSITORY,'--body',body])
     if not published:
-        gh(['issue','create','--repo',REPOSITORY,'--title','Chrome qualification publication refused',
-            '--body','Record or attestation verification failed, or a workflow job was interrupted. Nothing new is trusted. Inspect this qualification run.'])
+        run=os.environ.get('GITHUB_SERVER_URL','https://github.com')+'/'+REPOSITORY+'/actions/runs/'+os.environ.get('GITHUB_RUN_ID','unknown')
+        report('Chrome qualification publication refused',
+               'Record or attestation verification failed, or a workflow job was interrupted. Nothing new is trusted. Inspect this qualification run: '+run)
         return
     record=validate_record(json.loads(Path(candidate).read_text()))
     failures=[]
@@ -296,13 +335,14 @@ def notify(candidate, published, runner=subprocess.run):
         names=[name for name,passed in {**entry['core'],**entry['adapters']}.items() if not passed]
         if names:failures.append(entry['build']+' '+entry['channel']+' '+entry['version']+': '+', '.join(names))
     if failures:
-        gh(['issue','create','--repo',REPOSITORY,'--title','Chrome qualification has failing groups',
-            '--body','Failed groups stay disabled for their installed build and version.\n\n'+'\n'.join(failures)])
-    existing=gh(['pr','list','--repo',REPOSITORY,'--head',DATA_BRANCH,'--base','main','--json','number'])
-    if not json.loads(existing.stdout):
-        gh(['pr','create','--repo',REPOSITORY,'--head',DATA_BRANCH,'--base','main',
-            '--title','Update shipped Chrome qualification record',
-            '--body','Bring the shipped baseline up to date with the verified append-only data branch. Runtime delivery already uses the attested record. Review before merging.'])
+        report('Chrome qualification has failing groups',
+               'Failed groups stay disabled for their installed build and version.\n\n'+'\n'.join(failures))
+    entries='\n'.join(entry['build'][:12]+' '+entry['channel']+' '+entry['version'] for entry in record['entries'])
+    report('Update shipped Chrome qualification record',
+           'The data branch `'+DATA_BRANCH+'` holds attested entries that the shipped copy (`control/chrome/qualification.json` on main) may lack. '
+           'Runtime delivery already uses the attested record. A session opens the pull request and reviews it before merging:\n\n'
+           '`gh pr create --repo '+REPOSITORY+' --head '+DATA_BRANCH+' --base main --title "Update shipped Chrome qualification record"`\n\n'
+           'Entries on the data branch:\n'+entries)
 
 
 def publish(root, candidate, baseline, *, remote=None, verifier=verify, bundle=None, held_verifier=verify_held, ref=None):
@@ -387,7 +427,7 @@ def main():
         result_path=Path(args.artifacts)/'qualification-result.json'
         result=json.loads(result_path.read_text()) if result_path.exists() else {}
         actual = (Path(args.artifacts)/'chrome-version.txt')
-        measured_version = actual.read_text().strip().split()[-1] if actual.exists() else None
+        measured_version = measured_chrome_version(actual.read_text()) if actual.exists() else None
         measured_build = runtime_identity(Path(args.runtime_root).resolve()) if args.runtime_root else None
         valid = (measured_version == identity['version'] and measured_build == identity['build']
                  and completed(args.artifacts, identity, os.environ.get('QUALIFICATION_OUTCOME'))
@@ -397,7 +437,7 @@ def main():
         Path(args.artifacts).mkdir(parents=True,exist_ok=True)
         (Path(args.artifacts)/'pair.json').write_text(json.dumps(identity));return
     # Only this repository prepares or publishes. Writes that reach GitHub (the
-    # push to origin's data branch, issues and pull requests) happen on main
+    # push to origin's data branch and issues) happen on main
     # only; a pull request or branch run prepares, attests and publishes to a
     # local bare repository so that every step runs before the merge.
     if os.environ.get('GITHUB_REPOSITORY')!=REPOSITORY:

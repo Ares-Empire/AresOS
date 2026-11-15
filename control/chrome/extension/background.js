@@ -46,6 +46,9 @@ function contextChanged(state){for(const done of state.cleanupWaiters||[])done()
 // reads it the same way: a rejected native lookup proves a destroyed realm
 // even without its destruction event.
 const nativeContextMissing=error=>String(error).includes('Cannot find context with specified id');
+// V8's exact refusal of a second breakpoint at a location that has one.
+const duplicateBreakpoint=error=>String(error).includes('Breakpoint at specified location already exists.');
+const startupBreakpoint=()=>({url:chrome.runtime.getURL('context.js'),lineNumber:1});
 function destroyedTarget(state){state.contexts.clear();state.scripts.clear();state.documents.clear();state.failures?.clear();contextChanged(state);if(preloadTargets.get(targetKey(state.source))===state)preloadTargets.delete(targetKey(state.source));}
 async function contextGone(state,identity){
   while([...state.contexts.values()].some(context=>context.uniqueId===identity)){
@@ -87,7 +90,28 @@ async function prepareTarget(source,tab=source.tabId,targetId=null){
   state.pageEnabled=true;
   const tree=await targetCommand(state,'Page.getFrameTree');state.frameId=tree.frameTree?.frame.id||targetId;
   await targetCommand(state,'Debugger.enable');
-  const breakpoint=await targetCommand(state,'Debugger.setBreakpointByUrl',{url:chrome.runtime.getURL('context.js'),lineNumber:1});
+  let breakpoint;
+  try{breakpoint=await targetCommand(state,'Debugger.setBreakpointByUrl',startupBreakpoint());}
+  catch(error){
+    // A popup's first cross-site document can commit in a new renderer while
+    // this command has no reply yet. Chrome then replays the unanswered command
+    // into the new renderer, where the breakpoint already arrived with the
+    // session's state, and V8 refuses the copy (run 43671248371, the
+    // popup-opener-close row). The breakpoint exists but its id is unknown
+    // here, and an unknown id would stay as an orphan every later document
+    // pauses on. This session was attached moments ago and nothing but this
+    // function sets breakpoints on it, so the refusal can only be that replay.
+    // Re-arm once: disable drops every breakpoint of the session, enable and
+    // set give one breakpoint whose id is known. Nothing else is assumed about
+    // the document: if it ran meanwhile, no pause can carry this id and the
+    // late reader records it; document_start comes only from a pause on it.
+    // A second refusal, or any other error, ends the admission as before.
+    if(!duplicateBreakpoint(error))throw error;
+    if(recording)audit({breakpoint_rearmed:{tab,target:targetId,session:source.sessionId||null}});
+    await targetCommand(state,'Debugger.disable');
+    await targetCommand(state,'Debugger.enable');
+    breakpoint=await targetCommand(state,'Debugger.setBreakpointByUrl',startupBreakpoint());
+  }
   state.breakpoint=breakpoint.breakpointId;
   await targetCommand(state,'Target.setAutoAttach',{autoAttach:true,waitForDebuggerOnStart:true,flatten:true,filter:[{type:'iframe',exclude:false}]});
   return state;
@@ -430,7 +454,21 @@ async function restoreTab(tab,original){
   try{await chrome.tabs.ungroup(tab);await chrome.tabs.move(tab,{windowId:original.window,index:original.index});if(original.group>=0)await chrome.tabs.group({tabIds:[tab],groupId:original.group});}catch{}
 }
 const ownerDialogMessage="Ask the owner: Please answer the dialog yourself. After he answers, read this tab again. Claude's first act will reload the tab under the normal take rule.";
-function takenTab(tab,owner){return {tab,session,group:groupId,...(owner.modalHandoff?{owner_dialog:true,ask_owner:ownerDialogMessage}:{})};}
+const stillLoadingMessage="The page did not answer within 5 s and is still loading; no dialog is known. Try again once it has loaded, and read this tab again. If a dialog is showing, ask the owner to answer it first. Claude's first act will reload the tab under the normal take rule.";
+const handoffMessage=owner=>owner.handoffMessage||ownerDialogMessage;
+function takenTab(tab,owner){return {tab,session,group:groupId,...(owner.modalHandoff?{owner_dialog:true,ask_owner:handoffMessage(owner)}:{})};}
+// What a 5 s Page.enable stall means. A dialog that opened before the debugger
+// attached sends no opening event, so the extension's own record is empty
+// then; the renderer of a loaded page that answers nothing is taken to be
+// blocked by one, as before. A page still loading (the debugger attached
+// while its cross-document navigation was pending, run 43660183139) is told
+// apart by Chrome's tab status; the answer is the same bounded handoff, with
+// a message that names loading and asks for another try, not for an answer.
+async function stallMessage(tab){
+  if(dialogs.has(tab))return ownerDialogMessage;
+  let status;try{status=(await chrome.tabs.get(tab)).status;}catch{}
+  return status==='loading'?stillLoadingMessage:ownerDialogMessage;
+}
 async function initializeTab(tab,owner){
   const wake=waitDialog(tab),preload=prepareTarget({tabId:tab});let timer;
   const ready=preload.then(()=>lateReader(tab));ready.catch(()=>{});
@@ -442,9 +480,10 @@ async function initializeTab(tab,owner){
     owner.modalHandoff=true;owner.popupNeedsReload=true;delete owner.pendingSetup;
     const target=preloadTargets.get(targetKey({tabId:tab}));if(target)destroyedTarget(target);
     // Detach is browser-side: a blocked renderer must retain no waiting debugger.
-    await chrome.debugger.detach({tabId:tab});return;
+    await chrome.debugger.detach({tabId:tab});
+    owner.handoffMessage=await stallMessage(tab);return;
   }
-  owner.modalHandoff=false;
+  owner.modalHandoff=false;delete owner.handoffMessage;
   if(dialogs.has(tab))owner.popupNeedsReload=true;else delete owner.pendingSetup;
 }
 async function recoverOwnerDialog(tab,owner){
@@ -481,7 +520,10 @@ async function admitTab(tab,generation,opener=null) {
     check();
     await rules();check();await badge();check();assertControl(tab,original.epoch);
     if(opener){await requireTab(opener.tab);check();}
-    if(original.virtualGroup)audit({popup_admitted:{tab,window:current.windowId,type:window.type,opener:opener?.tab,badge:'POP on opener'}});
+    // owner_dialog:true means the 5 s fallback ran: no debugger and no guard are
+    // attached, and the popup's setup happens on its first act. The harness's
+    // typed-early gate waits for a line that says false, a breakpoint set.
+    if(original.virtualGroup)audit({popup_admitted:{tab,window:current.windowId,type:window.type,opener:opener?.tab,badge:'POP on opener',owner_dialog:!!original.modalHandoff}});
     return takenTab(tab,original);
   }catch(error){
     if(controlled.get(tab)===original)await release(tab);
@@ -601,7 +643,7 @@ async function requireTab(tab) {
     catch{await release(tab);throw Error('stale_reference: popup opener is outside the Claude group');}
   }
   try { safeURL(current.url); } catch(error) { await release(tab); throw error; }
-  if(owner.modalHandoff){await recoverOwnerDialog(tab,owner);if(owner.modalHandoff)throw Error('owner_dialog: '+ownerDialogMessage);}
+  if(owner.modalHandoff){await recoverOwnerDialog(tab,owner);if(owner.modalHandoff)throw Error('owner_dialog: '+handoffMessage(owner));}
   if(owner.pendingSetup&&!dialogs.has(tab)){
     const pending=owner.pendingSetup,wake=waitDialog(tab);
     try{
