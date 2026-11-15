@@ -522,8 +522,8 @@ the front when he should look at it or sign in there.
 
 - **What Claude sees.** `chrome_tabs` lists every tab of every normal window of his Chrome profile in one result:
   the title, the address, the window, and whether the tab is Claude's, his, or his and taken. It also says which
-  tab is in front, pinned, playing sound (Chrome's `audible` flag; brief 20's rows on merged `main` carry it and
-  `muted`) or asleep. Addresses in this list are in the short form ("Reading a
+  tab is in front, pinned, playing sound (Chrome's `audible`, when the tab isn't muted), muted (Chrome's
+  `muted`), or asleep. Addresses in this list are in the short form ("Reading a
   page"): the site and the path, never what follows `?` or `#`, because his request may have nothing to do with
   most of these tabs. Titles are page text, so they are untrusted content (rule 4.8).
   - **Incognito windows are never listed, read or taken.** The extension's manifest says `"incognito":
@@ -1136,7 +1136,8 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 
 ### Actions
 
-*brief 28a*, and *brief 28b* for his tabs. Eighteen tools are offered to Claude, where brief 20 has 30 on merged
+*brief 28a*, and *brief 28b* for his tabs. Nineteen tools are offered to Claude (twenty with brief 28b's
+`chrome_take_reload`), where brief 20 has 30 on merged
 `main` (28 at `8b7e799c`, and the asking read for typed fields as two tools, `chrome_prepare_read_typed_fields` and
 `chrome_read_typed_fields`).
 
@@ -1144,13 +1145,13 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 |---|---|---|---|
 | `chrome_tabs` | read | every tab of every normal window in one result: number, whose, title, address (short form), marks | `chrome_tabs` (5 to 10 tabs per call) |
 | `chrome_read` | read | the outline of a tab, or of up to five tabs; one part by `ref`; `find`; `until`; paged by `max` and `cursor`. In one of his tabs it reads in place and needs `request` | `chrome_read`, `chrome_read_form`, `chrome_find`, `chrome_wait` |
-| `chrome_read_typed_fields` | **ask** (read) | after his OK, read the typed form fields (single-line and multi-line) that a normal read shows only as filled, because the reader doesn't know their history: the question lists the fields' labels, never a value; credential-like fields never; one approval, one call | the same (brief 20 added it before it merged; on merged `main` `chrome_prepare_read_typed_fields` prepares its question) |
+| `chrome_prepare_read_typed_fields`, `chrome_read_typed_fields` | change, **ask** (read) | the first names the tab and the fields and returns the approval; the second takes it and, after his OK, read the typed form fields (single-line and multi-line) that a normal read shows only as filled, because the reader doesn't know their history: the question lists the fields' labels, never a value; credential-like fields never; one approval, one call | the same (brief 20 added both before it merged; main's two tools stay, the lead, 2026-11-15) |
 | `chrome_open` | change | open a web address in a new Claude tab (an address, a link or a library entry by reference, or the address of one of his tabs), wait, return the outline | `chrome_open`, then wait and read |
-| `chrome_go` | change | in a Claude tab: an address, back, forward or reload; wait, return the outline | `chrome_navigate`, then wait and read |
+| `chrome_go` | change | in a Claude tab: an address, back, forward or reload; wait, return the outline. Unsaved typing, playing media or a frame it can't inspect stops it until `discard_unsaved` (brief 20's guard, kept) | `chrome_navigate`, then wait and read |
 | `chrome_do` | change | up to 20 steps in one tab (click, fill, select, check, press, scroll, dialog, wait), each by reference. An asking step isn't dispatched and returns a prepared operation, and so does a submission the page starts while handling a step; an activation the page starts is stopped and reported, never resumed. Returns what changed | `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll`, `chrome_dialog` |
 | `chrome_upload` | change | prepare putting a local file into a file field (it asks through `chrome_submit`) | the same |
 | `chrome_show` | change | bring a tab and its window to the front, for him | new |
-| `chrome_close` | change | close Claude tabs; one of his only when he asked (`request`) and the tab is known clean; never a taken tab | `chrome_close_tab` |
+| `chrome_close` | change | close Claude tabs (one with unsaved work stays open until `discard_unsaved`, brief 20's guard); one of his only when he asked (`request`) and the tab is known clean; never a taken tab | `chrome_close_tab` |
 | `chrome_take`, `chrome_release` | change | take one of his tabs for acting (it reloads once; where the tool can't rule out a loss, `chrome_take_reload` asks him first; never a page of the fixed list); give it back to its place | `chrome_take_tab`, `chrome_release_tab` |
 | `chrome_library` | read | his downloads (and where Chrome saved them), bookmarks or history, to find pages: titles, addresses in the short form, and a reference per entry to open it | `chrome_downloads`, `chrome_bookmarks`, `chrome_history` |
 | `chrome_submit` | **send** | run one prepared operation, by id and hash, after the page-state check | the same |
@@ -1161,18 +1162,19 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 | `chrome_sites` | owner-only | his read-only sites and his "don't ask again" entries, to see and change | the same |
 
 - **The asking tools don't change.** `chrome_submit`, `chrome_submit_trusted`, `chrome_drop`,
-  `chrome_operation_status`, the notices and `chrome_read_typed_fields` keep their names, inputs and behaviour, and
-  the managed ask rules stay on exactly two tools: `chrome_submit` for every send, and `chrome_read_typed_fields` for
-  that one read (section 7).
+  `chrome_operation_status`, the notices, `chrome_prepare_read_typed_fields` and `chrome_read_typed_fields` keep
+  their names, inputs and behaviour, and the managed ask rules stay on exactly two tools: `chrome_submit` for every
+  send, and `chrome_read_typed_fields` for that one read (section 7). Brief 28b adds a third, `chrome_take_reload`.
 - **A list from `chrome_library` is a snapshot,** so paging through it is stable. A snapshot expires 5 minutes after
   the last page was asked for, or 30 minutes after it was made, whichever comes first; then the list starts again
   (*brief 20*).
-- **What every server pays once:** the rules shared by all Chrome actions (untrusted page text, what to do on each
-  error, the notice on an unqualified Chrome version, the clipboard rule, the rule for his tabs) are in the Chrome
-  server's MCP instructions, and each description holds only what is specific to its action (brief 18d's pattern).
-  Claude Code 2.1.319 passes on only the first 4,096 characters of a server's instructions, so they must fit in
-  that: a test checks every app (`control/chrome_tests/test_questions.py`), and on merged `main` Chrome's are
-  already 4,052 characters (*brief 20*).
+- **What every server pays once:** the rules that span tools (untrusted page text, what to do on each error, the
+  notice on an unqualified Chrome version, the clipboard rule, the rule for unsaved work and `discard_unsaved`, the
+  rule for his tabs) are in the Chrome server's MCP instructions, and each description holds only what is specific
+  to its action (brief 18d's pattern). A rule that belongs to one tool goes into that tool's description. The
+  instructions stay within 3,800 characters, and a test pins that (the lead, 2026-11-15): Claude Code 2.1.319 passes
+  on only the first 4,096 characters of a server's instructions, a test checks every app against that
+  (`control/chrome_tests/test_questions.py`), and on merged `main` Chrome's are already 4,052 (*brief 20*).
 
 **Left out on purpose:**
 
@@ -1208,8 +1210,8 @@ is brief 20's tool list on the same fixtures, recorded once before it is replace
 | List 25 open tabs | 3 calls | 1 call, at most 3,500 characters |
 | A free click that changes part of the page | a click, then a read or a find: 2 calls | 1 call, at most 2,500 characters |
 | Read a fact from one of his tabs (*brief 28b*) | list, take, read; the tab moves | list, read; the tab untouched |
-| What a session loads: descriptions and instructions | 30 tools; recorded on main after PR #27 | 18 tools, at most 10,500 characters, and not above the baseline (11,500 with brief 28b's rule for his tabs) |
-| What a session loads: names and input schemas | 28 tools, about 10,600 characters at `8b7e799c`; recorded again on main with the 29th and 30th | at most 6,300 characters (6,800 with brief 28b's inputs) |
+| What a session loads: descriptions and instructions | 30 tools; recorded on main after PR #27 | 19 tools, at most 10,900 characters, and not above the baseline; the instructions alone at most 3,800 (12,300 for 20 tools with brief 28b's rule for his tabs and `chrome_take_reload`) |
+| What a session loads: names and input schemas | 28 tools, about 10,600 characters at `8b7e799c`; recorded again on main with the 29th and 30th | at most 6,450 characters (7,200 with brief 28b's inputs and `chrome_take_reload`) |
 
 - Every budget names the exact calls it allows (the tables of briefs 28 and 28a), and the test makes those calls
   and no others. A budget nobody can meet is changed in the brief, never in the test.
