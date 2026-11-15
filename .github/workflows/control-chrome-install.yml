@@ -51,8 +51,8 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           set -euo pipefail
-          mkdir -p .work/18c-b-chrome/install
-          timeout --signal=TERM --kill-after=30s 30m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/18c-b-chrome/install:/out" aresos-chrome-install proof
+          mkdir -p .work/18c-b-chrome/install && chmod 777 .work/18c-b-chrome
+          timeout --signal=TERM --kill-after=30s 30m docker run --rm --network none --cap-add SYS_ADMIN --security-opt seccomp=unconfined --security-opt apparmor=unconfined --shm-size=512m -e GITHUB_RUN_ID -e GITHUB_SHA -v "$PWD/.work/18c-b-chrome:/out" aresos-chrome-install proof
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:

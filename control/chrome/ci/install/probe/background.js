@@ -8,6 +8,8 @@ const operations={
   async get({id}){return view(await chrome.management.get(id));},
   async setEnabled({id,enabled}){await chrome.management.setEnabled(id,enabled);return true;},
   async uninstall({id}){await chrome.management.uninstall(id);return true;},
+  // An update check of this probe alone, at once: shows where its checks go.
+  async requestUpdateCheck(){return await chrome.runtime.requestUpdateCheck();},
   // What Chrome does with this extension's connection to another native host:
   // refused (with Chrome's reason), or still open after `wait` milliseconds.
   connectNative({name,wait=3000}){

@@ -12,11 +12,13 @@ two update requests to the test's own server, so two update checks ran.
 Standard library only: the VM pass reads the same log in a guest without node.
 """
 import json
+import re
 from urllib.parse import urlsplit
 
 UPDATE_SERVICE = '/service/update2/'
 ESCAPED_UPDATE_SERVICE = UPDATE_SERVICE.replace('/', '\\/')
 OUTSIDE = '(in a part of the log outside its parsed events)'
+NAMED_ID = re.compile('id(?:=|%3D)([a-p]{32})')
 
 
 def events(text):
@@ -54,7 +56,7 @@ def _strings(value):
 
 def scan(text, extension_id, probe_id, probe_address):
     """Read one log. Returns what was found; `problems` says whether that is a pass."""
-    named, service, checks, hosts = [], [], set(), set()
+    named, service, checks, hosts, asks = [], [], set(), set(), set()
     counted_id = counted_service = 0
     found = events(text)
     for event in found:
@@ -67,6 +69,9 @@ def scan(text, extension_id, probe_id, probe_address):
             if UPDATE_SERVICE in value:
                 counted_service += value.count(UPDATE_SERVICE)
                 service.append(value[:400])
+                # What the request asks, as far as the log shows it: the address, and the IDs in it.
+                asks.add(value.split('?')[0][:200])
+                asks.update(NAMED_ID.findall(value))
         url = params.get('url') if isinstance(params, dict) else None
         if isinstance(url, str):
             parts = urlsplit(url)
@@ -80,7 +85,17 @@ def scan(text, extension_id, probe_id, probe_address):
     if text.count(UPDATE_SERVICE) + text.count(ESCAPED_UPDATE_SERVICE) > counted_service:
         service.append(OUTSIDE)
     return {'events': len(found), 'hosts': sorted(hosts), 'named_elsewhere': named, 'update_service': service,
-            'probe_checks': len(checks)}
+            'update_service_asks': sorted(asks), 'probe_checks': len(checks)}
+
+
+def added(result, baseline):
+    """What a run's update-service requests have that the baseline's lack: addresses and named IDs.
+
+    The pinned Chrome asks the store for two extensions of its own on a fresh
+    profile whatever our policy says, so the brief's fallback applies: compared
+    with a run of the probe alone, ours must add none.
+    """
+    return sorted(set(result['update_service_asks']) - set(baseline['update_service_asks']))
 
 
 def problems(result, checks=2):

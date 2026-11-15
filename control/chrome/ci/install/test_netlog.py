@@ -75,5 +75,23 @@ class Scan(unittest.TestCase):
         self.assertEqual(result['update_service'], [netlog.OUTSIDE])
 
 
+class Baseline(unittest.TestCase):
+    STORE = 'https://clients2.google.com/service/update2/crx?os=linux&x=id%3Dghbmnnjooekpmoecnnnilnnbdlolhkhi%26v%3D0.0.0.0%26uc'
+
+    def scan(self, *events):
+        return netlog.scan(log(*events, request(8, CHECK), request(9, CHECK)), OURS, PROBE, ADDRESS)
+
+    def test_what_chrome_asks_anyway_adds_nothing(self):
+        baseline = self.scan(request(1, self.STORE))
+        self.assertEqual(netlog.added(self.scan(request(1, self.STORE), request(2, self.STORE), request(3, FILE)), baseline), [])
+
+    def test_another_address_or_another_id_is_added(self):
+        baseline = self.scan(request(1, self.STORE))
+        post = request(2, 'https://update.googleapis.com/service/update2/json', method='POST')
+        self.assertEqual(netlog.added(self.scan(request(1, self.STORE), post), baseline), ['https://update.googleapis.com/service/update2/json'])
+        named = request(2, self.STORE + '&x=id%3D' + OURS + '%26uc')
+        self.assertEqual(netlog.added(self.scan(request(1, self.STORE), named), baseline), [OURS])
+
+
 if __name__ == '__main__':
     unittest.main()
