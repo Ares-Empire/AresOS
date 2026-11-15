@@ -455,6 +455,32 @@ package puts the tools that act on the same mechanism:
   that ran is its own committed operation (in the log and in `chrome_operation_status`), a prepared step stays
   prepared until it expires, and nothing runs later.
 
+### 5a. Two points left by brief 20-popup-race (lead, 2026-11-15)
+
+PR #77 (`635872e2`, `reviews/20-popup-race/REPORT.md`) left these to this brief because it reworks admission.
+
+- **A popup the click opened, named when it isn't under control (its P3).** Today a click's popup is admitted by
+  `onCreatedNavigationTarget` → `createdTarget`, after the dispatch or beside it. If admission fails or is
+  refused, Claude learns of the popup only through `tabs` (`controlled:false`).
+  - Now the step's result names it: `popup: {tab, controlled: false}`. Its address follows item 3's rules, and
+    nothing of its content is included. Claude can then `take_tab` it.
+  - The step waits for the outcome only within its existing hold after the dispatch (item 5's "nothing is cut
+    short"); no new wait. A popup whose admission hasn't decided by then is named `controlled: "pending"`.
+  - A popup that was admitted is named `controlled: true`, as today's result allows.
+  - Correlate by the opener (`sourceTabId` and frame) and the step's dispatch window. A popup that can't be tied to
+    this step isn't named; it stays in `tabs`.
+  - Admission's fail-closed rules don't change.
+  - Tests: refused, failed, pending, admitted, and two popups from one click.
+- **"Pause still live" before installing (its security NOTE 1).** Chrome delivers the pause event and the command
+  reply by two paths, ordered in practice but not by contract. A stale pause delayed past two round trips would
+  count a document that already ran as `document_start`. For an owner tab taken during a cross-process navigation,
+  that skips the guarded reload.
+  - Where admission is reworked here, check before installing that the pause is still the current one, for
+    example the paused frame's loader or execution context against the target's current one.
+  - If no reliable check exists, keep it as a known limit with that harm, and say why in the report.
+  - Don't give the re-armed breakpoint a new id: Chrome's browser-side store keeps the old one (the report's
+    reason).
+
 ### 6. The smaller tools
 
 - **`chrome_tabs`** (read; input: `cursor`). Every tab of every normal window in one result; a cursor only beyond
