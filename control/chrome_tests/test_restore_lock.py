@@ -160,16 +160,18 @@ class RestoreLock(unittest.TestCase):
         self.assertNotIn('unavailable',after);self.assertIn('mail',{item['app'] for item in after['items']})
 
     def test_locked_reads_open_no_mail_server_session(self):
+        # The older database keeps the Sent-copy check open, as after a crash: no read
+        # before the lock may run it (package review 1), or the lock's refused write
+        # would stop a reverted engine before IMAP and the counter would prove nothing.
         self.fake_transport();self.plant_mail()
         self.prepare();self.chrome.steps([self.step()],1)
-        self.assertTrue(self.request('control_pending')['ok'])
-        self.assertIn('imap',self.sessions,'the open Sent-copy check reaches the fake server while unlocked')
         self.lock()
         self.assertEqual(self.sessions,[])
         for name in ['control_pending','control_notices','chrome_notices']:
             with self.subTest(name):
-                result=self.request(name);self.assertTrue(result['ok'],result)
+                result=self.request(name)
                 self.assertEqual(self.sessions,[],name)
+                self.assertTrue(result['ok'],result)
         self.assertTrue(self.request('control_restore_confirm',CONFIRM,admin=True)['ok'])
         self.assertTrue(self.request('control_pending')['ok'])
         self.assertIn('imap',self.sessions,'checks resume once the owner has confirmed')
