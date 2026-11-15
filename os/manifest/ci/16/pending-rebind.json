@@ -1,183 +1,22 @@
 {
-  "status": "rebound by package 22c's rehearsal (run 43597505549); since then 22c's record step changed two test files, and package 22d's steps 1 and 2 changed tool, guide, workflow and test files (the owner tools version 4, the generated lines, the guides, the checks-only job's time limit): they wait for 22d's own rehearsal, not only tests",
-  "walk": "os/manifest/ci/22c/source-bindings.json",
+  "status": "rebound by package 22d's rehearsal (run 43737933979); since then 22d's record step changed three test files: os/tests/test_owner_path.py (the pin of 22d's status row), os/tests/test_tools_local_wiring.py (22d's receipt test, frozen after the record step) and os/tests/test_ways_back_probe.py (22c's gate test reads the files changed since 22c's run from the active bindings too); they wait for the next rehearsal",
+  "walk": "os/manifest/ci/22d/source-bindings.json",
   "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Since package 22d's steps 1 and 2 (integrator, 2026-11-15) tool, guide and workflow files wait here too, besides test files: 22d's own VM rehearsal (brief 22d, step 6) rebinds them; no image file waits.",
   "changes": [
-    "22c record step (after rehearsal run 43597505549 rebound the sources): test_owner_path pins the 22c INSTALL-STATUS row as rehearsed, with the run link the 22c bindings name; no tool, guide or image file changed",
-    "22c fix after checks-only run 43619559359: test_ways_back_probe keeps the 22c host-walk receipt frozen after the record step (asserted equal to the bindings' walk table instead of skipped; the gate test uses it with the waiting rows' bytes) and reads removed paths from the 22c rebind's history entry; no tool, guide or image file changed",
-    "22d steps 1 and 2: the owner tools take a bundle from the folder block (tools version 4, payload refreshed); bootstrap.py generates the routine lines and Claude's folder line, commands.json holds them, the guides gain the routine box first and the routine STOP card, v4's fingerprint is pinned; the checks-only job gets 40 minutes; tests follow; these tool, guide and workflow files wait for 22d's rehearsal, not only tests",
-    "22d step 4: review 8 findings 2 and 5",
-    "22d fixes after reviews 2 and 3",
-    "22d guide fixes after review 4",
-    "22d step 6: the tools-local mode's wiring",
-    "22d step 6b: the tools-local walk (tools_local.rehearsal), its local route in test_owner_walk, 22d's host-walk receipt, the minute cap at 2400",
-    "22d: test_owner_devices_native pins the native-suite line with 22d's branch (step 6a added it to the workflow)",
-    "22d step 6c: verify_release binds release 27's trees to its source commit in the tools-local mode; the walk reads no release 27 image source from the checkout (test)",
-    "22d: the switch job's release check gets REHEARSAL_MODE as explicit step env (test_ci_step_environment)",
-    "22d: the guest's stand-in origin names main as HEAD and the checkout clones --branch main (VM run 43699785728 stopped at tl-setup-origin)",
-    "22d step 6d: the tools-local walk types into a password window only after its helper settled and the screen's centre shows it; the caller's launcher is one-shot and typed once more when lost after a VT switch",
-    "22d step 6e: the xHCI health check excuses each requested tools-stick removal once, by the guest's monotonic stamp of its request (VM run 43714310216 stopped at cut-27's second removal in one boot); 22d's VM dispatch cap 4 to 6"
+    "22d record step: the 22d receipt test frozen after the record step; the 22d status row and its pin in test_owner_path (run 43737933979); 22c's gate test reads the active bindings"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "5d4031dfc224a6e3e8a6ea4c322a47b623089e0ab4e66ca323880f25e670e180",
-      "path": ".github/workflows/os-image.yml"
-    },
-    {
-      "sha256": "f4c6add3de433c086a572c2993bf40d30ce76ee489dd7384d46ba71e63ea6324",
-      "path": "docs/EMERGENCY.md"
-    },
-    {
-      "sha256": "e9e19181a5ba8185f374e51c43c82113671476649334a832bb00e675c21799cb",
-      "path": "docs/INSTALL.md"
-    },
-    {
-      "sha256": "21820f72d679346288ad411cf0f68ab02104b550117ec549c01793b797791028",
-      "path": "os/ci/checkout_sources.py"
-    },
-    {
-      "sha256": "862a97f1de09f6a6b969432bfcb301cc98f70d6bbaa84e2dba8da65a56fadf54",
-      "path": "os/ci/installer_webui.py"
-    },
-    {
-      "sha256": "b921b52398e0968e92f5f898e6d94807a7295d4fa1fe2f847398b42403857411",
-      "path": "os/ci/owner_capabilities.py"
-    },
-    {
-      "sha256": "f621cdc98f772aaba58e056587f48d27cdea64bfc946b3e6f2ec402cc51d74d7",
-      "path": "os/ci/owner_devices.py"
-    },
-    {
-      "sha256": "ada556da91547d7f98731819455c35bfcf062374e12de5b558fd7d54c74218bf",
-      "path": "os/ci/owner_media.py"
-    },
-    {
-      "sha256": "65a6cb3e78c8cde93369576eb159cafe2e08111703e56d68018b98e7de1bf23d",
-      "path": "os/ci/owner_vm.py"
-    },
-    {
-      "sha256": "86a060b0d1bd1644fbb66de02b9ade92d47d485c76cfed1c8032bde5671110ea",
-      "path": "os/ci/owner_xhci.py"
-    },
-    {
-      "sha256": "cb1da88291d30e964232eb2b351f3378705ad8e9915cf5ccf7dc06785c8c6d53",
-      "path": "os/ci/registry_auth.py"
-    },
-    {
-      "sha256": "1a5be5a52169752227a5199256ad4dde485ff5c2d8d6e64d5c54b75520fa560f",
-      "path": "os/ci/rehearsal-packages.json"
-    },
-    {
-      "sha256": "584820e63d27b8c6b5c5819ea53b2b51f45bea42fdbe49357fc0bfbb4edd9c1f",
-      "path": "os/ci/rehearsal_guard.py"
-    },
-    {
-      "sha256": "f048e8bc0a8fc5de8fa69758202f8f404f37c5857c6b0cb0ab4d2a5d1ddf72f8",
-      "path": "os/ci/two_disk_vm.py"
-    },
-    {
-      "sha256": "22f2da5daff55db62b7a8aea8100eebaa3b70c859b44ac0b12aed7531bff56a0",
-      "path": "os/ci/verify_release.py"
-    },
-    {
-      "sha256": "e481df943e05ac885988b40ffaea5af1010f759d6b7a87444846f8cf6da17c78",
-      "path": "os/owner-tools/bootstrap.py"
-    },
-    {
-      "sha256": "27296db0f9c563b6ab6877f7353412150bc23b96a6654fdd2e8ba12da3b62113",
-      "path": "os/owner-tools/commands.json"
-    },
-    {
-      "sha256": "5f74f16761ae3b3e86b2ba6968a901a01ab375db5543ac21249713a9a63ab292",
-      "path": "os/owner-tools/history.json"
-    },
-    {
-      "sha256": "79dcddf27a29f02b0ad3877828ee1fbaf87db5608c964e9f5e5bf55acc51ce1c",
-      "path": "os/owner-tools/media.py"
-    },
-    {
-      "sha256": "3db7f3e44566027105bd89a0cf1785288e852327c12dce6886a560f20dcaa4e4",
-      "path": "os/owner-tools/owner.py"
-    },
-    {
-      "sha256": "cda209c8d509f57aee09fb385d4dbd4ad8253bd47534972c4f89d2c35b76ce66",
-      "path": "os/owner-tools/payload/SHA256.json"
-    },
-    {
-      "sha256": "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be",
-      "path": "os/owner-tools/payload/SHA256SUMS"
-    },
-    {
-      "sha256": "5f74f16761ae3b3e86b2ba6968a901a01ab375db5543ac21249713a9a63ab292",
-      "path": "os/owner-tools/payload/history.json"
-    },
-    {
-      "sha256": "79dcddf27a29f02b0ad3877828ee1fbaf87db5608c964e9f5e5bf55acc51ce1c",
-      "path": "os/owner-tools/payload/media.py"
-    },
-    {
-      "sha256": "3db7f3e44566027105bd89a0cf1785288e852327c12dce6886a560f20dcaa4e4",
-      "path": "os/owner-tools/payload/owner.py"
-    },
-    {
-      "sha256": "b65b270a84f2920a599b637f79490ec8801486c6e759d153166957136da7f488",
-      "path": "os/tests/test_owner_bootstrap.py"
-    },
-    {
-      "sha256": "ecd07ef561f3d4da2b9c706daf0f3584fef5f764a0008a3e49877d8b0cf7d571",
-      "path": "os/tests/test_owner_capabilities.py"
-    },
-    {
-      "sha256": "2b32a6bfbed6523fff8128673e33f7aafeba784283e02bdc49f63dacfbff9fbb",
-      "path": "os/tests/test_owner_devices_native.py"
-    },
-    {
-      "sha256": "07d75e5e7a50d7f229adb5d5488069785a2781f817e9ec8a51751419c7da6dbb",
-      "path": "os/tests/test_owner_diagnostics.py"
-    },
-    {
-      "sha256": "7a33e7cd3131873b5c3163a3b0273075e616136e3d0f987f1cbac8bc42fafb6d",
-      "path": "os/tests/test_owner_entry.py"
-    },
-    {
-      "sha256": "8963797f77aaba16f9e692a4ce3e471792cb86bf23ef1893960239b019cdfea4",
-      "path": "os/tests/test_owner_equality.py"
-    },
-    {
-      "sha256": "9fe977c53211e4698c097f529d3fc101b5517eda1173aa3059a4aa7030bd4702",
-      "path": "os/tests/test_owner_export.py"
-    },
-    {
-      "sha256": "892e347bd49471c053fb1adf07e15dbd0274566f960ed053ac3494a4d5c8643d",
-      "path": "os/tests/test_owner_guard.py"
-    },
-    {
-      "sha256": "5b98d331b616ef5be610d69eb4397beb88186373c99fd7fa9dfb22144a72fef5",
+      "sha256": "3d7a7e7d033965ade9df6015d79a5683a77aeb75ca4f6b41e8725ca6e1963a0c",
       "path": "os/tests/test_owner_path.py"
     },
     {
-      "sha256": "695c1d8141167b425929e430f6b5b6cb056b616063b05a1a1c63fe919252ba8e",
-      "path": "os/tests/test_owner_ps2.py"
+      "sha256": "07c7fa007ddb33101995e7bf3787cef216198a0036a0c11137fba30c57904cf3",
+      "path": "os/tests/test_tools_local_wiring.py"
     },
     {
-      "sha256": "bd9cfa58cde7fbee31a032c0522e9e50b72c16d33282942d34938e4209007289",
-      "path": "os/tests/test_owner_update.py"
-    },
-    {
-      "sha256": "5cdce91c310708a60a1f8765e1243cae24949da56e8678585125bfd3ef7e0d87",
-      "path": "os/tests/test_owner_walk.py"
-    },
-    {
-      "sha256": "1bfd71afda4144a1339cef92c3d6bdb6c21fb47b9afa29b8cc0d3844751a7d31",
-      "path": "os/tests/test_rehearsal_budget.py"
-    },
-    {
-      "sha256": "7a636e9917606974fb4e67dede142ef825146060bf2f11e68857409b53012359",
-      "path": "os/tests/test_ways_back.py"
-    },
-    {
-      "sha256": "3dc407213e9fabcb20ef2800f56d441f44612008b452f44fea6f7eb45aa641d0",
+      "sha256": "510718a150e1c3436ba62cb409ae864bc75cb121d3649a7564bc0fedccb8b249",
       "path": "os/tests/test_ways_back_probe.py"
     }
   ],
@@ -303,6 +142,71 @@
         "os/owner-tools/payload/release/rollback.sh"
       ],
       "rebound_by": "https://github.com/Ares-Empire/AresOS/actions/runs/43597505549"
+    },
+    {
+      "status": "rebound by package 22d's rehearsal",
+      "waited_for": "os/manifest/ci/22c/source-bindings.json",
+      "walk": "os/manifest/ci/22d/source-bindings.json",
+      "changes": [
+        "22c record step (after rehearsal run 43597505549 rebound the sources): test_owner_path pins the 22c INSTALL-STATUS row as rehearsed, with the run link the 22c bindings name; no tool, guide or image file changed",
+        "22c fix after checks-only run 43619559359: test_ways_back_probe keeps the 22c host-walk receipt frozen after the record step (asserted equal to the bindings' walk table instead of skipped; the gate test uses it with the waiting rows' bytes) and reads removed paths from the 22c rebind's history entry; no tool, guide or image file changed",
+        "22d steps 1 and 2: the owner tools take a bundle from the folder block (tools version 4, payload refreshed); bootstrap.py generates the routine lines and Claude's folder line, commands.json holds them, the guides gain the routine box first and the routine STOP card, v4's fingerprint is pinned; the checks-only job gets 40 minutes; tests follow; these tool, guide and workflow files wait for 22d's rehearsal, not only tests",
+        "22d step 4: review 8 findings 2 and 5",
+        "22d fixes after reviews 2 and 3",
+        "22d guide fixes after review 4",
+        "22d step 6: the tools-local mode's wiring",
+        "22d step 6b: the tools-local walk (tools_local.rehearsal), its local route in test_owner_walk, 22d's host-walk receipt, the minute cap at 2400",
+        "22d: test_owner_devices_native pins the native-suite line with 22d's branch (step 6a added it to the workflow)",
+        "22d step 6c: verify_release binds release 27's trees to its source commit in the tools-local mode; the walk reads no release 27 image source from the checkout (test)",
+        "22d: the switch job's release check gets REHEARSAL_MODE as explicit step env (test_ci_step_environment)",
+        "22d: the guest's stand-in origin names main as HEAD and the checkout clones --branch main (VM run 43699785728 stopped at tl-setup-origin)",
+        "22d step 6d: the tools-local walk types into a password window only after its helper settled and the screen's centre shows it; the caller's launcher is one-shot and typed once more when lost after a VT switch",
+        "22d step 6e: the xHCI health check excuses each requested tools-stick removal once, by the guest's monotonic stamp of its request (VM run 43714310216 stopped at cut-27's second removal in one boot); 22d's VM dispatch cap 4 to 6"
+      ],
+      "files": [
+        ".github/workflows/os-image.yml",
+        "docs/EMERGENCY.md",
+        "docs/INSTALL.md",
+        "os/ci/checkout_sources.py",
+        "os/ci/installer_webui.py",
+        "os/ci/owner_capabilities.py",
+        "os/ci/owner_devices.py",
+        "os/ci/owner_media.py",
+        "os/ci/owner_vm.py",
+        "os/ci/owner_xhci.py",
+        "os/ci/registry_auth.py",
+        "os/ci/rehearsal-packages.json",
+        "os/ci/rehearsal_guard.py",
+        "os/ci/two_disk_vm.py",
+        "os/ci/verify_release.py",
+        "os/owner-tools/bootstrap.py",
+        "os/owner-tools/commands.json",
+        "os/owner-tools/history.json",
+        "os/owner-tools/media.py",
+        "os/owner-tools/owner.py",
+        "os/owner-tools/payload/SHA256.json",
+        "os/owner-tools/payload/SHA256SUMS",
+        "os/owner-tools/payload/history.json",
+        "os/owner-tools/payload/media.py",
+        "os/owner-tools/payload/owner.py",
+        "os/tests/test_owner_bootstrap.py",
+        "os/tests/test_owner_capabilities.py",
+        "os/tests/test_owner_devices_native.py",
+        "os/tests/test_owner_diagnostics.py",
+        "os/tests/test_owner_entry.py",
+        "os/tests/test_owner_equality.py",
+        "os/tests/test_owner_export.py",
+        "os/tests/test_owner_guard.py",
+        "os/tests/test_owner_path.py",
+        "os/tests/test_owner_ps2.py",
+        "os/tests/test_owner_update.py",
+        "os/tests/test_owner_walk.py",
+        "os/tests/test_rehearsal_budget.py",
+        "os/tests/test_ways_back.py",
+        "os/tests/test_ways_back_probe.py"
+      ],
+      "removed": [],
+      "rebound_by": "https://github.com/Ares-Empire/AresOS/actions/runs/43737933979"
     }
   ],
   "removed": []

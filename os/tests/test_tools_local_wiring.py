@@ -834,9 +834,13 @@ class NextVersionTest(unittest.TestCase):
 
 
 class ReceiptTest(unittest.TestCase):
-    """22d's own host-walk receipt is fresh: every bound file has the bytes it was walked with."""
+    """22d's own host-walk receipt names this walk; it is fresh until 22d's record step and frozen after it."""
 
-    def test_the_receipt_is_fresh_and_names_this_walk(self):
+    def test_the_receipt_is_fresh_until_the_record_step_and_frozen_after(self):
+        """Before the record step: regenerate with `python3 reviews/22d-tools-without-stick/walk-host.py` after
+        changing a file it binds. After it (run 43737933979) the receipt is what the rehearsal walked and is never
+        regenerated: bound files changed since wait on the pending list (`rebind.py pending`) for the next rehearsal,
+        as package 22c's receipt does (test_ways_back_probe.HostWalkReceiptTest)."""
         import hashlib
         receipt = json.loads((ROOT / 'os/manifest/ci/22d/host-walk.json').read_text())
         self.assertEqual((receipt['status'], receipt['stick_across_reboot']), ('passed', False))
@@ -845,6 +849,10 @@ class ReceiptTest(unittest.TestCase):
         paths = {row['path'] for row in receipt['sources']}
         self.assertLessEqual({'os/ci/tools_local.py', 'os/ci/owner_vm.py', 'os/tests/test_owner_walk.py',
                               'os/tests/test_tools_local_wiring.py', 'reviews/22d-tools-without-stick/walk-host.py'}, paths)
+        bindings = ROOT / 'os/manifest/ci/22d/source-bindings.json'
+        if bindings.exists():
+            self.assertEqual(receipt['sources'], json.loads(bindings.read_text())['tables'][0]['sources'])
+            return
         for row in receipt['sources']:
             self.assertEqual(hashlib.sha256((ROOT / row['path']).read_bytes()).hexdigest(), row['sha256'], row['path'])
 

@@ -1784,12 +1784,18 @@ class OwnerPathTest(unittest.TestCase):
             self.assertNotIn(value, row)
         self.assertNotIn(fingerprint, row)
         row = next(line for line in status.splitlines() if line.startswith('| Owner tools without the stick (package 22d) |'))
-        for value in ('**BUILT; NOT REHEARSED; NOT ON THE LAPTOP**', "to install over the laptop's `851eb742…` (version 2)",
+        # 22d's rehearsal passed and its record step rebound the sources: the row links the run the bindings name.
+        rebound = json.loads((ROOT/'os/manifest/ci/22d/source-bindings.json').read_text())
+        for value in ('**BUILT AND REVIEWED; VM REHEARSAL PASSED; NOT ON THE LAPTOP**', "to install over the laptop's `851eb742…` (version 2)",
                       'Tools fingerprint `' + fingerprint + '`', '[OWNER-TOOLS.md](OWNER-TOOLS.md)', '**Enter SSH Credentials**',
                       'not a tricked Claude', 'the first installation stays on the stick', '`/run/ares-records`, on this laptop only',
-                      'the routine box first', '(EMERGENCY.md#a-routine-tools-command-stopped)', '**not rehearsed**',
-                      '**Before this row may say "on the laptop":**'):
+                      'the routine box first', '(EMERGENCY.md#a-routine-tools-command-stopped)', '**VM rehearsal passed**',
+                      '(' + rebound['run'] + ')', 'on `' + rebound['commit'][:8] + '`', '(../reviews/22d-tools-without-stick/runs/tools-local-' + rebound['run'].rsplit('/', 1)[1] + '/index.json)',
+                      '`PASS install`, `PASS check` and `PASS title`', 'every protected-disk audit was unchanged',
+                      'The laptop has not run this route yet', '**Before this row may say "on the laptop":**', 'the final review passes'):
             self.assertIn(value, row)
+        for value in ('NOT REHEARSED', '**not rehearsed**', 'not yet reviewed', 'the VM rehearsal passes'):
+            self.assertNotIn(value, row)
         self.assertEqual(status.splitlines().index(row) - 1,
                          next(i for i, line in enumerate(status.splitlines()) if line.startswith('| Ways back after an update (package 22c) |')))
         update = next(line for line in status.splitlines() if line.startswith('| Update route (packages 22 and 27) |'))
