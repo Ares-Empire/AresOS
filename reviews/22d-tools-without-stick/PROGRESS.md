@@ -1019,6 +1019,88 @@ tool, sudo, ostree, bootc, rpm-ostree or ksshaskpass ran.
 - The row links the captures, not the report: `REPORT.md` does not exist until the integrator commits it. A report link
   then needs the row and its pin again.
 
+## Step 7b (review 8's finding 3; the walked routine lines), 2026-11-15, Claude agent on Opus 5.5: done
+
+Tests and their data only; the tools payload is unchanged (`sha256sum os/owner-tools/payload/SHA256SUMS` was
+`dcbc375f…597be` before and after). Nothing dispatched; no owner tool or sudo ran.
+
+### Done
+
+1. **Review 8's finding 3** (package 22c), in `os/tests/test_checkout_sources.py`:
+   `test_a_row_that_says_vm_rehearsal_passed_holds_only_what_the_rehearsal_ran`. For every row of
+   `docs/INSTALL-STATUS.md` whose status says **VM REHEARSAL PASSED; NOT ON THE LAPTOP** (today 22c's and 22d's):
+   - nothing waits on the list (files or removed paths) but test files (`os/tests/`) and the CI workflow
+     (`.github/workflows/`);
+   - the row names exactly one `[rehearsal run <id>]`, that run's committed result
+     (`reviews/*/runs/*-<id>/*-rehearsal-result.json`) passed, and the row's `Tools fingerprint` is the one the result
+     names (22c: `tools_version_3`, 22d: `tools`, in `REHEARSED_TOOLS`);
+   - for the newest rehearsal's row (the package whose bindings are active, found by matching
+     `checkout.active_tables`, so no package order is copied): the run and commit are the active bindings', and the
+     result's fingerprint equals `sha256(SHA256SUMS)`. Run 4's `tools` is `dcbc375f…`, as the payload's.
+   22c's row is held the same way except for the payload: its version 3 never goes on the laptop (the row says so) and
+   22d's later rehearsal took over, so 22c's row is held to its own run 43597505549 (`2084c786…`), 22d's to the payload.
+   Each failure names the row and what changed, and ends: "Rehearse again (a VM run of the route, then its record
+   step), or move the row on: it may say "VM REHEARSAL PASSED; NOT ON THE LAPTOP" only while the laptop would get
+   exactly what that rehearsal ran."
+   - **Which files may wait.** The finding's fix names `os/owner-tools/`, `os/release/` and `docs/`; the rule the list
+     states is "only test files and the CI workflow", and the step's brief says that is the rule to enforce. So the
+     test allows only those two and refuses everything else bound (tools, release scripts, guides, the harness in
+     `os/ci/`, the host walks, the image manifest). Stricter than the finding: a harness-only change for a later
+     package also trips while a row still says rehearsed, and then the row moves or the integrator widens `MAY_WAIT` as
+     a recorded decision.
+   - **A negative control in the suite:** `test_a_rehearsed_row_refuses_waiting_tools_or_guides_and_other_tools`
+     runs the same check on a small made-up table (so it stays valid when the real rows move): a waiting tool, guide,
+     release script or harness file, other tools than the run's, a row naming other tools or another run, a run that
+     did not pass, a result without the field and a row without its package all fail; with the rows moved to "ON THE
+     LAPTOP" the same waiting files and other tools pass.
+   - **Proved on the real files** (a scratch script outside the repository, deleted after): the real test passed as
+     committed; with `os/owner-tools/owner.py` added to a scratch copy of the list it failed with "…rows for packages
+     22c and 22d say VM REHEARSAL PASSED; NOT ON THE LAPTOP, but these bound files changed since the last VM rehearsal
+     (…/runs/43737933979) and wait on os/manifest/ci/16/pending-rebind.json: os/owner-tools/owner.py. While such a row
+     stands only test files and the CI workflow may wait. Rehearse again …"; with one changed byte in a scratch copy
+     of `SHA256SUMS` it failed with "…row for package 22d says … but the tools changed since: run 43737933979
+     rehearsed tools fingerprint dcbc375f…, and os/owner-tools/payload/SHA256SUMS now hashes to 4135bd67…. Rehearse
+     again …"; with the scratch gone it passed again.
+   - The list's `decision` gains this rule in a sentence.
+2. **`unwalked_commands`: the test learned the caller's lines** (the smaller honest fix of the two; rewording the rule
+   would have kept three walked commands on a list of unwalked ones). `test_owner_equality`'s
+   `test_every_owner_command_equals_the_command_physically_typed_by_ci` now also walks 22d's route
+   (`walk.walk(route='tools-local')`) and counts as walked every `commands.json` entry the harness has the caller run
+   (`local.callers[stage]['entries']`, read from the program the harness sends, as the walk's model does). So
+   `tools-folder`, `tools-routine` and `export-routine` count as walked and left the list (`unwalked_commands: []`);
+   the test refuses a listed command once it is typed or run. The run's captured caller results agree:
+   `line_sha256` in `tl-cancel/-unanswered/-install-caller-result.json` (folder `c1b579be…`, routine `0b11cfc5…`)
+   and `tl-export-caller-result.json` (`7e1ffa76…`) are the SHA-256 of today's three entries. The list's
+   `unwalked_rule` and the function's docstring say how 22d's lines were walked. The module takes about 13 s longer.
+   Proved by a scratch script (deleted after): with `tools-routine` put back on the list the test fails (the routine
+   line "unexpectedly found" among the walked lines).
+3. **The waiting list.** `rebind.py pending "22d step 7b: review 8 finding 3 test; unwalked routine lines"`, run
+   once after the last bound change: **pending: 5 bound files differ from the active bindings, 0 removed**
+   (`os/tests/test_checkout_sources.py`, `test_owner_equality.py`, `test_owner_path.py`, `test_tools_local_wiring.py`,
+   `test_ways_back_probe.py`); all under `os/tests/`, so the new test passes on them. The list's `status` names the two
+   new ones.
+
+### Tests run here (Python 3.14, one module at a time, `ARESOS_MODEL_SCOPE=slice`)
+
+| Module | Result |
+|---|---|
+| `test_owner_equality` | `Ran 11 tests in 85.879s`, `OK` |
+| `test_checkout_sources` | `Ran 8 tests`, `OK` (after the waiting list) |
+| `test_owner_path` | `Ran 48 tests`, `OK` |
+| `test_tools_local_wiring` | `Ran 42 tests in 54.738s`, `OK` |
+| `test_ways_back_probe` (reads the list and the bindings) | `Ran 57 tests in 147.563s`, `OK` |
+| `test_owner_sources` | `Ran 13 tests in 71.531s`, `OK` |
+| `test_owner_update` | not run, by the rule |
+
+### What happens after merge (for the integrator)
+
+- While 22c's or 22d's row says **VM REHEARSAL PASSED; NOT ON THE LAPTOP**, any change to a bound tool, guide, release
+  script or harness file fails `test_checkout_sources` once it waits (and a payload change fails it at once, waiting
+  or not). Release 28's work changes `docs/` and `os/owner-tools/`: before that, both rows move on (22d's to "on the
+  laptop" after his install; 22c's too, since version 4 carries its ways back, or to words saying version 3 was
+  superseded), each with its pin in `test_owner_path.py`. Or a new rehearsal records its bindings and its own row.
+- A new rehearsal's row needs an entry in `REHEARSED_TOOLS` (the result's field naming its tools); the test says so.
+
 ## Report (for the integrator to commit as REPORT.md)
 
 # Package 22d: the owner tools without the stick, from Claude's terminal
@@ -1094,14 +1176,19 @@ checks runs, 4 of 6 VM dispatches.
 **Locally** (Python 3.14, one module at a time, slice model): every step's modules, listed in each step's section of
 `PROGRESS.md`; after the record step `test_checkout_sources`, `test_tools_local_wiring`, `test_owner_path`,
 `test_owner_step_limits`, `test_owner_bootstrap`, `test_owner_equality`, `test_owner_sources`, `test_ways_back` and
-`test_ways_back_probe`. `test_owner_update` runs hosted only.
+`test_ways_back_probe`; after step 7b `test_checkout_sources`, `test_owner_equality`, `test_owner_path`,
+`test_tools_local_wiring`, `test_ways_back_probe` and `test_owner_sources`. `test_owner_update` runs hosted only.
 
 **The fingerprint:** tools version 4 is `dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be` (SHA-256 of
 the payload's `SHA256SUMS`). It is pinned, and tests hold equal: `docs/OWNER-TOOLS.md` (line 1 `Owner tools version 4:
 dcbc375f`, then the full value), `os/owner-tools/commands.json` (= `bootstrap.command` and `bootstrap.lines`), the stick
 blocks, Claude's folder line, both window labels and the PASS lines in `docs/INSTALL.md`, `docs/EMERGENCY.md` and the
 22d row of `docs/INSTALL-STATUS.md`. Run 4's result names the same value. The record step rebound 263 sources to
-`os/manifest/ci/22d/source-bindings.json`; three test files changed by the record step wait on the list.
+`os/manifest/ci/22d/source-bindings.json`; five test files changed since wait on the list (three by the record step,
+two by step 7b). A test now holds this chain (package 22c's review 8, finding 3): while a status row says **VM
+REHEARSAL PASSED; NOT ON THE LAPTOP**, only test files and the CI workflow may wait, each such row names the tools its
+run rehearsed, and the newest rehearsal's tools (run 4's) equal the payload's. 22d's three lines (folder, routine,
+export) count as walked: the run's caller ran them, and they left the list of unwalked commands.
 
 ## Not verified
 
@@ -1159,9 +1246,13 @@ stand-in origin, release 27's facts from its own commit, the dispatch caps).
 
 ## Open questions (for the integrator)
 
-- Review 8's finding 3 (brief decision 11 puts it in the record step) is not built: it needs a new test in a bound file.
-- `unwalked_commands` still names 22d's three lines (see the record step's "Not done").
 - `test_checkout_sources` still checks 22c's receipt as the current one (see the record step's "Not done").
+- After merge, any bound tool, guide or harness change fails `test_checkout_sources` while 22c's or 22d's row says **VM
+  REHEARSAL PASSED; NOT ON THE LAPTOP**. Before release 28's work changes `docs/` and `os/owner-tools/`, both rows move
+  on (22c's too: version 4 carries its ways back), or a new rehearsal records its own row (step 7b's "What happens
+  after merge").
+- The test allows only test files and the CI workflow to wait, stricter than review 8's three folders: a harness-only
+  change also trips while a row says rehearsed. Widening `MAY_WAIT` would be the integrator's recorded call.
 
 ## Try this (the laptop session, after merge)
 
