@@ -130,12 +130,23 @@ PR #68 (brief 20-main-fix) is on main as squash `bdc16064`; report in `reviews/2
   - the shipped-copy update becomes an issue whose body has the `gh pr create --head chrome-qualification`
     command for a session to run.
 
-**Latency gate and the runner's disk.** At least two latency jobs since the 60-sample gate failed on p95 tails
-alone, and the others passed: main's `latency (audit)` 43647781438 and PR #68's `latency (plain)` 43687610984, attempt 1.
-- H5's stages put the whole tail in `store_write`, i.e. the runner's disk sync, with the bridge and the extension
-  normal. The re-run was clean.
-- So main's Chrome run can go red without a code cause. Options: a store on tmpfs plus a separate fsync budget, or
-  sync stages measured apart from the ceilings. It's your call; the numbers are in the report.
+**Latency gate and the runner's disk: it now fails often.**
+- **The evidence.** Four latency jobs failed on p95 tails alone, with medians normal and no reference regression:
+  - main's `latency (audit)` 43647781438;
+  - PR #68's `latency (plain)` 43687610984, attempt 1;
+  - PR #77's `latency (plain)` and `latency (audit)` 43712049957, attempt 1.
+
+  In every slow sample, H5's stages put the extra time in `store_write`: up to 940 ms, against a median of 10 to
+  50 ms. `bridge_round_trip` and `extension_total` stayed normal. The re-runs were clean.
+- **What it means.** The gate is measuring the shared runner's disk sync, not the product. Main's Chrome run, the
+  daily one included, and every Chrome pull request can go red without a code cause.
+- **My suggestion** (your call, since you own the gate). In `latency-pair.sh`:
+  - keep the service's store on a tmpfs for the timed phases. Its sync cost is then near the laptop's NVMe (about
+    0.03 ms per fsync in H5's measurement), not the runner's;
+  - gate the **number** of fsyncs per call: `journal_fsync`'s `count`, plus SQLite's commits. Those counts are
+    deterministic, so a change that adds disk syncs is still caught exactly.
+
+  The ceilings and sample counts would stay as they are.
 
 **Two CI facts.**
 - **Path filters:** a pull request's path filters see the whole PR's diff. Every push to an open Chrome PR starts
