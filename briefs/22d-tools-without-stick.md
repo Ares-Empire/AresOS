@@ -112,3 +112,43 @@ All of the walk above passes in the VM; hosted checks green with the full model 
 final review SAFE; the guides, `commands.json`, `docs/OWNER-TOOLS.md` and the payload agree (tests); the report ends
 with the owner's "try this": Claude announces the commit and fingerprint on the board, he compares the 8 characters on
 his phone, types his password once, and sees `PASS install`, `PASS check` and `PASS title`.
+
+## Decisions after review 2 (integrator, 2026-11-15)
+
+Review 2 (`reviews/22d-tools-without-stick/REVIEW-2.md`, Fable, at `4cdd7b28`) found the tools right and asked for
+changes around them. All of it is accepted; these replace the matching parts above.
+
+- **Decision 10 is replaced (R1).** Claude never signals the sudo it started. After 10 minutes without an answer it
+  stops the password helper: the `ksshaskpass` process whose parent is that sudo (it runs as `ares`). sudo then ends as
+  after Cancel (`sudo: no password was provided`, exit 1), and that line is how Claude knows nothing ran. If the helper
+  is already gone, he has answered: Claude waits for the line's result and stops nothing. The guide sentence, the
+  walk stage and the harness change together; the harness asserts the helper is gone, sudo's message and exit status,
+  and that nothing changed.
+- **Decision 9 gains a go (R2):** after a STOP Claude copies every STOP line to him word for word, asks for his go, and
+  only on his go runs the export line. After a **STOP tools folder** (Claude's own line: no root command ran) there is
+  no export and no window. The card says what Claude does with `/run/ares-records`: reads it to help, never copies it
+  into the repository, a pull request or the board (disk serials, firmware entries). It also says that the tools'
+  "Keep the current administrator session open" line is for the console; on this route nothing is lost (R5).
+- **Decision 5's root line comes from the commit (R3):** Claude takes `tools-routine` and `export-routine` with
+  `git -C /var/home/ares/AresOS show <commit>:os/owner-tools/commands.json`; the checkout check stays. Pinned in a test.
+  The ares line verifies the commit's own `SHA256SUMS` against the pinned fingerprint before it empties the folder (N2),
+  so a refusal leaves the folder as it was. The guide says Claude brings the checkout to the commit only by a
+  fast-forward pull, never a reset or a checkout over other sessions' work (N7), and that no other session runs an
+  owner command meanwhile (N8).
+- **His check has an address (R4):** the box prints `github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md`;
+  he keeps it as a bookmark, looks for `main` in it, and never uses a link Claude sends at that moment.
+  `docs/OWNER-TOOLS.md` gets a blank line between line 1 and line 2 so the phone shows them apart (N6).
+- **The stick falls behind (R6):** one sentence in the routine box and one in "A tools command stopped": after a
+  routine install the stick still holds older tools; it still takes records (with the line `media.py` prints for a
+  retired bundle, quoted) but cannot bring the current tools until Claude writes it again (package 22e).
+- **The prefix (N1, N5):** `/usr/bin/bash` after sudo; the prefix also clears `SSH_ASKPASS_PROMPT`
+  (`env -u SSH_ASKPASS_PROMPT` or an empty assignment, whichever the test can hold), so the window is the password
+  window whatever the caller's environment says.
+- **Payload fixes (N3, N4), before the VM run (F16):** `caller()` reads `sys.stdin is not None and sys.stdin.isatty()`;
+  a missing or failing `setfacl` ends export with the "only root can read it" line and its reason, not a STOP with
+  "do not reboot". The fingerprint changes once more; every pin and the pending list follow.
+- **N9:** "every STOP line". **N10:** 22d's routine lines are the tools-only box and export; the other owner commands
+  stay on the console until the next release's `aresos` command. Say so in the report and the guide's box.
+- **For step 6 (from review 2):** the VM needs a stand-in origin whose `main` holds the commit; the walk asserts that
+  `ares` can read `/run/ares-records` and another account cannot; the screenshot shows the 70-character label wrapped,
+  not cut.
