@@ -1,7 +1,7 @@
 The four original reproductions are addressed, but `ce718024..68395f03` introduces two regressions.
 
 1. **Blocking — RENAME can commit stale message identities and rename a replacement folder.**  
-   **Where:** [filing.py:74](/Users/pab/AresOS-19b-state/control/aresos_control/mail/filing.py:74).
+   **Where:** [filing.py:74](/Users/owner/AresOS-19b-state/control/aresos_control/mail/filing.py:74).
 
    Removing body reads also removed the UIDVALIDITY recheck. `safe_folder()` enumerates through an earlier IMAP session; the subsequent role check verifies folder roles, not UIDVALIDITY.
 
@@ -17,7 +17,7 @@ The four original reproductions are addressed, but `ce718024..68395f03` introduc
    **Fix:** Restore the metadata-only UIDVALIDITY check on the mutation connection before committing context. Keep body fetching and MIME parsing removed. Add the folder-recreation case with successful storage and failed result storage.
 
 2. **Should-fix — the RENAME destination rule now rejects valid filing-check completion.**  
-   **Where:** [model.py:605](/Users/pab/AresOS-19b-state/control/owner_state_oracle/model.py:605).
+   **Where:** [model.py:605](/Users/owner/AresOS-19b-state/control/owner_state_oracle/model.py:605).
 
    `result_proof()` requires the destination to exist for both RENAME and message filing. For filing, a complete location scan can legitimately establish that the destination disappeared. Production commits that result with a warning; the destination-presence requirement applies specifically to RENAME recovery.
 

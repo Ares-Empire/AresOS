@@ -101,11 +101,11 @@
     "message": "Extract pinned localization source before the 11h keyboard decision",
     "timestamp": "2026-10-24T13:47:12Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

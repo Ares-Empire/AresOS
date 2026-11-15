@@ -8,8 +8,8 @@ Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key 
 Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
 Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
 PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--device', '/dev/nbd0p4:/dev/guest:r', '--volume', 'C:\\Users\\pab\\AppData\\Local\\Temp\\tmppeqkmwiu\\offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:/export:rw', '--entrypoint', '/usr/bin/btrfs', 'localhost/aresos:ci', 'version'], 'returncode': 1, 'stderr': 'stat /usr/bin/btrfs: no such file or directory', 'output': 'offline-btrfs-version.txt'}
-REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--volume', 'C:\\Users\\pab\\AppData\\Local\\Temp\\tmpiuim269s\\offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\var\\log\\journal:/guest-journal:ro', '--entrypoint', '/usr/bin/journalctl', 'localhost/aresos:ci', '--directory=/guest-journal', '--no-pager', '--version'], 'returncode': 1, 'stderr': 'stat /usr/bin/journalctl: no such file or directory', 'output': 'offline-journalctl-version.txt'}
+REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--device', '/dev/nbd0p4:/dev/guest:r', '--volume', 'C:\\Users\\owner\\AppData\\Local\\Temp\\tmppeqkmwiu\\offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:/export:rw', '--entrypoint', '/usr/bin/btrfs', 'localhost/aresos:ci', 'version'], 'returncode': 1, 'stderr': 'stat /usr/bin/btrfs: no such file or directory', 'output': 'offline-btrfs-version.txt'}
+REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; userspace reader absent: {'argv': ['podman', 'run', '--rm', '--network=none', '--read-only', '--volume', 'C:\\Users\\owner\\AppData\\Local\\Temp\\tmpiuim269s\\offline-restore-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\var\\log\\journal:/guest-journal:ro', '--entrypoint', '/usr/bin/journalctl', 'localhost/aresos:ci', '--directory=/guest-journal', '--no-pager', '--version'], 'returncode': 1, 'stderr': 'stat /usr/bin/journalctl: no such file or directory', 'output': 'offline-journalctl-version.txt'}
 REPORTED, NOT BLOCKING: logind power-key path requires first hardware boot; offline journal unreadable: Kernel Btrfs mount unsupported; host Podman is absent
 Offline journal passed: boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa, logind power key -> power-off -> orderly logind stop
 PASS: offline logind power-key path for boot aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -135,10 +135,10 @@ test_failed_diagnostic_cannot_skip_orderly_shutdown_or_suppress_write_failure (t
 test_failing_guest_command_keeps_final_counter_before_termination (test_two_disk_vm.TwoDiskHarnessTest.test_failing_guest_command_keeps_final_counter_before_termination) ... ok
 test_failure_counter_protected_write_remains_product_failure_and_vm_closes (test_two_disk_vm.TwoDiskHarnessTest.test_failure_counter_protected_write_remains_product_failure_and_vm_closes) ... ok
 test_failure_counter_unavailable_is_explicit_and_vm_still_closes (test_two_disk_vm.TwoDiskHarnessTest.test_failure_counter_unavailable_is_explicit_and_vm_still_closes) ... ok
-test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit (test_two_disk_vm.TwoDiskHarnessTest.test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit) ... C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:493: ResourceWarning: unclosed <socket.socket fd=608, family=2, type=1, proto=0, laddr=('127.0.0.1', 56242), raddr=('127.0.0.1', 56241)>
+test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit (test_two_disk_vm.TwoDiskHarnessTest.test_final_write_counter_is_taken_after_guest_shutdown_before_qemu_exit) ... C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:493: ResourceWarning: unclosed <socket.socket fd=608, family=2, type=1, proto=0, laddr=('127.0.0.1', 56242), raddr=('127.0.0.1', 56241)>
   __dict__['_mock_call_args_list'] = _CallList()
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
-C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:493: ResourceWarning: unclosed <socket.socket fd=448, family=2, type=1, proto=0, laddr=('127.0.0.1', 56241), raddr=('127.0.0.1', 56242)>
+C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\unittest\mock.py:493: ResourceWarning: unclosed <socket.socket fd=448, family=2, type=1, proto=0, laddr=('127.0.0.1', 56241), raddr=('127.0.0.1', 56242)>
   __dict__['_mock_call_args_list'] = _CallList()
 ResourceWarning: Enable tracemalloc to get the object allocation traceback
 ok
@@ -162,51 +162,51 @@ test_windows_order_restoration_checks_exact_stable_move_and_rejects_other_output
 ERROR: test_disguised_updater_in_enabled_system_and_user_unit_is_rejected (test_audit.UpdaterAuditTest.test_disguised_updater_in_enabled_system_and_user_unit_is_rejected)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\tests\test_audit.py", line 22, in test_disguised_updater_in_enabled_system_and_user_unit_is_rejected
+  File "C:\Users\owner\AresOS-11-two-disk-rehearsal\os\tests\test_audit.py", line 22, in test_disguised_updater_in_enabled_system_and_user_unit_is_rejected
     (wants / 'surprise.service').symlink_to('../surprise.service')
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\pathlib\_local.py", line 789, in symlink_to
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\pathlib\_local.py", line 789, in symlink_to
     os.symlink(target, self, target_is_directory)
     ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OSError: [WinError 1314] Dem Client fehlt ein erforderliches Recht: '../surprise.service' -> 'C:\\Users\\pab\\AppData\\Local\\Temp\\tmpc1ueyuw1\\etc\\systemd\\system\\default.target.wants\\surprise.service'
+OSError: [WinError 1314] Dem Client fehlt ein erforderliches Recht: '../surprise.service' -> 'C:\\Users\\owner\\AppData\\Local\\Temp\\tmpc1ueyuw1\\etc\\systemd\\system\\default.target.wants\\surprise.service'
 
 ======================================================================
 ERROR: test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask (test_audit.UpdaterAuditTest.test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\tests\test_audit.py", line 128, in test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask
+  File "C:\Users\owner\AresOS-11-two-disk-rehearsal\os\tests\test_audit.py", line 128, in test_generated_cockpit_auto_update_entry_point_requires_its_policy_mask
     (root / 'etc/systemd/system' / name).symlink_to('/dev/null')
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\pathlib\_local.py", line 789, in symlink_to
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\pathlib\_local.py", line 789, in symlink_to
     os.symlink(target, self, target_is_directory)
     ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OSError: [WinError 1314] Dem Client fehlt ein erforderliches Recht: '/dev/null' -> 'C:\\Users\\pab\\AppData\\Local\\Temp\\tmp43va1jwy\\etc\\systemd\\system\\cockpit-container.service'
+OSError: [WinError 1314] Dem Client fehlt ein erforderliches Recht: '/dev/null' -> 'C:\\Users\\owner\\AppData\\Local\\Temp\\tmp43va1jwy\\etc\\systemd\\system\\cockpit-container.service'
 
 ======================================================================
 ERROR: test_updater_added_by_dropin_is_rejected (test_audit.UpdaterAuditTest.test_updater_added_by_dropin_is_rejected)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\tests\test_audit.py", line 41, in test_updater_added_by_dropin_is_rejected
+  File "C:\Users\owner\AresOS-11-two-disk-rehearsal\os\tests\test_audit.py", line 41, in test_updater_added_by_dropin_is_rejected
     (directory / 'default.target.wants/ordinary.service').symlink_to('../ordinary.service')
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\pathlib\_local.py", line 789, in symlink_to
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\pathlib\_local.py", line 789, in symlink_to
     os.symlink(target, self, target_is_directory)
     ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-OSError: [WinError 1314] Dem Client fehlt ein erforderliches Recht: '../ordinary.service' -> 'C:\\Users\\pab\\AppData\\Local\\Temp\\tmp3l0paoj6\\etc\\systemd\\system\\default.target.wants\\ordinary.service'
+OSError: [WinError 1314] Dem Client fehlt ein erforderliches Recht: '../ordinary.service' -> 'C:\\Users\\owner\\AppData\\Local\\Temp\\tmp3l0paoj6\\etc\\systemd\\system\\default.target.wants\\ordinary.service'
 
 ======================================================================
 ERROR: test_greeter_probe (unittest.loader._FailedTest.test_greeter_probe)
 ----------------------------------------------------------------------
 ImportError: Failed to import test module: test_greeter_probe
 Traceback (most recent call last):
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\unittest\loader.py", line 396, in _find_test_path
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\unittest\loader.py", line 396, in _find_test_path
     module = self._get_module_from_name(name)
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\unittest\loader.py", line 339, in _get_module_from_name
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\unittest\loader.py", line 339, in _get_module_from_name
     __import__(name)
     ~~~~~~~~~~^^^^^^
-  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\tests\test_greeter_probe.py", line 7, in <module>
+  File "C:\Users\owner\AresOS-11-two-disk-rehearsal\os\tests\test_greeter_probe.py", line 7, in <module>
     from greeter_probe import candidates, greeter_identity, wait_ready
-  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\ci\greeter_probe.py", line 4, in <module>
+  File "C:\Users\owner\AresOS-11-two-disk-rehearsal\os\ci\greeter_probe.py", line 4, in <module>
     import pwd
 ModuleNotFoundError: No module named 'pwd'
 
@@ -215,7 +215,7 @@ ModuleNotFoundError: No module named 'pwd'
 ERROR: test_absent_inherited_installation_is_not_created (test_inherited_homebrew.InheritedHomebrewTest.test_absent_inherited_installation_is_not_created)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\tests\test_inherited_homebrew.py", line 19, in setUp
+  File "C:\Users\owner\AresOS-11-two-disk-rehearsal\os\tests\test_inherited_homebrew.py", line 19, in setUp
     f'{os.getuid()}:{os.getgid()}', str(self.root)], check=True)
        ^^^^^^^^^
 AttributeError: module 'os' has no attribute 'getuid'. Did you mean: 'getpid'?
@@ -224,7 +224,7 @@ AttributeError: module 'os' has no attribute 'getuid'. Did you mean: 'getpid'?
 ERROR: test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently (test_inherited_homebrew.InheritedHomebrewTest.test_denies_daily_execution_and_reading_preserves_owner_and_content_idempotently)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\tests\test_inherited_homebrew.py", line 19, in setUp
+  File "C:\Users\owner\AresOS-11-two-disk-rehearsal\os\tests\test_inherited_homebrew.py", line 19, in setUp
     f'{os.getuid()}:{os.getgid()}', str(self.root)], check=True)
        ^^^^^^^^^
 AttributeError: module 'os' has no attribute 'getuid'. Did you mean: 'getpid'?
@@ -233,7 +233,7 @@ AttributeError: module 'os' has no attribute 'getuid'. Did you mean: 'getpid'?
 ERROR: test_preserves_existing_acl_entries_and_restrictive_mask (test_inherited_homebrew.InheritedHomebrewTest.test_preserves_existing_acl_entries_and_restrictive_mask)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\tests\test_inherited_homebrew.py", line 19, in setUp
+  File "C:\Users\owner\AresOS-11-two-disk-rehearsal\os\tests\test_inherited_homebrew.py", line 19, in setUp
     f'{os.getuid()}:{os.getgid()}', str(self.root)], check=True)
        ^^^^^^^^^
 AttributeError: module 'os' has no attribute 'getuid'. Did you mean: 'getpid'?
@@ -243,12 +243,12 @@ ERROR: test_serial_console (unittest.loader._FailedTest.test_serial_console)
 ----------------------------------------------------------------------
 ImportError: Failed to import test module: test_serial_console
 Traceback (most recent call last):
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\unittest\loader.py", line 396, in _find_test_path
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\unittest\loader.py", line 396, in _find_test_path
     module = self._get_module_from_name(name)
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\unittest\loader.py", line 339, in _get_module_from_name
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\unittest\loader.py", line 339, in _get_module_from_name
     __import__(name)
     ~~~~~~~~~~^^^^^^
-  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\tests\test_serial_console.py", line 2, in <module>
+  File "C:\Users\owner\AresOS-11-two-disk-rehearsal\os\tests\test_serial_console.py", line 2, in <module>
     import fcntl
 ModuleNotFoundError: No module named 'fcntl'
 
@@ -257,29 +257,29 @@ ModuleNotFoundError: No module named 'fcntl'
 ERROR: test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently (test_sysusers.SysusersRebaseTest.test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\tests\test_sysusers.py", line 19, in test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently
+  File "C:\Users\owner\AresOS-11-two-disk-rehearsal\os\tests\test_sysusers.py", line 19, in test_preserves_recovery_admin_and_creates_locked_daily_user_idempotently
     subprocess.run(command, check=True, capture_output=True, text=True)
     ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\subprocess.py", line 577, in run
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\subprocess.py", line 577, in run
     raise CalledProcessError(retcode, process.args,
                              output=stdout, stderr=stderr)
-subprocess.CalledProcessError: Command '['sudo', '-n', 'systemd-sysusers', '--root=C:\\Users\\pab\\AppData\\Local\\Temp\\tmppvas6kxd', 'C:\\Users\\pab\\AresOS-11-two-disk-rehearsal\\os\\config\\usr\\lib\\sysusers.d\\aresos.conf']' returned non-zero exit status 2.
+subprocess.CalledProcessError: Command '['sudo', '-n', 'systemd-sysusers', '--root=C:\\Users\\owner\\AppData\\Local\\Temp\\tmppvas6kxd', 'C:\\Users\\owner\\AresOS-11-two-disk-rehearsal\\os\\config\\usr\\lib\\sysusers.d\\aresos.conf']' returned non-zero exit status 2.
 
 ======================================================================
 ERROR: test_tty_password (unittest.loader._FailedTest.test_tty_password)
 ----------------------------------------------------------------------
 ImportError: Failed to import test module: test_tty_password
 Traceback (most recent call last):
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\unittest\loader.py", line 396, in _find_test_path
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\unittest\loader.py", line 396, in _find_test_path
     module = self._get_module_from_name(name)
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\unittest\loader.py", line 339, in _get_module_from_name
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\unittest\loader.py", line 339, in _get_module_from_name
     __import__(name)
     ~~~~~~~~~~^^^^^^
-  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\tests\test_tty_password.py", line 5, in <module>
+  File "C:\Users\owner\AresOS-11-two-disk-rehearsal\os\tests\test_tty_password.py", line 5, in <module>
     import pty
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\pty.py", line 12, in <module>
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\pty.py", line 12, in <module>
     import tty
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\tty.py", line 5, in <module>
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\tty.py", line 5, in <module>
     from termios import *
 ModuleNotFoundError: No module named 'termios'
 
@@ -288,10 +288,10 @@ ModuleNotFoundError: No module named 'termios'
 FAIL: test_reboot_reader_drains_more_than_socket_capacity_and_answers_terminal_query (test_switch.SwitchEvidenceTest.test_reboot_reader_drains_more_than_socket_capacity_and_answers_terminal_query)
 ----------------------------------------------------------------------
 Traceback (most recent call last):
-  File "C:\Users\pab\AresOS-11-two-disk-rehearsal\os\tests\test_switch.py", line 54, in test_reboot_reader_drains_more_than_socket_capacity_and_answers_terminal_query
+  File "C:\Users\owner\AresOS-11-two-disk-rehearsal\os\tests\test_switch.py", line 54, in test_reboot_reader_drains_more_than_socket_capacity_and_answers_terminal_query
     process = subprocess.Popen([sys.executable, '-c', program, str(writer.fileno())],
                                pass_fds=[writer.fileno()])
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\subprocess.py", line 1039, in __init__
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\subprocess.py", line 1039, in __init__
     self._execute_child(args, executable, preexec_fn, close_fds,
     ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                         pass_fds, cwd, env,
@@ -301,7 +301,7 @@ Traceback (most recent call last):
                         ^^^^^^^^^^^^^^^^^^^^^^
                         start_new_session, process_group)
                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\pab\AppData\Local\Programs\Python\Python313\Lib\subprocess.py", line 1464, in _execute_child
+  File "C:\Users\owner\AppData\Local\Programs\Python\Python313\Lib\subprocess.py", line 1464, in _execute_child
     assert not pass_fds, "pass_fds not supported on Windows."
            ^^^^^^^^^^^^
 AssertionError: pass_fds not supported on Windows.

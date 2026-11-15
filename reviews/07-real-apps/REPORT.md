@@ -97,8 +97,8 @@ Additional development commands and observed results:
   label and correcting README encoding: `BUILD SUCCESSFUL in 5s`, all 22 unit tests
   passed, all seven tasks executed. This text cleanup changed no runtime code.
 - From the repo, `.\mod\gradlew.bat -p mod restoreLegacyApps
-  '-PappsConfig=C:\Users\pab\AresOS-07-real-apps\.work\downgrade\apps.json'
-  '-PappsBackup=C:\Users\pab\AresOS-07-real-apps\.work\downgrade\apps.json.schema-1-fixture.bak'`:
+  '-PappsConfig=C:\Users\owner\AresOS-07-real-apps\.work\downgrade\apps.json'
+  '-PappsBackup=C:\Users\owner\AresOS-07-real-apps\.work\downgrade\apps.json.schema-1-fixture.bak'`:
   `BUILD SUCCESSFUL in 1s`; printed `WARNING: restoring the schema-1 backup. Later
   apps, names and pins remain ONLY in ...` and `Restored original schema-1 apps.json.`
   A Python byte/JSON check printed `Recovery smoke: exact schema-1 bytes restored;

@@ -1,7 +1,7 @@
 Reviewed **5f3fd6b1**, limited to the seven commits and requested follow-ups. **The blocking update-recovery defect is fixed. One harness-only nit remains.** No files changed.
 
 **Nit — the injected-stop-failure test can still leave an untracked child.**  
-**Where:** [test_owner_update.py:1833](C:/Users/pab/AresOS-27-review/os/tests/test_owner_update.py:1833), [cleanup registration:2007](C:/Users/pab/AresOS-27-review/os/tests/test_owner_update.py:2007).
+**Where:** [test_owner_update.py:1833](C:/Users/owner/AresOS-27-review/os/tests/test_owner_update.py:1833), [cleanup registration:2007](C:/Users/owner/AresOS-27-review/os/tests/test_owner_update.py:2007).
 
 `stage-then-run` launches `sleep 3600`. When the injected `stop()` raises before signalling anything, cleanup kills only the recorded shell and fake-bootc PIDs; it does not capture or kill that sleep. The class check examines only those recorded identities, so it cannot prove no descendants remain. The original survivor-loop leak is fixed, and d90d2f4a correctly waits for SIGKILL to take effect, but neither addresses this child.
 
@@ -9,11 +9,11 @@ Reviewed **5f3fd6b1**, limited to the seven commits and requested follow-ups. **
 
 The requested checks:
 
-1. **Stop recovery passes for the update path.** [Step.members():332](C:/Users/pab/AresOS-27-review/os/owner-tools/owner.py:332) parses bytes, skips vanished/empty entries and records other inspection failures as unknown. Those failures cannot become proof of termination. `stop()` signals the process group before scanning, for both TERM and KILL.
+1. **Stop recovery passes for the update path.** [Step.members():332](C:/Users/owner/AresOS-27-review/os/owner-tools/owner.py:332) parses bytes, skips vanished/empty entries and records other inspection failures as unknown. Those failures cannot become proof of termination. `stop()` signals the process group before scanning, for both TERM and KILL.
 
-   [stop_update():1525](C:/Users/pab/AresOS-27-review/os/owner-tools/owner.py:1525) independently protects stopping, diagnostics, reconciliation and mask restoration with `except Exception`. An unproved stop skips reconciliation; restoration is still attempted and checked. Collected failures produce **“Do not reboot; export records and get help.”** Exceptions from `wait()` also enter this routine through `update()`’s enclosing handler. The successful staging branch remains unchanged.
+   [stop_update():1525](C:/Users/owner/AresOS-27-review/os/owner-tools/owner.py:1525) independently protects stopping, diagnostics, reconciliation and mask restoration with `except Exception`. An unproved stop skips reconciliation; restoration is still attempted and checked. Collected failures produce **“Do not reboot; export records and get help.”** Exceptions from `wait()` also enter this routine through `update()`’s enclosing handler. The successful staging branch remains unchanged.
 
-   One qualification: [Host.script():264](C:/Users/pab/AresOS-27-review/os/owner-tools/owner.py:264) catches exceptions from its **stop calls**, but is not generally exception-proof around `wait()` or diagnostics. An unrelated `wait()` exception can still bypass its shutdown handling. The reviewed `/proc` name failure is removed, and production update staging uses the separately protected `Host.start()`/`Step` route, so this does not reopen the update blocker.
+   One qualification: [Host.script():264](C:/Users/owner/AresOS-27-review/os/owner-tools/owner.py:264) catches exceptions from its **stop calls**, but is not generally exception-proof around `wait()` or diagnostics. An unrelated `wait()` exception can still bypass its shutdown handling. The reviewed `/proc` name failure is removed, and production update staging uses the separately protected `Host.start()`/`Step` route, so this does not reopen the update blocker.
 
 2. **The new regressions exercise the real staging runner.** They use real Bash, `Host.start()`, `Step`, and the rendered `update.sh`, with fixture commands. Deployment observations and reconciliation remain modelled. The invalid names cover timeout, Ctrl+C and failed-shell cases; the injected failures check no deletion, mask restoration and combined error reporting.
 

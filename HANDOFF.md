@@ -67,7 +67,7 @@ Codex is at 0% until the refill; Patrik has one manual full reset for when it ru
 
 - **21b** (backlight and power button): the read-only results are in `STATE.md`. Still needed: the owner's key test for brightness, and a watched press of the power button (take a `handle-power-key` inhibitor first, or the press powers the laptop off). Board #149's list sits on the Mac (`ssh aresium cat aresos-checks-21b.md`); delete it there once 21b's brief is written.
 - **The next release**: 23, 21b, 22c's tools and the image items in `STATE.md`. It goes beyond the owner's standing OK for packages 21 to 24, so publishing needs his OK. `at update` on the laptop stays his step; Claude may type it for him with his OK.
-- **Documents that still describe the Windows laptop**: `CLAUDE.md` (the PowerShell model list, `.\gradlew.bat`), `docs/WORKFLOW.md` and `docs/REVIEW.md` (`/c/Users/pab/...` paths), `AGENTS.md` (the WSL suite). The rows of `docs/INSTALL-STATUS.md` that still describe the time before the update are listed in 27b's report section.
+- **Documents that still describe the Windows laptop**: `CLAUDE.md` (the PowerShell model list, `.\gradlew.bat`), `docs/WORKFLOW.md` and `docs/REVIEW.md` (`/c/Users/owner/...` paths), `AGENTS.md` (the WSL suite). The rows of `docs/INSTALL-STATUS.md` that still describe the time before the update are listed in 27b's report section.
 - **Tests on the laptop itself**: the 22c planner read that `test_owner_update`'s real-entry tests use `Required tool missing: rpm-ostree` as their marker, so they cannot pass where `rpm-ostree` exists. Unverified until package 23's native run reports.
 
 ## How things work on this machine

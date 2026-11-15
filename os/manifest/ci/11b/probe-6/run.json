@@ -101,11 +101,11 @@
     "message": "Verify German selection at the actual modal and committed backend checkpoint",
     "timestamp": "2026-10-23T01:12:11Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

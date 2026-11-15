@@ -101,11 +101,11 @@
     "message": "Keep the temporary auth share root-owned so the daily UID cannot read it",
     "timestamp": "2026-10-23T22:50:31Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

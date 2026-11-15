@@ -101,11 +101,11 @@
     "message": "Qualify computed installer selectors from its pinned source map",
     "timestamp": "2026-10-23T03:01:37Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

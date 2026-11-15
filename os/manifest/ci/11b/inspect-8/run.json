@@ -101,11 +101,11 @@
     "message": "Inspect the pinned installer application source map before further UI changes",
     "timestamp": "2026-10-23T01:51:25Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

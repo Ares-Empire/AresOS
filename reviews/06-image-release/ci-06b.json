@@ -108,11 +108,11 @@
       "message": "Merge branch 'main' into pkg/06-image-release",
       "timestamp": "2026-10-22T16:04:25Z",
       "author": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       },
       "committer": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       }
     },
@@ -528,11 +528,11 @@
       "message": "Merge branch 'main' into pkg/06-image-release",
       "timestamp": "2026-10-22T16:04:25Z",
       "author": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       },
       "committer": {
-        "name": "pab",
+        "name": "owner",
         "email": "admin@example.com"
       }
     },

@@ -101,11 +101,11 @@
     "message": "Document the 11d credential boundary and focused regressions",
     "timestamp": "2026-10-23T22:44:42Z",
     "author": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     },
     "committer": {
-      "name": "pab",
+      "name": "owner",
       "email": "admin@example.com"
     }
   },

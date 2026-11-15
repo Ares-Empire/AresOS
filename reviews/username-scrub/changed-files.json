@@ -1,0 +1,2240 @@
+{
+ "base": "3e13fc222249d0fd40ee998ad5f6ada62a6f338e",
+ "what": "Each file whose text held the owner's machine username, which became \"owner\". sha256_before is the file at base; sha256_after is the file after the scrub.",
+ "files": 372,
+ "replacements": 1841,
+ "changed": [
+  {
+   "path": "HANDOFF.md",
+   "sha256_before": "9a95921fd76efafab44942dc58ea3e6636d748517c7514aecbd796efb212b55b",
+   "sha256_after": "b33f6d22b996793083fd2a434001f747d28d0ea699c4a3599fe4a7698657f28e",
+   "replacements": 1
+  },
+  {
+   "path": "briefs/14zw-local-privacy.md",
+   "sha256_before": "778f22caaeba94503072197d4a61728926b3a1d9e20fdb85a667645884bdec1b",
+   "sha256_after": "cef656ab8afbfa767b415d7e825f67c9bb7fd0446ad9c3d424f5641144fa990d",
+   "replacements": 1
+  },
+  {
+   "path": "docs/REVIEW.md",
+   "sha256_before": "2c0b939b96e5553faec89af6917fd92a690b803e5b656dfd35e929bfaf689c01",
+   "sha256_after": "753ea61727baa82b996a03d061f81bfecf23042f132c47d02d79195d65290b04",
+   "replacements": 2
+  },
+  {
+   "path": "docs/WORKFLOW.md",
+   "sha256_before": "b76f3f53a3903eafd9ed36392e8cc8ad16c41f3b3b5e8f79efa7b705ee45e039",
+   "sha256_after": "a558e4f7de43250ba9ed3177e2fd0817667b259de94ab51a9d75ea960f9ecc72",
+   "replacements": 3
+  },
+  {
+   "path": "os/manifest/ci/06/preflight/run.json",
+   "sha256_before": "1272103259a4cd3253265f9c797db9797f07722912f4e73497577ef418b570d7",
+   "sha256_after": "4c45579390c604562445e02a4ef49d925bfd90919a39c003435cb02284e9b28f",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/06d/full-1/ci.json",
+   "sha256_before": "5e9343d5616daea6fa1b91f4b278cea0af649c50f2d293f1074a366428ec147c",
+   "sha256_after": "da96bcc19f7b9cc6bab62c277bbc024678740a77766ee9159d950634e394de02",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/06d/full-2/ci.json",
+   "sha256_before": "d52588629b8fa036f2f3e81e677bc0e141ceaa1fe7b148874a72f59354719416",
+   "sha256_after": "31feaa6d075aada705df12c3fe600f4c4805f84debbca68c00b050a6b6fde559",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/06d/preflight-1/ci.json",
+   "sha256_before": "81b81c49f0df12d3c86e79167de649a49bbaf84bdfdaa2847dc5d9ec2393b87e",
+   "sha256_after": "2f6c1fdb0029d77e8eb57586c93cc9da7b6200a59aef8d2f725c3850ffd325b4",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/06d/preflight-2/ci.json",
+   "sha256_before": "6ad3117de9cd09008b6de40ef4c796c433e0ead8a64e3c06efba9b8493728ad0",
+   "sha256_after": "c5e2fc9354885953ad6c28fe5ee6928dffe3f9d75fb5fb1eda2215fbb9396317",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/06d/preflight-3/ci.json",
+   "sha256_before": "e47152e8258ca97421d38c32a01818cc49b5812485deae20ef6d1e836617e352",
+   "sha256_after": "2b5b925105a36939a25a5e7f4ae920853f1bd2f9268e05f9ab50e92d05703b73",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/06d/preflight-4/ci.json",
+   "sha256_before": "65d6942aabb0bf6f2480946b73d749f497b85c689b4bf3d6e9dc36005cc47de1",
+   "sha256_after": "e10b3237db6a088b82eb6364b16a085086e6309aad127fb19bd3f7b69e07599f",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/06d/preflight-5/ci.json",
+   "sha256_before": "263bd9c41580b41e047cb29efce47bc2150afbba2429a1a09b222cf26e79c13a",
+   "sha256_after": "054aaa63e09c94d4a3f386c864618392d64448ae456ce7c926c9517c4fc3b067",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/06d/preflight-6/ci.json",
+   "sha256_before": "33ea867bc85f39320a3fe633644febf3d79684e1e4c5dd1c47138664a06eb664",
+   "sha256_after": "5d17c969cbfcbd6de89519a8c5ec94cb9ac06ff3e8846516ad442ce2fe148aab",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/06e/full-1/ci.json",
+   "sha256_before": "05e1e415298ad8adda146a860e282ba5b90e1c508988ba00ee3f8a8d3507daa2",
+   "sha256_after": "a254ae86d2b9b91bf7cff6b0edc3a933649ace44c8e7c2cc8f3e1500157c38ff",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11/checks-1/ci.json",
+   "sha256_before": "7e0216440168290a7865f14d99375aaf177c6f663508cac714355314f99769eb",
+   "sha256_after": "8e295b06cfd0ef07836083daf1cb9da2db83c39e75932e8d1a010f83c8c6817d",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11/checks-2/ci.json",
+   "sha256_before": "7829905e12914b11397ad5e8a6c535e47092247e11064c31d2a78a2d4097d636",
+   "sha256_after": "67899983d1aa69a8f187e9aebcf1a92c6683ee14e2af027380cc14bcd22039cc",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11/checks-3/ci.json",
+   "sha256_before": "80b3be00bba36776dcd4ab29832b11040dd8e8900d521503c09cda847e89fcfc",
+   "sha256_after": "c491f23b6496305f2e1dd63378d4cdf039c03a9eaf65d2196a384bbc0310e0c6",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11/fixture-1/ci.json",
+   "sha256_before": "4a493a2e303b477426b0ce210b3d2d12681a1e05db468dcfd276dff2ea94c628",
+   "sha256_after": "043a7da080111a27ccbb7306d586c49ddecc652a698caea47b065404eaaedde6",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11/full-2/ci.json",
+   "sha256_before": "ccc35b59a4f797b1d27e93cbf234968c796321f1c7852681f374fad66b71cba8",
+   "sha256_after": "1a6a0dd1fed87d534457b1a3561e7ad945979d9fa76f24e1e5cda7a8d457361e",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11/inspect-1/ci.json",
+   "sha256_before": "5c145ef67c45f76c892214b1d604cac7294cc084466d85c89abc1c1a1555d147",
+   "sha256_after": "f64091d5bd52df0ee7a6ce5ef8301fd4bfbe39c49048c461c18d646b88b315cc",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11/inspect-2/ci.json",
+   "sha256_before": "129289e1645692ddddd74b55bd4b928669e749adddac7bf717dc7d9bf4f78961",
+   "sha256_after": "3981ab456c037d138297023868dbf6a0c1745dfd03bb0c41aa600b5333c3ac63",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11/probe-1/ci.json",
+   "sha256_before": "624bb44e7a05f99b4f96a7f7d26a3201821849b092c06505d8ff547cab407e14",
+   "sha256_after": "5d78fc918a7d6c4dd4c31d2f8f053e38baf367f4055b65f0e814b19593e1514b",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11b/inspect-8/run.json",
+   "sha256_before": "1449516171b35917821fbeffebbbd48be44c39187ae58a6060e738477fa3f302",
+   "sha256_after": "8cfbf8918ac65c27abe308b62666871889f8c27c19196d68c98c8a0c3ee4ea93",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11b/probe-0/run.json",
+   "sha256_before": "38186b976c429cde764da5c843b0b0159934bf9d6ae56c09a6981d48b6aef52b",
+   "sha256_after": "589f9f37b42f5ea8395845a871c415dd2e8f370dd8d58233dcb26945e69c0b66",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11b/probe-1/run.json",
+   "sha256_before": "004c7ceeb3aaba55d6b840e0960091a19eb60cded16eb4247ee1cc6523f4d42e",
+   "sha256_after": "46c01d100cc08dfcc4e97a254340d262623a1563ccad8fff721bec028fe3aa3b",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11b/probe-10/run.json",
+   "sha256_before": "9c31b612c054cb92dcfa176a043b6e3ddc8cede5f7fcf89ea0559e7f8c36a218",
+   "sha256_after": "2f5ad88c31a5c96ce42e75398c7a8b8f780f9569f5ebb7f750e92213a38011c1",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11b/probe-11/run.json",
+   "sha256_before": "27d59f95417d01776d9df90e68764b1c86ca80af87b78d45ed2520cfcfa8ac55",
+   "sha256_after": "620001ca5b0813315bc0014725cb1d9208d518292b63683a32c2af3641c86075",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11b/probe-2/run.json",
+   "sha256_before": "c5fa42138eabac2a3419385b795a5add01252880c398423c76bbbbefa2d55803",
+   "sha256_after": "0eba84bd50b0d334841a4cf9918784c6259ec4f6fbe5d0f3ed522c0768f5b7e9",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11b/probe-3/run.json",
+   "sha256_before": "3030d9124414252409eb3680a4518fbc8cd78aa4f1315da1baba167a37cf9fad",
+   "sha256_after": "2b0c4bfb4fe7d8878be5a4bb7e8bf3d67bad11187397c198f2f706582b466337",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11b/probe-4/run.json",
+   "sha256_before": "fd9cd132b4149fb5fcf00037a7f14ea9f14044168205f580b077384ef10629ec",
+   "sha256_after": "a662a52b105f3841ed38455261f49d8a1d7299bb1097e119d45ab2d736d5b7c2",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11b/probe-5/run.json",
+   "sha256_before": "93e2a95e35b6b15f4aef8aae569ce6a2638830ea97129c6638ed8edf1218c718",
+   "sha256_after": "4e00e4b572d942902426e22e0f2d2d700cd7d2cd8e93693193b58a9b04be34dd",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11b/probe-6/run.json",
+   "sha256_before": "fbcb80ebbb00017846a16535f3b8625b7be4613b81fd102a4e783a9c70f928af",
+   "sha256_after": "77fdb7718c59183527e9e30fc55e5f00596141a3e88f65e7db127aa5ea373a5c",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11b/probe-7/run.json",
+   "sha256_before": "15bc03d82b1b543bf87e4a41691238d4bf30f05b5c49d2c9b31fd2c72da23af2",
+   "sha256_after": "7f8451385eb7b7aa56ea57f12c53169e8dc34c6b0bc427167b4407ece58c0e37",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11b/probe-9/run.json",
+   "sha256_before": "6ad76df3f20840058ae85322a068b37b5c05e86a067958e395bc8dc8d0469a66",
+   "sha256_after": "a907570d39bd8fc289b52cdb9ac8e45ed727b13074444c8307ff763ddc2e8a07",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11c/privacy-0/run.json",
+   "sha256_before": "e296371b15a9d264deae234575da68ff4121cc5a2d694d27dd9a41704f515044",
+   "sha256_after": "25894d72bc4803e1f18514f605af49c32d193dbd287aac71d4980b2c9852fc60",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11c/privacy-1-pr/run.json",
+   "sha256_before": "d34f7444f6a26a093c068dd901b5a480fdbd1d0d767b7e4287564cc0d3693c55",
+   "sha256_after": "1a10690297f9c85d89959b7184374e6e0f7f225d78cd70e3001c1117af6d4d9f",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11c/privacy-1-push/run.json",
+   "sha256_before": "751b42488ed4c3a9017b8db4d39c9b194e20b84c1c51b00d20caa6008e708d43",
+   "sha256_after": "154f92ca9bb0e8811ea2c6126b8ec123227bb2d28bb3a3fad42c73ec3d5168ec",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11c/privacy-2-pr/run.json",
+   "sha256_before": "004acb22ac4e7c41c4848aa914a9c729041afc3d3159e045f13d47f3acb474ca",
+   "sha256_after": "8a2e0c96e4877f90ced9388b487ee668f47b7a085ad0d7866ffcd2f7b354c8d1",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11c/privacy-2-push/run.json",
+   "sha256_before": "906b06b52967c02663e2c5af020971da70bc0c1369765f4cd7d348ce6b37b94c",
+   "sha256_after": "3fde50812ea3189faeecf12097503e4308ae33cc6749810d0bd278312919c0d5",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11c/privacy-3-push/run.json",
+   "sha256_before": "42583a377979d8997f6bbc3d962df16712829d99aa6ff5b45a4733836a343967",
+   "sha256_after": "3223e3c37677027c36d3a2eec9a3d4a3268c09fd945ccf364ba30359c047c49a",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11c/probe-1/run.json",
+   "sha256_before": "7f91b61b6b54d9423592b6f6c3616b39d50d617d5a844c5db42eef3a7cafeefe",
+   "sha256_after": "29d60a9e9d6c4520439283d00fe32f31f2f35925e65d3f6ab58c5b469a281b48",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11d/privacy-1-pr/run.json",
+   "sha256_before": "cb7e346e8aa2f6f654fb52219c269f3068291a84e773f610ab40337712f7600b",
+   "sha256_after": "1bc386fcb4e36f9b3e80ca1e869079ffd15a5cd35d12b32759b0a8159a7b8284",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11d/privacy-1-push/run.json",
+   "sha256_before": "f9ce5813aa54565d1660ebc3219454c3236a3ad0400041cc2606ba784a3480bd",
+   "sha256_after": "5f6552627bd871e3cd82e106193d77d2cd73b8faff4194fee73f3ef489cb6f9a",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11d/privacy-2-pr/run.json",
+   "sha256_before": "ee3a6a33ecfd6cc70e8bafeeeeca196b2f842c1038d29090c9f66695e424da80",
+   "sha256_after": "1c953d0c9e06b51409a3c31e7f9415ad0d16918657e0071e6f1f65c5fc9b335b",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11d/privacy-2-push/run.json",
+   "sha256_before": "8dcc96641b1d7cbfbde43caa808aec96b0e4322d77a453e64f7cc19c22beae67",
+   "sha256_after": "37303a18c81e7062bbd1bd099cb3f54ed80554465ccde82aa8992ad284e868b0",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11d/privacy-3-pr/run.json",
+   "sha256_before": "c87c1755a5b049ff4c0786e4d228b164eb136415fc9cfdc96d404f1eb4cf3de6",
+   "sha256_after": "b91de5aa02652a3e346f709e1350addc59689d39f60574d6cd34dab1ec67ce80",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11d/privacy-3-push/run.json",
+   "sha256_before": "c8c7dec47e49eb421f79f1d9a37861ae785b03464ab690d1926cfcd1c77e01c6",
+   "sha256_after": "87b6d49b02c62e76460780a256145c77c8ea8a54b04d4c45af4fd286fcc5272f",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11d/privacy-brief-pr/run.json",
+   "sha256_before": "ce45fc7d5aba506a399bde1b288fc22a5ad51c042aba7f28232ee8ae541044ad",
+   "sha256_after": "e1aa65e10e81f38f5fb6089e1586422e63b67190518a32581d9b8b1567b68166",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11d/privacy-brief-push/run.json",
+   "sha256_before": "e0ce5d386a2b362327bc46a025b0b7eff78db7cd43866d54a1baa1b15b6d0342",
+   "sha256_after": "42788429b17b3baf512ca1a6608ff1c46583f88617a0f9e411aaf070d2964b8a",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11d/privacy-source-318-pr/run.json",
+   "sha256_before": "b84638cdf9f3f40fba9932139cc9897ac900c97bdf6bbc7f39788fc2c8eeffd2",
+   "sha256_after": "72ecb571250cd0a188d8bf0d874efa329228bed3ba4808c68dceb8a6a2dc06d8",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11d/privacy-source-318-push/run.json",
+   "sha256_before": "b57ff6704f48b79d14209261a7371c977a5eb20a67574f1964da614110eafc0e",
+   "sha256_after": "aa56681fdb3911c6eabc01a2308d714e61d5f06b4ef564b6b5be1482623fbe29",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11d/probe-1/run.json",
+   "sha256_before": "fa8455d79673a88c077f3dd8d38a011d2fab7363bfc14c4ae31f4467cc638f91",
+   "sha256_after": "1db2085ec8510b7bfee923891bd52edd4bdf6c0da07235d14cff84c89cd9618e",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11d/probe-2/run.json",
+   "sha256_before": "90672327cee7a7fdd423797b7a7c46b0fa3c1b7c27bd12ade47419715b72446f",
+   "sha256_after": "b4dc0a30cb6b556b9c2c5a34d25577891759ce3f9ca721f6e0137b6393a99935",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11d/probe-3/run.json",
+   "sha256_before": "2b84c9631f2cc87f3a6dbeb4a15361301ecabe90cb1af81efe7508e2751a109e",
+   "sha256_after": "484b0da1199c6d12f7cea3fb6a16f2c8d4bda7f05c98dbfecba6eed73f1d6ab0",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11e/full-1/run.json",
+   "sha256_before": "746f3a53391230959194640a13f894a9f6965772199e53be68b534977c49407d",
+   "sha256_after": "100e0d44f2da49140e3f3b1d7ac2f183e179ec84a21f367e97406ab07e226d5f",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11e/privacy-11d-final-pr/run.json",
+   "sha256_before": "6733b42ab871b98807cc3c896e33af0c154796a2bae6b25189089201a2129d28",
+   "sha256_after": "f53a16bc47cdea0dff7c8bee60d537b95d788540991af5e3a8e26692c51aeba4",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11e/privacy-11d-final-push/run.json",
+   "sha256_before": "1e75263240226bbf5fc5f24bee961b32191d926b4f1d967b2702a7a49e810b52",
+   "sha256_after": "74dac8ee9c7bd0e37e8e23d91b18fcefe5a884615277394776312363b95b9d75",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11e/privacy-brief-pr/run.json",
+   "sha256_before": "c8ce88753be8261ebefe774ebc53d4baa056dd2ea1677dc20763564880d3a4c5",
+   "sha256_after": "ca8d25c5bc762f723a99e3d5c7657478fb9bc2f62b066e87175b45ef3520f7d9",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11e/privacy-brief-push/run.json",
+   "sha256_before": "21e4e853480de6ed3a9a693a04c24c981f91424fbaa374de5a8f9d6b4b040d7f",
+   "sha256_after": "dbe08f856f234faea6ee069154ffbd996f5547f65047edff7a26f6b1265be97d",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11e/privacy-recreation-pr/run.json",
+   "sha256_before": "d2f81117d8c744249968dbe6f9f53c18aa105cb4fc24b4d3e052179906e2b96b",
+   "sha256_after": "af2b902fa86e9f5f3f887a6f16321273184becdd7004348c4558cefde34e0344",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11e/privacy-recreation-push/run.json",
+   "sha256_before": "3ef99b1a2872bc8462bff99a676685739065e84cf67de057044628ad189358cd",
+   "sha256_after": "b30c907437776d2604f8cfdf8b7d49ea14f2a934c352e111384a3fd495c2f5da",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11e/privacy-source-pr/run.json",
+   "sha256_before": "177527bfcd55e601547224dbc670b134380848a53534590b7b3ec7231ec3a1b2",
+   "sha256_after": "89285bdf6875807b79747c7b116091ab98d4286ac2392dc80705c1366cd90283",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11e/privacy-source-push/run.json",
+   "sha256_before": "e71ee84b2af02200a51087e13223b8892e71e7727cec6c6a30b6e0056fa41a0e",
+   "sha256_after": "1cf62e5cd16aa15191c51051e0a5a22e6e35e1db5a8861ba052922a9cc1e1884",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11e/probe-1/run.json",
+   "sha256_before": "fa6ed71f8cd0f6f9c12ddbcd09384a95820df37b8ccc1028f94bb449e241639a",
+   "sha256_after": "f64c890057d640e0fd95f299008a5ec57071ccb3a40b1359c35c964780d9682c",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11e/probe-2/run.json",
+   "sha256_before": "e95b53f4a7e786cde79322dc32683d38e3c6e034c37697bbb5bbb6c29d8a538f",
+   "sha256_after": "8dbc2bb38ad653bd3588abda0c6fbd0ab302980f49ccf774f10a73c08327d705",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11f/full-2/run.json",
+   "sha256_before": "e1c5f33e0c8508cdc94f7226f74e21b7b916cb70aa21c32d1682aa38b6545f12",
+   "sha256_after": "d22d636db0b892bc2ce13852ab42c688c5f64a74343cb66c2fecec15ac07051b",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11f/probe-1/run.json",
+   "sha256_before": "c6004b9a6859a338b866feb5aca85037c38edf572899d2697060f7d132a2ffd8",
+   "sha256_after": "6c1f77683bd5c13e1324e5c15bd8d8e8ab6ec96ebf38f6c30217a342937f8616",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11f/report-pr/run.json",
+   "sha256_before": "44ba7dc45d04cb68c68bd9183c821e4a81a9ab6e449628af933357fbe2d547f3",
+   "sha256_after": "9d026956b7dad14543589b321053868a0b2b8a1c0b49c6db59f1c817c66c5063",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11f/report-push/run.json",
+   "sha256_before": "1d1fee46671e72db521d8fdaacc79df55a72b42c6e4663280c024c4fce8388be",
+   "sha256_after": "104d8778bb93d47546392a91feaf4c57e826b157c964a8b7dff72e3ccbdb907d",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11f/source-pr/run.json",
+   "sha256_before": "11cadc6b87c41f64e1dd33e1948dbfaeda093ec9f92da7daa81768ad49897fa2",
+   "sha256_after": "39d2996ba97943f44592aae933573903eeb0f84e9627554bbf504d941c2feceb",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11f/source-push/run.json",
+   "sha256_before": "47fca95f9c0234a6a6d232a6cbcfa5b6ef9626c8a144f5b41a8412cb05669271",
+   "sha256_after": "ac20461292628fc59479446e572435ae655f75888daf43602f3dde5afb8ff7f0",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11g/full-3/run.json",
+   "sha256_before": "7437220f15901d408b9162374438399688e7b74159a9ad59f4156837c7feecae",
+   "sha256_after": "d05d0a8dbd4bd8a0cb6cdaf615bf9b3ba01478e89d4c5569e49c498da477c2b3",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11g/probe-1/run.json",
+   "sha256_before": "b55f90826fff9d92a9a95b5f5fb9875e5a96bfb59530b2f5f29fced8aeb79013",
+   "sha256_after": "049322dd97a7c6ab9ae7dfff17a54d07972fcf5dd6f10b854b510b8f3d3a1f81",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11g/probe-2/run.json",
+   "sha256_before": "77a737adb76e41530ca380f27eab6c0cbee82abbdafc8310b3ea971a8311a835",
+   "sha256_after": "72671060c2712133839ce39e3675c6943287a6f4a5b02714953103d645f570d5",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11g/probe-3/run.json",
+   "sha256_before": "3e75c8cdfe8b6356668663a1d8df077a5dbf7501646aa2dadb92ae92222d8521",
+   "sha256_after": "2546a0132fe15275d06eadd5f6196bbe8734cac4916cfc4d6c08aa2448e865e0",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11h/inspect-1/run.json",
+   "sha256_before": "2ac89661d153618f05458288b47059f0475ed588b90e135e0fbf8e3e580c73cb",
+   "sha256_after": "4c178ea30fc680769234d42643de072da2dd842697107d2c8b34fc328c5382d4",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11i/full-4/run.json",
+   "sha256_before": "e73029de8e58ed9ef8faed574f09a052b6a608b4d32f28b1982e7f929139ce47",
+   "sha256_after": "05e1afbc0ba43a60cc168988f51b54fa89ec77b98c9a32a4cddfdf61e5090f4c",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11i/probe-1/run.json",
+   "sha256_before": "dc46f8c9ef3a3297bbc5efb0f2496fcdc5fb5701ae6a5829f4109a9d7b043d79",
+   "sha256_after": "58502849bcb24c5491f320bbda87190df186404281726c8afee9fb5528eba8da",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11i/probe-2/run.json",
+   "sha256_before": "85447f45bee66c66a1917be7e229eeec67ccf194d4257f81869d98328ba346cd",
+   "sha256_after": "e6023922ac6090cc7f3235409adfb978a56e15f704da3fab7ea40aacf9ee81d1",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11i/probe-3/run.json",
+   "sha256_before": "a8b5ae72f86c70f5b4c9c86382d2fd8d897d515355aae7b974dea0411aec673e",
+   "sha256_after": "1a7b488d2c7a163b6296ad253351a8f94d9abf9d8f13b133591e249359a16175",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11j/probe-1/run.json",
+   "sha256_before": "753d6fd264dbfe696a1181ff204a4561d62131276b6b63c2918c7f143170eae1",
+   "sha256_after": "77c0b24b76a4f53630cf75dbdb78a347afe58abee3f1f89b535b30cc9b5c5eee",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11k/full-5/run.json",
+   "sha256_before": "4ca40ec6212e63c85f0a01a5c77c768fae7e785953550bdcc0d076062921c9ed",
+   "sha256_after": "7542b3f6b5f5daccc90bc649ab96815ee79f2acf8b38dd8ee8cce5ac5a74b03c",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11k/probe-1/run.json",
+   "sha256_before": "c2919eb2e32dc03271a9cd1df203db49f8360b7b9d4b99e336014109dab11cff",
+   "sha256_after": "f89188d24644d6e6f090d971ffe60a4db3b350930d5cf1f17ea5974b82e3a67a",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11m/probe-1/run.json",
+   "sha256_before": "9654b1fd2390f540f957cdddc0c5f3e7bab4b756eeb168c29990061c48d5a216",
+   "sha256_after": "c2614319fbaddccd8406c3588c66c3c44911a97a9f0e7bf0d863f26b067b8456",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11n/b-1/run.json",
+   "sha256_before": "6134319059303a4907fa5214a30ea7b227305db4bc535dbe089a4c2d4dd3dd41",
+   "sha256_after": "b168ec7a6b08cf6ac3422dab7ff2387a419e33164abd857e7e35b6f1b407408b",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11n/native-1/run.json",
+   "sha256_before": "af7a4034c07c5f64a64dd85638b7550dd96405344d22b8c1b280deca7db53f69",
+   "sha256_after": "2fa4270ead53e4b328a16623ecdf30d9e030670e296a1ac6d89b6c94f4786474",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/11n/probe-1/run.json",
+   "sha256_before": "2cdbbb67385fe8b2b0330e4e1814c2ce1cdca712388381edc94776aeb4b90a60",
+   "sha256_after": "5ef93595c5cd2e219b24baaaa2f2bd6b7b1d34c784cd9aa61ac4fcdb53f92972",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/14/14p-preflight/whole-suite.log",
+   "sha256_before": "f3a6c503aec0b02db929a54ed76f2a2937490c845db0d9ee6b482511f92b7f18",
+   "sha256_after": "38a3ad515046f4a01bcc0b04c3a7de495ddc9231d28b23aef7bd28f0ac73498c",
+   "replacements": 38
+  },
+  {
+   "path": "os/manifest/ci/14/14r-preflight/whole-suite.log",
+   "sha256_before": "bb6d0dd3788dc1a755781f5d356e9e2f929d24cfe46c836c5028a7bb27aeed0f",
+   "sha256_after": "18d18353786a266ec37393d51be521e719a9d5ef0c2ac4bb898cc0206e37448b",
+   "replacements": 38
+  },
+  {
+   "path": "os/manifest/ci/14/14t-preflight/whole-suite.log",
+   "sha256_before": "6518245809a2e2c1e5259f02e060585b2ec158524a236b32137740439c550378",
+   "sha256_after": "1a456a7547eaeda62c44865e667d35840d7fe23b6c4add98970918a1bdeb0fda",
+   "replacements": 38
+  },
+  {
+   "path": "os/manifest/ci/14/14ze-preflight/whole-suite.txt",
+   "sha256_before": "e636d3717c075a90e0ea4fc368e276ba097302d3103eca966a4acaf1f6d2c648",
+   "sha256_after": "da557463e71d8ce740d7cbbe920ca83fa01c4811ad77601f3afda6965fec9c63",
+   "replacements": 38
+  },
+  {
+   "path": "os/manifest/ci/14/14zf-preflight/whole-suite.txt",
+   "sha256_before": "0ebbdb11fc3e9793b55a8f9354a844aa90e11064a20544d5b49a8392ef6eae5e",
+   "sha256_after": "0e5db6fc1a70dcb01bdae854746e2b73c279afde9ec1956324d1a08b92e72baa",
+   "replacements": 38
+  },
+  {
+   "path": "os/manifest/ci/14/14zg-preflight/whole-suite.txt",
+   "sha256_before": "b5e96af65144d2046e980a6d1f4d966bb1194fce115776eb90bece79980e23df",
+   "sha256_after": "63f928f8e3d428bee9bb9ca32c834da8c48e466585ad137d55b3dc34c4636706",
+   "replacements": 38
+  },
+  {
+   "path": "os/manifest/ci/14/14zg-qualification-stop/local-tools/14zg-prepare-owner-tools.py",
+   "sha256_before": "f96ddc39f165c7e757039df6501f549450b58242cbf1fb14fbdd7121f101ee26",
+   "sha256_after": "fbec038d25288f131caedf080ad2f821a9d25fa5b2f0bce1c661d5c985bdc375",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zh-preflight/initial-host-walk.txt",
+   "sha256_before": "11e0d4fc9dad32915b0f21256e057484a443c6801b2fdb20863951a4e32dcaff",
+   "sha256_after": "90f37de18432e703919602c5a9d775ddd812dfeb3afbc28add535c1813a34f1b",
+   "replacements": 16
+  },
+  {
+   "path": "os/manifest/ci/14/14zh-preflight/initial-whole-suite.txt",
+   "sha256_before": "7ec2b0ceaa38ac9e6064bda4759bbf440234de9d877da5276a2eb71ccc151752",
+   "sha256_after": "9fc10837b58391eb45169fb5842313b4aa38d663a182cc75b899181d94afb581",
+   "replacements": 52
+  },
+  {
+   "path": "os/manifest/ci/14/14zh-preflight/whole-suite.txt",
+   "sha256_before": "d10e4fa4e7d3e07479d324ad2f26ab6b79834bf309255d95b2b2e9c86a5c21a0",
+   "sha256_after": "43a2f52b1e2db19ef1ca68fbfa915d6c502740e5b55f78c3e34031fce85e7937",
+   "replacements": 38
+  },
+  {
+   "path": "os/manifest/ci/14/14zi-preflight/initial-walk-fixture-failure.txt",
+   "sha256_before": "b5beea28b4cb9f0e76863493d8bd2ad93fcc160876467ebac862976973e23242",
+   "sha256_after": "a073ead561fcc79df9be1aa29b71c6ccd14cc57427770ef6ba222153e142a12e",
+   "replacements": 5
+  },
+  {
+   "path": "os/manifest/ci/14/14zi-preflight/whole-suite.txt",
+   "sha256_before": "0607d49e22c6483428e925fbab3e0c108c8df2e6ae8dd57a88fc6c503ea28d12",
+   "sha256_after": "27cba73d4a6118d3816469ded02013e12f7625acba9c0b3df775e6340d46f9ee",
+   "replacements": 38
+  },
+  {
+   "path": "os/manifest/ci/14/14zj-preflight/initial-fixture-span-failure.txt",
+   "sha256_before": "c3196655d9a50ee353272daa63938a6022091892865fc95d78918e9e981a8ff2",
+   "sha256_after": "a04014c8eaa003624043fcca0f179d2ae466401dc3f8d0f96f1b20b7140ff9f8",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zj-preflight/whole-suite.txt",
+   "sha256_before": "d015937f01e4e14a4c6a2583792a9359f92c9833cefe27b8e2a86c18e5ec14e9",
+   "sha256_after": "c3a02e1f7c8d58797be34a884212a2e68d5a820f9b84b83446503ca36b9ba6d7",
+   "replacements": 38
+  },
+  {
+   "path": "os/manifest/ci/14/14zp-qualification-stop/local-validation.json",
+   "sha256_before": "dadf7fcff272669ce722a369888a26659682a801efd1da872c89f86b80e8eb55",
+   "sha256_after": "dcd0a93c7724be981063d7e0db08523ac96667a9a260300f2ed484dfa0cd1351",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zq-preflight/iso-unit-review.py",
+   "sha256_before": "fff15feec62637d91c827e95f50136e62127d18b31452451e19df8e07a7c92c6",
+   "sha256_after": "59647a6282761183a6e2700e8ed8ed2303e2eea44133ff1be9d479e6b3f2ce77",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zw-preflight/local-privacy.py",
+   "sha256_before": "68a43fce45d60e1fd5cdf6b9445e833e4f61c87a02aa8db6914740ba6f05aa4b",
+   "sha256_after": "44aae5d416b277f3e8116a9fa8467bf9d401af2f77e63e8afd589e260acaa4eb",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/14/14zx-preflight/local-checks.sh",
+   "sha256_before": "ed1a89baef3ad45b9a5ec6f111124304c9bfd92c4a0c9cdbc21f3dd76038987f",
+   "sha256_after": "f541831ae47fd0689bee0ed3b25ea12e31615e84f8e93a8baa31ca2ebf1ddedf",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zx-preflight/local-privacy.py",
+   "sha256_before": "300ec5937b674f3345e55b94079e44077689f04db87880b0274813e4f5807f45",
+   "sha256_after": "f455cb5f81c6965f7833ff06bc57ab08b92851096707a2e3f2713ae5c1124071",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/14/14zy-preflight/local-checks.sh",
+   "sha256_before": "3f36f2a7cedfe5cc24101bbee8aea97495f588198375755ec8c9b40b9ea4ed63",
+   "sha256_after": "8c139080623577b8a88013dc08e32c9483ffcebe3931be226cccdede64694687",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zy-preflight/local-privacy.py",
+   "sha256_before": "29789cf97cdb46a744dac22583632b65771697bd5625814f125e65baa2e45522",
+   "sha256_after": "5e0e86f525cfa97ebdb395d4ccae7ad4857ec73e01576d8cdb320d7eea13cf47",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/14/14zz-preflight/local-checks.sh",
+   "sha256_before": "1b657b6f1bf306f98a53ccad62128106550b40f0f708eef2403f3849fbf82316",
+   "sha256_after": "10b5e42c136d49912d933bc3136ba3f1ec6b5548a7bd499e662ffd2af42a7ce2",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zz-preflight/local-privacy.py",
+   "sha256_before": "8f54cdf22956c60c33db4d444e1533c2149139bb73a5741989c3d86ce78514ba",
+   "sha256_after": "469b2bcf9bb170ca41e816dc714ef590c275bc90fa9d291b02447a20196d169e",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/14/14zzb-preflight/local-checks.sh",
+   "sha256_before": "30d79d441b4c7091c6594bdd68f98e789ed61573f9e27c607182bfa60bae548f",
+   "sha256_after": "4ed3ecd36ea7a5d94bd922938035df976bdd0a170b65a5f01740fb31e07527bd",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zzb-preflight/local-privacy.py",
+   "sha256_before": "aca4ef9c0c052b803d889bff1553c919007bc3153d2b129d7ffa4addd73c2f86",
+   "sha256_after": "b427dabf2858b8fa74828e4ef28ae3193e160d3d282d84bf2e8b327ed61d883e",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/14/14zzb-round/closing-checks.py",
+   "sha256_before": "10aea51d1a54e58d8db6cf29646d433fa84fddf414fa2c434dd0ed01b0d2c555",
+   "sha256_after": "126701e7ace85c413f2577794206c67e6c3f3178b438fc15ebd600af5a2429bc",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zzb-round/commit-report.py",
+   "sha256_before": "0c94a843fecd20fb851e68403c94f85a21e4f2081e08a6a13d49891ebbf8011c",
+   "sha256_after": "b3476824a1e202dfa31b503d0c76cb7f3712923ee7f4e9512c105bf49f29e48d",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zzc-preflight/final-local.py",
+   "sha256_before": "5c10bad57b0291e880647511c51d28492eb71fb28c698156941cecca31cb0baf",
+   "sha256_after": "cb075506f6809c27870fe86b47424cd4db8cf056a89580def5a050bf532ad19c",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zzc-preflight/local-privacy.py",
+   "sha256_before": "a51e880608b6eb7687bebefae27f2c34c4d19e8c2a20ff2abeb09af9bfe45b50",
+   "sha256_after": "68ac23faf717e9e096397092b383ecce317e656718248b8e2f59994c1c3f2c15",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/14/14zzc-round/commit-report.py",
+   "sha256_before": "8f175e03892645718c9884a8f53b39f84266cdd49654d33c10a437521160b8a1",
+   "sha256_after": "2d2cc024a7c2f5d0664a36b9664710597027e663eace798f14fcc9cede36d9e5",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zzd-preflight/final-local.py",
+   "sha256_before": "711c1adad506ce6d7566eb3de29aa7e21ccb2821e0511b1465213255516966f6",
+   "sha256_after": "2d096c760f8f431bf71041b2325e7ee8bfcbedf7c6fa2f0fd656e32b1bb22014",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zzd-preflight/local-privacy.py",
+   "sha256_before": "93b99b5ceaab763930287c04cb3363cc6f480912b46f9f756e7623b89a71d06c",
+   "sha256_after": "f4efef3f265fbc13b313131b64875729a82f43da8379495aacb79b022056218e",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/14/14zzd-round/commit-report.py",
+   "sha256_before": "d73d3cd85785aa3e13518d696d2ba04ab30972e1346a1bb7cdd3860bdc83e3d4",
+   "sha256_after": "ad3b9bdb3e9d9a977a0020eb5f4a1e3e5ee1466d0d8347a7743019ddf334ba5c",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zze-preflight/commit-preflight.py",
+   "sha256_before": "e659d5c448406e53f3c0f6d4761d620bae411171bc99427533afd8b06e4d429f",
+   "sha256_after": "35792a32afaf45805e4a281de1be073856184c31ad507793613a734d6a6d1d3b",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zze-preflight/final-local.py",
+   "sha256_before": "0a405c08779b9bd9030b0a48f32d3c2ba8eb646ec63c596d03156ec0c99e454e",
+   "sha256_after": "d7fe64f6ddcc77b4d5333258734462098c767ac61982d2f96dc6428594ca56e8",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/14zze-preflight/local-privacy.py",
+   "sha256_before": "2613c00b0cdb186a3f423ceb5cdb6ba80d813c06af3ac88710d0137c1960240e",
+   "sha256_after": "9a5e0b3fc04d75e2268b7ba17c66d32998fbcb370194b309b1410c2e3ebcb236",
+   "replacements": 2
+  },
+  {
+   "path": "os/manifest/ci/14/14zze-round/commit-report.py",
+   "sha256_before": "067a335a299781ee1af7cc6db8c403101f1e25b307d831f2580160511f287a1e",
+   "sha256_after": "2d441c2ab08a08ee9141e8d0e808847a052914e8646d95dc6a9461a33e6de1ea",
+   "replacements": 1
+  },
+  {
+   "path": "os/manifest/ci/14/local-verification/whole-suite.log",
+   "sha256_before": "25b4c6277ecf77ec0ddacc56a600bfd1a0f2fe3c732d1ba54f2c649db3b25624",
+   "sha256_after": "bd4de0b9b01f26549cda51a2c4d3edfb6be65ac700ffffceb04861cd06cf5445",
+   "replacements": 38
+  },
+  {
+   "path": "reviews/01-first-app/01b-verification.txt",
+   "sha256_before": "d0580246109ef581f2950611e69ae78dd474d3bb8add241ead488e304d9e66cd",
+   "sha256_after": "64bd693473a3acd097000f98ab69a015fab6de286213e18b866a9e4495cf45ea",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/01-first-app/01c-first-verification.txt",
+   "sha256_before": "0a751d3aa161f41f7e8f9f314800f616bf4f298185e28303aeb347153ee8aa01",
+   "sha256_after": "48ae940c61fd11a1c3a2d5014f38766f1a3f8e310b1e5bdbd14631b51b11defc",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/01-first-app/01c-verification.txt",
+   "sha256_before": "330adf1699df352340e5dec1fc9b1bda6fea6937b17f1d3dbbfbd553e69855f3",
+   "sha256_after": "a0cb5af9f0db3a3ac40e8f25bedf55e3e19d549e45f4e0837d3a2f73830b0dca",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/01-first-app/REVIEW-01b.md",
+   "sha256_before": "20d1fb8c1c3138ef9302243b0cdab48fa57bb04ef54cb433bec30f4a03004069",
+   "sha256_after": "f88c558c26e23b847bbd600b2c0274783eca1ef1bd4bcd2daca5ad6d98d7eeee",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/01-first-app/REVIEW.md",
+   "sha256_before": "05147ef10ae0a3422fd202c53c6587e6a0338a72aa708f12087d628f486dfb8a",
+   "sha256_after": "e3105a51c5540778530f12271a090a531caf4a3f73c49f1514e53af9378a4ae1",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/01-first-app/verification.txt",
+   "sha256_before": "9f3cd2f945aa66bf130426f148ee5dde6e2566ea6f1fcedd6cef7d7c63864226",
+   "sha256_after": "0dd98ea0a0f7542b48c64940adbc2bd33904b7e2410ca7b15d3a988a7d679939",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03d/attempt1-run.json",
+   "sha256_before": "9c5c0fb2ce5fc862c7248e883b57f4122d394326e830d756d99f7be4c3883cc5",
+   "sha256_after": "261c8501c18df77a2b5178b2abe4fbad5e43fc1e553f8da2363c953031f373d8",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03d/attempt2-run.json",
+   "sha256_before": "bbfe90c506bdaaab03f5d66a7fe2e5428aae100c9217c525912b4a17f463e493",
+   "sha256_after": "b00571c027efcdaf5d5f64323ec2e9d963a2497d5f130f9e0dc6ecc7ce847373",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03d/prebuild-cancelled-run.json",
+   "sha256_before": "96d665167d85d809039f1d735ddf6a3449c2582daca5c3493a7be6bcfbd842ac",
+   "sha256_after": "f0ff730a7d9f9d9d815f730c027cb2e69ee7f496053736ae2aa6eb8970769233",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03e/run.json",
+   "sha256_before": "7ea31ef89b1f041501a8a637134106c9233c197aa205f31e4d7ed23984644aa9",
+   "sha256_after": "44b34cab6764daee638d12f9b326f5851e15312844b5e06741ad6494d8665d0e",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03f/attempt-1/run.json",
+   "sha256_before": "26418b2f8791232c59db8ef54059ca376cce649e1b8d48e39d7c6a9b6a1c8bfe",
+   "sha256_after": "0121885aff5d90713c0ce36571e8bb84a30ca0b7988ae0138aa947c0b36f7899",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03f/attempt-2/run.json",
+   "sha256_before": "a7f681473ff0f82c415d49af76f9000b0213798bdf77418c2782274b24edbfec",
+   "sha256_after": "ad71441e5e37e1d08219581d69139800af5d8ee87c208e62d8f61b76392df67d",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03f/checks-39734679057/run.json",
+   "sha256_before": "46f0fdee3afe2153a09036853eeaca8695f51626f2fbac548d7ed44e7b0d108a",
+   "sha256_after": "08672d90461cd268428dbb13eb6b709a91331aad407f3e2dc3baa55cff32705a",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03f/checks-39734786025/run.json",
+   "sha256_before": "ef50d4973259708213ccc56af430b4d2cfd8fe48ba4a250dded50259e01055be",
+   "sha256_after": "b00512129ef4757c722d53ba72cf77c0c8e2a9f710f0f2645597204018cc5dcf",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03g/attempt-1/run.json",
+   "sha256_before": "55891d5699caada9dbdcafd711b4be6809fad0a3b79982945946e9c3d3739a61",
+   "sha256_after": "073cd70cd3afdaf9190148d42d86626498ee2c063ab17c4ea50ea0418afea45f",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03g/attempt-2/run.json",
+   "sha256_before": "7ee9ad4d0eeb880db365e9be57a1b44ee617f9bd0dab69e62717ee3b80e3ab3e",
+   "sha256_after": "0b67710da005553db108e8ad5125deef6ff214a5fceee8a9099ebe1303d09a7d",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03g/checks-1/run.json",
+   "sha256_before": "db69af05926057dd0a9d7c3182df431aa4f9f22303ac812d91da7a728d266c99",
+   "sha256_after": "6b0c68cd18938e4f253a19e40294f4bb54bc4e73d89f6bdec2e887b61528f871",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03g/checks-2/run.json",
+   "sha256_before": "aac822b14d335d865619ee09b7ee9f1096a1307966b485d8e58ea9b4565306db",
+   "sha256_after": "e96a1f000e0ce88a5debb79f5d0d7a61335925085eec4ef33f34f7fd40278b77",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03h/attempt-1/run.json",
+   "sha256_before": "c04242a9158bf96819074b1193451c08f0eca065b9cda72c3cdcad3c611e99a1",
+   "sha256_after": "d62d8e05d6f820e4f6e68fe559b63df042c0af63a77026f8bd39e4225a8475dd",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03h/attempt-2/run.json",
+   "sha256_before": "e5139202f54b28a49decfae772abacf35002fc64cd9463df726586b29996e60a",
+   "sha256_after": "8268d0605b71efa6c611b0917aec3837478b2780ad502832113ab63cb8cc35a0",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03h/checks-1/run.json",
+   "sha256_before": "333ab0caec36c7e4d20fe255a00fdbe26541a55b03a72a54efb831b11057fa6e",
+   "sha256_after": "d5c801f9ad4ad1ebeb395896757af1a326d1a21388027a8b01f6b9f9d1402181",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03h/checks-2/run.json",
+   "sha256_before": "3545b79bc89b109a9668bc4238409408bb2c1336b1be8a33d630e45fc7eca01c",
+   "sha256_after": "6cc53bfe9ad0fb99fa312f981d99b3967be23123b3fe2bc74daa566747f525ee",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03h/checks-3/run.json",
+   "sha256_before": "a12bf19cf518334142a8abf6ee51fc855c750b072103fe690253c6ebcb4b2e04",
+   "sha256_after": "a4cf7a347aa5afb0cc34654ae0d1b06537822333eeee166f67c3260f21dda793",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03i/attempt-1/run.json",
+   "sha256_before": "be3b03bfe4b9d743fc9bd9b7daa6372d49e28663048b1050cfd500a3460d83a1",
+   "sha256_after": "feb7731549bcef631bcb702b356499f951b56a3771fa4bdfa4493935f6e416a2",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/03i/checks-1/run.json",
+   "sha256_before": "af8fc521fc476d6ce6951119dfbf79cf94d8a738ba8c11db90b063f5fcec8370",
+   "sha256_after": "19cfe67efc43eba9d32c791af85a1f87887f76dfb000241699b318dabf807bc6",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/03-os-image/REVIEW-03f-i.md",
+   "sha256_before": "b68fedfc01ae98035fafbfa48d7bbf9ca7d15c2efea9676dbc12160add1295ab",
+   "sha256_after": "8c03638b02374c669d775c2a5744a8e045ca010c510d3bf341b43af80c2ab344",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/03-os-image/REVIEW.md",
+   "sha256_before": "640ba0036544863470ede1cddafd7511445785049214f135bf53d32e1fa2fc2c",
+   "sha256_after": "269381a7a5fb347708f6b70bfe33984e97a6f7778d9cddb53f2fdb3fb65bb858",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/04-nether-home/04b-before-fix.txt",
+   "sha256_before": "8b9ce1dd3a0e6f9c7a3bd56f41275ab6992646fc3dab5bdaddfaa4d4d866d928",
+   "sha256_after": "fac7a54db1a21062aa772b734c2790893fd4d8b4397c0bbed7a4292d9b276c4a",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/04b-creation-lifecycle-failure.txt",
+   "sha256_before": "987d45c9fd584af41542a1947b72ca6fb851271d113faea18bf7e82956f8e8a8",
+   "sha256_after": "288bba4cb1f8ca34f723b4258f9489a19f2f74549857a072e166c27058d26b1a",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/04-nether-home/04b-entity-wait-failure.txt",
+   "sha256_before": "f098764e5c449048b46744221639a2a9d200653f5b46e46ffc9647f9752d3478",
+   "sha256_after": "80f3f7cff85724f182af33572c617726d072576f349d0f73e99f8ac48a80c121",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/04-nether-home/04b-test-compile.txt",
+   "sha256_before": "ea6fcc16a908ac7d810c4d5f03a2fbd9bce0d44f35dedc00fafba6732d4865ff",
+   "sha256_after": "7f8b02df23226df76cd5bd126ba5a94d00f7e87ab7ff7c1267ffa78d55f0917f",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/04b-verification.txt",
+   "sha256_before": "7e86df848ebafe89ddb42ff028d725da897059519ac29b6c807692e39d39d42d",
+   "sha256_after": "cb127fd479e6e12612d3f6b5a442de29e5afc87a0b528ee67e8c8be2f9e7c0be",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/04c-compile.txt",
+   "sha256_before": "07bdcfaca5f15d319ffd339de21ef2d6b9a8b0ca7f3588cd4bb2783694b11583",
+   "sha256_after": "8f9fcda07b5126e9ef148dd6ecc52a543f9b43fbb4015aed5c9471faa70b4692",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/04-nether-home/04c-test-compile.txt",
+   "sha256_before": "7233d1ea0d856584b45d05965cd7d7c8c98078ce9cecd472009bffd062d1e720",
+   "sha256_after": "0f2f3c4f5e46cd02a1cdfd4ec58c2fbac03426286a822edbcf4348507f4b7d0f",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/04-nether-home/04c-verification-fifth.txt",
+   "sha256_before": "b297020d00af25c7aee40c13eeba6571832b5cb1bf71b40e9bd8db7fa6fc3d6b",
+   "sha256_after": "06409943d72e14307fa55a8c6bd907c24e9e946d604744ed01b2efdd7c7b4c85",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/04c-verification-first.txt",
+   "sha256_before": "2e0af341830e89cdbaf7e307f5a7bbdd71d9bab77b91a7da8e547954cc2497d0",
+   "sha256_after": "8211b406fd865d94cf3f2dfabeb471d70bf83b699f5d6d9cbab185301e1980ad",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/04c-verification-fourth.txt",
+   "sha256_before": "1f1db680d19564bd8e304b0568d921da68d59613e18d3a36dd3f7205e3b9d272",
+   "sha256_after": "349505cd5d4423939b9cd115006a3ec15e6609c6b8c4ed4befe075b6221900c1",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/04c-verification-second.txt",
+   "sha256_before": "68fe720d3e4bfa12f773e39968f8476b484960e196efd329b2b4ff57c6c25088",
+   "sha256_after": "e8eae2a20e9d7cbcef197cf82751a1f440fcacb4f4c1ecf9c1d5454330bb9fc0",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/04-nether-home/04c-verification-third.txt",
+   "sha256_before": "87c02888a86f4eb3eaeab4e9c5d9c8d27fb5fecf191858d774d9372690e478db",
+   "sha256_after": "096a62eb7822bd77064f35bd03df732e152ec91f86ac8f0035013afcd2031818",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/04-nether-home/04d-fix-check.txt",
+   "sha256_before": "0e88e62ea67ff805bfe8a924da98e0947825939e390c1f39cd48f681b6f2b06f",
+   "sha256_after": "2a1f7ead9eca66e2991f8538fd79b5105bc90959327ec16c8553b85c17a2e415",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/04-nether-home/04d-old-code-final-test.txt",
+   "sha256_before": "438a11b56f2efe1027faf2be78f87a04ffb3d8da2868659ebbf8357ced0163ba",
+   "sha256_after": "39c49604eb8a9d5f051748771c37b77e7c2c65ac46eb7ea37a9a29e30a41ef05",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/04-nether-home/04d-old-code-load-states.txt",
+   "sha256_before": "0de639c7032111bebfd9049660d9878b7b50b9cc9011340a9c3720149a012061",
+   "sha256_after": "f39f7bdf70eddfbeccb5ed8e21758675f63b1a7d18d78fd97956c4fee144342b",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/04d-old-code-trace.txt",
+   "sha256_before": "07c34d4fc58bb6af604da211dec89562e78ad96b6a79bd0a4e8434eb1964deeb",
+   "sha256_after": "38381d565adb88aaa2663910f821032b7e2aa300612d9c36c1cc483e3d9c6c31",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/04d-old-code.txt",
+   "sha256_before": "685f8cf32ee69d8641f13030d4a0036b718bdd41e3ba27c9da5f562c91b97a63",
+   "sha256_after": "86489a8aba4fb78413a132992ac65f242062567498ddad76a733fbe8a12a90f2",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/04d-run-1.txt",
+   "sha256_before": "e070399dc87057b512e3fc84f80ab3780bf23bc0fa75569116b27ed68026f748",
+   "sha256_after": "bcb8196cb030d10d01d5c7d267b93539e65508f8fd476b5d3ff86e8fa7e26f49",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/04-nether-home/04d-run-2.txt",
+   "sha256_before": "0fea1655b250aedc9f307b7a444aed318fba2e2ab45185a239c3f3ef7c10276c",
+   "sha256_after": "bafea9dc4980d464f637b3bbbe39ebbe3832b00ec5e4bd4d9bae23afb0eca433",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/04d-run-3.txt",
+   "sha256_before": "959c01605826aa433439a3324d2ec6ebeaa936ba8fe077381b0c84941f439202",
+   "sha256_after": "8e0e48abc28fe2433642a71b24e39c3db55f4d0a4bf83ac91d0ab8dc1a014449",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/04d-run-4.txt",
+   "sha256_before": "1c3d29bf147a90cc0fb8c32c7ce6f98e716bd39950f79b4aa24592038b12519c",
+   "sha256_after": "31ef2ce1ce1745ee9b1e9e0f9de78b242858f5aa5b2387b7a9efe1f0eb4f9ddd",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/04d-run-5.txt",
+   "sha256_before": "0b82864bef36cab0bb2e79ab7fd44d9030b421fcb0d829fa63f8e66aae3fd0d1",
+   "sha256_after": "1a934306701fcd332eb9664b6a791a7d2e0d7f6d02e61c6c539b08c03db1ef06",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/REVIEW.md",
+   "sha256_before": "f96032c473b5b059a2ea3e944a4957879584cff086cc886718e98bfd0c721921",
+   "sha256_after": "261703e6dfa71931924c29989421fd7a0b5f666d46ff2f4dcf3cc09664b06375",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/compile-failure.txt",
+   "sha256_before": "5510eff9ad03a809d0f4aeec038d87014d121ba0fbb561562abe0be163aedc2e",
+   "sha256_after": "7d24768447aff263575b1c201ec9ac5e635ab842c761f7e5fa96ec7e9edf35e7",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/compile.txt",
+   "sha256_before": "47deae7d0a8229705c7e9e47eedc56af342aa449adae03eabb39f3ceb325576f",
+   "sha256_after": "bf12db5e01f9a66945f402b3390a42d3562ab96f2a0798e3ca037ffb32a1492b",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/04-nether-home/incomplete-save-failure.txt",
+   "sha256_before": "36470d05925df0a7e9dda7a98679d4cd543e2cb185b693faf15b93924faa2c0c",
+   "sha256_after": "ce8a41bf0a960681f4676fa8180413c3573cb3f883b0b7bb742cb11ca90d2f95",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/04-nether-home/initial-verification.txt",
+   "sha256_before": "988477320f92027bfc462b1cd0032b2a9078a683be10149164d84196785e72ea",
+   "sha256_after": "1620614cd602448948b447cc733355918adc91ee477eb320b96f48584f55f72c",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/integration-gate-04bc-failure.txt",
+   "sha256_before": "920661061d53ca91a6dcb9fcc32d855ed4be918d11b7663119c6888f4091743f",
+   "sha256_after": "ee13291dd63cd467751a25b82fa9a6fd6e4dc6a49909e047ddca8e418fb9111c",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/seed-search-initial.txt",
+   "sha256_before": "3378827d0f6c4e2651a9548aa6f1e6b9c72c4ba78b6d920314985ddd5492497e",
+   "sha256_after": "3662499fee630f4cc6969d40feb5ddec7afbd35afb719e57bd2054dafb799192",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/seed-search-refined.txt",
+   "sha256_before": "e41d4fde66c5c510e6b37007a794f80c463243b91e9b3bcece4516a1e5856bda",
+   "sha256_after": "64be436cfae84db480f606404aea7eb39a9d4829b38e5e9e78fbdf8c17f9b64d",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/04-nether-home/verification.txt",
+   "sha256_before": "2bd60335d5573c0229218de6bbde744b6ef42856eda3bbf640b6c9f0498eaee8",
+   "sha256_after": "91591b9af7df7d69b3e9360b6c68597cb2835fdcf919a419bdca614d98790550",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/04-nether-home/visibility-failure.txt",
+   "sha256_before": "13102deb6ffa5e4241372d1ca51489668eced8b56e0e2d4f11a1494394d87b30",
+   "sha256_after": "427cef0711cb07dcc7a05d66d64fd227a744edd68ac4ba82d7f8383fde4c8ce1",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/05-dual-boot/gradle-build.txt",
+   "sha256_before": "30151af5be1b9044be26db585b84b629453b8a72e7498527074e0dc6d1a312af",
+   "sha256_after": "f7e58a0558e0d71e42cf20e6f7ebf9f880036e69d98229c0f118693b8df12b7c",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/05b-dual-boot-fixes/gradle-build.txt",
+   "sha256_before": "b701e88389fda05295db6a3aaedcc8f4c7b98de45ec185d1a67d04e8eed37353",
+   "sha256_after": "d3e21ccc0f006d9d3ae274739e4b48d4abdb08f46373739fc0dc6ef1bef556ee",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/06-image-release/REPORT.md",
+   "sha256_before": "e306709830b51c3637966c4f70f9d329e09a7901420a858abe18ecbb7c5dce5a",
+   "sha256_after": "2b3c92dd09e5ba3b604bebbf43109aad57c8933d604c7a626284285c70a1e0df",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/06-image-release/REVIEW-2.md",
+   "sha256_before": "5d2793254cb85b067ec8cffa8cb9d72a8f5c4847813e33966398efd4477bdfc1",
+   "sha256_after": "8d1c657760bda9ddf640762aa965c9f236797b93bc2d873bd68024028220ca2b",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/06-image-release/REVIEW.md",
+   "sha256_before": "378aca261740e760c7ac56f5ab27a395291f51c02bdd8b6868a02a7cd5ad28fe",
+   "sha256_after": "2f5406a1215eca29ac32a8495324e5f4476130524003bce5347b9edaf36bedec",
+   "replacements": 10
+  },
+  {
+   "path": "reviews/06-image-release/ci-06b.json",
+   "sha256_before": "b296395ed0a3434fa1d45f893feb428dc28f2e5ff3bcbfdc34a9fe944d871798",
+   "sha256_after": "c999b707ff9a7149fec131e739b6e23ff9c7bfb3fcf550763de0fb42c811b2b0",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/06-image-release/ci-06c.json",
+   "sha256_before": "195fda19d90dd334695eb8efb788bda252a0b183b54a6cfba116e58733325dd6",
+   "sha256_after": "619b76b2145153a422dd267a3e5bf19f964daf5929bd7f2cafb48bc9891739a8",
+   "replacements": 12
+  },
+  {
+   "path": "reviews/06-image-release/logs/mod-pass-1.txt",
+   "sha256_before": "1b0c38aae5ef0e34499dea00e517f02ea6a5fc630293b983cb0183b95af520e7",
+   "sha256_after": "e7b19cfd4d3c21d475a8cd144ec1f865ca037dca96408ff27f21ee600c7910f4",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/06-image-release/logs/mod-pass-2.txt",
+   "sha256_before": "5570e2f5f43cd9ad388cd8f15e2ca8c778453fe1ccd8868a5faa67f276243812",
+   "sha256_after": "fd6d7a7a0a18411c99b1194580e408d314645440a5cedf798c6d5843de331214",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/07-real-apps/REPORT.md",
+   "sha256_before": "483be4510f962df823d9f9e90d391ba35397cfbc588a6a954b7f672174bd0502",
+   "sha256_after": "b0f75f88c85263a59eb0e7c611a912859861fd9335e54a84e0bc964252500fc3",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/07-real-apps/REVIEW-07b.md",
+   "sha256_before": "544ba6692c877dd89ee723e5febfe75c27efe0ed1378a1b71f533aad06995eb0",
+   "sha256_after": "1682353d9d98a72efcfd6ea5dcd6d2a2c3b75a075043f1ba27ea39caa6a0d66e",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/07-real-apps/REVIEW-07c.md",
+   "sha256_before": "2a95b1d19c1f1c639e662977c36cd2de4ed3ec00fa1abbf154874010385eed2c",
+   "sha256_after": "3c04db84175d95a33f547b2b98abdf02aa5491245e07fe40ac78916afadee57f",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/07-real-apps/REVIEW.md",
+   "sha256_before": "b8813a02685f30a0fb0f79401781716021a402389fb0b98fec8d061bbeb4c698",
+   "sha256_after": "d16fed6e45572d81a27f5acf77f423ac8030d4e1e4a4e72efc1979057dcbc690",
+   "replacements": 8
+  },
+  {
+   "path": "reviews/07-real-apps/verification-07b.txt",
+   "sha256_before": "1cded55d20758115747af6767c81d65ce40139777bff5ef688e4c689cf9636a6",
+   "sha256_after": "35dcb78ef77ca0c564ce61cd3b6af5d7b9ddf84ff1e17831e9a3e1d95b5fbba5",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/07-real-apps/verification-07d.txt",
+   "sha256_before": "3b5a21488f8d9c26d20451037d90afe4d50d2da87c92896dac91d3b2acc24669",
+   "sha256_after": "68ae7966e28b7c6c6286190f1d4b59128287977c57509f41968d07ad2561d5c0",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/07-real-apps/verification.txt",
+   "sha256_before": "55143d9076156e9705875f4875b659d24ea6b0eae312f2e8510e13c75e91c08d",
+   "sha256_after": "765a61553ffff179749d20c6a4720ba94c0d88016e88a0c4e05195e5d0ad8528",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/08-walk-in-logos/REVIEW-08b.md",
+   "sha256_before": "b9ae7df230b5674a7e30b4d016cd3f266b05c116ef0f782108a6deb2b42fb6eb",
+   "sha256_after": "730d14ee37f59ce9172f1d0553ad82a3d73a1089829809c5dbe3cfbd1451a015",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/08-walk-in-logos/REVIEW.md",
+   "sha256_before": "17dc17d6ad666364421fa439d4add312defa418003294cb1eabfb3f74784ea96",
+   "sha256_after": "db9293770d3d32b2dce10594281a0de91aac0930832ca5c6135228eab3d4fcfa",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/09-mode-inventories/REVIEW-09b.md",
+   "sha256_before": "bf5b1c9978ede12d0e915d5281ba0eff1b440e279e6f725aeed35d09920f8350",
+   "sha256_after": "0a9a33e87b0b5531053ef31e77a3707a9e199f9a48770539d95a5f77640165ea",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/09-mode-inventories/REVIEW-09c.md",
+   "sha256_before": "76c433cf79ff1f3e935c5f6a8d2d674bb484151f670ab19184a6c1392f84bd9e",
+   "sha256_after": "3b6386d54da28e656ca97d30c8360f8fc2aa213d05b4342e17dbdb171c641a8f",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/09-mode-inventories/REVIEW.md",
+   "sha256_before": "3449ef81cf9d8e8173c4fea942be90758a5b4b5085057c89410cb6b7402177e8",
+   "sha256_after": "07c13c8eba561d7d6a6d6a4ce1f948a16f11002e8e67fc1f1cec00ee74cef273",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/10-own-ssd-install/gradle-first.txt",
+   "sha256_before": "db87114d49e0cea31b95bc52e652a5be8ac31a20f8608ba496b8a68f315b2c2d",
+   "sha256_after": "34fa7fdad4b67852e0b6684af7e4ad3cf1d94cfb898c63ac4d1cb35febe59d7d",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/10-own-ssd-install/gradle-second.txt",
+   "sha256_before": "fc5c759d8e21652184c5bfb2280f544c98795e1dcbeb939161b6d8bedd31d318",
+   "sha256_after": "eaa282e11859e1da147ab39e8aaf652f7287d8591189664caade9c309cdd4ea2",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/capture-11c-evidence.py",
+   "sha256_before": "daf90c3d206290cbff9839e00039730eb28524a043f788efc1f3cc66fd9a9634",
+   "sha256_after": "f79894046aa5a346b8f1cbd54c8e2c2447ab6db1bfa694e528fffc658dbd6b13",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/capture-11d-evidence.py",
+   "sha256_before": "7a393f3e396ae7262c2c545b4434d479d624147c4818fef5cb5b26f2221bd388",
+   "sha256_after": "f4e812649a31582bef77b5dde70249be8639a0fa3131df5c68a6cdb3470426ce",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/capture-11e-evidence.py",
+   "sha256_before": "0f28b0d5afbd197d045b5454774b70a3c2375bec57a20bd52963cee6041b64cb",
+   "sha256_after": "50d6fd68174b300f0ea70a3ab2f470a712cd5b40be313991b68c1421e2c3190b",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/capture-11f-evidence.py",
+   "sha256_before": "09763abd0a944fa87acb9f6cf79ae49da8413ff2fb8b37e67c1a34868a3d676b",
+   "sha256_after": "1df88a70f1de1641bef0116d25163460bd61ae691ba4a870954f0995dd76272c",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/capture-11g-evidence.py",
+   "sha256_before": "79e839b4b5bc7cc95a15168cba9c05955dc60490f807596e199ffd15b35cb744",
+   "sha256_after": "1b3e5807224ddfa51f16f4a835dd3d1223a5049b7584c031a8ee69a384eda5c0",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/capture-11h-evidence.py",
+   "sha256_before": "f80bea2bff882bc48b89098f7cdeac946e04ab6c83225d41d7dbd6ba07771c40",
+   "sha256_after": "e7c370123cab421270cb03f09339ff495c5d52ffdc33772d979b5554eb100bc3",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/capture-11i-evidence.py",
+   "sha256_before": "33cc271956dbe647cb4aee6e88bafa5fa3332034a14afa1ce8b1a946bb168521",
+   "sha256_after": "825d799b765ebdf3808843044a143b82a5eeaaa95aa9a4eb24ef2fe81132910e",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/capture-11j-evidence.py",
+   "sha256_before": "53e9465805504c2b26937db307eb19b2fdfc9f5c4a6a818c0cba19a052c28d9d",
+   "sha256_after": "462312d6a26760f210a91dd0640e330452b8c59459efe3b4d79e2adc388ede49",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/capture-11k-evidence.py",
+   "sha256_before": "c39ec51d9e0a075aab210c71b285c92bf0724df9c84150e0a7a8547278948d34",
+   "sha256_after": "4f7b3bac2118e1e2de7b77641e5436c81f8e66ebf932b26ed4eb6019d03332ac",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/capture-11m-evidence.py",
+   "sha256_before": "348effe18581489b37bb0033a4f4b0ca579fb7fc80cd053f3baa03dd2622c63d",
+   "sha256_after": "472f7f789ab719cd635472e42691f8ffde29627d0342483cbc639dbd871d0673",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/capture-11n-evidence.py",
+   "sha256_before": "79f1656d41c5ea3f8e4d9d04ec230c111eebbae829a21f54d7756ba534a4d034",
+   "sha256_after": "945c7d51225636212c493a50f76dfc2956bb4015db3b12497ab9a16aad86b4cd",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/logs/11g/auth-tests.txt",
+   "sha256_before": "6ce77e69afb37c2a627c45712a1062d47368d42f8a285fdfd67933be5f8cec2a",
+   "sha256_after": "355014fd57cd1142515ed2625287518ff565654454d713fab5bc2686fb388967",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/logs/11g/budget-tests.txt",
+   "sha256_before": "0cb0ac6d3a2a1556d6797e9efbdeb3b37c2461a82ab0e730613df85cbbad2843",
+   "sha256_after": "7047038799124a6fa44c59c1936282a81aae2fe17412a17da69a92a26fe636cc",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/logs/11g/disk-tests.txt",
+   "sha256_before": "32ae67831fccf53e8a8dbb5d41354ab3a46b88d7a9f964ad362f02fef6e752ca",
+   "sha256_after": "e7a2b7a816a1a089ea9425b860f9f8216caaffaa86a87b1af14f9961a535dddd",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/logs/11g/stock-prepare-tests.txt",
+   "sha256_before": "39747049b2ee2ddeea371ad7663b238ae0a390f53a9260601f18d59bb8e2e1a6",
+   "sha256_after": "aecfa78c9804734b80277b0a0be049ddde081d56cdf2146c65f76696f4d40bff",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/logs/11g/windows-full-discovery.txt",
+   "sha256_before": "a48d851e96a35877cb4b5f22407564ca5a3cca01dee09825ad028d23d1bf7be9",
+   "sha256_after": "1c60a035667c7a89c104f2acb6e61abe11eba9a842171f5bbb1cfa4d8413e861",
+   "replacements": 35
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/logs/11l/before-probe-guard-stop.txt",
+   "sha256_before": "69fdf4354936d050f42ed0c79548ff532e7e3f6236ee0e5053edafeb73bd994c",
+   "sha256_after": "e812954caffe1547d8d1ae818b462468627fdd41b73b287c495b57db20b88ecd",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/logs/11n/local-native-tests.txt",
+   "sha256_before": "50799f247c3b986e531d79a07fb6dbf0bc6baa8afbabcb130b05ade20a6db23f",
+   "sha256_after": "b783fcdce752f31ff26b2bd63ccc695bb2e7eac73b0ddca022dc334265bb89a3",
+   "replacements": 32
+  },
+  {
+   "path": "reviews/11-two-disk-rehearsal/run-11n-local.py",
+   "sha256_before": "76759a65ecc315708a10b764db50c7b2d2f57318b24c18169ce8af3c0152c2a0",
+   "sha256_after": "7854ecc615b518e5d2fa1f115f4d819960a41ee9ffb07abdab833ffcdc644444",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/13-keyboard-layout/REVIEW.md",
+   "sha256_before": "b921be9c7a4af5ea0f951f5e4ce99a83b94532d6cbaf18cfae17378b43426de0",
+   "sha256_after": "4776e81d8852d7f5cadca52d9d6fa5816da472c30411677d142370558aaa9048",
+   "replacements": 13
+  },
+  {
+   "path": "reviews/13-keyboard-layout/logs/13e-local-suite.txt",
+   "sha256_before": "2a8403a7c76203558e9876cd3f62f62396378ae4d339f013e7682834d0486de1",
+   "sha256_after": "7c6acff99b72ed7233c19059cea8c5576e8cb23e3b7e3b8d83408522e019d88e",
+   "replacements": 38
+  },
+  {
+   "path": "reviews/13-keyboard-layout/logs/13e-physical-command-repro.txt",
+   "sha256_before": "efcab192720b95b0b8dd8d7f00d09144696a4aaae325a2d6c3d09833a1a407a8",
+   "sha256_after": "afbe0006645ce5e1ae338c4bc1ce07bd0a4da50d0acf6cad83b318f2c82ca51a",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/13-keyboard-layout/logs/13f-local-wsl-suite.txt",
+   "sha256_before": "f304706d49f191ae8d72e814095bd119978a81d3975189b946239daedcdce4f1",
+   "sha256_after": "2e3ba95974896acb3a6393751a0ffd85f1e14429bc018f3ded323663249d47d0",
+   "replacements": 38
+  },
+  {
+   "path": "reviews/14-owner-tools/REPORT.md",
+   "sha256_before": "fb117fd6e9bfd1940be3f4aaa24550929132b4fd5facf5989f142d24c2df687c",
+   "sha256_after": "77d42afbf78ced780ef107b5917a915cc4e1325547afa941915048624bbd13dc",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/14-owner-tools/REVIEW-2.md",
+   "sha256_before": "6f71a8df229ccaf827c40662cff40825d36c92ff311c14c09340856ce9419145",
+   "sha256_after": "372884afbf0300b935e8881f4d823b2f73a0e03c8460f5f1e704c846208a4057",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/14-owner-tools/REVIEW-3.md",
+   "sha256_before": "5134ecb322045cf5b72f3b9a725edc17e5727c9f61103ed17727279cef3d1ad8",
+   "sha256_after": "0f9e30920e3e8440744766666842f69351d3f897ed0a7f6f77bb7a80d18267d6",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/14-owner-tools/REVIEW.md",
+   "sha256_before": "1303e13ce37334aaa00fb25938a384b6b6a08a941fbe6c6213cb20264e966f18",
+   "sha256_after": "e7a23e6e5804831f6a00cf53a8c8ebda4124ca28767e7566f25ffd11975d4f74",
+   "replacements": 11
+  },
+  {
+   "path": "reviews/15-owner-path/REVIEW-2.md",
+   "sha256_before": "75d61bee18758277ac6157ef0e3e39d77362561753601cad6e76ec9b432b15d4",
+   "sha256_after": "f263805fd8a9a892f9e1f90c1611332c5064bf6059b64af8913bbfa6f842e50b",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/15-owner-path/REVIEW-3.md",
+   "sha256_before": "19dd61d52ef34395293ccc65e709cf12f9d013bca0f4e96837bb4035f3ac51c1",
+   "sha256_after": "1bea9a190f73afba36f623e7c26d1c8524783076881bdff2c9e0343d6606edd9",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/15-owner-path/REVIEW.md",
+   "sha256_before": "7a580d7b32901d628c0c346b448531101b6b4cd646e74581c6a98042f87e9009",
+   "sha256_after": "c9ef1ec87dcb4ee114108e2734fd8a71fe4975bf1c14295e4ad421bd16a8435d",
+   "replacements": 6
+  },
+  {
+   "path": "reviews/15f-lenovo-firmware-entry/REVIEW-2.md",
+   "sha256_before": "cfce4cebbf720f6241cd433c89ed90b78b4c0ff727c39bc6ad7b1cb570e9728f",
+   "sha256_after": "8f64a549eb9b3e3ef742d83f16336d57c4e8223294d24f259a9106793819baac",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/15f-lenovo-firmware-entry/REVIEW.md",
+   "sha256_before": "42d516a4d2c932438e6f0d962183b9e42fa39764bb174e20ec7f75147d286183",
+   "sha256_after": "324247f5bcd8937aa605ad3c729eddbb8c4084cf19e9e66aa108c5e1a8871341",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/15g-install-night-guide-fixes/REVIEW.md",
+   "sha256_before": "e3c2ddce55cb80791b25acb1572e4c94ed7c25f31854994ac35e257e8a578e8c",
+   "sha256_after": "48e8d0cd4e7dc2ded9f262a2599eaaf03047419d0140c0f9860fb57d75bdd260",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/18-control-base/REVIEW-2.md",
+   "sha256_before": "bb447797517edfa51220edf6ce0058fd097c13d07a10979249a995d1b40dac25",
+   "sha256_after": "b35c9a6a74415b1e9383c259e46f0bf4043aab78eeb3a7af0cdc89cdf0ba9eaa",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/18-control-base/REVIEW-3.md",
+   "sha256_before": "4c2a8360c6563652b70023e3243e7ceff558a472c4bb1f9645f5f895d47641b6",
+   "sha256_after": "443daaae7da1cdea6e43b825e9022df452e135850e8b004dcc20d0d2433a2750",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/18-control-base/REVIEW-4.md",
+   "sha256_before": "67b46841d6175b48cdbdf4387317512073f7b3bee8a859f66849946d5e72ea24",
+   "sha256_after": "3e6eb36950e0087feea8c11aa5c18d40ec11603547ceadf664461ee77759837a",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/18-control-base/REVIEW.md",
+   "sha256_before": "8e8b0d9b8685b010b63c4d0a392b7c81fdcae935e02cf3a1d64a21486e580544",
+   "sha256_after": "bc3f2646610cdf57955c35903b93e14dc746031646a0c48cdf181793ed9db3d5",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/18b-control-boundary/REVIEW-2.md",
+   "sha256_before": "de27a34e08f9e7be9ce214e799be98ae1476010d3a964c3385046342ba13b043",
+   "sha256_after": "fe2f7762e6cbe0f9ccbeaaeeab519daad77aaf5934bd42f0989818981ab28667",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/18b-control-boundary/REVIEW-3.md",
+   "sha256_before": "f9787f29c8962261727189fd7ca7bfe790cbc9675162536917964d87b0c10a5b",
+   "sha256_after": "a7703126a6ee0f8de8e5adb9ebd40e49a2825439e9ed940496b93fa64ec8d544",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/18b-control-boundary/REVIEW.md",
+   "sha256_before": "76dd1e14cad1182a7c39d601f978fea65bfe99b16d1f7bbaf06ceb282d5a3a95",
+   "sha256_after": "1edd745bf350196344f308a2e9f2153160aed4a6e25caf9d614089a163a3e946",
+   "replacements": 7
+  },
+  {
+   "path": "reviews/19-mail/REVIEW-2.md",
+   "sha256_before": "51950c655eb5c4db5b2baacf1ab8c4eb7298fa38ae14f6794a1e82d38b373164",
+   "sha256_after": "f76fdbc3b7d806d03402cadb6bf99e506bb87580b91ded9684dee3cdeda0efb6",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/19-mail/REVIEW-3.md",
+   "sha256_before": "974b821469c825fd1e9d5604704548646071bef80abf9113f82ec1b9b537b22b",
+   "sha256_after": "7ae46bed8eb1736a51b2a6ecf339bfeca9aba988311f8fb7b11c5b7bf4f6c17b",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/19-mail/REVIEW-4.md",
+   "sha256_before": "fce8621aaf082d009173a78ac19986ff9fb9924ee6198078208d165d89578fc0",
+   "sha256_after": "011dba4fc8226667c89524944c365376210a1dc682e9fbc4372df19744fa28a5",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/19-mail/REVIEW-5.md",
+   "sha256_before": "df8764524c41d4eaf0512d0a0b00ec266fb746eb3b0662010cead9894c100d4b",
+   "sha256_after": "785bbc3a3cba39704c76a9148ac863d87b354d8f7c128cfcde0e9d81134dae41",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/19-mail/REVIEW-6.md",
+   "sha256_before": "d6a273dd2ef0f13dac0b805701ea8a4ebec55c4e2dc05ac372f30056285f61da",
+   "sha256_after": "83d0bb0fa69e097a5a05d7dfe8e35694375bd8277e584c6d3c3080999543c6cd",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/19-mail/REVIEW.md",
+   "sha256_before": "7cf8282b445c8e450c9a13242398ab41047ebce753f8d02135692440ecd86290",
+   "sha256_after": "4e1ed8d424d882e5daef6a6b3c7d136216c92686b5efc0855f4e0a8b41b1fedf",
+   "replacements": 8
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-10.md",
+   "sha256_before": "7b30773a3eb510b1f916f07a9c6b34fde621401528410905e1c3091b35628466",
+   "sha256_after": "cf2af9710f90f5bdc9e26159d0504054c4cf94d7a73baaa5e3798e90fa7403d2",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-11.md",
+   "sha256_before": "c05e38911f85b656df63a71d259c3caacb1e17d9db5facdafcb1330ca306a9e1",
+   "sha256_after": "f6c78be9a8d7d5defd1f2295e258f1d371202254a61282c640aedb9a0bd5e6ad",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-12.md",
+   "sha256_before": "80a6176d86c1aaa83b347c31099cb6d96f5c23d1e23551205764344a24d4ed40",
+   "sha256_after": "4e8712886a9a7475854b8071fd013843a36e1184875586e4aa3fd8bfae2df019",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-13.md",
+   "sha256_before": "b1353b2d7d162050ac025a13acab27e1252797a9e6cac1b37e51cd4da9e3c5c7",
+   "sha256_after": "a8925c1307c2faaafc9a86875723a975f9aac5e11edbed160187e43df56c092b",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-14.md",
+   "sha256_before": "4f237e9d3316d6fd6f75d482361ceb31c1df7fd0728481fd1fd315ba30b91d44",
+   "sha256_after": "304ab63f2ec9aadd17cc90f094a9ad75071f38aaf58d58e02900eb995a1b596a",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-15.md",
+   "sha256_before": "14e5cc627b37ff18547f36cae76a2145de9a9b806af7c391c8d3e78d4110f8be",
+   "sha256_after": "df09b7140e2114fa92105a47e1d761923a09f7ecac2ee30df4ec4f8838e70ea2",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-16.md",
+   "sha256_before": "efae3edb24c906a55c9bf129c54a0f11c0553ed463f34b7da7125e78382b3f47",
+   "sha256_after": "34f23b3cad8e68c85c2500caefb1e8e34737ccbe6acf48d73c1908613cb334c1",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-17.md",
+   "sha256_before": "87d196c61f5f3a1b348182486274f9b9a652bfc619dd92a2365c9c7ce8825a1d",
+   "sha256_after": "4ae1f39551ca5d0cee352411ca8f08b7033358db81068a7553d6ff5209986839",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-18.md",
+   "sha256_before": "7f90b2bb42db9eba7e2e7958765c436e7b13f10e4971829cd6047fb6ab8f4103",
+   "sha256_after": "ee129951edc09c370bb442e2dbf439f99de15a80559c3f3b211605f26387c6bd",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-19.md",
+   "sha256_before": "a8be68767f0ead984fb19be3d81f013ab5648d20698827a721e660adb259646b",
+   "sha256_after": "5e731906500542a6cf2de35eec3515d0adf328213c1b8e851fe356a51864941e",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-2.md",
+   "sha256_before": "27d807f22aae2c3e527aa37642efe613d4446bbbb593f7d27609c879aba97600",
+   "sha256_after": "879f18cfc3c2dba5ad0f6c3f0028472c078a5c470d16b20775790e4febc0ad43",
+   "replacements": 11
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-20.md",
+   "sha256_before": "f5de79e6a7cba6ecd895173bf72ea16643131c49b66924a237594e139dd4cd44",
+   "sha256_after": "e2fc6fbe321cfa4e7adca035ba97b8b20f673f0f99b0ff4800a61c5e8017b6ae",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-21.md",
+   "sha256_before": "3aa022706b8e7c1bca80f1b324e54d5e709a093bdeb3ec783615236cab8bcd5d",
+   "sha256_after": "164e2da8f86e7f9165869361e3398d7b7c5d8fced351aeaf706d9a063d60d1e0",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-22.md",
+   "sha256_before": "2edaa92374aa405a804bb5918a6f1845ddb50c94fcd8cd6284dbc99ef8d81d5d",
+   "sha256_after": "1fe20b24abe33758a7def52a4dc2a682e85a4fe05d5a0efbc763e93c9c9f5da3",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-3.md",
+   "sha256_before": "d39f72ba88b185bf6ce3f9492515578e4378958d92ea48d9fceb73d23ffe9df0",
+   "sha256_after": "bdb8ca4e6a65910b9997e4dae54f91b11ac5c4b34e97466d924cc5d8d9b3a25a",
+   "replacements": 21
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-4.md",
+   "sha256_before": "b2ebfa3873d1341785c7034f1009f9c8352280acb928c362cfb974de00d24998",
+   "sha256_after": "99637ffd8689b5fc4f33895c8a30a54b101e8744fa95d488d0c592e8f8296316",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-5.md",
+   "sha256_before": "36e58e8e94a3191a3850a6375a6e3428f29efac6bd0bd90def0cc2529b56b4ec",
+   "sha256_after": "619c31db12e6ab4b2ce71d892d2aa709740a8d938b547593871239f4d29e57c1",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-6.md",
+   "sha256_before": "9ba05fe4cba4286ee6162e2d0bc46b7aaa71ee0b2fa608994b47f7ad195828ff",
+   "sha256_after": "181bd7f5acd5110dd6ce73828df40674a06bdb53143c4d3f0ae4e4914a3734db",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-7.md",
+   "sha256_before": "5689301e3c307e66d12f2468c6b0d23bc45bb61a0fed6daf40c96dd2d92e5fa0",
+   "sha256_after": "e494b94193bf2627332d41a11d9a7046b2b1fb9f2a9e0d5cf97eeef2305ebf36",
+   "replacements": 6
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-8.md",
+   "sha256_before": "47bad78db350c30855b2ee530d351d504edde6f0a8053ca0cc55e95f9051d455",
+   "sha256_after": "e879688ea66c8b3a927fee7b316f3f7147b6579720ceb347f96a42c467c4f9e6",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW-9.md",
+   "sha256_before": "b268e1a7ea43539456c993e55624434567bbd0e13b2944ae42df89e1a0377d3d",
+   "sha256_after": "14d15edf117718a84e4fb1483c866667258ee0a8205818b50f37165f23a42811",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/19-mail/SECURITY-REVIEW.md",
+   "sha256_before": "346f38de4b34f0353b77ba1cee7711873cb19e687c70f6092b7db5d5e61bf31a",
+   "sha256_after": "147b8cdb613fb1858d13c7f92464098180e9ac35b5eae5376231ee87fe147bca",
+   "replacements": 10
+  },
+  {
+   "path": "reviews/19b-owner-state/PAUSE.md",
+   "sha256_before": "87229fe627b2fd9e24c5b4fd4c014a391a7c4edbbb7db071273d69c2faf1de86",
+   "sha256_after": "ae5607acea59a0a3d3bff606b8c2bd6f15411f606af67ecf24dfa71cd4888f40",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-FINAL.md",
+   "sha256_before": "8402879c5edf62412256148b04486ec6557d2e9e5e1ef678dd162df47ee722de",
+   "sha256_after": "934150520ecfecf2b2c6ad03746de8919910821e82e6f6d157b9e205256c3933",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S1-2.md",
+   "sha256_before": "e8e5e404ff0274573eca14bb19032bdb7d2c70c8e8d27c80685289d2f8cf95cf",
+   "sha256_after": "98ff3e75cce3d7f65e42487a993e68b66e8a661ba871968e11ce390a4edb48c3",
+   "replacements": 6
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S1-3.md",
+   "sha256_before": "f3de81cf01a824a14839da172366b6dc560228bfdf830e95eafaaf776345a8ef",
+   "sha256_after": "2d5f4b1a0478e5cb4caabc6633af8d16ed24694722a1382ca5b000913fdecfcf",
+   "replacements": 6
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S1-4.md",
+   "sha256_before": "9a9ca6b5c1950dbd112cc9e5231e3c37e9b2b35a7fc3ee7d1002fd98ee79dc37",
+   "sha256_after": "2dcfa54ab62b0468cb132ebb2f305120c4c14d32dfcc459ba6f1e95c5fc764fc",
+   "replacements": 6
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S1.md",
+   "sha256_before": "03e76ae8715a2f84f53c3792663e206afe4f484c6208a768e131083ceecbe7bc",
+   "sha256_after": "02b6564f54002fd0ac215a2bc574208ff092bf8b63ae8e4df6a0bc3ade9999ed",
+   "replacements": 13
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S2-2.md",
+   "sha256_before": "27a76ffd99ce9ce25a2be4dc7ac775a87cca5f700105e8af6d2bafa68a82496a",
+   "sha256_after": "8055b7ac8d7761c12a4a9f4f0a2f018209d25370b14d17f809b06f7b2629617d",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S2-ASTRA-2.md",
+   "sha256_before": "7d7e13a54ac9b32ebec3ba067e6e1a9ce26842bd4494cc26927757b30bc034f9",
+   "sha256_after": "02e36ba460028e241fa4179cb443605ea4d945cd03ce28212db583e60dd7d98b",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S2-ASTRA-3.md",
+   "sha256_before": "fe348162d0689f181442d963958e2c04fe8d42fb6a06e2ea31c8f89ca207a44e",
+   "sha256_after": "b9a51ae1d43b4fd2d4042e6c6a85e2d7433a16f085466a0cf8f41282b948a899",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S2-ASTRA-4.md",
+   "sha256_before": "0ea10a604ce5a2f114f78c63023787a1a7047e64ec35afb60fa4aeca122376f1",
+   "sha256_after": "4a118788e750f83f743031ee673d1d1e94bc668500817e4697e698feae9f0a26",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S2-ASTRA.md",
+   "sha256_before": "8c4d11f95f426d37cf70587fa55adb1f61b684588bcf70b8e273ced90a15e0b4",
+   "sha256_after": "69e7efdee783d6839eaa8d51c8af1d7db6b5937468ccfc8022f016021f467fdd",
+   "replacements": 15
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S2-ORACLE-2.md",
+   "sha256_before": "d930823eaac6f2d3b98c74f8ab7af961e81fdcae5b04f8e8ac05ee27c31f5550",
+   "sha256_after": "d57cd3ad48b73bd8f641c277de84260593037af801e57927bedd58e9a9161ffd",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S2-ORACLE-3.md",
+   "sha256_before": "0dc328d3d4295b273f767dd1ef5f1ac18c35ddb4ee39b35bbe4df562a470c6ed",
+   "sha256_after": "c5082061e5f269eb4ff8919d4f7c8c5d396108b4f6a96da5a18368bb0b877772",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S2-ORACLE-4.md",
+   "sha256_before": "1c80df9c17643bd4cc2dfee9504fe9beaa66a774b8830cb62a2fc36b12aab53a",
+   "sha256_after": "7be37414452622964434b65f6a92a9c6407a65f17074f2f9d392d4b71b9ae13b",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S2-ORACLE.md",
+   "sha256_before": "3fc1a1c4707167c1fd9e6bba475dc56a2904336c93f1e572c5211f5a8faa034f",
+   "sha256_after": "684d265f7f12114598e1b2115517d1b93f8fda0b0c880250ce5ce6e3e30e2519",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/19b-owner-state/REVIEW-S2.md",
+   "sha256_before": "b3edb6df70875697ac77c79213d1736246b2fd5b4fb29e8b75caf80ac30e4402",
+   "sha256_after": "f96924a70fb7d8616f54d7de04a64f6b3ef3988f4c40086b5f4ad27395a3e194",
+   "replacements": 6
+  },
+  {
+   "path": "reviews/19b-owner-state/SECURITY-REVIEW-2.md",
+   "sha256_before": "930df49af9a10388d3147a22fa52127b095f328338f1265f856fa11d14c07678",
+   "sha256_after": "aa6d3e1b5a2fe37d80addacf5a97a00b74d72090b2c26530d4a6bc72457ed77e",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/19b-owner-state/SECURITY-REVIEW.md",
+   "sha256_before": "2287748caa4cc389a3a2ea72412b8c549939f3f992e9f0a847d8ae03246f1e09",
+   "sha256_after": "fa09c5ac2ba862f4ebfacdfca47bf6dca0e76513873ceb3544cccf2b6712dcd9",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/21-everyday-account-and-chrome/REVIEW-2.md",
+   "sha256_before": "f7bae0a8f8df87f1136036a6275b203b620541734a23fc3b3235d53252b5e629",
+   "sha256_after": "ec438e945e75a05c1ef6239ddc2f272244378dbb881530ae9bc75249672e0626",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/21-everyday-account-and-chrome/REVIEW-3.md",
+   "sha256_before": "c92432f1775113a3f7ef920cf8f835058402005baaa55805e79eab6dd48c5b0d",
+   "sha256_after": "01a45a1f9cf04925712441e8c9007c7bf7182c7fa58f72763e8e902566bebf9c",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/21-everyday-account-and-chrome/REVIEW-4.md",
+   "sha256_before": "cec1e0c32006bbab84b8a1e67d41386eebce526c8b2dfed425c457fe71748f99",
+   "sha256_after": "3855273b5b87e155afe05cd22f72b045c3643ea958607f05915ef0fa461e67a3",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/21-everyday-account-and-chrome/REVIEW-5.md",
+   "sha256_before": "cac8ed9de8c7879bb332c3bb99aad34767678b8f31f79f1953004f87e23b871b",
+   "sha256_after": "5e2e556a3af25648de42497e1c1310b942e1681635cf55b37e019df2ba73c6cd",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/21-everyday-account-and-chrome/REVIEW-6.md",
+   "sha256_before": "68999ccde08940c3874ee2df121c16345a98aee214267c8b34bfb33cd943e219",
+   "sha256_after": "d00a844932ed576c08f591811c46d7f23e4a6628d277f8403b9477eea783e6a2",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/21-everyday-account-and-chrome/REVIEW.md",
+   "sha256_before": "e284b7b4f84ea06adb60ded6439a83a2bc95fd890c6822e3d042e1b8ad9af45b",
+   "sha256_after": "4fe0ed0a6e3b9e057f4f610b7bd3a6f30f7a363637e20926999ce2d32bd91ee0",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/22-update-route/REVIEW-2.md",
+   "sha256_before": "df0b791073e667b28f60dc45559f606797a4bb38dfdf8d14b61260021a9af288",
+   "sha256_after": "cddf85e820675e872d407776527365b68e5b6c25958c64644e5cf0c92b025063",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/22-update-route/REVIEW-3.md",
+   "sha256_before": "ac5468b48f13cd75ff6416b2faeab6893547d47e118eabe3a27249856f78cc78",
+   "sha256_after": "408e417ed5c32581ec0a1b16d92a35425e685ac02a9248dfd867631b867e824a",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/22-update-route/REVIEW-4.md",
+   "sha256_before": "b238f2ef31d6879f80463e6a5aad4f324ca35b2fcee4aa7e8ca8244a78c2a0f0",
+   "sha256_after": "3d3c8e33e8d0a033266c524f49f5e47d7963b6d6094ab2e33ed8b68d6b4cfeaf",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/22-update-route/REVIEW-5.md",
+   "sha256_before": "3663791c7f05618f35dc6477e7604e542d9ac742dcb8199c496bef1921c08216",
+   "sha256_after": "24a50afd5b68e7feb1ab5bd3a4040a0c65d6af591571d93c154f58e73d3b1dd4",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/22-update-route/REVIEW-6.md",
+   "sha256_before": "a75f16ee674d1e4b15c7e4d668ef0ec4a16b13573a541ba0a36bd0fd6d240390",
+   "sha256_after": "72ae7f4a31416cbf64e4301d3a8194a77a9638ab1feab98af81303c3c61465ec",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/22-update-route/REVIEW-7.md",
+   "sha256_before": "dd631bcd7bdcf2668e2165dbd8c49a96d29bf62a2ec5ee978b6cba6e331efc30",
+   "sha256_after": "636c10c7c10e0013d0b179d174f6b5c508a703b44d64b17953e0227ce9455aca",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/22-update-route/REVIEW-8.md",
+   "sha256_before": "3203d7a1f04867a9db242f3dc474ededbb4def58bf398b9b7cb5e20361e5db12",
+   "sha256_after": "8e98bac22744491ac29265b9d1ca783edc59c69b8f2c5b14b4308747987b7ceb",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/22-update-route/REVIEW-9.md",
+   "sha256_before": "6d323f7a18de22c64bc73c47c27cb98af1ce36425b28d95e393e24fbfa8c8fc8",
+   "sha256_after": "a4a373b9f9998c95b889f8bbb89238c15a90bdd6484a591b899acb4d8637449a",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/22-update-route/REVIEW.md",
+   "sha256_before": "4b74dcb17d990541a6054e93e8f1fdced6df3e133ec9c4b15ac2e715a4da4d48",
+   "sha256_after": "2953ee65ed894760ac4931611380fb5585184865834de4dbbc28321dcb13c432",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/23-minecraft-starts/REVIEW-1.md",
+   "sha256_before": "a30a30bcc0e7327352bd6726300c3d66686947d7df7f1be3e47a734d24c14da9",
+   "sha256_after": "0820b9b425dd4fec20da558be55bc4d477de8eb360827f7b360e665907097b79",
+   "replacements": 15
+  },
+  {
+   "path": "reviews/23-minecraft-starts/REVIEW-2.md",
+   "sha256_before": "57559c82d5cc426a05689597d34f2b29de6b663c90aada37957bf4456165153b",
+   "sha256_after": "abcffb91f016ce00e2ff900ff3ce0bd8fe93489d82bec68caf2d4951bc3d4d53",
+   "replacements": 12
+  },
+  {
+   "path": "reviews/23-minecraft-starts/REVIEW-3.md",
+   "sha256_before": "09757dc6c2c3178c6e114993ad08c3defbb8725120fbe88afb57e02d67bbbb1c",
+   "sha256_after": "eb7c8a337ef3b547febfa83276527bc6eff29196d8c86ee06bfc9f11319ca6ea",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/23-minecraft-starts/REVIEW-4.md",
+   "sha256_before": "ea2001454d99eeb1e64bd11055b6fa4bb3508ab809f4237453ac516879439708",
+   "sha256_after": "2c8d0dcc9b4540e029877fe7e2c4f181ba1dcea9e163670c9341444eeaee715f",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/23-minecraft-starts/REVIEW-5.md",
+   "sha256_before": "b51f42127953ccec72dde04deb8a480a09f5261b1c986f34199ed5e2874e2f1e",
+   "sha256_after": "28adbba5303f7e19d1cbf7071906256c70d848820a53899b4159ee3c1f4e2611",
+   "replacements": 6
+  },
+  {
+   "path": "reviews/24-interface-v1/REVIEW-2.md",
+   "sha256_before": "82f166ec2011bc6e8dc6f6db04c58843bba72356e3e90f93de2bb5ca88336473",
+   "sha256_after": "81ec21d0e804e3a7a0e1afc2b1ce4a4003133912daa4c9e9181fdaa51d6e45c9",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/24-interface-v1/REVIEW-3.md",
+   "sha256_before": "57a75099de1bf28a3daf5824d14a3ce032c0a44cc9847221c0df8b1849589a71",
+   "sha256_after": "1cb0cca16dde3c62417854b6b7b78f40dd9dd56ece218adc6cb20054bd0acc02",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/24-interface-v1/REVIEW-4.md",
+   "sha256_before": "142e8a004d939d8cfab10384da9d531eaeda411ac0e95c1087d185cd48417ac9",
+   "sha256_after": "d14fc53e8599c9502c3c0be0b68bf0bf944879c3b78e8f7877228aa73113699e",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/24-interface-v1/REVIEW-5.md",
+   "sha256_before": "b4a57ea84bc3c1a097a90ed5cd39417ee2ea82a3e1c4c59c9a5928e3b75d5c2b",
+   "sha256_after": "9dc16e1f2e5fdcbdf8fcabd195e186f572121b7b8ff44e888296fb1844a6298a",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/24-interface-v1/REVIEW.md",
+   "sha256_before": "517c523b6e7bcfb398bf5a0889ee2b51f5d0dfc9e25e11ed1bdd185164c2fc59",
+   "sha256_after": "7d0e20f7695522c9a94906430de81d716c61b1827fe1c168bc215158bbd3f674",
+   "replacements": 7
+  },
+  {
+   "path": "reviews/27-first-update-release/REVIEW-1.md",
+   "sha256_before": "9b5fb6b486bbde757dd0e00c3b388772e7a9886fcbf74280ec40398bba9dcaff",
+   "sha256_after": "edc29ba28e1689d93f22c098b220df3c89f64c1facfd78a666270a026dabb55f",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/27-first-update-release/REVIEW-2.md",
+   "sha256_before": "d68a9196d52cdbbff8949fb13a98aa9362785e77ae3bd9e396bcb69396eca0ca",
+   "sha256_after": "776c847a92cb93cf7de6fec9b4aa5e90fdf1080b390a4e9831f39fb9edc3f43c",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/27-first-update-release/REVIEW-3.md",
+   "sha256_before": "09a38f39ab7274879967e8dd0c0a66754d72893a93550afa31935341422bd7fe",
+   "sha256_after": "06b74455ddd53315cef433786893b410f42081d8c9f1b354a52d7452d1aceaec",
+   "replacements": 6
+  },
+  {
+   "path": "reviews/27-first-update-release/REVIEW-4.md",
+   "sha256_before": "0bf43c9d24dbe0866b18f7d93906412586b4ada9c0ded167916f9eb0dab11cb5",
+   "sha256_after": "44754545d0ed45d5e808bf32ff29405df4f4cbfb0f50f6e2e17b886391d19bcf",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/27-first-update-release/REVIEW-5.md",
+   "sha256_before": "5f62776e3e9ce3da6068ef713428bc9ecd0f5ffd1d6bb0efe698b771a284e04b",
+   "sha256_after": "b61210e557a3905049137635ae9d1b26f0f7dad11fd07e3d8e72eedd6d529372",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/27-first-update-release/REVIEW-6.md",
+   "sha256_before": "79c122beb6af09243ccbc4444a6094ef3d94d40fabcdeacd5767b90b3c721eb4",
+   "sha256_after": "802d9666a3479bf7001de5c2ca58c5835565f526c7d43c2b2ddb6e1ce3fbca6b",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/control-design/2026-11-07-RECHECK-10.md",
+   "sha256_before": "10aca78565eaef35f1a00174be790070d0df9d78821079aa10390901135b2a4b",
+   "sha256_after": "c9c0da1097ae515e05f89873c1ba317bf4be8d086d407d587847b97780653160",
+   "replacements": 24
+  },
+  {
+   "path": "reviews/control-design/2026-11-07-RECHECK-11.md",
+   "sha256_before": "4a49446e58d46f7eac9ef450d9bb06c60ebcfb36dbedc0faaa9934bda8d790cd",
+   "sha256_after": "8421096e65ed16317871626099c400865fd64d9707ec2a10c32241e6525afc32",
+   "replacements": 14
+  },
+  {
+   "path": "reviews/control-design/2026-11-07-RECHECK-12.md",
+   "sha256_before": "0a4f13d5d6ba723b73c744e4e99ccf1758d9f79cace05d0a8608a234a882c5d6",
+   "sha256_after": "7f4cf7cac535815a1c46eaaae336178491ffdd5eaf8a2e48b96045fcfdb7f06f",
+   "replacements": 13
+  },
+  {
+   "path": "reviews/control-design/2026-11-07-RECHECK-13.md",
+   "sha256_before": "04e8ed54f1e152c787d04a7af35b52d36fbe0c45fa9ee75ba635fb8d4bafa54f",
+   "sha256_after": "5a366ed72c36ea6d77310bdab39b97c4d809dd956b1e237a3c0c800d17bfea68",
+   "replacements": 21
+  },
+  {
+   "path": "reviews/control-design/2026-11-07-RECHECK-14.md",
+   "sha256_before": "eaaa351848327b87941f8c3329ac4bbca84b469b195432853ef29ea18b2bf346",
+   "sha256_after": "75efbab0428c38230e135923feefbe84c0ec652efe42191b997f40ae7a35392b",
+   "replacements": 7
+  },
+  {
+   "path": "reviews/control-design/2026-11-07-RECHECK-15.md",
+   "sha256_before": "cdf8be52b13fba9902c824cbc42ad1767703187044188ce0fba95bb8ac5abfba",
+   "sha256_after": "dcde7b7734c355207c6acdff6f3ce9dddbd2b7df68f3321a1c627cbd0d88cef6",
+   "replacements": 6
+  },
+  {
+   "path": "reviews/control-design/2026-11-07-RECHECK-16.md",
+   "sha256_before": "49772c479668f56e18801961e6902180dbcb6711f2586d10261b80e130af978c",
+   "sha256_after": "daefe33c57725d049ad5f89d4fbf118925862c30c06723508e7e7ff8461b09c0",
+   "replacements": 7
+  },
+  {
+   "path": "reviews/control-design/2026-11-07-RECHECK-17.md",
+   "sha256_before": "1da91b8f4218dad08d0c938b3bd08ef9623b589d27f4dbff20ad6ae153ce919c",
+   "sha256_after": "c24e930352e7e1eba0cf477bab7f14b6f12bcfd8b49197c0479b019ed04cd0b1",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/control-design/2026-11-07-RECHECK-8.md",
+   "sha256_before": "ba5f3bfe92331244d96214064959329b2124e9861152fa1d0e624c0f7e0c1603",
+   "sha256_after": "0c7e515c1a40128908730dc0ac24e56852acfd23f0f7c4f278685e95d9b51131",
+   "replacements": 19
+  },
+  {
+   "path": "reviews/control-design/2026-11-07-RECHECK-9.md",
+   "sha256_before": "ea42260055fbeb97158b903c03d50f0a10e9bf56d3c763215a12880af6e0c1cf",
+   "sha256_after": "693556be4975b5536ebd6e315226d58b9a8cf8fd9bd7ef1c7c67a9d1126b8a4b",
+   "replacements": 21
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-18.md",
+   "sha256_before": "96bcb1e08ae5966e133b87f2eb4687ba9c536dbbfac93d8a2a9513fddb089bcb",
+   "sha256_after": "cbd6ad1299bc0e9a82f4abfa89f228bb9cd555a79353eb65fb1d180afd1954fa",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-19.md",
+   "sha256_before": "c494e799699404ca404fb3a02df0d14a5668b66b172251ebc575e8c847479e92",
+   "sha256_after": "328c407e76f189598fab3c81a4752eaa02c1f930ee845411ffd9c1f59fc1cecf",
+   "replacements": 4
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-20.md",
+   "sha256_before": "b1d265ac6100765b15d139abd74992d99354dedb9f09fc6baef85f2173f8eaa9",
+   "sha256_after": "7d4336559a060f3f8c51544ff874d00f865cd93777242cc9d7ce7d967d778a7f",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-21.md",
+   "sha256_before": "be2917624ac56eb3a703be3c4479069ec02c81f863b75d4a2484e12591fca6bc",
+   "sha256_after": "fcd500ee978c9e0bb22bdce62ba72eeeda0c375c4031caf6bda6c2e053758b28",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-22.md",
+   "sha256_before": "8e0ba09976c5b41514e8abc7ea613189c4ebbfb9b61722c9e03fe37b791f46e5",
+   "sha256_after": "7418c48ed721beba2b579794580f372779a95be1e587f900b19fdffe8d454a29",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-23.md",
+   "sha256_before": "fb91a273979134c9f455ec2578037d168411cf62b8b4808f237524f73e2ce65d",
+   "sha256_after": "abd738c17fa0e0c5023e3d0dc54f63dc9c99501abbb3cae1736ca1db40ef4922",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-25.md",
+   "sha256_before": "1664e2975b883d864a01ff2a60b18b7118a1d3fa202d7e66a9f792309bba45be",
+   "sha256_after": "46e3e18425759f374948039abef9ff10e6c60c73f6123733ebb7ca7ab80dd046",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-26.md",
+   "sha256_before": "3f04fcab06e3ae72db8a7ae0aa054e8aa889501ac47446f4f94ea5fb016732de",
+   "sha256_after": "774ff008096dc7d5426efa8692ae37faf2db221919ab13ddafdc6c5b80ce81f5",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-27.md",
+   "sha256_before": "161914d6483663023f67dce8e23e4e2f272bfebd622047089ed7bbe3a176888b",
+   "sha256_after": "1a9d24547035c45b835b2d8cb6b8f73a281ac1b7104e6429b86fe07ea24320d4",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-28.md",
+   "sha256_before": "d775c3169ab523e0f50ea6f9b7559780d147b9436276d5eeb52806e6f152b958",
+   "sha256_after": "64d8948756efd772dc4da43a5c9f5a6513aec7f380a3d4865a45cf9d97f5bfb1",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-29.md",
+   "sha256_before": "4aa5539ea50397312a60f08fa587440fb0c5929f9e29ba8ed5e25bfb445d4216",
+   "sha256_after": "84c402829879cca920b2d980bcfdaa6aef2fb52ddd573eb9887d2d7aff766b7a",
+   "replacements": 5
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-30.md",
+   "sha256_before": "6ac053914736c5460fc817639969e8f21e6ddc6ff1af8d2b896be6275a8a86af",
+   "sha256_after": "77e658b9b64f73d9e5c9d806dd98b54d80915ed5599a4435089e4734d978d380",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-31.md",
+   "sha256_before": "ce6bc72d78abd913dd491e3cfb8f9d5828f57d852fac4a04759a19178de00c21",
+   "sha256_after": "e317a6aebdf30de239048a5c18f5f31f041b035b5777ab4057869c0a96771949",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-32.md",
+   "sha256_before": "2c3348f2fc82c08751fb95b3c4b85b174d407e4e96a903ee7f24738ad29decae",
+   "sha256_after": "c02aabb310175cfb0ace9a2ee8c4a1045af55c21251df33d1316398f8819bfac",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/control-design/2026-11-08-RECHECK-33.md",
+   "sha256_before": "5149058cc295673e6b32beb0596bd3c673b59b48d5cb1c8af191915787636bc8",
+   "sha256_after": "e0f2abf0ad23c1a34b20514aca67f1c885d7f35e217164e16990ae4ac497751b",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/councils/2026-10-21-dual-boot/VERDICT-DELTA.md",
+   "sha256_before": "5c680a2f347d191ff046b1adf3a80a66158a2de892b0219abc366c9318a28b47",
+   "sha256_after": "9cc2ea81cfe53eaf6162a35ba1bd1cb9ac23e9967ab4e903e37e3ca475e51499",
+   "replacements": 19
+  },
+  {
+   "path": "reviews/councils/2026-10-21-dual-boot/VERDICT.md",
+   "sha256_before": "21b24bb78e09d2aeae76d4a6de2d57fadb206ba7671c275dad97e0efddd68a15",
+   "sha256_after": "96778c1a3d6ee64d5a0d9e3ece15e6e555faabc59f45008f3e63c2f73b3f10b3",
+   "replacements": 8
+  },
+  {
+   "path": "reviews/councils/2026-10-21-dual-boot/followability.md",
+   "sha256_before": "ffb6bbc65f31391601eaa77d9215244a7534f8a81f58237778772bc71c36b5be",
+   "sha256_after": "758c93d0090f86aad3d109866a34de0c6645f62505f50acfe2438e05041ff917",
+   "replacements": 6
+  },
+  {
+   "path": "reviews/councils/2026-10-21-dual-boot/safety.md",
+   "sha256_before": "686d5856b6a8be8b6cc89d8f98938765a5644a17b0b10cf5ff09f5e9deb211a3",
+   "sha256_after": "7018fc139255efa6da6a17d37e5163288630c625844b0c5dd468788d136f7451",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/councils/2026-10-21-os-base/VERDICT-DELTA.md",
+   "sha256_before": "32f8094123016f9ceee313bfdfbb69d8ee759aa5d12fb10d56720cb43d47396b",
+   "sha256_after": "aa0bf14384b810a3a4500a2ab5ece3a7bb5d52e26d8e472422bc283a884f7b11",
+   "replacements": 15
+  },
+  {
+   "path": "reviews/councils/2026-10-21-os-base/VERDICT.md",
+   "sha256_before": "bafe289485eee1dde5c70344905977daa6e9bf8b96a586bd61acafd5ce715de0",
+   "sha256_after": "779236b57f418b895e76d4c60c72d422978ccf3f0cb471c72fb1d88db1b7418d",
+   "replacements": 14
+  },
+  {
+   "path": "reviews/councils/2026-10-21-os-base/architecture.md",
+   "sha256_before": "c94f8873a3d39867abc85e17177e910cd2bd98aecb81e5934b1456cea667ad9a",
+   "sha256_after": "d9397f5acfb8c80b83c054df61b1cfac9f2eb1d94ba07ce5fb2f4b8e249e2380",
+   "replacements": 10
+  },
+  {
+   "path": "reviews/councils/2026-10-21-os-base/player-feel.md",
+   "sha256_before": "43b591dac6e6a7d5e8b1e6ca08fc9fea7a75258eb927311b888a23a4816475b9",
+   "sha256_after": "90fcb960ecb424a2b45a6c2f4eeb27644ae47dfb5af4f1412365e51335db4443",
+   "replacements": 9
+  },
+  {
+   "path": "reviews/councils/2026-10-21-os-base/reliability.md",
+   "sha256_before": "69615ab2f90cbe9da8e90192c57a2809ca5f6635261f58aca29a4e9095a0f8f2",
+   "sha256_after": "e02c3948b91b23a93ce41a35a6776b23a4e41228dc35e412916782d87d59f74b",
+   "replacements": 7
+  },
+  {
+   "path": "reviews/councils/2026-10-21-os-base/safety.md",
+   "sha256_before": "e2bd0b5949fe9a24993eb9537f0f6e8ee7c116e48951ddf38d9450d482ed1376",
+   "sha256_after": "ec57af1d9932beacdb255bedbb98d67c7bc3bac6e2576dbca66669d30d548911",
+   "replacements": 3
+  },
+  {
+   "path": "reviews/councils/2026-10-22-own-ssd/VERDICT-DELTA.md",
+   "sha256_before": "97549bed288294a73d4327c668851d3c321cb8c55dbddce88a8a450b83162fbf",
+   "sha256_after": "6ae01276d59e8f3ed60f986e69cd4ae81553b5d05d3d1d1e2dd1141172b27d33",
+   "replacements": 19
+  },
+  {
+   "path": "reviews/councils/2026-10-22-own-ssd/VERDICT.md",
+   "sha256_before": "9e04a206aeb365ab827735693e48bee5e2d7d5d0d1b94a89e5d5193725c60c56",
+   "sha256_after": "f8897963804dfede18c13c07405396010120d1969537aa4ddb3a9e7634c221d0",
+   "replacements": 6
+  },
+  {
+   "path": "reviews/councils/2026-10-22-own-ssd/followability.md",
+   "sha256_before": "dd4997e03c060664a6fa0ddebe729ec721b320ed19b61c6ec715b60a71b136d0",
+   "sha256_after": "fcbd5af55346ceaa00cbe8641554a8b06a3c3a28825bf759905952feaa7d78b3",
+   "replacements": 6
+  },
+  {
+   "path": "reviews/councils/2026-10-22-own-ssd/safety.md",
+   "sha256_before": "4a2c4d62a87604a0909696f26d86adb3f1d9745d0c96aaeb8516928f9a830f4a",
+   "sha256_after": "86606c63a7586a41ad7d429d7df91aa7a4abb932d2b3d9796c1bc274883fb665",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/councils/2026-10-25-install-gate/delta/RECHECK.md",
+   "sha256_before": "418211090ef2329116d7338c949949f3582f3a8fae4499312e4e065963768b17",
+   "sha256_after": "806693feaa90349b98604aa9e136cf24f2d10fcc10e19ec2de5a44533ff63102",
+   "replacements": 20
+  },
+  {
+   "path": "reviews/councils/2026-10-25-install-gate/delta/VERDICT.md",
+   "sha256_before": "c30da72fa99081f8e3a6485acebd6a4d9b53356ae10cf6af044bd63d887c779a",
+   "sha256_after": "422f45c5d06a221e6aa97bc2ffe1ad4744db3354010bddb46538165c68bbb511",
+   "replacements": 37
+  },
+  {
+   "path": "reviews/emergency-card/REVIEW-2.md",
+   "sha256_before": "fc7020efafe172dd733a21db1872926c2ef930c0f1bbbf720aebac2b48052c8b",
+   "sha256_after": "7b343f3cc0051b81072bcd4a9cf01d455c5bc7b227dfe60b2ee399bdccf3fc56",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/emergency-card/REVIEW-3.md",
+   "sha256_before": "70a4d29e984c90da5c11acb533054220e64c17f2693a790d9f2c39e29ca1a04c",
+   "sha256_after": "262ddc37cf0d8eca402cf4949b00a39b2fb10db35a9373849bf6cf142dd6dcf2",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/emergency-card/REVIEW.md",
+   "sha256_before": "38d1385148c776c9e0cca4eb8009429c164a08c64bf8bb2eaa494aaf4fe0957d",
+   "sha256_after": "9549243dc1fb383de61eec3bc599d1772ae247b7a54e35293fb685e15abebea7",
+   "replacements": 7
+  },
+  {
+   "path": "reviews/fix-owner-update-test-leak/REVIEW-1.md",
+   "sha256_before": "326ee3e41dffa0f2d89c4732463b350ac447fe8e1fff1e05f7755c9e6adfebc1",
+   "sha256_after": "99f2601273383c8e213ddfd3d8f94d57c2468949c98ee9a2287828f29957fe7b",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/fix-owner-update-test-leak/REVIEW-2.md",
+   "sha256_before": "7aad83dc5aebb431394b458206640be01a1114d32cd736c0c9eab1aecfa17bd4",
+   "sha256_after": "e59bbf3c1396401deb43e93d6dd3aa29819ffa8235762a1f071a29f768343c3d",
+   "replacements": 1
+  },
+  {
+   "path": "reviews/status-stage-b-checked/REVIEW-2.md",
+   "sha256_before": "7098542689548041c81f2188a4c3b0e3b95465d794712c84ea397af960b58f4a",
+   "sha256_after": "2288ed50579f0fd40caf88b2e87f8aae22850b07b686c3b97dbf7bdce3b9697a",
+   "replacements": 2
+  },
+  {
+   "path": "reviews/status-stage-b-checked/REVIEW.md",
+   "sha256_before": "76d6c189646fac875aa2b2117b1c4db9c263bc47410f70f221d62fe6f5490d20",
+   "sha256_after": "2218a1d0e8f2891d86985cba739db3f9fe84361238cd552bfd44fde8e28e612c",
+   "replacements": 3
+  }
+ ]
+}
