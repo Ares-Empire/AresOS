@@ -8,6 +8,10 @@ Step 2: the world pauses only while a window hides it (owner, 2026-11-15), per s
 on the world's screen covers it, one on the other screen does not. When the world gets the focus while covered, the
 windows that cover it are minimized (orchestrator, 2026-11-15). These tests speak the compositor's side over the
 wire, with two screens. Everything here is synthetic, as in test_aresos_shell.
+
+Review fixes 1: package 23b's start-up cover never covers the world and is never minimized; a restored desktop that
+is activated again soon after it gave the focus back minimizes nothing; uncovering minimizes only windows known to be
+on the world's screen.
 """
 import json
 import socket
@@ -53,7 +57,7 @@ class RefusalLogTest(Base):
 
 
 MAXIMIZED, MINIMIZED, ACTIVATED, FULLSCREEN = 0, 1, 2, 3
-DESKTOP, APP, SMALL, OTHER = 0xff000001, 0xff000002, 0xff000003, 0xff000004
+DESKTOP, APP, SMALL, OTHER, COVER = 0xff000001, 0xff000002, 0xff000003, 0xff000004, 0xff000005
 
 
 def message(object_id, opcode, payload=b''):
@@ -306,3 +310,94 @@ class CoveredTest(Base):
         conn = self.hello()
         self.helper_.tick()
         self.assertEqual((self.covered(conn), self.minimized()), ([True], []))
+
+    def test_the_start_up_cover_never_covers_the_world_and_is_never_minimized(self):
+        self.start()
+        conn = self.hello()
+        screens = self.screens
+        # Package 23b: the cover is up, fullscreen and on top, while the game starts. The game's window maps under
+        # it and labwc activates it with the cover as the window before.
+        screens.window(COVER, 'aresos.cover', [FULLSCREEN, ACTIVATED], [screens.left])
+        self.changed()
+        screens.change(COVER, [FULLSCREEN])
+        screens.window(DESKTOP, 'aresos-desktop', [MAXIMIZED, ACTIVATED], [screens.left])
+        self.changed()
+        # The cover comes to the front again and the world gets the focus once more: still nothing.
+        screens.change(DESKTOP, [MAXIMIZED])
+        screens.change(COVER, [FULLSCREEN, ACTIVATED])
+        self.changed()
+        screens.change(COVER, [FULLSCREEN])
+        screens.change(DESKTOP, [MAXIMIZED, ACTIVATED])
+        self.changed()
+        self.helper_.tick()
+        self.assertEqual((self.covered(conn), self.minimized()), ([], []))
+
+    def test_a_restored_desktop_activated_again_right_after_the_hand_back_minimizes_nothing(self):
+        self.start(keep_foreground=True)
+        conn = self.hello()
+        screens = self.screens
+        screens.window(APP, 'org.kde.kwrite', [MAXIMIZED, ACTIVATED], [screens.left])
+        self.changed()
+        # The supervisor restarted the game: its new window takes the focus as it appears and gives it back.
+        screens.change(APP, [MAXIMIZED])
+        screens.window(DESKTOP, 'aresos-desktop', [MAXIMIZED, ACTIVATED], [screens.left])
+        self.changed()
+        self.assertEqual([(h, op) for h, op, _ in screens.requests()], [(APP, 4)])
+        screens.change(DESKTOP, [MAXIMIZED])
+        screens.change(APP, [MAXIMIZED, ACTIVATED])
+        self.changed()
+        # Half a second later the game's window is activated again (GLFW's focus-on-show request, review 1,
+        # finding 2): the app he works in stays.
+        self.now[0] += 0.5
+        screens.change(APP, [MAXIMIZED])
+        screens.change(DESKTOP, [MAXIMIZED, ACTIVATED])
+        self.changed()
+        self.assertEqual(self.minimized(), [])
+        self.assertEqual(self.covered(conn), [True])
+        # Later he goes to the app and back to the world himself: the world is uncovered as usual.
+        screens.change(DESKTOP, [MAXIMIZED])
+        screens.change(APP, [MAXIMIZED, ACTIVATED])
+        self.changed()
+        self.now[0] += shell.KEEP_WINDOW
+        screens.change(APP, [MAXIMIZED])
+        screens.change(DESKTOP, [MAXIMIZED, ACTIVATED])
+        self.changed()
+        self.assertEqual(self.minimized(), [APP])
+
+    def test_uncovering_minimizes_only_windows_known_to_be_on_the_worlds_screen(self):
+        self.start()
+        conn = self.hello()
+        screens = self.screens
+        screens.window(DESKTOP, 'aresos-desktop', [MAXIMIZED], [screens.right])
+        # labwc has not said yet which screen this window is on: it covers the world for the pause
+        # (JUDGMENT-CALL 7)...
+        screens.window(APP, 'org.kde.kwrite', [MAXIMIZED, ACTIVATED])
+        self.changed()
+        self.assertEqual(self.covered(conn), [True])
+        # ...but the world getting the focus does not minimize it: it may be on the other screen (review 1,
+        # finding 4).
+        screens.change(APP, [MAXIMIZED])
+        screens.change(DESKTOP, [MAXIMIZED, ACTIVATED])
+        self.changed()
+        self.assertEqual(self.minimized(), [])
+        # Once labwc names the world's screen for it, the next activation of the world minimizes it.
+        screens.change(DESKTOP, [MAXIMIZED])
+        screens.change(APP, [MAXIMIZED, ACTIVATED], enter=[screens.right])
+        self.changed()
+        screens.change(APP, [MAXIMIZED])
+        screens.change(DESKTOP, [MAXIMIZED, ACTIVATED])
+        self.changed()
+        self.assertEqual(self.minimized(), [APP])
+        screens.change(APP, [MAXIMIZED, MINIMIZED])
+        self.changed()
+        self.assertEqual(self.covered(conn), [True, False])
+        # A world whose screen is not known (its monitor was just unplugged) minimizes nothing either.
+        screens.unplug(Screens.RIGHT)
+        screens.change(DESKTOP, [MAXIMIZED])
+        screens.change(APP, [MAXIMIZED, ACTIVATED], enter=[screens.left])
+        self.changed()
+        screens.change(APP, [MAXIMIZED])
+        screens.change(DESKTOP, [MAXIMIZED, ACTIVATED])
+        self.changed()
+        self.assertEqual(self.minimized(), [])
+        self.assertEqual(self.covered(conn), [True, False, True])

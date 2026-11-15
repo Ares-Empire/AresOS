@@ -120,6 +120,10 @@ SYSTEMD_RUN = '/usr/bin/systemd-run'
 SYSTEMCTL = '/usr/bin/systemctl'
 # The desktop mod sets this Wayland app_id (and X11 class) on its own window.
 DESKTOP_APP_IDS = frozenset({'aresos-desktop'})
+# Package 23b's start-up cover (/usr/libexec/aresos-cover): a fullscreen, always-on-top window the supervisor shows
+# over the game's own loading screens until world_ready. It never counts as covering the world and is never minimized:
+# labwc activates the game's window under it, and minimizing it then would show those loading screens after all.
+STARTUP_COVER_APP_ID = 'aresos.cover'
 BASE_CAPABILITIES = frozenset({'list_apps', 'open_app', 'app_state', 'world_ready', 'heartbeat'})
 DETAIL_CAPABILITIES = frozenset({'app_details', 'apps_changed', 'list_paging'})
 CATALOGUE_CHECK = 3.0
@@ -2517,20 +2521,29 @@ class Windows:
     def of(self, owner):
         return [t for t in self.toplevels.values() if t.ready and t.owner == owner]
 
-    def covering(self):
+    def covering(self, known_screen=False):
         """The windows that hide the desktop's window: maximized or fullscreen, not minimized, on its screen.
 
         The desktop is always below every window (rc.xml), so any such window on one of its outputs hides it. A
         window on another screen does not (package 40: the world on the external monitor, apps on either screen).
-        An output list the compositor has not sent yet counts as the same screen, as with a single screen.
+        An output list the compositor has not sent yet counts as the same screen, as with a single screen: for the
+        pause that errs toward pausing. With known_screen only windows on a screen known to be the desktop's count:
+        the ones uncovering minimizes, because hiding a window that may be on the other screen is not harmless
+        (package 40, review 1, finding 4). Package 23b's start-up cover never counts.
         """
         desktop = self.of(self.SHELL)
         if not desktop:
             return []
         screens = frozenset().union(*(t.outputs for t in desktop))
+
+        def on_its_screen(toplevel):
+            if known_screen:
+                return bool(toplevel.outputs & screens)
+            return not screens or not toplevel.outputs or bool(toplevel.outputs & screens)
+
         return [t for t in self.toplevels.values()
-                if t.ready and t.owner != self.SHELL and not t.minimized and (t.maximized or t.fullscreen)
-                and (not screens or not t.outputs or t.outputs & screens)]
+                if t.ready and t.owner != self.SHELL and t.app_id != STARTUP_COVER_APP_ID and not t.minimized
+                and (t.maximized or t.fullscreen) and on_its_screen(t)]
 
 
 class WaylandError(Exception):
@@ -2750,6 +2763,8 @@ class Helper:
         # Kept apart from active_handle, because a new window may be identified as the desktop only later (review 2,
         # finding 8).
         self.keep_target = None
+        # The window a restored desktop last gave the focus back to, and when (package 40, review 1, finding 2).
+        self.kept = None
         self.nonce = nonce
         self.apps, self.revision = registry or load_registry(registry_dir)
         if catalogue is None:
@@ -3428,9 +3443,10 @@ class Helper:
     def uncover(self):
         """The world got the focus while windows hide it: minimize those, so it shows (orchestrator, 2026-11-15).
 
-        Smaller windows stay where they are, above the world, and so do windows on another screen.
+        Smaller windows stay where they are, above the world, and so do windows on another screen and windows whose
+        screen the compositor has not named yet.
         """
-        covering = self.windows.covering()
+        covering = self.windows.covering(known_screen=True)
         if covering and self.minimize_window is not None:
             for toplevel in covering:
                 self.minimize_window(toplevel.handle)
@@ -3566,9 +3582,14 @@ class Helper:
                     and self.activate_window is not None and self.activate_window(target.handle)):
                 LOG.info('the restored desktop stays below the window in front')
                 self.active_handle, self.active_owner = target.handle, target.owner
+                self.kept = (target.handle, now)
                 return
         if active.owner == Windows.SHELL:
-            if previous_handle is not None and previous_handle != active.handle:
+            # The restored desktop activated again soon after it gave the focus back (GLFW's focus-on-show request):
+            # not his choice, so the window it gave the focus to is not minimized (review 1, finding 2).
+            kept = (self.kept is not None and self.kept[0] == previous_handle
+                    and now - self.kept[1] <= KEEP_WINDOW)
+            if previous_handle is not None and previous_handle != active.handle and not kept:
                 # Alt+Tab, a click or our own return: he wants the world, so it must not stay hidden. Not at
                 # start-up (no previous window), and not for a restored desktop that gave the focus back above.
                 self.uncover()
