@@ -24,7 +24,9 @@ all three are merged:** 28 and 28a keep brief 20's check before a taken tab's re
 has answered every question of all three ("Already decided" at the end).
 
 **Building starts only after PR #27 (brief 20) is merged.** Branch from `main` after that merge and work on top of
-it. Paths and line numbers in this brief come from PR #27 at `8b7e799c`; read them again on merged `main`.
+it. Paths and line numbers in this brief come from PR #27 at `8b7e799c`; read them again on merged `main`. PR #27
+merged as `09cedc84` (final head `d25ccbd3`); the names and facts in this brief were checked against it on
+2026-11-15 (`reviews/28-chrome-capability/ALIGNMENT.md`).
 
 **Builder (recommended, the lead confirms at launch):** a Claude agent on Fable 5.2. The work is inside a dense,
 security-reviewed reader, needs judgment about what an outline should show, and must not be cut off halfway; Codex
@@ -45,8 +47,10 @@ package review runs on Opus or Codex's workhorse.
 - `reviews/28-chrome-capability/BRIEF-SECURITY-2.md` and `BRIEF-REVIEW-2.md`: the design's last reviews. This
   brief works their findings in; where it names one ("security re-check 2", "package re-check 2"), that is the
   file.
-- `reviews/20-chrome/REPORT.md` (the newest sections first, "Measured views", and a latency section if the merged
-  tree has one), `reviews/20-chrome/KNOWN-LIMITS.md` and `reviews/20-chrome/TOOL-DESCRIPTIONS.md`.
+- `reviews/20-chrome/REPORT.md` (the newest sections first, "Measured views", and the latency sections "Latency
+  gate: 60 samples (2026-11-14)", "Step 4" and "Step 6"), `reviews/20-chrome/KNOWN-LIMITS.md` and
+  `reviews/20-chrome/TOOL-DESCRIPTIONS.md`.
+- `docs/control/TOOLS-HANDOFF.md`, "Chrome merged": what PR #27's merge left for these packages.
 - The code, before you change it:
   - `control/aresos_control/chrome/adapter.py`: `read`, `facts`, `payload`, `steps` and `call`;
   - `control/aresos_control/chrome/bridge.py`: `Bridge.call` and `read`;
@@ -55,7 +59,8 @@ package review runs on Opus or Codex's workhorse.
     `password`, `ownPassword`;
   - `control/chrome/extension/background.js`: `facts`, `collection`, `dispatch` and its queue (`serial`);
   - `control/chrome/ci/browser.mjs` (the helpers `rpc`, `call`, `read`, `target`, `nav`) and `ci/verdicts.mjs`;
-  - PR #27's asking read, `chrome_read_typed_fields`, wherever the merged tree has it.
+  - PR #27's asking read: `prepare_read_typed_fields` and `read_typed_fields` in `chrome/definitions.py` and
+    `adapter.py`, and the commands `typed_fields` and `read_typed_fields` in `background.js` and `reader.js`.
 
 **Why brief 20's tools cost so much** (read in its code and reports):
 
@@ -70,8 +75,9 @@ package review runs on Opus or Codex's workhorse.
   waits and returns the read: two calls where one would do.
 - A result says what happened to the one element acted on, not what changed on the page.
 - `chrome_tabs` returns 5 tabs per call, 10 at most.
-- 28 tools at `8b7e799c`, with nine separate tools for the kinds of input; 29 once PR #27 has added its asking
-  read for typed fields (item 5), which stays.
+- 28 tools at `8b7e799c`, with nine separate tools for the kinds of input; 30 on merged `main`, where PR #27
+  added its asking read for typed fields (item 5) as two tools, `chrome_prepare_read_typed_fields` and
+  `chrome_read_typed_fields`, which stay.
 
 These are the costs of brief 20's tools **used well**, and the baseline measures them that way.
 
@@ -91,15 +97,16 @@ Do this first, on merged `main`, before any change to the tools.
    this package and in briefs 28a and 28b. It isn't edited afterwards, except to add the timings of the
    side-by-side runs (below, and brief 28a's).
 
-**Latency.** PR #27 at `8b7e799c` has no latency harness, no CI latency check and no latency section in its
-report. The Chrome lead says they come with the part of PR #27 that follows brief 18d, under `control/chrome/ci/`.
-Read the merged tree.
+**Latency.** PR #27 at `8b7e799c` had no latency harness; merged `main` has one. Build group 16's timing into that
+harness (one harness, not two), keep its targets green, and add the comparison below to it.
 
-- **If they are there:** build group 16's timing into that harness (one harness, not two), keep its targets green,
-  and add the comparison below to it.
-- **If they aren't:** group 16 times its tasks itself, as step 3 says, in a short job of its own in
-  `control-chrome.yml`. Say so in the report (PLAN-GAP). The latency acceptance is then the comparison below and
-  nothing else.
+- **The harness:** in `control/chrome/ci/`, `latency-pair.sh`, `latency-probe.mjs`, `latency-instrument.mjs`,
+  `latency-profile.py`, `latency-summary.py` and `latency-check.py`; its tests are
+  `control/chrome_tests/latency.test.mjs` and `control/chrome_tests/test_latency.py`.
+- **The gate:** `control/chrome/ci/latency-targets.json`. Ceilings in ms, median / p95: read 35/60, navigate
+  100/150, free click 650/750, fill 650/750, asking click 60/100, approval to done 700/850. A median or a p95 over
+  its ceiling fails. The current runtime takes 60 samples per call (`samples_per_call`); the paired old runtime
+  takes 20 (`old_runtime_samples_per_call`), which must match the frozen `latency-reference.json`.
 - **The comparison, the same in both cases.** Runners differ, so old and new are timed in **one run**. In this
   package that is one task: the first read of F1, with brief 20's `chrome_read` and with the new read (item 6's
   internal action), five times each after a warm-up, medians compared. The new read passes at no more than 1.10
@@ -542,7 +549,10 @@ transport: a read with an approval outstanding whose frame doesn't answer still 
 
 `chrome_read_typed_fields` is an asking read, under the managed ask rules. The owner, 2026-11-13 (board #210):
 "Ask first." **Brief 20 builds this tool before it merges, and this package keeps it rather than redesigns it.**
-Read its exact name, inputs and flow from the merged tree. What it is, as brief 20 builds it:
+On merged `main` it is two tools: `chrome_prepare_read_typed_fields` (change; input `tab`) prepares the read and
+returns the exact question, without values, with its approval; `chrome_read_typed_fields` (read; input: that
+approval, unchanged) is the asking read itself, under the managed ask rule `mcp__chrome__read_typed_fields`. What it
+is, as brief 20 builds it:
 
 - it reads the typed fields a normal read shows only as `(filled, not read)`. **Eligibility follows the field,
   not the document: a typed field whose history the reader doesn't know** (item 1). That is every `input` that
@@ -573,8 +583,8 @@ Read its exact name, inputs and flow from the merged tree. What it is, as brief 
 
 **What this package does with it, and nothing more:**
 
-- it stays in the tool list exactly as PR #27 merged it: its name, its input, its result, its question and its
-  ask rule, which is part of the generated rules that must not change by a byte;
+- it stays in the tool list exactly as PR #27 merged it, with its prepare tool: its name, its input, its result,
+  its question and its ask rule, which is part of the generated rules that must not change by a byte;
 - the fields it may read are those of this package: a taken tab before its reload, a frame the preload missed,
   and a shadow root met late. Brief 28b lets the tool work on his tabs read in place. The reader's own mark
   "withheld for unknown history" (item 1) is what makes a field eligible, so there is one rule, not a second
@@ -636,6 +646,17 @@ The step-1 builder's own decisions in its progress file stand, among them: refer
 bounded when their page is returned; a cursor also binds what was returned before it; a read can be paged until
 it has shown 5,000 references (a known limit for section 6); nesting deeper than 150 levels is refused.
 
+### 8. A small item from PR #27's final reviews
+
+*From PR #27's round-5 security re-check (`reviews/20-chrome/SECURITY-RECHECK-FINAL-5.md`, NOTE 1), passed on in
+`docs/control/TOOLS-HANDOFF.md`, "Chrome merged". Not blocking.*
+
+- **Hardening: match `embedderName` as well.** In the `Debugger.scriptParsed` branch of `background.js` (about line
+  126) the extension knows its injected scripts (`context.js`, `guard.js`, `reader.js`) by `params.url`, which a
+  `sourceURL` comment can set. Match `params.embedderName` too, which a page can't set. Pages are already shut out
+  by `isDefault===false`, so nothing is open today. It is a small change in the code this package reads first;
+  add a test that a script whose `url` matches and whose `embedderName` doesn't isn't taken for one of ours.
+
 ## What must not change
 
 - **What Claude is offered.** The tool list, every tool's name, input, result shape and description, the server
@@ -666,8 +687,16 @@ it has shown 5,000 references (a known limit for section 6); nesting deeper than
   refused, not asked (exception 4). A known password field keeps brief 20's rule. Show the lines in the report.
   The other three places it judged (addresses in a question, the reveal inside `input`, the asking read in the
   new tool list) are brief 28a's.
-- **The hold:** `guard.js`, `page.js`, the 500 ms window, the default block, the owner's own Enter, the three kinds
-  of dialog.
+- **The server instructions' size.** Claude Code 2.1.319 passes only the first 4,096 characters of an MCP server's
+  instructions; `control/chrome_tests/test_questions.py`
+  (`test_fixes_b_server_instructions_fit_the_native_cli_limit`, about line 456) checks every app, `control`
+  included. On merged `main` the Chrome server's instructions (`instructions_for('chrome')` in
+  `control/aresos_control/definitions.py`) are 4,052 characters. This package adds no instruction text, so that
+  check passes unchanged. The reader text that tells Claude how to read an outline goes into the instructions
+  with brief 28a (its item 7) and must fit under the same limit there.
+- **The hold:** `guard.js`, `page.js`, the 500 ms window (`HOLD_MS` in `policy.py`, `holdMs` in the extension) and
+  the 525 ms wait after each input in `collectSteps` (`background.js`), the default block, the owner's own Enter,
+  the three kinds of dialog.
 - **The reader's password rule only gets stricter** (item 1's two additions); nothing in it is relaxed. The
   extension still uses no DOM snapshot, no accessibility tree and no form serialisation. No new DevTools method. No
   new permission in the manifest.
@@ -899,7 +928,7 @@ numbers, measured again on the public tools, and adds the rows of the tools that
 | F2: the whole table: after the first read, the read with the table's `ref` and `max` 40,000 | 1 further call, at most the cells' own text plus 7 characters for each cell plus 800: 23,600 characters for this fixture |
 | F3: find the one link with the unique name: the read with `find` and `role` | 1 call, at most 800 characters |
 | Compare three open tabs: the read with `tabs` | 1 call |
-| Latency ("Before anything else", the comparison in one run) | the first read of F1 is at most 1.10 times brief 20's median plus 50 ms; a latency check PR #27 brings stays within its targets |
+| Latency ("Before anything else", the comparison in one run) | the first read of F1 is at most 1.10 times brief 20's median plus 50 ms; PR #27's latency gate (`latency-targets.json`) stays within its ceilings |
 
 **The rows add up** (package re-check 2, N3). Every budget counts the JSON text of the result, so each quote
 of the outline costs 2 characters, each line break 2, and each `…`, `→`, `·` and `›` 6. A read's result has about
@@ -1003,6 +1032,14 @@ every line you add, change or find untrue give what it is, the harm and why it i
 moves the result into section 6. A flaw with real harm (an action without its question, a password or sign-in
 code read, data loss, his normal use broken) is never a limit: fix it or stop.
 
+Add this sentence to it, word for word (PR #27's two round-4 reviewers both recorded it; `docs/control/TOOLS-HANDOFF.md`,
+"Chrome merged"):
+
+> Taking a tab from another normal window while a Claude tab group already exists moves the tab into that group's
+> window, because Chrome keeps a tab group in one window; the extension records the tab's original window and
+> position and moves it back on release. The harm is that the owner's tab sits in another window while Claude holds
+> it; it is accepted with the single-group design, and one group per window is a design question for brief 28b.
+
 ## JUDGMENT-CALLs
 
 No open JUDGMENT-CALL.
@@ -1068,8 +1105,9 @@ you chose in the report.
   or if anything inside the asking path's functions would have to change.
 - Stop if a binding case of the asking read fails on merged `main` (item 5).
 - Stop if any test would need a real site or a real account.
-- The full `control-chrome.yml` suite takes three to four hours a run. Develop against the browser-free tests and
-  the short job. Plan about 6 full runs; tell the lead in the report before passing 9. Wait on each run with one
+- A full `control-chrome.yml` run takes about 40 to 60 minutes in 28 parallel jobs (PR #27's final pair on
+  `d25ccbd3`: runs 43641834739 and 43641839672). Develop against the browser-free tests and the short job. Plan
+  about 6 full runs; tell the lead in the report before passing 9. Wait on each run with one
   blocking call; never poll turn by turn. Mark report-only pushes `[skip ci]`.
 
 ## Rules for this run
