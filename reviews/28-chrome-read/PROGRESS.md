@@ -2,6 +2,109 @@
 
 Builder steps keep this file; the last step turns it into the report. Newest state first.
 
+## Step 4 (2026-11-15, Claude agent on Opus 5.5): run 43698395453's F4 failure. Fixed, new run started
+
+Step 3's "Left" item 1. No reader, adapter or tool change; the latency gate, `latency-targets.json`, the sample
+counts and the pair loop are untouched (that run's "Require lead ceilings" step was green).
+
+### The cause (run 43698395453, artifact `chrome-efficiency-43698395453-1`)
+
+Everything was green but the new step; the probe stopped in F4's warm-up with `Error: F4 received once: undefined`.
+That message hid the real failure. `efficiency-calls.jsonl` shows F4's calls `read`, `fill_form` (6 fields,
+`remaining` 0), `find` "Save" (found, `submit: true`), then `click` on Save answered
+`{"ok":false,"error":{"code":"asking_input_too_large","message":"The whole approval exceeds 16384 bytes; prepare a
+smaller operation. Nothing was reserved."}}`. The task's own assertion threw, and the receiver check in `after`,
+run in `finally`, threw its own error over it (`efficiency-tasks.jsonl`: tools `read,fill_form,find,click`, no
+`submit`; `receiver.jsonl` holds only group 1's compose send).
+
+Why: brief 20's `chrome_submit` approval puts the whole binding in its description (`adapter.py` `prepare`:
+`untrusted_content.page_state`), and the binding carries the form's facts (`binding()` → `frame['form']`), where
+`reader.js` `field()` lists every option of a select. F4's Country has 200 options, as brief 28 and
+`view_fixtures.py` define it: those options alone are 14,380 bytes of canonical JSON, against `ASK_LIMIT` 16 KiB
+(`common.py` `approval_input`). So **brief 20's tools can't send F4 at all**: pressing Enter in a field builds the
+same binding. The fake service in `efficiency.test.mjs` had answered the click with an approval, which is why the
+fixtures jobs were green.
+
+### The fix (`c99cf22a`)
+
+Two mistakes, both in the probe (the check was wrong, not the tools or the fixture):
+- **F4's row records what brief 20 does:** plan `read, fill_form, find, find*, click`; the click must end in
+  `asking_input_too_large` (any other result, success included, fails the task); `after` checks the receiver got
+  nothing. `call(action,args,{refusal})` marks such a call `expected_refusal` in the record.
+  `efficiency-summary.py` accepts a failed call only with that mark and that code, requires every measured run to
+  end the same way, and gives each task `outcome` (`done` or `refused`) and `refusals`.
+- **A failed run is reported as itself:** `after` still runs after a failed run (cleanup), but its error is only
+  logged then, so the run's error is what the step prints.
+- Tests: `efficiency.test.mjs`'s fake now refuses F4's Save as brief 20 does and has no `submit`; a new test checks
+  that F4 fails when the click succeeds, when the receiver got something, and that a failing `fill_form` is
+  reported over a failing `after` (this run's case). `test_efficiency.py` checks the summary's refusal handling
+  (accepted, wrong code, unexpected, one run ending differently).
+
+### The other tasks, read again for the same mistake
+
+The warm-up passed for `f1_first_read`, `f1_everything` (14 reads), `f1_fields`, `f2_table` (53 reads, 12.2 s),
+`f3_find_link` and `open_fact` (its `after` closed the tab). For the tasks that never ran I checked each assumption
+the fake makes against brief 20's code: F7's "Next page" is a link with an `href`, and F5's "Refresh rows" a
+`type=button` outside any form; neither name holds a word of `policy.py`'s DELETE/PAY/ITEM/SEND lists and the
+mode isn't conservative (the same run's `chrome-latency-…-current-plain` `tool.jsonl`: 180 "Continue" clicks
+answered without an approval), so both clicks are free; F5's handler only changes
+text, so it produces no page step and no `followups`; `wait` returns `condition_met`, `untrusted_content.title`
+and `tree` (open_fact's record); `chrome_tabs`'s `limit` maximum is 10 (`definitions.py` `PAGE`), its reply is
+`items`/`cursor` over every Chrome tab, and the probe opens tabs until 25 are listed; `navigate` with
+`discard_unsaved: true` returns before the unsaved check, so F4's filled fields don't stop the next task. Nothing
+else changed. The JavaScript still hasn't run outside CI (no Node on the laptop); I read it twice.
+
+### The run (head `c99cf22a`, pull_request), not watched
+
+| Workflow | Run id |
+|---|---|
+| Control Chrome | 43705060936 |
+| Control Chrome qualification | 43705060865 |
+| Control boundary | 43705060858 |
+| Control base | 43705060866 |
+| Control Mail | 43705060879 |
+
+### Left, in order
+
+1. Read run 43705060936: the latency job's plain leg ("Efficiency tasks with brief 20's tools", artifact
+   `chrome-efficiency-43705060936-1`) and the fixtures jobs (`node --test`, including the new test). Fix what
+   fails, as before; a red "Require lead ceilings" is the gate's own result (stop and report).
+2. **The lead confirms F4's row (JUDGMENT-CALL below) before the baseline is committed**, since the file is frozen
+   afterwards.
+3. Commit the green run's `efficiency-measured.json` as `control/chrome/ci/efficiency-baseline.json`, and a test
+   that it holds every task of `TASKS` with the same plan and outcome.
+4. Then step 1b's list: the reader, the adapter, time, groups 14 and 16 in CI.
+
+### Local checks
+
+```
+$ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_efficiency
+Ran 9 tests in 0.007s
+OK
+$ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=control:control/chrome_tests python3 -m unittest test_efficiency test_latency
+Ran 43 tests in 5.111s
+OK
+```
+
+### JUDGMENT-CALL (technical; for the lead)
+
+1. **F4's baseline row is brief 20's refusal**, not a send: 4 calls, the characters up to and including the
+   refusal, outcome `refused`. Brief 28 asks for brief 20's tools "as they are, used as well as they allow", and
+   they allow no send of F4. Rejected: a Country list of 50 options (brief 28 fixes 200, and brief 28a says the
+   fixture isn't made smaller to fit); changing what brief 20's approval carries (a tool change in the baseline
+   step, and approval content is security-relevant). Changing it later: a fixture or tool change before the
+   baseline is committed costs one more run; afterwards the frozen file would need the lead's exception.
+
+### PLAN-GAPs (for brief 28a)
+
+- **F4's send will hit the same limit.** Brief 28a's F4 row expects `chrome_do` (six fills and the click), then
+  `chrome_submit`, "one question; the receiver has it once". If the new tools' approval still carries brief 20's
+  binding with every option of every select, the click is refused exactly as here. 28a needs a bounded form
+  description in the approval (for example the chosen option and the option count, as the new read shows them),
+  or the row can't pass.
+- **28a's old-against-new timing of "filling 6 fields and sending the form"** has no old send to time: brief 20's
+  side is the six fills and a refused click.
+
 ## Step 3 (2026-11-15, Claude agent on Opus 5.5): main merged, the probe wired in, draft PR open. Runs started
 
 Step 2's "Left, in order" items 1 to 3. No reader, adapter or tool change; the latency gate is unchanged.
