@@ -39,6 +39,18 @@ Written 2026-11-13 (last update 19:00) by `linux-aresos`, the OS lead, now runni
 4. **Lunar Client** works since 2026-11-13 23:04 (see `STATE.md`, "Lunar Client on AresOS"): Minecraft 26.3 crashed at launch until `SDL_VIDEO_DRIVER=wayland` went into `~/.local/bin/lunar` (found by the laptop session `linux-discord`, which also restarts the launcher with the owner). Seen running on the RTX 4060 with sound. Open: his word that it plays well, and the frame rate. The external monitor is at 180 Hz until the next login (`wlr-randr --output HDMI-A-1 --mode 1920x1080@180Hz`); Discord is installed for his user (`discord`). Read-only checks only; never touch `~/.lunarclient` or a running game.
 5. **23d is merged** (PR #78, `70fdc8f1`, 2026-11-15): the home screen's memory settings (heap 1024/256 MiB, game scope memory.high 2560 MiB, the two free-ratio flags). The check build's VM read memory.high 2684354560 in a real game scope. It ships in the next release, with or before package 23 on the laptop.
 
+## Codex queue from Tue 2026-11-17 10:53 (owner's Codex plan, relayed by `mac-capacity` 2026-11-15)
+
+Codex is at 0% until the refill; Patrik has one manual full reset for when it runs out; Pro ends Sat 11-21. Codex-shaped work (build steps against a tight brief, tests, reviews, evals) goes to Codex: gpt-6.1-sol xhigh builds, gpt-6-astra high reviews and hard parts. Claude keeps leading, design and the Fable cases. Target about 2% of the Codex week per hour across all leads; `mac-capacity` watches the meter. Launch with `< /dev/null`, one worktree per job, logs next to the worktree.
+
+1. **42 step 1** (sol xhigh): worktree `~/AresOS-42-release-28`, branch `pkg/42-release-28` from main. Prompt: `briefs/42-release-28.md`, step 1 only (diff rules, the `release_28` job with its no-publish dry run, the mod pin via `check_build=resolve`).
+2. **Review of 42 step 1** (astra high, fresh context), then a fix run on sol if needed.
+3. **22d fix steps, if the final Fable review finds any** (sol xhigh against the review's findings); the re-review on astra high.
+4. **42 step 2** (sol xhigh) once PR #58 and 18c-b are merged (Control's diff rules, `verify_release` binding `control/`, the manifest's `control` object).
+5. **42 step 3** (sol xhigh) once 22d is merged: the `release-28` rehearsal mode from 22d's tools-local route.
+6. **43, the `aresos` command**: its design note is Claude's (Fable; see `STATE.md`, "Timing"); its build steps go to sol xhigh after the note is READY, reviews on astra.
+7. If time is left: the owner tools' tests on AresOS itself (`test_owner_update.reached()` takes "STOP: Required tool missing: rpm-ostree" as the marker that the new tools ran, which cannot appear on a host that has rpm-ostree; verify natively, then make the marker independent of the host), and the documents that still describe the Windows laptop (below).
+
 ## Waiting on others
 
 - `linux-hub`: PR #54 (package 31, the Ares-Crown window frame): its `os/` diff was read and it is merged (2026-11-14 00:50). For the next release: the image diff needs a rule for `gschemas.compiled` (look at the cache's other defaults too), and a theme change moves its checksum in `os/ci/image-checks.sh`.
