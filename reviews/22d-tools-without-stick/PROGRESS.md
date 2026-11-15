@@ -417,3 +417,122 @@ Line numbers are at this step's commits.
 
 Step 6 (harness `tools-local`, its ledger entry, the receipt, the walk with the assertions above, hosted checks, the
 VM run), step 7. `INSTALL-STATUS.md`'s 22d row still says "not yet reviewed": the record step updates it.
+
+## Step 6, part a (harness, the walk), 2026-11-15, Claude agent on Opus 5.5: in progress
+
+The brief's row 6 up to a VM dispatch the integrator can run. Commits `d91fc456` (guide fixes), `c4474d49` (wiring),
+and the stand-in origin commit after it. Nothing dispatched.
+
+### Done
+
+- **1. Review 4's guide fixes** (`d91fc456`, no payload change): S1 on the routine STOP card (`EMERGENCY.md:67`, the
+  last line's **do not reboot** holds here too); N-a (the bookmark: type the address once into the phone's browser and
+  save it); N-b (the box says only "installed nothing and opened no window"; `tools_folder`'s docstring "emptied or
+  partly filled"). `test_owner_path` holds the new words and refuses the old ones (`'is for the console:'` on the
+  card, `'a refusal that names its reason'` in the box) and checks the tools' line still says `do not reboot`.
+  `rebind.py pending` ran.
+- **2. The mode `tools-local`** (`c4474d49`):
+  - Ledger `22d` in `os/ci/rehearsal-packages.json`: checks 20, `tools-local` 4, `vm_dispatch_cap` 4, minutes 1200,
+    job bounds 22c's (345 job / 315 VM step; checks 40), publish 0, start `first-dispatch`.
+  - Workflow: option `tools-local`; `REHEARSAL_PACKAGE` maps the branch to `22d`; every condition naming 22c's
+    branch names 22d's too (`(22c || 22d)` groups, the two shell `test` lines, the cleanup `!=`); the rehearsal job's
+    gate gains `(inputs.rehearsal == 'tools-local') == (github.ref_name == 'pkg/22d-tools-without-stick')`.
+  - Step scripts admit 22d's branch, package and mode: `owner_media.require_runner`, `registry_auth` (dispatch and
+    signature), `owner_capabilities`, `owner_devices`, `installer_webui`, `two_disk_vm`. `rehearsal_guard` gets
+    `OWN_RUN_PACKAGES = ('22c', '22d')` (native step in the run itself, the model gate, the VM dispatch cap, the
+    authorization file). `checkout_sources.active_tables` prefers 22d's bindings once recorded.
+  - `owner_vm.main`: `tools-local` is package 22d's only; reads `os/manifest/ci/22d/host-walk.json`; saves
+    `22d-bound-sources` over 22c's tables (`bound_sources(..., '22d', '22c')`); creates the stick from the laptop's
+    tools as 22c does; hands the walk to `tools_local.rehearsal` with version 2 from history.
+  - Tests: new `os/tests/test_tools_local_wiring.py` (ledger = brief, the mode runs only the rehearsal job and only
+    on 22d's branch, checks-only runs regressions and model there, every step script's gates pass with 22d's
+    environment (this caught `owner_devices.py:360`), the steps' arguments and bounds, 22d decides like 22c's
+    `ways-back` except four reviewed decisions, the guard writes `22d-dispatch-authorization.json` and refuses
+    another branch, runner and registry accept only 22d's triple, the driver keeps routes to packages). The pinned
+    workflow strings in `test_rehearsal_budget`, `test_owner_guard`, `test_rehearsal_auth`, `test_owner_capabilities`,
+    `test_release27` and `test_ways_back_probe` follow; 22c's wiring test now also refuses `tools-local` on its
+    branch and its modes on 22d's.
+  - `reviews/22d-tools-without-stick/walk-host.py` (22d's own receipt, inherits 22c's bound set plus
+    `tools_local.py`, the wiring test and itself). **Not run yet:** it calls `test_owner_walk.walk(route='tools-local')`,
+    which does not exist yet. 22c's receipt is untouched.
+- **3, started: `os/ci/tools_local.py`**: the walk's plan in its docstring; `standin_origin(destination, head)` builds
+  the guest's stand-in for GitHub (below), tested in `test_tools_local_wiring.StandInOriginTest`;
+  `rehearsal()` refuses with `STOP: the tools-local walk is not built yet` (tested), so nothing can be dispatched by
+  accident (and `owner_vm.main` already stops earlier on the missing 22d receipt).
+
+### What the code doesn't show
+
+- **The stand-in origin is not the real commit (integrator: please confirm).** The real commits' trees are 910 MB
+  (17,535 files); the lines read only `os/owner-tools` (0.43 MB). `standin_origin` makes a bare repository whose
+  `main` is two commits: version 3's `os/owner-tools` (tag `version-3`), then this head's; each `os/owner-tools`
+  tree has the real commit's tree hash (git names trees by content; asserted), and nothing else is in them. So the
+  on-main check, the checkout check, the N2 fingerprint check, `git archive` and `FROM_COMMIT` read the real bytes,
+  but the hash Claude "announces" in the VM is the stand-in's. The walk should record both hashes and the tree hash.
+- **Budget:** with 345 per VM reservation and about 36 per checks run, 1200 minutes allow three VM dispatches beside
+  a few checks runs; the cap of 4 is reachable only if the minutes are raised (22c needed that, run 43581458429).
+  The four checks-only runs already on the branch (43669481694 cancelled, 43673689888, 43677461596, 43680654211)
+  count against the 20 and the minutes (`start: first-dispatch`).
+- `test_ways_back_probe` takes about 140 s here; `test_tools_local_wiring` 2 s.
+
+### Left, in order (the next agent continues here)
+
+1. **The walk in `tools_local.rehearsal`** (replace the refusal), using 22c's pieces: `owner_vm.laptop_update(...,
+   bundle=(version_2, TOOLS_V2))`, `td.start_installed(..., 'release-27')`, `confirmed_update`, `Console.passwd`
+   and `Console(guest, 'tty4').ares_sudo` (as `ways_back_rehearsal` begins, `owner_vm.py:2125-2150`); `finish`,
+   `td.marker` at the end; `owner_vm.records()`/`diagnostic_reader` for the tools' records and journal.
+   Suggested shape, from what step 6's notes require:
+   - **Guest setup** (root serial shell, `guest.command`): write the bundle (about 200 KB; base64 in chunks) and, as
+     `ares`, `git clone --bare` it to `GUEST_ORIGIN` with `main` reset to `version-3`, then `git clone` it to
+     `/var/home/ares/AresOS` (so `origin` is the stand-in). Before the install stages move the stand-in's `main` to
+     the head commit and bring the checkout there with `git pull --ff-only` (the guide's rule N7).
+   - **The stand-in caller:** a script written as `ares` (e.g. `/run/aresos-caller-<stage>.sh`) that takes the
+     entry with `git -C /var/home/ares/AresOS show <commit>:os/owner-tools/commands.json` (R3; for v3 refuses use
+     this checkout's `bootstrap.tools_folder(TOOLS_V3)` and `bootstrap.tools_routine(TOOLS_V3)` instead, N-e), records
+     that `/dev/tty` cannot be opened (no controlling terminal), runs the line in the background, writes sudo's PID,
+     stderr, stdout and exit status to files. Typed once in foot (as `terminal_path` does: switch to tty1, wait for
+     foot, `ACTIVE_DESKTOP`, then `type_text(guest, 'setsid -f /run/aresos-caller-<stage>.sh\n', 'de')`), so it runs
+     in his session with `WAYLAND_DISPLAY` and the session bus, without a terminal.
+   - **The dialog driver:** from the root serial shell wait for a `ksshaskpass` process whose parent is that sudo;
+     assert its `argv[1]` equals `bootstrap.label(fp, action)`, its uid 1001; list keyring processes
+     (`kwalletd5`, `kwalletd6`, `ksecretd`, `gnome-keyring-daemon`) before and after: none new; `guest.screenshot`
+     (the label is 70 characters: the picture must show it wrapped, not cut); then type the password
+     (`type_text(guest, ares_password + '\n', 'de')`) or `guest.keys(['esc'])`.
+   - **R1:** `kill -TERM <helper pid>` as `ares` (not root; record the only signalled PID); wait for sudo's exit:
+     status 1, stderr holds `sudo: no password was provided`; nothing changed (no new `/run/ares-bootstrap.*`, the
+     tools' home, records and journal byte for byte).
+   - **Cut:** find the tools update's copy→publication window in `owner.update_tools` (`owner.py:2560-2720`,
+     `published = HOME / ('tools-' + fingerprint)`) and freeze/reset there as 22c's `CUT_WATCH` does for rollback
+     (`owner_vm.py:1810-1880`); after the restart the old tools' `check` passes.
+   - **Install:** PASS install, check, title from one window; the receipt (`tools-update` record) names
+     `source: folder`, `caller.uid 1001`, `caller.terminal false`; `runuser -u ares -- sudo -n true` refused.
+   - **Tamper:** one byte in `/var/home/ares/ares-tools`; STOP before bundle code.
+   - **Stick with a next version:** build a v4+1 bundle on the runner (this payload with a changed version number,
+     `bundle.py`'s refresh into a work folder; check how `test_owner_update` builds its next-version fixture),
+     `media.replace('tools-5', source=...)`, `media.attach`, the guide's stick block at tty3 (`walk.run(console,
+     'install', ...)` with `commands['install']` from `bootstrap.command(<its fingerprint>)`).
+   - **Exports:** the routine `export-routine` line (window, password): `ares` reads `/run/ares-records/*.json`,
+     another account (e.g. `runuser -u nobody`) cannot; then the stick holding version 2
+     (`media.replace(..., source=version_2)`) at tty3: accepted with the retired-bundle line.
+   - **End:** restart, `check`, `title`, `td.marker(audit, 'final-unattended-windows')` and the detached one; the result
+     saved as `tools-local-rehearsal-result`.
+2. **The local walk:** `test_owner_walk.walk(route='tools-local')` with `TOOLS_LOCAL_STAGES`, answering every new
+   capture (as `route == 'ways-back'` does at `test_owner_walk.py:451-475`); tests for it in
+   `test_tools_local_wiring` (stages, the dialog asserts, R1's single signalled PID, the receipt fields).
+3. `python3 reviews/22d-tools-without-stick/walk-host.py` (writes `os/manifest/ci/22d/host-walk.json`), a receipt test
+   (fresh until 22d's record step), `rebind.py pending`, then the touched modules one at a time.
+4. The integrator: a checks-only run on the head, then the VM dispatch
+   (`gh workflow run "OS image" --ref pkg/22d-tools-without-stick -f rehearsal=tools-local`).
+
+### Tests run here (Python 3.14, one module at a time, `ARESOS_MODEL_SCOPE=slice`)
+
+| Module | Result |
+|---|---|
+| `test_owner_path` | `Ran 48 tests`, `OK` |
+| `test_owner_equality`, `test_owner_bootstrap` | `OK` each |
+| `test_tools_local_wiring` (new) | `Ran 13 tests`, `OK` |
+| `test_ways_back_probe` | `Ran 57 tests`, `OK` |
+| `test_release27` | `Ran 41 tests`, `OK` |
+| `test_rehearsal_budget`, `test_owner_guard`, `test_rehearsal_auth` | `OK` each (4, 12, 9) |
+| `test_owner_capabilities`, `test_owner_devices`, `test_organization_budget`, `test_ci_api_permissions` | `OK` each (6, 6, 19, 4) |
+| `test_checkout_sources`, `test_owner_step_limits` | after `rebind.py pending` (35 bound files wait): `OK` each (6, 4) |
+| `test_owner_update` | not run, by the rule |

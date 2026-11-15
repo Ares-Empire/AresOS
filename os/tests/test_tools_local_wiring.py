@@ -228,5 +228,45 @@ class RunnerTest(unittest.TestCase):
                     main(package, mode, branch, any_runner=True)
 
 
+
+class StandInOriginTest(unittest.TestCase):
+    """The guest's stand-in for GitHub (tools_local.standin_origin), built from this checkout."""
+
+    def test_main_holds_version_3_then_this_head_with_the_real_trees(self):
+        import subprocess
+        import tools_local
+        head = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
+        with tempfile.TemporaryDirectory() as folder:
+            made = tools_local.standin_origin(pathlib.Path(folder) / 'origin', head, ROOT)
+            clone = pathlib.Path(folder) / 'AresOS'
+            subprocess.run(['git', 'clone', '--quiet', str(made['bundle']), str(clone)], check=True)
+            git = lambda *args: subprocess.check_output(['git', '-C', str(clone), *args], text=True).strip()
+            stand_v3, stand_head = made['commits'][tools_local.V3_COMMIT], made['commits'][head]
+            self.assertEqual(git('rev-parse', 'origin/main'), stand_head)
+            self.assertEqual(git('rev-parse', 'version-3^{commit}'), stand_v3)
+            self.assertEqual(git('rev-parse', stand_head + '^'), stand_v3)
+            # Both are on main, as the folder line's merge-base check needs.
+            for commit in (stand_v3, stand_head):
+                subprocess.run(['git', '-C', str(clone), 'merge-base', '--is-ancestor', commit, 'origin/main'], check=True)
+            # Each os/owner-tools tree is the real commit's, byte for byte; nothing else is in them.
+            for real, stand in made['commits'].items():
+                real_tree = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', real + ':os/owner-tools'], text=True).strip()
+                self.assertEqual(git('rev-parse', stand + ':os/owner-tools'), real_tree)
+                self.assertEqual(git('ls-tree', '--name-only', stand), 'os')
+            # Version 3's fingerprint and this head's, read as the folder line reads them.
+            import hashlib
+            fingerprint = lambda commit: hashlib.sha256(subprocess.check_output(
+                ['git', '-C', str(clone), 'show', commit + ':os/owner-tools/payload/SHA256SUMS'])).hexdigest()
+            self.assertEqual(fingerprint(stand_v3), tools_local.TOOLS_V3)
+            commands = json.loads(subprocess.check_output(['git', '-C', str(clone), 'show', stand_head + ':os/owner-tools/commands.json']))
+            self.assertEqual(fingerprint(stand_head), hashlib.sha256((ROOT / 'os/owner-tools/payload/SHA256SUMS').read_bytes()).hexdigest())
+            self.assertEqual(commands, json.loads((ROOT / 'os/owner-tools/commands.json').read_text()))
+
+    def test_the_walk_is_not_dispatchable_until_built(self):
+        import tools_local
+        with self.assertRaisesRegex(AssertionError, 'not built yet'):
+            tools_local.rehearsal(None, None, None, None, None, None)
+
+
 if __name__ == '__main__':
     unittest.main()
