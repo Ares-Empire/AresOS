@@ -1,12 +1,21 @@
 {
-  "status": "rebound by package 22d's rehearsal (run 43737933979); since then 22d's record step changed three test files: os/tests/test_owner_path.py (the pin of 22d's status row), os/tests/test_tools_local_wiring.py (22d's receipt test, frozen after the record step) and os/tests/test_ways_back_probe.py (22c's gate test reads the files changed since 22c's run from the active bindings too); they wait for the next rehearsal",
+  "status": "rebound by package 22d's rehearsal (run 43737933979); since then 22d's record step changed three test files: os/tests/test_owner_path.py (the pin of 22d's status row), os/tests/test_tools_local_wiring.py (22d's receipt test, frozen after the record step) and os/tests/test_ways_back_probe.py (22c's gate test reads the files changed since 22c's run from the active bindings too); 22d's step 7b changed two more: os/tests/test_checkout_sources.py (package 22c's review 8, finding 3: while a status row says VM REHEARSAL PASSED; NOT ON THE LAPTOP only test files and the CI workflow wait, and the newest rehearsal's tools equal the payload's) and os/tests/test_owner_equality.py (22d's caller-run lines count as walked); they wait for the next rehearsal",
   "walk": "os/manifest/ci/22d/source-bindings.json",
-  "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Since package 22d's steps 1 and 2 (integrator, 2026-11-15) tool, guide and workflow files wait here too, besides test files: 22d's own VM rehearsal (brief 22d, step 6) rebinds them; no image file waits.",
+  "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Since package 22d's steps 1 and 2 (integrator, 2026-11-15) tool, guide and workflow files wait here too, besides test files: 22d's own VM rehearsal (brief 22d, step 6) rebinds them; no image file waits. Package 22c's review 8, finding 3 (22d's step 7b): while a row of docs/INSTALL-STATUS.md says VM REHEARSAL PASSED; NOT ON THE LAPTOP, only test files (os/tests/) and the CI workflow (.github/workflows/) may wait; test_checkout_sources refuses anything else, and refuses tools other than the newest rehearsal's.",
   "changes": [
-    "22d record step: the 22d receipt test frozen after the record step; the 22d status row and its pin in test_owner_path (run 43737933979); 22c's gate test reads the active bindings"
+    "22d record step: the 22d receipt test frozen after the record step; the 22d status row and its pin in test_owner_path (run 43737933979); 22c's gate test reads the active bindings",
+    "22d step 7b: review 8 finding 3 test; unwalked routine lines"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
+    {
+      "sha256": "80395f6d8435c8ebd0496d7146558508c8ccfdef8d5ef0485999c4c229962a82",
+      "path": "os/tests/test_checkout_sources.py"
+    },
+    {
+      "sha256": "93c66f3c6f18716e349da52323a68114c3431ccb21fc3447dea3adf491b98c08",
+      "path": "os/tests/test_owner_equality.py"
+    },
     {
       "sha256": "3d7a7e7d033965ade9df6015d79a5683a77aeb75ca4f6b41e8725ca6e1963a0c",
       "path": "os/tests/test_owner_path.py"
@@ -20,12 +29,8 @@
       "path": "os/tests/test_ways_back_probe.py"
     }
   ],
-  "unwalked_commands": [
-    "tools-folder",
-    "tools-routine",
-    "export-routine"
-  ],
-  "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) is typed by the local walk of package 22c's rehearsal (route ways-back: from plain Bazzite, after previous, and on the newer AresOS taken in the boot menu) and left this list in stage 2. Package 22d's generated lines (Claude's folder line, the tools-only routine line and the routine export line) wait here until 22d's rehearsal types them from the desktop session without a terminal (brief 22d, step 6); test_owner_equality refuses a listed command once it is typed.",
+  "unwalked_commands": [],
+  "unwalked_rule": "Commands added by package 22 are typed by the local walk of package 27's update rehearsal (os/tests/test_owner_walk.py, route update). Package 22c's forward (briefs/22c-forward-command.md) is typed by the local walk of package 22c's rehearsal (route ways-back: from plain Bazzite, after previous, and on the newer AresOS taken in the boot menu) and left this list in stage 2. Package 22d's generated lines (Claude's folder line, the tools-only routine line and the routine export line) are typed by no one: 22d's rehearsal (run 43737933979) ran them through its caller in the desktop session without a terminal, each taken by name from the announced commit's commands.json, and they left this list in 22d's step 7b. test_owner_equality counts a command as walked when a rehearsal's walk types it or, on 22d's route, its caller runs it, and refuses a listed command once it is walked.",
   "rebound": [
     {
       "status": "rebound by package 27's update rehearsal",

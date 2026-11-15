@@ -27,10 +27,12 @@ def fingerprint_documents():
 
 
 def unwalked_commands():
-    """Owner commands added after the package 16 walk, typed by no rehearsal yet.
+    """Owner commands added after the package 16 walk, walked by no rehearsal yet.
 
-    Package 22's update commands need a newer signed release, which does not
-    exist yet; the release package's rehearsal types them and empties this list.
+    A rehearsal walks a command when its walk types it, or (package 22d's
+    route) when its caller in the desktop session runs it. Each command leaves
+    the list once a rehearsal walks it; package 22d's three lines left it in
+    22d's step 7b, after run 43737933979 ran them.
     """
     return set(json.loads(PENDING.read_text()).get('unwalked_commands', []))
 
@@ -236,18 +238,24 @@ class EqualityTest(unittest.TestCase):
         update=walk.walk(route='update')
         ways_back=walk.walk(route='ways-back')
         typed={text.rstrip('\n') for text,profile in result['visible_blocks']+update['visible_blocks']+ways_back['visible_blocks']}
+        # Package 22d's rehearsal types none of Claude's lines: the caller in his desktop session runs
+        # each one, taken by name from the announced commit's commands.json (os/ci/tools_local.py).
+        # Those entries count as walked; the walk reads them from the program the harness sends.
+        local=walk.walk(route='tools-local')['local']
+        ran={local.commands[entry] for params in local.callers.values() for entry in params['entries'].values()}
         guide='\n'.join((ROOT/name).read_text() for name in
             ('docs/INSTALL.md', 'docs/INSTALL-PROCEDURES.md'))
         waiting=unwalked_commands()
         self.assertTrue(waiting <= set(commands), waiting)
         for name, command in commands.items():
             self.assertIn(command, guide)
-            # A waiting command must not already be typed, so the list empties
-            # as soon as a rehearsal walks it; every other one must be typed.
+            # A waiting command must not already be walked (typed, or run by
+            # 22d's caller), so the list empties as soon as a rehearsal walks
+            # it; every other one must be walked.
             if name in waiting:
-                self.assertNotIn(command, typed)
+                self.assertNotIn(command, typed|ran)
             else:
-                self.assertIn(command, typed)
+                self.assertIn(command, typed|ran)
         allowed=set(commands.values())
         for block in re.findall(r'```bash\n(.*?)\n```',guide,re.S):
             if block not in allowed:
