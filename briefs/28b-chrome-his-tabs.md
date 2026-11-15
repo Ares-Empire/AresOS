@@ -120,7 +120,8 @@ No open JUDGMENT-CALL. The owner has answered every question this package had.
 
 - A taken tab is marked where it stands, not moved into Claude's group (item 4b).
 - The reload is part of the take (item 4).
-- The never-list ships empty and no gate waits for it; his own hosts go in during the live setup (item 9).
+- The never-list starts as a placeholder the tool refuses (brief 18c-b): no Chrome read or action works until he
+  writes his list in the live setup (item 9).
 
 ## What to build
 
@@ -567,15 +568,17 @@ Pin the exact final totals. If they don't fit, stop and tell the lead (PLAN-GAP)
 
 The tool list grows from brief 28a's nineteen to twenty, with `chrome_take_reload`.
 
-### 9. The never-list ships empty
+### 9. The never-list starts as a refused placeholder
 
-Brief 20 ships his never-list (`/etc/aresos/control/chrome-excluded-sites.json`, root-owned) empty, and the tool's
-built-in list holds the Anthropic sites only. His dashboard's host is in neither. That stays so in this package,
-and there is no gate that holds the tool back until the list is filled: an empty list is a valid setting, and a
-gate would need his host's name in the image or in this public repo.
+Brief 18c-b makes his never-list (`/var/lib/aresos-control/chrome-excluded-sites.json`, root-owned, kept across
+updates and rollbacks) at first boot as a placeholder the tool's validator refuses (`{"format":0,"hosts":[]}`).
+Until he writes a `format` 1 list with `sudo`, every Chrome read and action answers `chrome_settings_unavailable`;
+an empty list counts. That gate needs no host name of his, only a list he has written. The tool's built-in list
+holds the Anthropic sites only. This package changes none of it.
 
 - His own hosts, his dashboard first, are put into that file **on his laptop, in the live setup with him**, before
-  Claude's first session in his tabs. Until then his dashboard is an ordinary site to the tool.
+  Claude's first session in his tabs; that write is what opens the tool. A list without his dashboard's host
+  leaves it an ordinary site to the tool.
 - The owner-only `chrome_sites` doesn't manage this list: brief 20 gave it his read-only sites and his "don't ask
   again" entries (`list`, `readonly`, `allow`, `revoke`). The file is changed with `sudo`. Don't add a command
   for it here.
@@ -837,7 +840,7 @@ qualification workflow); `docs/control/TOOLS.md`, `docs/control/FEATURES.md`, `c
 
 ## Report (`reviews/28b-chrome-his-tabs/REPORT.md`)
 
-AGENTS.md's format, and in it: a line that the never-list ships empty and that the owner's own hosts (his dashboard
+AGENTS.md's format, and in it: a line that the never-list starts refused and that the owner's own hosts (his dashboard
 first) must be added on his laptop in the live setup, before the first session in his tabs, with no host name of his
 anywhere in the repo; what an in-place read installs in the tab and what it leaves there, with the fixture's record
 as evidence; the measurement of item 7, per input kind and install mode; what Chrome does with a "Leave site?" guard

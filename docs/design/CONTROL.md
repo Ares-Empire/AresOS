@@ -371,16 +371,21 @@ sites and synthetic profiles).
 
 ### How the tool reaches Chrome
 
-- **Our own signed extension** (Manifest V3, using `chrome.debugger`), installed and updated by the image through
-  Chrome's `ExtensionInstallForcelist` policy with a local update manifest (*checked*, 17b). On Linux, Chrome installs
-  an extension from outside its web store only this way. Chrome starts our **native messaging host**, registered
-  system-wide under `/etc/opt/chrome/native-messaging-hosts/`; the manifest and the host program are root-owned in
-  the image. The host only relays between the extension and the tool service's `chrome.sock`. *Checked* (17):
+- **Our own signed extension** (Manifest V3, using `chrome.debugger`), installed by the image through Chrome's
+  `ExtensionSettings` policy alone (force-installed, pinned, `override_update_url`), from an update manifest and a
+  package at fixed `file:` addresses under `/usr/share/aresos/chrome/` (brief 18c-b, which replaces 18c's Part C).
+  Each image build signs the package with a fresh key it throws away, so every image has its own extension ID; the
+  policy, the update manifest and the native host's one allowed origin are generated with it, and `/etc` holds only
+  links to them. On Linux, Chrome installs an extension from outside its web store only by policy (17b *checked* the
+  `ExtensionInstallForcelist` form; 18c-b proves this one on the shipped Chrome). Chrome starts our **native
+  messaging host**, registered system-wide under `/etc/opt/chrome/native-messaging-hosts/`; the manifest and the
+  host program are root-owned in the image. The host only relays between the extension and the tool service's
+  `chrome.sock`. *Checked* (17):
   attaching to a tab that was opened and signed in before the tool started, reading the page as structure, clicks,
   typing, keys and file fields, with no debugging port and with Chrome's own sandbox on.
 - **Chrome stays normal.** It runs as his own user, with his profile and sign-ins, started the usual way. There is no
-  proxy, no certificate of ours, no launcher and no Chrome policy beyond installing our extension. Calls, downloads,
-  Safe Browsing, his own extensions and Chrome's updates work as on any machine.
+  proxy, no certificate of ours, no launcher and no Chrome policy beyond installing and pinning our extension.
+  Calls, downloads, Safe Browsing, his own extensions and Chrome's updates work as on any machine.
 - **Claude in Chrome stays for his own use, if he wants it** (decision 10). It is his extension, under Anthropic's
   rules; our tool doesn't use it.
 - **Rejected:** Chrome's own consent attach (`chrome://inspect`) leaves a debugging port open after a restart
@@ -489,13 +494,15 @@ sites and synthetic profiles).
   Remote Control pages, the Anthropic console, Aresus, and Chrome's own settings, password and extension pages. The
   Anthropic sites are a fixed list in the tool. Chrome's own pages are out because they aren't web addresses. Aresus
   and any site he adds himself are in an owner-only setting on his laptop
-  (`/etc/aresos/control/chrome-excluded-sites.json`, root-owned and changed with `sudo`): his never-list.
-  **It ships empty, and nothing in this public repo names a host of his.** His own hosts, his dashboard first, are
-  put into it during the live setup with him, before Claude's first session in his Chrome. No gate holds the tool
-  back until then: an empty list is a valid setting, and a gate would need the host's name in the image or the
-  repo. Until the host is in the list, his dashboard is an ordinary site to the tool, so that step comes first in
-  the live setup. `chrome_sites` doesn't manage this list; it manages his read-only sites and his "don't ask
-  again" entries. This keeps the approval his alone (section 7, requirement 3). The
+  (`/var/lib/aresos-control/chrome-excluded-sites.json`, root-owned, changed with `sudo`, never writable by the
+  tool service, and kept across updates and rollbacks): his never-list. **Nothing in this public repo names a host
+  of his.** The image makes it at first boot as a placeholder the tool refuses, so every Chrome read and action
+  answers `chrome_settings_unavailable` until he writes his list, an empty one if he has no host to add (brief
+  18c-b). That gate needs no host name, only a list he has written. His own hosts, his dashboard first, go in
+  during the live setup with him, before Claude's first session in his Chrome; a list without his dashboard's host
+  leaves it an ordinary site to the tool, so that step comes first. `chrome_sites` doesn't manage this list; it
+  manages his read-only sites and his "don't ask again" entries. This keeps the approval his alone (section 7,
+  requirement 3). The
   check runs before every read and every action, on the tab's top document and on the frame that holds the target,
   so it covers every way of getting there:
   - **his tabs:** `chrome_read` never reads such a page in place, and `chrome_take` refuses a tab showing one;
