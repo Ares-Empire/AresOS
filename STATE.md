@@ -259,6 +259,10 @@ Updated 2026-11-14. The live truth is `git log`, `gh pr list` and `git worktree 
      makes the qualification publisher report by issue only. Main's run on it qualified the new build on stable 157
      and beta 159 with every group passing. The shipped-copy update waits as issue #79 for `linux-tools`.
      P3 (naming an uncontrolled popup) is in brief 28a.
+   - **Restore lock (2026-11-15, brief 20-restore-lock, PR #80, squash `b04c7e77`).** While a restore waits for the
+     owner's confirmation, the service shows only Chrome's current warnings and says other apps are unavailable. It
+     no longer lists Mail work from the older database as current, and no longer points to a call the lock refuses
+     (two PR #27 regressions). The optional owner oracle is re-pinned after PR #27 (board #185); its proof run is green.
    - **Since 2026-11-13 the AresOS-side session `linux-tools` leads the tools** (`docs/control/TOOLS-HANDOFF.md`):
      - **Brief 18c, the image test with the tools inside** (`briefs/18c-image-test.md`, PR #42, `25c0df62`), with
        the `os/` change agreed with `linux-aresos` (sixteen changes, in the brief). Its container part is on main
