@@ -152,3 +152,7 @@ changes around them. All of it is accepted; these replace the matching parts abo
 - **For step 6 (from review 2):** the VM needs a stand-in origin whose `main` holds the commit; the walk asserts that
   `ares` can read `/run/ares-records` and another account cannot; the screenshot shows the 70-character label wrapped,
   not cut.
+- **From review 3 (step 4, SAFE):** its nit 2 rides with N3/N4's payload change: the same-boot layout refusal adds
+  "; if the console that began it is closed, from a fresh physical administrator login run sudo /var/lib/ares/at
+  layout abandon". Its nit 3: one test cell drives the tools update's readiness check with a trial record from an
+  earlier boot (expects `LAYOUT_TRIAL_RESTARTED`, nothing changed). Its nit 1 needs nothing.
