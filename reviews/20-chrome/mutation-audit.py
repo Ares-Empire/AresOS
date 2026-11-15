@@ -772,6 +772,14 @@ case('restorelock-sent-check-runs',EN,"                return chrome.notice_page
 case('restorelock-fallback-deferred-notices','control/aresos_control/engine.py',"            for changes,_,_ in ([] if locked else self.store.deferred_notices.values()):\n","            for changes,_,_ in self.store.deferred_notices.values():\n",'test_restore_lock.RestoreLock.test_locked_storage_failure_lists_no_stale_mail_notice',True)
 case('restorelock-fallback-lock-wording','control/aresos_control/engine.py',"                result['unavailable']=LOCKED_PENDING+' '+result['unavailable']\n","",'test_restore_lock.RestoreLock.test_locked_storage_failure_lists_no_stale_mail_notice',True)
 
+# Board #185, R2 of 20-restore-lock: the owner oracle answers the lock's three
+# reads and permits restore_required only for a write the lock refused.
+OM='control/owner_state_oracle/model.py'
+OT='tests.test_owner_state_oracle.StageOneFixMutations.test_restore_lock_answers_its_three_reads_and_refuses_only_their_writes'
+case('restorelock-oracle-locked-reads-refused',OM,"            if call.get('action') not in LOCKED_READS:\n                return {'restore_required'}\n","            return {'restore_required'}\n",OT,True)
+case('restorelock-oracle-write-refusal-ignored',OM,"            if call.get('lock_refused_write'):\n                allowed.add('restore_required')\n","",OT,True)
+case('restorelock-oracle-every-call-answered',OM,"            if call.get('action') not in LOCKED_READS:\n                return {'restore_required'}\n","",OT,True)
+
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']
     file,pattern=row['test']

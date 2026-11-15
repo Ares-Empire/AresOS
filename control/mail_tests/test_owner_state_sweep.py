@@ -319,6 +319,7 @@ class OwnerStateSweep(unittest.TestCase):
     def test_full_disk_spares_only_closes_of_files_that_were_read(self):
         # Board #185, class D: the exhausted phase must not invent a storage
         # failure where a real full disk has none, nor hide a failing write.
+        import errno
         from pathlib import Path
         with tempfile.TemporaryDirectory() as directory:
             journal = Path(directory) / 'operations.jsonl'
@@ -328,12 +329,13 @@ class OwnerStateSweep(unittest.TestCase):
                 with fault.wrap():
                     stream = open(journal, 'rb')
                     stream.read()
-                    if spared:
+                    try:
                         stream.close()
-                    else:
-                        with self.assertRaises(OSError):
-                            stream.close()
+                        failed = None
+                    except OSError as error:
+                        failed = error.errno
                     self.assertTrue(stream.closed)
+                self.assertEqual(failed, None if spared else errno.ENOSPC)
                 self.assertEqual(fault.points, ['journal.close'])
                 self.assertEqual((fault.failed, len(fault.failures)), (not spared, 0 if spared else 1))
             fault = OSWrites(1, mode='persistent', fail_read_only_closes=False)
@@ -378,9 +380,17 @@ class OwnerStateSweep(unittest.TestCase):
             driver.reply(reply)
             self.assertEqual(refused.exception.code, 'restore_required')
             call = driver.oracle.script[driver.call_index]
-            self.assertIs(call['lock_refused_write'], True)
+            self.assertIs(call.get('lock_refused_write'), True)
             self.assertEqual(driver.oracle.permitted_status(driver.snapshot(), call), {'allowed', 'restore_required'})
             self.assertNotIn('lock_refused_write', answered)
+            # Another refusal of a write is not the lock's and permits nothing.
+            full = Refused('storage_limit', 'Synthetic full disk before the lock check')
+            with patch.object(f.engine.store, 'write', side_effect=full), driver.observe_view('control_pending', {}):
+                with self.assertRaises(Refused):
+                    f.engine.store.write({'fixture:full': {'value': 3}}, 'fixture', 'Synthetic refused write')
+                reply = f.engine.request(request)
+            driver.reply(reply)
+            self.assertNotIn('lock_refused_write', driver.oracle.script[driver.call_index])
         finally:
             scenario.close()
 
