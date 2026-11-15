@@ -9,10 +9,9 @@ H2, H3, H4, H5 built on the lead's decisions. Brief: `briefs/20-main-fix.md`. Br
   Python suites green, 18 main-fix removal probes rejected (`.work/20-main-fix/mainfix-mutations.json`, 17 new plus
   H1's), generator and whitespace checks green, and the recorded API bundle of the retained fixture verifies with the
   real `gh attestation verify` on this Mac (branch policy passes, main policy refuses it).
-- **Runs:** see "Runs" at the end of this section; the qualification workflow budget is 4, `Control Chrome` 2.
-- **Left, in order:** the qualification run(s) on the PR in PR mode and their fixes; the full local preflight on the
-  final head; one `Control Chrome` PR run; a fresh package review and a fresh security review (H2 and H3, the trust
-  path). The lead merges.
+- **Runs:** qualification green on the PR in PR mode (run 3 of 4), `Control Chrome` green on the PR (run 1 of 2);
+  details under "Runs". Full local preflight on the final head under "Final local preflight".
+- **Left:** a fresh package review and a fresh security review (H2 and H3, the trust path). The lead merges.
 
 ### Step 2: what was built
 
@@ -147,6 +146,45 @@ Qualification workflow budget 4, `Control Chrome` 2 (both used only for the fina
    `post-popup-*`), now showing in the install-path record. Nothing on this branch touches the extension, the popup
    admission or the fixture shards (`FIXTURE_LOG_DIR` stays `/out` there); the next run re-exercises recheck2 twice.
    **For the lead:** a browser-timing flake in brief 20's popup fixture, outside this brief; no change made here.
+3. **43663583972** (pull-request event, head `8579c5c9`, qualification run 3 of 4): **green, all 34 jobs** in PR mode.
+   GitHub granted `id-token` and `attestations: write` to the same-repository pull request: `delivery-attestation`
+   created a real attestation on `refs/pull/68/merge`; the recorded response listed exactly that attestation on the
+   first `gh api` attempt; the product's anonymous path verified it on the PR ref offline; **"production main rejects a
+   bundle attested on refs/pull/68/merge" PASS** (the required negative test, on the PR-made bundle, in the PR job).
+   `qualification-publish`: prepare (first-record path, no data branch on origin), attest on `refs/pull/68/merge`,
+   publish to the local bare remote with `--ref`, "Pull-request mode: the verified candidate reached only the local
+   bare remote". No fallback was needed. The same push ran `Control base`, `Control Mail` and `Control boundary` on the
+   PR (all green; outside this brief's budgets).
+4. **`Control Chrome` 43663583962** (pull-request event, run 1 of 2): green, every fixture shard in both installs,
+   Python shards, native precedence, both aggregates, **`latency (plain)` and `latency (audit)`**. The audit artifact
+   carries the new stages with 60 samples per call (history-4000 `approval_to_done`: `store_write` 17.8 / 62.2 ms,
+   `journal_fsync` 3.1 / 10.9 ms, `service_without_bridge` 34.6 / 79.7 ms, `client_total` 590 / 628 ms against 700 /
+   850; `read` 0 / 0 for both storage stages) and the two harness streams copied from the tmpfs (`service.txt`
+   12.6 MB, `browser-boundary.jsonl` 11.6 MB).
+
+Budget used: qualification 3 of 4 (two dispatches, one PR event), `Control Chrome` 1 of 2.
+
+### Final local preflight
+
+On the final head `8579c5c9` (`reviews/20-main-fix/records/final-local-8579c5c9.json`, driver equivalent to
+`.work/post18d/final-local.py`): **316 Python** (shards 58/57/49/152; the Linux-only socket case skipped on the Mac),
+**427 Node**, **483 removal mutations rejected** with every baseline passing, generator check, `git diff --check` and
+the service unit byte-identical to `8b7e799c`. The same preflight on `14e81352` is in `final-local-14e81352.json`.
+
+### Report (step 2, final)
+
+- **Commits:** `14e81352` (H2–H5), `af0e620e` (PR-mode publish `--ref`, plan test root), `8579c5c9` (runs recorded;
+  the pull-request event), plus this one. Draft PR #68.
+- **Tests and probes:** new or changed tests in `test_qualification.py` (verifier `ref`, recording opener, never
+  ships, rate limits and timeouts, workflow allow-list, path triggers), `test_publisher.py` (guard, token-fetched
+  held bundle, channels, first publication), `test_qualification_service.py` (forced refresh once),
+  `test_latency.py` (storage stages, harness streams). 19 `mainfix-` probes rejected (18 new, H1's one).
+- **Decisions for the lead:** none blocking. (a) The `recheck2` typed-early popup flake in run 2 is a brief-20
+  fixture/extension timing race (diagnosis above); it passed in runs 1 and 3. (b) `verify()`'s `ref=` keyword and
+  `qualify.py`'s `--ref` (refused for publication to origin) are the two trust-adjacent additions for the security
+  review, with H2's token-fetched held bundle and H3's `--bundle`.
+- **Left:** a fresh package review and a fresh security review (H2 and H3, the trust path); `Control Chrome` run 2 is
+  unused reserve. The lead merges. This file stays until the lead's REPORT is written.
 
 ## Diagnoses
 
