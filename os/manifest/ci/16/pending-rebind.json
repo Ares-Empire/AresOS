@@ -15,7 +15,8 @@
     "22d step 6c: verify_release binds release 27's trees to its source commit in the tools-local mode; the walk reads no release 27 image source from the checkout (test)",
     "22d: the switch job's release check gets REHEARSAL_MODE as explicit step env (test_ci_step_environment)",
     "22d: the guest's stand-in origin names main as HEAD and the checkout clones --branch main (VM run 43699785728 stopped at tl-setup-origin)",
-    "22d step 6d: the tools-local walk types into a password window only after its helper settled and the screen's centre shows it; the caller's launcher is one-shot and typed once more when lost after a VT switch"
+    "22d step 6d: the tools-local walk types into a password window only after its helper settled and the screen's centre shows it; the caller's launcher is one-shot and typed once more when lost after a VT switch",
+    "22d step 6e: the xHCI health check excuses each requested tools-stick removal once, by the guest's monotonic stamp of its request (VM run 43714310216 stopped at cut-27's second removal in one boot); 22d's VM dispatch cap 4 to 6"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
@@ -48,19 +49,23 @@
       "path": "os/ci/owner_devices.py"
     },
     {
-      "sha256": "e782cffc56eea147ccc6f462548eb3595d9fa7b47527d560737f32ca1be9ab83",
+      "sha256": "ada556da91547d7f98731819455c35bfcf062374e12de5b558fd7d54c74218bf",
       "path": "os/ci/owner_media.py"
     },
     {
-      "sha256": "cb22566604448c8b6e8461693dadd3bdba83d15e17a0177f92aefcadbc350dbc",
+      "sha256": "65a6cb3e78c8cde93369576eb159cafe2e08111703e56d68018b98e7de1bf23d",
       "path": "os/ci/owner_vm.py"
+    },
+    {
+      "sha256": "86a060b0d1bd1644fbb66de02b9ade92d47d485c76cfed1c8032bde5671110ea",
+      "path": "os/ci/owner_xhci.py"
     },
     {
       "sha256": "cb1da88291d30e964232eb2b351f3378705ad8e9915cf5ccf7dc06785c8c6d53",
       "path": "os/ci/registry_auth.py"
     },
     {
-      "sha256": "a6817dcf998bd3d6f083f9cd5f00fae5a54302322337de3a2a61fa9034222091",
+      "sha256": "1a5be5a52169752227a5199256ad4dde485ff5c2d8d6e64d5c54b75520fa560f",
       "path": "os/ci/rehearsal-packages.json"
     },
     {
@@ -150,6 +155,10 @@
     {
       "sha256": "5b98d331b616ef5be610d69eb4397beb88186373c99fd7fa9dfb22144a72fef5",
       "path": "os/tests/test_owner_path.py"
+    },
+    {
+      "sha256": "695c1d8141167b425929e430f6b5b6cb056b616063b05a1a1c63fe919252ba8e",
+      "path": "os/tests/test_owner_ps2.py"
     },
     {
       "sha256": "bd9cfa58cde7fbee31a032c0522e9e50b72c16d33282942d34938e4209007289",

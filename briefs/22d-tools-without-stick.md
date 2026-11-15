@@ -96,7 +96,8 @@ protected-disk audit unchanged). In every dialog: assert the helper's argument e
 assert no keyring process starts (F18). The stand-in caller asserts it has no controlling terminal.
 
 **Budget** (22d's ledger entry): 20 checks-only runs, 4 VM dispatches, 1200 minutes (raised to 2400 by the integrator
-on 2026-11-15, step 6 part b: as for 22c, the caps stop runaway loops and 1200 fit only about three VM reservations).
+on 2026-11-15, step 6 part b: as for 22c, the caps stop runaway loops and 1200 fit only about three VM reservations;
+the VM dispatches raised to 6 by the integrator on 2026-11-15, step 6 part e: three runs stopped on harness issues).
 
 ## Rules for every step
 

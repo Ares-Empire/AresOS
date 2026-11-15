@@ -229,15 +229,20 @@ print('TOOLS_USB_UNMOUNTED')
 PY''')
         if owner_xhci.context(guest) is not None:
             # Resolve the owned controller's port 2 while the stick still
-            # exists. Never excuse an unrelated disconnect or controller death.
+            # exists, and the guest's monotonic clock at this request: the
+            # disconnect line it causes is stamped after it. A walk may remove
+            # sticks more than once in one boot (22d: two in cut-27); each
+            # request excuses one line of its own. Never excuse an unrelated
+            # disconnect or controller death.
             port = guest.capture_json(stage + '-tools-usb-port', td.sw.framed('''python3 - <<'PY'
-import json,pathlib,re
+import json,pathlib,re,time
 root=pathlib.Path('/sys/bus/pci/devices/0000:00:05.0')
 ports=[p.name for p in root.glob('usb*/*-2') if re.fullmatch('[0-9]+-2',p.name)]
 assert len(ports)==1, 'STOP: tools-stick xHCI port identity missing or ambiguous'
-print(json.dumps(dict(port=ports[0])))
+print(json.dumps(dict(port=ports[0],requested_usec=time.clock_gettime_ns(time.CLOCK_MONOTONIC)//1000)))
 PY'''))
-            owner_xhci.checkpoint(guest, stage + '-requested-unplug', expected_disconnect=port['port'])
+            removals = owner_xhci.context(guest)['removals'] + [[port['port'], port['requested_usec']]]
+            owner_xhci.checkpoint(guest, stage + '-requested-unplug', removals=removals)
         start = len(guest.monitor.events)
         guest.monitor.command('device_del', {'id': 'owner-tools-usb'})
         deadline = time.monotonic() + 30

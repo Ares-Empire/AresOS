@@ -54,7 +54,7 @@ class LedgerTest(unittest.TestCase):
     def test_the_brief_budget_is_the_ledger(self):
         self.assertEqual(LEDGER['branch'], BRANCH)
         self.assertEqual((LEDGER['minute_cap'], LEDGER['dispatch_caps'], LEDGER['vm_dispatch_cap']),
-                         (2400, {'checks': 20, MODE: 4}, 4))
+                         (2400, {'checks': 20, MODE: 6}, 6))
         self.assertEqual((LEDGER['full_cap'], LEDGER['part_b_cap'], LEDGER['publish_cap'], LEDGER['start']),
                          (0, 0, 0, 'first-dispatch'))
         self.assertEqual(LEDGER['titles'], {'checks': 'OS regressions only (no VM)', MODE: 'Two-disk rehearsal (tools-local)'})
@@ -62,10 +62,31 @@ class LedgerTest(unittest.TestCase):
         self.assertEqual(LEDGER['job_bounds'], {'checks': 40, MODE: guard.PACKAGES['22c']['job_bounds']['ways-back']})
         self.assertEqual(LEDGER['organization_budget'], guard.PACKAGES['22c']['organization_budget'])
         self.assertIn('briefs/22d-tools-without-stick.md: 20 checks-only runs, 4 VM dispatches and 1200 minutes', LEDGER['budget'])
-        # Raised to 2400 by the integrator (2026-11-15), as for 22c; the run and dispatch caps stay.
+        # Raised to 2400 by the integrator in part b (2026-11-15), as for 22c; the checks cap stays.
         self.assertIn('the minute cap is raised from 1200 to 2400', LEDGER['budget'])
+        # Step 6, part e (integrator, 2026-11-15): the VM dispatches from 4 to 6, as for 22c; the note says why.
+        self.assertIn("Step 6, part e (integrator's decision, 2026-11-15): the VM dispatch cap is raised from 4 to 6 "
+                      "(tools-local from 4 to 6)", LEDGER['budget'])
+        self.assertIn('the caps exist to stop runaway loops, and three runs stopped on harness issues', LEDGER['budget'])
         self.assertIn('22d', guard.TITLED_PACKAGES)
         self.assertIn('22d', guard.OWN_RUN_PACKAGES)
+
+    def test_six_vm_dispatches_and_no_seventh(self):
+        job = dict(name='Pinned live ISO inspection and two-disk rehearsal', conclusion='failure',
+                   started_at='2026-11-15T18:00:00Z', completed_at='2026-11-15T19:00:00Z',
+                   steps=[dict(name='Set up job', conclusion='success', started_at='2026-11-15T18:00:00Z',
+                               completed_at='2026-11-15T19:00:00Z')])
+        runs = [dict(event='workflow_dispatch', head_sha='a' * 40, run_attempt=1, status='completed', conclusion='failure',
+                     created_at='2026-11-15T18:00:00Z', id=n, display_title=LEDGER['titles'][MODE]) for n in range(1, 7)]
+        guard.configure('22d')
+        self.addCleanup(guard.configure, '11c')
+        with patch.object(guard, 'api', side_effect=lambda path: dict(workflow_runs=runs) if path.startswith('actions/runs?')
+                          else dict(total_count=1, jobs=[job])):
+            result = guard.budget(0)
+            self.assertEqual((result['dispatch_counts'], result['consumed_minutes']), ({'checks': 0, MODE: 6}, 360))
+            runs.append(dict(runs[-1], id=7))
+            with self.assertRaisesRegex(AssertionError, MODE + ' dispatch allowance exhausted'):
+                guard.budget(0)
 
 
 class DispatchTest(unittest.TestCase):

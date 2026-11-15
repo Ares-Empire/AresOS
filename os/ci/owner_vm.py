@@ -145,7 +145,7 @@ class Guest(td.Guest):
         self.owner_signed_in = False
         self.xhci_context = dict(stage=getattr(self, 'boot_purpose', self.mode), since_usec=0,
             attached=False, needed=self.mode == 'live' or getattr(self, 'boot_purpose', '') == 'tools-stock',
-            expected_disconnect=None)
+            removals=[])
         super().__init__(*args, **kwargs)
         # The CPU has never run. Set carrier before even the firmware starts.
         self.monitor.command('set_link', {'name': 'owner-net', 'up': self.network_up})
