@@ -4,12 +4,13 @@
   "decision": "Integrator, 2026-11-13 (briefs/27b-pending-rebind.md): bound files may change again after package 27's rehearsal; each records its new checkout bytes here until the next VM rehearsal rebinds it. Since package 22d's steps 1 and 2 (integrator, 2026-11-15) tool, guide and workflow files wait here too, besides test files: 22d's own VM rehearsal (brief 22d, step 6) rebinds them; no image file waits. Package 22c's review 8, finding 3 (22d's step 7b): while a row of docs/INSTALL-STATUS.md says VM REHEARSAL PASSED; NOT ON THE LAPTOP, only test files (os/tests/) and the CI workflow (.github/workflows/) may wait; test_checkout_sources refuses anything else, and refuses tools other than the newest rehearsal's.",
   "changes": [
     "22d record step: the 22d receipt test frozen after the record step; the 22d status row and its pin in test_owner_path (run 43737933979); 22c's gate test reads the active bindings",
-    "22d step 7b: review 8 finding 3 test; unwalked routine lines"
+    "22d step 7b: review 8 finding 3 test; unwalked routine lines",
+    "22d step 7b (integrator): the rehearsed-row rule refuses only waiting tools, release scripts and guides (what the laptop gets), as review 8 proposed"
   ],
   "rule": "Empty right after a VM rehearsal rebinds; then one row per bound file changed since, with its new checkout bytes (reviews/27-first-update-release/rebind.py pending). The next VM rehearsal rebinds these files and empties this list. Until then each file must match the checkout bytes below; any further change records its new bytes here deliberately.",
   "files": [
     {
-      "sha256": "80395f6d8435c8ebd0496d7146558508c8ccfdef8d5ef0485999c4c229962a82",
+      "sha256": "0b00b4db93bd5f5008f7c543f80933b1bb5ab3dbc2e006581b5cc4cfe53b17e6",
       "path": "os/tests/test_checkout_sources.py"
     },
     {

@@ -23,9 +23,10 @@ STATUS = ROOT / 'docs/INSTALL-STATUS.md'
 SUMS = ROOT / 'os/owner-tools/payload/SHA256SUMS'
 # A status row that rests on a VM rehearsal the laptop has not run yet (packages 22c and 22d).
 REHEARSED = 'VM REHEARSAL PASSED; NOT ON THE LAPTOP'
-# While such a row stands, only these may wait (package 22c's review 8, finding 3). A tool, release
-# script, guide, harness or anything else bound that waits is something the rehearsal did not run.
-MAY_WAIT = ('os/tests/', '.github/workflows/')
+# While such a row stands, nothing under these may wait (package 22c's review 8, finding 3): they are what the
+# laptop gets (the tools, the release scripts, the guides he follows). A waiting harness or test file changes how a
+# rehearsal runs, not what the laptop gets, and waits for the next rehearsal as before (package 27b).
+MUST_NOT_WAIT = ('os/owner-tools/', 'os/release/', 'docs/')
 # The field of each rehearsal's result (its run's *-rehearsal-result.json) that names the tools it rehearsed.
 REHEARSED_TOOLS = {'22c': 'tools_version_3', '22d': 'tools'}
 
@@ -120,12 +121,12 @@ def check_rehearsed_rows(status, waiting, active, result_of, payload):
     move_on = (f'Rehearse again (a VM run of the route, then its record step), or move the row on: it may say '
                f'"{REHEARSED}" only while the laptop would get exactly what that rehearsal ran')
     says = f"docs/INSTALL-STATUS.md's row for package {{}} says {REHEARSED}"
-    unrehearsed = [path for path in waiting if not path.startswith(MAY_WAIT)]
+    unrehearsed = [path for path in waiting if path.startswith(MUST_NOT_WAIT)]
     assert not unrehearsed, (
         (says.format(*rows) if len(rows) == 1 else f"docs/INSTALL-STATUS.md's rows for packages "
          f"{' and '.join(sorted(rows))} say {REHEARSED}") + f', but these bound files changed since the last VM rehearsal '
         f'({active["run"]}) and wait on os/manifest/ci/16/pending-rebind.json: {", ".join(unrehearsed)}. While '
-        f'such a row stands only test files and the CI workflow may wait. {move_on}.')
+        f'such a row stands no tool, release script or guide may wait. {move_on}.')
     for package, row in rows.items():
         runs = re.findall(r'\[rehearsal run (\d+)\]', row)
         assert len(runs) == 1, says.format(package) + f' but names {len(runs)} "[rehearsal run <id>]" links, not one'
@@ -218,7 +219,6 @@ class CheckoutSourcesTest(unittest.TestCase):
             'a tool waits': (status, waiting + ['os/owner-tools/owner.py'], results, payload, say + '.*owner.py.*Rehearse again'),
             'a guide waits': (status, waiting + ['docs/INSTALL.md'], results, payload, say + '.*docs/INSTALL.md'),
             'a release script waits': (status, waiting + ['os/release/switch.sh'], results, payload, 'os/release/switch.sh'),
-            'the harness waits': (status, waiting + ['os/ci/owner_vm.py'], results, payload, 'os/ci/owner_vm.py'),
             'other tools than the rehearsal ran': (status, waiting, results, 'e' * 64,
                                                    'the tools changed since: run 2 rehearsed tools fingerprint d{64}, and '
                                                    'os/owner-tools/payload/SHA256SUMS now hashes to e{64}.*move the row on'),
@@ -232,6 +232,8 @@ class CheckoutSourcesTest(unittest.TestCase):
             'a result without the tools it rehearsed': (status, waiting, dict(results, **{'2': {
                 key: value for key, value in results['2'].items() if key != 'tools'}}), payload, 'run 2 names no tools'),
         }
+        # A waiting harness file changes how a rehearsal runs, not what the laptop gets: it may wait.
+        check_rehearsed_rows(status, waiting + ['os/ci/owner_vm.py'], active, results.get, payload)
         for label, (text, paths, found, sums, message) in cases.items():
             with self.subTest(label), self.assertRaisesRegex(AssertionError, message):
                 check_rehearsed_rows(text, paths, active, found.get, sums)

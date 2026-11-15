@@ -1048,6 +1048,11 @@ Tests and their data only; the tools payload is unchanged (`sha256sum os/owner-t
      `os/ci/`, the host walks, the image manifest). Stricter than the finding: a harness-only change for a later
      package also trips while a row still says rehearsed, and then the row moves or the integrator widens `MAY_WAIT` as
      a recorded decision.
+     **Integrator's decision (2026-11-15, after step 7b):** narrowed to the finding's three folders as
+     `MUST_NOT_WAIT = ('os/owner-tools/', 'os/release/', 'docs/')`: what the laptop gets. A waiting harness file
+     changes how a rehearsal runs, not what the laptop gets, and waits for the next rehearsal as package 27b allows;
+     otherwise release 28's harness steps would trip on 22d's row. The negative control now also proves a waiting
+     `os/ci/` file passes.
    - **A negative control in the suite:** `test_a_rehearsed_row_refuses_waiting_tools_or_guides_and_other_tools`
      runs the same check on a small made-up table (so it stays valid when the real rows move): a waiting tool, guide,
      release script or harness file, other tools than the run's, a row naming other tools or another run, a run that
@@ -1251,8 +1256,9 @@ stand-in origin, release 27's facts from its own commit, the dispatch caps).
   REHEARSAL PASSED; NOT ON THE LAPTOP**. Before release 28's work changes `docs/` and `os/owner-tools/`, both rows move
   on (22c's too: version 4 carries its ways back), or a new rehearsal records its own row (step 7b's "What happens
   after merge").
-- The test allows only test files and the CI workflow to wait, stricter than review 8's three folders: a harness-only
-  change also trips while a row says rehearsed. Widening `MAY_WAIT` would be the integrator's recorded call.
+- The test refuses a waiting tool, release script or guide (`os/owner-tools/`, `os/release/`, `docs/`: what the laptop
+  gets) while a row says rehearsed, as review 8 proposed (the integrator's decision after step 7b; the builder's first
+  version also refused harness files, which would have stopped release 28's harness steps).
 
 ## Try this (the laptop session, after merge)
 
