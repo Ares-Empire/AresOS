@@ -483,25 +483,29 @@ data, real addresses, host names of his, or provider names, in code, tests, fixt
 **If unsure:** take the option that fails closed (the tools say Chrome isn't connected), keeps every key and
 password out of files, and changes the image least; say so in the report.
 
-## Open questions for the lead
+## The lead's answers (2026-11-15, `linux-tools`)
 
-1. **Mail's record refresh.** Your note asks for Mail's and Chrome's record refresh under the real unit. On `main`
-   only Chrome fetches records (`Qualification.refresh`); Mail has no refresh I could find. What did #150 mean for
-   Mail? Until answered, C11 covers Chrome only.
-2. **`ccd0fd79…ce15` in `builds.json`.** `QUALIFICATION.md` says a row is added only when an image ships, and none
-   with the tool has. The brief keeps the file empty and uses the hash as a test value. Do you want the row anyway
-   (#285)?
-3. **The update test's form.** C4 imitates the update in one guest; the real deployment switch is checked without a
-   browser in the rehearsal. Is that enough for "after an image update the host matches the new id"?
-4. **Who extends the release job** for `record_build.py` and the manifest's `chrome_build`: `linux-aresos` in its
-   next release package (as written), or a follow-up of ours?
-5. **What he sees.** A machine policy makes Chrome say it is managed by an organization, and the button can't be
-   removed. `CONTROL.md` already decided the policy route; does he get this as a "try this" note with C2's
-   screenshots before the release, or as a question?
-6. **His hosts before first use.** The release arrives with an empty list, so his own pages (Aresus among them) are
-   not excluded until the live sitting fills it (#200). Should the tools stay unused until then by agreement, or do
-   you want a guard?
-7. **The policy form.** The brief uses `ExtensionSettings` alone (the research's recommendation) where `CONTROL.md`
-   and 18c's Part C name `ExtensionInstallForcelist`. Fine, with the design text updated after the merge?
-8. **GitHub CLI's key.** 18c read key ID `5612b36462313325` from the RPM. I couldn't confirm from the sources here
-   which published key that is; the builder records it, and step 3 stops if it can't be shown to be theirs.
+1. **Mail's record refresh:** Chrome only. Mail has no record refresh on `main`; Mail already runs under the real
+   unit in 18c's VM pass (checks 8 and 9 with the fixture servers), which is what #150 asked for Mail.
+2. **`builds.json`:** keep it empty and use the hash as a test value. A row lands only with the commit that pins a
+   shipped image, as `QUALIFICATION.md` says; #285 is answered by `record_build.py` and its check.
+3. **The update test:** enough, split as written: C4 proves Chrome's behaviour across A→B→A in one guest, and the
+   rehearsal proves the files after a real deployment switch. The rehearsal's checks must include that the policy,
+   the update manifest and the host manifest all name the new build's ID and the links resolve into the new `/usr`.
+   If `linux-aresos` prefers a real `bootc switch` in the VM (its question 6), take its answer.
+4. **The release job:** `linux-aresos`, in its next release package, as written. This brief delivers the tool, its
+   check and the instructions for that package.
+5. **What he sees:** the lead asks the owner (board), with C2's screenshot of "managed by your organization" when the
+   build has one. Steps 1 and 2 don't depend on the answer; step 3 waits for it.
+6. **His hosts before first use:** a guard. The excluded-sites list can't carry his hosts (the repo is public), so
+   until the owner has saved his list once with the owner-only `chrome_sites` tool (an empty list saved on purpose
+   counts), every Chrome tool except `chrome_sites` and plain status answers a stable `setup_needed` error that
+   says the owner sets up Chrome's excluded sites first. The mark lives where `chrome_sites` writes, written by the
+   service only. Build it in step 1 (`control/` only), with unit tests (no mark, mark, unreadable mark = refused)
+   and one VM assertion in step 4. This replaces "by agreement" in #200.
+7. **The policy form:** `ExtensionSettings` alone is fine. Update `docs/design/CONTROL.md` section 6's install text
+   in step 1 (not after the merge) and mark 18c's Part C text as replaced by this brief.
+8. **GitHub CLI's key:** as written: the builder shows the key is GitHub's from GitHub's own published key file
+   (fetched over HTTPS, fingerprint compared, both recorded in the lock), or step 3 stops.
+9. **The polkit risk** (Chrome started with `systemd-run --user --scope`, outside the login session's scope): keep
+   it as a VM check in step 4 with Chrome started the shell's way, and a stop condition if the dialog doesn't come.
