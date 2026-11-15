@@ -1,5 +1,6 @@
 """Actual process cuts at durable boundaries; no browser process is involved."""
 import json
+import os
 import subprocess
 import sys
 import unittest
@@ -11,12 +12,23 @@ from aresos_control.chrome.committed import Projection
 from chrome_oracle import history,expectations
 from state_views import StateViews
 
+TESTS=Path(__file__).resolve().parent;CONTROL=TESTS.parent
+
+
+def child_environment():
+    # The child finds the driver's modules by these absolute paths, never by the
+    # parent's working directory or an inherited PYTHONPATH: the qualification
+    # layout runs the Python shard from the job workspace, where 'control' is
+    # not a sibling (run 43647781498), and the shards set sys.path in-process.
+    environment={key:value for key,value in os.environ.items() if key!='PYTHONPATH'}
+    environment['PYTHONPATH']=os.pathsep.join([str(CONTROL),str(TESTS)])
+    return environment
+
 
 CHILD=r'''
 import json,os,sys
 from pathlib import Path
 from unittest.mock import patch
-sys.path[:0]=['control','control/chrome_tests']
 from test_engine import Browser
 from aresos_control.engine import Engine
 from aresos_control.chrome.adapter import view_identity
@@ -56,7 +68,7 @@ class CrashCuts(StateViews,unittest.TestCase):
         for boundary,phase in cuts:
             with self.subTest(boundary=boundary,phase=phase):
                 self.engine.close()
-                result=subprocess.run([sys.executable,'-c',CHILD,str(self.root),boundary,phase],capture_output=True,text=True,timeout=30)
+                result=subprocess.run([sys.executable,'-c',CHILD,str(self.root),boundary,phase],cwd=self.root,env=child_environment(),capture_output=True,text=True,timeout=30)
                 self.assertEqual(result.returncode,73,result.stdout+result.stderr)
                 receiver=self.root/'receiver.jsonl'
                 arrivals=[json.loads(line) for line in receiver.read_text().splitlines()] if receiver.exists() else []

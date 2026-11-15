@@ -593,7 +593,7 @@ case('gate60b-popup-record-any-tab',PO,"filter(row=>row.tab===tab&&row.document=
 case('gate60b-record-late-as-start',B,"state.documents.set(context.uniqueId,{install:'late',","state.documents.set(context.uniqueId,{install:'document_start',",node('background','gate60b the install record'))
 case('gate60b-record-not-in-status',B,"...await popupStatus(),installs:installRecord()};","...await popupStatus()};",node('background','gate60b the install record'))
 case('gate60b-record-past-control',B,"[...preloadTargets.values()].filter(state=>controlled.get(state.tab)?.epoch===state.epoch).flatMap(","[...preloadTargets.values()].flatMap(",node('background','gate60b the install record'))
-case('gate60b-fixture-hold-ignored','control/chrome/ci/fixture.mjs',"if(held)await held.promise;","",node('fixture','gate60b a held popup document'))
+case('gate60b-fixture-hold-ignored','control/chrome/ci/fixture.mjs',"if(held)await held.promise;","",node('fixture','gate60b a held popup gate'))
 
 # The gate after run 43613647256, part 2: the old runtime keeps the frozen
 # reference's 20 samples at the reference's positions; the current runtime
@@ -632,6 +632,126 @@ case('post-popup-any-error-forgotten',B,DEAD_CONTEXT,"if(state.contexts.get(cont
 # The third probe (the lead's, 2026-11-14) lets an empty context set after
 # forgetting pass as "read everything": the admission must fail closed instead.
 case('post-popup-empty-contexts-count-as-read',B,"for(const frameId of forgotten)if(!covered(frameId))throw Error(","for(const frameId of [])if(!covered(frameId))throw Error(",node('background','post-popup no live context'))
+# Brief 20 main fix, H1: the crash-cut child imported the test driver by paths
+# relative to the parent's working directory, which the qualification layout
+# does not satisfy (run 43647781498). The child now gets absolute paths; this
+# probe puts the relative ones back.
+case('mainfix-h1-child-relative-import-path','control/chrome_tests/test_state_crashes.py',"environment['PYTHONPATH']=os.pathsep.join([str(CONTROL),str(TESTS)])","environment['PYTHONPATH']=os.pathsep.join(['control','control/chrome_tests'])",'test_state_crashes.CrashCuts.test_s11_actual_process_cuts_before_and_after_input_keep_every_committed_view',True)
+
+# Brief 20 main fix, H2 (run 43647781498's 403 on the anonymous attestation
+# API). The CI recording opener answers one recorded URL only; the product's
+# daily refresh keeps the held record, logs only the exception class and waits
+# a day after any failure; a forced refresh for an uncovered version is tried
+# once per connection. Each probe removes one of those properties.
+AT='control/chrome/ci/attestation.py'
+QL='control/aresos_control/chrome/qualification.py'
+QY='control/chrome/qualify.py'
+case('mainfix-h2-recording-answers-any-url',AT,"        if request.full_url != self.url:\n            raise urllib.error.URLError('Recording refuses an unrecorded URL: ' + request.full_url)\n","",'test_qualification.RecordingOpener.test_recording_serves_exactly_one_url_offline_and_refuses_every_other',True)
+case('mainfix-h2-recording-accepts-credentials',AT,"        if 'Authorization' in request.headers:\n            raise urllib.error.URLError('The anonymous path must not send credentials')\n","",'test_qualification.RecordingOpener.test_recording_serves_exactly_one_url_offline_and_refuses_every_other',True)
+case('mainfix-h2-refresh-retries-before-a-day-after-failure',QL,"        self.store.write({'chrome:qualification_fetch': {'time': now, 'result': result}}, 'chrome_qualification', result)","        self.store.write({'chrome:qualification_fetch': {'time': now if result == 'Verified record accepted.' else 0, 'result': result}}, 'chrome_qualification', result)",'test_qualification.Delivery.test_rate_limits_timeouts_and_server_errors_keep_held_and_wait_a_day',True)
+case('mainfix-h2-refresh-logs-transport-detail',QL,"            reason = exc.code if isinstance(exc, Refused) else type(exc).__name__","            reason = exc.code if isinstance(exc, Refused) else type(exc).__name__ + ': ' + str(exc)",'test_qualification.Delivery.test_rate_limits_timeouts_and_server_errors_keep_held_and_wait_a_day',True)
+case('mainfix-h2-forced-refresh-every-call',A,"        self._refresh_attempted = identity\n","",'test_qualification_service.Service.test_failed_forced_refresh_for_an_uncovered_version_is_attempted_once_per_connection',True)
+case('mainfix-h2-held-record-verified-anonymously',QY,"        verify(path, bundle=bundle)\n    finally:\n        bundle.unlink()","        verify(path)\n    finally:\n        bundle.unlink()",'test_publisher.Publisher.test_held_record_bundle_comes_from_gh_api_with_the_job_login',True)
+# H3: the fresh attestation is verified from the attest step's bundle before
+# anything is written; a first publication extends the shipped baseline only.
+case('mainfix-h3-publish-skips-fresh-verification',QY,"    if bundle is None:\n        verifier(candidate)\n    elif ref is None:\n        verifier(candidate, bundle=bundle)\n    else:\n        verifier(candidate, bundle=bundle, ref=ref)\n","",'test_publisher.Publisher.test_first_publication_cuts_the_data_branch_from_main_and_extends_only_the_shipped_baseline',True)
+case('mainfix-h3-publish-ignores-trusted-baseline',QY,"    candidate_record = append_only(baseline, json.loads(candidate.read_text()))\n    with tempfile.TemporaryDirectory(dir=root/'.work') as temporary:","    candidate_record = validate_record(json.loads(candidate.read_text()))\n    with tempfile.TemporaryDirectory(dir=root/'.work') as temporary:",'test_publisher.Publisher.test_first_publication_cuts_the_data_branch_from_main_and_extends_only_the_shipped_baseline',True,extra=[(QY,"        append_only(baseline, held)\n        append_only(held, candidate_record)\n","        append_only(held, candidate_record)\n")])
+# H4: the guard in qualify.py, not only the workflow, keeps GitHub writes on
+# main; a pull-request run publishes to a local directory only; no job of
+# either workflow may be main-only again.
+case('mainfix-h4-publish-to-origin-off-main',QY,"        if not on_main:raise SystemExit('Qualification publication to origin is restricted to main')\n","",'test_publisher.Publisher.test_writes_to_github_refuse_off_main_while_prepare_and_local_publish_run_anywhere',True)
+case('mainfix-h4-notify-off-main',QY,"        if not on_main:raise SystemExit('Qualification notifications are restricted to main')\n","",'test_publisher.Publisher.test_writes_to_github_refuse_off_main_while_prepare_and_local_publish_run_anywhere',True)
+case('mainfix-h4-origin-publish-accepts-a-foreign-ref',QY,"        if args.ref:raise SystemExit('Publication to origin verifies the candidate under the main policy only; --ref is for --remote')\n","",'test_publisher.Publisher.test_writes_to_github_refuse_off_main_while_prepare_and_local_publish_run_anywhere',True)
+case('mainfix-h4-remote-accepts-a-url',QY,"        if '://' in args.remote or not remote.is_dir():","        if False:",'test_publisher.Publisher.test_writes_to_github_refuse_off_main_while_prepare_and_local_publish_run_anywhere',True)
+QW='.github/workflows/control-chrome-qualification.yml'
+case('mainfix-h4-plan-job-main-only-again',QW,"  qualification-plan:\n    runs-on: ubuntu-24.04\n","  qualification-plan:\n    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'\n    runs-on: ubuntu-24.04\n",'test_qualification.Workflow.test_no_job_is_main_only_and_only_allow_listed_write_steps_are',True)
+case('mainfix-h4-publish-step-unconditional',QW,"        id: publish\n        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'\n","        id: publish\n",'test_qualification.Workflow.test_no_job_is_main_only_and_only_allow_listed_write_steps_are',True)
+case('mainfix-h4-attestation-job-skips-pull-requests',QW,"  delivery-attestation:\n    if: github.repository == 'Ares-Empire/AresOS'\n","  delivery-attestation:\n    if: github.event_name != 'pull_request' && github.repository == 'Ares-Empire/AresOS'\n",'test_qualification.Workflow.test_no_job_is_main_only_and_only_allow_listed_write_steps_are',True)
+# H5: the storage stages count only work inside a marked sample, and the
+# latency pair's harness streams leave the store's disk.
+LPF='control/chrome/ci/latency-profile.py'
+case('mainfix-h5-storage-stages-count-outside-samples',LPF,"    def account(kind,milliseconds):\n        if active is None:return\n","    def account(kind,milliseconds):\n        if active is None:return STORE_STAGES.__setitem__('fsync_ms' if kind=='fsync' else 'store_write_ms',STORE_STAGES['fsync_ms' if kind=='fsync' else 'store_write_ms']+milliseconds)\n",'test_latency.MainFixStorageStages.test_store_write_and_journal_fsync_are_summed_per_marked_sample_only',True)
+case('mainfix-h5-journal-fsync-untimed',LPF,"    storage_module.os=TimedOS(account)\n","",'test_latency.MainFixStorageStages.test_store_write_and_journal_fsync_are_summed_per_marked_sample_only',True)
+case('mainfix-h5-harness-streams-on-the-store-disk','control/chrome/ci/latency-pair.sh',"--tmpfs /scratch:rw,size=256m,mode=1777 ","",'test_latency.MainFixStorageStages.test_the_latency_pair_keeps_its_harness_streams_off_the_store_disk',True)
+
+# Main fix H6: typed-early's early path no longer depends on whether the
+# debugger attaches before or after the popup's navigation starts.
+FX='control/chrome/ci/fixture.mjs'
+case('mainfix-h6-early-opens-row-document',PO,"export const popupOpenURL=(id,mode)=>mode==='typed-early'?'/?case=popup-start&id='+id+'&mode='+mode:popupChild(id,mode);","export const popupOpenURL=(id,mode)=>popupChild(id,mode);",POPUPS('each install path gives its exact first answer|navigates only once the gate answers'))
+case('mainfix-h6-start-navigates-before-gate',PO,"script:`fetch(${JSON.stringify(POPUP_GATE+'?id='+encodeURIComponent(id))},{cache:'no-store'}).then(()=>location.replace(${JSON.stringify(child)}));`,","script:`location.replace(${JSON.stringify(child)});fetch(${JSON.stringify(POPUP_GATE+'?id='+encodeURIComponent(id))},{cache:'no-store'});`,",POPUPS('navigates only once the gate answers'))
+case('mainfix-h6-fixture-holds-the-document',FX,"    else if(['popup-opener','popup-start','popup-child'].includes(kind)){\n","    else if(['popup-opener','popup-start','popup-child'].includes(kind)){\n      const held=kind==='popup-child'&&holds.get(url.searchParams.get('id'));if(held)await held.promise;\n",node('fixture','gate60b a held popup gate'))
+
+# Security review NOTEs folded into the main fix (step 3): refusals are gh's
+# own named failures; the workflows write to GitHub only through the guarded steps.
+AT='control/chrome/ci/attestation.py'
+REFUSAL='test_qualification.RecordingOpener.test_a_refusal_counts_only_as_ghs_failed_verification_naming_its_reason'
+WRITES='test_qualification.Workflow.test_write_commands_appear_only_in_the_guarded_publication_steps'
+case('mainfix-sec-refusal-any-exception',AT,"    except subprocess.CalledProcessError as error:\n","    except Exception as error:\n",REFUSAL,True)
+case('mainfix-sec-refusal-reason-unchecked',AT,"        if reason not in stderr:\n            raise AssertionError(","        if False:\n            raise AssertionError(",REFUSAL,True)
+case('mainfix-sec-unconditional-write-step',QW,"          echo 'Pull-request mode: the verified candidate reached only the local bare remote'\n","          echo 'Pull-request mode: the verified candidate reached only the local bare remote'\n      - name: Push the record\n        run: git push origin HEAD:refs/heads/chrome-qualification\n",WRITES,True)
+case('mainfix-sec-pull-request-publish-to-origin',QW,'qualify.py publish --bundle "$BUNDLE" --remote .work/publish-remote.git --ref "$GITHUB_REF"','qualify.py publish --bundle "$BUNDLE" --ref "$GITHUB_REF"',WRITES,True)
+case('mainfix-sec-pull-request-publish-token',QW,"        if: github.ref != 'refs/heads/main' || github.event_name == 'pull_request'\n        env:\n          BUNDLE:","        if: github.ref != 'refs/heads/main' || github.event_name == 'pull_request'\n        env:\n          GH_TOKEN: ${{ github.token }}\n          BUNDLE:",WRITES,True)
+
+# Main fix step 4. F1: off main the plan qualifies the head build again; an
+# identical repeat is skipped, a conflicting one fails; a pull request never
+# attests main's bytes; the pull-request publish seeds origin's data branch and
+# verifies the held record from the read-only step's bundle list, main policy.
+PR_PLAN='test_publisher.Publisher.test_off_main_the_plan_qualifies_the_head_build_again_while_main_skips_what_is_held'
+PR_REPEAT='test_publisher.Publisher.test_off_main_an_identical_repeat_is_skipped_and_never_carries_main_s_bytes'
+PR_HELD='test_publisher.PullRequestPublish.test_with_a_data_branch_the_held_record_is_verified_from_the_read_steps_list_under_main_policy_then_appended'
+PR_REFUSE='test_publisher.PullRequestPublish.test_a_held_record_without_a_listing_or_a_bundle_list_refuses_and_nothing_moves'
+GUARD='test_publisher.Publisher.test_writes_to_github_refuse_off_main_while_prepare_and_local_publish_run_anywhere'
+case('mainfix-f1-plan-skips-the-held-head-off-main',QY,"build_hash(root.resolve()),requalify_head=not on_main)","build_hash(root.resolve()),requalify_head=False)",PR_PLAN,True)
+case('mainfix-f1-plan-requalifies-on-main',QY,"build_hash(root.resolve()),requalify_head=not on_main)","build_hash(root.resolve()),requalify_head=True)",PR_PLAN,True)
+case('mainfix-f1-pull-request-attests-main-bytes',QY,"    if on_main:\n        return json.dumps(record, separators=(',', ':'))+'\\n'\n","    if True:\n        return json.dumps(record, separators=(',', ':'))+'\\n'\n",PR_REPEAT,True)
+case('mainfix-f1-pull-request-seeds-main-only',QW,"          if git rev-parse --verify --quiet refs/remotes/origin/chrome-qualification > /dev/null; then\n            git -C .work/publish-remote.git fetch --quiet \"$PWD\" refs/remotes/origin/chrome-qualification:refs/heads/chrome-qualification\n          fi\n","",PR_HELD,True)
+case('mainfix-f1-held-record-through-gh-api',QY,"        publish(root,candidate,baseline,remote=remote,bundle=Path(args.bundle),ref=args.ref,held_verifier=held_from_file(Path(args.held_bundle)))","        publish(root,candidate,baseline,remote=remote,bundle=Path(args.bundle),ref=args.ref)",PR_HELD,True)
+case('mainfix-f1-held-record-under-the-pull-request-ref',QY,"        verify(path, bundle=bundles)\n","        verify(path, bundle=bundles, ref=os.environ.get('GITHUB_REF'))\n",PR_HELD,True)
+case('mainfix-f1-held-record-unchecked-without-a-list',QY,"            raise Refused('qualification_invalid', 'The data branch exists but no bundle list was fetched for its record.')\n","            return\n",PR_REFUSE,True)
+case('mainfix-f1-origin-publish-accepts-a-held-bundle',QY,"        if args.held_bundle:raise SystemExit('Publication to origin fetches the held bundles itself; --held-bundle is for --remote')\n","",GUARD,True)
+# F2: the API answers 404 until the fresh attestation is listed.
+RECORDING='test_qualification.Workflow.test_the_api_recording_survives_the_404_of_a_not_yet_listed_attestation'
+case('mainfix-f2-recording-ends-on-the-first-404',QW,'?per_page=100" > .work/attestation/api-response.json || true\n','?per_page=100" > .work/attestation/api-response.json\n',RECORDING,True)
+case('mainfix-f2-recording-passes-after-the-last-attempt',QW,"""(it answers 404 while none is listed)."\n          exit 1\n""","""(it answers 404 while none is listed)."\n""",RECORDING,True)
+case('mainfix-f2-gh-404-not-a-refusal',QY,"        if '(HTTP 404)' in (error.stderr or ''):\n            raise Refused('qualification_invalid', NOT_LISTED) from error\n","",'test_publisher.Publisher.test_held_record_bundle_comes_from_gh_api_with_the_job_login',True)
+case('mainfix-f2-listing-trusts-any-shape',AT,"    try:\n        data = json.loads(recording or b'null')\n    except ValueError:\n        return []\n","    data = json.loads(recording)\n",'test_qualification.RecordingOpener.test_a_recorded_404_an_empty_list_or_no_json_lists_nothing',True)
+# Review NOTE (a): every way of writing a condition or a run body is read.
+CONDITIONS='test_qualification.Workflow.test_no_job_is_main_only_and_only_allow_listed_write_steps_are'
+case('mainfix-note-a-step-if-as-first-key',QW,"      - name: Full Python file partition\n        if: ${{ startsWith(matrix.shard, 'python-') }}\n","      - if: github.ref == 'refs/heads/main' && startsWith(matrix.shard, 'python-')\n        name: Full Python file partition\n",CONDITIONS,True)
+case('mainfix-note-a-job-if-block-scalar',QW,"  qualification-plan:\n    runs-on: ubuntu-24.04\n","  qualification-plan:\n    if: >-\n      github.ref == 'refs/heads/main'\n    runs-on: ubuntu-24.04\n",CONDITIONS,True)
+case('mainfix-note-a-job-if-plain-continuation',QW,"    if: always() && needs.qualification-plan.result == 'success'","    if: always() &&\n      github.event_name != 'pull_request' && needs.qualification-plan.result == 'success'",CONDITIONS,True)
+case('mainfix-note-a-step-if-on-the-next-line',QW,"        if: matrix.shard == 'precedence'\n","        if:\n          github.ref == 'refs/heads/main' && matrix.shard == 'precedence'\n",CONDITIONS,True)
+case('mainfix-note-a-run-plain-continuation',QW,"        run: python3 control/chrome/qualify.py notify\n","        run: python3 control/chrome/qualify.py notify &&\n          git push origin HEAD:refs/heads/chrome-qualification\n",WRITES,True)
+# Review NOTE (b): pull requests never share main's publisher group.
+case('mainfix-note-b-shared-publisher-group',QW,"      group: ${{ github.ref == 'refs/heads/main' && 'chrome-qualification-publisher' || format('chrome-qualification-publisher-{0}', github.ref) }}\n","      group: chrome-qualification-publisher\n",'test_qualification.Workflow.test_the_publisher_keeps_main_s_group_and_gives_every_other_ref_its_own',True)
+# Review NOTE (c): the retained fixture carries no signed download link.
+case('mainfix-note-c-fixture-signed-link','control/chrome_tests/fixtures/qualification/42687597384/api-response.json','   "repository_id": 1443566375,\n','   "repository_id": 1443566375,\n   "bundle_url": "https://fixture.invalid/attestation.json?se=2026-11-15&sig=fixture",\n','test_qualification.RecordingOpener.test_the_retained_fixture_holds_no_signed_link',True)
+# The altered-subject case counts only gh's named policy refusal.
+case('mainfix-sec-altered-subject-any-exception',AT,"        refused(qualification, path, check, POLICY, held)\n","        try:\n            qualification.accept(path, check)\n        except Exception:\n            assert qualification.record() == held\n        else:\n            raise AssertionError('accepted')\n",'test_qualification.RecordingOpener.test_an_altered_subject_counts_only_as_ghs_named_policy_refusal',True)
+
+# Main fix step 5. F3: off main the repeat check is one-way. A worse repeat
+# (a group the held entry passes fails here) fails the pull request, mixed or
+# adapter-only too; a better one keeps the held entry, warns and goes on; main
+# raises on any conflicting repeat. The security re-check's NOTE: the rollback
+# and publisher cases of attestation.py count only their own named refusal.
+PR_WORSE='test_publisher.Publisher.test_off_main_a_worse_repeat_fails_the_pull_request_and_writes_no_candidate'
+PR_BETTER='test_publisher.Publisher.test_off_main_a_better_repeat_warns_keeps_the_held_entry_and_the_rest_proceeds'
+PR_MIXED='test_publisher.Publisher.test_off_main_a_mixed_repeat_fails_the_pull_request'
+MAIN_REPEAT='test_publisher.Publisher.test_on_main_any_conflicting_repeat_raises'
+case('mainfix-f1-conflicting-repeat-relaxed',QY,"                if worse:\n                    raise ValueError(","                if False:\n                    raise ValueError(",PR_WORSE,True)
+case('mainfix-f3-adapter-regression-ignored',QY,"for kind in ['core', 'adapters'] for name, value in item[kind].items()}","for kind in ['core'] for name, value in item[kind].items()}",PR_WORSE,True)
+case('mainfix-f3-mixed-repeat-passes',QY,"                if worse:\n","                if worse and not better:\n",PR_MIXED,True)
+case('mainfix-f3-better-repeat-overwrites-held',QY,"which the held record fails. The record is immutable: the held entry stays, so those groups stay disabled for this build and Chrome version.', flush=True)\n","which the held record fails. The record is immutable: the held entry stays, so those groups stay disabled for this build and Chrome version.', flush=True)\n                current['entries'][current['entries'].index(existing)]=item\n",PR_BETTER,True)
+case('mainfix-f3-better-repeat-fails-off-main',QY,"                if on_main:\n                    raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')\n","                if True:\n                    raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')\n",PR_BETTER,True)
+case('mainfix-f3-better-repeat-silent',QY,"                print('::warning::This run passes '","                print('This run passes '",PR_BETTER,True)
+case('mainfix-f3-better-repeat-kept-on-main',QY,"                if on_main:\n                    raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')\n","                if on_main and worse:\n                    raise ValueError('Conflicting repeat for an immutable qualification pair; publish nothing')\n",MAIN_REPEAT,True)
+case('mainfix-f3-prepare-strict-everywhere',QY,"            result=prepare(publication,entries,baseline,on_main=on_main)","            result=prepare(publication,entries,baseline)",PR_BETTER,True)
+ROLLBACK_CASES='test_qualification.RecordingOpener.test_a_rollback_case_counts_only_as_the_append_only_refusal'
+PUBLISHER_CASES='test_qualification.RecordingOpener.test_the_publisher_cases_count_each_refusal_only_by_its_own_reason'
+case('mainfix-sec-rollback-any-exception',AT,"            refused(qualification, path, verifier, ROLLBACK, held)\n","            try:\n                qualification.accept(path, verifier)\n            except Exception:\n                assert qualification.record() == held\n            else:\n                raise AssertionError('accepted')\n",ROLLBACK_CASES,True)
+case('mainfix-sec-refusal-code-unchecked',AT,"        if error.code != reason:\n            raise\n","        if False:\n            raise\n",ROLLBACK_CASES,True)
+case('mainfix-sec-publisher-any-exception',AT,"            expected_refusal(lambda: qualify.prepare(publication, [], trusted_baseline, verifier), reason)\n","            try:\n                qualify.prepare(publication, [], trusted_baseline, verifier)\n            except Exception:\n                pass\n            else:\n                raise AssertionError('accepted')\n",PUBLISHER_CASES,True)
+case('mainfix-sec-publisher-baseline-case-unsigned-bytes',AT,"        ('non-append-only shipped baseline', original, ","        ('non-append-only shipped baseline', json.dumps(candidate).encode(), ",PUBLISHER_CASES,True)
 
 def command(row):
     if row['python']:return ['python3','-B','-m','unittest',row['test'],'-v']

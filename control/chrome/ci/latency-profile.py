@@ -1,11 +1,24 @@
 """CI-only timers around the real service and bridge, without page values."""
 import copy
 import json
+import os
 from pathlib import Path
 import time
 
+from aresos_control import storage as storage_module
+
 MARKER=Path('/out/latency-marker.json')
 OUT=Path('/out/latency-service.jsonl')
+STORE_STAGES={'store_write_ms':0.0,'fsync_ms':0.0,'fsync_count':0}
+
+class TimedOS:
+    """The storage module's os: its fsync calls are timed into the marked sample."""
+    def __init__(self,account):self.account=account
+    def __getattr__(self,name):return getattr(os,name)
+    def fsync(self,fd):
+        start=time.perf_counter()
+        try:return os.fsync(fd)
+        finally:self.account('fsync',(time.perf_counter()-start)*1000)
 
 def install(daemon):
     active=None
@@ -15,6 +28,21 @@ def install(daemon):
     original_call=bridge.call
     def emit(row):
         with OUT.open('a') as output:output.write(json.dumps(row)+'\n')
+    # Storage stages (main fix H5): the store's synchronous writes and the
+    # journal's fsyncs, summed per marked sample so a tail is attributable
+    # from the artifact. Work outside a marked sample is not counted.
+    def account(kind,milliseconds):
+        if active is None:return
+        if kind=='fsync':active['fsync_ms']+=milliseconds;active['fsync_count']+=1
+        else:active['store_write_ms']+=milliseconds
+    store=daemon.engine.store
+    original_write=store.write
+    def write(*arguments,**keywords):
+        start=time.perf_counter()
+        try:return original_write(*arguments,**keywords)
+        finally:account('store_write',(time.perf_counter()-start)*1000)
+    store.write=write
+    storage_module.os=TimedOS(account)
     class Wire:
         def __init__(self,connection):self.connection=connection
         def __getattr__(self,name):return getattr(self.connection,name)
@@ -53,7 +81,7 @@ def install(daemon):
         previous=active
         try:marker=json.loads(MARKER.read_text())
         except FileNotFoundError:marker=None
-        active={**marker,'bridge_ms':0} if marker else None
+        active={**marker,'bridge_ms':0,**STORE_STAGES} if marker else None
         start=time.perf_counter()
         try:return original_request(value,admin)
         finally:
@@ -61,6 +89,8 @@ def install(daemon):
                 elapsed=(time.perf_counter()-start)*1000
                 emit({'sample':active['sample'],'call':active['call'],'stage':'service_total','milliseconds':elapsed})
                 emit({'sample':active['sample'],'call':active['call'],'stage':'service_without_bridge','milliseconds':max(0,elapsed-active['bridge_ms'])})
+                emit({'sample':active['sample'],'call':active['call'],'stage':'store_write','milliseconds':active['store_write_ms']})
+                emit({'sample':active['sample'],'call':active['call'],'stage':'journal_fsync','milliseconds':active['fsync_ms'],'count':active['fsync_count']})
             active=previous
     daemon.engine.request=request
     original_expire=daemon.engine.expire
