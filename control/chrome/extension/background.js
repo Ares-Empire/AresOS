@@ -718,10 +718,25 @@ async function readyDialog(tab){
   if(dialog.frame===undefined)throw Error('refused: dialog opener is not yet established; inspect with the owner');
   return dialog;
 }
+// What every reader query of a frame carries, and what its reply is held to.
+// The three places that ask a reader (facts, options, page_state) share them.
+function requireGuard(tab){if([...preloadTargets.values()].some(state=>state.tab===tab&&state.failures?.size))throw Error('refused: this tab could not install its document-start guard; open its address fresh in a Claude tab');}
+const readerBinding=(frame,effective)=>({...(privacyDocuments.has(frame.documentId)?{expected_document:privacyDocuments.get(frame.documentId)}:{}),...(inlineFrame(frame.url)&&frame.parentFrameId>=0?{expected_origin:new URL(effective).origin}:{})});
+function pinDocument(frame,document){
+  if(!frame.documentId)return;
+  const known=privacyDocuments.get(frame.documentId);
+  if(known&&known!==document)throw Error('refused: private password history was lost for this surviving document; ask the owner to reload');
+  privacyDocuments.set(frame.documentId,document);
+}
+// Brief 28: at most this many outline nodes a tab, over all its frames.
+const OUTLINE_NODES=20000;
 async function facts(tab, reference, typedOnly=false) {
+  // The third argument names the one command every frame is asked: true is
+  // brief 20's value-free typed-field list, 'outline' is brief 28's read.
+  const only=typedOnly===true?'typed_fields':typedOnly||null;
   const current = await requireTab(tab);
   const epoch=controlled.get(tab)?.epoch;assertControl(tab,epoch);
-  if([...preloadTargets.values()].some(state=>state.tab===tab&&state.failures?.size))throw Error('refused: this tab could not install its document-start guard; open its address fresh in a Claude tab');
+  requireGuard(tab);
   if (reference && (reference.session !== session || reference.tab !== tab)) throw Error('stale_reference: browser session changed; read again');
   const dialog=await readyDialog(tab);
   if(dialog){
@@ -731,11 +746,11 @@ async function facts(tab, reference, typedOnly=false) {
     return {session,tab,group:groupId,control:controlled.get(tab).epoch,url:current.url,title:current.title,frames:[],frame_tree:[],...(dialog.effective_url?{effective_url:dialog.effective_url}:{}),dialog};
   }
   const frames = await chrome.webNavigation.getAllFrames({tabId:tab}) || [];
-  const result=[],uncovered=[];
+  const result=[],uncovered=[];let outlined=0;
   for (const frame of frames) {
     let effective;try { effective=frameAddress(frame,frames); } catch { if (reference?.frame === frame.frameId) throw Error('refused: excluded frame');uncovered.push({frame:frame.frameId,eligible:false,reason:'excluded origin or scheme'});continue; }
     let snapshot;try{
-    const query=()=>content(tab,frame.frameId,typedOnly?'typed_fields':reference?.frame === frame.frameId ? 'facts':'read',{...(reference?.frame===frame.frameId?{element:reference.element}:{}),...(privacyDocuments.has(frame.documentId)?{expected_document:privacyDocuments.get(frame.documentId)}:{}),...(inlineFrame(frame.url)&&frame.parentFrameId>=0?{expected_origin:new URL(effective).origin}:{})},frame.documentId);
+    const query=()=>content(tab,frame.frameId,only||(reference?.frame === frame.frameId ? 'facts':'read'),{...(reference?.frame===frame.frameId?{element:reference.element}:{}),...(only==='outline'?{limit:Math.max(0,OUTLINE_NODES-outlined)}:{}),...readerBinding(frame,effective)},frame.documentId);
     try{snapshot=await query();}catch(error){
       if(!error.readerUnavailable||!frame.documentId)throw error;
       // Admission can finish on a popup's initial blank document. Recover only
@@ -744,10 +759,12 @@ async function facts(tab, reference, typedOnly=false) {
       try{await Promise.race([lateReader(tab,frame.documentId),wake.promise]);}finally{wake.dispose();}
       snapshot=await query();
     }
-    if(typedOnly)snapshot={...snapshot,typed_fields:{document:snapshot.document,reader:snapshot.reader,fields:snapshot.fields}};
+    if(only==='typed_fields')snapshot={...snapshot,typed_fields:{document:snapshot.document,reader:snapshot.reader,fields:snapshot.fields}};
+    if(only==='outline'&&!Array.isArray(snapshot.nodes))throw Error('refused: this frame returned no outline');
     if(inlineFrame(frame.url)&&frame.parentFrameId>=0&&(!frame.documentId||snapshot.origin!==new URL(effective).origin))throw Error('refused: inherited frame origin cannot be authenticated');
     }catch(error){assertControl(tab,epoch);if(reference?.frame===frame.frameId||String(error.message).includes('password history was lost'))throw error;uncovered.push({frame:frame.frameId,eligible:true,reason:'reader or inherited origin unavailable'});continue;}
-    if(frame.documentId){const known=privacyDocuments.get(frame.documentId);if(known&&known!==snapshot.document)throw Error('refused: private password history was lost for this surviving document; ask the owner to reload');privacyDocuments.set(frame.documentId,snapshot.document);}
+    pinDocument(frame,snapshot.document);
+    if(only==='outline')outlined+=snapshot.nodes.length;
     if (reference?.frame === frame.frameId && snapshot.document !== reference.document) throw Error('stale_reference: document changed');
     result.push({frame:frame.frameId,parent:frame.parentFrameId,browser_document:frame.documentId,...snapshot,effective_url:effective});
   }
@@ -766,6 +783,70 @@ async function typedFacts(tab) {
       if(!frame.typed_fields||frame.typed_fields.document!==frame.document||typeof frame.typed_fields.reader!=='string'||!frame.typed_fields.reader)throw Error('refused: typed-field provenance is unavailable');
       return {frame:frame.frame,document:frame.document,browser_document:frame.browser_document,reader:frame.typed_fields.reader,url:frame.url,effective_url:frame.effective_url||frame.url,fields:frame.typed_fields.fields};
     })};
+}
+// Brief 28, item 1: the three read-only commands of the new read. Each reader
+// answers for its own document; what only the background knows is joined
+// here: Chrome's frame and document ids, the dialog, the queue.
+async function outlineView(tab){
+  const snapshot=await facts(tab,null,'outline');
+  const readable=new Set(snapshot.frames.map(frame=>frame.frame));
+  // The top document stands first. A frame element names its frame only
+  // when that frame's own outline is in this reply.
+  const frames=[...snapshot.frames].sort((first,second)=>Number(second.frame===0)-Number(first.frame===0)).map(frame=>({...frame,nodes:frame.nodes.map(node=>{
+    if(!('frame' in node)||readable.has(node.frame)&&node.frame!==frame.frame&&node.frame!==0)return node;
+    const {frame:unread,...rest}=node;return rest;
+  })}));
+  const text=value=>typeof value==='string'?value:'';
+  return {session,tab,control:snapshot.control,url:text(snapshot.url),title:text(snapshot.title),...(snapshot.effective_url?{effective_url:snapshot.effective_url}:{}),
+    needs_reload:snapshot.needs_reload===true,uncovered:snapshot.uncovered||[],
+    dialog:snapshot.dialog?{kind:text(snapshot.dialog.kind)||'dialog',text:text(snapshot.dialog.text)}:null,frames};
+}
+// Every option of one list field. The reference names the reader's document
+// and instance; only a document an outline has read is asked.
+async function listOptions(tab,command){
+  await requireTab(tab);
+  const epoch=controlled.get(tab)?.epoch;assertControl(tab,epoch);requireGuard(tab);
+  const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[],frame=frames.find(value=>value.frameId===command.frame);
+  if(!frame)throw Error('stale_reference: frame is gone');
+  let effective;try{effective=frameAddress(frame,frames);}catch{throw Error('refused: excluded frame');}
+  if(!frame.documentId||typeof command.document!=='string'||privacyDocuments.get(frame.documentId)!==command.document)throw Error('stale_reference: document changed');
+  const options=await content(tab,frame.frameId,'options',{element:command.element,document:command.document,reader:command.reader,...readerBinding(frame,effective)},frame.documentId);
+  assertControl(tab,epoch);
+  return {session,tab,frame:frame.frameId,document:command.document,reader:command.reader,options};
+}
+const sha256Hex=async text=>[...new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text)))].map(value=>value.toString(16).padStart(2,'0')).join('');
+// The one cheap question about a tab: a token that moves whenever a read
+// could return something else. No value and no page text is in it: each
+// reader sends digests and counts, and they are digested again here.
+async function pageState(tab){
+  const current=await requireTab(tab);
+  const epoch=controlled.get(tab)?.epoch;assertControl(tab,epoch);requireGuard(tab);
+  const base={session,tab,control:epoch,queued:stepStates(tab).some(state=>state.steps?.size>0),address:await sha256Hex(String(current.url||''))};
+  // While a dialog is open the readers can't answer: no token.
+  if(dialogs.has(tab))return {...base,dialog:true};
+  const frames=await chrome.webNavigation.getAllFrames({tabId:tab})||[],parts=[];let ready=false;
+  for(const frame of frames){
+    let effective;try{effective=frameAddress(frame,frames);}catch{continue;}
+    let state;
+    try{
+      state=await content(tab,frame.frameId,'page_state',readerBinding(frame,effective),frame.documentId);
+      if(inlineFrame(frame.url)&&frame.parentFrameId>=0&&(!frame.documentId||state.origin!==new URL(effective).origin))throw Error('refused: inherited frame origin cannot be authenticated');
+      if(![state.document,state.reader,state.address,state.fields].every(value=>typeof value==='string'&&value)||!Number.isInteger(state.revision))throw Error('refused: this frame returned no state');
+    }catch(error){
+      assertControl(tab,epoch);
+      if(dialogs.has(tab))return {...base,dialog:true};
+      if(String(error.message).includes('password history was lost'))throw error;
+      // A frame without a reader is part of the token as just that, so the
+      // token moves when its reader arrives.
+      parts.push([frame.frameId,frame.documentId||null]);continue;
+    }
+    pinDocument(frame,state.document);
+    parts.push([frame.frameId,frame.documentId||null,state.document,state.reader,state.revision,state.address,state.fields]);
+    if(frame.frameId===0)ready=state.ready===true;
+  }
+  assertControl(tab,epoch);
+  if(dialogs.has(tab))return {...base,dialog:true};
+  return {...base,dialog:false,document:frames.find(frame=>frame.frameId===0)?.documentId||null,ready,token:await sha256Hex(JSON.stringify(parts))};
 }
 const WITHHELD_FORM='this form holds unread typed text; send it yourself, or reload the tab first with chrome_navigate direction=reload (it reports unsaved text first), then read it again';
 function refuseWithheldSubmission(snapshot,reference,command){
@@ -934,6 +1015,9 @@ async function dispatch(command) {
     }
     current=await typedFacts(tab);same();return {frames:values};
   }
+  if(command.name==='outline')return outlineView(tab);
+  if(command.name==='options')return listOptions(tab,command);
+  if(command.name==='page_state')return pageState(tab);
   if (command.name === 'validity') {
     await requireTab(tab);const frame={...await chrome.webNavigation.getFrame({tabId:tab,frameId:reference.frame}),frameId:reference.frame};
     const inherited=inlineFrame(frame.url)&&frame.parentFrameId>=0;

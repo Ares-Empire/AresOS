@@ -365,7 +365,9 @@
     }
     return input||tag==='img'||tag==='progress'||tag==='meter';
   }
-  function outline(){
+  function outline(budget){
+    // The background passes what is left of the tab's nodes; a frame never gets more than the limit.
+    const limit=Number.isInteger(budget)&&budget>=0?Math.min(budget,NODE_LIMIT):NODE_LIMIT;
     const mark=traces.length;
     try{
       let modal=null;const errors=new Set();
@@ -401,7 +403,7 @@
       const lost=record=>{omitted++;for(const part of record.parts)if(typeof part!=='string')lost(part);};
       // Document order: a parent stands before its children.
       function emit(record,parent){
-        if(nodes.length>=NODE_LIMIT){lost(record);return false;}
+        if(nodes.length>=limit){lost(record);return false;}
         const out={id:number(record.element),parent,...record.out};nodes.push(out);
         const parts=[];
         for(const part of record.parts){
@@ -420,8 +422,11 @@
     }finally{traces.length=mark;}
   }
   // Every option of one list field, for a read of that field by its reference.
-  function fieldOptions(key){
-    const element=Number.isInteger(key)&&key>0?elements.get('e'+key):null;
+  // A number names an element only for the reader instance that gave it: a
+  // new instance in the same document counts from one again.
+  function fieldOptions(message){
+    if(message.document!==documentId||message.reader!==readerInstance)throw Error('stale_reference: the document or its reader is new; read again');
+    const key=message.element,element=Number.isInteger(key)&&key>0?elements.get('e'+key):null;
     if(!element?.isConnected||!html(element,HTMLSelectElement,'select')||password(element))throw Error('stale_reference: the list field is gone or is not read; read again');
     return [...element.options].map(optionFacts);
   }
@@ -441,7 +446,7 @@
       else{const safe=safeValue(element,false);state=typeof safe.value==='string'?'v'+safe.value:'u'+(safe.value_status||'');}
       fields.push(state.length+':'+state);
     }
-    return {document:documentId,reader:readerInstance,revision,address:digest(location.href),fields:digest(fields.join('')),ready:document.readyState==='complete'};
+    return {document:documentId,reader:readerInstance,origin:globalThis.origin,revision,address:digest(location.href),fields:digest(fields.join('')),ready:document.readyState==='complete'};
   }
   function role(element) {
     if (element.getAttribute('role')) return element.getAttribute('role');
@@ -786,8 +791,8 @@
       else if (message.command === 'ready') value = {preload:true,document:documentId,...(message.element?{element_present:!!elements.get(message.element)?.isConnected}:{})};
       else if (message.command === 'typed_fields') value={...typedFields(),origin:globalThis.origin,url:location.href,title:document.title};
       else if (message.command === 'read_typed_fields') value=readTypedFields(message);
-      else if (message.command === 'outline') value=outline();
-      else if (message.command === 'options') value=fieldOptions(message.element);
+      else if (message.command === 'outline') value=outline(message.limit);
+      else if (message.command === 'options') value=fieldOptions(message);
       else if (message.command === 'page_state') value=pageState();
       else if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
       else if (message.command === 'steps') { value = guard.steps(); }

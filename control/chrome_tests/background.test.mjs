@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import {createHash} from 'node:crypto';
 
 function fixture(){
   const policy=JSON.parse(fs.readFileSync('control/chrome/extension/policy.js','utf8').match(/\{[\s\S]*\}/)[0]);
@@ -1374,4 +1375,127 @@ test('post-popup the live context is also learned from the injected guard\'s own
   assert.deepEqual(JSON.parse(f.run('JSON.stringify(evaluated)')),[{context:7,dispose:false},{context:2,dispose:false}]);
   const audits=JSON.parse(f.run('JSON.stringify(audits)'));
   assert.equal(audits.filter(row=>row.data?.popup_admitted).length,1);assert.equal(audits.some(row=>row.event==='reader_error'||row.event==='released'),false);
+});
+
+// Brief 28, item 1: the three read-only commands of the new read. The readers
+// are doubles; what is tested is what the background joins and checks.
+function readFixture(){
+  const f=fixture();
+  f.run('crypto').subtle={digest:async(name,bytes)=>{assert.equal(name,'SHA-256');const hash=createHash('sha256').update(Buffer.from(bytes)).digest();return hash.buffer.slice(hash.byteOffset,hash.byteOffset+hash.byteLength);}};
+  f.run(`excludedHosts=['approval.test'];controlled.set(7,{epoch:'epoch'});requireTab=async()=>({url:'http://fixture.test/page?x=1',title:'Fixture'});
+    globalThis.nativeFrames=[{frameId:0,parentFrameId:-1,documentId:'top-native',url:'http://fixture.test/page?x=1'},{frameId:4,parentFrameId:0,documentId:'child-native',url:'http://second.test/inner'},{frameId:5,parentFrameId:0,documentId:'excluded-native',url:'http://approval.test/'}];
+    chrome.webNavigation={getAllFrames:async()=>nativeFrames};
+    globalThis.outlines={
+      0:{document:'top-private',reader:'reader-top',watched:true,origin:'http://fixture.test',url:'http://fixture.test/page?x=1',title:'Top',scroll:0,height:900,omitted:0,
+        nodes:[{id:1,parent:null,role:'frame',name:'Inner',frame:4},{id:2,parent:null,role:'frame',name:'Excluded',frame:5},{id:3,parent:null,role:'p',text:['Top text']}]},
+      4:{document:'child-private',reader:'reader-child',watched:false,origin:'http://second.test',url:'http://second.test/inner',title:'Inner',scroll:0,height:100,omitted:0,nodes:[{id:1,parent:null,role:'p',text:['Inner text']}]}};
+    globalThis.states={
+      0:{document:'top-private',reader:'reader-top',origin:'http://fixture.test',revision:3,address:'a'.repeat(64),fields:'b'.repeat(64),ready:true},
+      4:{document:'child-private',reader:'reader-child',origin:'http://second.test',revision:0,address:'c'.repeat(64),fields:'d'.repeat(64),ready:false}};
+    globalThis.asked=[];
+    content=async(tab,frame,command,parameters={},browserDocument=null)=>{
+      asked.push({frame,command,parameters,browserDocument});
+      const reply=command==='outline'?outlines[frame]:command==='page_state'?states[frame]:command==='options'?[{label:'One',value:'1',chosen:true,disabled:false}]:null;
+      if(!reply)throw Error('Could not establish connection. Receiving end does not exist.');
+      return JSON.parse(JSON.stringify(reply));
+    };`);
+  const plain=value=>JSON.parse(JSON.stringify(value));
+  return {...f,asked:()=>JSON.parse(f.run('JSON.stringify(asked)')),call:async command=>plain(await f.run('dispatch('+JSON.stringify(command)+')'))};
+}
+
+test('brief 28 outline asks every readable frame for its outline and joins Chrome\'s frame and document ids',async()=>{
+  const f=readFixture(),view=await f.call({name:'outline',tab:7});
+  assert.deepEqual(f.asked(),[
+    {frame:0,command:'outline',parameters:{limit:20000},browserDocument:'top-native'},
+    {frame:4,command:'outline',parameters:{limit:19997},browserDocument:'child-native'}],'the excluded frame is never asked, and each frame gets what is left of the tab\'s nodes');
+  assert.deepEqual(Object.keys(view).sort(),['control','dialog','frames','needs_reload','session','tab','title','uncovered','url']);
+  assert.deepEqual([view.session,view.tab,view.control,view.url,view.title,view.dialog,view.needs_reload],['fixture-session',7,'epoch','http://fixture.test/page?x=1','Fixture',null,true]);
+  assert.deepEqual(view.frames.map(frame=>[frame.frame,frame.parent,frame.browser_document,frame.document,frame.reader,frame.watched,frame.effective_url]),[
+    [0,-1,'top-native','top-private','reader-top',true,'http://fixture.test/page?x=1'],[4,0,'child-native','child-private','reader-child',false,'http://second.test/inner']]);
+  // A frame element names its frame only when that frame's outline is in the reply.
+  assert.deepEqual(view.frames[0].nodes,[{id:1,parent:null,role:'frame',name:'Inner',frame:4},{id:2,parent:null,role:'frame',name:'Excluded'},{id:3,parent:null,role:'p',text:['Top text']}]);
+  assert.deepEqual(view.frames[1].nodes,[{id:1,parent:null,role:'p',text:['Inner text']}]);
+  assert.deepEqual(view.uncovered,[{frame:5,eligible:false,reason:'excluded origin or scheme'}]);
+  // The second read holds each reader to the document the first one pinned.
+  await f.call({name:'outline',tab:7});
+  assert.deepEqual(f.asked().slice(2).map(item=>item.parameters),[{limit:20000,expected_document:'top-private'},{limit:19997,expected_document:'child-private'}]);
+  f.run("outlines[0].document='replacement'");
+  await assert.rejects(f.run("dispatch({name:'outline',tab:7})"),/password history was lost/);
+});
+
+test('brief 28 outline lists the top document first, cuts at 20,000 nodes a tab and leaves out a frame without an outline',async()=>{
+  const f=readFixture();
+  f.run("nativeFrames.reverse();outlines[4].nodes.push({id:2,parent:null,role:'frame',frame:0},{id:3,parent:null,role:'frame',frame:4})");
+  const reordered=await f.call({name:'outline',tab:7});
+  assert.deepEqual(reordered.frames.map(frame=>frame.frame),[0,4]);
+  assert.deepEqual(reordered.frames[1].nodes.slice(1),[{id:2,parent:null,role:'frame'},{id:3,parent:null,role:'frame'}],'a frame element never names the top frame or its own');
+  f.run("nativeFrames.reverse();asked.length=0;outlines[0].nodes=Array.from({length:20000},(_,index)=>({id:index+1,parent:null,role:'p'}))");
+  await f.call({name:'outline',tab:7});
+  assert.deepEqual(f.asked().map(item=>item.parameters.limit),[20000,0]);
+  // A reader that answers without nodes (an older one) is a frame that wasn't read, never an empty page.
+  f.run("outlines[0].nodes=[{id:1,parent:null,role:'frame',frame:4}];outlines[4]={document:'child-private',reader:'reader-child',origin:'http://second.test'}");
+  const partial=await f.call({name:'outline',tab:7});
+  assert.deepEqual(partial.frames.map(frame=>frame.frame),[0]);assert.deepEqual(partial.frames[0].nodes,[{id:1,parent:null,role:'frame'}]);
+  assert.deepEqual(partial.uncovered.find(frame=>frame.frame===4),{frame:4,eligible:true,reason:'reader or inherited origin unavailable'});
+});
+
+test('brief 28 outline with a native dialog open returns the dialog\'s kind and text and asks no reader',async()=>{
+  const f=readFixture();f.run("dialogs.set(7,{id:'dialog',kind:'confirm',text:'Leave the page?',frame:0,frame_url:'http://fixture.test/page?x=1',button:'OK'})");
+  const view=await f.call({name:'outline',tab:7});
+  assert.deepEqual(view.dialog,{kind:'confirm',text:'Leave the page?'});assert.deepEqual(view.frames,[]);assert.deepEqual(view.uncovered,[]);assert.deepEqual(f.asked(),[]);
+});
+
+test('brief 28 options asks one frame of a document an outline has read, bound to its reader instance',async()=>{
+  const f=readFixture(),reference={name:'options',tab:7,frame:4,document:'child-private',reader:'reader-child',element:9};
+  await assert.rejects(f.run('dispatch('+JSON.stringify(reference)+')'),/stale_reference: document changed/,'no outline has read this document yet');
+  await f.call({name:'outline',tab:7});f.run('asked.length=0');
+  assert.deepEqual(await f.call(reference),{session:'fixture-session',tab:7,frame:4,document:'child-private',reader:'reader-child',options:[{label:'One',value:'1',chosen:true,disabled:false}]});
+  assert.deepEqual(f.asked(),[{frame:4,command:'options',parameters:{element:9,document:'child-private',reader:'reader-child',expected_document:'child-private'},browserDocument:'child-native'}]);
+  f.run('asked.length=0');
+  for(const [change,pattern] of [[{frame:9},/stale_reference: frame is gone/],[{frame:5},/refused: excluded frame/],[{document:'top-private'},/stale_reference: document changed/],[{document:undefined},/stale_reference: document changed/]])
+    await assert.rejects(f.run('dispatch('+JSON.stringify({...reference,...change})+')'),pattern,JSON.stringify(change));
+  f.run("nativeFrames[1].documentId='child-native-2'");
+  await assert.rejects(f.run('dispatch('+JSON.stringify(reference)+')'),/stale_reference: document changed/,'the frame navigated');
+  f.run("nativeFrames[1].documentId='child-native';controlled.delete(7);requireTab=async()=>{throw Error('stale_reference: tab is outside the Claude group')}");
+  await assert.rejects(f.run('dispatch('+JSON.stringify(reference)+')'),/outside the Claude group/);
+  assert.deepEqual(f.asked(),[],'no refusal asked a reader');
+});
+
+test('brief 28 page_state joins every readable frame\'s state into one token that moves with each part',async()=>{
+  const f=readFixture(),state=()=>f.call({name:'page_state',tab:7});
+  const first=await state();
+  assert.deepEqual(Object.keys(first).sort(),['address','control','dialog','document','queued','ready','session','tab','token']);
+  assert.match(first.token,/^[0-9a-f]{64}$/);assert.equal(first.address,createHash('sha256').update('http://fixture.test/page?x=1').digest('hex'));
+  assert.deepEqual([first.session,first.tab,first.control,first.document,first.ready,first.dialog,first.queued],['fixture-session',7,'epoch','top-native',true,false,false]);
+  assert.deepEqual(f.asked().map(item=>[item.frame,item.command,item.browserDocument]),[[0,'page_state','top-native'],[4,'page_state','child-native']]);
+  assert.deepEqual(await state(),first,'nothing changed, the same token');
+  assert.deepEqual(f.asked().slice(2).map(item=>item.parameters),[{expected_document:'top-private'},{expected_document:'child-private'}]);
+  const seen=new Set([first.token]);
+  // Typing in a frame, a DOM change, a new reader instance, an address, a navigated frame, a reader that left.
+  for(const change of ["states[4].fields='e'.repeat(64)","states[0].revision=4","states[4].reader='reader-new'","states[0].address='f'.repeat(64)","nativeFrames[1].documentId='child-native-2'","states[4]=null"]){
+    f.run(change);const next=await state();assert.match(next.token,/^[0-9a-f]{64}$/);assert.equal(seen.has(next.token),false,change);seen.add(next.token);
+    assert.deepEqual([next.address,next.document,next.ready],[first.address,'top-native',true],change);
+  }
+  f.run("states[0].ready=false;controlled.get(7).steps=new Map([['step',{id:'s1'}]])");
+  const loading=await state();assert.deepEqual([loading.ready,loading.queued],[false,true]);
+  assert.ok(!JSON.stringify(loading).includes('reader-top')&&!JSON.stringify(loading).includes('top-private'),'the token is a digest, not the parts');
+  f.run("states[0].document='replacement'");
+  await assert.rejects(f.run("dispatch({name:'page_state',tab:7})"),/password history was lost/);
+});
+
+test('brief 28 page_state with a native dialog open says so, holds no token and asks no reader',async()=>{
+  const f=readFixture();f.run("dialogs.set(7,{id:'dialog',kind:'alert',text:'Stop',frame:0,frame_url:'http://fixture.test/page?x=1'})");
+  const state=await f.call({name:'page_state',tab:7});
+  assert.deepEqual(Object.keys(state).sort(),['address','control','dialog','queued','session','tab']);assert.equal(state.dialog,true);assert.deepEqual(f.asked(),[]);
+  // A dialog that opens while a frame is asked ends the same way.
+  f.run("dialogs.delete(7);const answer=content;content=async(...args)=>{if(args[1]===4){dialogs.set(7,{id:'late',kind:'alert',text:'Late',frame:0,frame_url:'http://fixture.test/'});throw Error('refused: a native dialog blocks this frame query');}return answer(...args);}");
+  const interrupted=await f.call({name:'page_state',tab:7});assert.equal(interrupted.dialog,true);assert.equal('token' in interrupted,false);
+});
+
+test('brief 28 the read-only commands are refused for a tab without its document-start guard',async()=>{
+  const f=readFixture();await f.call({name:'outline',tab:7});
+  f.run("asked.length=0;preloadTargets.set('failed',{tab:7,failures:new Map([['frame',{}]])})");
+  for(const command of [{name:'outline',tab:7},{name:'page_state',tab:7},{name:'options',tab:7,frame:4,document:'child-private',reader:'reader-child',element:9}])
+    await assert.rejects(f.run('dispatch('+JSON.stringify(command)+')'),/could not install its document-start guard/,command.name);
+  assert.deepEqual(f.asked(),[]);
 });

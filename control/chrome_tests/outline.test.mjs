@@ -137,7 +137,7 @@ test('a form: labels, hidden names, states, an error text once, a list field, an
     h('label',{},'Password ',h('input',{type:'password',name:'password',value:'never'})),
     h('label',{},'One-time code ',h('input',{name:'one_time',autocomplete:'one-time-code',value:'123456',$secret:true})),
     h('button',{type:'submit'},'Save'))]);
-  const nodes=f.outline().nodes,options=Array.from({length:60},(_,index)=>({label:'Country '+index,value:'c'+index,chosen:index===7,disabled:false}));
+  const data=f.outline(),nodes=data.nodes,options=Array.from({length:60},(_,index)=>({label:'Country '+index,value:'c'+index,chosen:index===7,disabled:false}));
   assert.deepEqual(nodes,[
     {id:1,parent:null,role:'form',name:'Account',method:'post',action:'https://fixture.test/account?step=2',hidden:['csrf']},
     {id:2,parent:1,role:'text',text:['Line 0 ',3]},{id:3,parent:2,role:'textbox',name:'Line 0',value:'Value 0'},
@@ -147,9 +147,14 @@ test('a form: labels, hidden names, states, an error text once, a list field, an
     {id:10,parent:1,role:'text',text:['Password ',11]},{id:11,parent:10,role:'password',name:'Password',unread:true},
     {id:12,parent:1,role:'text',text:['One-time code ',13]},{id:13,parent:12,role:'password',name:'One-time code',unread:true},
     {id:14,parent:1,role:'button',name:'Save',text:['Save']}]);
-  // `options` returns every option of one list field, by the number the outline gave.
-  assert.deepEqual(f.run({command:'options',element:7}),{ok:true,data:options});
-  for(const element of [3,11,'e7',0,999,null]){const refused=f.run({command:'options',element});assert.equal(refused.ok,false);assert.match(refused.error,/^stale_reference: /);}
+  // `options` returns every option of one list field, by the number the outline gave,
+  // and only to the document and reader instance that gave it.
+  const from={document:data.document,reader:data.reader};
+  assert.deepEqual(f.run({command:'options',element:7,...from}),{ok:true,data:options});
+  for(const element of [3,11,'e7',0,999,null]){const refused=f.run({command:'options',element,...from});assert.equal(refused.ok,false);assert.match(refused.error,/^stale_reference: /);}
+  for(const other of [{},{document:data.document},{reader:data.reader},{...from,reader:'0'.repeat(32)},{...from,document:'0'.repeat(32)}]){
+    const refused=f.run({command:'options',element:7,...other});assert.equal(refused.ok,false,JSON.stringify(other));assert.match(refused.error,/^stale_reference: /);
+  }
 });
 
 test('in a document the reader has not watched, a typed field says only filled or empty',()=>{
@@ -178,13 +183,18 @@ test('beyond 20,000 nodes the reply says how many were left out',()=>{
   const f=page(h=>Array.from({length:20001},(_,index)=>h('p',{},'Paragraph '+index)));
   const data=f.outline();
   assert.equal(data.nodes.length,20000);assert.equal(data.omitted,1);assert.deepEqual(data.nodes.at(-1).text,['Paragraph 19999']);
+  // The background passes what is left of the tab's nodes; a parent that is cut takes its children along.
+  const small=page(h=>[h('p',{},'One'),h('ul',{},h('li',{},'Two'),h('li',{},'Three')),h('p',{},'Four')]);
+  const cut=limit=>{const result=small.run({command:'outline',limit});assert.equal(result.ok,true,JSON.stringify(result));return [result.data.nodes.map(node=>node.role),result.data.omitted];};
+  assert.deepEqual(cut(3),[['p','list','listitem'],2]);assert.deepEqual(cut(1),[['p'],4]);assert.deepEqual(cut(0),[[],5]);
+  for(const limit of [5,20001,-1,1.5,'2',null])assert.deepEqual(cut(limit),[['p','list','listitem','listitem','p'],0],String(limit));
 });
 
 test('page_state moves with a typed value and a tick, and carries no value',()=>{
   const f=page(h=>[h('input',{'aria-label':'A',value:'one'}),h('input',{type:'checkbox','aria-label':'B'}),h('input',{type:'password',value:'never'})]);
   const state=()=>{const result=f.run({command:'page_state'});assert.equal(result.ok,true,JSON.stringify(result));return result.data;};
   const first=state();
-  assert.deepEqual(Object.keys(first).sort(),['address','document','fields','reader','ready','revision']);
+  assert.deepEqual(Object.keys(first).sort(),['address','document','fields','origin','reader','ready','revision']);assert.equal(first.origin,'https://fixture.test');
   assert.match(first.fields,/^[0-9a-f]{64}$/);assert.match(first.address,/^[0-9a-f]{64}$/);assert.deepEqual([first.ready,first.revision],[true,0]);
   assert.deepEqual(state(),first);
   f.body.childNodes[0].attrs.value='two words';const typed=state();
