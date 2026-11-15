@@ -140,6 +140,10 @@ def f4():
                       error="Enter a valid address"))
     # The password field itself, a field named like a credential, and two typed
     # fields whose history the reader doesn't know: one filled, one empty.
+    # Nodes 23 and 24 are unit-test-only (the lead, 2026-11-15): a document is
+    # either watched or not, so a page can't show them unread beside the read
+    # values of nodes 2 to 11 in one form. Group 16's comparison of the browser's
+    # F4 (efficiency-fixtures.mjs) with this one leaves them out.
     nodes += [node(21, "password", 1, name="Password", unread=True),
               node(22, "password", 1, name="One-time code", unread=True),
               node(23, "textbox", 1, name="Code", unread=True, filled=True),
