@@ -161,13 +161,13 @@
     const children=composed?(assigned?.length?assigned:shadow(node)?.childNodes||node.childNodes):node.childNodes;
     return [...children].map(child=>text(child,includeHidden,composed)).join(' ');
   }
-  function name(element) {
+  function name(element, fromContent=['BUTTON','A','SUMMARY'].includes(element.tagName) || hyperlink(element) || element.hasAttribute('role')) {
     const root = element.getRootNode();
     const labelled = (element.getAttribute('aria-labelledby') || '').split(/\s+/).map(key => root.getElementById?.(key)).filter(Boolean);
     const buttonValue=html(element,HTMLInputElement,'input') && ['button','submit','reset'].includes(element.type) ? safeValue(element).value || (element.type==='submit'?'Submit':element.type==='reset'?'Reset':''):null;
     return (labelled.length ? labelled.map(node=>text(node,true)).join(' ') : element.getAttribute('aria-label') ||
       (element.labels?.length ? [...element.labels].map(node=>text(node,true)).join(' ') : element.getAttribute('alt') || buttonValue ||
-      ((['BUTTON','A','SUMMARY'].includes(element.tagName) || hyperlink(element) || element.hasAttribute('role') ? text(element) : element.getAttribute('placeholder') || '') || element.getAttribute('title') || ''))).replace(/\s+/g, ' ').trim();
+      ((fromContent ? text(element) : element.getAttribute('placeholder') || '') || element.getAttribute('title') || ''))).replace(/\s+/g, ' ').trim();
   }
   function editableText(node) {
     if(node.nodeType===Node.TEXT_NODE)return node.parentElement&&password(node.parentElement)?'':node.textContent;
@@ -236,7 +236,7 @@
     if(!identity.sha256)throw Error('refused: selected file digest is not ready; read the page again');
     return {name:file.name,size:blobSize.call(file),lastModified:file.lastModified,identity:identity.identity,sha256:identity.sha256};
   }
-  function safeValue(element) {
+  function safeValue(element, traced=true) {
     // The exclusion is repeated immediately before EACH value/text read.
     if (password(element)) return {password: true};
     if(!watched&&typedField(element))return {typed_text:true,unknown_history:true,value_status:filledStatus(element)};
@@ -248,6 +248,8 @@
     } else if (html(element,HTMLTextAreaElement,'textarea') || html(element,HTMLSelectElement,'select') || html(element,HTMLButtonElement,'button')) value = element.value;
     else if (element.isContentEditable) value = editableText(element).replace(/\n$/, '');
     else return {};
+    // The outline's reply holds what it read; brief 20's trace and rich identity stay with brief 20's reads.
+    if(!traced)return {value};
     traces.push({element: id(element), value});
     return {value,...(element.isContentEditable?{rich:richIdentity(element)}:{})};
   }
@@ -276,6 +278,170 @@
       if(password(element)||!typedField(element))throw Error('stale_approval: typed field became a credential; ask again');
       return {...field,value:element.value};
     })};
+  }
+  // Brief 28, item 1: the outline. A node holds its own text and facts, never
+  // its descendants' text, a box or a style. Everything a page wrote leaves as
+  // a string value; a role leaves only as a word of this list (nodes.py ROLES).
+  const outlineRoles=new Set('main navigation banner contentinfo complementary region search form article group list listitem table row cell columnheader rowheader figure img separator toolbar dialog alertdialog alert status tooltip progressbar frame h1 h2 h3 h4 h5 h6 p text link button textbox searchbox combobox listbox option checkbox radio radiogroup switch slider spinbutton tab tablist tabpanel menu menubar menuitem menuitemcheckbox menuitemradio tree treeitem grid gridcell password'.split(' '));
+  // Roles the reader gives by its own rules; a role attribute can't claim them.
+  // A page's role="password" on a container would make the service refuse the
+  // whole reply (a field that isn't read has no children).
+  const readerRoles=new Set(['password','frame','text','p','h1','h2','h3','h4','h5','h6']);
+  const tagRoles=new Map(Object.entries({main:'main',nav:'navigation',aside:'complementary',form:'form',article:'article',fieldset:'group',details:'group',ul:'list',ol:'list',dl:'list',menu:'list',li:'listitem',dt:'listitem',dd:'listitem',table:'table',tr:'row',td:'cell',figure:'figure',hr:'separator',dialog:'dialog',iframe:'frame',h1:'h1',h2:'h2',h3:'h3',h4:'h4',h5:'h5',h6:'h6',p:'p',blockquote:'p',pre:'p',button:'button',summary:'button',textarea:'textbox',option:'option',progress:'progressbar',meter:'progressbar'}));
+  const inputRoles=new Map(Object.entries({checkbox:'checkbox',radio:'radio',range:'slider',number:'spinbutton',search:'searchbox',button:'button',submit:'button',reset:'button',image:'button'}));
+  // Inline formatting is text of the element it stands in (brief 28, section 7, decision 6).
+  const formattingTags=new Set('a b strong i em code span small mark abbr sub sup time u s q cite kbd var samp dfn del ins bdi bdo font big tt data ruby rt rp'.split(' '));
+  const unreadTags=new Set(['script','style','noscript','template','head','title']);
+  const contentNamed=new Set(['link','button','checkbox','radio','switch','tab','menuitem','menuitemcheckbox','menuitemradio','option','treeitem']);
+  const XHTML='http://www.w3.org/1999/xhtml',NODE_LIMIT=20000,OPTION_LIMIT=50;
+  const squeeze=value=>String(value??'').replace(/\s+/g,' ').trim();
+  // The reader's element id as a number (decision 4): e12 is 12.
+  const number=element=>Number(id(element).slice(1));
+  function outlineRole(element,tag){
+    const word=(element.getAttribute('role')||'').trim().split(/\s+/)[0].toLowerCase();
+    if(word==='heading'){const level=Number(element.getAttribute('aria-level')||2);return Number.isInteger(level)&&level>=1&&level<=6?'h'+level:'h2';}
+    if(outlineRoles.has(word)&&!readerRoles.has(word))return word;
+    if(hyperlink(element))return 'link';
+    if(element.namespaceURI!==XHTML)return null;
+    if(tag==='input')return element.type==='hidden'?null:inputRoles.get(element.type)||'textbox';
+    if(tag==='select')return element.multiple||element.size>1?'listbox':'combobox';
+    if(element.isContentEditable)return 'textbox';
+    if(word==='presentation'||word==='none')return null;
+    if(tag==='header'||tag==='footer')return element.parentElement?.localName==='body'?(tag==='header'?'banner':'contentinfo'):null;
+    if(tag==='section')return element.hasAttribute('aria-label')||element.hasAttribute('aria-labelledby')?'region':null;
+    if(tag==='th')return (element.getAttribute('scope')||'').toLowerCase()==='row'?'rowheader':'columnheader';
+    if(tag==='img')return element.getAttribute('alt')?'img':null;
+    return tagRoles.get(tag)||null;
+  }
+  function outlineStates(element,tag){
+    const aria=key=>element.getAttribute('aria-'+key),states=[];
+    const control=['input','textarea','select','button'].includes(tag);
+    if(tag==='input'&&['checkbox','radio'].includes(element.type)?element.checked===true:aria('checked')==='true')states.push('checked');
+    if(aria('selected')==='true')states.push('selected');
+    if(control&&element.matches(':disabled')||aria('disabled')==='true')states.push('disabled');
+    if(control&&element.required===true||aria('required')==='true')states.push('required');
+    if(aria('invalid')==='true')states.push('invalid');
+    const expanded=tag==='details'?String(element.open===true):aria('expanded');
+    if(expanded==='true')states.push('expanded');else if(expanded==='false')states.push('collapsed');
+    if(aria('current')&&aria('current')!=='false')states.push('current');
+    if((tag==='input'||tag==='textarea')&&element.readOnly===true||aria('readonly')==='true')states.push('readonly');
+    return states;
+  }
+  // The elements that hold a field's error text (shown with the field while it is invalid).
+  const errorParts=element=>{const root=element.getRootNode();return (element.getAttribute('aria-errormessage')||element.getAttribute('aria-describedby')||'').split(/\s+/).map(key=>key&&root.getElementById?.(key)).filter(Boolean);};
+  const optionFacts=option=>({label:squeeze(text(option)),value:String(option.value??''),chosen:option.selected===true,disabled:!!option.matches(':disabled')});
+  const composedChildren=node=>{const assigned=node.localName==='slot'?node.assignedNodes?.():null;return assigned?.length?assigned:shadow(node)?.childNodes||node.childNodes;};
+  // Fills a node's own facts. True when the element's content is its value or
+  // nothing the outline reads, so its children get no nodes.
+  function describe(node,tag,role,out){
+    const label=name(node,contentNamed.has(role));if(label)out.name=label;
+    const title=squeeze(node.getAttribute('title'));if(title&&title!==label)out.title=title;
+    const states=outlineStates(node,tag);if(states.length)out.states=states;
+    if(node.getAttribute('aria-invalid')==='true'){const error=squeeze(errorParts(node).map(part=>text(part,true)).join(' '));if(error)out.error=error;}
+    if(role==='link'){const href=hyperlinkAddress(node);if(typeof href==='string')out.href=href;}
+    if(node.namespaceURI!==XHTML)return false;
+    if(tag==='form'){
+      out.method=String(formProperty(node,'method')||'get').toLowerCase();out.action=String(formProperty(node,'action')||'');
+      const hidden=[...formProperty(node,'elements')].filter(control=>html(control,HTMLInputElement,'input')&&control.type==='hidden').map(control=>control.getAttribute('name')||'').filter(Boolean);
+      if(hidden.length)out.hidden=hidden;
+      return false;
+    }
+    if(tag==='iframe'){const frame=chrome.runtime.getFrameId?.(node);if(Number.isInteger(frame)&&frame>0)out.frame=frame;return true;}
+    if(tag==='select'){
+      const options=[...node.options];
+      out.option_count=options.length;out.chosen=options.filter(option=>option.selected).map(option=>squeeze(text(option))).join(', ');
+      out.options=options.slice(0,OPTION_LIMIT).map(optionFacts);
+      return true;
+    }
+    const input=tag==='input';
+    if(input&&node.type==='file'){out.value=[...node.files].map(file=>String(file.name)).join(', ');return true;}
+    if(input&&!['checkbox','radio','button','submit','reset','image'].includes(node.type)||tag==='textarea'||node.isContentEditable){
+      // safeValue repeats the exclusion right before the read (the password
+      // rule, the history rule); an unread field carries filled or empty only.
+      const safe=safeValue(node,false);
+      if(safe.password||safe.unknown_history){out.unread=true;if(['filled','empty'].includes(safe.value_status))out.filled=safe.value_status==='filled';}
+      else if(typeof safe.value==='string')out.value=safe.value;
+      return true;
+    }
+    return input||tag==='img'||tag==='progress'||tag==='meter';
+  }
+  function outline(){
+    const mark=traces.length;
+    try{
+      let modal=null;const errors=new Set();
+      for(const element of all()){
+        if(!modal&&element.matches('dialog[open],[role=dialog][aria-modal=true],[role=alertdialog][aria-modal=true]'))modal=element;
+        if(element.getAttribute('aria-invalid')==='true')for(const part of errorParts(element))errors.add(part);
+      }
+      const flush=owner=>{if(owner.run){owner.parts.push(owner.pre?owner.run.replace(/\r\n?/g,'\n'):owner.run.replace(/\s+/g,' '));owner.run='';}};
+      function visit(node,owner){
+        if(node.nodeType===Node.TEXT_NODE){owner.run+=node.textContent;return;}
+        if(!isElement(node))return;
+        const tag=node.localName;
+        if(unreadTags.has(tag)||errors.has(node))return;
+        // The exclusion comes before anything of the element is read.
+        const kept=password(node);
+        const style=getComputedStyle(node);
+        if(node.hidden||style.display==='none'||style.visibility==='hidden')return;
+        if(kept){flush(owner);const label=name(node,false);owner.parts.push({element:node,out:{role:'password',...(label?{name:label}:{}),unread:true},parts:[]});return;}
+        if(tag==='br'){owner.run+=owner.pre?'\n':' ';return;}
+        const role=outlineRole(node,tag);
+        if(role===null&&(node.namespaceURI!==XHTML||formattingTags.has(tag))){for(const child of composedChildren(node))visit(child,owner);return;}
+        flush(owner);
+        const record={element:node,out:{role},parts:[],run:'',pre:tag==='pre'||/^(?:pre|break-spaces)/.test(style.whiteSpace||'')};
+        if(role===null||!describe(node,tag,role,record.out))for(const child of composedChildren(node))visit(child,record);
+        flush(record);
+        // No role and no text of its own: no node, and its children move up.
+        if(role===null&&!record.parts.some(part=>typeof part==='string'&&part.trim()))owner.parts.push(...record.parts.filter(part=>typeof part!=='string'));
+        else{if(role===null)record.out.role='text';owner.parts.push(record);}
+      }
+      const top={parts:[],run:'',pre:false};
+      visit(modal||document.body||document.documentElement,top);
+      const nodes=[];let omitted=0;
+      const lost=record=>{omitted++;for(const part of record.parts)if(typeof part!=='string')lost(part);};
+      // Document order: a parent stands before its children.
+      function emit(record,parent){
+        if(nodes.length>=NODE_LIMIT){lost(record);return false;}
+        const out={id:number(record.element),parent,...record.out};nodes.push(out);
+        const parts=[];
+        for(const part of record.parts){
+          if(typeof part==='string')parts.push(part);
+          else{const child=nodes.length;if(emit(part,out.id))parts.push(nodes[child].id);}
+        }
+        if(typeof parts[0]==='string')parts[0]=parts[0].trimStart();
+        if(typeof parts.at(-1)==='string')parts[parts.length-1]=parts.at(-1).trimEnd();
+        const own=parts.filter(part=>part!=='');
+        if(own.some(part=>typeof part==='string'&&part.trim()))out.text=own;
+        return true;
+      }
+      for(const part of top.parts)if(typeof part!=='string')emit(part,null);
+      return {document:documentId,reader:readerInstance,watched,origin:globalThis.origin,url:location.href,title:document.title,
+        scroll:Math.max(0,Math.round(scrollY)||0),height:Math.max(0,Math.round(document.documentElement?.scrollHeight)||0),omitted,nodes};
+    }finally{traces.length=mark;}
+  }
+  // Every option of one list field, for a read of that field by its reference.
+  function fieldOptions(key){
+    const element=Number.isInteger(key)&&key>0?elements.get('e'+key):null;
+    if(!element?.isConnected||!html(element,HTMLSelectElement,'select')||password(element))throw Error('stale_reference: the list field is gone or is not read; read again');
+    return [...element.options].map(optionFacts);
+  }
+  // The reader's part of page_state: what moves whenever a read of this
+  // document could return something else. Values are digested here; a field
+  // that isn't read adds only what the outline shows of it.
+  function pageState(){
+    const digest=value=>sha256(new TextEncoder().encode(value)),fields=[];
+    for(const element of all()){
+      const tag=element.localName;
+      if(element.namespaceURI!==XHTML||!['input','textarea','select'].includes(tag))continue;
+      let state;
+      if(password(element))state='p';
+      else if(tag==='select')state='s'+[...element.options].map(option=>option.selected?1:0).join('');
+      else if(['checkbox','radio'].includes(element.type))state=element.checked?'c1':'c0';
+      else if(element.type==='file')state='f'+element.files.length;
+      else{const safe=safeValue(element,false);state=typeof safe.value==='string'?'v'+safe.value:'u'+(safe.value_status||'');}
+      fields.push(state.length+':'+state);
+    }
+    return {document:documentId,reader:readerInstance,revision,address:digest(location.href),fields:digest(fields.join('')),ready:document.readyState==='complete'};
   }
   function role(element) {
     if (element.getAttribute('role')) return element.getAttribute('role');
@@ -620,6 +786,9 @@
       else if (message.command === 'ready') value = {preload:true,document:documentId,...(message.element?{element_present:!!elements.get(message.element)?.isConnected}:{})};
       else if (message.command === 'typed_fields') value={...typedFields(),origin:globalThis.origin,url:location.href,title:document.title};
       else if (message.command === 'read_typed_fields') value=readTypedFields(message);
+      else if (message.command === 'outline') value=outline();
+      else if (message.command === 'options') value=fieldOptions(message.element);
+      else if (message.command === 'page_state') value=pageState();
       else if (message.command === 'read' || message.command === 'facts') value = snapshot(message.element);
       else if (message.command === 'steps') { value = guard.steps(); }
       else if (message.command === 'focus') {
