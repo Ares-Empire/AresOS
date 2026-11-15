@@ -266,8 +266,8 @@ Updated 2026-11-14. The live truth is `git log`, `gh pr list` and `git worktree 
        in every turn on Claude Code 2.1.319, fixed on main by PR #61. 18e makes a stopped service quiet in sessions that
        never used the tools (owner, #254), lets the service end `failed`, and wakes it about once a minute when idle.
        Codex reviews of #69 and #58 on 2026-11-17 (board #287).
-       Part A merges only after the owner's yes to a release carrying Control (a background service, two managed
-       hooks in every Claude Code session). Owner answer: the tools use `Downloads` and `Documents` (board #203).
+       Owner's answer #286 (2026-11-15): the next release (Thu-Sat) carries Control if Tuesday's reviews pass (a
+       background service, two managed hooks in every Claude Code session). Owner answer: the tools use `Downloads` and `Documents` (board #203).
      - **The Chrome capability briefs** (branch `briefs/28-chrome-capability`, not merged): 28 (reading: outline,
        short references, folds, paging), 28a (acting: open, go, batched steps, the smaller tool list) and 28b (his
        own open tabs), with section 6 of `CONTROL.md` rewritten to match. Two Codex review rounds are worked in; the
