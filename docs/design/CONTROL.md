@@ -591,8 +591,9 @@ the front when he should look at it or sign in there.
   clean, and work a page holds only in its script's memory is still work. Brief 20 looks for changed fields, an
   editor and playing media (`requireDiscard` and `reloadState`; *brief 20* on merged `main`): in a document its
   reader didn't watch from its start every text field counts, and in a watched one a field that differs from its
-  default or got typing since the load. That misses whether he used the page, work kept in a canvas, the finished steps of a wizard, and a form on its
-  way to the server. So with brief 28b **a tab he has used is never known clean.** Used means that he has clicked
+  default or got typing since the load. That misses whether he used the page, work kept in a canvas, the finished
+  steps of a wizard, and a form on its way to the server. So with brief 28b **a tab he has used is never known
+  clean.** Used means that he has clicked
   or typed in the page since it loaded, or that the page wasn't opened fresh (it was restored, reloaded or reached
   by Back). The browser itself records a click or a key in a page (its sticky user activation), and the reader
   reads that on demand. Work can also arrive without a click or a key: text or a file dropped in from another
@@ -1120,9 +1121,9 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 - **Deleting and paying always ask** (decision 15); WhatsApp messages ask each time (decision 16).
 - **He sets it himself, through a channel Claude can't use:** the extension's details page lists Claude's recently
   approved sends with "Don't ask again for this kind" (Claude can't open extension pages: *checked*, 17c, and the
-  fixed list above), and the owner command `sudo aresos admin chrome allow …` takes his password. On the details page, "Don't ask
-  again" and turning a read-only site off ask for his password in a polkit dialog, once for each change
-  (`org.aresos.control.chrome-loosen`); listing, revoking and turning read-only on don't (*brief 20*, final
+  fixed list above), and the owner command `sudo aresos admin chrome allow …` takes his password. On the details
+  page, "Don't ask again" and turning a read-only site off ask for his password in a polkit dialog, once for each
+  change (`org.aresos.control.chrome-loosen`); listing, revoking and turning read-only on don't (*brief 20*, final
   fix F7). Claude Code's own
   "Yes, and don't ask again" writes an allow rule, which doesn't turn a managed ask off (section 7).
 - **The entries live in the owner-only list** in the tool service, written only through `admin.sock` and the
