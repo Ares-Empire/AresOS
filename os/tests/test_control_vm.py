@@ -171,6 +171,18 @@ class EvidencePackingTest(unittest.TestCase):
             self.actions = load(CONTROL_CI / 'actions.py', 'control_actions_for_test')
             self.sessions = load(CONTROL_CI / 'sessions.py', 'control_sessions_for_test')
 
+    def test_a_continuation_tail_is_the_newest_user_text(self):
+        messages = [{'role': 'user', 'content': 'ORDINARY_OWNER_TURN_04'},
+                    {'role': 'assistant', 'content': [{'type': 'text', 'text': 'INTERACTIVE_DONE_4'}]},
+                    {'role': 'user', 'content': [{'type': 'text', 'text': 'Stop hook feedback:\n[cmd]: AresOS tools '
+                                                  'are not running. If you prepared'}]}]
+        tail = self.sessions.last_user_text(messages)
+        self.assertIn('AresOS tools are not running', tail)
+        self.assertNotIn('TURN_04', tail)
+        self.assertEqual(self.sessions.last_user_text([{'role': 'user', 'content': 'x\n  y'}]), 'x y')
+        # A session's last turn keeps the long quiet window: nothing after it would see a late continuation.
+        self.assertLess(self.sessions.SETTLE_NEXT, self.sessions.SETTLE)
+
     def case(self, name, size):
         folder = self.folder / name
         (folder / 'screens').mkdir(parents=True)
@@ -267,6 +279,59 @@ class ServiceModesTest(unittest.TestCase):
                   and ast.unparse(node.func) == 'directory.mkdir' for keyword in node.keywords if keyword.arg == 'mode']
         self.assertEqual([ast.literal_eval(value) for value in folder], [self.constant('SOCKET_FOLDER_MODE')])
         self.assertEqual(sockets, {'act.sock': 0o666, 'admin.sock': 0o600, 'chrome.sock': 0o666})
+
+
+class ServiceFixesTest(unittest.TestCase):
+    """What the VM pass expects from 18e (PR #69), read from the sources that make it, so a change there fails here
+    until the check follows."""
+
+    def constant(self, name):
+        tree = ast.parse((CONTROL_CI / 'actions.py').read_text())
+        return next(ast.literal_eval(node.value) for node in tree.body
+                    if isinstance(node, ast.Assign) and [ast.unparse(t) for t in node.targets] == [name])
+
+    def test_check_2_pins_the_units_start_limit(self):
+        unit = (ROOT / 'control/packaging/aresos-toold.service').read_text().splitlines()
+        section = unit[unit.index('[Unit]'):unit.index('[Service]')]
+        sandbox = self.constant('SANDBOX')
+        self.assertIn(f"StartLimitIntervalSec={sandbox['StartLimitIntervalUSec'].removesuffix('s')}", section)
+        self.assertIn(f"StartLimitBurst={sandbox['StartLimitBurst']}", section)
+
+    def test_the_admin_hint_and_the_refusal_are_the_services_texts(self):
+        sys.path.insert(0, str(ROOT / 'control'))
+        self.addCleanup(sys.path.remove, str(ROOT / 'control'))
+        from aresos_control.common import Refused
+        from aresos_control.files import FilePolicy
+        build = (ROOT / 'os/build.sh').read_text()
+        folders = ast.literal_eval(re.search(r'^FOLDERS = (.+)$', build, re.M)[1])
+        policy = FilePolicy('/var/home/ares', [f'/var/home/ares/{name}' for name in folders])
+        with self.assertRaises(Refused) as refusal:
+            policy.locate('/var/home/ares/outside-ci.bin')
+        self.assertEqual((refusal.exception.code, str(refusal.exception)), ('file_refused', self.constant('OUTSIDE_REFUSAL')))
+        cli = (ROOT / 'control/aresos_control/cli.py').read_text()
+        self.assertIn('"Admin commands need sudo: run sudo aresos admin " + " ".join(command) + " (same options)."', cli)
+        self.assertEqual(self.constant('ADMIN_HINT'), 'Admin commands need sudo: run sudo aresos admin '
+                         + ' '.join(['testapp', 'fixture_configure']) + ' (same options).')
+
+    def test_check_6_lets_the_unit_fail_by_its_start_limit(self):
+        actions = (CONTROL_CI / 'actions.py').read_text()
+        drop_in = re.search(r"DROP_IN\.write_text\((.+?)\)\n", actions, re.S)[1]
+        self.assertIn('ExecStartPre=/usr/bin/false', drop_in)
+        self.assertNotIn('Restart=', drop_in)
+
+    def test_check_6s_turns_are_found_by_unique_prompts(self):
+        tree = ast.parse((CONTROL_CI / 'actions.py').read_text())
+        turns = next(node.value for node in tree.body if isinstance(node, ast.Assign)
+                     and [ast.unparse(t) for t in node.targets] == ['ORDINARY_TURNS'])
+        rows = [[ast.unparse(item) for item in row.elts] for row in turns.elts]
+        prompts = [f'ORDINARY_OWNER_TURN_{number:02}' for number in range(1, len(rows) + 1)]
+        self.assertTrue(all(a == b or a not in b for a in prompts for b in prompts))
+        self.assertIn('ORDINARY_OWNER_TURN_{number:02}', (CONTROL_CI / 'actions.py').read_text())
+        notices = [row[3] for row in rows]
+        self.assertEqual(notices.count('1'), 2)
+        # A session's done markers (INTERACTIVE_DONE_<n>) stay unique while it has fewer than ten turns.
+        sessions = [row[0] for row in rows]
+        self.assertLess(max(sessions.count(name) for name in set(sessions)), 10)
 
 
 class ReleaseChecksTest(unittest.TestCase):

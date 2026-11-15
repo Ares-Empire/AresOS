@@ -27,8 +27,13 @@ KEY = 'SYNTHETIC_GUEST_NONCREDENTIAL'
 NORMAL = ['--permission-mode', 'default']
 SKIP = ['--dangerously-skip-permissions']
 # The managed Stop hook's own timeout (control/settings/managed-hooks.json) plus a margin: a Stop continuation is
-# requested within this window after the model's last answer, or not at all.
+# requested within this window after the model's last answer, or not at all. A session's last turn waits this long:
+# nothing after it would see a late continuation.
 SETTLE = 20
+# A turn that another turn of the same session follows. The managed hooks make one connect attempt and end at once
+# (18e; check 6 times them directly, under a second), and a continuation later than this would land in the next
+# turn's count and fail that turn, never pass unseen.
+SETTLE_NEXT = 10
 # Not ~/.local/bin (the CI layer's exit-97 stand-ins live there); Claude Code is called by its full path.
 ENV = {'HOME': str(HOME), 'USER': 'ares', 'LOGNAME': 'ares', 'TERM': 'xterm-256color', 'LANG': 'C.UTF-8',
        'PATH': '/usr/local/bin:/usr/bin:/usr/sbin', 'DISABLE_AUTOUPDATER': '1',
@@ -98,14 +103,26 @@ def flat(text):
     return re.sub(r'\s+', ' ', text)
 
 
-def settle(model, deadline):
-    """The turn is over when no model request came for SETTLE seconds after the last one (bounded by deadline)."""
+def settle(model, deadline, seconds=SETTLE):
+    """The turn is over when no model request came for `seconds` after the last one (bounded by deadline). Returns
+    when the last request was seen."""
     count, quiet_since = len(model.requests), time.monotonic()
-    while time.monotonic() - quiet_since < SETTLE:
+    while time.monotonic() - quiet_since < seconds:
         assert time.monotonic() < deadline, 'the turn did not end within its deadline'
         time.sleep(0.5)
         if len(model.requests) != count:
             count, quiet_since = len(model.requests), time.monotonic()
+    return quiet_since
+
+
+def last_user_text(messages, limit=600):
+    """The newest user message of a request as text (a Stop continuation carries the hook's reason there)."""
+    users = [message for message in messages if message.get('role') == 'user']
+    content = users[-1].get('content') if users else ''
+    if isinstance(content, list):
+        content = ' '.join(block.get('text') or json.dumps(block.get('content', '')) for block in content
+                           if isinstance(block, dict))
+    return flat(str(content))[-limit:]
 
 
 def saved(folder, pattern='*'):
@@ -178,7 +195,7 @@ def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180)
                     # the model without another send.
                     terminal.prompt('INTERACTIVE_RESUME_CURRENT_TURN')
                     terminal.wait(f'completed-{index + 1}', lambda s: done in s, timeout=turn_seconds)
-                settle(model, deadline)
+                last_request = settle(model, deadline, SETTLE if index == len(steps) - 1 else SETTLE_NEXT)
                 terminal.save(f'settled-{index + 1}', terminal.screen())
                 assert model.error is None, model.error
                 if step.get('prepare'):
@@ -198,8 +215,12 @@ def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180)
                 result = model.script.results.get(f'send-{index}')
                 turns.append(dict(prompt=step['prompt'], answer=answer, prompt_shown=bool(seen),
                                   resumed_after_no=resumed, seconds=round(time.monotonic() - began, 1),
+                                  # From the turn's start to its last model request (the quiet window not counted).
+                                  active_seconds=round(last_request - began, 1),
                                   model_requests=len(model.requests) - first_request,
                                   stop_continuations=len(model.script.continuations) - first_continuation,
+                                  continuation_tails=[last_user_text(item['messages']) for item in
+                                                      model.script.continuations[first_continuation:]],
                                   operation_id=approval and approval.get('operation_id'), question=question,
                                   tool_result=result, on_screen=ours_on_screen(screens, first_screen,
                                                                                terminal.sequence, step['prompt'])))

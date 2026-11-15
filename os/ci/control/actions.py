@@ -41,10 +41,14 @@ SOCKET_MODES = {'act.sock': 0o666, 'admin.sock': 0o600, 'chrome.sock': 0o666}
 SOCKET_FOLDER_MODE = 0o711
 SANDBOX = {'Type': 'simple', 'User': 'aresos-tools', 'Group': 'aresos-tools', 'NoNewPrivileges': 'yes',
            'ProtectSystem': 'strict', 'ProtectHome': 'yes', 'PrivateTmp': 'yes', 'PrivateDevices': 'yes',
-           'UMask': '0077', 'Restart': 'on-failure', 'CapabilityBoundingSet': '', 'AmbientCapabilities': ''}
+           'UMask': '0077', 'Restart': 'on-failure', 'CapabilityBoundingSet': '', 'AmbientCapabilities': '',
+           # 18e: a service failing at every start ends failed (about 15 s with RestartSec=2); one crash restarts.
+           'StartLimitIntervalUSec': '30s', 'StartLimitBurst': '5'}
 SANDBOX_SETS = {'RestrictAddressFamilies': {'AF_UNIX', 'AF_INET', 'AF_INET6'},
                 'ReadWritePaths': {'/run/aresos-tools', '/var/lib/aresos-tools', '/var/lib/aresos-operation-evidence'}}
 OTHER = 'aresos-ci-other'
+# 18e: the idle loop sleeps until its next deadline; at most one wake-up a second with nothing pending.
+IDLE_WAKEUPS_PER_SECOND = 1
 CLAUDE_VERSION = '2.1.319'
 HOME = pathlib.Path(pwd.getpwnam('ares').pw_dir)
 # control/tests/support.py's message(): testapp's fixture account.
@@ -254,8 +258,14 @@ def idle(request):
                    timeslices_per_second=round(timeslices / elapsed, 3),
                    cpu_ms=round((last['cpu_usec'] - first['cpu_usec']) / 1000, 1),
                    cpu_percent=round((last['cpu_usec'] - first['cpu_usec']) / 1e4 / elapsed, 4))
-    return dict(returncode=0, summary=summary, files=files_out({'idle-footprint.json': dict(
-        summary, cgroup=str(cgroup), memory_stat=memory_stat, first=first, last=last)}))
+    files = files_out({'idle-footprint.json': dict(summary, cgroup=str(cgroup), memory_stat=memory_stat, first=first,
+                                                   last=last)})
+    # 18e's deadline loop (before it: about 10 wake-ups a second, runs 43577034725 and 43671243430).
+    bounded = summary['processes'] == 1 and summary['threads'] == 1 and \
+        switches <= IDLE_WAKEUPS_PER_SECOND * elapsed
+    return dict(returncode=0 if bounded else 1, summary=summary, files=files,
+                stderr='' if bounded else f'idle: {switches} switches in {elapsed:.1f} s over '
+                f'{summary["threads"]} threads (at most {IDLE_WAKEUPS_PER_SECOND} a second, one thread)')
 
 
 # The layer is complete for Mail (step 2b): the fixture names, the CA in the trust store, the runner's servers.
@@ -348,6 +358,9 @@ def raw_request(user, name, request):
     return json.loads(result['stdout'])
 
 
+ADMIN_HINT = 'Admin commands need sudo: run sudo aresos admin testapp fixture_configure (same options).'
+
+
 # Check 3. The daily user's entry points answer; another user and the admin socket refuse.
 def entry_points(request):
     wait_active()
@@ -380,16 +393,20 @@ def entry_points(request):
     if run(['getent', 'passwd', OTHER])['returncode'] != 0:
         ok(run(['useradd', '--system', '--no-create-home', '--shell', '/usr/sbin/nologin', OTHER]))
     other = pwd.getpwnam(OTHER)
+    # 18e: the owner without sudo is told to use it, before any socket or password prompt.
+    admin_cli = cli('ares', 'admin', 'testapp', 'fixture_configure', value={'failure': 'none', 'refuse': []})
     refusals = dict(
         other_cli_act=refused(cli(OTHER, 'testapp', 'list', value={'limit': 3}), 'permission_denied'),
         other_act_socket=raw_request(OTHER, 'act.sock', {'v': 1, 'method': 'tools', 'app': 'testapp'}),
         ares_admin_socket=raw_request('ares', 'admin.sock', {'v': 1, 'method': 'tools', 'app': 'testapp'}),
         # chrome.sock is 0666 like act.sock; the service admits only the owner's native host (SO_PEERCRED).
         other_chrome_socket=raw_request(OTHER, 'chrome.sock', {'v': 1, 'method': 'hello'}),
-        ares_admin_cli=refused(cli('ares', 'admin', 'testapp', 'fixture_configure',
-                                   value={'failure': 'none', 'refuse': []})))
+        ares_admin_cli=refused(admin_cli, 'permission_denied'))
     assert refusals['other_act_socket'].get('error', {}).get('code') == 'permission_denied', refusals
     assert refusals['other_chrome_socket'].get('error', {}).get('code') == 'permission_denied', refusals
+    refusals['ares_admin_cli_message'] = admin_cli['json']['error']['message']
+    assert refusals['ares_admin_cli_message'] == ADMIN_HINT, refusals
+    assert 'password' not in admin_cli['stderr'].lower(), admin_cli
     refusals['ares_chrome_cli_no_browser'] = dict(code=chrome_cli['json']['error']['code'],
                                                   message=chrome_cli['json']['error']['message'])
     # admin.sock is 0600 for aresos-tools: the kernel refuses the connection before the service's own check.
@@ -695,8 +712,155 @@ def write_as_owner(path, data):
     assert result.returncode == 0 and pathlib.Path(path).stat().st_uid == HOME.stat().st_uid, result.stderr
 
 
-# Check 6. An ordinary session stays ordinary: his own MCP tool and hooks beside ours, with the service healthy,
-# stopped in the middle of a session and started again, then failed (agreed change 6) before a fresh session.
+# Check 6 (with 18e: "quiet unless used", owner #254). Two Claude Code sessions as ares, his own MCP tool and hooks
+# beside ours. The first starts healthy and stays unused through a stop; then it prepares and sends (it has used the
+# tools) and goes through two outages. The second starts while the service has failed and gets our tools once the
+# service is back, without a restart. Per turn: (session, service during the turn, what his model calls, notices).
+NOTE = 'mcp__notes__note'
+LIST = 'mcp__testapp__list'
+PREPARED = 'mcp__testapp__send'
+ORDINARY_TURNS = [
+    ('used-later', 'healthy', NOTE, 0), ('used-later', 'stopped, never used', NOTE, 0),
+    ('used-later', 'started again', PREPARED, 0), ('used-later', 'stopped, used', NOTE, 1),
+    ('used-later', 'still stopped', NOTE, 0), ('used-later', 'still stopped', NOTE, 0),
+    ('used-later', 'started again', NOTE, 0), ('used-later', 'stopped again', NOTE, 1),
+    ('failed-fresh-session', 'failed', NOTE, 0), ('failed-fresh-session', 'still failed', LIST, 0),
+    ('failed-fresh-session', 'recovered', LIST, 0)]
+NOT_RUNNING = 'AresOS tools are not running'
+# The client's texts for a lost connection; a stopped service is never one any more (18e).
+LOST = ('Service connection lost', 'operation_status')
+# 18e check 10: a hook ends at once; the CLI and the proxies wait up to 3 s for a starting service, the hooks don't.
+HOOK_SECONDS = 1.5
+
+
+def ordinary_step(number, call):
+    # Zero-padded: the double and the checks find a turn by its prompt as a substring.
+    step = {'prompt': f'ORDINARY_OWNER_TURN_{number:02}', 'send': call}
+    if call == NOTE:
+        step['approval'] = {'word': f'turn{number}'}
+    elif call == LIST:
+        step['approval'] = {'limit': 3}
+    else:
+        step['prepare'] = {'name': 'mcp__testapp__prepare_send', 'input': MESSAGE}
+    return step
+
+
+def runtime_folder():
+    """/run/user/<uid> of ares, where the proxies leave their marks (control/aresos_control/usage.py). The guest's
+    greetd logs ares in (initial_session), which makes it; runuser opens no logind session. Only if it is missing,
+    lingering (CI only, this throwaway guest) makes it without a login."""
+    uid = pwd.getpwnam('ares').pw_uid
+    path = pathlib.Path(f'/run/user/{uid}')
+    record = dict(uid=uid, path=str(path), existed=path.is_dir(), linger_enabled=False,
+                  sessions=run(['loginctl', 'list-sessions', '--no-legend'])['stdout'].strip()[-1000:],
+                  user=run(['loginctl', 'show-user', 'ares', '-p', 'State', '-p', 'Linger', '-p', 'Sessions'])
+                  ['stdout'].strip())
+    if not record['existed']:
+        ok(run(['loginctl', 'enable-linger', 'ares']))
+        record['linger_enabled'] = True
+        deadline = time.monotonic() + 30
+        while not path.is_dir():
+            assert time.monotonic() < deadline, ('no runtime folder after enable-linger', record)
+            time.sleep(0.5)
+    info = path.lstat()
+    assert stat.S_ISDIR(info.st_mode) and info.st_uid == uid and stat.S_IMODE(info.st_mode) == 0o700, record
+    return path, record
+
+
+def claude_process(sessions):
+    """The running Claude Code (pid, start time): the top process of ares's claude binary, as its MCP servers see it."""
+    target = os.path.realpath(sessions.CLAUDE)
+    found = []
+    for folder in pathlib.Path('/proc').iterdir():
+        if not folder.name.isdigit():
+            continue
+        try:
+            exe = os.readlink(folder / 'exe')
+            argv0 = (folder / 'cmdline').read_bytes().split(b'\0')[0].decode(errors='replace')
+            data = (folder / 'stat').read_bytes()
+        except OSError:
+            continue
+        if exe == target or argv0 in (str(sessions.CLAUDE), target):
+            fields = data[data.rindex(b')') + 2:].split()
+            found.append((int(folder.name), int(fields[1]), int(fields[19])))
+    pids = {pid for pid, _, _ in found}
+    top = [(pid, start) for pid, parent, start in found if parent not in pids]
+    assert len(top) == 1, ('not exactly one Claude Code', found)
+    return top[0]
+
+
+def marks_state(folder, uid):
+    """Every entry of the marks folder, with its type, mode, owner and size; the two folders' own (private: 0700, the
+    owner's) in `folders_private`. Records only: the checks come after the sessions."""
+    state = dict(exists=folder.is_dir(), entries={})
+    if not state['exists']:
+        return state
+    folders = {}
+    for part in (folder.parent, folder):
+        info = part.lstat()
+        folders[part.name] = dict(directory=stat.S_ISDIR(info.st_mode), mode=f'{stat.S_IMODE(info.st_mode):04o}',
+                                  uid=info.st_uid)
+    state.update(folders=folders, folders_private=all(value == dict(directory=True, mode='0700', uid=uid)
+                                                      for value in folders.values()))
+    for path in sorted(folder.iterdir()):
+        info = path.lstat()
+        state['entries'][path.name] = dict(file=stat.S_ISREG(info.st_mode), mode=f'{stat.S_IMODE(info.st_mode):04o}',
+                                           uid=info.st_uid, size=info.st_size)
+    return state
+
+
+def timed_cli(*argv):
+    began = time.monotonic()
+    result = cli('ares', *argv)
+    error = (result['json'] or {}).get('error') or {}
+    return dict(seconds=round(time.monotonic() - began, 2), returncode=result['returncode'],
+                ok=bool(result['json'] and result['json'].get('ok')), code=error.get('code'),
+                message=error.get('message'), stderr=result['stderr'][-300:])
+
+
+def started():
+    """systemctl start, then at once one call (18e: the client waits for the sockets; no transport error)."""
+    systemctl('start', UNIT)
+    return timed_cli('control', 'pending')
+
+
+def stopped():
+    systemctl('stop', UNIT)
+    return wait_state('inactive')
+
+
+def wait_failed(seconds=30):
+    """The failed state the unit's start limit reaches on its own (18e), held for longer than RestartSec=2."""
+    began = time.monotonic()
+    while True:
+        state = show('ActiveState', 'SubState', 'Result', 'NRestarts')
+        if state['ActiveState'] == 'failed':
+            reached = time.monotonic() - began
+            time.sleep(4)
+            again = show('ActiveState', 'SubState', 'Result', 'NRestarts')
+            if again == state:
+                return dict(state, seconds=round(reached, 1))
+        assert time.monotonic() - began < seconds, ('the service did not stay failed', state)
+        time.sleep(0.5)
+
+
+def hook_timing(work):
+    """The managed hooks exactly as Claude Code runs them (sh -c, as ares), the service stopped, an unmarked caller."""
+    hooks = json.loads(MANAGED_SETTINGS.read_text())['hooks']
+    timed = {}
+    for event in ('UserPromptSubmit', 'Stop'):
+        [entry] = hooks[event]
+        [hook] = entry['hooks']
+        payload = dict(session_id='ci-hook-timing', transcript_path=str(work / 'ci-hook-timing.jsonl'), cwd=str(work),
+                       permission_mode='default', hook_event_name=event,
+                       **({'prompt': 'CI'} if event == 'UserPromptSubmit' else {'stop_hook_active': False}))
+        began = time.monotonic()
+        result = run([*as_user('ares'), '/bin/sh', '-c', hook['command']], input=json.dumps(payload), timeout=60)
+        timed[event] = dict(seconds=round(time.monotonic() - began, 3), returncode=result['returncode'],
+                            stdout=result['stdout'][-300:], stderr=result['stderr'][-300:])
+    return timed
+
+
 def ordinary(request):
     sessions, _ = layer_modules()
     wait_active()
@@ -707,60 +871,91 @@ def ordinary(request):
     shutil.rmtree(out, ignore_errors=True)
     log = sessions.WORK / 'own-hooks.jsonl'
     log.unlink(missing_ok=True)
-    settings = sessions.user_settings(['mcp__notes__note'], {event: sessions.own_hook(event, log)
-                                                            for event in ('Stop', 'UserPromptSubmit')})
+    settings = sessions.user_settings([NOTE, LIST, 'mcp__testapp__prepare_send'],
+                                      {event: sessions.own_hook(event, log) for event in ('Stop', 'UserPromptSubmit')})
+    runtime, runtime_record = runtime_folder()
+    uid = runtime_record['uid']
+    marks = runtime / 'aresos-control/used'
+    service = {1: dict(**show('ActiveState', 'SubState'))}
+    probes = dict(runtime=runtime_record)
 
-    def step(number):
-        return {'prompt': f'ORDINARY_OWNER_TURN_{number}', 'send': 'mcp__notes__note',
-                'approval': {'word': f'turn{number}'}}
-    service = {1: dict(state='healthy', **show('ActiveState', 'SubState'))}
-
-    def stop_then_start(index):
+    def used_later(number):
+        index = number - 1
         if index == 1:
-            systemctl('stop', UNIT)
-            service[2] = dict(state='stopped', **wait_state('inactive'))
+            service[number] = stopped()
+            probes['marks_before_use'] = marks_state(marks, uid)
+            probes['cli_while_stopped'] = timed_cli('control', 'pending')
+            probes['hooks_while_stopped'] = hook_timing(sessions.WORK)
+        elif index in (2, 6):
+            probes[f'first_call_after_start_{number}'] = started()
+            service[number] = show('ActiveState', 'SubState')
+        elif index == 3:
+            pid, start = claude_process(sessions)
+            probes['session_key'] = key = f'{pid}-{start}'
+            probes['marks_after_use'] = marks_state(marks, uid)
+            probes['pending_after_use'] = answered(cli('ares', 'control', 'pending'))['data']
+            # A clean baseline for the outages (a done send leaves nothing in runs so far; acknowledged if it does).
+            for item in probes['pending_after_use'].get('notices') or []:
+                if item.get('app') == 'testapp':
+                    cli('ares', 'testapp', 'notice_ack', value={'operation_id': item['operation_id']})
+            service[number] = stopped()
+        elif index in (4, 5, 7):
+            probes[f'marks_before_turn_{number}'] = marks_state(marks, uid)
+            if index == 7:
+                service[number] = stopped()
+
+    def failed_fresh(number):
+        index = number - 9
+        if index == 1:
+            pid, start = claude_process(sessions)
+            probes['fresh_session_key'] = f'{pid}-{start}'
         elif index == 2:
-            systemctl('start', UNIT)
-            wait_active()
-            service[3] = dict(state='started again', **show('ActiveState', 'SubState'),
-                              calls_before_the_sockets_answered=wait_sockets()[1])
-
-    def recover(index):
-        if index == 1:
             DROP_IN.unlink()
             systemctl('daemon-reload')
             systemctl('reset-failed', UNIT)
-            systemctl('start', UNIT)
-            wait_active()
-            service[5] = dict(state='recovered', **show('ActiveState', 'SubState'),
-                              calls_before_the_sockets_answered=wait_sockets()[1])
+            probes[f'first_call_after_start_{number}'] = started()
+            service[number] = show('ActiveState', 'SubState')
+
     errors, cases = [], {}
+    plan = [(number, *turn) for number, turn in enumerate(ORDINARY_TURNS, 1)]
     try:
-        cases['stopped-mid-session'] = sessions.session(out / 'stopped-mid-session', [step(1), step(2), step(3)],
-                                                        sessions.NORMAL, [None, None, None], before_turn=stop_then_start)
-        DROP_IN.parent.mkdir(parents=True, exist_ok=True)
-        # Restart=no: with the unit's own Restart=on-failure it restarts without end (run 43563336637: 41
-        # restarts in 90 s, never "failed"); check 6 needs the failed state.
-        DROP_IN.write_text('# CI only (package 18c, B2 check 6): the service fails and stays failed.\n'
-                           '[Service]\nExecStartPre=/usr/bin/false\nRestart=no\n')
-        systemctl('daemon-reload')
-        service[4] = dict(state='failed', restart=run(['systemctl', 'restart', UNIT], timeout=120)['returncode'],
-                          **wait_state('failed'))
-        cases['failed-fresh-session'] = sessions.session(out / 'failed-fresh-session', [step(4), step(5)],
-                                                         sessions.NORMAL, [None, None], before_turn=recover)
+        for case, before_turn in (('used-later', used_later), ('failed-fresh-session', failed_fresh)):
+            mine = [row for row in plan if row[1] == case]
+            if case == 'failed-fresh-session':
+                probes['marks_after_used_session'] = marks_state(marks, uid)
+                DROP_IN.parent.mkdir(parents=True, exist_ok=True)
+                # Only the failing start: the unit's own Restart=on-failure and start limit end it failed (18e).
+                DROP_IN.write_text('# CI only (package 18c, B2 check 6): the service fails at every start.\n'
+                                   '[Service]\nExecStartPre=/usr/bin/false\n')
+                systemctl('daemon-reload')
+                start = run(['systemctl', 'start', UNIT], timeout=120)
+                service[mine[0][0]] = dict(start_returncode=start['returncode'], **wait_failed())
+            answers = ['Yes' if call == PREPARED else None for _, _, _, call, _ in mine]
+            numbers = [number for number, *_ in mine]
+            cases[case] = sessions.session(out / case, [ordinary_step(number, call) for number, _, _, call, _ in mine],
+                                           sessions.NORMAL, answers,
+                                           before_turn=lambda index, hook=before_turn, numbers=numbers:
+                                           hook(numbers[index]))
+        probes['marks_after_sessions'] = marks_state(marks, uid)
     except Exception:
         errors.append(traceback.format_exc())
     finally:
         if DROP_IN.exists():
             DROP_IN.unlink()
             run(['systemctl', 'daemon-reload'])
+        if show('ActiveState')['ActiveState'] != 'active':
             run(['systemctl', 'reset-failed', UNIT])
             run(['systemctl', 'start', UNIT])
+
+    def expect(condition, *what):
+        if not condition:
+            errors.append(repr(what)[:3000])
+
     hooks = sessions.hook_lines(log)
     turns = [turn for case in cases.values() for turn in case['turns']]
     # His Stop hook per turn: his log in order, each turn from its UserPromptSubmit line to the next one; each run
-    # recorded by the stop_hook_active it was given. Run 43572578699: in a turn our hook blocks once, his runs only on
-    # the attempt that ends the turn (true), not on the blocked one.
+    # recorded by the stop_hook_active it was given (run 43572578699: in a turn our hook blocks once, his runs only on
+    # the attempt that ends the turn).
     own_stops, current = {}, None
     for line in hooks:
         if line['event'] == 'UserPromptSubmit':
@@ -769,49 +964,116 @@ def ordinary(request):
         elif line['event'] == 'Stop':
             own_stops.setdefault(current, []).append(line['input'].get('stop_hook_active'))
     rows = []
-    for number, turn in enumerate(turns, 1):
+    for (number, case, state, call, notices), turn in zip(plan, turns):
         result = turn['tool_result'] or {}
-        prompts = [line for line in hooks if line['event'] == 'UserPromptSubmit'
-                   and turn['prompt'] in line['input'].get('prompt', '')]
-        row = dict(turn=number, service=service.get(number, {}).get('state'), **turn_record(turn),
-                   own_tool_ran=not result.get('is_error') and f'OWN_NOTE turn{number}' in json.dumps(result),
-                   own_user_prompt_submit_lines=len(prompts), own_stop_runs=own_stops.get(number, []),
-                   extra_model_requests=turn['model_requests'] - 2)
+        screen = ' '.join(turn['on_screen'])
+        told = [tail for tail in turn['continuation_tails'] if NOT_RUNNING in tail]
+        row = dict(turn=number, session=case, service=state, call=call, **turn_record(turn),
+                   tool_result=json.dumps(result)[:600], notices_expected=notices, notices=len(told),
+                   notice_on_screen=NOT_RUNNING in screen,
+                   own_user_prompt_submit_lines=sum(1 for line in hooks if line['event'] == 'UserPromptSubmit'
+                                                    and turn['prompt'] in line['input'].get('prompt', '')),
+                   own_stop_runs=own_stops.get(number, []),
+                   extra_model_requests=turn['model_requests'] - (3 if call == PREPARED else 2))
         rows.append(row)
-        try:
-            assert row['own_tool_ran'] and row['own_user_prompt_submit_lines'] == 1, row
-            # His Stop hook ran in every turn, at most once per stop attempt.
-            assert 1 <= len(row['own_stop_runs']) <= 1 + row['stop_continuations'], row
-            assert row['extra_model_requests'] == row['stop_continuations'], row
-            if row['service'] in ('healthy', 'started again', 'recovered'):
-                assert row['stop_continuations'] == 0 and not any('AresOS' in line for line in row['on_screen']), row
+        expect(row['own_user_prompt_submit_lines'] == 1, 'his UserPromptSubmit hook', row)
+        expect(1 <= len(row['own_stop_runs']) <= 1 + row['stop_continuations'], 'his Stop hook', row)
+        expect(row['extra_model_requests'] == row['stop_continuations'], 'extra requests', row)
+        hook_lines = ' '.join(line for line in turn['on_screen'] if 'hook' in line.lower())
+        expect(not any(text in hook_lines or any(text in tail for tail in turn['continuation_tails']) for text in LOST),
+               'a lost-connection text', row)
+        if call == PREPARED:
+            # Used: a preparation and a send answered Yes; with the service up nothing changes (held work only).
+            expect(turn['prompt_shown'] and turn['operation_id'] and not told and row['stop_continuations'] <= 1,
+                   'the used turn', row)
+            if turn['operation_id']:
+                row['operation_state'] = operation(turn['operation_id'])['operation']['state']
+                expect(row['operation_state'] == 'done', 'the send', row)
+        else:
+            expect((row['stop_continuations'], row['notices'], row['notice_on_screen']) ==
+                   (notices, notices, bool(notices)), 'the notice', row)
+            if not notices:
+                expect(not hook_lines.count('hook error'), 'a hook error on screen', row)
+        if call == NOTE:
+            expect(not result.get('is_error') and f'OWN_NOTE turn{number}' in json.dumps(result), 'his tool', row)
+            if not notices:
+                # His own tool's turns: nothing of ours at all (a testapp result may name AresOS itself).
+                expect(not any('AresOS' in line for line in turn['on_screen']), 'ours on screen', row)
+        elif call == LIST:
+            payloads = []
+            for text in sessions.texts(result.get('content') or []):
+                try:
+                    payloads.append(json.loads(text))
+                except ValueError:
+                    pass
+            row['list_answers'] = [dict(ok=p.get('ok'), code=(p.get('error') or {}).get('code')) for p in payloads
+                                   if isinstance(p, dict)]
+            if state == 'recovered':
+                expect(not result.get('is_error') and dict(ok=True, code=None) in row['list_answers'],
+                       'testapp list after the recovery, same session', row)
             else:
-                assert row['stop_continuations'] <= 1, ('the Stop guard did not hold', row)
-        except AssertionError:
-            errors.append(traceback.format_exc())
-    if len(turns) != 5 or None in own_stops:
-        errors.append(f'{len(turns)} turns; his Stop hook outside a turn: {own_stops.get(None)}')
+                expect('service_unavailable' in json.dumps(result), 'testapp list while failed', row)
+    expect(len(turns) == len(ORDINARY_TURNS) and None not in own_stops, len(turns), own_stops.get(None))
+
+    # The probes: marks, the client while stopped, the hooks' time, the failed state, the first calls after a start.
+    key = probes.get('session_key')
+    entries = lambda name: probes.get(name, {}).get('entries', {})  # noqa: E731
+    mark_file = dict(file=True, mode='0600', uid=uid, size=0)
+    expect(not entries('marks_before_use'), 'marks before any use', probes.get('marks_before_use'))
+    expect(key and entries('marks_after_use') == {key: mark_file} and probes['marks_after_use'].get('folders_private'),
+           'the mark after use', key, probes.get('marks_after_use'))
+    for number, told in ((5, True), (6, True), (8, False)):
+        expect(entries(f'marks_before_turn_{number}').get(f'{key}.told') == (mark_file if told else None),
+               f'.told before turn {number}', probes.get(f'marks_before_turn_{number}'))
+    expect(entries('marks_after_used_session') == {key: mark_file, f'{key}.told': mark_file}, 'after the used session',
+           probes.get('marks_after_used_session'))
+    fresh = probes.get('fresh_session_key')
+    expect(fresh and fresh != key and not any(name.startswith(f'{fresh}') for name in entries('marks_after_sessions')),
+           'the fresh session is unmarked', fresh, probes.get('marks_after_sessions'))
+    down = probes.get('cli_while_stopped') or {}
+    expect(down.get('code') == 'service_unavailable' and 'not running' in (down.get('message') or '') and
+           'nothing was sent' in (down.get('message') or '') and 2.5 <= down.get('seconds', 0) <= 10,
+           'the client while stopped', down)
+    for event, hook in (probes.get('hooks_while_stopped') or {}).items():
+        expect(hook['returncode'] == 0 and not hook['stdout'].strip() and hook['seconds'] < HOOK_SECONDS,
+               f'the {event} hook while stopped', hook)
+    expect(len(probes.get('hooks_while_stopped') or {}) == 2, 'the hooks were timed', probes.get('hooks_while_stopped'))
+    for number in (3, 7, 11):
+        first = probes.get(f'first_call_after_start_{number}') or {}
+        expect(first.get('ok') is True and first.get('code') != 'transport_error', f'the first call before turn {number}',
+               first)
+    failed = service.get(9) or {}
+    expect(failed.get('ActiveState') == 'failed' and failed.get('Result') in ('start-limit-hit', 'exit-code') and
+           int(failed.get('NRestarts', 99)) <= 5 and failed.get('seconds', 99) <= 20, 'the failed state', failed)
+    first = cases.get('used-later', {})
+    offered, per_request = first.get('tools_offered', []), first.get('tools_per_request', [])
     # The Chrome tools are offered in his session as installed (user-mcp.json's chrome entry), every one of them, once
     # the servers are up (the session's last request; the first may go out before they connect).
-    first = cases.get('stopped-mid-session', {})
-    offered, per_request = first.get('tools_offered', []), first.get('tools_per_request', [])
     chrome = sorted(name for name in offered if name.startswith('mcp__chrome__'))
     shipped = sorted(f'mcp__chrome__{tool["name"]}' for tool in json.loads((GENERATED / 'chrome-tools.json').read_text()))
-    if chrome != shipped:
-        errors.append(f'the session offered {chrome} as Chrome tools, not the shipped {shipped}')
+    expect(chrome == shipped, 'the session offered as Chrome tools', chrome, shipped)
+    # The session started while the service had failed offers our tools once they connect (18e item 7).
+    fresh_offered = cases.get('failed-fresh-session', {}).get('tools_offered', [])
+    expect(LIST in fresh_offered, 'the fresh session offers ours',
+           cases.get('failed-fresh-session', {}).get('tools_per_request'))
     after, _ = wait_sockets()
-    if after['total']:
-        errors.append(f'pending after check 6: {after}')
-    summary = dict(turns=[{key: row[key] for key in ('turn', 'service', 'model_requests', 'extra_model_requests',
-                                                     'stop_continuations', 'own_stop_runs', 'seconds', 'on_screen',
-                                                     'own_tool_ran')}
-                          for row in rows], own_stop_lines=sum(map(len, own_stops.values())),
-                   pending_after=after['total'], tools_per_request=per_request)
-    files = {'ordinary/summary.json': dict(summary, rows=rows, service=service, settings=settings),
+    expect(not after['total'], 'pending after check 6', after)
+    summary = dict(turns=[{key_: row.get(key_) for key_ in (
+        'turn', 'session', 'service', 'call', 'model_requests', 'extra_model_requests', 'stop_continuations', 'notices',
+        'own_stop_runs', 'seconds', 'active_seconds', 'on_screen')} for row in rows],
+        own_stop_lines=sum(map(len, own_stops.values())), pending_after=after['total'],
+        failed=failed, cli_while_stopped=down, hooks_while_stopped=probes.get('hooks_while_stopped'),
+        first_calls_after_start={name: probes[name] for name in probes if name.startswith('first_call_after_start_')},
+        runtime=runtime_record, tools_per_request=per_request,
+        fresh_tools_per_request=cases.get('failed-fresh-session', {}).get('tools_per_request'))
+    files = {'ordinary/summary.json': dict(summary, rows=rows, service=service, probes=probes, settings=settings),
              'ordinary/own-hooks.jsonl': log.read_text() if log.exists() else ''}
     sizes = packed(files, {f'ordinary/{name}.tar.gz': out / name for name in cases}, errors)
     return dict(returncode=1 if errors else 0, stderr='\n'.join(errors)[-6000:], summary=summary,
                 evidence_bytes=sizes, files=files_out(files))
+
+
+OUTSIDE_REFUSAL = 'Path is outside the allowed folders; choose ~/Documents or ~/Downloads.'
 
 
 # Check 7. Mail under the real unit, through the installed entry points only; then one send through Claude Code.
@@ -826,6 +1088,9 @@ def mail(request):
     errors, claude = [], None
     try:
         flows.run(request['seeded'])
+        # 18e: the refusal names the configured folders (the image's proxy.json), nothing else.
+        refusal = flows.record.get('outside_refused') or {}
+        assert (refusal.get('code'), refusal.get('message')) == ('file_refused', OUTSIDE_REFUSAL), refusal
         composition = flows.compose('claude')
         sessions.prepare_home()
         sessions.user_settings(['mcp__mail__prepare_send'])
@@ -1069,10 +1334,10 @@ def selinux_after(request):
 def restart(request):
     ok(run(['systemctl', 'restart', UNIT]))
     state = wait_active()
-    # Type=simple: "active" comes before the daemon has bound its sockets. A call in that gap gets transport_error
-    # (seen in run 43556905450); wait for the first answer, counting the misses.
+    # Type=simple: "active" comes before the daemon has bound its sockets. A call in that gap got transport_error
+    # (run 43556905450); since 18e the client waits up to 3 s for the sockets, so the first call answers.
     pending, misses = wait_sockets()
-    assert pending['total'] == 0, pending
+    assert pending['total'] == 0 and not misses, (pending, misses)
     summary = dict(state, nrestarts=show('NRestarts')['NRestarts'], pending=pending['total'],
                    calls_before_the_sockets_answered=misses)
     if request.get('mail_account'):
