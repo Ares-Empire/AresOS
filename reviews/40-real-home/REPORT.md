@@ -370,7 +370,7 @@ sprinting instead of 3.7; the farthest of forty, 64 blocks, 7.6 s instead of 11.
 
 **How each was settled:** 1 to 5 accepted by the orchestrator (2026-11-15). 11 (the speed of 0.15) and 12 (no
 experience bar in Live) accepted by the orchestrator (2026-11-15). 6 to 10 follow the orchestrator's decisions on
-covered (per screen, PLAN-GAP 3) and are built as stated; 13 to 15 are open for the orchestrator before merge (none of
+covered (per screen, PLAN-GAP 3) and are built as stated; 13 to 15 accepted by the orchestrator (2026-11-15; none of
 them is hard to undo).
 
 ## PLAN-GAP
