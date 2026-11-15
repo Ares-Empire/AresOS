@@ -137,7 +137,7 @@ def tools_folder(fingerprint):
     refusal with its own reason comes before the folder is emptied, the pinned
     fingerprint against the commit's own SHA256SUMS included (review 2, N2), so
     it leaves the folder as it was; only a failing git archive or tar after that
-    leaves it emptied. git archive reads the commit, never the working tree.
+    leaves it emptied or partly filled. git archive reads the commit, never the working tree.
     """
     assert re.fullmatch('[0-9a-f]{64}', fingerprint)
     stop = 'echo "STOP tools folder: '

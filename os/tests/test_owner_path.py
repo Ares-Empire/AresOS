@@ -1679,8 +1679,8 @@ class OwnerPathTest(unittest.TestCase):
                  "(never a reset, and never a checkout over other sessions' work)", "the commit's full hash added at the end",
                  'From here until the last PASS line no other Claude session runs an owner command',
                  '```bash\n' + commands['tools-folder'] + '\n```', "the commit's tools have this guide's fingerprint",
-                 'Require `SHA256SUMS: OK`', '**STOP tools folder** installed nothing and opened no window',
-                 'a refusal that names its reason left the tools folder as it was', 'with no export',
+                 'Require `SHA256SUMS: OK`',
+                 '**STOP tools folder** installed nothing and opened no window: Claude tells you', 'with no export',
                  'waits for your go', 'never from its working copy: `' + bootstrap.FROM_COMMIT + '`', 'entry **tools-routine**',
                  'entry **export-routine**', '```bash\n' + commands['tools-routine'] + '\n```',
                  'Its title bar says **Enter SSH Credentials**', 'it cannot be changed',
@@ -1688,7 +1688,9 @@ class OwnerPathTest(unittest.TestCase):
                  '**Password:**', '**OK** and **Cancel**', '**Your rule:**', 'you told Claude to go just now',
                  'starts with **AresOS owner tools**', '`' + fingerprint[:8] + '`',
                  'line 1 of `github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md`', 'on your phone (not on the laptop)',
-                 'from your own bookmark of that address', 'check that it says `main`',
+                 'from your own bookmark of that address',
+                 "(type it once into your phone's browser and save it as a bookmark; open it from there)",
+                 'check that it says `main`',
                  'never use a link Claude sends you at that moment',
                  'press **Cancel**: nothing runs and nothing changes', '**What the window cannot do:**',
                  'it stops accidents and a Claude that acts without asking',
@@ -1720,7 +1722,7 @@ class OwnerPathTest(unittest.TestCase):
             position = found + len(value)
         # Decision 10 and the old ways are gone: no signal to sudo, no line from the working tree, no relative link.
         for value in ('process number', 'stops that sudo', 'the STOP line', 'copied from `os/owner-tools/commands.json`',
-                      '[OWNER-TOOLS.md](OWNER-TOOLS.md)', 'changed nothing:'):
+                      '[OWNER-TOOLS.md](OWNER-TOOLS.md)', 'changed nothing:', 'a refusal that names its reason'):
             self.assertNotIn(value, box)
         # The words he compares and reads come from the tools themselves.
         media = (ROOT/'os/owner-tools/media.py').read_text()
@@ -1730,14 +1732,17 @@ class OwnerPathTest(unittest.TestCase):
                       "'For a copy off the laptop plug in the tools stick and run export again'",
                       "'" + stale.replace('…', "' + found + '") + "'"):
             self.assertIn(value, media)
-        self.assertIn("'Keep the current administrator session open. ", (ROOT/'os/owner-tools/owner.py').read_text())
+        owner_text = (ROOT/'os/owner-tools/owner.py').read_text()
+        self.assertIn("'Keep the current administrator session open. Preserve diagnostics; do not reboot ", owner_text)
         card = section(texts['EMERGENCY.md'], 'a-routine-tools-command-stopped')
+        # Review 4, S1: the card never sets the whole last line aside; its do-not-reboot half is his.
+        self.assertNotIn('is for the console:', card)
         for value in ('**Action:**', 'Claude copies every STOP line to you word for word and asks for your go',
                       "only on your go it runs the routine box's export line", 'tries nothing else',
                       'no other line, no second try, no restart',
                       "After a **STOP tools folder** (Claude's own line; no administrator command ran) there is no export and no window",
-                      "The tools' last line, **Keep the current administrator session open**, is for the console",
-                      'on this route there is none to keep, and nothing is lost',
+                      "The tools' last line begins **Keep the current administrator session open**: that part is for the console",
+                      '(on this route there is none to keep, and nothing is lost); its **do not reboot** holds here too',
                       'Claude reads `/run/ares-records` to help you and never copies it into the repository, a pull request or the board',
                       'it holds disk serials and firmware entries',
                       '**' + bootstrap.label(fingerprint, bootstrap.ACTIONS['export-routine']) + '**',

@@ -244,7 +244,7 @@ git archive "$c":os/owner-tools/payload | tar -x -C /var/home/ares/ares-tools
 cd /var/home/ares/ares-tools; echo "dcbc375faa4b269bacaf316c5ddc24503b9773b2538bcd017065ce8e312597be  SHA256SUMS" | sha256sum -c --strict' tools-folder
 ```
 
-  It fetches GitHub's main and refuses unless the announced commit is on it, Claude's copy of the tools equals that commit and the commit's tools have this guide's fingerprint; only then it fills the tools folder from that commit and checks the fingerprint again. Require `SHA256SUMS: OK`. A line starting **STOP tools folder** installed nothing and opened no window (a refusal that names its reason left the tools folder as it was): Claude tells you and stops there, with no export.
+  It fetches GitHub's main and refuses unless the announced commit is on it, Claude's copy of the tools equals that commit and the commit's tools have this guide's fingerprint; only then it fills the tools folder from that commit and checks the fingerprint again. Require `SHA256SUMS: OK`. A line starting **STOP tools folder** installed nothing and opened no window: Claude tells you and stops there, with no export.
 
   Then Claude tells you what it installs (tools version 4, `dcbc375f`) and waits for your go. On your go it runs this one line, which it takes from the announced commit itself, never from its working copy: `git -C /var/home/ares/AresOS show <commit>:os/owner-tools/commands.json`, entry **tools-routine** (the export line below is entry **export-routine**):
 
@@ -269,7 +269,7 @@ trap "echo STOP after install: check or title refused" ERR
   A small window opens on the laptop's screen. Its title bar says **Enter SSH Credentials** (the helper program's fixed title; it cannot be changed). Inside it says **AresOS owner tools dcbc375f: install these tools, then check and title**, then **Password:**, **OK** and **Cancel**. **Your rule:** type your password only when all three hold:
   - you told Claude to go just now;
   - the line inside starts with **AresOS owner tools**;
-  - its 8 characters, `dcbc375f`, are the same as line 1 of `github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md`, which you open on your phone (not on the laptop) from your own bookmark of that address: check that it says `main`, and never use a link Claude sends you at that moment.
+  - its 8 characters, `dcbc375f`, are the same as line 1 of `github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md`, which you open on your phone (not on the laptop) from your own bookmark of that address (type it once into your phone's browser and save it as a bookmark; open it from there): check that it says `main`, and never use a link Claude sends you at that moment.
 
   Otherwise press **Cancel**: nothing runs and nothing changes, and Claude asks you before it tries again. **What the window cannot do:** it stops accidents and a Claude that acts without asking. It does not stop a Claude that has been tricked into showing you one thing and running another: once you type your password into such a window, that program can do anything as administrator, now and later, without asking again. If you do not want that, use the stick boxes for new tools instead.
 
