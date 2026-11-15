@@ -343,6 +343,10 @@ sprinting instead of 3.7; the farthest of forty, 64 blocks, 7.6 s instead of 11.
 7. **A window whose screen is not known yet counts as on the world's screen** (and a world whose screen is not known
    counts as on every screen). labwc names the screens of every window (checked in the rig); the rule matters only for a
    moment after a window maps or a monitor is unplugged, and then it errs toward pausing, as with one screen.
+   **For the minimize it is the other way** (review fixes 1, finding 4): when the world gets the focus, only a window
+   whose known screens overlap the world's known screens is minimized. A window labwc has not placed yet, and any
+   window while the world's own screen is unknown, stays where it is, though it still pauses the world: hiding a window
+   that may be on the other screen is not harmless, a moment's pause is.
 8. **Both sides start a connection uncovered**, so after `hello` the helper sends `covered: true` only when it is.
    Same meaning, and no event the old tests or a 1.0 desktop would see.
 9. **The world's own window being minimized is not "covered".** Nothing in the session minimizes it (auto-iconify is
@@ -463,3 +467,167 @@ the helper does not minimize anything that covers the world. The supervisor and 
 - `HomeScreen.session()` is read once from the environment; client tests set it with `HomeScreen.forTests`.
 - `ShellFocusClient.register` is public only for the client test. That test is the last client test on purpose: the tick
   listener that registration leaves behind runs only against a closed shell client afterwards.
+
+## Review fixes 1
+
+Brief: `briefs/40-review-fixes-1.md`, after `REVIEW-1.md` (CHANGES-NEEDED) and linux-aresos's read of the `os/` diff.
+Builder: one Claude agent on Opus 5.5, one step. Findings 1 (names in the brief) and 3 (the hosted OS run) are the
+orchestrator's. Commits: `bb1e76d6` (helper), `ffe2c5c1` (preview and rig), `215f483c` (mod: the switches' tests,
+silence, the Apps screen), the commit after it (docs and this section).
+
+### Per item: what changed, and which test fails without it
+
+**1. The start-up cover is never covering (linux-aresos).** `aresos-shell`: `STARTUP_COVER_APP_ID = 'aresos.cover'`,
+written once with a comment pointing to package 23b; `Windows.covering()` skips it, and `uncover()` minimizes only
+what `covering()` returns, so the cover never counts for the pause and is never minimized.
+Test: `CoveredTest.test_the_start_up_cover_never_covers_the_world_and_is_never_minimized` (a fullscreen `aresos.cover`
+on the desktop's screen, the desktop activated after it, twice: nothing minimized, covered never sent). **Fails without
+it, run:** with the exclusion taken out (a scratch copy of the helper, never the worktree) it fails.
+
+**2. No uncover right after a hand-back (finding 2).** The keep branch remembers `self.kept = (target.handle, now)`;
+the desktop branch skips `uncover()` while the previous window is that target and `now - kept time <= KEEP_WINDOW`.
+Test: `CoveredTest.test_a_restored_desktop_activated_again_right_after_the_hand_back_minimizes_nothing` (hand-back,
+the app activated, the desktop activated again 0.5 s later: nothing minimized and still covered; later, the app and
+then the desktop again after `KEEP_WINDOW`: the app is minimized). **Fails without it, run:** without the guard, and
+also with the guard but without its time limit.
+
+**3. Minimize only on the world's known screen (finding 4).** `covering(known_screen=True)`, used only by `uncover()`:
+a window counts only when its known outputs overlap the world's. A window with no known output, or a world whose
+output is not known, minimizes nothing; such a window still covers for the pause (`covering()` without the flag).
+Test: `CoveredTest.test_uncovering_minimizes_only_windows_known_to_be_on_the_worlds_screen` (a maximized window with no
+output yet: covered, not minimized on activation; once on the world's screen: minimized; after the world's monitor is
+unplugged: covered again, not minimized). **Fails without it, run:** with `uncover()` back on plain `covering()`.
+
+JUDGMENT-CALL 7 above now says the same: for the pause an unknown screen counts as the world's, for the minimize it
+does not.
+
+**4. The preview and the rig (findings 5, 6, 7).**
+- `run-hub.sh --session`: the nested labwc and both watchers start with `env -u ARESOS_DESKTOP_INSTANCE -u
+  ARESOS_LAUNCH_NONCE` (the labwc also `-u LABWC_FALLBACK_OUTPUT`: a stand-in screen would keep the preview alive).
+- `preview-window.py --close` (and the new `--outputs`) refuse `wayland-0` themselves with exit 2, whether it comes from
+  `$WAYLAND_DISPLAY` or the new `--display` (also as a path ending in `/wayland-0`). `run-hub.sh` passes `--display`.
+- Ending the run without the window watcher: done simply. `preview-window.py --outputs --display <nested>` waits until
+  the nested labwc has had a screen and has none left (wl_registry `global_remove` of its last `wl_output`) and exits
+  0; `run-hub.sh` starts it as a third scope (`run-hub-outputs`) and treats its exit like the window watcher's: ask the
+  game to save and quit, then stop. Nothing went into the "cannot show" list.
+- The rig: every script's second line is "DEVELOPMENT AID of package 40, headless use only: this rig calls Gradle
+  directly (inner.sh runs gradlew runClient)." `load.sh <game pid> <label>` takes the PID (checked numeric and in
+  `/proc`) instead of `pgrep`.
+- Tests: no automated test (development aids outside every suite). **Checked headless, run:** a scratch copy
+  of `mod/dev` whose `env.sh` runs a stand-in game (a `foot` window with the app ID `aresos-desktop`) instead of
+  Gradle, in a headless labwc 0.9.6 standing in for his desktop (`wayland-1`), the worktree's helper and registry,
+  `HOME` a scratch folder:
+  - A: identity check from `/proc/<pid>/environ`: the nested labwc and both watchers have neither variable, the helper
+    and the game have both. Closing the preview window (foreign-toplevel close on the outer desktop) ended the run:
+    "The preview has no screen left; asking the game to save and quit", the stand-in game closed, no scope and no
+    private folder left.
+  - B: the window watcher made unable to find the window (its app ID changed in the scratch copy; the preview stayed a
+    plain window): closing it ended the run the same way, exit 0.
+  - C, the same with the old `run-hub.sh` (HEAD before this change): still running 20 s after the preview closed;
+    stopped with Ctrl+C (SIGINT to my own run, exit 130). So B fails without the change.
+  - Refusals (with `XDG_RUNTIME_DIR` a scratch folder, so no socket of his session was reachable): `--close x --display
+    wayland-0`, `--display <scratch>/wayland-0` and `--outputs --display wayland-0` exit 2; bad usage exit 2; no
+    display exit 3. `WAYLAND_DISPLAY=wayland-0` itself was not started (the rules forbid that environment); it goes
+    through the same variable as `--display`.
+
+**5. Tests for the real switches (finding 8).** In `HomeScreenClientGameTest`:
+- `HomeScreen.active()` itself, not forced: the covered part sets the game's helper connection (`AresOs.shell`, through
+  the existing `AppsTestAccess.aresos$setShell`) to the test's real `ShellClient` on the fake helper and uses
+  `HomeScreen.forTests(true, null)`. Checked: false before the client connects, true once connected in a session and a
+  desktop world, false with the session off, and false after the connection is lost for good (`helper.close()`, no
+  helper to reconnect to). The covered pause, the frame cap and the silence below now run through the real `active()`.
+- A saved `fullscreen:true`: the window is made once at the game's start, so the test asks the constructor's redirect
+  (`WindowHomeScreenMixin.aresos$startWindowed`, found in `Window` by reflection) with a `DisplayData` whose
+  `isFullscreen` is true: false (windowed) in a session, true outside one. `defaultRequire: 1` already fails the game's
+  start if the redirect does not apply.
+- **Fails without it, from reading** (they guard code that exists): `active()` without the CONNECTED check fails "active
+  before the helper connected"; without `session()` fails "A game the session did not start took the home screen's
+  rules"; the redirect returning the saved value fails "In a session a saved fullscreen:true would open the window
+  fullscreen".
+
+**6. Silent while covered (finding 9, first part).** `HomeScreen.pausing`: while covered, every sound is paused
+(`pauseAllExcept()` with no exception) at every frame: vanilla starts every sound again when a screen closes, and a
+sound that begins meanwhile (a toast) is caught at the next frame. When the cover ends, `resume()`; under a pausing
+screen Minecraft's own pause is put back (`pauseAllExcept(MUSIC, UI)`). New `MusicCoveredMixin` cancels
+`MusicManager.tick` while covered: it ticks during a pause and would otherwise start or change a song. HUB.md's "The
+sounds come back when the pause ends" is corrected.
+Test, in the covered part: music (`forMusic(MUSIC_GAME)`) and a record at the player (`MUSIC_DISC_CAT`), volumes at 1;
+each channel's OpenAL state read on the sound thread (new test accessors `SoundTestAccess`, `SoundEngineTestAccess`):
+both play; a `shell_focus` background (a small window in front) changes nothing; covered: both paused and the music's
+countdown to its next song (`MusicManagerTestAccess`, set to 6000 ticks) stands still; uncovered: the same two sounds
+play again (a new song would be another sound) and the countdown runs. **Fails without it, from reading:** vanilla's
+pause keeps the music playing ("A covered world was not silent"); without the mixin the countdown runs while covered
+("The music counted down to its next song while covered").
+
+**7. A click in the Apps screen opens the app (finding 9, second part).** `AppsScreen`: the left button going down on a
+row only remembers the program and where. A move of more than **3 screen pixels** with the button down is a drag: it
+picks up the item at once (`TakeAppPayload`; a program that is not his gets `MyAppPayload(add)` first, and the server
+takes the two in order) and the inventory comes back while the button is down, so letting go over a slot puts the item
+there, as a drag in the inventory does (vanilla's release with an item on the cursor). A container screen skips the
+first release it gets after it was made (the release of the click that opened it), which swallowed the drop in the
+first client run; the new accessor `ContainerScreenAccess` clears that flag for the drag's own release. Letting go
+without such a move
+is a click: the inventory and the screen close (`closeContainer`), and the program opens through `AresOsClient.launch`,
+the hotbar's path, with its failure lines. Enter opens the only match. Right-click removal is unchanged, and so is the
+ignored second press of a double click. Hint line: "Click opens · drag to the hotbar to pin · right-click removes".
+Tests: `MyAppsClientGameTest` (its Apps screen part, rewritten; the same five pictures in the same order, so no later
+picture is renumbered): Enter with three matches opens nothing; a real click on Okular (not his) opens it through a
+recording launcher, closes the screen and leaves My apps alone; a click on a program whose launch fails leaves
+"Couldn't open PDF Arranger" in the chat; a drag on Okular moving 2 pixels is still no drag, at 6 pixels the inventory
+comes back with Okular's item on the cursor, letting go over slot 20 puts it there, Okular is his and the chat says
+so; the hint line; a double click's second right press removes nothing; a right click removes Okular; Enter on "archiv"
+opens Ark; a drag of Ark let go over the third hotbar slot pins it and makes it his. `RealAppsClientGameTest` (07):
+Enter picked up an item, now a drag from its row does, and nothing opens. **Fails without it, from reading:** the old
+screen added Okular on the click ("A click on Okular opened []"), and its drag picked up nothing until the release.
+The drags in the test are handed to the screens directly, as the mouse handler does; the real handler sends drags only
+to an active window, which the tests' headless compositor may not give the game. A real drag with the mouse is for the
+try-out.
+
+### JUDGMENT-CALL (new)
+
+16. **A click closes the Apps screen and the inventory**, so the app opens over the world and he is in the world when
+    he closes it, as a start menu closes; a failure's line shows in the chat there. Alternative: keep the screen open
+    (its status line would show the failure). Changing it: one line in `AppsScreen.open`.
+17. **The drag starts at more than 3 screen pixels** (6 to 12 of his screen's pixels at the game's scales 2 to 4, near
+    GTK's 8), and the item is picked up at once, so the drag goes on in the inventory and ends where he lets go.
+    Alternative: pick up on release (today's flow: the item waits on the cursor for a second click). Changing it: one
+    constant, or one method.
+18. **Silence is enforced at every covered frame** (paused again each frame), and the music manager stands still while
+    covered. Alternative: pause once at the start; a screen closing or a toast would then play sound behind a
+    maximized app.
+19. **Enter opens the only match** (it was "a click on the only match"; a click now opens).
+
+### PLAN-GAP
+
+6. **Adding a program had no gesture left.** The decision makes a click on any program open it, so "click a program
+   that is not his to add it" (HUB.md 2.4) has no action any more. Built: a drag adds it and picks up its item, as
+   HUB.md's table already says ("Pinning a program makes it one of his"); `/aresos app add` stays. Recommendation:
+   keep it. Other ways: an "Add" button on the row, or a right-click that toggles (rejected: a slip would remove one).
+
+### What ran
+
+- Helper modules, one at a time from `os/tests` (`python3 -m unittest discover -s . -p <module>`):
+  `test_aresos_shell_home.py` 13 OK (10 before, 3 new), then as a check `test_aresos_shell.py` 74 OK,
+  `test_aresos_shell_windows.py` 33 OK, `test_aresos_shell_protocol.py` 21 OK. Never the whole suite. The three new
+  tests were also run against a scratch copy of the helper with each change taken out: each failed (four mutations,
+  item 2's twice).
+- `mod/dev/build.sh` twice, each after `free -g` showed 9 to 10 GiB available, ending 07:04 (before the release fix)
+  and 07:17 (the final mod code), both BUILD SUCCESSFUL, "All 104 required tests passed"; the unit tests ran in both (not up to
+  date): 236 tests, 0 failures, 0 errors, 6 skipped (the Windows catalogue tests). No `--rerun` was needed.
+- `mod/dev/client-test.sh` twice. Run 1 (07:05, 8 min 7 s) failed in the new Apps screen part of
+  `MyAppsClientGameTest` after 13 passing groups: the drag's release was skipped by the inventory (item 7), so the item
+  stayed on the cursor. Run 2 on the final mod code `215f483c` (07:18, 9 min 45 s): exit 0, all 18 "checks passed"
+  lines, among them "34 client checks passed: ... Apps screen search, click and Enter open (a failure says why), a drag
+  adds, picks up and pins, right-click removes ..." and "40 home screen checks passed: ... a saved fullscreen opens
+  windowed in a session, the home screen is active only while the helper is connected, a covered world pauses, draws
+  slowly and is silent (music too, no new song) while ready heartbeats go on, a small window in front changes no sound
+  ...". The runs rewrote tracked pictures of other packages; they were put back with `git checkout -- reviews/` and the
+  untracked renumbered ones deleted.
+- The preview headless (item 4, three runs) and `preview-window.py`'s refusals, as above.
+- Not run: the hosted OS run (finding 3, the orchestrator's after this round).
+
+### Not verified
+
+- A real mouse drag through the game's mouse handler (the tests hand the drag to the screens directly).
+- The hand-back guard in labwc with the supervisor (helper tests only, as before).
+- The silence on his speakers (OpenAL's null device in the tests: the channels' states, not the sound).
