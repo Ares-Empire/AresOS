@@ -209,11 +209,23 @@ def session(evidence, steps, flags, answers, before_turn=None, turn_seconds=180)
     answered = [json.loads(line) for line in actions.read_text().splitlines()] if actions.exists() else []
     owner_answers = sum(1 for action in answered if action['option'] in ('Yes', 'No'))
     continuations = model.script.continuations
-    # The tools Claude Code offered the model in its first request (tool search is off here, so every one is listed).
-    offered = next((request['tools'] for request in model.requests if request.get('tools')), [])
+    # The tools Claude Code offered the model (tool search is off here, so every one is listed). It doesn't wait for
+    # the MCP servers: run 43669126392's first request carried only the built-in tools and his own fast server, so
+    # the record is per request (tools per server) and the list is the last request's, when every server is up.
+    offered = [request['tools'] for request in model.requests if isinstance(request.get('tools'), list)]
     return dict(turns=turns, owner_answers=owner_answers, model_requests=len(model.requests),
                 continuations=continuations, warning_answered=terminal.warning, final_screen=final,
-                tools_offered=sorted(tool.get('name', '') for tool in offered))
+                tools_per_request=[tools_per_server(tools) for tools in offered],
+                tools_offered=sorted(tool.get('name', '') for tool in (offered[-1] if offered else [])))
+
+
+def tools_per_server(tools):
+    counts = {}
+    for tool in tools:
+        name = tool.get('name', '')
+        server = name.split('__')[1] if name.startswith('mcp__') else 'built-in'
+        counts[server] = counts.get(server, 0) + 1
+    return counts
 
 
 TRANSCRIPTS = HOME / '.claude/projects'

@@ -218,6 +218,12 @@ class EvidencePackingTest(unittest.TestCase):
                          ['✶ (running Stop hook)', '⎿ AresOS scrolled into view'])
         self.assertEqual(self.sessions.ours_on_screen(screens, 4, 5, 'TURN_2'), earlier[1:])
 
+    def test_the_tools_offered_are_counted_per_server(self):
+        # Run 43669126392: the first request went out before our servers connected.
+        tools = [{'name': 'Bash'}, {'name': 'Read'}, {'name': 'mcp__notes__note'}, {'name': 'mcp__chrome__tabs'},
+                 {'name': 'mcp__chrome__read'}]
+        self.assertEqual(self.sessions.tools_per_server(tools), {'built-in': 2, 'notes': 1, 'chrome': 2})
+
     def test_only_the_transcripts_a_case_wrote_are_copied(self):
         source = self.folder / 'projects/work'
         source.mkdir(parents=True)

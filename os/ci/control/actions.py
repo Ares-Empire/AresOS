@@ -791,12 +791,10 @@ def ordinary(request):
             errors.append(traceback.format_exc())
     if len(turns) != 5 or None in own_stops:
         errors.append(f'{len(turns)} turns; his Stop hook outside a turn: {own_stops.get(None)}')
-    # The Chrome tools are offered in his session as installed (user-mcp.json's chrome entry), every one of them.
-    offered = cases.get('stopped-mid-session', {}).get('tools_offered', [])
-    by_server = {}
-    for name in offered:
-        server = name.split('__')[1] if name.startswith('mcp__') else 'built-in'
-        by_server[server] = by_server.get(server, 0) + 1
+    # The Chrome tools are offered in his session as installed (user-mcp.json's chrome entry), every one of them, once
+    # the servers are up (the session's last request; the first may go out before they connect).
+    first = cases.get('stopped-mid-session', {})
+    offered, per_request = first.get('tools_offered', []), first.get('tools_per_request', [])
     chrome = sorted(name for name in offered if name.startswith('mcp__chrome__'))
     shipped = sorted(f'mcp__chrome__{tool["name"]}' for tool in json.loads((GENERATED / 'chrome-tools.json').read_text()))
     if chrome != shipped:
@@ -808,7 +806,7 @@ def ordinary(request):
                                                      'stop_continuations', 'own_stop_runs', 'seconds', 'on_screen',
                                                      'own_tool_ran')}
                           for row in rows], own_stop_lines=sum(map(len, own_stops.values())),
-                   pending_after=after['total'], tools_offered=by_server)
+                   pending_after=after['total'], tools_per_request=per_request)
     files = {'ordinary/summary.json': dict(summary, rows=rows, service=service, settings=settings),
              'ordinary/own-hooks.jsonl': log.read_text() if log.exists() else ''}
     sizes = packed(files, {f'ordinary/{name}.tar.gz': out / name for name in cases}, errors)
