@@ -137,17 +137,18 @@ class OSWrites:
         self.cleanup_points, self.failures = [], []
         # A full disk cannot fail closing a file that was only read. The owner
         # oracle's exhausted phase models that disk; other injectors keep
-        # failing every reached hit, read-only closes included.
-        self.fail_read_only_closes = fail_read_only_closes
+        # failing every reached hit, read-only closes included. hit() keeps
+        # its signature: subclasses override it.
+        self.fail_read_only_closes, self.sparing = fail_read_only_closes, False
 
-    def hit(self, label, sqlite=False, read_only=False):
+    def hit(self, label, sqlite=False):
         if EXCLUDED:
             return 0
         self.points.append(label)
         number = len(self.points)
         if CLEANUP.get() is not None or (self.failed and label.rsplit('.', 1)[-1] in {'close', 'unlink', 'rename', 'truncate'}):
             self.cleanup_points.append((number, label, CLEANUP.get() or 'syscall'))
-        if read_only and not self.fail_read_only_closes:
+        if self.sparing:
             return 0
         secondary = number == self.cleanup_at
         if number == self.fail_at or (self.mode == 'persistent' and self.fail_at is not None and number >= self.fail_at) or secondary:
@@ -170,9 +171,12 @@ class OSWrites:
         class Raw(io.FileIO):
             def close(self):
                 if not self.closed:
+                    spare = not getattr(sweep, 'fail_read_only_closes', True) and not self.writable()
                     try:
-                        sweep.hit(label(self.name) + '.close', read_only=not self.writable())
+                        sweep.sparing = spare
+                        sweep.hit(label(self.name) + '.close')
                     finally:
+                        sweep.sparing = False
                         super().close()
             def write(self, data):
                 sweep.hit(label(self.name) + '.write')
