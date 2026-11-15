@@ -97,9 +97,21 @@ the rest of 28b, and `chrome_take_reload`'s input unable to carry its question. 
    top-level `definitions.py` (the Chrome branch of `instructions_for`) is in both briefs' paths.
 4. **S2 to S10 as the review suggests.** S7: 28a changes main's `WITHHELD_FORM` text (in `adapter.py` and
    `background.js`) to name `chrome_go` with `to: reload`, with the tests that pin it, and a test fails on any
-   removed tool's name. S8: the pins are raised rather than taken from the margin, to 11,300 and 6,560 for 28a and
-   12,750 and 7,350 for 28b. S10: after 28b, the rule covers a `chrome_do` step only where the tool's guarded reload
+   removed tool's name. S8: everything decision 2 adds counts toward the budgets (decision 6 below sets them). S10: after 28b, the rule covers a `chrome_do` step only where the tool's guarded reload
    runs before an input (a document that missed the preload, `needs_reload`, or the PLAN-GAP fallback's first
    input); the first input after a take no longer reloads.
-5. **Notes.** N1 to N5 and N7 to N10 are done. N6 (one flag on `chrome_close` covering up to 20 tabs) is left for
-   the lead: it changes the tool's contract, and main's own flag already skips the check on a first call.
+5. **Notes.** N1 to N5 and N7 to N10 are done; N6 is decision 7 below.
+6. **The budgets: not above the baseline.** 28a keeps "not above the baseline", because making the list smaller is
+   the point. Its pins are main's catalogue measured with `tools_for('chrome')` and `instructions_for('chrome')` at
+   28a's start: about 9,137 characters for descriptions plus instructions, about 11,080 for names plus input
+   schemas. The builder records the exact numbers and pins the final totals; the fixed 11,300 and 6,560 are gone.
+   28b's pins are 28a's final measured totals plus at most 1,300 (descriptions plus instructions) and 300 (names
+   plus schemas); its builder pins the exact totals.
+7. **N6: one tab per flag.** `discard_unsaved` on `chrome_close` applies only when the call closes a single tab. A
+   call that names several tabs with the flag is refused, with the advice to close them one at a time. 28a has the
+   test; 28b's S9 test follows it.
+8. **B1, confirmed:** Claude's own typing may go with the flag; only his typing and uninspected frames are refused
+   on his taken tabs.
+9. **Effect `delete` for `chrome_take_reload`:** the builder's first choice, with stop-and-report as the fallback.
+10. **The next review covers `chrome_take_reload` as a whole.** 28a's 1,148 characters for Chrome's own
+    instructions is noted as the most likely place for 28a to stop.

@@ -1158,7 +1158,7 @@ accounts; a page an adapter doesn't recognise falls back to the generic rules. T
 | `chrome_do` | change | up to 20 steps in one tab (click, fill, select, check, press, scroll, dialog, wait), each by reference. An asking step isn't dispatched and returns a prepared operation, and so does a submission the page starts while handling a step; an activation the page starts is stopped and reported, never resumed. Returns what changed | `chrome_click`, `chrome_fill`, `chrome_fill_form`, `chrome_select`, `chrome_check`, `chrome_press`, `chrome_scroll`, `chrome_dialog` |
 | `chrome_upload` | change | prepare putting a local file into a file field (it asks through `chrome_submit`) | the same |
 | `chrome_show` | change | bring a tab and its window to the front, for him | new |
-| `chrome_close` | change | close Claude tabs (one with unsaved work stays open until `discard_unsaved`, brief 20's guard); one of his only when he asked (`request`) and the tab is known clean; never a taken tab | `chrome_close_tab` |
+| `chrome_close` | change | close Claude tabs (one with unsaved work stays open until `discard_unsaved`, brief 20's guard, and the flag only for a call that closes one tab); one of his only when he asked (`request`) and the tab is known clean; never a taken tab | `chrome_close_tab` |
 | `chrome_take`, `chrome_release` | change | take one of his tabs for acting (it reloads once; where the tool can't rule out a loss, `chrome_take_reload` asks him first; never a page of the fixed list); give it back to its place | `chrome_take_tab`, `chrome_release_tab` |
 | `chrome_library` | read | his downloads (and where Chrome saved them), bookmarks or history, to find pages: titles, addresses in the short form, and a reference per entry to open it | `chrome_downloads`, `chrome_bookmarks`, `chrome_history` |
 | `chrome_submit` | **send** | run one prepared operation, by id and hash, after the page-state check | the same |
@@ -1219,8 +1219,8 @@ is brief 20's tool list on the same fixtures, recorded once before it is replace
 | List 25 open tabs | 3 calls | 1 call, at most 3,500 characters |
 | A free click that changes part of the page | a click, then a read or a find: 2 calls | 1 call, at most 2,500 characters |
 | Read a fact from one of his tabs (*brief 28b*) | list, take, read; the tab moves | list, read; the tab untouched |
-| What a session loads: descriptions and instructions | 30 tools; recorded on main after PR #27 | 19 tools, at most 11,300 characters, and not above the baseline; the instructions alone at most 2,800 (3,800 with brief 28b; 12,750 for 20 tools with brief 28b's rule for his tabs and `chrome_take_reload`) |
-| What a session loads: names and input schemas | 28 tools, about 10,600 characters at `8b7e799c`; recorded again on main with the 29th and 30th | at most 6,560 characters (7,350 with brief 28b's inputs and `chrome_take_reload`) |
+| What a session loads: descriptions and instructions | 30 tools; recorded on main after PR #27 | 19 tools, not above main's total measured at brief 28a's start (about 9,137), the final total pinned; the instructions alone at most 2,800 (3,800 with brief 28b); 20 tools with brief 28b's rule for his tabs and `chrome_take_reload`: at most 1,300 above 28a's pinned total (the lead, 2026-11-15) |
+| What a session loads: names and input schemas | 28 tools, about 10,600 characters at `8b7e799c`; recorded again on main with the 29th and 30th | not above main's total measured at brief 28a's start (about 11,080), the final total pinned; with brief 28b's inputs and `chrome_take_reload` at most 300 above 28a's pinned total |
 
 - Every budget names the exact calls it allows (the tables of briefs 28 and 28a), and the test makes those calls
   and no others. A budget nobody can meet is changed in the brief, never in the test.
