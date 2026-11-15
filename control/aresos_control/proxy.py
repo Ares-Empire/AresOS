@@ -6,7 +6,7 @@ from .common import FILE_LIMIT, WIRE_LIMIT, JSONInputError, Refused, cleanup, di
 from .definitions import obj, string
 from .definitions import APPS, BY_NAME, instructions_for
 from .files import FilePolicy, safe_name
-from .protocol import Client
+from .protocol import Client, ServiceUnavailable
 from .results import bounded
 
 
@@ -116,6 +116,9 @@ class Proxy:
             return self.client.call(action.name, arguments)
         except (Refused, OSError, ValueError) as exc:
             exc = storage_refusal(exc) or exc
+            if isinstance(exc, ServiceUnavailable):
+                # Nothing was sent and nothing can be read: don't wait for the service a second time.
+                return {"ok": False, "error": {"code": exc.code, "message": str(exc)}, "pending": {}}
             pending = self.client.request({'method': 'pending'})
             return {"ok": False, "error": {"code": getattr(exc, "code", "file_refused"), "message": str(exc),
                     **({"notes": list(exc.__notes__)} if getattr(exc, "__notes__", None) else {})},

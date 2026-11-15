@@ -1,8 +1,10 @@
 """Bounded JSON v1 frames; file streams acknowledge each offset before the next."""
 import base64
 from contextlib import contextmanager
+import errno
 import json
 import socket
+import time
 
 from .common import CHUNK_SIZE, WIRE_LIMIT, JSONInputError, Refused, display_json, sha256, strict_json_loads, digest
 from .requests import changing
@@ -10,6 +12,11 @@ from .requests import changing
 READ_TIMEOUT = 10
 CHANGE_TIMEOUT = 30
 ARCHIVE_TIMEOUT = 600
+# The unit is Type=simple, so it is "active" a moment before its sockets exist. A connect that fails before any byte
+# is sent is safe to try again: wait this long for a starting service, in short steps.
+CONNECT_WAIT = 3.0
+CONNECT_STEP = 0.1
+NOT_LISTENING = {errno.ENOENT, errno.ECONNREFUSED}
 
 
 def receive(connection):
@@ -39,22 +46,52 @@ def send(connection, message, *, result=False):
     connection.sendall(wire)
 
 
+class ServiceUnavailable(Refused):
+    """The service could not be reached before anything was sent: no operation exists, so none can be inspected."""
+    CODE = 'service_unavailable'
+
+    def __init__(self, cause):
+        if getattr(cause, 'errno', None) in NOT_LISTENING:
+            reason = 'The AresOS tool service is not running'
+        else:
+            reason = 'The AresOS tool service could not be reached (' + (getattr(cause, 'strerror', None) or type(cause).__name__) + ')'
+        super().__init__(self.CODE, reason + '; nothing was sent. Try again later.')
+
+
 class Client:
     def __init__(self, socket_path):
         self.socket_path = str(socket_path)
+
+    def connect(self, timeout):
+        """A connected socket; failures here happen before any byte of the request is sent."""
+        deadline = time.monotonic() + CONNECT_WAIT
+        while True:
+            connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+                connection.settimeout(timeout)
+                connection.connect(self.socket_path)
+                return connection
+            except OSError as exc:
+                connection.close()
+                if exc.errno not in NOT_LISTENING or time.monotonic() >= deadline:
+                    raise ServiceUnavailable(exc) from exc
+            except BaseException:
+                connection.close()
+                raise
+            time.sleep(CONNECT_STEP)
 
     @contextmanager
     def connection(self, request=None):
         attempted = False
         try:
-            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
-                timeout = READ_TIMEOUT
-                if request and changing(request):
-                    timeout = ARCHIVE_TIMEOUT if request.get('action') == 'control_archive' else CHANGE_TIMEOUT
-                connection.settimeout(timeout)
-                connection.connect(self.socket_path)
+            timeout = READ_TIMEOUT
+            if request and changing(request):
+                timeout = ARCHIVE_TIMEOUT if request.get('action') == 'control_archive' else CHANGE_TIMEOUT
+            with self.connect(timeout) as connection:
                 attempted = True
                 yield connection
+        except ServiceUnavailable:
+            raise
         except (OSError, Refused) as exc:
             if attempted and request and changing(request) and (isinstance(exc, OSError) or exc.code == 'transport_error'):
                 # A timeout/EOF says nothing about commit. Give the caller a
