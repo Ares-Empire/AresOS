@@ -131,7 +131,7 @@ def desktop_session():
 
 AS_ARES = ['runuser', '-u', 'ares', '--', 'env', '-i', 'HOME=/var/home/ares', 'XDG_RUNTIME_DIR=/run/user/1001',
            'PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin']
-GIB = 1024 ** 3
+MIB, GIB = 1024 ** 2, 1024 ** 3
 
 
 def desktop_status():
@@ -147,8 +147,8 @@ def cgroup_folder(pid):
 
 def desktop_jvm():
     """Package 23 review 1 (findings 1 and 4): a real JVM through the real wrapper and supervisor, as Prism would
-    start it from outside the desktop's scope. It must run in its own game scope with the 5 GiB target; killing that
-    whole scope must latch recovery and never start Minecraft again by itself."""
+    start it from outside the desktop's scope. It must run in its own game scope with the 2560 MiB target (package
+    23d); killing that whole scope must latch recovery and never start Minecraft again by itself."""
     lock = json.loads(pathlib.Path('/usr/share/aresos/minecraft/desktop.lock.json').read_text())
     instance = '/var/home/ares/.local/share/PrismLauncher/instances/AresDesktop'
     pause = '/tmp/aresos-ci-jvm.paused'
@@ -172,7 +172,7 @@ def desktop_jvm():
     folder = cgroup_folder(jvm)
     assert folder.endswith(f'/user@1001.service/aresos.slice/{unit}'), folder
     memory_high = pathlib.Path(folder, 'memory.high').read_text().strip()
-    assert memory_high == str(5 * GIB), memory_high
+    assert memory_high == str(2560 * MIB), memory_high
     assert os.path.realpath(f'/proc/{jvm}/exe') == os.path.realpath(lock['java']['path'])
     environ = dict(item.split('=', 1) for item in pathlib.Path(f'/proc/{jvm}/environ').read_text().split('\0')
                    if '=' in item)

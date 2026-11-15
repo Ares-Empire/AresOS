@@ -223,7 +223,7 @@ class Base(unittest.TestCase):
         self.next_pid += 10
         ok, reply = sup.on_jvm_start(self.jvm_request())
         self.assertTrue(ok, reply)
-        self.assertEqual(reply['scope'][-2:], ['--property=MemoryHigh=5G', '--'])
+        self.assertEqual(reply['scope'][-2:], ['--property=MemoryHigh=2560M', '--'])
         self.assertEqual(reply['unit'], f'aresos-game-{reply["launch"]}.scope')
         self.runner.processes[pid] = (wrapper_pid, pid * 7,
                                       f'0::/user.slice/user@1001.service/aresos.slice/{reply["unit"]}\n')
@@ -388,7 +388,10 @@ class ProvisionTest(Base):
         settings = desktop.parse_ini((instance / 'instance.cfg').read_text())
         self.assertEqual(settings['WrapperCommand'], '/usr/libexec/aresos-desktop-java')
         self.assertEqual(settings['JavaPath'], self.lock['java']['path'])
-        self.assertEqual((settings['OverrideMemory'], settings['MaxMemAlloc']), ('true', '3072'))
+        self.assertEqual((settings['OverrideMemory'], settings['MinMemAlloc'], settings['MaxMemAlloc']),
+                         ('true', '256', '1024'))
+        self.assertEqual((settings['OverrideJavaArgs'], settings['JvmArgs']),
+                         ('true', '-XX:MaxHeapFreeRatio=30 -XX:MinHeapFreeRatio=10'))
         self.assertEqual((settings['ShowConsoleOnError'], settings['UseDiscreteGpu']), ('false', 'false'))
         self.assertEqual(settings['AutomaticJava'], 'false')
         pack = json.loads((instance / 'mmc-pack.json').read_text())
@@ -403,6 +406,37 @@ class ProvisionTest(Base):
                          ('false', 'false', 'true'))
         self.assertEqual(desktop.check_instance(self.paths, self.lock), [])
         self.assertFalse([p for p in pathlib.Path(self.paths.instances).iterdir() if p.name.startswith('.')])
+
+    def test_the_jvm_arguments_are_a_plain_value_that_never_sets_the_heap(self):
+        # Package 23d: G1's free-ratio flags reach the game through Prism 11.1.1's JvmArgs, which counts only with
+        # OverrideJavaArgs=true. instance_config's rule: plain values (no commas, quotes or semicolons; Prism also
+        # takes a single quote as a quote when it splits JvmArgs). Prism refuses a launch, with a dialog, whose
+        # JvmArgs set the heap or a Java version (JavaCommon::checkJVMArgs); the heap is MinMemAlloc/MaxMemAlloc.
+        config = desktop.instance_config(self.lock)
+        self.assertIn('\nOverrideJavaArgs=true\nJvmArgs=-XX:MaxHeapFreeRatio=30 -XX:MinHeapFreeRatio=10\n', config)
+        settings = desktop.parse_ini(config)
+        for key, value in settings.items():
+            self.assertFalse(set(value) & set(',;"\''), f'{key}={value} is not plain')
+        self.assertEqual(settings['JvmArgs'], desktop.JVM_ARGS)
+        self.assertEqual(desktop.JVM_ARGS.split(' '), ['-XX:MaxHeapFreeRatio=30', '-XX:MinHeapFreeRatio=10'])
+        for refused in ('-Xms', '-Xmx', '-XX:PermSize=', '-XX-MaxHeapSize', '-XX:InitialHeapSize', '-version:'):
+            self.assertNotIn(refused, desktop.JVM_ARGS)
+
+    def test_an_existing_instance_keeps_the_memory_settings_it_was_created_with(self):
+        # Package 23d's known limit: provisioning never changes an existing instance, and the memory keys are not
+        # managed settings, so an instance made with package 23's values (3072 / 512, no JVM arguments) stays so
+        # and is not reported.
+        desktop.provision(self.paths, self.lock)
+        cfg = pathlib.Path(self.paths.instance('AresDesktop'), 'instance.cfg')
+        old = cfg.read_text()
+        for line, before in (('MinMemAlloc=256\n', 'MinMemAlloc=512\n'), ('MaxMemAlloc=1024\n', 'MaxMemAlloc=3072\n'),
+                             (f'OverrideJavaArgs=true\nJvmArgs={desktop.JVM_ARGS}\n', '')):
+            self.assertIn(line, old)
+            old = old.replace(line, before)
+        cfg.write_text(old)
+        self.assertEqual(desktop.provision(self.paths, self.lock), [])
+        self.assertEqual(cfg.read_text(), old)
+        self.assertEqual(desktop.check_instance(self.paths, self.lock), [])
 
     def test_provisioning_is_idempotent(self):
         desktop.provision(self.paths, self.lock)
@@ -671,7 +705,7 @@ class LaunchTest(unittest.TestCase):
         # Review 1, finding 4: the memory target sits on the JVM's own scope, which the wrapper creates.
         self.assertEqual(desktop.game_scope('abc123'), [
             '/usr/bin/systemd-run', '--user', '--scope', '--quiet', '--slice=aresos.slice',
-            '--unit=aresos-game-abc123.scope', '--property=MemoryHigh=5G', '--'])
+            '--unit=aresos-game-abc123.scope', '--property=MemoryHigh=2560M', '--'])
         self.assertTrue(desktop.game_cgroup_matches(
             '0::/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-game-abc123.scope\n', 'abc123'))
         for cgroup in ('0::/user.slice/user-1001.slice/user@1001.service/aresos.slice/aresos-desktop-abc123.scope\n',
@@ -3240,7 +3274,7 @@ class WrapperTest(unittest.TestCase):
 
     def test_the_real_jvm_runs_in_its_own_scope_with_the_memory_target(self):
         # Review 1, finding 4: Prism (here: this test) runs outside any desktop scope; Java still lands in the
-        # game's scope with MemoryHigh=5G, because the wrapper starts it there. Needs a user systemd manager.
+        # game's scope with MemoryHigh=2560M, because the wrapper starts it there. Needs a user systemd manager.
         bus = f'unix:path=/run/user/{os.getuid()}/bus'
         probe_env = {'PATH': '/usr/bin:/bin', 'XDG_RUNTIME_DIR': str(self.root), 'DBUS_SESSION_BUS_ADDRESS': bus}
         try:
@@ -3258,7 +3292,7 @@ class WrapperTest(unittest.TestCase):
         record = json.loads((self.root / 'record.json').read_text())
         line = next(l for l in record['cgroup'].splitlines() if l.startswith('0::'))
         self.assertTrue(line.endswith(f'/aresos.slice/aresos-game-{launch}.scope'), line)
-        self.assertEqual(record['memory_high'], str(5 * 1024 ** 3))
+        self.assertEqual(record['memory_high'], str(2560 * 1024 ** 2))
         started = next(r for r in self.requests if r['op'] == 'jvm_started')
         self.assertEqual(started['pid'], record['pid'], 'the reported PID is the JVM itself, inside the scope')
 
