@@ -1173,7 +1173,8 @@ class LayoutTest(Unchanged, unittest.TestCase):
             self.assertEqual((host.settings, host.loaded), (before, 'de'))
             self.assertFalse((store / 'layout-pending.json').exists())
 
-    SAME_BOOT = 'Layout trial is unfinished; prove it or revert first'
+    SAME_BOOT = ('Layout trial is unfinished; prove it or revert first; if the console that began it is closed, '
+                 'from a fresh physical administrator login run sudo /var/lib/ares/at layout abandon')
     EARLIER_BOOT = ('Layout trial is unfinished and began before the last restart: from a fresh physical administrator '
                     'login run sudo /var/lib/ares/at layout abandon, then run this command again')
 

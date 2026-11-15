@@ -1659,7 +1659,8 @@ class OwnerPathTest(unittest.TestCase):
 
     def test_routine_box_for_new_tools_comes_first_with_his_rule_its_limit_and_the_stop_card(self):
         """Brief 22d: the routine box first, the window as it looks, his rule with the limit in plain words,
-        the 8-character compare, the announced commit, the board note, the 10-minute rule and the STOP card."""
+        the 8-character compare, the announced commit, the board note, the 10-minute rule and the STOP card;
+        with the decisions after review 2 (R1 to R6, N2, N6 to N10)."""
         import test_owner_tools as common
         texts = documents()
         commands = json.loads((ROOT/'os/owner-tools/commands.json').read_text())
@@ -1671,49 +1672,86 @@ class OwnerPathTest(unittest.TestCase):
         for value in ("the maintainer's board note for you with the full commit hash and the tools fingerprint",
                       '**announced commit**', 'never the newest one on GitHub by itself'):
             self.assertIn(value, gate)
-        order = ("as `ares` (no window yet)", "the commit's full hash added at the end",
-                 '```bash\n' + commands['tools-folder'] + '\n```', 'Require `SHA256SUMS: OK`', '**STOP tools folder**',
-                 'waits for your go', '`os/owner-tools/commands.json`', '```bash\n' + commands['tools-routine'] + '\n```',
+        stale = 'The stick holds tools this laptop installed before (SHA256 …), not the installed ones'
+        order = ("Only this box's install line and its export line run this way for now",
+                 'every other owner command stays at the console (the boxes below) until a later release brings it here',
+                 "as `ares` (no window yet)", 'only by a fast-forward pull',
+                 "(never a reset, and never a checkout over other sessions' work)", "the commit's full hash added at the end",
+                 'From here until the last PASS line no other Claude session runs an owner command',
+                 '```bash\n' + commands['tools-folder'] + '\n```', "the commit's tools have this guide's fingerprint",
+                 'Require `SHA256SUMS: OK`', '**STOP tools folder** installed nothing and opened no window',
+                 'a refusal that names its reason left the tools folder as it was', 'with no export',
+                 'waits for your go', 'never from its working copy: `' + bootstrap.FROM_COMMIT + '`', 'entry **tools-routine**',
+                 'entry **export-routine**', '```bash\n' + commands['tools-routine'] + '\n```',
                  'Its title bar says **Enter SSH Credentials**', 'it cannot be changed',
                  'Inside it says **' + bootstrap.label(fingerprint, bootstrap.ACTIONS['tools-routine']) + '**',
                  '**Password:**', '**OK** and **Cancel**', '**Your rule:**', 'you told Claude to go just now',
-                 'starts with **AresOS owner tools**', '`' + fingerprint[:8] + '`', 'line 1 of [OWNER-TOOLS.md](OWNER-TOOLS.md)',
-                 'on GitHub on your phone', 'press **Cancel**: nothing runs and nothing changes', '**What the window cannot do:**',
+                 'starts with **AresOS owner tools**', '`' + fingerprint[:8] + '`',
+                 'line 1 of `github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md`', 'on your phone (not on the laptop)',
+                 'from your own bookmark of that address', 'check that it says `main`',
+                 'never use a link Claude sends you at that moment',
+                 'press **Cancel**: nothing runs and nothing changes', '**What the window cannot do:**',
                  'it stops accidents and a Claude that acts without asking',
                  'It does not stop a Claude that has been tricked into showing you one thing and running another',
                  'can do anything as administrator, now and later, without asking again', 'use the stick boxes for new tools instead',
                  'One password runs all three', pass_line('install'), '**Tools updated from version**', pass_line('check'),
                  pass_line('title'), 'older titles are INVALID', 'no disk serials', 'to the board under topic `aresos`',
                  'after every later command that changes what starts next', 'within 10 minutes',
-                 'stops that sudo by the process number it started', 'nothing runs',
-                 '**A STOP**', 'word for word', 'runs only the export line below', 'tries nothing else',
+                 'stopping the password helper it opened, never the administrator command itself',
+                 'sudo then ends with **sudo: no password was provided**, which shows that nothing ran',
+                 'If you have already answered, Claude stops nothing and waits for the result',
+                 '**A STOP**', 'Claude copies every STOP line to you word for word and asks for your go',
+                 'only on your go it runs the export line below', 'tries nothing else',
                  '(EMERGENCY.md#a-routine-tools-command-stopped)',
+                 "After a **STOP tools folder** (Claude's own line; no administrator command ran) there is no export and no window",
                  '**' + bootstrap.label(fingerprint, bootstrap.ACTIONS['export-routine']) + '**',
                  '```bash\n' + commands['export-routine'] + '\n```',
                  '`Tools stick absent: records copied to /run/ares-records with SHA256 readback`',
                  '`This copy is on this laptop, not off it; uid 1001 can read it, and a restart deletes it`',
                  '`Tools stick absent; full records remain internal`', '**SAFE TO REMOVE ARESTOOLS** means a copy off it',
+                 'never copies it into the repository, a pull request or the board',
+                 'After this box the tools stick still holds older tools', '`' + stale + '`',
+                 'cannot bring the current tools until Claude writes it again',
                  '**Record:**', '[Return to step 8](#8-everyday-boot-and-recovery)', 'go on with the stage box')
         position = 0
         for value in order:
             found = box.find(value, position)
             self.assertGreaterEqual(found, 0, value)
             position = found + len(value)
+        # Decision 10 and the old ways are gone: no signal to sudo, no line from the working tree, no relative link.
+        for value in ('process number', 'stops that sudo', 'the STOP line', 'copied from `os/owner-tools/commands.json`',
+                      '[OWNER-TOOLS.md](OWNER-TOOLS.md)', 'changed nothing:'):
+            self.assertNotIn(value, box)
         # The words he compares and reads come from the tools themselves.
         media = (ROOT/'os/owner-tools/media.py').read_text()
-        for value in ("'Tools stick absent: records copied to '", "'This copy is on this laptop, not off it; ' + ('uid '",
-                      "' can read it, and a restart deletes it'", "'For a copy off the laptop plug in the tools stick and run export again'"):
+        for value in ("'Tools stick absent: records copied to '", "readers = 'only root can read it'",
+                      "readers = 'uid ' + str(reader) + ' can read it'",
+                      "'This copy is on this laptop, not off it; ' + readers + ', and a restart deletes it'",
+                      "'For a copy off the laptop plug in the tools stick and run export again'",
+                      "'" + stale.replace('…', "' + found + '") + "'"):
             self.assertIn(value, media)
+        self.assertIn("'Keep the current administrator session open. ", (ROOT/'os/owner-tools/owner.py').read_text())
         card = section(texts['EMERGENCY.md'], 'a-routine-tools-command-stopped')
-        for value in ('**Action:**', 'word for word', "runs only the routine box's export line", 'tries nothing else',
+        for value in ('**Action:**', 'Claude copies every STOP line to you word for word and asks for your go',
+                      "only on your go it runs the routine box's export line", 'tries nothing else',
                       'no other line, no second try, no restart',
+                      "After a **STOP tools folder** (Claude's own line; no administrator command ran) there is no export and no window",
+                      "The tools' last line, **Keep the current administrator session open**, is for the console",
+                      'on this route there is none to keep, and nothing is lost',
+                      'Claude reads `/run/ares-records` to help you and never copies it into the repository, a pull request or the board',
+                      'it holds disk serials and firmware entries',
                       '**' + bootstrap.label(fingerprint, bootstrap.ACTIONS['export-routine']) + '**',
-                      '**Cancel** is not a STOP: nothing ran', '**STOP tools folder** changed nothing',
+                      '**Cancel** is not a STOP: nothing ran', '**STOP tools folder** installed nothing',
                       'the installed tools still work', '`/run/ares-records`', '**SAFE TO REMOVE ARESTOOLS**',
                       '**STOP → go to [Help](INSTALL-REFERENCE.md#help)**', '(INSTALL.md#update-aresos-to-a-new-release)'):
             self.assertIn(value, card)
+        self.assertNotIn('the STOP line', card)
         stick = section(texts['EMERGENCY.md'], 'a-tools-command-stopped')
         self.assertIn('**This copy is on this laptop, not off it**', stick)
+        # R6: the stick falls behind after the routine box, in both places, with the tools' own line.
+        for value in ("After new tools from Claude's terminal the stick still holds older tools", '`' + stale + '`',
+                      'cannot bring the current tools until Claude writes it again'):
+            self.assertIn(value, stick)
         emergency = texts['EMERGENCY.md']
         self.assertLess(emergency.index('## A tools command stopped'), emergency.index('## A routine tools command stopped'))
 

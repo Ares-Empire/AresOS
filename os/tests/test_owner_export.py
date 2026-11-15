@@ -199,6 +199,26 @@ class ExportTest(unittest.TestCase):
                 with patch.object(media.shutil, 'copyfile', side_effect=damaged), self.assertRaisesRegex(owner.Stop, '^Local record copy differs$'):
                     export(1001)
                 self.assertEqual(calls, [])
+                # Review 2, N4: a missing or failing setfacl leaves the complete copy root's and says why, through
+                # the real Host's own refusals; never a STOP, never "do not reboot".
+                class Real(owner.Host):
+                    def json(self, *args): return dict(blockdevices=[])
+                failed = subprocess.CompletedProcess(['setfacl'], 1, '', 'setfacl: Operation not supported')
+                for which, ran, reason in ((None, None, 'Required tool missing: setfacl'),
+                                           ('/usr/bin/setfacl', failed, 'Operation failed: setfacl'),
+                                           ('/usr/bin/setfacl', OSError(8, 'Exec format error'), '[Errno 8] Exec format error')):
+                    with self.subTest(reason=reason), patch.object(owner.shutil, 'which', return_value=which), \
+                            patch.object(owner.subprocess, 'run', side_effect=[ran]) as started:
+                        lines = media.export(Real(), store, ['a' * 64], owner.checked_bundle, owner.require, 1001)
+                        self.assertEqual(lines, ['Tools stick absent: records copied to ' + str(local) + ' with SHA256 readback',
+                                                 'This copy is on this laptop, not off it; only root can read it, since uid 1001 '
+                                                 'could not be let in (' + reason + '), and a restart deletes it',
+                                                 'For a copy off the laptop plug in the tools stick and run export again'])
+                        self.assertFalse(any('reboot' in line for line in lines))
+                        self.assertEqual(started.call_count, 0 if which is None else 1)
+                        self.assertEqual(set(copied()), {'prepared.json', 'later.json', 'diagnostic-20261115T000000.000000Z-install.json'})
+                        self.assertEqual(local.stat().st_mode & 0o7777, 0o700)
+                        self.assertEqual({p.stat().st_mode & 0o7777 for p in local.iterdir()}, {0o600})
         self.assertEqual(media.LOCAL, pathlib.Path('/run/ares-records'))
 
     def test_bad_usb_identity_never_mounts(self):

@@ -171,6 +171,10 @@ class RouteTest(unittest.TestCase):
                         self.assertEqual(owner.caller(), dict(login_uid=expected, terminal=terminal))
             with patch.object(owner, 'LOGIN_UID', login / 'missing'), patch.object(owner.sys.stdin, 'isatty', return_value=False):
                 self.assertEqual(owner.caller(), dict(login_uid=None, terminal=False))
+            # Review 2, N3: with stdin closed (not /dev/null) Python has no sys.stdin; no terminal, no error.
+            login.write_text('1001\n')
+            with patch.object(owner, 'LOGIN_UID', login), patch.object(owner.sys, 'stdin', None):
+                self.assertEqual(owner.caller(), dict(login_uid=1001, terminal=False))
         self.assertEqual(owner.LOGIN_UID, pathlib.Path('/proc/self/loginuid'))
 
     def test_the_folder_block_installs_without_a_terminal_and_never_looks_at_an_attached_stick(self):
@@ -246,6 +250,28 @@ class RouteTest(unittest.TestCase):
                         with self.assertRaisesRegex(owner.Stop, message):
                             owner.install(payload, host, 'folder')
                     self.assertEqual(before, base.ToolsUpdateTest().snapshot(home))
+
+
+class LayoutTrialTest(unittest.TestCase):
+    def test_the_tools_updates_readiness_check_names_abandon_for_a_trial_from_an_earlier_boot(self):
+        """Review 3 of 22d, nit 3: system_ready with a trial record from another boot refuses with the
+        wording that names layout abandon; one from this boot keeps the first wording. Nothing changes."""
+        for source in owner.SOURCES:
+            for began, message in (('an-earlier-boot', owner.LAYOUT_TRIAL_RESTARTED), ('this-boot', owner.LAYOUT_TRIAL)):
+                with self.subTest(source=source, began=began), installation(source=source) as (harness, home, run, fingerprint, previous, host), \
+                        patch.object(owner, 'boot_id', return_value='this-boot'):
+                    base.ToolsUpdateTest.record(home, 'layout-pending', dict(phase='pin', administrator=dict(boot=began)))
+                    before = harness.snapshot(home)
+                    host.trace.clear()
+                    with self.assertRaises(owner.Stop) as caught:
+                        run()
+                    self.assertEqual(str(caught.exception), message)
+                    self.assertEqual(harness.snapshot(home), before)
+                    self.assertFalse(any(row.get('mutation') for row in host.trace))
+        self.assertTrue(owner.LAYOUT_TRIAL_RESTARTED.startswith('Layout trial is unfinished and began before the last restart: '))
+        # Review 3, nit 2: in the trial's own boot the first wording names abandon too, for a closed console.
+        self.assertEqual(owner.LAYOUT_TRIAL, 'Layout trial is unfinished; prove it or revert first; if the console that began '
+                         'it is closed, from a fresh physical administrator login run sudo /var/lib/ares/at layout abandon')
 
 
 class ResumeTest(unittest.TestCase):

@@ -1390,7 +1390,8 @@ class ToolsUpdateTest(unittest.TestCase):
         'resume identity': 'Interrupted tools update began from the tools USB; finish it from that stick at the recovery console',
     }
     REFUSING = {
-        'layout trial': (COPY + PUBLISH + RETIRE, 'Layout trial is unfinished; prove it or revert first'),
+        'layout trial': (COPY + PUBLISH + RETIRE, 'Layout trial is unfinished; prove it or revert first; if the console '
+                         'that began it is closed, from a fresh physical administrator login run sudo /var/lib/ares/at layout abandon'),
         'transaction': (COPY + PUBLISH + RETIRE, 'Deployment transaction active or unknown'),
         'disk record': (COPY + PUBLISH + RETIRE + RECORDS + COMPLETE, 'Wrong or ambiguous target disk serial'),
         'resume identity': (COPY + PUBLISH + RETIRE + RECORDS, 'Interrupted tools update does not exactly match this bundle/stick; get help'),

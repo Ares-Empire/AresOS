@@ -188,14 +188,15 @@ class EqualityTest(unittest.TestCase):
                 check_bootstrap(guide+b'\n```bash\n'+extra+b'\n```\n',commands)
 
     def test_owner_tools_page_is_exactly_the_payload_fingerprint_the_blocks_and_the_labels_carry(self):
-        """Decision 5 (F3): line 1 is what he compares with the window on his phone."""
+        """Decision 5 (F3): line 1 is what he compares with the window on his phone. A blank line keeps it
+        apart from the full fingerprint there, since GitHub joins adjacent lines into one paragraph (review 2, N6)."""
         fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')
         version=json.loads((ROOT/'os/owner-tools/history.json').read_text())['tools_version']
         page=(ROOT/'docs/OWNER-TOOLS.md').read_text().split('\n')
-        self.assertEqual(page[:3],['Owner tools version '+str(version)+': '+fingerprint[:8],fingerprint,''])
-        self.assertEqual(page[4:],[''])
-        self.assertEqual(page[3].count('. '),1)
-        self.assertTrue(page[3].endswith('.') and 'AresOS owner tools' in page[3])
+        self.assertEqual(page[:4],['Owner tools version '+str(version)+': '+fingerprint[:8],'',fingerprint,''])
+        self.assertEqual(page[5:],[''])
+        self.assertEqual(page[4].count('. '),1)
+        self.assertTrue(page[4].endswith('.') and 'AresOS owner tools' in page[4])
         bootstrap=common.module('bootstrap')
         commands=json.loads((ROOT/'os/owner-tools/commands.json').read_text())
         literal='echo "'+fingerprint+'  SHA256SUMS" | sha256sum -c --strict'
@@ -204,8 +205,9 @@ class EqualityTest(unittest.TestCase):
         for name,action in bootstrap.ACTIONS.items():
             self.assertIn(" -p '"+bootstrap.label(fingerprint,action)+"' ",commands[name])
             self.assertTrue(bootstrap.label(fingerprint,action).startswith('AresOS owner tools '+page[0].rsplit(': ',1)[1]+': '))
+        # R4: the box prints the page's full address on main; he opens it from his own bookmark.
         guide=(ROOT/'docs/INSTALL.md').read_text()
-        self.assertIn('[OWNER-TOOLS.md](OWNER-TOOLS.md)',guide)
+        self.assertIn('`github.com/Ares-Empire/AresOS/blob/main/docs/OWNER-TOOLS.md`',guide)
 
     def test_extra_stale_fingerprint_is_rejected_in_every_owner_page(self):
         fingerprint=common.bundle.check(ROOT/'os/owner-tools/payload')

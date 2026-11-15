@@ -166,7 +166,8 @@ class BootstrapTest(unittest.TestCase):
             self.assertIn(line,(common.ROOT/'docs/INSTALL.md').read_text(),name)
 
     def test_routine_lines_have_the_briefs_shape_one_window_and_the_folder_block_inside(self):
-        """Decision 2: SUDO_ASKPASS=/usr/bin/ksshaskpass /usr/bin/sudo -k -A -p '<label>' bash -c '<script>'."""
+        """Decision 2, with review 2's N1 and N5: SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT=
+        /usr/bin/sudo -k -A -p '<label>' /usr/bin/bash -c '<script>'."""
         fingerprint='0123abcd'+'e'*56
         for name,action in bootstrap.ACTIONS.items():
             line=bootstrap.lines(fingerprint)[name]
@@ -174,19 +175,47 @@ class BootstrapTest(unittest.TestCase):
             self.assertEqual(label,'AresOS owner tools 0123abcd: '+action)
             words=shlex.split(line)
             with self.subTest(line=name):
-                self.assertEqual(words[:5]+words[6:8],['SUDO_ASKPASS=/usr/bin/ksshaskpass','/usr/bin/sudo','-k','-A','-p','bash','-c'])
-                self.assertEqual((words[5],len(words)),(label,9))
-                self.assertEqual(line,"SUDO_ASKPASS=/usr/bin/ksshaskpass /usr/bin/sudo -k -A -p '"+label+"' bash -c '"+words[8]+"'")
+                self.assertEqual(words[:6]+words[7:9],['SUDO_ASKPASS=/usr/bin/ksshaskpass','SSH_ASKPASS_PROMPT=','/usr/bin/sudo',
+                                                       '-k','-A','-p','/usr/bin/bash','-c'])
+                self.assertEqual((words[6],len(words)),(label,10))
+                self.assertEqual(line,"SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo -k -A -p '"+label
+                                 +"' /usr/bin/bash -c '"+words[9]+"'")
         # Decision 3: the tools-only box is one line. The folder block exactly as test_owner_bootstrap
         # runs it above, then the new tools' check and title in the same root shell.
-        script=shlex.split(bootstrap.tools_routine(fingerprint))[8]
+        script=shlex.split(bootstrap.tools_routine(fingerprint))[9]
         folder=shlex.split(bootstrap.command(fingerprint,'folder'))[3]
         self.assertEqual(script,folder+'\ntrap "echo STOP after install: check or title refused" ERR'
                          '\n/var/lib/ares/at check\n/var/lib/ares/at title')
-        self.assertEqual(shlex.split(bootstrap.export_routine(fingerprint))[8],'/var/lib/ares/at export')
+        self.assertEqual(shlex.split(bootstrap.export_routine(fingerprint))[9],'/var/lib/ares/at export')
         for bad in ('%p','it\'s','a: b'):
             with self.subTest(action=bad),self.assertRaises(AssertionError):
                 bootstrap.label(fingerprint,bad)
+
+    def test_the_prefix_hands_sudo_the_password_window_whatever_the_callers_environment(self):
+        """N5: ksshaskpass reads SSH_ASKPASS_PROMPT ("confirm": Accept without a password field, "none": only
+        Cancel; empty or unset: the password window, src/main.cpp:283-289 at v6.7.5). sudo starts the helper with
+        its own environment, so the line clears it for sudo. A stand-in for /usr/bin/sudo notes what it got."""
+        fingerprint='0123abcd'+'e'*56
+        with tempfile.TemporaryDirectory(dir=common.ROOT/'os/tests') as temporary:
+            root=pathlib.Path(temporary); seen=root/'seen.json'; sudo=root/'sudo'
+            sudo.write_text('#!/usr/bin/python3\nimport json, os, sys\n'
+                            'json.dump(dict(argv=sys.argv[1:], prompt=os.environ.get("SSH_ASKPASS_PROMPT"),'
+                            ' askpass=os.environ.get("SUDO_ASKPASS")), open('+repr(str(seen))+', "w"))\n')
+            sudo.chmod(0o700)
+            for name,line in bootstrap.lines(fingerprint).items():
+                if name=='tools-folder':
+                    continue
+                self.assertEqual(line.count(' '+bootstrap.SUDO+' '),1)
+                for caller in ({},{'SSH_ASKPASS_PROMPT':'confirm'},{'SSH_ASKPASS_PROMPT':'none'},{'SUDO_ASKPASS':'/tmp/other'}):
+                    with self.subTest(line=name,caller=caller):
+                        seen.unlink(missing_ok=True)
+                        env={k:v for k,v in os.environ.items() if k not in ('SSH_ASKPASS_PROMPT','SUDO_ASKPASS')}
+                        subprocess.run(['/bin/bash','-c',line.replace(' '+bootstrap.SUDO+' ',' '+str(sudo)+' ')],
+                                       env=dict(env,**caller),check=True,timeout=15)
+                        got=json.loads(seen.read_text())
+                        self.assertEqual((got['prompt'],got['askpass']),('','/usr/bin/ksshaskpass'))
+                        self.assertEqual(got['argv'],['-k','-A','-p',bootstrap.label(fingerprint,bootstrap.ACTIONS[name]),
+                                                      '/usr/bin/bash','-c',shlex.split(line)[9]])
 
     def test_no_label_matches_a_prompt_ksshaskpass_remembers(self):
         import re
@@ -230,7 +259,7 @@ class BootstrapTest(unittest.TestCase):
             installed.write_text('#!/bin/bash\necho "$1" >> '+shlex.quote(str(log))+'\n'
                                  'if [ "$1" = "$ARES_FAIL" ]; then echo "STOP $1 refused"; exit 1; fi\necho "PASS $1"\n')
             installed.chmod(0o700)
-            script=shlex.split(bootstrap.tools_routine(fingerprint))[8]
+            script=shlex.split(bootstrap.tools_routine(fingerprint))[9]
             self.assertEqual(script.count(bootstrap.FOLDER),1)
             script=(script.replace('/run/ares-bootstrap.XXXXXX',str(private/'ares-bootstrap.XXXXXX'))
                     .replace(bootstrap.FOLDER,shlex.quote(str(payload))).replace(bootstrap.INSTALLED,str(installed)))
@@ -282,9 +311,9 @@ class BootstrapTest(unittest.TestCase):
                 self.assertEqual((words[:2],words[3:]),(['/usr/bin/bash','-c'],['tools-folder']))
                 script=words[2].replace(bootstrap.CHECKOUT,shlex.quote(str(checkout))).replace(bootstrap.FOLDER,shlex.quote(str(folder)))
                 return subprocess.run(['/usr/bin/bash','-c',script,'tools-folder',*commit],env=env,text=True,capture_output=True,timeout=30)
-            def refused(commit,message):
+            def refused(commit,message,pinned=fingerprint):
                 before=self.snapshot(folder.parent)
-                result=run(commit)
+                result=run(commit,pinned)
                 self.assertNotEqual(result.returncode,0)
                 self.assertIn('STOP tools folder: '+message,result.stdout)
                 self.assertEqual(self.snapshot(folder.parent),before,'A refused folder line changed the folder')
@@ -309,11 +338,16 @@ class BootstrapTest(unittest.TestCase):
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             self.assertEqual(result.stdout,'SHA256SUMS: OK\n')
             self.assertEqual(self.snapshot(folder),self.snapshot(work/'os/owner-tools/payload'))
-            # The pinned fingerprint is the check: another bundle at the same commit stops.
-            result=run([announced],'0'*64)
-            self.assertNotEqual(result.returncode,0)
-            self.assertIn('SHA256SUMS: FAILED',result.stdout)
-            self.assertIn('STOP tools folder: refused, nothing was installed',result.stdout)
+            # R3: the root line Claude runs is the commit's own, read from git objects, whatever the working tree says.
+            path=checkout/'os/owner-tools/commands.json'; kept=path.read_bytes(); path.write_bytes(b'{"tools-routine": "working tree"}\n')
+            shown=subprocess.run(shlex.split(bootstrap.FROM_COMMIT.replace(bootstrap.CHECKOUT,str(checkout)).replace('<commit>',announced)),
+                                 env=env,check=True,capture_output=True).stdout
+            self.assertEqual(shown,b'{"tools-routine": "changed"}\n')
+            path.write_bytes(kept)
+            # The pinned fingerprint is the check, against the commit's own SHA256SUMS before the folder is
+            # emptied (N2): another bundle at the same commit stops and leaves the folder as it was.
+            refused([announced],announced+' holds other tools than 00000000','0'*64)
+            self.assertNotIn('SHA256SUMS',run([announced],'0'*64).stdout)
             # Without the fetch nothing goes on: an unreachable origin stops before the folder changes.
             (folder/'old').write_text('an earlier folder')
             git('remote','set-url','origin',str(root/'gone.git'),cwd=checkout)

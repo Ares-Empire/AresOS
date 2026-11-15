@@ -101,12 +101,20 @@ def export_local(host, store, require, reader):
         shutil.copyfile(path, target)
         target.chmod(0o600)
         require(hashlib.sha256(target.read_bytes()).digest() == hashlib.sha256(path.read_bytes()).digest(), 'Local record copy differs')
+    readers = 'only root can read it'
     if reader:
-        # X: search permission for the folder only; the files have no execute bit to keep.
-        host.mutate('setfacl', '--recursive', '--modify', 'user:' + str(reader) + ':rX', '--', str(LOCAL))
+        try:
+            # X: search permission for the folder only; the files have no execute bit to keep.
+            host.mutate('setfacl', '--recursive', '--modify', 'user:' + str(reader) + ':rX', '--', str(LOCAL))
+            readers = 'uid ' + str(reader) + ' can read it'
+        except Exception as error:
+            # The copy is complete and stays root's, which is safe: say so and why, never a STOP
+            # whose "do not reboot" would be wrong here (review 2 of 22d, N4). The reason drops
+            # the host's own "; do not reboot" for the same reason.
+            reason = str(error).split(';')[0].strip() or type(error).__name__
+            readers = 'only root can read it, since uid ' + str(reader) + ' could not be let in (' + reason + ')'
     return ['Tools stick absent: records copied to ' + str(LOCAL) + ' with SHA256 readback',
-            'This copy is on this laptop, not off it; ' + ('uid ' + str(reader) if reader else 'only root')
-            + ' can read it, and a restart deletes it',
+            'This copy is on this laptop, not off it; ' + readers + ', and a restart deletes it',
             'For a copy off the laptop plug in the tools stick and run export again']
 
 

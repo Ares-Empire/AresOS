@@ -67,8 +67,11 @@ FORWARD_FIRST = ('Update installs a new release only from a running AresOS that 
 BACK_TO_ARESOS = 'run ' + typed('forward') + ' to go back to AresOS'
 # A pending layout trial refuses every change of the list, reboot and the tools update. In the
 # boot it began in, proof or revert ends it; after a restart both refuse, and only abandon from a
-# fresh login does (review 8 of package 22c, finding 5).
-LAYOUT_TRIAL = 'Layout trial is unfinished; prove it or revert first'
+# fresh login does (review 8 of package 22c, finding 5). In its own boot, revert and finish
+# need the console that began it, so once that is closed abandon is the way there too
+# (review 3 of 22d, nit 2).
+LAYOUT_TRIAL = ('Layout trial is unfinished; prove it or revert first; if the console that began it is closed, '
+                'from a fresh physical administrator login run ' + typed('layout', 'abandon'))
 LAYOUT_TRIAL_RESTARTED = ('Layout trial is unfinished and began before the last restart: from a fresh physical '
                           'administrator login run ' + typed('layout', 'abandon') + ', then run this command again')
 # What update/previous expect the next start to show (records/outcome-pending.json).
@@ -209,7 +212,9 @@ def caller():
         login = int(LOGIN_UID.read_text().strip())
     except (OSError, ValueError):
         login = None
-    return dict(login_uid=None if login == 4294967295 else login, terminal=sys.stdin.isatty())
+    # With stdin closed (not /dev/null) Python has no sys.stdin (review 2 of 22d, N3).
+    return dict(login_uid=None if login == 4294967295 else login,
+                terminal=sys.stdin is not None and sys.stdin.isatty())
 
 
 def login_properties(host, session, names, message):

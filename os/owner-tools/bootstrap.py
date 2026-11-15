@@ -16,14 +16,16 @@ Brief 22d adds the routine route: Claude runs the lines, he approves each root l
 by typing his password into the desktop's window (decisions 2, 3 and 5):
 
 - tools_folder: Claude's line as ares, no window. Its only input is the announced
-  commit, added after its last word. It refuses unless that commit is on origin/main
-  and this checkout's os/owner-tools equals it (so the root line Claude copies from
-  commands.json is the commit's), then fills the folder with git archive of that
-  commit's payload and checks the payload's fingerprint against the pinned one.
-- routine lines: SUDO_ASKPASS=/usr/bin/ksshaskpass /usr/bin/sudo -k -A -p '<label>'
-  bash -c '<script>'. One window per go: the tools-only line is the folder block,
-  then the new tools' check and title in the same root shell, stopping at the first
-  STOP. The label names the tools' first 8 hex and the action.
+  commit, added after its last word. It refuses unless that commit is on origin/main,
+  this checkout's os/owner-tools equals it and the commit's own SHA256SUMS has the
+  pinned fingerprint; only then it empties the folder, fills it with git archive of
+  that commit's payload and checks the copy's fingerprint again.
+- routine lines: SUDO_ASKPASS=/usr/bin/ksshaskpass SSH_ASKPASS_PROMPT= /usr/bin/sudo
+  -k -A -p '<label>' /usr/bin/bash -c '<script>'. One window per go: the tools-only
+  line is the folder block, then the new tools' check and title in the same root
+  shell, stopping at the first STOP. The label names the tools' first 8 hex and the
+  action. Claude takes each routine line from the announced commit itself
+  (FROM_COMMIT), never from the working tree (review 2 of 22d, R3).
 """
 import re
 import shlex
@@ -33,9 +35,13 @@ SOURCES = ('stick', 'folder')
 # Claude's checkout on the laptop (as ares); the folder line reads only its git objects
 # and compares its os/owner-tools with the announced commit.
 CHECKOUT = '/var/home/ares/AresOS'
-# Absolute: ~/.local/bin is first on his PATH (brief 22d, decision 2).
+# Absolute: ~/.local/bin is first on his PATH (brief 22d, decision 2); sudo's secure_path
+# would find bash today, but nothing in the image pins that (review 2, N1).
 SUDO = '/usr/bin/sudo'
+BASH = '/usr/bin/bash'
 ASKPASS = '/usr/bin/ksshaskpass'
+# Where Claude reads a routine line: the announced commit's commands.json, entry by name.
+FROM_COMMIT = 'git -C ' + CHECKOUT + ' show <commit>:os/owner-tools/commands.json'
 INSTALLED = '/var/lib/ares/at'
 # The action each routine line's window names, after "AresOS owner tools <8 hex>: ".
 ACTIONS = {'tools-routine': 'install these tools, then check and title',
@@ -87,8 +93,9 @@ def label(fingerprint, action):
 
     ksshaskpass remembers an answer only for prompts that match its SSH and git
     patterns; this shape matches none of them (test_owner_bootstrap holds it). sudo
-    expands % in a prompt and a quote would change the line's quoting, so the label
-    keeps to letters, digits, spaces, commas and its one colon.
+    expands % in a prompt, a quote would change the line's quoting and the window
+    reads the label as rich text (< or & would be markup), so the label keeps to
+    letters, digits, spaces, commas and its one colon.
     """
     assert re.fullmatch('[0-9a-f]{64}', fingerprint)
     text = 'AresOS owner tools ' + fingerprint[:8] + ': ' + action
@@ -97,10 +104,16 @@ def label(fingerprint, action):
 
 
 def routine(fingerprint, action, script):
-    """One routine line: a fresh password in the window, then script in one root shell."""
+    """One routine line: a fresh password in the window, then script in one root shell.
+
+    sudo runs the helper with the caller's environment. ksshaskpass reads
+    SSH_ASKPASS_PROMPT ("confirm" shows Accept without a password field, "none"
+    only Cancel); empty is its default, the password window, whatever the
+    caller's environment says (review 2, N5).
+    """
     assert "'" not in script
-    return ('SUDO_ASKPASS=' + ASKPASS + ' ' + SUDO + ' -k -A -p ' + shlex.quote(label(fingerprint, action))
-            + ' bash -c ' + shlex.quote(script))
+    return ('SUDO_ASKPASS=' + ASKPASS + ' SSH_ASKPASS_PROMPT= ' + SUDO + ' -k -A -p '
+            + shlex.quote(label(fingerprint, action)) + ' ' + BASH + ' -c ' + shlex.quote(script))
 
 
 def tools_routine(fingerprint):
@@ -120,8 +133,11 @@ def export_routine(fingerprint):
 def tools_folder(fingerprint):
     """Claude's line as ares: the announced commit's payload into a fresh folder, or a STOP.
 
-    Chained under set -e, so any failure stops before the folder changes or the
-    window opens. git archive reads the commit, never the working tree.
+    Chained under set -e, so any failure stops before the window opens. Every
+    refusal with its own reason comes before the folder is emptied, the pinned
+    fingerprint against the commit's own SHA256SUMS included (review 2, N2), so
+    it leaves the folder as it was; only a failing git archive or tar after that
+    leaves it emptied. git archive reads the commit, never the working tree.
     """
     assert re.fullmatch('[0-9a-f]{64}', fingerprint)
     stop = 'echo "STOP tools folder: '
@@ -134,6 +150,8 @@ def tools_folder(fingerprint):
         'git fetch --quiet origin +refs/heads/main:refs/remotes/origin/main',
         'git merge-base --is-ancestor "$c" refs/remotes/origin/main || { ' + stop + '$c is not on origin/main"; exit 1; }',
         'git diff --quiet "$c" -- os/owner-tools || { ' + stop + 'this checkout differs from $c in os/owner-tools"; exit 1; }',
+        '[[ $(git show "$c":os/owner-tools/payload/SHA256SUMS | sha256sum) == "' + fingerprint + '  -" ]] || { '
+        + stop + '$c holds other tools than ' + fingerprint[:8] + '"; exit 1; }',
         'rm -rf ' + FOLDER + '; mkdir ' + FOLDER,
         'git archive "$c":os/owner-tools/payload | tar -x -C ' + FOLDER,
         'cd ' + FOLDER + '; echo "' + fingerprint + '  SHA256SUMS" | sha256sum -c --strict'])
